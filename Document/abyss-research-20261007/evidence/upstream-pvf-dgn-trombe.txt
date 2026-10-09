@@ -1,0 +1,550 @@
+id 103 -> Act9/Trombe.dgn
+=== dungeon/Act9/Trombe.dgn ===
+[background pos]
+80
+[name]
+特伦斯发电站
+[explain]
+    闪电之帕特里斯诞生于地下发电中心。 他可以自由吸收周围所有的电能， 对敌人进行致命的打击， 而普通的攻击根本无法对他造成任何伤害。 这样的他， 绝对是任何对手的可怕梦魇！
+[cutscene image]
+Map/CutScene/PowerStation.img 0
+[minimap image]
+Map/MiniMap/Act2.img
+[worldmap pattern info]
+1 4 WorldMap/SelectdungeonSlot/powerstation.img 2
+[difficulty level]
+1 1 1 1 1
+[recommend equipment]
+0 2 0 2 0 3 12 3 12 6
+[/recommend equipment]
+[minimum required level]
+81
+[basis level]
+84
+[experience increasing point]
+1.26
+[champion]
+3 33 50 70 80
+[pathgate object]
+5793 5797 5757 5794 5798 5760 5795 5799 5796 5800
+[story mode]
+[difficulty size]
+2
+[first difficulty rate]
+100 100
+[increase difficulty rate]
+5 10
+[increase exp rate]
+0 30
+[quest list]
+2571 2574 , 2577 2579 , 2580 , 2582 , 2583 , 2584 , 2585 , 2586 , 2587 ,
+[/quest list]
+[/story mode]
+[maze info]
+[size]
+4 3
+[greed]
+BBFFFFMM
+ AAJJNNGG
+ AADDGGAA
+[map specification]
+map 0 0 42051 map 1 0 42052 map 2 0 42053 map 3 0 42054 map 1 1 42055 map 2 1 42056 map 3 1 42057 map 1 2 42058 boss 2 2 42060
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+2 2
+[/boss map]
+[hell dungeon]
+1
+[seal door map index]
+60069
+[seal door pos]
+3 0
+[season seal door map index]
+91007
+[season seal door pos]
+1 0
+[hit count]
+50 50 50 50 50
+[seal door appear rate]
+10
+[special passive object item]
+0 -1 1 3341 1500
+[/special passive object item]
+[maze info]
+[quest connection]
+0 2571 -1
+[size]
+6 2
+[greed]
+BBFFMMAAJJEE
+ AAAADDFFGGAA
+[map specification]
+map 0 0 43200 map 1 0 43201 map 2 0 43202 map 2 1 43203 map 3 1 43204 map 4 1 43205 map 4 0 43206 boss 5 0 43207
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+5 0
+[/boss map]
+[escape hell]
+1
+[special passive object item]
+0 -1 1 3341 1500
+[/special passive object item]
+[maze info]
+[quest connection]
+0 2574 -1
+[size]
+4 2
+[greed]
+BBFFFFMM
+ BBFFFFGG
+[map specification]
+map 0 0 43287 map 1 0 43208 map 2 0 43209 map 3 0 43210 map 3 1 43211 map 2 1 43212 map 1 1 43213 boss 0 1 43214
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+0 1
+[/boss map]
+[escape hell]
+1
+[special passive object item]
+0 -1 1 3341 1500
+[/special passive object item]
+[maze info]
+[quest connection]
+0 2577 -1
+[size]
+6 3
+[greed]
+AAAAAAAAAAII
+ JJFFFFFFFFGG
+ DDEEAAAAAAAA
+[map specification]
+map 5 0 43288 map 5 1 43215 map 4 1 43216 map 3 1 43217 map 2 1 43218 map 1 1 43219 map 0 1 43220 map 0 2 43221 boss 1 2 43222
+[/map specification]
+[start map]
+5 0
+[/start map]
+[boss map]
+1 2
+[/boss map]
+[escape hell]
+1
+[special passive object item]
+0 -1 1 3341 1500
+[/special passive object item]
+[maze info]
+[quest connection]
+0 2579 -1
+[size]
+4 3
+[greed]
+AAIIJJEE
+ JJGGKKAA
+ DDFFGGAA
+[map specification]
+map 1 0 43287 map 1 1 43223 map 0 1 43224 map 0 2 43225 map 1 2 43226 map 2 2 43227 map 2 1 43228 map 2 0 43229 boss 3 0 43230
+[/map specification]
+[start map]
+1 0
+[/start map]
+[boss map]
+3 0
+[/boss map]
+[escape hell]
+1
+[special passive object item]
+0 -1 1 3341 1500
+[/special passive object item]
+[maze info]
+[quest connection]
+0 2580 -1
+[size]
+3 3
+[greed]
+IIJJMM
+ KKKKCC
+ DDGGAA
+[map specification]
+map 0 0 43288 map 0 1 43231 map 0 2 43232 map 1 2 43233 map 1 1 43234 map 1 0 43235 map 2 0 43236 boss 2 1 43237
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+2 1
+[/boss map]
+[escape hell]
+1
+[special passive object item]
+0 -1 1 3341 1500
+[/special passive object item]
+[maze info]
+[quest connection]
+0 2582 -1
+[size]
+5 4
+[greed]
+AAJJFFFFEE
+ AAKKAAAAAA
+ IIKKAAAAAA
+ DDGGAAAAAA
+[map specification]
+map 0 2 43289 map 0 3 43238 map 1 3 43239 map 1 2 43240 map 1 1 43241 map 1 0 43242 map 2 0 43243 map 3 0 43244 boss 4 0 43245
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+4 0
+[/boss map]
+[escape hell]
+1
+[special passive object item]
+0 -1 1 3341 1500
+[/special passive object item]
+[maze info]
+[quest connection]
+0 2583 -1
+[size]
+3 4
+[greed]
+AAAAII
+ JJFFGG
+ DDFFMM
+ AABBGG
+[map specification]
+map 2 0 43290 map 2 1 43246 map 1 1 43247 map 0 1 43248 map 0 2 43249 map 1 2 43250 map 2 2 43251 map 2 3 43252 boss 1 3 43253
+[/map specification]
+[start map]
+2 0
+[/start map]
+[boss map]
+1 3
+[/boss map]
+[escape hell]
+1
+[special passive object item]
+0 -1 1 3341 1500
+[/special passive object item]
+[maze info]
+[quest connection]
+0 2584 -1
+[size]
+8 2
+[greed]
+AAAAAAAAAAAAJJEE
+ BBFFFFFFFFFFGGAA
+[map specification]
+map 7 0 43291 map 6 0 43254 map 6 1 43255 map 5 1 43256 map 4 1 43257 map 3 1 43258 map 2 1 43259 map 1 1 43260 boss 0 1 43261
+[/map specification]
+[start map]
+7 0
+[/start map]
+[boss map]
+0 1
+[/boss map]
+[escape hell]
+1
+[special passive object item]
+0 -1 1 3341 1500
+[/special passive object item]
+[maze info]
+[quest connection]
+0 2585 -1
+[size]
+7 2
+[greed]
+JJEEAAAAAAAAAA
+ DDFFFFFFFFFFEE
+[map specification]
+map 1 0 43292 map 0 0 43262 map 0 1 43263 map 1 1 43264 map 2 1 43265 map 3 1 43266 map 4 1 43267 map 5 1 43268 boss 6 1 43269
+[/map specification]
+[start map]
+1 0
+[/start map]
+[boss map]
+6 1
+[/boss map]
+[escape hell]
+1
+[special passive object item]
+0 -1 1 3341 1500
+[/special passive object item]
+[maze info]
+[quest connection]
+0 2586 -1
+[size]
+4 3
+[greed]
+AAAAJJMM
+ IIJJGGKK
+ DDGGAACC
+[map specification]
+map 0 1 43293 map 0 2 43270 map 1 2 43271 map 1 1 43272 map 2 1 43273 map 2 0 43274 map 3 0 43275 map 3 1 43276 boss 3 2 43277
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+3 2
+[/boss map]
+[escape hell]
+1
+[special passive object item]
+0 -1 1 3341 1500
+[/special passive object item]
+[maze info]
+[quest connection]
+0 2587 -1
+[size]
+7 2
+[greed]
+JJFFMMAAAAAAII
+ CCAADDFFFFFFGG
+[map specification]
+map 6 0 43294 map 6 1 43278 map 5 1 43279 map 4 1 43280 map 3 1 43281 map 2 1 43282 map 2 0 43283 map 1 0 43284 map 0 0 43285 boss 0 1 43286
+[/map specification]
+[start map]
+6 0
+[/start map]
+[boss map]
+0 1
+[/boss map]
+[escape hell]
+1
+[special passive object item]
+0 -1 1 3341 1500 1 -1 1 10099777 2500
+[/special passive object item]
+[event monster random map]
+0
+[event monster]
+1 1000 21100 1 1000 1 1 5
+[/event monster]
+[recommend party]
+> 1 > 2 > 2 > 3 > 4
+[/recommend party]
+[maze info]
+[quest connection]
+0 14853 -1
+[size]
+6 2
+[greed]
+BBFFMMAAJJEE
+AAAADDFFGGAA
+[map specification]
+map 0 0 43200 map 1 0 43201 map 2 0 43202 map 2 1 43203 map 3 1 43204 map 4 1 43205 map 4 0 43206 boss 5 0 43207
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+5 0
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 14854 -1
+[size]
+4 2
+[greed]
+BBFFFFMM
+BBFFFFGG
+[map specification]
+map 0 0 43287 map 1 0 43208 map 2 0 43209 map 3 0 43210 map 3 1 43211 map 2 1 43212 map 1 1 43213 boss 0 1 43214
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+0 1
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 14855 -1
+[size]
+6 3
+[greed]
+AAAAAAAAAAII
+JJFFFFFFFFGG
+DDEEAAAAAAAA
+[map specification]
+map 5 0 43288 map 5 1 43215 map 4 1 43216 map 3 1 43217 map 2 1 43218 map 1 1 43219 map 0 1 43220 map 0 2 43221 boss 1 2 43222
+[/map specification]
+[start map]
+5 0
+[/start map]
+[boss map]
+1 2
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 14856 -1
+[size]
+4 3
+[greed]
+AAIIJJEE
+JJGGKKAA
+DDFFGGAA
+[map specification]
+map 1 0 43287 map 1 1 43223 map 0 1 43224 map 0 2 43225 map 1 2 43226 map 2 2 43227 map 2 1 43228 map 2 0 43229 boss 3 0 43230
+[/map specification]
+[start map]
+1 0
+[/start map]
+[boss map]
+3 0
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 14857 -1
+[size]
+3 3
+[greed]
+IIJJMM
+KKKKCC
+DDGGAA
+[map specification]
+map 0 0 43288 map 0 1 43231 map 0 2 43232 map 1 2 43233 map 1 1 43234 map 1 0 43235 map 2 0 43236 boss 2 1 43237
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+2 1
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 14858 -1
+[size]
+5 4
+[greed]
+AAJJFFFFEE
+AAKKAAAAAA
+IIKKAAAAAA
+DDGGAAAAAA
+[map specification]
+map 0 2 43289 map 0 3 43238 map 1 3 43239 map 1 2 43240 map 1 1 43241 map 1 0 43242 map 2 0 43243 map 3 0 43244 boss 4 0 43245
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+4 0
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 14859 -1
+[size]
+3 4
+[greed]
+AAAAII
+JJFFGG
+DDFFMM
+AABBGG
+[map specification]
+map 2 0 43290 map 2 1 43246 map 1 1 43247 map 0 1 43248 map 0 2 43249 map 1 2 43250 map 2 2 43251 map 2 3 43252 boss 1 3 43253
+[/map specification]
+[start map]
+2 0
+[/start map]
+[boss map]
+1 3
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 14860 -1
+[size]
+8 2
+[greed]
+AAAAAAAAAAAAJJEE
+BBFFFFFFFFFFGGAA
+[map specification]
+map 7 0 43291 map 6 0 43254 map 6 1 43255 map 5 1 43256 map 4 1 43257 map 3 1 43258 map 2 1 43259 map 1 1 43260 boss 0 1 43261
+[/map specification]
+[start map]
+7 0
+[/start map]
+[boss map]
+0 1
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 14861 -1
+[size]
+7 2
+[greed]
+JJEEAAAAAAAAAA
+DDFFFFFFFFFFEE
+[map specification]
+map 1 0 43292 map 0 0 43262 map 0 1 43263 map 1 1 43264 map 2 1 43265 map 3 1 43266 map 4 1 43267 map 5 1 43268 boss 6 1 43269
+[/map specification]
+[start map]
+1 0
+[/start map]
+[boss map]
+6 1
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 14862 -1
+[size]
+4 3
+[greed]
+AAAAJJMM
+IIJJGGKK
+DDGGAACC
+[map specification]
+map 0 1 43293 map 0 2 43270 map 1 2 43271 map 1 1 43272 map 2 1 43273 map 2 0 43274 map 3 0 43275 map 3 1 43276 boss 3 2 43277
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+3 2
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 14863 -1
+[size]
+7 2
+[greed]
+JJFFMMAAAAAAII
+CCAADDFFFFFFGG
+[map specification]
+map 6 0 43294 map 6 1 43278 map 5 1 43279 map 4 1 43280 map 3 1 43281 map 2 1 43282 map 2 0 43283 map 1 0 43284 map 0 0 43285 boss 0 1 43286
+[/map specification]
+[start map]
+6 0
+[/start map]
+[boss map]
+0 1
+[/boss map]
+[escape hell]
+1

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
@@ -72,7 +73,7 @@ public sealed class CompoundItemCommandHandler(IRecipeCraftDomainService recipes
         CancellationToken ct) => recipes.CraftAsync(command.Session, command.Drawing, command.Count, clock.GetUtcNow(), ct);
 }
 public sealed class CompoundItemHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ICommandBus commands, INotificationBus notifications, IGameMessageSender sender,
+    ICommandBus commands, IEventService notifications, IGameMessageSender sender,
     ILogger<CompoundItemHandler> logger) : ClientMessageHandler<CompoundItemRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, CompoundItemRequest request, CancellationToken ct)
@@ -105,7 +106,7 @@ public sealed class CompoundItemHandler(ISelectedSessionDomainService sessions, 
         async ValueTask Publish(RecipeCraftReceipt result, bool acknowledge)
         {
             // First delivery preserves the existing acknowledgement and committed inventory notifications.
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
                 new OpeningCompleted(result.Inventory, acknowledge ? [new CompoundItemResponse(result)] : []), ct).ConfigureAwait(false);
         }
     }

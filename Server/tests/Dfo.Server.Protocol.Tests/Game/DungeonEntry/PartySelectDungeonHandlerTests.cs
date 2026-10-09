@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Protocol.Game.Fatigue;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
@@ -188,7 +189,7 @@ public sealed class PartySelectDungeonHandlerTests
                 await selection.HandleAsync(Dispatch(Leader), new SelectDungeonRequest(GameMessageMetadata.Empty, DungeonId, DungeonDifficulty.Normal, 0, 0), default);
             Assert.Equal(2, visits.Attempts); // A repeated click still reaches fatigue validation.
             Assert.Equal(2, sender.Messages(Leader.ConnectionId).OfType<SelectDungeonRefusal>().Count());
-            Assert.All(sender.Messages(Leader.ConnectionId).OfType<SelectDungeonRefusal>(), x => Assert.Equal(SelectDungeonRefusal.MemberBlocked, x.ErrorCode));
+            Assert.All(sender.Messages(Leader.ConnectionId).OfType<SelectDungeonRefusal>(), x => Assert.Equal(SelectDungeonRefusal.InsufficientFatigue, x.ErrorCode));
         }
         var handler = ActivatorUtilities.CreateInstance<BackToVillageHandler>(services);
 
@@ -255,7 +256,7 @@ public sealed class PartySelectDungeonHandlerTests
 
         var refusal = Assert.IsType<SelectDungeonRefusal>(
             Assert.Single(world.Sender.Messages(Leader.ConnectionId)));
-        Assert.Equal(SelectDungeonRefusal.MemberBlocked, refusal.ErrorCode);
+        Assert.Equal(SelectDungeonRefusal.SelectionCohortUnavailable, refusal.ErrorCode);
         Assert.Equal(1, refusal.Context);
         Assert.Equal(0, world.Visits.PartyEntries);
         Assert.Empty(world.Fatigue.Spent);
@@ -889,10 +890,9 @@ public sealed class PartySelectDungeonHandlerTests
             new MazeCell(1, 0),
             61000,
             123,
-            new Dictionary<MazeCell, int>
-            {
-                [new MazeCell(0, 0)] = 61000,
-                [new MazeCell(1, 0)] = 61001,
+            new Dictionary<MazeCell, DungeonCellDefinition> {
+                [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000),
+                [new MazeCell(1, 0)] = DungeonCellDefinition.Fixed(61001),
             });
     }
 
@@ -1008,13 +1008,12 @@ public sealed class PartySelectDungeonHandlerTests
         }
     }
 
-    private sealed class NoopNotificationBus : INotificationBus
+    private sealed class NoopNotificationBus : Dfo.Server.Testing.ProjectionEventService
     {
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
-            CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification> =>
+            CancellationToken cancellationToken) =>
             ValueTask.FromResult(new NotificationDelivery([]));
     }
 

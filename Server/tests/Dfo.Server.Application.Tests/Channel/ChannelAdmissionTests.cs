@@ -15,7 +15,7 @@ public sealed class ChannelAdmissionTests
         var general = await policy.ResolveAsync(10011, CancellationToken.None);
 
         Assert.Equal(100, restricted.ChannelId);
-        Assert.Equal(ChannelEntryKind.LevelRestricted, restricted.Kind);
+        Assert.Equal(ChannelEntryKind.SaintHorn, restricted.Kind);
         Assert.Equal(11, general.ChannelId);
         Assert.Equal(ChannelEntryKind.General, general.Kind);
     }
@@ -66,7 +66,7 @@ public sealed class ChannelAdmissionTests
         Assert.Equal(ChannelEntryKind.General, general.Kind);
         Assert.Null(policy.Refuse(general, characterLevel: 1));
         Assert.Equal(100, restricted.ChannelId);
-        Assert.Equal(ChannelEntryKind.LevelRestricted, restricted.Kind);
+        Assert.Equal(ChannelEntryKind.SaintHorn, restricted.Kind);
         Assert.NotNull(policy.Refuse(restricted, characterLevel: 1));
     }
 
@@ -140,6 +140,24 @@ public sealed class ChannelAdmissionTests
         Assert.True(restricted.IsTransient);
         Assert.False(general.IsTransient);
         Assert.False(duel.IsTransient);
+    }
+
+    [Fact]
+    public async Task The_third_listener_maps_to_saint_horn_and_uses_the_configured_minimum()
+    {
+        var policy = new ChannelEntryPolicy(new ChannelContentRuleService(new StubChannelCatalog(
+            [new(10, "#ch.10", 500, 0, "127.0.0.1", 40010),
+             new(11, "#ch.11", 500, 0, "127.0.0.1", 40011),
+             new(100, "#ch.100", 500, 0, "127.0.0.1", 40100)]), new NoChannelScript()),
+            ChannelEntryOptions.Legacy with { SaintHornMinimumLevel = 75 },
+            new ChannelListenerOptions([10010, 10011, 10100], AllowAdvertisedPortFallback: false));
+        var channel = await policy.ResolveAsync(10100, default);
+        Assert.Equal(100, channel.ChannelId);
+        Assert.Equal(ChannelEntryKind.SaintHorn, channel.Kind);
+        Assert.True(channel.IsTransient);
+        Assert.Contains("75", policy.Refuse(channel, 74)!.Message);
+        Assert.Null(policy.Refuse(channel, 75));
+        Assert.Equal(11, (await policy.ResolveAsync(10011, default)).ChannelId);
     }
 
     private static ChannelEntryPolicy Policy(bool freeDuelEnabled = false) =>

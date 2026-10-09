@@ -480,6 +480,20 @@ internal static partial class StateSynchronizationPayloadCodec
             writer.Write(entry.SlotIndex); writer.Write(entry.ItemId); writer.Write(entry.Value); writer.Write(entry.Attribute);
             writer.Write(entry.Durability); writer.Write(entry.SealFlag); writer.Write(entry.EnchantIndex);
             writer.Write(entry.EnchantUpgradeCount); writer.Write(entry.AmplifyType); writer.Write(entry.AmplifyValue);
+            // The upstream A21 writer includes this empty extension after the native 22-byte
+            // prefix. The native tail helper is virtualized; its size remains reference evidence,
+            // pending real-client acceptance. Do not infer that this dword is padding.
+            writer.Write(0);
+        }
+        if (category.InfoType == 0 && category.MirrorProjectionEnabled)
+        {
+            // TBM1 v1: explicit project extension AFTER the complete native list.
+            writer.Write(0x314D4254);
+            writer.Write(1);
+            writer.Write(category.WearSource?.Category ?? -1);
+            writer.Write(category.WearSource?.Index ?? -1);
+            writer.Write(category.WearSource?.ItemId ?? 0);
+            writer.Write(24);
         }
         return stream.ToArray();
     }
@@ -786,10 +800,8 @@ internal static partial class StateSynchronizationPayloadCodec
     /// rather than a third filter: the appearance run is
     /// <see cref="DrawnAppearance.DrawsFrom"/>'s answer -- asked rather than restated, because the
     /// character-selection roster draws from the same run -- and the creature triple takes
-    /// <c>24</c>. Anyone asking "would this frame come out differently if that slot changed" has to
-    /// ask about both, and asking here is what keeps a fourth slot filter from appearing in this
-    /// repository -- there are already three that disagree with each other, and reconciling them
-    /// changes bytes.
+    /// A21 slot <c>25</c>. Anyone asking "would this frame come out differently if that slot changed"
+    /// has to ask about both, keeping equip/unequip refresh decisions aligned with serialization.
     /// <para>
     /// It answers about a worn slot. A slot number from the bag or the avatar page means something
     /// else entirely, and the caller is the one that knows which list it holds.

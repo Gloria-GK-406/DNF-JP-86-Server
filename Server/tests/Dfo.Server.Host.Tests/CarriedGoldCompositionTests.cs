@@ -45,6 +45,7 @@ public sealed class CarriedGoldCompositionTests
         Assert.NotNull(characters.Get(new Dfo.Server.Data.Characters.CharacterId(1)));
         Assert.NotNull(provider.GetRequiredService<IItemUseEffectDomainService>());
         Assert.NotNull(provider.GetRequiredService<IApplyEffectsDomainService>());
+        Assert.NotNull(provider.GetRequiredService<IEpicBookDomainService>());
     }
 
     /// <summary>The two seams that move gold are both registered and are not the same one.</summary>

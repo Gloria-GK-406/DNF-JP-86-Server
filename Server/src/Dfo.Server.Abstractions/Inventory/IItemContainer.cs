@@ -200,5 +200,8 @@ public abstract record ItemMoveOutcome
     /// <summary>Both ends were the same slot: nothing happened and nothing is wrong.</summary>
     public sealed record Unchanged : ItemMoveOutcome;
 
+    /// <summary>The outgoing projection was deleted; the destination was untouched.</summary>
+    public sealed record MirrorRemoved(int ItemId) : ItemMoveOutcome;
+
     public sealed record Refused(ItemMoveRefusal Reason) : ItemMoveOutcome;
 }

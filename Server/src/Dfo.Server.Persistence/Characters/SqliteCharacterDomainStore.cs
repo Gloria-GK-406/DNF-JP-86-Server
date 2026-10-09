@@ -59,6 +59,7 @@ internal sealed class SqliteCharacterDomainStoreSession : ICharacterDomainStoreS
     private readonly CreatureSection creatures;
 
     private readonly Dictionary<OwnedCharacterId, CharacterPositionState> positions = [];
+    private readonly Dictionary<OwnedCharacterId, byte> innTowns = [];
 
     public SqliteCharacterDomainStoreSession(SqliteDatabaseParticipant owner, ItemLifecycleScope scope)
     {
@@ -107,10 +108,12 @@ internal sealed class SqliteCharacterDomainStoreSession : ICharacterDomainStoreS
             : null;
     }
 
-    public void WritePosition(OwnedCharacterId characterId, CharacterPositionState position)
+    public void WritePosition(OwnedCharacterId characterId, CharacterPositionState position, byte? lastInnTownId = null)
     {
         ArgumentNullException.ThrowIfNull(position);
+        if (lastInnTownId == 0) throw new ArgumentOutOfRangeException(nameof(lastInnTownId));
         this.positions[characterId] = position;
+        if (lastInnTownId is { } inn) this.innTowns[characterId] = inn;
     }
 
     public async ValueTask FlushAsync(CancellationToken cancellationToken)
@@ -124,6 +127,7 @@ internal sealed class SqliteCharacterDomainStoreSession : ICharacterDomainStoreS
     public void Discard()
     {
         this.positions.Clear();
+        this.innTowns.Clear();
     }
 
     private async ValueTask FillPositionAsync(
@@ -134,10 +138,12 @@ internal sealed class SqliteCharacterDomainStoreSession : ICharacterDomainStoreS
         await using var command = await this.owner.CommandAsync(cancellationToken).ConfigureAwait(false);
         command.CommandText = """
             UPDATE characters
-            SET town_id=@town, area_id=@area, pos_x=@x, pos_y=@y, direction=@direction, area_state=3
+            SET town_id=@town, area_id=@area, pos_x=@x, pos_y=@y, direction=@direction, area_state=3,
+                last_inn_town_id=COALESCE(@inn, last_inn_town_id)
             WHERE character_id=@character AND account_id=@account AND delete_flag=0;
             """;
         command.Parameters.AddWithValue("@town", position.TownId);
+        command.Parameters.AddWithValue("@inn", this.innTowns.TryGetValue(characterId, out var inn) ? inn : DBNull.Value);
         command.Parameters.AddWithValue("@area", position.AreaId);
         command.Parameters.AddWithValue("@x", position.X);
         command.Parameters.AddWithValue("@y", position.Y);

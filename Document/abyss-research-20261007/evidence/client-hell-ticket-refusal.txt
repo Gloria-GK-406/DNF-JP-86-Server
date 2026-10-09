@@ -1,0 +1,21 @@
+2026-10-07 A21 主动深渊缺票拒绝：ClientStatic / Confirmed
+PE: E:/Project/DNF/DNFClient-A21-protocol2/DNF.unpacked-b1-debug.exe
+SHA256: CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14
+ImageBase: 00400000
+复现：python Document/abyss-research-20261007/evidence/client-scan.py --ranges 0x00D0BC6C:0x00D0BD45 0x023170D0:0x02317258
+跳表：RVA 00D0BF8C 的 byte[errorCode-7] -> RVA 00D0BF04 的 VA 表
+0x11 -> RVA 00D0B08E；普通材料遍历 RVA 00D0B219；空表可结束，无深渊专用控件调用。
+0x1B -> RVA 00D0BC6C；深渊缺票文案与控件调用：
+RVA 00D0BD35 VA 0110BD35 6a01                 push 1
+RVA 00D0BD37 VA 0110BD37 6a01                 push 1
+RVA 00D0BD39 VA 0110BD39 8bce                 mov ecx, esi
+RVA 00D0BD3B VA 0110BD3B e890b36001           call 0x027170D0
+控件函数通过 RVA 02316980 按编号查找，RVA 023171F0..02317209 向控件虚函数传递布尔状态。
+拒绝后另有通用刷新路径；该调用不单独证明所有控件恢复。
+
+本地化文字：实际运行 protocol2 PID 20620，PROCESS_VM_READ only，未调用或写入客户端函数。
+字符串树全局 VA 04E28C84；map head 为 +8，node key +12，UTF16 string pointer +16。
+0x6A14: 部分队员邀请函不足，无法进入该地下城。
+0xA5DE: 队伍中有队员的%s不足，无法进入深渊派对。
+完整只读输出与探针：工作区 artifacts/manual-hell-refusal-20261007/。
+上述文案仅证明此客户端的文字，不证明官方服务端何时使用该码。

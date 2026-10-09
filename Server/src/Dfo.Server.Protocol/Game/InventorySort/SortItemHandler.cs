@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -9,7 +10,7 @@ using Dfo.Server.Data.Networking;
 namespace Dfo.Server.Protocol.Game.InventorySort;
 
 public sealed class SortItemHandler(IOnlineUserQueryDomainService onlineUsers,
-    ISelectedSessionDomainService sessions, ICommandBus commands, INotificationBus notifications,
+    ISelectedSessionDomainService sessions, ICommandBus commands, IEventService notifications,
     IGameMessageSender sender) : ClientMessageHandler<SortItemRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
@@ -25,7 +26,7 @@ public sealed class SortItemHandler(IOnlineUserQueryDomainService onlineUsers,
             await sender.SendCmdAsync(context.Connection.ConnectionId, new SortItemResponse(message.ListType, false, 1), ct)
                 .ConfigureAwait(false);
         else
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
                 new InventorySorted(receipt, (InventoryContainerType)message.ListType), ct).ConfigureAwait(false);
     }
 }

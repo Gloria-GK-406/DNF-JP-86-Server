@@ -95,10 +95,9 @@ public sealed class PickedUpAvatarStaysWholeTests
         BossCell: new MazeCell(1, 0),
         StartRoomMapId: 8153,
         Seed: 0x0BADF00D,
-        Rooms: new Dictionary<MazeCell, int>
-        {
-            [new MazeCell(0, 0)] = 8153,
-            [new MazeCell(1, 0)] = 8154,
+        Cells: new Dictionary<MazeCell, DungeonCellDefinition> {
+            [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8153),
+            [new MazeCell(1, 0)] = DungeonCellDefinition.Fixed(8154),
         },
         BasisLevel: 86);
 

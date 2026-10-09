@@ -1,5 +1,27 @@
 # 协议清单
 
+## 2026-10-09 成就与称号簿（配套0200，用户验收通过）
+
+[019C](game/client-to-server/0x019C.md)/[019D](game/client-to-server/0x019D.md)分别处理取消/佩戴和真实存取。称号簿保留原件，装备位13使用镜像；CMD确认释放请求等待，提交后经EventService投影0002装备/外观和静默[0166](game/server-to-client/NOTI-0x0166.md)。首次真实解锁才发送[0168](game/server-to-client/NOTI-0x0168.md)。0200读取自定义TBM1尾部，按精确书来源显示“装备中”；取消不搬书原件，不用000E制造获得提示。`grade=achievement`走受理任务正式完成，`grade=title`走被动条件，登录固定条件核对与只读查询分开。
+
+用户于2026-10-09接受当前称号系统，玩家可见闭环记为ClientVerified（配套0200）；原生未知字段、冷启动和长时稳定性不扩大验收。流程、字段与证据边界见[协议流程](../Document/AchievementTitleBookFlow-20261009.md)，风险见[ClientHack #1](https://github.com/Gloria-GK-406/DNF-JP-86-ClientHack/issues/1)。历史隐藏原件、space=18+category和000E回填均已淘汰：前者造成消失，绕过ACK造成pending未释放，回填触发获得提示；相关取证保留在带日期的修复记录中。
+
+## 2026-10-07 EXIT 与切频道
+
+[CMD0003](game/client-to-server/0x0003.md) 改为纯协议成功 ACK，不再撤销登录凭据；断线后使用既有 300 秒重连宽限，新连接交接和密码重新登录失效规则保留。实际切频道日志已定位 EXIT 后的新 LOGIN `ticket_rejected`；Host 回归覆盖先 EXIT 再登录 CH100 与切回普通频道。用户已确认普通频道与CH100切换验收通过；该切换行为为ClientVerified，其他恢复边界仍按自动化证据区分。
+
+## 2026-10-07 升级券
+
+[CMD01A2](game/client-to-server/0x01A2.md) 已接入升级券领域服务：PVF 等级范围/升级幅度/模式限制，真实背包扣券与角色 SetLevel、旧主线清理同事务，提交后更新背包、经验点数、任务和技能。请求 `05 00 00` 已观察。首次部署使用原生非零分支，用户反馈升级后弹旧活动窗口；补追确认该分支在等级 >=60 时显示窗口 0x191，当前业务成功改为上游同样的 `00 00` 静默回执，并由 NOTI 同步状态。请求为 WireCaptured，修正为 ClientStatic + CurrentImplementation，修正后 UI 待实机验收。见[说明与验证](../Document/level-up-ticket-20261007.md)。
+
+## 2026-10-07 深渊缺票拒绝修正
+
+[CMD0010](game/client-to-server/0x0010.md) 的 `MissingHellTicket` 使用 A21 深渊专用码 `0x1B`，不再沿用普通材料不足 `0x11`。客户端分支与文案为 ClientStatic / Confirmed；回归覆盖拒绝帧和重试意图，修正后的控件恢复仍待实机验收。
+
+## 2026-10-07 主动深渊入场（CurrentImplementation）
+
+[CMD0010](game/client-to-server/0x0010.md) 模式1经CMD类型判定和主动深渊领域服务，检查全队任务/等级/门票并冻结共享方案；随机深渊保留桩。[001C](game/server-to-client/NOTI-0x001C.md)/[001D](game/server-to-client/NOTI-0x001D.md)/[02A7](game/server-to-client/NOTI-0x02A7.md)消费同一方案，普通编码保留原向量。02A7资源消费链补证为ClientStatic；尚未部署/实机验收。柱、波次、掉落与结算不在此次范围。见[实现说明](../Document/tasks/manual-hell-entry/implementation.md)。
+
 ## 2026-10-06 A21 骑士马战大竞猜
 
 [04E6](game/client-to-server/0x04E6.md)、[04E7](game/client-to-server/0x04E7.md)、[04E8](game/client-to-server/0x04E8.md)及[04B8](game/server-to-client/NOTI-0x04B8.md)/[04B9](game/server-to-client/NOTI-0x04B9.md)/[04BA](game/server-to-client/NOTI-0x04BA.md)/[04BB](game/server-to-client/NOTI-0x04BB.md)已接线原生查询、事务下注、历史、入场和提交后在线投影。成功04E6只返回ACK→04BA→04B9；04B8只用于入场初始化及实际生命周期事件，04BB只用于比赛结果事件。查询不推进、不结算、不发邮件。用户确认登录出现一次开启通知、操作窗口不再公告，并接受当前赔率；这些行为记为ClientVerified，其余布局/统计/完整动画仍按ClientStatic、CurrentImplementation或HumanPending区分。04E7槽位i32、04BB四个u8、历史错误也固定3505B；LinkKey必须`joust event/0/0`。详见[使用说明](../Document/JoustEvents.md)和[0.2.2收口边界](../Document/closeout-0.2.2-20261006.md)。
@@ -226,7 +248,7 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 |---:|---:|---|---|---|---|
 | `0x01` | `0x0001` | LOGIN | Query | 实现服务端功能 | [0x0001.md](game/client-to-server/0x0001.md) |
 | `0x01` | `0x0002` | `SET_UDP_IP_PORT` | Mutation / 更新端点供后续队伍快照使用；当前无 CMD 回包 | ClientVerified（A21 双客户端组队路径） | [0x0002.md](game/client-to-server/0x0002.md) |
-| `0x01` | `0x0003` | EXIT | Session side effect / 有响应 | 实现服务端功能（A21 七帧线级重放；真客户端完整退出待归档） | [0x0003.md](game/client-to-server/0x0003.md) |
+| `0x01` | `0x0003` | EXIT | Protocol ACK / 有响应 | 实现服务端功能（A21 七帧线级重放；真客户端完整退出待归档） | [0x0003.md](game/client-to-server/0x0003.md) |
 | `0x01` | `0x0004` | `SELECT_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0004.md](game/client-to-server/0x0004.md) |
 | `0x01` | `0x0005` | `CREATE_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0005.md](game/client-to-server/0x0005.md) |
 | `0x01` | `0x0006` | `DELETE_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0006.md](game/client-to-server/0x0006.md) |
@@ -251,7 +273,7 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x01` | `0x0021` | `SET_QUEST_TRIGGER` | Mutation / 有响应 | 实现服务端功能（A21 赛丽亚任务往返有样本；服务端事实推进与背包重算另待验证） | [0x0021.md](game/client-to-server/0x0021.md) |
 | `0x01` | `0x0022` | `FINISH_QUEST` | Mutation / 有响应 | 实现服务端常规结算；A21 另一静态构包路径末字段非恒定哨兵，具体触发与实帧待查 | [0x0022.md](game/client-to-server/0x0022.md) |
 | `0x01` | `0x0023` | `SET_USER_POSITION` | Report / A12 无响应，A21 推 `NOTI 0x0016` | 实现服务端功能 | [0x0023.md](game/client-to-server/0x0023.md) |
-| `0x01` | `0x002D` | `MOVE_MAP` | Mutation / 成功路径推下一房间 `START_MAP` | 实现服务端功能（A21 线级重放，真客户端待复验） | [0x002D.md](game/client-to-server/0x002D.md) |
+| `0x01` | `0x002D` | `MOVE_MAP` | Mutation / 结构规则选图、回访复用；成功推 `START_MAP` | 实现服务端功能（A21 线级重放，真客户端待复验） | [0x002D.md](game/client-to-server/0x002D.md) |
 | `0x01` | `0x0030` | `DECREASE_DURABILITY` | Mutation / 有响应 | 实现服务端功能；A21 双向静态支持请求 `u8`/成功回复 `01+u8`，成对实帧和显示待验证 | [0x0030.md](game/client-to-server/0x0030.md) |
 | `0x01` | `0x003F` | `CERA` | Report / 无响应 | 实现服务端功能 | [0x003F.md](game/client-to-server/0x003F.md) |
 | `0x01` | `0x0040` | `BUY_CERASHOP_ITEM` | Mutation / 有响应 | 实现服务端功能（A21，宠物蛋实机成功；装扮修复待复测） | [0x0040.md](game/client-to-server/0x0040.md) |
@@ -681,6 +703,11 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x0144` | `MailboxQueryDecoder` | 仅证明 decoder 已注册 | [0x0144](game/client-to-server/0x0144.md) |
 | `0x01` | `0x0191` | `UnsealRandomOptionDecoder` | 仅证明 decoder 已注册 | [0x0191](game/client-to-server/0x0191.md) |
 | `0x01` | `0x0198` | `WarehouseDecoder` | 仅证明 decoder 已注册 | [0x0198](game/client-to-server/0x0198.md) |
+| `0x01` | `0x019C` | `StoreTitleDecoder` | 仅证明 decoder 已注册 | [0x019C](game/client-to-server/0x019C.md) |
+| `0x01` | `0x019D` | `WithdrawTitleDecoder` | 仅证明 decoder 已注册 | [0x019D](game/client-to-server/0x019D.md) |
+| `0x01` | `0x01A1` | `AchievementTriggerDecoder` | 仅证明 decoder 已注册 | [0x01A1](game/client-to-server/0x01A1.md) |
+| `0x01` | `0x01A2` | `LevelUpTicketDecoder` | 仅证明 decoder 已注册 | [0x01A2](game/client-to-server/0x01A2.md) |
+| `0x01` | `0x01A8` | `QueryTitleBookDecoder` | 仅证明 decoder 已注册 | [0x01A8](game/client-to-server/0x01A8.md) |
 | `0x01` | `0x01AF` | `WarehouseDecoder` | 仅证明 decoder 已注册 | [0x01AF](game/client-to-server/0x01AF.md) |
 | `0x01` | `0x01B6` | `ChangeRandomOptionDecoder` | 仅证明 decoder 已注册 | [0x01B6](game/client-to-server/0x01B6.md) |
 | `0x01` | `0x01B7` | `ForgingDecoder` | 仅证明 decoder 已注册 | [0x01B7](game/client-to-server/0x01B7.md) |
@@ -693,6 +720,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x0204` | `QuestClearCouponDecoder` | 仅证明 decoder 已注册 | [0x0204](game/client-to-server/0x0204.md) |
 | `0x01` | `0x0207` | `AvatarPackageOpeningDecoder` | 仅证明 decoder 已注册 | [0x0207](game/client-to-server/0x0207.md) |
 | `0x01` | `0x0218` | `CrystalContractDecoder` | 仅证明 decoder 已注册 | [0x0218](game/client-to-server/0x0218.md) |
+| `0x01` | `0x0239` | `SetTitleAppearanceDecoder` | 仅证明 decoder 已注册 | [0x0239](game/client-to-server/0x0239.md) |
 | `0x01` | `0x0252` | `SecurityStatusDecoder` | 仅证明 decoder 已注册 | [0x0252](game/client-to-server/0x0252.md) |
 | `0x01` | `0x0286` | `HiddenCharacterInfoMessageDecoder` | 仅证明 decoder 已注册 | [0x0286](game/client-to-server/0x0286.md) |
 | `0x01` | `0x02A8` | `RosterFollowUpMessageDecoder` | 仅证明 decoder 已注册 | [0x02A8](game/client-to-server/0x02A8.md) |
@@ -783,6 +811,10 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x013B` | `MailboxSendResponse` | 仅证明 encoder 可产生该 identity | [0x013B](game/client-to-server/0x013B.md) |
 | `0x01` CMD | `0x0144` | `MailboxQueryResponse` | 仅证明 encoder 可产生该 identity | [0x0144](game/client-to-server/0x0144.md) |
 | `0x01` CMD | `0x0198` | `CargoCapacityUpgradeMessage`、`WarehouseResponse` | 仅证明 encoder 可产生该 identity | [0x0198](game/client-to-server/0x0198.md) |
+| `0x01` CMD | `0x019C` | `TitleBookMutationResponse` | 仅证明 encoder 可产生该 identity | [0x019C](game/client-to-server/0x019C.md) |
+| `0x01` CMD | `0x019D` | `TitleBookMutationResponse` | 仅证明 encoder 可产生该 identity | [0x019D](game/client-to-server/0x019D.md) |
+| `0x01` CMD | `0x01A1` | `AchievementTriggerResponse` | 仅证明 encoder 可产生该 identity | [0x01A1](game/client-to-server/0x01A1.md) |
+| `0x01` CMD | `0x01A2` | `LevelUpTicketResponse` | 仅证明 encoder 可产生该 identity | [0x01A2](game/client-to-server/0x01A2.md) |
 | `0x01` CMD | `0x01B6` | `ChangeRandomOptionResponse` | 仅证明 encoder 可产生该 identity | [0x01B6](game/client-to-server/0x01B6.md) |
 | `0x01` CMD | `0x01B7` | `ForgingResponse` | 仅证明 encoder 可产生该 identity | [0x01B7](game/client-to-server/0x01B7.md) |
 | `0x01` CMD | `0x01BA` | `MercenaryInfoResponse`、`MercenarySupportStateMessage` | 仅证明 encoder 可产生该 identity | [0x01BA](game/client-to-server/0x01BA.md) |
@@ -790,7 +822,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x0204` | `QuestClearCouponResponse` | 仅证明 encoder 可产生该 identity | [0x0204](game/client-to-server/0x0204.md) |
 | `0x01` CMD | `0x0207` | `AvatarPackageOpeningResponse` | 仅证明 encoder 可产生该 identity | [0x0207](game/client-to-server/0x0207.md) |
 | `0x01` CMD | `0x0218` | `CrystalContractResponse` | 仅证明 encoder 可产生该 identity | [0x0218](game/client-to-server/0x0218.md) |
-| `0x01` CMD | `0x0239` | `CloneTitleStateMessage` | 仅证明 encoder 可产生该 identity | [0x0239](game/client-to-server/0x0239.md) |
+| `0x01` CMD | `0x0239` | `CloneTitleStateMessage`、`SetTitleAppearanceResponse` | 仅证明 encoder 可产生该 identity | [0x0239](game/client-to-server/0x0239.md) |
 | `0x01` CMD | `0x0252` | `SecurityStatusAcknowledgement` | 仅证明 encoder 可产生该 identity | [0x0252](game/client-to-server/0x0252.md) |
 | `0x01` CMD | `0x0286` | `HiddenCharacterInfoResponse` | 仅证明 encoder 可产生该 identity | [0x0286](game/client-to-server/0x0286.md) |
 | `0x01` CMD | `0x02A8` | `RosterFollowUpResponse` | 仅证明 encoder 可产生该 identity | [0x02A8](game/client-to-server/0x02A8.md) |
@@ -875,6 +907,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x0165` | `UserVisibilityMessage` | 仅证明 encoder 可产生该 identity | [0x0165](game/server-to-client/NOTI-0x0165.md) |
 | `0x00` NOTI | `0x0166` | `TitleBookStateMessage` | 仅证明 encoder 可产生该 identity | [0x0166](game/server-to-client/NOTI-0x0166.md) |
 | `0x00` NOTI | `0x0167` | `AchievementStateMessage` | 仅证明 encoder 可产生该 identity | [0x0167](game/server-to-client/NOTI-0x0167.md) |
+| `0x00` NOTI | `0x0168` | `TitleUnlockedMessage` | 仅证明 encoder 可产生该 identity | [0x0168](game/server-to-client/NOTI-0x0168.md) |
 | `0x00` NOTI | `0x017B` | `ClientEffectBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x017B](game/server-to-client/NOTI-0x017B.md) |
 | `0x00` NOTI | `0x0187` | `CharacterOptionStateMessage` | 仅证明 encoder 可产生该 identity | [0x0187](game/server-to-client/NOTI-0x0187.md) |
 | `0x00` NOTI | `0x019D` | `LuckyStarStateMessage` | 仅证明 encoder 可产生该 identity | [0x019D](game/server-to-client/NOTI-0x019D.md) |
@@ -894,6 +927,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x025B` | `ChampionBreakStateMessage` | 仅证明 encoder 可产生该 identity | [0x025B](game/server-to-client/NOTI-0x025B.md) |
 | `0x00` NOTI | `0x0286` | `DailyChallengeStateMessage` | 仅证明 encoder 可产生该 identity | [0x0286](game/server-to-client/NOTI-0x0286.md) |
 | `0x00` NOTI | `0x0289` | `HonorLevelInfoNotice`、`HonorProgressStateMessage` | 仅证明 encoder 可产生该 identity | [0x0289](game/server-to-client/NOTI-0x0289.md) |
+| `0x00` NOTI | `0x02A7` | `HellPartyMonsterInfoNotification` | 仅证明 encoder 可产生该 identity | [0x02A7](game/server-to-client/NOTI-0x02A7.md) |
 | `0x00` NOTI | `0x02D5` | `DailyScheduleStateMessage` | 仅证明 encoder 可产生该 identity | [0x02D5](game/server-to-client/NOTI-0x02D5.md) |
 | `0x00` NOTI | `0x0331` | `GoldLimitStateMessage` | 仅证明 encoder 可产生该 identity | [0x0331](game/server-to-client/NOTI-0x0331.md) |
 | `0x00` NOTI | `0x0344` | `PurchaseRestrictionCompatibilityMessage` | 仅证明 encoder 可产生该 identity | [0x0344](game/server-to-client/NOTI-0x0344.md) |
@@ -903,7 +937,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x03C1` | `RentalStateMessage` | 仅证明 encoder 可产生该 identity | [0x03C1](game/server-to-client/NOTI-0x03C1.md) |
 | `0x00` NOTI | `0x03D8` | `LotteryProgressStateMessage` | 仅证明 encoder 可产生该 identity | [0x03D8](game/server-to-client/NOTI-0x03D8.md) |
 | `0x00` NOTI | `0x042D` | `WeeklyAttendanceStateMessage` | 仅证明 encoder 可产生该 identity | [0x042D](game/server-to-client/NOTI-0x042D.md) |
-| `0x00` NOTI | `0x0465` | `EpicBookBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x0465](game/server-to-client/NOTI-0x0465.md) |
+| `0x00` NOTI | `0x0465` | `EpicBookStateMessage` | 仅证明 encoder 可产生该 identity | [0x0465](game/server-to-client/NOTI-0x0465.md) |
 | `0x00` NOTI | `0x04B8` | `JoustStateMessage` | 仅证明 encoder 可产生该 identity | [0x04B8](game/server-to-client/NOTI-0x04B8.md) |
 | `0x00` NOTI | `0x04B9` | `JoustInfoMessage` | 仅证明 encoder 可产生该 identity | [0x04B9](game/server-to-client/NOTI-0x04B9.md) |
 | `0x00` NOTI | `0x04BA` | `JoustBetsMessage` | 仅证明 encoder 可产生该 identity | [0x04BA](game/server-to-client/NOTI-0x04BA.md) |

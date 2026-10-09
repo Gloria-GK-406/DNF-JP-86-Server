@@ -1,0 +1,47 @@
+{
+  "checks": [
+    {
+      "name": "persistence",
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": "persistence.trx",
+      "sha256": "97b8332a88304f9a7fa0dcae5e1bf1c0e3be4e69182356be1cb589f03a2e51c9"
+    },
+    {
+      "name": "protocol",
+      "passed": 109,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": "protocol.trx",
+      "sha256": "cef2b7f375a1406019b813a82041a8be0d06b3c9672b3acc41d6451ed260f3bd"
+    },
+    {
+      "name": "pvf",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": "pvf.trx",
+      "sha256": "c11d86a5ef0ab14bf43b4ef623c1a600717f9aede1a417f0b8ea35a9860eaa12"
+    },
+    {
+      "name": "application",
+      "passed": 424,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": "application.trx",
+      "sha256": "5cd76581c229793953f8af6751745c55ee2c8e83c99e8049916470137ff4d6ad"
+    },
+    {
+      "name": "composition-unsandboxed",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": "composition-unsandboxed.trx",
+      "sha256": "55185d70aa10b11f06452d11d69b8a30e3091f1645a85f03e21ce22c5ee019c6"
+    }
+  ],
+  "total_passed": 563,
+  "pvf_path": "E:/Project/DNF/DNFClient-A21-protocol2/Script.pvf",
+  "pvf_sha256": "03154D18DE43F5A0BCB11B2935AE8BB40BABD22495700657D682E491A24A3543"
+}

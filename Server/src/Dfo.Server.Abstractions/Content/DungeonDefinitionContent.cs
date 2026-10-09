@@ -31,9 +31,9 @@ public sealed record DungeonQuestConnection(
 /// Position in the dungeon's declared order. This is the number the client is told, so it must
 /// stay tied to the archive's order rather than to any sorting we find convenient.
 /// </param>
-/// <param name="Rooms">
-/// The cells that carry a room, and the map each resolves to. A grid cell with no entry is not a
-/// room; the grid is larger than the maze that occupies it.
+/// <param name="Cells">
+/// Occupied cells and their connection/candidate declarations. A cell can exist without an
+/// explicit map: its resource then comes from the dungeon's compatible map pool.
 /// </param>
 /// <param name="StartCandidates">
 /// The cells a run may start on. The archive lists candidates rather than one cell, so which is
@@ -43,10 +43,41 @@ public sealed record MazeDefinition(
     int Index,
     byte Width,
     byte Height,
-    IReadOnlyDictionary<MazeCell, int> Rooms,
+    IReadOnlyDictionary<MazeCell, DungeonCellDefinition> Cells,
     IReadOnlyList<MazeCell> StartCandidates,
     IReadOnlyList<MazeCell> BossCandidates,
-    DungeonQuestConnection? QuestConnection = null);
+    DungeonQuestConnection? QuestConnection = null)
+{
+    /// <summary>A parsed maze's semantic error, checked only if this maze is selected.</summary>
+    public string? ConfigurationError { get; init; }
+}
+
+[Flags]
+public enum DungeonPathDirection : byte
+{
+    None = 0,
+    Right = 1,
+    Up = 2,
+    Left = 4,
+    Down = 8,
+    All = Right | Up | Left | Down,
+}
+
+/// <summary>Static topology and explicit resource candidates, never a selected runtime map.</summary>
+public sealed record DungeonCellDefinition(
+    DungeonPathDirection Connections,
+    IReadOnlyList<int> MapCandidates,
+    IReadOnlyList<int> BossMapCandidates)
+{
+    /// <summary>False when content omits the door pattern; All then carries no pattern restriction.</summary>
+    public bool HasDeclaredConnections { get; init; } = true;
+
+    /// <summary>An explicitly fixed resource with unrestricted connection metadata.</summary>
+    public static DungeonCellDefinition Fixed(int mapId) =>
+        new(DungeonPathDirection.All, [mapId], []) { HasDeclaredConnections = false };
+}
+
+public enum DungeonEntryMode : byte { Maze, Tournament, VillageRevenge }
 
 /// <summary>
 /// A dungeon as the archive declares it.
@@ -107,7 +138,16 @@ public sealed record DungeonDefinition(
     byte BasisLevel = 1,
     double ExperienceWeight = 1.0,
     bool OffersPaidCard = true,
-    DungeonQuestConnection? QuestConnection = null);
+    DungeonQuestConnection? QuestConnection = null,
+    IReadOnlyList<byte>? SupportedDifficulties = null,
+    DungeonEntryMode EntryMode = DungeonEntryMode.Maze)
+{
+    public bool HasStoryMode { get; init; }
+    public IReadOnlyList<DungeonRequiredItem> RequiredItems { get; init; } = [];
+}
+
+/// <summary>All requirements must be held; only those marked Consume are debited on admission.</summary>
+public sealed record DungeonRequiredItem(int ItemId, int Count, bool Consume);
 
 /// <summary>Reads dungeon declarations out of the content archive.</summary>
 public interface IDungeonDefinitionSource

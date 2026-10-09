@@ -1,5 +1,11 @@
 # NOTI `0x049C` `FRIENDSHIP_HELL_PARTY_INFO`
 
+## 2026-10-07 A21静态补全
+
+**ClientStatic / Confirmed**：RVA`001E0780..001E0806`固定读取32B，确保UI`0x35D`存在后，调用`RVA001E01E0`复制信息并经`RVA001E0340`刷新。虽然数据可拆成8个u32，字段业务含义仍Unknown，不能据此设计奖励或次数字段。
+
+绑定b1 SHA256`CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14`；见[客户端研究](../../../Document/abyss-research-20261007/client.md)。实际发送时机及UI验收待补。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

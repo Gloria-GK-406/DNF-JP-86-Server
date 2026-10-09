@@ -543,7 +543,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 avatar_delete_date INTEGER,
                 creature_field04 INTEGER, creature_mode_flag INTEGER, creature_progress_value INTEGER,
                 creature_mode1_field0a INTEGER, creature_mode1_field0b INTEGER,
-                creature_field_after_value INTEGER, creature_text BLOB, creature_tail_flag INTEGER);
+                creature_field_after_value INTEGER, creature_text BLOB, creature_tail_flag INTEGER, appearance_item_id INTEGER);
             CREATE TABLE item_slots(
                 owner_scope TEXT NOT NULL,
                 owner_id INTEGER NOT NULL,

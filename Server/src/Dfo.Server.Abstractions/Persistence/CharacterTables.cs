@@ -14,6 +14,7 @@ public sealed record CharacterSummaryRow(
     /// <summary>Persisted location, populated by the selection lookup.</summary>
     public CharacterPositionState Position { get; init; } = new(0, 0, 0, 0, 5);
     public bool TutorialCompleted { get; init; }
+    public byte LastInnTownId { get; init; }
 }
 
 /// <summary>How far along a character is.</summary>
@@ -226,4 +227,3 @@ public interface ICharacterSkillTable
         byte[] extraValues,
         CancellationToken cancellationToken);
 }
-

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Protocol.Game.StateSynchronization;
@@ -76,7 +77,7 @@ public sealed class LotteryOpeningCommandHandler(ILotteryOpeningDomainService op
 }
 
 public sealed class LotteryOpeningDelivery(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    SelectedSessionTransitionGate transitions, ICommandBus commands, INotificationBus notifications, IGameMessageSender sender,
+    SelectedSessionTransitionGate transitions, ICommandBus commands, IEventService notifications, IGameMessageSender sender,
     ILogger<LotteryOpeningDelivery> logger)
 {
     public async ValueTask HandleAsync(NetworkDispatchContext context, int slot, ushort mode, ushort sequence, CancellationToken token)
@@ -107,7 +108,7 @@ public sealed class LotteryOpeningDelivery(ISelectedSessionDomainService session
                 var snapshot = await commands.SendAsync(new ReadPremiumSnapshotCommand(session), token).ConfigureAwait(false);
                 following = [new PremiumServiceStateMessage(snapshot.Entitlements, snapshot.Usage, snapshot.PreparedAt)];
             }
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]), new OpeningCompleted(receipt, replies, result.GoldAfter, following), token).ConfigureAwait(false);
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]), new OpeningCompleted(receipt, replies, result.GoldAfter, following), token).ConfigureAwait(false);
         }
         else await sender.SendCmdAsync(connection, response, token).ConfigureAwait(false);
     }

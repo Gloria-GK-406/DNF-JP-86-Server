@@ -71,7 +71,7 @@ public sealed class IllusionTowerProjectionDelivery(
         if (attachments is null)
         {
             restoreIntent();
-            await RefuseAsync(requesterConnection, SelectDungeonRefusal.MemberBlocked, token).ConfigureAwait(false);
+            await RefuseAsync(requesterConnection, SelectDungeonRefusal.SelectionCohortUnavailable, token).ConfigureAwait(false);
             return true;
         }
 
@@ -86,7 +86,7 @@ public sealed class IllusionTowerProjectionDelivery(
                 if (!Current(attachments) || !PartyCurrent(requester, roster, attachments))
                 {
                     restoreIntent();
-                    await RefuseAsync(requesterConnection, SelectDungeonRefusal.MemberBlocked, token).ConfigureAwait(false);
+                    await RefuseAsync(requesterConnection, SelectDungeonRefusal.SelectionCohortUnavailable, token).ConfigureAwait(false);
                     return true;
                 }
 
@@ -97,10 +97,14 @@ public sealed class IllusionTowerProjectionDelivery(
                 {
                     restoreIntent();
                     await RefuseAsync(requesterConnection,
-                        entered.Rejection == "LevelTooLow" || entered.Rejection == "InsufficientMaterial"
-                            ? SelectDungeonRefusal.MemberBlocked
-                            : SelectDungeonRefusal.DungeonNotFound,
-                        token).ConfigureAwait(false);
+                        entered.Rejection switch
+                        {
+                            "LevelTooLow" => SelectDungeonRefusal.LevelTooLow,
+                            "InsufficientMaterial" => SelectDungeonRefusal.MissingRequiredItem,
+                            "InvalidParty" or "NoSession" or "AlreadyInDungeon" => SelectDungeonRefusal.InvalidSelectionState,
+                            _ => SelectDungeonRefusal.DungeonUnavailable,
+                        },
+                        token, entered.BlockedSlot ?? 0).ConfigureAwait(false);
                     return true;
                 }
 
@@ -822,9 +826,9 @@ public sealed class IllusionTowerProjectionDelivery(
                 [new InventoryItemState(null, slot.Index, debit.Remaining)], at)));
     }
 
-    private ValueTask RefuseAsync(NetworkConnectionId connection, byte code, CancellationToken token) =>
+    private ValueTask RefuseAsync(NetworkConnectionId connection, byte code, CancellationToken token, byte context = 0) =>
         sender.SendExplicitAsync(connection,
-            new GameExplicitMessageDelivery([SelectDungeonRefusal.For(code)], []), token);
+            new GameExplicitMessageDelivery([new SelectDungeonRefusal(code, context)], []), token);
 
     private async ValueTask<IAsyncDisposable> AcquireTransitionsAsync(
         IEnumerable<SelectedSessionIdentity> members, CancellationToken token)

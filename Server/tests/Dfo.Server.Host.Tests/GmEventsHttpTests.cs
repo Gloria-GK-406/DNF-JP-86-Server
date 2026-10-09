@@ -254,10 +254,10 @@ public sealed class GmEventsHttpTests
     }
     private sealed class CaptureSender : INetworkMessageSender
     {
-        internal List<IServerNetworkMessage> Messages { get; }=[];
-        public ValueTask SendAsync(NetworkConnectionId c,IServerNetworkMessage m,CancellationToken ct){Messages.Add(m);return ValueTask.CompletedTask;}
-        public ValueTask SendBatchAsync(NetworkConnectionContext c,IReadOnlyList<IServerNetworkMessage> m,CancellationToken ct){Messages.AddRange(m);return ValueTask.CompletedTask;}
-        public ValueTask SendExplicitAsync(NetworkConnectionId c,ExplicitMessageDelivery delivery,CancellationToken ct){Messages.AddRange(delivery.RequiredDirectMessages);return ValueTask.CompletedTask;}
+        internal System.Collections.Concurrent.ConcurrentQueue<IServerNetworkMessage> Messages { get; }=new();
+        public ValueTask SendAsync(NetworkConnectionId c,IServerNetworkMessage m,CancellationToken ct){Messages.Enqueue(m);return ValueTask.CompletedTask;}
+        public ValueTask SendBatchAsync(NetworkConnectionContext c,IReadOnlyList<IServerNetworkMessage> m,CancellationToken ct){foreach(var message in m)Messages.Enqueue(message);return ValueTask.CompletedTask;}
+        public ValueTask SendExplicitAsync(NetworkConnectionId c,ExplicitMessageDelivery delivery,CancellationToken ct){foreach(var message in delivery.RequiredDirectMessages)Messages.Enqueue(message);return ValueTask.CompletedTask;}
     }
     private static byte[][] Frames(GmTestHost host,CaptureSender sender)=>sender.Messages.SelectMany(message=>
     {
@@ -269,6 +269,7 @@ public sealed class GmEventsHttpTests
     {
         var sender=new CaptureSender();await using var host=await GmTestHost.StartAsync(configureServices:s=>{Content(s);s.AddSingleton<INetworkMessageSender>(sender);});
         await GmPlayerDirectoryHttpTests.SeedAsync(host);var csrf=await Enable(host);
+        await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
         var user=await GmPlayerDirectoryHttpTests.ConnectAsync(host,1,21011);var session=GmPlayerDirectoryHttpTests.Publish(host,user,1,1,21011);
         var bus=host.Services.GetRequiredService<ICommandBus>();var run=Guid.NewGuid();
         var clear=new GrantClearExperienceCommand(new(1),new(1),1,new(86,0,1,50,1,1),Session:session,RunId:run,SettlementLevel:86);
@@ -276,10 +277,13 @@ public sealed class GmEventsHttpTests
         var decoderInfo=host.Services.GetServices<GameMessageDecoderRegistration>().Single(r=>r.Selector==1 && r.Type==0x0441);
         var request=((IGameMessageDecoder)host.Services.GetRequiredService(decoderInfo.DecoderType)).Decode(new(1,0x0441,0,1),Enumerable.Repeat((byte)0xFE,14).ToArray())!;
         sender.Messages.Clear();await host.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(user.Connection),request,default);
+        await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
         var frames=Frames(host,sender);var ack=Assert.Single(frames,f=>f[0]==1 && BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x0441);
         Assert.Equal(19,ack.Length);Assert.Equal(0u,BinaryPrimitives.ReadUInt32LittleEndian(ack.AsSpan(15)));Assert.Contains(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x042D && f.Length==465);
         Assert.Single(await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
-        sender.Messages.Clear();await Change(host,csrf,new(2208,2,"disable"));frames=Frames(host,sender);
+        await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
+        sender.Messages.Clear();await Change(host,csrf,new(2208,2,"disable"));
+        await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();frames=Frames(host,sender);
         var calendar=Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x006C);Assert.Equal(new byte[3],calendar[15..]);
         var state=Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x042D);Assert.All(state[15..],b=>Assert.Equal(0,b));
         GmPlayerDirectoryHttpTests.Cleanup(host,session);

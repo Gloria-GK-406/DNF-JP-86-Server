@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
@@ -101,13 +102,13 @@ internal static class JoustPayloadCodec
         [new JoustBetsMessage(s),new JoustInfoMessage(s)];
     internal static GameStateSynchronizationMessage[] Initialization(JoustState s) =>
         [new JoustStateMessage(s),..Snapshot(s)];
-    internal static GameStateSynchronizationMessage[] Lifecycle(JoustState s,JoustLifecycleEventKind kind) => kind switch
+    internal static GameStateSynchronizationMessage[] Lifecycle(JoustState s,JoustLifecycleNotificationKind kind) => kind switch
     {
-        JoustLifecycleEventKind.RoundStarted => [new JoustStateMessage(s)],
-        JoustLifecycleEventKind.RoundEnded => [new JoustStateMessage(s),new JoustInfoMessage(s),new JoustResultsMessage(s)],
-        JoustLifecycleEventKind.PhaseChanged when !s.Active || s.Phase==JoustPhase.Locked => [new JoustStateMessage(s)],
-        JoustLifecycleEventKind.PhaseChanged when s.Phase==JoustPhase.QuarterFinal => [new JoustStateMessage(s),new JoustResultsMessage(s)],
-        JoustLifecycleEventKind.PhaseChanged when s.Phase==JoustPhase.SemiFinal => [new JoustResultsMessage(s)],
+        JoustLifecycleNotificationKind.RoundStarted => [new JoustStateMessage(s)],
+        JoustLifecycleNotificationKind.RoundEnded => [new JoustStateMessage(s),new JoustInfoMessage(s),new JoustResultsMessage(s)],
+        JoustLifecycleNotificationKind.PhaseChanged when !s.Active || s.Phase==JoustPhase.Locked => [new JoustStateMessage(s)],
+        JoustLifecycleNotificationKind.PhaseChanged when s.Phase==JoustPhase.QuarterFinal => [new JoustStateMessage(s),new JoustResultsMessage(s)],
+        JoustLifecycleNotificationKind.PhaseChanged when s.Phase==JoustPhase.SemiFinal => [new JoustResultsMessage(s)],
         // Native Stage2 can enter scene12 and announce the winner. Reveal the complete
         // bracket only through the once-only RoundEnded/Stage3 event instead.
         _ => [],
@@ -170,7 +171,7 @@ public sealed class JoustQueryHandler(ISelectedSessionDomainService sessions,ICo
     }
 }
 public sealed class JoustBetHandler(ISelectedSessionDomainService sessions,IOnlineUserQueryDomainService users,ICommandBus bus,
-    INotificationBus notices,IGameMessageSender sender,IReplayStateProjectionDelivery replay,ISelectedSessionSnapshotQuery selected,SelectedSessionTransitionGate transitions,SelectedSessionSafety safety):ClientMessageHandler<JoustBetRequest>
+    IEventService notices,IGameMessageSender sender,IReplayStateProjectionDelivery replay,ISelectedSessionSnapshotQuery selected,SelectedSessionTransitionGate transitions,SelectedSessionSafety safety):ClientMessageHandler<JoustBetRequest>
 {
     private sealed class PhysicalIdentity { public string Id {get;}=Guid.NewGuid().ToString("N"); }
     private static readonly ConditionalWeakTable<NetworkConnectionContext,PhysicalIdentity> Identities=new();
@@ -187,7 +188,7 @@ public sealed class JoustBetHandler(ISelectedSessionDomainService sessions,IOnli
         try {result=await bus.SendAsync(new JoustBetCommand(user.OnlineUserId,session,$"joust:{Identities.GetOrCreateValue(c.Connection).Id}:{session.ConnectionGeneration}:{m.Metadata.InboundOrdinal}",m.KnightIndex,new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main,m.MaterialSlotIndex)),m.Amount),ct);}
         catch(Exception e) when(e is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(e))
         {await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E7,6),ct);return;}
-        if(result.Succeeded)await notices.PublishAsync(new NotificationAudience.TheseSessions(selected.Snapshot()),new JoustDetailsChanged(result.State.ServerTime),ct);
+        if(result.Succeeded)await notices.ProjectAsync(new NotificationAudience.TheseSessions(selected.Snapshot()),new JoustDetailsChanged(result.State.ServerTime),ct);
         if(result.Succeeded)await replay.RefreshAsync(c.Connection,session,new(ReplayProjectionNeeds.Inventory|ReplayProjectionNeeds.Joust,result.Debits.Select(d=>d.Slot).ToImmutableArray()),ct);
         safety.DemandCurrent(recipient);
         await sender.SendBatchAsync(c.Connection,[new JoustResponse(0x04E7,result.Succeeded?0u:6u)],ct);

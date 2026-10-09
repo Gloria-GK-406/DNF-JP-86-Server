@@ -1,0 +1,99 @@
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Pvf.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+
+已通过! - 失败:     0，通过:    80，已跳过:     0，总计:    80，持续时间: 3 s - Dfo.Pvf.Tests.dll (net10.0)
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Application.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:01:02.06]     Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.All_selected_session_commands_have_their_declared_read_or_transactional_registration [FAIL]
+  失败 Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.All_selected_session_commands_have_their_declared_read_or_transactional_registration [3 ms]
+  错误消息:
+   Assert.Equal() Failure: Collections differ
+                                                                      ↓ (pos 21)
+Expected: [···, "QueryJoustHistoryCommand", "QueryJoustStateCommand", "QuestClearCouponCommand", "ReinforceItemCommand", "RenameCreatureCommand", ···]
+Actual:   [···, "QueryJoustHistoryCommand", "QueryJoustStateCommand", "QueryTitleBookCommand", "QuestClearCouponCommand", "ReconcileAchievementCommand", ···]
+                                                                      ↑ (pos 21)
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.All_selected_session_commands_have_their_declared_read_or_transactional_registration() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Application.Tests\World\CommonExperienceEffectTests.cs:line 268
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:01:43.82]     Dfo.Server.Application.Tests.Notifications.NotificationHandlerArchitectureTests.ProductionNotificationHandlers_OnlyTakeDomainServices [FAIL]
+  失败 Dfo.Server.Application.Tests.Notifications.NotificationHandlerArchitectureTests.ProductionNotificationHandlers_OnlyTakeDomainServices [3 ms]
+  错误消息:
+   Assert.Empty() Failure: Collection was not empty
+Collection: ["TitleBookChangedHandler(TimeProvider time)"]
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Notifications.NotificationHandlerArchitectureTests.ProductionNotificationHandlers_OnlyTakeDomainServices() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Application.Tests\Notifications\NotificationHandlerArchitectureTests.cs:line 67
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:01:44.91]     Dfo.Server.Application.Tests.Sessions.EffectSettlementRegistrationTests.Actual_DI_has_expected_settlement_requests_wire_keys_and_primary_commands [FAIL]
+  失败 Dfo.Server.Application.Tests.Sessions.EffectSettlementRegistrationTests.Actual_DI_has_expected_settlement_requests_wire_keys_and_primary_commands [580 ms]
+  错误消息:
+   Assert.Equal() Failure: Collections differ
+                                                                                                                                   ↓ (pos 6)
+Expected: [···, "GrantClearExperienceCommand", "GrantKillExperienceCommand", "QueryJoustHistoryCommand", "QueryJoustStateCommand", "ReadReplayStateCommand"]
+Actual:   [···, "QueryJoustHistoryCommand", "QueryJoustStateCommand", "QueryTitleBookCommand", "ReadReplayStateCommand", "ReconcileAchievementCommand", ···]
+                                                                      ↑ (pos 6)
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Sessions.EffectSettlementRegistrationTests.Actual_DI_has_expected_settlement_requests_wire_keys_and_primary_commands() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Application.Tests\Sessions\EffectSettlementRegistrationTests.cs:line 44
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+失败!  - 失败:     3，通过:  3247，已跳过:     0，总计:  3250，持续时间: 3 m 16 s - Dfo.Server.Application.Tests.dll (net10.0)
+  Dfo.Server.HttpApi -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.HttpApi\bin\Debug\net10.0\Dfo.Server.HttpApi.dll
+  Dfo.Server.GameServer -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.GameServer\bin\Debug\net10.0\Dfo.Server.GameServer.dll
+  Dfo.Server.GmWeb -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.GmWeb\bin\Debug\net10.0\Dfo.Server.GmWeb.dll
+  Dfo.Server.Host -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Host\bin\Debug\net10.0\Dfo.Server.Host.dll
+  Dfo.Server.Host.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+
+已通过! - 失败:     0，通过:   155，已跳过:     0，总计:   155，持续时间: 2 m 43 s - Dfo.Server.Host.Tests.dll (net10.0)
+  Dfo.Server.HttpApi.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.HttpApi.Tests\bin\Debug\net10.0\Dfo.Server.HttpApi.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.HttpApi.Tests\bin\Debug\net10.0\Dfo.Server.HttpApi.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+
+已通过! - 失败:     0，通过:    50，已跳过:     0，总计:    50，持续时间: 325 ms - Dfo.Server.HttpApi.Tests.dll (net10.0)
+  Dfo.Server.Infrastructure.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Debug\net10.0\Dfo.Server.Infrastructure.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Debug\net10.0\Dfo.Server.Infrastructure.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:11.89]     Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message [SKIP]
+  已跳过 Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message [1 ms]
+[xUnit.net 00:00:25.43]     Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog [SKIP]
+  已跳过 Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog [1 ms]
+
+已通过! - 失败:     0，通过:   803，已跳过:     2，总计:   805，持续时间: 37 s - Dfo.Server.Infrastructure.Tests.dll (net10.0)
+  Dfo.Server.Networking.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0\Dfo.Server.Networking.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0\Dfo.Server.Networking.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+
+已通过! - 失败:     0，通过:    90，已跳过:     0，总计:    90，持续时间: 4 s - Dfo.Server.Networking.Tests.dll (net10.0)
+  Dfo.Server.Persistence.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Persistence.Tests\bin\Debug\net10.0\Dfo.Server.Persistence.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Persistence.Tests\bin\Debug\net10.0\Dfo.Server.Persistence.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:26.99]     Dfo.Server.Persistence.Tests.Schema.SchemaOwnershipTests.EveryTableIsDeclaredSomewhereRatherThanByAccident [FAIL]
+  失败 Dfo.Server.Persistence.Tests.Schema.SchemaOwnershipTests.EveryTableIsDeclaredSomewhereRatherThanByAccident [50 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 71
+Actual:   73
+  堆栈跟踪:
+     at Dfo.Server.Persistence.Tests.Schema.SchemaOwnershipTests.EveryTableIsDeclaredSomewhereRatherThanByAccident() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Persistence.Tests\Schema\SchemaOwnershipTests.cs:line 58
+--- End of stack trace from previous location ---
+
+失败!  - 失败:     1，通过:   464，已跳过:     0，总计:   465，持续时间: 27 s - Dfo.Server.Persistence.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Protocol.Tests\Game\StateSynchronization\TitleBookProtocolTests.cs(64,22): error CS0246: 未能找到类型或命名空间名“AchievementTitleProjectionGate”(是否缺少 using 指令或程序集引用?) [E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Protocol.Tests\Dfo.Server.Protocol.Tests.csproj]
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Protocol.Tests\Game\StateSynchronization\TitleBookProtocolTests.cs(76,24): error CS0246: 未能找到类型或命名空间名“AchievementTitleProjectionGate”(是否缺少 using 指令或程序集引用?) [E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Protocol.Tests\Dfo.Server.Protocol.Tests.csproj]
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Protocol.Tests\Game\StateSynchronization\TitleBookProtocolTests.cs(77,30): error CS1729: “AchievementEventSubscriber”不包含采用 2 个参数的构造函数 [E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Protocol.Tests\Dfo.Server.Protocol.Tests.csproj]

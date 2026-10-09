@@ -212,5 +212,5 @@ public sealed class WeaknessTests
     }
 
     private static readonly DungeonLayout Layout = new(10000, 0, 1, 1,
-        new(0, 0), new(0, 0), 61000, 1, new Dictionary<MazeCell, int> { [new(0, 0)] = 61000 });
+        new(0, 0), new(0, 0), 61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)});
 }

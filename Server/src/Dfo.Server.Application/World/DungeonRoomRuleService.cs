@@ -43,8 +43,13 @@ internal sealed class DungeonRoomRuleService(
                 BasisLevelOffset = null,
             }
             : actor).ToArray();
+        var described = this.Describe(resolved);
+        if (context.Layout.Hell is { } hell && context.Cell == hell.Cell)
+            described = described.Concat(hell.Actors.Select(actor => new RoomActorDescription(actor.Actor,
+                actor.Actor.ActorType >= FirstAiCharacterActorType)
+                { IsHellTemplate = true, HellOrder = actor.Order, HellGroupIndex = actor.GroupIndex })).ToArray();
         return new DungeonRoomContents(
-            this.Describe(resolved),
+            described,
             [.. objectDrops.Draw(await roomDrops.GetAsync(
                     context.Layout.DungeonId, context.MapId, cancellationToken)
                 .ConfigureAwait(false), context)
@@ -84,6 +89,9 @@ internal sealed class DungeonRoomRuleService(
         ArgumentNullException.ThrowIfNull(context);
 
         var mixed = ((uint)context.MapId * 2654435761u) ^ (uint)context.Layout.Seed;
+        // One resource may be selected by several cells in the same run. Identity belongs to
+        // the cell, so reused MAP resources must not recreate previously killed actors.
+        mixed ^= ((uint)context.Cell.X << 8) | context.Cell.Y;
         mixed ^= mixed >> 15;
         mixed *= 2246822519u;
         mixed ^= mixed >> 13;

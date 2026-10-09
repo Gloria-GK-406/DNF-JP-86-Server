@@ -19,7 +19,7 @@ internal sealed class StubChannelEntryPolicy(ChannelAdmissionRefusal? refusal = 
 
     /// <summary>The channel that turns low-level characters away.</summary>
     public static ChannelEntryIdentity RestrictedChannel { get; } =
-        new(ChannelId: 100, ListenerPort: 10161, ChannelEntryKind.LevelRestricted);
+        new(ChannelId: 100, ListenerPort: 10161, ChannelEntryKind.SaintHorn);
 
     /// <summary>The duelling channel.</summary>
     public static ChannelEntryIdentity FreeDuelChannel { get; } =

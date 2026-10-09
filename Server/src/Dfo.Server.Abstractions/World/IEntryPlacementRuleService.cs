@@ -7,9 +7,9 @@ namespace Dfo.Server.Abstractions.World;
 /// Raised when the content cannot say where a character should stand.
 /// </summary>
 /// <remarks>
-/// Placement has no safe default. Dropping a character at an arbitrary coordinate would
-/// leave them outside the walkable world with no indication that anything went wrong, so
-/// an unresolvable spawn is an error.
+/// Ordinary login placement falls back to the configured initial town's declared gate.
+/// Missing that gate, or failing to resolve a restricted channel's required spawn, remains
+/// an error rather than placing the character at arbitrary coordinates.
 /// </remarks>
 public sealed class EntryPlacementUnavailableException(string message)
     : InvalidOperationException(message);
@@ -17,11 +17,15 @@ public sealed class EntryPlacementUnavailableException(string message)
 /// <summary>Decides where a character stands and what the channel permits.</summary>
 public interface IEntryPlacementRuleService
 {
+    /// <summary>Whether this ordinary town has a usable Seria gate and can become the remembered inn.</summary>
+    ValueTask<bool> CanRememberInnAsync(int townId, CancellationToken cancellationToken);
+
     /// <summary>
-    /// Resolves the placement and permissions for a character entering on a channel.
+    /// Resolves login placement and permissions. Ordinary channels fall back to the initial
+    /// town when the remembered inn has no usable arrival gate. Online queries do not call this.
     /// </summary>
     /// <param name="persistedTownId">
-    /// The town the character was last in, or zero when they have none.
+    /// The remembered inn town; callers may use the current town for legacy saves with no inn record.
     /// </param>
     /// <exception cref="EntryPlacementUnavailableException">
     /// The content defines no usable arrival point for the resolved town.

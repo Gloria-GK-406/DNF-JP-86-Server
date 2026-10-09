@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -47,7 +48,7 @@ public sealed class MailboxCompletedHandler(ISelectedSessionDomainService sessio
     }
 }
 public sealed class MailboxDelivery(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    SelectedSessionTransitionGate transitions, ICommandBus commands, INotificationBus notifications,
+    SelectedSessionTransitionGate transitions, ICommandBus commands, IEventService notifications,
     IGameMessageSender sender, ILogger<MailboxDelivery> logger)
 {
     public async ValueTask HandleAsync(NetworkDispatchContext context, MailboxOperation operation, uint wireId, ushort action, byte[]? name, CancellationToken token, MailboxSendRequest? send = null)
@@ -87,7 +88,7 @@ public sealed class MailboxDelivery(ISelectedSessionDomainService sessions, IOnl
         if (error != 0) await sender.SendCmdAsync(connection, reply, token);
         else
         {
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]), new MailboxCompleted(session, reply, result), token);
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]), new MailboxCompleted(session, reply, result), token);
         }
     }
 }

@@ -1,0 +1,23 @@
+=== worldmap/PowerStation.wdm ===
+[map image]
+WorldMap/Lorien.img 0
+[ui path]
+WorldMap/UI/PowerStation.xui
+[dungeon]
+101 -1 102 -1 103 -1 104 -1 522
+[in progress]
+2602 8004 -1 8010 -1 8011 -1 2014 13511
+[/dungeon]
+[name]
+能源中心
+[hell dungeon]
+1
+[hell quest]
+4539
+[/hell quest]
+[hell freepass item]
+490003092 1 490003314 1 490700622 1 490003362 1 490003168 1 490003358 1 490003222 1 490003066 1 490002858 1 2749403 1 2749501 1 2682582 1 2749535 1 2749911 1 10002090 1 10002197 1 10002586 1 10004045 1 10004046 1 490000338 1
+[/hell freepass item]
+[item condition]
+3330
+[/item condition]

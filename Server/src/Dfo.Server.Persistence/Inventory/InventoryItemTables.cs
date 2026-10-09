@@ -67,7 +67,7 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
         AccountId accountId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
             $"""
-            SELECT roster.character_id, held.item_uid, place.slot_index, held.item_core
+            SELECT roster.character_id, held.item_uid, place.slot_index, held.item_core, held.appearance_item_id
             FROM characters roster
             JOIN item_slots place
               ON place.owner_scope = 'character' AND place.owner_id = roster.character_id
@@ -81,7 +81,7 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
                 reader.GetInt32(0),
                 reader.GetInt64(1),
                 reader.GetInt32(2),
-                InventoryItemCore.Decode(EntryCore(reader, 3, reader.GetInt64(1)))),
+                InventoryItemCore.Decode(EntryCore(reader, 3, reader.GetInt64(1))) with { AppearanceItemId = reader.IsDBNull(4) ? null : reader.GetInt32(4) }),
             cancellationToken);
 
     internal static AvatarDetailRow? Avatar(SqliteDataReader reader, int ordinal) =>

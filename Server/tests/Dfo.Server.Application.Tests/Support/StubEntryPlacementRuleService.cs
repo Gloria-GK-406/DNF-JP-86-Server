@@ -7,9 +7,12 @@ namespace Dfo.Server.Application.Tests.Support;
 /// <summary>
 /// Stands in for placement in tests whose subject is something else.
 /// </summary>
-internal sealed class StubEntryPlacementRuleService(ChannelEntryPolicyState? state = null)
+internal sealed class StubEntryPlacementRuleService(ChannelEntryPolicyState? state = null, Func<int, bool>? innPredicate = null)
     : IEntryPlacementRuleService
 {
+    public ValueTask<bool> CanRememberInnAsync(int townId, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(innPredicate?.Invoke(townId) ?? (townId > 0 && townId != 17));
+
     /// <summary>A plain arrival at the default town's gate.</summary>
     public static ChannelEntryPolicyState DefaultPlacement { get; } = new(
         ChannelId: 11,
@@ -42,6 +45,9 @@ internal sealed class StubEntryPlacementRuleService(ChannelEntryPolicyState? sta
 /// <summary>Placement that cannot resolve, for proving entry fails before publication.</summary>
 internal sealed class FailingEntryPlacementRuleService : IEntryPlacementRuleService
 {
+    public ValueTask<bool> CanRememberInnAsync(int townId, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(false);
+
     public ValueTask<ChannelEntryPolicyState> ResolveAsync(
         ChannelEntryIdentity channel,
         int persistedTownId,

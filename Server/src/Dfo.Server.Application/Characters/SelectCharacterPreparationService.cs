@@ -1,4 +1,3 @@
-using System.Runtime.ExceptionServices;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
@@ -12,12 +11,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
-using Dfo.Server.Data.Networking;
-using Dfo.Server.Abstractions.Networking;
-using Dfo.Server.Abstractions.OnlineUsers;
-using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Inventory;
-using Dfo.Server.Application.OnlineUsers;
 
 namespace Dfo.Server.Application.Characters;
 
@@ -38,46 +32,13 @@ public sealed class SelectCharacterPreparationService(
     ISessionAdjacentEntryDomainService sessionAdjacent,
     ISelectedSessionPositionPersistence positions,
     TimeProvider timeProvider,
-    ICharacterPositionDomainService? currentPositions = null,
     Dfo.Server.Abstractions.Events.IEventManagementDomainService? events = null,
     Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance = null,
-    Dfo.Server.Abstractions.Events.IJoustProjectionDomainService? joust = null) : ISelectCharacterPreparationDomainService
+    Dfo.Server.Abstractions.Events.IJoustProjectionDomainService? joust = null,
+    IEpicBookDomainService? epicBook = null,
+    Dfo.Server.Abstractions.Achievements.IAchievementDomainService? achievements = null,
+    Dfo.Server.Abstractions.Achievements.ITitleBookDomainService? titles = null) : ISelectCharacterPreparationDomainService
 {
-    public async ValueTask<SelectCharacterResult> LoadCurrentAsync(
-        SelectedSessionIdentity session, CancellationToken cancellationToken)
-    {
-        var roster = await characters.GetAccountRosterAsync(session.AccountId, cancellationToken)
-            .ConfigureAwait(false);
-        var member = roster.Characters.SingleOrDefault(value => value.CharacterId == session.CharacterId)
-            ?? throw new InvalidDataException("Selected character is absent from the account roster.");
-        var character = await characters.LoadForSelectionAsync(
-            session.AccountId, member.SlotIndex, cancellationToken).ConfigureAwait(false);
-        var currentPosition = currentPositions?.Find(session.CharacterId);
-        if (currentPosition is not null)
-            character = character with { Position = currentPosition };
-        var channel = await channels.ResolveAsync(session.ListenerPort, cancellationToken)
-            .ConfigureAwait(false);
-        var result = await BuildResultAsync(
-            character, session.AccountId, channel, cancellationToken, selectionEntry: false)
-            .ConfigureAwait(false);
-        if (currentPosition is { } position)
-            result = result with
-            {
-                World = result.World with
-                {
-                    Channel = result.World.Channel with
-                    {
-                        Spawn = result.World.Channel.Spawn with
-                        {
-                            TownId = position.TownId, AreaId = position.AreaId,
-                            X = position.X, Y = position.Y, Direction = position.Direction,
-                        },
-                    },
-                },
-            };
-        return result;
-    }
-
     public async ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
         SelectedSessionIdentity session,
         SelectCharacterResult prepared,
@@ -90,7 +51,12 @@ public sealed class SelectCharacterPreparationService(
             spawn.TownId, spawn.AreaId, spawn.X, spawn.Y, spawn.Direction);
         var placed = prepared with
         {
-            Character = prepared.Character with { Position = resolved },
+            Character = prepared.Character with
+            {
+                Position = resolved,
+                LastInnTownId = prepared.World.Channel.PersistsPosition
+                    ? spawn.TownId : prepared.Character.LastInnTownId,
+            },
         };
         if (placed.World.Channel.PersistsPosition)
         {
@@ -125,25 +91,21 @@ public sealed class SelectCharacterPreparationService(
     public async ValueTask<SelectCharacterResult> PrepareAsync(
         ActiveCharacterState character, AccountId accountId, ChannelEntryIdentity channel,
         CancellationToken cancellationToken)
-        => await BuildResultAsync(character, accountId, channel, cancellationToken,
-            selectionEntry: true).ConfigureAwait(false);
+        => await BuildResultAsync(character, accountId, channel, cancellationToken).ConfigureAwait(false);
 
     private async ValueTask<SelectCharacterResult> BuildResultAsync(
         ActiveCharacterState character, AccountId accountId, ChannelEntryIdentity channel,
-        CancellationToken cancellationToken, bool selectionEntry)
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(channel);
 
-        if (selectionEntry)
-        {
-            var recovery = await dungeonEffects.RecoverAsync(
-                accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false);
-            if (recovery.FailedCount > 0 || recovery.RemainingCount > 0)
-                throw new InvalidDataException("Dungeon persistent effects were not completely recovered.");
-            if (recovery.RequiresReload)
-                character = await characters.LoadForSelectionAsync(
-                    accountId, character.Identity.SlotIndex, cancellationToken).ConfigureAwait(false);
-        }
+        var recovery = await dungeonEffects.RecoverAsync(
+            accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false);
+        if (recovery.FailedCount > 0 || recovery.RemainingCount > 0)
+            throw new InvalidDataException("Dungeon persistent effects were not completely recovered.");
+        if (recovery.RequiresReload)
+            character = await characters.LoadForSelectionAsync(
+                accountId, character.Identity.SlotIndex, cancellationToken).ConfigureAwait(false);
 
         var roster = await characters.GetAccountRosterAsync(
             accountId,
@@ -154,14 +116,19 @@ public sealed class SelectCharacterPreparationService(
             throw new InvalidDataException("Selected character is absent from the account roster.");
         }
 
-        var characterInventory = await (selectionEntry
-            ? characterInventoryEntries.LoadAsync(accountId, character.Identity.CharacterId, cancellationToken)
-            : characterInventoryEntries.ReadCurrentAsync(accountId, character.Identity.CharacterId, cancellationToken))
+        var characterInventory = await characterInventoryEntries.LoadAsync(accountId, character.Identity.CharacterId, cancellationToken)
             .ConfigureAwait(false);
         var accountInventory = await accountInventoryEntries.LoadAsync(
             accountId,
             character.Identity.CharacterId,
             cancellationToken).ConfigureAwait(false);
+        if (achievements is not null)
+        {
+            await achievements.PrepareAsync(character.Identity.CharacterId, character.Progression.Level, cancellationToken).ConfigureAwait(false);
+            await achievements.UnlockSatisfiedAchievementsAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false);
+        }
+        if (titles is not null)
+            await titles.PrepareAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false);
         var characterEntry = await characterEntries.LoadAsync(
             accountId,
             character.Identity.CharacterId,
@@ -173,7 +140,7 @@ public sealed class SelectCharacterPreparationService(
             learnedSkillIds, cancellationToken).ConfigureAwait(false);
         var freeBaseline = reconciliationDefinitions.FreeGrants.GroupBy(value => value.SkillId)
             .ToDictionary(group => group.Key, group => group.Max(value => value.Level));
-        if (selectionEntry && await expertSkillReconciliation.ReconcileAsync(
+        if (await expertSkillReconciliation.ReconcileAsync(
                 accountId, character.Identity.CharacterId,
                 preparationRules.OverSkillPremiumTypes(), reconciliationDefinitions.Skills,
                 freeBaseline, cancellationToken).ConfigureAwait(false))
@@ -185,40 +152,41 @@ public sealed class SelectCharacterPreparationService(
         var preparedAt = timeProvider.GetUtcNow();
         characterInventory = await SupportCreatureMarkerProjection.CompleteAsync(
             characterInventory, preparationRules, preparedAt, cancellationToken).ConfigureAwait(false);
-        accountEntry = await CompleteSupportCharacterProjectionAsync(
+        accountEntry = await CharacterStateProjection.CompleteSupportCharacterProjectionAsync(
             accountId, character, roster, accountEntry,
-            characters, characterInventoryEntries, characterEntries,
-            preparationRules, preparedAt, selectionEntry,
+            characters, characterInventoryEntries.LoadAsync, characterEntries,
+            preparationRules, preparedAt,
             cancellationToken).ConfigureAwait(false);
 
-        var contentSubject = BuildContentSubject(character, characterEntry, characterInventory);
+        characterEntry = CharacterStateProjection.CompleteTitleAppearanceProjection(characterEntry, characterInventory);
+        if (achievements is not null)
+            characterEntry = characterEntry with { Features = characterEntry.Features with
+            { Collections = characterEntry.Features.Collections with
+            { Achievements = await achievements.GetAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) } } };
+        if (titles is not null)
+            characterEntry = characterEntry with { Features = characterEntry.Features with
+            { Collections = characterEntry.Features.Collections with
+            { TitleBooks = await titles.GetAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) } } };
+        var contentSubject = CharacterStateProjection.BuildContentSubject(equippedCreature, character, characterEntry, characterInventory);
         var content = await worldContent.LoadAsync(contentSubject, cancellationToken)
             .ConfigureAwait(false);
         var channelPolicy = await placement.ResolveAsync(
             channel,
-            character.Position.TownId,
+            character.LastInnTownId != 0 ? character.LastInnTownId : character.Position.TownId,
             cancellationToken).ConfigureAwait(false);
         if (channelPolicy.PvpSkillProfileApplies)
         {
-            var initial = selectionEntry
-                ? await BuildInitialPvpSkillProfileAsync(
-                    character, characterEntry.Skills, preparationRules, cancellationToken)
-                    .ConfigureAwait(false)
-                : null;
-            var profile = selectionEntry
-                ? await pvpSkills.LoadOrInitializeAsync(
-                    accountId, character.Identity.CharacterId, initial!, cancellationToken)
-                    .ConfigureAwait(false)
-                : await pvpSkills.ReadAsync(
-                    accountId, character.Identity.CharacterId, cancellationToken)
-                    .ConfigureAwait(false);
+            var initial = await BuildInitialPvpSkillProfileAsync(
+                character, characterEntry.Skills, preparationRules, cancellationToken).ConfigureAwait(false);
+            var profile = await pvpSkills.LoadOrInitializeAsync(
+                accountId, character.Identity.CharacterId, initial, cancellationToken).ConfigureAwait(false);
             characterEntry = characterEntry with
             {
-                Skills = MergePvpProfile(characterEntry.Skills, profile),
+                Skills = CharacterStateProjection.MergePvpProfile(characterEntry.Skills, profile),
             };
         }
         else
-            characterEntry = await CompleteSkillProjectionAsync(
+            characterEntry = await CharacterStateProjection.CompleteSkillProjectionAsync(
                 character, characterEntry, preparationRules, cancellationToken)
                 .ConfigureAwait(false);
         var adjacent = await sessionAdjacent.LoadAsync(
@@ -230,7 +198,7 @@ public sealed class SelectCharacterPreparationService(
                 channelPolicy.Spawn.AreaId),
             cancellationToken).ConfigureAwait(false);
 
-        characterEntry = CompleteCollectionBoxProjection(characterEntry, content, preparedAt);
+        characterEntry = CharacterStateProjection.CompleteCollectionBoxProjection(characterEntry, content, preparedAt);
 
         // The roster read above answers whether the selected character is on the account, and that
         // question does not need anyone's clothes -- it stays on the listing that works nothing out,
@@ -239,7 +207,7 @@ public sealed class SelectCharacterPreparationService(
         // price of not putting an equipment read behind a membership check.
         var drawnRoster = await characters.GetAccountRosterWithAppearanceAsync(
             accountId, cancellationToken).ConfigureAwait(false);
-        var rosterEntry = await BuildRosterEntryAsync(
+        var rosterEntry = await CharacterStateProjection.BuildRosterEntryAsync(
             accountId, drawnRoster, character.Identity.CharacterId, characterEntry,
             characterEntries, cancellationToken).ConfigureAwait(false);
 
@@ -259,144 +227,10 @@ public sealed class SelectCharacterPreparationService(
             events is null || attendance is null ? null : new Dfo.Server.Data.Events.EventPlayerSnapshot(
                 await events.GetEventInfoListAsync(accountId,preparedAt,cancellationToken),
                 await attendance.StateAsync(accountId,preparedAt,cancellationToken),
-                joust is null ? null : await joust.ReadAsync(character.Identity.CharacterId,preparedAt,cancellationToken)));
+                joust is null ? null : await joust.ReadAsync(character.Identity.CharacterId,preparedAt,cancellationToken)),
+            epicBook is null ? [] : await epicBook.GetBalancesAsync(accountId, cancellationToken).ConfigureAwait(false));
 
         return result;
-    }
-
-    private static CharacterSkillsEntryState MergePvpProfile(
-        CharacterSkillsEntryState normal, CharacterSkillsEntryState pvp) => normal with
-    {
-        Pages = pvp.Pages,
-        ProtocolMirror = pvp.ProtocolMirror
-            ?? throw new InvalidDataException("PvP skill protocol mirror is unavailable."),
-    };
-
-    /// <summary>The roster frame in the entry burst, drawn from what each character wears.</summary>
-    /// <remarks>
-    /// <b>It used to decode <c>characters.appearance_blob</c>, and that column is written once when
-    /// a character is created and by nothing afterwards.</b> A player who dressed a character was
-    /// therefore drawn the character they made rather than the one they have -- on this frame only,
-    /// because the character-selection frame had already been moved onto what is worn. The two
-    /// disagreed in the open until this.
-    /// <para>
-    /// The appearance now arrives on the summaries, worked out by the same listing the
-    /// character-selection frame asks, which is what stops the two drifting apart again: there is
-    /// one place that pairs a roster with what its characters wear, and both frames call it.
-    /// </para>
-    /// <para>
-    /// A null appearance is refused rather than drawn as nothing. Null means "this listing did not
-    /// work it out", which is true of the cheap listing and must never be true here; drawing it as
-    /// an empty appearance would undress every character on the screen and look like a content bug
-    /// rather than a wiring one.
-    /// </para>
-    /// </remarks>
-    private static async ValueTask<CharacterRosterEntryState> BuildRosterEntryAsync(
-        AccountId accountId,
-        AccountCharacterRoster roster,
-        CharacterId selectedId,
-        CharacterEntryState selectedEntry,
-        ICharacterEntryStateDomainService entries,
-        CancellationToken cancellationToken)
-    {
-        var characters = new List<CharacterRosterMemberState>(roster.Characters.Count);
-        foreach (var summary in roster.Characters.OrderBy(value => value.SlotIndex))
-        {
-            var entry = summary.CharacterId == selectedId
-                ? selectedEntry
-                : await entries.LoadAsync(accountId, summary.CharacterId, cancellationToken).ConfigureAwait(false);
-            characters.Add(new CharacterRosterMemberState(
-                summary.CharacterId, summary.SlotIndex, summary.Name, summary.Job, summary.GrowType,
-                summary.Level,
-                checked((uint)Math.Max(0, entry.Public.DerivedStats.Progress1)),
-                checked((uint)Math.Max(0, entry.Public.DerivedStats.Progress2)),
-                0,
-                summary.Appearances ?? throw new InvalidDataException(
-                    "The account roster this frame is drawn from did not work out appearances."),
-                summary.CloneTitleItemId));
-        }
-        return new CharacterRosterEntryState(
-            roster.SlotLimit, roster.SlotLimit, checked((byte)selectedEntry.Public.Extras.ManageLevel),
-            0, 0, 0, characters);
-    }
-
-    private static CharacterEntryState CompleteCollectionBoxProjection(
-        CharacterEntryState entry,
-        WorldContentEntryState content,
-        DateTimeOffset preparedAt)
-    {
-        // Content decides which boxes exist; character storage only supplies progress within them.
-        // This used to run the other way round -- the entry state invented a fixed pair of box
-        // indices and this projection demanded a definition for each -- which made entry fail
-        // outright on any archive that did not happen to declare those two. The archive in use
-        // declares boxes 1 and 2 while the hard-coded pair was 3 and 4, so it never could have
-        // resolved. The reference server derives the set the same way, from its collect-box table.
-        var stored = entry.Features.Collections.CollectionBoxes.ToDictionary(value => value.BoxIndex);
-        var boxes = content.CollectionBoxes.OrderBy(value => value.BoxIndex).Select(definition =>
-        {
-            var index = checked((byte)definition.BoxIndex);
-            var box = stored.TryGetValue(index, out var progress)
-                ? progress
-                : new CharacterCollectionBoxProgressState(index, []);
-
-            uint remainingSeconds;
-            byte statusFlags;
-            if (definition.MaximumExpiresAt is not { } maximum)
-            {
-                remainingSeconds = 0;
-                statusFlags = 1;
-            }
-            else if (maximum <= preparedAt)
-            {
-                remainingSeconds = uint.MaxValue;
-                statusFlags = 0;
-            }
-            else
-            {
-                remainingSeconds = checked((uint)Math.Min(
-                    uint.MaxValue,
-                    Math.Floor((maximum - preparedAt).TotalSeconds)));
-                statusFlags = 0;
-            }
-
-            return box with
-            {
-                Protocol = new CharacterCollectionBoxProtocolState(remainingSeconds, statusFlags),
-            };
-        }).ToArray();
-
-        return entry with
-        {
-            Features = entry.Features with
-            {
-                Collections = entry.Features.Collections with { CollectionBoxes = boxes },
-            },
-        };
-    }
-
-    private static async ValueTask<CharacterEntryState> CompleteSkillProjectionAsync(
-        ActiveCharacterState character,
-        CharacterEntryState entry,
-        ICharacterEntryPreparationRuleService rules,
-        CancellationToken cancellationToken)
-    {
-        var learnedIds = entry.Skills.Pages.SelectMany(value => value.Skills)
-            .Select(value => checked((int)value.SkillId)).Distinct().ToArray();
-        var definitions = await rules.SkillPointsAsync(
-            character.Identity.Job,
-            character.Identity.GrowType,
-            character.Progression.Level,
-            learnedIds,
-            cancellationToken).ConfigureAwait(false);
-        // The arithmetic itself belongs to the rule service, which already holds the archive's
-        // answers. Entry supplies what it has in hand; a character asked about its points later
-        // supplies the same facts read from storage, and both get the one implementation.
-        var mirror = rules.RemainingPoints(
-            definitions,
-            character.Progression.Level,
-            entry.Skills.Pages,
-            entry.Skills.SkillPointBasis);
-        return entry with { Skills = entry.Skills with { ProtocolMirror = mirror } };
     }
 
     internal static async ValueTask<CharacterSkillsEntryState> BuildInitialPvpSkillProfileAsync(
@@ -445,83 +279,4 @@ public sealed class SelectCharacterPreparationService(
             : raw is >= 0 and <= 3 ? grows <= 2 ? 1 : 0 : raw == 4 ? 2 : raw;
     }
 
-    private static async ValueTask<AccountEntryState> CompleteSupportCharacterProjectionAsync(
-        AccountId accountId,
-        ActiveCharacterState selected,
-        AccountCharacterRoster roster,
-        AccountEntryState account,
-        ICharacterDomainService characters,
-        ICharacterInventoryEntryDomainService inventories,
-        ICharacterEntryStateDomainService entries,
-        ICharacterEntryPreparationRuleService preparationRules,
-        DateTimeOffset preparedAt,
-        bool selectionEntry,
-        CancellationToken cancellationToken)
-    {
-        var ownerRelations = account.Relations.CharacterRelations
-            .Where(value => value.OwnerCharacterId == selected.Identity.CharacterId).ToArray();
-        if (ownerRelations.Length == 0)
-            return account;
-        if (ownerRelations.Length != 1 || ownerRelations[0].Slot != 0)
-            throw new InvalidDataException("Select-character supports exactly one owner relation in slot zero.");
-        var relation = ownerRelations[0];
-        var summary = roster.Characters.SingleOrDefault(
-            value => value.CharacterId == relation.SupportCharacterId)
-            ?? throw new InvalidDataException("Support character is absent from the account roster.");
-        var support = await characters.LoadForSelectionAsync(
-            accountId, summary.SlotIndex, cancellationToken).ConfigureAwait(false);
-        var supportEntry = await entries.LoadAsync(
-            accountId, relation.SupportCharacterId, cancellationToken).ConfigureAwait(false);
-        var supportInventory = await (selectionEntry
-            ? inventories.LoadAsync(accountId, relation.SupportCharacterId, cancellationToken)
-            : inventories.ReadCurrentAsync(accountId, relation.SupportCharacterId, cancellationToken))
-            .ConfigureAwait(false);
-        supportInventory = await SupportCreatureMarkerProjection.CompleteAsync(
-            supportInventory, preparationRules, preparedAt, cancellationToken)
-            .ConfigureAwait(false);
-        var completed = relation with
-        {
-            SupportProjection = new AccountSupportCharacterEntryState(
-                support, supportEntry, supportInventory),
-        };
-        return account with
-        {
-            Relations = account.Relations with
-            {
-                CharacterRelations = account.Relations.CharacterRelations
-                    .Select(value => value == relation ? completed : value).ToArray(),
-            },
-        };
-    }
-
-    private WorldContentSubject BuildContentSubject(
-        ActiveCharacterState character,
-        CharacterEntryState entry,
-        CharacterInventoryEntryState characterInventory)
-    {
-        var claimedGroups = entry.Progression.DailyChallenges
-            .Where(group => group.RewardClaimed)
-            .Select(group => checked((int)group.GroupId))
-            .ToArray();
-        var boxes = entry.Features.Collections.CollectionBoxes
-            .Select(box => new CollectionBoxProgressSubject(
-                box.BoxIndex,
-                box.Slots.Select(slot => slot.ItemId).ToArray()))
-            .ToArray();
-        var clearedQuestFlags = entry.Quests.VisibilityFlags
-            .Select((value, questId) => (questId, value))
-            .Where(pair => pair.value != 0)
-            .ToDictionary(pair => pair.questId, pair => checked((int)pair.value));
-
-        return new WorldContentSubject(
-            character.Progression.Level,
-            character.Identity.Job,
-            character.Identity.GrowType,
-            clearedQuestFlags,
-            [.. entry.Quests.ActiveQuests.Select(quest => quest.QuestId)],
-            claimedGroups,
-            boxes,
-            equippedCreature.GetItemId(characterInventory),
-            entry.Public.DerivedStats.EquippedCreatureLevel);
-    }
 }

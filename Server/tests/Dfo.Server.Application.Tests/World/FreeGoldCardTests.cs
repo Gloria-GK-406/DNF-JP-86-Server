@@ -47,7 +47,7 @@ public sealed class FreeGoldCardTests
         if (runs.Find(id) is { } old) runs.End(id, old.RunId);
         var cell = new MazeCell(0, 0);
         var layout = new DungeonLayout(144, 0, 1, 1, cell, cell, 55611, 0,
-            new Dictionary<MazeCell, int> { [cell] = 55611 });
+            new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)});
         var run = runs.Begin(id, layout, difficulty: 0);
         runs.FixClearRewardCards(id, run.RunId,
             new(ClearRewardCardKind.Free, [new(0, null)], Gold: 0),

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Protocol.Game.Fatigue;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -7,6 +8,7 @@ using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
@@ -21,6 +23,7 @@ using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Dfo.Server.Protocol.Tests.Game.TownProjection;
@@ -46,6 +49,127 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 /// </remarks>
 public sealed class SelectDungeonHandlerTests
 {
+    [Fact]
+    public async Task Missing_hell_tickets_send_the_native_refusal_and_preserve_selection_for_retry()
+    {
+        var commands = new MissingHellTicketCommands();
+        var visits = new RecordingVisits();
+        var sender = new RecordingSender();
+        var fatigue = new RecordingFatigue();
+        var handler = Handler(visits, sender, fatigue: fatigue, commands: commands);
+        var request = Request() with { RequestMode = 1 };
+
+        await handler.HandleAsync(Dispatch(), request, default);
+        await handler.HandleAsync(Dispatch(), request, default);
+
+        Assert.Equal(2, commands.Calls);
+        Assert.Equal(2, sender.Sent.Count);
+        foreach (var message in sender.Sent)
+        {
+            var refusal = Assert.IsType<SelectDungeonRefusal>(message);
+            var frame = new SelectDungeonRefusalEncoder().Encode(refusal).Single().ToArray();
+            Assert.Equal(Convert.FromHexString("001B00"), frame[15..]);
+        }
+        Assert.Empty(visits.Facts);
+        Assert.Empty(fatigue.Spent);
+    }
+
+    [Theory]
+    [InlineData(DungeonEntryFailure.DifficultyNotUnlocked, false, 0x15)]
+    [InlineData(DungeonEntryFailure.MissingRequiredItem, false, 0x11)]
+    [InlineData(DungeonEntryFailure.MissingHellTicket, true, 0x1B)]
+    [InlineData(DungeonEntryFailure.LevelTooLow, false, 0xAC)]
+    [InlineData(DungeonEntryFailure.LevelTooLow, true, 0x6F)]
+    [InlineData(DungeonEntryFailure.HellQuestNotCleared, true, 0x07)]
+    [InlineData(DungeonEntryFailure.MissingPrerequisite, false, 0x07)]
+    [InlineData(DungeonEntryFailure.InsufficientFatigue, false, 0x16)]
+    [InlineData(DungeonEntryFailure.DailyEntryLimitReached, false, 0xF6)]
+    [InlineData(DungeonEntryFailure.MemberEntryLimitReached, false, 0xAD)]
+    [InlineData(DungeonEntryFailure.AlreadyInDungeon, false, 0x13)]
+    [InlineData(DungeonEntryFailure.ConfigurationInvalid, false, SelectDungeonRefusal.DungeonUnavailable)]
+    [InlineData(DungeonEntryFailure.HellConfigurationInvalid, true, SelectDungeonRefusal.DungeonUnavailable)]
+    public async Task Refusals_preserve_the_actual_reason_and_allow_retry(DungeonEntryFailure failure, bool hell, byte code)
+    {
+        var sender = new RecordingSender();
+        var visits = new RecordingVisits();
+        var handler = Handler(visits, sender, commands: new RefusalCommands(failure));
+        for (var i = 0; i < 2; i++)
+            await handler.HandleAsync(Dispatch(), Request() with { RequestMode = hell ? (byte)1 : (byte)0 }, default);
+        Assert.Equal(2, sender.Sent.Count);
+        Assert.All(sender.Sent, message =>
+        {
+            var refusal = Assert.IsType<SelectDungeonRefusal>(message);
+            Assert.Equal(code, refusal.ErrorCode);
+            Assert.Equal((byte)2, refusal.Context);
+            Assert.Equal(new byte[] {0, code, 2}, new SelectDungeonRefusalEncoder().Encode(refusal).Single().ToArray()[15..]);
+        });
+        Assert.Empty(visits.Facts);
+    }
+
+    private sealed class RefusalCommands(DungeonEntryFailure failure) : ICommandBus
+    {
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
+            where TResult : notnull => ValueTask.FromResult((TResult)(object)new DungeonEntryAttempt(null, failure, 2));
+    }
+
+    private sealed class MissingHellTicketCommands : ICommandBus
+    {
+        public int Calls { get; private set; }
+
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command,
+            CancellationToken cancellationToken = default) where TResult : notnull
+        {
+            var entry = Assert.IsType<EnterDungeonCommand>(command);
+            Assert.Equal((byte)1, entry.Entry.RequestMode);
+            Calls++;
+            return ValueTask.FromResult((TResult)(object)new DungeonEntryAttempt(
+                null, DungeonEntryFailure.MissingHellTicket, 0));
+        }
+    }
+
+    [Theory]
+    [InlineData(11000, 0)]
+    [InlineData(11001, 0)]
+    [InlineData(11000, 1)]
+    [InlineData(11001, 1)]
+    public async Task Manual_hell_cannot_bypass_CMD_routing_through_the_tower_shortcut(int dungeon, byte practice)
+    {
+        var visits = new RecordingVisits();
+        var tower = System.Reflection.DispatchProxy.Create<IIllusionTowerDomainService, TowerProbe>();
+        var handler = Handler(visits, tower: tower);
+        await handler.HandleAsync(Dispatch(), Request() with { DungeonId = dungeon, RequestMode = 1, PracticeMode = practice }, default);
+        Assert.Empty(visits.Facts);
+        Assert.Equal(0, ((TowerProbe)(object)tower).Calls);
+    }
+
+    [Fact]
+    public async Task Ordinary_request_still_consults_the_existing_tower_shortcut()
+    {
+        var tower = System.Reflection.DispatchProxy.Create<IIllusionTowerDomainService, TowerProbe>();
+        var handler = Handler(new RecordingVisits(), tower: tower);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await handler.HandleAsync(Dispatch(), Request() with { DungeonId = 11001 }, default));
+        Assert.Equal(1, ((TowerProbe)(object)tower).Calls);
+    }
+
+    public class TowerProbe : System.Reflection.DispatchProxy
+    {
+        public int Calls { get; private set; }
+        protected override object? Invoke(System.Reflection.MethodInfo? targetMethod, object?[]? args)
+        {
+            Calls++;
+            throw new InvalidOperationException("Manual hell must never enter the tower shortcut.");
+        }
+    }
+    [Fact]
+    public async Task Manual_hell_request_is_never_silently_entered_as_an_ordinary_dungeon()
+    {
+        var visits = new RecordingVisits();
+        var handler = Handler(visits);
+        await handler.HandleAsync(Dispatch(), Request() with { RequestMode = 1 }, default);
+        Assert.Empty(visits.Facts);
+    }
+
     /// <summary>
     /// The facts handed to the run are the log's carried quests, not the session's copy.
     /// </summary>
@@ -467,20 +591,33 @@ public sealed class SelectDungeonHandlerTests
         RecordingSender? sender = null,
         OneLog? logs = null,
         RecordingFatigue? fatigue = null,
-        DungeonEntryIntent? intent = null)
+        DungeonEntryIntent? intent = null,
+        IIllusionTowerDomainService? tower = null,
+        ICommandBus? commands = null)
     {
         var actualSender = sender ?? new RecordingSender();
         var sessions = new OneSession(Identity);
         var runtimes = new OneRuntimeSession(Entry());
+        var actualFatigue = fatigue ?? new RecordingFatigue();
+        var intents = new IntentStore(intent ?? DungeonEntryIntent.Interactive);
+        var runs = new NoopRuns();
+        var registry = new DungeonRunDeliveryRegistry();
+        var transitionGate = new SelectedSessionTransitionGate();
+        var town = TownAreaProjectionTestFactory.Create(sessions, runtimes, actualSender);
+        var projection = commands is null ? null : new DungeonEntryProjectionDelivery(
+            Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(), new UnchangedState(),
+            sessions, new RuntimeCurrentView(runtimes), runs, registry, intents, visits,
+            actualFatigue, actualSender, new NoopConnectionCloser(), town, transitionGate,
+            new DungeonProjectionGate(), NullLogger<DungeonEntryProjectionDelivery>.Instance, commands);
         return new(
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new UnchangedState(),
             sessions,
             new RuntimeCurrentView(runtimes),
             new NoPartyService(),
-            new NoopRuns(),
-            new DungeonRunDeliveryRegistry(),
-            new IntentStore(intent ?? DungeonEntryIntent.Interactive),
+            runs,
+            registry,
+            intents,
             visits,
             logs ?? new OneLog(new StandInLog(
                 [
@@ -488,24 +625,28 @@ public sealed class SelectDungeonHandlerTests
                     new CarriedQuest(1, AlsoCarriedInLog, 0),
                 ],
                 [new ClearedQuest(ClearedInLog, IQuestLog.ClearedMark)])),
-            fatigue ?? new RecordingFatigue(),
+            actualFatigue,
             actualSender,
             new NoopConnectionCloser(),
-            TownAreaProjectionTestFactory.Create(sessions, runtimes, actualSender),
+            town,
             NullLogger<SelectDungeonHandler>.Instance,
-            new SelectedSessionTransitionGate());
+            transitionGate,
+            entryProjection: projection,
+            illusionTower: tower,
+            // Sentinel projection: the probe throws if the shortcut is even consulted.
+            illusionTowerProjection: tower is null ? null : new(tower, null!, null!, null!, null!, null!, null!,
+                null!, null!, null!, null!, null!, null!, null!, null!, null!, null!));
     }
 
     private static SelectDungeonRequest Request() =>
         new(GameMessageMetadata.Empty, TutorialDungeonId, Difficulty, 0, 0);
 
-    private sealed class NoopNotifications : INotificationBus
+    private sealed class NoopNotifications : Dfo.Server.Testing.ProjectionEventService
     {
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
-            CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification> =>
+            CancellationToken cancellationToken) =>
             ValueTask.FromResult(new NotificationDelivery([]));
     }
 
@@ -556,7 +697,7 @@ public sealed class SelectDungeonHandlerTests
         BossCell: new MazeCell(3, 0),
         StartRoomMapId: 61000,
         Seed: 0x0BADF00D,
-        Rooms: new Dictionary<MazeCell, int> { [new MazeCell(0, 1)] = 61000 });
+        Cells: new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 1)] = DungeonCellDefinition.Fixed(61000)});
 
     /// <summary>The run as it stands on entry: in the start room, having seen only it.</summary>
     private static readonly DungeonRunState AtStart = new(

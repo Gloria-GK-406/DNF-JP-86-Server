@@ -134,6 +134,8 @@ public sealed class PremiumContractTests
     }
     private sealed class Requirement(int level) : IEquipmentWearRuleService
     {
+        public Dfo.Server.Data.Inventory.ItemSnapshot UnsealForEquip(Dfo.Server.Data.Inventory.ItemSnapshot item) => item;
+
         public ValueTask<int?> MinimumLevelAsync(int itemId, CancellationToken cancellationToken) => ValueTask.FromResult<int?>(level);
     }
     private sealed class Placement(ItemWorldClass kind) : IItemPlacementRuleService

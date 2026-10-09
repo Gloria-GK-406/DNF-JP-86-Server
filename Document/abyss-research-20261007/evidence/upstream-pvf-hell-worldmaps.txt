@@ -1,0 +1,13 @@
+id=12  worldmap/Antberr.wdm
+id=15  worldmap/LuftHafen.wdm
+id=17  worldmap/TimeGate.wdm
+id=19  worldmap/PowerStation.wdm
+id=21  worldmap/Abnoba.wdm
+id=22  worldmap/Meltdown.wdm
+id=23  worldmap/DriftCave.wdm
+id=24  worldmap/FallsToTheSky.wdm
+id=25  worldmap/Icewall.wdm
+id=31  worldmap/MirrorArad.wdm
+id=32  worldmap/CastleoftheDead.wdm
+id=35  worldmap/TauLevel.wdm
+-- 12 file(s)

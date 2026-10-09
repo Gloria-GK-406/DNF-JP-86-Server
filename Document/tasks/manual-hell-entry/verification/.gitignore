@@ -1,0 +1,4 @@
+# Raw test reports remain available locally; compact logs/summary are the durable evidence.
+TestResults/
+FinalTestResults/
+TowerGreen/

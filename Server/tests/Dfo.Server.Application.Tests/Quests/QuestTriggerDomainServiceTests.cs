@@ -64,10 +64,9 @@ public sealed class QuestTriggerDomainServiceTests
             new MazeCell(1, 0),
             1,
             42,
-            new Dictionary<MazeCell, int>
-            {
-                [new MazeCell(0, 0)] = 1,
-                [new MazeCell(1, 0)] = 2,
+            new Dictionary<MazeCell, DungeonCellDefinition> {
+                [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(1),
+                [new MazeCell(1, 0)] = DungeonCellDefinition.Fixed(2),
             },
             Purpose: purpose);
 

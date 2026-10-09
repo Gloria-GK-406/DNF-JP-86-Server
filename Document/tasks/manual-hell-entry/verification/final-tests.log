@@ -1,0 +1,40 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Pvf.Tests\bin\Release\net10.0\Dfo.Pvf.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Document\tasks\manual-hell-entry\verification\FinalTestResults\Gloria_家庭台式机_2026-10-07_13_42_16_net10.0.trx
+
+已通过! - 失败:     0，通过:    80，已跳过:     0，总计:    80，持续时间: 1 s - Dfo.Pvf.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Document\tasks\manual-hell-entry\verification\FinalTestResults\Gloria_家庭台式机_2026-10-07_13_42_19_net10.0.trx
+
+已通过! - 失败:     0，通过:  3118，已跳过:     0，总计:  3118，持续时间: 1 m 26 s - Dfo.Server.Application.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Document\tasks\manual-hell-entry\verification\FinalTestResults\Gloria_家庭台式机_2026-10-07_13_43_47_net10.0.trx
+
+已通过! - 失败:     0，通过:   155，已跳过:     0，总计:   155，持续时间: 1 m 39 s - Dfo.Server.Host.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.HttpApi.Tests\bin\Release\net10.0\Dfo.Server.HttpApi.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Document\tasks\manual-hell-entry\verification\FinalTestResults\Gloria_家庭台式机_2026-10-07_13_45_27_net10.0.trx
+
+已通过! - 失败:     0，通过:    50，已跳过:     0，总计:    50，持续时间: 299 ms - Dfo.Server.HttpApi.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Release\net10.0\Dfo.Server.Infrastructure.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Document\tasks\manual-hell-entry\verification\FinalTestResults\Gloria_家庭台式机_2026-10-07_13_45_28_net10.0.trx
+
+已通过! - 失败:     0，通过:   783，已跳过:     2，总计:   785，持续时间: 17 s - Dfo.Server.Infrastructure.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Document\tasks\manual-hell-entry\verification\FinalTestResults\Gloria_家庭台式机_2026-10-07_13_45_46_net10.0.trx
+
+已通过! - 失败:     0，通过:    90，已跳过:     0，总计:    90，持续时间: 3 s - Dfo.Server.Networking.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Persistence.Tests\bin\Release\net10.0\Dfo.Server.Persistence.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Document\tasks\manual-hell-entry\verification\FinalTestResults\Gloria_家庭台式机_2026-10-07_13_45_51_net10.0.trx
+
+已通过! - 失败:     0，通过:   459，已跳过:     0，总计:   459，持续时间: 41 s - Dfo.Server.Persistence.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Protocol.Tests\bin\Release\net10.0\Dfo.Server.Protocol.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Document\tasks\manual-hell-entry\verification\FinalTestResults\Gloria_家庭台式机_2026-10-07_13_46_33_net10.0.trx
+
+已通过! - 失败:     0，通过:  1340，已跳过:     0，总计:  1340，持续时间: 2 s - Dfo.Server.Protocol.Tests.dll (net10.0)

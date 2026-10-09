@@ -1,0 +1,105 @@
+
+RVA 00570036:00570073 VA 00970036
+RVA 00570036 VA 00970036 8d45ec               lea      eax, [ebp - 0x14]
+RVA 00570039 VA 00970039 6a08                 push     8
+RVA 0057003B VA 0097003B 50                   push     eax
+RVA 0057003C VA 0097003C c745ec00000000       mov      dword ptr [ebp - 0x14], 0
+RVA 00570043 VA 00970043 c745f000000000       mov      dword ptr [ebp - 0x10], 0
+RVA 0057004A VA 0097004A e83153e501           call     0x27c5380
+RVA 0057004F VA 0097004F 8d4de4               lea      ecx, [ebp - 0x1c]
+RVA 00570052 VA 00970052 51                   push     ecx
+RVA 00570053 VA 00970053 e8c8feffff           call     0x96ff20
+RVA 00570058 VA 00970058 83c40c               add      esp, 0xc
+RVA 0057005B VA 0097005B 8b55f0               mov      edx, dword ptr [ebp - 0x10]
+RVA 0057005E VA 0097005E 8b4dec               mov      ecx, dword ptr [ebp - 0x14]
+RVA 00570061 VA 00970061 8b00                 mov      eax, dword ptr [eax]
+RVA 00570063 VA 00970063 52                   push     edx
+RVA 00570064 VA 00970064 51                   push     ecx
+RVA 00570065 VA 00970065 8bc8                 mov      ecx, eax
+RVA 00570067 VA 00970067 c745fc00000000       mov      dword ptr [ebp - 4], 0
+RVA 0057006E VA 0097006E e8fddcffff           call     0x96dd70
+
+RVA 0056DD76:0056DDB9 VA 0096DD76
+RVA 0056DD76 VA 0096DD76 53                   push     ebx
+RVA 0056DD77 VA 0096DD77 8b5d08               mov      ebx, dword ptr [ebp + 8]
+RVA 0056DD7A VA 0096DD7A 56                   push     esi
+RVA 0056DD7B VA 0096DD7B 57                   push     edi
+RVA 0056DD7C VA 0096DD7C 8bf9                 mov      edi, ecx
+RVA 0056DD7E VA 0096DD7E 897df8               mov      dword ptr [ebp - 8], edi
+RVA 0056DD81 VA 0096DD81 85db                 test     ebx, ebx
+RVA 0056DD83 VA 0096DD83 7505                 jne      0x96dd8a
+RVA 0056DD85 VA 0096DD85 395d0c               cmp      dword ptr [ebp + 0xc], ebx
+RVA 0056DD88 VA 0096DD88 7424                 je       0x96ddae
+RVA 0056DD8A VA 0096DD8A 8d8fac030000         lea      ecx, [edi + 0x3ac]
+RVA 0056DD90 VA 0096DD90 e87b56e501           call     0x27c3410
+RVA 0056DD95 VA 0096DD95 6a00                 push     0
+RVA 0056DD97 VA 0096DD97 6a00                 push     0
+RVA 0056DD99 VA 0096DD99 8d8fac030000         lea      ecx, [edi + 0x3ac]
+RVA 0056DD9F VA 0096DD9F e8bc5de501           call     0x27c3b60
+RVA 0056DDA4 VA 0096DDA4 c787dc030000ff000000 mov      dword ptr [edi + 0x3dc], 0xff
+RVA 0056DDAE VA 0096DDAE 8db760030000         lea      esi, [edi + 0x360]
+RVA 0056DDB4 VA 0096DDB4 8bc6                 mov      eax, esi
+RVA 0056DDB6 VA 0096DDB6 83e00f               and      eax, 0xf
+
+RVA 0056DE19:0056DE33 VA 0096DE19
+RVA 0056DE19 VA 0096DE19 8b450c               mov      eax, dword ptr [ebp + 0xc]
+RVA 0056DE1C VA 0096DE1C 81c758030000         add      edi, 0x358
+RVA 0056DE22 VA 0096DE22 8bcf                 mov      ecx, edi
+RVA 0056DE24 VA 0096DE24 83e10f               and      ecx, 0xf
+RVA 0056DE27 VA 0096DE27 89450c               mov      dword ptr [ebp + 0xc], eax
+RVA 0056DE2A VA 0096DE2A 8d4704               lea      eax, [edi + 4]
+RVA 0056DE2D VA 0096DE2D 894d08               mov      dword ptr [ebp + 8], ecx
+RVA 0056DE30 VA 0096DE30 83f90c               cmp      ecx, 0xc
+
+RVA 001E0790:001E07BF VA 005E0790
+RVA 001E0790 VA 005E0790 56                   push     esi
+RVA 001E0791 VA 005E0791 33f6                 xor      esi, esi
+RVA 001E0793 VA 005E0793 57                   push     edi
+RVA 001E0794 VA 005E0794 8d45dc               lea      eax, [ebp - 0x24]
+RVA 001E0797 VA 005E0797 6a20                 push     0x20
+RVA 001E0799 VA 005E0799 50                   push     eax
+RVA 001E079A VA 005E079A 8975dc               mov      dword ptr [ebp - 0x24], esi
+RVA 001E079D VA 005E079D 8975e0               mov      dword ptr [ebp - 0x20], esi
+RVA 001E07A0 VA 005E07A0 8975e4               mov      dword ptr [ebp - 0x1c], esi
+RVA 001E07A3 VA 005E07A3 8975e8               mov      dword ptr [ebp - 0x18], esi
+RVA 001E07A6 VA 005E07A6 8975ec               mov      dword ptr [ebp - 0x14], esi
+RVA 001E07A9 VA 005E07A9 8975f0               mov      dword ptr [ebp - 0x10], esi
+RVA 001E07AC VA 005E07AC 8975f4               mov      dword ptr [ebp - 0xc], esi
+RVA 001E07AF VA 005E07AF 8975f8               mov      dword ptr [ebp - 8], esi
+RVA 001E07B2 VA 005E07B2 e8c94b1e02           call     0x27c5380
+RVA 001E07B7 VA 005E07B7 8b0db8c9a503         mov      ecx, dword ptr [0x3a5c9b8]
+RVA 001E07BD VA 005E07BD 83                   .byte    0x83
+RVA 001E07BE VA 005E07BE c4                   .byte    0xc4
+
+RVA 001E07E1:001E07F7 VA 005E07E1
+RVA 001E07E1 VA 005E07E1 3bfe                 cmp      edi, esi
+RVA 001E07E3 VA 005E07E3 7412                 je       0x5e07f7
+RVA 001E07E5 VA 005E07E5 8d4ddc               lea      ecx, [ebp - 0x24]
+RVA 001E07E8 VA 005E07E8 51                   push     ecx
+RVA 001E07E9 VA 005E07E9 8bcf                 mov      ecx, edi
+RVA 001E07EB VA 005E07EB e8f0f9ffff           call     0x5e01e0
+RVA 001E07F0 VA 005E07F0 8bcf                 mov      ecx, edi
+RVA 001E07F2 VA 005E07F2 e849fbffff           call     0x5e0340
+
+RVA 001E024A:001E0287 VA 005E024A
+RVA 001E024A VA 005E024A e841704302           call     0x2a17290
+RVA 001E024F VA 005E024F 85c0                 test     eax, eax
+RVA 001E0251 VA 005E0251 7e30                 jle      0x5e0283
+RVA 001E0253 VA 005E0253 57                   push     edi
+RVA 001E0254 VA 005E0254 bf08000000           mov      edi, 8
+RVA 001E0259 VA 005E0259 8da42400000000       lea      esp, [esp]
+RVA 001E0260 VA 005E0260 8b4508               mov      eax, dword ptr [ebp + 8]
+RVA 001E0263 VA 005E0263 8b0c07               mov      ecx, dword ptr [edi + eax]
+RVA 001E0266 VA 005E0266 8b96ac010000         mov      edx, dword ptr [esi + 0x1ac]
+RVA 001E026C VA 005E026C 890c17               mov      dword ptr [edi + edx], ecx
+RVA 001E026F VA 005E026F 8b8ea8010000         mov      ecx, dword ptr [esi + 0x1a8]
+RVA 001E0275 VA 005E0275 43                   inc      ebx
+RVA 001E0276 VA 005E0276 83c704               add      edi, 4
+RVA 001E0279 VA 005E0279 e812704302           call     0x2a17290
+RVA 001E027E VA 005E027E 3bd8                 cmp      ebx, eax
+RVA 001E0280 VA 005E0280 7cde                 jl       0x5e0260
+RVA 001E0282 VA 005E0282 5f                   pop      edi
+RVA 001E0283 VA 005E0283 5e                   pop      esi
+RVA 001E0284 VA 005E0284 5b                   pop      ebx
+RVA 001E0285 VA 005E0285 5d                   pop      ebp
+RVA 001E0286 VA 005E0286 c2                   .byte    0xc2

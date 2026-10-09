@@ -1,0 +1,1 @@
+Initial RED attempt had no valid behavioral result because the multi-node MSBuild attempt failed to finish. Not test-pass evidence. Review remediation RED/GREEN evidence is in verification/tower-red.log and tower-green.log.

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -71,7 +72,7 @@ public sealed class ShopPurchaseCountHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions,
     ICommandBus commands,
-    INotificationBus notifications,
+    IEventService notifications,
     IGameMessageSender sender) : ClientMessageHandler<ShopPurchaseCountRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -88,7 +89,7 @@ public sealed class ShopPurchaseCountHandler(
         var result = await commands.SendAsync(
             new QueryShopPurchaseCountsCommand(online.OnlineUserId, session, message.NpcId), cancellationToken)
             .ConfigureAwait(false);
-        await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
+        await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
             new ShopPurchaseCountsReported(session, result), cancellationToken).ConfigureAwait(false);
     }
 }

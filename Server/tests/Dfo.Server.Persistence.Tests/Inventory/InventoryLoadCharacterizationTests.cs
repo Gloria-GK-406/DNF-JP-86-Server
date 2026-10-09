@@ -173,6 +173,8 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[0].Core.RemainUseCount = 209
         CharacterItems[0].Core.SortLockFlag = 210
         CharacterItems[0].Core.EquipmentLockId = 211
+        CharacterItems[0].Core.AppearanceItemId = null
+        CharacterItems[0].Core.DisplayItemId = 2001
         CharacterItems[0].Core.Traits = Equipment
         CharacterItems[0].Core.ReinforcementLevel = 11
         CharacterItems[0].AvatarDetail = null
@@ -236,6 +238,8 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[1].Core.RemainUseCount = 239
         CharacterItems[1].Core.SortLockFlag = 240
         CharacterItems[1].Core.EquipmentLockId = 241
+        CharacterItems[1].Core.AppearanceItemId = null
+        CharacterItems[1].Core.DisplayItemId = 2002
         CharacterItems[1].Core.Traits = Equipment
         CharacterItems[1].Core.ReinforcementLevel = 9
         CharacterItems[1].AvatarDetail = null
@@ -299,6 +303,8 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[2].Core.RemainUseCount = 179
         CharacterItems[2].Core.SortLockFlag = 180
         CharacterItems[2].Core.EquipmentLockId = 181
+        CharacterItems[2].Core.AppearanceItemId = null
+        CharacterItems[2].Core.DisplayItemId = 2003
         CharacterItems[2].Core.Traits = Equipment
         CharacterItems[2].Core.ReinforcementLevel = 13
         CharacterItems[2].AvatarDetail = null
@@ -362,6 +368,8 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[3].Core.RemainUseCount = 119
         CharacterItems[3].Core.SortLockFlag = 120
         CharacterItems[3].Core.EquipmentLockId = 121
+        CharacterItems[3].Core.AppearanceItemId = null
+        CharacterItems[3].Core.DisplayItemId = 2500
         CharacterItems[3].Core.Traits = Avatar
         CharacterItems[3].Core.ReinforcementLevel = 17
         CharacterItems[3].AvatarDetail.ExpireDate = 7001
@@ -481,6 +489,8 @@ public sealed class InventoryLoadCharacterizationTests
         AccountCargoItems[0].Core.RemainUseCount = 159
         AccountCargoItems[0].Core.SortLockFlag = 160
         AccountCargoItems[0].Core.EquipmentLockId = 161
+        AccountCargoItems[0].Core.AppearanceItemId = null
+        AccountCargoItems[0].Core.DisplayItemId = 2601
         AccountCargoItems[0].Core.Traits = Equipment
         AccountCargoItems[0].Core.ReinforcementLevel = 25
         AccountCargoItems[0].AvatarDetail = null
@@ -544,6 +554,8 @@ public sealed class InventoryLoadCharacterizationTests
         AccountCargoItems[1].Core.RemainUseCount = 139
         AccountCargoItems[1].Core.SortLockFlag = 140
         AccountCargoItems[1].Core.EquipmentLockId = 141
+        AccountCargoItems[1].Core.AppearanceItemId = null
+        AccountCargoItems[1].Core.DisplayItemId = 2600
         AccountCargoItems[1].Core.Traits = Equipment
         AccountCargoItems[1].Core.ReinforcementLevel = 5
         AccountCargoItems[1].AvatarDetail = null

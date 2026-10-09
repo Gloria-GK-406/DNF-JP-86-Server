@@ -23,7 +23,7 @@ public sealed class DungeonRevivalTests
     {
         var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
         var layout = new DungeonLayout(144, 0, 1, 1, new(0, 0), new(0, 0), 61000, 1,
-            new Dictionary<MazeCell, int> { [new(0, 0)] = 61000 });
+            new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)});
         var run = runs.PreparePartyEntry([new(shop.Session.AccountId, shop.Session.CharacterId, 0, true)],
             layout, DungeonDifficulty.Normal).Run;
         runs.TryMarkParticipantReady(shop.Session.CharacterId, run.RunId, run.RoomVersion);
@@ -58,7 +58,7 @@ public sealed class DungeonRevivalTests
         await shop.Seed(1, 1, 10, 0);
         var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
         var layout = new DungeonLayout(144, 0, 1, 1, new(0, 0), new(0, 0), 61000, 1,
-            new Dictionary<MazeCell, int> { [new(0, 0)] = 61000 });
+            new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)});
         var target = new Dfo.Server.Data.Characters.CharacterId(2);
         var run = runs.PreparePartyEntry([
             new(shop.Session.AccountId, shop.Session.CharacterId, 0, true),

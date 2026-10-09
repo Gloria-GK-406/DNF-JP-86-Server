@@ -49,7 +49,7 @@ public sealed class WorldContentArchiveTests
             BossCell: boss,
             StartRoomMapId: 55623,
             Seed: 1,
-            Rooms: new Dictionary<MazeCell, int> { [ordinary] = 55623, [boss] = 55625 },
+            Cells: new Dictionary<MazeCell, DungeonCellDefinition> { [ordinary] = DungeonCellDefinition.Fixed(55623), [boss] = DungeonCellDefinition.Fixed(55625)},
             BasisLevel: dungeon.BasisLevel);
 
         async Task<DungeonRoomContents> Describe(MazeCell cell, int mapId) =>
@@ -262,16 +262,17 @@ public sealed class WorldContentArchiveTests
             ChannelEntryOptions.Legacy);
 
         var result = await placement.ResolveAsync(
-            new ChannelEntryIdentity(100, 10161, ChannelEntryKind.LevelRestricted),
+            new ChannelEntryIdentity(100, 10161, ChannelEntryKind.SaintHorn),
             persistedTownId: 1,
             CancellationToken.None);
 
         Assert.True(result.Spawn.IsTransient);
         Assert.False(result.PersistsPosition);
         Assert.Equal(17, result.Spawn.TownId);
-        Assert.Equal(4, result.Spawn.AreaId);
-        Assert.Equal(378, result.Spawn.X);
-        Assert.Equal(278, result.Spawn.Y);
+        Assert.Equal(0, result.Spawn.AreaId);
+        Assert.Equal(474, result.Spawn.X);
+        Assert.Equal(234, result.Spawn.Y);
+        Assert.False(result.Spawn.SharesTownPresence);
     }
 
     [SkippableFact]
@@ -290,6 +291,25 @@ public sealed class WorldContentArchiveTests
 
         Assert.False(result.Spawn.IsTransient);
         Assert.True(result.PersistsPosition);
+        Assert.Equal(1, result.Spawn.TownId);
+        Assert.Equal(474, result.Spawn.X);
+        Assert.Equal(234, result.Spawn.Y);
+    }
+
+    [SkippableFact]
+    public async Task Time_gate_login_falls_back_to_the_initial_town_from_the_real_archive()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var scope = ContentArchive.CreateContentProvider();
+        var towns = scope.GetRequiredService<ITownDefinitionSource>();
+        var timeGate = await towns.GetAsync(12, CancellationToken.None);
+        Assert.NotNull(timeGate);
+        Assert.Null(timeGate.Gate);
+        var placement = new EntryPlacementRuleService(towns, ChannelEntryOptions.Legacy);
+
+        var result = await placement.ResolveAsync(
+            new ChannelEntryIdentity(11, 10011, ChannelEntryKind.General), 12, CancellationToken.None);
+
         Assert.Equal(1, result.Spawn.TownId);
         Assert.Equal(474, result.Spawn.X);
         Assert.Equal(234, result.Spawn.Y);

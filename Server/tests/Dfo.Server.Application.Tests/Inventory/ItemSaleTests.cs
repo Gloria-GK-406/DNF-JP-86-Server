@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Notifications;
@@ -31,8 +32,8 @@ public sealed class ItemSaleTests
         await shop.Seed(65, 5000, 2);
         var cell = new MazeCell(0, 0); var other = new MazeCell(1, 0);
         var layout = new DungeonLayout(144, 0, boss ? (byte)1 : (byte)2, 1, cell, boss ? cell : other, 55611, 0,
-            boss ? new Dictionary<MazeCell, int> { [cell] = 55611 }
-                : new Dictionary<MazeCell, int> { [cell] = 55611, [other] = 55611 });
+            boss ? new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)}
+                : new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611), [other] = DungeonCellDefinition.Fixed(55611)});
         var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
         var run = runs.PreparePartyEntry([new(owner ? shop.Session.AccountId : new(999),
             shop.Session.CharacterId, 0, true)], layout, 0).Run;
@@ -205,7 +206,7 @@ public sealed class ItemSaleTests
             new BusinessSlot(BusinessInventorySpace.Consumable, 0),
             5000, 1, 31, null, DateTimeOffset.UtcNow);
         shop.Select(2);
-        await shop.Services.GetRequiredService<INotificationBus>().PublishAsync(
+        await shop.Services.GetRequiredService<IEventService>().ProjectAsync(
             new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), new ItemSaleCompleted(receipt), default);
         Assert.Single(shop.Sender.Messages);
     }

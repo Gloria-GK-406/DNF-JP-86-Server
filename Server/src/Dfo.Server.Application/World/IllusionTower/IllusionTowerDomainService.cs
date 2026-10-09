@@ -60,7 +60,7 @@ internal sealed class IllusionTowerDomainService(
     public ValueTask<TowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members,
         SelectedSessionIdentity leader, uint seed, CancellationToken token, int dungeonId = 11001) => Execute(async () =>
     {
-        TowerEntryResult Refuse(string reason) => new(reason, null, []);
+        TowerEntryResult Refuse(string reason, byte? slot = null) => new(reason, null, []) { BlockedSlot = slot };
         if (members.Count is < 1 or > 4 || !members.Any(x => x.Session == leader)
             || members.Select(x => x.Session.AccountId).Distinct().Count() != members.Count
             || members.Select(x => x.Session.CharacterId).Distinct().Count() != members.Count
@@ -74,7 +74,7 @@ internal sealed class IllusionTowerDomainService(
             if (sessions.Find(member.AccountId) != member) return Refuse("NoSession");
             if (IsInTower(member.CharacterId) || ordinary.Find(member.CharacterId) is not null || Pending.OrdinaryEntries.Contains(member.CharacterId)) return Refuse("AlreadyInDungeon");
             var progress = await characters.Get(member.CharacterId).ProgressAsync(token).ConfigureAwait(false);
-            if (progress is null || progress.Level < definition.MinimumLevel) return Refuse("LevelTooLow");
+            if (progress is null || progress.Level < definition.MinimumLevel) return Refuse("LevelTooLow", candidate.Slot);
             var costs = new List<MaterialCost>();
             var store = inventory.GetStore(member.CharacterId, BusinessInventoryStoreKind.Item);
             foreach (var requirement in definition.RequiredItems)
@@ -94,7 +94,7 @@ internal sealed class IllusionTowerDomainService(
                     }
                     if (remaining == 0) break;
                 }
-                if (remaining != 0) return Refuse("InsufficientMaterial");
+                if (remaining != 0) return Refuse("InsufficientMaterial", candidate.Slot);
             }
             plans.Add((member, costs));
         }

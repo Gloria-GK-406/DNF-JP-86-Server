@@ -40,6 +40,17 @@ public sealed class SetPlayResultHandlerTests
     private const int RankBonus = 66;
 
     [Fact]
+    public async Task Committed_difficulty_change_is_sent_once_and_absent_when_no_change()
+    {
+        var sent = await Settle(bus: new FixedAward(false) { DifficultyUnlocked = new(70,DungeonDifficulty.Adventure) }, reports: 2);
+        var notice = Assert.Single(sent.OfType<DungeonPermissionStateMessage>());
+        Assert.Equal(70, Assert.Single(notice.Dungeons).DungeonId);
+        Assert.Equal(1, Assert.Single(notice.Dungeons).State);
+        Assert.DoesNotContain(await Settle(), message => message is DungeonPermissionStateMessage);
+        Assert.DoesNotContain(await Settle(canComplete:false), message => message is DungeonPermissionStateMessage);
+    }
+
+    [Fact]
     public async Task Clear_bonus_award_reaches_both_experience_and_reward_notifications()
     {
         var breakdown = new ExperienceBreakdown(Base: ClearBase, ClearRank: RankBonus,
@@ -634,6 +645,7 @@ public sealed class SetPlayResultHandlerTests
 
         /// <summary>How many times it did, which a replayed report would raise.</summary>
         public int TimesAsked { get; private set; }
+        public CharacterDungeonDifficulty? DifficultyUnlocked { get; init; }
 
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
@@ -660,7 +672,7 @@ public sealed class SetPlayResultHandlerTests
             // The two figures stand even when nothing was awarded: they are what the clear was
             // worth, and the handler is what has to decide they may not be reported.
             var result = new ClearExperienceResult(
-                awarded ? award : null, ClearBase, RankBonus);
+                awarded ? award : null, ClearBase, RankBonus, DifficultyUnlocked: DifficultyUnlocked);
             AfterAward?.Invoke();
             return ValueTask.FromResult((TResult)(object)result);
         }
@@ -813,7 +825,7 @@ public sealed class SetPlayResultHandlerTests
             BossCell: new MazeCell(0, 0),
             StartRoomMapId: 1,
             Seed: 0,
-            Rooms: new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 1 },
+            Cells: new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(1)},
             BasisLevel: 5,
             ExperienceWeight: 1.45,
             Purpose: purpose);

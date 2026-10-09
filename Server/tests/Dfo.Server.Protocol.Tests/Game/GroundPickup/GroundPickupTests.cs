@@ -44,10 +44,9 @@ public sealed class GroundPickupTests
         BossCell: new MazeCell(1, 0),
         StartRoomMapId: 8153,
         Seed: 0x0BADF00D,
-        Rooms: new Dictionary<MazeCell, int>
-        {
-            [new MazeCell(0, 0)] = 8153,
-            [new MazeCell(1, 0)] = 8154,
+        Cells: new Dictionary<MazeCell, DungeonCellDefinition> {
+            [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8153),
+            [new MazeCell(1, 0)] = DungeonCellDefinition.Fixed(8154),
         },
         BasisLevel: 86);
 
@@ -340,7 +339,7 @@ public sealed class GroundPickupTests
             run.RunId,
             run.RoomVersion,
             target,
-            new DungeonCellSeed(target, Layout.Rooms[target], 1, [], []));
+            new DungeonCellSeed(target, Layout.Cells[target].MapCandidates[0], 1, [], []));
 
         Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, dropped.Number)).Status);
     }
@@ -451,6 +450,69 @@ public sealed class GroundPickupTests
         Assert.Equal(9, item.CreatureDetail.TailFlag);
     }
 
+    [Theory]
+    [InlineData(0, 3)]
+    [InlineData(2147483646, 1)]
+    [InlineData(2147483647, 0)]
+    public async Task Epic_pickup_bypasses_full_bag_and_rolls_back_with_the_floor(int initial, int expectedAdded)
+    {
+        const int piece = 10300000;
+        var path = Path.Combine(Path.GetTempPath(), $"epic-pickup-{Guid.NewGuid():N}.db");
+        try
+        {
+            var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
+            var database = new Dfo.Server.Persistence.Database.SqliteDatabase(path, scope);
+            await using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path}"))
+            {
+                await connection.OpenAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText = "INSERT INTO accounts(account_id,m_id) VALUES(1,'epic-pickup')";
+                await command.ExecuteNonQueryAsync();
+            }
+            var book = new EpicBookDomainService(new EpicBookRuleService(new EpicCatalog()),
+                new Dfo.Server.Persistence.Inventory.SqliteEpicBookDomainStore(database), scope);
+            if (initial > 0)
+            {
+                await using var seed = scope.Begin();
+                await book.AddPiecesAsync(Account, piece, initial, default);
+                await seed.CommitAsync(default);
+            }
+            var runs = new DungeonRunDomainService(scope);
+            var bag = new FakeContainer { IsFull = true };
+            var handler = new PickUpGroundDropCommandHandler(runs, new GroundPickupDomainService(), new StubContainers(bag),
+                new OnePlayingCharacter(new CarriedGold(0)), new QuestProgressFromSeeking(new NoSeekingProgress()),
+                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), book);
+            BeginWithItems(runs, [MonsterItem(1, 30001, new(piece, 3, DropRarity.Epic, DropItemKind.Stackable, 0)),
+                MonsterItem(2, 30001, TheWeapon())]);
+            await using (scope.Begin())
+            {
+                Assert.Equal(GroundPickupStatus.InventoryFull, (await PickUp(handler, 2)).Status);
+                var result = await PickUp(handler, 1);
+                Assert.Equal(GroundPickupStatus.EpicPieceCollected, result.Status);
+                Assert.Equal(expectedAdded, result.EpicPiece!.Added);
+                Assert.Null(result.CommittedChange);
+            }
+            Assert.NotNull(runs.Find(Character)!.CurrentCellState.FindGroundItem(1));
+            Assert.Equal(initial, (await book.GetBalancesAsync(Account, default)).SingleOrDefault()?.Count ?? 0);
+            await using (var tx = scope.Begin())
+            {
+                var result = await PickUp(handler, 1);
+                await tx.CommitAsync(default);
+                Assert.Equal(DungeonPickupKind.EpicPiece, result.CommittedChange!.Kind);
+            }
+            Assert.Null(runs.Find(Character)!.CurrentCellState.FindGroundItem(1));
+            Assert.Equal(initial + expectedAdded, Assert.Single(await book.GetBalancesAsync(Account, default)).Count);
+            Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, 1)).Status);
+            Assert.Equal(initial + expectedAdded, Assert.Single(await book.GetBalancesAsync(Account, default)).Count);
+            Assert.Empty(bag.Slots);
+        }
+        finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+    private sealed class EpicCatalog : IEpicBookDefinitionSource
+    {
+        public IReadOnlyList<EpicPieceDefinition> Load() => [new(10300000, 450004)];
+    }
+
     private sealed class CreatureDropGrant(Dfo.Server.Protocol.Tests.Support.MoveItemFixture fixture,
         IBusinessItemContainer bag) : IItemGrantDomainService
     {
@@ -542,6 +604,7 @@ public sealed class GroundPickupTests
     internal sealed class FakeContainer : IItemContainer, Dfo.Server.Protocol.Tests.Support.IItemGrantStub
     {
         public bool FailNextAdd { get; set; }
+        public bool IsFull { get; set; }
 
         private readonly Dictionary<int, long> generations = [];
 
@@ -561,6 +624,7 @@ public sealed class GroundPickupTests
         public ValueTask<ItemPlacementOutcome> GrantAsync(
             int itemId, int count, CancellationToken cancellationToken)
         {
+            if (IsFull) return ValueTask.FromResult<ItemPlacementOutcome>(new ItemPlacementOutcome.NoRoom());
             if (this.FailNextAdd)
             {
                 this.FailNextAdd = false;

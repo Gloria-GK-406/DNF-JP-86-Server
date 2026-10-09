@@ -1,0 +1,17 @@
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Utilities -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Utilities\bin\Debug\net10.0\Dfo.Server.Utilities.dll
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Pvf.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\Achievements\TitleBookDomainService.cs(60,134): error CS1061: “ItemPlacement”未包含“IsPile”的定义，并且找不到可接受第一个“ItemPlacement”类型参数的可访问扩展方法“IsPile”(是否缺少 using 指令或程序集引用?) [E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\Dfo.Server.Application.csproj]
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+
+生成失败。
+
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\Achievements\TitleBookDomainService.cs(60,134): error CS1061: “ItemPlacement”未包含“IsPile”的定义，并且找不到可接受第一个“ItemPlacement”类型参数的可访问扩展方法“IsPile”(是否缺少 using 指令或程序集引用?) [E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\Dfo.Server.Application.csproj]
+    0 个警告
+    1 个错误
+
+已用时间 00:00:02.21

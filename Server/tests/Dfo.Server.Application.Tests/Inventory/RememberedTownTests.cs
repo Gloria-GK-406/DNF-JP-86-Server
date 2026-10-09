@@ -23,9 +23,10 @@ public sealed class RememberedTownTests
         var loaded = await shop.Services.GetRequiredService<ICharacterDomainService>()
             .LoadByRosterPositionAsync(shop.Session.AccountId, 0, default);
         Assert.Equal(saved, loaded.Position);
+        Assert.Equal(town, loaded.LastInnTownId);
         var gate = (await shop.Services.GetRequiredService<ITownDefinitionSource>().GetAsync(town, default))!.Gate!;
         var placement = await shop.Services.GetRequiredService<IEntryPlacementRuleService>()
-            .ResolveAsync(new(10, 10011, ChannelEntryKind.General), loaded.Position.TownId, default);
+            .ResolveAsync(new(10, 10011, ChannelEntryKind.General), loaded.LastInnTownId, default);
         Assert.Equal(town, placement.Spawn.TownId);
         Assert.Equal(gate.AreaId, placement.Spawn.AreaId);
         Assert.Equal(gate.Operand1, placement.Spawn.X);
@@ -34,5 +35,30 @@ public sealed class RememberedTownTests
         var other = await shop.Services.GetRequiredService<ICharacterDomainService>()
             .LoadByRosterPositionAsync(shop.Session.AccountId, 1, default);
         Assert.Equal(0, other.Position.TownId);
+        Assert.Equal(0, other.LastInnTownId);
+    }
+
+    [Dfo.Server.Testing.PvfFact]
+    public async Task Time_gate_keeps_the_Shoujo_inn_and_relogin_uses_that_inn()
+    {
+        using var shop = new ShopFixture();
+        var persistence = shop.Services.GetRequiredService<ISelectedSessionPositionPersistence>();
+        var placement = shop.Services.GetRequiredService<IEntryPlacementRuleService>();
+        Assert.True(await placement.CanRememberInnAsync(11, default));
+        Assert.False(await placement.CanRememberInnAsync(12, default));
+        await persistence.PersistAsync(shop.Session.AccountId, shop.Session.CharacterId, new(11, 0, 100, 200, 5), default);
+        var timeGate = new CharacterPositionState(12, 0, 562, 183, 5);
+        await persistence.PersistAsync(shop.Session.AccountId, shop.Session.CharacterId, timeGate, default);
+        var loaded = await shop.Services.GetRequiredService<ICharacterDomainService>()
+            .LoadByRosterPositionAsync(shop.Session.AccountId, 0, default);
+        Assert.Equal(timeGate, loaded.Position);
+        Assert.Equal(11, loaded.LastInnTownId);
+        var general = await placement.ResolveAsync(new(10, 10010, ChannelEntryKind.General), loaded.LastInnTownId, default);
+        Assert.Equal(11, general.Spawn.TownId);
+        var restricted = await placement.ResolveAsync(new(100, 10100, ChannelEntryKind.SaintHorn), loaded.LastInnTownId, default);
+        Assert.Equal(17, restricted.Spawn.TownId);
+        Assert.False(restricted.PersistsPosition);
+        Assert.Equal(11, (await shop.Services.GetRequiredService<ICharacterDomainService>()
+            .LoadByRosterPositionAsync(shop.Session.AccountId, 0, default)).LastInnTownId);
     }
 }

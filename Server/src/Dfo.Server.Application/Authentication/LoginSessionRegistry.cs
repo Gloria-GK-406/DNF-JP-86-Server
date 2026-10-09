@@ -20,7 +20,7 @@ namespace Dfo.Server.Application.Authentication;
 internal sealed class LoginSessionRegistry(
     IDomainTransactionAccessor transactions,
     TimeProvider clock,
-    LoginSessionOptions options) : ILoginSessionDomainService
+    LoginSessionOptions options)
 {
     private const int MinimumMId = 100_000;
     private const int MaximumMIdExclusive = 1_000_000;
@@ -67,24 +67,9 @@ internal sealed class LoginSessionRegistry(
         }
     }
 
-    public void EndSession(NetworkConnectionId connectionId)
-    {
-        lock (sync)
-        {
-            if (byConnection.TryGetValue(connectionId, out var session)) Remove(session);
-        }
-    }
-
     public void SweepExpired()
     {
         lock (sync) RemoveExpired(clock.GetUtcNow());
-    }
-
-    private void Remove(Session session)
-    {
-        byMId.Remove(session.MId);
-        if (byAccount.GetValueOrDefault(session.AccountId) == session) byAccount.Remove(session.AccountId);
-        if (session.ConnectionId is { } connection) byConnection.Remove(connection);
     }
 
     private void Supersede(Session session)

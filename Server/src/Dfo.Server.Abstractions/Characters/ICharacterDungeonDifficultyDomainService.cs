@@ -8,6 +8,7 @@ public interface ICharacterDungeonDifficultyDomainService
     ValueTask<DungeonDifficulty> GetMaximumAsync(CharacterId characterId, int dungeonId, CancellationToken cancellationToken);
     ValueTask<IReadOnlyList<CharacterDungeonDifficulty>> GetRecordedAsync(CharacterId characterId, CancellationToken cancellationToken);
     ValueTask<DungeonDifficulty> UnlockAsync(CharacterId characterId, int dungeonId, DungeonDifficulty difficulty, CancellationToken cancellationToken);
+    ValueTask<CharacterDungeonDifficulty?> UnlockAfterClearAsync(CharacterId characterId, int dungeonId, DungeonDifficulty cleared, CancellationToken cancellationToken);
 }
 
 public sealed record CharacterDungeonDifficulty(int DungeonId, DungeonDifficulty Maximum);

@@ -47,7 +47,7 @@ internal sealed class RecordingCharacterDomainStore : ICharacterDomainStore
             ValueTask.FromResult(
                 store.Positions.TryGetValue(characterId.Character.Value, out var held) ? held : null);
 
-        public void WritePosition(OwnedCharacterId characterId, CharacterPositionState position) =>
+        public void WritePosition(OwnedCharacterId characterId, CharacterPositionState position, byte? lastInnTownId = null) =>
             store.Positions[characterId.Character.Value] = position;
 
         public ValueTask PrepareAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;

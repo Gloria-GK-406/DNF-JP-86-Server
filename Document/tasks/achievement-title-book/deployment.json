@@ -1,0 +1,92 @@
+{
+  "GmPageStatus": 200,
+  "PreviousRuntime": "E:/Project/DNF/DNF-JP-86-Server/artifacts/epic-book-20261008-935f5aaa/runtime",
+  "SourceFingerprint": "7794E98371B1ABAC88ACF2B67BFC7604337CB60AD197136A629D4A410372C156",
+  "ExecutablePath": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\achievement-title-book-20261008\\runtime\\Dfo.Server.Host.exe",
+  "ProcessId": 30128,
+  "PreviousProcessId": 48440,
+  "Runtime": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\achievement-title-book-20261008/runtime",
+  "Status": "running",
+  "PvfSHA256": "03154D18DE43F5A0BCB11B2935AE8BB40BABD22495700657D682E491A24A3543",
+  "SourceBaseline": "774f7b3581be1eeb1689b9220f4bf8ca31852caf",
+  "Database": "E:/Project/DNF/DNF-JP-86-Server/Server/src/Dfo.Server.Host/bin/Release/net10.0/Data/dfo-server.db",
+  "Bootstrap": {
+    "apiVersion": "1",
+    "status": "ready",
+    "registrationEnabled": true
+  },
+  "VerifiedAt": "2026-10-08T15:28:04.6339620+08:00",
+  "GmHealth": {
+    "status": "ready"
+  },
+  "ClientAcceptance": "pending",
+  "Binaries": [
+    {
+      "Name": "Dfo.Server.Host.dll",
+      "SHA256": "683884846760DF710DB8D2F7CF50F74903B6738AF94CE20773BD0E1C02B5A1E7"
+    },
+    {
+      "Name": "Dfo.Server.Application.dll",
+      "SHA256": "AC8B43FE33EBFC97B61D63EF67FDDCB4B9C1B6AF21C2C4B870EF80BCC884C33B"
+    },
+    {
+      "Name": "Dfo.Server.Abstractions.dll",
+      "SHA256": "91FD55639EB505DC25FCFA2F3CB1364A61F604AB4AFEEB93A12CC3E490C20504"
+    },
+    {
+      "Name": "Dfo.Server.Data.dll",
+      "SHA256": "85593E5262F38C118EBC4164241EB228FEFC74364E951435B009481F01CC9D2C"
+    },
+    {
+      "Name": "Dfo.Server.Protocol.dll",
+      "SHA256": "003BE8E66195A6F2C400B1BF262638DD99EA2F8F4D1A078F7BB7F9045FB1BF53"
+    },
+    {
+      "Name": "Dfo.Server.Persistence.dll",
+      "SHA256": "FF7851A63F55AF8BE314F208999B9DF79D7088C9187FC1361D2D30B6159C3E83"
+    },
+    {
+      "Name": "Dfo.Server.Infrastructure.dll",
+      "SHA256": "8459C45F35DAE9FBC20946B54D220FEDDDBB7B934DD20BF174A0413F1B9200F4"
+    },
+    {
+      "Name": "Dfo.Server.Networking.dll",
+      "SHA256": "F4B43788165FEA0C6AF09EF1543BB7CE2173F78F71FF2D669C9BEF0728B0AF69"
+    }
+  ],
+  "Backup": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\achievement-title-book-20261008/before-stop.db",
+  "AssemblyIdentity": "0.2.2+achievement-title-book.20261008.774f7b35",
+  "ConfigurationSHA256": "F11655C9F2454DCA9B5ED310AF9196EBCE707C9EDE17070A573E3AAB37EF2CCA",
+  "Listeners": [
+    {
+      "LocalAddress": "127.0.0.1",
+      "LocalPort": 18081,
+      "OwningProcess": 30128
+    },
+    {
+      "LocalAddress": "127.0.0.1",
+      "LocalPort": 18080,
+      "OwningProcess": 30128
+    },
+    {
+      "LocalAddress": "0.0.0.0",
+      "LocalPort": 10100,
+      "OwningProcess": 30128
+    },
+    {
+      "LocalAddress": "0.0.0.0",
+      "LocalPort": 10011,
+      "OwningProcess": 30128
+    },
+    {
+      "LocalAddress": "0.0.0.0",
+      "LocalPort": 10010,
+      "OwningProcess": 30128
+    },
+    {
+      "LocalAddress": "0.0.0.0",
+      "LocalPort": 7001,
+      "OwningProcess": 30128
+    }
+  ]
+}

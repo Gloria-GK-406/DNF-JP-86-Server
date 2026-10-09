@@ -40,7 +40,7 @@ public sealed class DungeonBuffUsageTests
         if (runs.Find(id) is { } old) runs.End(id, old.RunId);
         var cell = new MazeCell(0, 0);
         return runs.Begin(id, new DungeonLayout(144, 0, 1, 1, cell, cell, 55611, 0,
-            new Dictionary<MazeCell, int> { [cell] = 55611 }), difficulty: 0).RunId;
+            new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)}), difficulty: 0).RunId;
     }
     private static async Task<int> Report(ShopFixture shop)
     {

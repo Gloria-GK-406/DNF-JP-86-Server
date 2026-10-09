@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -15,7 +16,7 @@ public sealed class ForgingHandler(
     ISelectedSessionDomainService sessions,
     IInventorySlotMappingRuleService mappings,
     ICommandBus commands,
-    INotificationBus notifications,
+    IEventService notifications,
     IGameMessageSender sender,
     ILogger<ForgingHandler> logger) : ClientMessageHandler<ForgingRequest>
 {
@@ -70,7 +71,7 @@ public sealed class ForgingHandler(
         logger.LogInformation("FORGING character={Character} target={Target} old={Old} new={New} roll={Roll}",
             receipt.Session.CharacterId.Value, request.TargetSlot, receipt.OldLevel,
             receipt.NewLevel, receipt.Roll);
-        await notifications.PublishAsync(
+        await notifications.ProjectAsync(
             new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
             new ForgingCompleted(receipt), ct).ConfigureAwait(false);
     }

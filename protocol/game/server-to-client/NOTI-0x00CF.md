@@ -1,5 +1,11 @@
 # NOTI `0x00CF` `HELLPARTY_VALUE`
 
+## 2026-10-07 A21静态补全
+
+**ClientStatic**：RVA`00D4B910..00D4BA55`读取一个u32（消费4B），存入全局加密标量`VA03A5CEC0`；队伍人数不大于1时将值清零。字段布局和分支Confirmed；将其解释为随机深渊蓄积投影为High，概率单位、上限与服务端累积公式不能由此确认。该人数分支不证明所有版本的单人随机深渊都不可能发生。
+
+绑定b1 SHA256`CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14`。见[客户端证据](../../../Document/abyss-research-20261007/client.md)及[70参考](../../../Document/abyss-research-20261007/70-reference.md)。无新增深渊抓包/实机验收。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

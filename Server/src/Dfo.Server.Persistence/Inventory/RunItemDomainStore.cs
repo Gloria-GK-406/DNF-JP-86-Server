@@ -114,7 +114,8 @@ internal sealed class RunItemDomainStore : IItemDomainStore
         {
             var old = Resolve(reference, ct); var next = change(old.DeepCopy()).DeepCopy(); Validate(next);
             ValidatePosition(reference.ContainerId, reference.StorageSlotIndex, next);
-            if (next.ItemUid != old.ItemUid || next.IsPile != old.IsPile || next.Type != old.Type || next.LegacyKind != old.LegacyKind
+            if (next.IsMirror != old.IsMirror || next.MirrorSourceUid != old.MirrorSourceUid
+                || next.ItemUid != old.ItemUid || next.IsPile != old.IsPile || next.Type != old.Type || next.LegacyKind != old.LegacyKind
                 || (next.ItemId != old.ItemId && (next.IsPile || next.Type != ItemTraits.Creature || next.LegacyKind != 5))
                 || (!next.IsPile && next.Type is ItemTraits.Avatar or ItemTraits.Creature && next.InstanceValue != old.InstanceValue)) throw new InvalidOperationException("Update changed identity shape.");
             working[(reference.ContainerId, reference.StorageSlotIndex)] = next; changed = true;
@@ -164,12 +165,16 @@ internal sealed class RunItemDomainStore : IItemDomainStore
             item is { IsPile: true, LegacyKind: 0, ItemId: 1, Type: ItemTraits.None };
         private static void ValidatePosition(ContainerId container, int slot, ItemSnapshot item)
         {
+            if (item.IsMirror && (item.IsPile || !container.TryGetCharacterOwner(out _, out var mirrorList)
+                || mirrorList != InventoryContainerType.Equipment))
+                throw new InvalidDataException("A mirror may only occupy a character equipment slot.");
             if (item.Count == 0 && (!IsRevivalCounter(item) || slot != 1
                 || !container.TryGetCharacterOwner(out _, out var type) || type != InventoryContainerType.Main))
                 throw new InvalidDataException("A zero counter can only occupy the character revival slot.");
         }
         private static void Validate(ItemSnapshot item)
         {
+            if (item.AppearanceItemId is <= 0) throw new InvalidDataException("Invalid item appearance identity.");
             if (item.Type != ItemTraitClassification.For(item.LegacyKind, item.ItemId))
                 throw new InvalidDataException("Item type disagrees with its legacy encoding.");
             if (item.ItemId <= 0 || (item.Count < 0 || item.Count == 0 && !IsRevivalCounter(item)) || (!item.IsPile && item.Count != 1) || (item.IsPile && item.ItemUid is not null))

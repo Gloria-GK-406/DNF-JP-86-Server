@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
@@ -905,7 +906,7 @@ public sealed class PartyNotificationTests
             Invitee.WireUserId);
 
     private static PartyNotificationDelivery Delivery(
-        INotificationBus bus,
+        IEventService bus,
         PartyProjectionStreamRegistry? streams = null)
     {
         var sessions = new SessionDirectory(Inviter, Invitee, Observer);
@@ -945,32 +946,30 @@ public sealed class PartyNotificationTests
 
     private sealed record Publication(NotificationAudience Audience, object Notification);
 
-    private sealed class RecordingNotificationBus : INotificationBus
+    private sealed class RecordingNotificationBus : Dfo.Server.Testing.ProjectionEventService
     {
         public List<Publication> Publications { get; } = [];
 
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
             CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification>
         {
             Publications.Add(new(audience, notification));
             return ValueTask.FromResult(new NotificationDelivery([]));
         }
     }
 
-    private sealed class FailingObserverNotificationBus(int failureCount) : INotificationBus
+    private sealed class FailingObserverNotificationBus(int failureCount) : Dfo.Server.Testing.ProjectionEventService
     {
         public int ObserverAttempts { get; private set; }
 
         public int SuccessfulObserverAttempts { get; private set; }
 
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
             CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification>
         {
             if (notification is not PartyRosterChanged
                 || audience is not NotificationAudience.TheseSessions exact
@@ -1007,7 +1006,7 @@ public sealed class PartyNotificationTests
         public SessionEndpoint? FindThroughCurrentSession(CharacterId characterId) => null;
     }
 
-    private sealed class BlockingNotificationBus : INotificationBus
+    private sealed class BlockingNotificationBus : Dfo.Server.Testing.ProjectionEventService
     {
         public List<Publication> Publications { get; } = [];
 
@@ -1017,11 +1016,10 @@ public sealed class PartyNotificationTests
         public TaskCompletionSource ReleaseFirst { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public async ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override async ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
             CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification>
         {
             Publications.Add(new(audience, notification));
             if (Publications.Count == 1)

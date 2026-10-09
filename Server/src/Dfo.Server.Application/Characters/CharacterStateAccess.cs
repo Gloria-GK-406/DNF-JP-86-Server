@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.Characters;
 
@@ -108,7 +109,7 @@ internal sealed class AmbientStoreAccess(IDomainTransactionAccessor transactions
 /// the place.
 /// </remarks>
 internal sealed class SelectedSessionPositionPersistence(
-    ICharacterDomainStore? store, IDomainTransactionAccessor transactions)
+    ICharacterDomainStore? store, IDomainTransactionAccessor transactions, IEntryPlacementRuleService? placement)
     : ISelectedSessionPositionPersistence
 {
     public async ValueTask PersistAsync(
@@ -126,25 +127,28 @@ internal sealed class SelectedSessionPositionPersistence(
         }
 
         var owned = new OwnedCharacterId(accountId, characterId);
+        if (placement is null) throw new InvalidOperationException("Position persistence requires inn placement rules.");
+        byte? innTown = await placement.CanRememberInnAsync(position.TownId, cancellationToken).ConfigureAwait(false)
+            ? position.TownId : null;
         if (transactions.Current is { } ambient)
         {
             // The use case settles this one. Opening a second boundary beside it would put the
             // same database on another connection and leave the two to finish independently --
             // the very thing a boundary exists to prevent.
-            store.SessionIn(ambient).WritePosition(owned, position);
+            store.SessionIn(ambient).WritePosition(owned, position, innTown);
             return;
         }
 
-        await this.AloneAsync(owned, position, cancellationToken).ConfigureAwait(false);
+        await this.AloneAsync(owned, position, innTown, cancellationToken).ConfigureAwait(false);
     }
 
     private async ValueTask AloneAsync(
-        OwnedCharacterId owned, CharacterPositionState position, CancellationToken cancellationToken)
+        OwnedCharacterId owned, CharacterPositionState position, byte? innTown, CancellationToken cancellationToken)
     {
         var alone = new DomainTransaction();
         try
         {
-            store!.SessionIn(alone).WritePosition(owned, position);
+            store!.SessionIn(alone).WritePosition(owned, position, innTown);
             await alone.CommitAsync(cancellationToken).ConfigureAwait(false);
         }
         catch

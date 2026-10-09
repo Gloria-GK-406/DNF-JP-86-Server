@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
@@ -392,7 +393,7 @@ public sealed class CeraShopPurchaseTests
         using var shop = new CeraShopFixture();
         var result = await shop.Buy(CeraShopTestContent.Entry());
         shop.Host.Select(2);
-        await shop.Host.Services.GetRequiredService<INotificationBus>().PublishAsync(
+        await shop.Host.Services.GetRequiredService<IEventService>().ProjectAsync(
             new NotificationAudience.TheseCharacters([result.Receipt!.Session.CharacterId]),
             new CeraShopPurchaseCompleted(result.Receipt), default);
         Assert.Empty(shop.Host.Sender.Messages);

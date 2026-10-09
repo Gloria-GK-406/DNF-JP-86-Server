@@ -1,3 +1,8 @@
+using Dfo.Server.Protocol.Game.Achievements;
+using Dfo.Server.Protocol.Game.TitleBook;
+using Dfo.Server.Abstractions.Achievements;
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Protocol.Game.Joust;
 using Dfo.Server.Protocol.Game.Warehouse;
 using Dfo.Server.Protocol.Game.Teleport;
@@ -84,6 +89,7 @@ using Dfo.Server.Protocol.Game.CharacterDeath;
 using Dfo.Server.Protocol.Game.StoryPause;
 using Dfo.Server.Protocol.Game.UseStackable;
 using Dfo.Server.Protocol.Game.QuestClearCoupon;
+using Dfo.Server.Protocol.Game.LevelUpTicket;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Exit;
 using Dfo.Server.Protocol.Game.ReturnToSelection;
@@ -129,6 +135,8 @@ public sealed class ProtocolModule : IServerModule
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
+
+        services.AddEventDispatching();
 
         services.RegisterMessageHandler<JoustQueryHandler>(ClientMessageType.GameJoustInfo);
         services.RegisterMessageHandler<JoustQueryHandler>(ClientMessageType.GameJoustHistory);
@@ -346,8 +354,6 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<CompleteReturnToSelectionCommand, CompletedReturnToSelection, CompleteReturnToSelectionCommandHandler>(
             CommandExecutionKind.Workflow, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<AcknowledgeGameExitCommand, AcknowledgeGameExitResult, AcknowledgeGameExitCommandHandler>(
-            CommandExecutionKind.Direct);
         // Every command below reaches a write that outlives the process, so every one of them
         // opens a use case boundary. A write with no boundary settles on its own: it looks like it
         // worked, it is not taken back by whatever else the command was doing, and no test shows
@@ -436,6 +442,37 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<RenameCreatureCommand, RenameCreatureResult, RenameCreatureCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<QuestClearCouponCommand, QuestClearCouponResult, QuestClearCouponCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<StoreTitleCommand, TitleBookMutationResult, StoreTitleCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<WithdrawTitleCommand, TitleBookMutationResult, WithdrawTitleCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<EquipCarriedTitleReplacingMirrorCommand, TitleBookMutationResult, EquipCarriedTitleReplacingMirrorCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<ReconcileAchievementCommand, AchievementReconciliationResult, ReconcileAchievementCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<QueryTitleBookCommand, IReadOnlyList<CharacterTitleBookCategoryState>, QueryTitleBookCommandHandler>(CommandExecutionKind.ReadOnly, UserAccessMode.Shared, UserAccessMode.Shared);
+        services.TryAddSingleton<AchievementTitleProjectionGate>();
+        services.AddDomainSubscriber<AchievementProgressChanged, AchievementEventSubscriber>("achievement.noti", DomainEventDeliveryPolicy.LiveOnly, f => f.CharacterId.Value.ToString());
+        services.AddDomainSubscriber<TitleUnlocked, TitleBookEventSubscriber>("title.noti-unlock", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddDomainSubscriber<TitleStored, TitleBookEventSubscriber>("title.noti-store", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddDomainSubscriber<TitleWithdrawn, TitleBookEventSubscriber>("title.noti-withdraw", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddDomainSubscriber<ItemMirrorRemoved, TitleBookEventSubscriber>("inventory.noti-mirror-removed", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddNotificationHandler<AchievementChanged, AchievementChangedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<TitleBookChanged, TitleBookChangedHandler>(retryLimit: 0);
+        services.AddCommandHandler<SetTitleAppearanceCommand, bool, SetTitleAppearanceCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.RegisterMessageHandler<SetTitleAppearanceHandler>(ClientMessageType.GameSetTitleAppearance);
+        services.AddGameCmdMessageDecoder<SetTitleAppearanceDecoder>(0x0239, ClientMessageType.GameSetTitleAppearance);
+        services.AddGameCmdMessageEncoder<SetTitleAppearanceResponse, SetTitleAppearanceEncoder>();
+        services.AddDomainSubscriber<TitleAppearanceChanged, TitleBookEventSubscriber>("title.noti-appearance", DomainEventDeliveryPolicy.LiveOnly);
+        services.RegisterMessageHandler<TitleBookMutationHandler>(ClientMessageType.GameStoreTitle);
+        services.RegisterMessageHandler<TitleBookMutationHandler>(ClientMessageType.GameWithdrawTitle);
+        services.RegisterMessageHandler<AchievementTriggerHandler>(ClientMessageType.GameAchievementTrigger);
+        services.RegisterMessageHandler<QueryTitleBookHandler>(ClientMessageType.GameQueryTitleBook);
+        services.AddGameCmdMessageDecoder<StoreTitleDecoder>(0x019C, ClientMessageType.GameStoreTitle);
+        services.AddGameCmdMessageDecoder<WithdrawTitleDecoder>(0x019D, ClientMessageType.GameWithdrawTitle);
+        services.AddGameCmdMessageDecoder<AchievementTriggerDecoder>(0x01A1, ClientMessageType.GameAchievementTrigger);
+        services.AddGameCmdMessageDecoder<QueryTitleBookDecoder>(0x01A8, ClientMessageType.GameQueryTitleBook);
+        services.AddGameCmdMessageEncoder<TitleBookMutationResponse, TitleBookMutationEncoder>();
+        services.AddGameCmdMessageEncoder<AchievementTriggerResponse, AchievementTriggerEncoder>();
+        services.AddGameNotiMessageEncoder<TitleUnlockedMessage, GameNotiStateSynchronizationEncoder<TitleUnlockedMessage>>();
+        services.AddCommandHandler<UseLevelUpTicketCommand, LevelUpTicketResult, UseLevelUpTicketCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<UseFatiguePotionCommand, OpeningInventoryReceipt, UseFatiguePotionCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
@@ -622,6 +659,8 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameRuntimeTingStatistic);
         services.RegisterMessageHandler<EnterSelectDungeonHandler>(ClientMessageType.GameEnterSelectDungeon);
         services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameSelectDungeon);
+        services.AddCommandHandler<EnterDungeonCommand, DungeonEntryAttempt, EnterDungeonCommandHandler>(
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.RegisterMessageHandler<FinishLoadingHandler>(ClientMessageType.GameFinishLoading);
         services.RegisterMessageHandler<MoveMapHandler>(ClientMessageType.GameMoveMap);
         services.RegisterMessageHandler<StoryPauseHandler>(ClientMessageType.GameStoryPause);
@@ -710,6 +749,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<CreatureResponseReportHandler>(ClientMessageType.GameCreatureResponseReport);
         services.RegisterMessageHandler<CreatureScriptMessageReportHandler>(ClientMessageType.GameCreatureScriptMessage);
         services.RegisterMessageHandler<QuestClearCouponHandler>(ClientMessageType.GameQuestClearCoupon);
+        services.RegisterMessageHandler<LevelUpTicketHandler>(ClientMessageType.GameLevelUpTicket);
         services.RegisterMessageHandler<BuyItemHandler>(ClientMessageType.GameBuyItem);
         services.RegisterMessageHandler<CeraShopPurchaseHandler>(ClientMessageType.GameCeraShopPurchase);
         services.RegisterMessageHandler<MagicBoxBatchOpeningHandler>(ClientMessageType.GameMagicBoxBatchOpening);
@@ -979,6 +1019,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<TeleportDecoder>(0x00ED, ClientMessageType.GameTeleport);
         services.AddGameCmdMessageDecoder<QuestClearCouponDecoder>(
             GameProtocol.QuestClearCouponType, ClientMessageType.GameQuestClearCoupon);
+        services.AddGameCmdMessageDecoder<LevelUpTicketDecoder>(GameProtocol.LevelUpTicketType, ClientMessageType.GameLevelUpTicket);
         services.AddGameCmdMessageDecoder<HiddenCharacterInfoMessageDecoder>(
             GameProtocol.HiddenCharacterInfoType, ClientMessageType.GameHiddenCharacterInfo);
         services.AddChannelMessageDecoder<ChannelScriptVersionMessageDecoder>(
@@ -1061,6 +1102,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<TeleportResponse, TeleportEncoder>();
         services.AddGameNotiMessageEncoder<TeleportCooldownNotification, TeleportCooldownEncoder>();
         services.AddGameCmdMessageEncoder<QuestClearCouponResponse, QuestClearCouponEncoder>();
+        services.AddGameCmdMessageEncoder<LevelUpTicketResponse, LevelUpTicketEncoder>();
         services.AddGameCmdMessageEncoder<BuyItemResponse, BuyItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<CeraShopPurchaseResponse, CeraShopPurchaseResponseEncoder>();
         services.AddGameCmdMessageEncoder<MagicBoxBatchOpeningResponse, MagicBoxBatchOpeningEncoder>();
@@ -1101,6 +1143,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<EplpCommandResponse, EplpCommandResponseEncoder>();
         services.AddGameCmdMessageEncoder<GiveUpGameResponse, GiveUpGameResponseEncoder>();
         services.AddGameCmdMessageEncoder<SelectDungeonRefusal, SelectDungeonRefusalEncoder>();
+        services.AddGameNotiMessageEncoder<HellPartyMonsterInfoNotification, HellPartyMonsterInfoEncoder>();
         services.AddGameCmdMessageEncoder<BackToVillageResponse, BackToVillageResponseEncoder>();
         services.AddGameNotiMessageEncoder<LoadingCompleteNotification, LoadingCompleteEncoder>();
         services.AddGameCmdMessageEncoder<HiddenCharacterInfoResponse, HiddenCharacterInfoResponseEncoder>();

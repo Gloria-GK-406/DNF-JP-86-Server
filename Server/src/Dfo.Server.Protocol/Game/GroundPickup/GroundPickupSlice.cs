@@ -240,6 +240,7 @@ public enum GroundPickupStatus
 
     /// <summary>Gold, which goes onto the character rather than into a bag.</summary>
     Banked,
+    EpicPieceCollected,
 }
 
 /// <summary>What a pick-up did, or why it did not.</summary>
@@ -256,7 +257,8 @@ public sealed record GroundPickupResult(
     DungeonPickupChange? Change = null,
     QuestProgressSnapshot? QuestProgress = null,
     DungeonPickupCommit? PendingCommit = null,
-    InventoryRuntimeValueState? AccountMaterial = null)
+    InventoryRuntimeValueState? AccountMaterial = null,
+    EpicPieceAddition? EpicPiece = null)
 {
     public DungeonPickupChange? CommittedChange => this.PendingCommit?.Change ?? this.Change;
 
@@ -291,7 +293,8 @@ public sealed class PickUpGroundDropCommandHandler(
     ICharacterContainerDomainService containers,
     ICharacterDomainService characters,
     IQuestProgressDomainService questProgress,
-    IItemGrantDomainService itemGrants)
+    IItemGrantDomainService itemGrants,
+    IEpicBookDomainService? epicBook = null)
     : ICommandHandler<PickUpGroundDropCommand, GroundPickupResult>
 {
     public async ValueTask<GroundPickupResult> HandleAsync(
@@ -355,6 +358,22 @@ public sealed class PickUpGroundDropCommandHandler(
                 runs.ReleaseGroundDrop(claim);
                 throw;
             }
+        }
+
+        if (epicBook?.FindPiece(piece.ItemId) is not null)
+        {
+            var claim = runs.TryClaimGroundDrop(command.CharacterId, run.RunId, run.RoomVersion, command.GroundDropNumber);
+            if (claim is null) return GroundPickupResult.Refused(GroundPickupStatus.AlreadyTaken, piece.ItemId);
+            try
+            {
+                var added = await epicBook.AddPiecesAsync(command.AccountId, piece.ItemId, piece.Count, cancellationToken).ConfigureAwait(false);
+                var staged = runs.StageGroundDrop(claim, DungeonPickupKind.EpicPiece);
+                if (!staged.IsDeferred && staged.Change is null)
+                    throw new InvalidOperationException("The epic piece ground claim is no longer current.");
+                return new(GroundPickupStatus.EpicPieceCollected, piece.ItemId, 0,
+                    Change: staged.Change, PendingCommit: staged.IsDeferred ? staged : null, EpicPiece: added);
+            }
+            catch { runs.ReleaseGroundDrop(claim); throw; }
         }
 
         var container = containers.FindContainer(command.CharacterId, InventoryContainerType.Main);
@@ -540,6 +559,14 @@ public sealed class DungeonPickupProjectionDelivery(
                 required = goldMessages;
                 break;
 
+            case GroundPickupStatus.EpicPieceCollected when change.Kind is DungeonPickupKind.EpicPiece:
+                notification = new GroundPickupNotification(change.Drop.Number, requester.WireUserId, 0);
+                var epicMessages = new List<IGameServerMessage> { new GetItemResponse(Accepted: true), notification };
+                if (result.EpicPiece is { Added: > 0 } added)
+                    epicMessages.Add(new EpicBookStateMessage(1, [new(added.PieceId, added.Total)]));
+                required = epicMessages;
+                break;
+
             case GroundPickupStatus.PickedUp when change.Kind is DungeonPickupKind.Item:
                 notification = new GroundPickupNotification(
                     change.Drop.Number,
@@ -706,7 +733,7 @@ public sealed class GetItemHandler(
             return;
         }
 
-        if (result.Status is GroundPickupStatus.PickedUp)
+        if (result.Status is GroundPickupStatus.PickedUp or GroundPickupStatus.EpicPieceCollected)
         {
             logger.LogInformation(
                 "Get item {ConnectionId} user={WireUserId}: drop {Number} is item {ItemId}, "

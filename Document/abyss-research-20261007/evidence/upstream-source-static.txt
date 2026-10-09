@@ -1,0 +1,2102 @@
+## Server/DfoServer/GameWorld/HellPartyData.cs
+1: using System;
+2: using System.Collections.Generic;
+3: using PvfLib;
+4:
+5: namespace DfoServer.GameWorld
+6: {
+7:     internal sealed class HellPartyGroupEntry
+8:     {
+9:         public int Code { get; set; }
+10:         public byte EntityType { get; set; }
+11:     }
+12:
+13:     public sealed class HellPartyDifficultyRule
+14:     {
+15:         public char Key { get; set; }
+16:         public int RewardRollCount { get; set; }
+17:         public int Unknown1 { get; set; }
+18:         public int RatioProbability { get; set; }
+19:         public int Probability { get; set; }
+20:         public int Unknown4 { get; set; }
+21:     }
+22:
+23:     internal static class HellPartyData
+24:     {
+25:         private static readonly Lazy<Dictionary<int, HellPartyMonsterGroup>> Groups =
+26:             new Lazy<Dictionary<int, HellPartyMonsterGroup>>(LoadGroups);
+27:
+28:         private static readonly Lazy<Dictionary<char, HellPartyDifficultyRule>> DifficultyRules =
+29:             new Lazy<Dictionary<char, HellPartyDifficultyRule>>(LoadDifficultyRules);
+30:
+31:         private static readonly Lazy<bool> SeasonHellPartyEnabled =
+32:             new Lazy<bool>(LoadSeasonHellPartyEnabled);
+33:
+34:         public static IReadOnlyList<HellPartyGroupEntry> GetEntries(int groupId, byte difficulty)
+35:         {
+36:             if (!Groups.Value.TryGetValue(groupId, out var group))
+37:                 return Array.Empty<HellPartyGroupEntry>();
+38:
+39:             return group.GetEntries(HellModeToGroupKey(difficulty));
+40:         }
+41:
+42:         public static bool HasEntries(int groupId, byte difficulty)
+43:         {
+44:             if (!Groups.Value.TryGetValue(groupId, out var group))
+45:                 return false;
+46:
+47:             return group.HasEntries(HellModeToGroupKey(difficulty));
+48:         }
+49:
+50:         public static HellPartyDifficultyRule GetDifficultyRule(byte difficulty)
+51:         {
+52:             DifficultyRules.Value.TryGetValue(HellModeToGroupKey(difficulty), out var rule);
+53:             return rule;
+54:         }
+55:
+56:         public static byte ResolveManualHellPartyMode()
+57:         {
+58:             var rules = DifficultyRules.Value;
+59:             rules.TryGetValue('A', out var veryHard);
+60:             rules.TryGetValue('B', out var hard);
+61:
+62:             // PVF [difficulty] item 4 is the manual A/B selection weight.
+63:             // Keep the random result in the selection owner so the chosen
+64:             // HellPartyRoomInfo is frozen once and reused by all projections.
+65:             var veryHardWeight = Math.Max(0, veryHard?.Probability ?? 0);
+66:             var hardWeight = Math.Max(0, hard?.Probability ?? 0);
+67:             var total = veryHardWeight + hardWeight;
+68:             if (total <= 0)
+69:                 return 1;
+70:
+71:             var roll = Infrastructure.ServerRandom.Next(total);
+72:             return roll < veryHardWeight ? (byte)1 : (byte)2;
+73:         }
+74:
+75:         public static bool IsSeasonHellPartyEnabled()
+76:         {
+77:             return SeasonHellPartyEnabled.Value;
+78:         }
+79:
+80:         private static Dictionary<int, HellPartyMonsterGroup> LoadGroups()
+81:         {
+82:             var result = new Dictionary<int, HellPartyMonsterGroup>();
+83:             var content = ReadHellPartyScript();
+84:             if (string.IsNullOrWhiteSpace(content))
+85:                 return result;
+86:
+87:             var root = new ScriptParser().Parse(content);
+88:             foreach (var node in root.GetChildren("hellparty monster group"))
+89:                 ParseSequentialGroupNodes(node.Children, content, result);
+90:
+91:             ParseSequentialGroupNodes(root.Children, content, result);
+92:
+93:             return result;
+94:         }
+95:
+96:         private static Dictionary<char, HellPartyDifficultyRule> LoadDifficultyRules()
+97:         {
+98:             var result = new Dictionary<char, HellPartyDifficultyRule>();
+99:             var content = ReadHellPartyScript();
+100:             if (string.IsNullOrWhiteSpace(content))
+101:                 return result;
+102:
+103:             var root = new ScriptParser().Parse(content);
+104:             foreach (var node in root.GetChildren("difficulty"))
+105:                 ParseDifficultyNode(node, content, result);
+106:
+107:             return result;
+108:         }
+109:
+110:         private static void ParseSequentialGroupNodes(
+111:             IReadOnlyList<ScriptNode> nodes,
+112:             string content,
+113:             Dictionary<int, HellPartyMonsterGroup> result)
+114:         {
+115:             HellPartyMonsterGroup current = null;
+116:             for (var i = 0; i < nodes.Count; i++)
+117:             {
+118:                 var node = nodes[i];
+119:                 if (node.Tag.Equals("group index", StringComparison.OrdinalIgnoreCase))
+120:                 {
+121:                     var groupIndex = ParseFirstInt(node.GetFirstDataContent(content));
+122:                     if (groupIndex < 0)
+123:                     {
+124:                         current = null;
+125:                         continue;
+126:                     }
+127:
+128:                     if (!result.TryGetValue(groupIndex, out current))
+129:                     {
+130:                         current = new HellPartyMonsterGroup();
+131:                         result[groupIndex] = current;
+132:                     }
+133:                     continue;
+134:                 }
+135:
+136:                 if (current != null && node.Tag.Equals("group", StringComparison.OrdinalIgnoreCase))
+137:                     ParseGroupNode(node, content, current);
+138:             }
+139:         }
+140:
+141:         private static string ReadHellPartyScript()
+142:         {
+143:             try { return PvfArchiveAccessor.ReadText("etc/hellparty.etc"); }
+144:             catch
+145:             {
+146:                 try { return PvfArchiveAccessor.ReadText("Etc/hellparty.etc"); }
+147:                 catch { return string.Empty; }
+148:             }
+149:         }
+150:
+151:         private static bool LoadSeasonHellPartyEnabled()
+152:         {
+153:             var content = ReadSeasonServerScript();
+154:             if (string.IsNullOrWhiteSpace(content))
+155:                 return false;
+156:
+157:             var root = new ScriptParser().Parse(content);
+158:             foreach (var seasonNode in root.GetChildren("season no"))
+159:             {
+160:                 var valueNode = seasonNode.GetChild("season hellparty");
+161:                 if (valueNode == null)
+162:                     continue;
+163:
+164:                 return StripBacktick(valueNode.GetFirstDataContent(content))
+165:                     .Equals("on", StringComparison.OrdinalIgnoreCase);
+166:             }
+167:
+168:             var rootValueNode = root.GetChild("season hellparty");
+169:             return rootValueNode != null
+170:                 && StripBacktick(rootValueNode.GetFirstDataContent(content))
+171:                     .Equals("on", StringComparison.OrdinalIgnoreCase);
+172:         }
+173:
+174:         private static string ReadSeasonServerScript()
+175:         {
+176:             try { return PvfArchiveAccessor.ReadText("etc/seasonserver/season.etc"); }
+177:             catch
+178:             {
+179:                 try { return PvfArchiveAccessor.ReadText("Etc/seasonserver/season.etc"); }
+180:                 catch { return string.Empty; }
+181:             }
+182:         }
+183:
+184:         private static void ParseGroupNode(ScriptNode node, string content, HellPartyMonsterGroup target)
+185:         {
+186:             var tokens = JoinDataItems(node, content)
+187:                 .Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+188:
+189:             var difficulty = '\0';
+190:             int? pendingCode = null;
+191:             for (var i = 0; i < tokens.Length; i++)
+192:             {
+193:                 var token = StripBacktick(tokens[i]);
+194:                 if (token.Length == 1 && char.IsLetter(token[0]))
+195:                 {
+196:                     difficulty = char.ToUpperInvariant(token[0]);
+197:                     pendingCode = null;
+198:                     target.Ensure(difficulty);
+199:                     continue;
+200:                 }
+201:
+202:                 if (!int.TryParse(token, out var value))
+203:                     continue;
+204:
+205:                 if (difficulty == '\0')
+206:                     difficulty = 'A';
+207:
+208:                 if (!pendingCode.HasValue)
+209:                 {
+210:                     pendingCode = value;
+211:                     continue;
+212:                 }
+213:
+214:                 target.Ensure(difficulty).Add(new HellPartyGroupEntry
+215:                 {
+216:                     Code = pendingCode.Value,
+217:                     EntityType = value == 1 ? (byte)1 : (byte)0,
+218:                 });
+219:                 pendingCode = null;
+220:             }
+221:         }
+222:
+223:         private static void ParseDifficultyNode(
+224:             ScriptNode node,
+225:             string content,
+226:             Dictionary<char, HellPartyDifficultyRule> result)
+227:         {
+228:             var tokens = JoinDataItems(node, content)
+229:                 .Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+230:
+231:             var i = 0;
+232:             if (i < tokens.Length && int.TryParse(StripBacktick(tokens[i]), out _))
+233:                 i++;
+234:
+235:             while (i < tokens.Length)
+236:             {
+237:                 var keyToken = StripBacktick(tokens[i++]);
+238:                 if (keyToken.Length != 1 || !char.IsLetter(keyToken[0]))
+239:                     continue;
+240:
+241:                 var values = new int[5];
+242:                 var valueCount = 0;
+243:                 while (i < tokens.Length && valueCount < values.Length)
+244:                 {
+245:                     var token = StripBacktick(tokens[i++]);
+246:                     if (int.TryParse(token, out var value))
+247:                         values[valueCount++] = value;
+248:                 }
+249:
+250:                 if (valueCount != values.Length)
+251:                     continue;
+252:
+253:                 result[char.ToUpperInvariant(keyToken[0])] = new HellPartyDifficultyRule
+254:                 {
+255:                     Key = char.ToUpperInvariant(keyToken[0]),
+256:                     RewardRollCount = values[0],
+257:                     Unknown1 = values[1],
+258:                     RatioProbability = values[2],
+259:                     Probability = values[3],
+260:                     Unknown4 = values[4],
+261:                 };
+262:             }
+263:         }
+264:
+265:         private static string JoinDataItems(ScriptNode node, string content)
+266:         {
+267:             if (node == null || node.DataItems.Count == 0)
+268:                 return string.Empty;
+269:
+270:             var parts = new List<string>();
+271:             foreach (var item in node.DataItems)
+272:                 parts.Add(item.GetContent(content).Trim());
+273:             return string.Join(" ", parts);
+274:         }
+275:
+276:         private static int ParseFirstInt(string text)
+277:         {
+278:             if (string.IsNullOrWhiteSpace(text))
+279:                 return -1;
+280:
+281:             var tokens = text.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+282:             for (var i = 0; i < tokens.Length; i++)
+283:                 if (int.TryParse(StripBacktick(tokens[i]), out var value))
+284:                     return value;
+285:             return -1;
+286:         }
+287:
+288:         private static string StripBacktick(string value)
+289:         {
+290:             if (value != null && value.Length >= 2 && value[0] == '`' && value[value.Length - 1] == '`')
+291:                 return value.Substring(1, value.Length - 2);
+292:             return value ?? string.Empty;
+293:         }
+294:
+295:         private static char HellModeToGroupKey(byte difficulty)
+296:         {
+297:             return difficulty == 2 ? 'B' : 'A';
+298:         }
+299:
+300:         private sealed class HellPartyMonsterGroup
+301:         {
+302:             private readonly Dictionary<char, List<HellPartyGroupEntry>> _entries =
+303:                 new Dictionary<char, List<HellPartyGroupEntry>>();
+304:
+305:             public List<HellPartyGroupEntry> Ensure(char difficulty)
+306:             {
+307:                 if (!_entries.TryGetValue(difficulty, out var list))
+308:                 {
+309:                     list = new List<HellPartyGroupEntry>();
+310:                     _entries[difficulty] = list;
+311:                 }
+312:                 return list;
+313:             }
+314:
+315:             public IReadOnlyList<HellPartyGroupEntry> GetEntries(char difficulty)
+316:             {
+317:                 if (_entries.TryGetValue(difficulty, out var exact) && exact.Count > 0)
+318:                     return exact;
+319:
+320:                 return Array.Empty<HellPartyGroupEntry>();
+321:             }
+322:
+323:             public bool HasEntries(char difficulty)
+324:             {
+325:                 return _entries.TryGetValue(difficulty, out var exact) && exact.Count > 0;
+326:             }
+327:         }
+328:     }
+329: }
+## Server/DfoServer/Game/Dungeon/HellMonsterDropConfig.cs
+1: using DfoServer.Game.Inventory;
+2: using System;
+3: using System.Collections.Generic;
+4:
+5: namespace DfoServer.Game.Dungeon
+6: {
+7:     public static class HellMonsterDropConfig
+8:     {
+9:         private const int BaseDropRate = 100;
+10:         private const int DropChanceDenominator = 1001;
+11:         private const int EpicRarity = 4;
+12:
+13:         private struct DropProb
+14:         {
+15:             public int LevelMin;
+16:             public int LevelMax;
+17:             public int[] DifficultyRates;
+18:         }
+19:
+20:         private static DropProb[] _dropProbs;
+21:         private static int[][] _rarityThresholds;
+22:         private static (int Down, int Up)[] _gradeRanges;
+23:         private static Dictionary<long, List<(int Id, int Weight)>> _equipPool;
+24:
+25:         private static readonly object _lock = new object();
+26:         private static bool _loaded;
+27:
+28:         public static List<DropInfo> GenerateSpecificEquipmentDrops(
+29:             DnfLcg lcg,
+30:             int dungeonMinimumLevel,
+31:             int itemBasisLevel,
+32:             int dungeonDifficulty,
+33:             byte hellDifficulty,
+34:             int rewardRollCount,
+35:             bool epicBuffPotionActive,
+36:             ref ushort slotCounter)
+37:         {
+38:             EnsureLoaded();
+39:             var result = new List<DropInfo>();
+40:             if (lcg == null || rewardRollCount <= 0)
+41:                 return result;
+42:
+43:             var prob = FindDropProb(itemBasisLevel);
+44:             if (prob.DifficultyRates == null)
+45:                 return result;
+46:
+47:             var difficultyIndex = Math.Max(0, Math.Min(dungeonDifficulty, prob.DifficultyRates.Length - 1));
+48:             var rate = prob.DifficultyRates[difficultyIndex];
+49:             if (rate <= 0)
+50:                 return result;
+51:
+52:             // 70 服务端以基础倍率乘深渊概率表；当前模拟器没有独立基础倍率来源，先固定为 100。
+53:             var chance = BaseDropRate * rate / 100;
+54:             for (var i = 0; i < rewardRollCount; i++)
+55:             {
+56:                 var chanceRoll = lcg.Next(DropChanceDenominator);
+57:                 if (chanceRoll > chance)
+58:                 {
+59:                     FileLogger.Log($"[HellMonsterDropConfig] roll#{i + 1}: miss itemBasisLevel={itemBasisLevel} dungeonDifficulty={dungeonDifficulty} hellDifficulty={hellDifficulty} rate={rate} chance={chance} roll={chanceRoll}");
+60:                     continue;
+61:                 }
+62:
+63:                 var initialRarity = RollHellRarity(lcg, hellDifficulty);
+64:                 var rarity = ApplyEpicBuffPotionRarityReroll(
+65:                     initialRarity,
+66:                     epicBuffPotionActive,
+67:                     () => RollHellRarity(lcg, hellDifficulty),
+68:                     out var rerollRarity);
+69:                 var itemId = ChooseEquipment(
+70:                     lcg,
+71:                     dungeonMinimumLevel,
+72:                     itemBasisLevel,
+73:                     rarity,
+74:                     allowFallback: true,
+75:                     predicate: null,
+76:                     out var candidateCount,
+77:                     out var fallbackUsed,
+78:                     out var gradeMin,
+79:                     out var gradeMax);
+80:                 if (itemId <= 0)
+81:                 {
+82:                     FileLogger.Log($"[HellMonsterDropConfig] roll#{i + 1}: no equipment dungeonLevelRange={dungeonMinimumLevel}-{itemBasisLevel} gradeRange={gradeMin}-{gradeMax} rarity={rarity} epicBuff={FormatEpicBuffReroll(epicBuffPotionActive, initialRarity, rerollRarity)} candidates={candidateCount} fallback={fallbackUsed}");
+83:                     continue;
+84:                 }
+85:
+86:                 var meta = ItemMetadataResolver.Resolve(itemId);
+87:                 slotCounter++;
+88:                 result.Add(DropInfo.CreateItem(slotCounter, itemId, 1));
+89:                 FileLogger.Log($"[HellMonsterDropConfig] roll#{i + 1}: hit dungeonLevelRange={dungeonMinimumLevel}-{itemBasisLevel} gradeRange={gradeMin}-{gradeMax} dungeonDifficulty={dungeonDifficulty} hellDifficulty={hellDifficulty} rate={rate} chance={chance} roll={chanceRoll} rarity={rarity} epicBuff={FormatEpicBuffReroll(epicBuffPotionActive, initialRarity, rerollRarity)} candidates={candidateCount} fallback={fallbackUsed} item={itemId} itemGrade={meta.Grade} itemMinLv={meta.MinimumLevel}");
+90:             }
+91:
+92:             return result;
+93:         }
+94:
+95:         public static void WarmUp()
+96:         {
+97:             EnsureLoaded();
+98:         }
+99:
+100:         internal static bool TryChooseSpecificEquipment(
+101:             DnfLcg lcg,
+102:             int dungeonMinimumLevel,
+103:             int itemBasisLevel,
+104:             int rarity,
+105:             bool allowFallback,
+106:             Func<int, bool> predicate,
+107:             out int itemId,
+108:             out int candidateCount,
+109:             out bool fallbackUsed,
+110:             out int gradeMin,
+111:             out int gradeMax)
+112:         {
+113:             itemId = ChooseEquipment(
+114:                 lcg,
+115:                 dungeonMinimumLevel,
+116:                 itemBasisLevel,
+117:                 rarity,
+118:                 allowFallback,
+119:                 predicate,
+120:                 out candidateCount,
+121:                 out fallbackUsed,
+122:                 out gradeMin,
+123:                 out gradeMax);
+124:             return itemId > 0;
+125:         }
+126:
+127:         private static void EnsureLoaded()
+128:         {
+129:             if (_loaded) return;
+130:             lock (_lock)
+131:             {
+132:                 if (_loaded) return;
+133:                 try
+134:                 {
+135:                     LoadDropInfo();
+136:                     _equipPool = EquipmentDropPoolProvider.GetPool();
+137:                 }
+138:                 catch (Exception ex)
+139:                 {
+140:                     FileLogger.Log($"[HellMonsterDropConfig] INIT FAILED: {ex}");
+141:                 }
+142:                 _loaded = true;
+143:             }
+144:         }
+145:
+146:         private static void LoadDropInfo()
+147:         {
+148:             var text = ReadDropScript();
+149:             if (string.IsNullOrWhiteSpace(text))
+150:             {
+151:                 FileLogger.Log("[HellMonsterDropConfig] itemdropinfo_monster_hell.etc empty/not found");
+152:                 return;
+153:             }
+154:
+155:             ParseDropProb(text);
+156:             ParseRarityThresholds(text);
+157:             ParseGradeRanges(text);
+158:         }
+159:
+160:         private static string ReadDropScript()
+161:         {
+162:             try { return GameWorld.PvfArchiveAccessor.ReadText("etc/itemdropinfo_monster_hell.etc"); }
+163:             catch
+164:             {
+165:                 try { return GameWorld.PvfArchiveAccessor.ReadText("Etc/itemdropinfo_monster_hell.etc"); }
+166:                 catch { return string.Empty; }
+167:             }
+168:         }
+169:
+170:         private static void ParseDropProb(string text)
+171:         {
+172:             var vals = ParseInts(ExtractSection(text, "dungeon difficulty drop prob"));
+173:             if (vals.Count < 7)
+174:                 return;
+175:
+176:             var rows = vals.Count / 7;
+177:             _dropProbs = new DropProb[rows];
+178:             for (var row = 0; row < rows; row++)
+179:             {
+180:                 var baseIndex = row * 7;
+181:                 var rates = new int[5];
+182:                 for (var i = 0; i < rates.Length; i++)
+183:                     rates[i] = vals[baseIndex + 2 + i];
+184:
+185:                 _dropProbs[row] = new DropProb
+186:                 {
+187:                     LevelMin = vals[baseIndex],
+188:                     LevelMax = vals[baseIndex + 1],
+189:                     DifficultyRates = rates,
+190:                 };
+191:             }
+192:             FileLogger.Log($"[HellMonsterDropConfig] [dungeon difficulty drop prob]: rows={rows}");
+193:         }
+194:
+195:         private static void ParseRarityThresholds(string text)
+196:         {
+197:             var vals = ParseInts(ExtractSection(text, "basis of rarity dicision"));
+198:             if (vals.Count < 2)
+199:                 return;
+200:
+201:             var rowCount = Math.Max(0, vals[0]);
+202:             if (rowCount <= 0)
+203:                 return;
+204:
+205:             _rarityThresholds = new int[rowCount][];
+206:             var index = 1;
+207:             for (var row = 0; row < rowCount && index < vals.Count; row++)
+208:             {
+209:                 var thresholds = new int[7];
+210:                 for (var col = 0; col < thresholds.Length && index < vals.Count; col++)
+211:                     thresholds[col] = vals[index++];
+212:                 _rarityThresholds[row] = thresholds;
+213:             }
+214:             FileLogger.Log($"[HellMonsterDropConfig] [basis of rarity dicision]: rows={rowCount}");
+215:         }
+216:
+217:         private static void ParseGradeRanges(string text)
+218:         {
+219:             var vals = ParseInts(ExtractSection(text, "item drop ref table"));
+220:             if (vals.Count < 3)
+221:                 return;
+222:
+223:             _gradeRanges = new (int Down, int Up)[200];
+224:             for (var i = 0; i + 2 < vals.Count; i += 3)
+225:             {
+226:                 var level = vals[i];
+227:                 if (level >= 1 && level <= _gradeRanges.Length)
+228:                     _gradeRanges[level - 1] = (vals[i + 1], vals[i + 2]);
+229:             }
+230:             FileLogger.Log($"[HellMonsterDropConfig] [item drop ref table]: rows={vals.Count / 3}");
+231:         }
+232:
+233:         private static DropProb FindDropProb(int level)
+234:         {
+235:             if (_dropProbs != null)
+236:             {
+237:                 for (var i = 0; i < _dropProbs.Length; i++)
+238:                 {
+239:                     var prob = _dropProbs[i];
+240:                     if (level >= prob.LevelMin && level <= prob.LevelMax)
+241:                         return prob;
+242:                 }
+243:             }
+244:             return default;
+245:         }
+246:
+247:         private static int RollHellRarity(DnfLcg lcg, byte hellDifficulty)
+248:         {
+249:             EnsureLoaded();
+250:             if (_rarityThresholds == null || _rarityThresholds.Length == 0)
+251:                 return 0;
+252:
+253:             // hellDifficulty: 1=A/非常困难，2=B/困难；稀有度表数组从 0 开始。
+254:             var row = Math.Max(0, Math.Min((int)hellDifficulty - 1, _rarityThresholds.Length - 1));
+255:             var thresholds = _rarityThresholds[row];
+256:             if (thresholds == null || thresholds.Length == 0)
+257:                 return 0;
+258:
+259:             var roll = lcg.Next(1000000) + 1;
+260:             var limit = Math.Min(6, thresholds.Length);
+261:             for (var rarity = 0; rarity < limit; rarity++)
+262:             {
+263:                 if (roll <= thresholds[rarity])
+264:                     return rarity;
+265:             }
+266:             return 0;
+267:         }
+268:
+269:         internal static int ApplyEpicBuffPotionRarityRerollForSelfTest(
+270:             int initialRarity,
+271:             bool epicBuffPotionActive,
+272:             Func<int> rollRarity)
+273:         {
+274:             return ApplyEpicBuffPotionRarityReroll(
+275:                 initialRarity,
+276:                 epicBuffPotionActive,
+277:                 rollRarity,
+278:                 out _);
+279:         }
+280:
+281:         private static int ApplyEpicBuffPotionRarityReroll(
+282:             int initialRarity,
+283:             bool epicBuffPotionActive,
+284:             Func<int> rollRarity,
+285:             out int? rerollRarity)
+286:         {
+287:             rerollRarity = null;
+288:             if (!epicBuffPotionActive
+289:                 || initialRarity == EpicRarity
+290:                 || rollRarity == null)
+291:             {
+292:                 return initialRarity;
+293:             }
+294:
+295:             var secondRarity = rollRarity();
+296:             rerollRarity = secondRarity;
+297:             return secondRarity == EpicRarity
+298:                 ? EpicRarity
+299:                 : initialRarity;
+300:         }
+301:
+302:         private static string FormatEpicBuffReroll(
+303:             bool epicBuffPotionActive,
+304:             int initialRarity,
+305:             int? rerollRarity)
+306:         {
+307:             if (!epicBuffPotionActive)
+308:                 return "off";
+309:             if (!rerollRarity.HasValue)
+310:                 return initialRarity.ToString();
+311:             return $"{initialRarity}->{rerollRarity.Value}";
+312:         }
+313:
+314:         private static int ChooseEquipment(
+315:             DnfLcg lcg,
+316:             int dungeonMinimumLevel,
+317:             int itemBasisLevel,
+318:             int rarity,
+319:             bool allowFallback,
+320:             Func<int, bool> predicate,
+321:             out int candidateCount,
+322:             out bool fallbackUsed,
+323:             out int gradeMin,
+324:             out int gradeMax)
+325:         {
+326:             candidateCount = 0;
+327:             fallbackUsed = false;
+328:             gradeMin = 0;
+329:             gradeMax = 0;
+330:             EnsureLoaded();
+331:             if (_equipPool == null)
+332:                 return -1;
+333:
+334:             if (!EquipmentDropLevelRule.TryGetAtlasGradeRange(dungeonMinimumLevel, itemBasisLevel, out gradeMin, out gradeMax))
+335:                 return -1;
+336:             var candidates = CollectWeightedFromPool(
+337:                 gradeMin,
+338:                 gradeMax,
+339:                 rarity,
+340:                 predicate);
+341:             if (candidates.Count == 0 && allowFallback && rarity > 0)
+342:             {
+343:                 candidates = CollectWeightedFromPool(
+344:                     gradeMin,
+345:                     gradeMax,
+346:                     0,
+347:                     predicate);
+348:                 fallbackUsed = true;
+349:             }
+350:             candidateCount = candidates.Count;
+351:             if (candidates.Count == 0)
+352:                 return -1;
+353:
+354:             var totalWeight = 0;
+355:             for (var i = 0; i < candidates.Count; i++)
+356:                 totalWeight += candidates[i].Weight;
+357:             if (totalWeight <= 0)
+358:                 return -1;
+359:
+360:             var roll = lcg.Next(totalWeight);
+361:             var cumulative = 0;
+362:             for (var i = 0; i < candidates.Count; i++)
+363:             {
+364:                 cumulative += candidates[i].Weight;
+365:                 if (roll < cumulative)
+366:                     return candidates[i].Id;
+367:             }
+368:             return candidates[candidates.Count - 1].Id;
+369:         }
+370:
+371:         private static bool TryGetGradeRangeFromItemDropRefTable(int itemBasisLevel, out int gradeMin, out int gradeMax)
+372:         {
+373:             gradeMin = 0;
+374:             gradeMax = 0;
+375:             if (_gradeRanges == null || itemBasisLevel < 1 || itemBasisLevel > _gradeRanges.Length)
+376:                 return false;
+377:
+378:             var range = _gradeRanges[itemBasisLevel - 1];
+379:             if (range.Down <= 0 && range.Up <= 0)
+380:                 return false;
+381:
+382:             // [item drop ref table] 按副本掉落基准等级查表，返回可抽取装备 .equ [grade] 范围。
+383:             // 表内 down/up 包含基准等级本身，例如 83 7 4 => 83-6 到 83+3，即 77..86。
+384:             var downOffset = Math.Max(0, range.Down - 1);
+385:             var upOffset = Math.Max(0, range.Up - 1);
+386:             gradeMin = Math.Max(1, itemBasisLevel - downOffset);
+387:             gradeMax = Math.Min(200, itemBasisLevel + upOffset);
+388:             return gradeMax >= gradeMin;
+389:         }
+390:
+391:         private static List<(int Id, int Weight)> CollectWeightedFromPool(
+392:             int gradeMin,
+393:             int gradeMax,
+394:             int rarity,
+395:             Func<int, bool> predicate)
+396:         {
+397:             var result = new List<(int Id, int Weight)>();
+398:             if (gradeMax < gradeMin)
+399:                 return result;
+400:
+401:             for (var grade = gradeMin; grade <= gradeMax; grade++)
+402:             {
+403:                 var key = (long)grade * 10 + rarity;
+404:                 if (_equipPool.TryGetValue(key, out var items))
+405:                 {
+406:                     for (var i = 0; i < items.Count; i++)
+407:                     {
+408:                         var item = items[i];
+409:                         if (predicate == null || predicate(item.Id))
+410:                             result.Add(item);
+411:                     }
+412:                 }
+413:             }
+414:             return result;
+415:         }
+416:
+417:         private static string ExtractSection(string text, string name)
+418:         {
+419:             var tag = "[" + name + "]";
+420:             var start = text.IndexOf(tag, StringComparison.OrdinalIgnoreCase);
+421:             if (start < 0)
+422:                 return null;
+423:
+424:             start += tag.Length;
+425:             var end = text.IndexOf("[", start, StringComparison.Ordinal);
+426:             if (end < 0)
+427:                 end = text.Length;
+428:             return text.Substring(start, end - start);
+429:         }
+430:
+431:         private static List<int> ParseInts(string section)
+432:         {
+433:             var result = new List<int>();
+434:             if (string.IsNullOrWhiteSpace(section))
+435:                 return result;
+436:
+437:             var tokens = section.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+438:             for (var i = 0; i < tokens.Length; i++)
+439:             {
+440:                 if (int.TryParse(tokens[i], out var value))
+441:                     result.Add(value);
+442:             }
+443:             return result;
+444:         }
+445:     }
+446: }
+## Server/DfoServer/Game/Dungeon/DungeonEntryAdmissionApplicationService.cs
+1: using DfoServer.Game.DeathTower;
+2: using DfoServer.Game.Inventory;
+3: using DfoServer.GameWorld;
+4: using System;
+5: using System.Collections.Generic;
+6: using System.Linq;
+7: using DungeonData = DfoServer.GameWorld.Dungeon;
+8:
+9: namespace DfoServer.Game.Dungeon
+10: {
+11:     internal sealed class DungeonEntryAdmissionApplicationService
+12:     {
+13:         internal const int GorgeousChallengeGoldCost = 190000;
+14:
+15:         private readonly DungeonEntryCostService _costs;
+16:
+17:         internal DungeonEntryAdmissionApplicationService(
+18:             DungeonEntryCostService costs)
+19:         {
+20:             _costs = costs
+21:                 ?? throw new ArgumentNullException(nameof(costs));
+22:         }
+23:
+24:         internal bool CheckHellQuestRequirement(
+25:             int characterId,
+26:             WorldMapArea area,
+27:             out int missingQuestId)
+28:             => _costs.CheckHellQuestRequirement(
+29:                 characterId,
+30:                 area,
+31:                 out missingQuestId);
+32:
+33:         internal bool TryPrepareTower(
+34:             InventoryLease lease,
+35:             DeathTowerSession tower,
+36:             out DungeonEntryAdmissionPreparation preparation,
+37:             out EntryCostResult validation)
+38:         {
+39:             preparation = null;
+40:             var config = tower?.Config;
+41:             if (config == null)
+42:             {
+43:                 validation = new EntryCostResult().Fail(
+44:                     "death tower definition is missing",
+45:                     EntryCostFailureKind.Unavailable);
+46:                 return false;
+47:             }
+48:
+49:             var plan = new DungeonEntryCostPlan("death-tower");
+50:             var alternatives =
+51:                 new List<DungeonEntryCostAlternative>();
+52:             AddTowerAlternative(alternatives, config.RequiredEntryItems);
+53:             AddTowerAlternative(
+54:                 alternatives,
+55:                 config.AddedRequiredEntryItems);
+56:             if (alternatives.Count > 0)
+57:                 plan.AddAlternativeGroup(alternatives);
+58:
+59:             validation = _costs.TryValidatePlan(lease, plan);
+60:             if (!validation.Success)
+61:                 return false;
+62:
+63:             preparation = new DungeonEntryAdmissionPreparation(plan);
+64:             return true;
+65:         }
+66:
+67:         internal bool TryPrepareRun(
+68:             InventoryLease lease,
+69:             DungeonRun run,
+70:             TournamentDungeonDefinition tournamentDefinition,
+71:             bool manualHellParty,
+72:             byte requestedHellDifficulty,
+73:             PvfLib.MazeInfo maze,
+74:             int mazeIndex,
+75:             bool gorgeousChallengeEnabled,
+76:             out DungeonEntryAdmissionPreparation preparation,
+77:             out EntryCostResult validation)
+78:         {
+79:             preparation = null;
+80:             if (run == null)
+81:             {
+82:                 validation = new EntryCostResult().Fail(
+83:                     "dungeon run is missing",
+84:                     EntryCostFailureKind.InvalidState);
+85:                 return false;
+86:             }
+87:             if (lease?.Inventory == null
+88:                 || lease.CharacterId != lease.Inventory.CharacterId)
+89:             {
+90:                 validation = new EntryCostResult().Fail(
+91:                     "owned inventory lease is missing",
+92:                     EntryCostFailureKind.InvalidState);
+93:                 return false;
+94:             }
+95:
+96:             var plan = new DungeonEntryCostPlan("dungeon-entry");
+97:             if (!TryAddDungeonRequiredItems(
+98:                     plan,
+99:                     run.DungeonId,
+100:                     tournamentDefinition,
+101:                     out validation))
+102:             {
+103:                 return false;
+104:             }
+105:
+106:             var candidate = new DungeonEntryAdmissionPreparation(plan);
+107:             if (manualHellParty
+108:                 && !TryPrepareHellParty(
+109:                     lease,
+110:                     run.DungeonId,
+111:                     requestedHellDifficulty,
+112:                     maze,
+113:                     mazeIndex,
+114:                     gorgeousChallengeEnabled,
+115:                     candidate,
+116:                     out validation))
+117:             {
+118:                 return false;
+119:             }
+120:
+121:             validation = _costs.TryValidatePlan(lease, plan);
+122:             if (!validation.Success)
+123:                 return false;
+124:
+125:             preparation = candidate;
+126:             return true;
+127:         }
+128:
+129:         internal EntryCostResult TryCommit(
+130:             InventoryLease lease,
+131:             DungeonEntryAdmissionPreparation preparation)
+132:         {
+133:             if (preparation?.CostPlan == null)
+134:             {
+135:                 return new EntryCostResult().Fail(
+136:                     "dungeon entry preparation is missing",
+137:                     EntryCostFailureKind.InvalidState);
+138:             }
+139:
+140:             return _costs.TryCommitPlan(lease, preparation.CostPlan);
+141:         }
+142:
+143:         internal bool TryCommitGroup(
+144:             IReadOnlyList<DungeonEntryAdmissionCommitRequest> source,
+145:             out IReadOnlyList<EntryCostResult> results)
+146:         {
+147:             results = Array.Empty<EntryCostResult>();
+148:             if (source == null || source.Count == 0)
+149:                 return false;
+150:             var requests = new DungeonEntryCostCommitRequest[source.Count];
+151:             for (var index = 0; index < source.Count; index++)
+152:             {
+153:                 var entry = source[index];
+154:                 if (entry.Lease == null || entry.Preparation?.CostPlan == null)
+155:                     return false;
+156:                 requests[index] = new DungeonEntryCostCommitRequest(
+157:                     entry.Lease,
+158:                     entry.Preparation.CostPlan);
+159:             }
+160:             return _costs.TryCommitPlans(requests, out results);
+161:         }
+162:
+163:         private static bool TryAddDungeonRequiredItems(
+164:             DungeonEntryCostPlan plan,
+165:             int dungeonId,
+166:             TournamentDungeonDefinition tournamentDefinition,
+167:             out EntryCostResult failure)
+168:         {
+169:             failure = null;
+170:             if (tournamentDefinition != null)
+171:             {
+172:                 foreach (var entry in tournamentDefinition.EntryItems)
+173:                 {
+174:                     plan.AddRequiredItems(new[]
+175:                     {
+176:                         new DungeonEntryItemRequirement(
+177:                             entry.ItemId,
+178:                             entry.Count,
+179:                             entry.ConsumeOnEntry),
+180:                     });
+181:                 }
+182:                 return true;
+183:             }
+184:
+185:             try
+186:             {
+187:                 var dungeon = DungeonData.GetDungeonFile(dungeonId);
+188:                 if (dungeon == null)
+189:                 {
+190:                     failure = new EntryCostResult().Fail(
+191:                         "dungeon required item definition is missing",
+192:                         EntryCostFailureKind.Unavailable);
+193:                     return false;
+194:                 }
+195:
+196:                 if (dungeon.RequiredItems != null)
+197:                 {
+198:                     plan.AddRequiredItems(
+199:                         DungeonEntryCostService.ProjectPvfRequiredItems(
+200:                             dungeon.RequiredItems));
+201:                 }
+202:                 return true;
+203:             }
+204:             catch (Exception ex)
+205:             {
+206:                 failure = new EntryCostResult().Fail(
+207:                     "dungeon required item definition failed: " +
+208:                     ex.Message,
+209:                     EntryCostFailureKind.Unavailable);
+210:                 return false;
+211:             }
+212:         }
+213:
+214:         private bool TryPrepareHellParty(
+215:             InventoryLease lease,
+216:             int dungeonId,
+217:             byte requestedHellDifficulty,
+218:             PvfLib.MazeInfo maze,
+219:             int mazeIndex,
+220:             bool gorgeousChallengeEnabled,
+221:             DungeonEntryAdmissionPreparation preparation,
+222:             out EntryCostResult failure)
+223:         {
+224:             failure = null;
+225:             if (maze == null)
+226:             {
+227:                 failure = new EntryCostResult().Fail(
+228:                     "hell party maze is missing",
+229:                     EntryCostFailureKind.Unavailable);
+230:                 return false;
+231:             }
+232:
+233:             var area = WorldMap.GetAreaByDungeonId(dungeonId);
+234:             if (area?.HellDungeon != true)
+235:             {
+236:                 failure = new EntryCostResult().Fail(
+237:                     "worldmap area is not a hell dungeon area",
+238:                     EntryCostFailureKind.Unavailable);
+239:                 return false;
+240:             }
+241:             if (!_costs.CheckHellQuestRequirement(
+242:                     lease.CharacterId,
+243:                     area,
+244:                     out var missingQuestId))
+245:             {
+246:                 failure = new EntryCostResult().Fail(
+247:                     $"hell quest not cleared quest={missingQuestId}",
+248:                     EntryCostFailureKind.MissingPermission);
+249:                 return false;
+250:             }
+251:
+252:             var hellMode = ResolveHellPartyMode(requestedHellDifficulty);
+253:             DungeonData.HellPartyRoomInfo hellRoom = null;
+254:             var gorgeousPlanned = false;
+255:             if (gorgeousChallengeEnabled)
+256:             {
+257:                 var veryHardRoom = DungeonData.FindHellMapRoom(
+258:                     dungeonId,
+259:                     maze,
+260:                     mazeIndex,
+261:                     difficulty: 1,
+262:                     preferSeasonSealDoor: true);
+263:                 int gold;
+264:                 lock (lease.SyncRoot)
+265:                     gold = lease.Inventory.CountMainItem(0);
+266:                 if (veryHardRoom.Found
+267:                     && gold >= GorgeousChallengeGoldCost)
+268:                 {
+269:                     hellMode = 1;
+270:                     hellRoom = veryHardRoom;
+271:                     gorgeousPlanned = true;
+272:                     if (!preparation.CostPlan.TryAddGoldCost(
+273:                             GorgeousChallengeGoldCost))
+274:                     {
+275:                         failure = new EntryCostResult().Fail(
+276:                             "gorgeous challenge gold cost overflow",
+277:                             EntryCostFailureKind.Unavailable);
+278:                         return false;
+279:                     }
+280:                 }
+281:                 else
+282:                 {
+283:                     hellMode = HellPartyData.ResolveManualHellPartyMode();
+284:                 }
+285:             }
+286:
+287:             if (hellRoom == null || !hellRoom.Found)
+288:             {
+289:                 hellRoom = DungeonData.FindHellMapRoom(
+290:                     dungeonId,
+291:                     maze,
+292:                     mazeIndex,
+293:                     hellMode,
+294:                     preferSeasonSealDoor: gorgeousPlanned);
+295:             }
+296:             if (hellRoom == null || !hellRoom.Found)
+297:             {
+298:                 failure = new EntryCostResult().Fail(
+299:                     "hell party room is missing",
+300:                     EntryCostFailureKind.Unavailable);
+301:                 return false;
+302:             }
+303:
+304:             if (!TryAddHellTicketAlternatives(
+305:                     preparation.CostPlan,
+306:                     area,
+307:                     DungeonData.GetDungeonMinimumRequiredLevel(dungeonId),
+308:                     out failure))
+309:             {
+310:                 return false;
+311:             }
+312:
+313:             preparation.HellParty = new HellPartyEntryPreparation
+314:             {
+315:                 Area = area,
+316:                 DungeonMinimumLevel =
+317:                     DungeonData.GetDungeonMinimumRequiredLevel(dungeonId),
+318:                 Mode = hellMode,
+319:                 Room = hellRoom,
+320:                 GorgeousChallenge = gorgeousPlanned,
+321:             };
+322:             return true;
+323:         }
+324:
+325:         private static bool TryAddHellTicketAlternatives(
+326:             DungeonEntryCostPlan plan,
+327:             WorldMapArea area,
+328:             int dungeonMinimumLevel,
+329:             out EntryCostResult failure)
+330:         {
+331:             failure = null;
+332:             var alternatives =
+333:                 new List<DungeonEntryCostAlternative>();
+334:             foreach (var ticket in area.HellFreePassItems)
+335:             {
+336:                 if (ticket.ItemId <= 0 || ticket.Count <= 0)
+337:                     continue;
+338:                 alternatives.Add(new DungeonEntryCostAlternative(
+339:                     new[]
+340:                     {
+341:                         new DungeonEntryItemRequirement(
+342:                             ticket.ItemId,
+343:                             ticket.Count,
+344:                             consumeOnEntry: true),
+345:                     },
+346:                     isFreePass: true));
+347:             }
+348:
+349:             var normalNeed = WorldMap.GetHellNormalTicketNeedCount(
+350:                 dungeonMinimumLevel);
+351:             if (normalNeed <= 0)
+352:             {
+353:                 failure = new EntryCostResult().Fail(
+354:                     $"invalid hell ticket count minLevel=" +
+355:                     dungeonMinimumLevel,
+356:                     EntryCostFailureKind.Unavailable);
+357:                 return false;
+358:             }
+359:
+360:             var missingAlternativeIndex = alternatives.Count;
+361:             foreach (var itemId in area.HellNormalTicketItemIds
+362:                          .Where(itemId => itemId > 0))
+363:             {
+364:                 alternatives.Add(new DungeonEntryCostAlternative(
+365:                     new[]
+366:                     {
+367:                         new DungeonEntryItemRequirement(
+368:                             itemId,
+369:                             normalNeed,
+370:                             consumeOnEntry: true),
+371:                     }));
+372:             }
+373:             if (missingAlternativeIndex >= alternatives.Count)
+374:             {
+375:                 failure = new EntryCostResult().Fail(
+376:                     "normal hell ticket definition is missing",
+377:                     EntryCostFailureKind.Unavailable);
+378:                 return false;
+379:             }
+380:
+381:             plan.AddAlternativeGroup(
+382:                 alternatives,
+383:                 missingAlternativeIndex);
+384:             return true;
+385:         }
+386:
+387:         private static void AddTowerAlternative(
+388:             ICollection<DungeonEntryCostAlternative> alternatives,
+389:             IReadOnlyList<DeathTowerData.TowerEntryItem> source)
+390:         {
+391:             if (source == null || source.Count == 0)
+392:                 return;
+393:             alternatives.Add(new DungeonEntryCostAlternative(
+394:                 source.Select(item => new DungeonEntryItemRequirement(
+395:                         item.ItemId,
+396:                         item.Count,
+397:                         item.ConsumeOnEntry))
+398:                     .ToList()));
+399:         }
+400:
+401:         private static byte ResolveHellPartyMode(byte requestFlag)
+402:         {
+403:             return requestFlag == 1 || requestFlag == 2
+404:                 ? requestFlag
+405:                 : HellPartyData.ResolveManualHellPartyMode();
+406:         }
+407:     }
+408:
+409:     internal sealed class DungeonEntryAdmissionPreparation
+410:     {
+411:         internal DungeonEntryAdmissionPreparation(
+412:             DungeonEntryCostPlan costPlan)
+413:         {
+414:             CostPlan = costPlan;
+415:         }
+416:
+417:         internal DungeonEntryCostPlan CostPlan { get; }
+418:         internal HellPartyEntryPreparation HellParty { get; set; }
+419:
+420:         internal void ApplyTo(DungeonRun run)
+421:         {
+422:             if (run == null || HellParty == null)
+423:                 return;
+424:             run.HellMode = true;
+425:             run.HellPartyMode = HellParty.Mode;
+426:             run.VeryDifficultHell = HellParty.Mode == 1;
+427:             run.HellGorgeousChallenge = HellParty.GorgeousChallenge;
+428:             run.HellMapId = HellParty.Room.MapId;
+429:             run.HellMapX = (byte)HellParty.Room.X;
+430:             run.HellMapY = (byte)HellParty.Room.Y;
+431:             run.HellRoomInfo = HellParty.Room;
+432:         }
+433:     }
+434:
+435:     internal readonly struct DungeonEntryAdmissionCommitRequest
+436:     {
+437:         internal DungeonEntryAdmissionCommitRequest(
+438:             InventoryLease lease,
+439:             DungeonEntryAdmissionPreparation preparation)
+440:         {
+441:             Lease = lease;
+442:             Preparation = preparation;
+443:         }
+444:
+445:         internal InventoryLease Lease { get; }
+446:         internal DungeonEntryAdmissionPreparation Preparation { get; }
+447:     }
+448:
+449:     internal sealed class HellPartyEntryPreparation
+450:     {
+451:         internal WorldMapArea Area;
+452:         internal int DungeonMinimumLevel;
+453:         internal byte Mode;
+454:         internal DungeonData.HellPartyRoomInfo Room;
+455:         internal bool GorgeousChallenge;
+456:     }
+457: }
+## Server/DfoServer/Game/Dungeon/EquipmentDropPoolProvider.cs
+1: using PvfLib;
+2: using System;
+3: using System.Collections.Generic;
+4: using DfoServer.Game.Inventory;
+5:
+6: namespace DfoServer.Game.Dungeon
+7: {
+8:     internal static class EquipmentDropPoolProvider
+9:     {
+10:         private static readonly object LockObj = new object();
+11:         private static Dictionary<long, List<(int Id, int Weight)>> _pool;
+12:         private static Dictionary<long, List<(int Id, int Weight)>> _normalPool;
+13:         private static Dictionary<long, List<(int Id, int Weight)>> _avatarPool;
+14:         private static bool _loaded;
+15:
+16:         internal static Dictionary<long, List<(int Id, int Weight)>> GetPool()
+17:         {
+18:             EnsureLoaded();
+19:             return _pool;
+20:         }
+21:
+22:         internal static Dictionary<long, List<(int Id, int Weight)>>
+23:             GetClearRewardPool(bool avatar)
+24:         {
+25:             EnsureLoaded();
+26:             return avatar ? _avatarPool : _normalPool;
+27:         }
+28:
+29:         internal static void WarmUp()
+30:         {
+31:             EnsureLoaded();
+32:         }
+33:
+34:         private static void EnsureLoaded()
+35:         {
+36:             if (_loaded) return;
+37:             lock (LockObj)
+38:             {
+39:                 if (_loaded) return;
+40:                 _pool = LoadEquipmentPool();
+41:                 _loaded = true;
+42:             }
+43:         }
+44:
+45:         private static Dictionary<long, List<(int Id, int Weight)>> LoadEquipmentPool()
+46:         {
+47:             var pool = new Dictionary<long, List<(int Id, int Weight)>>();
+48:             _normalPool = new Dictionary<long, List<(int Id, int Weight)>>();
+49:             _avatarPool = new Dictionary<long, List<(int Id, int Weight)>>();
+50:             try
+51:             {
+52:                 var equipmentDefinitions = EquipmentDefinitionCatalog.GetAll();
+53:                 if (equipmentDefinitions.Count == 0)
+54:                 {
+55:                     FileLogger.Log("[EquipmentDropPoolProvider] equipment.lst empty/not found");
+56:                     return pool;
+57:                 }
+58:
+59:                 var added = 0;
+60:                 var errors = 0;
+61:                 for (var i = 0; i < equipmentDefinitions.Count; i++)
+62:                 {
+63:                     var equipment = equipmentDefinitions[i];
+64:                     if (equipment == null)
+65:                         continue;
+66:
+67:                     if (TryAddEquipment(
+68:                             pool,
+69:                             _normalPool,
+70:                             _avatarPool,
+71:                             equipment))
+72:                         added++;
+73:                 }
+74:
+75:                 FileLogger.Log(
+76:                     $"[EquipmentDropPoolProvider] equipment pool from .equ: " +
+77:                     $"items={added} errors={errors} buckets={pool.Count} " +
+78:                     $"normalBuckets={_normalPool.Count} avatarBuckets={_avatarPool.Count}");
+79:             }
+80:             catch (Exception ex)
+81:             {
+82:                 FileLogger.Log($"[EquipmentDropPoolProvider] equipment pool parse error: {ex.Message}");
+83:             }
+84:
+85:             return pool;
+86:         }
+87:
+88:         private static bool TryAddEquipment(
+89:             Dictionary<long, List<(int Id, int Weight)>> pool,
+90:             Dictionary<long, List<(int Id, int Weight)>> normalPool,
+91:             Dictionary<long, List<(int Id, int Weight)>> avatarPool,
+92:             EquipmentDefinition equipment)
+93:         {
+94:             if (equipment == null || equipment.ItemTemplateId <= 0)
+95:                 return false;
+96:
+97:             var rarity = equipment.Rarity;
+98:             var grade = equipment.Grade;
+99:             var creationRate = equipment.CreationRate;
+100:
+101:             if (creationRate <= 0 || grade <= 0 || rarity < 0 || rarity > 5)
+102:                 return false;
+103:
+104:             var key = (long)grade * 10 + rarity;
+105:             AddToPool(pool, key, equipment.ItemTemplateId, creationRate);
+106:             var categoryPool = IsAvatar(equipment)
+107:                 ? avatarPool
+108:                 : normalPool;
+109:             AddToPool(categoryPool, key, equipment.ItemTemplateId, creationRate);
+110:             return true;
+111:         }
+112:
+113:         private static void AddToPool(
+114:             Dictionary<long, List<(int Id, int Weight)>> pool,
+115:             long key,
+116:             int itemId,
+117:             int weight)
+118:         {
+119:             if (!pool.TryGetValue(key, out var list))
+120:             {
+121:                 list = new List<(int Id, int Weight)>();
+122:                 pool[key] = list;
+123:             }
+124:             list.Add((itemId, weight));
+125:         }
+126:
+127:         private static bool IsAvatar(EquipmentDefinition equipment)
+128:         {
+129:             var normalizedPath = "/" + (equipment.FilePath ?? string.Empty)
+130:                 .Replace('\\', '/')
+131:                 .Trim('/');
+132:             return normalizedPath.IndexOf(
+133:                        "/avatar/",
+134:                        StringComparison.OrdinalIgnoreCase) >= 0
+135:                 || normalizedPath.IndexOf(
+136:                        "/at_avatar/",
+137:                        StringComparison.OrdinalIgnoreCase) >= 0
+138:                 || (equipment.EquipmentType?.IndexOf(
+139:                         "avatar",
+140:                         StringComparison.OrdinalIgnoreCase) ?? -1) >= 0;
+141:         }
+142:     }
+143: }
+## Server/DfoServer/Game/Dungeon/EquipmentDropLevelRule.cs
+1: using System;
+2:
+3: namespace DfoServer.Game.Dungeon
+4: {
+5:     internal static class EquipmentDropLevelRule
+6:     {
+7:         public static bool TryGetAtlasGradeRange(int dungeonMinimumLevel, int dungeonBasisLevel, out int gradeMin, out int gradeMax)
+8:         {
+9:             gradeMin = 0;
+10:             gradeMax = 0;
+11:
+12:             if (dungeonMinimumLevel <= 0 && dungeonBasisLevel <= 0)
+13:                 return false;
+14:             if (dungeonMinimumLevel <= 0)
+15:                 dungeonMinimumLevel = dungeonBasisLevel;
+16:             if (dungeonBasisLevel <= 0)
+17:                 dungeonBasisLevel = dungeonMinimumLevel;
+18:             if (dungeonMinimumLevel > dungeonBasisLevel)
+19:             {
+20:                 var tmp = dungeonMinimumLevel;
+21:                 dungeonMinimumLevel = dungeonBasisLevel;
+22:                 dungeonBasisLevel = tmp;
+23:             }
+24:
+25:             // 装备图鉴展示的可掉落副本等级为: 装备 grade - 7 到装备 grade。
+26:             // 副本自身按 [minimum required level, basis level] 作为等级区间，两段相交即可掉落。
+27:             gradeMin = Math.Max(1, dungeonMinimumLevel);
+28:             gradeMax = Math.Min(200, dungeonBasisLevel + 7);
+29:             return gradeMax >= gradeMin;
+30:         }
+31:     }
+32: }
+## Server/DfoServer/Game/Dungeon/DnfLcg.cs
+1: namespace DfoServer.Game.Dungeon
+2: {
+3:
+4:
+5:
+6:
+7:
+8:     public sealed class DnfLcg
+9:     {
+10:         private uint _seed;
+11:
+12:         public DnfLcg(uint seed) => _seed = seed;
+13:
+14:         public uint Seed => _seed;
+15:
+16:         public int Next()
+17:         {
+18:             uint v2 = _seed * 1103515245u + 12345u;
+19:             uint v3 = v2 * 1103515245u + 12345u;
+20:             uint v4 = v3 * 1103515245u + 12345u;
+21:             _seed = v4;
+22:
+23:             int hi2 = (int)((v2 >> 16) & 0x7FF);
+24:             int hi3 = (int)((v3 >> 16) & 0x3FF);
+25:             int hi4 = (int)((v4 >> 16) & 0x3FF);
+26:             return ((hi2 << 10) ^ hi3) << 10 | hi4;
+27:         }
+28:
+29:         public int Next(int max)
+30:         {
+31:             if (max <= 0) return Next();
+32:             return Next() % max;
+33:         }
+34:     }
+35: }
+## Server/DfoServer/Game/Inventory/Services/EpicPieceDropService.cs
+1: using DfoServer.Game.Dungeon;
+2: using System;
+3: using System.Collections.Generic;
+4:
+5: namespace DfoServer.Game.Inventory
+6: {
+7:     internal sealed class EpicPieceDropRollRequest
+8:     {
+9:         internal int DungeonId { get; set; }
+10:         internal int MonsterId { get; set; }
+11:         internal byte DungeonDifficulty { get; set; }
+12:         internal byte HellDifficulty { get; set; }
+13:         internal int DungeonMinimumLevel { get; set; }
+14:         internal int DungeonBasisLevel { get; set; }
+15:         internal DnfLcg Random { get; set; }
+16:     }
+17:
+18:     internal sealed class EpicPieceDropRollResult
+19:     {
+20:         internal int EpicEquipmentId { get; set; }
+21:         internal int EpicPieceId { get; set; }
+22:         internal int Count { get; set; }
+23:     }
+24:
+25:     internal interface IEpicPieceDropService
+26:     {
+27:         IReadOnlyList<EpicPieceDropRollResult> Roll(
+28:             EpicPieceDropRollRequest request);
+29:
+30:         bool TryRoll(
+31:             EpicPieceDropRollRequest request,
+32:             out EpicPieceDropRollResult result);
+33:     }
+34:
+35:     internal sealed class EpicPieceDropService : IEpicPieceDropService
+36:     {
+37:         private const int EpicEquipmentRarity = 4;
+38:
+39:         internal static readonly EpicPieceDropService Instance =
+40:             new EpicPieceDropService();
+41:
+42:         private EpicPieceDropService()
+43:         {
+44:         }
+45:
+46:         public IReadOnlyList<EpicPieceDropRollResult> Roll(
+47:             EpicPieceDropRollRequest request)
+48:         {
+49:             var dungeonDifficulty = request != null
+50:                 ? request.DungeonDifficulty
+51:                 : (byte)0;
+52:             var hellDifficulty = request != null
+53:                 ? request.HellDifficulty
+54:                 : (byte)0;
+55:             var rollCount = ResolveRollCount(
+56:                 dungeonDifficulty,
+57:                 hellDifficulty);
+58:             if (rollCount <= 0)
+59:                 return Array.Empty<EpicPieceDropRollResult>();
+60:
+61:             var results = new List<EpicPieceDropRollResult>(rollCount);
+62:             for (var i = 0; i < rollCount; i++)
+63:             {
+64:                 if (TryRoll(request, out var result))
+65:                     results.Add(result);
+66:             }
+67:
+68:             return results;
+69:         }
+70:
+71:         public bool TryRoll(
+72:             EpicPieceDropRollRequest request,
+73:             out EpicPieceDropRollResult result)
+74:         {
+75:             result = null;
+76:             if (request == null || request.Random == null)
+77:                 return false;
+78:
+79:             if (!HellMonsterDropConfig.TryChooseSpecificEquipment(
+80:                     request.Random,
+81:                     request.DungeonMinimumLevel,
+82:                     request.DungeonBasisLevel,
+83:                     EpicEquipmentRarity,
+84:                     allowFallback: false,
+85:                     predicate: HasEpicPiece,
+86:                     out var equipmentId,
+87:                     out var candidateCount,
+88:                     out var fallbackUsed,
+89:                     out var gradeMin,
+90:                     out var gradeMax))
+91:             {
+92:                 FileLogger.Log(
+93:                     $"[EpicPieceDrop] no mapped epic equipment " +
+94:                     $"dungeon={request.DungeonId} monster={request.MonsterId} " +
+95:                     $"levelRange={request.DungeonMinimumLevel}-{request.DungeonBasisLevel} " +
+96:                     $"gradeRange={gradeMin}-{gradeMax} candidates={candidateCount} " +
+97:                     $"fallback={fallbackUsed}");
+98:                 return false;
+99:             }
+100:
+101:             if (!EpicPieceCatalogService.TryGetEntryByOutputId(
+102:                     equipmentId,
+103:                     out var entry))
+104:             {
+105:                 FileLogger.Log(
+106:                     $"[EpicPieceDrop] mapped equipment missing catalog entry " +
+107:                     $"equipment={equipmentId}");
+108:                 return false;
+109:             }
+110:
+111:             result = new EpicPieceDropRollResult
+112:             {
+113:                 EpicEquipmentId = equipmentId,
+114:                 EpicPieceId = entry.EpicPieceId,
+115:                 Count = 1,
+116:             };
+117:             return true;
+118:         }
+119:
+120:         internal static int ResolveRollCount(
+121:             byte dungeonDifficulty,
+122:             byte hellDifficulty)
+123:         {
+124:             var hellCount = hellDifficulty switch
+125:             {
+126:                 1 => 1,
+127:                 2 => 0,
+128:                 _ => 0,
+129:             };
+130:
+131:             var dungeonCount = dungeonDifficulty switch
+132:             {
+133:                 0 => 5,
+134:                 1 => 6,
+135:                 2 => 8,
+136:                 3 => 9,
+137:                 4 => 10,
+138:                 _ => 0,
+139:             };
+140:             return hellCount + dungeonCount;
+141:         }
+142:
+143:         private static bool HasEpicPiece(int equipmentId)
+144:             => EpicPieceCatalogService.TryGetEntryByOutputId(
+145:                 equipmentId,
+146:                 out _);
+147:     }
+148: }
+## Server/DfoServer/Game/Inventory/EpicPieceCatalogService.cs
+1: using DfoServer.GameWorld;
+2: using DfoServer.Infrastructure;
+3: using PvfLib;
+4: using System;
+5: using System.Collections.Generic;
+6: using System.Text.RegularExpressions;
+7:
+8: namespace DfoServer.Game.Inventory
+9: {
+10:     internal sealed class EpicPieceCatalogEntry
+11:     {
+12:         public int Index { get; set; }
+13:         public int OutputEquipmentId { get; set; }
+14:         public int EpicPieceId { get; set; }
+15:     }
+16:
+17:     internal sealed class EpicPieceRecipeEntry
+18:     {
+19:         public int ItemId { get; set; }
+20:         public int Count { get; set; }
+21:     }
+22:
+23:     internal sealed class EpicPieceRecipe
+24:     {
+25:         public int OutputEquipmentId { get; set; }
+26:         public int EpicPieceId { get; set; }
+27:         public int EpicPieceCount { get; set; }
+28:         public IReadOnlyList<EpicPieceRecipeEntry> Materials { get; set; } = Array.Empty<EpicPieceRecipeEntry>();
+29:     }
+30:
+31:     internal static class EpicPieceCatalogService
+32:     {
+33:         private const string EpicPieceInfoPath = "etc/epicpieceinfo.etc";
+34:         private static readonly Lazy<CatalogData> Catalog =
+35:             new Lazy<CatalogData>(LoadCatalog);
+36:
+37:         internal static int Count => Catalog.Value.Entries.Count;
+38:
+39:         internal static IReadOnlyList<EpicPieceCatalogEntry> Entries => Catalog.Value.Entries;
+40:
+41:         internal static bool IsEpicPieceId(int itemId)
+42:             => itemId > 0 && Catalog.Value.IndexByPieceId.ContainsKey(itemId);
+43:
+44:         internal static bool TryGetIndexByPieceId(int itemId, out int index)
+45:             => Catalog.Value.IndexByPieceId.TryGetValue(itemId, out index);
+46:
+47:         internal static bool TryGetEntryByPieceId(int itemId, out EpicPieceCatalogEntry entry)
+48:         {
+49:             entry = null;
+50:             if (!TryGetIndexByPieceId(itemId, out var index))
+51:                 return false;
+52:
+53:             entry = Catalog.Value.Entries[index];
+54:             return true;
+55:         }
+56:
+57:         internal static bool TryGetEntryByOutputId(int outputEquipmentId, out EpicPieceCatalogEntry entry)
+58:             => Catalog.Value.EntryByOutputId.TryGetValue(outputEquipmentId, out entry);
+59:
+60:         internal static bool TryGetRecipeByOutputId(int outputEquipmentId, out EpicPieceRecipe recipe)
+61:             => Catalog.Value.RecipeByOutputId.TryGetValue(outputEquipmentId, out recipe);
+62:
+63:         internal static void Warmup()
+64:         {
+65:             _ = Catalog.Value;
+66:         }
+67:
+68:         private static CatalogData LoadCatalog()
+69:         {
+70:             try
+71:             {
+72:                 return Parse(PvfArchiveAccessor.ReadText(EpicPieceInfoPath));
+73:             }
+74:             catch (Exception ex)
+75:             {
+76:                 FileLogger.Log($"[EpicPieceCatalog] load failed: {ex.Message}");
+77:                 return CatalogData.Empty;
+78:             }
+79:         }
+80:
+81:         private static CatalogData Parse(string text)
+82:         {
+83:             var dropBlock = ExtractTaggedBlock(text, "equipment piece drop info");
+84:             var pieceValues = ParseIntList(ExtractTaggedBlock(dropBlock, "piece list"));
+85:             if (pieceValues.Count == 0 || pieceValues.Count % 2 != 0)
+86:                 return CatalogData.Empty;
+87:
+88:             var entries = new List<EpicPieceCatalogEntry>();
+89:             var indexByPieceId = new Dictionary<int, int>();
+90:             var entryByOutputId = new Dictionary<int, EpicPieceCatalogEntry>();
+91:             for (var offset = 0; offset + 1 < pieceValues.Count; offset += 2)
+92:             {
+93:                 var outputId = pieceValues[offset];
+94:                 var pieceId = pieceValues[offset + 1];
+95:                 if (outputId <= 0 || pieceId <= 0)
+96:                     continue;
+97:                 if (indexByPieceId.ContainsKey(pieceId)
+98:                     || entryByOutputId.ContainsKey(outputId))
+99:                     continue;
+100:
+101:                 var entry = new EpicPieceCatalogEntry
+102:                 {
+103:                     Index = entries.Count,
+104:                     OutputEquipmentId = outputId,
+105:                     EpicPieceId = pieceId,
+106:                 };
+107:                 entries.Add(entry);
+108:                 indexByPieceId[pieceId] = entry.Index;
+109:                 entryByOutputId[outputId] = entry;
+110:             }
+111:
+112:             var recipeByOutputId = ParseRecipes(text, entryByOutputId);
+113:             return new CatalogData(entries, indexByPieceId, entryByOutputId, recipeByOutputId);
+114:         }
+115:
+116:         private static Dictionary<int, EpicPieceRecipe> ParseRecipes(
+117:             string text,
+118:             IReadOnlyDictionary<int, EpicPieceCatalogEntry> entryByOutputId)
+119:         {
+120:             var result = new Dictionary<int, EpicPieceRecipe>();
+121:             var recipeBlock = ExtractTaggedBlock(text, "equipment recipe info");
+122:             if (string.IsNullOrWhiteSpace(recipeBlock))
+123:                 return result;
+124:
+125:             var pattern = new Regex(
+126:                 @"\[info\](.*?)\[/info\]",
+127:                 RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+128:             foreach (Match match in pattern.Matches(recipeBlock))
+129:             {
+130:                 var info = match.Groups[1].Value;
+131:                 var outputValues = ParseIntList(ExtractTaggedBlock(info, "output"));
+132:                 var recipeValues = ParseIntList(ExtractTaggedBlock(info, "recipe"));
+133:                 if (outputValues.Count == 0 || recipeValues.Count < 2 || recipeValues.Count % 2 != 0)
+134:                     continue;
+135:
+136:                 var outputId = outputValues[0];
+137:                 if (!entryByOutputId.TryGetValue(outputId, out var catalogEntry))
+138:                     continue;
+139:
+140:                 var pieceId = recipeValues[0];
+141:                 var pieceCount = recipeValues[1];
+142:                 if (pieceId != catalogEntry.EpicPieceId || pieceCount <= 0)
+143:                     continue;
+144:
+145:                 var materials = new List<EpicPieceRecipeEntry>();
+146:                 for (var offset = 2; offset + 1 < recipeValues.Count; offset += 2)
+147:                 {
+148:                     var materialId = recipeValues[offset];
+149:                     var materialCount = recipeValues[offset + 1];
+150:                     if (materialId <= 0 || materialCount <= 0)
+151:                         continue;
+152:
+153:                     materials.Add(new EpicPieceRecipeEntry
+154:                     {
+155:                         ItemId = materialId,
+156:                         Count = materialCount,
+157:                     });
+158:                 }
+159:
+160:                 result[outputId] = new EpicPieceRecipe
+161:                 {
+162:                     OutputEquipmentId = outputId,
+163:                     EpicPieceId = pieceId,
+164:                     EpicPieceCount = pieceCount,
+165:                     Materials = materials,
+166:                 };
+167:             }
+168:
+169:             return result;
+170:         }
+171:
+172:         private static string ExtractTaggedBlock(string text, string tagName)
+173:         {
+174:             if (string.IsNullOrEmpty(text) || string.IsNullOrWhiteSpace(tagName))
+175:                 return string.Empty;
+176:
+177:             var open = "[" + tagName + "]";
+178:             var close = "[/" + tagName + "]";
+179:             var openIndex = text.IndexOf(open, StringComparison.OrdinalIgnoreCase);
+180:             if (openIndex < 0)
+181:                 return string.Empty;
+182:
+183:             var start = openIndex + open.Length;
+184:             var closeIndex = text.IndexOf(close, start, StringComparison.OrdinalIgnoreCase);
+185:             return closeIndex < 0
+186:                 ? text.Substring(start)
+187:                 : text.Substring(start, closeIndex - start);
+188:         }
+189:
+190:         private static List<int> ParseIntList(string text)
+191:         {
+192:             var result = new List<int>();
+193:             if (string.IsNullOrWhiteSpace(text))
+194:                 return result;
+195:
+196:             foreach (Match match in Regex.Matches(text, @"-?\d+"))
+197:             {
+198:                 if (int.TryParse(match.Value, out var value))
+199:                     result.Add(value);
+200:             }
+201:             return result;
+202:         }
+203:
+204:         private sealed class CatalogData
+205:         {
+206:             internal static readonly CatalogData Empty =
+207:                 new CatalogData(
+208:                     new List<EpicPieceCatalogEntry>(),
+209:                     new Dictionary<int, int>(),
+210:                     new Dictionary<int, EpicPieceCatalogEntry>(),
+211:                     new Dictionary<int, EpicPieceRecipe>());
+212:
+213:             internal CatalogData(
+214:                 List<EpicPieceCatalogEntry> entries,
+215:                 Dictionary<int, int> indexByPieceId,
+216:                 Dictionary<int, EpicPieceCatalogEntry> entryByOutputId,
+217:                 Dictionary<int, EpicPieceRecipe> recipeByOutputId)
+218:             {
+219:                 Entries = entries;
+220:                 IndexByPieceId = indexByPieceId;
+221:                 EntryByOutputId = entryByOutputId;
+222:                 RecipeByOutputId = recipeByOutputId;
+223:             }
+224:
+225:             internal List<EpicPieceCatalogEntry> Entries { get; }
+226:             internal Dictionary<int, int> IndexByPieceId { get; }
+227:             internal Dictionary<int, EpicPieceCatalogEntry> EntryByOutputId { get; }
+228:             internal Dictionary<int, EpicPieceRecipe> RecipeByOutputId { get; }
+229:         }
+230:     }
+231: }
+## Server/DfoServer/Network/Parsers/Dungeon/SelectDungeonRequest.cs
+1: using System;
+2:
+3: namespace DfoServer.Network.Parsers.Dungeon
+4: {
+5:     public readonly struct SelectDungeonRequest
+6:     {
+7:         public int DungeonId { get; }
+8:         public byte Difficulty { get; }
+9:         public byte Flag1 { get; }
+10:         public byte Flag2 { get; }
+11:         public ushort A21Sentinel { get; }
+12:         public int TrailingLength { get; }
+13:         public bool HasNonZeroTrailingBytes { get; }
+14:         public byte HellPartyRequestFlag => Flag1;
+15:         public byte HellPartyDifficultyFlag => Flag2;
+16:
+17:         public SelectDungeonRequest(
+18:             int dungeonId,
+19:             byte difficulty,
+20:             byte flag1,
+21:             byte flag2,
+22:             ushort a21Sentinel = 0xFFFF,
+23:             int trailingLength = 0,
+24:             bool hasNonZeroTrailingBytes = false)
+25:         {
+26:             DungeonId = dungeonId;
+27:             Difficulty = difficulty;
+28:             Flag1 = flag1;
+29:             Flag2 = flag2;
+30:             A21Sentinel = a21Sentinel;
+31:             TrailingLength = trailingLength;
+32:             HasNonZeroTrailingBytes = hasNonZeroTrailingBytes;
+33:         }
+34:
+35:         public static SelectDungeonRequest Parse(byte[] body)
+36:         {
+37:             if (body == null || body.Length < 9)
+38:                 throw new ArgumentException("SELECT_DUNGEON body must be at least 9 bytes.", nameof(body));
+39:
+40:             var wireDungeonId = BitConverter.ToUInt32(body, 0);
+41:             if (wireDungeonId > int.MaxValue)
+42:                 throw new ArgumentOutOfRangeException(nameof(body), "SELECT_DUNGEON dungeon id exceeds the server domain.");
+43:
+44:             var hasNonZeroTrailingBytes = false;
+45:             for (var i = 9; i < body.Length; i++)
+46:             {
+47:                 if (body[i] == 0)
+48:                     continue;
+49:
+50:                 hasNonZeroTrailingBytes = true;
+51:                 break;
+52:             }
+53:
+54:             return new SelectDungeonRequest(
+55:                 (int)wireDungeonId,
+56:                 body[4],
+57:                 body[5],
+58:                 body[6],
+59:                 BitConverter.ToUInt16(body, 7),
+60:                 body.Length - 9,
+61:                 hasNonZeroTrailingBytes);
+62:         }
+63:     }
+64: }
+## Server/DfoServer/Game/Dungeon/RoomState.cs
+1: using System;
+2: using System.Collections.Generic;
+3: using System.Threading;
+4:
+5: namespace DfoServer.Game.Dungeon
+6: {
+7:     public enum HellPartyPhase
+8:     {
+9:         None = 0,
+10:         WaitingStart = 1,
+11:         Started = 2,
+12:         Complete = 3,
+13:     }
+14:
+15:     public struct RoomKey : IEquatable<RoomKey>
+16:     {
+17:         public int X;
+18:         public int Y;
+19:         public int OverrideMapId;
+20:
+21:         public RoomKey(int x, int y, int overrideMapId)
+22:         {
+23:             X = x;
+24:             Y = y;
+25:             OverrideMapId = overrideMapId;
+26:         }
+27:
+28:         public bool Equals(RoomKey other) =>
+29:             X == other.X && Y == other.Y && OverrideMapId == other.OverrideMapId;
+30:
+31:         public override bool Equals(object obj) => obj is RoomKey other && Equals(other);
+32:
+33:         public override int GetHashCode()
+34:         {
+35:             unchecked
+36:             {
+37:                 int hash = X * 397;
+38:                 hash = (hash ^ Y) * 397;
+39:                 hash ^= OverrideMapId;
+40:                 return hash;
+41:             }
+42:         }
+43:     }
+44:
+45:     public class RoomState
+46:     {
+47:         private readonly object _stateSync = new object();
+48:         private DungeonRoomState _state = DungeonRoomState.Created;
+49:         private DungeonEncounterState _encounterState = DungeonEncounterState.NotStarted;
+50:         private int _petExperienceGrantState;
+51:         private int _storyPauseClearApplied;
+52:
+53:         public DungeonInstanceRoom InstanceRoom;
+54:         public long RoomInstanceId => InstanceRoom?.RoomInstanceId ?? 0;
+55:         public DungeonRoomState State { get { lock (_stateSync) return _state; } }
+56:         public DungeonEncounterState EncounterState
+57:         {
+58:             get
+59:             {
+60:                 if (InstanceRoom != null)
+61:                     return InstanceRoom.EncounterState;
+62:                 lock (_stateSync)
+63:                     return _encounterState;
+64:             }
+65:         }
+66:         public GameWorld.Dungeon.MazeSumInfo Maze;
+67:         public ushort FirstSeqId;
+68:         public ushort MonsterCount;
+69:         public HashSet<ushort> KilledSeqIds;
+70:         public uint Seed;
+71:         public DnfLcg Lcg;
+72:         internal DnfLcg ParticipantDropLcg;
+73:         internal IReadOnlyList<PassiveObjectDropEntry> PassiveObjectDropEntries;
+74:         public bool IsHellPartyRoom;
+75:         public bool HellPartyVeryDifficult;
+76:         public int HellPartyPillarObjectCode;
+77:         public int HellPartySpawnX;
+78:         public int HellPartySpawnY;
+79:         public bool PetExperienceGranted =>
+80:             Volatile.Read(ref _petExperienceGrantState) == 2;
+81:         public List<GameWorld.Dungeon.HellPartyWaveInfo> HellPartyWaves;
+82:         public HellPartyPhase HellPartyPhase;
+83:         // 深渊小队剩余成员数。key 为 group index，value 为该 group 尚未收到死亡包的成员数。
+84:         public Dictionary<int, int> HellPartyGroupRemaining;
+85:         public bool TimeSpiralHiddenBossActive;
+86:         public ushort TimeSpiralHiddenBossSeqId;
+87:         public int TimeSpiralHiddenBossCode;
+88:         public string TimeSpiralHiddenBossSource;
+89:         public bool EventMonsterConditionAdvanced;
+90:
+91:         public bool IsCleared => KilledSeqIds.Count >= MonsterCount && MonsterCount > 0;
+92:
+93:         internal bool TryBeginPetExperienceGrant()
+94:         {
+95:             return Interlocked.CompareExchange(
+96:                 ref _petExperienceGrantState,
+97:                 1,
+98:                 0) == 0;
+99:         }
+100:
+101:         internal void CompletePetExperienceGrant()
+102:         {
+103:             Interlocked.CompareExchange(
+104:                 ref _petExperienceGrantState,
+105:                 2,
+106:                 1);
+107:         }
+108:
+109:         internal void CancelPetExperienceGrant()
+110:         {
+111:             Interlocked.CompareExchange(
+112:                 ref _petExperienceGrantState,
+113:                 0,
+114:                 1);
+115:         }
+116:
+117:         internal bool TryBeginStoryPauseClear()
+118:         {
+119:             if (State != DungeonRoomState.Active)
+120:                 return false;
+121:
+122:             return Interlocked.CompareExchange(
+123:                 ref _storyPauseClearApplied,
+124:                 1,
+125:                 0) == 0;
+126:         }
+127:
+128:         internal void CancelStoryPauseClear()
+129:         {
+130:             Interlocked.CompareExchange(
+131:                 ref _storyPauseClearApplied,
+132:                 0,
+133:                 1);
+134:         }
+135:
+136:         public bool TryActivate()
+137:         {
+138:             lock (_stateSync)
+139:             {
+140:                 if (_state == DungeonRoomState.Active)
+141:                     return false;
+142:                 if (_state != DungeonRoomState.Created)
+143:                     return false;
+144:                 _state = DungeonRoomState.Active;
+145:                 InstanceRoom?.TryActivate();
+146:                 return true;
+147:             }
+148:         }
+149:
+150:         public bool TryClear()
+151:         {
+152:             lock (_stateSync)
+153:             {
+154:                 if (_state == DungeonRoomState.Cleared)
+155:                     return false;
+156:                 if (_state != DungeonRoomState.Active)
+157:                     return false;
+158:                 _state = DungeonRoomState.Cleared;
+159:                 InstanceRoom?.TryClear();
+160:                 return true;
+161:             }
+162:         }
+163:
+164:         public bool TryClose()
+165:         {
+166:             lock (_stateSync)
+167:             {
+168:                 if (_state == DungeonRoomState.Closed)
+169:                     return false;
+170:                 _state = DungeonRoomState.Closed;
+171:                 return true;
+172:             }
+173:         }
+174:
+175:         public bool TryStartEncounter()
+176:         {
+177:             if (InstanceRoom != null)
+178:                 return InstanceRoom.TryStartEncounter();
+179:             lock (_stateSync)
+180:             {
+181:                 if (_encounterState == DungeonEncounterState.Active)
+182:                     return false;
+183:                 if (_encounterState != DungeonEncounterState.NotStarted)
+184:                     return false;
+185:                 _encounterState = DungeonEncounterState.Active;
+186:                 InstanceRoom?.TryStartEncounter();
+187:                 return true;
+188:             }
+189:         }
+190:
+191:         public bool TryCompleteEncounter(bool succeeded)
+192:         {
+193:             if (InstanceRoom != null)
+194:                 return InstanceRoom.TryCompleteEncounter(succeeded);
+195:             lock (_stateSync)
+196:             {
+197:                 if (_encounterState != DungeonEncounterState.Active)
+198:                     return false;
+199:                 _encounterState = succeeded
+200:                     ? DungeonEncounterState.Succeeded
+201:                     : DungeonEncounterState.Failed;
+202:                 InstanceRoom?.TryCompleteEncounter(succeeded);
+203:                 return true;
+204:             }
+205:         }
+206:     }
+207: }

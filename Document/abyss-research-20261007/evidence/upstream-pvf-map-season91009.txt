@@ -1,0 +1,64 @@
+id 91009 -> 190_Watchtower/Hell_season_91009_Watchtower_(3.1)normal.map
+=== map/190_Watchtower/Hell_season_91009_Watchtower_(3.1)normal.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+190
+[/dungeon]
+[type]
+[normal]
+[greed]
+KK KK
+[tile]
+Tile/In-tile/tile2.til Tile/In-tile/tile2.til Tile/In-tile/tile2.til Tile/In-tile/tile2.til Tile/In-tile/tile2.til Tile/In-tile/tile1.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/In-tile/tile_ex7.til 1 Tile/In-tile/tile_ex8.til 2 Tile/In-tile/tile_ex9.til
+[/tile files]
+[tile map]
+0 1 1 1 1 2
+[/tile map]
+[/extended tile]
+[far sight scroll]
+42
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/In_ani/far_top.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+-38 255 1294 247 184 -247 643 485
+[sound]
+M_WATCH_TOWER AMB_DIMENSION_01
+[/sound]
+[animation]
+Animation/In_ani/wall1_3.ani [closeback] 1355 187 0 Animation/In_ani/wall1_7.ani [closeback] 1074 101 0 Animation/In_ani/floor_board2_1.ani [bottom] 750 263 0 Animation/In_ani/floor_board2_1.ani [bottom] 1024 464 0 Animation/In_ani/floor_board2_3.ani [bottom] 839 336 0 Animation/In_ani/floor_board2_3.ani [bottom] 391 204 0 Animation/In_ani/floor_board2_3.ani [bottom] 198 255 0 Animation/In_ani/floor_board2_2.ani [bottom] 680 330 0 Animation/In_ani/ceiling_wire1.ani [closeback] 1031 -145 0 Animation/In_ani/ceiling_wire3.ani [close] 548 -146 0 Animation/In_ani/ceiling_wire3.ani [closeback] 795 -137 0 Animation/In_ani/cam01.ani [closeback] 1018 1 0 Animation/In_ani/floor_board1_2.ani [bottom] 792 307 0 Animation/In_ani/floor_board1_2.ani [bottom] 591 444 0 Animation/In_ani/floor_board1_2.ani [bottom] 395 406 0 Animation/In_ani/floor_board1_2.ani [bottom] 360 260 0 Animation/In_ani/cam01_Effect.ani [closeback] 972 -30 0 Animation/In_ani/wall1_4.ani [closeback] 449 108 0 Animation/In_ani/wall1_6.ani [normal] -12 108 0 Animation/Normal_Cloud.ani [middleback] 574 -166 0 Animation/Sun_Cloud.ani [middleback] 282 -137 0 Animation/Top_Cloud.ani [distantback] -390 -246 0 Animation/In_ani/wall1_6.ani [normal] 244 108 0
+[/animation]
+[passive object]
+53551 138 348 0 53552 24 254 0 53540 920 479 0 53549 20 324 0 53548 285 291 0 53546 90 344 0 53547 -29 269 0 53541 -10 213 0 53542 313 501 0 53542 1143 505 0 53552 1120 127 0 52894 36 105 0 53544 23 380 0 53545 124 425 0 52894 319 335 0 52894 41 383 0 52894 127 397 0 52894 278 369 0 52894 26 179 0 52894 56 284 0 53550 342 313 0 53542 977 117 0 53541 231 400 0 53542 313 333 0 53542 929 155 0 53540 770 106 0 18491 184 172 500 52894 110 460 0 52894 153 297 0 52894 27 146 0 52894 525 81 0 52894 1063 73 0 52894 227 322 0
+[/passive object]
+[monster]
+69713 1 0 599 255 0 1 1 [fixed] [normal] 69713 1 0 599 211 0 1 1 [fixed] [normal] 69718 1 0 981 242 0 1 1 [fixed] [normal] 69718 1 0 825 310 0 1 1 [fixed] [normal] 69712 1 0 716 317 0 1 1 [fixed] [normal] 69712 1 0 717 239 0 1 1 [fixed] [normal] 69718 1 0 828 244 0 1 1 [fixed] [normal] 69718 1 0 975 310 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[special passive object]
+68001 828 155 0 1 [item] 0 1 -1 -1 -1 30528 1104 288 0 1 [hellparty] 125 25 1 126 25 1 127 25 1 128 25 1 176 30 1 177 30 1 167 30 1 168 30 1 170 30 1 171 30 1 173 30 1 174 30 1 166 40 2 169 40 2 172 40 2 175 40 2 [/hellparty]
+[/special passive object]
+[event monster position]
+724 210 0 905 211 0 703 343 0 933 338 0
+[/event monster position]
+[map name]

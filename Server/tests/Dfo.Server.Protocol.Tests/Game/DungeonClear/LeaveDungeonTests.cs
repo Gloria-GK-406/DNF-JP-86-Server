@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -557,7 +558,7 @@ public sealed class LeaveDungeonTests
         private static readonly DungeonLayout Layout = new(
             144, 0, 1, 1,
             new MazeCell(0, 0), new MazeCell(0, 0), 8153, 7,
-            new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 8153 },
+            new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8153)},
             5);
 
         public bool Ended { get; private set; }
@@ -781,13 +782,12 @@ public sealed class LeaveDungeonTests
         }
     }
 
-    private sealed class NoopNotificationBus : INotificationBus
+    private sealed class NoopNotificationBus : Dfo.Server.Testing.ProjectionEventService
     {
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
-            CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification> =>
+            CancellationToken cancellationToken) =>
             ValueTask.FromResult(new NotificationDelivery([]));
     }
 

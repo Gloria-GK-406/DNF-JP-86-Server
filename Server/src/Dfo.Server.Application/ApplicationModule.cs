@@ -32,6 +32,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Notifications;
+using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Parties;
@@ -79,8 +80,19 @@ public sealed class ApplicationModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton(TimeProvider.System);
-        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IDomainEventBus,Dfo.Server.Application.Events.DomainEventBus>();
-        services.TryAddEnumerable(ServiceDescriptor.Scoped<Dfo.Server.Abstractions.Events.IDomainEventHandler<Dfo.Server.Abstractions.Events.JoustLifecycleEvent>,Dfo.Server.Application.Events.JoustLifecycleEventHandler>());
+        services.AddEventDispatching();
+        Dfo.Server.Application.Achievements.AchievementRegistration.AddAchievements(services);
+        services.AddDomainEvent<MailCreated>("mail.created", 1);
+        services.AddDomainSubscriber<MailCreated, MailCreatedNotificationSubscriber>("mail.arrival",
+            Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
+            fact => fact.Recipient.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        services.AddDomainEvent<Dfo.Server.Abstractions.Events.ManagedEventConfigurationChanged>("activity.configuration-changed", 1);
+        services.AddDomainSubscriber<Dfo.Server.Abstractions.Events.ManagedEventConfigurationChanged,
+            Dfo.Server.Application.Events.EventsConfigurationNotificationSubscriber>("activity.refresh",
+            Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
+            fact => fact.EventId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.Events.JoustLifecycleChanged,
+            Dfo.Server.Application.Events.JoustLifecycleNotificationSubscriber>();
         services.TryAddSingleton(new ChannelListenerOptions(
             configuration.GetSection("Networking:GamePorts")
                 .GetChildren()
@@ -143,7 +155,17 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IQuestRewardRuleService, QuestRewardRuleService>();
         services.TryAddSingleton<IQuestCompletionEffectRuleService, QuestCompletionEffectRuleService>();
         services.TryAddSingleton<IQuestCompletionDomainService, QuestCompletionDomainService>();
-        services.TryAddSingleton<IDungeonLayoutRuleService, DungeonLayoutRuleService>();
+        services.TryAddSingleton<IDungeonStructureRuleService, DungeonStructureRuleService>();
+        services.TryAddSingleton<IDungeonEntryDecisionDomainService, DungeonEntryDecisionDomainService>();
+        services.TryAddSingleton<IHellDungeonEntryRuleService, HellDungeonEntryRuleService>();
+        services.TryAddSingleton<IHellRewardRuleService, HellRewardRuleService>();
+        services.TryAddSingleton<IHellRewardDomainService, HellRewardDomainService>();
+        services.TryAddSingleton(new HellRewardOptions
+        {
+            EquipmentRatePercent = int.TryParse(configuration["HellRewards:EquipmentRatePercent"], out var hellRate)
+                ? hellRate : 100,
+        });
+        services.TryAddSingleton<IHellDungeonEntryDomainService, HellDungeonEntryDomainService>();
         services.TryAddSingleton<IDungeonEntryIntentDomainService, DungeonEntryIntentDomainService>();
         services.TryAddSingleton<IDungeonSettlementRuleService, DungeonSettlementRuleService>();
         services.TryAddSingleton<IDungeonClearDomainService, DungeonClearDomainService>();
@@ -215,6 +237,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<AmbientStoreAccess>();
         services.TryAddSingleton<IAccountMaterialRuleService, AccountMaterialRuleService>();
         services.TryAddSingleton<IItemGrantDomainService, ItemGrantDomainService>();
+        services.TryAddSingleton<IEpicBookRuleService, EpicBookRuleService>();
+        services.TryAddSingleton<IEpicBookDomainService, EpicBookDomainService>();
         // The store is looked up rather than demanded, because a host may be assembled without
         // persistence at all and this seam is built eagerly by the cleanup service. Asking for it
         // outright would make such a host fail to start; asking for it optionally lets it start
@@ -222,7 +246,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ISelectedSessionPositionPersistence>(
             provider => new SelectedSessionPositionPersistence(
                 provider.GetService<ICharacterDomainStore>(),
-                provider.GetRequiredService<IDomainTransactionAccessor>()));
+                provider.GetRequiredService<IDomainTransactionAccessor>(),
+                provider.GetService<ICharacterDomainStore>() is null ? null
+                    : provider.GetRequiredService<IEntryPlacementRuleService>()));
         // What a job starts with and what a creation request may ask for; and what entry
         // reconciles a character against on the way in.
         services.TryAddSingleton<ICharacterCreationRuleService, CharacterCreationRuleService>();
@@ -309,6 +335,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICardFlipCostDomainService, CardFlipCostDomainService>();
         // Entering a dungeon and walking between its rooms.
         services.TryAddSingleton<IDungeonSelectionRuleService, DungeonSelectionRuleService>();
+        services.TryAddSingleton<IDungeonEntryMaterialsDomainService, DungeonEntryMaterialsDomainService>();
         services.TryAddSingleton<DungeonVisitDomainService>();
         services.TryAddSingleton<IDungeonVisitDomainService, TransactionalDungeonVisitDomainService>();
         services.TryAddSingleton<IDungeonDifficultyRuleService, DungeonDifficultyRuleService>();
@@ -328,6 +355,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEquipmentWearRuleService, EquipmentWearRuleService>();
         services.TryAddSingleton<IEquipmentWearDomainService, EquipmentWearDomainService>();
         services.TryAddSingleton<IItemMovementDomainService, ItemMovementDomainService>();
+        services.TryAddSingleton<IItemMirrorDomainService, ItemMirrorDomainService>();
+        services.AddDomainEvent<ItemMirrorRemoved>("inventory.mirror-removed", 1);
         services.TryAddSingleton<IInventorySortDomainService, InventorySortDomainService>();
         services.TryAddSingleton<INpcShopRuleService, NpcShopRuleService>();
         services.TryAddSingleton<INpcShopDomainService, NpcShopDomainService>();
@@ -385,6 +414,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IQuestDefinitionDomainService, QuestDefinitionDomainService>();
         services.TryAddSingleton<IQuestClearCouponRuleService, QuestClearCouponRuleService>();
         services.TryAddSingleton<IQuestClearCouponDomainService, QuestClearCouponDomainService>();
+        services.TryAddSingleton<ILevelUpTicketDomainService, LevelUpTicketDomainService>();
+        services.TryAddSingleton<ILevelUpTicketRuleService, LevelUpTicketRuleService>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetCharacterLevelEffectHandler>());
         services.TryAddSingleton<IFatiguePotionDomainService, FatiguePotionDomainService>();
         services.TryAddSingleton<IItemUsageDomainService, ItemUsageDomainService>();
         services.TryAddSingleton<
@@ -440,11 +472,13 @@ public sealed class ApplicationModule : IServerModule
                     provider.GetRequiredService<IExperienceCalculationDomainService>(),
                     provider.GetRequiredService<IExperienceCapsuleDomainService>(),
                     provider.GetRequiredService<IDomainTransactionAccessor>(),
-                    () => provider.GetRequiredService<IApplyEffectsDomainService>()),
+                    () => provider.GetRequiredService<IApplyEffectsDomainService>(),
+                    provider.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>()),
                 () => provider.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>()));
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());
         services.TryAddSingleton<ISelectCharacterPreparationDomainService, SelectCharacterPreparationService>();
+        services.TryAddSingleton<ICharacterCurrentStateQueryDomainService, CharacterCurrentStateQueryDomainService>();
         services.TryAddSingleton<ICharacterInventoryEntryDomainService, CharacterInventoryEntryDomainService>();
         services.TryAddSingleton<IAccountInventoryEntryDomainService, AccountInventoryEntryDomainService>();
         services.TryAddSingleton<IEquippedCreatureQuery, EquippedCreatureQuery>();
@@ -626,7 +660,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton(AuthenticationRuleService.From(configuration));
         services.TryAddSingleton(LoginSessionOptions.From(configuration));
         services.TryAddSingleton<LoginSessionRegistry>();
-        services.TryAddSingleton<ILoginSessionDomainService>(provider => provider.GetRequiredService<LoginSessionRegistry>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INetworkConnectionObserver, LoginSessionConnectionObserver>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService, LoginSessionMaintenanceService>());
         services.TryAddSingleton<Func<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>>(p => () => p.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>());

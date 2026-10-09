@@ -1,0 +1,3 @@
+first token after [special dungeon] over 1047 files:
+   1035  (absent)
+     12  1

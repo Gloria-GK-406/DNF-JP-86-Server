@@ -86,7 +86,7 @@ public sealed class ItemRefusalCodeTests
     {
         foreach (var status in Enum.GetValues<ItemMoveStatus>())
         {
-            if (status is ItemMoveStatus.Moved or ItemMoveStatus.Unchanged)
+            if (status is ItemMoveStatus.Moved or ItemMoveStatus.Unchanged or ItemMoveStatus.MirrorRemoved)
                 continue;
 
             var code = MoveItemSpaceHandler.ErrorCodeFor(status);
@@ -132,7 +132,7 @@ public sealed class ItemRefusalCodeTests
 
         foreach (var status in Enum.GetValues<ItemMoveStatus>())
         {
-            if (status is ItemMoveStatus.Moved or ItemMoveStatus.Unchanged)
+            if (status is ItemMoveStatus.Moved or ItemMoveStatus.Unchanged or ItemMoveStatus.MirrorRemoved)
                 continue;
 
             if (status == ItemMoveStatus.ContainerFull)

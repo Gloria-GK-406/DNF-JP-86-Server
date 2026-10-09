@@ -1,5 +1,15 @@
 # NOTI `0x001D` `START_MAP`
 
+## 2026-10-07 主动深渊当前投影
+
+**CurrentImplementation / UpstreamImplementation**：offset7写冻结A/B值（1/2），普通保留2；深渊run fog=1。仅首次进入冻结深渊房附加hidden actor模板，order来自已选PVF组，模板flag1/FF；普通演员维持原向量。重访不再次发演员/掉落，也不重抽。首次深渊房的START_MAP之后发送[NOTI02A7](NOTI-0x02A7.md) APC资料。模式/隐藏位的主动深渊效果还待实机；不代表柱交互、怪物波次或奖励已经实现。见[实现边界](../../../Document/tasks/manual-hell-entry/implementation.md)。
+
+## 2026-10-07 深渊模式字节的证据边界
+
+RVA`00D57B30`先读取三u8、u32，再在正文offset7/8分别读取u8并写不同全局`VA03A5C8F9/03A5C8FA`，之后u32与u8。读取布局为**ClientStatic / Confirmed**；offset7的默认2、2是否表示普通模式或深渊强度等枚举含义尚未闭合，不能由当前上游/JP编码值直接断言客户端语义。
+
+本轮没有重新闭合全部演员、物品记录和条件尾，也没有深渊实际帧与UI验收。绑定b1 SHA256`CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14`；[原始前缀证据](../../../Document/abyss-research-20261007/client.md#地图通知真实前缀)。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**
@@ -347,3 +357,9 @@ actor 都没有**，所以「actor 表恒发 0 条」与它逐字节相同；它
 回归测试；此前玩家观察到组队时低级角色收到 2、9 点经验，只是发现错误的症状，
 **还没有修复后的 A21 成对 `START_MAP` / 击杀经验帧与客户端等级显示记录**。
 因此本节是当前服务端投影来源，不提升为 `ClientVerified`。
+
+### 2026-10-07：地图资源与 cell 身份分离（CurrentImplementation）
+
+`START_MAP` 的 mapId 来自本局 cell 已选资源，不再取自布局的固定坐标/mapId 字典。
+同一 MAP 被不同 cell 使用时，actor 序列基数加入 cell 坐标；回访仍使用原 cell 和既有空重访投影。
+字节布局未改；详见 [结构规则](../../../Document/DungeonStructureRules.md)。本次变更的客户端验收待补。

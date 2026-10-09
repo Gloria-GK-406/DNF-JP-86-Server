@@ -53,7 +53,7 @@ public sealed class CardRewardReconnectIntegrationTests
         BossCell: Cell,
         StartRoomMapId: 55611,
         Seed: 20260901,
-        Rooms: new Dictionary<MazeCell, int> { [Cell] = 55611 },
+        Cells: new Dictionary<MazeCell, DungeonCellDefinition> { [Cell] = DungeonCellDefinition.Fixed(55611)},
         BasisLevel: 5,
         ExperienceWeight: 1.45);
 

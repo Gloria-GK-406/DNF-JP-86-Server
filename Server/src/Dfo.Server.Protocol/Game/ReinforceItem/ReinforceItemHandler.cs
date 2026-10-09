@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -15,7 +16,7 @@ public sealed class ReinforceItemHandler(
     ISelectedSessionDomainService sessions,
     IInventorySlotMappingRuleService slotMappings,
     ICommandBus commands,
-    INotificationBus notifications,
+    IEventService notifications,
     IGameMessageSender sender,
     ILogger<ReinforceItemHandler> logger) : ClientMessageHandler<ReinforceItemRequest>
 {
@@ -62,7 +63,7 @@ public sealed class ReinforceItemHandler(
                 "UPGRADE_ITEM method={Method} character={Character} seq={Sequence} slot={Slot} old={Old} new={New} outcome={Outcome}",
                 message.Method, receipt.Session.CharacterId.Value, message.Metadata.Sequence,
                 message.TargetSlot, receipt.OldLevel, receipt.NewLevel, receipt.Outcome);
-            await notifications.PublishAsync(
+            await notifications.ProjectAsync(
                 new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
                 new EquipmentReinforcementCompleted(receipt, response), ct).ConfigureAwait(false);
         }

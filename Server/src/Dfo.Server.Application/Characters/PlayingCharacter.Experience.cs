@@ -76,8 +76,11 @@ internal sealed partial class PlayingCharacter
         var current = await characters.FindProgressAsync(Id, ct).ConfigureAwait(false);
         if (current is null || ExperienceRules.CharacterScale().ProgressFor(current.Experience) != expected) return false;
         var next = ExperienceRules.CharacterScale().ProgressFor(experience);
-        return current.Level == next.Level && current.Experience == next.Experience
-            || await characters.SetProgressAsync(Id, next.Level, next.Experience, ct).ConfigureAwait(false) == 1;
+        if (current.Level == next.Level && current.Experience == next.Experience) return true;
+        if (await characters.SetProgressAsync(Id, next.Level, next.Experience, ct).ConfigureAwait(false) != 1) return false;
+        if (current.Level != next.Level && events is not null)
+            await events.EnqueueAsync(new Dfo.Server.Abstractions.Achievements.CharacterLevelChanged(Id, current.Level, next.Level), ct);
+        return true;
     }
 
     private void RequireProgressionTransaction()

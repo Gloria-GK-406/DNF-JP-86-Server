@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
@@ -764,13 +765,12 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         }
     }
 
-    private sealed class NoopNotifications : INotificationBus
+    private sealed class NoopNotifications : Dfo.Server.Testing.ProjectionEventService
     {
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
-            CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification> =>
+            CancellationToken cancellationToken) =>
             ValueTask.FromResult(new NotificationDelivery([]));
     }
 

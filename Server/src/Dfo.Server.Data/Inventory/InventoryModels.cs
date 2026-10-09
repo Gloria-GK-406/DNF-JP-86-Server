@@ -197,6 +197,10 @@ public sealed record InventoryItemCoreState(
     byte SortLockFlag,
     byte EquipmentLockId)
 {
+    /// <summary>Server-side appearance metadata; item wire/storage core encoders do not append it.</summary>
+    public int? AppearanceItemId { get; init; }
+    public int DisplayItemId => AppearanceItemId ?? ItemId;
+
     /// <summary>Derived display of template features; writes still use authoritative placement.</summary>
     public ItemTraits Traits => ItemTraitClassification.For(ItemKind, ItemId);
 

@@ -1,0 +1,96 @@
+path E:\Project\DNF\DNFClient-A21-protocol2\DNF.unpacked-b1-debug.exe SHA256 CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14 ImageBase 0x400000 SizeOfImage 0x7475000 Machine 0x14c
+
+RVA 00D483C0:00D48415 VA 011483C0
+RVA 00D483C0 VA 011483C0 55                   push     ebp
+RVA 00D483C1 VA 011483C1 8bec                 mov      ebp, esp
+RVA 00D483C3 VA 011483C3 83ec0c               sub      esp, 0xc
+RVA 00D483C6 VA 011483C6 56                   push     esi
+RVA 00D483C7 VA 011483C7 57                   push     edi
+RVA 00D483C8 VA 011483C8 8d45f4               lea      eax, [ebp - 0xc]
+RVA 00D483CB VA 011483CB 33ff                 xor      edi, edi
+RVA 00D483CD VA 011483CD 50                   push     eax
+RVA 00D483CE VA 011483CE 897df4               mov      dword ptr [ebp - 0xc], edi
+RVA 00D483D1 VA 011483D1 e83acf6701           call     0x27c5310
+RVA 00D483D6 VA 011483D6 83c404               add      esp, 4
+RVA 00D483D9 VA 011483D9 33f6                 xor      esi, esi
+RVA 00D483DB VA 011483DB 397df4               cmp      dword ptr [ebp - 0xc], edi
+RVA 00D483DE VA 011483DE 7e6e                 jle      0x114844e
+RVA 00D483E0 VA 011483E0 8d4df8               lea      ecx, [ebp - 8]
+RVA 00D483E3 VA 011483E3 51                   push     ecx
+RVA 00D483E4 VA 011483E4 897df8               mov      dword ptr [ebp - 8], edi
+RVA 00D483E7 VA 011483E7 897dfc               mov      dword ptr [ebp - 4], edi
+RVA 00D483EA VA 011483EA e821cf6701           call     0x27c5310
+RVA 00D483EF VA 011483EF 8d55fc               lea      edx, [ebp - 4]
+RVA 00D483F2 VA 011483F2 52                   push     edx
+RVA 00D483F3 VA 011483F3 e818cf6701           call     0x27c5310
+RVA 00D483F8 VA 011483F8 8b45fc               mov      eax, dword ptr [ebp - 4]
+RVA 00D483FB VA 011483FB 8b4df8               mov      ecx, dword ptr [ebp - 8]
+RVA 00D483FE VA 011483FE 50                   push     eax
+RVA 00D483FF VA 011483FF 51                   push     ecx
+RVA 00D48400 VA 01148400 e89b306000           call     0x174b4a0
+RVA 00D48405 VA 01148405 8b55fc               mov      edx, dword ptr [ebp - 4]
+RVA 00D48408 VA 01148408 8b45f8               mov      eax, dword ptr [ebp - 8]
+RVA 00D4840B VA 0114840B 83c410               add      esp, 0x10
+RVA 00D4840E VA 0114840E 52                   push     edx
+RVA 00D4840F VA 0114840F 50                   push     eax
+RVA 00D48410 VA 01148410 687c4f2403           push     0x3244f7c
+
+RVA 00D48445:00D48454 VA 01148445
+RVA 00D48445 VA 01148445 46                   inc      esi
+RVA 00D48446 VA 01148446 83c41c               add      esp, 0x1c
+RVA 00D48449 VA 01148449 3b75f4               cmp      esi, dword ptr [ebp - 0xc]
+RVA 00D4844C VA 0114844C 7c92                 jl       0x11483e0
+RVA 00D4844E VA 0114844E 5f                   pop      edi
+RVA 00D4844F VA 0114844F 5e                   pop      esi
+RVA 00D48450 VA 01148450 8be5                 mov      esp, ebp
+RVA 00D48452 VA 01148452 5d                   pop      ebp
+RVA 00D48453 VA 01148453 c3                   ret
+
+RVA 00D48580:00D4859A VA 01148580
+RVA 00D48580 VA 01148580 8b0decc9a503         mov      ecx, dword ptr [0x3a5c9ec]
+RVA 00D48586 VA 01148586 85c9                 test     ecx, ecx
+RVA 00D48588 VA 01148588 740f                 je       0x1148599
+RVA 00D4858A VA 0114858A 6a01                 push     1
+RVA 00D4858C VA 0114858C 6a01                 push     1
+RVA 00D4858E VA 0114858E 6a00                 push     0
+RVA 00D48590 VA 01148590 6a00                 push     0
+RVA 00D48592 VA 01148592 6a27                 push     0x27
+RVA 00D48594 VA 01148594 e8e7d5d2ff           call     0xe75b80
+RVA 00D48599 VA 01148599 c3                   ret
+
+RVA 00D4B910:00D4B92A VA 0114B910
+RVA 00D4B910 VA 0114B910 55                   push     ebp
+RVA 00D4B911 VA 0114B911 8bec                 mov      ebp, esp
+RVA 00D4B913 VA 0114B913 83ec08               sub      esp, 8
+RVA 00D4B916 VA 0114B916 8d45f8               lea      eax, [ebp - 8]
+RVA 00D4B919 VA 0114B919 56                   push     esi
+RVA 00D4B91A VA 0114B91A 50                   push     eax
+RVA 00D4B91B VA 0114B91B c745f800000000       mov      dword ptr [ebp - 8], 0
+RVA 00D4B922 VA 0114B922 e8e9996701           call     0x27c5310
+RVA 00D4B927 VA 0114B927 8b4df8               mov      ecx, dword ptr [ebp - 8]
+
+RVA 00D4B9B2:00D4B9CF VA 0114B9B2
+RVA 00D4B9B2 VA 0114B9B2 8b0d90c9a503         mov      ecx, dword ptr [0x3a5c990]
+RVA 00D4B9B8 VA 0114B9B8 6a00                 push     0
+RVA 00D4B9BA VA 0114B9BA e8c1b98900           call     0x19e7380
+RVA 00D4B9BF VA 0114B9BF 83f801               cmp      eax, 1
+RVA 00D4B9C2 VA 0114B9C2 0f8f8d000000         jg       0x114ba55
+RVA 00D4B9C8 VA 0114B9C8 c745fc00000000       mov      dword ptr [ebp - 4], 0
+
+RVA 0134B4A0:0134B4C4 VA 0174B4A0
+RVA 0134B4A0 VA 0174B4A0 55                   push     ebp
+RVA 0134B4A1 VA 0174B4A1 8bec                 mov      ebp, esp
+RVA 0134B4A3 VA 0174B4A3 837d0800             cmp      dword ptr [ebp + 8], 0
+RVA 0134B4A7 VA 0174B4A7 7e19                 jle      0x174b4c2
+RVA 0134B4A9 VA 0174B4A9 56                   push     esi
+RVA 0134B4AA VA 0174B4AA 8b750c               mov      esi, dword ptr [ebp + 0xc]
+RVA 0134B4AD VA 0174B4AD 85f6                 test     esi, esi
+RVA 0134B4AF VA 0174B4AF 7e10                 jle      0x174b4c1
+RVA 0134B4B1 VA 0174B4B1 8d4508               lea      eax, [ebp + 8]
+RVA 0134B4B4 VA 0174B4B4 50                   push     eax
+RVA 0134B4B5 VA 0174B4B5 b91cfda803           mov      ecx, 0x3a8fd1c
+RVA 0134B4BA VA 0174B4BA e82147d0fe           call     0x44fbe0
+RVA 0134B4BF VA 0174B4BF 8930                 mov      dword ptr [eax], esi
+RVA 0134B4C1 VA 0174B4C1 5e                   pop      esi
+RVA 0134B4C2 VA 0174B4C2 5d                   pop      ebp
+RVA 0134B4C3 VA 0174B4C3 c3                   ret

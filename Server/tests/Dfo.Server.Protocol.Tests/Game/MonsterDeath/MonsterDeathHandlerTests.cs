@@ -874,7 +874,7 @@ public sealed class MonsterDeathHandlerTests
         new MazeCell(0, 0),
         8153,
         7,
-        new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 8153 });
+        new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8153)});
 
     private static NetworkDispatchContext ContextOf(SelectedSessionIdentity session) =>
         new(new NetworkConnectionContext(
@@ -1048,10 +1048,9 @@ public sealed class MonsterDeathHandlerTests
             BossCell: new MazeCell(1, 0),
             StartRoomMapId: 1,
             Seed: 0,
-            Rooms: new Dictionary<MazeCell, int>
-            {
-                [new MazeCell(0, 0)] = 1,
-                [new MazeCell(1, 0)] = 2,
+            Cells: new Dictionary<MazeCell, DungeonCellDefinition> {
+                [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(1),
+                [new MazeCell(1, 0)] = DungeonCellDefinition.Fixed(2),
             },
             BasisLevel: 5,
             ExperienceWeight: 1.45);
@@ -1191,7 +1190,7 @@ public sealed class MonsterDeathHandlerTests
             BossCell: new MazeCell(0, 0),
             StartRoomMapId: 1,
             Seed: 0,
-            Rooms: new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 1 },
+            Cells: new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(1)},
             BasisLevel: 5,
             ExperienceWeight: 1.45);
 

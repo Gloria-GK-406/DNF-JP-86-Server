@@ -1,3 +1,5 @@
+using Dfo.Server.Application.DomainEvents;
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -26,6 +28,44 @@ public sealed partial class MailboxCoreIntegrationTests
     private static readonly CharacterId Stranger = new(3);
 
     [Fact]
+    public async Task Offline_mail_facts_recover_for_a_reliable_subscriber_without_replaying_old_arrival_hints()
+    {
+        var notices = new RecordingMailNotifications();
+        using var fixture = new MailFixture(services =>
+        {
+            services.AddSingleton<INotificationBus>(notices);
+            services.AddDomainSubscriber<MailCreated, MailAuditSubscriber>("mail.test-audit", DomainEventDeliveryPolicy.Reliable);
+        });
+        fixture.Sql("CREATE TABLE mail_event_test(mail_id INTEGER PRIMARY KEY,recipient INTEGER NOT NULL)");
+        var scope = fixture.Services.GetRequiredService<DomainTransactionScope>();
+        await using (var tx = scope.Begin())
+        {
+            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).WithText("one", "").Build());
+            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).WithText("two", "").Build());
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(2, fixture.Scalar("SELECT COUNT(*) FROM domain_events"));
+        Assert.Empty(notices.Recipients);
+        using var restored = fixture.Reopen();
+        Assert.Equal(4, await restored.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync());
+        Assert.Equal(2, fixture.Scalar("SELECT COUNT(*) FROM mail_event_test WHERE recipient=2"));
+        Assert.Empty(notices.Recipients); // No selected sessions or old-process hint replay.
+        Assert.Equal(0, await restored.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync());
+    }
+
+    private sealed class MailAuditSubscriber(SqliteDatabase database) : IDomainEventSubscriber<MailCreated>
+    {
+        public ValueTask HandleAsync(DomainEventEnvelope<MailCreated> message, CancellationToken cancellationToken) =>
+            database.WriteAsync(async (command, ct) =>
+            {
+                command.CommandText = "INSERT INTO mail_event_test(mail_id,recipient) VALUES(@mail,@recipient)";
+                command.Parameters.AddWithValue("@mail", message.Payload.MailId);
+                command.Parameters.AddWithValue("@recipient", message.Payload.Recipient.Value);
+                await command.ExecuteNonQueryAsync(ct);
+            }, cancellationToken);
+    }
+
+    [Fact]
     public async Task Delivery_notifies_only_committed_recipients_once_per_transaction()
     {
         var notices = new RecordingMailNotifications();
@@ -41,6 +81,9 @@ public sealed partial class MailboxCoreIntegrationTests
             Assert.Empty(notices.Recipients);
             await tx.CommitAsync(default);
         }
+        Assert.Empty(notices.Recipients);
+        Assert.Equal(3, fixture.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='mail.created'"));
+        await fixture.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync();
         Assert.Equal(new[] { Recipient, Stranger }, notices.Recipients);
         Assert.Equal(new[] { (true, 2, 1), (true, 2, 1) }, observed);
     }
@@ -63,7 +106,9 @@ public sealed partial class MailboxCoreIntegrationTests
         var sent = await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
         Assert.True(sent.MailId > 0);
         Assert.Equal(1, fixture.InboxRows(Recipient));
+        await fixture.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync();
         Assert.Single(notices.Recipients);
+        Assert.Equal(0, await fixture.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync());
     }
 
     [Fact]
@@ -80,6 +125,7 @@ public sealed partial class MailboxCoreIntegrationTests
             scope.Current!.Enlist(participant, () => participant);
             await tx.CommitAsync(default);
         }
+        await fixture.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync();
         Assert.True(participant.NotifiedAfterCommit);
         notices.Recipients.Clear();
         await using (var tx = scope.Begin())
@@ -88,6 +134,7 @@ public sealed partial class MailboxCoreIntegrationTests
             scope.Current!.Enlist(new object(), () => new MailDeliveryParticipant { RefusePrepare = true });
             await Assert.ThrowsAsync<InvalidOperationException>(() => tx.CommitAsync(default).AsTask());
         }
+        await fixture.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync();
         Assert.Empty(notices.Recipients);
         Assert.Equal(1, fixture.InboxRows(Recipient));
     }

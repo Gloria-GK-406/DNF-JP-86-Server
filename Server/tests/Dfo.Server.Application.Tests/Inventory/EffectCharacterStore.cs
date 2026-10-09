@@ -12,5 +12,5 @@ internal sealed class EffectCharacterStore(OwnedCharacterId owner) : ICharacterD
     public ValueTask<bool> HoldsAsync(OwnedCharacterId value, CancellationToken ct) => ValueTask.FromResult(value == owner);
     public IDomainStoreSession<OwnedCharacterId, long, StoredCreature> Creatures => throw new NotSupportedException();
     public ValueTask<CharacterPositionState?> ReadPositionAsync(OwnedCharacterId value, CancellationToken ct) => throw new NotSupportedException();
-    public void WritePosition(OwnedCharacterId value, CharacterPositionState position) => throw new NotSupportedException();
+    public void WritePosition(OwnedCharacterId value, CharacterPositionState position, byte? lastInnTownId = null) => throw new NotSupportedException();
 }

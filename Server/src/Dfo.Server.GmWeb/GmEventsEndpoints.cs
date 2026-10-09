@@ -1,8 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dfo.Server.Abstractions.Events;
-using Dfo.Server.Abstractions.Notifications;
-using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Events;
 using Dfo.Server.Data.Administration;
@@ -41,11 +39,9 @@ internal static class GmEventsEndpoints
             var change=await c.Request.ReadFromJsonAsync<JoustSettingsChange>(Json,c.RequestAborted) ?? throw new ArgumentException("活动字段缺失。");
             return Results.Ok(await bus.SendAsync(new ChangeGmJoustSettingsCommand(Secret(c),change),c.RequestAborted));
         })).WithMetadata(permission);
-        group.MapPost(Prefix,(HttpContext c,ICommandBus bus,INotificationBus notices,ISelectedSessionSnapshotQuery online)=>GmInitializationEndpoints.Safe(c,async()=>
+        group.MapPost(Prefix,(HttpContext c,ICommandBus bus)=>GmInitializationEndpoints.Safe(c,async()=>
         {
             var result=await bus.SendAsync(new ChangeGmEventsCommand(Secret(c),await Read(c)),c.RequestAborted);
-            // The configuration has committed; a closed HTTP request cannot undo its online refresh.
-            await notices.PublishAsync(new NotificationAudience.TheseSessions(online.Snapshot()),new EventsChanged(),CancellationToken.None);
             return Results.Ok(result);
         })).WithMetadata(permission);
     }

@@ -2,10 +2,11 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.Characters;
 
-internal sealed class CharacterDungeonDifficultyDomainService(ICharacterDungeonPermissionTable table)
+internal sealed class CharacterDungeonDifficultyDomainService(ICharacterDungeonPermissionTable table, IDungeonDifficultyRuleService rules)
     : ICharacterDungeonDifficultyDomainService
 {
     public async ValueTask<DungeonDifficulty> GetMaximumAsync(
@@ -38,5 +39,14 @@ internal sealed class CharacterDungeonDifficultyDomainService(ICharacterDungeonP
         if (difficulty > current)
             await table.RaiseMaximumAsync(characterId, dungeonId, (byte)difficulty, cancellationToken).ConfigureAwait(false);
         return await GetMaximumAsync(characterId, dungeonId, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async ValueTask<CharacterDungeonDifficulty?> UnlockAfterClearAsync(
+        CharacterId characterId, int dungeonId, DungeonDifficulty cleared, CancellationToken cancellationToken)
+    {
+        var next = await rules.NextAfterClearAsync(dungeonId, cleared, cancellationToken).ConfigureAwait(false);
+        if (next is null || next <= await GetMaximumAsync(characterId, dungeonId, cancellationToken).ConfigureAwait(false))
+            return null;
+        return new(dungeonId, await UnlockAsync(characterId, dungeonId, next.Value, cancellationToken).ConfigureAwait(false));
     }
 }

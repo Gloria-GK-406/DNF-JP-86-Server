@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Protocol.Game;
@@ -754,7 +755,7 @@ public sealed class SetPlayResultHandler(
     IGameMessageSender sender,
     ILogger<SetPlayResultHandler> logger,
     DungeonCardPresentationCoordinator? cardPresentation = null, SelectedSessionSafety? safety = null,
-    Dfo.Server.Abstractions.Notifications.INotificationBus? eventNotices = null)
+    Dfo.Server.Abstractions.DomainEvents.IEventService? eventNotices = null)
     : ClientMessageHandler<SetPlayResultRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -973,7 +974,7 @@ public sealed class SetPlayResultHandler(
             }
             settlementCommitted = true;
             if (paid.AttendanceChanged && eventNotices is not null)
-                await eventNotices.PublishAsync(new Dfo.Server.Abstractions.Notifications.NotificationAudience.TheseSessions([session]),
+                await eventNotices.ProjectAsync(new Dfo.Server.Abstractions.Notifications.NotificationAudience.TheseSessions([session]),
                     new Dfo.Server.Abstractions.Events.EventsChanged(),cancellationToken);
             var level = currentProgress.Level;
             var total = currentProgress.Experience;
@@ -1030,6 +1031,10 @@ public sealed class SetPlayResultHandler(
                     AccountHonorLevel.Initial,
                     ExperienceBonusLines.Of(award)),
             ];
+
+            if (paid.DifficultyUnlocked is { } unlocked)
+                frames.Add(new DungeonPermissionStateMessage(
+                    [new CharacterDungeonProgressState(unlocked.DungeonId, (byte)unlocked.Maximum)]));
 
             if (award?.LeveledUp == true)
             {

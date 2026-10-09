@@ -101,7 +101,7 @@ public sealed class DungeonClearDomainServiceTests
         BossCell: new MazeCell(0, 0),
         StartRoomMapId: 8153,
         Seed: 7,
-        Rooms: new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 8153 });
+        Cells: new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8153)});
 
     private static DungeonLayout OrdinaryLayout() => new(
         DungeonId: 144,
@@ -112,10 +112,9 @@ public sealed class DungeonClearDomainServiceTests
         BossCell: new MazeCell(1, 0),
         StartRoomMapId: 8153,
         Seed: 7,
-        Rooms: new Dictionary<MazeCell, int>
-        {
-            [new MazeCell(0, 0)] = 8153,
-            [new MazeCell(1, 0)] = 8154,
+        Cells: new Dictionary<MazeCell, DungeonCellDefinition> {
+            [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8153),
+            [new MazeCell(1, 0)] = DungeonCellDefinition.Fixed(8154),
         });
 
     private sealed class MutableRoomCleared : IMonsterKillDomainService

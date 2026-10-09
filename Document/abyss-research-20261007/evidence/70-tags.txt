@@ -1,0 +1,69 @@
+0x8ae8488 ENUM_NOTIPACKET_HELLPARTY_VALUE
+0x8aed8c4 ENUM_CMDPACKET_HELLPARTY_START
+0x8b6f548 server_item_rarity != client_item_rarity
+0x8bcd400 virtual int Dispatcher_HellPartyStart::dispatch_sig(CUser*, PacketBuf&)
+0x8bd25e0 bool Dispatcher_MonstercardBind::_bind_process(Dispatcher_MonstercardBind::ENUM_MONSTER_CARD_BIND_TYPE, ENUM_RARITY, IntPairVector&)
+0x8bdfcf0 25Dispatcher_HellPartyStart
+0x8bf76c0 N10QuickParty19HellPartyDifficultyE
+0x8c1ee40 ChangeItemRarity itemRarity[%d,%d,%d,%d], outItemRarity[%d,%d,%d,%d], itemRaritySize(%d), controlRarity(%lf)
+0x8c1eeb0 ChangeItemRarity outItemRarity[%d,%d,%d,%d]
+0x8c1fb00 bool CAutoMarketConditionsControl::ChangeItemRarity(int*, int*, int, double)
+0x8c21b48 HELLPARTY_LOG : HELLPARTY DIFFICULTY ERROR!!
+0x8c220b4 HELLPARTY_LOG : HELLPARTY GROUP INDEX (%d) , MAP INDEX (%d) : ADD HELL PARTY GROUP ERROR!!
+0x8c2268c HELLPARTY_LOG : DUNGEON INDEX (%d) : HELLPARTY STATISTIC ERROR!!
+0x8c226d0 HELLPARTY_LOG : HELLPARTY GROUP INDEX (%d), MAP INDEX (%d) : KILL HELL GROUP ERROR!!
+0x8c233a0 void CBattle_Field::KillHellPartyGroupMonsterCnt(MapInfo&, map_monster&, bool&)
+0x8c2ac00 [insert rarity]
+0x8c2ac10 [rarity dicision]
+0x8c30b19 Etc/HellParty.etc
+0x8c30b2d - importHellPartyScript Fail(%d)
+0x8c57b1c inSert into log_mercenary(m_id,charac_no,start_time,finish_time,type,period,area,gold,item_id,rarity) values(%s,%u,from_unixtime(%d),from_unixtime(%d),%d,%d,%d,%d,%d,%d)
+0x8c7fdff  rarity
+0x8c800c6 rarity
+0x8c80410 Rarity
+0x8c995aa [basis of rarity dicision]
+0x8c9a580 int WongWork::CSecialIMonsterDropItemGenRateTable::chooseItem(WongWork::eItemDropType_t, ENUM_RARITY, int, ENUM_DUNGEON_DIFFICULTY, ENUM_ITEM_DROP_DUNGEON_TYPE)
+0x8c9a640 int WongWork::CItemGenRateTable::chooseItem(WongWork::eItemDropType_t, ENUM_RARITY, int)
+0x8cbb1c0 bool CParty::CheckHellDungeonFreepassItemHaveAndDel(CUser*, bool)
+0x8cd0f00 bool random_option::CRandomOptionItemHandle::change_option(itemIndex_t, ENUM_RARITY, int, int, int, int, RandomOption*)
+0x8cd0f80 bool random_option::CRandomOptionItemHandle::give_option(itemIndex_t, ENUM_RARITY, int, int, int, RandomOption*)
+0x8cd1000 bool random_option::CRandomOptionItemHandle::RegenVer_give_option(itemIndex_t, ENUM_RARITY, int, int, int, RandomOption*, RegenerationROI*, int)
+0x8cd10a0 itemIndex_t random_option::CRandomOptionItemHandle::RegenVer_choose_item(ENUM_RARITY, int, const std::vector<int, std::allocator<int> >&)
+0x8cd1140 itemIndex_t random_option::CRandomOptionItemHandle::choose_item(ENUM_RARITY&, int)
+0x8cd2419 rarity :
+0x8ce2f78 inSert into dnf_item_info(it_no, it_name, it_eng_name, it_explain, master_type, sub_type, job, class, revert, level, skill, create_ratio, rarity, weight, price, cash, medal, durability, cooltime, hp_max, mp_max, phy_att, phy_def, mag_att, mag_def, equip_phy_att, equip_phy_def, equip_mag_att, equip_mag_def, ref_fire, ref_water, ref_dark, ref_light, ref_all, ref_slow, ref_freeze, ref_poison, ref_stun, ref_cus, ref_blind, ref_lite, ref_ston, ref_sleep, ref_deekement, ref_deadlystrike, ref_bleeding, ref_confuse, ref_hold, ref_all_stat, ref_pierce, ref_stuck, inven_max, hp_regenrate, mp_regenrate, mov_speed, att_speed, quest, hit_recovery, jump, att_element, att_active_status, att_active_status_ratio, att_active_status_pow, att_backforce, att_upforce, att_hp_drain, att_mp_drain, criticalhit_rate, stuck_rate, att_defenseIgnore, skill_levelup, set_type, jewel_type, detail_explain, flavor_text, anti_evil, value, required_skill, need_material, physical_absolute_damage, physical_damage_reduce, physical_absolute_defense, magical_absolute_damage, magical_damage_reduce, magical_absolute_defense, fire_attack, water_attack, dark_attack, light_attack, all_attack, weapon_break_resistance, armor_break_resistance, all_activestatus_resistance, rigidity, item_aura, magical_critical_hit, set_name, set_item, fullset_basic_explain, fullset_detail_explain, parameter_basic_explain, parameter_detail_explain, part_set_index, hide_equipment, skill_data_up, it_set_no, db_piece_count, set_item_master, ani_variation, ani_variation_expand, ani_variation2, ani_variation_expand2, hide_growtype_avatar, room_list_move_speed_rate, url, icon_mark_number, extra_icon_idx_list, hp_max_rate, mp_max_rate) values(%s)
+0x8ce36f0 inSert into dnf_item_info(it_no, it_name, it_eng_name, it_explain, master_type, sub_type, job, class, revert, level, skill, create_ratio, rarity, weight, price, cash, medal, durability, cooltime, hp_max, mp_max, phy_att, phy_def, mag_att, mag_def, equip_phy_att, equip_phy_def, equip_mag_att, equip_mag_def, ref_fire, ref_water, ref_dark, ref_light, ref_all, ref_slow, ref_freeze, ref_poison, ref_stun, ref_cus, ref_blind, ref_lite, ref_ston, ref_sleep, ref_deekement, ref_deadlystrike, ref_bleeding, ref_confuse, ref_hold, ref_all_stat, ref_pierce, ref_stuck, inven_max, hp_regenrate, mp_regenrate, mov_speed, att_speed, quest, hit_recovery, jump, att_element, att_active_status, att_active_status_ratio, att_active_status_pow, att_backforce, att_upforce, att_hp_drain, att_mp_drain, criticalhit_rate, stuck_rate, att_defenseIgnore, room_list_move_speed_rate, hp_max_rate, mp_max_rate, fire_attack, water_attack, dark_attack, light_attack, all_attack, rigidity, magical_critical_hit, physical_absolute_damage, physical_damage_reduce, physical_absolute_defense, magical_absolute_damage, magical_damage_reduce, magical_absolute_defense, armor_break_resistance, skill_levelup, set_type, url, icon_mark_number) values(%s)
+0x8ce3e24 inSert into item_part_set(part_set_index, part_name, part_type, part_grade, part_rarity) values(%d, '%s',%d,%d,%d)
+0x8e098cb [rarity]
+0x8e0f6cb [rarity weight]
+0x8e0f6dc importResealTable - invalid rarity table
+0x8e0f705 [extended rarity weight]
+0x8e0f720 importResealTable - invalid extended rarity table
+0x8e0f79d [cost weights by rarity]
+0x8e0f7b8 importUpgradeTable - invalid cost rarity table
+0x8e0f7e7 [stat weights by rarity]
+0x8e0f800 importUpgradeTable - invalid stat rarity table
+0x8e0f949 [destroy level by rarity]
+0x8e0f963 [max upgrade level by rarity]
+0x8e0f9c4 [upgrade failed bonus weight by rarity]
+0x8e0fa11 [correction grade by rarity]
+0x8e10a39 [hellparty basic values]
+0x8e10b24 [/hellparty basic values]
+0x8e10b3e [hellparty monster group]
+0x8e10b70 [/hellparty monster group]
+0x8e10b98 [hellparty script end]
+0x8e10ca8 [amplification rate by rarity]
+0x8e1146c [item weights by rarity]
+0x8e11488 importGenuineUpgradeTable() - [item weights by rarity] false
+0x8e114c8 importGenuineUpgradeTable() - [stat weights by rarity] false
+0x8e16243 [rarity]
+0x8e1c0f4 [hellparty]
+0x8e1c100 HELLPARTY_LOG : GROUP ORDER SCRIPT ERROR : %d
+0x8e1c2cc HELLPARTY_LOG : GROUP INDEX NOT FOUND : %d
+0x8e28770 [basis of equipment rarity dicision]
+0x8e28798 [basis of stackable rarity dicision]
+0x8e2884b [notice legacy with rarity]
+0x8e28868 importUpgradeTable - invalid notice legacy with rarity tag
+0x8e28ff1 [premium rarity dicision]
+0x8e2920a [drop upgrade rarity]
+0x8e2bde9 [hell freepass item]

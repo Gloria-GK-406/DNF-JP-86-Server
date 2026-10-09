@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -15,7 +16,7 @@ public sealed class EnchantByBeadHandler(
     ISelectedSessionDomainService sessions,
     IInventorySlotMappingRuleService mappings,
     ICommandBus commands,
-    INotificationBus notifications,
+    IEventService notifications,
     IGameMessageSender sender,
     ILogger<EnchantByBeadHandler> logger) : ClientMessageHandler<EnchantByBeadRequest>
 {
@@ -69,7 +70,7 @@ public sealed class EnchantByBeadHandler(
         logger.LogInformation("ENCHANT_BY_BEAD character={Character} bead={Bead} target={Target} card={Card}",
             receipt.Session.CharacterId.Value, receipt.BeadSlot, receipt.TargetSlot,
             receipt.CardItemId);
-        await notifications.PublishAsync(
+        await notifications.ProjectAsync(
             new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
             new EquipmentEnchantCompleted(receipt, response), ct).ConfigureAwait(false);
     }

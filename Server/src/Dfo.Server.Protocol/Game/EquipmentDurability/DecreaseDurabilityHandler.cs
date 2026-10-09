@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Notifications;
@@ -10,7 +11,7 @@ using Dfo.Server.Data.Networking;
 namespace Dfo.Server.Protocol.Game.EquipmentDurability;
 
 public sealed class DecreaseDurabilityHandler(IOnlineUserQueryDomainService onlineUsers,
-    ISelectedSessionDomainService sessions, ICommandBus commands, INotificationBus notifications,
+    ISelectedSessionDomainService sessions, ICommandBus commands, IEventService notifications,
     IGameMessageSender sender, IInventorySlotMappingRuleService slotMappings) : ClientMessageHandler<DecreaseDurabilityRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
@@ -28,7 +29,7 @@ public sealed class DecreaseDurabilityHandler(IOnlineUserQueryDomainService onli
             result = new(EquipmentDurabilityRejection.InvalidSlot);
 
         if (result.Receipt is { } receipt)
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
                 new EquipmentDurabilityChanged(receipt), cancellationToken).ConfigureAwait(false);
         else
             await sender.SendCmdAsync(context.Connection.ConnectionId,

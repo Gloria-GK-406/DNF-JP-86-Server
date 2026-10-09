@@ -18,6 +18,70 @@ public sealed class PvfDungeonDefinitionSourceTests
     private const int SwordmanTutorialDungeonId = 10004;
 
     [SkippableFact]
+    public async Task Formacartel_quest_maze_keeps_both_resources_at_the_same_cell()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var declaration = Assert.Single(PvfListFile.Read(provider.Archive, "dungeon/dungeon.lst"),
+            item => string.Equals(item.RelativePath, "timegate/formacartel_r.dgn", StringComparison.OrdinalIgnoreCase));
+
+        var dungeon = await new PvfDungeonDefinitionSource(provider).GetAsync(declaration.Id, default);
+
+        Assert.NotNull(dungeon);
+        var maze = Assert.Single(dungeon.Mazes, item => item.QuestConnection?.QuestId == 2389);
+        Assert.Equal([32984, 32986], maze.Cells[new MazeCell(1, 2)].MapCandidates);
+        Assert.Contains(dungeon.Mazes, item => item.QuestConnection is null);
+    }
+
+    [SkippableFact]
+    public async Task All_ordinary_ancient_and_requiem_declarations_decode_with_entry_requirements()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonDefinitionSource(provider);
+        foreach (var id in new[] {1500,1501,1502,1504,1506,1507,200,201,202,203,204,205,206})
+        {
+            var definition = await source.GetAsync(id, default);
+            Assert.NotNull(definition);
+            Assert.NotEmpty(definition.RequiredItems);
+        }
+    }
+
+    [SkippableFact]
+    public async Task Ancient_entry_reads_material_costs_and_its_fixed_tier()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var dungeon = (await new PvfDungeonDefinitionSource(provider).GetAsync(1500, default))!;
+        Assert.Equal(new[] {new DungeonRequiredItem(3037, 120, true), new DungeonRequiredItem(3332, 10, true)}, dungeon.RequiredItems);
+        Assert.Equal(new byte[] {2}, dungeon.SupportedDifficulties);
+        Assert.Equal((byte)85, dungeon.MinimumRequiredLevel);
+    }
+
+    [SkippableFact]
+    public async Task Consciousness_keeps_connected_cells_without_explicit_map_bindings()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var dungeon = await new PvfDungeonDefinitionSource(provider).GetAsync(77, default);
+        var maze = dungeon!.Mazes[0];
+        Assert.Equal(16, maze.Cells.Count);
+        Assert.Contains(new MazeCell(2, 1), maze.Cells.Keys);
+        Assert.Contains(new MazeCell(2, 2), maze.Cells.Keys);
+    }
+
+    [SkippableFact]
+    public async Task Difficulty_tiers_follow_real_archive_flags_and_fixed_designations()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonDefinitionSource(provider);
+        Assert.Equal(new byte[] {0,1,2,3,4}, (await source.GetAsync(70, default))!.SupportedDifficulties);
+        Assert.Equal(new byte[] {1}, (await source.GetAsync(7, default))!.SupportedDifficulties);
+        Assert.Empty((await source.GetAsync(TutorialDungeonId, default))!.SupportedDifficulties!);
+    }
+
+    [SkippableFact]
     public async Task The_tutorial_dungeon_reads_as_one_maze_on_a_three_by_two_grid()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
@@ -57,19 +121,18 @@ public sealed class PvfDungeonDefinitionSourceTests
         var maze = (await source.GetAsync(TutorialDungeonId, CancellationToken.None))!.Mazes[0];
 
         Assert.Equal(
-            new Dictionary<MazeCell, int>
-            {
+            new Dictionary<MazeCell, int> {
                 [new MazeCell(0, 1)] = 61000,
                 [new MazeCell(1, 1)] = 61001,
                 [new MazeCell(2, 1)] = 61002,
                 [new MazeCell(2, 0)] = 61005,
             },
-            maze.Rooms);
+            maze.Cells.ToDictionary(pair => pair.Key, pair => pair.Value.MapCandidates[0]));
         Assert.Equal([new MazeCell(0, 1)], maze.StartCandidates);
         Assert.Equal([new MazeCell(2, 0)], maze.BossCandidates);
         Assert.All(
             maze.StartCandidates.Concat(maze.BossCandidates),
-            cell => Assert.True(maze.Rooms.ContainsKey(cell), $"cell {cell} carries no room"));
+            cell => Assert.True(maze.Cells.ContainsKey(cell), $"cell {cell} carries no room"));
     }
 
     /// <remarks>
@@ -99,8 +162,7 @@ public sealed class PvfDungeonDefinitionSourceTests
         Assert.Equal(5, maze.Width);
         Assert.Equal(3, maze.Height);
         Assert.Equal(
-            new Dictionary<MazeCell, int>
-            {
+            new Dictionary<MazeCell, int> {
                 [new MazeCell(0, 1)] = 35031,
                 [new MazeCell(1, 1)] = 35032,
                 [new MazeCell(2, 1)] = 35033,
@@ -110,12 +172,13 @@ public sealed class PvfDungeonDefinitionSourceTests
                 [new MazeCell(3, 0)] = 35037,
                 [new MazeCell(2, 0)] = 35038,
             },
-            maze.Rooms);
+            maze.Cells.ToDictionary(pair => pair.Key, pair => (pair.Value.BossMapCandidates.Count > 0
+                ? pair.Value.BossMapCandidates : pair.Value.MapCandidates)[0]));
         Assert.Equal([new MazeCell(0, 1)], maze.StartCandidates);
         Assert.Equal([new MazeCell(2, 0)], maze.BossCandidates);
         Assert.All(
             maze.StartCandidates.Concat(maze.BossCandidates),
-            cell => Assert.True(maze.Rooms.ContainsKey(cell), $"cell {cell} carries no room"));
+            cell => Assert.True(maze.Cells.ContainsKey(cell), $"cell {cell} carries no room"));
     }
 
     /// <summary>

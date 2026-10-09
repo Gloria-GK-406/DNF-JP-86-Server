@@ -192,7 +192,7 @@ internal sealed class CharacterSide
             new SqliteCharacterDailyChallengeEntryTable(this.database),
             new SqliteCharacterDailyChallengeTailTable(this.database),
             new SqliteCharacterDailyScheduleTable(this.database),
-            new CharacterDungeonDifficultyDomainService(new SqliteCharacterDungeonPermissionTable(this.database)),
+            new CharacterDungeonDifficultyDomainService(new SqliteCharacterDungeonPermissionTable(this.database), new Dfo.Server.Application.World.DungeonDifficultyRuleService()),
             new SqliteCharacterDailyCounterValueTable(this.database),
             new SqliteCharacterCreatureTable(this.database),
             new SqliteCharacterTitleBookTable(this.database),

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
@@ -33,6 +34,20 @@ namespace Dfo.Server.Application.Tests.Game;
 
 public sealed partial class SelectCharacterLifecycleTests
 {
+    [Fact]
+    public async Task Achievement_projection_waits_for_the_complete_entry_workflow()
+    {
+        var gate=new Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate();
+        var fixture=await Fixture.CreateAsync(blockStatic:true,achievementGate:gate);
+        var entering=fixture.Handler.HandleAsync(fixture.Context,fixture.Command,default).AsTask();
+        await fixture.Sender.StaticEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var projection=gate.EnterAsync(fixture.Result.Character.Identity.CharacterId,default).AsTask();
+        try { Assert.False(projection.IsCompleted); }
+        finally { fixture.Sender.ReleaseStatic(); }
+        await entering;
+        using var lease=await projection.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.True(fixture.Ledger.IndexOf("publish")>=0);
+    }
     [Fact]
     public async Task Success_OrdersRequiredDeliveryBeforePublicationAndPostEntryStages()
     {
@@ -701,7 +716,8 @@ public sealed partial class SelectCharacterLifecycleTests
             bool planTown = false,
             bool failFirstTownPublication = false,
             bool refuseExpiredCleanup = false,
-            bool failExpiredCleanup = false)
+            bool failExpiredCleanup = false,
+            Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? achievementGate = null)
         {
             var accountId = new AccountId(501);
             var connectionId = new NetworkConnectionId("Game:lifecycle");
@@ -805,7 +821,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 NullLogger<SelectCharacterHandler>.Instance,
                 // These tests describe the full delivery contract, including everything that
                 // follows the entry batch. Production runs the reference sequence instead.
-                SelectCharacterDeliveryOptions.Everything);
+                SelectCharacterDeliveryOptions.Everything, achievementProjectionGate:achievementGate);
             var command = new SelectCharacterRequest(GameMessageMetadata.Empty, 3);
             return new Fixture(
                 accountId, connectionId, result, ledger, directory, active, closer,
@@ -958,9 +974,6 @@ public sealed partial class SelectCharacterLifecycleTests
         ISelectedSessionPositionPersistence positions)
         : ISelectCharacterPreparationDomainService
     {
-        public ValueTask<SelectCharacterResult> LoadCurrentAsync(
-            SelectedSessionIdentity session, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(result);
         /// <summary>The real service's own act: stamp the spawn, then store it when the channel keeps positions.</summary>
         public async ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
             SelectedSessionIdentity session, SelectCharacterResult prepared,
@@ -1001,9 +1014,6 @@ public sealed partial class SelectCharacterLifecycleTests
 
     private sealed class RefusingPreparation(List<string> ledger) : ISelectCharacterPreparationDomainService
     {
-        public ValueTask<SelectCharacterResult> LoadCurrentAsync(
-            SelectedSessionIdentity session, CancellationToken cancellationToken) =>
-            throw new InvalidOperationException();
         public ValueTask<ActiveCharacterState> PreflightAsync(
             AccountId accountId, ushort slotIndex, Dfo.Server.Data.Channel.ChannelEntryIdentity channel,
             CancellationToken cancellationToken)
@@ -1355,17 +1365,16 @@ public sealed partial class SelectCharacterLifecycleTests
     /// </remarks>
     private sealed class RecordingNotifications(
         List<string> ledger,
-        bool failFirstTownPublication) : INotificationBus
+        bool failFirstTownPublication) : Dfo.Server.Testing.ProjectionEventService
     {
         private int townPublicationAttempts;
 
         public List<(NotificationAudience Audience, object Notification)> Published { get; } = [];
 
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
             CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification>
         {
             ledger.Add("target");
             Published.Add((audience, notification));

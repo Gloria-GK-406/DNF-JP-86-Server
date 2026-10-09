@@ -249,15 +249,25 @@ internal sealed class SqliteCharacterDailyScheduleTable(SqliteDatabase database)
             cancellationToken);
 }
 
-/// <summary>The <c>character_dungeon_permissions</c> table.</summary>
+/// <summary>Account difficulty permissions reached through a character's ownership.</summary>
 internal sealed class SqliteCharacterDungeonPermissionTable(SqliteDatabase database)
     : ICharacterDungeonPermissionTable
 {
     public ValueTask<IReadOnlyList<DungeonPermissionRow>> ReadAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
-            "SELECT sort_order, dungeon_id, clear_state FROM character_dungeon_permissions "
-            + "WHERE character_id=@cid ORDER BY sort_order",
+            """
+            WITH owner AS (SELECT account_id FROM characters WHERE character_id=@cid),
+            permissions AS (
+                SELECT dungeon_id,clear_state FROM account_dungeon_permissions
+                WHERE account_id=(SELECT account_id FROM owner)
+                UNION ALL
+                SELECT p.dungeon_id,p.clear_state FROM character_dungeon_permissions p
+                JOIN characters c ON c.character_id=p.character_id
+                WHERE c.account_id=(SELECT account_id FROM owner)
+            )
+            SELECT 0,dungeon_id,clear_state FROM permissions ORDER BY dungeon_id
+            """,
             parameters => parameters.AddWithValue("@cid", characterId.Value),
             reader => new DungeonPermissionRow(
                 reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2)),
@@ -266,20 +276,18 @@ internal sealed class SqliteCharacterDungeonPermissionTable(SqliteDatabase datab
     public ValueTask RaiseMaximumAsync(CharacterId characterId, int dungeonId, byte maximum, CancellationToken cancellationToken) =>
         database.WriteAsync(async (command, token) =>
         {
-            // The existing primary key is (character, sort_order). Preserve rows and their order.
+            // Legacy character rows remain read-only. New grants have one account/dungeon owner.
             command.CommandText = """
-                INSERT INTO character_dungeon_permissions(character_id,sort_order,dungeon_id,clear_state)
-                SELECT @cid, COALESCE(MAX(sort_order),-1)+1, @did, @maximum
-                FROM character_dungeon_permissions WHERE character_id=@cid
-                HAVING NOT EXISTS(SELECT 1 FROM character_dungeon_permissions WHERE character_id=@cid AND dungeon_id=@did);
-                UPDATE character_dungeon_permissions SET clear_state = MAX(@maximum,
-                    (SELECT MAX(clear_state) FROM character_dungeon_permissions WHERE character_id=@cid AND dungeon_id=@did))
-                WHERE character_id=@cid AND dungeon_id=@did;
+                INSERT INTO account_dungeon_permissions(account_id,dungeon_id,clear_state)
+                SELECT account_id,@did,@maximum FROM characters WHERE character_id=@cid
+                ON CONFLICT(account_id,dungeon_id) DO UPDATE SET
+                    clear_state=MAX(account_dungeon_permissions.clear_state,excluded.clear_state);
                 """;
             command.Parameters.AddWithValue("@cid", characterId.Value);
             command.Parameters.AddWithValue("@did", dungeonId);
             command.Parameters.AddWithValue("@maximum", maximum);
-            await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            if (await command.ExecuteNonQueryAsync(token).ConfigureAwait(false) == 0)
+                throw new InvalidOperationException("Dungeon permission character has no account owner.");
         }, cancellationToken);
 
 }

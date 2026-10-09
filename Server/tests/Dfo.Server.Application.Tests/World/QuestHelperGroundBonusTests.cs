@@ -88,7 +88,7 @@ public sealed class QuestHelperGroundBonusTests
     {
         var cell = new MazeCell(0, 0);
         var layout = new DungeonLayout(84, 0, 1, 1, cell, cell, 123, 456,
-            new Dictionary<MazeCell, int> { [cell] = 123 });
+            new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(123)});
         return new(DungeonRunId.New(), layout, cell, 123, 0, DateTimeOffset.UnixEpoch,
             [new(new(1), new(10), 0, true), new(new(2), new(20), 1, false)]);
     }

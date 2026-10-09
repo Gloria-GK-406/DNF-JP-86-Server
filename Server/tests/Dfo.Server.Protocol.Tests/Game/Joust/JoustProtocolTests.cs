@@ -19,21 +19,21 @@ public sealed class JoustProtocolTests
     }
 
     [Theory]
-    [InlineData(JoustPhase.Betting,JoustLifecycleEventKind.RoundStarted,1,0)]
-    [InlineData(JoustPhase.Locked,JoustLifecycleEventKind.PhaseChanged,1,0)]
-    [InlineData(JoustPhase.QuarterFinal,JoustLifecycleEventKind.PhaseChanged,1,1)]
-    [InlineData(JoustPhase.SemiFinal,JoustLifecycleEventKind.PhaseChanged,0,1)]
-    [InlineData(JoustPhase.Final,JoustLifecycleEventKind.PhaseChanged,0,0)]
-    [InlineData(JoustPhase.Result,JoustLifecycleEventKind.RoundEnded,1,1)]
+    [InlineData(JoustPhase.Betting,JoustLifecycleNotificationKind.RoundStarted,1,0)]
+    [InlineData(JoustPhase.Locked,JoustLifecycleNotificationKind.PhaseChanged,1,0)]
+    [InlineData(JoustPhase.QuarterFinal,JoustLifecycleNotificationKind.PhaseChanged,1,1)]
+    [InlineData(JoustPhase.SemiFinal,JoustLifecycleNotificationKind.PhaseChanged,0,1)]
+    [InlineData(JoustPhase.Final,JoustLifecycleNotificationKind.PhaseChanged,0,0)]
+    [InlineData(JoustPhase.Result,JoustLifecycleNotificationKind.RoundEnded,1,1)]
     public void Announcement_packets_are_reserved_for_lifecycle_transitions(
-        JoustPhase phase,JoustLifecycleEventKind kind,int states,int results)
+        JoustPhase phase,JoustLifecycleNotificationKind kind,int states,int results)
     {
         var state=State(phase);
         var messages=JoustPayloadCodec.Lifecycle(state,kind);
         Assert.Equal(states,messages.OfType<JoustStateMessage>().Count());
         Assert.Equal(results,messages.OfType<JoustResultsMessage>().Count());
         Assert.DoesNotContain(JoustPayloadCodec.Snapshot(state),m=>m is JoustStateMessage or JoustResultsMessage);
-        if(kind==JoustLifecycleEventKind.RoundEnded)
+        if(kind==JoustLifecycleNotificationKind.RoundEnded)
             Assert.Equal(3,Assert.Single(messages.OfType<JoustResultsMessage>()).EncodeBody()[2]);
     }
     private static JoustState State(JoustPhase phase=JoustPhase.QuarterFinal)=>new(true,DateTimeOffset.UnixEpoch,phase,"round",null,null,null,
@@ -102,7 +102,7 @@ public sealed class JoustProtocolTests
     public void Completed_round_refreshes_shared_statistics_without_overwriting_personal_bets()
     {
         var state=State(JoustPhase.Result);
-        var messages=JoustPayloadCodec.Lifecycle(state,JoustLifecycleEventKind.RoundEnded);
+        var messages=JoustPayloadCodec.Lifecycle(state,JoustLifecycleNotificationKind.RoundEnded);
         Assert.Collection(messages,m=>Assert.IsType<JoustStateMessage>(m),m=>Assert.IsType<JoustInfoMessage>(m),m=>Assert.IsType<JoustResultsMessage>(m));
         Assert.DoesNotContain(messages,m=>m is JoustBetsMessage);
     }

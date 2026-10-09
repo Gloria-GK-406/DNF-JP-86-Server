@@ -80,11 +80,10 @@ public sealed class CardRewardDomainServiceTests
         BossCell: new MazeCell(2, 0),
         StartRoomMapId: 61000,
         Seed: 0x0BADF00D,
-        Rooms: new Dictionary<MazeCell, int>
-        {
-            [new MazeCell(0, 1)] = 61000,
-            [new MazeCell(1, 1)] = 61001,
-            [new MazeCell(2, 0)] = 61005,
+        Cells: new Dictionary<MazeCell, DungeonCellDefinition> {
+            [new MazeCell(0, 1)] = DungeonCellDefinition.Fixed(61000),
+            [new MazeCell(1, 1)] = DungeonCellDefinition.Fixed(61001),
+            [new MazeCell(2, 0)] = DungeonCellDefinition.Fixed(61005),
         },
         BasisLevel: BasisLevel);
 
@@ -99,13 +98,12 @@ public sealed class CardRewardDomainServiceTests
     {
         Width = 3,
         Height = 2,
-        Rooms = new Dictionary<MazeCell, int>
-        {
-            [new MazeCell(0, 1)] = 61000,
-            [new MazeCell(1, 1)] = 61001,
-            [new MazeCell(2, 1)] = 61002,
-            [new MazeCell(1, 0)] = 61003,
-            [new MazeCell(2, 0)] = 61005,
+        Cells = new Dictionary<MazeCell, DungeonCellDefinition> {
+            [new MazeCell(0, 1)] = DungeonCellDefinition.Fixed(61000),
+            [new MazeCell(1, 1)] = DungeonCellDefinition.Fixed(61001),
+            [new MazeCell(2, 1)] = DungeonCellDefinition.Fixed(61002),
+            [new MazeCell(1, 0)] = DungeonCellDefinition.Fixed(61003),
+            [new MazeCell(2, 0)] = DungeonCellDefinition.Fixed(61005),
         },
     };
 
@@ -441,12 +439,12 @@ public sealed class CardRewardDomainServiceTests
                 Assert.Equal(BasisLevel, asked.Occasion.DungeonBasisLevel);
                 Assert.Equal(PartySize, asked.Occasion.PartyMemberCount);
                 Assert.Equal((DungeonDifficulty)Difficulty, asked.Occasion.Difficulty);
-                Assert.Equal(layout.Rooms.Count, asked.Occasion.MapMaxCount);
+                Assert.Equal(layout.Cells.Count, asked.Occasion.MapMaxCount);
             });
 
         // The two layouts hold different numbers of rooms, so a map count that came from anywhere
         // but the run cannot satisfy both rows of this theory.
-        Assert.NotEqual(Tutorial.Rooms.Count, Sprawling.Rooms.Count);
+        Assert.NotEqual(Tutorial.Cells.Count, Sprawling.Cells.Count);
 
         // And the two levels are not one number wearing two names.
         Assert.NotEqual(Level, (int)BasisLevel);

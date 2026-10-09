@@ -455,9 +455,10 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                 key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell)
             || Math.Abs(target.X - aggregate.CurrentCell.X)
                 + Math.Abs(target.Y - aggregate.CurrentCell.Y) != 1
-            || !aggregate.Layout.Rooms.TryGetValue(target, out var mapId)
+            || !aggregate.Layout.CanTraverse(aggregate.CurrentCell, target)
             || (preparedCell is not null
-                && (preparedCell.Cell != target || preparedCell.MapId != mapId)))
+                && (preparedCell.Cell != target || preparedCell.MapId <= 0
+                    || (aggregate.Cells.TryGetValue(target, out var retained) && retained.MapId != preparedCell.MapId))))
         {
             return null;
         }
@@ -1723,6 +1724,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         public readonly Dictionary<int, long> ObjectReservations = [];
         public readonly Dictionary<int, Queue<int>> ObjectQueues;
         private readonly Dictionary<ushort, DungeonCellActorState> actors;
+        private readonly Dictionary<int, DungeonCellHellGroupState> hellGroups;
         private readonly Dictionary<ushort, DungeonGroundItem> groundItems;
         private readonly Func<int, int> allocateGroundItemNumbers;
 
@@ -1736,6 +1738,16 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             this.actors = seed.Actors.ToDictionary(
                 actor => actor.Sequence,
                 actor => actor with { PendingLoot = actor.PendingLoot.ToArray() });
+            this.hellGroups = seed.HellGroups.ToDictionary(group => group.GroupIndex,
+                group => group with { ActorSequences = group.ActorSequences.ToArray(), PendingLoot = group.PendingLoot.ToArray() });
+            foreach (var group in this.hellGroups.Values)
+                if (group.ActorSequences.Count == 0 || group.ActorSequences.Distinct().Count() != group.ActorSequences.Count
+                    || group.ActorSequences.Any(sequence => !this.actors.TryGetValue(sequence, out var actor)
+                        || !actor.IsHellTemplate || actor.HellGroupIndex != group.GroupIndex))
+                    throw new InvalidDataException("Hell reward group membership does not match cell actors.");
+            if (this.actors.Values.Any(actor => actor.IsHellTemplate && (actor.HellGroupIndex is not { } id
+                || !this.hellGroups.TryGetValue(id, out var group) || !group.ActorSequences.Contains(actor.Sequence))))
+                throw new InvalidDataException("Hell cell actor has no reward group.");
             this.allocateGroundItemNumbers = allocateGroundItemNumbers;
             var first = allocateGroundItemNumbers(seed.GroundItems.Count);
             this.groundItems = seed.GroundItems
@@ -1784,7 +1796,13 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             if (!this.actors.TryGetValue(sequence, out var actor) || actor.IsDead)
                 return null;
 
-            var added = this.AppendGroundItems(actor.PendingLoot
+            var completedGroup = actor.HellGroupIndex is { } groupId
+                && this.hellGroups.TryGetValue(groupId, out var group) && !group.IsSettled
+                && group.ActorSequences.All(member => member == sequence || this.actors[member].IsDead)
+                    ? group : null;
+            var rewards = actor.PendingLoot.Concat(completedGroup is not null && actor.EligibleForHellGroupReward
+                ? completedGroup.PendingLoot : []);
+            var added = this.AppendGroundItems(rewards
                 .Where(rolled => rolled.Delivery == RolledDropDelivery.Ground)
                 .Where(mayMaterialize)
                 .Select(rolled =>
@@ -1799,6 +1817,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                         rolled.OwnerCharacterId)).ToArray());
 
             this.actors[sequence] = actor with { IsDead = true, PendingLoot = [] };
+            if (completedGroup is not null)
+                this.hellGroups[completedGroup.GroupIndex] = completedGroup with { IsSettled = true, PendingLoot = [] };
             this.Revision++;
             return added;
         }
@@ -1855,6 +1875,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             this.ClearOpen)
         {
             Objects = this.objects.Select(obj => obj with { PendingLoot = obj.PendingLoot.ToArray() }).ToArray(),
+            HellGroups = this.hellGroups.Values.OrderBy(group => group.GroupIndex)
+                .Select(group => group with { ActorSequences = group.ActorSequences.ToArray(), PendingLoot = group.PendingLoot.ToArray() }).ToArray(),
         };
     }
 

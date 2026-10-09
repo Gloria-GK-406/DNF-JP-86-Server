@@ -1,0 +1,9 @@
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Protocol.Tests\Game\StateSynchronization\TitleBookProtocolTests.cs(27,47): error CS0121: 以下方法或属性之间的调用具有二义性:“Xunit.Assert.Equal<T>(T[], T[])”和“Xunit.Assert.Equal<T>(System.ReadOnlySpan<T>, System.ReadOnlySpan<T>)” [E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Protocol.Tests\Dfo.Server.Protocol.Tests.csproj]

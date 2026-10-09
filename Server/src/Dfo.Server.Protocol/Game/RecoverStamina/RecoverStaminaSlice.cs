@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Data.Characters;
@@ -133,7 +134,7 @@ public sealed class StaminaRecoveredHandler(ISelectedSessionDomainService sessio
 
 public sealed class RecoverStaminaHandler(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    SelectedSessionTransitionGate transitions, ICommandBus commands, INotificationBus notifications,
+    SelectedSessionTransitionGate transitions, ICommandBus commands, IEventService notifications,
     IGameMessageSender sender, TimeProvider clock, ILogger<RecoverStaminaHandler> logger)
     : ClientMessageHandler<RecoverStaminaRequest>
 {
@@ -167,7 +168,7 @@ public sealed class RecoverStaminaHandler(
             await sender.SendCmdAsync(connection, new RecoverStaminaResponse(result.ErrorCode), cancellationToken)
                 .ConfigureAwait(false);
         else
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
                 new StaminaRecovered(session, result.Gold, clock.GetUtcNow(), result.Entitlements, result.Usage), cancellationToken).ConfigureAwait(false);
     }
 }

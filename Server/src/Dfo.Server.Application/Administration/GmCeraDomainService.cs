@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Accounts;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Administration;
@@ -10,7 +11,7 @@ using Dfo.Server.Data.Administration;
 
 namespace Dfo.Server.Application.Administration;
 
-internal sealed class GmCeraReminderDomainService(ISelectedSessionDomainService sessions, INotificationBus notifications) : IGmCeraReminderDomainService
+internal sealed class GmCeraReminderDomainService(ISelectedSessionDomainService sessions, IEventService notifications) : IGmCeraReminderDomainService
 {
     public async ValueTask<string> RemindAsync(IReadOnlyList<int> accounts, CancellationToken token)
     {
@@ -19,7 +20,7 @@ internal sealed class GmCeraReminderDomainService(ISelectedSessionDomainService 
         {
             var account = new AccountId(id); var session = sessions.Find(account);
             if (session is null) continue;
-            var delivery = await notifications.PublishAsync(new NotificationAudience.TheseSessions([session]), new AccountWalletChanged(account), token);
+            var delivery = await notifications.ProjectAsync(new NotificationAudience.TheseSessions([session]), new AccountWalletChanged(account), token);
             if (delivery.Attempts.Any(x => x.Outcome is NotificationOutcome.Failed or NotificationOutcome.Gone)) result = "unconfirmed";
         }
         return result;

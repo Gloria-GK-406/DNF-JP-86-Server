@@ -1117,12 +1117,16 @@ public sealed class IllusionTowerDomainServiceTests
         public ValueTask CommitAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
         public ValueTask RollbackAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
-    private sealed class OrdinaryLayouts : IDungeonLayoutRuleService
+    private sealed class OrdinaryLayouts : IDungeonStructureRuleService
     {
+        public ValueTask<DungeonDefinition?> GetDefinitionAsync(int dungeonId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<DungeonDefinition?>(null);
+        public ValueTask<DungeonMapSelection> SelectMapAsync(DungeonLayout layout, MazeCell? from, MazeCell target, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(DungeonMapSelection.Selected(layout.Cells[target].MapCandidates[0]));
         public bool Missing { get; init; }
         public ValueTask<DungeonLayout?> ResolveAsync(int dungeonId, DungeonEntryFacts facts, int seed, CancellationToken cancellationToken) =>
             ValueTask.FromResult<DungeonLayout?>(Missing ? null : new DungeonLayout(10000, 0, 1, 1, new(0, 0), new(0, 0),
-                60000, seed, new Dictionary<MazeCell, int> { [new(0, 0)] = 60000 }));
+                60000, seed, new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(60000)}));
     }
     private sealed class OrdinaryCells : IDungeonCellFactory
     {
@@ -1172,7 +1176,8 @@ public sealed class IllusionTowerDomainServiceTests
             if (!rewards) s.RemoveAll<IIllusionTowerRewardDomainService>();
             else TowerRewardTestContent.Register(s);
             s.AddSingleton<IIllusionTowerRuleService>(rules ?? new Rules());
-            s.AddSingleton<IDungeonLayoutRuleService>(layouts ?? new OrdinaryLayouts());
+            s.AddSingleton<IDungeonStructureRuleService>(layouts ?? new OrdinaryLayouts());
+            s.AddSingleton<IDungeonDifficultyRuleService>(new Dfo.Server.Application.Tests.Support.TestDungeonDifficultyRules());
             s.AddSingleton<IDungeonCellFactory, OrdinaryCells>();
             s.AddSingleton<IDungeonRunDomainService>(p => new DungeonRunDomainService(p.GetRequiredService<IDomainTransactionAccessor>()));
             configure?.Invoke(s);

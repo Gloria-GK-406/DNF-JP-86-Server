@@ -60,11 +60,10 @@ public sealed class DungeonEntryCodecTests
         BossCell: new MazeCell(3, 0),
         StartRoomMapId: 61000,
         Seed: 0x0BADF00D,
-        Rooms: new Dictionary<MazeCell, int>
-        {
-            [new MazeCell(0, 1)] = 61000,
-            [new MazeCell(1, 1)] = 61001,
-            [new MazeCell(3, 0)] = 61006,
+        Cells: new Dictionary<MazeCell, DungeonCellDefinition> {
+            [new MazeCell(0, 1)] = DungeonCellDefinition.Fixed(61000),
+            [new MazeCell(1, 1)] = DungeonCellDefinition.Fixed(61001),
+            [new MazeCell(3, 0)] = DungeonCellDefinition.Fixed(61006),
         });
 
     /// <summary>The run as it stands on entry: in the start room, having seen only it.</summary>
@@ -90,8 +89,8 @@ public sealed class DungeonEntryCodecTests
 
         Assert.Equal(150, request.DungeonId);
         Assert.Equal(Dfo.Server.Data.World.DungeonDifficulty.Normal, request.Difficulty);
-        Assert.Equal(0, request.HellPartyRequested);
-        Assert.Equal(0, request.HellPartyDifficulty);
+        Assert.Equal(0, request.RequestMode);
+        Assert.Equal(0, request.PracticeMode);
     }
 
     [Theory]
@@ -133,10 +132,8 @@ public sealed class DungeonEntryCodecTests
     }
 
     /// <remarks>
-    /// The two bytes that used to carry an absent-abyss sentinel of 0xFF/0xFF are a hell-party
-    /// marker and a hell-party enabled flag on A21, and both are zero when neither applies. The
-    /// older reading was the A12 builder's; A21's writes zeros, and its reference session's frame
-    /// has them zero.
+    /// Ordinary A21 vectors preserve zero/zero at offsets 8/9. Active-hell coordinates follow
+    /// upstream and are covered separately; native A21 reads two independent bytes.
     /// </remarks>
     [Fact]
     public void A_run_with_no_hell_party_leaves_both_of_its_bytes_clear()
@@ -405,6 +402,15 @@ public sealed class DungeonEntryCodecTests
                     $"rooms {left} and {right} share a band: {bases[left]} vs {bases[right]}");
             }
         }
+    }
+
+    [Fact]
+    public void Reusing_one_map_resource_in_distinct_cells_does_not_reuse_actor_identities()
+    {
+        var first = CreationContext(AtStart) with { Cell = new(2, 1), MapId = 15305 };
+        var second = first with { Cell = new(2, 2) };
+        Assert.NotEqual(Rooms.FirstActorSequenceFor(first), Rooms.FirstActorSequenceFor(second));
+        Assert.Equal(Rooms.FirstActorSequenceFor(first), Rooms.FirstActorSequenceFor(first));
     }
 
     /// <summary>The sequence base is the run's, and a re-send of the same room repeats it.</summary>
@@ -820,7 +826,7 @@ public sealed class DungeonEntryCodecTests
         Assert.Equal(1, request.NextY);
         Assert.Equal(707u, request.PathPositionX);
         Assert.Equal(276u, request.PathPositionY);
-        Assert.Equal(61001, Tutorial.Rooms[new MazeCell(request.NextX, request.NextY)]);
+        Assert.Equal(61001, Tutorial.Cells[new MazeCell(request.NextX, request.NextY)].MapCandidates[0]);
     }
 
     [Fact]

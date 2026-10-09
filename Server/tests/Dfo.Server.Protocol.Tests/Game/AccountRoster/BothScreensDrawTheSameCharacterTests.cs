@@ -30,9 +30,9 @@ public sealed class BothScreensDrawTheSameCharacterTests
     private const int PartLength = 23;
 
     /// <summary>
-    /// A worn set that straddles every edge of the run: the first drawn slot, its last, the slot
-    /// one past it that creation's own filter would have taken, the extra slot the run reaches for,
-    /// and the creature's, which belongs to a different part of the frame.
+    /// A worn set that covers the first drawn slot, the weapon, the title,
+    /// an excluded equipment slot and the support weapon slot.
+    /// Titles belong to the drawn run even when equipped from the title book.
     /// </summary>
     private static readonly (int Slot, int ItemId, byte Attribute, byte Amplify, byte Enchant)[] Worn =
     [
@@ -44,7 +44,7 @@ public sealed class BothScreensDrawTheSameCharacterTests
     ];
 
     /// <summary>The slots a character wearing all of that is drawn in.</summary>
-    private static readonly int[] DrawnSlots = [0, 12, 23];
+    private static readonly int[] DrawnSlots = [0, 12, 13, 24];
 
     /// <summary>
     /// The slot-twelve part, written out rather than recomputed from <see cref="Worn"/>.

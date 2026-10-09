@@ -44,6 +44,8 @@ public sealed class PersistenceModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IEventPersistence, Dfo.Server.Persistence.Events.SqliteEventPersistence>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.DomainEvents.IDomainEventPersistence,
+            Dfo.Server.Persistence.DomainEvents.SqliteDomainEventPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustPersistence, Dfo.Server.Persistence.Events.SqliteJoustPersistence>();
         var configuredDatabasePath = configuration["Database:Path"] ?? "Data/dfo-server.db";
         var databasePath = Path.IsPathRooted(configuredDatabasePath)
@@ -53,6 +55,9 @@ public sealed class PersistenceModule : IServerModule
         // puts the file in shape.
         services.TryAddSingleton(provider => new SqliteDatabase(
             databasePath, provider.GetRequiredService<IDomainTransactionAccessor>()));
+        services.TryAddSingleton<IEpicBookDomainStore, SqliteEpicBookDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.IAchievementPersistence, Dfo.Server.Persistence.Achievements.SqliteAchievementPersistence>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.ITitleBookPersistence, Dfo.Server.Persistence.Achievements.SqliteAchievementPersistence>();
         services.TryAddSingleton<ICharacterExperienceStoragePolicy, Dfo.Server.Persistence.Schema.CharacterExperienceStoragePolicy>();
         services.TryAddSingleton<INoticeStateTable, Dfo.Server.Persistence.Notices.NoticeStateTable>();
         services.TryAddSingleton<IAccountTable>(

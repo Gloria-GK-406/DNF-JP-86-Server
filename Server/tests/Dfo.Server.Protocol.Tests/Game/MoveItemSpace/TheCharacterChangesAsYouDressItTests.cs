@@ -67,6 +67,29 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         new NetworkConnectionContext(Connection, NetworkEndpointKind.Game, 10011));
 
     [Dfo.Server.Testing.PvfFact]
+    public async Task Putting_on_and_taking_off_a_title_refreshes_the_overhead_appearance_after_acknowledgement()
+    {
+        const int title = 26628;
+        const short titleBagSlot = 9;
+        const short titleWornSlot = 13;
+        var world = Build(inBagAt: titleBagSlot, itemId: title, itemKind: 1);
+
+        await world.MoveAsync(InventoryContainerType.Main, titleBagSlot, InventoryContainerType.Equipment, titleWornSlot);
+
+        Assert.Collection(world.Sender.Sent,
+            first => Assert.Null(Assert.IsType<MoveItemSpaceResponse>(first).ErrorCode),
+            second => Assert.Equal(title,
+                Assert.Single(Assert.IsType<CurrentUserStateMessage>(second).Equipment).Core.ItemId));
+
+        world.Sender.Sent.Clear();
+        await world.MoveAsync(InventoryContainerType.Equipment, titleWornSlot, InventoryContainerType.Main, titleBagSlot);
+
+        Assert.Collection(world.Sender.Sent,
+            first => Assert.Null(Assert.IsType<MoveItemSpaceResponse>(first).ErrorCode),
+            second => Assert.Empty(Assert.IsType<CurrentUserStateMessage>(second).Equipment));
+    }
+
+    [Dfo.Server.Testing.PvfFact]
     public async Task Expired_wear_qualification_refuses_equipping_but_allows_taking_off()
     {
         var equip = Build(inAvatarAt: AvatarSlot, canWear: false);
@@ -172,12 +195,10 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     /// A move that changed nothing about how the character is drawn needs no appearance projection.
     /// </summary>
     /// <remarks>
-    /// The refresh is gated on the move having succeeded, not on it having changed the drawn
-    /// appearance, and the two are different questions: the immediate frame reads slots zero to
-    /// twelve, twenty-three and creature slot twenty-four; the readers take the whole container --
-    /// so a move onto worn slot thirteen would leave them stale under the narrower rule. A move
-    /// inside the bag is the cheapest case that tells the two rules apart, and without it a
-    /// narrower gate passes every case in this file.
+    /// A successful move needs a refresh only when it affects the drawn appearance:
+    /// the immediate frame reads A21 slots 0..13, support weapon 24 and creature 25;
+    /// the readers take the whole container. A move inside the bag changes inventory without
+    /// changing any of the parts drawn by the immediate frame.
     /// </remarks>
     [Dfo.Server.Testing.PvfFact]
     public async Task A_move_that_changes_nothing_drawn_needs_no_appearance_projection()
@@ -245,7 +266,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     /// <summary>A worn slot the frame does not draw from does not make it worth sending.</summary>
     /// <remarks>
     /// Slot 22 is inside the worn list and outside every run subtype zero reads -- the appearance
-    /// takes 0..12 and 23, and the creature triple takes 24. A move there changes what the
+    /// takes 0..13 and 24, and the creature triple takes 25. A move there changes what the
     /// character owns and not what it looks like.
     /// </remarks>
     [Dfo.Server.Testing.PvfFact]
@@ -386,7 +407,9 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         bool storeRefusesToLoad = false,
         bool sessionRefusesReplacement = false,
         bool shouldPersistPosition = false, bool canWear = true,
-        short? inAvatarAt = null)
+        short? inAvatarAt = null,
+        int itemId = Costume,
+        byte itemKind = 8)
     {
         var character = new CharacterId(Character);
         var containers = new CharacterContainerDomainService();
@@ -395,7 +418,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         var avatars = new SlotBook(InventoryContainerType.Avatar, character, fixture);
         var worn = new SlotBook(InventoryContainerType.Equipment, character, fixture);
         if (inBagAt is { } bagSlot)
-            bag.Seed(bagSlot, Costume);
+            bag.Seed(bagSlot, itemId, itemKind);
         if (inAvatarAt is { } avatarSlot)
             avatars.Seed(avatarSlot, Costume);
         if (wornAt is { } wornSlot)
@@ -597,7 +620,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     private sealed class SlotBook(InventoryContainerType type, CharacterId character, MoveItemFixture fixture)
         : LifecycleTestContainer(type, character, fixture)
     {
-        public void Seed(int slotIndex, int itemId) => SeedItem(slotIndex, itemId, 8);
+        public void Seed(int slotIndex, int itemId, byte itemKind = 8) => SeedItem(slotIndex, itemId, itemKind);
     }
 
     private sealed class DirectMoveBus(
@@ -686,5 +709,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
 
 internal sealed class TheCharacterChangesAsYouDressItTestsWearEligibility(bool allowed) : Dfo.Server.Abstractions.Inventory.IEquipmentWearDomainService
 {
+    public Dfo.Server.Data.Inventory.ItemSnapshot UnsealForEquip(Dfo.Server.Data.Inventory.ItemSnapshot item) => item;
+
     public ValueTask<bool> CanWearAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId, CancellationToken cancellationToken) => ValueTask.FromResult(allowed);
 }

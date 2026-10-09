@@ -6,7 +6,7 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 /// The dungeon's own switch for the paid card, read out of the archive.
 /// </summary>
 /// <remarks>
-/// Four of the five dungeons that declare <c>[gold card use]</c> are ordinary maze dungeons this
+/// All five dungeons that declare <c>[gold card use]</c> are ordinary maze dungeons this
 /// server reads, which is what separates this declaration from the face declaration beside it --
 /// see <see cref="DungeonResultCardDeclarationTests"/>, which pins which dungeons declare which of
 /// the two and which of them this server can reach at all.
@@ -22,12 +22,7 @@ public sealed class DungeonPaidCardSwitchTests
     /// <summary>
     /// The dungeons that declare <c>[gold card use] 0</c> and are readable through this source.
     /// </summary>
-    /// <remarks>
-    /// The archive declares the tag five times. The fifth, 3503, declares a maze with no rooms and
-    /// so has no definition to carry a switch on; that it is absent rather than switched off is
-    /// asserted in <see cref="DungeonResultCardDeclarationTests"/> rather than here.
-    /// </remarks>
-    public static TheoryData<int> SwitchedOff => [100, 3700, 3901, 3902];
+    public static TheoryData<int> SwitchedOff => [100, 3503, 3700, 3901, 3902];
 
     /// <summary>
     /// Dungeons that declare no <c>[gold card use]</c> at all, which is 1042 of the 1047 listed.
@@ -94,7 +89,7 @@ public sealed class DungeonPaidCardSwitchTests
         Assert.False(dungeon!.OffersPaidCard);
         Assert.Equal("dungeon/SouthernDale/Grimseeker.dgn", dungeon.ArchivePath);
         Assert.NotEmpty(dungeon.Mazes);
-        Assert.All(dungeon.Mazes, maze => Assert.NotEmpty(maze.Rooms));
+        Assert.All(dungeon.Mazes, maze => Assert.NotEmpty(maze.Cells));
         Assert.True(dungeon.MinimumRequiredLevel > 0);
         Assert.True(dungeon.BasisLevel > 0);
         Assert.True(dungeon.ExperienceWeight > 0);

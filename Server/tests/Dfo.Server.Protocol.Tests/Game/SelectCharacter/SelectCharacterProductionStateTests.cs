@@ -1,5 +1,6 @@
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -21,19 +22,81 @@ namespace Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 
 public sealed class SelectCharacterProductionStateTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Login_and_current_view_use_authoritative_achievement_projection_instead_of_legacy_task_rows(bool login)
+    {
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
+        seed = seed with { CharacterEntry = seed.CharacterEntry with { Features = seed.CharacterEntry.Features with
+        { Collections = seed.CharacterEntry.Features.Collections with { Achievements = [new(4303, 0, 0, 0, 0)] } } } };
+        var sources = new Sources(seed, []);
+        var achievements = new ProjectionAchievements(login);
+        SelectCharacterResult result;
+        if (login) result = await PrepareAsync(sources, seed, achievements);
+        else
+        {
+            var session = SelectedSessionIdentity.Create(seed.Account.AccountId, seed.Character.Identity.CharacterId,
+                new Dfo.Server.Data.Networking.NetworkConnectionId("achievement-read"), 1, 10011);
+            var positions = new CharacterPositionDomainService();
+            positions.Place(session, seed.Character.Position);
+            result = await Query(sources, seed, positions, achievements).ReadAsync(session, default);
+        }
+        Assert.Equal(6501, Assert.Single(result.CharacterEntry.Features.Collections.Achievements).AchievementId);
+        Assert.Equal(1, achievements.Reads);
+        Assert.Equal(login ? 2 : 0, achievements.Writes);
+        Assert.DoesNotContain(Assert.Single(new SelectedCharacterStateMessageFactoryService().CreateValidated(result)
+            .OfType<Dfo.Server.Protocol.Game.StateSynchronization.AchievementStateMessage>()).Achievements, x => x.AchievementId == 4303);
+    }
+
+    private sealed class ProjectionAchievements(bool allowPreparation) : IAchievementDomainService
+    {
+        public int Reads { get; private set; }
+        public int Writes { get; private set; }
+        private void CheckPreparation() { Assert.True(allowPreparation); Writes++; }
+        public ValueTask PrepareAsync(CharacterId id, int level, CancellationToken ct) { CheckPreparation(); return ValueTask.CompletedTask; }
+        public ValueTask<IReadOnlyList<int>> UnlockSatisfiedAchievementsAsync(CharacterId id, CancellationToken ct)
+        { CheckPreparation(); return ValueTask.FromResult<IReadOnlyList<int>>([]); }
+        public ValueTask<IReadOnlyList<CharacterAchievementProgressState>> GetAsync(CharacterId id, CancellationToken ct)
+        { Reads++; return ValueTask.FromResult<IReadOnlyList<CharacterAchievementProgressState>>([new(6501, 1, 0, 0, 0)]); }
+        public ValueTask<CharacterAchievementProgressState?> ReconcileAsync(CharacterId id, int aid, CancellationToken ct) => throw new NotSupportedException();
+    }
+    [Theory]
+    [InlineData(11, 11)]
+    [InlineData(0, 12)]
+    public async Task Login_uses_the_remembered_inn_and_legacy_saves_use_the_current_town(byte inn, int requestedTown)
+    {
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
+        seed = seed with { Character = seed.Character with
+        {
+            Position = new(12, 0, 562, 183, 5), LastInnTownId = inn,
+        } };
+        var sources = new Sources(seed, []);
+        await PrepareAsync(sources, seed);
+        Assert.Equal(requestedTown, sources.RequestedLoginTown);
+        Assert.Equal(1, sources.PlacementCalls);
+    }
+
+    private sealed class QueryOnlyEpicBook : Dfo.Server.Abstractions.Inventory.IEpicBookDomainService
+    {
+        public Dfo.Server.Data.Inventory.EpicPieceDefinition? FindPiece(int id) => null;
+        public ValueTask<Dfo.Server.Data.Inventory.EpicPieceAddition> AddPiecesAsync(Dfo.Server.Data.Accounts.AccountId account, int pieceId, int count, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<Dfo.Server.Data.Inventory.EpicPieceBalance>> GetBalancesAsync(Dfo.Server.Data.Accounts.AccountId account, CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<Dfo.Server.Data.Inventory.EpicPieceBalance>>([new(10300000, 13)]);
+        public ValueTask<IReadOnlyList<Dfo.Server.Data.Inventory.EpicBookEntry>> GetBookAsync(Dfo.Server.Data.Accounts.AccountId account, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask InitializeAsync(CancellationToken ct) => throw new NotSupportedException();
+    }
+
     [Fact]
     public async Task CurrentView_ReadsChangedDurabilityWithoutRepeatingEntryRecovery()
     {
         var seed = SelectCharacterPayloadTestData.CreateComplete();
         var sources = new Sources(seed, []);
-        var service = new SelectCharacterPreparationService(
-            sources, sources, sources, sources, sources, sources, sources,
-            new CharacterEntryPreparationRuleService(sources, sources, sources),
-            sources, sources, sources, sources, sources, sources, sources,
-            new FixedTimeProvider(seed.World.PreparedAt));
         var session = SelectedSessionIdentity.Create(
             seed.Account.AccountId, seed.Character.Identity.CharacterId,
             new Dfo.Server.Data.Networking.NetworkConnectionId("current-view"), 1, 10011);
+        var positions = new CharacterPositionDomainService();
+        positions.Place(session, seed.Character.Position);
+        var service = Query(sources, seed, positions);
         var equipment = seed.CharacterInventory.Containers.Single(container =>
             container.ContainerType == InventoryContainerType.Equipment);
         var changed = equipment with
@@ -50,13 +113,62 @@ public sealed class SelectCharacterProductionStateTests
                     ? changed : container).ToArray(),
         };
 
-        var current = await service.LoadCurrentAsync(session, CancellationToken.None);
+        var current = await service.ReadAsync(session, CancellationToken.None);
 
         Assert.Equal(37, current.CharacterInventory.Containers.Single(container =>
             container.ContainerType == InventoryContainerType.Equipment).Items.Single().Core.Durability);
         Assert.Equal(0, sources.RecoveryCalls);
         Assert.Equal(0, sources.ReconciliationCalls);
     }
+
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(12, 0)]
+    public async Task CurrentView_UsesLivePositionWithoutLoginPlacementOrInventoryMaintenance(byte town, byte area)
+    {
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
+        var sources = new Sources(seed, []) { RejectPlacement = true };
+        var session = SelectedSessionIdentity.Create(
+            seed.Account.AccountId, seed.Character.Identity.CharacterId,
+            new Dfo.Server.Data.Networking.NetworkConnectionId("time-gate"), 1, 10011);
+        var positions = new CharacterPositionDomainService();
+        var standing = new CharacterPositionState(town, area, 185, 215, 2);
+        positions.Place(session, standing);
+
+        var current = await Query(sources, seed, positions).ReadAsync(session, CancellationToken.None);
+
+        Assert.Equal(standing, current.Character.Position);
+        Assert.Equal(town, current.World.Channel.Spawn.TownId);
+        Assert.Equal(area, current.World.Channel.Spawn.AreaId);
+        Assert.Equal(185, current.World.Channel.Spawn.X);
+        Assert.Equal(215, current.World.Channel.Spawn.Y);
+        Assert.Equal(2, current.World.Channel.Spawn.Direction);
+        Assert.Equal(standing, positions.Find(session.CharacterId));
+        Assert.Equal(0, sources.PlacementCalls);
+        Assert.Equal(0, sources.InventoryMaintenanceCalls);
+        Assert.Equal(0, sources.RecoveryCalls);
+        Assert.Equal(0, sources.ReconciliationCalls);
+        Assert.Equal((town, area), sources.AdjacentPosition);
+    }
+
+    [Fact]
+    public async Task CurrentView_RequiresLivePositionInsteadOfInventingALoginSpawn()
+    {
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
+        var sources = new Sources(seed, []) { RejectPlacement = true };
+        var session = SelectedSessionIdentity.Create(
+            seed.Account.AccountId, seed.Character.Identity.CharacterId,
+            new Dfo.Server.Data.Networking.NetworkConnectionId("missing-position"), 1, 10011);
+        await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await Query(sources, seed, new CharacterPositionDomainService()).ReadAsync(session, CancellationToken.None));
+        Assert.Equal(0, sources.PlacementCalls);
+    }
+
+    private static CharacterCurrentStateQueryDomainService Query(
+        Sources sources, SelectCharacterResult seed, ICharacterPositionDomainService positions, IAchievementDomainService? achievements = null) =>
+        new(sources, sources, sources, sources, sources, sources, sources,
+            new CharacterEntryPreparationRuleService(sources, sources, sources),
+            sources, sources, sources, sources, positions, new FixedTimeProvider(seed.World.PreparedAt), achievements: achievements);
 
     [Theory]
     [InlineData(false, 0)]
@@ -124,7 +236,7 @@ public sealed class SelectCharacterProductionStateTests
             sources, sources, sources, sources, sources, sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources),
             sources, sources, sources, sources, sources, sources, sources,
-            new FixedTimeProvider(seed.World.PreparedAt));
+            new FixedTimeProvider(seed.World.PreparedAt), epicBook: new QueryOnlyEpicBook());
         var channel = new ChannelEntryIdentity(1, 10011, ChannelEntryKind.General);
 
         var selected = await handler.PreflightAsync(seed.Account.AccountId,
@@ -138,6 +250,8 @@ public sealed class SelectCharacterProductionStateTests
             value => Assert.NotNull(value.Protocol));
         // 62 static rows on A21, less the knight-only row this job does not take.
         Assert.Equal(61, messages.Count);
+        Assert.Equal(13, Assert.Single(result.EpicPieces!).Count);
+        Assert.Single(messages.OfType<Dfo.Server.Protocol.Game.StateSynchronization.EpicBookStateMessage>());
         Assert.False(sources.Published);
     }
 
@@ -257,13 +371,13 @@ public sealed class SelectCharacterProductionStateTests
         };
 
     private static async Task<SelectCharacterResult> PrepareAsync(
-        Sources sources, SelectCharacterResult seed)
+        Sources sources, SelectCharacterResult seed, IAchievementDomainService? achievements = null)
     {
         var handler = new SelectCharacterPreparationService(
             sources, sources, sources, sources, sources, sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources),
             sources, sources, sources, sources, sources, sources, sources,
-            new FixedTimeProvider(seed.World.PreparedAt));
+            new FixedTimeProvider(seed.World.PreparedAt), achievements: achievements);
         var channel = new ChannelEntryIdentity(1, 10011, ChannelEntryKind.General);
         var selected = await handler.PreflightAsync(
             seed.Account.AccountId, seed.Character.Identity.SlotIndex, channel, CancellationToken.None);
@@ -281,9 +395,14 @@ public sealed class SelectCharacterProductionStateTests
         IExpertSkillContractDefinitionSource, IExpertSkillContractReconciliationRepository,
         ICreatureEquipmentLifetimeSource, IEntryPlacementRuleService,
         ISessionAdjacentEntryDomainService, IActiveCharacterDomainService,
-        ISelectedSessionPositionPersistence
+        ISelectedSessionPositionPersistence, ITownMovementDomainService
     {
         public bool Published { get; private set; }
+        public int RequestedLoginTown { get; private set; }
+        public bool RejectPlacement { get; init; }
+        public int PlacementCalls { get; private set; }
+        public int InventoryMaintenanceCalls { get; private set; }
+        public (int Town, int Area) AdjacentPosition { get; private set; }
         public CharacterInventoryEntryState CharacterInventory { get; set; } = seed.CharacterInventory;
         public int RecoveryCalls { get; private set; }
         public int ReconciliationCalls { get; private set; }
@@ -330,9 +449,13 @@ public sealed class SelectCharacterProductionStateTests
         public ValueTask<CharacterDeletionResult> DeleteCharacterAsync(
             AccountId id, ushort slot, byte[] name, CancellationToken ct) => throw new NotSupportedException();
         ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.ReadCurrentAsync(
-            AccountId id, CharacterId cid, CancellationToken ct) => ((ICharacterInventoryEntryDomainService)this).LoadAsync(id, cid, ct);
-        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.LoadAsync(
             AccountId id, CharacterId cid, CancellationToken ct) => ValueTask.FromResult(CharacterInventory);
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.LoadAsync(
+            AccountId id, CharacterId cid, CancellationToken ct)
+        {
+            InventoryMaintenanceCalls++;
+            return ValueTask.FromResult(CharacterInventory);
+        }
         ValueTask<AccountInventoryEntryState> IAccountInventoryEntryDomainService.LoadAsync(
             AccountId id, CharacterId cid, CancellationToken ct) => ValueTask.FromResult(seed.AccountInventory);
         public ValueTask<CharacterEntryState> LoadAsync(AccountId id, CharacterId cid, CancellationToken ct) =>
@@ -394,15 +517,26 @@ public sealed class SelectCharacterProductionStateTests
             ValueTask.FromResult(new ChannelEntryIdentity(1, port, ChannelEntryKind.General));
         public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int level) => null;
         public ValueTask<ChannelEntryPolicyState> ResolveAsync(
-            ChannelEntryIdentity channel, int town, CancellationToken ct) => ValueTask.FromResult(seed.World.Channel);
+            ChannelEntryIdentity channel, int town, CancellationToken ct)
+        {
+            PlacementCalls++;
+            RequestedLoginTown = town;
+            if (RejectPlacement) throw new InvalidOperationException("An online query must not resolve login placement.");
+            return ValueTask.FromResult(seed.World.Channel);
+        }
         public ValueTask<bool> CanEnterTownAsync(ChannelEntryIdentity channel, int town, CancellationToken ct) =>
             ValueTask.FromResult(true);
+        public ValueTask<bool> CanRememberInnAsync(int town, CancellationToken ct) =>
+            ValueTask.FromResult(town > 0 && town != 17);
         public ValueTask<bool> DeclaresAreaAsync(int town, int area, CancellationToken ct) =>
             ValueTask.FromResult(true);
         public ValueTask<bool> SharesTownPresenceAsync(int town, int area, CancellationToken ct) =>
             ValueTask.FromResult(true);
-        public ValueTask<SessionAdjacentEntryState> LoadAsync(SessionAdjacentSubject subject, CancellationToken ct) =>
-            ValueTask.FromResult(SessionAdjacentEntryState.Empty);
+        public ValueTask<SessionAdjacentEntryState> LoadAsync(SessionAdjacentSubject subject, CancellationToken ct)
+        {
+            AdjacentPosition = (subject.TownId, subject.AreaId);
+            return ValueTask.FromResult(SessionAdjacentEntryState.Empty);
+        }
         public void Publish(SelectedSessionIdentity session) => Published = true;
         public bool ClearExact(SelectedSessionIdentity session) => Published = false;
     }

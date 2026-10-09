@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Transactions;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -110,7 +111,7 @@ public sealed class OutsideTransactionTests
     {
         await using var fixture = await Fixture.CreateAsync();
         var scope = new DomainTransactionScope();
-        var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope);
+        var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope, new StubEntryPlacementRuleService());
         var moved = new CharacterPositionState(11, 22, 33, 44, 1);
 
         await using (var lease = scope.Begin())
@@ -132,7 +133,7 @@ public sealed class OutsideTransactionTests
     {
         await using var fixture = await Fixture.CreateAsync();
         var persistence = new SelectedSessionPositionPersistence(
-            fixture.Characters, new ClosedTransactionAccessor());
+            fixture.Characters, new ClosedTransactionAccessor(), new StubEntryPlacementRuleService());
         var moved = new CharacterPositionState(11, 22, 33, 44, 1);
 
         await persistence.PersistAsync(
@@ -158,7 +159,7 @@ public sealed class OutsideTransactionTests
     {
         await using var fixture = await Fixture.CreateAsync();
         var scope = new DomainTransactionScope();
-        var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope);
+        var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope, new StubEntryPlacementRuleService());
         var departed = new CharacterPositionState(11, 22, 33, 44, 1);
 
         await using (var failing = scope.Begin())
@@ -178,6 +179,67 @@ public sealed class OutsideTransactionTests
         }
 
         Assert.Equal(departed, await ReadPositionAsync(fixture));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Inn_and_current_position_settle_together_even_after_multiple_crossings(bool commit)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var scope = new DomainTransactionScope();
+        var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope,
+            new StubEntryPlacementRuleService(innPredicate: town => town is 1 or 11));
+        var timeGate = new CharacterPositionState(12, 0, 562, 183, 5);
+        await using (var lease = scope.Begin())
+        {
+            await persistence.PersistAsync(Owned.Account, Owned.Character, new(11, 0, 10, 20, 5), default);
+            await persistence.PersistAsync(Owned.Account, Owned.Character, timeGate, default);
+            if (commit) await lease.CommitAsync(default);
+        }
+        Assert.Equal(commit ? 11 : 0, await ReadInnAsync(fixture));
+        if (commit) Assert.Equal(timeGate, await ReadPositionAsync(fixture));
+        else Assert.NotEqual(timeGate, await ReadPositionAsync(fixture));
+    }
+
+    [Fact]
+    public async Task Teardown_in_a_town_without_an_inn_preserves_the_previous_inn()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var persistence = new SelectedSessionPositionPersistence(fixture.Characters, new ClosedTransactionAccessor(),
+            new StubEntryPlacementRuleService(innPredicate: town => town is 1 or 11));
+        await persistence.PersistAsync(Owned.Account, Owned.Character, new(11, 0, 10, 20, 5), default);
+        var destination = new CharacterPositionState(12, 0, 562, 183, 5);
+        await persistence.PersistAsync(Owned.Account, Owned.Character, destination, default);
+        await persistence.PersistAsync(Owned.Account, Owned.Character, destination, default);
+        Assert.Equal(11, await ReadInnAsync(fixture));
+        Assert.Equal(destination, await ReadPositionAsync(fixture));
+    }
+
+    [Fact]
+    public async Task Legacy_schema_gains_an_unset_inn_without_changing_the_saved_position()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        await using (var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = fixture.Path }.ToString()))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE characters SET town_id=11; ALTER TABLE characters DROP COLUMN last_inn_town_id;";
+            await command.ExecuteNonQueryAsync();
+        }
+        _ = new SqliteDatabase(fixture.Path, new DomainTransactionScope());
+        _ = new SqliteDatabase(fixture.Path, new DomainTransactionScope());
+        Assert.Equal(0, await ReadInnAsync(fixture));
+        Assert.Equal(11, (await ReadPositionAsync(fixture))!.TownId);
+    }
+
+    private static async Task<int> ReadInnAsync(Fixture fixture)
+    {
+        await using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = fixture.Path }.ToString());
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT last_inn_town_id FROM characters WHERE character_id=60";
+        return Convert.ToInt32(await command.ExecuteScalarAsync());
     }
 
     private static async ValueTask<CharacterPositionState?> ReadPositionAsync(Fixture fixture)

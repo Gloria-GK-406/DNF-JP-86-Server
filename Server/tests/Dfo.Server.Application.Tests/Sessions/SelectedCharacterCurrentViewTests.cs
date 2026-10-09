@@ -19,8 +19,8 @@ public sealed class SelectedCharacterCurrentViewTests
         var replacement = Session("replacement", 2);
         var sessions = new SelectedSessionDomainService();
         var published = new SelectedSessionRuntimeDirectory();
-        var preparation = new FixedPreparation();
-        var views = new SelectedCharacterCurrentViewDomainService(sessions, published, preparation);
+        var query = new FixedQuery();
+        var views = new SelectedCharacterCurrentViewDomainService(sessions, published, query);
         sessions.Select(old);
         published.Publish(old, true);
 
@@ -32,7 +32,7 @@ public sealed class SelectedCharacterCurrentViewTests
         Assert.False(published.RemoveExact(old));
         Assert.True(published.IsPublishedExact(replacement));
         Assert.NotNull(await views.TryLoadAsync(replacement, CancellationToken.None));
-        Assert.Equal(2, preparation.Loads);
+        Assert.Equal(2, query.Loads);
     }
 
     [Fact]
@@ -42,16 +42,16 @@ public sealed class SelectedCharacterCurrentViewTests
         var replacement = Session("replacement", 2);
         var sessions = new SelectedSessionDomainService();
         var published = new SelectedSessionRuntimeDirectory();
-        var preparation = new FixedPreparation { HoldNextRead = true };
-        var views = new SelectedCharacterCurrentViewDomainService(sessions, published, preparation);
+        var query = new FixedQuery { HoldNextRead = true };
+        var views = new SelectedCharacterCurrentViewDomainService(sessions, published, query);
         sessions.Select(old);
         published.Publish(old, true);
 
         var delayed = views.TryLoadAsync(old, CancellationToken.None).AsTask();
-        await preparation.Started.Task;
+        await query.Started.Task;
         sessions.Select(replacement);
         published.Publish(replacement, false);
-        preparation.Release();
+        query.Release();
 
         Assert.Null(await delayed);
         Assert.True(published.IsPublishedExact(replacement));
@@ -77,7 +77,7 @@ public sealed class SelectedCharacterCurrentViewTests
             new AccountId(7), new CharacterId(70), new NetworkConnectionId(connection),
             generation, 10011);
 
-    private sealed class FixedPreparation : ISelectCharacterPreparationDomainService
+    private sealed class FixedQuery : ICharacterCurrentStateQueryDomainService
     {
         private readonly TaskCompletionSource started = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly TaskCompletionSource released = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -85,7 +85,7 @@ public sealed class SelectedCharacterCurrentViewTests
         public bool HoldNextRead { get; set; }
         public int Loads { get; private set; }
 
-        public async ValueTask<SelectCharacterResult> LoadCurrentAsync(
+        public async ValueTask<SelectCharacterResult> ReadAsync(
             SelectedSessionIdentity session, CancellationToken cancellationToken)
         {
             Loads++;
@@ -98,15 +98,5 @@ public sealed class SelectedCharacterCurrentViewTests
         }
 
         public void Release() => released.SetResult();
-
-        public ValueTask<ActiveCharacterState> PreflightAsync(
-            AccountId accountId, ushort rosterIndex, ChannelEntryIdentity channel,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<SelectCharacterResult> PrepareAsync(
-            ActiveCharacterState selected, AccountId accountId, ChannelEntryIdentity channel,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
-            SelectedSessionIdentity session, SelectCharacterResult prepared,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

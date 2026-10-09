@@ -203,6 +203,7 @@ public sealed class AcceptQuestCommandHandler(
         QuestRefusal.AlreadyCarried => QuestAcceptRefusal.AlreadyActive,
         QuestRefusal.AlreadyCleared => QuestAcceptRefusal.AlreadyActive,
         QuestRefusal.NoFreeSlot => QuestAcceptRefusal.ActiveListFull,
+        QuestRefusal.ManagedByAchievement => QuestAcceptRefusal.Unknown,
         _ => throw new ArgumentOutOfRangeException(
             nameof(refusal), refusal, "No code was decided for this refusal."),
     };

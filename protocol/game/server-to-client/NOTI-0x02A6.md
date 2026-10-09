@@ -1,4 +1,8 @@
-# NOTI `0x02A6` `HELL_PARTY_MONSTER_INFO`
+# NOTI `0x02A6` `REAL_ESTATE_REWARD_INFO`
+
+## 2026-10-07 深渊映射更正
+
+A21身份为`REAL_ESTATE_REWARD_INFO`；本轮确认深渊索引/等级列表属于[NOTI02A7](NOTI-0x02A7.md)。旧上游深渊关联不能用于此号，已移除错误的count/monsterCode/level含义来源。保留既有客户端提取布局，但字段业务含义仍未知；没有新增抓包或实机验证。详见[客户端调查](../../../Document/abyss-research-20261007/client.md)。
 
 <!-- rks:machine:begin -->
 
@@ -30,12 +34,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 1 | `u8` | 条目数 count = actorLevels.Count | Confirmed | 上游 DungeonNotificationBuilder.cs:82-83 BuildHellPartyMonsterInfo 先算 count 再 WriteInt32(count)，取自 `[ebp - 2]` |
+| 0 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 2]` |
 | **重复组 g1 ×n** |  |  | *以下字段按运行时计数重复；其后字段的偏移随重复次数变化* |  |  |
-| &nbsp;&nbsp;↳&nbsp;0 | 1 | `u8` | 该条目的怪物 code | Confirmed | 上游 DungeonNotificationBuilder.cs:86 循环写 actorLevels[i].Key；Key 的取值见 Network/Handlers/Dungeon/DungeonMapHandler.cs:754 new KeyValuePair<int,int>(monster.Code, ...)，取自 `[ebp - 3]` |
+| &nbsp;&nbsp;↳&nbsp;0 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 3]` |
 | &nbsp;&nbsp;↳&nbsp;1 | 2 | `u16` | unknown | — | 接收指令，取自 `[ebp - 0xc]` |
 | &nbsp;&nbsp;↳&nbsp;3 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 1]` |
-| &nbsp;&nbsp;↳&nbsp;4 | 1 | `u8` | 该怪物的等级（上游取 max(1, monster.Level)） | Confirmed | 上游 DungeonNotificationBuilder.cs:87 WriteInt32(actorLevels[i].Value)；取值见 DungeonMapHandler.cs:754 Math.Max(1, (int)monster.Level)，取自 `[ebp - 5]` |
+| &nbsp;&nbsp;↳&nbsp;4 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 5]` |
 | &nbsp;&nbsp;↳&nbsp;5 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 4]` |
 | &nbsp;&nbsp;↳&nbsp;6 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp - 0x14]` |
 | &nbsp;&nbsp;↳&nbsp;10 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp - 0x10]` |

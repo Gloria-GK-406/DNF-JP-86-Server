@@ -1,3 +1,4 @@
+using Dfo.Server.Application.DomainEvents;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -234,6 +235,7 @@ public sealed partial class GmOfficialMailHttpTests
         {
             using var sent = await host.PostAsync("/api/gm/v1/mail/send", login.Csrf, Payload(id)); Assert.Equal(HttpStatusCode.OK, sent.StatusCode);
             Assert.Equal("unconfirmed", (await sent.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("reminder").GetString());
+            await host.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync();
             Assert.Equal(1, notices.Count); // A replay must not announce an existing letter again.
         }
         Assert.Equal(1, notices.Count); Assert.Equal(new[] { "1" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));

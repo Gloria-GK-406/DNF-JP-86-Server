@@ -494,7 +494,7 @@ public sealed class ClearRewardArchiveTests
             .GetAsync(OrdinaryDungeonId, CancellationToken.None);
         Assert.NotNull(dungeon);
 
-        var roomCounts = dungeon.Mazes.Select(maze => maze.Rooms.Count).ToArray();
+        var roomCounts = dungeon.Mazes.Select(maze => maze.Cells.Count).ToArray();
         Assert.Equal([10, 6, 4, 6, 4], roomCounts);
 
         // The two sides of the same path: the counts the table prices, and the counts it does not.
@@ -556,7 +556,7 @@ public sealed class ClearRewardArchiveTests
             .GetAsync(OrdinaryDungeonId, CancellationToken.None);
         Assert.NotNull(dungeon);
 
-        var roomCounts = dungeon.Mazes.Select(maze => maze.Rooms.Count).ToArray();
+        var roomCounts = dungeon.Mazes.Select(maze => maze.Cells.Count).ToArray();
         Assert.Equal([10, 6, 4, 6, 4], roomCounts);
         Assert.Equal([10, 6, 6], roomCounts.Where(c => table.MapCountRate(c) is null).ToArray());
 
@@ -748,7 +748,7 @@ public sealed class ClearRewardArchiveTests
             BossCell: new MazeCell((byte)(rooms - 1), 0),
             StartRoomMapId: 0,
             Seed: seed,
-            Rooms: cells.ToDictionary(cell => cell, _ => 0),
+            Cells: cells.ToDictionary(cell => cell, _ => DungeonCellDefinition.Fixed(0)),
             BasisLevel: dungeon.BasisLevel,
             ExperienceWeight: dungeon.ExperienceWeight);
     }

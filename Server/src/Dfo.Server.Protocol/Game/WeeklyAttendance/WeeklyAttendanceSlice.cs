@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using System.Text;
 using Dfo.Server.Abstractions.Events;
@@ -72,14 +73,14 @@ public sealed class AttendanceCompletedHandler(ISelectedSessionDomainService ses
         => ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(recipient.CharacterId==notice.Session.CharacterId
             && sessions.FindByCharacter(recipient.CharacterId)==notice.Session ? [new WeeklyAttendanceResponse(notice.Succeeded ? 0u : 1u)] : []);
 }
-public sealed class WeeklyAttendanceHandler(ISelectedSessionDomainService sessions,ICommandBus commands,INotificationBus notices) : ClientMessageHandler<WeeklyAttendanceRequest>
+public sealed class WeeklyAttendanceHandler(ISelectedSessionDomainService sessions,ICommandBus commands,IEventService notices) : ClientMessageHandler<WeeklyAttendanceRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,WeeklyAttendanceRequest message,CancellationToken ct)
     {
         if (sessions.FindByConnection(context.Connection.ConnectionId) is not { } session) return;
         var result=await commands.SendAsync(new ClaimWeeklyAttendanceCommand(session),ct);
-        await notices.PublishAsync(new NotificationAudience.TheseSessions([session]),new AttendanceCompleted(session,result.Succeeded),ct);
-        await notices.PublishAsync(new NotificationAudience.TheseSessions([session]),new EventsChanged(),ct);
+        await notices.ProjectAsync(new NotificationAudience.TheseSessions([session]),new AttendanceCompleted(session,result.Succeeded),ct);
+        await notices.ProjectAsync(new NotificationAudience.TheseSessions([session]),new EventsChanged(),ct);
     }
 }
 public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,IEventPlayerProjectionDomainService projection) : INotificationHandler<EventsChanged>

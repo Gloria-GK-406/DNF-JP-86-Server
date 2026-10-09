@@ -11,6 +11,12 @@ const mocked = vi.mocked(api);
 const identity = { id: 1, loginName: '配置管理员', permissions: ['QueryPlayers', 'SendMail', 'GrantCera', 'ViewAudit'], expiresAt: '2030-01-01T00:00:00Z' };
 let data: InitializationViewData;
 function open() { return render(<ConfigProvider theme={{ token: { motion: false } }}><App><MemoryRouter initialEntries={['/initialization']}><AdminApp /></MemoryRouter></App></ConfigProvider>); }
+async function edit(kind: '账号' | '角色') {
+  const button = await screen.findByRole('button', { name: `编辑${kind}配置` });
+  // The card renders its disabled edit button before the configuration query completes.
+  await waitFor(() => expect(button.hasAttribute('disabled')).toBe(false));
+  fireEvent.click(button);
+}
 beforeEach(() => {
   data = { account: { revision: 2, input: { cera: 100, tokenCera: 20, happyTokenCera: 0, accountCargoLevel: 0, contracts: [{ type: 97, days: 30 }] }, updatedAt: null, updatedBy: '配置管理员' },
     character: { revision: 3, input: { level: 1, personalCargoLevel: 8, items: [] }, updatedAt: null, updatedBy: '配置管理员' },
@@ -36,12 +42,12 @@ it('单一导航下分两个Tab，默认展示生效摘要，编辑才打开窗�
   fireEvent.click(screen.getByRole('tab', { name: '角色初始化' }));
   expect(await screen.findByText('当前角色初始化配置')).toBeTruthy();
   expect(screen.queryByLabelText('初始角色等级')).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: '编辑角色配置' }));
+  await edit('角色');
   expect(await screen.findByRole('dialog', { name: '编辑角色初始化配置' })).toBeTruthy();
 });
 
 it('账号独立保存全部字段及原版本，成功刷新生效摘要', async () => {
-  open(); fireEvent.click(await screen.findByRole('button', { name: '编辑账号配置' }));
+  open(); await edit('账号');
   fireEvent.change(await screen.findByLabelText('初始点券'), { target: { value: '250' } });
   fireEvent.click(screen.getByRole('button', { name: '保存并生效' }));
   await screen.findByText('初始化配置已保存并生效，仅影响后续创建。');
@@ -52,7 +58,7 @@ it('账号独立保存全部字段及原版本，成功刷新生效摘要', asyn
 
 it('角色物品通过独立权限目录选择，保存包含等级与物品', async () => {
   open(); await screen.findByText('当前账号初始化配置'); fireEvent.click(screen.getByRole('tab', { name: '角色初始化' }));
-  fireEvent.click(await screen.findByRole('button', { name: '编辑角色配置' }));
+  await edit('角色');
   fireEvent.change(await screen.findByLabelText('初始角色等级'), { target: { value: '30' } });
   fireEvent.click(screen.getByRole('button', { name: '添加初始物品' }));
   await waitFor(() => expect(mocked.mock.calls.some(([p]) => p.startsWith('initialization/items?'))).toBe(true));
@@ -70,7 +76,7 @@ it('角色物品通过独立权限目录选择，保存包含等级与物品', a
 it('版本冲突阻止盲目重试，并提供重新读取', async () => {
   const original = mocked.getMockImplementation()!;
   mocked.mockImplementation(async (path, payload) => { if (path === 'initialization/account') throw new ApiError(409, '配置已被其他管理员修改，请重新读取后编辑。'); return original(path, payload); });
-  open(); fireEvent.click(await screen.findByRole('button', { name: '编辑账号配置' }));
+  open(); await edit('账号');
   fireEvent.click(await screen.findByRole('button', { name: '保存并生效' }));
   expect(await screen.findByText('配置已被其他管理员修改，请重新读取后编辑。')).toBeTruthy();
   expect(screen.queryByRole('button', { name: '保存并生效' })).toBeNull();
@@ -82,7 +88,7 @@ it('版本冲突阻止盲目重试，并提供重新读取', async () => {
 it('结果未知时先读取生效配置，不能重复提交旧编辑', async () => {
   const original = mocked.getMockImplementation()!;
   mocked.mockImplementation(async (path, payload) => { if (path === 'initialization/account') throw new Error('网络超时'); return original(path, payload); });
-  open(); fireEvent.click(await screen.findByRole('button', { name: '编辑账号配置' }));
+  open(); await edit('账号');
   fireEvent.click(await screen.findByRole('button', { name: '保存并生效' }));
   expect(await screen.findByRole('button', { name: '重新读取生效配置' })).toBeTruthy();
   expect(screen.queryByRole('button', { name: '保存并生效' })).toBeNull();
@@ -97,7 +103,7 @@ it('部分权限不显示入口，直接访问也不会读取配置', async () =
 });
 
 it('未修改直接取消不保存', async () => {
-  open(); fireEvent.click(await screen.findByRole('button', { name: '编辑账号配置' }));
+  open(); await edit('账号');
   const editor = await screen.findByRole('dialog'); fireEvent.click(within(editor).getByRole('button', { name: /取\s*消/ }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   expect(mocked.mock.calls.some(([p]) => p === 'initialization/account')).toBe(false);

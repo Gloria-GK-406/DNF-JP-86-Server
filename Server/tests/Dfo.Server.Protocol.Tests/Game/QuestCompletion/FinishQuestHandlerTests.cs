@@ -210,7 +210,7 @@ public sealed class FinishQuestHandlerTests
         {
             var cell = new MazeCell(0, 0);
             var layout = new DungeonLayout(10000, 0, 1, 1, cell, cell, 61000, 1,
-                new Dictionary<MazeCell, int> { [cell] = 61000 });
+                new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(61000)});
             var id = DungeonRunId.New();
             runs.PreparePartyEntry([new(actor.AccountId, actor.CharacterId, 0, true), new(peer.AccountId, peer.CharacterId, 1, false)],
                 layout, DungeonDifficulty.Normal, DungeonCellSeed.CompleteEmpty(cell, 61000), id, DateTimeOffset.UnixEpoch);

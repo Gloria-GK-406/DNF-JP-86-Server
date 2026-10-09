@@ -34,6 +34,8 @@ public interface IItemMovementDomainService
     ValueTask<ItemMoveOutcome> MoveBetweenContainersAsync(BoundInventorySlot source,
         BoundInventorySlot destination, int count, CancellationToken cancellationToken) =>
         MoveWithinBackingAsync(source, destination, count, cancellationToken);
+    ValueTask<bool> RemoveMirrorAsync(BoundInventorySlot source, ItemReference item, CancellationToken ct);
+    ItemSnapshot UnsealForEquip(ItemSnapshot item);
     ValueTask<bool> CanWearAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId, CancellationToken cancellationToken);
     /// <summary>
     /// The equipment slot this item is worn in, or null when nothing wearable is declared under

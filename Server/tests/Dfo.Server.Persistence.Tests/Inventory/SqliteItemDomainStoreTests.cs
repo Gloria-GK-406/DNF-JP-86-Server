@@ -23,6 +23,38 @@ public sealed class SqliteItemDomainStoreTests
         ContainerId.ForCharacter(new CharacterId(60), InventoryContainerType.Equipment);
 
     [Fact]
+    public async Task Mirror_metadata_survives_reload_and_raw_detachment_but_cannot_become_a_bag_item_or_change_its_origin()
+    {
+        await using var store = await NewStoreAsync();
+        var core = StackableItemCore.Create(1, 26596, 123) with { SealFlag=0, EnchantCardId=77 };
+        ItemIdentity? uid=null;
+        await InTransactionAsync(store.Value, async session => {
+            var item=await session.CreateAsync(ItemSnapshot.FromCore(core,false) with {IsMirror=true,MirrorSourceUid=new(987)},default);
+            uid=(await session.PutAsync(Equipment,13,item,default)).ItemUid;
+        });
+        await InTransactionAsync(store.Value, async session => {
+            var held=(await session.GetAsync(Equipment,13,default))!;
+            Assert.True(held.Snapshot.IsMirror);Assert.Equal(new ItemIdentity(987),held.Snapshot.MirrorSourceUid);
+            Assert.Equal(core,held.Snapshot.ToCore());Assert.Equal(uid,held.ItemUid);
+            var detached=await session.TakeAsync(held,null,default);
+            var returned=await session.PutAsync(Equipment,13,detached,default);
+            Assert.True(returned.Snapshot.IsMirror);Assert.Equal(uid,returned.ItemUid);
+        });
+        await Assert.ThrowsAsync<InvalidDataException>(()=>InTransactionAsync(store.Value,async session=> {
+            var held=(await session.GetAsync(Equipment,13,default))!;
+            await session.PutAsync(Main,9,await session.TakeAsync(held,null,default),default);
+        }));
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>InTransactionAsync(store.Value,async session=> {
+            var held=(await session.GetAsync(Equipment,13,default))!;
+            await session.UpdateAsync(held,x=>x with {IsMirror=false,MirrorSourceUid=null},default);
+        }));
+        await InTransactionAsync(store.Value,async session=> {
+            Assert.True((await session.GetAsync(Equipment,13,default))!.Snapshot.IsMirror);
+            Assert.Null(await session.GetAsync(Main,9,default));
+        });
+    }
+
+    [Fact]
     public async Task AccountContainersWithTheSameSlotKeepSeparateContents()
     {
         await using var store = await NewStoreAsync();

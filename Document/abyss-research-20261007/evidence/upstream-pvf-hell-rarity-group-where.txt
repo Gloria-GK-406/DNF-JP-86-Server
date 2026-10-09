@@ -1,0 +1,1 @@
+此文件对应一次无效探测：where 的 tag 需精确方括号，value 也不支持 * 通配。该结果不作为缺失证据；最终正确证据见 upstream-pvf-hell-rarity-group-values.txt 和 upstream-pvf-equ-hell-rarity-group-values.txt。

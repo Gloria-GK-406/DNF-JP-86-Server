@@ -1,0 +1,157 @@
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.Application.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.48]   Discovering: Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.78]   Discovered:  Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.80]   Starting:    Dfo.Server.Application.Tests
+[xUnit.net 00:00:02.67]     Dfo.Server.Application.Tests.Achievements.AchievementTitleBookTests.Real_rules_complete_from_verified_kills_and_grant_one_title_across_restart_and_repeated_delivery [FAIL]
+[xUnit.net 00:00:02.67]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:02.67]       Expected: 1
+[xUnit.net 00:00:02.67]       Actual:   3
+[xUnit.net 00:00:02.67]       Stack Trace:
+[xUnit.net 00:00:02.67]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Application.Tests\Achievements\AchievementTitleBookTests.cs(50,0): at Dfo.Server.Application.Tests.Achievements.AchievementTitleBookTests.Real_rules_complete_from_verified_kills_and_grant_one_title_across_restart_and_repeated_delivery()
+[xUnit.net 00:00:02.67]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Application.Tests\Achievements\AchievementTitleBookTests.cs(51,0): at Dfo.Server.Application.Tests.Achievements.AchievementTitleBookTests.Real_rules_complete_from_verified_kills_and_grant_one_title_across_restart_and_repeated_delivery()
+[xUnit.net 00:00:02.67]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Application.Tests\Achievements\AchievementTitleBookTests.cs(51,0): at Dfo.Server.Application.Tests.Achievements.AchievementTitleBookTests.Real_rules_complete_from_verified_kills_and_grant_one_title_across_restart_and_repeated_delivery()
+[xUnit.net 00:00:02.67]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:02.67]       Output:
+[xUnit.net 00:00:02.67]         Rules: 719; supported: 85
+[xUnit.net 00:00:02.67]         (condition under clear, 0, False): 5
+[xUnit.net 00:00:02.67]         (condition under clear, 7, False): 1
+[xUnit.net 00:00:02.67]         (condition under clear, 9, False): 1
+[xUnit.net 00:00:02.67]         (hunt monster, -1, True): 14
+[xUnit.net 00:00:02.67]         (use item, 1, True): 1
+[xUnit.net 00:00:02.67]         (seeking, -1, False): 233
+[xUnit.net 00:00:02.67]         (seeking, 6, False): 2
+[xUnit.net 00:00:02.67]         (condition under clear, 6, True): 1
+[xUnit.net 00:00:02.67]         (condition under clear, 11, False): 4
+[xUnit.net 00:00:02.67]         (hunt monster, -1, False): 46
+[xUnit.net 00:00:02.67]         (meet npc, -1, False): 88
+[xUnit.net 00:00:02.67]         (clear map, -1, False): 43
+[xUnit.net 00:00:02.67]         (pvp rank, -1, False): 1
+[xUnit.net 00:00:02.67]         (seeking, 0, False): 1
+[xUnit.net 00:00:02.67]         (condition under clear, 4, False): 5
+[xUnit.net 00:00:02.67]         (condition under clear, 6, False): 56
+[xUnit.net 00:00:02.67]         (clear quest, -1, True): 65
+[xUnit.net 00:00:02.67]         (level up, -1, False): 3
+[xUnit.net 00:00:02.67]         (use item, -1, True): 4
+[xUnit.net 00:00:02.67]         (get score, 1, False): 8
+[xUnit.net 00:00:02.67]         (get score, 0, False): 1
+[xUnit.net 00:00:02.67]         (custom quest, 1, False): 1
+[xUnit.net 00:00:02.67]         (disjoint item, 1, False): 1
+[xUnit.net 00:00:02.67]         (custom quest, 0, False): 32
+[xUnit.net 00:00:02.67]         (get item, 2, False): 1
+[xUnit.net 00:00:02.67]         (use item, -1, False): 20
+[xUnit.net 00:00:02.67]         (condition under clear, 13, False): 2
+[xUnit.net 00:00:02.67]         (equipped item, 0, False): 4
+[xUnit.net 00:00:02.67]         (ui click, -1, False): 1
+[xUnit.net 00:00:02.67]         (equipped item, 1, False): 1
+[xUnit.net 00:00:02.67]         (seeking, 25, False): 1
+[xUnit.net 00:00:02.67]         (disjoint item, 0, False): 1
+[xUnit.net 00:00:02.67]         (amplify item, 3, False): 1
+[xUnit.net 00:00:02.67]         (amplify item, 0, False): 2
+[xUnit.net 00:00:02.67]         (check time, -1, False): 1
+[xUnit.net 00:00:02.67]         (pvp quest, 8, False): 9
+[xUnit.net 00:00:02.67]         (pvp quest, 0, False): 8
+[xUnit.net 00:00:02.67]         (pvp quest, 7, False): 1
+[xUnit.net 00:00:02.67]         (pvp quest, 3, False): 1
+[xUnit.net 00:00:02.67]         (pvp quest, 4, False): 1
+[xUnit.net 00:00:02.67]         (pvp quest, 5, False): 1
+[xUnit.net 00:00:02.67]         (pvp quest, 2, False): 2
+[xUnit.net 00:00:02.67]         (get item, 1, False): 1
+[xUnit.net 00:00:02.67]         (hunt enemy, -1, False): 22
+[xUnit.net 00:00:02.67]         (send chatting, -1, False): 1
+[xUnit.net 00:00:02.67]         (use fortune coin, -1, False): 1
+[xUnit.net 00:00:02.67]         (condition under clear, 14, False): 1
+[xUnit.net 00:00:02.67]         (first grow, -1, False): 1
+[xUnit.net 00:00:02.67]         (awakening, -1, False): 1
+[xUnit.net 00:00:02.67]         (condition under clear, 1, False): 2
+[xUnit.net 00:00:02.67]         (seeking, 1, False): 2
+[xUnit.net 00:00:02.67]         (clear map, 0, False): 7
+[xUnit.net 00:00:02.67]         (meet npc, 0, False): 1
+[xUnit.net 00:00:02.67]         (raid phase clear, 0, False): 4
+  已通过 Dfo.Server.Application.Tests.Achievements.AchievementTitleBookTests.Complete_item_identity_and_attributes_survive_store_take_and_permanent_unlock_prevents_regrant [693 ms]
+  失败 Dfo.Server.Application.Tests.Achievements.AchievementTitleBookTests.Real_rules_complete_from_verified_kills_and_grant_one_title_across_restart_and_repeated_delivery [1 s]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 1
+Actual:   3
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Achievements.AchievementTitleBookTests.Real_rules_complete_from_verified_kills_and_grant_one_title_across_restart_and_repeated_delivery() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Application.Tests\Achievements\AchievementTitleBookTests.cs:line 50
+   at Dfo.Server.Application.Tests.Achievements.AchievementTitleBookTests.Real_rules_complete_from_verified_kills_and_grant_one_title_across_restart_and_repeated_delivery() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Application.Tests\Achievements\AchievementTitleBookTests.cs:line 51
+   at Dfo.Server.Application.Tests.Achievements.AchievementTitleBookTests.Real_rules_complete_from_verified_kills_and_grant_one_title_across_restart_and_repeated_delivery() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Application.Tests\Achievements\AchievementTitleBookTests.cs:line 51
+--- End of stack trace from previous location ---
+  标准输出消息:
+ Rules: 719; supported: 85
+ (condition under clear, 0, False): 5
+ (condition under clear, 7, False): 1
+ (condition under clear, 9, False): 1
+ (hunt monster, -1, True): 14
+ (use item, 1, True): 1
+ (seeking, -1, False): 233
+ (seeking, 6, False): 2
+ (condition under clear, 6, True): 1
+ (condition under clear, 11, False): 4
+ (hunt monster, -1, False): 46
+ (meet npc, -1, False): 88
+ (clear map, -1, False): 43
+ (pvp rank, -1, False): 1
+ (seeking, 0, False): 1
+ (condition under clear, 4, False): 5
+ (condition under clear, 6, False): 56
+ (clear quest, -1, True): 65
+ (level up, -1, False): 3
+ (use item, -1, True): 4
+ (get score, 1, False): 8
+ (get score, 0, False): 1
+ (custom quest, 1, False): 1
+ (disjoint item, 1, False): 1
+ (custom quest, 0, False): 32
+ (get item, 2, False): 1
+ (use item, -1, False): 20
+ (condition under clear, 13, False): 2
+ (equipped item, 0, False): 4
+ (ui click, -1, False): 1
+ (equipped item, 1, False): 1
+ (seeking, 25, False): 1
+ (disjoint item, 0, False): 1
+ (amplify item, 3, False): 1
+ (amplify item, 0, False): 2
+ (check time, -1, False): 1
+ (pvp quest, 8, False): 9
+ (pvp quest, 0, False): 8
+ (pvp quest, 7, False): 1
+ (pvp quest, 3, False): 1
+ (pvp quest, 4, False): 1
+ (pvp quest, 5, False): 1
+ (pvp quest, 2, False): 2
+ (get item, 1, False): 1
+ (hunt enemy, -1, False): 22
+ (send chatting, -1, False): 1
+ (use fortune coin, -1, False): 1
+ (condition under clear, 14, False): 1
+ (first grow, -1, False): 1
+ (awakening, -1, False): 1
+ (condition under clear, 1, False): 2
+ (seeking, 1, False): 2
+ (clear map, 0, False): 7
+ (meet npc, 0, False): 1
+ (raid phase clear, 0, False): 4
+
+
+[xUnit.net 00:00:03.19]   Finished:    Dfo.Server.Application.Tests
+  已通过 Dfo.Server.Application.Tests.Achievements.AchievementTitleBookTests.Rolled_back_facts_have_no_progress_and_duplicate_envelopes_do_not_count_twice [519 ms]
+
+测试运行失败。
+测试总数: 3
+     通过数: 2
+     失败数: 1
+总时间: 3.5402 秒

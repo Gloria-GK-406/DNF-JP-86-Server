@@ -258,9 +258,9 @@ it('附件与金币编辑进入预览，收件人查询使用邮件窄投影', a
     return original(path, payload);
   });
   open(); await ready(); fireEvent.click(screen.getByRole('button', { name: '添加物品附件' }));
-  fireEvent.click(await screen.findByRole('button', { name: '选择物品 3037' }));
+  fireEvent.click(await screen.findByRole('button', { name: '添加物品 3037' }));
   fireEvent.change(await screen.findByLabelText('每人数量'), { target: { value: '9' } });
-  fireEvent.click(screen.getByRole('button', { name: '加入邮件' }));
+  fireEvent.click(screen.getByRole('button', { name: '加入邮件（1项）' }));
   await waitFor(() => expect(screen.queryByLabelText('每人数量')).toBeNull());
   fireEvent.change(screen.getByLabelText('每人金币'), { target: { value: '1000' } });
   fireEvent.change(screen.getByLabelText('邮件正文'), { target: { value: '领取测试' } }); await recipients(); fireEvent.click(screen.getByLabelText('选择角色 1'));

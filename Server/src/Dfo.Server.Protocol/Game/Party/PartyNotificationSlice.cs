@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
@@ -612,13 +613,13 @@ internal sealed class PartyNotificationRecipientResolver(PartyNotificationRecipi
 }
 
 public sealed class PartyNotificationDelivery(
-    INotificationBus notifications,
+    IEventService notifications,
     PartyProjectionStreamRegistry streams,
     ISelectedSessionDomainService? sessions = null,
     ITownAreaDomainService? townAreas = null,
     IPartyService? parties = null)
 {
-    internal PartyNotificationDelivery(INotificationBus notifications)
+    internal PartyNotificationDelivery(IEventService notifications)
         : this(notifications, new PartyProjectionStreamRegistry(), null, null, null)
     {
     }

@@ -1,0 +1,2029 @@
+
+FUNCTION 0830a1f6 size=902 _ZN13CBattle_Field11reset_fieldEv
+0830a1f6: 55                   push     ebp
+0830a1f7: 89e5                 mov      ebp, esp
+0830a1f9: 53                   push     ebx
+0830a1fa: 83ec34               sub      esp, 0x34
+0830a1fd: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a200: c7809401000000000000 mov      dword ptr [eax + 0x194], 0
+0830a20a: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a20d: c7809001000000000000 mov      dword ptr [eax + 0x190], 0
+0830a217: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a21a: 8b9090010000         mov      edx, dword ptr [eax + 0x190]
+0830a220: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a223: 89908c010000         mov      dword ptr [eax + 0x18c], edx
+0830a229: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a22c: c7401800000000       mov      dword ptr [eax + 0x18], 0
+0830a233: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a236: 8b5018               mov      edx, dword ptr [eax + 0x18]
+0830a239: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a23c: 895014               mov      dword ptr [eax + 0x14], edx
+0830a23f: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a242: 8b5014               mov      edx, dword ptr [eax + 0x14]
+0830a245: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a248: 895064               mov      dword ptr [eax + 0x64], edx
+0830a24b: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a24e: 8b5064               mov      edx, dword ptr [eax + 0x64]
+0830a251: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a254: 895060               mov      dword ptr [eax + 0x60], edx
+0830a257: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a25a: 8b5060               mov      edx, dword ptr [eax + 0x60]
+0830a25d: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a260: 895010               mov      dword ptr [eax + 0x10], edx
+0830a263: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a266: 8b5010               mov      edx, dword ptr [eax + 0x10]
+0830a269: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a26c: 89500c               mov      dword ptr [eax + 0xc], edx
+0830a26f: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a272: 8b500c               mov      edx, dword ptr [eax + 0xc]
+0830a275: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a278: 895008               mov      dword ptr [eax + 8], edx
+0830a27b: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a27e: 8b5008               mov      edx, dword ptr [eax + 8]
+0830a281: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a284: 895004               mov      dword ptr [eax + 4], edx
+0830a287: c745f400000000       mov      dword ptr [ebp - 0xc], 0
+0830a28e: eb48                 jmp      0x830a2d8
+0830a290: 8b55f4               mov      edx, dword ptr [ebp - 0xc]
+0830a293: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a296: 83c202               add      edx, 2
+0830a299: c744d00c00000000     mov      dword ptr [eax + edx*8 + 0xc], 0
+0830a2a1: 8b55f4               mov      edx, dword ptr [ebp - 0xc]
+0830a2a4: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a2a7: 83c202               add      edx, 2
+0830a2aa: c744d01000000000     mov      dword ptr [eax + edx*8 + 0x10], 0
+0830a2b2: 8b55f4               mov      edx, dword ptr [ebp - 0xc]
+0830a2b5: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a2b8: 83c206               add      edx, 6
+0830a2bb: c744d00c00000000     mov      dword ptr [eax + edx*8 + 0xc], 0
+0830a2c3: 8b55f4               mov      edx, dword ptr [ebp - 0xc]
+0830a2c6: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a2c9: 83c206               add      edx, 6
+0830a2cc: c744d01000000000     mov      dword ptr [eax + edx*8 + 0x10], 0
+0830a2d4: 8345f401             add      dword ptr [ebp - 0xc], 1
+0830a2d8: 837df403             cmp      dword ptr [ebp - 0xc], 3
+0830a2dc: 0f9ec0               setle    al
+0830a2df: 84c0                 test     al, al
+0830a2e1: 75ad                 jne      0x830a290
+0830a2e3: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a2e6: c6405c01             mov      byte ptr [eax + 0x5c], 1
+0830a2ea: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a2ed: c780a001000000000000 mov      dword ptr [eax + 0x1a0], 0
+0830a2f7: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a2fa: 8b90a0010000         mov      edx, dword ptr [eax + 0x1a0]
+0830a300: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a303: 89909c010000         mov      dword ptr [eax + 0x19c], edx
+0830a309: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a30c: 8b909c010000         mov      edx, dword ptr [eax + 0x19c]
+0830a312: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a315: 899098010000         mov      dword ptr [eax + 0x198], edx
+0830a31b: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a31e: 8b9098010000         mov      edx, dword ptr [eax + 0x198]
+0830a324: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a327: 895070               mov      dword ptr [eax + 0x70], edx
+0830a32a: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a32d: c780a801000000000000 mov      dword ptr [eax + 0x1a8], 0
+0830a337: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a33a: c7808801000000000000 mov      dword ptr [eax + 0x188], 0
+0830a344: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a347: c780b001000000000000 mov      dword ptr [eax + 0x1b0], 0
+0830a351: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a354: c780b401000000000000 mov      dword ptr [eax + 0x1b4], 0
+0830a35e: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a361: c680b801000000       mov      byte ptr [eax + 0x1b8], 0
+0830a368: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a36b: c780bc010000ffffffff mov      dword ptr [eax + 0x1bc], 0xffffffff
+0830a375: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a378: c780c0010000ffffffff mov      dword ptr [eax + 0x1c0], 0xffffffff
+0830a382: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a385: c780c4010000ffffffff mov      dword ptr [eax + 0x1c4], 0xffffffff
+0830a38f: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a392: c680c801000000       mov      byte ptr [eax + 0x1c8], 0
+0830a399: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a39c: 05d0000000           add      eax, 0xd0
+0830a3a1: 890424               mov      dword ptr [esp], eax
+0830a3a4: e81343ffff           call     0x82fe6bc                           _ZN8CRidable5ClearEv
+0830a3a9: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a3ac: c680c901000000       mov      byte ptr [eax + 0x1c9], 0
+0830a3b3: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a3b6: c680ce01000000       mov      byte ptr [eax + 0x1ce], 0
+0830a3bd: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a3c0: c680cf01000000       mov      byte ptr [eax + 0x1cf], 0
+0830a3c7: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a3ca: 05d0010000           add      eax, 0x1d0
+0830a3cf: c744240818000000     mov      dword ptr [esp + 8], 0x18
+0830a3d7: c744240400000000     mov      dword ptr [esp + 4], 0
+0830a3df: 890424               mov      dword ptr [esp], eax
+0830a3e2: e8d938d7ff           call     0x807dcc0
+0830a3e7: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a3ea: c680cb01000000       mov      byte ptr [eax + 0x1cb], 0
+0830a3f1: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a3f4: c680cc01000000       mov      byte ptr [eax + 0x1cc], 0
+0830a3fb: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a3fe: c680ca01000000       mov      byte ptr [eax + 0x1ca], 0
+0830a405: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a408: 83c078               add      eax, 0x78
+0830a40b: 890424               mov      dword ptr [esp], eax
+0830a40e: e8db780000           call     0x8311cee                           _ZNSt3mapIi7MapInfoSt4lessIiESaISt4pairIKiS0_EEE5clearEv
+0830a413: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a416: 0570010000           add      eax, 0x170
+0830a41b: 890424               mov      dword ptr [esp], eax
+0830a41e: e8df780000           call     0x8311d02                           _ZNSt6vectorIN13CBattle_Field32stConditionEnterBossRoomStatus_tESaIS1_EE5clearEv
+0830a423: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a426: 0518010000           add      eax, 0x118
+0830a42b: 890424               mov      dword ptr [esp], eax
+0830a42e: e83bc7d8ff           call     0x8096b6e                           _ZNSt6vectorIiSaIiEE5clearEv
+0830a433: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a436: c7802401000000000000 mov      dword ptr [eax + 0x124], 0
+0830a440: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a443: 057c010000           add      eax, 0x17c
+0830a448: 890424               mov      dword ptr [esp], eax
+0830a44b: e8ce780000           call     0x8311d1e                           _ZNSt6vectorIN13CBattle_Field22stEventMonsterStatus_tESaIS1_EE5clearEv
+0830a450: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a453: 890424               mov      dword ptr [esp], eax
+0830a456: e82bc9ffff           call     0x8306d86                           _ZN13CBattle_Field18reset_blood_valuesEv
+0830a45b: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a45e: 05ac020000           add      eax, 0x2ac
+0830a463: 890424               mov      dword ptr [esp], eax
+0830a466: e8fbc8ffff           call     0x8306d66                           _ZN13CBattle_Field11CBloodRound18reset_blood_valuesEv
+0830a46b: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a46e: c780b402000000000000 mov      dword ptr [eax + 0x2b4], 0
+0830a478: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a47b: 05b8020000           add      eax, 0x2b8
+0830a480: 890424               mov      dword ptr [esp], eax
+0830a483: e858caffff           call     0x8306ee0                           _ZN13CBattle_Field21CBloodClearRewardData5resetEv
+0830a488: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a48b: 05840c0000           add      eax, 0xc84
+0830a490: 890424               mov      dword ptr [esp], eax
+0830a493: e80ecdffff           call     0x83071a6                           _ZN13CBattle_Field25CTowerOfDespairRewardData9reset_todEv
+0830a498: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a49b: 0fb78028010000       movzx    eax, word ptr [eax + 0x128]
+0830a4a2: 6685c0               test     ax, ax
+0830a4a5: 7440                 je       0x830a4e7
+0830a4a7: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a4aa: 0fb78028010000       movzx    eax, word ptr [eax + 0x128]
+0830a4b1: 0fb7d8               movzx    ebx, ax
+0830a4b4: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a4b7: 8b8830010000         mov      ecx, dword ptr [eax + 0x130]
+0830a4bd: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a4c0: 8b902c010000         mov      edx, dword ptr [eax + 0x12c]
+0830a4c6: a17cf74109           mov      eax, dword ptr [0x941f77c]
+0830a4cb: c744241000000000     mov      dword ptr [esp + 0x10], 0
+0830a4d3: 895c240c             mov      dword ptr [esp + 0xc], ebx
+0830a4d7: 894c2408             mov      dword ptr [esp + 8], ecx
+0830a4db: 89542404             mov      dword ptr [esp + 4], edx
+0830a4df: 890424               mov      dword ptr [esp], eax
+0830a4e2: e87da43a00           call     0x86b4964                           _ZN16village_attacked18CVillageMonsterMgr20OnKillVillageMonsterEiitb
+0830a4e7: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a4ea: 66c780280100000000   mov      word ptr [eax + 0x128], 0
+0830a4f3: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a4f6: c7802c01000000000000 mov      dword ptr [eax + 0x12c], 0
+0830a500: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a503: c7803001000000000000 mov      dword ptr [eax + 0x130], 0
+0830a50d: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a510: c7803401000000000000 mov      dword ptr [eax + 0x134], 0
+0830a51a: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a51d: c6803801000002       mov      byte ptr [eax + 0x138], 2
+0830a524: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a527: c6803901000000       mov      byte ptr [eax + 0x139], 0
+0830a52e: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a531: c6803a01000001       mov      byte ptr [eax + 0x13a], 1
+0830a538: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a53b: c680cd01000000       mov      byte ptr [eax + 0x1cd], 0
+0830a542: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a545: c6803c02000000       mov      byte ptr [eax + 0x23c], 0
+0830a54c: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a54f: c7800c010000ffffffff mov      dword ptr [eax + 0x10c], 0xffffffff
+0830a559: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a55c: c6801001000000       mov      byte ptr [eax + 0x110], 0
+0830a563: c7442404ff000000     mov      dword ptr [esp + 4], 0xff
+0830a56b: 8b4508               mov      eax, dword ptr [ebp + 8]
+0830a56e: 890424               mov      dword ptr [esp], eax
+0830a571: e8569ef9ff           call     0x82a43cc                           _ZN13CBattle_Field12SetCurSeatNoEi
+0830a576: 83c434               add      esp, 0x34
+0830a579: 5b                   pop      ebx
+0830a57a: 5d                   pop      ebp
+0830a57b: c3                   ret
+
+FUNCTION 0836421a size=747 _ZN9CWorldMap13set_world_mapEP14WorldMapScript
+0836421a: 55                   push     ebp
+0836421b: 89e5                 mov      ebp, esp
+0836421d: 53                   push     ebx
+0836421e: 83ec54               sub      esp, 0x54
+08364221: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+08364224: 8b10                 mov      edx, dword ptr [eax]
+08364226: 8b4508               mov      eax, dword ptr [ebp + 8]
+08364229: 8910                 mov      dword ptr [eax], edx
+0836422b: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+0836422e: 0fb65020             movzx    edx, byte ptr [eax + 0x20]
+08364232: 8b4508               mov      eax, dword ptr [ebp + 8]
+08364235: 885004               mov      byte ptr [eax + 4], dl
+08364238: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+0836423b: 8d5024               lea      edx, [eax + 0x24]
+0836423e: 8d45c4               lea      eax, [ebp - 0x3c]
+08364241: 89542404             mov      dword ptr [esp + 4], edx
+08364245: 890424               mov      dword ptr [esp], eax
+08364248: e81fa0d2ff           call     0x808e26c                           _ZNSt6vectorIiSaIiEE3endEv
+0836424d: 83ec04               sub      esp, 4
+08364250: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+08364253: 8d5024               lea      edx, [eax + 0x24]
+08364256: 8d45c8               lea      eax, [ebp - 0x38]
+08364259: 89542404             mov      dword ptr [esp + 4], edx
+0836425d: 890424               mov      dword ptr [esp], eax
+08364260: e8e39fd2ff           call     0x808e248                           _ZNSt6vectorIiSaIiEE5beginEv
+08364265: 83ec04               sub      esp, 4
+08364268: 8b4508               mov      eax, dword ptr [ebp + 8]
+0836426b: 8d501c               lea      edx, [eax + 0x1c]
+0836426e: 8b45c4               mov      eax, dword ptr [ebp - 0x3c]
+08364271: 89442408             mov      dword ptr [esp + 8], eax
+08364275: 8b45c8               mov      eax, dword ptr [ebp - 0x38]
+08364278: 89442404             mov      dword ptr [esp + 4], eax
+0836427c: 891424               mov      dword ptr [esp], edx
+0836427f: e8820f0300           call     0x8395206                           _ZNSt6vectorIiSaIiEE6assignIN9__gnu_cxx17__normal_iteratorIPiS1_EEEEvT_S7_
+08364284: 8b4508               mov      eax, dword ptr [ebp + 8]
+08364287: c6400c00             mov      byte ptr [eax + 0xc], 0
+0836428b: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+0836428e: 8d5030               lea      edx, [eax + 0x30]
+08364291: 8d45cc               lea      eax, [ebp - 0x34]
+08364294: 89542404             mov      dword ptr [esp + 4], edx
+08364298: 890424               mov      dword ptr [esp], eax
+0836429b: e83693d7ff           call     0x80dd5d6                           _ZNSt6vectorISt4pairIiiESaIS1_EE3endEv
+083642a0: 83ec04               sub      esp, 4
+083642a3: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+083642a6: 8d5030               lea      edx, [eax + 0x30]
+083642a9: 8d45d0               lea      eax, [ebp - 0x30]
+083642ac: 89542404             mov      dword ptr [esp + 4], edx
+083642b0: 890424               mov      dword ptr [esp], eax
+083642b3: e8fa92d7ff           call     0x80dd5b2                           _ZNSt6vectorISt4pairIiiESaIS1_EE5beginEv
+083642b8: 83ec04               sub      esp, 4
+083642bb: 8b4508               mov      eax, dword ptr [ebp + 8]
+083642be: 8d5028               lea      edx, [eax + 0x28]
+083642c1: 8b45cc               mov      eax, dword ptr [ebp - 0x34]
+083642c4: 89442408             mov      dword ptr [esp + 8], eax
+083642c8: 8b45d0               mov      eax, dword ptr [ebp - 0x30]
+083642cb: 89442404             mov      dword ptr [esp + 4], eax
+083642cf: 891424               mov      dword ptr [esp], edx
+083642d2: e8550f0300           call     0x839522c                           _ZNSt6vectorISt4pairIiiESaIS1_EE6assignIN9__gnu_cxx17__normal_iteratorIPS1_S3_EEEEvT_S9_
+083642d7: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+083642da: 8d503c               lea      edx, [eax + 0x3c]
+083642dd: 8d45d4               lea      eax, [ebp - 0x2c]
+083642e0: 89542404             mov      dword ptr [esp + 4], edx
+083642e4: 890424               mov      dword ptr [esp], eax
+083642e7: e8809fd2ff           call     0x808e26c                           _ZNSt6vectorIiSaIiEE3endEv
+083642ec: 83ec04               sub      esp, 4
+083642ef: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+083642f2: 8d503c               lea      edx, [eax + 0x3c]
+083642f5: 8d45d8               lea      eax, [ebp - 0x28]
+083642f8: 89542404             mov      dword ptr [esp + 4], edx
+083642fc: 890424               mov      dword ptr [esp], eax
+083642ff: e8449fd2ff           call     0x808e248                           _ZNSt6vectorIiSaIiEE5beginEv
+08364304: 83ec04               sub      esp, 4
+08364307: 8b4508               mov      eax, dword ptr [ebp + 8]
+0836430a: 8d5034               lea      edx, [eax + 0x34]
+0836430d: 8b45d4               mov      eax, dword ptr [ebp - 0x2c]
+08364310: 89442408             mov      dword ptr [esp + 8], eax
+08364314: 8b45d8               mov      eax, dword ptr [ebp - 0x28]
+08364317: 89442404             mov      dword ptr [esp + 4], eax
+0836431b: 891424               mov      dword ptr [esp], edx
+0836431e: e8e30e0300           call     0x8395206                           _ZNSt6vectorIiSaIiEE6assignIN9__gnu_cxx17__normal_iteratorIPiS1_EEEEvT_S7_
+08364323: 8b4508               mov      eax, dword ptr [ebp + 8]
+08364326: c74008ffffff7f       mov      dword ptr [eax + 8], 0x7fffffff
+0836432d: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+08364330: 8d5014               lea      edx, [eax + 0x14]
+08364333: 8d45dc               lea      eax, [ebp - 0x24]
+08364336: 89542404             mov      dword ptr [esp + 4], edx
+0836433a: 890424               mov      dword ptr [esp], eax
+0836433d: e8100f0300           call     0x8395252                           _ZNSt6vectorI15WorldMapDungeonSaIS0_EE5beginEv
+08364342: 83ec04               sub      esp, 4
+08364345: 8d45dc               lea      eax, [ebp - 0x24]
+08364348: 89442404             mov      dword ptr [esp + 4], eax
+0836434c: 8d45c0               lea      eax, [ebp - 0x40]
+0836434f: 890424               mov      dword ptr [esp], eax
+08364352: e81f0f0300           call     0x8395276                           _ZN9__gnu_cxx17__normal_iteratorIPK15WorldMapDungeonSt6vectorIS1_SaIS1_EEEC2IPS1_EERKNS0_IT_NS_11__enable_ifIXsrSt10__are_sameISA_S9_E7__valueES6_E6__typeEEE
+08364357: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+0836435a: 8d5014               lea      edx, [eax + 0x14]
+0836435d: 8d45e0               lea      eax, [ebp - 0x20]
+08364360: 89542404             mov      dword ptr [esp + 4], edx
+08364364: 890424               mov      dword ptr [esp], eax
+08364367: e8240f0300           call     0x8395290                           _ZNSt6vectorI15WorldMapDungeonSaIS0_EE3endEv
+0836436c: 83ec04               sub      esp, 4
+0836436f: 8d45e0               lea      eax, [ebp - 0x20]
+08364372: 89442404             mov      dword ptr [esp + 4], eax
+08364376: 8d45bc               lea      eax, [ebp - 0x44]
+08364379: 890424               mov      dword ptr [esp], eax
+0836437c: e8f50e0300           call     0x8395276                           _ZN9__gnu_cxx17__normal_iteratorIPK15WorldMapDungeonSt6vectorIS1_SaIS1_EEEC2IPS1_EERKNS0_IT_NS_11__enable_ifIXsrSt10__are_sameISA_S9_E7__valueES6_E6__typeEEE
+08364381: e960010000           jmp      0x83644e6
+08364386: 8d45c0               lea      eax, [ebp - 0x40]
+08364389: 890424               mov      dword ptr [esp], eax
+0836438c: e8670f0300           call     0x83952f8                           _ZNK9__gnu_cxx17__normal_iteratorIPK15WorldMapDungeonSt6vectorIS1_SaIS1_EEEptEv
+08364391: 8b18                 mov      ebx, dword ptr [eax]
+08364393: e8037ed6ff           call     0x80cc19b                           _Z14G_CDataManagerv
+08364398: 895c2404             mov      dword ptr [esp + 4], ebx
+0836439c: 890424               mov      dword ptr [esp], eax
+0836439f: e854b6ffff           call     0x835f9f8                           _ZNK12CDataManager12find_dungeonEi
+083643a4: 8945f4               mov      dword ptr [ebp - 0xc], eax
+083643a7: 837df400             cmp      dword ptr [ebp - 0xc], 0
+083643ab: 0f8426010000         je       0x83644d7
+083643b1: 8d45c0               lea      eax, [ebp - 0x40]
+083643b4: 890424               mov      dword ptr [esp], eax
+083643b7: e83c0f0300           call     0x83952f8                           _ZNK9__gnu_cxx17__normal_iteratorIPK15WorldMapDungeonSt6vectorIS1_SaIS1_EEEptEv
+083643bc: 8b5508               mov      edx, dword ptr [ebp + 8]
+083643bf: 83c210               add      edx, 0x10
+083643c2: 89442404             mov      dword ptr [esp + 4], eax
+083643c6: 891424               mov      dword ptr [esp], edx
+083643c9: e858cddaff           call     0x8111126                           _ZNSt6vectorIiSaIiEE9push_backERKi
+083643ce: 8b45f4               mov      eax, dword ptr [ebp - 0xc]
+083643d1: 890424               mov      dword ptr [esp], eax
+083643d4: e8e770ecff           call     0x822b4c0                           _ZNK8CDungeon14getDungeonKindEv
+083643d9: 83f801               cmp      eax, 1
+083643dc: 0f94c0               sete     al
+083643df: 84c0                 test     al, al
+083643e1: 7437                 je       0x836441a
+083643e3: 8b45f4               mov      eax, dword ptr [ebp - 0xc]
+083643e6: 890424               mov      dword ptr [esp], eax
+083643e9: e8ac11deff           call     0x814559a                           _ZNK8CDungeon13get_min_levelEv
+083643ee: 8945e4               mov      dword ptr [ebp - 0x1c], eax
+083643f1: 8b4508               mov      eax, dword ptr [ebp + 8]
+083643f4: 8d5008               lea      edx, [eax + 8]
+083643f7: 8d45e4               lea      eax, [ebp - 0x1c]
+083643fa: 89442404             mov      dword ptr [esp + 4], eax
+083643fe: 891424               mov      dword ptr [esp], edx
+08364401: e808b5d7ff           call     0x80df90e                           _ZSt3minIiERKT_S2_S2_
+08364406: 8b10                 mov      edx, dword ptr [eax]
+08364408: 8b4508               mov      eax, dword ptr [ebp + 8]
+0836440b: 895008               mov      dword ptr [eax + 8], edx
+0836440e: 8b4508               mov      eax, dword ptr [ebp + 8]
+08364411: c6400c01             mov      byte ptr [eax + 0xc], 1
+08364415: e9c1000000           jmp      0x83644db
+0836441a: 8b45f4               mov      eax, dword ptr [ebp - 0xc]
+0836441d: 890424               mov      dword ptr [esp], eax
+08364420: e89b70ecff           call     0x822b4c0                           _ZNK8CDungeon14getDungeonKindEv
+08364425: 83f802               cmp      eax, 2
+08364428: 0f94c0               sete     al
+0836442b: 84c0                 test     al, al
+0836442d: 742d                 je       0x836445c
+0836442f: 8b45f4               mov      eax, dword ptr [ebp - 0xc]
+08364432: 890424               mov      dword ptr [esp], eax
+08364435: e86011deff           call     0x814559a                           _ZNK8CDungeon13get_min_levelEv
+0836443a: 8945e8               mov      dword ptr [ebp - 0x18], eax
+0836443d: 8b4508               mov      eax, dword ptr [ebp + 8]
+08364440: 8d5008               lea      edx, [eax + 8]
+08364443: 8d45e8               lea      eax, [ebp - 0x18]
+08364446: 89442404             mov      dword ptr [esp + 4], eax
+0836444a: 891424               mov      dword ptr [esp], edx
+0836444d: e8bcb4d7ff           call     0x80df90e                           _ZSt3minIiERKT_S2_S2_
+08364452: 8b10                 mov      edx, dword ptr [eax]
+08364454: 8b4508               mov      eax, dword ptr [ebp + 8]
+08364457: 895008               mov      dword ptr [eax + 8], edx
+0836445a: eb7f                 jmp      0x83644db
+0836445c: 8b45f4               mov      eax, dword ptr [ebp - 0xc]
+0836445f: 0fb6807a080000       movzx    eax, byte ptr [eax + 0x87a]
+08364466: 84c0                 test     al, al
+08364468: 7570                 jne      0x83644da
+0836446a: 8b45f4               mov      eax, dword ptr [ebp - 0xc]
+0836446d: 890424               mov      dword ptr [esp], eax
+08364470: e87b98d9ff           call     0x80fdcf0                           _ZNK8CDungeon9get_indexEv
+08364475: 83f864               cmp      eax, 0x64
+08364478: 0f94c0               sete     al
+0836447b: 84c0                 test     al, al
+0836447d: 742b                 je       0x83644aa
+0836447f: 8b45f4               mov      eax, dword ptr [ebp - 0xc]
+08364482: 890424               mov      dword ptr [esp], eax
+08364485: e81011deff           call     0x814559a                           _ZNK8CDungeon13get_min_levelEv
+0836448a: 8945ec               mov      dword ptr [ebp - 0x14], eax
+0836448d: 8b4508               mov      eax, dword ptr [ebp + 8]
+08364490: 8d5008               lea      edx, [eax + 8]
+08364493: 8d45ec               lea      eax, [ebp - 0x14]
+08364496: 89442404             mov      dword ptr [esp + 4], eax
+0836449a: 891424               mov      dword ptr [esp], edx
+0836449d: e86cb4d7ff           call     0x80df90e                           _ZSt3minIiERKT_S2_S2_
+083644a2: 8b10                 mov      edx, dword ptr [eax]
+083644a4: 8b4508               mov      eax, dword ptr [ebp + 8]
+083644a7: 895008               mov      dword ptr [eax + 8], edx
+083644aa: 8b45f4               mov      eax, dword ptr [ebp - 0xc]
+083644ad: 890424               mov      dword ptr [esp], eax
+083644b0: e85b53d9ff           call     0x80f9810                           _ZNK8CDungeon18get_standard_levelEv
+083644b5: 8945f0               mov      dword ptr [ebp - 0x10], eax
+083644b8: 8b4508               mov      eax, dword ptr [ebp + 8]
+083644bb: 8d5008               lea      edx, [eax + 8]
+083644be: 8d45f0               lea      eax, [ebp - 0x10]
+083644c1: 89442404             mov      dword ptr [esp + 4], eax
+083644c5: 891424               mov      dword ptr [esp], edx
+083644c8: e841b4d7ff           call     0x80df90e                           _ZSt3minIiERKT_S2_S2_
+083644cd: 8b10                 mov      edx, dword ptr [eax]
+083644cf: 8b4508               mov      eax, dword ptr [ebp + 8]
+083644d2: 895008               mov      dword ptr [eax + 8], edx
+083644d5: eb04                 jmp      0x83644db
+083644d7: 90                   nop
+083644d8: eb01                 jmp      0x83644db
+083644da: 90                   nop
+083644db: 8d45c0               lea      eax, [ebp - 0x40]
+083644de: 890424               mov      dword ptr [esp], eax
+083644e1: e8fc0d0300           call     0x83952e2                           _ZN9__gnu_cxx17__normal_iteratorIPK15WorldMapDungeonSt6vectorIS1_SaIS1_EEEppEv
+083644e6: 8d45bc               lea      eax, [ebp - 0x44]
+083644e9: 89442404             mov      dword ptr [esp + 4], eax
+083644ed: 8d45c0               lea      eax, [ebp - 0x40]
+083644f0: 890424               mov      dword ptr [esp], eax
+083644f3: e8be0d0300           call     0x83952b6                           _ZN9__gnu_cxxneIPK15WorldMapDungeonSt6vectorIS1_SaIS1_EEEEbRKNS_17__normal_iteratorIT_T0_EESC_
+083644f8: 84c0                 test     al, al
+083644fa: 0f8586feffff         jne      0x8364386
+08364500: 8b5dfc               mov      ebx, dword ptr [ebp - 4]
+08364503: c9                   leave
+08364504: c3                   ret
+
+FUNCTION 08533bc8 size=1712 _ZN8WongWork17CItemGeneratorMgr10initializeEv
+08533bc8: 55                   push     ebp
+08533bc9: 89e5                 mov      ebp, esp
+08533bcb: 57                   push     edi
+08533bcc: 56                   push     esi
+08533bcd: 53                   push     ebx
+08533bce: 83ec3c               sub      esp, 0x3c
+08533bd1: c70424a4932500       mov      dword ptr [esp], 0x2593a4
+08533bd8: e873081f00           call     0x8724450                           _Znwj
+08533bdd: 89c3                 mov      ebx, eax
+08533bdf: 89d8                 mov      eax, ebx
+08533be1: c744240403000000     mov      dword ptr [esp + 4], 3
+08533be9: 890424               mov      dword ptr [esp], eax
+08533bec: e8d76a0000           call     0x853a6c8                           _ZN8WongWork12CMonsterDropC2Ei
+08533bf1: eb18                 jmp      0x8533c0b
+08533bf3: 89d6                 mov      esi, edx
+08533bf5: 89c7                 mov      edi, eax
+08533bf7: 891c24               mov      dword ptr [esp], ebx
+08533bfa: e8f1081f00           call     0x87244f0                           _ZdlPv
+08533bff: 89f8                 mov      eax, edi
+08533c01: 89f2                 mov      edx, esi
+08533c03: 890424               mov      dword ptr [esp], eax
+08533c06: e845fb5a00           call     0x8ae3750                           _Unwind_Resume
+08533c0b: 89d8                 mov      eax, ebx
+08533c0d: 89c2                 mov      edx, eax
+08533c0f: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533c12: 8990c0030000         mov      dword ptr [eax + 0x3c0], edx
+08533c18: c70424a4932500       mov      dword ptr [esp], 0x2593a4
+08533c1f: e82c081f00           call     0x8724450                           _Znwj
+08533c24: 89c3                 mov      ebx, eax
+08533c26: 89d8                 mov      eax, ebx
+08533c28: c744240403000000     mov      dword ptr [esp + 4], 3
+08533c30: 890424               mov      dword ptr [esp], eax
+08533c33: e8c06b0000           call     0x853a7f8                           _ZN8WongWork11CObjectDropC2Ei
+08533c38: eb18                 jmp      0x8533c52
+08533c3a: 89d6                 mov      esi, edx
+08533c3c: 89c7                 mov      edi, eax
+08533c3e: 891c24               mov      dword ptr [esp], ebx
+08533c41: e8aa081f00           call     0x87244f0                           _ZdlPv
+08533c46: 89f8                 mov      eax, edi
+08533c48: 89f2                 mov      edx, esi
+08533c4a: 890424               mov      dword ptr [esp], eax
+08533c4d: e8fefa5a00           call     0x8ae3750                           _Unwind_Resume
+08533c52: 89d8                 mov      eax, ebx
+08533c54: 89c2                 mov      edx, eax
+08533c56: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533c59: 8990c4030000         mov      dword ptr [eax + 0x3c4], edx
+08533c5f: c70424843b0200       mov      dword ptr [esp], 0x23b84
+08533c66: e8e5071f00           call     0x8724450                           _Znwj
+08533c6b: 89c3                 mov      ebx, eax
+08533c6d: 89d8                 mov      eax, ebx
+08533c6f: c744240405000000     mov      dword ptr [esp + 4], 5
+08533c77: 890424               mov      dword ptr [esp], eax
+08533c7a: e8e96c0000           call     0x853a968                           _ZN8WongWork12CClearRewardC2Ei
+08533c7f: eb18                 jmp      0x8533c99
+08533c81: 89d6                 mov      esi, edx
+08533c83: 89c7                 mov      edi, eax
+08533c85: 891c24               mov      dword ptr [esp], ebx
+08533c88: e863081f00           call     0x87244f0                           _ZdlPv
+08533c8d: 89f8                 mov      eax, edi
+08533c8f: 89f2                 mov      edx, esi
+08533c91: 890424               mov      dword ptr [esp], eax
+08533c94: e8b7fa5a00           call     0x8ae3750                           _Unwind_Resume
+08533c99: 89d8                 mov      eax, ebx
+08533c9b: 89c2                 mov      edx, eax
+08533c9d: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533ca0: 8990c8030000         mov      dword ptr [eax + 0x3c8], edx
+08533ca6: c70424801f0000       mov      dword ptr [esp], 0x1f80
+08533cad: e89e071f00           call     0x8724450                           _Znwj
+08533cb2: 89c3                 mov      ebx, eax
+08533cb4: 89d8                 mov      eax, ebx
+08533cb6: c744240402000000     mov      dword ptr [esp + 4], 2
+08533cbe: 890424               mov      dword ptr [esp], eax
+08533cc1: e8606b0000           call     0x853a826                           _ZN8WongWork10CWorldDropC2Ei
+08533cc6: eb18                 jmp      0x8533ce0
+08533cc8: 89d6                 mov      esi, edx
+08533cca: 89c7                 mov      edi, eax
+08533ccc: 891c24               mov      dword ptr [esp], ebx
+08533ccf: e81c081f00           call     0x87244f0                           _ZdlPv
+08533cd4: 89f8                 mov      eax, edi
+08533cd6: 89f2                 mov      edx, esi
+08533cd8: 890424               mov      dword ptr [esp], eax
+08533cdb: e870fa5a00           call     0x8ae3750                           _Unwind_Resume
+08533ce0: 89d8                 mov      eax, ebx
+08533ce2: 89c2                 mov      edx, eax
+08533ce4: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533ce7: 8990cc030000         mov      dword ptr [eax + 0x3cc], edx
+08533ced: c7042418000000       mov      dword ptr [esp], 0x18
+08533cf4: e857071f00           call     0x8724450                           _Znwj
+08533cf9: 89c3                 mov      ebx, eax
+08533cfb: 89d8                 mov      eax, ebx
+08533cfd: c744240402000000     mov      dword ptr [esp + 4], 2
+08533d05: 890424               mov      dword ptr [esp], eax
+08533d08: e8b56e0000           call     0x853abc2                           _ZN8WongWork12CDungeonDropC2Ei
+08533d0d: eb18                 jmp      0x8533d27
+08533d0f: 89d6                 mov      esi, edx
+08533d11: 89c7                 mov      edi, eax
+08533d13: 891c24               mov      dword ptr [esp], ebx
+08533d16: e8d5071f00           call     0x87244f0                           _ZdlPv
+08533d1b: 89f8                 mov      eax, edi
+08533d1d: 89f2                 mov      edx, esi
+08533d1f: 890424               mov      dword ptr [esp], eax
+08533d22: e829fa5a00           call     0x8ae3750                           _Unwind_Resume
+08533d27: 89d8                 mov      eax, ebx
+08533d29: 89c2                 mov      edx, eax
+08533d2b: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533d2e: 8990d0030000         mov      dword ptr [eax + 0x3d0], edx
+08533d34: c70424801f0000       mov      dword ptr [esp], 0x1f80
+08533d3b: e810071f00           call     0x8724450                           _Znwj
+08533d40: 89c3                 mov      ebx, eax
+08533d42: 89d8                 mov      eax, ebx
+08533d44: c744240402000000     mov      dword ptr [esp + 4], 2
+08533d4c: 890424               mov      dword ptr [esp], eax
+08533d4f: e8d26a0000           call     0x853a826                           _ZN8WongWork10CWorldDropC2Ei
+08533d54: eb18                 jmp      0x8533d6e
+08533d56: 89d6                 mov      esi, edx
+08533d58: 89c7                 mov      edi, eax
+08533d5a: 891c24               mov      dword ptr [esp], ebx
+08533d5d: e88e071f00           call     0x87244f0                           _ZdlPv
+08533d62: 89f8                 mov      eax, edi
+08533d64: 89f2                 mov      edx, esi
+08533d66: 890424               mov      dword ptr [esp], eax
+08533d69: e8e2f95a00           call     0x8ae3750                           _Unwind_Resume
+08533d6e: 89d8                 mov      eax, ebx
+08533d70: 89c2                 mov      edx, eax
+08533d72: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533d75: 8990d4030000         mov      dword ptr [eax + 0x3d4], edx
+08533d7b: c70424801f0000       mov      dword ptr [esp], 0x1f80
+08533d82: e8c9061f00           call     0x8724450                           _Znwj
+08533d87: 89c3                 mov      ebx, eax
+08533d89: 89d8                 mov      eax, ebx
+08533d8b: c744240402000000     mov      dword ptr [esp + 4], 2
+08533d93: 890424               mov      dword ptr [esp], eax
+08533d96: e88b6a0000           call     0x853a826                           _ZN8WongWork10CWorldDropC2Ei
+08533d9b: eb18                 jmp      0x8533db5
+08533d9d: 89d6                 mov      esi, edx
+08533d9f: 89c7                 mov      edi, eax
+08533da1: 891c24               mov      dword ptr [esp], ebx
+08533da4: e847071f00           call     0x87244f0                           _ZdlPv
+08533da9: 89f8                 mov      eax, edi
+08533dab: 89f2                 mov      edx, esi
+08533dad: 890424               mov      dword ptr [esp], eax
+08533db0: e89bf95a00           call     0x8ae3750                           _Unwind_Resume
+08533db5: 89d8                 mov      eax, ebx
+08533db7: 89c2                 mov      edx, eax
+08533db9: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533dbc: 8990d8030000         mov      dword ptr [eax + 0x3d8], edx
+08533dc2: c70424801f0000       mov      dword ptr [esp], 0x1f80
+08533dc9: e882061f00           call     0x8724450                           _Znwj
+08533dce: 89c3                 mov      ebx, eax
+08533dd0: 89d8                 mov      eax, ebx
+08533dd2: c744240402000000     mov      dword ptr [esp + 4], 2
+08533dda: 890424               mov      dword ptr [esp], eax
+08533ddd: e8446a0000           call     0x853a826                           _ZN8WongWork10CWorldDropC2Ei
+08533de2: eb18                 jmp      0x8533dfc
+08533de4: 89d6                 mov      esi, edx
+08533de6: 89c7                 mov      edi, eax
+08533de8: 891c24               mov      dword ptr [esp], ebx
+08533deb: e800071f00           call     0x87244f0                           _ZdlPv
+08533df0: 89f8                 mov      eax, edi
+08533df2: 89f2                 mov      edx, esi
+08533df4: 890424               mov      dword ptr [esp], eax
+08533df7: e854f95a00           call     0x8ae3750                           _Unwind_Resume
+08533dfc: 89d8                 mov      eax, ebx
+08533dfe: 89c2                 mov      edx, eax
+08533e00: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533e03: 8990dc030000         mov      dword ptr [eax + 0x3dc], edx
+08533e09: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533e0c: 8b80c0030000         mov      eax, dword ptr [eax + 0x3c0]
+08533e12: c744240400000000     mov      dword ptr [esp + 4], 0
+08533e1a: 890424               mov      dword ptr [esp], eax
+08533e1d: e8ea650000           call     0x853a40c                           _ZN8WongWork14CItemGenerator16setGeneratorTypeEi
+08533e22: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533e25: 8b80c4030000         mov      eax, dword ptr [eax + 0x3c4]
+08533e2b: c744240401000000     mov      dword ptr [esp + 4], 1
+08533e33: 890424               mov      dword ptr [esp], eax
+08533e36: e8d1650000           call     0x853a40c                           _ZN8WongWork14CItemGenerator16setGeneratorTypeEi
+08533e3b: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533e3e: 8b80c8030000         mov      eax, dword ptr [eax + 0x3c8]
+08533e44: c744240402000000     mov      dword ptr [esp + 4], 2
+08533e4c: 890424               mov      dword ptr [esp], eax
+08533e4f: e8b8650000           call     0x853a40c                           _ZN8WongWork14CItemGenerator16setGeneratorTypeEi
+08533e54: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533e57: 8b80cc030000         mov      eax, dword ptr [eax + 0x3cc]
+08533e5d: c744240403000000     mov      dword ptr [esp + 4], 3
+08533e65: 890424               mov      dword ptr [esp], eax
+08533e68: e89f650000           call     0x853a40c                           _ZN8WongWork14CItemGenerator16setGeneratorTypeEi
+08533e6d: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533e70: 8b80d0030000         mov      eax, dword ptr [eax + 0x3d0]
+08533e76: c744240404000000     mov      dword ptr [esp + 4], 4
+08533e7e: 890424               mov      dword ptr [esp], eax
+08533e81: e886650000           call     0x853a40c                           _ZN8WongWork14CItemGenerator16setGeneratorTypeEi
+08533e86: c745dc00000000       mov      dword ptr [ebp - 0x24], 0
+08533e8d: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533e90: 8b80c0030000         mov      eax, dword ptr [eax + 0x3c0]
+08533e96: c744240c3494c908     mov      dword ptr [esp + 0xc], 0x8c99434
+08533e9e: c74424085894c908     mov      dword ptr [esp + 8], 0x8c99458
+08533ea6: c74424047a94c908     mov      dword ptr [esp + 4], 0x8c9947a
+08533eae: 890424               mov      dword ptr [esp], eax
+08533eb1: e844420000           call     0x85380fa                           _ZN8WongWork12CMonsterDrop10loadScriptEPKcS2_S2_
+08533eb6: 8945dc               mov      dword ptr [ebp - 0x24], eax
+08533eb9: 837ddc00             cmp      dword ptr [ebp - 0x24], 0
+08533ebd: 0f95c0               setne    al
+08533ec0: 84c0                 test     al, al
+08533ec2: 742b                 je       0x8533eef
+08533ec4: c7042404000000       mov      dword ptr [esp], 4
+08533ecb: e830191f00           call     0x8725800                           __cxa_allocate_exception
+08533ed0: 89c2                 mov      edx, eax
+08533ed2: 8b4ddc               mov      ecx, dword ptr [ebp - 0x24]
+08533ed5: 890a                 mov      dword ptr [edx], ecx
+08533ed7: c744240800000000     mov      dword ptr [esp + 8], 0
+08533edf: c7442404e0b13609     mov      dword ptr [esp + 4], 0x936b1e0
+08533ee7: 890424               mov      dword ptr [esp], eax
+08533eea: e8610d1f00           call     0x8724c50                           __cxa_throw
+08533eef: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533ef2: 8b80c4030000         mov      eax, dword ptr [eax + 0x3c4]
+08533ef8: 8b00                 mov      eax, dword ptr [eax]
+08533efa: 83c004               add      eax, 4
+08533efd: 8b10                 mov      edx, dword ptr [eax]
+08533eff: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533f02: 8b80c4030000         mov      eax, dword ptr [eax + 0x3c4]
+08533f08: c74424049894c908     mov      dword ptr [esp + 4], 0x8c99498
+08533f10: 890424               mov      dword ptr [esp], eax
+08533f13: ffd2                 call     edx
+08533f15: 8945dc               mov      dword ptr [ebp - 0x24], eax
+08533f18: 837ddc00             cmp      dword ptr [ebp - 0x24], 0
+08533f1c: 0f95c0               setne    al
+08533f1f: 84c0                 test     al, al
+08533f21: 742b                 je       0x8533f4e
+08533f23: c7042404000000       mov      dword ptr [esp], 4
+08533f2a: e8d1181f00           call     0x8725800                           __cxa_allocate_exception
+08533f2f: 89c2                 mov      edx, eax
+08533f31: 8b4ddc               mov      ecx, dword ptr [ebp - 0x24]
+08533f34: 890a                 mov      dword ptr [edx], ecx
+08533f36: c744240800000000     mov      dword ptr [esp + 8], 0
+08533f3e: c7442404e0b13609     mov      dword ptr [esp + 4], 0x936b1e0
+08533f46: 890424               mov      dword ptr [esp], eax
+08533f49: e8020d1f00           call     0x8724c50                           __cxa_throw
+08533f4e: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533f51: 8b80c8030000         mov      eax, dword ptr [eax + 0x3c8]
+08533f57: 8b00                 mov      eax, dword ptr [eax]
+08533f59: 83c004               add      eax, 4
+08533f5c: 8b10                 mov      edx, dword ptr [eax]
+08533f5e: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533f61: 8b80c8030000         mov      eax, dword ptr [eax + 0x3c8]
+08533f67: c7442404b494c908     mov      dword ptr [esp + 4], 0x8c994b4
+08533f6f: 890424               mov      dword ptr [esp], eax
+08533f72: ffd2                 call     edx
+08533f74: 8945dc               mov      dword ptr [ebp - 0x24], eax
+08533f77: 837ddc00             cmp      dword ptr [ebp - 0x24], 0
+08533f7b: 0f95c0               setne    al
+08533f7e: 84c0                 test     al, al
+08533f80: 742b                 je       0x8533fad
+08533f82: c7042404000000       mov      dword ptr [esp], 4
+08533f89: e872181f00           call     0x8725800                           __cxa_allocate_exception
+08533f8e: 89c2                 mov      edx, eax
+08533f90: 8b4ddc               mov      ecx, dword ptr [ebp - 0x24]
+08533f93: 890a                 mov      dword ptr [edx], ecx
+08533f95: c744240800000000     mov      dword ptr [esp + 8], 0
+08533f9d: c7442404e0b13609     mov      dword ptr [esp + 4], 0x936b1e0
+08533fa5: 890424               mov      dword ptr [esp], eax
+08533fa8: e8a30c1f00           call     0x8724c50                           __cxa_throw
+08533fad: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533fb0: 8b80cc030000         mov      eax, dword ptr [eax + 0x3cc]
+08533fb6: c7442408d594c908     mov      dword ptr [esp + 8], 0x8c994d5
+08533fbe: c7442404ee94c908     mov      dword ptr [esp + 4], 0x8c994ee
+08533fc6: 890424               mov      dword ptr [esp], eax
+08533fc9: e88e450000           call     0x853855c                           _ZN8WongWork10CWorldDrop10loadScriptEPKcS2_
+08533fce: 8945dc               mov      dword ptr [ebp - 0x24], eax
+08533fd1: 837ddc00             cmp      dword ptr [ebp - 0x24], 0
+08533fd5: 0f95c0               setne    al
+08533fd8: 84c0                 test     al, al
+08533fda: 742b                 je       0x8534007
+08533fdc: c7042404000000       mov      dword ptr [esp], 4
+08533fe3: e818181f00           call     0x8725800                           __cxa_allocate_exception
+08533fe8: 89c2                 mov      edx, eax
+08533fea: 8b4ddc               mov      ecx, dword ptr [ebp - 0x24]
+08533fed: 890a                 mov      dword ptr [edx], ecx
+08533fef: c744240800000000     mov      dword ptr [esp + 8], 0
+08533ff7: c7442404e0b13609     mov      dword ptr [esp + 4], 0x936b1e0
+08533fff: 890424               mov      dword ptr [esp], eax
+08534002: e8490c1f00           call     0x8724c50                           __cxa_throw
+08534007: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853400a: 8b80d0030000         mov      eax, dword ptr [eax + 0x3d0]
+08534010: 8b00                 mov      eax, dword ptr [eax]
+08534012: 83c004               add      eax, 4
+08534015: 8b10                 mov      edx, dword ptr [eax]
+08534017: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853401a: 8b80d0030000         mov      eax, dword ptr [eax + 0x3d0]
+08534020: c74424040095c908     mov      dword ptr [esp + 4], 0x8c99500
+08534028: 890424               mov      dword ptr [esp], eax
+0853402b: ffd2                 call     edx
+0853402d: 8945dc               mov      dword ptr [ebp - 0x24], eax
+08534030: 837ddc00             cmp      dword ptr [ebp - 0x24], 0
+08534034: 0f95c0               setne    al
+08534037: 84c0                 test     al, al
+08534039: 742b                 je       0x8534066
+0853403b: c7042404000000       mov      dword ptr [esp], 4
+08534042: e8b9171f00           call     0x8725800                           __cxa_allocate_exception
+08534047: 89c2                 mov      edx, eax
+08534049: 8b4ddc               mov      ecx, dword ptr [ebp - 0x24]
+0853404c: 890a                 mov      dword ptr [edx], ecx
+0853404e: c744240800000000     mov      dword ptr [esp + 8], 0
+08534056: c7442404e0b13609     mov      dword ptr [esp + 4], 0x936b1e0
+0853405e: 890424               mov      dword ptr [esp], eax
+08534061: e8ea0b1f00           call     0x8724c50                           __cxa_throw
+08534066: 8b4508               mov      eax, dword ptr [ebp + 8]
+08534069: 8b80d4030000         mov      eax, dword ptr [eax + 0x3d4]
+0853406f: c74424080495c908     mov      dword ptr [esp + 8], 0x8c99504
+08534077: c74424042395c908     mov      dword ptr [esp + 4], 0x8c99523
+0853407f: 890424               mov      dword ptr [esp], eax
+08534082: e8d5440000           call     0x853855c                           _ZN8WongWork10CWorldDrop10loadScriptEPKcS2_
+08534087: 8945dc               mov      dword ptr [ebp - 0x24], eax
+0853408a: 837ddc00             cmp      dword ptr [ebp - 0x24], 0
+0853408e: 0f95c0               setne    al
+08534091: 84c0                 test     al, al
+08534093: 742b                 je       0x85340c0
+08534095: c7042404000000       mov      dword ptr [esp], 4
+0853409c: e85f171f00           call     0x8725800                           __cxa_allocate_exception
+085340a1: 89c2                 mov      edx, eax
+085340a3: 8b4ddc               mov      ecx, dword ptr [ebp - 0x24]
+085340a6: 890a                 mov      dword ptr [edx], ecx
+085340a8: c744240800000000     mov      dword ptr [esp + 8], 0
+085340b0: c7442404e0b13609     mov      dword ptr [esp + 4], 0x936b1e0
+085340b8: 890424               mov      dword ptr [esp], eax
+085340bb: e8900b1f00           call     0x8724c50                           __cxa_throw
+085340c0: 8b4508               mov      eax, dword ptr [ebp + 8]
+085340c3: 8b80d8030000         mov      eax, dword ptr [eax + 0x3d8]
+085340c9: c74424080495c908     mov      dword ptr [esp + 8], 0x8c99504
+085340d1: c74424043b95c908     mov      dword ptr [esp + 4], 0x8c9953b
+085340d9: 890424               mov      dword ptr [esp], eax
+085340dc: e87b440000           call     0x853855c                           _ZN8WongWork10CWorldDrop10loadScriptEPKcS2_
+085340e1: 8945dc               mov      dword ptr [ebp - 0x24], eax
+085340e4: 837ddc00             cmp      dword ptr [ebp - 0x24], 0
+085340e8: 0f95c0               setne    al
+085340eb: 84c0                 test     al, al
+085340ed: 742b                 je       0x853411a
+085340ef: c7042404000000       mov      dword ptr [esp], 4
+085340f6: e805171f00           call     0x8725800                           __cxa_allocate_exception
+085340fb: 89c2                 mov      edx, eax
+085340fd: 8b4ddc               mov      ecx, dword ptr [ebp - 0x24]
+08534100: 890a                 mov      dword ptr [edx], ecx
+08534102: c744240800000000     mov      dword ptr [esp + 8], 0
+0853410a: c7442404e0b13609     mov      dword ptr [esp + 4], 0x936b1e0
+08534112: 890424               mov      dword ptr [esp], eax
+08534115: e8360b1f00           call     0x8724c50                           __cxa_throw
+0853411a: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853411d: 05e0030000           add      eax, 0x3e0
+08534122: c74424045495c908     mov      dword ptr [esp + 4], 0x8c99554
+0853412a: 890424               mov      dword ptr [esp], eax
+0853412d: e824030000           call     0x8534456                           _ZN8WongWork20CGeneratorCommonData10loadScriptEPKc
+08534132: 8945dc               mov      dword ptr [ebp - 0x24], eax
+08534135: 837ddc00             cmp      dword ptr [ebp - 0x24], 0
+08534139: 0f95c0               setne    al
+0853413c: 84c0                 test     al, al
+0853413e: 0f84a6000000         je       0x85341ea
+08534144: c7042404000000       mov      dword ptr [esp], 4
+0853414b: e8b0161f00           call     0x8725800                           __cxa_allocate_exception
+08534150: 89c2                 mov      edx, eax
+08534152: 8b4ddc               mov      ecx, dword ptr [ebp - 0x24]
+08534155: 890a                 mov      dword ptr [edx], ecx
+08534157: c744240800000000     mov      dword ptr [esp + 8], 0
+0853415f: c7442404e0b13609     mov      dword ptr [esp + 4], 0x936b1e0
+08534167: 890424               mov      dword ptr [esp], eax
+0853416a: e8e10a1f00           call     0x8724c50                           __cxa_throw
+0853416f: 83fa01               cmp      edx, 1
+08534172: 7408                 je       0x853417c
+08534174: 890424               mov      dword ptr [esp], eax
+08534177: e8d4f55a00           call     0x8ae3750                           _Unwind_Resume
+0853417c: 890424               mov      dword ptr [esp], eax
+0853417f: e85c1b1f00           call     0x8725ce0                           __cxa_begin_catch
+08534184: 8b00                 mov      eax, dword ptr [eax]
+08534186: 8945e0               mov      dword ptr [ebp - 0x20], eax
+08534189: c744240c05000000     mov      dword ptr [esp + 0xc], 5
+08534191: c74424089a010000     mov      dword ptr [esp + 8], 0x19a
+08534199: c7442404a0a6c908     mov      dword ptr [esp + 4], 0x8c9a6a0
+085341a1: 8d45cc               lea      eax, [ebp - 0x34]
+085341a4: 890424               mov      dword ptr [esp], eax
+085341a7: e86cb50100           call     0x854f718                           _ZN8cMyTraceC2EPKcii
+085341ac: 8b45e0               mov      eax, dword ptr [ebp - 0x20]
+085341af: 89442408             mov      dword ptr [esp + 8], eax
+085341b3: c74424047095c908     mov      dword ptr [esp + 4], 0x8c99570
+085341bb: 8d45cc               lea      eax, [ebp - 0x34]
+085341be: 890424               mov      dword ptr [esp], eax
+085341c1: e8c2b50100           call     0x854f788                           _ZN8cMyTraceclEPKcz
+085341c6: bb00000000           mov      ebx, 0
+085341cb: e8601a1f00           call     0x8725c30                           __cxa_end_catch
+085341d0: e999000000           jmp      0x853426e
+085341d5: 89d3                 mov      ebx, edx
+085341d7: 89c6                 mov      esi, eax
+085341d9: e8521a1f00           call     0x8725c30                           __cxa_end_catch
+085341de: 89f0                 mov      eax, esi
+085341e0: 89da                 mov      edx, ebx
+085341e2: 890424               mov      dword ptr [esp], eax
+085341e5: e866f55a00           call     0x8ae3750                           _Unwind_Resume
+085341ea: c745e400000000       mov      dword ptr [ebp - 0x1c], 0
+085341f1: eb28                 jmp      0x853421b
+085341f3: 8b4508               mov      eax, dword ptr [ebp + 8]
+085341f6: 8d90e0030000         lea      edx, [eax + 0x3e0]
+085341fc: 8b4de4               mov      ecx, dword ptr [ebp - 0x1c]
+085341ff: 8b4508               mov      eax, dword ptr [ebp + 8]
+08534202: 81c1f0000000         add      ecx, 0xf0
+08534208: 8b0488               mov      eax, dword ptr [eax + ecx*4]
+0853420b: 89542404             mov      dword ptr [esp + 4], edx
+0853420f: 890424               mov      dword ptr [esp], eax
+08534212: e8cb610000           call     0x853a3e2                           _ZN8WongWork14CItemGenerator13setCommonDataEPNS_20CGeneratorCommonDataE
+08534217: 8345e401             add      dword ptr [ebp - 0x1c], 1
+0853421b: 837de407             cmp      dword ptr [ebp - 0x1c], 7
+0853421f: 0f9ec0               setle    al
+08534222: 84c0                 test     al, al
+08534224: 75cd                 jne      0x85341f3
+08534226: 8b4508               mov      eax, dword ptr [ebp + 8]
+08534229: c7442408c0030000     mov      dword ptr [esp + 8], 0x3c0
+08534231: c744240400000000     mov      dword ptr [esp + 4], 0
+08534239: 890424               mov      dword ptr [esp], eax
+0853423c: e87f9ab4ff           call     0x807dcc0
+08534241: c7042414f74109       mov      dword ptr [esp], 0x941f714
+08534248: e8517ab9ff           call     0x80cbc9e                           _ZN11CSystemTime9getCurSecEv
+0853424d: 890424               mov      dword ptr [esp], eax
+08534250: e8c3301000           call     0x8637318                           _ZN33TimerUpdateItemGenerateStatistics15registNextTimerEl
+08534255: b80000803f           mov      eax, 0x3f800000
+0853425a: 89442404             mov      dword ptr [esp + 4], eax
+0853425e: 8b4508               mov      eax, dword ptr [ebp + 8]
+08534261: 890424               mov      dword ptr [esp], eax
+08534264: e80f000000           call     0x8534278                           _ZN8WongWork17CItemGeneratorMgr12setDropRatioEf
+08534269: bb01000000           mov      ebx, 1
+0853426e: 89d8                 mov      eax, ebx
+08534270: 83c43c               add      esp, 0x3c
+08534273: 5b                   pop      ebx
+08534274: 5e                   pop      esi
+08534275: 5f                   pop      edi
+08534276: 5d                   pop      ebp
+08534277: c3                   ret
+
+FUNCTION 0859d718 size=2489 _ZN6CParty10game_startEP5CUser
+0859d718: 55                   push     ebp
+0859d719: 89e5                 mov      ebp, esp
+0859d71b: 56                   push     esi
+0859d71c: 53                   push     ebx
+0859d71d: 81ecb0000000         sub      esp, 0xb0
+0859d723: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859d726: 0fb6406a             movzx    eax, byte ptr [eax + 0x6a]
+0859d72a: 3c02                 cmp      al, 2
+0859d72c: 0f8494090000         je       0x859e0c6
+0859d732: 8d45ac               lea      eax, [ebp - 0x54]
+0859d735: 890424               mov      dword ptr [esp], eax
+0859d738: e80f06ffff           call     0x858dd4c                           _ZN11PacketGuardC2Ev
+0859d73d: 8d45ac               lea      eax, [ebp - 0x54]
+0859d740: 890424               mov      dword ptr [esp], eax
+0859d743: e89ee1b2ff           call     0x80cb8e6                           _ZN18InterfacePacketBuf5clearEv
+0859d748: c744240802000000     mov      dword ptr [esp + 8], 2
+0859d750: c744240400000000     mov      dword ptr [esp + 4], 0
+0859d758: 8d45ac               lea      eax, [ebp - 0x54]
+0859d75b: 890424               mov      dword ptr [esp], eax
+0859d75e: e899e1b2ff           call     0x80cb8fc                           _ZN18InterfacePacketBuf10put_headerEii
+0859d763: c744240401000000     mov      dword ptr [esp + 4], 1
+0859d76b: 8d45ac               lea      eax, [ebp - 0x54]
+0859d76e: 890424               mov      dword ptr [esp], eax
+0859d771: e8aae1b2ff           call     0x80cb920                           _ZN18InterfacePacketBuf8put_byteEi
+0859d776: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859d779: 890424               mov      dword ptr [esp], eax
+0859d77c: e8e9c9ffff           call     0x859a16a                           _ZN6CParty16get_member_countEv
+0859d781: 89442404             mov      dword ptr [esp + 4], eax
+0859d785: 8d45ac               lea      eax, [ebp - 0x54]
+0859d788: 890424               mov      dword ptr [esp], eax
+0859d78b: e814c7b3ff           call     0x80d9ea4                           _ZN18InterfacePacketBuf9put_shortEi
+0859d790: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859d793: c6801a01000000       mov      byte ptr [eax + 0x11a], 0
+0859d79a: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859d79d: 890424               mov      dword ptr [esp], eax
+0859d7a0: e8c5c9ffff           call     0x859a16a                           _ZN6CParty16get_member_countEv
+0859d7a5: 890424               mov      dword ptr [esp], eax
+0859d7a8: e8da431100           call     0x86b1b87                           _Z12get_rand_inti
+0859d7ad: 8b5508               mov      edx, dword ptr [ebp + 8]
+0859d7b0: 898244010000         mov      dword ptr [edx + 0x144], eax
+0859d7b6: c7042414f74109       mov      dword ptr [esp], 0x941f714
+0859d7bd: e8dce4b2ff           call     0x80cbc9e                           _ZN11CSystemTime9getCurSecEv
+0859d7c2: 8b5508               mov      edx, dword ptr [ebp + 8]
+0859d7c5: 89825c180000         mov      dword ptr [edx + 0x185c], eax
+0859d7cb: 8d45a0               lea      eax, [ebp - 0x60]
+0859d7ce: 890424               mov      dword ptr [esp], eax
+0859d7d1: e87605ffff           call     0x858dd4c                           _ZN11PacketGuardC2Ev
+0859d7d6: c744240803000000     mov      dword ptr [esp + 8], 3
+0859d7de: c744240400000000     mov      dword ptr [esp + 4], 0
+0859d7e6: 8d45a0               lea      eax, [ebp - 0x60]
+0859d7e9: 890424               mov      dword ptr [esp], eax
+0859d7ec: e80be1b2ff           call     0x80cb8fc                           _ZN18InterfacePacketBuf10put_headerEii
+0859d7f1: c745c000000000       mov      dword ptr [ebp - 0x40], 0
+0859d7f8: c7459c00000000       mov      dword ptr [ebp - 0x64], 0
+0859d7ff: 8d45a0               lea      eax, [ebp - 0x60]
+0859d802: 890424               mov      dword ptr [esp], eax
+0859d805: e84233b7ff           call     0x8110b4c                           _ZN18InterfacePacketBuf9get_indexEv
+0859d80a: 89459c               mov      dword ptr [ebp - 0x64], eax
+0859d80d: 8b45c0               mov      eax, dword ptr [ebp - 0x40]
+0859d810: 89442404             mov      dword ptr [esp + 4], eax
+0859d814: 8d45a0               lea      eax, [ebp - 0x60]
+0859d817: 890424               mov      dword ptr [esp], eax
+0859d81a: e801e1b2ff           call     0x80cb920                           _ZN18InterfacePacketBuf8put_byteEi
+0859d81f: c645c600             mov      byte ptr [ebp - 0x3a], 0
+0859d823: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+0859d826: 890424               mov      dword ptr [esp], eax
+0859d829: e8367d0a00           call     0x8645564                           _ZNK15CUserCharacInfo16getCurCharacVillEv
+0859d82e: 8845c7               mov      byte ptr [ebp - 0x39], al
+0859d831: c744240400000000     mov      dword ptr [esp + 4], 0
+0859d839: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+0859d83c: 890424               mov      dword ptr [esp], eax
+0859d83f: e87a3b0e00           call     0x86813be                           _ZN5CUser8get_areaEb
+0859d844: 8945c8               mov      dword ptr [ebp - 0x38], eax
+0859d847: c745dc00000000       mov      dword ptr [ebp - 0x24], 0
+0859d84e: e9db020000           jmp      0x859db2e
+0859d853: 8b45dc               mov      eax, dword ptr [ebp - 0x24]
+0859d856: 89442404             mov      dword ptr [esp + 4], eax
+0859d85a: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859d85d: 890424               mov      dword ptr [esp], eax
+0859d860: e8ad740100           call     0x85b4d12                           _ZN6CParty15_checkValidUserEi
+0859d865: 84c0                 test     al, al
+0859d867: 0f84bd020000         je       0x859db2a
+0859d86d: 8b55dc               mov      edx, dword ptr [ebp - 0x24]
+0859d870: 8b4d08               mov      ecx, dword ptr [ebp + 8]
+0859d873: 89d0                 mov      eax, edx
+0859d875: 01c0                 add      eax, eax
+0859d877: 01d0                 add      eax, edx
+0859d879: c1e003               shl      eax, 3
+0859d87c: 8d0401               lea      eax, [ecx + eax]
+0859d87f: 83c078               add      eax, 0x78
+0859d882: 8b00                 mov      eax, dword ptr [eax]
+0859d884: 890424               mov      dword ptr [esp], eax
+0859d887: e8d87c0a00           call     0x8645564                           _ZNK15CUserCharacInfo16getCurCharacVillEv
+0859d88c: 8845e3               mov      byte ptr [ebp - 0x1d], al
+0859d88f: 8b55dc               mov      edx, dword ptr [ebp - 0x24]
+0859d892: 8b4d08               mov      ecx, dword ptr [ebp + 8]
+0859d895: 89d0                 mov      eax, edx
+0859d897: 01c0                 add      eax, eax
+0859d899: 01d0                 add      eax, edx
+0859d89b: c1e003               shl      eax, 3
+0859d89e: 8d0401               lea      eax, [ecx + eax]
+0859d8a1: 83c078               add      eax, 0x78
+0859d8a4: 8b00                 mov      eax, dword ptr [eax]
+0859d8a6: c744240400000000     mov      dword ptr [esp + 4], 0
+0859d8ae: 890424               mov      dword ptr [esp], eax
+0859d8b1: e8083b0e00           call     0x86813be                           _ZN5CUser8get_areaEb
+0859d8b6: 8945e4               mov      dword ptr [ebp - 0x1c], eax
+0859d8b9: 0fb645c7             movzx    eax, byte ptr [ebp - 0x39]
+0859d8bd: 3a45e3               cmp      al, byte ptr [ebp - 0x1d]
+0859d8c0: 7508                 jne      0x859d8ca
+0859d8c2: 8b45c8               mov      eax, dword ptr [ebp - 0x38]
+0859d8c5: 3b45e4               cmp      eax, dword ptr [ebp - 0x1c]
+0859d8c8: 7419                 je       0x859d8e3
+0859d8ca: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859d8cd: 890424               mov      dword ptr [esp], eax
+0859d8d0: e87d00c9ff           call     0x822d952                           _ZN6CParty14is_quick_partyEv
+0859d8d5: 83f001               xor      eax, 1
+0859d8d8: 84c0                 test     al, al
+0859d8da: 7407                 je       0x859d8e3
+0859d8dc: b801000000           mov      eax, 1
+0859d8e1: eb05                 jmp      0x859d8e8
+0859d8e3: b800000000           mov      eax, 0
+0859d8e8: 84c0                 test     al, al
+0859d8ea: 0f8499000000         je       0x859d989
+0859d8f0: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859d8f3: 0fb7804c0c0000       movzx    eax, word ptr [eax + 0xc4c]
+0859d8fa: 6685c0               test     ax, ax
+0859d8fd: 0f8586000000         jne      0x859d989
+0859d903: 0fbe75e3             movsx    esi, byte ptr [ebp - 0x1d]
+0859d907: 0fbe5dc7             movsx    ebx, byte ptr [ebp - 0x39]
+0859d90b: 8b55dc               mov      edx, dword ptr [ebp - 0x24]
+0859d90e: 8b4d08               mov      ecx, dword ptr [ebp + 8]
+0859d911: 89d0                 mov      eax, edx
+0859d913: 01c0                 add      eax, eax
+0859d915: 01d0                 add      eax, edx
+0859d917: c1e003               shl      eax, 3
+0859d91a: 8d0401               lea      eax, [ecx + eax]
+0859d91d: 83c078               add      eax, 0x78
+0859d920: 8b00                 mov      eax, dword ptr [eax]
+0859d922: 890424               mov      dword ptr [esp], eax
+0859d925: e844cab3ff           call     0x80da36e                           _ZNK5CUser10get_acc_idEv
+0859d92a: c744240400000000     mov      dword ptr [esp + 4], 0
+0859d932: 890424               mov      dword ptr [esp], eax
+0859d935: e811b7b6ff           call     0x810904b                           _Z14NumberToStringji
+0859d93a: 8b55e4               mov      edx, dword ptr [ebp - 0x1c]
+0859d93d: 89542424             mov      dword ptr [esp + 0x24], edx
+0859d941: 8b55c8               mov      edx, dword ptr [ebp - 0x38]
+0859d944: 89542420             mov      dword ptr [esp + 0x20], edx
+0859d948: 8974241c             mov      dword ptr [esp + 0x1c], esi
+0859d94c: 895c2418             mov      dword ptr [esp + 0x18], ebx
+0859d950: 89442414             mov      dword ptr [esp + 0x14], eax
+0859d954: c7442410a499cb08     mov      dword ptr [esp + 0x10], 0x8cb99a4
+0859d95c: c744240c4c080000     mov      dword ptr [esp + 0xc], 0x84c
+0859d964: c744240860bacb08     mov      dword ptr [esp + 8], 0x8cbba60
+0859d96c: c7442404f597cb08     mov      dword ptr [esp + 4], 0x8cb97f5
+0859d974: c7042401000000       mov      dword ptr [esp], 1
+0859d97b: e88a625300           call     0x8ad3c0a                           _ZN10LogManager9logFormatEiPKcS1_iS1_z
+0859d980: c645c601             mov      byte ptr [ebp - 0x3a], 1
+0859d984: e9b4010000           jmp      0x859db3d
+0859d989: 8b45dc               mov      eax, dword ptr [ebp - 0x24]
+0859d98c: 8b5508               mov      edx, dword ptr [ebp + 8]
+0859d98f: c684028003000001     mov      byte ptr [edx + eax + 0x380], 1
+0859d997: 8b45dc               mov      eax, dword ptr [ebp - 0x24]
+0859d99a: 8b5508               mov      edx, dword ptr [ebp + 8]
+0859d99d: c684028403000001     mov      byte ptr [edx + eax + 0x384], 1
+0859d9a5: 8b45dc               mov      eax, dword ptr [ebp - 0x24]
+0859d9a8: 8b5508               mov      edx, dword ptr [ebp + 8]
+0859d9ab: c684028803000000     mov      byte ptr [edx + eax + 0x388], 0
+0859d9b3: 8b45dc               mov      eax, dword ptr [ebp - 0x24]
+0859d9b6: 8b5508               mov      edx, dword ptr [ebp + 8]
+0859d9b9: c684028c03000000     mov      byte ptr [edx + eax + 0x38c], 0
+0859d9c1: 8d4dac               lea      ecx, [ebp - 0x54]
+0859d9c4: 8b55dc               mov      edx, dword ptr [ebp - 0x24]
+0859d9c7: 8b5d08               mov      ebx, dword ptr [ebp + 8]
+0859d9ca: 89d0                 mov      eax, edx
+0859d9cc: 01c0                 add      eax, eax
+0859d9ce: 01d0                 add      eax, edx
+0859d9d0: c1e003               shl      eax, 3
+0859d9d3: 8d0403               lea      eax, [ebx + eax]
+0859d9d6: 83c078               add      eax, 0x78
+0859d9d9: 8b00                 mov      eax, dword ptr [eax]
+0859d9db: c744240801000000     mov      dword ptr [esp + 8], 1
+0859d9e3: 894c2404             mov      dword ptr [esp + 4], ecx
+0859d9e7: 890424               mov      dword ptr [esp], eax
+0859d9ea: e85fca0b00           call     0x865a44e                           _ZN5CUser15make_basic_infoEPcc
+0859d9ef: 8b55dc               mov      edx, dword ptr [ebp - 0x24]
+0859d9f2: 8b4d08               mov      ecx, dword ptr [ebp + 8]
+0859d9f5: 89d0                 mov      eax, edx
+0859d9f7: 01c0                 add      eax, eax
+0859d9f9: 01d0                 add      eax, edx
+0859d9fb: c1e003               shl      eax, 3
+0859d9fe: 8d0401               lea      eax, [ecx + eax]
+0859da01: 83c078               add      eax, 0x78
+0859da04: 8b18                 mov      ebx, dword ptr [eax]
+0859da06: e89cc9b3ff           call     0x80da3a7                           _Z11G_GameWorldv
+0859da0b: 895c2404             mov      dword ptr [esp + 4], ebx
+0859da0f: 890424               mov      dword ptr [esp], eax
+0859da12: e8898d1200           call     0x86c67a0                           _ZN9GameWorld12goto_dungeonEP5CUser
+0859da17: 8b55dc               mov      edx, dword ptr [ebp - 0x24]
+0859da1a: 8b4d08               mov      ecx, dword ptr [ebp + 8]
+0859da1d: 89d0                 mov      eax, edx
+0859da1f: 01c0                 add      eax, eax
+0859da21: 01d0                 add      eax, edx
+0859da23: c1e003               shl      eax, 3
+0859da26: 8d0401               lea      eax, [ecx + eax]
+0859da29: 83c078               add      eax, 0x78
+0859da2c: 8b00                 mov      eax, dword ptr [eax]
+0859da2e: 890424               mov      dword ptr [esp], eax
+0859da31: e856c9b3ff           call     0x80da38c                           _ZN5CUser9get_stateEv
+0859da36: 83f805               cmp      eax, 5
+0859da39: 0f94c0               sete     al
+0859da3c: 84c0                 test     al, al
+0859da3e: 7448                 je       0x859da88
+0859da40: 8b55dc               mov      edx, dword ptr [ebp - 0x24]
+0859da43: 8b4d08               mov      ecx, dword ptr [ebp + 8]
+0859da46: 89d0                 mov      eax, edx
+0859da48: 01c0                 add      eax, eax
+0859da4a: 01d0                 add      eax, edx
+0859da4c: c1e003               shl      eax, 3
+0859da4f: 8d0401               lea      eax, [ecx + eax]
+0859da52: 83c078               add      eax, 0x78
+0859da55: 8b00                 mov      eax, dword ptr [eax]
+0859da57: 890424               mov      dword ptr [esp], eax
+0859da5a: e81dc9b3ff           call     0x80da37c                           _ZNK5CUser13get_unique_idEv
+0859da5f: 0fb7c0               movzx    eax, ax
+0859da62: 89442404             mov      dword ptr [esp + 4], eax
+0859da66: 8d45a0               lea      eax, [ebp - 0x60]
+0859da69: 890424               mov      dword ptr [esp], eax
+0859da6c: e833c4b3ff           call     0x80d9ea4                           _ZN18InterfacePacketBuf9put_shortEi
+0859da71: c744240401000000     mov      dword ptr [esp + 4], 1
+0859da79: 8d45a0               lea      eax, [ebp - 0x60]
+0859da7c: 890424               mov      dword ptr [esp], eax
+0859da7f: e89cdeb2ff           call     0x80cb920                           _ZN18InterfacePacketBuf8put_byteEi
+0859da84: 8345c001             add      dword ptr [ebp - 0x40], 1
+0859da88: 8b55dc               mov      edx, dword ptr [ebp - 0x24]
+0859da8b: 8b4d08               mov      ecx, dword ptr [ebp + 8]
+0859da8e: 89d0                 mov      eax, edx
+0859da90: 01c0                 add      eax, eax
+0859da92: 01d0                 add      eax, edx
+0859da94: c1e003               shl      eax, 3
+0859da97: 8d0401               lea      eax, [ecx + eax]
+0859da9a: 83c078               add      eax, 0x78
+0859da9d: 8b00                 mov      eax, dword ptr [eax]
+0859da9f: 890424               mov      dword ptr [esp], eax
+0859daa2: e89723c9ff           call     0x822fe3e                           _ZN5CUser13GetTradeSpaceEv
+0859daa7: 8945b8               mov      dword ptr [ebp - 0x48], eax
+0859daaa: 837db8ff             cmp      dword ptr [ebp - 0x48], -1
+0859daae: 744e                 je       0x859dafe
+0859dab0: e8d9e6b2ff           call     0x80cc18e                           _Z14G_CGameManagerv
+0859dab5: 8b55b8               mov      edx, dword ptr [ebp - 0x48]
+0859dab8: 89542404             mov      dword ptr [esp + 4], edx
+0859dabc: 890424               mov      dword ptr [esp], eax
+0859dabf: e8c672cfff           call     0x8294d8a                           _ZN12CGameManager13GetTradeSpaceEi
+0859dac4: 8945bc               mov      dword ptr [ebp - 0x44], eax
+0859dac7: 837dbc00             cmp      dword ptr [ebp - 0x44], 0
+0859dacb: 7431                 je       0x859dafe
+0859dacd: 8b45bc               mov      eax, dword ptr [ebp - 0x44]
+0859dad0: 890424               mov      dword ptr [esp], eax
+0859dad3: e864bef8ff           call     0x852993c                           _ZN11CTradeSpace23check_trade_possibilityEv
+0859dad8: 83f001               xor      eax, 1
+0859dadb: 84c0                 test     al, al
+0859dadd: 741f                 je       0x859dafe
+0859dadf: 8b45bc               mov      eax, dword ptr [ebp - 0x44]
+0859dae2: 890424               mov      dword ptr [esp], eax
+0859dae5: e81015f9ff           call     0x852effa                           _ZN11CTradeSpace12cancel_tradeEv
+0859daea: e89fe6b2ff           call     0x80cc18e                           _Z14G_CGameManagerv
+0859daef: 8b55bc               mov      edx, dword ptr [ebp - 0x44]
+0859daf2: 89542404             mov      dword ptr [esp + 4], edx
+0859daf6: 890424               mov      dword ptr [esp], eax
+0859daf9: e8e072cfff           call     0x8294dde                           _ZN12CGameManager13PutTradeSpaceEP11CTradeSpace
+0859dafe: 8b55dc               mov      edx, dword ptr [ebp - 0x24]
+0859db01: 8b4d08               mov      ecx, dword ptr [ebp + 8]
+0859db04: 89d0                 mov      eax, edx
+0859db06: 01c0                 add      eax, eax
+0859db08: 01d0                 add      eax, edx
+0859db0a: c1e003               shl      eax, 3
+0859db0d: 8d0401               lea      eax, [ecx + eax]
+0859db10: 83c078               add      eax, 0x78
+0859db13: 8b00                 mov      eax, dword ptr [eax]
+0859db15: 890424               mov      dword ptr [esp], eax
+0859db18: e841cfbaff           call     0x814aa5e                           _ZN5CUser18getCurCharacQuestWEv
+0859db1d: 05d8750000           add      eax, 0x75d8
+0859db22: 890424               mov      dword ptr [esp], eax
+0859db25: e8eccebaff           call     0x814aa16                           _ZN18_Quest_Authen_Data5resetEv
+0859db2a: 8345dc01             add      dword ptr [ebp - 0x24], 1
+0859db2e: 837ddc03             cmp      dword ptr [ebp - 0x24], 3
+0859db32: 0f9ec0               setle    al
+0859db35: 84c0                 test     al, al
+0859db37: 0f8516fdffff         jne      0x859d853
+0859db3d: 807dc600             cmp      byte ptr [ebp - 0x3a], 0
+0859db41: 0f84c1000000         je       0x859dc08
+0859db47: c745e800000000       mov      dword ptr [ebp - 0x18], 0
+0859db4e: e99c000000           jmp      0x859dbef
+0859db53: 8b45e8               mov      eax, dword ptr [ebp - 0x18]
+0859db56: 89442404             mov      dword ptr [esp + 4], eax
+0859db5a: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859db5d: 890424               mov      dword ptr [esp], eax
+0859db60: e8ff7bbaff           call     0x8145764                           _ZN6CParty8get_userEi
+0859db65: 8945ec               mov      dword ptr [ebp - 0x14], eax
+0859db68: 837dec00             cmp      dword ptr [ebp - 0x14], 0
+0859db6c: 747d                 je       0x859dbeb
+0859db6e: 0fbe5dc7             movsx    ebx, byte ptr [ebp - 0x39]
+0859db72: 8b45ec               mov      eax, dword ptr [ebp - 0x14]
+0859db75: 890424               mov      dword ptr [esp], eax
+0859db78: e8f1c7b3ff           call     0x80da36e                           _ZNK5CUser10get_acc_idEv
+0859db7d: c744240400000000     mov      dword ptr [esp + 4], 0
+0859db85: 890424               mov      dword ptr [esp], eax
+0859db88: e8beb4b6ff           call     0x810904b                           _Z14NumberToStringji
+0859db8d: 8b55c8               mov      edx, dword ptr [ebp - 0x38]
+0859db90: 8954241c             mov      dword ptr [esp + 0x1c], edx
+0859db94: 895c2418             mov      dword ptr [esp + 0x18], ebx
+0859db98: 89442414             mov      dword ptr [esp + 0x14], eax
+0859db9c: c7442410dc99cb08     mov      dword ptr [esp + 0x10], 0x8cb99dc
+0859dba4: c744240c8a080000     mov      dword ptr [esp + 0xc], 0x88a
+0859dbac: c744240860bacb08     mov      dword ptr [esp + 8], 0x8cbba60
+0859dbb4: c7442404f597cb08     mov      dword ptr [esp + 4], 0x8cb97f5
+0859dbbc: c7042401000000       mov      dword ptr [esp], 1
+0859dbc3: e842605300           call     0x8ad3c0a                           _ZN10LogManager9logFormatEiPKcS1_iS1_z
+0859dbc8: c744240c00000000     mov      dword ptr [esp + 0xc], 0
+0859dbd0: c744240801000000     mov      dword ptr [esp + 8], 1
+0859dbd8: c744240418000000     mov      dword ptr [esp + 4], 0x18
+0859dbe0: 8b45ec               mov      eax, dword ptr [ebp - 0x14]
+0859dbe3: 890424               mov      dword ptr [esp], eax
+0859dbe6: e809ae0a00           call     0x86489f4                           _ZN5CUser10DisConnSigE11DISCONN_SIGbi
+0859dbeb: 8345e801             add      dword ptr [ebp - 0x18], 1
+0859dbef: 837de803             cmp      dword ptr [ebp - 0x18], 3
+0859dbf3: 0f9ec0               setle    al
+0859dbf6: 84c0                 test     al, al
+0859dbf8: 0f8555ffffff         jne      0x859db53
+0859dbfe: bb00000000           mov      ebx, 0
+0859dc03: e989040000           jmp      0x859e091
+0859dc08: 8b45c0               mov      eax, dword ptr [ebp - 0x40]
+0859dc0b: 89442408             mov      dword ptr [esp + 8], eax
+0859dc0f: 8d459c               lea      eax, [ebp - 0x64]
+0859dc12: 89442404             mov      dword ptr [esp + 4], eax
+0859dc16: 8d45a0               lea      eax, [ebp - 0x60]
+0859dc19: 890424               mov      dword ptr [esp], eax
+0859dc1c: e8072fb7ff           call     0x8110b28                           _ZN18InterfacePacketBuf8put_byteERii
+0859dc21: c744240401000000     mov      dword ptr [esp + 4], 1
+0859dc29: 8d45a0               lea      eax, [ebp - 0x60]
+0859dc2c: 890424               mov      dword ptr [esp], eax
+0859dc2f: e824ddb2ff           call     0x80cb958                           _ZN18InterfacePacketBuf8finalizeEb
+0859dc34: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dc37: 890424               mov      dword ptr [esp], eax
+0859dc3a: e8d1870100           call     0x85b6410                           _ZN6CParty16IsExistInvisibleEv
+0859dc3f: 84c0                 test     al, al
+0859dc41: 7414                 je       0x859dc57
+0859dc43: 8d45a0               lea      eax, [ebp - 0x60]
+0859dc46: 89442404             mov      dword ptr [esp + 4], eax
+0859dc4a: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dc4d: 890424               mov      dword ptr [esp], eax
+0859dc50: e8f9f4ffff           call     0x859d14e                           _ZN6CParty13send_to_partyER11PacketGuard
+0859dc55: eb45                 jmp      0x859dc9c
+0859dc57: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dc5a: 890424               mov      dword ptr [esp], eax
+0859dc5d: e81e7bbaff           call     0x8145780                           _ZN6CParty10getManagerEv
+0859dc62: 890424               mov      dword ptr [esp], eax
+0859dc65: e860320f00           call     0x8690eca                           _ZNK5CUser12getMoveSpaceEv
+0859dc6a: 83f801               cmp      eax, 1
+0859dc6d: 0f95c0               setne    al
+0859dc70: 84c0                 test     al, al
+0859dc72: 7416                 je       0x859dc8a
+0859dc74: e82ec7b3ff           call     0x80da3a7                           _Z11G_GameWorldv
+0859dc79: 8d55a0               lea      edx, [ebp - 0x60]
+0859dc7c: 89542404             mov      dword ptr [esp + 4], edx
+0859dc80: 890424               mov      dword ptr [esp], eax
+0859dc83: e88caf1200           call     0x86c8c14                           _ZN9GameWorld8send_allER11PacketGuard
+0859dc88: eb12                 jmp      0x859dc9c
+0859dc8a: 8d45a0               lea      eax, [ebp - 0x60]
+0859dc8d: 89442404             mov      dword ptr [esp + 4], eax
+0859dc91: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dc94: 890424               mov      dword ptr [esp], eax
+0859dc97: e8b2f4ffff           call     0x859d14e                           _ZN6CParty13send_to_partyER11PacketGuard
+0859dc9c: c744240401000000     mov      dword ptr [esp + 4], 1
+0859dca4: 8d45ac               lea      eax, [ebp - 0x54]
+0859dca7: 890424               mov      dword ptr [esp], eax
+0859dcaa: e8a9dcb2ff           call     0x80cb958                           _ZN18InterfacePacketBuf8finalizeEb
+0859dcaf: 8d45ac               lea      eax, [ebp - 0x54]
+0859dcb2: 89442404             mov      dword ptr [esp + 4], eax
+0859dcb6: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dcb9: 890424               mov      dword ptr [esp], eax
+0859dcbc: e88df4ffff           call     0x859d14e                           _ZN6CParty13send_to_partyER11PacketGuard
+0859dcc1: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dcc4: 890424               mov      dword ptr [esp], eax
+0859dcc7: e8f0f0ffff           call     0x859cdbc                           _ZN6CParty8set_hostEv
+0859dccc: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dccf: 890424               mov      dword ptr [esp], eax
+0859dcd2: e8fbf0ffff           call     0x859cdd2                           _ZN6CParty14send_host_infoEv
+0859dcd7: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dcda: c6806418000000       mov      byte ptr [eax + 0x1864], 0
+0859dce1: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dce4: c7806818000000000000 mov      dword ptr [eax + 0x1868], 0
+0859dcee: e8b4c6b3ff           call     0x80da3a7                           _Z11G_GameWorldv
+0859dcf3: 8b550c               mov      edx, dword ptr [ebp + 0xc]
+0859dcf6: 89542404             mov      dword ptr [esp + 4], edx
+0859dcfa: 890424               mov      dword ptr [esp], eax
+0859dcfd: e8de0e1300           call     0x86cebe0                           _ZN9GameWorld16GetWorldMapIndexEP5CUser
+0859dd02: 8945cc               mov      dword ptr [ebp - 0x34], eax
+0859dd05: 837dcc00             cmp      dword ptr [ebp - 0x34], 0
+0859dd09: 7e23                 jle      0x859dd2e
+0859dd0b: e88be4b2ff           call     0x80cc19b                           _Z14G_CDataManagerv
+0859dd10: 8d9080870000         lea      edx, [eax + 0x8780]
+0859dd16: 8b45cc               mov      eax, dword ptr [ebp - 0x34]
+0859dd19: 89442404             mov      dword ptr [esp + 4], eax
+0859dd1d: 891424               mov      dword ptr [esp], edx
+0859dd20: e87d6adcff           call     0x83647a2                           _ZNK13CWorldMapList14find_world_mapEi
+0859dd25: 8b5508               mov      edx, dword ptr [ebp + 8]
+0859dd28: 898268180000         mov      dword ptr [edx + 0x1868], eax
+0859dd2e: 8d45ac               lea      eax, [ebp - 0x54]
+0859dd31: 890424               mov      dword ptr [esp], eax
+0859dd34: e8addbb2ff           call     0x80cb8e6                           _ZN18InterfacePacketBuf5clearEv
+0859dd39: c74424081b000000     mov      dword ptr [esp + 8], 0x1b
+0859dd41: c744240400000000     mov      dword ptr [esp + 4], 0
+0859dd49: 8d45ac               lea      eax, [ebp - 0x54]
+0859dd4c: 890424               mov      dword ptr [esp], eax
+0859dd4f: e8a8dbb2ff           call     0x80cb8fc                           _ZN18InterfacePacketBuf10put_headerEii
+0859dd54: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dd57: 890424               mov      dword ptr [esp], eax
+0859dd5a: e80bc4ffff           call     0x859a16a                           _ZN6CParty16get_member_countEv
+0859dd5f: 83f801               cmp      eax, 1
+0859dd62: 0f94c0               sete     al
+0859dd65: 84c0                 test     al, al
+0859dd67: 7425                 je       0x859dd8e
+0859dd69: e82de4b2ff           call     0x80cc19b                           _Z14G_CDataManagerv
+0859dd6e: 890424               mov      dword ptr [esp], eax
+0859dd71: e8165adcff           call     0x836378c                           _ZN12CDataManager27get_hellparty_script_valuesEv
+0859dd76: 8b4008               mov      eax, dword ptr [eax + 8]
+0859dd79: 8b5508               mov      edx, dword ptr [ebp + 8]
+0859dd7c: 81c22c030000         add      edx, 0x32c
+0859dd82: 89442404             mov      dword ptr [esp + 4], eax
+0859dd86: 891424               mov      dword ptr [esp], edx
+0859dd89: e824fac8ff           call     0x822d7b2                           _ZN10BattleData22SetHellPartyValueTotalEi
+0859dd8e: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dd91: d9800c0b0000         fld      dword ptr [eax + 0xb0c]
+0859dd97: d905ccbbcb08         fld      dword ptr [0x8cbbbcc]
+0859dd9d: dec9                 fmulp    st(1)
+0859dd9f: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dda2: 8b800c0d0000         mov      eax, dword ptr [eax + 0xd0c]
+0859dda8: 894584               mov      dword ptr [ebp - 0x7c], eax
+0859ddab: db4584               fild     dword ptr [ebp - 0x7c]
+0859ddae: def9                 fdivp    st(1)
+0859ddb0: d97d82               fnstcw   word ptr [ebp - 0x7e]
+0859ddb3: 0fb74582             movzx    eax, word ptr [ebp - 0x7e]
+0859ddb7: b40c                 mov      ah, 0xc
+0859ddb9: 66894580             mov      word ptr [ebp - 0x80], ax
+0859ddbd: d96d80               fldcw    word ptr [ebp - 0x80]
+0859ddc0: db5dd0               fistp    dword ptr [ebp - 0x30]
+0859ddc3: d96d82               fldcw    word ptr [ebp - 0x7e]
+0859ddc6: 8b45d0               mov      eax, dword ptr [ebp - 0x30]
+0859ddc9: 89442404             mov      dword ptr [esp + 4], eax
+0859ddcd: 8d45ac               lea      eax, [ebp - 0x54]
+0859ddd0: 890424               mov      dword ptr [esp], eax
+0859ddd3: e864dbb2ff           call     0x80cb93c                           _ZN18InterfacePacketBuf7put_intEi
+0859ddd8: 8d4590               lea      eax, [ebp - 0x70]
+0859dddb: 890424               mov      dword ptr [esp], eax
+0859ddde: e8c903afff           call     0x808e1ac                           _ZNSt6vectorIiSaIiEEC2Ev
+0859dde3: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dde6: 8b8068180000         mov      eax, dword ptr [eax + 0x1868]
+0859ddec: 85c0                 test     eax, eax
+0859ddee: 7425                 je       0x859de15
+0859ddf0: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859ddf3: 8b8068180000         mov      eax, dword ptr [eax + 0x1868]
+0859ddf9: 890424               mov      dword ptr [esp], eax
+0859ddfc: e8b908d7ff           call     0x830e6ba                           _ZN9CWorldMap15IsInHellDungeonEv
+0859de01: 84c0                 test     al, al
+0859de03: 7410                 je       0x859de15
+0859de05: e8fd0ed7ff           call     0x830ed07                           _ZN13CBattle_Field19IsEnableHellDungeonEv
+0859de0a: 84c0                 test     al, al
+0859de0c: 7407                 je       0x859de15
+0859de0e: b801000000           mov      eax, 1
+0859de13: eb05                 jmp      0x859de1a
+0859de15: b800000000           mov      eax, 0
+0859de1a: 84c0                 test     al, al
+0859de1c: 0f84c2000000         je       0x859dee4
+0859de22: 8d4590               lea      eax, [ebp - 0x70]
+0859de25: 89442404             mov      dword ptr [esp + 4], eax
+0859de29: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859de2c: 890424               mov      dword ptr [esp], eax
+0859de2f: e83e9c0000           call     0x85a7a72                           _ZN6CParty24CheckClearQuestHellPartyERSt6vectorIiSaIiEE
+0859de34: 8d4590               lea      eax, [ebp - 0x70]
+0859de37: 890424               mov      dword ptr [esp], eax
+0859de3a: e88103afff           call     0x808e1c0                           _ZNKSt6vectorIiSaIiEE4sizeEv
+0859de3f: 8945f0               mov      dword ptr [ebp - 0x10], eax
+0859de42: 837df000             cmp      dword ptr [ebp - 0x10], 0
+0859de46: 7e7d                 jle      0x859dec5
+0859de48: 8b45f0               mov      eax, dword ptr [ebp - 0x10]
+0859de4b: 89442404             mov      dword ptr [esp + 4], eax
+0859de4f: 8d45ac               lea      eax, [ebp - 0x54]
+0859de52: 890424               mov      dword ptr [esp], eax
+0859de55: e8c6dab2ff           call     0x80cb920                           _ZN18InterfacePacketBuf8put_byteEi
+0859de5a: 8d458c               lea      eax, [ebp - 0x74]
+0859de5d: 8d5590               lea      edx, [ebp - 0x70]
+0859de60: 89542404             mov      dword ptr [esp + 4], edx
+0859de64: 890424               mov      dword ptr [esp], eax
+0859de67: e8dc03afff           call     0x808e248                           _ZNSt6vectorIiSaIiEE5beginEv
+0859de6c: 83ec04               sub      esp, 4
+0859de6f: 8d4588               lea      eax, [ebp - 0x78]
+0859de72: 8d5590               lea      edx, [ebp - 0x70]
+0859de75: 89542404             mov      dword ptr [esp + 4], edx
+0859de79: 890424               mov      dword ptr [esp], eax
+0859de7c: e8eb03afff           call     0x808e26c                           _ZNSt6vectorIiSaIiEE3endEv
+0859de81: 83ec04               sub      esp, 4
+0859de84: eb27                 jmp      0x859dead
+0859de86: 8d458c               lea      eax, [ebp - 0x74]
+0859de89: 890424               mov      dword ptr [esp], eax
+0859de8c: e83b09afff           call     0x808e7cc                           _ZNK9__gnu_cxx17__normal_iteratorIPiSt6vectorIiSaIiEEEdeEv
+0859de91: 8b00                 mov      eax, dword ptr [eax]
+0859de93: 89442404             mov      dword ptr [esp + 4], eax
+0859de97: 8d45ac               lea      eax, [ebp - 0x54]
+0859de9a: 890424               mov      dword ptr [esp], eax
+0859de9d: e802c0b3ff           call     0x80d9ea4                           _ZN18InterfacePacketBuf9put_shortEi
+0859dea2: 8d458c               lea      eax, [ebp - 0x74]
+0859dea5: 890424               mov      dword ptr [esp], eax
+0859dea8: e8dfcab4ff           call     0x80ea98c                           _ZN9__gnu_cxx17__normal_iteratorIPiSt6vectorIiSaIiEEEppEv
+0859dead: 8d4588               lea      eax, [ebp - 0x78]
+0859deb0: 89442404             mov      dword ptr [esp + 4], eax
+0859deb4: 8d458c               lea      eax, [ebp - 0x74]
+0859deb7: 890424               mov      dword ptr [esp], eax
+0859deba: e8a3c5b4ff           call     0x80ea462                           _ZN9__gnu_cxxneIPiSt6vectorIiSaIiEEEEbRKNS_17__normal_iteratorIT_T0_EESA_
+0859debf: 84c0                 test     al, al
+0859dec1: 75c3                 jne      0x859de86
+0859dec3: eb32                 jmp      0x859def7
+0859dec5: c744240400000000     mov      dword ptr [esp + 4], 0
+0859decd: 8d45ac               lea      eax, [ebp - 0x54]
+0859ded0: 890424               mov      dword ptr [esp], eax
+0859ded3: e848dab2ff           call     0x80cb920                           _ZN18InterfacePacketBuf8put_byteEi
+0859ded8: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dedb: c6806418000001       mov      byte ptr [eax + 0x1864], 1
+0859dee2: eb13                 jmp      0x859def7
+0859dee4: c744240400000000     mov      dword ptr [esp + 4], 0
+0859deec: 8d45ac               lea      eax, [ebp - 0x54]
+0859deef: 890424               mov      dword ptr [esp], eax
+0859def2: e829dab2ff           call     0x80cb920                           _ZN18InterfacePacketBuf8put_byteEi
+0859def7: 8d45ac               lea      eax, [ebp - 0x54]
+0859defa: 89442408             mov      dword ptr [esp + 8], eax
+0859defe: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+0859df01: 89442404             mov      dword ptr [esp + 4], eax
+0859df05: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859df08: 890424               mov      dword ptr [esp], eax
+0859df0b: e8c2010000           call     0x859e0d2                           _ZN6CParty23make_blood_dungeon_infoEP5CUserR11PacketGuard
+0859df10: 83f001               xor      eax, 1
+0859df13: 84c0                 test     al, al
+0859df15: 7412                 je       0x859df29
+0859df17: 8d45ac               lea      eax, [ebp - 0x54]
+0859df1a: 89442404             mov      dword ptr [esp + 4], eax
+0859df1e: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859df21: 890424               mov      dword ptr [esp], eax
+0859df24: e857050000           call     0x859e480                           _ZN6CParty29make_blood_dungeon_info_blankER11PacketGuard
+0859df29: c645d700             mov      byte ptr [ebp - 0x29], 0
+0859df2d: e875c4b3ff           call     0x80da3a7                           _Z11G_GameWorldv
+0859df32: 8b550c               mov      edx, dword ptr [ebp + 0xc]
+0859df35: 89542404             mov      dword ptr [esp + 4], edx
+0859df39: 890424               mov      dword ptr [esp], eax
+0859df3c: e89f0c1300           call     0x86cebe0                           _ZN9GameWorld16GetWorldMapIndexEP5CUser
+0859df41: 8945d8               mov      dword ptr [ebp - 0x28], eax
+0859df44: 837dd800             cmp      dword ptr [ebp - 0x28], 0
+0859df48: 7e53                 jle      0x859df9d
+0859df4a: e84ce2b2ff           call     0x80cc19b                           _Z14G_CDataManagerv
+0859df4f: 8d9080870000         lea      edx, [eax + 0x8780]
+0859df55: 8b45d8               mov      eax, dword ptr [ebp - 0x28]
+0859df58: 89442404             mov      dword ptr [esp + 4], eax
+0859df5c: 891424               mov      dword ptr [esp], edx
+0859df5f: e83e68dcff           call     0x83647a2                           _ZNK13CWorldMapList14find_world_mapEi
+0859df64: 8945f4               mov      dword ptr [ebp - 0xc], eax
+0859df67: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859df6a: 8b8068180000         mov      eax, dword ptr [eax + 0x1868]
+0859df70: 85c0                 test     eax, eax
+0859df72: 741c                 je       0x859df90
+0859df74: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859df77: 8b8068180000         mov      eax, dword ptr [eax + 0x1868]
+0859df7d: 890424               mov      dword ptr [esp], eax
+0859df80: e89bd5c8ff           call     0x822b520                           _ZNK9CWorldMap13hasDeathTowerEv
+0859df85: 84c0                 test     al, al
+0859df87: 7407                 je       0x859df90
+0859df89: b801000000           mov      eax, 1
+0859df8e: eb05                 jmp      0x859df95
+0859df90: b800000000           mov      eax, 0
+0859df95: 84c0                 test     al, al
+0859df97: 7404                 je       0x859df9d
+0859df99: c645d701             mov      byte ptr [ebp - 0x29], 1
+0859df9d: 0fb645d7             movzx    eax, byte ptr [ebp - 0x29]
+0859dfa1: 89442404             mov      dword ptr [esp + 4], eax
+0859dfa5: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dfa8: 890424               mov      dword ptr [esp], eax
+0859dfab: e8f0080200           call     0x85be8a0                           _ZN6CParty31isDungeonDifficultyInfromNoticeEb
+0859dfb0: 84c0                 test     al, al
+0859dfb2: 742b                 je       0x859dfdf
+0859dfb4: c744240401000000     mov      dword ptr [esp + 4], 1
+0859dfbc: 8d45ac               lea      eax, [ebp - 0x54]
+0859dfbf: 890424               mov      dword ptr [esp], eax
+0859dfc2: e859d9b2ff           call     0x80cb920                           _ZN18InterfacePacketBuf8put_byteEi
+0859dfc7: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859dfca: 8b4074               mov      eax, dword ptr [eax + 0x74]
+0859dfcd: c744240401000000     mov      dword ptr [esp + 4], 1
+0859dfd5: 890424               mov      dword ptr [esp], eax
+0859dfd8: e8331b0200           call     0x85bfb10                           _ZN15CUserCharacInfo20setMemberDungeonFlagEb
+0859dfdd: eb13                 jmp      0x859dff2
+0859dfdf: c744240400000000     mov      dword ptr [esp + 4], 0
+0859dfe7: 8d45ac               lea      eax, [ebp - 0x54]
+0859dfea: 890424               mov      dword ptr [esp], eax
+0859dfed: e82ed9b2ff           call     0x80cb920                           _ZN18InterfacePacketBuf8put_byteEi
+0859dff2: 807dd700             cmp      byte ptr [ebp - 0x29], 0
+0859dff6: 7419                 je       0x859e011
+0859dff8: 0fb645d7             movzx    eax, byte ptr [ebp - 0x29]
+0859dffc: 8b5508               mov      edx, dword ptr [ebp + 8]
+0859dfff: 81c2240b0000         add      edx, 0xb24
+0859e005: 89442404             mov      dword ptr [esp + 4], eax
+0859e009: 891424               mov      dword ptr [esp], edx
+0859e00c: e8ef120200           call     0x85bf300                           _ZN13CBattle_Field20setWorldMapTowerAreaEb
+0859e011: c744240401000000     mov      dword ptr [esp + 4], 1
+0859e019: 8d45ac               lea      eax, [ebp - 0x54]
+0859e01c: 890424               mov      dword ptr [esp], eax
+0859e01f: e834d9b2ff           call     0x80cb958                           _ZN18InterfacePacketBuf8finalizeEb
+0859e024: 8d45ac               lea      eax, [ebp - 0x54]
+0859e027: 89442404             mov      dword ptr [esp + 4], eax
+0859e02b: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859e02e: 890424               mov      dword ptr [esp], eax
+0859e031: e818f1ffff           call     0x859d14e                           _ZN6CParty13send_to_partyER11PacketGuard
+0859e036: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859e039: c6801801000000       mov      byte ptr [eax + 0x118], 0
+0859e040: 8b4508               mov      eax, dword ptr [ebp + 8]
+0859e043: 890424               mov      dword ptr [esp], eax
+0859e046: e8c3f8c8ff           call     0x822d90e                           _ZN6CParty16GetPartyTelePortEv
+0859e04b: 890424               mov      dword ptr [esp], eax
+0859e04e: e8f1df0100           call     0x85bc044                           _ZN14CPartyTelePort19reset_teleport_dataEv
+0859e053: 8d4590               lea      eax, [ebp - 0x70]
+0859e056: 890424               mov      dword ptr [esp], eax
+0859e059: e87c5daeff           call     0x8083dda                           _ZNSt6vectorIiSaIiEED2Ev
+0859e05e: eb15                 jmp      0x859e075
+0859e060: 89d3                 mov      ebx, edx
+0859e062: 89c6                 mov      esi, eax
+0859e064: 8d4590               lea      eax, [ebp - 0x70]
+0859e067: 890424               mov      dword ptr [esp], eax
+0859e06a: e86b5daeff           call     0x8083dda                           _ZNSt6vectorIiSaIiEED2Ev
+0859e06f: 89f0                 mov      eax, esi
+0859e071: 89da                 mov      edx, ebx
+0859e073: eb07                 jmp      0x859e07c
+0859e075: bb01000000           mov      ebx, 1
+0859e07a: eb15                 jmp      0x859e091
+0859e07c: 89d3                 mov      ebx, edx
+0859e07e: 89c6                 mov      esi, eax
+0859e080: 8d45a0               lea      eax, [ebp - 0x60]
+0859e083: 890424               mov      dword ptr [esp], eax
+0859e086: e8f5fdfeff           call     0x858de80                           _ZN11PacketGuardD2Ev
+0859e08b: 89f0                 mov      eax, esi
+0859e08d: 89da                 mov      edx, ebx
+0859e08f: eb1a                 jmp      0x859e0ab
+0859e091: 8d45a0               lea      eax, [ebp - 0x60]
+0859e094: 890424               mov      dword ptr [esp], eax
+0859e097: e8e4fdfeff           call     0x858de80                           _ZN11PacketGuardD2Ev
+0859e09c: 85db                 test     ebx, ebx
+0859e09e: 8d45ac               lea      eax, [ebp - 0x54]
+0859e0a1: 890424               mov      dword ptr [esp], eax
+0859e0a4: e8d7fdfeff           call     0x858de80                           _ZN11PacketGuardD2Ev
+0859e0a9: eb1c                 jmp      0x859e0c7
+0859e0ab: 89d3                 mov      ebx, edx
+0859e0ad: 89c6                 mov      esi, eax
+0859e0af: 8d45ac               lea      eax, [ebp - 0x54]
+0859e0b2: 890424               mov      dword ptr [esp], eax
+0859e0b5: e8c6fdfeff           call     0x858de80                           _ZN11PacketGuardD2Ev
+0859e0ba: 89f0                 mov      eax, esi
+0859e0bc: 89da                 mov      edx, ebx
+0859e0be: 890424               mov      dword ptr [esp], eax
+0859e0c1: e88a565400           call     0x8ae3750                           _Unwind_Resume
+0859e0c6: 90                   nop
+0859e0c7: 8d65f8               lea      esp, [ebp - 8]
+0859e0ca: 83c400               add      esp, 0
+0859e0cd: 5b                   pop      ebx
+0859e0ce: 5e                   pop      esi
+0859e0cf: 5d                   pop      ebp
+0859e0d0: c3                   ret
+
+FUNCTION 089e7958 size=2023 _Z24procSpecialPassiveObjectR18SPOBJ_ACTION_DATASR25STAssignSpecialPassiveObji
+089e7958: 55                   push     ebp
+089e7959: 89e5                 mov      ebp, esp
+089e795b: 56                   push     esi
+089e795c: 53                   push     ebx
+089e795d: 81ec40010000         sub      esp, 0x140
+089e7963: 8d853cffffff         lea      eax, [ebp - 0xc4]
+089e7969: 890424               mov      dword ptr [esp], eax
+089e796c: e85fecd1ff           call     0x87065d0                           _ZNSsC2Ev
+089e7971: 8d8540ffffff         lea      eax, [ebp - 0xc0]
+089e7977: 890424               mov      dword ptr [esp], eax
+089e797a: e82d686aff           call     0x808e1ac                           _ZNSt6vectorIiSaIiEEC2Ev
+089e797f: 8d8540ffffff         lea      eax, [ebp - 0xc0]
+089e7985: 89442408             mov      dword ptr [esp + 8], eax
+089e7989: 8d854dffffff         lea      eax, [ebp - 0xb3]
+089e798f: 89442404             mov      dword ptr [esp + 4], eax
+089e7993: 8d852cffffff         lea      eax, [ebp - 0xd4]
+089e7999: 890424               mov      dword ptr [esp], eax
+089e799c: e889220000           call     0x89e9c2a                           _ZNSt14priority_queueIiSt6vectorIiSaIiEESt4lessIiEEC2ERKS4_OS2_
+089e79a1: eb1b                 jmp      0x89e79be
+089e79a3: 89d3                 mov      ebx, edx
+089e79a5: 89c6                 mov      esi, eax
+089e79a7: 8d8540ffffff         lea      eax, [ebp - 0xc0]
+089e79ad: 890424               mov      dword ptr [esp], eax
+089e79b0: e825c469ff           call     0x8083dda                           _ZNSt6vectorIiSaIiEED2Ev
+089e79b5: 89f0                 mov      eax, esi
+089e79b7: 89da                 mov      edx, ebx
+089e79b9: e963070000           jmp      0x89e8121
+089e79be: 8d8540ffffff         lea      eax, [ebp - 0xc0]
+089e79c4: 890424               mov      dword ptr [esp], eax
+089e79c7: e80ec469ff           call     0x8083dda                           _ZNSt6vectorIiSaIiEED2Ev
+089e79cc: c745d800000000       mov      dword ptr [ebp - 0x28], 0
+089e79d3: c745dc00000000       mov      dword ptr [ebp - 0x24], 0
+089e79da: c745e000000000       mov      dword ptr [ebp - 0x20], 0
+089e79e1: c745e400000000       mov      dword ptr [ebp - 0x1c], 0
+089e79e8: c745e800000000       mov      dword ptr [ebp - 0x18], 0
+089e79ef: e9d7060000           jmp      0x89e80cb
+089e79f4: 8b45e8               mov      eax, dword ptr [ebp - 0x18]
+089e79f7: 85c0                 test     eax, eax
+089e79f9: 0f85ad060000         jne      0x89e80ac
+089e79ff: 8d853cffffff         lea      eax, [ebp - 0xc4]
+089e7a05: 890424               mov      dword ptr [esp], eax
+089e7a08: e8954dedff           call     0x88bc7a2                           _Z7ScanStrPSs
+089e7a0d: 84c0                 test     al, al
+089e7a0f: 0f84ae060000         je       0x89e80c3
+089e7a15: c74424047bade108     mov      dword ptr [esp + 4], 0x8e1ad7b
+089e7a1d: 8d853cffffff         lea      eax, [ebp - 0xc4]
+089e7a23: 890424               mov      dword ptr [esp], eax
+089e7a26: e8768f69ff           call     0x80809a1                           _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+089e7a2b: 84c0                 test     al, al
+089e7a2d: 7412                 je       0x89e7a41
+089e7a2f: 8b55e8               mov      edx, dword ptr [ebp - 0x18]
+089e7a32: 8b4508               mov      eax, dword ptr [ebp + 8]
+089e7a35: c7049000000000       mov      dword ptr [eax + edx*4], 0
+089e7a3c: e986060000           jmp      0x89e80c7
+089e7a41: c7442404dec0e108     mov      dword ptr [esp + 4], 0x8e1c0de
+089e7a49: 8d853cffffff         lea      eax, [ebp - 0xc4]
+089e7a4f: 890424               mov      dword ptr [esp], eax
+089e7a52: e84a8f69ff           call     0x80809a1                           _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+089e7a57: 84c0                 test     al, al
+089e7a59: 7412                 je       0x89e7a6d
+089e7a5b: 8b55e8               mov      edx, dword ptr [ebp - 0x18]
+089e7a5e: 8b4508               mov      eax, dword ptr [ebp + 8]
+089e7a61: c7049001000000       mov      dword ptr [eax + edx*4], 1
+089e7a68: e95a060000           jmp      0x89e80c7
+089e7a6d: c7442404e5c0e108     mov      dword ptr [esp + 4], 0x8e1c0e5
+089e7a75: 8d853cffffff         lea      eax, [ebp - 0xc4]
+089e7a7b: 890424               mov      dword ptr [esp], eax
+089e7a7e: e81e8f69ff           call     0x80809a1                           _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+089e7a83: 84c0                 test     al, al
+089e7a85: 7412                 je       0x89e7a99
+089e7a87: 8b55e8               mov      edx, dword ptr [ebp - 0x18]
+089e7a8a: 8b4508               mov      eax, dword ptr [ebp + 8]
+089e7a8d: c7049002000000       mov      dword ptr [eax + edx*4], 2
+089e7a94: e92e060000           jmp      0x89e80c7
+089e7a99: c7442404ecc0e108     mov      dword ptr [esp + 4], 0x8e1c0ec
+089e7aa1: 8d853cffffff         lea      eax, [ebp - 0xc4]
+089e7aa7: 890424               mov      dword ptr [esp], eax
+089e7aaa: e8f28e69ff           call     0x80809a1                           _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+089e7aaf: 84c0                 test     al, al
+089e7ab1: 7412                 je       0x89e7ac5
+089e7ab3: 8b55e8               mov      edx, dword ptr [ebp - 0x18]
+089e7ab6: 8b4508               mov      eax, dword ptr [ebp + 8]
+089e7ab9: c7049003000000       mov      dword ptr [eax + edx*4], 3
+089e7ac0: e902060000           jmp      0x89e80c7
+089e7ac5: c7442404f4c0e108     mov      dword ptr [esp + 4], 0x8e1c0f4
+089e7acd: 8d853cffffff         lea      eax, [ebp - 0xc4]
+089e7ad3: 890424               mov      dword ptr [esp], eax
+089e7ad6: e8c68e69ff           call     0x80809a1                           _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+089e7adb: 84c0                 test     al, al
+089e7add: 0f84e3050000         je       0x89e80c6
+089e7ae3: 8d8510ffffff         lea      eax, [ebp - 0xf0]
+089e7ae9: 890424               mov      dword ptr [esp], eax
+089e7aec: e8c3210000           call     0x89e9cb4                           _ZNSt3mapIt21STHellPartyGroupOrderSt4lessItESaISt4pairIKtS0_EEEC2Ev
+089e7af1: 8d852bffffff         lea      eax, [ebp - 0xd5]
+089e7af7: 890424               mov      dword ptr [esp], eax
+089e7afa: e87c48edff           call     0x88bc37b                           _Z7ScanIntPb
+089e7aff: 89850cffffff         mov      dword ptr [ebp - 0xf4], eax
+089e7b05: 0fb6852bffffff       movzx    eax, byte ptr [ebp - 0xd5]
+089e7b0c: 83f001               xor      eax, 1
+089e7b0f: 84c0                 test     al, al
+089e7b11: 0f8580030000         jne      0x89e7e97
+089e7b17: 8d850cffffff         lea      eax, [ebp - 0xf4]
+089e7b1d: 89442404             mov      dword ptr [esp + 4], eax
+089e7b21: 8d852cffffff         lea      eax, [ebp - 0xd4]
+089e7b27: 890424               mov      dword ptr [esp], eax
+089e7b2a: e8ff210000           call     0x89e9d2e                           _ZNSt14priority_queueIiSt6vectorIiSaIiEESt4lessIiEE4pushERKi
+089e7b2f: e8901cf2ff           call     0x89097c4                           _Z26Get_instance_stHellParty_tv
+089e7b34: 8945ec               mov      dword ptr [ebp - 0x14], eax
+089e7b37: 8b850cffffff         mov      eax, dword ptr [ebp - 0xf4]
+089e7b3d: 6689854effffff       mov      word ptr [ebp - 0xb2], ax
+089e7b44: 8b45ec               mov      eax, dword ptr [ebp - 0x14]
+089e7b47: 8d4854               lea      ecx, [eax + 0x54]
+089e7b4a: 8d8508ffffff         lea      eax, [ebp - 0xf8]
+089e7b50: 8d954effffff         lea      edx, [ebp - 0xb2]
+089e7b56: 89542408             mov      dword ptr [esp + 8], edx
+089e7b5a: 894c2404             mov      dword ptr [esp + 4], ecx
+089e7b5e: 890424               mov      dword ptr [esp], eax
+089e7b61: e890d39aff           call     0x8394ef6                           _ZNSt3mapIt27stHellPartyMonsterGroupListSt4lessItESaISt4pairIKtS0_EEE4findERS4_
+089e7b66: 83ec04               sub      esp, 4
+089e7b69: 8b45ec               mov      eax, dword ptr [ebp - 0x14]
+089e7b6c: 8d5054               lea      edx, [eax + 0x54]
+089e7b6f: 8d8550ffffff         lea      eax, [ebp - 0xb0]
+089e7b75: 89542404             mov      dword ptr [esp + 4], edx
+089e7b79: 890424               mov      dword ptr [esp], eax
+089e7b7c: e8a1d39aff           call     0x8394f22                           _ZNSt3mapIt27stHellPartyMonsterGroupListSt4lessItESaISt4pairIKtS0_EEE3endEv
+089e7b81: 83ec04               sub      esp, 4
+089e7b84: 8d8550ffffff         lea      eax, [ebp - 0xb0]
+089e7b8a: 89442404             mov      dword ptr [esp + 4], eax
+089e7b8e: 8d8508ffffff         lea      eax, [ebp - 0xf8]
+089e7b94: 890424               mov      dword ptr [esp], eax
+089e7b97: e8c2119eff           call     0x83c8d5e                           _ZNKSt17_Rb_tree_iteratorISt4pairIKt27stHellPartyMonsterGroupListEEeqERKS4_
+089e7b9c: 84c0                 test     al, al
+089e7b9e: 743b                 je       0x89e7bdb
+089e7ba0: 8b850cffffff         mov      eax, dword ptr [ebp - 0xf4]
+089e7ba6: 89442414             mov      dword ptr [esp + 0x14], eax
+089e7baa: c7442410ccc2e108     mov      dword ptr [esp + 0x10], 0x8e1c2cc
+089e7bb2: c744240c5c0d0000     mov      dword ptr [esp + 0xc], 0xd5c
+089e7bba: c7442408b4c8e108     mov      dword ptr [esp + 8], 0x8e1c8b4
+089e7bc2: c744240418b7e108     mov      dword ptr [esp + 4], 0x8e1b718
+089e7bca: c7042400000000       mov      dword ptr [esp], 0
+089e7bd1: e834c00e00           call     0x8ad3c0a                           _ZN10LogManager9logFormatEiPKcS1_iS1_z
+089e7bd6: e9bc040000           jmp      0x89e8097
+089e7bdb: 8d852bffffff         lea      eax, [ebp - 0xd5]
+089e7be1: 890424               mov      dword ptr [esp], eax
+089e7be4: e89247edff           call     0x88bc37b                           _Z7ScanIntPb
+089e7be9: 8945f0               mov      dword ptr [ebp - 0x10], eax
+089e7bec: 0fb6852bffffff       movzx    eax, byte ptr [ebp - 0xd5]
+089e7bf3: 83f001               xor      eax, 1
+089e7bf6: 84c0                 test     al, al
+089e7bf8: 0f8599040000         jne      0x89e8097
+089e7bfe: 8d852bffffff         lea      eax, [ebp - 0xd5]
+089e7c04: 890424               mov      dword ptr [esp], eax
+089e7c07: e86f47edff           call     0x88bc37b                           _Z7ScanIntPb
+089e7c0c: 898504ffffff         mov      dword ptr [ebp - 0xfc], eax
+089e7c12: 0fb6852bffffff       movzx    eax, byte ptr [ebp - 0xd5]
+089e7c19: 83f001               xor      eax, 1
+089e7c1c: 84c0                 test     al, al
+089e7c1e: 0f8573040000         jne      0x89e8097
+089e7c24: 8b8504ffffff         mov      eax, dword ptr [ebp - 0xfc]
+089e7c2a: 85c0                 test     eax, eax
+089e7c2c: 7e0b                 jle      0x89e7c39
+089e7c2e: 8b8504ffffff         mov      eax, dword ptr [ebp - 0xfc]
+089e7c34: 83f809               cmp      eax, 9
+089e7c37: 7e3b                 jle      0x89e7c74
+089e7c39: 8b8504ffffff         mov      eax, dword ptr [ebp - 0xfc]
+089e7c3f: 89442414             mov      dword ptr [esp + 0x14], eax
+089e7c43: c744241000c1e108     mov      dword ptr [esp + 0x10], 0x8e1c100
+089e7c4b: c744240c690d0000     mov      dword ptr [esp + 0xc], 0xd69
+089e7c53: c7442408b4c8e108     mov      dword ptr [esp + 8], 0x8e1c8b4
+089e7c5b: c744240418b7e108     mov      dword ptr [esp + 4], 0x8e1b718
+089e7c63: c7042400000000       mov      dword ptr [esp], 0
+089e7c6a: e89bbf0e00           call     0x8ad3c0a                           _ZN10LogManager9logFormatEiPKcS1_iS1_z
+089e7c6f: e923040000           jmp      0x89e8097
+089e7c74: 8b850cffffff         mov      eax, dword ptr [ebp - 0xf4]
+089e7c7a: 8985f8feffff         mov      dword ptr [ebp - 0x108], eax
+089e7c80: 8b45f0               mov      eax, dword ptr [ebp - 0x10]
+089e7c83: 8985fcfeffff         mov      dword ptr [ebp - 0x104], eax
+089e7c89: 8d8508ffffff         lea      eax, [ebp - 0xf8]
+089e7c8f: 890424               mov      dword ptr [esp], eax
+089e7c92: e8c5d29aff           call     0x8394f5c                           _ZNKSt17_Rb_tree_iteratorISt4pairIKt27stHellPartyMonsterGroupListEEptEv
+089e7c97: 0fb64058             movzx    eax, byte ptr [eax + 0x58]
+089e7c9b: 888500ffffff         mov      byte ptr [ebp - 0x100], al
+089e7ca1: 8b8504ffffff         mov      eax, dword ptr [ebp - 0xfc]
+089e7ca7: 66898556ffffff       mov      word ptr [ebp - 0xaa], ax
+089e7cae: 8d85f4feffff         lea      eax, [ebp - 0x10c]
+089e7cb4: 8d9556ffffff         lea      edx, [ebp - 0xaa]
+089e7cba: 89542408             mov      dword ptr [esp + 8], edx
+089e7cbe: 8d9510ffffff         lea      edx, [ebp - 0xf0]
+089e7cc4: 89542404             mov      dword ptr [esp + 4], edx
+089e7cc8: 890424               mov      dword ptr [esp], eax
+089e7ccb: e8bc200000           call     0x89e9d8c                           _ZNSt3mapIt21STHellPartyGroupOrderSt4lessItESaISt4pairIKtS0_EEE4findERS4_
+089e7cd0: 83ec04               sub      esp, 4
+089e7cd3: 8d8558ffffff         lea      eax, [ebp - 0xa8]
+089e7cd9: 8d9510ffffff         lea      edx, [ebp - 0xf0]
+089e7cdf: 89542404             mov      dword ptr [esp + 4], edx
+089e7ce3: 890424               mov      dword ptr [esp], eax
+089e7ce6: e8b99d92ff           call     0x8311aa4                           _ZNSt3mapIt21STHellPartyGroupOrderSt4lessItESaISt4pairIKtS0_EEE3endEv
+089e7ceb: 83ec04               sub      esp, 4
+089e7cee: 8d8558ffffff         lea      eax, [ebp - 0xa8]
+089e7cf4: 89442404             mov      dword ptr [esp + 4], eax
+089e7cf8: 8d85f4feffff         lea      eax, [ebp - 0x10c]
+089e7cfe: 890424               mov      dword ptr [esp], eax
+089e7d01: e8c49d92ff           call     0x8311aca                           _ZNKSt17_Rb_tree_iteratorISt4pairIKt21STHellPartyGroupOrderEEneERKS4_
+089e7d06: 84c0                 test     al, al
+089e7d08: 745a                 je       0x89e7d64
+089e7d0a: 8d85f4feffff         lea      eax, [ebp - 0x10c]
+089e7d10: 890424               mov      dword ptr [esp], eax
+089e7d13: e8e49d92ff           call     0x8311afc                           _ZNKSt17_Rb_tree_iteratorISt4pairIKt21STHellPartyGroupOrderEEptEv
+089e7d18: 8d5010               lea      edx, [eax + 0x10]
+089e7d1b: 8d85f8feffff         lea      eax, [ebp - 0x108]
+089e7d21: 89442404             mov      dword ptr [esp + 4], eax
+089e7d25: 891424               mov      dword ptr [esp], edx
+089e7d28: e86d0f93ff           call     0x8318c9a                           _ZNSt4listI20STHellPartyGroupRateSaIS0_EE9push_backERKS0_
+089e7d2d: 8d85f4feffff         lea      eax, [ebp - 0x10c]
+089e7d33: 890424               mov      dword ptr [esp], eax
+089e7d36: e8c19d92ff           call     0x8311afc                           _ZNKSt17_Rb_tree_iteratorISt4pairIKt21STHellPartyGroupOrderEEptEv
+089e7d3b: 0fb69500ffffff       movzx    edx, byte ptr [ebp - 0x100]
+089e7d42: 0fbed2               movsx    edx, dl
+089e7d45: 0fb68d00ffffff       movzx    ecx, byte ptr [ebp - 0x100]
+089e7d4c: 0fbec9               movsx    ecx, cl
+089e7d4f: 0fb75c4804           movzx    ebx, word ptr [eax + ecx*2 + 4]
+089e7d54: 8b4df0               mov      ecx, dword ptr [ebp - 0x10]
+089e7d57: 8d0c0b               lea      ecx, [ebx + ecx]
+089e7d5a: 66894c5004           mov      word ptr [eax + edx*2 + 4], cx
+089e7d5f: e98dfdffff           jmp      0x89e7af1
+089e7d64: 8d85e0feffff         lea      eax, [ebp - 0x120]
+089e7d6a: 890424               mov      dword ptr [esp], eax
+089e7d6d: e8a0090000           call     0x89e8712                           _ZN21STHellPartyGroupOrderC2Ev
+089e7d72: 8d85f8feffff         lea      eax, [ebp - 0x108]
+089e7d78: 89442404             mov      dword ptr [esp + 4], eax
+089e7d7c: 8d85e0feffff         lea      eax, [ebp - 0x120]
+089e7d82: 83c00c               add      eax, 0xc
+089e7d85: 890424               mov      dword ptr [esp], eax
+089e7d88: e80d0f93ff           call     0x8318c9a                           _ZNSt4listI20STHellPartyGroupRateSaIS0_EE9push_backERKS0_
+089e7d8d: 0fb68500ffffff       movzx    eax, byte ptr [ebp - 0x100]
+089e7d94: 0fbec0               movsx    eax, al
+089e7d97: 0fb69500ffffff       movzx    edx, byte ptr [ebp - 0x100]
+089e7d9e: 0fbed2               movsx    edx, dl
+089e7da1: 0fb78c55e0feffff     movzx    ecx, word ptr [ebp + edx*2 - 0x120]
+089e7da9: 8b55f0               mov      edx, dword ptr [ebp - 0x10]
+089e7dac: 8d1411               lea      edx, [ecx + edx]
+089e7daf: 66899445e0feffff     mov      word ptr [ebp + eax*2 - 0x120], dx
+089e7db7: 8d857cffffff         lea      eax, [ebp - 0x84]
+089e7dbd: 8d95e0feffff         lea      edx, [ebp - 0x120]
+089e7dc3: 89542408             mov      dword ptr [esp + 8], edx
+089e7dc7: 8d9504ffffff         lea      edx, [ebp - 0xfc]
+089e7dcd: 89542404             mov      dword ptr [esp + 4], edx
+089e7dd1: 890424               mov      dword ptr [esp], eax
+089e7dd4: e8df1f0000           call     0x89e9db8                           _ZSt9make_pairIRiR21STHellPartyGroupOrderESt4pairINSt17__decay_and_stripIT_E6__typeENS4_IT0_E6__typeEEOS5_OS8_
+089e7dd9: 83ec04               sub      esp, 4
+089e7ddc: 8d857cffffff         lea      eax, [ebp - 0x84]
+089e7de2: 89442404             mov      dword ptr [esp + 4], eax
+089e7de6: 8d8564ffffff         lea      eax, [ebp - 0x9c]
+089e7dec: 890424               mov      dword ptr [esp], eax
+089e7def: e83e200000           call     0x89e9e32                           _ZNSt4pairIKt21STHellPartyGroupOrderEC2IiS1_EEOS_IT_T0_E
+089e7df4: 8d855cffffff         lea      eax, [ebp - 0xa4]
+089e7dfa: 8d9564ffffff         lea      edx, [ebp - 0x9c]
+089e7e00: 89542408             mov      dword ptr [esp + 8], edx
+089e7e04: 8d9510ffffff         lea      edx, [ebp - 0xf0]
+089e7e0a: 89542404             mov      dword ptr [esp + 4], edx
+089e7e0e: 890424               mov      dword ptr [esp], eax
+089e7e11: e85a200000           call     0x89e9e70                           _ZNSt3mapIt21STHellPartyGroupOrderSt4lessItESaISt4pairIKtS0_EEE6insertERKS5_
+089e7e16: 83ec04               sub      esp, 4
+089e7e19: 8d8564ffffff         lea      eax, [ebp - 0x9c]
+089e7e1f: 890424               mov      dword ptr [esp], eax
+089e7e22: e8250d0000           call     0x89e8b4c                           _ZNSt4pairIKt21STHellPartyGroupOrderED2Ev
+089e7e27: eb30                 jmp      0x89e7e59
+089e7e29: 89d3                 mov      ebx, edx
+089e7e2b: 89c6                 mov      esi, eax
+089e7e2d: 8d8564ffffff         lea      eax, [ebp - 0x9c]
+089e7e33: 890424               mov      dword ptr [esp], eax
+089e7e36: e8110d0000           call     0x89e8b4c                           _ZNSt4pairIKt21STHellPartyGroupOrderED2Ev
+089e7e3b: 89f0                 mov      eax, esi
+089e7e3d: 89da                 mov      edx, ebx
+089e7e3f: eb00                 jmp      0x89e7e41
+089e7e41: 89d3                 mov      ebx, edx
+089e7e43: 89c6                 mov      esi, eax
+089e7e45: 8d857cffffff         lea      eax, [ebp - 0x84]
+089e7e4b: 890424               mov      dword ptr [esp], eax
+089e7e4e: e8e30c0000           call     0x89e8b36                           _ZNSt4pairIi21STHellPartyGroupOrderED2Ev
+089e7e53: 89f0                 mov      eax, esi
+089e7e55: 89da                 mov      edx, ebx
+089e7e57: eb10                 jmp      0x89e7e69
+089e7e59: 8d857cffffff         lea      eax, [ebp - 0x84]
+089e7e5f: 890424               mov      dword ptr [esp], eax
+089e7e62: e8cf0c0000           call     0x89e8b36                           _ZNSt4pairIi21STHellPartyGroupOrderED2Ev
+089e7e67: eb1b                 jmp      0x89e7e84
+089e7e69: 89d3                 mov      ebx, edx
+089e7e6b: 89c6                 mov      esi, eax
+089e7e6d: 8d85e0feffff         lea      eax, [ebp - 0x120]
+089e7e73: 890424               mov      dword ptr [esp], eax
+089e7e76: e8c9080000           call     0x89e8744                           _ZN21STHellPartyGroupOrderD2Ev
+089e7e7b: 89f0                 mov      eax, esi
+089e7e7d: 89da                 mov      edx, ebx
+089e7e7f: e9fb010000           jmp      0x89e807f
+089e7e84: 8d85e0feffff         lea      eax, [ebp - 0x120]
+089e7e8a: 890424               mov      dword ptr [esp], eax
+089e7e8d: e8b2080000           call     0x89e8744                           _ZN21STHellPartyGroupOrderD2Ev
+089e7e92: e95afcffff           jmp      0x89e7af1
+089e7e97: 90                   nop
+089e7e98: 8d45b8               lea      eax, [ebp - 0x48]
+089e7e9b: 8d9510ffffff         lea      edx, [ebp - 0xf0]
+089e7ea1: 89542408             mov      dword ptr [esp + 8], edx
+089e7ea5: 8d5510               lea      edx, [ebp + 0x10]
+089e7ea8: 89542404             mov      dword ptr [esp + 4], edx
+089e7eac: 890424               mov      dword ptr [esp], eax
+089e7eaf: e8e81f0000           call     0x89e9e9c                           _ZSt9make_pairIRiRSt3mapIt21STHellPartyGroupOrderSt4lessItESaISt4pairIKtS2_EEEES5_INSt17__decay_and_stripIT_E6__typeENSB_IT0_E6__typeEEOSC_OSF_
+089e7eb4: 83ec04               sub      esp, 4
+089e7eb7: 8d45b8               lea      eax, [ebp - 0x48]
+089e7eba: 89442404             mov      dword ptr [esp + 4], eax
+089e7ebe: 8d459c               lea      eax, [ebp - 0x64]
+089e7ec1: 890424               mov      dword ptr [esp], eax
+089e7ec4: e817200000           call     0x89e9ee0                           _ZNSt4pairIKiSt3mapIt21STHellPartyGroupOrderSt4lessItESaIS_IKtS2_EEEEC2IiS8_EEOS_IT_T0_E
+089e7ec9: e871020000           call     0x89e813f                           _Z32Get_instance_groupOrder_map_poolv
+089e7ece: 8d5594               lea      edx, [ebp - 0x6c]
+089e7ed1: 8d4d9c               lea      ecx, [ebp - 0x64]
+089e7ed4: 894c2408             mov      dword ptr [esp + 8], ecx
+089e7ed8: 89442404             mov      dword ptr [esp + 4], eax
+089e7edc: 891424               mov      dword ptr [esp], edx
+089e7edf: e836200000           call     0x89e9f1a                           _ZNSt3mapIiS_It21STHellPartyGroupOrderSt4lessItESaISt4pairIKtS0_EEES1_IiESaIS3_IKiS7_EEE6insertERKSA_
+089e7ee4: 83ec04               sub      esp, 4
+089e7ee7: 8d459c               lea      eax, [ebp - 0x64]
+089e7eea: 890424               mov      dword ptr [esp], eax
+089e7eed: e8860c0000           call     0x89e8b78                           _ZNSt4pairIKiSt3mapIt21STHellPartyGroupOrderSt4lessItESaIS_IKtS2_EEEED2Ev
+089e7ef2: eb2d                 jmp      0x89e7f21
+089e7ef4: 89d3                 mov      ebx, edx
+089e7ef6: 89c6                 mov      esi, eax
+089e7ef8: 8d459c               lea      eax, [ebp - 0x64]
+089e7efb: 890424               mov      dword ptr [esp], eax
+089e7efe: e8750c0000           call     0x89e8b78                           _ZNSt4pairIKiSt3mapIt21STHellPartyGroupOrderSt4lessItESaIS_IKtS2_EEEED2Ev
+089e7f03: 89f0                 mov      eax, esi
+089e7f05: 89da                 mov      edx, ebx
+089e7f07: eb00                 jmp      0x89e7f09
+089e7f09: 89d3                 mov      ebx, edx
+089e7f0b: 89c6                 mov      esi, eax
+089e7f0d: 8d45b8               lea      eax, [ebp - 0x48]
+089e7f10: 890424               mov      dword ptr [esp], eax
+089e7f13: e84a0c0000           call     0x89e8b62                           _ZNSt4pairIiSt3mapIt21STHellPartyGroupOrderSt4lessItESaIS_IKtS1_EEEED2Ev
+089e7f18: 89f0                 mov      eax, esi
+089e7f1a: 89da                 mov      edx, ebx
+089e7f1c: e95e010000           jmp      0x89e807f
+089e7f21: 8d45b8               lea      eax, [ebp - 0x48]
+089e7f24: 890424               mov      dword ptr [esp], eax
+089e7f27: e8360c0000           call     0x89e8b62                           _ZNSt4pairIiSt3mapIt21STHellPartyGroupOrderSt4lessItESaIS_IKtS1_EEEED2Ev
+089e7f2c: e933010000           jmp      0x89e8064
+089e7f31: 8d852cffffff         lea      eax, [ebp - 0xd4]
+089e7f37: 890424               mov      dword ptr [esp], eax
+089e7f3a: e81b200000           call     0x89e9f5a                           _ZNKSt14priority_queueIiSt6vectorIiSaIiEESt4lessIiEE3topEv
+089e7f3f: 8b00                 mov      eax, dword ptr [eax]
+089e7f41: 8945d8               mov      dword ptr [ebp - 0x28], eax
+089e7f44: 8b45d8               mov      eax, dword ptr [ebp - 0x28]
+089e7f47: 3b45dc               cmp      eax, dword ptr [ebp - 0x24]
+089e7f4a: 7406                 je       0x89e7f52
+089e7f4c: 837dd800             cmp      dword ptr [ebp - 0x28], 0
+089e7f50: 7513                 jne      0x89e7f65
+089e7f52: 8d852cffffff         lea      eax, [ebp - 0xd4]
+089e7f58: 890424               mov      dword ptr [esp], eax
+089e7f5b: e80e200000           call     0x89e9f6e                           _ZNSt14priority_queueIiSt6vectorIiSaIiEESt4lessIiEE3popEv
+089e7f60: e9ff000000           jmp      0x89e8064
+089e7f65: 8b45d8               mov      eax, dword ptr [ebp - 0x28]
+089e7f68: 8945dc               mov      dword ptr [ebp - 0x24], eax
+089e7f6b: e85418f2ff           call     0x89097c4                           _Z26Get_instance_stHellParty_tv
+089e7f70: 8945f4               mov      dword ptr [ebp - 0xc], eax
+089e7f73: 8b45d8               mov      eax, dword ptr [ebp - 0x28]
+089e7f76: 668945d6             mov      word ptr [ebp - 0x2a], ax
+089e7f7a: 8b45f4               mov      eax, dword ptr [ebp - 0xc]
+089e7f7d: 8d4854               lea      ecx, [eax + 0x54]
+089e7f80: 8d85dcfeffff         lea      eax, [ebp - 0x124]
+089e7f86: 8d55d6               lea      edx, [ebp - 0x2a]
+089e7f89: 89542408             mov      dword ptr [esp + 8], edx
+089e7f8d: 894c2404             mov      dword ptr [esp + 4], ecx
+089e7f91: 890424               mov      dword ptr [esp], eax
+089e7f94: e85dcf9aff           call     0x8394ef6                           _ZNSt3mapIt27stHellPartyMonsterGroupListSt4lessItESaISt4pairIKtS0_EEE4findERS4_
+089e7f99: 83ec04               sub      esp, 4
+089e7f9c: 8b55e0               mov      edx, dword ptr [ebp - 0x20]
+089e7f9f: 8b4508               mov      eax, dword ptr [ebp + 8]
+089e7fa2: c7049005000000       mov      dword ptr [eax + edx*4], 5
+089e7fa9: 8345e001             add      dword ptr [ebp - 0x20], 1
+089e7fad: e982000000           jmp      0x89e8034
+089e7fb2: 8b5de0               mov      ebx, dword ptr [ebp - 0x20]
+089e7fb5: 8d85dcfeffff         lea      eax, [ebp - 0x124]
+089e7fbb: 890424               mov      dword ptr [esp], eax
+089e7fbe: e899cf9aff           call     0x8394f5c                           _ZNKSt17_Rb_tree_iteratorISt4pairIKt27stHellPartyMonsterGroupListEEptEv
+089e7fc3: 8b55e4               mov      edx, dword ptr [ebp - 0x1c]
+089e7fc6: 8b549004             mov      edx, dword ptr [eax + edx*4 + 4]
+089e7fca: 8b4508               mov      eax, dword ptr [ebp + 8]
+089e7fcd: 891498               mov      dword ptr [eax + ebx*4], edx
+089e7fd0: 8345e001             add      dword ptr [ebp - 0x20], 1
+089e7fd4: 8b55e0               mov      edx, dword ptr [ebp - 0x20]
+089e7fd7: 8b4508               mov      eax, dword ptr [ebp + 8]
+089e7fda: c7049001000000       mov      dword ptr [eax + edx*4], 1
+089e7fe1: 8345e001             add      dword ptr [ebp - 0x20], 1
+089e7fe5: 8b55e0               mov      edx, dword ptr [ebp - 0x20]
+089e7fe8: 8b4508               mov      eax, dword ptr [ebp + 8]
+089e7feb: c7049001000000       mov      dword ptr [eax + edx*4], 1
+089e7ff2: 8345e001             add      dword ptr [ebp - 0x20], 1
+089e7ff6: 8b55e0               mov      edx, dword ptr [ebp - 0x20]
+089e7ff9: 8b4508               mov      eax, dword ptr [ebp + 8]
+089e7ffc: c7049001000000       mov      dword ptr [eax + edx*4], 1
+089e8003: 8345e001             add      dword ptr [ebp - 0x20], 1
+089e8007: 8b55e0               mov      edx, dword ptr [ebp - 0x20]
+089e800a: 8b4508               mov      eax, dword ptr [ebp + 8]
+089e800d: c70490ffffffff       mov      dword ptr [eax + edx*4], 0xffffffff
+089e8014: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+089e8017: 8d5010               lea      edx, [eax + 0x10]
+089e801a: 8b4508               mov      eax, dword ptr [ebp + 8]
+089e801d: 89442404             mov      dword ptr [esp + 4], eax
+089e8021: 891424               mov      dword ptr [esp], edx
+089e8024: e867100000           call     0x89e9090                           _ZNSt6vectorI18SPOBJ_ACTION_DATASSaIS0_EE9push_backERKS0_
+089e8029: c745e001000000       mov      dword ptr [ebp - 0x20], 1
+089e8030: 8345e401             add      dword ptr [ebp - 0x1c], 1
+089e8034: 8d85dcfeffff         lea      eax, [ebp - 0x124]
+089e803a: 890424               mov      dword ptr [esp], eax
+089e803d: e81acf9aff           call     0x8394f5c                           _ZNKSt17_Rb_tree_iteratorISt4pairIKt27stHellPartyMonsterGroupListEEptEv
+089e8042: 8b55e4               mov      edx, dword ptr [ebp - 0x1c]
+089e8045: 8b449004             mov      eax, dword ptr [eax + edx*4 + 4]
+089e8049: 85c0                 test     eax, eax
+089e804b: 0f9fc0               setg     al
+089e804e: 84c0                 test     al, al
+089e8050: 0f855cffffff         jne      0x89e7fb2
+089e8056: c745e000000000       mov      dword ptr [ebp - 0x20], 0
+089e805d: c745e400000000       mov      dword ptr [ebp - 0x1c], 0
+089e8064: 8d852cffffff         lea      eax, [ebp - 0xd4]
+089e806a: 890424               mov      dword ptr [esp], eax
+089e806d: e8d41e0000           call     0x89e9f46                           _ZNKSt14priority_queueIiSt6vectorIiSaIiEESt4lessIiEE5emptyEv
+089e8072: 83f001               xor      eax, 1
+089e8075: 84c0                 test     al, al
+089e8077: 0f85b4feffff         jne      0x89e7f31
+089e807d: eb18                 jmp      0x89e8097
+089e807f: 89d3                 mov      ebx, edx
+089e8081: 89c6                 mov      esi, eax
+089e8083: 8d8510ffffff         lea      eax, [ebp - 0xf0]
+089e8089: 890424               mov      dword ptr [esp], eax
+089e808c: e8910a0000           call     0x89e8b22                           _ZNSt3mapIt21STHellPartyGroupOrderSt4lessItESaISt4pairIKtS0_EEED2Ev
+089e8091: 89f0                 mov      eax, esi
+089e8093: 89da                 mov      edx, ebx
+089e8095: eb4a                 jmp      0x89e80e1
+089e8097: 8d8510ffffff         lea      eax, [ebp - 0xf0]
+089e809d: 890424               mov      dword ptr [esp], eax
+089e80a0: e87d0a0000           call     0x89e8b22                           _ZNSt3mapIt21STHellPartyGroupOrderSt4lessItESaISt4pairIKtS0_EEED2Ev
+089e80a5: bb00000000           mov      ebx, 0
+089e80aa: eb4d                 jmp      0x89e80f9
+089e80ac: 8b5de8               mov      ebx, dword ptr [ebp - 0x18]
+089e80af: c7042400000000       mov      dword ptr [esp], 0
+089e80b6: e8c042edff           call     0x88bc37b                           _Z7ScanIntPb
+089e80bb: 8b5508               mov      edx, dword ptr [ebp + 8]
+089e80be: 89049a               mov      dword ptr [edx + ebx*4], eax
+089e80c1: eb04                 jmp      0x89e80c7
+089e80c3: 90                   nop
+089e80c4: eb01                 jmp      0x89e80c7
+089e80c6: 90                   nop
+089e80c7: 8345e801             add      dword ptr [ebp - 0x18], 1
+089e80cb: 837de805             cmp      dword ptr [ebp - 0x18], 5
+089e80cf: 0f9ec0               setle    al
+089e80d2: 84c0                 test     al, al
+089e80d4: 0f851af9ffff         jne      0x89e79f4
+089e80da: bb01000000           mov      ebx, 1
+089e80df: eb18                 jmp      0x89e80f9
+089e80e1: 89d3                 mov      ebx, edx
+089e80e3: 89c6                 mov      esi, eax
+089e80e5: 8d852cffffff         lea      eax, [ebp - 0xd4]
+089e80eb: 890424               mov      dword ptr [esp], eax
+089e80ee: e81b0a0000           call     0x89e8b0e                           _ZNSt14priority_queueIiSt6vectorIiSaIiEESt4lessIiEED2Ev
+089e80f3: 89f0                 mov      eax, esi
+089e80f5: 89da                 mov      edx, ebx
+089e80f7: eb28                 jmp      0x89e8121
+089e80f9: 8d852cffffff         lea      eax, [ebp - 0xd4]
+089e80ff: 890424               mov      dword ptr [esp], eax
+089e8102: e8070a0000           call     0x89e8b0e                           _ZNSt14priority_queueIiSt6vectorIiSaIiEESt4lessIiEED2Ev
+089e8107: 85db                 test     ebx, ebx
+089e8109: 8d853cffffff         lea      eax, [ebp - 0xc4]
+089e810f: 890424               mov      dword ptr [esp], eax
+089e8112: e8c9fad1ff           call     0x8707be0                           _ZNSsD2Ev
+089e8117: 8d65f8               lea      esp, [ebp - 8]
+089e811a: 83c400               add      esp, 0
+089e811d: 5b                   pop      ebx
+089e811e: 5e                   pop      esi
+089e811f: 5d                   pop      ebp
+089e8120: c3                   ret
+089e8121: 89d3                 mov      ebx, edx
+089e8123: 89c6                 mov      esi, eax
+089e8125: 8d853cffffff         lea      eax, [ebp - 0xc4]
+089e812b: 890424               mov      dword ptr [esp], eax
+089e812e: e8adfad1ff           call     0x8707be0                           _ZNSsD2Ev
+089e8133: 89f0                 mov      eax, esi
+089e8135: 89da                 mov      edx, ebx
+089e8137: 890424               mov      dword ptr [esp], eax
+089e813a: e811b60f00           call     0x8ae3750                           _Unwind_Resume

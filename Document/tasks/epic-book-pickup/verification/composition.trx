@@ -1,0 +1,513 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="c7645e2f-2d25-4c18-95d5-623a4b68734c" name="Gloria@家庭台式机 2026-10-08 08:33:02" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-08T08:33:02.2240660+08:00" queuing="2026-10-08T08:33:02.2240661+08:00" start="2026-10-08T08:33:00.4244350+08:00" finish="2026-10-08T08:33:08.2931216+08:00" />
+  <TestSettings name="default" id="ba46d464-3a7a-4460-a5f9-437dae82fa02">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-08_08_33_02" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="64a7c2b0-f010-46b8-83eb-ed9aa161f3d4" testId="62cd2b4a-2cd2-827f-2055-154481a562fa" testName="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: False, game: True)" computerName="家庭台式机" duration="00:00:00.8503555" startTime="2026-10-08T08:33:05.0549211+08:00" endTime="2026-10-08T08:33:05.8990689+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="64a7c2b0-f010-46b8-83eb-ed9aa161f3d4">
+      <Output>
+        <ErrorInfo>
+          <Message>System.AggregateException : An error occurred while writing to logger(s). (Cannot open log for source '.NET Runtime'. You may not have write access.)&#xD;
+---- System.InvalidOperationException : Cannot open log for source '.NET Runtime'. You may not have write access.&#xD;
+-------- System.ComponentModel.Win32Exception : 拒绝访问。</Message>
+          <StackTrace>   at Microsoft.Extensions.Logging.Logger.ThrowLoggingError(List`1 exceptions)&#xD;
+   at Microsoft.Extensions.Logging.Logger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+   at Microsoft.Extensions.Logging.LoggerExtensions.Log(ILogger logger, LogLevel logLevel, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+   at Microsoft.Extensions.Logging.LoggerExtensions.LogError(ILogger logger, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.HostingLoggerExtensions.HostedServiceStartupFaulted(ILogger logger, Exception ex)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.Host.&lt;StartAsync&gt;g__LogAndRethrow|14_3(&lt;&gt;c__DisplayClass14_0&amp;)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+   at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs:line 37&#xD;
+   at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs:line 63&#xD;
+--- End of stack trace from previous location ---&#xD;
+----- Inner Stack Trace -----&#xD;
+   at System.Diagnostics.EventLogInternal.OpenForWrite(String currentMachineName)&#xD;
+   at System.Diagnostics.EventLogInternal.InternalWriteEvent(UInt32 eventID, UInt16 category, EventLogEntryType type, String[] strings, Byte[] rawData, String currentMachineName)&#xD;
+   at System.Diagnostics.EventLogInternal.WriteEvent(EventInstance instance, Byte[] data, Object[] values)&#xD;
+   at Microsoft.Extensions.Logging.EventLog.WindowsEventLog.WriteEntry(String message, EventLogEntryType type, Int32 eventID, Int16 category)&#xD;
+   at Microsoft.Extensions.Logging.EventLog.EventLogLogger.WriteMessage(String message, EventLogEntryType eventLogEntryType, Int32 eventId)&#xD;
+   at Microsoft.Extensions.Logging.EventLog.EventLogLogger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+   at Microsoft.Extensions.Logging.Logger.&lt;Log&gt;g__LoggerLog|14_0[TState](LogLevel logLevel, EventId eventId, ILogger logger, Exception exception, Func`3 formatter, List`1&amp; exceptions, TState&amp; state)&#xD;
+----- Inner Stack Trace -----&#xD;
+</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5d2b4201-97a1-4190-b251-6f6cb90dc7b0" testId="650feac9-611d-b311-afdc-de15335a795b" testName="Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_character_business_acts_through_resolves_from_the_assembled_modules" computerName="家庭台式机" duration="00:00:00.5859303" startTime="2026-10-08T08:33:01.2880710+08:00" endTime="2026-10-08T08:33:01.8692946+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5d2b4201-97a1-4190-b251-6f6cb90dc7b0" />
+    <UnitTestResult executionId="573fa670-9d89-414e-b619-f40b2f906c6d" testId="7cf60402-ff3e-9c03-abf3-7d16601fbed5" testName="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: True, game: True)" computerName="家庭台式机" duration="00:00:00.7842576" startTime="2026-10-08T08:33:07.4419304+08:00" endTime="2026-10-08T08:33:08.2251219+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="573fa670-9d89-414e-b619-f40b2f906c6d">
+      <Output>
+        <ErrorInfo>
+          <Message>System.AggregateException : An error occurred while writing to logger(s). (Cannot open log for source '.NET Runtime'. You may not have write access.)&#xD;
+---- System.InvalidOperationException : Cannot open log for source '.NET Runtime'. You may not have write access.&#xD;
+-------- System.ComponentModel.Win32Exception : 拒绝访问。</Message>
+          <StackTrace>   at Microsoft.Extensions.Logging.Logger.ThrowLoggingError(List`1 exceptions)&#xD;
+   at Microsoft.Extensions.Logging.Logger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+   at Microsoft.Extensions.Logging.LoggerExtensions.Log(ILogger logger, LogLevel logLevel, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+   at Microsoft.Extensions.Logging.LoggerExtensions.LogError(ILogger logger, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.HostingLoggerExtensions.HostedServiceStartupFaulted(ILogger logger, Exception ex)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.Host.&lt;StartAsync&gt;g__LogAndRethrow|14_3(&lt;&gt;c__DisplayClass14_0&amp;)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+   at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs:line 37&#xD;
+   at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs:line 63&#xD;
+--- End of stack trace from previous location ---&#xD;
+----- Inner Stack Trace -----&#xD;
+   at System.Diagnostics.EventLogInternal.OpenForWrite(String currentMachineName)&#xD;
+   at System.Diagnostics.EventLogInternal.InternalWriteEvent(UInt32 eventID, UInt16 category, EventLogEntryType type, String[] strings, Byte[] rawData, String currentMachineName)&#xD;
+   at System.Diagnostics.EventLogInternal.WriteEvent(EventInstance instance, Byte[] data, Object[] values)&#xD;
+   at Microsoft.Extensions.Logging.EventLog.WindowsEventLog.WriteEntry(String message, EventLogEntryType type, Int32 eventID, Int16 category)&#xD;
+   at Microsoft.Extensions.Logging.EventLog.EventLogLogger.WriteMessage(String message, EventLogEntryType eventLogEntryType, Int32 eventId)&#xD;
+   at Microsoft.Extensions.Logging.EventLog.EventLogLogger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+   at Microsoft.Extensions.Logging.Logger.&lt;Log&gt;g__LoggerLog|14_0[TState](LogLevel logLevel, EventId eventId, ILogger logger, Exception exception, Func`3 formatter, List`1&amp; exceptions, TState&amp; state)&#xD;
+----- Inner Stack Trace -----&#xD;
+</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="928ba446-204a-406f-9933-1c0024487fee" testId="c2f83bdf-fb78-968a-53e9-92e2da96aba5" testName="Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_carry_cap_rule_and_the_account_cargo_seam_both_resolve" computerName="家庭台式机" duration="00:00:00.0030020" startTime="2026-10-08T08:33:01.8700037+08:00" endTime="2026-10-08T08:33:01.8723446+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="928ba446-204a-406f-9933-1c0024487fee" />
+    <UnitTestResult executionId="e6a96100-883a-46a9-af72-88fbd18797fa" testId="a17a4808-d4c0-3013-4da3-0d205c27f944" testName="Dfo.Server.Host.Tests.ComponentLifecycleTests.ContentPreparationBlocksBothListenersAndFailureDoesNotExposeEitherEndpoint" computerName="家庭台式机" duration="00:00:03.7685209" startTime="2026-10-08T08:33:01.2692516+08:00" endTime="2026-10-08T08:33:05.0475743+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e6a96100-883a-46a9-af72-88fbd18797fa">
+      <Output>
+        <ErrorInfo>
+          <Message>System.AggregateException : An error occurred while writing to logger(s). (Cannot open log for source '.NET Runtime'. You may not have write access.)&#xD;
+---- System.InvalidOperationException : Cannot open log for source '.NET Runtime'. You may not have write access.&#xD;
+-------- System.ComponentModel.Win32Exception : 拒绝访问。</Message>
+          <StackTrace>   at Microsoft.Extensions.Logging.Logger.ThrowLoggingError(List`1 exceptions)&#xD;
+   at Microsoft.Extensions.Logging.Logger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+   at Microsoft.Extensions.Logging.LoggerExtensions.Log(ILogger logger, LogLevel logLevel, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+   at Microsoft.Extensions.Logging.LoggerExtensions.LogError(ILogger logger, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.HostingLoggerExtensions.HostedServiceStartupFaulted(ILogger logger, Exception ex)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.Host.&lt;StartAsync&gt;g__LogAndRethrow|14_3(&lt;&gt;c__DisplayClass14_0&amp;)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+   at Dfo.Server.Host.Tests.ComponentLifecycleTests.ContentPreparationBlocksBothListenersAndFailureDoesNotExposeEitherEndpoint() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs:line 94&#xD;
+--- End of stack trace from previous location ---&#xD;
+----- Inner Stack Trace -----&#xD;
+   at System.Diagnostics.EventLogInternal.OpenForWrite(String currentMachineName)&#xD;
+   at System.Diagnostics.EventLogInternal.InternalWriteEvent(UInt32 eventID, UInt16 category, EventLogEntryType type, String[] strings, Byte[] rawData, String currentMachineName)&#xD;
+   at System.Diagnostics.EventLogInternal.WriteEvent(EventInstance instance, Byte[] data, Object[] values)&#xD;
+   at Microsoft.Extensions.Logging.EventLog.WindowsEventLog.WriteEntry(String message, EventLogEntryType type, Int32 eventID, Int16 category)&#xD;
+   at Microsoft.Extensions.Logging.EventLog.EventLogLogger.WriteMessage(String message, EventLogEntryType eventLogEntryType, Int32 eventId)&#xD;
+   at Microsoft.Extensions.Logging.EventLog.EventLogLogger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+   at Microsoft.Extensions.Logging.Logger.&lt;Log&gt;g__LoggerLog|14_0[TState](LogLevel logLevel, EventId eventId, ILogger logger, Exception exception, Func`3 formatter, List`1&amp; exceptions, TState&amp; state)&#xD;
+----- Inner Stack Trace -----&#xD;
+</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="1c94d527-ba2d-4d15-b4ba-25de8761a9b9" testId="8e5ea03e-8c42-5ca2-855c-30ee8ee5191b" testName="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: False, game: False)" computerName="家庭台式机" duration="00:00:00.7696783" startTime="2026-10-08T08:33:05.9012629+08:00" endTime="2026-10-08T08:33:06.6693651+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1c94d527-ba2d-4d15-b4ba-25de8761a9b9">
+      <Output>
+        <ErrorInfo>
+          <Message>System.AggregateException : An error occurred while writing to logger(s). (Cannot open log for source '.NET Runtime'. You may not have write access.)&#xD;
+---- System.InvalidOperationException : Cannot open log for source '.NET Runtime'. You may not have write access.&#xD;
+-------- System.ComponentModel.Win32Exception : 拒绝访问。</Message>
+          <StackTrace>   at Microsoft.Extensions.Logging.Logger.ThrowLoggingError(List`1 exceptions)&#xD;
+   at Microsoft.Extensions.Logging.Logger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+   at Microsoft.Extensions.Logging.LoggerExtensions.Log(ILogger logger, LogLevel logLevel, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+   at Microsoft.Extensions.Logging.LoggerExtensions.LogError(ILogger logger, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.HostingLoggerExtensions.HostedServiceStartupFaulted(ILogger logger, Exception ex)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.Host.&lt;StartAsync&gt;g__LogAndRethrow|14_3(&lt;&gt;c__DisplayClass14_0&amp;)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+   at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs:line 37&#xD;
+   at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs:line 63&#xD;
+--- End of stack trace from previous location ---&#xD;
+----- Inner Stack Trace -----&#xD;
+   at System.Diagnostics.EventLogInternal.OpenForWrite(String currentMachineName)&#xD;
+   at System.Diagnostics.EventLogInternal.InternalWriteEvent(UInt32 eventID, UInt16 category, EventLogEntryType type, String[] strings, Byte[] rawData, String currentMachineName)&#xD;
+   at System.Diagnostics.EventLogInternal.WriteEvent(EventInstance instance, Byte[] data, Object[] values)&#xD;
+   at Microsoft.Extensions.Logging.EventLog.WindowsEventLog.WriteEntry(String message, EventLogEntryType type, Int32 eventID, Int16 category)&#xD;
+   at Microsoft.Extensions.Logging.EventLog.EventLogLogger.WriteMessage(String message, EventLogEntryType eventLogEntryType, Int32 eventId)&#xD;
+   at Microsoft.Extensions.Logging.EventLog.EventLogLogger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+   at Microsoft.Extensions.Logging.Logger.&lt;Log&gt;g__LoggerLog|14_0[TState](LogLevel logLevel, EventId eventId, ILogger logger, Exception exception, Func`3 formatter, List`1&amp; exceptions, TState&amp; state)&#xD;
+----- Inner Stack Trace -----&#xD;
+</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="4f9dfad4-1f5a-474e-b1bd-3aa24ca4a1f1" testId="4cb9cc6a-6a4d-e97c-8a2a-c1884e430506" testName="Dfo.Server.Host.Tests.HostCompositionArchitectureTests.HostDependsOnEntryComponentsRatherThanConcreteGameTransportAndProtocol" computerName="家庭台式机" duration="00:00:00.0064109" startTime="2026-10-08T08:33:01.2703572+08:00" endTime="2026-10-08T08:33:01.2803033+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4f9dfad4-1f5a-474e-b1bd-3aa24ca4a1f1" />
+    <UnitTestResult executionId="4afd8340-4381-4480-96ff-71a9ad05223d" testId="0a0c3cbd-b972-4bc3-ada0-95abc220a223" testName="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: True, game: False)" computerName="家庭台式机" duration="00:00:00.7712633" startTime="2026-10-08T08:33:06.6705780+08:00" endTime="2026-10-08T08:33:07.4406110+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4afd8340-4381-4480-96ff-71a9ad05223d">
+      <Output>
+        <ErrorInfo>
+          <Message>System.AggregateException : An error occurred while writing to logger(s). (Cannot open log for source '.NET Runtime'. You may not have write access.)&#xD;
+---- System.InvalidOperationException : Cannot open log for source '.NET Runtime'. You may not have write access.&#xD;
+-------- System.ComponentModel.Win32Exception : 拒绝访问。</Message>
+          <StackTrace>   at Microsoft.Extensions.Logging.Logger.ThrowLoggingError(List`1 exceptions)&#xD;
+   at Microsoft.Extensions.Logging.Logger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+   at Microsoft.Extensions.Logging.LoggerExtensions.Log(ILogger logger, LogLevel logLevel, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+   at Microsoft.Extensions.Logging.LoggerExtensions.LogError(ILogger logger, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.HostingLoggerExtensions.HostedServiceStartupFaulted(ILogger logger, Exception ex)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.Host.&lt;StartAsync&gt;g__LogAndRethrow|14_3(&lt;&gt;c__DisplayClass14_0&amp;)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+   at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs:line 37&#xD;
+   at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs:line 63&#xD;
+--- End of stack trace from previous location ---&#xD;
+----- Inner Stack Trace -----&#xD;
+   at System.Diagnostics.EventLogInternal.OpenForWrite(String currentMachineName)&#xD;
+   at System.Diagnostics.EventLogInternal.InternalWriteEvent(UInt32 eventID, UInt16 category, EventLogEntryType type, String[] strings, Byte[] rawData, String currentMachineName)&#xD;
+   at System.Diagnostics.EventLogInternal.WriteEvent(EventInstance instance, Byte[] data, Object[] values)&#xD;
+   at Microsoft.Extensions.Logging.EventLog.WindowsEventLog.WriteEntry(String message, EventLogEntryType type, Int32 eventID, Int16 category)&#xD;
+   at Microsoft.Extensions.Logging.EventLog.EventLogLogger.WriteMessage(String message, EventLogEntryType eventLogEntryType, Int32 eventId)&#xD;
+   at Microsoft.Extensions.Logging.EventLog.EventLogLogger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+   at Microsoft.Extensions.Logging.Logger.&lt;Log&gt;g__LoggerLog|14_0[TState](LogLevel logLevel, EventId eventId, ILogger logger, Exception exception, Func`3 formatter, List`1&amp; exceptions, TState&amp; state)&#xD;
+----- Inner Stack Trace -----&#xD;
+</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_carry_cap_rule_and_the_account_cargo_seam_both_resolve" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\abyss-research\server\tests\dfo.server.host.tests\bin\debug\net10.0\dfo.server.host.tests.dll" id="c2f83bdf-fb78-968a-53e9-92e2da96aba5">
+      <Execution id="928ba446-204a-406f-9933-1c0024487fee" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.CarriedGoldCompositionTests" name="The_carry_cap_rule_and_the_account_cargo_seam_both_resolve" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.HostCompositionArchitectureTests.HostDependsOnEntryComponentsRatherThanConcreteGameTransportAndProtocol" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\abyss-research\server\tests\dfo.server.host.tests\bin\debug\net10.0\dfo.server.host.tests.dll" id="4cb9cc6a-6a4d-e97c-8a2a-c1884e430506">
+      <Execution id="4f9dfad4-1f5a-474e-b1bd-3aa24ca4a1f1" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.HostCompositionArchitectureTests" name="HostDependsOnEntryComponentsRatherThanConcreteGameTransportAndProtocol" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ComponentLifecycleTests.ContentPreparationBlocksBothListenersAndFailureDoesNotExposeEitherEndpoint" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\abyss-research\server\tests\dfo.server.host.tests\bin\debug\net10.0\dfo.server.host.tests.dll" id="a17a4808-d4c0-3013-4da3-0d205c27f944">
+      <Execution id="e6a96100-883a-46a9-af72-88fbd18797fa" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ComponentLifecycleTests" name="ContentPreparationBlocksBothListenersAndFailureDoesNotExposeEitherEndpoint" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: True, game: True)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\abyss-research\server\tests\dfo.server.host.tests\bin\debug\net10.0\dfo.server.host.tests.dll" id="7cf60402-ff3e-9c03-abf3-7d16601fbed5">
+      <Execution id="573fa670-9d89-414e-b619-f40b2f906c6d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ComponentLifecycleTests" name="ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: False, game: False)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\abyss-research\server\tests\dfo.server.host.tests\bin\debug\net10.0\dfo.server.host.tests.dll" id="8e5ea03e-8c42-5ca2-855c-30ee8ee5191b">
+      <Execution id="1c94d527-ba2d-4d15-b4ba-25de8761a9b9" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ComponentLifecycleTests" name="ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: True, game: False)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\abyss-research\server\tests\dfo.server.host.tests\bin\debug\net10.0\dfo.server.host.tests.dll" id="0a0c3cbd-b972-4bc3-ada0-95abc220a223">
+      <Execution id="4afd8340-4381-4480-96ff-71a9ad05223d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ComponentLifecycleTests" name="ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: False, game: True)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\abyss-research\server\tests\dfo.server.host.tests\bin\debug\net10.0\dfo.server.host.tests.dll" id="62cd2b4a-2cd2-827f-2055-154481a562fa">
+      <Execution id="64a7c2b0-f010-46b8-83eb-ed9aa161f3d4" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ComponentLifecycleTests" name="ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_character_business_acts_through_resolves_from_the_assembled_modules" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\abyss-research\server\tests\dfo.server.host.tests\bin\debug\net10.0\dfo.server.host.tests.dll" id="650feac9-611d-b311-afdc-de15335a795b">
+      <Execution id="5d2b4201-97a1-4190-b251-6f6cb90dc7b0" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.CarriedGoldCompositionTests" name="The_character_business_acts_through_resolves_from_the_assembled_modules" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="62cd2b4a-2cd2-827f-2055-154481a562fa" executionId="64a7c2b0-f010-46b8-83eb-ed9aa161f3d4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="650feac9-611d-b311-afdc-de15335a795b" executionId="5d2b4201-97a1-4190-b251-6f6cb90dc7b0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7cf60402-ff3e-9c03-abf3-7d16601fbed5" executionId="573fa670-9d89-414e-b619-f40b2f906c6d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c2f83bdf-fb78-968a-53e9-92e2da96aba5" executionId="928ba446-204a-406f-9933-1c0024487fee" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a17a4808-d4c0-3013-4da3-0d205c27f944" executionId="e6a96100-883a-46a9-af72-88fbd18797fa" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8e5ea03e-8c42-5ca2-855c-30ee8ee5191b" executionId="1c94d527-ba2d-4d15-b4ba-25de8761a9b9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4cb9cc6a-6a4d-e97c-8a2a-c1884e430506" executionId="4f9dfad4-1f5a-474e-b1bd-3aa24ca4a1f1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0a0c3cbd-b972-4bc3-ada0-95abc220a223" executionId="4afd8340-4381-4480-96ff-71a9ad05223d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="8" executed="8" passed="3" failed="5" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.35]   Discovering: Dfo.Server.Host.Tests&#xD;
+[xUnit.net 00:00:00.51]   Discovered:  Dfo.Server.Host.Tests&#xD;
+[xUnit.net 00:00:00.53]   Starting:    Dfo.Server.Host.Tests&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol, HttpApi&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=1708; GamePorts=1709&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Static content archive: C:\Users\Gloria\AppData\Local\Temp\dfo-components-c4f7bcbac064421daf2f3152ada7ab01\invalid.pvf (9 bytes, 2026-10-08 00:33:01Z)&#xD;
+fail: Microsoft.Extensions.Hosting.Internal.Host[11]&#xD;
+      Hosting failed to start&#xD;
+      System.IO.InvalidDataException: content unavailable&#xD;
+         at Dfo.Server.Host.Tests.ComponentLifecycleTests.FailingPreparation.InitializeAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs:line 184&#xD;
+         at Dfo.Server.GameServer.GameServerStartupService.StartingAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.GameServer\GameServerStartupService.cs:line 56&#xD;
+         at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)&#xD;
+[xUnit.net 00:00:04.32]       System.AggregateException : An error occurred while writing to logger(s). (Cannot open log for source '.NET Runtime'. You may not have write access.)&#xD;
+[xUnit.net 00:00:04.32]       ---- System.InvalidOperationException : Cannot open log for source '.NET Runtime'. You may not have write access.&#xD;
+[xUnit.net 00:00:04.32]       -------- System.ComponentModel.Win32Exception : 拒绝访问。&#xD;
+[xUnit.net 00:00:04.32]       Stack Trace:&#xD;
+[xUnit.net 00:00:04.33]            at Microsoft.Extensions.Logging.Logger.ThrowLoggingError(List`1 exceptions)&#xD;
+[xUnit.net 00:00:04.33]            at Microsoft.Extensions.Logging.Logger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+[xUnit.net 00:00:04.33]            at Microsoft.Extensions.Logging.LoggerExtensions.Log(ILogger logger, LogLevel logLevel, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+[xUnit.net 00:00:04.33]            at Microsoft.Extensions.Logging.LoggerExtensions.LogError(ILogger logger, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+[xUnit.net 00:00:04.33]            at Microsoft.Extensions.Hosting.Internal.HostingLoggerExtensions.HostedServiceStartupFaulted(ILogger logger, Exception ex)&#xD;
+[xUnit.net 00:00:04.33]            at Microsoft.Extensions.Hosting.Internal.Host.&lt;StartAsync&gt;g__LogAndRethrow|14_3(&lt;&gt;c__DisplayClass14_0&amp;)&#xD;
+[xUnit.net 00:00:04.33]            at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:04.33]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs(94,0): at Dfo.Server.Host.Tests.ComponentLifecycleTests.ContentPreparationBlocksBothListenersAndFailureDoesNotExposeEitherEndpoint()&#xD;
+[xUnit.net 00:00:04.33]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.33]         ----- Inner Stack Trace -----&#xD;
+[xUnit.net 00:00:04.33]            at System.Diagnostics.EventLogInternal.OpenForWrite(String currentMachineName)&#xD;
+[xUnit.net 00:00:04.33]            at System.Diagnostics.EventLogInternal.InternalWriteEvent(UInt32 eventID, UInt16 category, EventLogEntryType type, String[] strings, Byte[] rawData, String currentMachineName)&#xD;
+[xUnit.net 00:00:04.33]            at System.Diagnostics.EventLogInternal.WriteEvent(EventInstance instance, Byte[] data, Object[] values)&#xD;
+[xUnit.net 00:00:04.33]            at Microsoft.Extensions.Logging.EventLog.WindowsEventLog.WriteEntry(String message, EventLogEntryType type, Int32 eventID, Int16 category)&#xD;
+[xUnit.net 00:00:04.33]            at Microsoft.Extensions.Logging.EventLog.EventLogLogger.WriteMessage(String message, EventLogEntryType eventLogEntryType, Int32 eventId)&#xD;
+[xUnit.net 00:00:04.33]            at Microsoft.Extensions.Logging.EventLog.EventLogLogger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+[xUnit.net 00:00:04.33]            at Microsoft.Extensions.Logging.Logger.&lt;Log&gt;g__LoggerLog|14_0[TState](LogLevel logLevel, EventId eventId, ILogger logger, Exception exception, Func`3 formatter, List`1&amp; exceptions, TState&amp; state)&#xD;
+[xUnit.net 00:00:04.33]         ----- Inner Stack Trace -----&#xD;
+[xUnit.net 00:00:04.33]         &#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=1717; GamePorts=1718&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Static content archive: E:/Project/DNF/DNFClient-A21-protocol2/Script.pvf (73054825 bytes, 2026-10-06 14:45:58Z)&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Equipment content index initialized: 118479 templates&#xD;
+warn: Dfo.Server.Application.World.IndependentDropRuleService[0]&#xD;
+      Independent drop row=2801 sourceType=0 sourceId=65696 item=10150672 has no PVF definition; rule and weight retained&#xD;
+fail: Microsoft.Extensions.Hosting.Internal.Host[11]&#xD;
+      Hosting failed to start&#xD;
+      System.AggregateException: An error occurred while writing to logger(s). (Cannot open log for source '.NET Runtime'. You may not have write access.)&#xD;
+       ---&gt; System.InvalidOperationException: Cannot open log for source '.NET Runtime'. You may not have write access.&#xD;
+       ---&gt; System.ComponentModel.Win32Exception (5): �ܾ����ʡ�&#xD;
+         --- End of inner exception stack trace ---&#xD;
+         at System.Diagnostics.EventLogInternal.OpenForWrite(String currentMachineName)&#xD;
+         at System.Diagnostics.EventLogInternal.InternalWriteEvent(UInt32 eventID, UInt16 category, EventLogEntryType type, String[] strings, Byte[] rawData, String currentMachineName)&#xD;
+         at System.Diagnostics.EventLogInternal.WriteEvent(EventInstance instance, Byte[] data, Object[] values)&#xD;
+         at Microsoft.Extensions.Logging.EventLog.WindowsEventLog.WriteEntry(String message, EventLogEntryType type, Int32 eventID, Int16 category)&#xD;
+         at Microsoft.Extensions.Logging.EventLog.EventLogLogger.WriteMessage(String message, EventLogEntryType eventLogEntryType, Int32 eventId)&#xD;
+         at Microsoft.Extensions.Logging.EventLog.EventLogLogger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+         at Microsoft.Extensions.Logging.Logger.&lt;Log&gt;g__LoggerLog|14_0[TState](LogLevel logLevel, EventId eventId, ILogger logger, Exception exception, Func`3 formatter, List`1&amp; exceptions, TState&amp; state)&#xD;
+         --- End of inner exception stack trace ---&#xD;
+         at Microsoft.Extensions.Logging.Logger.ThrowLoggingError(List`1 exceptions)&#xD;
+         at Microsoft.Extensions.Logging.Logger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+         at Microsoft.Extensions.Logging.LoggerExtensions.Log(ILogger logger, LogLevel logLevel, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+         at Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(ILogger logger, String message, Object[] args)&#xD;
+         at Dfo.Server.Application.World.IndependentDropRuleService.Prepare(IndependentDropTable table, ILogger logger) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\World\IndependentDropRuleService.cs:line 102&#xD;
+         at Dfo.Server.Application.World.IndependentDropRuleService.&lt;&gt;c__DisplayClass0_0.&lt;.ctor&gt;b__0() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\World\IndependentDropRuleService.cs:line 17&#xD;
+         at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)&#xD;
+         at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)&#xD;
+         at System.Lazy`1.CreateValue()&#xD;
+         at Dfo.Server.Application.World.IndependentDropRuleService.Initialize() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\World\IndependentDropRuleService.cs:line 21&#xD;
+         at Dfo.Server.GameServer.GameServerStartupService.StartingAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.GameServer\GameServerStartupService.cs:line 59&#xD;
+         at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+[xUnit.net 00:00:05.17]       System.AggregateException : An error occurred while writing to logger(s). (Cannot open log for source '.NET Runtime'. You may not have write access.)&#xD;
+[xUnit.net 00:00:05.17]       ---- System.InvalidOperationException : Cannot open log for source '.NET Runtime'. You may not have write access.&#xD;
+[xUnit.net 00:00:05.17]       -------- System.ComponentModel.Win32Exception : 拒绝访问。&#xD;
+[xUnit.net 00:00:05.17]       Stack Trace:&#xD;
+[xUnit.net 00:00:05.17]            at Microsoft.Extensions.Logging.Logger.ThrowLoggingError(List`1 exceptions)&#xD;
+[xUnit.net 00:00:05.17]            at Microsoft.Extensions.Logging.Logger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+[xUnit.net 00:00:05.17]            at Microsoft.Extensions.Logging.LoggerExtensions.Log(ILogger logger, LogLevel logLevel, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+[xUnit.net 00:00:05.17]            at Microsoft.Extensions.Logging.LoggerExtensions.LogError(ILogger logger, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+[xUnit.net 00:00:05.17]            at Microsoft.Extensions.Hosting.Internal.HostingLoggerExtensions.HostedServiceStartupFaulted(ILogger logger, Exception ex)&#xD;
+[xUnit.net 00:00:05.17]            at Microsoft.Extensions.Hosting.Internal.Host.&lt;StartAsync&gt;g__LogAndRethrow|14_3(&lt;&gt;c__DisplayClass14_0&amp;)&#xD;
+[xUnit.net 00:00:05.17]            at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:05.17]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs(37,0): at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game)&#xD;
+[xUnit.net 00:00:05.17]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs(63,0): at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game)&#xD;
+[xUnit.net 00:00:05.17]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:05.17]         ----- Inner Stack Trace -----&#xD;
+[xUnit.net 00:00:05.17]            at System.Diagnostics.EventLogInternal.OpenForWrite(String currentMachineName)&#xD;
+[xUnit.net 00:00:05.17]            at System.Diagnostics.EventLogInternal.InternalWriteEvent(UInt32 eventID, UInt16 category, EventLogEntryType type, String[] strings, Byte[] rawData, String currentMachineName)&#xD;
+[xUnit.net 00:00:05.17]            at System.Diagnostics.EventLogInternal.WriteEvent(EventInstance instance, Byte[] data, Object[] values)&#xD;
+[xUnit.net 00:00:05.17]            at Microsoft.Extensions.Logging.EventLog.WindowsEventLog.WriteEntry(String message, EventLogEntryType type, Int32 eventID, Int16 category)&#xD;
+[xUnit.net 00:00:05.17]            at Microsoft.Extensions.Logging.EventLog.EventLogLogger.WriteMessage(String message, EventLogEntryType eventLogEntryType, Int32 eventId)&#xD;
+[xUnit.net 00:00:05.17]            at Microsoft.Extensions.Logging.EventLog.EventLogLogger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+[xUnit.net 00:00:05.17]            at Microsoft.Extensions.Logging.Logger.&lt;Log&gt;g__LoggerLog|14_0[TState](LogLevel logLevel, EventId eventId, ILogger logger, Exception exception, Func`3 formatter, List`1&amp; exceptions, TState&amp; state)&#xD;
+[xUnit.net 00:00:05.17]         ----- Inner Stack Trace -----&#xD;
+[xUnit.net 00:00:05.17]         &#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=1720; GamePorts=1721&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Static content archive: E:/Project/DNF/DNFClient-A21-protocol2/Script.pvf (73054825 bytes, 2026-10-06 14:45:58Z)&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Equipment content index initialized: 118479 templates&#xD;
+warn: Dfo.Server.Application.World.IndependentDropRuleService[0]&#xD;
+      Independent drop row=2801 sourceType=0 sourceId=65696 item=10150672 has no PVF definition; rule and weight retained&#xD;
+fail: Microsoft.Extensions.Hosting.Internal.Host[11]&#xD;
+      Hosting failed to start&#xD;
+      System.AggregateException: An error occurred while writing to logger(s). (Cannot open log for source '.NET Runtime'. You may not have write access.)&#xD;
+       ---&gt; System.InvalidOperationException: Cannot open log for source '.NET Runtime'. You may not have write access.&#xD;
+       ---&gt; System.ComponentModel.Win32Exception (5): �ܾ����ʡ�&#xD;
+         --- End of inner exception stack trace ---&#xD;
+         at System.Diagnostics.EventLogInternal.OpenForWrite(String currentMachineName)&#xD;
+         at System.Diagnostics.EventLogInternal.InternalWriteEvent(UInt32 eventID, UInt16 category, EventLogEntryType type, String[] strings, Byte[] rawData, String currentMachineName)&#xD;
+         at System.Diagnostics.EventLogInternal.WriteEvent(EventInstance instance, Byte[] data, Object[] values)&#xD;
+         at Microsoft.Extensions.Logging.EventLog.WindowsEventLog.WriteEntry(String message, EventLogEntryType type, Int32 eventID, Int16 category)&#xD;
+         at Microsoft.Extensions.Logging.EventLog.EventLogLogger.WriteMessage(String message, EventLogEntryType eventLogEntryType, Int32 eventId)&#xD;
+         at Microsoft.Extensions.Logging.EventLog.EventLogLogger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+         at Microsoft.Extensions.Logging.Logger.&lt;Log&gt;g__LoggerLog|14_0[TState](LogLevel logLevel, EventId eventId, ILogger logger, Exception exception, Func`3 formatter, List`1&amp; exceptions, TState&amp; state)&#xD;
+         --- End of inner exception stack trace ---&#xD;
+         at Microsoft.Extensions.Logging.Logger.ThrowLoggingError(List`1 exceptions)&#xD;
+         at Microsoft.Extensions.Logging.Logger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+         at Microsoft.Extensions.Logging.LoggerExtensions.Log(ILogger logger, LogLevel logLevel, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+         at Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(ILogger logger, String message, Object[] args)&#xD;
+         at Dfo.Server.Application.World.IndependentDropRuleService.Prepare(IndependentDropTable table, ILogger logger) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\World\IndependentDropRuleService.cs:line 102&#xD;
+         at Dfo.Server.Application.World.IndependentDropRuleService.&lt;&gt;c__DisplayClass0_0.&lt;.ctor&gt;b__0() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\World\IndependentDropRuleService.cs:line 17&#xD;
+         at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)&#xD;
+         at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)&#xD;
+         at System.Lazy`1.CreateValue()&#xD;
+         at Dfo.Server.Application.World.IndependentDropRuleService.Initialize() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\World\IndependentDropRuleService.cs:line 21&#xD;
+         at Dfo.Server.GameServer.GameServerStartupService.StartingAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.GameServer\GameServerStartupService.cs:line 59&#xD;
+         at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+[xUnit.net 00:00:05.94]       System.AggregateException : An error occurred while writing to logger(s). (Cannot open log for source '.NET Runtime'. You may not have write access.)&#xD;
+[xUnit.net 00:00:05.94]       ---- System.InvalidOperationException : Cannot open log for source '.NET Runtime'. You may not have write access.&#xD;
+[xUnit.net 00:00:05.94]       -------- System.ComponentModel.Win32Exception : 拒绝访问。&#xD;
+[xUnit.net 00:00:05.94]       Stack Trace:&#xD;
+[xUnit.net 00:00:05.94]            at Microsoft.Extensions.Logging.Logger.ThrowLoggingError(List`1 exceptions)&#xD;
+[xUnit.net 00:00:05.94]            at Microsoft.Extensions.Logging.Logger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+[xUnit.net 00:00:05.94]            at Microsoft.Extensions.Logging.LoggerExtensions.Log(ILogger logger, LogLevel logLevel, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+[xUnit.net 00:00:05.94]            at Microsoft.Extensions.Logging.LoggerExtensions.LogError(ILogger logger, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+[xUnit.net 00:00:05.94]            at Microsoft.Extensions.Hosting.Internal.HostingLoggerExtensions.HostedServiceStartupFaulted(ILogger logger, Exception ex)&#xD;
+[xUnit.net 00:00:05.94]            at Microsoft.Extensions.Hosting.Internal.Host.&lt;StartAsync&gt;g__LogAndRethrow|14_3(&lt;&gt;c__DisplayClass14_0&amp;)&#xD;
+[xUnit.net 00:00:05.94]            at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:05.94]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs(37,0): at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game)&#xD;
+[xUnit.net 00:00:05.94]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs(63,0): at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game)&#xD;
+[xUnit.net 00:00:05.94]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:05.94]         ----- Inner Stack Trace -----&#xD;
+[xUnit.net 00:00:05.94]            at System.Diagnostics.EventLogInternal.OpenForWrite(String currentMachineName)&#xD;
+[xUnit.net 00:00:05.94]            at System.Diagnostics.EventLogInternal.InternalWriteEvent(UInt32 eventID, UInt16 category, EventLogEntryType type, String[] strings, Byte[] rawData, String currentMachineName)&#xD;
+[xUnit.net 00:00:05.94]            at System.Diagnostics.EventLogInternal.WriteEvent(EventInstance instance, Byte[] data, Object[] values)&#xD;
+[xUnit.net 00:00:05.94]            at Microsoft.Extensions.Logging.EventLog.WindowsEventLog.WriteEntry(String message, EventLogEntryType type, Int32 eventID, Int16 category)&#xD;
+[xUnit.net 00:00:05.94]            at Microsoft.Extensions.Logging.EventLog.EventLogLogger.WriteMessage(String message, EventLogEntryType eventLogEntryType, Int32 eventId)&#xD;
+[xUnit.net 00:00:05.94]            at Microsoft.Extensions.Logging.EventLog.EventLogLogger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+[xUnit.net 00:00:05.94]            at Microsoft.Extensions.Logging.Logger.&lt;Log&gt;g__LoggerLog|14_0[TState](LogLevel logLevel, EventId eventId, ILogger logger, Exception exception, Func`3 formatter, List`1&amp; exceptions, TState&amp; state)&#xD;
+[xUnit.net 00:00:05.94]         ----- Inner Stack Trace -----&#xD;
+[xUnit.net 00:00:05.94]         &#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol, HttpApi&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=1723; GamePorts=1724&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Static content archive: E:/Project/DNF/DNFClient-A21-protocol2/Script.pvf (73054825 bytes, 2026-10-06 14:45:58Z)&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Equipment content index initialized: 118479 templates&#xD;
+warn: Dfo.Server.Application.World.IndependentDropRuleService[0]&#xD;
+      Independent drop row=2801 sourceType=0 sourceId=65696 item=10150672 has no PVF definition; rule and weight retained&#xD;
+fail: Microsoft.Extensions.Hosting.Internal.Host[11]&#xD;
+      Hosting failed to start&#xD;
+      System.AggregateException: An error occurred while writing to logger(s). (Cannot open log for source '.NET Runtime'. You may not have write access.)&#xD;
+       ---&gt; System.InvalidOperationException: Cannot open log for source '.NET Runtime'. You may not have write access.&#xD;
+       ---&gt; System.ComponentModel.Win32Exception (5): �ܾ����ʡ�&#xD;
+         --- End of inner exception stack trace ---&#xD;
+         at System.Diagnostics.EventLogInternal.OpenForWrite(String currentMachineName)&#xD;
+         at System.Diagnostics.EventLogInternal.InternalWriteEvent(UInt32 eventID, UInt16 category, EventLogEntryType type, String[] strings, Byte[] rawData, String currentMachineName)&#xD;
+         at System.Diagnostics.EventLogInternal.WriteEvent(EventInstance instance, Byte[] data, Object[] values)&#xD;
+         at Microsoft.Extensions.Logging.EventLog.WindowsEventLog.WriteEntry(String message, EventLogEntryType type, Int32 eventID, Int16 category)&#xD;
+         at Microsoft.Extensions.Logging.EventLog.EventLogLogger.WriteMessage(String message, EventLogEntryType eventLogEntryType, Int32 eventId)&#xD;
+         at Microsoft.Extensions.Logging.EventLog.EventLogLogger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+         at Microsoft.Extensions.Logging.Logger.&lt;Log&gt;g__LoggerLog|14_0[TState](LogLevel logLevel, EventId eventId, ILogger logger, Exception exception, Func`3 formatter, List`1&amp; exceptions, TState&amp; state)&#xD;
+         --- End of inner exception stack trace ---&#xD;
+         at Microsoft.Extensions.Logging.Logger.ThrowLoggingError(List`1 exceptions)&#xD;
+         at Microsoft.Extensions.Logging.Logger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+         at Microsoft.Extensions.Logging.LoggerExtensions.Log(ILogger logger, LogLevel logLevel, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+         at Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(ILogger logger, String message, Object[] args)&#xD;
+         at Dfo.Server.Application.World.IndependentDropRuleService.Prepare(IndependentDropTable table, ILogger logger) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\World\IndependentDropRuleService.cs:line 102&#xD;
+         at Dfo.Server.Application.World.IndependentDropRuleService.&lt;&gt;c__DisplayClass0_0.&lt;.ctor&gt;b__0() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\World\IndependentDropRuleService.cs:line 17&#xD;
+         at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)&#xD;
+         at System.Lazy`1.CreateValue()&#xD;
+         at Dfo.Server.Application.World.IndependentDropRuleService.Initialize() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\World\IndependentDropRuleService.cs:line 21&#xD;
+         at Dfo.Server.GameServer.GameServerStartupService.StartingAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.GameServer\GameServerStartupService.cs:line 59&#xD;
+         at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+[xUnit.net 00:00:06.71]       System.AggregateException : An error occurred while writing to logger(s). (Cannot open log for source '.NET Runtime'. You may not have write access.)&#xD;
+[xUnit.net 00:00:06.72]       ---- System.InvalidOperationException : Cannot open log for source '.NET Runtime'. You may not have write access.&#xD;
+[xUnit.net 00:00:06.72]       -------- System.ComponentModel.Win32Exception : 拒绝访问。&#xD;
+[xUnit.net 00:00:06.72]       Stack Trace:&#xD;
+[xUnit.net 00:00:06.72]            at Microsoft.Extensions.Logging.Logger.ThrowLoggingError(List`1 exceptions)&#xD;
+[xUnit.net 00:00:06.72]            at Microsoft.Extensions.Logging.Logger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+[xUnit.net 00:00:06.72]            at Microsoft.Extensions.Logging.LoggerExtensions.Log(ILogger logger, LogLevel logLevel, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+[xUnit.net 00:00:06.72]            at Microsoft.Extensions.Logging.LoggerExtensions.LogError(ILogger logger, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+[xUnit.net 00:00:06.72]            at Microsoft.Extensions.Hosting.Internal.HostingLoggerExtensions.HostedServiceStartupFaulted(ILogger logger, Exception ex)&#xD;
+[xUnit.net 00:00:06.72]            at Microsoft.Extensions.Hosting.Internal.Host.&lt;StartAsync&gt;g__LogAndRethrow|14_3(&lt;&gt;c__DisplayClass14_0&amp;)&#xD;
+[xUnit.net 00:00:06.72]            at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:06.72]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs(37,0): at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game)&#xD;
+[xUnit.net 00:00:06.72]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs(63,0): at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game)&#xD;
+[xUnit.net 00:00:06.72]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:06.72]         ----- Inner Stack Trace -----&#xD;
+[xUnit.net 00:00:06.72]            at System.Diagnostics.EventLogInternal.OpenForWrite(String currentMachineName)&#xD;
+[xUnit.net 00:00:06.72]            at System.Diagnostics.EventLogInternal.InternalWriteEvent(UInt32 eventID, UInt16 category, EventLogEntryType type, String[] strings, Byte[] rawData, String currentMachineName)&#xD;
+[xUnit.net 00:00:06.72]            at System.Diagnostics.EventLogInternal.WriteEvent(EventInstance instance, Byte[] data, Object[] values)&#xD;
+[xUnit.net 00:00:06.72]            at Microsoft.Extensions.Logging.EventLog.WindowsEventLog.WriteEntry(String message, EventLogEntryType type, Int32 eventID, Int16 category)&#xD;
+[xUnit.net 00:00:06.72]            at Microsoft.Extensions.Logging.EventLog.EventLogLogger.WriteMessage(String message, EventLogEntryType eventLogEntryType, Int32 eventId)&#xD;
+[xUnit.net 00:00:06.72]            at Microsoft.Extensions.Logging.EventLog.EventLogLogger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+[xUnit.net 00:00:06.72]            at Microsoft.Extensions.Logging.Logger.&lt;Log&gt;g__LoggerLog|14_0[TState](LogLevel logLevel, EventId eventId, ILogger logger, Exception exception, Func`3 formatter, List`1&amp; exceptions, TState&amp; state)&#xD;
+[xUnit.net 00:00:06.72]         ----- Inner Stack Trace -----&#xD;
+[xUnit.net 00:00:06.72]         &#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol, HttpApi&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=1726; GamePorts=1727&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Static content archive: E:/Project/DNF/DNFClient-A21-protocol2/Script.pvf (73054825 bytes, 2026-10-06 14:45:58Z)&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Equipment content index initialized: 118479 templates&#xD;
+warn: Dfo.Server.Application.World.IndependentDropRuleService[0]&#xD;
+      Independent drop row=2801 sourceType=0 sourceId=65696 item=10150672 has no PVF definition; rule and weight retained&#xD;
+fail: Microsoft.Extensions.Hosting.Internal.Host[11]&#xD;
+      Hosting failed to start&#xD;
+      System.AggregateException: An error occurred while writing to logger(s). (Cannot open log for source '.NET Runtime'. You may not have write access.)&#xD;
+       ---&gt; System.InvalidOperationException: Cannot open log for source '.NET Runtime'. You may not have write access.&#xD;
+       ---&gt; System.ComponentModel.Win32Exception (5): �ܾ����ʡ�&#xD;
+         --- End of inner exception stack trace ---&#xD;
+         at System.Diagnostics.EventLogInternal.OpenForWrite(String currentMachineName)&#xD;
+         at System.Diagnostics.EventLogInternal.InternalWriteEvent(UInt32 eventID, UInt16 category, EventLogEntryType type, String[] strings, Byte[] rawData, String currentMachineName)&#xD;
+         at System.Diagnostics.EventLogInternal.WriteEvent(EventInstance instance, Byte[] data, Object[] values)&#xD;
+         at Microsoft.Extensions.Logging.EventLog.WindowsEventLog.WriteEntry(String message, EventLogEntryType type, Int32 eventID, Int16 category)&#xD;
+         at Microsoft.Extensions.Logging.EventLog.EventLogLogger.WriteMessage(String message, EventLogEntryType eventLogEntryType, Int32 eventId)&#xD;
+         at Microsoft.Extensions.Logging.EventLog.EventLogLogger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+         at Microsoft.Extensions.Logging.Logger.&lt;Log&gt;g__LoggerLog|14_0[TState](LogLevel logLevel, EventId eventId, ILogger logger, Exception exception, Func`3 formatter, List`1&amp; exceptions, TState&amp; state)&#xD;
+         --- End of inner exception stack trace ---&#xD;
+         at Microsoft.Extensions.Logging.Logger.ThrowLoggingError(List`1 exceptions)&#xD;
+         at Microsoft.Extensions.Logging.Logger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+         at Microsoft.Extensions.Logging.LoggerExtensions.Log(ILogger logger, LogLevel logLevel, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+         at Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(ILogger logger, String message, Object[] args)&#xD;
+         at Dfo.Server.Application.World.IndependentDropRuleService.Prepare(IndependentDropTable table, ILogger logger) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\World\IndependentDropRuleService.cs:line 102&#xD;
+         at Dfo.Server.Application.World.IndependentDropRuleService.&lt;&gt;c__DisplayClass0_0.&lt;.ctor&gt;b__0() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\World\IndependentDropRuleService.cs:line 17&#xD;
+         at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)&#xD;
+         at System.Lazy`1.CreateValue()&#xD;
+         at Dfo.Server.Application.World.IndependentDropRuleService.Initialize() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.Application\World\IndependentDropRuleService.cs:line 21&#xD;
+         at Dfo.Server.GameServer.GameServerStartupService.StartingAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\src\Dfo.Server.GameServer\GameServerStartupService.cs:line 59&#xD;
+         at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+[xUnit.net 00:00:07.50]       System.AggregateException : An error occurred while writing to logger(s). (Cannot open log for source '.NET Runtime'. You may not have write access.)&#xD;
+[xUnit.net 00:00:07.50]       ---- System.InvalidOperationException : Cannot open log for source '.NET Runtime'. You may not have write access.&#xD;
+[xUnit.net 00:00:07.50]       -------- System.ComponentModel.Win32Exception : 拒绝访问。&#xD;
+[xUnit.net 00:00:07.50]       Stack Trace:&#xD;
+[xUnit.net 00:00:07.50]            at Microsoft.Extensions.Logging.Logger.ThrowLoggingError(List`1 exceptions)&#xD;
+[xUnit.net 00:00:07.50]            at Microsoft.Extensions.Logging.Logger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+[xUnit.net 00:00:07.50]            at Microsoft.Extensions.Logging.LoggerExtensions.Log(ILogger logger, LogLevel logLevel, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+[xUnit.net 00:00:07.50]            at Microsoft.Extensions.Logging.LoggerExtensions.LogError(ILogger logger, EventId eventId, Exception exception, String message, Object[] args)&#xD;
+[xUnit.net 00:00:07.50]            at Microsoft.Extensions.Hosting.Internal.HostingLoggerExtensions.HostedServiceStartupFaulted(ILogger logger, Exception ex)&#xD;
+[xUnit.net 00:00:07.50]            at Microsoft.Extensions.Hosting.Internal.Host.&lt;StartAsync&gt;g__LogAndRethrow|14_3(&lt;&gt;c__DisplayClass14_0&amp;)&#xD;
+[xUnit.net 00:00:07.50]            at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:07.50]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs(37,0): at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game)&#xD;
+[xUnit.net 00:00:07.50]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\abyss-research\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs(63,0): at Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(Boolean http, Boolean game)&#xD;
+[xUnit.net 00:00:07.50]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:07.50]         ----- Inner Stack Trace -----&#xD;
+[xUnit.net 00:00:07.50]            at System.Diagnostics.EventLogInternal.OpenForWrite(String currentMachineName)&#xD;
+[xUnit.net 00:00:07.50]            at System.Diagnostics.EventLogInternal.InternalWriteEvent(UInt32 eventID, UInt16 category, EventLogEntryType type, String[] strings, Byte[] rawData, String currentMachineName)&#xD;
+[xUnit.net 00:00:07.50]            at System.Diagnostics.EventLogInternal.WriteEvent(EventInstance instance, Byte[] data, Object[] values)&#xD;
+[xUnit.net 00:00:07.50]            at Microsoft.Extensions.Logging.EventLog.WindowsEventLog.WriteEntry(String message, EventLogEntryType type, Int32 eventID, Int16 category)&#xD;
+[xUnit.net 00:00:07.50]            at Microsoft.Extensions.Logging.EventLog.EventLogLogger.WriteMessage(String message, EventLogEntryType eventLogEntryType, Int32 eventId)&#xD;
+[xUnit.net 00:00:07.50]            at Microsoft.Extensions.Logging.EventLog.EventLogLogger.Log[TState](LogLevel logLevel, EventId eventId, TState state, Exception exception, Func`3 formatter)&#xD;
+[xUnit.net 00:00:07.50]            at Microsoft.Extensions.Logging.Logger.&lt;Log&gt;g__LoggerLog|14_0[TState](LogLevel logLevel, EventId eventId, ILogger logger, Exception exception, Func`3 formatter, List`1&amp; exceptions, TState&amp; state)&#xD;
+[xUnit.net 00:00:07.50]         ----- Inner Stack Trace -----&#xD;
+[xUnit.net 00:00:07.50]         &#xD;
+[xUnit.net 00:00:07.50]   Finished:    Dfo.Server.Host.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-08T08:33:05.0499104+08:00">
+        <Text>[xUnit.net 00:00:04.32]     Dfo.Server.Host.Tests.ComponentLifecycleTests.ContentPreparationBlocksBothListenersAndFailureDoesNotExposeEitherEndpoint [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-08T08:33:05.8997948+08:00">
+        <Text>[xUnit.net 00:00:05.17]     Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: False, game: True) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-08T08:33:06.6696725+08:00">
+        <Text>[xUnit.net 00:00:05.94]     Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: False, game: False) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-08T08:33:07.4409121+08:00">
+        <Text>[xUnit.net 00:00:06.71]     Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: True, game: False) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-08T08:33:08.2253838+08:00">
+        <Text>[xUnit.net 00:00:07.50]     Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: True, game: True) [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

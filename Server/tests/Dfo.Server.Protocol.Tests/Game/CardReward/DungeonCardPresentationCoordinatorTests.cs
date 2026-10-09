@@ -25,7 +25,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
 
         world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
-        world.Delay.Release(TimeSpan.FromSeconds(2));
+        await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
         await WaitUntilAsync(() => world.Sender.For(world.Session.ConnectionId)
             .Any(message => message is CardSelectRightStateResponse));
         Assert.Collection(
@@ -33,7 +33,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
             first => Assert.IsType<ScoreScrollStateResponse>(first),
             second => Assert.IsType<CardSelectRightStateResponse>(second));
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 1);
-        world.Delay.Release(TimeSpan.FromSeconds(4));
+        await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(4));
         await WaitUntilAsync(() => world.Sender.For(world.Session.ConnectionId)
             .Any(message => message is SelectCardResponse));
 
@@ -56,7 +56,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
         using var world = Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4));
         world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
-        world.Delay.Release(TimeSpan.FromSeconds(2));
+        await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
         await WaitUntilAsync(() => world.Runs.Find(world.Session.CharacterId)!.CardLayoutOpen);
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 1);
 
@@ -84,7 +84,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
         departed.Coordinator.ScheduleAfterSettlement(departed.Session, departed.Run.RunId);
         await WaitUntilAsync(() => departed.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
         Assert.True(departed.Runs.End(departed.Session.CharacterId, departed.Run.RunId));
-        departed.Delay.Release(TimeSpan.FromSeconds(2));
+        await departed.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
 
         using var replaced = Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4));
         replaced.Coordinator.ScheduleAfterSettlement(replaced.Session, replaced.Run.RunId);
@@ -94,7 +94,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
             ConnectionId = new NetworkConnectionId("replacement"),
             ConnectionGeneration = 2,
         };
-        replaced.Delay.Release(TimeSpan.FromSeconds(2));
+        await replaced.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
 
         await WaitUntilAsync(() =>
             departed.Delay.Pending(TimeSpan.FromSeconds(2)) == 0
@@ -113,9 +113,9 @@ public sealed class DungeonCardPresentationCoordinatorTests
             world.Coordinator.ScheduleAfterSettlement(session, world.Run.RunId);
 
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 2);
-        world.Delay.Release(TimeSpan.FromSeconds(2));
+        await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 2);
-        world.Delay.Release(TimeSpan.FromSeconds(4));
+        await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(4));
         await WaitUntilAsync(() => world.Runs.Find(world.Sessions.All[0].CharacterId)!
             .CardSelections.Count == 2);
         await WaitUntilAsync(() => world.Bus.Selections == 2);
@@ -134,7 +134,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
             world.Coordinator.ScheduleAfterSettlement(session, world.Run.RunId);
 
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 2);
-        world.Delay.Release(TimeSpan.FromSeconds(2));
+        await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 2);
 
         foreach (var session in world.Sessions.All)
@@ -151,7 +151,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
         }
         Assert.Equal(2, world.Delay.Pending(TimeSpan.FromSeconds(4)));
 
-        world.Delay.Release(TimeSpan.FromSeconds(4));
+        await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(4));
         await WaitUntilAsync(() => world.Bus.Selections == 2);
     }
 
@@ -161,7 +161,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
         using var world = Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4));
         world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
-        world.Delay.Release(TimeSpan.FromSeconds(2));
+        await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
         await WaitUntilAsync(() => world.Sender.For(world.Session.ConnectionId)
             .Any(message => message is CardSelectRightStateResponse));
 
@@ -227,7 +227,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
             Assert.Single(world.Sender.For(session.ConnectionId)
                 .OfType<CardSelectRightStateResponse>());
 
-        world.Delay.Release(TimeSpan.FromSeconds(4));
+        await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(4));
         await WaitUntilAsync(() => world.Bus.Selections == 2);
     }
 
@@ -241,10 +241,10 @@ public sealed class DungeonCardPresentationCoordinatorTests
         world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
 
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
-        world.Delay.Release(TimeSpan.FromSeconds(2));
-        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 1);
-        world.Delay.Release(TimeSpan.FromSeconds(4));
-        await WaitUntilAsync(() => world.Bus.Selections == 1);
+        await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
+        Assert.Equal(1, world.Delay.Pending(TimeSpan.FromSeconds(4)));
+        await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(4));
+        Assert.Equal(1, world.Bus.Selections);
 
         Assert.Equal([0, 0], world.Bus.Attempts);
         Assert.Equal(0, Assert.Single(
@@ -269,7 +269,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
                 session.AccountId, session.CharacterId, Slot: 0, IsLeader: true)],
             new DungeonLayout(
                 144, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0), 8153, 7,
-                new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 8153 }),
+                new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8153)}),
             difficulty: 0);
         var face = new ClearRewardCardFace(
             ClearRewardCardKind.Free,
@@ -338,7 +338,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
             ],
             new DungeonLayout(
                 144, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0), 8153, 7,
-                new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 8153 }),
+                new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8153)}),
             difficulty: 0);
         var face = new ClearRewardCardFace(
             ClearRewardCardKind.Free,
@@ -482,8 +482,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
     {
         private readonly object gate = new();
         private readonly HashSet<CharacterId> arrived = [];
-        private readonly TaskCompletionSource ready =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource ready = new();
 
         public Task ArriveAsync(CharacterId characterId, CancellationToken cancellationToken)
         {
@@ -561,7 +560,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
                 return this.waiters.Count(waiter => waiter.Delay == delay);
         }
 
-        public void Release(TimeSpan delay)
+        public Task ReleaseAsync(TimeSpan delay) => Task.Run(() =>
         {
             Waiter[] released;
             lock (this.gate)
@@ -574,7 +573,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
                 waiter.Cancellation.Dispose();
                 waiter.Completion.TrySetResult();
             }
-        }
+        });
 
         private void Cancel(Waiter waiter, CancellationToken cancellationToken)
         {
@@ -586,8 +585,8 @@ public sealed class DungeonCardPresentationCoordinatorTests
         private sealed class Waiter(TimeSpan delay)
         {
             public TimeSpan Delay { get; } = delay;
-            public TaskCompletionSource Completion { get; } =
-                new(TaskCreationOptions.RunContinuationsAsynchronously);
+            // ReleaseAsync completes continuations on a worker before returning, rather than polling its scheduling delay.
+            public TaskCompletionSource Completion { get; } = new();
             public CancellationTokenRegistration Cancellation { get; set; }
         }
     }

@@ -193,7 +193,7 @@ public sealed class MailCustodyTests
             using var command = connection.CreateCommand(); command.CommandText = """
                 CREATE TABLE items(item_uid INTEGER PRIMARY KEY AUTOINCREMENT,item_core BLOB NOT NULL,updated_at TEXT,
                     avatar_expire_date INTEGER,avatar_clear_id INTEGER,avatar_jewel_socket BLOB,avatar_color1 INTEGER,avatar_color2 INTEGER,avatar_delete_date INTEGER,
-                    creature_field04 INTEGER,creature_mode_flag INTEGER,creature_progress_value INTEGER,creature_mode1_field0a INTEGER,creature_mode1_field0b INTEGER,creature_field_after_value INTEGER,creature_text BLOB,creature_tail_flag INTEGER);
+                    creature_field04 INTEGER,creature_mode_flag INTEGER,creature_progress_value INTEGER,creature_mode1_field0a INTEGER,creature_mode1_field0b INTEGER,creature_field_after_value INTEGER,creature_text BLOB,creature_tail_flag INTEGER, is_mirror INTEGER NOT NULL DEFAULT 0 CHECK(is_mirror IN (0,1)), mirror_source_uid INTEGER, appearance_item_id INTEGER CHECK(appearance_item_id > 0));
                 CREATE TABLE item_slots(owner_scope TEXT,owner_id INTEGER,list_type INTEGER,slot_index INTEGER,kind TEXT,id INTEGER,core_uid INTEGER,count INTEGER,UNIQUE(owner_scope,owner_id,list_type,slot_index));
                 CREATE TABLE characters(character_id INTEGER PRIMARY KEY,delete_flag INTEGER NOT NULL DEFAULT 0);
                 INSERT INTO characters(character_id) VALUES(60),(61),(62);

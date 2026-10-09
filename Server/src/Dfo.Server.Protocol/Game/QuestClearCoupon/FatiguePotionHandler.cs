@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -32,7 +33,7 @@ public sealed class UseFatiguePotionCommandHandler(IFatiguePotionDomainService p
 }
 
 public sealed class FatiguePotionHandler(ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers, ICommandBus commands, INotificationBus notifications,
+    IOnlineUserQueryDomainService onlineUsers, ICommandBus commands, IEventService notifications,
     ICharacterFatigueDomainService fatigue, IGameMessageSender sender, ILogger<FatiguePotionHandler> logger,
     ItemUsageProjectionDelivery itemUsageProjection, SelectedSessionTransitionGate transitions)
 {
@@ -70,7 +71,7 @@ public sealed class FatiguePotionHandler(ISelectedSessionDomainService sessions,
         }
         // Absolute inventory follows ACK so local decrement cannot leave the bag out of sync.
         var balance = await fatigue.BalanceOfAsync(session.CharacterId, ct).ConfigureAwait(false);
-        await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
+        await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
             new OpeningCompleted(receipt,
                 [new QuestClearCouponResponse(true, request.SourceSlot, request.Container) { Action = request.Action }],
                 FollowingMessages: [new FatigueNotification(balance)]), ct).ConfigureAwait(false);

@@ -1,0 +1,3 @@
+path E:\Project\DNF\DNFClient-A21-protocol2\DNF.unpacked-b1-debug.exe SHA256 CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14 ImageBase 0x400000 SizeOfImage 0x7475000 Machine 0x14c
+0x3202014 Seychelles
+0x356a130 .?AV?$_Ref_count@VCNRDHellPartyBooster@@@tr1@std@@

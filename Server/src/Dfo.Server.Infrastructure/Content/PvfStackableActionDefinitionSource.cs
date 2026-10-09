@@ -15,6 +15,8 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
         internal static readonly PvfField<int> MinimumLevelField = PvfField.Int32("[minimum level]", optional: true);
         internal static readonly PvfField<int> MaximumLevelField = PvfField.Int32("[maximum level]", optional: true);
         internal static readonly PvfField<IReadOnlyList<PvfToken>> ExpirationDateField = PvfField.Tokens("[expiration date]", optional: true);
+        internal static readonly PvfField<int> LevelupRangeField = PvfField.Int32("[levelup range]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<string>> ImpossibleContentsField = PvfField.Strings("[impossible contents]", optional: true);
     }
 
     private readonly Lock gate = new();
@@ -51,6 +53,20 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
                 unreadable = true;
         }
         var recovery = 0;
+        var increase = 1;
+        var blockedInHardcore = false;
+        if (actionName == "[level up ticket]")
+        {
+            var operands = document.Read(Fields.ActionTypeField);
+            if (operands.Count != 1 || !operands[0].IsString) unreadable = true;
+            if (document.TryRead(Fields.LevelupRangeField, out var range)) increase = range;
+            if (increase <= 0) unreadable = true;
+            if (document.TryRead(Fields.ImpossibleContentsField, out var restrictions))
+            {
+                blockedInHardcore = restrictions.Contains("hardcore mode", StringComparer.OrdinalIgnoreCase);
+                if (restrictions.Any(x => !x.Equals("hardcore mode", StringComparison.OrdinalIgnoreCase))) unreadable = true;
+            }
+        }
         if (actionName == "[add fatigue]" && !reader.TryReadInt32(out recovery)) unreadable = true;
         var min = PvfItemUseRuleDefinitionSource.FirstInt32(archive, ref reader,
             Fields.MinimumLevelField, ref unreadable);
@@ -75,6 +91,6 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
         return new(actionName, min, max, expiry,
             !unreadable && min >= 0 && max >= min
                 && (actionName != "[add fatigue]" || recovery is > 0 and <= ushort.MaxValue))
-        { FatigueRecovery = recovery };
+        { FatigueRecovery = recovery, LevelIncrease = increase, BlockedInHardcore = blockedInHardcore };
     }
 }

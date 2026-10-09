@@ -172,6 +172,9 @@ public enum ItemMoveStatus
     /// <summary>The request named one slot twice; nothing moved and nothing is wrong.</summary>
     Unchanged,
 
+    /// <summary>An outgoing mirror was removed without transferring an item.</summary>
+    MirrorRemoved,
+
     /// <summary>No published session for the connection that asked.</summary>
     NoSession,
 
@@ -435,12 +438,15 @@ public sealed class MoveItemSpaceCommandHandler(
             {
                 ItemMoveOutcome.Moved moved => new(ItemMoveStatus.Moved, moved.MoveCount, moved.ItemId)
                     { ActualDestinationSlot = moved.ActualDestinationSlot },
+                ItemMoveOutcome.MirrorRemoved removed => new(ItemMoveStatus.MirrorRemoved, 1, removed.ItemId),
                 ItemMoveOutcome.Unchanged => new(ItemMoveStatus.Unchanged, 0, 0),
                 ItemMoveOutcome.Refused refused => ItemMoveResult.Refused(StatusFor(refused.Reason)),
                 _ => throw new InvalidOperationException("Unknown cargo move outcome."),
             };
         }
 
+        if (command.SourceSlot == command.DestinationSlot && boundSource is not null)
+            return new(ItemMoveStatus.Unchanged, 0, 0);
         var sourceIsCarried = IsCarried(command.SourceSlot.Space);
         var destinationIsCarried = IsCarried(command.DestinationSlot.Space);
         var sourceIsWorn = IsWorn(command.SourceSlot.Space);
@@ -507,6 +513,7 @@ public sealed class MoveItemSpaceCommandHandler(
         {
             ItemMoveOutcome.Moved moved =>
                 new ItemMoveResult(ItemMoveStatus.Moved, moved.MoveCount, moved.ItemId),
+            ItemMoveOutcome.MirrorRemoved removed => new(ItemMoveStatus.MirrorRemoved, 1, removed.ItemId),
             ItemMoveOutcome.Unchanged => new ItemMoveResult(ItemMoveStatus.Unchanged, 0, 0),
             ItemMoveOutcome.Refused refused => ItemMoveResult.Refused(StatusFor(refused.Reason)),
             _ => throw new ArgumentOutOfRangeException(
@@ -597,6 +604,11 @@ public sealed class MoveItemSpaceCommandHandler(
         if (!await moves.CanWearAsync(command.CharacterId, piece.ItemId, cancellationToken).ConfigureAwait(false))
             return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot, piece.ItemId);
 
+        if (displaced?.Snapshot.IsMirror == true)
+        {
+            await moves.RemoveMirrorAsync(worn, displaced, cancellationToken).ConfigureAwait(false);
+            displaced = null;
+        }
         if (displaced is not null && bag.Slot.Index >= await bag.Container.OpenSlotCountAsync(cancellationToken).ConfigureAwait(false))
             return ItemMoveResult.Refused(ItemMoveStatus.DisplacedCannotOccupySlot);
         if (displaced is not null && await moves.MayOccupySlotAsync(
@@ -604,6 +616,9 @@ public sealed class MoveItemSpaceCommandHandler(
             != SlotAdmission.Allowed)
             return ItemMoveResult.Refused(ItemMoveStatus.DisplacedCannotOccupySlot, displaced.ItemId);
 
+        var prepared = moves.UnsealForEquip(piece.Snapshot);
+        if (prepared.SealFlag != piece.Snapshot.SealFlag)
+            piece = await bag.Container.UpdateAsync(piece, _ => prepared, cancellationToken).ConfigureAwait(false);
         var movedRecord = await bag.Container.TakeAsync(piece, null, cancellationToken).ConfigureAwait(false);
         var displacedRecord = displaced is null ? null
             : await worn.Container.TakeAsync(displaced, null, cancellationToken).ConfigureAwait(false);
@@ -676,6 +691,14 @@ public sealed class MoveItemSpaceCommandHandler(
 
             default:
                 break;
+        }
+
+        if (await moves.RemoveMirrorAsync(from, moving, cancellationToken).ConfigureAwait(false))
+            return new ItemMoveResult(ItemMoveStatus.MirrorRemoved, OnePiece, moving.ItemId);
+        if (displaced?.Snapshot.IsMirror == true)
+        {
+            await moves.RemoveMirrorAsync(into, displaced, cancellationToken).ConfigureAwait(false);
+            displaced = null;
         }
 
         if (displaced is not null)
@@ -753,6 +776,9 @@ public sealed class MoveItemSpaceCommandHandler(
                 break;
         }
 
+        if (await moves.RemoveMirrorAsync(worn, piece, cancellationToken).ConfigureAwait(false))
+            return new ItemMoveResult(ItemMoveStatus.MirrorRemoved, OnePiece, piece.ItemId);
+
         if (displaced is not null)
         {
             var displacedSlot = await moves
@@ -765,6 +791,12 @@ public sealed class MoveItemSpaceCommandHandler(
                     ItemMoveStatus.DisplacedCannotOccupySlot, piece.ItemId);
         }
 
+        if (displaced is not null)
+        {
+            var prepared = moves.UnsealForEquip(displaced.Snapshot);
+            if (prepared.SealFlag != displaced.Snapshot.SealFlag)
+                displaced = await bag.Container.UpdateAsync(displaced, _ => prepared, cancellationToken).ConfigureAwait(false);
+        }
         var movedRecord = await worn.Container.TakeAsync(piece, null, cancellationToken).ConfigureAwait(false);
         var displacedRecord = displaced is null ? null
             : await bag.Container.TakeAsync(displaced, null, cancellationToken).ConfigureAwait(false);
@@ -813,13 +845,17 @@ public sealed class MoveItemSpaceHandler(
     ILogger<MoveItemSpaceHandler> logger,
     ICharacterInventoryEntryDomainService characterInventories,
     IAccountInventoryEntryDomainService accountInventories,
-    TimeProvider time) : ClientMessageHandler<MoveItemSpaceRequest>
+    TimeProvider time,
+    Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? projectionGate = null) : ClientMessageHandler<MoveItemSpaceRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         MoveItemSpaceRequest message,
         CancellationToken cancellationToken)
     {
+        var identity = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        using var projectionLease = projectionGate is not null && identity is not null
+            ? await projectionGate.EnterAsync(identity.CharacterId, cancellationToken).ConfigureAwait(false) : null;
         var (response, result) = await ResolveAsync(context, message, cancellationToken)
             .ConfigureAwait(false);
         List<IGameServerMessage> frames = [response];
@@ -835,7 +871,7 @@ public sealed class MoveItemSpaceHandler(
                     context.Connection.ConnectionId);
             }
         }
-        if (result?.Status is ItemMoveStatus.Moved)
+        if (result?.Status is ItemMoveStatus.Moved or ItemMoveStatus.MirrorRemoved)
         {
             // Nothing raised while working out the appearance may cost the player the
             // acknowledgement. The move is committed by this point and the client holds the
@@ -973,7 +1009,7 @@ public sealed class MoveItemSpaceHandler(
                 message.DestinationInstanceValue) { Session = session },
             cancellationToken).ConfigureAwait(false);
 
-        if (result.Status is ItemMoveStatus.Moved or ItemMoveStatus.Unchanged)
+        if (result.Status is ItemMoveStatus.Moved or ItemMoveStatus.Unchanged or ItemMoveStatus.MirrorRemoved)
         {
             if (result.ActualDestinationSlot is { } actualDestination)
                 responseDestination = slotMappings.ToGameSlot(actualDestination);

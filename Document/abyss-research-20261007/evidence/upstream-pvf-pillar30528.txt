@@ -1,0 +1,23 @@
+id 30528 -> Monster/CosmoFiend/SealedGateOfHellDungeon4.obj
+=== passiveobject/Monster/CosmoFiend/SealedGateOfHellDungeon4.obj ===
+[width]
+76 20
+[pass type]
+[pass all]
+[floating height]
+1
+[layer]
+[normal]
+[basic motion]
+Animation/SealedGateBase.ani
+[etc motion]
+  Animation/SealedGateBaseGlow20.ani Animation/SealedGateBaseGlow40.ani Animation/SealedGateBaseGlow60.ani Animation/SealedGateBaseGlow80.ani Animation/SealedGateBaseChangeGlow20.ani Animation/SealedGateBaseChangeGlow40.ani Animation/SealedGateBaseChangeGlow60.ani Animation/SealedGateBaseChangeGlow80.ani Animation/SealedGateDestroying.ani Animation/SealedGateDestroyingGlow.ani Animation/SealedGateDestroyed.ani Animation/SealedGateDestroyedGlow.ani
+[/etc motion]
+[int data]
+1 1 1 0 0 30 1 80 60 40 20 500 20 20 4 1053
+[/int data]
+[string data]
+    WOOD_HIT WOOD_CRASH
+[/string data]
+[name]
+彼诺修的陨石之石

@@ -9,7 +9,8 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class ItemUseEffectDomainService(ICharacterDomainService characters,
     IItemUseEffectRuleService rules, IApplyEffectsDomainService effects,
-    ICreatureInstanceDomainService creatures, TimeProvider clock) : IItemUseEffectDomainService
+    ICreatureInstanceDomainService creatures, TimeProvider clock,
+    Dfo.Server.Abstractions.DomainEvents.IEventService? events = null) : IItemUseEffectDomainService
 {
     public async ValueTask<ItemUseApplication> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
         ItemReference item, CancellationToken ct)
@@ -24,6 +25,8 @@ internal sealed class ItemUseEffectDomainService(ICharacterDomainService charact
         var applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, session), plan.Effects, ct)
             .ConfigureAwait(false);
         var remaining = applied.Changes<ContainerConsumptionChange>().LastOrDefault(x => x.Slot == source)?.RemainingCount ?? item.Count;
+        if (events is not null)
+            await events.EnqueueAsync(new Dfo.Server.Abstractions.Achievements.ItemUsed(session.CharacterId, item.ItemId, 1), ct);
         return new(ItemUsability.Allowed, item.ItemId, remaining, applied);
     }
 }

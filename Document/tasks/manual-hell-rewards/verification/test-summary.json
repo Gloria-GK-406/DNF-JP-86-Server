@@ -1,0 +1,164 @@
+{
+  "Passed": 6094,
+  "Failed": 0,
+  "Skipped": 2,
+  "Projects": [
+    {
+      "Project": "dfo.pvf.tests.dll",
+      "Round": "test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\test-results\\Gloria_家庭台式机_2026-10-07_14_52_09_net10.0.trx",
+      "SHA256": "a6ae96321d7ce50d5a115103c9498bee03db7285e309d0216135c160fcd08e72",
+      "Passed": 80,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "Project": "dfo.server.application.tests.dll",
+      "Round": "final-test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\final-test-results\\Gloria_家庭台式机_2026-10-07_14_57_13_net10.0.trx",
+      "SHA256": "d75c2e19bf7638b5719abff060dc12d547f27007ee94ebde79d3aa4e628f340a",
+      "Passed": 3134,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "Project": "dfo.server.host.tests.dll",
+      "Round": "test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\test-results\\Gloria_家庭台式机_2026-10-07_14_53_49_net10.0.trx",
+      "SHA256": "55bbf8fa12a40c249e9fa7ec5f8f72d101fb2cda3165978bc4cf78737738b4cc",
+      "Passed": 155,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "Project": "dfo.server.httpapi.tests.dll",
+      "Round": "test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\test-results\\Gloria_家庭台式机_2026-10-07_14_55_33_net10.0.trx",
+      "SHA256": "122bc45ee84e27848d2ed94f140f4fbc6cbfd57da476b5232c5b24f26f18c898",
+      "Passed": 50,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "Project": "dfo.server.infrastructure.tests.dll",
+      "Round": "test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\test-results\\Gloria_家庭台式机_2026-10-07_14_55_34_net10.0.trx",
+      "SHA256": "4c9e380275c846b26cf93afc6e2a7df3703637a0d5876fa7f9c24bd4fe74839a",
+      "Passed": 785,
+      "Failed": 0,
+      "Skipped": 2
+    },
+    {
+      "Project": "dfo.server.networking.tests.dll",
+      "Round": "test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\test-results\\Gloria_家庭台式机_2026-10-07_14_55_55_net10.0.trx",
+      "SHA256": "5418a9dd6fbabfb7ba7fb778f410897e00a2239073f92e5ba1f7fc2940b313d0",
+      "Passed": 90,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "Project": "dfo.server.persistence.tests.dll",
+      "Round": "test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\test-results\\Gloria_家庭台式机_2026-10-07_14_56_02_net10.0.trx",
+      "SHA256": "a9aa2721411e3e414e19015e7502cda8c93a632842404e27e2e1f37f3082a285",
+      "Passed": 459,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "Project": "dfo.server.protocol.tests.dll",
+      "Round": "test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\test-results\\Gloria_家庭台式机_2026-10-07_14_56_38_net10.0.trx",
+      "SHA256": "9e0ee9a24a95e53d05ec250e3509aff34303b2e9bc318ac178616b781d1cef7e",
+      "Passed": 1341,
+      "Failed": 0,
+      "Skipped": 0
+    }
+  ],
+  "Runs": [
+    {
+      "Project": "dfo.pvf.tests.dll",
+      "Round": "test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\test-results\\Gloria_家庭台式机_2026-10-07_14_52_09_net10.0.trx",
+      "SHA256": "a6ae96321d7ce50d5a115103c9498bee03db7285e309d0216135c160fcd08e72",
+      "Passed": 80,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "Project": "dfo.server.application.tests.dll",
+      "Round": "test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\test-results\\Gloria_家庭台式机_2026-10-07_14_52_20_net10.0.trx",
+      "SHA256": "ed44283088a42b337e0b95575eb3307a9622f15c28ad1933bd2da5dbe34c5333",
+      "Passed": 3128,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "Project": "dfo.server.host.tests.dll",
+      "Round": "test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\test-results\\Gloria_家庭台式机_2026-10-07_14_53_49_net10.0.trx",
+      "SHA256": "55bbf8fa12a40c249e9fa7ec5f8f72d101fb2cda3165978bc4cf78737738b4cc",
+      "Passed": 155,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "Project": "dfo.server.httpapi.tests.dll",
+      "Round": "test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\test-results\\Gloria_家庭台式机_2026-10-07_14_55_33_net10.0.trx",
+      "SHA256": "122bc45ee84e27848d2ed94f140f4fbc6cbfd57da476b5232c5b24f26f18c898",
+      "Passed": 50,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "Project": "dfo.server.infrastructure.tests.dll",
+      "Round": "test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\test-results\\Gloria_家庭台式机_2026-10-07_14_55_34_net10.0.trx",
+      "SHA256": "4c9e380275c846b26cf93afc6e2a7df3703637a0d5876fa7f9c24bd4fe74839a",
+      "Passed": 785,
+      "Failed": 0,
+      "Skipped": 2
+    },
+    {
+      "Project": "dfo.server.networking.tests.dll",
+      "Round": "test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\test-results\\Gloria_家庭台式机_2026-10-07_14_55_55_net10.0.trx",
+      "SHA256": "5418a9dd6fbabfb7ba7fb778f410897e00a2239073f92e5ba1f7fc2940b313d0",
+      "Passed": 90,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "Project": "dfo.server.persistence.tests.dll",
+      "Round": "test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\test-results\\Gloria_家庭台式机_2026-10-07_14_56_02_net10.0.trx",
+      "SHA256": "a9aa2721411e3e414e19015e7502cda8c93a632842404e27e2e1f37f3082a285",
+      "Passed": 459,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "Project": "dfo.server.protocol.tests.dll",
+      "Round": "test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\test-results\\Gloria_家庭台式机_2026-10-07_14_56_38_net10.0.trx",
+      "SHA256": "9e0ee9a24a95e53d05ec250e3509aff34303b2e9bc318ac178616b781d1cef7e",
+      "Passed": 1341,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "Project": "dfo.server.application.tests.dll",
+      "Round": "final-test-results",
+      "File": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\abyss-research\\Document\\tasks\\manual-hell-rewards\\verification\\final-test-results\\Gloria_家庭台式机_2026-10-07_14_57_13_net10.0.trx",
+      "SHA256": "d75c2e19bf7638b5719abff060dc12d547f27007ee94ebde79d3aa4e628f340a",
+      "Passed": 3134,
+      "Failed": 0,
+      "Skipped": 0
+    }
+  ],
+  "Coverage": "Full solution, then final Application rerun after inclusive rarity correction; other project results remain unchanged",
+  "Archive": "E:/Project/DNF/DNFClient-A21-protocol/Script.pvf"
+}

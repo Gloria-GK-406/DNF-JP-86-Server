@@ -18,7 +18,7 @@ public sealed class ChannelHostStartupTests
             Path.GetTempPath(), $"dfo-host-cwd-{Guid.NewGuid():N}");
         Directory.CreateDirectory(workingDirectory);
         var channelPort = GetAvailablePort();
-        var gamePorts = GetAvailablePortsExcept(channelPort, count: 2);
+        var gamePorts = GetAvailablePortsExcept(channelPort, count: 3);
         var output = new StringBuilder();
         var phase = "starting the channel listener";
         var elapsed = Stopwatch.StartNew();
@@ -53,7 +53,7 @@ public sealed class ChannelHostStartupTests
             var channelInfo = await ReadFrameAsync(stream, timeout.Token);
             Assert.Equal(0x12, channelInfo.MessageNumber);
             var infoPlaintext = Decrypt(channelInfo.Body, key);
-            // Both shipped channels, each on the port this test gave it. Forty-eight bytes a
+            // All shipped channels, each on the port this test gave it. Forty-eight bytes a
             // record, the port sixteen from its end.
             Assert.Equal(
                 gamePorts.Count, BinaryPrimitives.ReadInt32LittleEndian(infoPlaintext.AsSpan(2, 4)));
@@ -65,6 +65,7 @@ public sealed class ChannelHostStartupTests
                         infoPlaintext.AsSpan(50 + (index * 48), 4)));
             }
 
+            Assert.Equal("#ch.100", Encoding.ASCII.GetString(infoPlaintext, 6 + 2 * 48, 20).TrimEnd('\0'));
             var startupOutput = Snapshot(output);
             Assert.Contains($"ContentRoot={Path.GetDirectoryName(typeof(Program).Assembly.Location)}", startupOutput);
             Assert.Contains("ChannelScript=", startupOutput);
@@ -77,6 +78,11 @@ public sealed class ChannelHostStartupTests
             Assert.Contains("GameAddress=127.0.0.1", startupOutput);
             Assert.Contains($"ChannelPort={channelPort}", startupOutput);
             Assert.Contains($"GamePorts={string.Join(",", gamePorts)}", startupOutput);
+            foreach (var port in gamePorts)
+            {
+                using var game = new TcpClient();
+                await game.ConnectAsync(IPAddress.Loopback, port, timeout.Token);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -115,7 +121,7 @@ public sealed class ChannelHostStartupTests
         }
 
         var channelPort = GetAvailablePort();
-        var gamePorts = GetAvailablePortsExcept(channelPort, count: 2);
+        var gamePorts = GetAvailablePortsExcept(channelPort, count: 3);
         var output = new StringBuilder();
         using var process = StartHost(
             workingDirectory, channelPort, gamePorts, output, scriptPath);
@@ -145,7 +151,7 @@ public sealed class ChannelHostStartupTests
                     $"The host was still running after {waited.Elapsed}. Its output so far:"
                         + Environment.NewLine + Snapshot(output));
             }
-            Assert.NotEqual(0, process.ExitCode);
+            Assert.Equal(1, process.ExitCode);
             var startupOutput = Snapshot(output);
             Assert.Contains(scriptPath, startupOutput);
             Assert.Contains("Required channel script", startupOutput);
@@ -181,14 +187,14 @@ public sealed class ChannelHostStartupTests
             builder.AddScript("equipment", "equipment.lst").End();
         await File.WriteAllBytesAsync(pvfPath, builder.Build());
         var channelPort = GetAvailablePort();
-        var gamePorts = GetAvailablePortsExcept(channelPort, count: 2);
+        var gamePorts = GetAvailablePortsExcept(channelPort, count: 3);
         var output = new StringBuilder();
         using var process = StartHost(workingDirectory, channelPort, gamePorts, output, archivePath: pvfPath);
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             await process.WaitForExitAsync(timeout.Token);
-            Assert.NotEqual(0, process.ExitCode);
+            Assert.Equal(1, process.ExitCode);
             Assert.Contains("equipment/equipment.lst", Snapshot(output));
             Assert.Contains("InvalidDataException", Snapshot(output));
             foreach (var port in gamePorts.Prepend(channelPort))

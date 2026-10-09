@@ -17,9 +17,9 @@ public sealed class DrawnAppearanceTests
             Attribute = 7, EnchantUpgradeCount = 99
         };
 
-        var parts = DrawnAppearance.Of([new(null, 23, second), new(null, 7, first)]);
+        var parts = DrawnAppearance.Of([new(null, 24, second), new(null, 7, first)]);
 
-        Assert.Equal([7, 23], parts.Select(part => (int)part.Slot));
+        Assert.Equal([7, 24], parts.Select(part => (int)part.Slot));
         Assert.Equal([305419896, 1000003], parts.Select(part => part.DisplayItemId));
         Assert.Equal([43, 14], parts.Select(part => (int)part.State));
         Assert.Equal([200, 99], parts.Select(part => (int)part.Flag20));
@@ -36,9 +36,9 @@ public sealed class DrawnAppearanceTests
     public void Appearance_excludes_other_worn_slots_and_handles_an_empty_equipment_list()
     {
         var core = StackableItemCore.Create(1, 1000003, 1);
-        var parts = DrawnAppearance.Of([new(null, 12, core), new(null, 13, core),
+        var parts = DrawnAppearance.Of([new(null, -1, core), new(null, 12, core), new(null, 13, core),
             new(null, 23, core), new(null, 24, core), new(null, 25, core)]);
-        Assert.Equal([12, 23], parts.Select(part => (int)part.Slot));
+        Assert.Equal([12, 13, 24], parts.Select(part => (int)part.Slot));
         Assert.Empty(DrawnAppearance.Of([]));
     }
 }

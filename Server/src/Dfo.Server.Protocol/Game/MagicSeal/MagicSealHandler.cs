@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -15,7 +16,7 @@ public sealed class MagicSealHandler(
     ISelectedSessionDomainService sessions,
     IInventorySlotMappingRuleService mappings,
     ICommandBus commands,
-    INotificationBus notifications,
+    IEventService notifications,
     IGameMessageSender sender,
     ILogger<MagicSealHandler> logger) : ClientMessageHandler<MagicSealRequest>
 {
@@ -63,7 +64,7 @@ public sealed class MagicSealHandler(
         }
         logger.LogInformation("MAGIC_SEAL character={Character} change={Change} slot={Slot} seed={Seed}",
             receipt.Session.CharacterId.Value, request.Change, request.TargetSlot, receipt.Seed);
-        await notifications.PublishAsync(
+        await notifications.ProjectAsync(
             new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
             new MagicSealCompleted(receipt, request.Change), ct).ConfigureAwait(false);
     }

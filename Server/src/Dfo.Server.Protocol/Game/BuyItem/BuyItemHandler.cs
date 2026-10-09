@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -14,7 +15,7 @@ public sealed class BuyItemHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions,
     ICommandBus commands,
-    INotificationBus notifications,
+    IEventService notifications,
     IGameMessageSender sender,
     ILogger<BuyItemHandler> logger) : ClientMessageHandler<BuyItemRequest>
 {
@@ -43,7 +44,7 @@ public sealed class BuyItemHandler(
         {
             logger.LogInformation("NPC purchase character={CharacterId} npc={NpcId} shop={ShopId} item={ItemId} count={Count} gold={Gold}",
                 receipt.Session.CharacterId.Value, message.NpcId, message.ShopId, receipt.ItemId, receipt.Count, receipt.Gold);
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
                 new NpcShopPurchaseCompleted(receipt, result.QuestProgress), cancellationToken).ConfigureAwait(false);
         }
         else

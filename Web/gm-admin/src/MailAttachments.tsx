@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button, Empty, Space, Tag, Typography } from 'antd';
 import { ItemPicker } from './ItemPicker';
+import { MailAttachmentPicker, expandedMailAttachments } from './MailAttachmentPicker';
 import { equipmentSummary, itemCategories, type ItemInput, type ItemCatalogDetails } from './items';
 import { mergeMailItem } from './mail';
 import { useGmRead } from './useGmRead';
@@ -15,12 +16,12 @@ export function MailAttachments({ items, onChange, locked, onExpired, onDenied }
   const [editing, setEditing] = useState<number | 'new' | null>(null);
   const [known, setKnown] = useState<Record<number, ItemCatalogDetails>>({});
   const remember = useCallback((details: ItemCatalogDetails) => setKnown(old => old[details.item.itemId] === details ? old : { ...old, [details.item.itemId]: details }), []);
-  const expanded = (values: ItemInput[], metadata: Record<number, ItemCatalogDetails>) => values.reduce((total, item) => total + (metadata[item.itemId]?.kind === 'equipment' ? item.count : 1), 0);
+  const expanded = expandedMailAttachments;
   const allKnown = items.every(item => known[item.itemId]);
   return <section className="mail-attachments" aria-label="邮件物品附件">
     <div className="mail-attachments-heading"><div><Typography.Text strong>物品附件</Typography.Text>
       <div><Typography.Text type="secondary">{items.length === 0 ? '可按名称、ID 和分类查找物品' : allKnown ? `每人占用 ${expanded(items, known)} / 10 个附件位` : '正在核对附件占用…'}</Typography.Text></div></div>
-      <Button disabled={locked || items.length >= 10} onClick={() => setEditing('new')}>添加物品附件</Button></div>
+      <Button disabled={locked} onClick={() => setEditing('new')}>添加物品附件</Button></div>
     {items.length === 0 && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="尚未添加物品附件" />}
     {items.map((item, index) => <AttachmentRow key={`${index}:${item.itemId}`} item={item} index={index} known={known[item.itemId]} remember={remember}
       onExpired={onExpired} onDenied={onDenied} actions={<Space>
@@ -28,14 +29,24 @@ export function MailAttachments({ items, onChange, locked, onExpired, onDenied }
         <Button size="small" danger disabled={locked} onClick={() => onChange(items.filter((_, row) => row !== index))}>移除附件 {index + 1}</Button>
       </Space>} />)}
     {allKnown && expanded(items, known) > 10 && <NotiHint type="error" noticeKey="attachment-capacity" title="每人最多 10 个展开物品附件，请减少装备数量。" />}
-    {editing !== null && !locked && <ItemPicker purpose="mail" initial={editing === 'new' ? undefined : items[editing]}
+    {editing === 'new' && !locked && <MailAttachmentPicker existing={items} known={known}
+      onExpired={onExpired} onDenied={onDenied} onClose={() => setEditing(null)} onChoose={(values, metadata) => {
+        try {
+          const updated = values.reduce((rows, item) => mergeMailItem(rows, item), items);
+          if (updated.length > 10 || !updated.every(row => metadata[row.itemId]) || expanded(updated, metadata) > 10)
+            return '每人最多 10 个展开物品附件；每件装备单独占一个附件位。';
+          setKnown(old => ({ ...old, ...metadata })); onChange(updated); setEditing(null); noti.success('物品附件已批量添加。');
+          return undefined;
+        } catch (failure) { return (failure as Error).message; }
+      }} />}
+    {typeof editing === 'number' && !locked && <ItemPicker purpose="mail" initial={items[editing]}
       onExpired={onExpired} onDenied={onDenied} onClose={() => setEditing(null)} onChoose={(item, details) => {
         try {
-          const updated = mergeMailItem(items, item, editing === 'new' ? undefined : editing);
+          const updated = mergeMailItem(items, item, editing);
           const metadata = { ...known, [item.itemId]: details };
           if (updated.length > 10 || updated.every(row => metadata[row.itemId]) && expanded(updated, metadata) > 10)
             return '每人最多 10 个展开物品附件；每件装备单独占一个附件位。';
-          remember(details); onChange(updated); setEditing(null); noti.success(editing === 'new' ? '物品附件已添加。' : '附件配置已保存。');
+          remember(details); onChange(updated); setEditing(null); noti.success('附件配置已保存。');
           return undefined;
         } catch (failure) { return (failure as Error).message; }
       }} />}

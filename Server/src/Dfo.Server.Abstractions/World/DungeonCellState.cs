@@ -69,7 +69,16 @@ public sealed record DungeonCellActorState(
     bool IsAiCharacter,
     bool IsDead,
     IReadOnlyList<RolledDrop> PendingLoot,
-    bool IsMonster = true);
+    bool IsMonster = true)
+{
+    public bool IsHellTemplate { get; init; }
+    public ushort HellOrder { get; init; }
+    public int? HellGroupIndex { get; init; }
+    public bool EligibleForHellGroupReward { get; init; }
+}
+
+public sealed record DungeonCellHellGroupState(int GroupIndex, IReadOnlyList<ushort> ActorSequences,
+    IReadOnlyList<RolledDrop> PendingLoot, bool IsSettled = false);
 
 public sealed record DungeonCellObjectState(
     DungeonRoomObject Object, IReadOnlyList<RolledDrop> PendingLoot, bool IsConsumed = false);
@@ -85,6 +94,7 @@ public sealed record DungeonCellState(
     bool ClearOpen = false)
 {
     public IReadOnlyList<DungeonCellObjectState> Objects { get; init; } = [];
+    public IReadOnlyList<DungeonCellHellGroupState> HellGroups { get; init; } = [];
 
     public bool IsCleared => this.Actors
         .Where(actor => actor.IsMonster)
@@ -110,6 +120,7 @@ public sealed record DungeonCellSeed(
     bool IsComplete = true)
 {
     public IReadOnlyList<DungeonCellObjectState> Objects { get; init; } = [];
+    public IReadOnlyList<DungeonCellHellGroupState> HellGroups { get; init; } = [];
 
     public DungeonCellState Snapshot() => new(
         this.Cell,
@@ -117,7 +128,7 @@ public sealed record DungeonCellSeed(
         Revision: 0,
         this.FirstActorSequence,
         this.Actors,
-        this.GroundItems) { Objects = this.Objects };
+        this.GroundItems) { Objects = this.Objects, HellGroups = this.HellGroups };
 
     public static DungeonCellSeed CompleteEmpty(MazeCell cell, int mapId) =>
         new(cell, mapId, FirstActorSequence: 1, [], []);

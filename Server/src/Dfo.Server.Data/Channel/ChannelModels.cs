@@ -25,8 +25,8 @@ public enum ChannelEntryKind
     /// <summary>An ordinary channel, open to any character.</summary>
     General,
 
-    /// <summary>A channel that admits only characters at or above a minimum level.</summary>
-    LevelRestricted,
+    /// <summary>The Saint Horn channel, with its own town and transient position.</summary>
+    SaintHorn,
 
     /// <summary>The duelling channel, which carries its own skill profile.</summary>
     FreeDuel,
@@ -47,11 +47,11 @@ public sealed record ChannelEntryIdentity(int ChannelId, int ListenerPort, Chann
 
     /// <summary>True when a character's position on this channel is not persisted.</summary>
     /// <remarks>
-    /// The level-restricted channel places characters transiently: they return to wherever
+    /// The Saint Horn channel places characters transiently: they return to wherever
     /// they were before entering it, so writing the transient position back would strand
     /// them there.
     /// </remarks>
-    public bool IsTransient => Kind is ChannelEntryKind.LevelRestricted;
+    public bool IsTransient => Kind is ChannelEntryKind.SaintHorn;
 }
 
 /// <summary>Why a character was refused entry to a channel.</summary>

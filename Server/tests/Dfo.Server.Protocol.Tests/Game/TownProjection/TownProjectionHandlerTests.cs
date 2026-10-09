@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
@@ -117,6 +118,45 @@ public sealed class TownProjectionHandlerTests
             new CharacterPositionState(
                 CrossedTownId, CrossedAreaId, CrossedX, CrossedY, WalkedDirection),
             positions.Find(Identity.CharacterId));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_refused_channel_crossing_restores_the_actual_location_without_writing_or_transferring(bool saintHorn)
+    {
+        var positions = Standing();
+        var before = positions.Find(Identity.CharacterId);
+        var presence = Presence();
+        var membership = ((ITownAreaDomainService)presence).Find(Identity.CharacterId);
+        var sender = new RecordingSender();
+        var notifications = new RecordingNotifications();
+        var persistence = new RecordingPersistence();
+        var sessions = new OneSession(Identity);
+        var currentViews = new OneRuntimeSession(Entry());
+        var towns = new EveryTownDeclared(allowEntry: false);
+        var handler = new SetUserAreaHandler(sessions, currentViews, positions, presence,
+            new OneChannel(saintHorn), towns, new SelectedSessionTransitionGate(),
+            new TownAreaProjectionDelivery(presence, sessions, currentViews, notifications,
+                new NoopPartyTownProjectionDelivery(), sender, towns),
+            NullLogger<SetUserAreaHandler>.Instance, persistence);
+        await handler.HandleAsync(Dispatch(), new SetUserAreaRequest(GameMessageMetadata.Empty,
+            saintHorn ? (byte)2 : (byte)17, 1, CrossedX, CrossedY), default);
+        Assert.Equal(before, positions.Find(Identity.CharacterId));
+        Assert.Equal(membership, ((ITownAreaDomainService)presence).Find(Identity.CharacterId));
+        Assert.Null(persistence.Saved);
+        Assert.Empty(notifications.Published);
+        Assert.Collection(sender.Sent,
+            message =>
+            {
+                var area = Assert.IsType<UserAreaNotification>(message);
+                Assert.Equal(before!.TownId, area.Spawn.TownId);
+                Assert.Equal(before.AreaId, area.AreaId);
+                Assert.Equal(before.X, area.Spawn.X);
+                Assert.Equal(before.Y, area.Spawn.Y);
+            },
+            message => Assert.Equal(saintHorn ? "请切换频道离开圣者之鸣号。" : "请切换到圣者之鸣号频道后进入。",
+                Assert.IsType<GameServerNoticeMessage>(message).Text));
     }
 
     [Fact]
@@ -736,14 +776,14 @@ public sealed class TownProjectionHandlerTests
         public ValueTask<ChannelEntryIdentity> ResolveAsync(
             int listenerPort, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
-                new ChannelEntryIdentity(10, listenerPort, transient ? ChannelEntryKind.LevelRestricted : ChannelEntryKind.General));
+                new ChannelEntryIdentity(10, listenerPort, transient ? ChannelEntryKind.SaintHorn : ChannelEntryKind.General));
 
         public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) =>
             throw new NotSupportedException("Crossing an area does not re-admit anyone.");
     }
 
     /// <summary>Content that declares every area and a channel that serves every town.</summary>
-    private sealed class EveryTownDeclared : ITownMovementDomainService
+    private sealed class EveryTownDeclared(bool allowEntry = true) : ITownMovementDomainService
     {
         public ValueTask<bool> DeclaresAreaAsync(
             int townId, int areaId, CancellationToken cancellationToken) =>
@@ -751,7 +791,7 @@ public sealed class TownProjectionHandlerTests
 
         public ValueTask<bool> CanEnterTownAsync(
             ChannelEntryIdentity channel, int townId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(true);
+            ValueTask.FromResult(allowEntry);
 
         public ValueTask<bool> SharesTownPresenceAsync(
             int townId, int areaId, CancellationToken cancellationToken) =>
@@ -786,15 +826,14 @@ public sealed class TownProjectionHandlerTests
         }
     }
 
-    private sealed class RecordingNotifications(List<string>? order = null) : INotificationBus
+    private sealed class RecordingNotifications(List<string>? order = null) : Dfo.Server.Testing.ProjectionEventService
     {
         public List<(NotificationAudience Audience, object Notification)> Published { get; } = [];
 
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
             CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification>
         {
             Published.Add((audience, notification));
             order?.Add($"notify:{notification.GetType().Name}");

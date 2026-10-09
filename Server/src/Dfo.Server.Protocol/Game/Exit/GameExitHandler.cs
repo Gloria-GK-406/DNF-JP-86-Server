@@ -1,23 +1,14 @@
 using Dfo.Server.Abstractions.Networking;
-using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Protocol.Game.Exit;
 
-public sealed class GameExitHandler(
-    IGameMessageSender sender,
-    ICommandBus commandBus) : ClientMessageHandler<GameExitRequest>
+public sealed class GameExitHandler(IGameMessageSender sender) : ClientMessageHandler<GameExitRequest>
 {
-    protected override async ValueTask HandleMessageAsync(
+    protected override ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         GameExitRequest message,
-        CancellationToken cancellationToken)
-    {
-        var result = await commandBus.SendAsync(
-            new AcknowledgeGameExitCommand(context.Connection.ConnectionId), cancellationToken).ConfigureAwait(false);
-        await sender.SendCmdAsync(
-            context.Connection.ConnectionId,
-            new GameExitResponse(result.Succeeded),
-            cancellationToken).ConfigureAwait(false);
-    }
+        CancellationToken cancellationToken) =>
+        // EXIT also precedes channel switching; it must not revoke the reusable login credential.
+        sender.SendCmdAsync(context.Connection.ConnectionId, new GameExitResponse(true), cancellationToken);
 }

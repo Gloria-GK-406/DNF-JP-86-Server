@@ -9,7 +9,8 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class MaterialConsumptionDomainService(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    IBusinessInventorySlotDomainService slots, IMaterialConsumptionRuleService rules, IItemLifecycleDomainService lifecycle) : IMaterialConsumptionDomainService
+    IBusinessInventorySlotDomainService slots, IMaterialConsumptionRuleService rules, IItemLifecycleDomainService lifecycle,
+    Dfo.Server.Abstractions.DomainEvents.IEventService? events = null) : IMaterialConsumptionDomainService
 {
     public async ValueTask<MaterialConsumptionResult> ConsumeAsync(SelectedSessionIdentity session,
         IReadOnlyList<MaterialCost> costs, CancellationToken ct)
@@ -38,6 +39,8 @@ internal sealed class MaterialConsumptionDomainService(
         {
             var remaining = await ItemContainerOperations.ConsumeAsync(bound.Container, item, cost.Count, lifecycle, ct);
             debits.Add(new(cost, remaining == 0 ? null : (item.Snapshot with { Count = remaining }).ToCore()));
+            if (events is not null)
+                await events.EnqueueAsync(new Dfo.Server.Abstractions.Achievements.MaterialConsumed(session.CharacterId, cost.ItemId, cost.Count), ct);
         }
         return new(null, debits);
     }

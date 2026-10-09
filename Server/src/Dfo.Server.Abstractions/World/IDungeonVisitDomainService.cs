@@ -34,15 +34,25 @@ public sealed record DungeonEntry(DungeonLayout Layout, DungeonRoomVisit Visit);
 public sealed record DungeonPartyEntry(
     DungeonLayout Layout,
     IReadOnlyDictionary<CharacterId, DungeonRoomVisit> Visits,
-    DungeonEntryChange? Change = null);
+    DungeonEntryChange? Change = null)
+{
+    public IReadOnlyList<DungeonEntryInventoryChange> InventoryChanges { get; init; } = [];
+}
 
-public enum DungeonEntryFailure { DungeonNotFound, DifficultyNotUnlocked, InsufficientFatigue, AlreadyInDungeon }
+public enum DungeonEntryFailure { DungeonNotFound, DifficultyNotUnlocked, InsufficientFatigue, AlreadyInDungeon,
+    HellUnavailable, HellQuestNotCleared, MissingHellTicket, HellConfigurationInvalid,
+    MissingRequiredItem, LevelTooLow, MissingPrerequisite, DailyEntryLimitReached, MemberEntryLimitReached,
+    ConfigurationInvalid }
 
-public sealed record DungeonEntryAttempt(DungeonPartyEntry? Entry, DungeonEntryFailure? Failure, byte? BlockedSlot = null)
+public sealed record DungeonEntryAttempt(DungeonPartyEntry? Entry, DungeonEntryFailure? Failure, byte? BlockedSlot = null,
+    string? Detail = null)
 {
     public static DungeonEntryAttempt Accepted(DungeonPartyEntry entry) => new(entry, null);
-    public static DungeonEntryAttempt Refused(DungeonEntryFailure failure) => new(null, failure);
+    public static DungeonEntryAttempt Refused(DungeonEntryFailure failure, string? detail = null) => new(null, failure, Detail: detail);
 }
+
+public enum DungeonMoveFailure { StaleRun, CellNotFound, Disconnected, NoCompatibleMap, StateRejected }
+public sealed record DungeonMoveAttempt(DungeonRoomVisit? Visit, DungeonMoveFailure? Failure);
 
 /// <summary>
 /// Entering a dungeon and walking between its rooms.
@@ -60,6 +70,11 @@ public sealed record DungeonEntryAttempt(DungeonPartyEntry? Entry, DungeonEntryF
 /// </remarks>
 public interface IDungeonVisitDomainService
 {
+    ValueTask<DungeonEntryAttempt> TryEnterPreparedPartyAsync(
+        IReadOnlyList<DungeonRunParticipant> participants, DungeonLayout layout,
+        DungeonEntryFacts facts, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("This visit service does not accept a prepared layout.");
+
     /// <summary>
     /// Whether the selection screen's state is deferred to this character's first entry.
     /// </summary>
@@ -139,4 +154,11 @@ public interface IDungeonVisitDomainService
         DungeonRunState current,
         MazeCell target,
         CancellationToken cancellationToken);
+
+    async ValueTask<DungeonMoveAttempt> TryMoveAsync(CharacterId characterId, DungeonRunState current,
+        MazeCell target, CancellationToken cancellationToken)
+    {
+        var visit = await MoveAsync(characterId, current, target, cancellationToken).ConfigureAwait(false);
+        return new(visit, visit is null ? DungeonMoveFailure.StateRejected : null);
+    }
 }

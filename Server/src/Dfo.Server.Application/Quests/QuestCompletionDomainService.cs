@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
@@ -14,14 +15,16 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
     ICharacterContainerDomainService containers, IConsumableStateDomainService state,
     ICharacterSkillStateDomainService skills, IQuestCompletionEffectRuleService rules,
     IInventoryEffectPreflightDomainService preview, IApplyEffectsDomainService apply,
-    ICharacterCarriedGoldTable gold) : IQuestCompletionDomainService
+    ICharacterCarriedGoldTable gold,
+    Dfo.Server.Abstractions.DomainEvents.IEventService? events = null) : IQuestCompletionDomainService
 {
     public async ValueTask<QuestCompletionReceipt> FinishAsync(AccountId account, CharacterId id, ushort quest,
         ushort selection, ushort count, DateTimeOffset at, CancellationToken ct, SelectedSessionIdentity? session = null)
     {
         QuestCompletionReceipt Refuse(QuestProgressSnapshot? projection = null) => new(false, quest, null, null, null, projection, null);
         var definition = await rules.DefinitionAsync(quest, ct).ConfigureAwait(false);
-        if (definition is null || await rows.FindOwnerAsync(id, ct).ConfigureAwait(false) != account) return Refuse();
+        if (definition is null || definition.Grade is QuestGrade.Title
+            || await rows.FindOwnerAsync(id, ct).ConfigureAwait(false) != account) return Refuse();
         var character = characters.Get(id);
         var identity = await character.IdentityAsync(ct).ConfigureAwait(false);
         var progress = await character.ProgressAsync(ct).ConfigureAwait(false);
@@ -48,6 +51,8 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
             return Refuse(projected);
         var plan = await rules.CompleteAsync(quest, reward.Plan, facts, rewards, inventory.Holdings!, ct).ConfigureAwait(false);
         var applied = await apply.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
+        if (events is not null)
+            await events.EnqueueAsync(new Dfo.Server.Abstractions.Achievements.QuestCompleted(id, quest), ct);
         return new(true, quest, definition.ObjectiveTypeCode, plan.Award, applied, plan.Projection, plan.GrowType);
     }
 }

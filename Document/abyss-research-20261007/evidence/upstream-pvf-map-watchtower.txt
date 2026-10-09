@@ -1,0 +1,56 @@
+=== map/190_watchtower/hell_38142(3,0)normal.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+190
+[/dungeon]
+[type]
+[normal]
+[greed]
+NN NN
+[tile]
+Tile/In-tile/tile1.til Tile/In-tile/tile1.til Tile/In-tile/tile1.til Tile/In-tile/tile1.til Tile/In-tile/tile1.til
+[/tile]
+[extended tile]
+Tile/In-tile/tile_ex7.til Tile/In-tile/tile_ex8.til Tile/In-tile/tile_ex8.til Tile/In-tile/tile_ex8.til Tile/In-tile/tile_ex8.til Tile/In-tile/tile_ex4.til Tile/In-tile/tile_ex2.til Tile/In-tile/tile_ex7.til Tile/In-tile/tile_ex8.til Tile/In-tile/tile_ex9.til
+[/extended tile]
+[far sight scroll]
+42
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/In_ani/far_top.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+46 242 1069 231 559 -104 792 602
+[sound]
+M_IN_CAVE AMB_DIMENSION_01
+[/sound]
+[animation]
+Animation/Sun_Cloud_1.ani [middleback] 915 7 0 Animation/Top_Cloud.ani [middleback] 1171 -162 0 Animation/In_ani/wall1_1.ani [closeback] 646 119 0 Animation/In_ani/wall1_2.ani [closeback] 317 122 0 Animation/In_ani/wall1_3.ani [closeback] 950 183 0 Animation/In_ani/wall1_7.ani [closeback] 783 124 0 Animation/In_ani/wall1_6.ani [normal] 246 130 0 Animation/In_ani/wall2_1.ani [normal] 296 121 0 Animation/In_ani/floor_board2_1.ani [bottom] 518 311 0 Animation/In_ani/floor_board2_2.ani [bottom] 866 319 0 Animation/In_ani/floor_board1_2.ani [bottom] 339 280 0 Animation/In_ani/floor_board1_1.ani [bottom] 593 219 0 Animation/In_ani/floor_board1_3.ani [bottom] 1081 279 0 Animation/In_ani/floor_board1_3.ani [bottom] 682 336 0 Animation/In_ani/floor_board1_2.ani [bottom] 1013 474 0 Animation/In_ani/scrap3_2.ani [bottom] 146 434 0 Animation/In_ani/scrap3_1.ani [bottom] 459 378 0 Animation/In_ani/scrap3_1.ani [bottom] 225 390 0 Animation/In_ani/floor_board2_3.ani [bottom] 265 452 0 Animation/In_ani/floor_board1_3.ani [bottom] 331 497 0 Animation/In_ani/floor_board1_2.ani [bottom] 396 464 0 Animation/In_ani/scrap3_2.ani [bottom] 709 136 0
+[/animation]
+[passive object]
+53546 77 358 0 53543 152 356 0 53543 355 350 0 53543 400 344 0 53548 566 325 0 53543 719 324 0 53543 968 355 0 53544 1086 431 0 53545 1022 392 0 52894 246 116 0 52894 727 93 0 52894 381 340 0 53540 126 141 0 53547 262 352 0
+[/passive object]
+[monster]
+69713 1 0 548 480 0 1 1 [fixed] [normal] 69718 1 0 226 413 0 1 1 [fixed] [normal] 69718 1 0 262 470 0 1 1 [fixed] [normal] 69712 1 0 524 231 0 1 1 [fixed] [normal] 69712 1 0 550 177 0 1 1 [fixed] [normal] 69713 1 0 615 416 0 1 1 [fixed] [normal] 69713 1 0 551 381 0 1 1 [fixed] [normal] 59824 1 0 829 215 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[map name]
+
+[special passive object]
+30528 886 414 0 1 [hellparty] 166 40 1 169 40 1 172 40 1 175 40 1 176 30 2 177 30 2 167 30 2 168 30 2 170 30 2 171 30 2 173 30 2 174 30 2 [/hellparty]
+[/special passive object]

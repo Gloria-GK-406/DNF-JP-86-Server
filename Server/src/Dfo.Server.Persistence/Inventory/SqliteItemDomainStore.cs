@@ -160,7 +160,8 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
         var next = change(row.Snapshot.DeepCopy()).DeepCopy();
         Validate(next);
         ValidatePosition(reference.ContainerId, reference.StorageSlotIndex, next);
-        if (next.ItemUid != row.Snapshot.ItemUid || next.IsPile != row.Snapshot.IsPile || next.Type != row.Snapshot.Type
+        if (next.IsMirror != row.Snapshot.IsMirror || next.MirrorSourceUid != row.Snapshot.MirrorSourceUid
+            || next.ItemUid != row.Snapshot.ItemUid || next.IsPile != row.Snapshot.IsPile || next.Type != row.Snapshot.Type
             || next.LegacyKind != row.Snapshot.LegacyKind
             || (next.ItemId != row.Snapshot.ItemId && (next.IsPile || next.Type != ItemTraits.Creature || next.LegacyKind != 5))
             || (!next.IsPile && next.Type is ItemTraits.Avatar or ItemTraits.Creature && next.InstanceValue != row.Snapshot.InstanceValue))
@@ -240,7 +241,7 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
             SELECT i.item_uid,i.item_core,s.kind,s.count,
                 i.avatar_expire_date,i.avatar_clear_id,i.avatar_jewel_socket,i.avatar_color1,i.avatar_color2,i.avatar_delete_date,
                 i.creature_field04,i.creature_mode_flag,i.creature_progress_value,i.creature_mode1_field0a,
-                i.creature_mode1_field0b,i.creature_field_after_value,i.creature_text,i.creature_tail_flag
+                i.creature_mode1_field0b,i.creature_field_after_value,i.creature_text,i.creature_tail_flag,i.is_mirror,i.mirror_source_uid,i.appearance_item_id
             FROM item_slots s JOIN items i ON i.item_uid=s.core_uid
             WHERE s.owner_scope=@scope AND s.owner_id=@owner AND s.list_type=@list AND s.slot_index=@slot
             """;
@@ -252,7 +253,8 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
         var pile = r.GetString(2) == "template";
         var avatar = ReadAvatarDetail(r, 4);
         var creature = r.IsDBNull(10) ? null : new InventoryCreatureDetailState(r.GetInt32(10), checked((byte)r.GetInt32(11)), r.GetInt32(12), r.GetInt32(13), r.GetInt32(14), r.GetInt32(15), r.IsDBNull(16) ? [] : (byte[])r.GetValue(16), checked((byte)r.GetInt32(17)));
-        var snapshot = ItemSnapshot.FromCore(core, pile, new ItemIdentity(checked((int)uid)), avatar, creature);
+        var snapshot = ItemSnapshot.FromCore(core, pile, new ItemIdentity(checked((int)uid)), avatar, creature) with
+        { IsMirror = r.GetInt32(18) != 0, MirrorSourceUid = r.IsDBNull(19) ? null : new(checked((int)r.GetInt64(19))), AppearanceItemId = r.IsDBNull(20) ? null : r.GetInt32(20) };
         ValidatePosition(container, slot, snapshot);
         if (PhysicalCount(snapshot) != r.GetInt32(3)) throw new InvalidDataException("Item count disagrees with its slot.");
         var legacyCargoAvatar = container.TryGetAccountOwner(out _, out var list)
@@ -274,12 +276,16 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
     private static int PhysicalCount(ItemSnapshot value) => IsRevivalCounter(value) ? Math.Max(value.Count, 1) : value.Count;
     private static void ValidatePosition(ContainerId container, int slot, ItemSnapshot value)
     {
+        if (value.IsMirror && (value.IsPile || !container.TryGetCharacterOwner(out _, out var mirrorList)
+            || mirrorList != InventoryContainerType.Equipment))
+            throw new InvalidDataException("A mirror may only occupy a character equipment slot.");
         if (value.Count == 0 && (!IsRevivalCounter(value) || slot != 1
             || !container.TryGetCharacterOwner(out _, out var type) || type != InventoryContainerType.Main))
             throw new InvalidDataException("A zero counter can only occupy the character revival slot.");
     }
     private static void Validate(ItemSnapshot value, bool allowLegacyCargoAvatar = false)
     {
+        if (value.AppearanceItemId is <= 0) throw new InvalidDataException("Invalid item appearance identity.");
         if (value.ItemId <= 0 || (value.Count < 0 || value.Count == 0 && !IsRevivalCounter(value)) || (!value.IsPile && value.Count != 1)
             || (value.IsPile && value.ItemUid is not null)) throw new InvalidDataException("Invalid item identity or quantity.");
         if (value.Type != ItemTraitClassification.For(value.LegacyKind, value.ItemId))
@@ -301,8 +307,8 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
         await using var command = await owner.CommandAsync(ct).ConfigureAwait(false);
         command.CommandText = """
             INSERT INTO items(item_core,avatar_expire_date,avatar_clear_id,avatar_jewel_socket,avatar_color1,avatar_color2,avatar_delete_date,
-                creature_field04,creature_mode_flag,creature_progress_value,creature_mode1_field0a,creature_mode1_field0b,creature_field_after_value,creature_text,creature_tail_flag)
-            SELECT @core,@expire,@clear,@socket,@color1,@color2,@delete,@field04,@mode,@progress,@mode1a,@mode1b,@after,@text,@tail
+                creature_field04,creature_mode_flag,creature_progress_value,creature_mode1_field0a,creature_mode1_field0b,creature_field_after_value,creature_text,creature_tail_flag,is_mirror,mirror_source_uid,appearance_item_id)
+            SELECT @core,@expire,@clear,@socket,@color1,@color2,@delete,@field04,@mode,@progress,@mode1a,@mode1b,@after,@text,@tail,@mirror,@mirrorSource,@appearance
             WHERE @expire IS NULL OR NOT EXISTS(SELECT 1 FROM items WHERE avatar_expire_date IS NOT NULL AND substr(item_core,6,4)=substr(@core,6,4))
             RETURNING item_uid;
             """;
@@ -317,7 +323,7 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
             UPDATE items SET item_core=@core,avatar_expire_date=@expire,avatar_clear_id=@clear,avatar_jewel_socket=@socket,
                 avatar_color1=@color1,avatar_color2=@color2,avatar_delete_date=@delete,creature_field04=@field04,
                 creature_mode_flag=@mode,creature_progress_value=@progress,creature_mode1_field0a=@mode1a,creature_mode1_field0b=@mode1b,
-                creature_field_after_value=@after,creature_text=@text,creature_tail_flag=@tail,updated_at=CURRENT_TIMESTAMP WHERE item_uid=@uid
+                creature_field_after_value=@after,creature_text=@text,creature_tail_flag=@tail,is_mirror=@mirror,mirror_source_uid=@mirrorSource,appearance_item_id=@appearance,updated_at=CURRENT_TIMESTAMP WHERE item_uid=@uid
             """;
         BindSnapshot(command, snapshot); command.Parameters.AddWithValue("@uid", uid);
         if (await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false) != 1) throw new InvalidDataException("Item row disappeared.");
@@ -325,6 +331,9 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
     private static void BindSnapshot(SqliteCommand command, ItemSnapshot snapshot)
     {
         var a = snapshot.AvatarDetail; var c = snapshot.CreatureDetail;
+        command.Parameters.AddWithValue("@appearance", snapshot.AppearanceItemId is { } appearance ? appearance : DBNull.Value);
+        command.Parameters.AddWithValue("@mirror", snapshot.IsMirror ? 1 : 0);
+        command.Parameters.AddWithValue("@mirrorSource", snapshot.MirrorSourceUid is { } source ? source.Value : DBNull.Value);
         command.Parameters.AddWithValue("@core", InventoryItemCore.Encode(snapshot.ToCore()));
         (string, object?)[] values = [("@expire",a?.ExpireDate),("@clear",a?.ClearAvatarId),("@socket",a?.JewelSocket),
             ("@color1",a?.Color1),("@color2",a?.Color2),("@delete",a?.DeleteDate),("@field04",c?.Field04),("@mode",c?.ModeFlag),
@@ -359,7 +368,9 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
     private static (string Scope, int Owner, int List) OwnerOf(ContainerId container)
     {
         if (!container.TryGetOwner(out var owner, out var type)
-            || type is not (InventoryContainerType.Main or InventoryContainerType.Avatar or InventoryContainerType.PersonalCargo or InventoryContainerType.Equipment or InventoryContainerType.Pet or InventoryContainerType.AccountCargo or InventoryContainerType.SharedMaterial)
+            || type is not (InventoryContainerType.Main or InventoryContainerType.Avatar or InventoryContainerType.PersonalCargo or InventoryContainerType.Equipment or InventoryContainerType.Pet or InventoryContainerType.AccountCargo or InventoryContainerType.SharedMaterial
+                or InventoryContainerType.TitleBookGeneral or InventoryContainerType.TitleBookSpecific or InventoryContainerType.TitleBookPvp or InventoryContainerType.TitleBookDespair or InventoryContainerType.TitleBookEvent)
+            || type is >= InventoryContainerType.TitleBookGeneral and <= InventoryContainerType.TitleBookEvent && owner.Scope != InventoryOwnerType.Character
             || type is InventoryContainerType.AccountCargo or InventoryContainerType.SharedMaterial && owner.Scope != InventoryOwnerType.Account)
             throw new InvalidOperationException("The container has no supported persistent owner.");
         return (owner.Scope == InventoryOwnerType.Account ? "account" : "character", owner.Value, (int)type);

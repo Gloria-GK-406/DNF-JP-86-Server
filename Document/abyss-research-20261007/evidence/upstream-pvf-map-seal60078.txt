@@ -1,0 +1,71 @@
+id 60078 -> 190_Watchtower/60078.map
+=== map/190_Watchtower/60078.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+190
+[/dungeon]
+[type]
+[normal]
+[greed]
+HH HH
+[tile]
+Tile/In-tile/tile2.til Tile/In-tile/tile2.til Tile/In-tile/tile2.til Tile/In-tile/tile2.til Tile/In-tile/tile2.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/In-tile/tile_ex7.til 1 Tile/In-tile/tile_ex8.til
+[/tile files]
+[tile map]
+0 1 1 1 1
+[/tile map]
+[/extended tile]
+[far sight scroll]
+42
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/In_ani/far_top.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+32 230 1070 248 587 152 383 486
+[sound]
+M_WATCH_TOWER AMB_SMOKE
+[/sound]
+[animation]
+Animation/In_ani/wall1_3.ani [closeback] 1093 187 0 Animation/In_ani/wall1_7.ani [closeback] 852 101 0 Animation/In_ani/floor_board2_1.ani [bottom] 750 262 0 Animation/In_ani/floor_board2_1.ani [bottom] 1024 464 0 Animation/In_ani/floor_board2_3.ani [bottom] 832 335 0 Animation/In_ani/floor_board2_3.ani [bottom] 142 215 0 Animation/In_ani/floor_board2_3.ani [bottom] 17 298 0 Animation/In_ani/floor_board2_2.ani [bottom] 586 399 0 Animation/In_ani/ceiling_wire1.ani [close] 824 -141 0 Animation/In_ani/ceiling_wire3.ani [close] 282 -120 0 Animation/In_ani/ceiling_wire3.ani [close] 515 -118 0 Animation/In_ani/cam01.ani [closeback] 796 1 0 Animation/In_ani/floor_board1_2.ani [bottom] 1048 203 0 Animation/In_ani/floor_board1_2.ani [bottom] 273 457 0 Animation/In_ani/floor_board1_2.ani [bottom] 332 372 0 Animation/In_ani/floor_board1_2.ani [bottom] 436 225 0 Animation/In_ani/cam01_Effect.ani [closeback] 750 -30 0 Animation/In_ani/wall1_7.ani [closeback] 456 111 0 Animation/In_ani/wall1_1.ani [closeback] 306 107 0 Animation/In_ani/wall1_7.ani [normal] 180 104 0 Animation/In_ani/wall1_8.ani [closeback] 249 -36 0 Animation/Top_Cloud_1.ani [distantback] -187 -142 0
+[/animation]
+[scroll animation]
+Animation/In_ani/far_fan.ani [distantback] 621 141 0 80 Animation/In_ani/far_basic.ani [distantback] 357 -117 0 80 Animation/In_ani/far_lightdodge.ani [distantback] 625 141 0 80
+[/scroll animation]
+[passive object]
+53552 128 391 0 53540 898 484 0 53546 784 521 0 53547 1093 472 0 53551 -126 348 0 53541 -178 223 0 53542 -168 148 0 53542 1104 378 0 52894 444 83 0 52894 959 458 0 53550 84 404 0 53550 332 85 0 52894 167 74 0 53550 299 84 0 52894 899 106 0 52894 812 140 0 53546 855 183 0 53541 796 99 0 53546 -101 114 0 53547 1015 182 0 53547 662 478 0 53543 760 478 0 53542 152 443 0 53542 273 495 0 53542 482 494 0 15336 369 156 0 52894 902 141 0 52894 780 110 0
+[/passive object]
+[monster]
+69718 1 0 484 342 0 1 1 [fixed] [normal] 69710 1 0 282 313 0 1 1 [fixed] [normal] 69710 1 0 375 349 0 1 1 [fixed] [normal] 69710 1 0 428 303 0 1 1 [fixed] [normal] 69718 1 0 537 284 0 1 1 [fixed] [normal] 69713 1 0 418 194 0 1 1 [fixed] [normal] 69713 1 0 352 240 0 1 1 [fixed] [normal] 69713 1 0 488 224 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[special passive object]
+30528 700 307 0 1 [hellparty] 125 25 1 126 25 1 127 25 1 128 25 1 176 30 1 177 30 1 167 30 1 168 30 1 170 30 1 171 30 1 173 30 1 174 30 1 166 40 2 169 40 2 172 40 2 175 40 2 [/hellparty]
+[/special passive object]
+[event monster position]
+300 243 0 871 265 0 409 261 0 606 218 0
+[/event monster position]
+[map name]
+
+[buff]
+20 21
+[/buff]

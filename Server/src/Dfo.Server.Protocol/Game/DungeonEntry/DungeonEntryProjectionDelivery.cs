@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -42,7 +43,9 @@ public sealed class DungeonEntryProjectionDelivery(
     TownAreaProjectionDelivery townAreaProjection,
     SelectedSessionTransitionGate transitionGate,
     DungeonProjectionGate projectionGate,
-    ILogger<DungeonEntryProjectionDelivery> logger)
+    ILogger<DungeonEntryProjectionDelivery> logger,
+    ICommandBus? commands = null,
+    IInventorySlotProjectionDomainService? inventoryProjection = null)
 {
     public async ValueTask EnterAsync(
         NetworkConnectionId requesterConnection,
@@ -65,7 +68,7 @@ public sealed class DungeonEntryProjectionDelivery(
         if (attachments.BlockedSlot is { } blockedSlot)
         {
             RestoreSelection();
-            await RefuseAsync(requesterConnection, SelectDungeonRefusal.MemberBlocked, blockedSlot,
+            await RefuseAsync(requesterConnection, SelectDungeonRefusal.SelectionCohortUnavailable, blockedSlot,
                 cancellationToken).ConfigureAwait(false);
             return;
         }
@@ -80,24 +83,25 @@ public sealed class DungeonEntryProjectionDelivery(
         var previousRuns = participants.ToDictionary(
             participant => participant.CharacterId,
             participant => runs.Find(participant.CharacterId));
-        var attempt = await visits.TryEnterPartyAsync(
-            participants, message.DungeonId, facts, cancellationToken)
-            .ConfigureAwait(false);
+        var command = new EnterDungeonCommand(new DungeonEntryContext(
+            message.DungeonId, facts, message.RequestMode, message.PracticeMode, participants));
+        // Directly constructed protocol fixtures may supply their own visit service. They still
+        // execute the same CMD routing; the production composition always uses the command bus.
+        var attempt = commands is not null
+            ? await commands.SendAsync(command, cancellationToken).ConfigureAwait(false)
+            : await new EnterDungeonCommandHandler(new Dfo.Server.Application.World.DungeonEntryDecisionDomainService(), visits)
+                .HandleAsync(new(Guid.NewGuid(), typeof(EnterDungeonCommand), typeof(EnterDungeonCommandHandler),
+                    CommandExecutionKind.Workflow), command, cancellationToken).ConfigureAwait(false);
         var entered = attempt.Entry;
         if (entered is null)
         {
             RestoreSelection();
-            if (attempt.Failure == DungeonEntryFailure.InsufficientFatigue)
+            if (attempt.Failure is not null)
             {
-                await RefuseAsync(requesterConnection,
-                    participants.Length == 1 ? SelectDungeonRefusal.InsufficientFatigue : SelectDungeonRefusal.MemberBlocked,
-                    attempt.BlockedSlot ?? 0, cancellationToken).ConfigureAwait(false);
-                return;
-            }
-            if (attempt.Failure == DungeonEntryFailure.DifficultyNotUnlocked)
-            {
-                await RefuseAsync(requesterConnection, SelectDungeonRefusal.MemberBlocked,
-                    participants[0].Slot, cancellationToken).ConfigureAwait(false);
+                var error = DungeonEntryRefusalCodes.For(attempt.Failure.Value, message.RequestMode == 1);
+                logger.LogInformation("Dungeon {DungeonId} entry refused: {Failure}, code=0x{ErrorCode:X2}, memberSlot={BlockedSlot}, detail={Detail}",
+                    message.DungeonId, attempt.Failure, error, attempt.BlockedSlot ?? 0, attempt.Detail);
+                await RefuseAsync(requesterConnection, error, attempt.BlockedSlot ?? 0, cancellationToken).ConfigureAwait(false);
                 return;
             }
             logger.LogWarning(
@@ -220,6 +224,14 @@ public sealed class DungeonEntryProjectionDelivery(
                 }
 
                 frames.Add(new SupportTagNotification());
+                foreach (var debit in entered.InventoryChanges.Where(x => x.CharacterId == receiver.Session.CharacterId))
+                {
+                    var slot = (inventoryProjection ?? throw new InvalidOperationException("Inventory projection is required for entry costs."))
+                        .Project(debit.Slot);
+                    frames.Add(debit.Remaining is { } remaining
+                        ? new InventoryDeltaMessage(slot.Space, [new Dfo.Server.Data.Inventory.InventoryItemState(null, slot.Index, remaining)], refreshed[receiver.Session.CharacterId].World.PreparedAt)
+                        : GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, refreshed[receiver.Session.CharacterId].World.PreparedAt));
+                }
                 frames.Add(new DungeonInfoNotification(layout, leaderVisit.Run.Difficulty));
                 frames.Add(new StartMapNotification(
                     roster.IsVirtual ? visit.Run with { Participant = null } : visit.Run,
@@ -227,6 +239,7 @@ public sealed class DungeonEntryProjectionDelivery(
                     visit.Actors,
                     visit.FirstActorSequence,
                     FloorPieceValues.Describe(visit.Run, visit.FloorDrops)));
+                if (HellPartyProjection.For(visit.Run) is { } hellInfo) frames.Add(hellInfo);
                 frames.Add(new Fatigue.FatigueNotification(await fatigue.BalanceOfAsync(receiver.Session.CharacterId, cancellationToken).ConfigureAwait(false)));
                 deliveries.Add((receiver.Session, frames));
             }
@@ -490,7 +503,7 @@ public sealed class DungeonEntryProjectionDelivery(
         SelectedSessionIdentity requester,
         CancellationToken cancellationToken) =>
         selectedSessions.FindByCharacter(requester.CharacterId) == requester
-            ? RefuseAsync(connectionId, SelectDungeonRefusal.MemberBlocked, 0, cancellationToken)
+            ? RefuseAsync(connectionId, SelectDungeonRefusal.SelectionCohortUnavailable, 0, cancellationToken)
             : ValueTask.CompletedTask;
 
     private ValueTask RefuseAsync(

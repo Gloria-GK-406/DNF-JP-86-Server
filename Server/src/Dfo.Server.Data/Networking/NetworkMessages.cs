@@ -179,6 +179,12 @@ public enum ClientMessageType
     GameCreatureScriptMessage = 0x0001_007A,
     GameTeleport = 0x0001_00ED,
     GameQuestClearCoupon = 0x0001_0204,
+    GameLevelUpTicket = 0x0001_01A2,
+    GameQueryTitleBook = 0x0001_01A8,
+    GameStoreTitle = 0x0001_019C,
+    GameWithdrawTitle = 0x0001_019D,
+    GameSetTitleAppearance = 0x0001_0239,
+    GameAchievementTrigger = 0x0001_01A1,
 
     // An item changing slots, the quick-slot bar included. See Game/MoveItemSpace.
     GameMoveItemSpace = 0x0001_0013,
@@ -294,6 +300,7 @@ public enum ServerMessageType
     // The dungeon-entry answer: the run's shape, the room it opens in, and the support
     // roster. See Game/DungeonEntry.
     GameDungeonInfo = 0x0000_001C,
+    GameHellPartyMonsterInfo = 0x0000_02A7,
     GameStartMap = 0x0000_001D,
     GameSupportTag = 0x0000_019F,
 
@@ -318,6 +325,11 @@ public enum ServerMessageType
     GameTeleport = 0x0001_00ED,
     GameLoadCooltimeItems = 0x0000_00AC,
     GameQuestClearCoupon = 0x0001_0204,
+    GameLevelUpTicket = 0x0001_01A2,
+    GameStoreTitle = 0x0001_019C,
+    GameWithdrawTitle = 0x0001_019D,
+    GameSetTitleAppearance = 0x0001_0239,
+    GameAchievementTrigger = 0x0001_01A1,
 
     GameCreatureDeath = 0x0000_0064,
     GameCreatureRename = 0x0000_0065,

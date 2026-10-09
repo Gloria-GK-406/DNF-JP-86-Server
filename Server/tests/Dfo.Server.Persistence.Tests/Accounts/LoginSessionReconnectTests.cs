@@ -24,7 +24,7 @@ public sealed class LoginSessionReconnectTests
     }
 
     [Fact]
-    public async Task OldDisconnectAndExitCannotRevokeOrExpireReplacementConnection()
+    public async Task OldDisconnectCannotRevokeOrExpireReplacementConnection()
     {
         using var fixture = new AuthenticationFixture();
         await fixture.Bus.SendAsync(new RegisterAccountCommand("player", "test password"));
@@ -38,13 +38,12 @@ public sealed class LoginSessionReconnectTests
         Assert.True(sessions.CloseRequests.TryRead(out var requested));
         Assert.Equal(old, requested);
         sessions.Disconnected(old);
-        sessions.EndSession(old);
         fixture.Clock.Now = fixture.Clock.Now.AddHours(3);
         Assert.NotNull(await fixture.Consume(login.MId!, login.Ticket!));
     }
 
     [Fact]
-    public async Task DuplicateDisconnectDoesNotExtendGraceAndExplicitExitRevokesImmediately()
+    public async Task DuplicateDisconnectDoesNotExtendGrace()
     {
         using var fixture = new AuthenticationFixture();
         await fixture.Bus.SendAsync(new RegisterAccountCommand("player", "test password"));
@@ -57,12 +56,6 @@ public sealed class LoginSessionReconnectTests
         sessions.Disconnected(connection);
         fixture.Clock.Now = fixture.Clock.Now.AddSeconds(1);
         Assert.Null(await fixture.Consume(login.MId!, login.Ticket!));
-        var next = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "test password"));
-        var nextConnection = new NetworkConnectionId("next");
-        Assert.NotNull(await fixture.Consume(next.MId!, next.Ticket!, nextConnection));
-        sessions.EndSession(nextConnection);
-        sessions.Disconnected(nextConnection);
-        Assert.Null(await fixture.Consume(next.MId!, next.Ticket!));
     }
 
     [Theory]

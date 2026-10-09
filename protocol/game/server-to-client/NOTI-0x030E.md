@@ -1,5 +1,11 @@
 # NOTI `0x030E` `HELL_PARTY_CLEAR`
 
+## 2026-10-07 A21客户端裁决
+
+**ClientStatic / Confirmed**：RVA`00D48580..00D48599`没有读取正文字段。全局对象`VA03A5C9EC`存在时，以参数`0x27,0,0,1,1`调用事件函数`RVA00A75B80`，不存在则直接返回。可确认本handler正文消费量为`0B`；客户端效果的事件链和原服务端实际包长仍需动态验证，不能把消费量与抓包长度混为一谈。
+
+绑定b1 SHA256`CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14`、ImageBase`00400000`。下方通用提取器的“结构未知”仅是旧自动结果，不再代表已读取的入口仍不可分析。复现与证据见[客户端研究](../../../Document/abyss-research-20261007/client.md)。本轮无WireCaptured/ClientVerified。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

@@ -33,7 +33,7 @@ public sealed class DungeonPickupTransactionTests
         new MazeCell(0, 0),
         8154,
         1,
-        new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 8154 },
+        new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8154)},
         15);
 
     [Fact]
