@@ -482,7 +482,14 @@ public sealed record CharacterTitleBookCategoryState(
     byte Category,
     byte InfoType,
     ushort OwnerId16,
-    IReadOnlyList<CharacterTitleBookEntryState> Entries);
+    IReadOnlyList<CharacterTitleBookEntryState> Entries)
+{
+    // Project-owned client compatibility extension, not a native title-book field.
+    public bool MirrorProjectionEnabled { get; init; }
+    public CharacterTitleBookWearSource? WearSource { get; init; }
+}
+
+public sealed record CharacterTitleBookWearSource(int Category, int Index, int ItemId);
 
 public sealed record CharacterAchievementProgressState(
     int AchievementId,

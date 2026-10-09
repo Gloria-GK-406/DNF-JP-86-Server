@@ -20,6 +20,9 @@ internal sealed class SqliteAchievementPersistence(SqliteDatabase database) : IA
     public async ValueTask<bool> TryConsumeFactAsync(CharacterId character, Guid eventId, CancellationToken ct) =>
         await database.ExecuteAsync("INSERT OR IGNORE INTO achievement_consumed_facts(character_id,event_id) VALUES(@cid,@event)",
             p => { p.AddWithValue("@cid", character.Value); p.AddWithValue("@event", eventId.ToString("D")); }, ct) == 1;
+    public async ValueTask ResetPendingAsync(CharacterId character, int achievementId, int remaining, CancellationToken ct) =>
+        _ = await database.ExecuteAsync("UPDATE character_achievement_complete SET p1=@remaining WHERE character_id=@cid AND achievement_id=@aid AND p1=0 AND p2=0 AND p3=0",
+            p => { p.AddWithValue("@cid", character.Value); p.AddWithValue("@aid", achievementId); p.AddWithValue("@remaining", remaining); }, ct);
     public async ValueTask<bool> AdvanceAsync(CharacterId character, int achievementId, int count, CancellationToken ct)
     {
         if (count <= 0) return false;

@@ -33,7 +33,8 @@ internal sealed class CharacterCurrentStateQueryDomainService(
     IWeeklyAttendanceDomainService? attendance = null,
     IJoustProjectionDomainService? joust = null,
     IEpicBookDomainService? epicBook = null,
-    Dfo.Server.Abstractions.Achievements.ITitleBookDomainService? titles = null) : ICharacterCurrentStateQueryDomainService
+    Dfo.Server.Abstractions.Achievements.ITitleBookDomainService? titles = null,
+    Dfo.Server.Abstractions.Achievements.IAchievementDomainService? achievements = null) : ICharacterCurrentStateQueryDomainService
 {
     public async ValueTask<SelectCharacterResult> ReadAsync(
         SelectedSessionIdentity session, CancellationToken cancellationToken)
@@ -67,6 +68,10 @@ internal sealed class CharacterCurrentStateQueryDomainService(
             entries, rules, readAt, cancellationToken).ConfigureAwait(false);
 
         characterEntry = CharacterStateProjection.CompleteTitleAppearanceProjection(characterEntry, characterInventory);
+        if (achievements is not null)
+            characterEntry = characterEntry with { Features = characterEntry.Features with
+            { Collections = characterEntry.Features.Collections with
+            { Achievements = await achievements.GetAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) } } };
         if (titles is not null)
             characterEntry = characterEntry with { Features = characterEntry.Features with
             { Collections = characterEntry.Features.Collections with

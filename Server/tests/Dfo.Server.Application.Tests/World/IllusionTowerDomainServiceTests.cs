@@ -1177,6 +1177,7 @@ public sealed class IllusionTowerDomainServiceTests
             else TowerRewardTestContent.Register(s);
             s.AddSingleton<IIllusionTowerRuleService>(rules ?? new Rules());
             s.AddSingleton<IDungeonStructureRuleService>(layouts ?? new OrdinaryLayouts());
+            s.AddSingleton<IDungeonDifficultyRuleService>(new Dfo.Server.Application.Tests.Support.TestDungeonDifficultyRules());
             s.AddSingleton<IDungeonCellFactory, OrdinaryCells>();
             s.AddSingleton<IDungeonRunDomainService>(p => new DungeonRunDomainService(p.GetRequiredService<IDomainTransactionAccessor>()));
             configure?.Invoke(s);

@@ -151,7 +151,7 @@ public sealed class ChannelHostStartupTests
                     $"The host was still running after {waited.Elapsed}. Its output so far:"
                         + Environment.NewLine + Snapshot(output));
             }
-            Assert.NotEqual(0, process.ExitCode);
+            Assert.Equal(1, process.ExitCode);
             var startupOutput = Snapshot(output);
             Assert.Contains(scriptPath, startupOutput);
             Assert.Contains("Required channel script", startupOutput);
@@ -194,7 +194,7 @@ public sealed class ChannelHostStartupTests
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             await process.WaitForExitAsync(timeout.Token);
-            Assert.NotEqual(0, process.ExitCode);
+            Assert.Equal(1, process.ExitCode);
             Assert.Contains("equipment/equipment.lst", Snapshot(output));
             Assert.Contains("InvalidDataException", Snapshot(output));
             foreach (var port in gamePorts.Prepend(channelPort))

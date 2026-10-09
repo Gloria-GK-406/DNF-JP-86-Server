@@ -1,5 +1,6 @@
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -21,6 +22,45 @@ namespace Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 
 public sealed class SelectCharacterProductionStateTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Login_and_current_view_use_authoritative_achievement_projection_instead_of_legacy_task_rows(bool login)
+    {
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
+        seed = seed with { CharacterEntry = seed.CharacterEntry with { Features = seed.CharacterEntry.Features with
+        { Collections = seed.CharacterEntry.Features.Collections with { Achievements = [new(4303, 0, 0, 0, 0)] } } } };
+        var sources = new Sources(seed, []);
+        var achievements = new ProjectionAchievements(login);
+        SelectCharacterResult result;
+        if (login) result = await PrepareAsync(sources, seed, achievements);
+        else
+        {
+            var session = SelectedSessionIdentity.Create(seed.Account.AccountId, seed.Character.Identity.CharacterId,
+                new Dfo.Server.Data.Networking.NetworkConnectionId("achievement-read"), 1, 10011);
+            var positions = new CharacterPositionDomainService();
+            positions.Place(session, seed.Character.Position);
+            result = await Query(sources, seed, positions, achievements).ReadAsync(session, default);
+        }
+        Assert.Equal(6501, Assert.Single(result.CharacterEntry.Features.Collections.Achievements).AchievementId);
+        Assert.Equal(1, achievements.Reads);
+        Assert.Equal(login ? 2 : 0, achievements.Writes);
+        Assert.DoesNotContain(Assert.Single(new SelectedCharacterStateMessageFactoryService().CreateValidated(result)
+            .OfType<Dfo.Server.Protocol.Game.StateSynchronization.AchievementStateMessage>()).Achievements, x => x.AchievementId == 4303);
+    }
+
+    private sealed class ProjectionAchievements(bool allowPreparation) : IAchievementDomainService
+    {
+        public int Reads { get; private set; }
+        public int Writes { get; private set; }
+        private void CheckPreparation() { Assert.True(allowPreparation); Writes++; }
+        public ValueTask PrepareAsync(CharacterId id, int level, CancellationToken ct) { CheckPreparation(); return ValueTask.CompletedTask; }
+        public ValueTask<IReadOnlyList<int>> UnlockSatisfiedAchievementsAsync(CharacterId id, CancellationToken ct)
+        { CheckPreparation(); return ValueTask.FromResult<IReadOnlyList<int>>([]); }
+        public ValueTask<IReadOnlyList<CharacterAchievementProgressState>> GetAsync(CharacterId id, CancellationToken ct)
+        { Reads++; return ValueTask.FromResult<IReadOnlyList<CharacterAchievementProgressState>>([new(6501, 1, 0, 0, 0)]); }
+        public ValueTask<CharacterAchievementProgressState?> ReconcileAsync(CharacterId id, int aid, CancellationToken ct) => throw new NotSupportedException();
+    }
     [Theory]
     [InlineData(11, 11)]
     [InlineData(0, 12)]
@@ -125,10 +165,10 @@ public sealed class SelectCharacterProductionStateTests
     }
 
     private static CharacterCurrentStateQueryDomainService Query(
-        Sources sources, SelectCharacterResult seed, ICharacterPositionDomainService positions) =>
+        Sources sources, SelectCharacterResult seed, ICharacterPositionDomainService positions, IAchievementDomainService? achievements = null) =>
         new(sources, sources, sources, sources, sources, sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources),
-            sources, sources, sources, sources, positions, new FixedTimeProvider(seed.World.PreparedAt));
+            sources, sources, sources, sources, positions, new FixedTimeProvider(seed.World.PreparedAt), achievements: achievements);
 
     [Theory]
     [InlineData(false, 0)]
@@ -331,13 +371,13 @@ public sealed class SelectCharacterProductionStateTests
         };
 
     private static async Task<SelectCharacterResult> PrepareAsync(
-        Sources sources, SelectCharacterResult seed)
+        Sources sources, SelectCharacterResult seed, IAchievementDomainService? achievements = null)
     {
         var handler = new SelectCharacterPreparationService(
             sources, sources, sources, sources, sources, sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources),
             sources, sources, sources, sources, sources, sources, sources,
-            new FixedTimeProvider(seed.World.PreparedAt));
+            new FixedTimeProvider(seed.World.PreparedAt), achievements: achievements);
         var channel = new ChannelEntryIdentity(1, 10011, ChannelEntryKind.General);
         var selected = await handler.PreflightAsync(
             seed.Account.AccountId, seed.Character.Identity.SlotIndex, channel, CancellationToken.None);

@@ -1,7 +1,9 @@
-# CMD 0x019C TITLE_BOOK_PUT响应
+# CMD 0x019C 称号簿操作确认
 
-角色称号簿存取结果；不等同于同type的NOTI。
+本包确认取消佩戴/实物存入，不是NOTI。
 
-成功17B：u8=1，i32space，i32slot，i32category，i32index。失败10B：u8=0，u8error，i32space，i32category。穿戴镜像取消仍回真实 space/slot，消费原生 pending；ACK 发送完成后，事件投影穿戴、外观和书槽。服务器删除镜像，保留并恢复原件的客户端书槽投影。不能用 space=18+category 绕过确认 helper。详见[修复记录](../../../Document/tasks/achievement-title-book/native-title-confirmation-repair-20261008.md)，当前为 ClientStatic / CurrentImplementation，实机待验收。
+成功17B：u8=1，i32space，i32slot，i32category，i32index。失败10B：u8=0，u8error，i32space，i32category。当前错误码0x0A。镜像操作使用真实space3/slot13及精确书来源；space0表示Main，不能用全零确认代替。配套0200只消费本请求的pending7，避免原生helper执行书实体交换。
 
-ClientStatic读取点与上游参考见[核对记录](../../../Document/tasks/achievement-title-book/protocol-evidence.md)。CurrentImplementation已编码与测试，实机待验收。
+确认后由EventService投影0002装备及外观、必要的Main快照、静默0166原件列表。书原件始终保留，装备镜像取消或替换不触发0168获得提示。历史space=18+category绕过未清pending，隐藏原件和000E全量回填方案均已淘汰。
+
+完整字段、TBM1扩展与证据见[协议流程](../../../Document/AchievementTitleBookFlow-20261009.md)。ClientStatic / CurrentImplementation；2026-10-09用户接受配套0200的玩家闭环（ClientVerified）。未知原生尾部、官方帧组合和长时稳定性不扩大验收。

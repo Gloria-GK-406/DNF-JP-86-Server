@@ -308,6 +308,8 @@ internal sealed class ShopFixture : IDisposable
         services.AddSingleton<ICharacterSkillPointDomainService>(new SkillPoints());
         services.AddSingleton<INetworkMessageSender>(Sender);
         services.AddSingleton<TimeProvider>(Clock);
+        services.AddSingleton<Dfo.Server.Abstractions.Achievements.IAchievementDefinitionSource>(new Dfo.Server.Application.Tests.Support.TestAchievementDefinitions());
+        services.AddSingleton<Dfo.Server.Abstractions.Achievements.ITitleBookDefinitionSource>(new Dfo.Server.Application.Tests.Support.TestAchievementDefinitions());
         services.AddSingleton<Dfo.Server.Abstractions.Content.IDungeonExperienceProgressionPolicySource>(new Dfo.Server.Application.Tests.Support.TestProgressionSource());
         configure?.Invoke(services);
         provider = services.BuildServiceProvider();

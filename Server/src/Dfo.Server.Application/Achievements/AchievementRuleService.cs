@@ -68,6 +68,29 @@ internal sealed class AchievementRuleService(IAchievementDefinitionSource source
         "amulet" => 7, "wrist" => 8, "ring" => 9, "support" => 10, "magic stone" => 11, _ => null,
     };
     public IReadOnlyList<AchievementDefinition> Catalog() => source.Load();
+    public IReadOnlySet<int> CompletedFromFacts(IReadOnlyList<AchievementProgress> progress,
+        IReadOnlySet<int> clearedQuests, IReadOnlySet<int> activatedTitles)
+    {
+        var catalog = Catalog();
+        var known = catalog.Select(x => x.Id).ToHashSet();
+        var stored = progress.Where(x => x.Completed && known.Contains(x.AchievementId))
+            .Select(x => x.AchievementId).ToHashSet();
+        var confirmed = activatedTitles.Where(known.Contains).ToHashSet();
+        confirmed.UnionWith(catalog.Where(x => stored.Contains(x.Id)
+            && x.Condition.Type is not ("clear quest" or "clearquest")).Select(x => x.Id));
+        // Task IDs use the real cleared log, never obsolete automatic achievement rows.
+        for (var pass = 0; pass < catalog.Count; pass++)
+        {
+            var before = confirmed.Count;
+            foreach (var d in catalog.Where(x => stored.Contains(x.Id)
+                && x.Condition.Type is "clear quest" or "clearquest"))
+                if (d.SupportedRestrictions && d.Condition.Values.Count > 0
+                    && d.Condition.Values.All(id => id > 0 && (known.Contains(id)
+                        ? confirmed.Contains(id) : clearedQuests.Contains(id)))) confirmed.Add(d.Id);
+            if (before == confirmed.Count) break;
+        }
+        return confirmed;
+    }
     public bool IsSupported(AchievementDefinition d) => d.SupportedRestrictions && d.Condition.Count is > 0 and <= ushort.MaxValue && (d.Condition.Type switch
     {
         "hunt monster" or "huntmonster" => d.Condition.Values.Count == 4 && d.Condition.Values[3] is > 0 and <= ushort.MaxValue,

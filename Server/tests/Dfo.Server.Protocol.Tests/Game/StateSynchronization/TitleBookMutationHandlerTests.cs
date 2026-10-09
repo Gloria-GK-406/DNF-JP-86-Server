@@ -18,11 +18,13 @@ namespace Dfo.Server.Protocol.Tests.Game.StateSynchronization;
 public sealed class TitleBookMutationHandlerTests
 {
     [Theory]
-    [InlineData(false, true)]
-    [InlineData(true, true)]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    public async Task Worn_requests_reply_with_the_native_equipment_coordinates_and_complete_ack_before_projection(bool store, bool success)
+    [InlineData(false, true, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, true)]
+    [InlineData(false, false, true)]
+    public async Task Worn_requests_reply_with_the_native_equipment_coordinates_and_complete_ack_before_projection(bool store, bool success, bool replaceMirror)
     {
         var connection = new NetworkConnectionContext(new("title-ack"), NetworkEndpointKind.Game, 10011);
         var session = SelectedSessionIdentity.Create(new(1), new(1), connection.ConnectionId, 1, 10011);
@@ -35,14 +37,18 @@ public sealed class TitleBookMutationHandlerTests
                 OnlineUserState.CharacterActive, 1)), new InventorySlotMappingRuleService(), commands, sender,
             gate, NullLogger<TitleBookMutationHandler>.Instance);
         var handling = handler.HandleAsync(new(connection), new TitleBookMutationRequest(new(1, store ? (ushort)0x019C : (ushort)0x019D, 0, 1),
-            store, 3, 13, 26596, 4, 10, true), default).AsTask();
+            store, replaceMirror ? 0x314D4254 : 3, replaceMirror ? 9 : 13, 26596, 4, 10, true), default).AsTask();
         await sender.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
         var response = Assert.IsType<TitleBookMutationResponse>(Assert.Single(sender.Sent));
         Assert.Equal(store, response.Store);
         Assert.Equal(3, response.Space); Assert.Equal(13, response.Slot);
         Assert.Equal(4, response.Category); Assert.Equal(10, response.Index);
-        Assert.Equal(success ? null : (byte?)1, response.Error);
+        Assert.Equal(success ? null : (byte?)0x0A, response.Error);
         Assert.Equal(store, commands.Seen is StoreTitleCommand);
+        if (replaceMirror) {
+            var command = Assert.IsType<EquipCarriedTitleReplacingMirrorCommand>(commands.Seen);
+            Assert.Equal(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), command.Source);
+        }
         var projection = gate.EnterAsync(session.CharacterId, default).AsTask();
         Assert.False(projection.IsCompleted);
         sender.Complete.TrySetResult();

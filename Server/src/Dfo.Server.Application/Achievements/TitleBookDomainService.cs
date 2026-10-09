@@ -10,6 +10,7 @@ using Dfo.Server.Application.Characters;
 namespace Dfo.Server.Application.Achievements;
 
 internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchievementPersistence persistence,
+    IAchievementRuleService achievementRules,
     ITitleBookPersistence titlePersistence, IAchievementCharacterFactsDomainService characterFacts,
     IItemDomainStore items, IDomainTransactionAccessor transactions, IItemPlacementRuleService placement,
     IInventorySlotMappingRuleService mapping, IInventoryCapacityDomainService capacity, IEventService events,
@@ -42,10 +43,12 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
     public async ValueTask<IReadOnlyList<CharacterTitleBookCategoryState>> GetAsync(CharacterId character, CancellationToken ct)
     {
         var (rows, equippedSource) = await ReadClientProjectionAsync(character, ct);
+        var source = rows.SingleOrDefault(x => equippedSource is not null && x.Item.ItemUid == equippedSource);
         return rules.Catalog().Select(category => new CharacterTitleBookCategoryState((byte)category.Category, 0, 0,
-            rows.Where(x => x.Category == category.Category && (equippedSource is null || x.Item.ItemUid != equippedSource)).Select(x => new CharacterTitleBookEntryState(
+            rows.Where(x => x.Category == category.Category).Select(x => new CharacterTitleBookEntryState(
                 checked((ushort)x.Index), x.Item.ItemId, x.Item.InstanceValue, x.Item.Attribute, x.Item.Durability,
-                x.Item.SealFlag, x.Item.EnchantCardId, x.Item.EnchantUpgradeCount, x.Item.AmplifyType, x.Item.AmplifyValue)).ToArray())).ToArray();
+                x.Item.SealFlag, x.Item.EnchantCardId, x.Item.EnchantUpgradeCount, x.Item.AmplifyType, x.Item.AmplifyValue)).ToArray())
+            { MirrorProjectionEnabled = true, WearSource = source is null ? null : new(source.Category, source.Index, source.Item.ItemId) }).ToArray();
     }
     public async ValueTask HandleAsync(DomainEventEnvelope<AchievementCompleted> e, CancellationToken ct)
     {
@@ -62,13 +65,11 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
     public async ValueTask<IReadOnlyList<InventoryItemState>> GetItemsAsync(CharacterId character, int category, CancellationToken ct)
     {
         if (category is < 0 or > 4) throw new ArgumentOutOfRangeException(nameof(category));
-        var (rows, equippedSource) = await ReadClientProjectionAsync(character, ct);
+        var (rows, _) = await ReadClientProjectionAsync(character, ct);
         return rows.Where(x => x.Category == category)
-            .Select(x => equippedSource is not null && x.Item.ItemUid == equippedSource
-                ? new InventoryItemState(null, x.Index, new ItemSnapshot { ItemId = -1, Count = 0 }.ToCore())
-                : new InventoryItemState(x.Item.ItemUid, x.Index, x.Item.ToCore())).ToArray();
+            .Select(x => new InventoryItemState(x.Item.ItemUid, x.Index, x.Item.ToCore())).ToArray();
     }
-    // Native slots are empty while worn; ownership remains in the canonical store.
+    // The book projects canonical ownership; the explicit source identifies the worn mirror.
     private async ValueTask<(IReadOnlyList<StoredTitleBookItem> Rows, ItemIdentity? EquippedSource)> ReadClientProjectionAsync(CharacterId character, CancellationToken ct)
     {
         var rows = await titlePersistence.ReadTitlesAsync(character, ct);
@@ -84,6 +85,17 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
     private async ValueTask UnlockAsync(CharacterId character, int achievementId, CancellationToken ct)
     {
         var unlocked = (await titlePersistence.ReadUnlockedSlotsAsync(character, ct)).ToHashSet();
+        var activated = rules.ActivatedAchievements(unlocked);
+        if (activated.Contains(achievementId)) return;
+        var definition = achievementRules.Catalog().FirstOrDefault(x => x.Id == achievementId);
+        if (definition is null || !await persistence.IsCompletedAsync(character, achievementId, ct)) return;
+        if (definition.Condition.Type is "clear quest" or "clearquest")
+        {
+            var facts = await characterFacts.ReadAsync(character, ct);
+            var confirmed = achievementRules.CompletedFromFacts(await persistence.ReadAsync(character, ct),
+                facts.ClearedQuests, activated);
+            if (!confirmed.Contains(achievementId)) return; // Reject stale pre-refactor completion events.
+        }
         foreach (var slot in rules.Catalog().SelectMany(x => x.Slots).Where(x => x.SlotType >= 0 && x.QuestId == achievementId && x.ItemIds.Any(id => id > 0)))
         {
             if (unlocked.Contains((slot.Category, slot.Index))) continue;
@@ -114,8 +126,8 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
         }
     }
     private TitleBookSlotDefinition? Find(int category, int index) => rules.Catalog().FirstOrDefault(x => x.Category == category)?.Slots.FirstOrDefault(x => x.Index == index && x.SlotType >= 0);
-    private async ValueTask<bool> UsableAsync(ItemSnapshot item, BusinessSlot slot, CancellationToken ct) =>
-        !item.IsPile && item.EquipmentLockId == 0 && item.SortLockFlag == 0 && item.ExpireTime <= 0
+    private async ValueTask<bool> UsableAsync(ItemSnapshot item, BusinessSlot slot, CancellationToken ct, bool requirePermanent = true) =>
+        !item.IsPile && item.EquipmentLockId == 0 && item.SortLockFlag == 0 && (!requirePermanent || item.ExpireTime <= 0)
         && await placement.WornSlotForAsync(item.ItemId, ct) is { Space: BusinessInventorySpace.WornEquipment, Index: 1 } worn
         && (slot.Space == BusinessInventorySpace.CarriedEquipment || slot == worn);
     private async ValueTask<bool> QualifiedAsync(CharacterId character, TitleBookSlotDefinition definition, CancellationToken ct) =>
@@ -134,11 +146,14 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
         var session = Session; var current = await session.GetAsync(container, game.Index, ct);
         if (current is null || current.ItemId != itemId || !await UsableAsync(current.Snapshot, source, ct)) return Fail("InvalidItem");
         var target = await session.GetAsync(Book(character, category), index, ct);
-        if (await mirrors.RemoveAsync(session, current, ct, refreshCarriedInventory: false))
+        if (current.Snapshot.IsMirror)
         {
+            if (target is null || current.Snapshot.MirrorSourceUid != target.ItemUid) return Fail("InvalidMirrorSource");
+            await mirrors.RemoveAsync(session, current, ct, refreshCarriedInventory: false);
             await events.EnqueueAsync(new TitleStored(character, category, index, source), ct);
             return new(true, null, category, index, source);
         }
+        if (target is not null && await IsEquippedSourceAsync(character, target.ItemUid, ct)) return Fail("TitleEquipped");
         if (target is not null && (source.Space == BusinessInventorySpace.WornEquipment || !await UsableAsync(target.Snapshot, source, ct))) return Fail("OccupiedTitleSlot");
         var moving = await session.TakeAsync(current, null, ct);
         if (target is not null)
@@ -157,6 +172,38 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
         foreach (var item in await Session.GetAllAsync(ContainerId.ForCharacter(character, InventoryContainerType.Equipment), ct))
             if (item.Snapshot.IsMirror && item.Snapshot.MirrorSourceUid == source) await mirrors.RemoveAsync(Session, item, ct, refreshCarriedInventory: false);
     }
+    private async ValueTask<bool> IsEquippedSourceAsync(CharacterId character, ItemIdentity? source, CancellationToken ct)
+    {
+        if (source is null) return false;
+        var worn = await Session.GetAsync(ContainerId.ForCharacter(character, InventoryContainerType.Equipment), 13, ct);
+        return worn is not null && worn.Snapshot.IsMirror && worn.Snapshot.MirrorSourceUid == source;
+    }
+    public async ValueTask<TitleBookMutationResult> EquipCarriedTitleReplacingMirrorAsync(CharacterId character, BusinessSlot source,
+        int itemId, int category, int index, CancellationToken ct)
+    {
+        var destination = new BusinessSlot(BusinessInventorySpace.WornEquipment, 1);
+        TitleBookMutationResult Fail(string reason) => new(false, reason, category, index, destination);
+        if (Find(category, index) is null || source.Space != BusinessInventorySpace.CarriedEquipment || source.Index < 0)
+            return Fail("InvalidSource");
+        var bag = ContainerId.ForCharacter(character, InventoryContainerType.Main);
+        if (source.Index >= await capacity.OpenSlotCountAsync(bag, source.Space, ct)) return Fail("InvalidSource");
+        var session = Session;
+        var piece = await session.GetAsync(bag, mapping.ToGameSlot(source).Index, ct);
+        var original = await session.GetAsync(Book(character, category), index, ct);
+        var worn = await session.GetAsync(ContainerId.ForCharacter(character, InventoryContainerType.Equipment), 13, ct);
+        if (original is null || worn?.Snapshot.IsMirror != true || worn.Snapshot.MirrorSourceUid != original.ItemUid)
+            return Fail("InvalidMirrorSource");
+        if (piece is null || piece.ItemId != itemId || piece.Snapshot.IsMirror || !await UsableAsync(piece.Snapshot, destination, ct, requirePermanent: false)
+            || !await wear.CanWearAsync(character, itemId, ct)) return Fail("NotWearable");
+        // Every refusal precedes deletion. Both ends and the mirror settle in this command's transaction.
+        var prepared = wear.UnsealForEquip(piece.Snapshot);
+        if (prepared.SealFlag != piece.Snapshot.SealFlag) piece = await session.UpdateAsync(piece, _ => prepared, ct);
+        await mirrors.RemoveAsync(session, worn, ct, refreshCarriedInventory: false);
+        var moving = await session.TakeAsync(piece, null, ct);
+        await session.PutAsync(ContainerId.ForCharacter(character, InventoryContainerType.Equipment), 13, moving, ct);
+        await events.EnqueueAsync(new TitleWithdrawn(character, category, index, destination) { CarriedInventoryChanged = true }, ct);
+        return new(true, null, category, index, destination) { CarriedInventoryChanged = true };
+    }
     public async ValueTask<TitleBookMutationResult> WithdrawAsync(CharacterId character, BusinessSlot destination,
         int itemId, int category, int index, CancellationToken ct)
     {
@@ -174,6 +221,11 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
         var target = await session.GetAsync(container, game.Index, ct);
         if (destination.Space == BusinessInventorySpace.WornEquipment)
         {
+            if (target is not null && target.Snapshot.IsMirror && target.Snapshot.MirrorSourceUid == current.ItemUid)
+            {
+                await events.EnqueueAsync(new TitleWithdrawn(character, category, index, destination), ct);
+                return new(true, null, category, index, destination);
+            }
             int? free = null;
             var bag = ContainerId.ForCharacter(character, InventoryContainerType.Main);
             if (target is not null && !target.Snapshot.IsMirror)
@@ -201,8 +253,8 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
         }
         else
         {
+            if (await IsEquippedSourceAsync(character, current.ItemUid, ct)) return Fail("TitleEquipped");
             if (target is not null) return Fail("OccupiedDestination");
-            await RemoveEquippedMirrorOfAsync(character, current.ItemUid, ct);
             var moving = await session.TakeAsync(current, null, ct);
             await session.PutAsync(container, game.Index, moving, ct);
         }

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
@@ -13,12 +14,37 @@ namespace Dfo.Server.Application.Quests;
 internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService quests,
     IQuestRewardRuleService rewards, IExperienceRuleService experience, ICarriedGoldRuleService gold,
     IItemPlacementRuleService placements, IAccountMaterialRuleService accounts,
-    ICharacterStatRuleService stats, ICharacterSkillRuleService skills, ICreatureDefinitionSource creatures)
+    ICharacterStatRuleService stats, ICharacterSkillRuleService skills, ICreatureDefinitionSource creatures,
+    IAchievementRuleService achievements, ITitleBookRuleService titleBook)
     : IQuestCompletionEffectRuleService
 {
     public ValueTask<QuestDefinition?> DefinitionAsync(int id, CancellationToken ct) => quests.FindAsync(id, ct);
-    public QuestRewardResolution Rewards(QuestDefinition definition, QuestCompletionFacts facts, ushort selection, ushort count) =>
-        rewards.Resolve(definition, quests.Parameters(), new(facts.Identity.Job, facts.Identity.GrowType, facts.Progress.Level), selection, count);
+    public QuestRewardResolution Rewards(QuestDefinition definition, QuestCompletionFacts facts, ushort selection, ushort count)
+    {
+        if (!TitleRewardsHaveUnlockRules(definition))
+            return QuestRewardResolution.Refused(QuestRewardRejection.UnmappedTitleReward);
+        // PVF's reward type=title is not in ItemRewards. It is granted once by the book
+        // after the completed quest satisfies the corresponding title unlock definition.
+        return rewards.Resolve(definition, quests.Parameters(), new(facts.Identity.Job, facts.Identity.GrowType, facts.Progress.Level), selection, count);
+    }
+    private bool TitleRewardsHaveUnlockRules(QuestDefinition quest)
+    {
+        foreach (var reward in quest.Rewards.Where(x => x.Kind == QuestRewardKind.Title))
+        {
+            if (reward.Values.Count == 0 || reward.Values.Count % 2 != 0) return false;
+            for (var i = 0; i < reward.Values.Count; i += 2)
+            {
+                var item = reward.Values[i];
+                if (item <= 0 || reward.Values[i + 1] != 1) return false;
+                var unlocks = achievements.Catalog().Where(x => achievements.IsSupported(x)
+                    && x.Condition.Type is "clear quest" or "clearquest"
+                    && x.Condition.Values.Contains(quest.QuestId)).Select(x => x.Id).ToHashSet();
+                if (!titleBook.Catalog().SelectMany(x => x.Slots).Any(x => x.SlotType >= 0
+                    && unlocks.Contains(x.QuestId) && x.ItemIds.FirstOrDefault(id => id > 0) == item)) return false;
+            }
+        }
+        return true;
+    }
 
     public async ValueTask<ImmutableArray<CarriedQuest>> EffectiveAsync(QuestStateFacts state,
         IEnumerable<ItemSnapshot> main, int carriedGold, CancellationToken ct)

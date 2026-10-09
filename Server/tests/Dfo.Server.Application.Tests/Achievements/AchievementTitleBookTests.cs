@@ -150,45 +150,18 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
         {Reads++; throw new InvalidOperationException("Completed rules must not load a snapshot.");}
     }
     [PvfFact]
-    public async Task Real_rules_complete_from_verified_kills_and_grant_one_title_across_restart_and_repeated_delivery()
-    {
-        await using var f = new Fixture();
-        var rules = f.Services.GetRequiredService<IAchievementRuleService>();
-        var bookRules = f.Services.GetRequiredService<ITitleBookRuleService>();
-        Assert.Equal(new[] {80,170,50,100,100}, bookRules.Catalog().Select(x => x.Capacity));
-        var hunt = rules.Catalog().Single(x => x.Id == 4303);
-        Assert.Equal(30, rules.InitialRemaining(hunt));
-        output.WriteLine($"Rules: {rules.Catalog().Count}; supported: {rules.Catalog().Count(rules.IsSupported)}");
-        foreach (var group in rules.Catalog().GroupBy(x => (x.Condition.Type, x.Condition.SubType, Supported: rules.IsSupported(x))))
-            output.WriteLine($"{group.Key}: {group.Count()}");
-        await f.WriteAsync(async () => await f.Achievements.PrepareAsync(Character,80,default));
-        for (var i=0;i<30;i++) await f.SendAsync(new MonsterDefeated(Character,100,0,1,0));
-        await f.DrainAsync();
-        Assert.Equal(0, (await f.Achievements.GetAsync(Character,default)).Single(x=>x.AchievementId==4303).P1);
-        Assert.Equal(0, (await f.Achievements.GetAsync(Character,default)).Single(x=>x.AchievementId==6501).P1);
-        var titles = await f.Titles.GetAsync(Character,default);
-        var granted = Assert.Single(titles.SelectMany(x=>x.Entries),x=>x.ItemId==26596);
-        Assert.True(granted.Value>=0);
-        var uid = Assert.Single(f.ItemUids(26596));
-        await using var restored = new Fixture(f.Path);
-        await restored.WriteAsync(async () => await restored.Titles.PrepareAsync(Character,default));
-        await restored.WriteAsync(async () => await restored.Services.GetRequiredService<TitleBookDomainService>()
-            .HandleAsync(new(Guid.NewGuid(),Guid.NewGuid(),DateTimeOffset.UtcNow,Guid.NewGuid(),new(Character,6501)),default));
-        Assert.Equal(uid, Assert.Single(f.ItemUids(26596)));
-    }
-    [PvfFact]
     public async Task Rolled_back_facts_have_no_progress_and_duplicate_envelopes_do_not_count_twice()
     {
-        await using var f = new Fixture();
+        await using var f = new Fixture(definitions:new FakeDefinitions([new(9001,1,99,new("huntmonster",-1,[-1,-1,-1,30],1),[])]));
         await f.WriteAsync(async () => await f.Achievements.PrepareAsync(Character,80,default));
         await using (var tx=f.Scope.Begin()) await f.Events.EnqueueAsync(new MonsterDefeated(Character,100,0,1,0));
         await f.DrainAsync();
-        Assert.Equal(30,(await f.Achievements.GetAsync(Character,default)).Single(x=>x.AchievementId==4303).P1);
+        Assert.Equal(30,(await f.Achievements.GetAsync(Character,default)).Single(x=>x.AchievementId==9001).P1);
         var envelope = new DomainEventEnvelope<MonsterDefeated>(Guid.NewGuid(),Guid.NewGuid(),DateTimeOffset.UtcNow,Guid.NewGuid(),new(Character,100,0,1,0));
         for (var i=0;i<2;i++) await f.WriteAsync(async () => await f.Services.GetRequiredService<AchievementDomainService>().HandleAsync(envelope,default));
-        Assert.Equal(29,(await f.Achievements.GetAsync(Character,default)).Single(x=>x.AchievementId==4303).P1);
+        Assert.Equal(29,(await f.Achievements.GetAsync(Character,default)).Single(x=>x.AchievementId==9001).P1);
         var before=f.Scalar("SELECT SUM(p1) FROM character_achievement_complete");
-        await f.WriteAsync(async () => await f.Achievements.ReconcileAsync(Character,4303,default));
+        await f.WriteAsync(async () => await f.Achievements.ReconcileAsync(Character,9001,default));
         for (var i=0;i<3;i++) { _=await f.Achievements.GetAsync(Character,default); _=await f.Titles.GetAsync(Character,default); }
         Assert.Equal(before,f.Scalar("SELECT SUM(p1) FROM character_achievement_complete"));
         Assert.Null(await f.WriteAsync(async () => await f.Achievements.ReconcileAsync(Character,int.MaxValue,default)));
@@ -201,7 +174,7 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
         await using var f=new Fixture();
         var slot=f.Services.GetRequiredService<ITitleBookRuleService>().Catalog().SelectMany(x=>x.Slots).Single(x=>x.QuestId==6501);
         await f.WriteAsync(async()=> await f.Achievements.PrepareAsync(Character,80,default));
-        f.Sql("UPDATE character_achievement_complete SET p1=0 WHERE achievement_id=6501");
+        f.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(1,4303,1); UPDATE character_achievement_complete SET p1=0 WHERE achievement_id=6501");
         var carried=new BusinessSlot(BusinessInventorySpace.CarriedEquipment,0);
         var worn=await f.Services.GetRequiredService<IItemPlacementRuleService>().WornSlotForAsync(26596,default);
         Assert.NotNull(worn);
@@ -242,7 +215,7 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
         await using var f=new Fixture();
         var rule=f.Services.GetRequiredService<ITitleBookRuleService>().Catalog().SelectMany(x=>x.Slots).Single(x=>x.QuestId==6501);
         await f.WriteAsync(async()=>await f.Achievements.PrepareAsync(Character,80,default));
-        f.Sql("UPDATE character_achievement_complete SET p1=0 WHERE achievement_id=6501");
+        f.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(1,4303,1); UPDATE character_achievement_complete SET p1=0 WHERE achievement_id=6501");
         var book=ContainerId.ForCharacter(Character,(InventoryContainerType)(19+rule.Category));
         var bag=ContainerId.ForCharacter(Character,InventoryContainerType.Main);
         var equip=ContainerId.ForCharacter(Character,InventoryContainerType.Equipment);
@@ -261,7 +234,7 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
         Assert.True((await f.WriteAsync(async()=>await f.Titles.WithdrawAsync(Character,worn,26596,rule.Category,rule.Index,default))).Success);
         Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM items WHERE is_mirror=1"));
         Assert.All(ids,id=>Assert.Contains(id,f.ItemUids(26596)));
-        Assert.Empty((await f.Titles.GetAsync(Character,default)).SelectMany(x=>x.Entries));
+        Assert.Equal((byte)12, Assert.Single((await f.Titles.GetAsync(Character,default)).SelectMany(x=>x.Entries)).Attribute);
         Assert.Equal((byte)12, (await ReadTitle(f, book, rule.Index))!.Attribute);
         Assert.True((await f.WriteAsync(async()=>await f.Titles.StoreAsync(Character,worn,26596,rule.Category,rule.Index,default))).Success);
         Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM items WHERE is_mirror=1"));
@@ -276,7 +249,7 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
         await using var f=new Fixture();
         var rule=f.Services.GetRequiredService<ITitleBookRuleService>().Catalog().SelectMany(x=>x.Slots).Single(x=>x.QuestId==6501);
         await f.WriteAsync(async()=>await f.Achievements.PrepareAsync(Character,80,default));
-        f.Sql("UPDATE character_achievement_complete SET p1=0 WHERE achievement_id=6501");
+        f.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(1,4303,1); UPDATE character_achievement_complete SET p1=0 WHERE achievement_id=6501");
         await f.WriteAsync(async()=>
         {
             var s=f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
@@ -314,16 +287,15 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
         await using var f=new Fixture(wear:new RefuseWear());
         var rule=f.Services.GetRequiredService<ITitleBookRuleService>().Catalog().SelectMany(x=>x.Slots).Single(x=>x.QuestId==6501);
         await f.WriteAsync(async()=>await f.Achievements.PrepareAsync(Character,80,default));
-        f.Sql("UPDATE character_achievement_complete SET p1=0 WHERE achievement_id=6501");
+        f.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(1,4303,1); UPDATE character_achievement_complete SET p1=0 WHERE achievement_id=6501");
         await f.WriteAsync(async()=>await f.Titles.PrepareAsync(Character,default));
         var before=f.ItemsAndPositions();
         var result=await f.WriteAsync(async()=>await f.Titles.WithdrawAsync(Character,new(BusinessInventorySpace.WornEquipment,1),26596,rule.Category,rule.Index,default));
         Assert.False(result.Success);Assert.Equal("NotWearable",result.Reason);Assert.Equal(before,f.ItemsAndPositions());
     }
     [PvfTheory]
-    [InlineData(4303)]
     [InlineData(6501)]
-    public async Task Ordinary_quest_entry_points_cannot_accept_or_reward_achievement_owned_definitions(ushort questId)
+    public async Task Ordinary_quest_entry_points_cannot_accept_or_reward_passive_title_definitions(ushort questId)
     {
         await using var f = new Fixture();
         var definition = await f.Services.GetRequiredService<IQuestContentRuleService>().FindAsync(questId, default);

@@ -18,7 +18,11 @@ public sealed class DungeonEntryMaterialTests
     private static readonly DungeonLayout Layout = new(1500, 0, 1, 1, new(0, 0), new(0, 0), 800, 42,
         new Dictionary<MazeCell, DungeonCellDefinition> { [new(0,0)] = DungeonCellDefinition.Fixed(800) });
     private static readonly DungeonRequiredItem[] Requirements = [new(6337, 12, true), new(3332, 1, true), new(5555, 1, false)];
-    private static LearningFixture Fixture() => new(configure: services => services.AddSingleton<IItemPlacementDefinitionSource>(new Placements()));
+    private static LearningFixture Fixture() => new(configure: services =>
+    {
+        services.AddSingleton<IItemPlacementDefinitionSource>(new Placements());
+        services.AddSingleton<ICharacterStatDefinitionSource>(new Dfo.Server.Application.Tests.Support.TestCharacterContent());
+    });
     private static ICharacterFatigueDomainService Fatigue(LearningFixture f) => f.Services.GetRequiredService<ICharacterFatigueDomainService>();
     private static (DungeonVisitDomainService Visits, DungeonRunDomainService Runs) Service(LearningFixture f, bool throwCell = false)
     {

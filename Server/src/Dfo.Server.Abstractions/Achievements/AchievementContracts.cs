@@ -30,6 +30,8 @@ public interface IAchievementRuleService
     int InitialRemaining(AchievementDefinition definition);
     int Contribution(AchievementDefinition definition, CharacterGameplayFact fact);
     bool CanCheckSnapshot(AchievementDefinition definition);
+    IReadOnlySet<int> CompletedFromFacts(IReadOnlyList<AchievementProgress> progress,
+        IReadOnlySet<int> clearedQuests, IReadOnlySet<int> activatedTitles);
     ValueTask<bool?> IsSatisfiedAsync(AchievementDefinition definition, AchievementCharacterFacts facts, CancellationToken ct);
 }
 public interface ITitleBookRuleService
@@ -44,6 +46,7 @@ public interface IAchievementPersistence
 {
     ValueTask<IReadOnlyList<AchievementProgress>> ReadAsync(CharacterId character, CancellationToken ct);
     ValueTask EnsureAsync(CharacterId character, int achievementId, int remaining, CancellationToken ct);
+    ValueTask ResetPendingAsync(CharacterId character, int achievementId, int remaining, CancellationToken ct);
     ValueTask<bool> TryConsumeFactAsync(CharacterId character, Guid eventId, CancellationToken ct);
     ValueTask<bool> AdvanceAsync(CharacterId character, int achievementId, int count, CancellationToken ct);
     ValueTask<bool> IsCompletedAsync(CharacterId character, int achievementId, CancellationToken ct);
@@ -89,6 +92,8 @@ public interface ITitleBookDomainService
     ValueTask<TitleBookMutationResult> StoreAsync(CharacterId character, BusinessSlot source,
         int itemId, int category, int index, CancellationToken ct);
     ValueTask<TitleBookMutationResult> WithdrawAsync(CharacterId character, BusinessSlot destination,
+        int itemId, int category, int index, CancellationToken ct);
+    ValueTask<TitleBookMutationResult> EquipCarriedTitleReplacingMirrorAsync(CharacterId character, BusinessSlot source,
         int itemId, int category, int index, CancellationToken ct);
 }
 /// <summary>A successful authoritative gameplay operation, never a client achievement delta.</summary>

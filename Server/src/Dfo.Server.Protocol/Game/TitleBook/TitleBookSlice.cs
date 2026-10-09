@@ -73,6 +73,18 @@ public sealed class WithdrawTitleCommandHandler(ITitleBookDomainService titles) 
     public ValueTask<TitleBookMutationResult> HandleAsync(CommandExecutionContext context, WithdrawTitleCommand command, CancellationToken ct) =>
         titles.WithdrawAsync(command.Session.CharacterId, command.Destination, command.ItemId, command.Category, command.Index, ct);
 }
+// TBM1-only request; native ACK shape is retained, but no physical book transfer occurs.
+public sealed record EquipCarriedTitleReplacingMirrorCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
+    BusinessSlot Source, int ItemId, int Category, int Index) : ICommand<TitleBookMutationResult>, IOnlineUserCommand, IAccountCommand, ISelectedSessionCommand
+{
+    public AccountId AccountId => Session.AccountId;
+}
+public sealed class EquipCarriedTitleReplacingMirrorCommandHandler(ITitleBookDomainService titles)
+    : ICommandHandler<EquipCarriedTitleReplacingMirrorCommand, TitleBookMutationResult>
+{
+    public ValueTask<TitleBookMutationResult> HandleAsync(CommandExecutionContext context, EquipCarriedTitleReplacingMirrorCommand command, CancellationToken ct) =>
+        titles.EquipCarriedTitleReplacingMirrorAsync(command.Session.CharacterId, command.Source, command.ItemId, command.Category, command.Index, ct);
+}
 
 // Bounded stripes keep committed title projections and request confirmations ordered.
 // They coordinate only protocol delivery, never durable consumers.
@@ -97,18 +109,21 @@ internal sealed class TitleBookMutationHandler(ISelectedSessionDomainService ses
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, TitleBookMutationRequest message, CancellationToken ct)
     {
+        var replaceMirror = !message.Store && message.Space == 0x314D4254;
         ValueTask Refuse() => sender.SendCmdAsync(context.Connection.ConnectionId,
-            new TitleBookMutationResponse(message.Store, message.Space, message.Slot, message.Category, message.Index, 1), ct);
+            new TitleBookMutationResponse(message.Store, replaceMirror ? 3 : message.Space, replaceMirror ? 13 : message.Slot, message.Category, message.Index, 0x0A), ct);
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (!message.Complete || message.Space is not (0 or 3) || message.Slot < 0 || message.Category is < 0 or > 4 || message.Index < 0
+        if (!message.Complete || (message.Space is not (0 or 3) && !replaceMirror) || message.Slot < 0 || message.Category is < 0 or > 4 || message.Index < 0
             || session is null || !users.TryGetByConnection(context.Connection.ConnectionId, out var user) || user is null)
         { await Refuse(); return; }
         using var held = await gate.EnterAsync(session.CharacterId, ct).ConfigureAwait(false);
         TitleBookMutationResult result;
         try
         {
-            var slot = mapping.ToBusinessSlot(new((InventoryContainerType)message.Space, message.Slot));
-            result = message.Store
+            var slot = mapping.ToBusinessSlot(new(replaceMirror ? InventoryContainerType.Main : (InventoryContainerType)message.Space, message.Slot));
+            result = replaceMirror
+                ? await commands.SendAsync(new EquipCarriedTitleReplacingMirrorCommand(user.OnlineUserId, session, slot, message.ItemId, message.Category, message.Index), ct).ConfigureAwait(false)
+                : message.Store
                 ? await commands.SendAsync(new StoreTitleCommand(user.OnlineUserId, session, slot, message.ItemId, message.Category, message.Index), ct).ConfigureAwait(false)
                 : await commands.SendAsync(new WithdrawTitleCommand(user.OnlineUserId, session, slot, message.ItemId, message.Category, message.Index), ct).ConfigureAwait(false);
         }
@@ -119,7 +134,7 @@ internal sealed class TitleBookMutationHandler(ISelectedSessionDomainService ses
         }
         var actual = mapping.ToGameSlot(result.Slot);
         await sender.SendCmdAsync(context.Connection.ConnectionId, new TitleBookMutationResponse(message.Store,
-            (int)actual.Space, actual.Index, result.Category, result.Index, result.Success ? null : (byte)1), ct).ConfigureAwait(false);
+            (int)actual.Space, actual.Index, result.Category, result.Index, result.Success ? null : (byte)0x0A), ct).ConfigureAwait(false);
     }
 }
 
@@ -182,8 +197,10 @@ internal sealed class TitleBookEventSubscriber(IEventService events, Achievement
     public ValueTask HandleAsync(DomainEventEnvelope<TitleAppearanceChanged> message, CancellationToken ct) =>
         ProjectAsync(new(message.Payload.CharacterId, ChangedContainer: InventoryContainerType.Equipment), ct);
     public ValueTask HandleAsync(DomainEventEnvelope<ItemMirrorRemoved> message, CancellationToken ct) =>
-        ProjectAsync(new(message.Payload.CharacterId, null, ChangedContainer: message.Payload.ContainerType,
-            RefreshCarriedInventory: message.Payload.RefreshCarriedInventory, RefreshBook: message.Payload.RefreshCarriedInventory), ct);
+        // Dedicated book operations publish their own committed title event.
+        message.Payload.RefreshCarriedInventory ? ProjectAsync(new(message.Payload.CharacterId, null, ChangedContainer: message.Payload.ContainerType,
+            RefreshCarriedInventory: message.Payload.RefreshCarriedInventory, RefreshBook: message.Payload.RefreshCarriedInventory), ct)
+            : ValueTask.CompletedTask;
 }
 internal sealed class TitleBookChangedHandler(ITitleBookDomainService titles, ISelectedSessionDomainService sessions,
     ISelectedCharacterCurrentViewDomainService views, IInventorySlotProjectionDomainService slots)
@@ -194,15 +211,7 @@ internal sealed class TitleBookChangedHandler(ITitleBookDomainService titles, IS
         if (recipient.CharacterId != notification.Character) return [];
         var messages = new List<IServerNetworkMessage>();
         if (notification.Unlock is { } unlock) messages.Add(new TitleUnlockedMessage(unlock));
-        // The request gate keeps native ACK handling ahead of authoritative item projection.
-        if (notification.RefreshBook)
-            for (var bookCategory = 0; bookCategory < 5; bookCategory++)
-                messages.Add(new TitleBookSlotsChangedMessage(bookCategory,
-                    await titles.GetItemsAsync(notification.Character, bookCategory, ct).ConfigureAwait(false),
-                    notification.Category == bookCategory ? notification.ChangedIndex : null, DateTimeOffset.UtcNow));
-        else if (notification.Category is { } category)
-            messages.Add(new TitleBookSlotsChangedMessage(category,
-                await titles.GetItemsAsync(notification.Character, category, ct).ConfigureAwait(false), notification.ChangedIndex, DateTimeOffset.UtcNow));
+        // ACK completes before committed equipment and silent book snapshots are delivered.
         var changedType = notification.ChangedContainer ?? (notification.ChangedSlot is { } changed ? slots.Project(changed).Space : (InventoryContainerType?)null);
         if (changedType is { } type && sessions.FindByConnection(recipient.ConnectionId) is { } session
             && await views.TryLoadAsync(session, ct).ConfigureAwait(false) is { } current)
@@ -217,27 +226,14 @@ internal sealed class TitleBookChangedHandler(ITitleBookDomainService titles, IS
                     messages.Add(new InventoryFullSnapshotMessage(container, current.CharacterInventory, current.AccountInventory, current.World.PreparedAt));
             }
         }
+        if (notification.RefreshBook || changedType == InventoryContainerType.Equipment || notification.Category is not null)
+        {
+            var categories = await titles.GetAsync(notification.Character, ct).ConfigureAwait(false);
+            foreach (var category in categories.Where(x => notification.RefreshBook || changedType == InventoryContainerType.Equipment
+                || x.Category == notification.Category))
+                messages.Add(new TitleBookStateMessage(category));
+        }
         return messages;
-    }
-}
-internal sealed record TitleBookSlotsChangedMessage(int Category, IReadOnlyList<InventoryItemState> Items, int? ChangedIndex, DateTimeOffset PreparedAt)
-    : GameStateSynchronizationMessage, IGameNotiMessage
-{
-    internal override ushort Type => 0x000E;
-    internal override byte[] EncodeBody()
-    {
-        if (Category is < 0 or > 4) throw new InvalidDataException("Invalid title book category.");
-        var entries = Items.ToList();
-        if (ChangedIndex is { } index && entries.All(x => x.SlotIndex != index))
-            entries.Add(new(null, index, new ItemSnapshot { ItemId = -1, Count = 0 }.ToCore()));
-        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        // Native 01648AC0 maps lists 18..22 to book categories 0..4; storage enums use 19..23.
-        writer.Write(checked((byte)(18 + Category)));
-        writer.Write(checked((ushort)entries.Count));
-        foreach (var item in entries.OrderBy(x => x.SlotIndex))
-            GameInventoryItemEntry.Write(writer, item, PreparedAt,
-                (InventoryContainerType)((int)InventoryContainerType.TitleBookGeneral + Category));
-        return stream.ToArray();
     }
 }
 internal sealed record TitleUnlockedMessage(TitleUnlocked Unlock) : GameStateSynchronizationMessage, IGameNotiMessage

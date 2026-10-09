@@ -25,7 +25,9 @@ internal sealed class PvfAchievementDefinitionSource(PvfArchiveProvider provider
             }
             int Number(string field, int fallback) => document.TryRead(PvfField.Int32(field, optional: true), out var value) ? value : fallback;
             IReadOnlyList<int> Numbers(string field) => document.ReadAll(PvfField.Int32List(field, optional: true)).SelectMany(x => x).ToArray();
-            if (Text("[grade]") is not ("title" or "achievement")) continue;
+            // achievement is an accepted quest with a quest-log lifecycle. title is the
+            // book's passive unlock condition (including dependencies on completed quests).
+            if (Text("[grade]") != "title") continue;
             var levels = Numbers("[level]");
             result.Add(new(id, levels.Count > 0 ? levels[0] : 0, levels.Count > 1 ? levels[1] : int.MaxValue,
                 new(Text("[type]"), Number("[sub type]", -1), Numbers("[int data]"), Number("[check count]", 1)),

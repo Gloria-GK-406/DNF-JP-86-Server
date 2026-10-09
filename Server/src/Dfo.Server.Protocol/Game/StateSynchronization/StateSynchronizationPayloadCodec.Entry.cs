@@ -485,6 +485,16 @@ internal static partial class StateSynchronizationPayloadCodec
             // pending real-client acceptance. Do not infer that this dword is padding.
             writer.Write(0);
         }
+        if (category.InfoType == 0 && category.MirrorProjectionEnabled)
+        {
+            // TBM1 v1: explicit project extension AFTER the complete native list.
+            writer.Write(0x314D4254);
+            writer.Write(1);
+            writer.Write(category.WearSource?.Category ?? -1);
+            writer.Write(category.WearSource?.Index ?? -1);
+            writer.Write(category.WearSource?.ItemId ?? 0);
+            writer.Write(24);
+        }
         return stream.ToArray();
     }
 

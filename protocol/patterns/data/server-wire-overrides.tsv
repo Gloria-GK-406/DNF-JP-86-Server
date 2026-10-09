@@ -32,3 +32,5 @@ CMD	CargoCapacityUpgradeMessage	0x0132	Game/GameInventorySnapshotDelivery.cs	Wir
 CMD	JoustResponse	0x04E6	Game/Joust/JoustSlice.cs	JoustQueryHandler passes info response type to dynamic encoder
 CMD	JoustResponse	0x04E7	Game/Joust/JoustSlice.cs	JoustBetHandler passes bet response type to dynamic encoder
 CMD	JoustResponse	0x04E8	Game/Joust/JoustSlice.cs	JoustQueryHandler passes history response type to dynamic encoder
+CMD	TitleBookMutationResponse	0x019C	Game/TitleBook/TitleBookSlice.cs	Store true emits title-book store confirmation
+CMD	TitleBookMutationResponse	0x019D	Game/TitleBook/TitleBookSlice.cs	Store false emits title-book withdraw confirmation

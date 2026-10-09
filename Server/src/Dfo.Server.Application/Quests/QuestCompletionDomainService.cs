@@ -23,7 +23,7 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
     {
         QuestCompletionReceipt Refuse(QuestProgressSnapshot? projection = null) => new(false, quest, null, null, null, projection, null);
         var definition = await rules.DefinitionAsync(quest, ct).ConfigureAwait(false);
-        if (definition is null || definition.Grade is QuestGrade.Title or QuestGrade.Achievement
+        if (definition is null || definition.Grade is QuestGrade.Title
             || await rows.FindOwnerAsync(id, ct).ConfigureAwait(false) != account) return Refuse();
         var character = characters.Get(id);
         var identity = await character.IdentityAsync(ct).ConfigureAwait(false);

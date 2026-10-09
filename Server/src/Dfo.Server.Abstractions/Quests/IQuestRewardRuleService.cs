@@ -16,6 +16,7 @@ public enum QuestRewardRejection
 {
     InvalidCompletionCount,
     InvalidCareerReward,
+    UnmappedTitleReward,
     RewardSelectionForbidden,
     RewardSelectionRequired,
     RewardSelectionOutOfRange,

@@ -13,25 +13,44 @@ internal sealed class AchievementDomainService(IAchievementRuleService rules, IA
     public async ValueTask PrepareAsync(CharacterId character, int level, CancellationToken ct)
     {
         var facts = await characterFacts.ReadAsync(character, ct);
-        var known = (await persistence.ReadAsync(character, ct)).Select(x => x.AchievementId).ToHashSet();
-        known.UnionWith(titleRules.ActivatedAchievements((await titlePersistence.ReadUnlockedSlotsAsync(character, ct)).ToHashSet()));
+        var progress = await CurrentProgressAsync(character, ct);
+        var activated = titleRules.ActivatedAchievements((await titlePersistence.ReadUnlockedSlotsAsync(character, ct)).ToHashSet());
+        var confirmed = rules.CompletedFromFacts(progress, facts.ClearedQuests, activated);
+        foreach (var d in rules.Catalog().Where(x => x.Condition.Type is "clear quest" or "clearquest"))
+            if (!confirmed.Contains(d.Id) && progress.Any(x => x.AchievementId == d.Id && x.Completed))
+            {
+                await persistence.ResetPendingAsync(character, d.Id, rules.InitialRemaining(d), ct);
+                await events.EnqueueAsync(new AchievementProgressChanged(character, d.Id), ct);
+            }
+        var known = progress.Select(x => x.AchievementId).ToHashSet();
+        known.UnionWith(activated);
         foreach (var definition in rules.Catalog())
             if (level >= definition.MinimumLevel && !known.Contains(definition.Id))
                 await persistence.EnsureAsync(character, definition.Id, rules.InitialRemaining(definition), ct);
         await ReconcileAuthoritativeAsync(character, facts with { Level = level }, ct);
     }
     public async ValueTask<IReadOnlyList<CharacterAchievementProgressState>> GetAsync(CharacterId character, CancellationToken ct) =>
-        (await persistence.ReadAsync(character, ct)).Select(Project).ToArray();
+        (await CurrentProgressAsync(character, ct)).Select(Project).ToArray();
+    private async ValueTask<IReadOnlyList<AchievementProgress>> CurrentProgressAsync(CharacterId character, CancellationToken ct)
+    {
+        var ids = rules.Catalog().Select(x => x.Id).ToHashSet();
+        return (await persistence.ReadAsync(character, ct)).Where(x => ids.Contains(x.AchievementId)).ToArray();
+    }
     public async ValueTask<IReadOnlyList<int>> UnlockSatisfiedAchievementsAsync(CharacterId character, CancellationToken ct)
     {
-        var progress = (await persistence.ReadAsync(character, ct)).ToDictionary(x => x.AchievementId);
-        var completed = progress.Values.Where(x => x.Completed).Select(x => x.AchievementId).ToHashSet();
+        var progress = (await CurrentProgressAsync(character, ct)).ToDictionary(x => x.AchievementId);
         var unlocked = titleRules.ActivatedAchievements((await titlePersistence.ReadUnlockedSlotsAsync(character, ct)).ToHashSet());
-        completed.UnionWith(unlocked);
-        var pending = rules.Catalog().Where(x => !completed.Contains(x.Id) && !unlocked.Contains(x.Id)
+        var candidates = rules.Catalog().Where(x => !unlocked.Contains(x.Id)
             && rules.CanCheckSnapshot(x) && (!progress.TryGetValue(x.Id, out var p) || p.P2 == 0 && p.P3 == 0)).ToArray();
-        if (pending.Length == 0) return [];
-        var facts = await characterFacts.ReadForUnlockAsync(character, pending, ct);
+        // Completed non-dependency rules need no character snapshot.
+        var needsCheck = candidates.Where(x => !progress.TryGetValue(x.Id, out var p) || !p.Completed
+            || x.Condition.Type is "clear quest" or "clearquest").ToArray();
+        if (needsCheck.Length == 0) return [];
+        var facts = await characterFacts.ReadForUnlockAsync(character, needsCheck, ct);
+        var completed = rules.CompletedFromFacts(progress.Values.ToArray(), facts.ClearedQuests, unlocked).ToHashSet();
+        var pending = needsCheck.Where(x => !completed.Contains(x.Id)).ToArray();
+        foreach (var d in pending.Where(x => progress.TryGetValue(x.Id, out var p) && p.Completed))
+            await persistence.ResetPendingAsync(character, d.Id, rules.InitialRemaining(d), ct);
         var allIds = rules.Catalog().Select(x => x.Id).ToHashSet();
         var newlyCompleted = new List<int>();
         bool Cleared(int id) => completed.Contains(id) || !allIds.Contains(id) && facts.ClearedQuests.Contains(id);
@@ -78,7 +97,9 @@ internal sealed class AchievementDomainService(IAchievementRuleService rules, IA
         {
             var fulfilled = true;
             foreach (var prerequisite in group.Where(x => x > 0))
-                if (!await persistence.IsCompletedAsync(character, prerequisite, ct) && !facts.ClearedQuests.Contains(prerequisite)) { fulfilled = false; break; }
+                if (rules.Catalog().Any(x => x.Id == prerequisite)
+                    ? !await persistence.IsCompletedAsync(character, prerequisite, ct)
+                    : !facts.ClearedQuests.Contains(prerequisite)) { fulfilled = false; break; }
             if (fulfilled) return true;
         }
         return false;
@@ -95,9 +116,9 @@ internal sealed class AchievementDomainService(IAchievementRuleService rules, IA
     }
     private async ValueTask ReconcileAuthoritativeAsync(CharacterId character, AchievementCharacterFacts facts, CancellationToken ct)
     {
-        var progress = await persistence.ReadAsync(character, ct);
-        var completed = progress.Where(x => x.Completed).Select(x => x.AchievementId).ToHashSet();
-        completed.UnionWith(titleRules.ActivatedAchievements((await titlePersistence.ReadUnlockedSlotsAsync(character, ct)).ToHashSet()));
+        var progress = await CurrentProgressAsync(character, ct);
+        var completed = rules.CompletedFromFacts(progress, facts.ClearedQuests,
+            titleRules.ActivatedAchievements((await titlePersistence.ReadUnlockedSlotsAsync(character, ct)).ToHashSet())).ToHashSet();
         var known = rules.Catalog().Select(x => x.Id).ToHashSet();
         bool Cleared(int id)
         {

@@ -66,6 +66,7 @@ public sealed class HellDungeonEntryTests
                 new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
             services.AddSingleton<IItemPlacementDefinitionSource>(new Placements());
             services.AddSingleton<IDungeonStructureRuleService>(new Structures());
+            services.AddSingleton<IDungeonDifficultyRuleService>(new Dfo.Server.Application.Tests.Support.TestDungeonDifficultyRules());
             services.AddSingleton<IHellDungeonDefinitionSource>(new Content());
             services.AddSingleton<IDungeonRoomActorSource>(new RoomActors());
             services.AddSingleton<IDungeonCellFactory>(new Cells());
@@ -355,7 +356,11 @@ public sealed class HellDungeonEntryTests
     private static readonly HellDungeonDefinition Rules = new(true, [], [new(4444, 1)], [3330],
         new Dictionary<int, HellRoomDefinition> { [0] = new(900, new(1, 0), [new(11, 100, 1)]) });
     private static DungeonEntryContext Context() => new(150, DungeonEntryFacts.None, 1, 0, Party);
-    private static LearningFixture Fixture() => new(configure: services => services.AddSingleton<IItemPlacementDefinitionSource>(new Placements()));
+    private static LearningFixture Fixture() => new(configure: services =>
+    {
+        services.AddSingleton<IItemPlacementDefinitionSource>(new Placements());
+        services.AddSingleton<IDungeonDifficultyRuleService>(new Dfo.Server.Application.Tests.Support.TestDungeonDifficultyRules());
+    });
     private static ICharacterFatigueDomainService Fatigue(LearningFixture f) => f.Services.GetRequiredService<ICharacterFatigueDomainService>();
     private static HellDungeonEntryRuleService RuleService(Content content) => new(content, new RoomActors());
 
