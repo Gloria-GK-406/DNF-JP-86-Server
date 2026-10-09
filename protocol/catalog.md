@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-09 史诗图鉴制作请求（仅请求已捕获）
+
+[CMD0313 EPIC_BOOK_MAKE_ITEM](game/client-to-server/0x0313.md)：1123 点击“普拉塔尼的黄金石”制作，服务端入口 seq41 / body D4DD0600，对应 u32 小端装备 ID450004。请求字段为 WireCaptured / Confirmed；当前未接入 handler，未返回制作结果。上游 ACK 与物品/碎片刷新属于 Reference，制作闭环尚未实现或实机验收。NOTI0313 属于另一协议族，不作为本 CMD 的响应。
+
 ## 2026-10-09 成就与称号簿（配套0200，用户验收通过）
 
 [019C](game/client-to-server/0x019C.md)/[019D](game/client-to-server/0x019D.md)分别处理取消/佩戴和真实存取。称号簿保留原件，装备位13使用镜像；CMD确认释放请求等待，提交后经EventService投影0002装备/外观和静默[0166](game/server-to-client/NOTI-0x0166.md)。首次真实解锁才发送[0168](game/server-to-client/NOTI-0x0168.md)。0200读取自定义TBM1尾部，按精确书来源显示“装备中”；取消不搬书原件，不用000E制造获得提示。`grade=achievement`走受理任务正式完成，`grade=title`走被动条件，登录固定条件核对与只读查询分开。

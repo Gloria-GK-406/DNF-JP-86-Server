@@ -1,0 +1,2 @@
+family	type	offset	meaning	confidence	source
+CMD	0x0313	0	目标史诗装备ID（outputEquipmentId）	Confirmed	2026-10-09 1123制作普拉塔尼的黄金石，服务端入口seq41 body D4DD0600=450004；上游InventoryHandler.EpicBook.cs TryParseEpicBookMakeItemRequest按int32读取
