@@ -60,9 +60,13 @@ public sealed class DungeonCellFactoryTests
     [InlineData(5, false, 2)]
     [InlineData(5, false, 2, true)]
     [InlineData(8, false, 1, true)]
+    [InlineData(3, false, 1, false, true)]
+    [InlineData(0, true, 1, false, false, true)]
+    [InlineData(0, true, 1, false, false, true, true)]
     public async Task Cell_creation_freezes_monster_clear_and_loot_semantics(
         byte actorType,
-        bool isMonster, int memberCount, bool hostile = false)
+        bool isMonster, int memberCount, bool hostile = false, bool dummy = false,
+        bool objectTemplate = false, bool sceneWave = false)
     {
         var loot = new RecordingLoot();
         var layout = new DungeonLayout(
@@ -79,7 +83,7 @@ public sealed class DungeonCellFactoryTests
             .Select(index => new DungeonRunParticipant(new AccountId(index + 1),
                 new CharacterId(index + 10), Slot: (byte)index, IsLeader: index == 0)).ToArray();
         var factory = new DungeonCellFactory(
-            new OneActorRoom(actorType, hostile),
+            new OneActorRoom(actorType, hostile, dummy, objectTemplate, sceneWave),
             new NoPlacement(),
             loot,
             new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards());
@@ -110,8 +114,14 @@ public sealed class DungeonCellFactoryTests
         }
         if (actorType >= 5)
             Assert.Equal(IndependentDropSourceType.APC, loot.Context!.SourceType);
-        Assert.Equal(isMonster || hostile, actor.BlocksClear);
-        Assert.Equal(!(isMonster || hostile), seed.Snapshot().IsCleared);
+        var blocksClear = (isMonster || hostile) && !dummy && (!objectTemplate || sceneWave);
+        Assert.Equal(blocksClear, actor.BlocksClear);
+        Assert.Equal(!blocksClear, seed.Snapshot().IsCleared);
+        if (objectTemplate)
+        {
+            Assert.Equal((byte)2, actor.ObjectTemplateOwner);
+            Assert.Equal(3, actor.ObjectTemplateIndex);
+        }
         if (isMonster || actorType >= 5)
         {
             Assert.Equal(61670, loot.MonsterId);
@@ -195,7 +205,8 @@ public sealed class DungeonCellFactoryTests
         }
     }
 
-    private sealed class OneActorRoom(byte actorType, bool hostile = false) : IDungeonRoomRuleService
+    private sealed class OneActorRoom(byte actorType, bool hostile = false, bool dummy = false,
+        bool objectTemplate = false, bool sceneWave = false) : IDungeonRoomRuleService
     {
         public ValueTask<DungeonRoomContents> DescribeAsync(
             DungeonCellCreationContext context,
@@ -203,8 +214,12 @@ public sealed class DungeonCellFactoryTests
             ValueTask.FromResult(new DungeonRoomContents(
                 [new RoomActorDescription(
                     new DungeonRoomActor(61670, 1, actorType, RandomDropCount: 3)
-                        { IsHostile = actorType <= 3 || hostile },
-                    IsAiCharacter: actorType >= 5)],
+                        { IsHostile = actorType <= 3 || hostile,
+                            Declaration = dummy || objectTemplate ? new(61670, objectTemplate
+                                ? DungeonActorSpawnSource.SpecialPassiveObject : DungeonActorSpawnSource.Monster, 0)
+                            { IsDummy = dummy, IsSceneOwnedWave = sceneWave, ParentObjectIndex = 2, ChildIndex = 3 } : null },
+                    IsAiCharacter: actorType >= 5)
+                    { ObjectTemplateOwner = objectTemplate ? (byte)2 : null, ObjectTemplateIndex = objectTemplate ? 3 : 0 }],
                 [],
                 FirstActorSequence: 100));
 

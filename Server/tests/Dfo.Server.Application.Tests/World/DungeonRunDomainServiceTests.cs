@@ -858,6 +858,51 @@ public sealed class DungeonRunDomainServiceTests
     }
 
     [Fact]
+    public void Boss_death_does_not_suppress_a_pending_scene_owned_object_wave()
+    {
+        var service = new DungeonRunDomainService();
+        var run = BeginWithCell(service);
+        run = Assert.IsType<DungeonRunState>(MoveToEmptyCell(service, run, new MazeCell(1, 1)));
+        var waveSequence = checked((ushort)(FirstSequence + 1));
+        run = Assert.IsType<DungeonRunState>(service.TryMove(Character, run.RunId, run.RoomVersion,
+            Tutorial.BossCell, CellSeed(Tutorial.BossCell, Tutorial.Cells[Tutorial.BossCell].MapCandidates[0],
+            [CellActor(FirstSequence, new DungeonRoomActor(10409, 62, 8) { IsHostile = true }),
+             CellActor(waveSequence, new DungeonRoomActor(61801, 62, 0)
+             { Declaration = new(61801, DungeonActorSpawnSource.SpecialPassiveObject, 0)
+                 { IsSceneOwnedWave = true, ParentObjectIndex = 0, ChildIndex = 0 } },
+                pendingLoot: [new(3330, 1, DropRarity.Common, DropItemKind.Stackable)])])));
+        var bossClaim = Assert.IsType<DungeonActorDeathClaim>(service.TryClaimActorDeath(Character, FirstSequence));
+        var bossChange = Assert.IsType<DungeonActorDeathChange>(service.CommitActorDeathChange(bossClaim));
+        Assert.Empty(bossChange.AutoKilledActorSequences);
+        Assert.False(bossChange.IsCellCleared);
+        var waveClaim = Assert.IsType<DungeonActorDeathClaim>(service.TryClaimActorDeath(Character, waveSequence));
+        var waveChange = Assert.IsType<DungeonActorDeathChange>(service.CommitActorDeathChange(waveClaim));
+        Assert.True(waveChange.IsCellCleared);
+        Assert.Equal(3330, Assert.Single(waveChange.AddedGroundItems).ItemId);
+    }
+
+    [Fact]
+    public void Dummy_map_index_cannot_be_claimed_as_a_reward_or_quest_enemy()
+    {
+        var service = new DungeonRunDomainService();
+        _ = BeginWithCell(service, actors: [CellActor(FirstSequence, new DungeonRoomActor(64639, 62, 3)
+        { Declaration = new(64639, DungeonActorSpawnSource.Monster, 4) { IsDummy = true } })]);
+        Assert.Null(service.TryClaimActorDeath(Character, FirstSequence));
+        Assert.False(service.Find(Character)!.CurrentCellState.Actors[0].IsDead);
+    }
+
+    [Theory]
+    [InlineData(0, false)] [InlineData(50, false)] [InlineData(75, false)]
+    [InlineData(100, true)] [InlineData(110, false)] [InlineData(200, false)]
+    public void Map_team_clear_participation_is_separate_from_actor_combat_faction(int team, bool blocks)
+    {
+        var actor = CellActor(FirstSequence, new DungeonRoomActor(61150, 62, 3)
+        { Declaration = new(61150, DungeonActorSpawnSource.Monster, 0) { MonsterTeam = team } });
+        Assert.True(actor.Actor.IsHostile);
+        Assert.Equal(blocks, actor.BlocksClear);
+    }
+
+    [Fact]
     public void Removing_a_drop_never_reuses_its_cell_identity_for_a_later_death()
     {
         var service = new DungeonRunDomainService();

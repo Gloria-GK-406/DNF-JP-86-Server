@@ -854,4 +854,25 @@ public sealed class DungeonEntryCodecTests
     {
         Assert.Equal([0x00, 0x00], DungeonEntryPayloadCodec.EncodeSupportTag());
     }
+
+    [Fact]
+    public void Object_templates_use_parent_and_child_indices_without_consuming_ordinary_map_indices()
+    {
+        DungeonRoomActor[] actors =
+        [new(61150, 62, 3),
+         new(61801, 62, 0) { Declaration = new(61801, DungeonActorSpawnSource.SpecialPassiveObject, 0)
+             { ParentObjectIndex = 2, ChildIndex = 3 } },
+         new(61305, 62, 0), new(10409, 62, 8)];
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(AtStart, true, Rooms.Describe(actors), FirstSequence, NoDrops);
+        Assert.Equal(4, body[18]);
+        var template = body.AsSpan(19 + 21, 21);
+        Assert.Equal(2, BinaryPrimitives.ReadUInt16LittleEndian(template));
+        Assert.Equal(3, BinaryPrimitives.ReadInt32LittleEndian(template[2..]));
+        Assert.Equal((ushort)(FirstSequence + 1), BinaryPrimitives.ReadUInt16LittleEndian(template[6..]));
+        Assert.Equal(61801, BinaryPrimitives.ReadInt32LittleEndian(template[8..]));
+        Assert.Equal(1, template[14]);
+        Assert.Equal(2, template[15]);
+        Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(19 + 42 + 2)));
+        Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(19 + 63 + 2)));
+    }
 }

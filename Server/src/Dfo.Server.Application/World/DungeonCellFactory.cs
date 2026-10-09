@@ -46,10 +46,12 @@ internal sealed class DungeonCellFactory(
             var described = contents.Actors[index];
             var sequence = checked((ushort)(contents.FirstActorSequence + index));
             // Hell actors do not participate in ordinary boss XP/automatic room suppression.
-            var isMonster = !described.IsHellTemplate && experienceRules.IsMonster(described.Actor.ActorType);
+            var isDummy = described.Actor.Declaration?.IsDummy == true;
+            var isMonster = !isDummy && !described.IsHellTemplate
+                && experienceRules.IsMonster(described.Actor.ActorType);
             IReadOnlyList<RolledDrop> pending = [];
             var eligibleForGroupReward = false;
-            if (described.IsHellTemplate || isMonster || described.IsAiCharacter)
+            if (!isDummy && (described.IsHellTemplate || isMonster || described.IsAiCharacter))
             {
                 var dropContext = new MonsterDropContext(
                     context.RunId,
@@ -94,7 +96,8 @@ internal sealed class DungeonCellFactory(
                 IsDead: false,
                 pending.ToArray(),
                 isMonster) { IsHellTemplate = described.IsHellTemplate, HellOrder = described.HellOrder,
-                    HellGroupIndex = described.HellGroupIndex, EligibleForHellGroupReward = eligibleForGroupReward });
+                    HellGroupIndex = described.HellGroupIndex, EligibleForHellGroupReward = eligibleForGroupReward,
+                    ObjectTemplateOwner = described.ObjectTemplateOwner, ObjectTemplateIndex = described.ObjectTemplateIndex });
         }
 
         var hellGroups = new List<DungeonCellHellGroupState>();

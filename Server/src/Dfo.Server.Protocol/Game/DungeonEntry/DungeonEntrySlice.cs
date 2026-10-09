@@ -251,11 +251,11 @@ internal static class DungeonEntryPayloadCodec
             // one has nothing to say in it; the sequence is what the client names the actor by
             // afterwards; the packet index is the actor's place within its own kind.
             var actor = actors[index].Actor;
-            var packetIndex = actors[index].IsAiCharacter
-                ? aiCharactersWritten++
-                : monstersWritten++;
+            var templateOwner = actors[index].ObjectTemplateOwner;
+            var packetIndex = templateOwner.HasValue ? actors[index].ObjectTemplateIndex
+                : actors[index].IsAiCharacter ? aiCharactersWritten++ : monstersWritten++;
 
-            writer.Write(actors[index].HellOrder);
+            writer.Write(templateOwner.HasValue ? (ushort)templateOwner.Value : actors[index].HellOrder);
             writer.Write(packetIndex);
             writer.Write(unchecked((ushort)(firstActorSequence + index)));
             writer.Write(actor.Code);
@@ -263,8 +263,8 @@ internal static class DungeonEntryPayloadCodec
             // dungeon. LevelOf remains the fallback for any actor with no declared level.
             writer.Write(layout.LevelOf(actor.Level));
             writer.Write(actor.ActorType);
-            writer.Write(actors[index].IsHellTemplate ? (byte)1 : (byte)0);
-            writer.Write(actors[index].IsHellTemplate ? (byte)0xFF : (byte)0);
+            writer.Write(templateOwner.HasValue || actors[index].IsHellTemplate ? (byte)1 : (byte)0);
+            writer.Write(templateOwner ?? (actors[index].IsHellTemplate ? (byte)0xFF : (byte)0));
             writer.Write(0); // extra state
             writer.Write((byte)0); // A21 actor record extension
         }

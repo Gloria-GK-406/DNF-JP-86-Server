@@ -59,7 +59,7 @@ public sealed class PvfDungeonRoomActorSourceTests
                 new DungeonRoomActor(61670, 0, 0, BasisLevelOffset: 0), // 相对副本基础等级
                 new DungeonRoomActor(461, 80, 5),   // 阿甘左, [ai character]
             ],
-            actors);
+            actors.Select(actor => actor with { Declaration = null }));
     }
 
     [SkippableFact]

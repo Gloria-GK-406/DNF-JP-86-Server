@@ -63,8 +63,17 @@ internal sealed class DungeonRoomRuleService(
     public IReadOnlyList<RoomActorDescription> Describe(IReadOnlyList<DungeonRoomActor> declared)
     {
         ArgumentNullException.ThrowIfNull(declared);
-        return [.. declared.Select(
-            actor => new RoomActorDescription(actor, actor.ActorType >= FirstAiCharacterActorType))];
+        return [.. declared.Select(actor =>
+        {
+            var row = actor.Declaration;
+            return new RoomActorDescription(actor, actor.ActorType >= FirstAiCharacterActorType)
+            {
+                ObjectTemplateOwner = row?.Source == DungeonActorSpawnSource.SpecialPassiveObject
+                    ? checked((byte)(row.ParentObjectIndex ?? throw new InvalidDataException("Object template has no parent index.")))
+                    : null,
+                ObjectTemplateIndex = row?.ChildIndex ?? 0,
+            };
+        })];
     }
 
     /// <summary>

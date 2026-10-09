@@ -14,6 +14,8 @@ namespace Dfo.Server.Abstractions.Content;
 public readonly record struct DungeonRoomActor(
     int Code, byte Level, byte ActorType, int? BasisLevelOffset = null, int RandomDropCount = 1)
 {
+    public DungeonActorSpawnDeclaration? Declaration { get; init; }
+
     /// <summary>Whether this actor is an enemy; APCs obtain this from the map's faction word.</summary>
     public bool IsHostile { get; init; } = ActorType <= 3;
 
@@ -36,6 +38,21 @@ public interface IDungeonRoomActorSource
     /// </summary>
     ValueTask<IReadOnlyList<DungeonRoomActor>> GetAsync(
         int mapId, CancellationToken cancellationToken);
+
+    /// <summary>Complete static declarations, including conditional rows not automatically generated.</summary>
+    async ValueTask<DungeonMapActorDeclarations> GetDeclarationsAsync(int mapId, CancellationToken cancellationToken)
+    {
+        var actors = await GetAsync(mapId, cancellationToken).ConfigureAwait(false);
+        return new(actors.Select((actor, index) => actor.Declaration ?? new DungeonActorSpawnDeclaration(
+            actor.Code, actor.ActorType >= 5 ? DungeonActorSpawnSource.AiCharacter : DungeonActorSpawnSource.Monster, index)
+        {
+            RelativeLevel = actor.BasisLevelOffset.HasValue,
+            LevelValue = actor.BasisLevelOffset ?? actor.Level,
+            Rank = (byte)(actor.ActorType >= 5 ? actor.ActorType - 5 : actor.ActorType),
+            Faction = actor.IsHostile ? DungeonActorFaction.Monster : DungeonActorFaction.Character,
+            RandomDropCount = actor.RandomDropCount,
+        }).ToArray(), []);
+    }
 }
 
 /// <summary>One generated reward, associated with its original map object index.</summary>

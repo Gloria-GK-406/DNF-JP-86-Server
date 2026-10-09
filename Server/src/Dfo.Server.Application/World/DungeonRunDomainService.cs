@@ -1788,7 +1788,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         }
 
         public bool CanClaimDeath(ushort sequence) =>
-            this.actors.TryGetValue(sequence, out var actor) && !actor.IsDead;
+            this.actors.TryGetValue(sequence, out var actor) && !actor.IsDead
+                && actor.Actor.Declaration?.IsDummy != true;
 
         public IReadOnlyList<DungeonGroundItem>? CommitActorDeath(
             ushort sequence,
@@ -1832,6 +1833,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         {
             var sequences = this.actors.Values
                 .Where(actor => actor.BlocksClear && !actor.Actor.IsBoss
+                    && actor.Actor.Declaration?.Source != DungeonActorSpawnSource.SpecialPassiveObject
                     && !actor.IsDead && canSuppress(actor.Sequence))
                 .OrderBy(actor => actor.Sequence)
                 .Select(actor => actor.Sequence)

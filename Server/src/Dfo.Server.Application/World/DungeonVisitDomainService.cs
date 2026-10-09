@@ -266,7 +266,8 @@ internal sealed class DungeonVisitDomainService(
 
         var actors = cell.Actors
             .Select(actor => new RoomActorDescription(actor.Actor, actor.IsAiCharacter)
-                { IsHellTemplate = actor.IsHellTemplate, HellOrder = actor.HellOrder })
+                { IsHellTemplate = actor.IsHellTemplate, HellOrder = actor.HellOrder,
+                    ObjectTemplateOwner = actor.ObjectTemplateOwner, ObjectTemplateIndex = actor.ObjectTemplateIndex })
             .ToArray();
         var floor = cell.GroundItems
             .Where(item => item.Source.Kind == DungeonGroundItemSourceKind.DeclaredObject)

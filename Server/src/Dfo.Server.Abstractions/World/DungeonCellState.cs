@@ -72,7 +72,14 @@ public sealed record DungeonCellActorState(
     bool IsMonster = true)
 {
     /// <summary>Clear participation is independent of ordinary monster experience eligibility.</summary>
-    public bool BlocksClear => !IsHellTemplate && Actor.IsHostile;
+    public bool BlocksClear => !IsHellTemplate && Actor.IsHostile
+        && Actor.Declaration?.IsDummy != true
+        && (Actor.Declaration?.MonsterTeam is null or 100)
+        && (Actor.Declaration?.Source != DungeonActorSpawnSource.SpecialPassiveObject
+            || Actor.Declaration.IsSceneOwnedWave);
+
+    public byte? ObjectTemplateOwner { get; init; }
+    public int ObjectTemplateIndex { get; init; }
 
     public bool IsHellTemplate { get; init; }
     public ushort HellOrder { get; init; }

@@ -371,3 +371,11 @@ actor 都没有**，所以「actor 表恒发 0 条」与它逐字节相同；它
 `START_MAP` 的 mapId 来自本局 cell 已选资源，不再取自布局的固定坐标/mapId 字典。
 同一 MAP 被不同 cell 使用时，actor 序列基数加入 cell 坐标；回访仍使用原 cell 和既有空重访投影。
 字节布局未改；详见 [结构规则](../../../Document/DungeonStructureRules.md)。本次变更的客户端验收待补。
+
+### 2026-10-09：特殊对象怪物模板投影（UpstreamReference / CurrentImplementation）
+
+21字节actor行布局不变。MAP内联特殊对象的monster子项使用：templateOrder=u16原父对象序号，packetIndex=i32原子项序号，flag0=1，flag1=原父对象序号。空对象及item/trap/quest子项仍占其原索引；模板行不递增普通monster/APC的MAP索引计数。actor sequence仍由Cell统一分配，运行死亡账本与此一致。
+
+依据为上游`DungeonActorTemplateProjector.AppendSpecialPassiveObjectTemplates`与`DungeonNotificationBuilder`，新回归保护索引与flags。根特防御21314声明APC10409及30个对象monster模板。此模板扩展尚未实机验收，不升级原有普通教学房间的ClientVerified范围。
+
+怪物资源解析改为typed token游标，保留dummy/NPC/精英尾部/条件及来源；dummy仍占普通MAP索引但不进入普通清房、经验、奖励或任务击杀结算。详见 [声明重构](../../../Document/MonsterDeclarations-20261009.md)。
