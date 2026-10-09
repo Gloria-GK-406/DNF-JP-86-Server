@@ -48,17 +48,28 @@ internal sealed class CycleDungeonEntryDomainService(ISelectedSessionDomainServi
     {
         var intent = context.Facts.Intent;
         if (intent.Kind != DungeonEntryIntentKind.Cycle || intent.DirectedDungeonId != context.DungeonId
-            || intent.CycleQuestId is not > 0 || intent.CycleDifficulty != context.Facts.Difficulty
+            || intent.CycleQuestId is not > 0 || intent.CycleDifficulty is not { } difficulty
+            || !Enum.IsDefined(difficulty)
             || context.RequestMode != 0 || context.PracticeMode != 0 || context.Participants.Count == 0)
-            return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
+            return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite,
+                $"Cycle selection mismatch: intent={intent}, requestedDungeon={context.DungeonId}, "
+                + $"difficulty={context.Facts.Difficulty}, requestMode={context.RequestMode}, "
+                + $"practiceMode={context.PracticeMode}, participants={context.Participants.Count}.");
         foreach (var member in context.Participants)
         {
             var facts = await FactsAsync(member.AccountId, member.CharacterId, cancellationToken).ConfigureAwait(false);
             var region = facts is null ? null : await rules.EligibleAsync(context.DungeonId, intent.CycleQuestId.Value, facts, cancellationToken).ConfigureAwait(false);
             if (region?.Difficulty != intent.CycleDifficulty || !facts!.CarriedQuestIds.Contains(intent.CycleQuestId.Value))
-                return new(null, DungeonEntryFailure.MissingPrerequisite, member.Slot);
+                return new(null, DungeonEntryFailure.MissingPrerequisite, member.Slot,
+                    $"Cycle member prerequisites: eligible={region is not null}, "
+                    + $"regionDifficulty={region?.Difficulty}, expectedDifficulty={intent.CycleDifficulty}, "
+                    + $"questCarried={facts?.CarriedQuestIds.Contains(intent.CycleQuestId.Value) == true}.");
         }
-        return await visits.TryEnterPartyAsync(context.Participants, context.DungeonId, context.Facts, cancellationToken).ConfigureAwait(false);
+        // The native cycle continuation may send the selection UI's difficulty (observed: 0).
+        // Its authoritative difficulty comes from the prepared PVF region, checked above;
+        // never let a generic SELECT_DUNGEON field override that fixed cycle rule.
+        return await visits.TryEnterPartyAsync(context.Participants, context.DungeonId,
+            context.Facts with { Difficulty = difficulty }, cancellationToken).ConfigureAwait(false);
     }
 
     private async ValueTask<WorldContentSubject?> FactsAsync(AccountId accountId, CharacterId characterId, CancellationToken ct)

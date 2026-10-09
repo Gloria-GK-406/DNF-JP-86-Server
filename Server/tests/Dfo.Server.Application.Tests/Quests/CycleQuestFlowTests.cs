@@ -83,6 +83,62 @@ public sealed class CycleQuestFlowTests
         services.AddSingleton<ICycleDungeonRuleService>(new CycleRules());
     });
 
+    [Theory]
+    [InlineData(DungeonDifficulty.Normal)]
+    [InlineData(DungeonDifficulty.Tier4)]
+    public async Task Cycle_entry_uses_the_prepared_region_difficulty_and_preserves_common_admission(DungeonDifficulty requested)
+    {
+        var visits = new RecordingVisits();
+        using var fixture = new ShopFixture(services =>
+        {
+            services.AddSingleton<IQuestContentRuleService>(new QuestRules());
+            services.AddSingleton<ICycleDungeonRuleService>(new CycleRules());
+            services.AddSingleton<IDungeonVisitDomainService>(visits);
+        });
+        var commands = fixture.Services.GetRequiredService<ICommandBus>();
+        var intents = fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>();
+        intents.Record(fixture.Session, DungeonEntryIntent.Interactive);
+        Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
+        var intent = intents.Find(fixture.Session)!.Value;
+        var entry = new DungeonEntryContext(84, new(requested, [2001], [], intent), 0, 0, [new(new(1), new(1), 0, true)]);
+        var cycles = fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>();
+
+        // An incoming quest list cannot stand in for the persisted accepted quest.
+        Assert.Equal(DungeonEntryFailure.MissingPrerequisite, (await cycles.EnterAsync(entry, default)).Failure);
+        Assert.Null(visits.Facts);
+        Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
+        Assert.Equal(DungeonEntryFailure.MissingPrerequisite,
+            (await cycles.EnterAsync(entry with { RequestMode = 1 }, default)).Failure);
+        Assert.Null(visits.Facts);
+        Assert.Equal(DungeonEntryFailure.MissingPrerequisite, (await cycles.EnterAsync(entry with
+        {
+            Facts = entry.Facts with { Intent = DungeonEntryIntent.Cycle(84, 2001, DungeonDifficulty.Tier4) }
+        }, default)).Failure);
+        Assert.Null(visits.Facts);
+
+        var result = await cycles.EnterAsync(entry, default);
+        Assert.Equal(DungeonEntryFailure.InsufficientFatigue, result.Failure);
+        Assert.Equal(DungeonDifficulty.Tier3, visits.Facts!.Difficulty);
+        Assert.Equal(intent, visits.Facts.Intent);
+        Assert.Equal(requested, entry.Facts.Difficulty);
+    }
+
+    private sealed class RecordingVisits : IDungeonVisitDomainService
+    {
+        public DungeonEntryFacts? Facts { get; private set; }
+        public bool DefersSelectionState(byte level, bool tutorialCompleted = false) => false;
+        public ValueTask<DungeonEntryAttempt> TryEnterPartyAsync(IReadOnlyList<DungeonRunParticipant> participants,
+            int dungeonId, DungeonEntryFacts facts, CancellationToken token)
+        {
+            Facts = facts;
+            return ValueTask.FromResult(DungeonEntryAttempt.Refused(DungeonEntryFailure.InsufficientFatigue));
+        }
+        public ValueTask<DungeonEntry?> EnterAsync(CharacterId characterId, int dungeonId,
+            DungeonDifficulty difficulty, DungeonEntryFacts facts, CancellationToken token) => throw new NotSupportedException();
+        public ValueTask<DungeonRoomVisit?> MoveAsync(CharacterId characterId, DungeonRunState current,
+            MazeCell target, CancellationToken token) => throw new NotSupportedException();
+    }
+
     private sealed class CycleRules : ICycleDungeonRuleService
     {
         private static readonly CycleDungeonRegion Region = new(12, 101, DungeonDifficulty.Tier3, [new(84, 2001)], [new(5000, 1)]);
