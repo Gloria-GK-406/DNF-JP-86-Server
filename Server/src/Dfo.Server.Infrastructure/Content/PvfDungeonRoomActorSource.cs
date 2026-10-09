@@ -39,9 +39,8 @@ internal sealed class PvfDungeonRoomActorSource : IDungeonRoomActorSource
 
     /// <summary>The actor type an AI character is reported as.</summary>
     /// <remarks>
-    /// Five through eight are the AI-character band and the map's own words choose within it. Only
-    /// five has been observed, and the mapping from the map's quoted words to a number inside that
-    /// band is not established, so this reports the band's floor rather than guessing.
+    /// Five through eight are the AI-character band: add the map's rank (0..3) to its floor.
+    /// The same mapping is used by the A21 reference and our illusion-tower content reader.
     /// </remarks>
     private const byte AiCharacterActorType = 5;
 
@@ -163,7 +162,16 @@ internal sealed class PvfDungeonRoomActorSource : IDungeonRoomActorSource
                     && values.Skip(offset + 6).Take(2).All(token => token.Kind == PvfTokenKind.Int32),
                     path, Fields.AiCharacterField, "expected four Int32 values, two quoted words and two Int32 values");
                 Require(values[offset].Value > 0, path, Fields.AiCharacterField, "invalid AI character id");
-                if (TryAiCharacter(archive, values[offset].Value, out var actor)) aiCharacters.Add(actor);
+                var faction = archive.ResolveString(values[offset + 4].Value).Trim().ToLowerInvariant();
+                Require(faction is "[monster]" or "[character]" or "[neutral]", path,
+                    Fields.AiCharacterField, $"unknown APC faction '{faction}'");
+                var rank = RankOf(archive.ResolveString(values[offset + 5].Value));
+                if (TryAiCharacter(archive, values[offset].Value, out var actor))
+                    aiCharacters.Add(actor with
+                    {
+                        ActorType = checked((byte)(AiCharacterActorType + rank)),
+                        IsHostile = faction == "[monster]",
+                    });
             }
         }
         return [.. monsters, .. aiCharacters];

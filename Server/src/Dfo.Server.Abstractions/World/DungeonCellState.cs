@@ -71,6 +71,9 @@ public sealed record DungeonCellActorState(
     IReadOnlyList<RolledDrop> PendingLoot,
     bool IsMonster = true)
 {
+    /// <summary>Clear participation is independent of ordinary monster experience eligibility.</summary>
+    public bool BlocksClear => !IsHellTemplate && Actor.IsHostile;
+
     public bool IsHellTemplate { get; init; }
     public ushort HellOrder { get; init; }
     public int? HellGroupIndex { get; init; }
@@ -97,7 +100,7 @@ public sealed record DungeonCellState(
     public IReadOnlyList<DungeonCellHellGroupState> HellGroups { get; init; } = [];
 
     public bool IsCleared => this.Actors
-        .Where(actor => actor.IsMonster)
+        .Where(actor => actor.BlocksClear)
         .All(actor => actor.IsDead);
 
     public DungeonCellActorState? FindActor(ushort sequence) =>

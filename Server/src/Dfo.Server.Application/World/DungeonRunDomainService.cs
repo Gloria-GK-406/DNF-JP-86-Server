@@ -736,9 +736,10 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                     aggregate.Layout.LevelOf(killedActor.Actor.Level),
                     (MonsterRank)killedActor.Actor.ActorType));
             }
-            var autoKilled = killedActor is { IsMonster: true, Actor.ActorType: (byte)MonsterRank.Boss }
+            var autoKilled = killedActor is { BlocksClear: true, Actor.IsBoss: true }
                 && aggregate.Layout.KindOf(claim.Actor.Cell) == DungeonRoomKind.Boss
-                    ? cell.SuppressRemainingMonsters(sequence =>
+                && !cell.HasLivingBoss
+                    ? cell.SuppressRemainingEnemies(sequence =>
                         !this.deathClaims.ContainsKey(new DeathClaimKey(
                             claim.RunId, new RoomActorId(claim.Actor.Cell, sequence))))
                     : [];
@@ -1823,11 +1824,15 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             return added;
         }
 
-        // Part of the boss death change: no separate ground roll, reward, or revision.
-        public IReadOnlyList<ushort> SuppressRemainingMonsters(Func<ushort, bool> canSuppress)
+        public bool HasLivingBoss => this.actors.Values.Any(actor =>
+            actor.BlocksClear && actor.Actor.IsBoss && !actor.IsDead);
+
+        // Part of the final boss death change: no separate ground roll, reward, or revision.
+        public IReadOnlyList<ushort> SuppressRemainingEnemies(Func<ushort, bool> canSuppress)
         {
             var sequences = this.actors.Values
-                .Where(actor => actor.IsMonster && !actor.IsDead && canSuppress(actor.Sequence))
+                .Where(actor => actor.BlocksClear && !actor.Actor.IsBoss
+                    && !actor.IsDead && canSuppress(actor.Sequence))
                 .OrderBy(actor => actor.Sequence)
                 .Select(actor => actor.Sequence)
                 .ToArray();

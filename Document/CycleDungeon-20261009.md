@@ -65,3 +65,28 @@
 
 本次相关回归：Application 83、Protocol 91、真实 PVF 1，全通过且无跳过；
 真实 PVF 核对上局 82/15242 和新请求 85/15217 属于同一区域候选池。
+
+## 根特南门 APC Boss 提前通关修复
+
+用户授权按已定位方案修复并部署。基线 `58185672`，分支 `task/achievement-state-events`。
+
+- **RuntimeObserved / High**：旧部署 `artifacts/cycle-retry-20261009/stdout.log` 中，
+  21:28:28，房间 57323 的普通 APC 10610 死亡后立即发送 `NOTI 001F`，并处理通关结算；
+  Boss APC 14003 实际到 21:28:43 才死亡，期间 Boss 检查仍显示其未死亡。
+- **PVF**：`map/GentSouthGate_r/2153/57323_2153(4.0).map` 的 `[ai character]` 声明
+  14003 为 `[monster] [boss]`，六个 10610 为 `[monster] [normal]`。旧解析器丢弃阵营与等级，
+  全部变成 APC 类型 5；旧 Cell 清房仅检查普通经验资格 `IsMonster`，空集合直接判为清空。
+- **CurrentImplementation**：`DungeonRoomActor.IsHostile` 保存敌我信息，`IsBoss` 区分普通怪物
+  Boss（类型 3）与 APC Boss（类型 8）；APC 线上类型为 5 加声明等级 0..3。
+  对照为上游 `DungeonActorTemplateProjector` / `PvfLib.Models.MapFile` 和本仓幻影塔读取逻辑，
+  不是本次客户端实机验收结论。
+- `DungeonCellActorState.BlocksClear` 使用敌对属性，独立于经验资格。友方、中立和深渊模板不阻止
+  普通清房。普通房间要求全部敌对单位死亡；Boss 房最后一个敌对 Boss 死亡后，按既有规则将
+  剩余非 Boss 敌人标为死亡，并发空掉落死亡通知，不额外发经验或掉落。其他 Boss、友方和
+  深渊单位不被自动抹除，已有死亡占用仍受原来的精确 claim 保护。
+- 回归包括真实 PVF 的 Boss 类型/阵营与教程友方 NPC、Cell 创建、普通 APC 不开通关、Boss APC
+  开通关及剩余敌人通知、多个 Boss、友方及深渊排除、普通 Boss、循环入场。相关测试
+  Application 93、Infrastructure 9、Protocol 219，通过且无跳过；未运行仓库全量测试。
+- 服务端修复，不修改客户端/PVF。部署身份、哈希、数据库备份和回滚位置见
+  仓库根 `artifacts/apc-boss-clear-20261009/deployment.json`。**ClientVerified 待验收**：重登 1123，
+  重进该循环地图，先杀普通 APC 应继续战斗，真正 Boss 死亡后才出现通关及结算。

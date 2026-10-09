@@ -185,6 +185,19 @@ public sealed class DungeonEntryCodecTests
         Assert.Equal([0, 0, 0, 0xFF], body[^4..]);
     }
 
+    [Fact]
+    public void Start_map_preserves_hostile_APC_boss_and_normal_APC_wire_ranks()
+    {
+        DungeonRoomActor[] actors =
+        [new(14003, 58, 8) { IsHostile = true }, new(10610, 60, 5) { IsHostile = true }];
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(
+            AtStart, firstEntry: true, Rooms.Describe(actors), FirstSequence, NoDrops);
+        Assert.Equal(8, body[19 + 13]);
+        Assert.Equal(5, body[19 + 21 + 13]);
+        Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(21)));
+        Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(42)));
+    }
+
     /// <summary>
     /// Each actor is numbered within its own kind, and the two kinds are numbered apart.
     /// </summary>

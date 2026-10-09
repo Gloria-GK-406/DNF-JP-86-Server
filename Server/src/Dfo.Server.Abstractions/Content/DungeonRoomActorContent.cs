@@ -3,8 +3,7 @@ namespace Dfo.Server.Abstractions.Content;
 /// <summary>One actor a dungeon room is declared to hold.</summary>
 /// <param name="ActorType">
 /// What kind of actor the client is to build. Zero through three are monsters; five and up are AI
-/// characters, which the room declares separately and which fight beside the player rather than
-/// against them.
+/// characters, which the room declares separately. Their allegiance is independent of this type.
 /// </param>
 /// <param name="Level">Absolute level when known; zero requests the dungeon basis level.</param>
 /// <param name="BasisLevelOffset">
@@ -13,7 +12,14 @@ namespace Dfo.Server.Abstractions.Content;
 /// </param>
 /// <param name="RandomDropCount">Seventh monster integer: number of random drop attempts.</param>
 public readonly record struct DungeonRoomActor(
-    int Code, byte Level, byte ActorType, int? BasisLevelOffset = null, int RandomDropCount = 1);
+    int Code, byte Level, byte ActorType, int? BasisLevelOffset = null, int RandomDropCount = 1)
+{
+    /// <summary>Whether this actor is an enemy; APCs obtain this from the map's faction word.</summary>
+    public bool IsHostile { get; init; } = ActorType <= 3;
+
+    /// <summary>Boss rank in the monster (0..3) or APC (5..8) wire band.</summary>
+    public bool IsBoss => ActorType is 3 or 8;
+}
 
 /// <summary>Reads a room's actors out of the map the room resolves to.</summary>
 /// <remarks>

@@ -20,6 +20,29 @@ public sealed class PvfDungeonRoomActorSourceTests
     private const int TutorialBossMap = 61005;
 
     [SkippableFact]
+    public async Task Gent_south_gate_cycle_boss_and_enemy_APCs_preserve_rank_and_allegiance()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonRoomActorSource(provider);
+        var actors = await source.GetAsync(57323, default);
+        Assert.Equal(7, actors.Count);
+        Assert.All(actors, actor => Assert.True(actor.IsHostile));
+        var boss = Assert.Single(actors, actor => actor.IsBoss);
+        Assert.Equal(14003, boss.Code);
+        Assert.Equal(8, boss.ActorType);
+        Assert.Equal(58, boss.Level);
+        Assert.All(actors.Where(actor => !actor.IsBoss), actor =>
+        {
+            Assert.Equal(10610, actor.Code);
+            Assert.Equal(5, actor.ActorType);
+        });
+        var guide = Assert.Single(await source.GetAsync(TutorialStartMap, default), actor => actor.ActorType >= 5);
+        Assert.False(guide.IsHostile);
+        Assert.False(guide.IsBoss);
+    }
+
+    [SkippableFact]
     public async Task The_tutorials_first_room_holds_one_monster_and_its_guide()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

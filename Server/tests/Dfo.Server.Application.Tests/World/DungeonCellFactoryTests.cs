@@ -58,9 +58,11 @@ public sealed class DungeonCellFactoryTests
     [InlineData(3, true, 2)]
     [InlineData(4, false, 2)]
     [InlineData(5, false, 2)]
+    [InlineData(5, false, 2, true)]
+    [InlineData(8, false, 1, true)]
     public async Task Cell_creation_freezes_monster_clear_and_loot_semantics(
         byte actorType,
-        bool isMonster, int memberCount)
+        bool isMonster, int memberCount, bool hostile = false)
     {
         var loot = new RecordingLoot();
         var layout = new DungeonLayout(
@@ -77,7 +79,7 @@ public sealed class DungeonCellFactoryTests
             .Select(index => new DungeonRunParticipant(new AccountId(index + 1),
                 new CharacterId(index + 10), Slot: (byte)index, IsLeader: index == 0)).ToArray();
         var factory = new DungeonCellFactory(
-            new OneActorRoom(actorType),
+            new OneActorRoom(actorType, hostile),
             new NoPlacement(),
             loot,
             new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards());
@@ -108,7 +110,8 @@ public sealed class DungeonCellFactoryTests
         }
         if (actorType >= 5)
             Assert.Equal(IndependentDropSourceType.APC, loot.Context!.SourceType);
-        Assert.Equal(!isMonster, seed.Snapshot().IsCleared);
+        Assert.Equal(isMonster || hostile, actor.BlocksClear);
+        Assert.Equal(!(isMonster || hostile), seed.Snapshot().IsCleared);
         if (isMonster || actorType >= 5)
         {
             Assert.Equal(61670, loot.MonsterId);
@@ -192,14 +195,15 @@ public sealed class DungeonCellFactoryTests
         }
     }
 
-    private sealed class OneActorRoom(byte actorType) : IDungeonRoomRuleService
+    private sealed class OneActorRoom(byte actorType, bool hostile = false) : IDungeonRoomRuleService
     {
         public ValueTask<DungeonRoomContents> DescribeAsync(
             DungeonCellCreationContext context,
             CancellationToken cancellationToken) =>
             ValueTask.FromResult(new DungeonRoomContents(
                 [new RoomActorDescription(
-                    new DungeonRoomActor(61670, 1, actorType, RandomDropCount: 3),
+                    new DungeonRoomActor(61670, 1, actorType, RandomDropCount: 3)
+                        { IsHostile = actorType <= 3 || hostile },
                     IsAiCharacter: actorType >= 5)],
                 [],
                 FirstActorSequence: 100));
