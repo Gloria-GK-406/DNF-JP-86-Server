@@ -48,9 +48,9 @@ internal sealed class PvfCycleDungeonDefinitionSource(PvfArchiveProvider provide
             }
             else if (name == "[/circle dungeon list info]" && inRegion)
             {
-                if (world <= 0 || open <= 0 || !Enum.IsDefined((DungeonDifficulty)difficulty) || pairs.Count == 0)
+                if (world <= 0 || open <= 0 || difficulty < 0 || pairs.Count == 0)
                     throw new InvalidDataException($"{path}: incomplete region.");
-                result.Add(new(world, open, (DungeonDifficulty)difficulty, pairs.ToArray(), []));
+                result.Add(new(world, open, difficulty, pairs.ToArray(), []));
                 inRegion = false;
             }
             else if (name == "[reward int data]" && inReward)

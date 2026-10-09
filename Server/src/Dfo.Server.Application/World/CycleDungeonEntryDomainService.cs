@@ -5,13 +5,15 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.World;
 
 internal sealed class CycleDungeonEntryDomainService(ISelectedSessionDomainService sessions,
     IDungeonEntryIntentDomainService intents, ICharacterDomainService characters,
     ICharacterQuestLogDomainService quests, ICycleDungeonRuleService rules,
-    IDungeonVisitDomainService visits) : ICycleDungeonEntryDomainService
+    IDungeonVisitDomainService visits, ICharacterDungeonDifficultyDomainService difficulties,
+    IDungeonDifficultyRuleService difficultyRules, ILogger<CycleDungeonEntryDomainService> logger) : ICycleDungeonEntryDomainService
 {
     public async ValueTask<CycleDungeonPreparation> PrepareAsync(SelectedSessionIdentity session, int dungeonId, int questId,
         CancellationToken cancellationToken)
@@ -27,7 +29,7 @@ internal sealed class CycleDungeonEntryDomainService(ISelectedSessionDomainServi
             .ConfigureAwait(false)).Any(x => x.QuestId != questId && rules.RewardsForQuest(x.QuestId).Count > 0);
         if (carriedCycles) return new(false, Refusal: "Another cycle quest is still active.");
         if (sessions.Find(session.AccountId) != session
-            || !intents.TryReplaceExact(session, before.Value, DungeonEntryIntent.Cycle(dungeonId, questId, region.Difficulty)))
+            || !intents.TryReplaceExact(session, before.Value, DungeonEntryIntent.Cycle(dungeonId, questId)))
             return new(false, Refusal: "Selection changed while preparing.");
         return new(true, questId);
     }
@@ -38,38 +40,54 @@ internal sealed class CycleDungeonEntryDomainService(ISelectedSessionDomainServi
         var session = sessions.Find(accountId);
         if (session is null || session.CharacterId != characterId || intents.Find(session) is not { } intent
             || intent.Kind != DungeonEntryIntentKind.Cycle || intent.CycleQuestId != questId
-            || intent.DirectedDungeonId is not > 0 || intent.CycleDifficulty is null) return false;
+            || intent.DirectedDungeonId is not > 0) return false;
         var facts = await FactsAsync(accountId, characterId, cancellationToken).ConfigureAwait(false);
         var region = facts is null ? null : await rules.EligibleAsync(intent.DirectedDungeonId!.Value, questId, facts, cancellationToken).ConfigureAwait(false);
-        return region?.Difficulty == intent.CycleDifficulty && sessions.Find(accountId) == session && intents.Find(session) == intent;
+        return region is not null && sessions.Find(accountId) == session && intents.Find(session) == intent;
     }
 
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken cancellationToken)
     {
         var intent = context.Facts.Intent;
         if (intent.Kind != DungeonEntryIntentKind.Cycle || intent.DirectedDungeonId != context.DungeonId
-            || intent.CycleQuestId is not > 0 || intent.CycleDifficulty is not { } difficulty
-            || !Enum.IsDefined(difficulty)
+            || intent.CycleQuestId is not > 0
             || context.RequestMode != 0 || context.PracticeMode != 0 || context.Participants.Count == 0)
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite,
                 $"Cycle selection mismatch: intent={intent}, requestedDungeon={context.DungeonId}, "
                 + $"difficulty={context.Facts.Difficulty}, requestMode={context.RequestMode}, "
                 + $"practiceMode={context.PracticeMode}, participants={context.Participants.Count}.");
+        if (!Enum.IsDefined(context.Facts.Difficulty))
+            return DungeonEntryAttempt.Refused(DungeonEntryFailure.DifficultyNotUnlocked);
+        var commonMaximum = DungeonDifficulty.Tier4;
         foreach (var member in context.Participants)
         {
             var facts = await FactsAsync(member.AccountId, member.CharacterId, cancellationToken).ConfigureAwait(false);
             var region = facts is null ? null : await rules.EligibleAsync(context.DungeonId, intent.CycleQuestId.Value, facts, cancellationToken).ConfigureAwait(false);
-            if (region?.Difficulty != intent.CycleDifficulty || !facts!.CarriedQuestIds.Contains(intent.CycleQuestId.Value))
+            if (region is null || !facts!.CarriedQuestIds.Contains(intent.CycleQuestId.Value))
                 return new(null, DungeonEntryFailure.MissingPrerequisite, member.Slot,
                     $"Cycle member prerequisites: eligible={region is not null}, "
-                    + $"regionDifficulty={region?.Difficulty}, expectedDifficulty={intent.CycleDifficulty}, "
                     + $"questCarried={facts?.CarriedQuestIds.Contains(intent.CycleQuestId.Value) == true}.");
+            var maximum = await difficulties.GetMaximumAsync(member.CharacterId, context.DungeonId, cancellationToken).ConfigureAwait(false);
+            if (!Enum.IsDefined(maximum)) return new(null, DungeonEntryFailure.DifficultyNotUnlocked, member.Slot);
+            if (maximum < commonMaximum) commonMaximum = maximum;
         }
-        // The native cycle continuation may send the selection UI's difficulty (observed: 0).
-        // Its authoritative difficulty comes from the prepared PVF region, checked above;
-        // never let a generic SELECT_DUNGEON field override that fixed cycle rule.
+        DungeonDifficulty? difficulty;
+        try
+        {
+            difficulty = await difficultyRules.NearestUnlockedAsync(context.DungeonId,
+                context.Facts.Difficulty, commonMaximum, cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidDataException error)
+        {
+            return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message);
+        }
+        if (difficulty is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DifficultyNotUnlocked);
+        logger.LogInformation("Cycle difficulty resolved: dungeon={DungeonId} quest={QuestId} requested={Requested} actual={Actual} commonMaximum={Maximum}",
+            context.DungeonId, intent.CycleQuestId, context.Facts.Difficulty, difficulty.Value, commonMaximum);
+        // Resolve against this map's supported/unlocked tiers before choosing a maze or paying.
+        // The resulting run and its entry notifications carry this actual difficulty.
         return await visits.TryEnterPartyAsync(context.Participants, context.DungeonId,
-            context.Facts with { Difficulty = difficulty }, cancellationToken).ConfigureAwait(false);
+            context.Facts with { Difficulty = difficulty.Value }, cancellationToken).ConfigureAwait(false);
     }
 
     private async ValueTask<WorldContentSubject?> FactsAsync(AccountId accountId, CharacterId characterId, CancellationToken ct)

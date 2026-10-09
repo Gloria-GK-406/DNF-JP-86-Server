@@ -14,12 +14,36 @@ internal sealed class DungeonDifficultyRuleService(IDungeonDefinitionSource? def
     {
         if (!Enum.IsDefined(requested) || !Enum.IsDefined(maximum)) return false;
         var definition = definitions is null ? null : await definitions.GetAsync(dungeonId, cancellationToken).ConfigureAwait(false);
+        return IsUnlocked(requested, maximum, definition)
+            || definition?.SupportedDifficulties?.Contains((byte)requested) == true
+                && (definition.HasStoryMode || definition.ArchivePath.StartsWith("dungeon/quest/", StringComparison.OrdinalIgnoreCase));
+    }
+
+    public async ValueTask<bool> IsUnlockedAsync(int dungeonId, DungeonDifficulty requested,
+        DungeonDifficulty maximum, CancellationToken cancellationToken)
+    {
+        if (!Enum.IsDefined(requested) || !Enum.IsDefined(maximum)) return false;
+        var definition = definitions is null ? null : await definitions.GetAsync(dungeonId, cancellationToken).ConfigureAwait(false);
+        return IsUnlocked(requested, maximum, definition);
+    }
+
+    public async ValueTask<DungeonDifficulty?> NearestUnlockedAsync(int dungeonId, DungeonDifficulty requested,
+        DungeonDifficulty maximum, CancellationToken cancellationToken)
+    {
+        if (!Enum.IsDefined(requested) || !Enum.IsDefined(maximum)) return null;
+        var definition = definitions is null ? null : await definitions.GetAsync(dungeonId, cancellationToken).ConfigureAwait(false);
+        if (definitions is not null && definition is null) return null;
+        return Enum.GetValues<DungeonDifficulty>().Where(tier => IsUnlocked(tier, maximum, definition))
+            .OrderBy(tier => Math.Abs((int)tier - (int)requested)).ThenBy(tier => tier)
+            .Select(tier => (DungeonDifficulty?)tier).FirstOrDefault();
+    }
+
+    private bool IsUnlocked(DungeonDifficulty requested, DungeonDifficulty maximum, DungeonDefinition? definition)
+    {
         var tiers = definition?.SupportedDifficulties;
         if (tiers is not { Count: > 0 }) return Allows(requested, maximum);
-        if (!tiers.Contains((byte)requested)) return false;
-        // The lowest declared tier is available initially, including a single fixed ancient tier.
-        return (byte)requested == tiers.Min() || requested <= maximum
-            || definition!.HasStoryMode || definition.ArchivePath.StartsWith("dungeon/quest/", StringComparison.OrdinalIgnoreCase);
+        // Even when tier zero is not declared, the lowest declared tier is initially available.
+        return tiers.Contains((byte)requested) && ((byte)requested == tiers.Min() || requested <= maximum);
     }
 
     public async ValueTask<DungeonDifficulty?> NextAfterClearAsync(int dungeonId, DungeonDifficulty cleared, CancellationToken cancellationToken)

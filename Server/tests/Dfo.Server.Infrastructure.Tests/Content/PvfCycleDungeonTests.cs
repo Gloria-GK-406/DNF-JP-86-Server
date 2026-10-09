@@ -15,7 +15,7 @@ public sealed class PvfCycleDungeonTests
         Assert.Equal(10, regions.Count);
         var region = Assert.Single(regions, x => x.WorldMapId == 12);
         Assert.Equal(2228, region.OpenQuestId);
-        Assert.Equal(3, (int)region.Difficulty);
+        Assert.Equal(3, region.DeclaredDifficultyLevel);
         Assert.Contains(new CycleDungeonCandidate(84, 15203), region.Candidates);
         Assert.Equal(10149700, Assert.Single(region.Rewards).ItemId);
         Assert.Equal(1, Assert.Single(region.Rewards).Count);

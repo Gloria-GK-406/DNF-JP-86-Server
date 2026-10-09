@@ -16,6 +16,24 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class DungeonVisitDomainServiceTests
 {
+    [Fact]
+    public async Task Cycle_cannot_bypass_unlock_checks_or_pay_before_a_valid_difficulty_is_selected()
+    {
+        var runs = new DungeonRunDomainService();
+        var cells = new RecordingCellFactory();
+        var fatigue = new TestFatigue();
+        var materials = new UnexpectedMaterials();
+        var visits = new DungeonVisitDomainService(new RecordingLayouts(), runs, new ImmediateSelection(), cells,
+            new MaximumDifficulty(DungeonDifficulty.Normal), new DungeonDifficultyRuleService(), fatigue, materials: materials);
+        var facts = new DungeonEntryFacts(DungeonDifficulty.Tier3, [1776], [], DungeonEntryIntent.Cycle(Layout.DungeonId, 1776));
+        var result = await visits.TryEnterPartyAsync([new(new(1), new(71), 0, true)], Layout.DungeonId, facts, default);
+        Assert.Equal(DungeonEntryFailure.DifficultyNotUnlocked, result.Failure);
+        Assert.Equal(0, cells.CallCount);
+        Assert.Empty(fatigue.Spent);
+        Assert.Equal(0, materials.Calls);
+        Assert.Null(runs.Find(new CharacterId(71)));
+    }
+
     [Theory]
     [InlineData("definition")]
     [InlineData("resolve")]

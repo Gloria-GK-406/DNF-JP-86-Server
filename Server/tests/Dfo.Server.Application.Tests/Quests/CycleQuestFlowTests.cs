@@ -1,8 +1,12 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Tests.Inventory;
+using Dfo.Server.Application.Transactions;
+using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
@@ -84,9 +88,12 @@ public sealed class CycleQuestFlowTests
     });
 
     [Theory]
-    [InlineData(DungeonDifficulty.Normal)]
-    [InlineData(DungeonDifficulty.Tier4)]
-    public async Task Cycle_entry_uses_the_prepared_region_difficulty_and_preserves_common_admission(DungeonDifficulty requested)
+    [InlineData(DungeonDifficulty.Normal, DungeonDifficulty.Normal, DungeonDifficulty.Normal)]
+    [InlineData(DungeonDifficulty.Tier3, DungeonDifficulty.Adventure, DungeonDifficulty.Adventure)]
+    [InlineData(DungeonDifficulty.Tier3, DungeonDifficulty.Tier3, DungeonDifficulty.Tier3)]
+    [InlineData(DungeonDifficulty.Tier2, DungeonDifficulty.Tier3, DungeonDifficulty.Adventure)]
+    public async Task Cycle_entry_uses_the_nearest_unlocked_map_difficulty_and_preserves_common_admission(
+        DungeonDifficulty requested, DungeonDifficulty maximum, DungeonDifficulty expected)
     {
         var visits = new RecordingVisits();
         using var fixture = new ShopFixture(services =>
@@ -94,6 +101,7 @@ public sealed class CycleQuestFlowTests
             services.AddSingleton<IQuestContentRuleService>(new QuestRules());
             services.AddSingleton<ICycleDungeonRuleService>(new CycleRules());
             services.AddSingleton<IDungeonVisitDomainService>(visits);
+            services.AddSingleton<IDungeonDifficultyRuleService>(new DungeonDifficultyRuleService(new CycleDefinitions()));
         });
         var commands = fixture.Services.GetRequiredService<ICommandBus>();
         var intents = fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>();
@@ -102,6 +110,12 @@ public sealed class CycleQuestFlowTests
         var intent = intents.Find(fixture.Session)!.Value;
         var entry = new DungeonEntryContext(84, new(requested, [2001], [], intent), 0, 0, [new(new(1), new(1), 0, true)]);
         var cycles = fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>();
+        await using (var tx = ((DomainTransactionScope)fixture.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        {
+            await fixture.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>()
+                .UnlockAsync(new(1), 84, maximum, default);
+            await tx.CommitAsync(default);
+        }
 
         // An incoming quest list cannot stand in for the persisted accepted quest.
         Assert.Equal(DungeonEntryFailure.MissingPrerequisite, (await cycles.EnterAsync(entry, default)).Failure);
@@ -112,15 +126,22 @@ public sealed class CycleQuestFlowTests
         Assert.Null(visits.Facts);
         Assert.Equal(DungeonEntryFailure.MissingPrerequisite, (await cycles.EnterAsync(entry with
         {
-            Facts = entry.Facts with { Intent = DungeonEntryIntent.Cycle(84, 2001, DungeonDifficulty.Tier4) }
+            Facts = entry.Facts with { Intent = DungeonEntryIntent.Cycle(85, 2001) }
         }, default)).Failure);
         Assert.Null(visits.Facts);
 
         var result = await cycles.EnterAsync(entry, default);
         Assert.Equal(DungeonEntryFailure.InsufficientFatigue, result.Failure);
-        Assert.Equal(DungeonDifficulty.Tier3, visits.Facts!.Difficulty);
+        Assert.Equal(expected, visits.Facts!.Difficulty);
         Assert.Equal(intent, visits.Facts.Intent);
         Assert.Equal(requested, entry.Facts.Difficulty);
+    }
+
+    private sealed class CycleDefinitions : IDungeonDefinitionSource
+    {
+        public ValueTask<DungeonDefinition?> GetAsync(int id, CancellationToken token) =>
+            ValueTask.FromResult<DungeonDefinition?>(new(id, "dungeon/test-cycle.dgn", 1, true, [],
+                SupportedDifficulties: [0, 1, 3]) { HasStoryMode = true });
     }
 
     private sealed class RecordingVisits : IDungeonVisitDomainService
@@ -141,7 +162,7 @@ public sealed class CycleQuestFlowTests
 
     private sealed class CycleRules : ICycleDungeonRuleService
     {
-        private static readonly CycleDungeonRegion Region = new(12, 101, DungeonDifficulty.Tier3, [new(84, 2001)], [new(5000, 1)]);
+        private static readonly CycleDungeonRegion Region = new(12, 101, 3, [new(84, 2001)], [new(5000, 1)]);
         public ValueTask<CycleDungeonRegion?> EligibleAsync(int dungeonId, int questId, WorldContentSubject subject, CancellationToken ct) =>
             ValueTask.FromResult<CycleDungeonRegion?>(dungeonId == 84 && questId == 2001 ? Region : null);
         public IReadOnlyList<QuestRewardItemGrant> RewardsForQuest(int questId) => questId == 2001 ? Region.Rewards : [];

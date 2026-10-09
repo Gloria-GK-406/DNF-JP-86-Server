@@ -6,7 +6,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Abstractions.World;
 
 public sealed record CycleDungeonCandidate(int DungeonId, int QuestId);
-public sealed record CycleDungeonRegion(int WorldMapId, int OpenQuestId, DungeonDifficulty Difficulty,
+public sealed record CycleDungeonRegion(int WorldMapId, int OpenQuestId, int DeclaredDifficultyLevel,
     IReadOnlyList<CycleDungeonCandidate> Candidates, IReadOnlyList<QuestRewardItemGrant> Rewards);
 
 public interface ICycleDungeonDefinitionSource

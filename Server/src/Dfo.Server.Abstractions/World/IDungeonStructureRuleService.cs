@@ -14,8 +14,7 @@ public enum DungeonEntryIntentKind : byte
 public readonly record struct DungeonEntryIntent(
     DungeonEntryIntentKind Kind,
     int? DirectedDungeonId,
-    int? CycleQuestId = null,
-    DungeonDifficulty? CycleDifficulty = null)
+    int? CycleQuestId = null)
 {
     public static DungeonEntryIntent Interactive { get; } =
         new(DungeonEntryIntentKind.Interactive, null);
@@ -25,9 +24,9 @@ public readonly record struct DungeonEntryIntent(
             ? new DungeonEntryIntent(DungeonEntryIntentKind.Directed, dungeonId)
             : throw new ArgumentOutOfRangeException(nameof(dungeonId));
 
-    public static DungeonEntryIntent Cycle(int dungeonId, int questId, DungeonDifficulty difficulty) =>
-        dungeonId > 0 && questId > 0 && Enum.IsDefined(difficulty)
-            ? new(DungeonEntryIntentKind.Cycle, dungeonId, questId, difficulty)
+    public static DungeonEntryIntent Cycle(int dungeonId, int questId) =>
+        dungeonId > 0 && questId > 0
+            ? new(DungeonEntryIntentKind.Cycle, dungeonId, questId)
             : throw new ArgumentOutOfRangeException(nameof(dungeonId));
 }
 

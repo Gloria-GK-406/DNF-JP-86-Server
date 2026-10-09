@@ -239,7 +239,7 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
 
         if (facts.Intent.Kind == DungeonEntryIntentKind.Cycle)
         {
-            if (facts.Intent.CycleQuestId is not { } questId || facts.Intent.CycleDifficulty != facts.Difficulty
+            if (facts.Intent.CycleQuestId is not { } questId
                 || !facts.ActiveQuestIds.Contains(questId)) return null;
             var candidates = connected.Where(candidate => candidate.Connection!.QuestId == questId
                 && candidate.Connection.State == DungeonQuestConnectionState.Active

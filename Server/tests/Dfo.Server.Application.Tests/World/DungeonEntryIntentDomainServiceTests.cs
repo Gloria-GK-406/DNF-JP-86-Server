@@ -17,7 +17,7 @@ public sealed class DungeonEntryIntentDomainServiceTests
     public void Cycle_preparation_does_not_consume_or_overwrite_a_newer_selection()
     {
         var service = new DungeonEntryIntentDomainService();
-        var cycle = DungeonEntryIntent.Cycle(84, 15203, DungeonDifficulty.Tier3);
+        var cycle = DungeonEntryIntent.Cycle(84, 15203);
         service.Record(Session, DungeonEntryIntent.Interactive);
         Assert.Equal(DungeonEntryIntent.Interactive, service.Find(Session));
         Assert.Equal(DungeonEntryIntent.Interactive, service.Find(Session));

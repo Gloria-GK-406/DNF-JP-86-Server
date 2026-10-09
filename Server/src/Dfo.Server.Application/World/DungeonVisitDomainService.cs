@@ -122,19 +122,15 @@ internal sealed class DungeonVisitDomainService(
             }
             var maximum = await difficulties.GetMaximumAsync(member.CharacterId, dungeonId, cancellationToken)
                 .ConfigureAwait(false);
-            if (facts.Intent.Kind == DungeonEntryIntentKind.Cycle)
-            {
-                // The cycle domain has checked the PVF region and accepted quest. This mode's
-                // fixed difficulty is not an ordinary clear-to-unlock difficulty selection.
-                if (facts.Intent.DirectedDungeonId != dungeonId || facts.Intent.CycleDifficulty != difficulty)
-                    return new(null, DungeonEntryFailure.DifficultyNotUnlocked, member.Slot);
-                continue;
-            }
+            var cycle = facts.Intent.Kind == DungeonEntryIntentKind.Cycle;
+            if (cycle && facts.Intent.DirectedDungeonId != dungeonId)
+                return new(null, DungeonEntryFailure.DifficultyNotUnlocked, member.Slot);
             bool allowed;
             try
             {
-                allowed = await difficultyRules.AllowsAsync(dungeonId, difficulty, maximum, cancellationToken)
-                    .ConfigureAwait(false);
+                allowed = cycle
+                    ? await difficultyRules.IsUnlockedAsync(dungeonId, difficulty, maximum, cancellationToken).ConfigureAwait(false)
+                    : await difficultyRules.AllowsAsync(dungeonId, difficulty, maximum, cancellationToken).ConfigureAwait(false);
             }
             catch (InvalidDataException error)
             {

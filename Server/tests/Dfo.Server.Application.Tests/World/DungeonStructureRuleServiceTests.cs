@@ -376,7 +376,7 @@ public sealed class DungeonStructureRuleServiceTests
     public async Task Cycle_selects_only_its_bound_active_quest_and_never_falls_back()
     {
         var rules = Service(MixedQuestMazes());
-        var intent = DungeonEntryIntent.Cycle(144, 1776, Dfo.Server.Data.World.DungeonDifficulty.Tier3);
+        var intent = DungeonEntryIntent.Cycle(144, 1776);
         var facts = new DungeonEntryFacts(Dfo.Server.Data.World.DungeonDifficulty.Tier3, [1776, 2212], [1776], intent);
         for (var seed = 0; seed < 12; seed++)
         {
@@ -386,8 +386,8 @@ public sealed class DungeonStructureRuleServiceTests
             Assert.Equal(1776, layout.Purpose.QuestId);
         }
         Assert.Null(await rules.ResolveAsync(144, facts with { ActiveQuestIds = [] }, 1, default));
-        Assert.Null(await rules.ResolveAsync(144, facts with { Difficulty = Dfo.Server.Data.World.DungeonDifficulty.Tier2 }, 1, default));
-        Assert.Null(await rules.ResolveAsync(144, facts with { Intent = DungeonEntryIntent.Cycle(145, 1776, Dfo.Server.Data.World.DungeonDifficulty.Tier3) }, 1, default));
+        Assert.NotNull(await rules.ResolveAsync(144, facts with { Difficulty = Dfo.Server.Data.World.DungeonDifficulty.Tier2 }, 1, default));
+        Assert.Null(await rules.ResolveAsync(144, facts with { Intent = DungeonEntryIntent.Cycle(145, 1776) }, 1, default));
     }
 
     private static DungeonDefinition ManyCandidates()
