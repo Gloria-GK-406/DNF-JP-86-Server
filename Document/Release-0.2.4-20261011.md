@@ -23,6 +23,8 @@
 
 Release 包不包含 Script.pvf、角色数据库或客户端二进制。已有 PVF 修改由 Tool/PvfMirrorLayoutPatch、Tool/PvfDimensionLayoutPatch、Tool/PvfAvatarSocketTextPatch 等工具及其记录交付；新安装必须自行配置匹配资源。当前用户已验收的部署不在本轮重启或替换。
 
+Windows 首轮 CI 在 45 分钟总上限处取消：已完成的六份测试报告均为 0 failed，Application 耗时约 29 分钟，Persistence 尚未完成。Windows 总预算调整为 90 分钟；测试范围、顺序及 3 分钟无进展保护保持不变。失败／取消日志和 TRX 留存，必须重跑通过后合并。
+
 ## 集成方式
 
 保留分支已有提交，采用 merge commit；检查通过后合并。v0.2.4 只指向 main 上的最终合并提交，由 Server Release 工作流构建 Windows x64／Linux x64 自包含包和 SHA-256 文件。未完成的父 issue 保持开放，发布不等同于所有范围验收。
