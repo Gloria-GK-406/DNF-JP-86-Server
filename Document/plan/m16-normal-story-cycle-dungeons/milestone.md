@@ -8,13 +8,13 @@
 
 - Status: 🟡
 - Prerequisite milestones: M15 通用地下城运行时（现有战斗、过图、掉落、结算底座可用；其余缺口独立跟踪）
-- Last updated: 2026-09-20
+- Last updated: 2026-10-10
 
 ## Scope
 
 本 Milestone 负责三种地下城的入口选择、地图/难度开放、准入、疲劳或专属消耗、组队进入、完成记录和玩法特有奖励。通用房间战斗、掉落和结算继续由 M15 承载；深渊、塔、异界、安徒恩等独立玩法不并入本 Milestone。
 
-当前唯一激活的 Feature Cycle 是 GitHub #66 普通地下城。场景地下城 #67 和循环地下城 #68 保持未启动，不与当前任务并行展开。
+循环地下城 #68 的单人主线于 2026-10-10 作为阶段被用户接受，组队及异常矩阵仍开放。普通地下城 #66 与场景地下城 #67 的完整范围不因本次接受而关闭；历史“循环未启动”的状态已失效。
 
 ## Target Outcome
 
@@ -37,4 +37,4 @@
 | --- | --- | --- | --- |
 | 普通地下城（GitHub #66） | 地图/难度开放、等级与疲劳准入、单人/组队原子入场、完成记录和验收 | `Document/plan/m16-normal-story-cycle-dungeons/normal-dungeon.md` | 🟡 |
 | 场景地下城（GitHub #67） | 任务绑定目标、剧情演出、任务推进和组队共享 | `Document/plan/m16-normal-story-cycle-dungeons/story-dungeon.md` | ⬜ |
-| 循环地下城（GitHub #68） | 区域地图池、随机选择、自动任务、奖励箱和组队模式 | `Document/plan/m16-normal-story-cycle-dungeons/cycle-dungeon.md` | ⬜ |
+| 循环地下城（GitHub #68） | 单人主线已接受；组队、跨区域及异常矩阵待验收 | `Document/plan/m16-normal-story-cycle-dungeons/cycle-dungeon.md` | 🟡 |

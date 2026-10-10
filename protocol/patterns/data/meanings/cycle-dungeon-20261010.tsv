@@ -1,0 +1,3 @@
+family	type	offset	meaning	confidence	source
+CMD	0x0308	0	循环候选地图ID（u32）	High	2026-10-09原始body54000000633B0000与PVF配对；构包RVA0231C84D；Document/CycleDungeon-20261009.md
+CMD	0x0308	4	循环任务ID（u32）	High	同一原始body对应任务15203；客户端响应后001F/0010链；Document/CycleDungeonCloseout-20261010.md
