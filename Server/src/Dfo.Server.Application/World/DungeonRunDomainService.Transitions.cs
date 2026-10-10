@@ -76,6 +76,7 @@ internal sealed partial class DungeonRunDomainService
                 run.Cells.TryAdd(target, cell); run.CurrentCell = target;
                 run.VisitedCells = run.VisitedCells.Add(target); run.RoomVersion++;
                 run.EntryRevision++; run.ReadyParticipants.Clear();
+                owner.mechanismWake?.Wake();
             }
             return ValueTask.CompletedTask;
         }

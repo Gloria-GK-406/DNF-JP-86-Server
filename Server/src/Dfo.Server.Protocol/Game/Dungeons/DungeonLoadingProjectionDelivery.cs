@@ -54,7 +54,8 @@ public sealed class DungeonLoadingProjectionDelivery(
     DungeonProjectionGate projectionGate,
     ICommandBus commands,
     WeaknessProjectionDelivery? weaknessProjection = null,
-    Dfo.Server.Protocol.Game.StateSynchronization.UsageQuotaProjectionDelivery? quotaProjection = null) : IDungeonLoadingProjectionDelivery
+    Dfo.Server.Protocol.Game.StateSynchronization.UsageQuotaProjectionDelivery? quotaProjection = null,
+    Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismProjectionDelivery? mechanismProjection = null) : IDungeonLoadingProjectionDelivery
 {
     public async ValueTask<bool> CompleteLoadingAsync(
         NetworkConnectionId connectionId,
@@ -129,6 +130,8 @@ public sealed class DungeonLoadingProjectionDelivery(
         // The direct response belongs to this frozen generation too. Keep both leases until the
         // frame has been accepted by the required connection, closing the validation/send race.
         await releaseClient(cancellationToken).ConfigureAwait(false);
+        if (mechanismProjection is not null)
+            await mechanismProjection.SendCurrentAsync(session, current!, cancellationToken).ConfigureAwait(false);
         if (current!.Layout.Mirror is not null && quotaProjection is not null)
             _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.MirrorDungeon,
                 cancellationToken).ConfigureAwait(false);

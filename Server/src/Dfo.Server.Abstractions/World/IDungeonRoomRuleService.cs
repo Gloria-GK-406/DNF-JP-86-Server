@@ -35,6 +35,7 @@ public sealed record DungeonRoomContents(
     ushort FirstActorSequence)
 {
     public IReadOnlyList<DungeonRoomObject> Objects { get; init; } = [];
+    public IReadOnlyList<DungeonRoomMechanismDefinition> Mechanisms { get; init; } = [];
 }
 
 /// <summary>

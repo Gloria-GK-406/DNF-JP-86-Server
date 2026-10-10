@@ -255,6 +255,12 @@ public sealed class ProtocolModule : IServerModule
         // check is only worth having while something says which assemblies it covers, and this
         // line is that something.
         services.AddNotificationCatalog(typeof(ProtocolModule).Assembly);
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.RoomMechanisms.ElevatorStateMessage,
+            Dfo.Server.Protocol.Game.RoomMechanisms.ElevatorStateEncoder>();
+        services.AddNotificationHandler<DungeonRoomMechanismsNotification,
+            Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismNotificationHandler>(retryLimit: 0);
+        services.TryAddSingleton<Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismProjectionDelivery>();
+        services.AddHostedService<Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismMaintenanceService>();
         services.AddNotificationCatalog(typeof(Dfo.Server.Abstractions.Mail.MailDelivered).Assembly);
         // BUY_ITEM adds to the client inventory. Replaying its acknowledgement could duplicate that addition.
         services.AddNotificationHandler<NpcShopPurchaseCompleted, NpcShopPurchaseCompletedHandler>(retryLimit: 0);

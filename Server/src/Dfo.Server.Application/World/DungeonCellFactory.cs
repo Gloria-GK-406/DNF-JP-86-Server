@@ -131,7 +131,7 @@ internal sealed class DungeonCellFactory(
             context.MapId,
             contents.FirstActorSequence,
             actors,
-            groundItems) { Objects = objects.ToArray(), HellGroups = hellGroups.ToArray() };
+            groundItems) { Objects = objects.ToArray(), HellGroups = hellGroups.ToArray(), Mechanisms = contents.Mechanisms };
         return await questBonus.ApplyAsync(context, seed, cancellationToken).ConfigureAwait(false);
     }
 }

@@ -199,6 +199,9 @@ public sealed class ApplicationModule : IServerModule
         // What a room declares, and what a run standing in it makes of that: the actor numbering,
         // the monster-or-ally boundary, and which of the declared pieces are still on the floor.
         services.TryAddSingleton<IDungeonRoomRuleService, DungeonRoomRuleService>();
+        services.TryAddSingleton<IDungeonRoomMechanismRuleService, DungeonRoomMechanismRuleService>();
+        services.TryAddSingleton<IDungeonRoomMechanismWakeSignal, DungeonRoomMechanismWakeSignal>();
+        services.AddRuntimeEventSubscriber<DungeonRoomMechanismsChanged, DungeonRoomMechanismNotificationSubscriber>();
         services.TryAddSingleton<IIllusionTowerRuleService, IllusionTowerRuleService>();
         services.TryAddSingleton<IIllusionTowerRewardRuleService, IllusionTowerRewardRuleService>();
         services.TryAddSingleton<IIllusionTowerRewardDomainService, IllusionTowerRewardDomainService>();

@@ -74,7 +74,13 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
             {
                 var declared = ParseOrdinaryObjects(ReadSection("map", mapId, Fields.PassiveObjectField), mapId).ToList();
                 ParseActions(ReadSection("map", mapId, Fields.SpecialPassiveObjectField), mapId, declared);
-                objects[mapId] = result = declared.ToImmutableArray();
+                objects[mapId] = result = declared.Select(obj => obj with
+                {
+                    // A21 00FE locates the built-in object code 1113, not a dungeon ID.
+                    Mechanism = obj.Code == 1113 && Paths("passiveobject").TryGetValue(obj.Code, out var path)
+                        && path.Replace('\\', '/').Equals("MapObject/Obstacle/ElevatorControl.obj", StringComparison.OrdinalIgnoreCase)
+                        ? Dfo.Server.Abstractions.World.DungeonRoomMechanismKind.Elevator : null,
+                }).ToImmutableArray();
             }
             return ValueTask.FromResult(result);
         }

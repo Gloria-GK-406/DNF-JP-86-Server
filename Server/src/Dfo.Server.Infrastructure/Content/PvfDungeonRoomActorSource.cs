@@ -95,8 +95,9 @@ internal sealed class PvfDungeonRoomActorSource(PvfArchiveProvider provider) : I
     private bool IsVerifiedSceneWave(int code)
     {
         if (!Paths("passiveobject").TryGetValue(code, out var path)) return false;
-        // Confirmed controller family; arbitrary OBJ [int data] is not enough evidence.
+        // Confirmed controller families; arbitrary OBJ [int data] is not enough evidence.
         var normalized = path.Replace('\\', '/').ToLowerInvariant();
+        if (code == 1112 && normalized == "mapobject/obstacle/elevatorsummon.obj") return true;
         if (!normalized.StartsWith("actionobject/map/gentdefence/", StringComparison.Ordinal)) return false;
         return Path.GetFileName(normalized) is "gentdefence_wave1.obj" or "gentdefence_wave1_2.obj"
             or "gentdefence_wave1_3.obj" or "gentdefence_wave2.obj" or "gentdefence_wave2_2.obj"

@@ -209,6 +209,7 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameElevatorState = 0x0000_00FE,
     GameMirrorDungeonEntry = 0x0001_02B6,
     GameMirrorDungeonMission = 0x0000_0278,
     GamePrepareCycleDungeonEntry = 0x0001_0308,

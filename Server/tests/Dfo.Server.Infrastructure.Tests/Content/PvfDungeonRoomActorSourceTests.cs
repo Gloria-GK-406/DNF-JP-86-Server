@@ -14,6 +14,24 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 /// </remarks>
 public sealed class PvfDungeonRoomActorSourceTests
 {
+    [SkippableFact]
+    public async Task Elevator_uses_one_blocking_aggregate_and_object_selected_mechanism()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var actors = await new PvfDungeonRoomActorSource(provider).GetAsync(16408, default);
+        var actor = Assert.Single(actors);
+        Assert.Equal(56716, actor.Code);
+        Assert.True(actor.Declaration!.IsSceneOwnedWave);
+        Assert.Equal(1112, actor.Declaration.ParentObjectCode);
+        var objects = await new PvfDungeonRoomDropSource(provider).GetObjectsAsync(16408, default);
+        var mechanism = Assert.Single(objects, obj => obj.Mechanism is not null);
+        Assert.Equal(1113, mechanism.Code);
+        Assert.Equal(Dfo.Server.Abstractions.World.DungeonRoomMechanismKind.Elevator, mechanism.Mechanism);
+        Assert.DoesNotContain(await new PvfDungeonRoomDropSource(provider).GetObjectsAsync(61000, default),
+            obj => obj.Mechanism is not null);
+    }
+
     private const int TutorialStartMap = 61000;
     private const int TutorialSecondMap = 61001;
     private const int TutorialThirdMap = 61002;

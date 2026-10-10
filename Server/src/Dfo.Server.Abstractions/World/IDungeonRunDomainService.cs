@@ -289,7 +289,10 @@ public sealed record DungeonActorDeathClaim(
     RoomActorId Actor,
     long Token,
     DungeonRunId RunId = default,
-    DungeonCellActorState? ActorState = null);
+    DungeonCellActorState? ActorState = null)
+{
+    public DateTimeOffset? OccurredAt { get; init; }
+}
 
 /// <summary>The ordered Cell change produced by one committed actor death.</summary>
 public sealed record DungeonActorDeathChange(
@@ -452,6 +455,8 @@ public readonly record struct GroundDropId(MazeCell Cell, ushort Number);
 /// </remarks>
 public interface IDungeonRunDomainService
 {
+    IReadOnlyList<DungeonRoomMechanismView> AdvanceRoomMechanisms(DateTimeOffset now) => [];
+
     ValueTask<bool> EndAsync(CharacterId characterId, DungeonRunId expectedRunId) =>
         ValueTask.FromResult(End(characterId, expectedRunId));
 

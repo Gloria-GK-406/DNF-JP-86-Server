@@ -17,7 +17,8 @@ internal sealed class DungeonRoomRuleService(
     IDungeonRoomActorSource roomActors,
     IDungeonRoomDropSource roomDrops,
     IObjectDropRuleService objectDrops,
-    IDungeonRoomObjectSource roomObjects) : IDungeonRoomRuleService
+    IDungeonRoomObjectSource roomObjects,
+    IDungeonRoomMechanismRuleService? mechanisms = null) : IDungeonRoomRuleService
 {
     /// <summary>Where an actor type stops being a monster and starts being an AI character.</summary>
     /// <remarks>
@@ -52,6 +53,7 @@ internal sealed class DungeonRoomRuleService(
             described = described.Concat(hell.Actors.Select(actor => new RoomActorDescription(actor.Actor,
                 actor.Actor.ActorType >= FirstAiCharacterActorType)
                 { IsHellTemplate = true, HellOrder = actor.Order, HellGroupIndex = actor.GroupIndex })).ToArray();
+        var objects = await roomObjects.GetObjectsAsync(context.MapId, cancellationToken).ConfigureAwait(false);
         return new DungeonRoomContents(
             described,
             [.. objectDrops.Draw(await roomDrops.GetAsync(
@@ -60,7 +62,9 @@ internal sealed class DungeonRoomRuleService(
                 .Select((drop, index) => new GroundDrop(checked((ushort)(index + 1)), drop))],
             this.FirstActorSequenceFor(context))
         {
-            Objects = await roomObjects.GetObjectsAsync(context.MapId, cancellationToken).ConfigureAwait(false),
+            Objects = objects,
+            Mechanisms = objects.Where(obj => obj.Mechanism is not null).Select(obj => obj.Mechanism!.Value)
+                .Distinct().Select(kind => (mechanisms ?? new DungeonRoomMechanismRuleService()).Define(kind)).ToArray(),
         };
     }
 

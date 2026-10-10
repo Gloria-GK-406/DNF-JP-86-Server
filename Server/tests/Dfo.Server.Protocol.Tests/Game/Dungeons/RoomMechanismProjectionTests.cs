@@ -1,0 +1,72 @@
+using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.World;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.RoomMechanisms;
+
+namespace Dfo.Server.Protocol.Tests.Game.Dungeons;
+
+public sealed class RoomMechanismProjectionTests
+{
+    [Theory]
+    [InlineData(0, DungeonRoomMechanismOutcome.Running)]
+    [InlineData(3, DungeonRoomMechanismOutcome.Normal)]
+    [InlineData(4, DungeonRoomMechanismOutcome.Crash)]
+    public void Elevator_frame_is_NOTI_FE_with_exactly_two_state_bytes(byte stage, DungeonRoomMechanismOutcome outcome)
+    {
+        var frame = Assert.Single(new ElevatorStateEncoder().Encode(new ElevatorStateMessage(stage, outcome)));
+        Assert.Equal(17, frame.Length);
+        Assert.Equal(0, frame[0]);
+        Assert.Equal(0x00FE, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));
+        Assert.Equal(new byte[] { stage, (byte)outcome }, frame[15..]);
+    }
+
+    [Fact]
+    public async Task Old_stage_room_or_session_cannot_overwrite_the_current_mechanism()
+    {
+        var session = new SelectedSessionIdentity(new(1), new(1), new("mechanism-original"), 1, 1, 10011);
+        var sessions = new Sessions(session);
+        var runs = new DungeonRunDomainService();
+        var cell = new MazeCell(0, 0);
+        var layout = new DungeonLayout(98765, 0, 1, 1, cell, cell, 12345, 9,
+            new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(12345) });
+        var definition = new DungeonRoomMechanismDefinition(DungeonRoomMechanismKind.Elevator, TimeSpan.FromSeconds(15), 4);
+        var seed = new DungeonCellSeed(cell, 12345, 1,
+            [new DungeonCellActorState(1, new(123, 1, 0), false, false, [])], []) { Mechanisms = [definition] };
+        var run = runs.PreparePartyEntry([new(session.AccountId, session.CharacterId, 0, true)],
+            layout, 0, seed, DungeonRunId.New(), DateTimeOffset.UtcNow).Run;
+        runs.TryMarkParticipantReady(session.CharacterId, run.RunId, 0);
+        var view = Assert.Single(runs.AdvanceRoomMechanisms(DateTimeOffset.UtcNow));
+        var handler = new RoomMechanismNotificationHandler(runs, sessions);
+        var recipient = new NotificationRecipient(session.CharacterId, session.ConnectionId, session);
+        Assert.Single(await handler.ComposeAsync(recipient, new(view), default));
+        Assert.Empty(await handler.ComposeAsync(recipient, new(view with { RoomVersion = 9 }), default));
+        Assert.Empty(await handler.ComposeAsync(recipient, new(view with { RunId = DungeonRunId.New() }), default));
+        var claim = Assert.IsType<DungeonActorDeathClaim>(runs.TryClaimActorDeath(session.CharacterId, 1));
+        runs.CommitActorDeathChange(claim);
+        Assert.Empty(await handler.ComposeAsync(recipient, new(view), default));
+        var ended = Assert.Single(runs.AdvanceRoomMechanisms(DateTimeOffset.UtcNow));
+        Assert.Single(await handler.ComposeAsync(recipient, new(ended), default));
+        sessions.Current = session with { ConnectionId = new("mechanism-replacement") };
+        Assert.Empty(await handler.ComposeAsync(recipient, new(ended), default));
+        runs.End(session.CharacterId);
+        Assert.Empty(await handler.ComposeAsync(recipient, new(ended), default));
+    }
+
+    private sealed class Sessions(SelectedSessionIdentity current) : ISelectedSessionDomainService
+    {
+        public SelectedSessionIdentity Current = current;
+        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId id) => Current.ConnectionId == id ? Current : null;
+        public SelectedSessionIdentity? FindByCharacter(CharacterId id) => Current.CharacterId == id ? Current : null;
+        public SelectedSessionIdentity? Find(AccountId id) => Current.AccountId == id ? Current : null;
+        public SelectedSessionIdentity? FindByWireUserId(ushort id) => Current.WireUserId == id ? Current : null;
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => throw new NotSupportedException();
+        public bool ReleaseExact(SelectedSessionIdentity session) => throw new NotSupportedException();
+    }
+}

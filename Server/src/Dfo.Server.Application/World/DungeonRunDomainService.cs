@@ -21,6 +21,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     private readonly IDungeonLifecycleDomainService? lifecycle;
     private readonly TimeProvider clock = TimeProvider.System;
     private readonly object gate = new();
+    private readonly IDungeonRoomMechanismRuleService mechanismRules = new DungeonRoomMechanismRuleService();
+    private readonly IDungeonRoomMechanismWakeSignal? mechanismWake;
     private readonly Dictionary<DungeonRunId, DateTimeOffset> wipeDeadlines = [];
     private readonly Dictionary<DungeonRunId, DateTimeOffset> clearReturnDeadlines = [];
     private readonly Dictionary<CharacterId, DungeonRunAggregate> runsByCharacter = new();
@@ -47,7 +49,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         IPartyService parties,
         IWeaknessDomainService? weakness = null,
         ICreatureRuntimeDomainService? creatures = null,
-        IDungeonLifecycleDomainService? lifecycle = null, TimeProvider? clock = null)
+        IDungeonLifecycleDomainService? lifecycle = null, TimeProvider? clock = null,
+        IDungeonRoomMechanismRuleService? mechanismRules = null, IDungeonRoomMechanismWakeSignal? mechanismWake = null)
     {
         this.transactions = transactions;
         this.parties = parties;
@@ -55,6 +58,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         this.creatures = creatures;
         this.lifecycle = lifecycle;
         this.clock = clock ?? TimeProvider.System;
+        this.mechanismRules = mechanismRules ?? new DungeonRoomMechanismRuleService();
+        this.mechanismWake = mechanismWake;
     }
 
     internal DungeonRunDomainService(IPartyService parties) => this.parties = parties;
@@ -343,6 +348,14 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             }
 
             aggregate.EntryRevision++;
+            if (aggregate.Participants.All(member => aggregate.ReadyParticipants.Contains(member.CharacterId)))
+            {
+                var cell = aggregate.Cells[aggregate.CurrentCell];
+                cell.Mechanisms = cell.Mechanisms.Select(state => this.mechanismRules.Start(state, this.clock.GetUtcNow())).ToArray();
+                if (cell.IsCleared)
+                    cell.Mechanisms = cell.Mechanisms.Select(state => this.mechanismRules.Complete(state, this.clock.GetUtcNow())).ToArray();
+                this.mechanismWake?.Wake();
+            }
             return aggregate.EntryChange(DungeonEntryChangeKind.ParticipantReady, characterId);
         }
     }
@@ -461,6 +474,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             || Math.Abs(target.X - aggregate.CurrentCell.X)
                 + Math.Abs(target.Y - aggregate.CurrentCell.Y) != 1
             || !aggregate.Layout.CanTraverse(aggregate.CurrentCell, target)
+            || aggregate.Cells[aggregate.CurrentCell].Mechanisms.Any(state =>
+                !this.mechanismRules.AllowsExit(state, aggregate.CurrentCell, target))
             || (preparedCell is not null
                 && (preparedCell.Cell != target || preparedCell.MapId <= 0
                     || (aggregate.Cells.TryGetValue(target, out var retained) && retained.MapId != preparedCell.MapId))))
@@ -489,6 +504,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         aggregate.RoomVersion++;
         aggregate.EntryRevision++;
         aggregate.ReadyParticipants.Clear();
+        this.mechanismWake?.Wake();
         return aggregate.ViewFor(characterId);
     }
 
@@ -706,7 +722,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                 actor,
                 token,
                 aggregate.RunId,
-                cell.FindActor(actorSequence));
+                cell.FindActor(actorSequence)) { OccurredAt = this.clock.GetUtcNow() };
         }
     }
 
@@ -749,6 +765,10 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                         !this.deathClaims.ContainsKey(new DeathClaimKey(
                             claim.RunId, new RoomActorId(claim.Actor.Cell, sequence))))
                     : [];
+            if (cell.IsCleared)
+                cell.Mechanisms = cell.Mechanisms.Select(state => this.mechanismRules.Complete(state,
+                    claim.OccurredAt ?? this.clock.GetUtcNow())).ToArray();
+            this.mechanismWake?.Wake();
             aggregate.RuntimeRevision++;
             var run = aggregate.ViewFor(claim.CharacterId);
             return new DungeonActorDeathChange(
@@ -1311,6 +1331,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         if (aggregate.ActiveParticipants.Count == 0)
         {
             this.runsById.Remove(aggregate.RunId);
+            this.mechanismWake?.Wake();
             this.clearReturnDeadlines.Remove(aggregate.RunId);
             this.wipeDeadlines.Remove(aggregate.RunId);
             this.ClearDeathClaims(aggregate.RunId);
@@ -1745,6 +1766,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     private sealed class DungeonCellAggregate
     {
         private readonly DungeonCellObjectState[] objects;
+        public IReadOnlyList<DungeonRoomMechanismState> Mechanisms { get; set; } = [];
         public readonly Dictionary<int, long> ObjectReservations = [];
         public readonly Dictionary<int, Queue<int>> ObjectQueues;
         private readonly Dictionary<ushort, DungeonCellActorState> actors;
@@ -1754,6 +1776,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
         public DungeonCellAggregate(DungeonCellSeed seed, Func<int, int> allocateGroundItemNumbers)
         {
+            this.Mechanisms = seed.Mechanisms.Select(definition => new DungeonRoomMechanismState(definition)).ToArray();
             this.objects = seed.Objects.Select(obj => obj with { PendingLoot = obj.PendingLoot.ToArray() }).ToArray();
             this.ObjectQueues = this.objects.Select((value, index) => (value, index))
                 .Where(entry => !entry.value.IsConsumed)
@@ -1905,6 +1928,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             [.. this.groundItems.Values.OrderBy(item => item.Number)],
             this.ClearOpen)
         {
+            Mechanisms = this.Mechanisms.ToArray(),
             Objects = this.objects.Select(obj => obj with { PendingLoot = obj.PendingLoot.ToArray() }).ToArray(),
             HellGroups = this.hellGroups.Values.OrderBy(group => group.GroupIndex)
                 .Select(group => group with { ActorSequences = group.ActorSequences.ToArray(), PendingLoot = group.PendingLoot.ToArray() }).ToArray(),
