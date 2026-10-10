@@ -1,7 +1,8 @@
 # 融合异界掉落策略
 
 日期：2026-10-10；分支 `task/monster-declaration-parser`；修改基准 `a472a70f`。
-用户授权按70风格实现，无需完全照搬；本轮仅修改代码和验证，未部署。
+用户授权按70风格实现，无需完全照搬；代码 `fa7acdee` 已部署，用户接受基础掉落表现。
+部署与一期验收边界见 [收尾记录](DimensionDungeonCloseout-20261010.md)。
 
 ## 设计与证据边界
 
@@ -45,4 +46,5 @@ CurrentImplementation：以下概率、分类权重、个人归属和翻牌策�
 - Application完整回归3577项通过、0跳过；补充真实职业池排除断言后，Release定向54项再次通过。Release解决方案构建0警告、0错误。
 - Protocol Release完整回归1439项通过、0跳过；结果在协议测试项目 `TestResults/dimension-drop-protocol.trx`。
 - 机器可读结果保存在应用测试项目 `TestResults/dimension-drop-application.trx`、`TestResults/dimension-drop-focused-release.trx`（不纳入版本库）。
-- 实机掉落分布和经济体验尚待部署后验收；自动化结果不是ClientVerified。
+- ClientVerified（有限范围）：用户于本次会话反馈“看起来符合预期了”，接受当前跨职业掉落的可见表现和单人基础可玩一期。
+- 自动化概率抽样不等于实机分布统计；五档长期命中率、经济平衡及多人归属隔离未因此验收。

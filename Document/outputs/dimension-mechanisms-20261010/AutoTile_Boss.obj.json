@@ -1,0 +1,54 @@
+{
+  "Path": "passiveobject/ActionObject/Map/DimentionGate/Cosmofiend/AutoTile_Boss.obj",
+  "Sections": [
+    {
+      "Tag": "[width]",
+      "Values": [
+        "100",
+        "65"
+      ]
+    },
+    {
+      "Tag": "[floating height]",
+      "Values": [
+        "0"
+      ]
+    },
+    {
+      "Tag": "[layer]",
+      "Values": [
+        "[bottom]"
+      ]
+    },
+    {
+      "Tag": "[pass type]",
+      "Values": [
+        "[pass all]"
+      ]
+    },
+    {
+      "Tag": "[team]",
+      "Values": [
+        "100"
+      ]
+    },
+    {
+      "Tag": "[piercing power]",
+      "Values": [
+        "1000"
+      ]
+    },
+    {
+      "Tag": "[layer level]",
+      "Values": [
+        "-2"
+      ]
+    },
+    {
+      "Tag": "[basic action]",
+      "Values": [
+        "Action/_AutoTile_Boss.act"
+      ]
+    }
+  ]
+}

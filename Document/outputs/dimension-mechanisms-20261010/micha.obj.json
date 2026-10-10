@@ -1,0 +1,41 @@
+{
+  "Path": "passiveobject/ActionObject/Monster/dimensiongate/blackearth/michaela/micha.obj",
+  "Sections": [
+    {
+      "Tag": "[layer]",
+      "Values": [
+        "[normal]"
+      ]
+    },
+    {
+      "Tag": "[pass type]",
+      "Values": [
+        "[pass all]"
+      ]
+    },
+    {
+      "Tag": "[piercing power]",
+      "Values": [
+        "1000"
+      ]
+    },
+    {
+      "Tag": "[basic action]",
+      "Values": [
+        "Action/micha.act"
+      ]
+    },
+    {
+      "Tag": "[name]",
+      "Values": [
+        "\u9752\u94DC\u77F3\u5DE8\u4EBA\u7684\u5B50\u5F39"
+      ]
+    },
+    {
+      "Tag": "[quest type]",
+      "Values": [
+        "[must be destroyed]"
+      ]
+    }
+  ]
+}

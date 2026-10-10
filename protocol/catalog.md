@@ -1,13 +1,14 @@
 # 协议清单
 
-## 2026-10-10 融合异界基础流程（CurrentImplementation，实机待测）
+## 2026-10-10 融合异界单人基础可玩一期接受
 
-DGN7100 继续使用 [CMD0010](game/client-to-server/0x0010.md) 普通入场；在 CMD 业务路由接入独立异界领域服务。
-成功准备后通过 DirectAsync 更新持久化 UsageQuota，失败及事务回滚不扣；[NOTI0326](game/server-to-client/NOTI-0x0326.md)
-推送普通/额外剩余次数，登录和每日周期切换刷新。装备候选及次数来自 PVF；后续掉落代码已改为全职业去重池、难度类别权重、精英概率与Boss基础/追加，不再锁定接收者职业。
-此后续变更未部署，数值是本服策略，非原生概率结论；见[掉落策略](../Document/DimensionDungeonDropPolicy-20261010.md)。
-服务端 PVF 修正 7100 起始房绑定错位；保留共用地图门校验，六房和 Boss/掉落生成有真实内容测试。
-客户端未改动，复杂机关、抗魔、随机异界尚不在验收范围。[实现与测试集](../Document/DimensionDungeon-20261010.md)。
+异界继续使用 [CMD0010](game/client-to-server/0x0010.md)，CMD 业务层按 PVF 的 [dimension dungeon] 分流独立领域服务；不只按7100硬编码。
+成功准备后 DirectAsync 更新持久化 UsageQuota，失败及事务回滚不扣；[NOTI0326](game/server-to-client/NOTI-0x0326.md)
+投影普通/额外剩余次数，登录及每日周期切换刷新。装备使用全职业去重池、难度类别权重、精英概率与Boss基础/追加掉落，翻牌亦取消职业锁池；数值为本服策略，非原生概率。
+当前代码 fa7acdee 已部署，用户接受已测试单人基础可玩一期与跨职业掉落表现（有限范围ClientVerified）；未新增逐字段归档实帧，不把耗尽、日切、多人或全部地图记为实机通过。
+抗魔不足削属性按用户观察归客户端行为，本期不重复实现服务端削属性；准确公式仍未闭合。
+专属机关与 [NOTI0222](game/server-to-client/NOTI-0x0222.md) 另由 [#145](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/145) 核查；不能把电梯协议泛化为所有机关。
+[实现](../Document/DimensionDungeon-20261010.md)、[掉落策略](../Document/DimensionDungeonDropPolicy-20261010.md)、[验收与机制边界](../Document/DimensionDungeonCloseout-20261010.md)。#74/#54继续开放。
 
 ## 2026-10-10 镜像阿拉德（CurrentImplementation，未部署）
 
