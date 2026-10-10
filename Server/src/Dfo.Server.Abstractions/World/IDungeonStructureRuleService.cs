@@ -121,6 +121,12 @@ public sealed record DungeonLayout(
     public DungeonEntryKind EntryKind { get; init; } = DungeonEntryKind.Normal;
     public HellEntryPlan? Hell { get; init; }
     public MirrorDungeonRunIdentity? Mirror { get; init; }
+    /// <summary>
+    /// Entry-frozen level for ordinary monsters. Null preserves MAP declarations;
+    /// APCs, dummy actors and special summon templates keep their own level rules.
+    /// Applied once by room rules, before the Cell freezes actors and loot.
+    /// </summary>
+    public byte? FixedMonsterLevel { get; init; }
     public ImmutableHashSet<int> NamedMonsterCodes { get; init; } = [];
 
     /// <summary>Both cells must expose the matching door, not just be adjacent on the grid.</summary>

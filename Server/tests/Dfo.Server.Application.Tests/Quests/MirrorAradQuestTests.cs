@@ -227,6 +227,7 @@ public sealed class MirrorAradQuestTests
     private sealed class CatalogRules(MirrorDungeonCatalog catalog) : IMirrorDungeonRuleService
     {
         public MirrorDungeonCatalog Catalog => catalog;
+        public byte ResolveRunLevel(IReadOnlyCollection<byte> levels) => throw new NotSupportedException();
         public ValueTask<MirrorDungeonEntryRule?> ResolveAsync(int dungeonId, int questId, CancellationToken ct) => throw new NotSupportedException();
     }
 
@@ -265,6 +266,7 @@ public sealed class MirrorAradQuestTests
     }
     private sealed class MirrorRules : IMirrorDungeonRuleService
     {
+        public byte ResolveRunLevel(IReadOnlyCollection<byte> levels) => throw new NotSupportedException();
         public MirrorDungeonCatalog Catalog { get; } = new(8000, 31, 21, 2, 55, 10, 5,
             new(5, 3037, 10), [new(55, 86, [new(10100301, 1)])], [new(32, 14299)]);
         public ValueTask<MirrorDungeonEntryRule?> ResolveAsync(int dungeonId, int questId, CancellationToken ct) => throw new NotSupportedException();

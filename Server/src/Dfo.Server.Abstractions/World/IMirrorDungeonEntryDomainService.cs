@@ -25,6 +25,8 @@ public interface IMirrorDungeonDefinitionSource
 public interface IMirrorDungeonRuleService
 {
     MirrorDungeonCatalog Catalog { get; }
+    /// <summary>Freeze the run level from validated participants, without reading live character state.</summary>
+    byte ResolveRunLevel(IReadOnlyCollection<byte> participantLevels);
     ValueTask<MirrorDungeonEntryRule?> ResolveAsync(int dungeonId, int questId, CancellationToken cancellationToken);
 }
 

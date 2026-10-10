@@ -42,6 +42,7 @@ internal sealed class MirrorDungeonEntryDomainService(IMirrorDungeonRuleService 
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite, "Mirror selection context is not current.");
 
         var selected = new List<Dfo.Server.Data.World.SelectedSessionIdentity>();
+        var participantLevels = new List<byte>(context.Participants.Count);
         foreach (var member in context.Participants)
         {
             var session = sessions.Find(member.AccountId);
@@ -56,6 +57,7 @@ internal sealed class MirrorDungeonEntryDomainService(IMirrorDungeonRuleService 
             var progress = await characters.Get(member.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
             if (progress is null || progress.Level < catalog.MinimumLevel)
                 return new(null, DungeonEntryFailure.LevelTooLow, member.Slot);
+            participantLevels.Add(progress.Level);
             var cleared = await quests.LogOf(member.AccountId, member.CharacterId).ClearedAsync(cancellationToken).ConfigureAwait(false);
             if (catalog.RequiredQuestIds.Any(id => !cleared.Any(x => x.QuestId == id && x.Mark != 0)))
                 return new(null, DungeonEntryFailure.MissingPrerequisite, member.Slot);
@@ -76,7 +78,13 @@ internal sealed class MirrorDungeonEntryDomainService(IMirrorDungeonRuleService 
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message);
         }
         if (layout is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, "Mirror historical maze unavailable.");
-        layout = layout with { Mirror = new(catalog.WrapperDungeonId, catalog.WorldMapId, context.MirrorQuestId.Value) };
+        var runLevel = rules.ResolveRunLevel(participantLevels);
+        layout = layout with
+        {
+            Mirror = new(catalog.WrapperDungeonId, catalog.WorldMapId, context.MirrorQuestId.Value),
+            FixedMonsterLevel = runLevel,
+            BasisLevel = runLevel,
+        };
         if (selected.Any(x => sessions.Find(x.AccountId) != x))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite, "Mirror participants changed during entry.");
         var attempt = await visits.TryEnterPreparedPartyAsync(context.Participants, layout, facts, cancellationToken).ConfigureAwait(false);

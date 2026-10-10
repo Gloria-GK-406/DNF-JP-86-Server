@@ -92,6 +92,49 @@ public sealed class WorldContentArchiveTests
         Assert.True(Assert.Single(relative.Actors, actor => actor.Actor.Code == 59753).IsNamedMonster);
     }
 
+    [SkippableTheory]
+    [InlineData(4)]
+    [InlineData(17)]
+    [InlineData(23)]
+    [InlineData(60)]
+    public async Task Historical_mirror_rooms_override_old_absolute_levels_without_mutating_PVF(int dungeonId)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var scope = ContentArchive.CreateContentProvider();
+        var actors = scope.GetRequiredService<IDungeonRoomActorSource>();
+        var rooms = new DungeonRoomRuleService(actors,
+            scope.GetRequiredService<IDungeonRoomDropSource>(),
+            new ObjectDropRuleService(scope.GetRequiredService<IDropRateTableSource>(),
+                scope.GetRequiredService<IGoldDropTableSource>(), scope.GetRequiredService<IDropItemPoolSource>(), new()),
+            scope.GetRequiredService<IDungeonRoomObjectSource>());
+        var structures = new DungeonStructureRuleService(scope.GetRequiredService<IDungeonDefinitionSource>(),
+            scope.GetRequiredService<IDungeonMapDefinitionSource>());
+        var original = Assert.IsType<DungeonLayout>(await structures.ResolveAsync(
+            dungeonId, DungeonEntryFacts.None, 42, default));
+        var layout = original with { BasisLevel = 86, FixedMonsterLevel = 86, Mirror = new(8000, 31, 14299) };
+        var scaled = 0;
+        foreach (var cell in layout.Cells)
+        foreach (var map in cell.Value.MapCandidates.Concat(cell.Value.BossMapCandidates).Distinct())
+        {
+            var before = (await actors.GetAsync(map, default)).ToArray();
+            var contents = await rooms.DescribeAsync(new(DungeonRunId.New(), layout, cell.Key, map,
+                0, DateTimeOffset.UnixEpoch, []), default);
+            for (var index = 0; index < before.Length; index++)
+            {
+                var actor = before[index];
+                if (actor.ActorType > 3 || actor.Declaration is { IsDummy: true }
+                    || actor.Declaration is { Source: not (DungeonActorSpawnSource.Monster or DungeonActorSpawnSource.ConditionalMonster) }) continue;
+                Assert.Equal((byte)86, contents.Actors[index].Actor.Level);
+                Assert.Null(contents.Actors[index].Actor.BasisLevelOffset);
+                scaled++;
+            }
+            Assert.Equal(before, await actors.GetAsync(map, default));
+        }
+        Assert.True(scaled > 0);
+        Assert.Equal((byte)55, original.BasisLevel);
+        Assert.Null(original.FixedMonsterLevel);
+    }
+
     [SkippableFact]
     public async Task A_high_level_character_is_offered_a_different_quest_set_than_a_low_level_one()
     {

@@ -144,6 +144,18 @@ public sealed class DungeonEntryCodecTests
         Assert.Equal(0, body[9]);
     }
 
+    [Fact]
+    public void Mirror_start_map_serializes_final_monster_level_without_overriding_APC_level()
+    {
+        var layout = Tutorial with { BasisLevel = 86, FixedMonsterLevel = 86, Mirror = new(8000, 31, 14299) };
+        var run = AtStart with { Layout = layout };
+        DungeonRoomActor[] actors = [new(61670, 86, 0), new(461, 26, 5)];
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(
+            run, true, Rooms.Describe(actors), FirstSequence, NoDrops);
+        Assert.Equal((byte)86, body[19 + 12]);
+        Assert.Equal((byte)26, body[19 + 21 + 12]);
+    }
+
     /// <summary>
     /// A room's actors reach the client, twenty-one bytes each, numbered from the run's base.
     /// </summary>

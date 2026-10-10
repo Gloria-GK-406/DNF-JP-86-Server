@@ -9,6 +9,15 @@ internal sealed class MirrorDungeonRuleService(IMirrorDungeonDefinitionSource so
 {
     public MirrorDungeonCatalog Catalog => source.Load();
 
+    public byte ResolveRunLevel(IReadOnlyCollection<byte> participantLevels)
+    {
+        ArgumentNullException.ThrowIfNull(participantLevels);
+        if (participantLevels.Count is < 1 or > 4 || participantLevels.Contains((byte)0))
+            throw new ArgumentOutOfRangeException(nameof(participantLevels));
+        // Server policy: the strongest participant sets one shared level for the run.
+        return participantLevels.Max();
+    }
+
     public async ValueTask<MirrorDungeonEntryRule?> ResolveAsync(int dungeonId, int questId,
         CancellationToken cancellationToken)
     {

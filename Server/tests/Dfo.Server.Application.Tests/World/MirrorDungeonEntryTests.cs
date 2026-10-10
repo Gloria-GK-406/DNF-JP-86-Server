@@ -108,6 +108,8 @@ public sealed class MirrorDungeonEntryTests
         Assert.Equal(1, visits.Calls);
         Assert.Equal(32, visits.Layout!.DungeonId);
         Assert.Equal(new MirrorDungeonRunIdentity(8000, 31, 14299), visits.Layout.Mirror);
+        Assert.Equal((byte)85, visits.Layout.FixedMonsterLevel);
+        Assert.Equal((byte)85, visits.Layout.BasisLevel);
         Assert.Equal(DungeonDifficulty.Tier3, visits.Facts!.Difficulty);
         Assert.Equal(DungeonEntryIntentKind.Interactive, visits.Facts.Intent.Kind);
         Assert.Equal(visitRefused ? 0 : 1, quota.Reservations);
@@ -124,6 +126,47 @@ public sealed class MirrorDungeonEntryTests
         quota.FailReservation = true;
         await using var transaction = fixture.Scope.Begin();
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await service.EnterAsync(Context(), default));
+    }
+
+    [Theory]
+    [InlineData(new byte[] { 86 }, 86)]
+    [InlineData(new byte[] { 55, 86 }, 86)]
+    [InlineData(new byte[] { 86, 55 }, 86)]
+    [InlineData(new byte[] { 55, 60, 70, 80 }, 80)]
+    public void Run_level_uses_the_highest_validated_participant(byte[] levels, byte expected)
+    {
+        var rules = new MirrorDungeonRuleService(null!, null!, null!);
+        Assert.Equal(expected, rules.ResolveRunLevel(levels));
+    }
+
+    [Theory]
+    [InlineData(new byte[] { })]
+    [InlineData(new byte[] { 0, 86 })]
+    [InlineData(new byte[] { 55, 60, 70, 80, 86 })]
+    public void Invalid_participant_levels_cannot_be_frozen(byte[] levels) =>
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new MirrorDungeonRuleService(null!, null!, null!).ResolveRunLevel(levels));
+
+    [Fact]
+    public async Task Entry_freezes_party_level_before_visit_and_leaves_content_layout_unchanged()
+    {
+        await using var fixture = new LearningFixture();
+        await fixture.SeedAsync();
+        var scale = fixture.Services.GetRequiredService<IExperienceRuleService>().CharacterScale();
+        fixture.Sql($"UPDATE characters SET level=55,exp={scale.ExperienceForLevel(55)} WHERE character_id=71; UPDATE characters SET level=86,exp={scale.ExperienceForLevel(86)} WHERE character_id=72;");
+        var (service, visits, _) = Create(fixture);
+        await using (var transaction = fixture.Scope.Begin())
+        {
+            Assert.NotNull((await service.EnterAsync(Context(), default)).Entry);
+            await transaction.CommitAsync(default);
+        }
+        fixture.Sql($"UPDATE characters SET level=85,exp={scale.ExperienceForLevel(85)} WHERE character_id=72;");
+        Assert.Equal((byte)85, (await fixture.Services.GetRequiredService<ICharacterDomainService>()
+            .Get(new(72)).ProgressAsync(default))!.Level);
+        Assert.Equal((byte)86, visits.Layout!.FixedMonsterLevel);
+        Assert.Equal((byte)86, visits.Layout.BasisLevel);
+        Assert.Null(Layout.FixedMonsterLevel);
+        Assert.Equal((byte)1, Layout.BasisLevel);
     }
 
     private static readonly DungeonRunParticipant[] Participants = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)];
@@ -154,6 +197,8 @@ public sealed class MirrorDungeonEntryTests
     private sealed class Rules : IMirrorDungeonRuleService
     {
         public MirrorDungeonCatalog Catalog => MirrorDungeonEntryTests.Catalog;
+        public byte ResolveRunLevel(IReadOnlyCollection<byte> levels) =>
+            new MirrorDungeonRuleService(null!, null!, null!).ResolveRunLevel(levels);
         public ValueTask<MirrorDungeonEntryRule?> ResolveAsync(int dungeonId, int questId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<MirrorDungeonEntryRule?>(dungeonId == 32 && questId == 14299 ? new(Catalog, DungeonDifficulty.Tier3) : null);
     }

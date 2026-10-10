@@ -40,7 +40,7 @@ internal sealed class DungeonRoomRuleService(
         var resolved = declared.Select(actor => actor.ActorType < FirstAiCharacterActorType
             ? actor with
             {
-                Level = context.Layout.LevelOf(actor.Level, actor.BasisLevelOffset),
+                Level = ResolveMonsterLevel(context.Layout, actor),
                 BasisLevelOffset = null,
             }
             : actor).ToArray();
@@ -66,6 +66,18 @@ internal sealed class DungeonRoomRuleService(
             Mechanisms = objects.Where(obj => obj.Mechanism is not null).Select(obj => obj.Mechanism!.Value)
                 .Distinct().Select(kind => (mechanisms ?? new DungeonRoomMechanismRuleService()).Define(kind)).ToArray(),
         };
+    }
+
+    private static byte ResolveMonsterLevel(DungeonLayout layout, DungeonRoomActor actor)
+    {
+        // Object templates and conditional summons may be script-owned helpers/controllers.
+        // Do not turn them into scaled combat monsters merely because their rank is 0..3.
+        if (layout.FixedMonsterLevel is byte level && level > 0 && actor.ActorType <= 3
+            && actor.Declaration is not { IsDummy: true }
+            && (actor.Declaration is null || actor.Declaration.Source is
+                DungeonActorSpawnSource.Monster or DungeonActorSpawnSource.ConditionalMonster))
+            return level;
+        return layout.LevelOf(actor.Level, actor.BasisLevelOffset);
     }
 
     public IReadOnlyList<RoomActorDescription> Describe(IReadOnlyList<DungeonRoomActor> declared)
