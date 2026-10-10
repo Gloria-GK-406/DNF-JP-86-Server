@@ -1,3 +1,4 @@
+using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -483,11 +484,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         new(1776, "", null, null, null, null, null, null, [], "hunt enemy", "",
             null, null, null, null, null, null, null, [], [], [], [],
             InitialTrigger: 1,
-            HuntEnemyRequirements:
-            [
-                new HuntEnemyRequirement(
-                    144, -1, 13099, enemyType, 1),
-            ]);
+            KillObjectives: QuestKillObjectiveParser.Parse("hunt enemy", [144, -1, 13099, enemyType, 1]));
 
     private sealed class OneQuestDefinition(QuestDefinition definition)
         : IQuestDefinitionDomainService

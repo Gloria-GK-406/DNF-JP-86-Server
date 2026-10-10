@@ -88,7 +88,7 @@ public interface IExpertSkillContractReconciliationRepository
 
 public sealed record CharacterActiveQuestStorageRow(short Slot, int QuestId, int TriggerValue);
 
-public sealed record SeekingQuestTriggerUpdate(short Slot, int QuestId, int Before, int After);
+public sealed record QuestTriggerUpdate(short Slot, int QuestId, int Before, int After);
 
 public sealed record PetRevivalMutation(long CreatureKey, int Before, int After);
 

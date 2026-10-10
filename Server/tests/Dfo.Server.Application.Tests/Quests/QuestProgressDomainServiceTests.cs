@@ -1,3 +1,4 @@
+using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
@@ -11,6 +12,48 @@ namespace Dfo.Server.Application.Tests.Quests;
 
 public sealed class QuestProgressDomainServiceTests
 {
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData(13, false)]
+    [InlineData(31, true)]
+    public async Task Regional_hunts_require_verified_region_context(int? worldMapId, bool matches)
+    {
+        var logs = new RecordingQuestLogs
+        {
+            Carried = { [Character.Value] = [new CarriedQuest(0, 2004, 5)] },
+        };
+        var result = await Service(logs, new FixedClientReport(QuestAdvance.Refused)).ReportAsync(
+            Account, Character,
+            [new QuestEnemyDefeated(8000, 0, 100, HuntEnemyTargetTypes.Monster,
+                MonsterRank.Boss, WorldMapId: worldMapId)], default);
+        if (matches)
+            Assert.Equal([new QuestProgressChange(2004, 5, 4)], result.Changes);
+        else
+        {
+            Assert.Empty(result.Changes);
+            Assert.Null(result.NotificationSnapshot);
+            Assert.Empty(logs.ProgressWrites);
+        }
+    }
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public async Task Recommended_hunts_do_not_guess_missing_level_context(bool? recommended, bool matches)
+    {
+        var logs = new RecordingQuestLogs
+        {
+            Carried = { [Character.Value] = [new CarriedQuest(0, 2005, 2)] },
+        };
+        var result = await Service(logs, new FixedClientReport(QuestAdvance.Refused)).ReportAsync(
+            Account, Character,
+            [new QuestEnemyDefeated(144, 0, 100, HuntEnemyTargetTypes.Monster,
+                MonsterRank.Boss, IsRecommendedDungeon: recommended)], default);
+        Assert.Equal(matches ? 1 : 0, result.Changes.Count);
+        Assert.Equal(matches ? 1 : 2, Assert.Single(logs.Carried[Character.Value]).TriggerValue);
+    }
+
     private static readonly AccountId Account = new(6);
     private static readonly CharacterId Character = new(60);
 
@@ -220,16 +263,18 @@ public sealed class QuestProgressDomainServiceTests
                 ? new QuestDefinition(
                     1776, "", null, null, null, null, null, null, [], "hunt enemy", "",
                     null, null, null, null, null, null, null, [], [], [], [],
-                    HuntEnemyRequirements:
-                    [new HuntEnemyRequirement(
-                        144, -1, 13099, HuntEnemyTargetTypes.Monster, 1)])
+                    KillObjectives: QuestKillObjectiveParser.Parse("hunt enemy", [144, -1, 13099, HuntEnemyTargetTypes.Monster, 1]))
                 : questId == 2001
                 ? new QuestDefinition(
                     2001, "", null, null, null, null, null, null, [], "hunt monster", "",
                     null, null, null, null, null, null, null, [], [], [], [],
-                    HuntMonsterRequirements:
-                    [new HuntMonsterRequirement(144, 1, 13099, 2),
-                     new HuntMonsterRequirement(144, 1, -3, 1)])
+                    KillObjectives: QuestKillObjectiveParser.Parse("hunt monster", [144, 1, 13099, 2, 144, 1, -3, 1]))
+                : questId is 2004 or 2005
+                ? new QuestDefinition(
+                    questId, "", null, null, null, null, null, null, [], "hunt monster", "",
+                    null, null, null, null, null, null, null, [], [], [], [],
+                    KillObjectives: QuestKillObjectiveParser.Parse("hunt monster", questId == 2004
+                        ? [-2, 31, -1, -3, 5] : [-3, -1, -3, 2]))
                 : questId == 2002
                 ? new QuestDefinition(
                     2002, "", null, null, null, null, null, null, [], "clear quest", "",

@@ -16,11 +16,51 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Persistence.Tests.Support;
+using Dfo.Server.Infrastructure.Content;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
 public sealed class SelectCharacterEntryLifecycleServiceTests
 {
+    [Theory]
+    [InlineData(509, 5)]
+    [InlineData(5, 5)]
+    [InlineData(4, 4)]
+    [InlineData(0, 0)]
+    public async Task Quest_entry_repairs_only_out_of_range_regional_residuals(int before, int after)
+    {
+        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(602), 602, 1);
+        result = result with
+        {
+            CharacterEntry = result.CharacterEntry with
+            {
+                Quests = result.CharacterEntry.Quests with
+                {
+                    ActiveQuests = [new CharacterQuestProgressState(0, 14396, before)]
+                }
+            }
+        };
+        var logs = new RecordingQuestLogs
+        {
+            Carried = { [602] = [new CarriedQuest(0, 14396, before)] },
+        };
+        var source = new QuestSource(new Dictionary<int, IReadOnlyList<SeekingItemRequirement>>
+            { [14396] = [] }, QuestKillObjectiveParser.Parse("hunt monster", [-2, 31, -1, -3, 5]));
+        var service = new SelectCharacterQuestEntryService(new QuestContentRuleService(source, new NoQuestParameters()), logs);
+        var projection = await service.SynchronizeAsync(Session(result), result, default);
+        if (before == after)
+        {
+            Assert.Null(projection);
+            Assert.Empty(logs.ProgressWrites);
+        }
+        else
+        {
+            Assert.Equal([(new CarriedQuest(0, 14396, before), after)], logs.ProgressWrites);
+            Assert.Equal((uint)after, Assert.Single(projection!.State.Quests).TriggerValue);
+            Assert.Equal(after, Assert.Single(projection.Result.CharacterEntry.Quests.ActiveQuests).TriggerValue);
+        }
+    }
+
     [Fact]
     public async Task FreshEntryReloadsInventoryWithoutCarryingThePreviousSessionCopy()
     {
@@ -324,7 +364,8 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
     }
 
     private sealed class QuestSource(
-        IReadOnlyDictionary<int, IReadOnlyList<SeekingItemRequirement>> requirements)
+        IReadOnlyDictionary<int, IReadOnlyList<SeekingItemRequirement>> requirements,
+        QuestKillObjectiveDefinition? killObjectives = null)
         : IQuestDefinitionSource
     {
         public ValueTask<IReadOnlyList<QuestDefinition>> GetAllAsync(CancellationToken cancellationToken) =>
@@ -333,7 +374,8 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         public ValueTask<QuestDefinition?> GetAsync(int questId, CancellationToken cancellationToken) =>
             ValueTask.FromResult(requirements.TryGetValue(questId, out var values)
                 ? new QuestDefinition(questId, "", null, null, null, null, null, null, [], "", "",
-                    null, null, null, null, null, null, null, [], [], [], [], SeekingItems: values)
+                    null, null, null, null, null, null, null, [], [], [], [], SeekingItems: values,
+                    KillObjectives: killObjectives)
                 : null);
 
         public ValueTask<IReadOnlyList<TrainingQuestAvailability>> GetTrainingAvailabilityAsync(

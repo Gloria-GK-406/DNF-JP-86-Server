@@ -34,6 +34,9 @@ public enum QuestRefusal
 
     /// <summary>It has been finished already, and it is not one that comes back.</summary>
     AlreadyCleared,
+
+    /// <summary>The kill declaration is malformed or uses an unresolved target rule.</summary>
+    UnsupportedObjective,
 }
 
 /// <summary>What became of one attempt to take a quest on.</summary>

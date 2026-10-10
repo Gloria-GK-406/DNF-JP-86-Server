@@ -15,7 +15,9 @@ public sealed record ClientQuestTriggerReport(int QuestId, byte Selector, bool I
 /// <summary>An actor death already claimed and verified by the dungeon run.</summary>
 public sealed record QuestEnemyDefeated(
     int DungeonId, DungeonDifficulty Difficulty, int EnemyCode, int EnemyType,
-    MonsterRank? Rank = null) : QuestProgressFact;
+    MonsterRank? Rank = null,
+    int? WorldMapId = null,
+    bool? IsRecommendedDungeon = null) : QuestProgressFact;
 
 /// <summary>The run opened its clear after the boss room was verified empty.</summary>
 public sealed record QuestDungeonCleared(int DungeonId, DungeonDifficulty Difficulty) : QuestProgressFact;

@@ -54,10 +54,9 @@ internal static class QuestObjectives
     /// whole-word selector, and <c>seek n meet npc</c> is client-counted for the middle channel
     /// and derived for anything else.
     ///
-    /// <c>hunt enemy</c> is in neither: the reference server reads a per-quest flag to decide
-    /// whether the client or the server counts it, and this server does not read that flag. It
-    /// falls to the default, which counts it here -- the objective goes unprogressed rather than
-    /// being progressed on the client's word.
+    /// Kill objectives use the normalized target model in the QuestDefinition overload below.
+    /// Monster and AI deaths are server-owned; passive story objects require a validated client
+    /// channel report and the current quest-linked dungeon context.
     /// </remarks>
     private static readonly HashSet<string> ClientCounted =
     [
@@ -126,43 +125,19 @@ internal static class QuestObjectives
             return QuestTrigger.IsReportable(selector)
                 ? QuestObjectiveAuthority.Server
                 : QuestObjectiveAuthority.None;
-        if (Normalize(definition.ObjectiveTypeCode) != "hunt enemy")
+        if (definition.KillObjectives.Status == QuestKillParseStatus.NotApplicable)
             return AuthorityOver(definition.ObjectiveTypeCode, selector);
-        if (!QuestTrigger.IsReportable(selector))
+        var selectedTargets = QuestKillObjectiveRules.Select(definition.KillObjectives, selector);
+        if (selectedTargets is null)
             return QuestObjectiveAuthority.None;
-
-        var targets = definition.HuntEnemyRequirements;
-        if (targets.Count == 0)
-            return QuestObjectiveAuthority.Server;
-
-        IEnumerable<HuntEnemyRequirement> selectedTargets;
-        if (selector is 0 or 1)
-        {
-            selectedTargets = targets;
-        }
-        else
-        {
-            var selected = new List<HuntEnemyRequirement>(QuestTrigger.ChannelCount);
-            for (var index = 0; index < QuestTrigger.ChannelCount; index++)
-            {
-                var mask = 0x10 << index;
-                if ((selector & mask) == 0)
-                    continue;
-                if (index >= targets.Count)
-                    return QuestObjectiveAuthority.None;
-                selected.Add(targets[index]);
-            }
-
-            selectedTargets = selected;
-        }
 
         var authority = QuestObjectiveAuthority.None;
         foreach (var target in selectedTargets)
         {
-            if (target.EnemyCode <= 0)
+            if (target.Target.Kind == QuestKillTargetKind.Unresolved)
                 return QuestObjectiveAuthority.None;
 
-            var targetAuthority = target.EnemyType switch
+            var targetAuthority = target.Target.EnemyType switch
             {
                 HuntEnemyTargetTypes.Monster or HuntEnemyTargetTypes.AiCharacter =>
                     QuestObjectiveAuthority.Server,

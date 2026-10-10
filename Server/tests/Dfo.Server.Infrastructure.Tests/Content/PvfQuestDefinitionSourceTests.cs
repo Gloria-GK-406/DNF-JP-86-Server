@@ -403,10 +403,11 @@ public sealed class PvfQuestDefinitionSourceTests
 
         Assert.NotNull(quest);
         Assert.Equal("hunt enemy", quest!.ObjectiveTypeCode);
-        Assert.Equal(
-            [new HuntEnemyRequirement(
-                144, -1, 13099, HuntEnemyTargetTypes.PassiveObject, 1)],
-            quest.HuntEnemyRequirements);
+        var target = Assert.Single(quest.KillObjectives.Targets);
+        Assert.Equal(QuestKillParseStatus.Parsed, quest.KillObjectives.Status);
+        Assert.Equal(new QuestKillScope(QuestKillScopeKind.Dungeon, 144), target.Scope);
+        Assert.Equal(new QuestKillTarget(QuestKillTargetKind.Exact, 13099, HuntEnemyTargetTypes.PassiveObject), target.Target);
+        Assert.Equal(1, target.RequiredCount);
     }
 
     [SkippableFact]

@@ -1,3 +1,4 @@
+using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
@@ -48,11 +49,7 @@ public sealed class QuestTriggerDomainServiceTests
         new(1776, "", null, null, null, null, null, null, [], "hunt enemy", "",
             null, null, null, null, null, null, null, [], [], [], [],
             InitialTrigger: 1,
-            HuntEnemyRequirements:
-            [
-                new HuntEnemyRequirement(
-                    144, -1, 13099, HuntEnemyTargetTypes.PassiveObject, 1),
-            ]);
+            KillObjectives: QuestKillObjectiveParser.Parse("hunt enemy", [144, -1, 13099, HuntEnemyTargetTypes.PassiveObject, 1]));
 
     private static DungeonLayout Layout(DungeonRunPurpose purpose) =>
         new(

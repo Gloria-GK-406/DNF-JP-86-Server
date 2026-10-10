@@ -174,24 +174,6 @@ public static class HuntEnemyTargetTypes
     public const int PassiveObject = 3;
 }
 
-/// <summary>
-/// One <c>[hunt enemy]</c> target. <paramref name="EnemyType"/> is the actor family above; it is
-/// not the monster rank carried by room actors.
-/// </summary>
-public sealed record HuntEnemyRequirement(
-    int DungeonId,
-    int Difficulty,
-    int EnemyCode,
-    int EnemyType,
-    int Count);
-
-/// <summary>One four-field <c>[hunt monster]</c> objective from the quest archive.</summary>
-public sealed record HuntMonsterRequirement(
-    int DungeonId,
-    int MinimumDifficulty,
-    int MonsterCode,
-    int Count);
-
 /// <summary>One verified dungeon clear required by a subtype-6 clear objective.</summary>
 public sealed record DungeonClearRequirement(int DungeonId, int Difficulty);
 
@@ -237,11 +219,10 @@ public sealed record QuestDefinition(
     uint InitialTrigger = 1,
     IReadOnlyList<QuestEventItem>? EventItems = null,
     bool PaysAtCharacterLevel = false,
-    IReadOnlyList<HuntEnemyRequirement>? HuntEnemyRequirements = null,
+    QuestKillObjectiveDefinition? KillObjectives = null,
     QuestItemRewardDefinition? ItemRewards = null,
     int GoldMultiplier = 0,
     IReadOnlyList<QuestEnemyRewardItem>? EnemyRewardItems = null,
-    IReadOnlyList<HuntMonsterRequirement>? HuntMonsterRequirements = null,
     IReadOnlyList<int>? ClearedQuestRequirements = null,
     DungeonClearRequirement? DungeonClearRequirement = null)
 {
@@ -253,17 +234,21 @@ public sealed record QuestDefinition(
 
     public bool AppliesToAnyGrowType => GrowTypeRequirement is null;
 
-    public IReadOnlyList<HuntEnemyRequirement> HuntEnemyRequirements { get; init; }
-        = HuntEnemyRequirements ?? [];
+    public QuestKillObjectiveDefinition KillObjectives { get; init; }
+        = KillObjectives ?? QuestKillObjectiveDefinition.NotApplicable;
+
+    private uint initialTrigger = InitialTrigger;
+    public uint InitialTrigger
+    {
+        get => KillObjectives.InitialTrigger ?? initialTrigger;
+        init => initialTrigger = value;
+    }
 
     public QuestItemRewardDefinition ItemRewards { get; init; }
         = ItemRewards ?? QuestItemRewardDefinition.Empty;
 
     public IReadOnlyList<QuestEnemyRewardItem> EnemyRewardItems { get; init; }
         = EnemyRewardItems ?? [];
-
-    public IReadOnlyList<HuntMonsterRequirement> HuntMonsterRequirements { get; init; }
-        = HuntMonsterRequirements ?? [];
 
     public IReadOnlyList<int> ClearedQuestRequirements { get; init; }
         = ClearedQuestRequirements ?? [];
