@@ -1048,3 +1048,7 @@ CMD [0012](game/client-to-server/0x0012.md)增加operation=3特效消费；晶�
 |---|---|---|---|---|
 | NOTI | 0x042D | WeeklyAttendanceStateMessage | ClientStatic 450B及偏移；CurrentImplementation 状态刷新，未ClientVerified | [042D](game/server-to-client/NOTI-0x042D.md) |
 | CMD | 0x0441 | WeeklyAttendanceRequest / WeeklyAttendanceResponse | ClientStatic 请求14B opaque / 响应4B；CurrentImplementation 原子奖励，未ClientVerified | [0441](game/client-to-server/0x0441.md) |
+
+## 2026-10-10 配额职责与镜像次数同步
+
+[NOTI0279](game/server-to-client/NOTI-0x0279.md)为两个u32快照，第二字段Confirmed为已入场数，第一字段Unknown且保守写0。补入统一配额投影，保持加载仅NOTI001E；本次实机待验收，未标ClientVerified。[021E](game/server-to-client/NOTI-0x021E.md)和[CMD036F](game/server-to-client/CMD-0x036F.md)复用原编码，由提交后变化投影读取当前次数。消耗品、权益、镜像计数经直接事件进入中央服务，同一业务事务更新，异步订阅不再承担扣次。[职责与验收](../Document/tasks/usage-quota-direct-events-20261010/spec.md)。

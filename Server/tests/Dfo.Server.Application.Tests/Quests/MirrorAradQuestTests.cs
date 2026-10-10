@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -187,7 +188,7 @@ public sealed class MirrorAradQuestTests
         await fixture.SeedAsync();
         var store = fixture.Services.GetRequiredService<IMirrorAradQuestDomainStore>();
         var clock = new Clock { Now = new(2026, 10, 10, 15, 59, 59, TimeSpan.Zero) };
-        var quota = new MirrorDungeonQuotaDomainService(store, clock);
+        var quota = new MirrorDungeonQuotaDomainService(fixture.Services.GetRequiredService<IUsageQuotaDomainService>(), clock, fixture.Services.GetRequiredService<IEventService>());
         DungeonRunParticipant[] participants = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)];
         await Write(fixture, async () => await store.WriteQuotaAsync(new(2), new(72), new(2026, 10, 10), new(Entries: 10), default));
         await Write(fixture, async () => Assert.Equal((byte)1, await quota.TryReserveEntryAsync(participants, 10, default)));
@@ -237,7 +238,7 @@ public sealed class MirrorAradQuestTests
         var effects = new Effects(fixture.Services.GetRequiredService<SqliteDatabase>());
         return (new(store, new MirrorAradQuestRuleService(new Definitions(), new MirrorRules(), new Placements()), runs,
             fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(), fixture.Services.GetRequiredService<ICharacterDomainService>(),
-            preview, effects, new Clock { Now = Now }, fixture.Services.GetRequiredService<IEventService>()), store, preview, effects);
+            preview, effects, new Clock { Now = Now }, fixture.Services.GetRequiredService<IEventService>(), fixture.Services.GetRequiredService<IUsageQuotaDomainService>()), store, preview, effects);
     }
     private static ValueTask<QuestCompletionReceipt> Finish(MirrorAradQuestDomainService service) =>
         service.FinishAsync(new(1), new(71), 14299, ushort.MaxValue, 1, Now, null, default);

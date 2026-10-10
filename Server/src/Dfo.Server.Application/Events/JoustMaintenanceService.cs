@@ -55,7 +55,7 @@ internal sealed class JoustMaintenanceService(ICommandBus bus,IJoustDomainServic
     {
         try
         {
-            await events.PublishAsync(new JoustLifecycleChanged(state,kind),CancellationToken.None);
+            await events.DirectAsync(new JoustLifecycleChanged(state,kind),CancellationToken.None);
         }
         catch(Exception error)
         {

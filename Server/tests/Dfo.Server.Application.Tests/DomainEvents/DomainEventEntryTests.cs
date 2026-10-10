@@ -32,7 +32,7 @@ public sealed class DomainEventEntryTests
     }
 
     [Fact]
-    public async Task Uncommitted_runtime_facts_and_projections_are_rejected_but_readonly_projections_are_allowed()
+    public async Task Direct_events_inherit_writable_or_readonly_transactions_but_projections_reject_uncommitted_writes()
     {
         var trace = new RuntimeTrace();
         var probe = new ProjectionProbe();
@@ -45,24 +45,24 @@ public sealed class DomainEventEntryTests
         var audience = new NotificationAudience.TheseCharacters([]);
         await using (var transaction = scope.Begin())
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(() => events.PublishAsync(new RuntimeAward(2)).AsTask());
+            await events.DirectAsync(new RuntimeAward(2));
             await Assert.ThrowsAsync<InvalidOperationException>(() => events.ProjectAsync(audience, new TestNotification(1)).AsTask());
         }
-        Assert.Empty(trace.Events);
+        Assert.Single(trace.Events);
         Assert.Null(probe.Payload);
         probe.Result.SetResult(new([]));
         await using (var query = scope.Begin(readOnly: true))
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(() => events.PublishAsync(new RuntimeAward(2)).AsTask());
+            await events.DirectAsync(new RuntimeAward(2));
             await events.ProjectAsync(audience, new TestNotification(1));
             await query.CommitAsync(default);
         }
-        await events.PublishAsync(new RuntimeAward(3));
-        Assert.Single(trace.Events);
+        await events.DirectAsync(new RuntimeAward(3));
+        Assert.Equal(3, trace.Events.Count);
     }
 
     [Fact]
-    public async Task Runtime_subscribers_receive_one_typed_envelope_and_a_failure_does_not_skip_other_subscribers()
+    public async Task Direct_subscribers_receive_one_typed_envelope_in_order_and_failure_stops_delivery()
     {
         var trace = new RuntimeTrace { FailFirst = true };
         var services = new ServiceCollection().AddLogging();
@@ -72,11 +72,14 @@ public sealed class DomainEventEntryTests
         services.AddRuntimeEventSubscriber<OtherRuntimeAward, OtherTypedRuntimeSubscriber>();
         await using var provider = services.BuildServiceProvider();
         var events = provider.GetRequiredService<IEventService>();
-        await Assert.ThrowsAsync<AggregateException>(() => events.PublishAsync(new RuntimeAward(4)).AsTask());
-        Assert.Equal(2, trace.Events.Count);
-        Assert.Equal(trace.Events[0].EventId, trace.Events[1].EventId);
-        Assert.Equal(trace.Events[0].Payload, trace.Events[1].Payload);
-        await events.PublishAsync(new OtherRuntimeAward("done"));
+        await Assert.ThrowsAsync<IOException>(() => events.DirectAsync(new RuntimeAward(4)).AsTask());
+        Assert.Single(trace.Events);
+        trace.FailFirst = false;
+        await events.DirectAsync(new RuntimeAward(5));
+        Assert.Equal(3, trace.Events.Count);
+        Assert.Equal(trace.Events[1].EventId, trace.Events[2].EventId);
+        Assert.Equal(trace.Events[1].Payload, trace.Events[2].Payload);
+        await events.DirectAsync(new OtherRuntimeAward("done"));
         Assert.Equal("done", trace.OtherPayload);
     }
 
@@ -88,11 +91,28 @@ public sealed class DomainEventEntryTests
         services.AddEventDispatching().AddSingleton(trace);
         services.AddRuntimeEventSubscriber<RuntimeAward, RuntimeSubscriber>();
         await using var provider = services.BuildServiceProvider();
-        var pending = provider.GetRequiredService<IEventService>().PublishAsync(new RuntimeAward(3)).AsTask();
+        var pending = provider.GetRequiredService<IEventService>().DirectAsync(new RuntimeAward(3)).AsTask();
         Assert.False(pending.IsCompleted);
         trace.Release.TrySetResult();
         await pending;
         Assert.Single(trace.Events);
+    }
+
+    [Fact]
+    public async Task Direct_cancellation_propagates_and_does_not_deliver_to_later_subscribers()
+    {
+        var trace = new RuntimeTrace { Wait = true };
+        var services = new ServiceCollection().AddLogging();
+        services.AddEventDispatching().AddSingleton(trace);
+        services.AddRuntimeEventSubscriber<RuntimeAward, RuntimeSubscriber>();
+        services.AddRuntimeEventSubscriber<RuntimeAward, OtherRuntimeSubscriber>();
+        await using var provider = services.BuildServiceProvider();
+        using var cancellation = new CancellationTokenSource();
+        var pending = provider.GetRequiredService<IEventService>().DirectAsync(new RuntimeAward(1), cancellation.Token).AsTask();
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
+        Assert.Empty(trace.Events);
+        Assert.Null(provider.GetService<IDomainEventPersistence>());
     }
 
     [Theory]

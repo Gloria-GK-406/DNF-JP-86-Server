@@ -57,6 +57,7 @@ public sealed class PersistenceModule : IServerModule
             databasePath, provider.GetRequiredService<IDomainTransactionAccessor>()));
         services.TryAddSingleton<IEpicBookDomainStore, SqliteEpicBookDomainStore>();
         services.TryAddSingleton<IMirrorAradQuestDomainStore, SqliteMirrorAradQuestDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaStore, LegacyUsageQuotaStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.IAchievementPersistence, Dfo.Server.Persistence.Achievements.SqliteAchievementPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.ITitleBookPersistence, Dfo.Server.Persistence.Achievements.SqliteAchievementPersistence>();
         services.TryAddSingleton<ICharacterExperienceStoragePolicy, Dfo.Server.Persistence.Schema.CharacterExperienceStoragePolicy>();

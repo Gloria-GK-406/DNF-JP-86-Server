@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -7,33 +9,32 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class ItemUsageDomainService(IConsumableUsageTable table, IItemUsageRuleSource rules,
-    IDailyResetRuleService days, TimeProvider clock, IDomainTransactionAccessor transactions) : IItemUsageDomainService
+internal sealed class ItemUsageDomainService(IUsageQuotaDomainService quotas, IItemUsageRuleSource rules,
+    IDailyResetRuleService days, TimeProvider clock, IDomainTransactionAccessor transactions, IEventService events) : IItemUsageDomainService
 {
     public async ValueTask<ItemUsageState> GetAsync(CharacterId characterId, int itemId, CancellationToken token)
     {
         var rule = await RuleAsync(itemId, token).ConfigureAwait(false);
-        return State(itemId, await table.ReadAsync(characterId, itemId, token).ConfigureAwait(false), rule, clock.GetUtcNow());
+        return State(itemId, (await quotas.ReadAsync(characterId, UsageQuotaKey.Consumable(itemId), token).ConfigureAwait(false)).Consumable(), rule, clock.GetUtcNow());
     }
     public async ValueTask<ItemUsageState> RecordUseAsync(CharacterId characterId, int itemId, CancellationToken token)
     {
         _ = transactions.Current ?? throw new InvalidOperationException("Item usage requires a transaction.");
         var rule = await RuleAsync(itemId, token).ConfigureAwait(false);
-        var previous = await table.ReadAsync(characterId, itemId, token).ConfigureAwait(false);
+        var previous = (await quotas.ReadAsync(characterId, UsageQuotaKey.Consumable(itemId), token).ConfigureAwait(false)).Consumable();
         var now = clock.GetUtcNow();
         var state = State(itemId, previous, rule, now);
         if (state.Remaining == 0) throw new ItemUsageRejectedException(ItemUsageRejection.DailyLimitReached);
         if (state.CooldownUntil > now) throw new ItemUsageRejectedException(ItemUsageRejection.CoolingDown);
         var used = checked(state.UsedCount + 1);
-        if (await table.TryWriteAsync(characterId, itemId, previous, used, now, token).ConfigureAwait(false) != 1)
-            throw new InvalidOperationException("Item usage changed during settlement.");
+        await events.DirectAsync(new ConsumableUsageRecorded(characterId, itemId, previous, new(used, now)), token).ConfigureAwait(false);
         return State(itemId, new(used, now), rule, now);
     }
     public ValueTask<IReadOnlyList<ItemUsageState>> GetSnapshotAsync(CharacterId characterId, CancellationToken token) =>
         GetSnapshotAtAsync(characterId, clock.GetUtcNow(), token);
     public async ValueTask<IReadOnlyList<ItemUsageState>> GetSnapshotAtAsync(CharacterId characterId, DateTimeOffset now, CancellationToken token)
     {
-        var rows = await table.ReadAllAsync(characterId, token).ConfigureAwait(false);
+        var rows = await quotas.ReadConsumablesAsync(characterId, token).ConfigureAwait(false);
         var result = new List<ItemUsageState>();
         foreach (var pair in rows.OrderBy(x => x.Key))
         {

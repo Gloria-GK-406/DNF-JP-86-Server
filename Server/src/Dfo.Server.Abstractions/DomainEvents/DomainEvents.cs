@@ -24,8 +24,8 @@ public interface IEventService
     ValueTask<Guid> EnqueueAsync<TEvent>(TEvent payload, CancellationToken cancellationToken = default)
         where TEvent : class, IDomainEvent;
 
-    /// <summary>Awaits the registered runtime subscribers; does not persist or replay the event.</summary>
-    ValueTask PublishAsync<TEvent>(TEvent payload, CancellationToken cancellationToken = default)
+    /// <summary>Directly awaits runtime subscribers in registration order, inheriting the caller transaction. Does not open a transaction, queue, persist, replay, or swallow failures.</summary>
+    ValueTask DirectAsync<TEvent>(TEvent payload, CancellationToken cancellationToken = default)
         where TEvent : class, IDomainEvent;
 
     /// <summary>Awaits an immediate protocol projection and preserves its delivery result and audience.</summary>

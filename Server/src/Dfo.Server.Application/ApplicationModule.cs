@@ -81,6 +81,23 @@ public sealed class ApplicationModule : IServerModule
 
         services.TryAddSingleton(TimeProvider.System);
         services.AddEventDispatching();
+        services.TryAddSingleton<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.ConsumableUsageRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.PremiumUsageRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.MirrorEntryRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.MirrorRewardRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.AddDomainEvent<Dfo.Server.Abstractions.UsageQuotas.UsageQuotaChanged>("usage-quota.changed", 1);
+        services.TryAddSingleton<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaSnapshotDomainService,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaSnapshotDomainService>();
+        services.AddDomainSubscriber<Dfo.Server.Abstractions.UsageQuotas.UsageQuotaChanged,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaNotificationSubscriber>("usage-quota.notifications",
+            Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
+            fact => $"{fact.CharacterId.Value}:{(int)fact.Family}");
         services.AddMirrorAradQuests();
         Dfo.Server.Application.Achievements.AchievementRegistration.AddAchievements(services);
         services.AddDomainEvent<MailCreated>("mail.created", 1);

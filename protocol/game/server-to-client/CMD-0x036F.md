@@ -73,3 +73,7 @@ ClientStatic 来源：Document/outputs/premium-service-client-analysis/buff-slot
 运行佐证：artifacts/buff-slot3-20260922/deployment/stdout.log:390记录character=4 slot=3上报及快照刷新；本轮日志仅一条slot3处理记录。数据库只读复核premium_dungeon_buff_used=10、last_consumed_at=1790070504103。客户端显示与效果依据用户观察，日志不单独证明效果。
 
 到期、跨日、并发重报、事务回滚仍为自动化覆盖；不扩展为这些路径已实机验收。服务端不撤销客户端先施加的BUFF，分钟刷新存在正常调度周期延迟。
+
+## 2026-10-10 权益次数职责统一
+
+权益资格和限额仍由权益领域解释；所有次数CAS写入迁至统一配额领域服务，由PremiumUsageRecorded直接事件订阅同步应用。双倍罐轮次、每日总量以及续期旧数据兼容保留。提交后变化事件重新读取当前权益/用量投影，不重播扣次；036F仍为CMD家族的77B权威快照，不改为NOTI。登录、使用应答及到期/跨日恢复沿用现有语义。本次重构实机待验收，见[任务Spec](../../../Document/tasks/usage-quota-direct-events-20261010/spec.md)。

@@ -1,0 +1,138 @@
+{
+  "SourceBaseline": "a0ef0f150dc8bf9d567177a007cd1766033ad022",
+  "SourceManifest": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\usage-quota-direct-events-20261010\\source-manifest.json",
+  "SourceManifestSHA256": "6D1FA120ADFFAABD92AB176DAD2760A3AAC353C0F9077F32647B58AFE4A2DF9A",
+  "Branch": "task/monster-declaration-parser",
+  "InformationalVersion": "0.2.3+quota-direct.20261010.r1",
+  "ProcessId": 36176,
+  "Executable": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\usage-quota-direct-events-20261010\\runtime\\Dfo.Server.Host.exe",
+  "ExecutableSHA256": "B5996AF3E451F45905B0AE567EC7584017FF15624F3272C5503352039D65A616",
+  "PvfArchive": "E:/Project/DNF/DNFClient-A21-protocol/Script.pvf",
+  "OldProcessId": 49556,
+  "OldExecutable": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\mirror-arad-entry-20261010\\runtime\\Dfo.Server.Host.exe",
+  "Database": "E:\\Project\\DNF\\DNF-JP-86-Server\\Server\\src\\Dfo.Server.Host\\bin\\Release\\net10.0\\Data\\dfo-server.db",
+  "DatabaseBackup": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\usage-quota-direct-events-20261010\\database-before-20261010-131825",
+  "StartedAt": "2026-10-10T13:18:28.6121222+08:00",
+  "ClientAcceptance": "Pending: authoritative mirror remaining entries, failure/duplicate consumption, consumable and premium counters; Document/tasks/usage-quota-direct-events-20261010/client-test-set.md.",
+  "Verification": {
+    "BeforeQuotaAudit": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\usage-quota-direct-events-20261010\\quota-before-start.json",
+    "Assemblies": [
+      {
+        "Name": "Dfo.Server.Abstractions.dll",
+        "SHA256": "1552E3F95F5DFDDF9DD8AA7563EF42B7D2A1C154D74B3E870A91E439DCDEE4C5",
+        "ProductVersion": "0.2.3+quota-direct.20261010.r1"
+      },
+      {
+        "Name": "Dfo.Server.Application.dll",
+        "SHA256": "49808BE4D4C9B7DD961108F1A566B4CB5CBCB42F79EFE38D74837C3952C33971",
+        "ProductVersion": "0.2.3+quota-direct.20261010.r1"
+      },
+      {
+        "Name": "Dfo.Server.Data.dll",
+        "SHA256": "5276004B2C34A693D8D480E9B02DC80DD3FE861C7BC6835B2326A38DB80B7917",
+        "ProductVersion": "0.2.3+quota-direct.20261010.r1"
+      },
+      {
+        "Name": "Dfo.Server.GameServer.dll",
+        "SHA256": "52AD6D0A9465D2CC3E222439573EC3BD78644979099A95FBC7D0A775C8B16179",
+        "ProductVersion": "0.2.3+quota-direct.20261010.r1"
+      },
+      {
+        "Name": "Dfo.Server.GmWeb.dll",
+        "SHA256": "A22193E256A19DF47813886F7F0B2867F2BB392E235E80D02A463D6C21C57E4A",
+        "ProductVersion": "0.2.3+quota-direct.20261010.r1"
+      },
+      {
+        "Name": "Dfo.Server.Host.dll",
+        "SHA256": "85C86A146316CEE81B2D361AEAD2646B99F3D3675B50BABA574FF410FA8E19A5",
+        "ProductVersion": "0.2.3+quota-direct.20261010.r1"
+      },
+      {
+        "Name": "Dfo.Server.HttpApi.dll",
+        "SHA256": "DA991BC6D00B775A52CE219F631EA6316E599FD7CCCFD89010AA1F6604D8FBB0",
+        "ProductVersion": "0.2.3+quota-direct.20261010.r1"
+      },
+      {
+        "Name": "Dfo.Server.Infrastructure.dll",
+        "SHA256": "1BC07F9BF800D953B7F8A1FAC87DD44478FCE9F9EF16A956C07F0D579269AF0F",
+        "ProductVersion": "0.2.3+quota-direct.20261010.r1"
+      },
+      {
+        "Name": "Dfo.Server.Networking.dll",
+        "SHA256": "6142A601315CE50798BF89AE784D82C98410D4A9FA011CBAA8924565D1FEA333",
+        "ProductVersion": "0.2.3+quota-direct.20261010.r1"
+      },
+      {
+        "Name": "Dfo.Server.Persistence.dll",
+        "SHA256": "D4E58068FE0267A6B0B921CEB55B5E75BD65AD3FFA7218E1A85463F70BFE4BBA",
+        "ProductVersion": "0.2.3+quota-direct.20261010.r1"
+      },
+      {
+        "Name": "Dfo.Server.Protocol.dll",
+        "SHA256": "22AB5606E235DED995379B8567DB8D435A1A8E4EE676E4F8D07D18F99B30D243",
+        "ProductVersion": "0.2.3+quota-direct.20261010.r1"
+      }
+    ],
+    "CounterRowsUnchanged": true,
+    "BackupFiles": [
+      {
+        "Name": "dfo-server.db",
+        "Length": 2682880,
+        "SHA256": "0FC337CE35A2BF4847BAAFEFC9CB64F10A1D51565A07665D1A5063C17619E9CA"
+      },
+      {
+        "Name": "dfo-server.db-shm",
+        "Length": 32768,
+        "SHA256": "47E0224A991BC85CDD5995AA07CEEA71B0C2C91C595D1F062C74C0C72D930FAC"
+      },
+      {
+        "Name": "dfo-server.db-wal",
+        "Length": 4185952,
+        "SHA256": "D49A9EADC2933F64C34C3FA3261E1085A096D08F618E93FAEE2AC63FF912CF04"
+      }
+    ],
+    "Listeners": [
+      {
+        "LocalPort": 18081,
+        "OwningProcess": 36176
+      },
+      {
+        "LocalPort": 18080,
+        "OwningProcess": 36176
+      },
+      {
+        "LocalPort": 10100,
+        "OwningProcess": 36176
+      },
+      {
+        "LocalPort": 10011,
+        "OwningProcess": 36176
+      },
+      {
+        "LocalPort": 10010,
+        "OwningProcess": 36176
+      },
+      {
+        "LocalPort": 7001,
+        "OwningProcess": 36176
+      }
+    ],
+    "GmMailStatus": 200,
+    "Bootstrap": {
+      "apiVersion": "1",
+      "status": "ready",
+      "registrationEnabled": true
+    },
+    "Health": {
+      "status": "ready"
+    },
+    "AfterQuotaAudit": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\usage-quota-direct-events-20261010\\quota-after-start.json",
+    "QuotaRowsUnchanged": true,
+    "BackupIntegrity": {
+      "quickCheck": [
+        "ok"
+      ]
+    }
+  },
+  "TestEvidenceDirectory": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\monster-declaration-parser\\Document\\tasks\\usage-quota-direct-events-20261010\\verification"
+}
