@@ -89,14 +89,14 @@ internal sealed class DungeonVisitDomainService(
         ArgumentNullException.ThrowIfNull(participants);
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(facts);
-        if (await ValidateAdmissionAsync(participants, layout.DungeonId, facts, cancellationToken).ConfigureAwait(false) is { } refusal)
+        if (await ValidateAdmissionAsync(participants, layout.DungeonId, facts, cancellationToken, layout.Mirror is not null).ConfigureAwait(false) is { } refusal)
             return refusal;
         return await EnterPreparedCoreAsync(participants, layout, facts, cancellationToken).ConfigureAwait(false);
     }
 
     private async ValueTask<DungeonEntryAttempt?> ValidateAdmissionAsync(
         IReadOnlyList<DungeonRunParticipant> participants, int dungeonId,
-        DungeonEntryFacts facts, CancellationToken cancellationToken)
+        DungeonEntryFacts facts, CancellationToken cancellationToken, bool mirror = false)
     {
         if (participants.Any(x => tower?.IsInTower(x.CharacterId) == true))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
@@ -114,12 +114,13 @@ internal sealed class DungeonVisitDomainService(
         }
         foreach (var member in participants)
         {
-            if (definition is { HasStoryMode: false } && characters is not null)
+            if (!mirror && definition is { HasStoryMode: false } && characters is not null)
             {
                 var progress = await characters.Get(member.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
                 if (progress is null || progress.Level < definition.MinimumRequiredLevel)
                     return new(null, DungeonEntryFailure.LevelTooLow, member.Slot);
             }
+            if (mirror) continue;
             var maximum = await difficulties.GetMaximumAsync(member.CharacterId, dungeonId, cancellationToken)
                 .ConfigureAwait(false);
             var cycle = facts.Intent.Kind == DungeonEntryIntentKind.Cycle;

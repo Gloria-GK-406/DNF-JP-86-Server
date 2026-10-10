@@ -12,10 +12,14 @@ public sealed record EnterDungeonCommand(DungeonEntryContext Entry) : ICommand<D
 /// <summary>Route all entry kinds here; packet and projection layers do not choose game modes.</summary>
 public sealed class EnterDungeonCommandHandler(
     IDungeonEntryDecisionDomainService decisions, IDungeonVisitDomainService visits,
-    IHellDungeonEntryDomainService? hell = null, ICycleDungeonEntryDomainService? cycles = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
+    IHellDungeonEntryDomainService? hell = null, ICycleDungeonEntryDomainService? cycles = null,
+    IMirrorDungeonEntryDomainService? mirrors = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
 {
     public ValueTask<DungeonEntryAttempt> HandleAsync(CommandExecutionContext context, EnterDungeonCommand command,
-        CancellationToken cancellationToken) => command.Entry.Facts.Intent.Kind == DungeonEntryIntentKind.Cycle
+        CancellationToken cancellationToken) => command.Entry.MirrorQuestId is not null
+        ? mirrors?.EnterAsync(command.Entry, cancellationToken)
+            ?? ValueTask.FromResult(DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite))
+        : command.Entry.Facts.Intent.Kind == DungeonEntryIntentKind.Cycle
         ? cycles?.EnterAsync(command.Entry, cancellationToken)
             ?? ValueTask.FromResult(DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite))
         : decisions.ResolveEntryKind(command.Entry) switch

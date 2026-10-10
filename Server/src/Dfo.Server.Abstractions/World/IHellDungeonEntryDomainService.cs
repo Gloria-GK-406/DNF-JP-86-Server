@@ -9,7 +9,7 @@ public enum DungeonEntryKind { Normal, ManualHell, RandomHell }
 /// <summary>Business facts for one entry, independent of packet/connection identities.</summary>
 public sealed record DungeonEntryContext(
     int DungeonId, DungeonEntryFacts Facts, byte RequestMode, byte PracticeMode,
-    IReadOnlyList<DungeonRunParticipant> Participants);
+    IReadOnlyList<DungeonRunParticipant> Participants, int? MirrorQuestId = null);
 
 public interface IDungeonEntryDecisionDomainService
 {

@@ -229,6 +229,13 @@ internal static class CharacterDatabaseSchema
     /// allocates it rather than on a caller, because allocation is the only place one is made.
     /// </remarks>
     private const string TableDeclarations = """
+        CREATE TABLE IF NOT EXISTS character_mirror_quests(
+            character_id INTEGER NOT NULL, run_id TEXT NOT NULL, state_json TEXT NOT NULL,
+            PRIMARY KEY(character_id,run_id), FOREIGN KEY(character_id) REFERENCES characters(character_id));
+        CREATE TABLE IF NOT EXISTS character_mirror_daily(
+            character_id INTEGER NOT NULL, day TEXT NOT NULL, entries INTEGER NOT NULL DEFAULT 0,
+            clears INTEGER NOT NULL DEFAULT 0, daily_reward_claimed INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY(character_id,day), FOREIGN KEY(character_id) REFERENCES characters(character_id));
         CREATE TABLE IF NOT EXISTS achievement_consumed_facts(character_id INTEGER NOT NULL,event_id TEXT NOT NULL,PRIMARY KEY(character_id,event_id));
         CREATE TABLE IF NOT EXISTS title_book_unlocks(character_id INTEGER NOT NULL,category INTEGER NOT NULL,slot_index INTEGER NOT NULL,item_id INTEGER NOT NULL,PRIMARY KEY(character_id,category,slot_index));
         CREATE TABLE IF NOT EXISTS account_epic_pieces(account_id INTEGER NOT NULL REFERENCES accounts(account_id),piece_id INTEGER NOT NULL CHECK(piece_id>0),count INTEGER NOT NULL CHECK(count BETWEEN 1 AND 2147483647),PRIMARY KEY(account_id,piece_id));

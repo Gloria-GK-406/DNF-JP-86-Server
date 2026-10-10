@@ -16,14 +16,14 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
     ICharacterSkillStateDomainService skills, IQuestCompletionEffectRuleService rules,
     IInventoryEffectPreflightDomainService preview, IApplyEffectsDomainService apply,
     ICharacterCarriedGoldTable gold,
-    Dfo.Server.Abstractions.DomainEvents.IEventService? events = null) : IQuestCompletionDomainService
+    Dfo.Server.Abstractions.DomainEvents.IEventService? events = null, IMirrorAradQuestDomainService? mirror = null) : IQuestCompletionDomainService
 {
     public async ValueTask<QuestCompletionReceipt> FinishAsync(AccountId account, CharacterId id, ushort quest,
         ushort selection, ushort count, DateTimeOffset at, CancellationToken ct, SelectedSessionIdentity? session = null)
     {
         QuestCompletionReceipt Refuse(QuestProgressSnapshot? projection = null) => new(false, quest, null, null, null, projection, null);
         var definition = await rules.DefinitionAsync(quest, ct).ConfigureAwait(false);
-        if (definition is null || definition.Grade is QuestGrade.Title
+        if (definition is null || definition.Grade is QuestGrade.Title or QuestGrade.Crack
             || await rows.FindOwnerAsync(id, ct).ConfigureAwait(false) != account) return Refuse();
         var character = characters.Get(id);
         var identity = await character.IdentityAsync(ct).ConfigureAwait(false);
@@ -37,6 +37,8 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         var effective = await rules.EffectiveAsync(quests, main.Select(item => item.Snapshot), heldGold.Carried, ct).ConfigureAwait(false);
         var projected = effective.Any(x => quests.Carried.Single(y => y.Slot == x.Slot).TriggerValue != x.TriggerValue)
             ? new QuestProgressSnapshot(effective) : null;
+        if (projected is not null && mirror is not null)
+            projected = await mirror.MergeAsync(id, projected, ct).ConfigureAwait(false);
         if (effective.FirstOrDefault(x => x.QuestId == quest) is not { TriggerValue: 0 }) return Refuse(projected);
         var reward = rules.Rewards(definition, facts, selection, count);
         if (!reward.IsValid) return Refuse(projected);
@@ -53,6 +55,8 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         var applied = await apply.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
         if (events is not null)
             await events.EnqueueAsync(new Dfo.Server.Abstractions.Achievements.QuestCompleted(id, quest), ct);
-        return new(true, quest, definition.ObjectiveTypeCode, plan.Award, applied, plan.Projection, plan.GrowType);
+        var projection = plan.Projection is null || mirror is null ? plan.Projection
+            : await mirror.MergeAsync(id, plan.Projection, ct).ConfigureAwait(false);
+        return new(true, quest, definition.ObjectiveTypeCode, plan.Award, applied, projection, plan.GrowType);
     }
 }

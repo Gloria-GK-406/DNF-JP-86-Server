@@ -465,7 +465,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             OptionalNonNegative(goldMultiplierValues, questId, "gold multiple") ?? 0,
             enemyRewards,
             ProjectClearedQuestRequirements(objectiveType, objectiveIntData),
-            ProjectDungeonClearRequirement(objectiveType, objectiveSubType, objectiveIntData));
+            ProjectDungeonClearRequirement(objectiveType, objectiveSubType, objectiveIntData))
+        { ObjectiveSubType = objectiveSubType.Count == 1 ? objectiveSubType[0] : null, ObjectiveArguments = objectiveIntData.ToArray() };
 
         return new RawQuestDefinition(
             definition,

@@ -176,6 +176,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<Dfo.Server.Abstractions.Mail.MailDelivered, MailDeliveredHandler>(retryLimit: 0);
         services.AddCommandHandler<MailboxCommand, MailboxResult, MailboxCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddNotificationHandler<MailboxCompleted, MailboxCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.MirrorQuestViewChanged, Dfo.Server.Protocol.Game.QuestProgress.MirrorQuestViewChangedHandler>(retryLimit: 0);
         services.RegisterMessageHandler<MailboxClaimHandler>(ClientMessageType.GameMailboxClaim);
         services.AddGameCmdMessageDecoder<MailboxClaimDecoder>(0x005F, ClientMessageType.GameMailboxClaim);
         services.AddGameCmdMessageEncoder<MailboxClaimResponse, MailboxClaimEncoder>();
@@ -676,6 +677,11 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameRuntimeTingStatistic);
         services.RegisterMessageHandler<EnterSelectDungeonHandler>(ClientMessageType.GameEnterSelectDungeon);
         services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameSelectDungeon);
+        services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameMirrorDungeonEntry);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommand, bool, Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommandHandler>(
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonEntryDecoder>(0x02B6, ClientMessageType.GameMirrorDungeonEntry);
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionNotification, Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionEncoder>();
         services.RegisterMessageHandler<PrepareCycleDungeonEntryHandler>(ClientMessageType.GamePrepareCycleDungeonEntry);
         services.AddCommandHandler<PrepareCycleDungeonEntryCommand, CycleDungeonPreparation, PrepareCycleDungeonEntryCommandHandler>(
             CommandExecutionKind.Direct, accountAccessMode: UserAccessMode.Exclusive);

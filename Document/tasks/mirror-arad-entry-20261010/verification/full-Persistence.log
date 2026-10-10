@@ -1,0 +1,22 @@
+  正在确定要还原的项目…
+  已还原 E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\tests\Dfo.Server.Persistence.Tests\Dfo.Server.Persistence.Tests.csproj (用时 1.83 秒)。
+  4 个项目(共 5 个)是最新的，无法还原。
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Persistence.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\tests\Dfo.Server.Persistence.Tests\bin\Debug\net10.0\Dfo.Server.Persistence.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\tests\Dfo.Server.Persistence.Tests\bin\Debug\net10.0\Dfo.Server.Persistence.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:12.36]     Dfo.Server.Persistence.Tests.Schema.SchemaOwnershipTests.EveryTableIsDeclaredSomewhereRatherThanByAccident [FAIL]
+  失败 Dfo.Server.Persistence.Tests.Schema.SchemaOwnershipTests.EveryTableIsDeclaredSomewhereRatherThanByAccident [50 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 73
+Actual:   75
+  堆栈跟踪:
+     at Dfo.Server.Persistence.Tests.Schema.SchemaOwnershipTests.EveryTableIsDeclaredSomewhereRatherThanByAccident() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\tests\Dfo.Server.Persistence.Tests\Schema\SchemaOwnershipTests.cs:line 58
+--- End of stack trace from previous location ---
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Document\tasks\mirror-arad-entry-20261010\verification\full-Persistence.trx
+
+失败!  - 失败:     1，通过:   467，已跳过:     0，总计:   468，持续时间: 23 s - Dfo.Server.Persistence.Tests.dll (net10.0)

@@ -36,6 +36,12 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
         await using var lease = await transitions.BorrowOrAcquireExclusiveAsync(session.AccountId, ct).ConfigureAwait(false);
         safety.DemandCurrent(recipient);
         var snapshot = await commands.SendAsync(new ReadReplayStateCommand(session, request), ct).ConfigureAwait(false);
+        if (snapshot.Quests is { } quests && services.GetService<Dfo.Server.Abstractions.Quests.IMirrorAradQuestDomainService>() is { } mirror)
+        {
+            var merged = await mirror.MergeAsync(session.CharacterId, new(quests.Carried.Select(x =>
+                new Dfo.Server.Abstractions.Quests.CarriedQuest(checked((short)x.Slot), x.QuestId, x.TriggerValue)).ToArray()), ct).ConfigureAwait(false);
+            snapshot = snapshot with { Quests = quests with { Carried = merged.Quests.Select(x => new CharacterQuestProgressState(x.Slot, x.QuestId, x.TriggerValue)).ToImmutableArray() } };
+        }
         var messages = Create(snapshot);
         safety.DemandCurrent(recipient);
         await sender.SendBatchAsync(originalConnection, messages, ct).ConfigureAwait(false);

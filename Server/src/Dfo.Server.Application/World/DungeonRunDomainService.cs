@@ -18,6 +18,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     private readonly IPartyService? parties;
     private readonly IWeaknessDomainService? weakness;
     private readonly ICreatureRuntimeDomainService? creatures;
+    private readonly IDungeonLifecycleDomainService? lifecycle;
+    private readonly TimeProvider clock = TimeProvider.System;
     private readonly object gate = new();
     private readonly Dictionary<DungeonRunId, DateTimeOffset> wipeDeadlines = [];
     private readonly Dictionary<DungeonRunId, DateTimeOffset> clearReturnDeadlines = [];
@@ -44,12 +46,15 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         IDomainTransactionAccessor transactions,
         IPartyService parties,
         IWeaknessDomainService? weakness = null,
-        ICreatureRuntimeDomainService? creatures = null)
+        ICreatureRuntimeDomainService? creatures = null,
+        IDungeonLifecycleDomainService? lifecycle = null, TimeProvider? clock = null)
     {
         this.transactions = transactions;
         this.parties = parties;
         this.weakness = weakness;
         this.creatures = creatures;
+        this.lifecycle = lifecycle;
+        this.clock = clock ?? TimeProvider.System;
     }
 
     internal DungeonRunDomainService(IPartyService parties) => this.parties = parties;
@@ -660,6 +665,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
             var cell = aggregate.Cells[aggregate.CurrentCell];
             cell.ClearOpen = true;
+            aggregate.ClearedAt = this.clock.GetUtcNow();
             cell.Revision++;
             aggregate.RuntimeRevision++;
             return new DungeonClearChange(
@@ -1221,13 +1227,17 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     public async ValueTask<bool> EndAsync(CharacterId characterId, DungeonRunId expectedRunId)
     {
         bool failed;
+        DungeonParticipantLeft departure;
         lock (this.gate)
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
                 || aggregate.RunId != expectedRunId) return false;
             failed = !aggregate.Cells[aggregate.CurrentCell].ClearOpen;
+            departure = new(characterId, aggregate.RunId, aggregate.Layout.DungeonId);
             if (!this.DetachParticipant(characterId)) return false;
         }
+        if (this.lifecycle is not null)
+            await this.lifecycle.RecordDepartureAsync(departure).ConfigureAwait(false);
         if (failed && this.weakness is not null)
             await this.weakness.For(characterId).SetWeakness().ConfigureAwait(false);
         return true;
@@ -1236,9 +1246,21 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     public async ValueTask<DungeonRunState?> TryEndPartyWipeAsync(DungeonRunId runId, DateTimeOffset now)
     {
         var ended = TryEndPartyWipe(runId, now);
+        if (ended is not null && this.lifecycle is not null)
+            foreach (var member in ended.Participants)
+                await this.lifecycle.RecordDepartureAsync(new(member.CharacterId, ended.RunId, ended.Layout.DungeonId)).ConfigureAwait(false);
         if (ended is not null && this.weakness is not null)
             foreach (var member in ended.Participants)
                 await this.weakness.For(member.CharacterId).SetWeakness().ConfigureAwait(false);
+        return ended;
+    }
+
+    public async ValueTask<DungeonRunState?> TryEndClearReturnAsync(DungeonRunId runId, DateTimeOffset now)
+    {
+        var ended = TryEndClearReturn(runId, now);
+        if (ended is not null && this.lifecycle is not null)
+            foreach (var member in ended.Participants)
+                await this.lifecycle.RecordDepartureAsync(new(member.CharacterId, ended.RunId, ended.Layout.DungeonId)).ConfigureAwait(false);
         return ended;
     }
 
@@ -1630,6 +1652,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         }
         public DungeonRunParticipant Leader =>
             this.Participants.Single(participant => participant.IsLeader);
+        public DateTimeOffset? ClearedAt { get; set; }
         public DungeonLayout Layout { get; }
         public DungeonDifficulty Difficulty { get; }
         public DateTimeOffset StartedAt { get; }
@@ -1712,6 +1735,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                 DeadParticipants = this.DeadParticipants.ToImmutableHashSet(),
                 EntryPurposeOwner = this.entryParticipants.Single(participant => participant.IsLeader),
                 Kills = this.kills.ToImmutableArray(),
+                ClearedAt = this.ClearedAt,
+                ClearedCells = this.Cells.Where(x => x.Value.IsCleared).Select(x => x.Key).ToImmutableHashSet(),
                 KillExperience = this.KillExperiences.GetValueOrDefault(characterId) ?? new(),
             };
         }
@@ -1762,6 +1787,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         public ushort FirstActorSequence { get; }
         public long Revision { get; set; }
         public bool ClearOpen { get; set; }
+        public bool IsCleared => this.actors.Values.Where(x => x.BlocksClear).All(x => x.IsDead);
 
         public DungeonCellObjectState ObjectAt(int index) => this.objects[index];
 

@@ -227,6 +227,9 @@ public sealed record QuestDefinition(
     DungeonClearRequirement? DungeonClearRequirement = null)
 {
     /// <summary>A quest offered regardless of grow type.</summary>
+    public int? ObjectiveSubType { get; init; }
+    public IReadOnlyList<int> ObjectiveArguments { get; init; } = [];
+
     public const int AnyGrowType = -1;
 
     /// <summary>Individual story stage from epic_N_*.qst; the region's shared minimum level is not the stage.</summary>

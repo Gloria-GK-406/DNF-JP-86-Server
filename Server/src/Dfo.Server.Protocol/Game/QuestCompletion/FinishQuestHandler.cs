@@ -133,6 +133,18 @@ public sealed class FinishQuestHandler(
             return;
         }
 
+        if (outcome.MirrorCompletion)
+        {
+            var mirrorFrames = new List<IGameServerMessage>();
+            mirrorFrames.AddRange(GameInventoryDelivery.Notifications(outcome.ConsumedItemUpdates));
+            if (outcome.AccountMaterials is { Count: > 0 } materials)
+                mirrorFrames.Add(GameInventoryDelivery.VirtualResourceNotification(materials, clock.GetUtcNow()));
+            if (outcome.QuestProgress is { } mirrorProgress) mirrorFrames.Add(QuestProgressMessage(mirrorProgress));
+            if (mirrorFrames.Count != 0)
+                await sender.SendExplicitAsync(context.Connection.ConnectionId, new GameExplicitMessageDelivery(mirrorFrames, []), cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
         // The session is corrected before the frames go out, and the correction is the fix for a
         // real defect rather than tidiness. Every later frame reads the character and the offer
         // list from here: a session still holding the entry-time list re-sends the finished quest

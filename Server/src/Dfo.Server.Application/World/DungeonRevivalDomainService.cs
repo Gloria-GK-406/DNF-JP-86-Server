@@ -7,7 +7,8 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.World;
 
 internal sealed class DungeonRevivalDomainService(ISelectedSessionDomainService sessions,
-    ICharacterContainerDomainService containers, IDungeonRunDomainService runs) : IDungeonRevivalDomainService
+    ICharacterContainerDomainService containers, IDungeonRunDomainService runs,
+    Dfo.Server.Abstractions.Quests.IQuestProgressDomainService? quests = null) : IDungeonRevivalDomainService
 {
     public async ValueTask<DungeonRevivalResult> ReviveAsync(SelectedSessionIdentity payer,
         CharacterId target, DungeonRunId runId, CancellationToken cancellationToken)
@@ -20,6 +21,9 @@ internal sealed class DungeonRevivalDomainService(ISelectedSessionDomainService 
         var remaining = (coin.Snapshot with { Count = coin.Count - 1 }).ToCore();
         // Keep the virtual counter at zero; the transactional item store commits before life state.
         await bag!.UpdateAsync(coin, current => current with { Count = current.Count - 1 }, cancellationToken).ConfigureAwait(false);
+        if (quests is not null && runs.Find(target) is { Layout.Mirror: not null, Participant: { } participant })
+            await quests.ReportAsync(participant.AccountId, target,
+                [new Dfo.Server.Abstractions.Quests.QuestCharacterRevived(runId, target)], cancellationToken).ConfigureAwait(false);
         return new(true, remaining);
     }
 }

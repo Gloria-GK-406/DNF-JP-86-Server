@@ -57,6 +57,12 @@ public sealed class DungeonEntryProjectionDelivery(
         DungeonEntryIntent intent,
         CancellationToken cancellationToken)
     {
+        var mirror = message.MirrorQuestId is not null;
+        ValueTask RefuseAsync(NetworkConnectionId connection, byte code, byte slot, CancellationToken ct) =>
+            this.RefuseAsync(connection, code, slot, ct, mirror);
+        ValueTask RefuseCurrentRequesterAsync(NetworkConnectionId connection, SelectedSessionIdentity owner, CancellationToken ct) =>
+            selectedSessions.FindByCharacter(owner.CharacterId) == owner
+                ? RefuseAsync(connection, SelectDungeonRefusal.SelectionCohortUnavailable, 0, ct) : ValueTask.CompletedTask;
         void RestoreSelection()
         {
             if (selectedSessions.FindByCharacter(requester.CharacterId) == requester)
@@ -84,7 +90,7 @@ public sealed class DungeonEntryProjectionDelivery(
             participant => participant.CharacterId,
             participant => runs.Find(participant.CharacterId));
         var command = new EnterDungeonCommand(new DungeonEntryContext(
-            message.DungeonId, facts, message.RequestMode, message.PracticeMode, participants));
+            message.DungeonId, facts, message.RequestMode, message.PracticeMode, participants, message.MirrorQuestId));
         // Directly constructed protocol fixtures may supply their own visit service. They still
         // execute the same CMD routing; the production composition always uses the command bus.
         var attempt = commands is not null
@@ -98,7 +104,8 @@ public sealed class DungeonEntryProjectionDelivery(
             RestoreSelection();
             if (attempt.Failure is not null)
             {
-                var error = DungeonEntryRefusalCodes.For(attempt.Failure.Value, message.RequestMode == 1);
+                var error = mirror ? DungeonEntryRefusalCodes.ForMirror(attempt.Failure.Value)
+                    : DungeonEntryRefusalCodes.For(attempt.Failure.Value, message.RequestMode == 1);
                 logger.LogInformation("Dungeon {DungeonId} entry refused: {Failure}, code=0x{ErrorCode:X2}, memberSlot={BlockedSlot}, detail={Detail}",
                     message.DungeonId, attempt.Failure, error, attempt.BlockedSlot ?? 0, attempt.Detail);
                 await RefuseAsync(requesterConnection, error, attempt.BlockedSlot ?? 0, cancellationToken).ConfigureAwait(false);
@@ -223,6 +230,8 @@ public sealed class DungeonEntryProjectionDelivery(
                     frames.Add(new EnterSelectDungeonNotification(allWireUserIds));
                 }
 
+                if (layout.Mirror is { } mission)
+                    frames.Add(new Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionNotification(mission.QuestId));
                 frames.Add(new SupportTagNotification());
                 foreach (var debit in entered.InventoryChanges.Where(x => x.CharacterId == receiver.Session.CharacterId))
                 {
@@ -510,10 +519,10 @@ public sealed class DungeonEntryProjectionDelivery(
         NetworkConnectionId connectionId,
         byte errorCode,
         byte context,
-        CancellationToken cancellationToken) =>
+        CancellationToken cancellationToken, bool mirror = false) =>
         sender.SendExplicitAsync(
             connectionId,
-            new GameExplicitMessageDelivery([new SelectDungeonRefusal(errorCode, context)], []),
+            new GameExplicitMessageDelivery([new SelectDungeonRefusal(errorCode, context, mirror)], []),
             cancellationToken);
 
     private sealed record EntryAttachments(

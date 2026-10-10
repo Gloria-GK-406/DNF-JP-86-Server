@@ -2,6 +2,7 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameMirrorDungeonEntry = 0x0001_02B6,
     GamePrepareCycleDungeonEntry = 0x0001_0308,
     GameResetItemQuality = 0x0001_0051,
     GameResetRandomOption = 0x0001_01C8,
@@ -208,6 +209,8 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameMirrorDungeonEntry = 0x0001_02B6,
+    GameMirrorDungeonMission = 0x0000_0278,
     GamePrepareCycleDungeonEntry = 0x0001_0308,
     GameResetItemQuality = 0x0001_0051,
     GameResetRandomOption = 0x0001_01C8,

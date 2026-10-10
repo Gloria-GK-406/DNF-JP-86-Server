@@ -66,6 +66,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustDefinitionSource, PvfJoustDefinitionSource>();
         services.TryAddSingleton<IQuestDefinitionSource, PvfQuestDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ICycleDungeonDefinitionSource, PvfCycleDungeonDefinitionSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.IMirrorDungeonDefinitionSource, PvfMirrorDungeonDefinitionSource>();
         services.TryAddSingleton<IMailItemDefinitionSource, PvfMailItemDefinitionSource>();
         services.TryAddSingleton<IInventoryExpansionDefinitionSource, PvfInventoryExpansionDefinitionSource>();
         services.TryAddSingleton<ICargoItemDefinitionSource, PvfCargoItemDefinitionSource>();

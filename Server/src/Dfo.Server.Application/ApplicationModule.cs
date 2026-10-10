@@ -81,6 +81,7 @@ public sealed class ApplicationModule : IServerModule
 
         services.TryAddSingleton(TimeProvider.System);
         services.AddEventDispatching();
+        services.AddMirrorAradQuests();
         Dfo.Server.Application.Achievements.AchievementRegistration.AddAchievements(services);
         services.AddDomainEvent<MailCreated>("mail.created", 1);
         services.AddDomainSubscriber<MailCreated, MailCreatedNotificationSubscriber>("mail.arrival",
@@ -167,6 +168,10 @@ public sealed class ApplicationModule : IServerModule
         });
         services.TryAddSingleton<IHellDungeonEntryDomainService, HellDungeonEntryDomainService>();
         services.TryAddSingleton<IDungeonEntryIntentDomainService, DungeonEntryIntentDomainService>();
+        services.TryAddSingleton<IDungeonLifecycleDomainService, DungeonLifecycleDomainService>();
+        services.TryAddSingleton<IMirrorDungeonRuleService, MirrorDungeonRuleService>();
+        services.TryAddSingleton<IMirrorDungeonEntryDomainService, MirrorDungeonEntryDomainService>();
+        services.AddDomainEvent<DungeonParticipantLeft>("dungeon.participant-left", 1);
         services.TryAddSingleton<ICycleDungeonRuleService, CycleDungeonRuleService>();
         services.TryAddSingleton<ICycleDungeonEntryDomainService, CycleDungeonEntryDomainService>();
         services.TryAddSingleton<IDungeonSettlementRuleService, DungeonSettlementRuleService>();

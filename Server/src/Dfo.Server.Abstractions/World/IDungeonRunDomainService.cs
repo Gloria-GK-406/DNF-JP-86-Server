@@ -39,6 +39,8 @@ public sealed record DungeonRunState(
     bool CardLayoutOpen = false,
     DungeonCellState? CurrentCellState = null)
 {
+    public DateTimeOffset? ClearedAt { get; init; }
+    public ImmutableHashSet<MazeCell> ClearedCells { get; init; } = [];
     public DungeonEntryKind EntryKind => Layout.EntryKind;
     public HellEntryPlan? Hell => Layout.Hell;
 
@@ -464,6 +466,8 @@ public interface IDungeonRunDomainService
     void ScheduleClearReturn(CharacterId characterId, DungeonRunId runId, DateTimeOffset now) { }
     IReadOnlyList<DungeonRunId> FindExpiredClearReturns(DateTimeOffset now) => [];
     DungeonRunState? TryEndClearReturn(DungeonRunId runId, DateTimeOffset now) => null;
+    ValueTask<DungeonRunState?> TryEndClearReturnAsync(DungeonRunId runId, DateTimeOffset now) =>
+        ValueTask.FromResult(TryEndClearReturn(runId, now));
 
     IReadOnlyList<DungeonRunId> FindExpiredPartyWipes(DateTimeOffset now) => [];
     DungeonRunState? TryEndPartyWipe(DungeonRunId runId, DateTimeOffset now) => null;

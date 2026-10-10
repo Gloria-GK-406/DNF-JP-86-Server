@@ -1,5 +1,10 @@
 # 协议清单
 
+## 2026-10-10 镜像阿拉德（CurrentImplementation，未部署）
+
+[CMD02B6](game/client-to-server/0x02B6.md)按8字节历史地下城/镜像任务配对接入独立入口；失败使用[专用响应](game/server-to-client/CMD-0x02B6.md)错误表，成功走[0278本局任务推送](game/server-to-client/NOTI-0x0278.md)及共用加载，不重复发送成功ACK。独立场次任务支持真实PVF候选目标，奖励和每日次数同事务；离场事实经 EventBus Reliable 订阅清理，通知消费时读取当前快照。普通 Quest 保持既有流程，仅必要刷新合并当前镜像任务。请求已有原始body运行日志，回包/交互依据 ClientStatic；未记作ClientVerified。[任务结果与边界](../Document/tasks/mirror-arad-entry-20261010/spec-result.md)。
+
+
 ## 2026-10-10 循环地下城单人阶段接受
 
 [CMD0308请求](game/client-to-server/0x0308.md)为8B地图/任务对；[响应](game/server-to-client/CMD-0x0308.md)为成功9B或失败1B。

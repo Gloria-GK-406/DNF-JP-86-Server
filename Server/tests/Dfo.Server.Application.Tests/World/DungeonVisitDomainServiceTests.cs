@@ -17,6 +17,24 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed class DungeonVisitDomainServiceTests
 {
     [Fact]
+    public async Task Prepared_mirror_layout_uses_validated_difficulty_without_reading_historical_unlock_ledger()
+    {
+        var runs = new DungeonRunDomainService();
+        var cells = new RecordingCellFactory();
+        var fatigue = new TestFatigue();
+        var visits = new DungeonVisitDomainService(new RecordingLayouts(), runs, new ImmediateSelection(), cells,
+            new MaximumDifficulty(storageFailure: true), new DungeonDifficultyRuleService(), fatigue);
+        var layout = Layout with { Mirror = new(8000, 31, 14299) };
+        var result = await visits.TryEnterPreparedPartyAsync([new(new(1), new(71), 0, true)], layout,
+            DungeonEntryFacts.None with { Difficulty = DungeonDifficulty.Tier3 }, default);
+        Assert.NotNull(result.Entry);
+        Assert.Same(layout.Mirror, result.Entry.Layout.Mirror);
+        Assert.Equal(DungeonDifficulty.Tier3, result.Entry.Visits[new(71)].Run.Difficulty);
+        Assert.Equal(1, fatigue.Spent[new(71)]);
+        Assert.Equal(1, cells.CallCount);
+    }
+
+    [Fact]
     public async Task Cycle_cannot_bypass_unlock_checks_or_pay_before_a_valid_difficulty_is_selected()
     {
         var runs = new DungeonRunDomainService();

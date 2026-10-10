@@ -135,7 +135,7 @@ public sealed class QuestClearCouponHandler(
     IEventService notifications,
     IGameMessageSender sender,
     ILogger<QuestClearCouponHandler> logger,
-    FatiguePotionHandler? fatiguePotions = null) : ClientMessageHandler<QuestClearCouponRequest>
+    FatiguePotionHandler? fatiguePotions = null, IMirrorAradQuestDomainService? mirror = null) : ClientMessageHandler<QuestClearCouponRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
         QuestClearCouponRequest message, CancellationToken ct)
@@ -192,6 +192,7 @@ public sealed class QuestClearCouponHandler(
             var log = questLogs.LogOf(session.AccountId, session.CharacterId);
             var cleared = await log.ClearedAsync(ct).ConfigureAwait(false);
             var carried = await log.CarriedAsync(ct).ConfigureAwait(false);
+            if (mirror is not null) carried = (await mirror.MergeAsync(session.CharacterId, new(carried), ct).ConfigureAwait(false)).Quests;
             following.AddRange(QuestClearCouponProjection.FromLog(cleared, carried));
         }
         catch (Exception failure) when ((failure is not OperationCanceledException) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))

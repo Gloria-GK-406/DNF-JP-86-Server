@@ -14,7 +14,7 @@ public sealed class QuestProgressDomainService(
     IQuestDefinitionDomainService definitions,
     ICharacterQuestLogDomainService logs,
     IQuestTriggerDomainService clientReports,
-    ISeekingQuestProgressDomainService seeking) : IQuestProgressDomainService
+    ISeekingQuestProgressDomainService seeking, IMirrorAradQuestDomainService? mirror = null) : IQuestProgressDomainService
 {
     public async ValueTask<QuestProgressReport> ReportAsync(
         AccountId accountId,
@@ -47,8 +47,9 @@ public sealed class QuestProgressDomainService(
                 case ClientQuestTriggerReport report:
                     var definition = await definitions.FindAsync(report.QuestId, cancellationToken)
                         .ConfigureAwait(false);
-                    clientResponse = definition is null
-                        ? QuestAdvance.Refused
+                    clientResponse = definition?.Grade == QuestGrade.Crack
+                        ? mirror is null ? QuestAdvance.Refused : await mirror.TriggerAsync(accountId, characterId, checked((ushort)report.QuestId), cancellationToken).ConfigureAwait(false)
+                        : definition is null ? QuestAdvance.Refused
                         : await clientReports.ApplyClientReportAsync(
                             accountId, characterId, definition, report.Selector,
                             report.Increment, cancellationToken).ConfigureAwait(false);
@@ -83,15 +84,23 @@ public sealed class QuestProgressDomainService(
                     serverProgressChanged |= dependents.Count != 0;
                     break;
 
+                case QuestRoomCleared:
+                case QuestCharacterRevived:
+                    break;
+
                 default:
                     throw new ArgumentOutOfRangeException(
                         nameof(facts), fact, "Unknown quest progress fact.");
             }
         }
 
+        if (mirror is not null && clientFact is null)
+            serverProgressChanged |= await mirror.ReportAsync(accountId, characterId, facts, cancellationToken).ConfigureAwait(false);
         var snapshot = serverProgressChanged
             ? new QuestProgressSnapshot(await log.CarriedAsync(cancellationToken).ConfigureAwait(false))
             : null;
+        if (snapshot is not null && mirror is not null)
+            snapshot = await mirror.MergeAsync(characterId, snapshot, cancellationToken).ConfigureAwait(false);
         return new QuestProgressReport(clientResponse, changes, snapshot);
     }
 
@@ -106,6 +115,7 @@ public sealed class QuestProgressDomainService(
         {
             var definition = await definitions.FindAsync(active.QuestId, cancellationToken)
                 .ConfigureAwait(false);
+            if (definition?.Grade == QuestGrade.Crack) continue;
             if (definition?.KillObjectives is not { Status: QuestKillParseStatus.Parsed } objectives)
                 continue;
             var targets = objectives.Targets;
@@ -146,6 +156,7 @@ public sealed class QuestProgressDomainService(
         {
             var definition = await definitions.FindAsync(active.QuestId, cancellationToken)
                 .ConfigureAwait(false);
+            if (definition?.Grade == QuestGrade.Crack) continue;
             var target = definition?.DungeonClearRequirement;
             if (target is null || target.DungeonId != clear.DungeonId
                 || (target.Difficulty >= 0 && target.Difficulty != (int)clear.Difficulty))

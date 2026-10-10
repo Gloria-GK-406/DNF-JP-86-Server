@@ -50,6 +50,48 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 public sealed class SelectDungeonHandlerTests
 {
     [Fact]
+    public async Task Mirror_load_pushes_mission_before_maps_without_a_second_entry_ack()
+    {
+        var sender = new RecordingSender();
+        var handler = Handler(new RecordingVisits(), sender, commands: new MirrorCommands());
+        await handler.HandleAsync(Dispatch(), Request() with { MirrorQuestId = 14299 }, default);
+        var messages = sender.Sent.Select(x => ((IGameServerMessage)x).MessageType).ToList();
+        var mission = messages.IndexOf(ServerMessageType.GameMirrorDungeonMission);
+        Assert.True(mission >= 0);
+        Assert.True(mission < messages.IndexOf(ServerMessageType.GameDungeonInfo));
+        Assert.DoesNotContain(ServerMessageType.GameMirrorDungeonEntry, messages);
+    }
+
+    [Fact]
+    public async Task Mirror_fatigue_refusal_uses_02B6_generic_error_and_selection_can_retry()
+    {
+        var sender = new RecordingSender();
+        var handler = Handler(new RecordingVisits(), sender, commands: new RefusalCommands(DungeonEntryFailure.InsufficientFatigue));
+        for (var i = 0; i < 2; i++)
+            await handler.HandleAsync(Dispatch(), Request() with { MirrorQuestId = 14299 }, default);
+        Assert.Equal(2, sender.Sent.Count);
+        Assert.All(sender.Sent, x =>
+        {
+            var refused = Assert.IsType<SelectDungeonRefusal>(x);
+            Assert.True(refused.Mirror);
+            Assert.Equal(1, refused.ErrorCode);
+        });
+    }
+
+    private sealed class MirrorCommands : ICommandBus
+    {
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
+            where TResult : notnull
+        {
+            Assert.Equal(14299, Assert.IsType<EnterDungeonCommand>(command).Entry.MirrorQuestId);
+            var layout = Tutorial with { Mirror = new(8000, 31, 14299) };
+            var run = AtStart with { Layout = layout };
+            return ValueTask.FromResult((TResult)(object)DungeonEntryAttempt.Accepted(new DungeonPartyEntry(layout,
+                new Dictionary<CharacterId, DungeonRoomVisit> { [Identity.CharacterId] = new(run, true, [], [], 1) })));
+        }
+    }
+
+    [Fact]
     public async Task Missing_hell_tickets_send_the_native_refusal_and_preserve_selection_for_retry()
     {
         var commands = new MissingHellTicketCommands();

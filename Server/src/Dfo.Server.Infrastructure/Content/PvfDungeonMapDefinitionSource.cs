@@ -11,6 +11,7 @@ internal sealed class PvfDungeonMapDefinitionSource(PvfArchiveProvider provider)
     private static readonly PvfField<string> Type = PvfField.String("[type]", optional: true);
     private static readonly PvfField<string> Greed = PvfField.String("[greed]", optional: true);
     private static readonly PvfField<IReadOnlyList<int>> StartArea = PvfField.Int32List("[start area]", optional: true);
+    private static readonly PvfField<IReadOnlyList<int>> DungeonStartArea = PvfField.Int32List("[dungeon start area]", optional: true);
     private readonly Lock gate = new();
     private readonly Dictionary<int, DungeonMapDefinition?> cache = [];
     private IReadOnlyDictionary<int, string>? paths;
@@ -86,8 +87,11 @@ internal sealed class PvfDungeonMapDefinitionSource(PvfArchiveProvider provider)
             for (var offset = 0; offset < values.Count; offset += 2)
                 connections.Add(new(values[offset], values[offset + 1]));
         }
-        var start = PvfDocument.Open(provider.Archive, path).Sections.FirstOrDefault(section => StartArea.Matches(section.Name));
-        var hasStart = start is not null && StartArea.Decode(provider.Archive, start.Values, path).Count > 0;
+        var sections = PvfDocument.Open(provider.Archive, path).Sections;
+        var hasStart = sections.Any(section => StartArea.Matches(section.Name)
+                && StartArea.Decode(provider.Archive, section.Values, path).Count > 0
+            || DungeonStartArea.Matches(section.Name)
+                && DungeonStartArea.Decode(provider.Archive, section.Values, path).Count >= 4);
         var result = new DungeonMapDefinition(mapId, owners, kind, connections.AsReadOnly(), hasStart);
         cache.Add(mapId, result);
         return result;
