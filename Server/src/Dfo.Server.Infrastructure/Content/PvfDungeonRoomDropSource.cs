@@ -43,6 +43,14 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
                 groups[dungeonId] = table = ParseGroups(ReadSection("dungeon", dungeonId,
                     Fields.SpecialPassiveObjectItemField).Select(t => int.Parse(t, System.Globalization.CultureInfo.InvariantCulture)).ToArray(), dungeonId,
                     item => PvfEquipmentDurability.Read(provider.Archive, Paths("equipment"), item));
+            // MAPs may retain item actions while the dungeon explicitly has no object loot table.
+            // Parsing above still validates both declarations; an empty table disables only loot.
+            if (table.Count == 0)
+            {
+                IReadOnlyList<ObjectDropDefinition> empty = ImmutableArray<ObjectDropDefinition>.Empty;
+                cache[(dungeonId, mapId)] = empty;
+                return ValueTask.FromResult(empty);
+            }
             var result = ImmutableArray.CreateBuilder<ObjectDropDefinition>();
             foreach (var action in actions)
             {

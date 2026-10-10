@@ -6,6 +6,24 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 
 public sealed class PvfDungeonRoomDropSourceTests
 {
+    [SkippableFact]
+    public async Task Outer_gent_room_with_an_empty_dungeon_drop_table_keeps_objects_without_loot()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonRoomDropSource(provider);
+
+        var drops = await source.GetAsync(80, 57132, CancellationToken.None);
+
+        Assert.Empty(drops);
+        Assert.Same(drops, await source.GetAsync(80, 57132, CancellationToken.None));
+        var objects = await source.GetObjectsAsync(57132, CancellationToken.None);
+        Assert.Contains(objects, obj => obj.Code == 49009
+            && obj.Id == new DungeonObjectId(DungeonObjectSection.SpecialPassive, 0));
+        Assert.Equal(5, (await new PvfDungeonRoomActorSource(provider)
+            .GetAsync(57132, CancellationToken.None)).Count);
+    }
+
     [Fact]
     public void Object_identity_keeps_duplicate_templates_and_zero_action_objects()
     {

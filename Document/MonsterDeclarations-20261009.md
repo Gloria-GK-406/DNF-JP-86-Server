@@ -19,3 +19,5 @@ PVF typed tokens
 证据边界：实际PVF 10,293个map.lst引用均可结构解析；70/upstream仅为参考。条件脚本、blood/ultimate等专属机制保存声明而不默认生成，非已证实OBJ控制器不猜语义。用户需实机验证追击Boss入房和根特防御波次。
 
 聚焦回归521项通过，无失败或跳过；独立审查approved。已部署版本 `0.2.3+monster-declarations.20261009.f2fa6e3e`，PID 32956，六端口与健康/启动接口已验证。数据库沿用并备份，旧运行目录保留。完整测试、部署与实机边界见 [完成证据](tasks/monster-declaration-parser-20261009/verification/completion-evidence.md)。
+
+2026-10-10 常规修复：根特外围循环选中 MAP 57132，其物件49009保留 `[item] 0 3 -1 -1 -1` 动作，而地下城80的物件掉落表为空。先由真实资源回归复现 `missing group 0`，再允许空表返回缓存的空掉落列表；仍解析并校验动作，非空表引用不存在的组继续报错。物件身份与五条怪物记录不受影响。对应运行产物及测试结果在 `artifacts/empty-object-loot-20261010/`；用户需重新登录验证根特外围循环切房。
