@@ -24,6 +24,27 @@ namespace Dfo.Server.Application.Tests.World;
 /// </remarks>
 public sealed class WorldContentArchiveTests
 {
+    [Theory]
+    [InlineData(49999, false)]
+    [InlineData(50000, true)]
+    [InlineData(51000, true)]
+    [InlineData(51001, false)]
+    [InlineData(55999, false)]
+    [InlineData(56000, true)]
+    [InlineData(60000, true)]
+    [InlineData(60001, false)]
+    [InlineData(61670, false)]
+    [InlineData(110899, false)]
+    [InlineData(110900, true)]
+    [InlineData(110999, true)]
+    [InlineData(111000, false)]
+    public void Named_ranges_match_A21_independently_of_champion_rank(int code, bool named)
+    {
+        var rules = new DungeonRoomRuleService(null!, null!, null!, null!);
+        var actors = rules.Describe([new(code, 1, 0), new(code, 1, 1)]);
+        Assert.All(actors, actor => Assert.Equal(named, actor.IsNamedMonster));
+    }
+
     [SkippableFact]
     public async Task Quest_rooms_resolve_monster_level_from_both_map_fields_and_dungeon_basis()
     {
@@ -50,7 +71,7 @@ public sealed class WorldContentArchiveTests
             StartRoomMapId: 55623,
             Seed: 1,
             Cells: new Dictionary<MazeCell, DungeonCellDefinition> { [ordinary] = DungeonCellDefinition.Fixed(55623), [boss] = DungeonCellDefinition.Fixed(55625)},
-            BasisLevel: dungeon.BasisLevel);
+            BasisLevel: dungeon.BasisLevel) { NamedMonsterCodes = [65311] };
 
         async Task<DungeonRoomContents> Describe(MazeCell cell, int mapId) =>
             await rooms.DescribeAsync(
@@ -63,10 +84,12 @@ public sealed class WorldContentArchiveTests
         var forestMonsters = absolute.Actors.Where(actor => actor.Actor.Code == 65311).ToArray();
         Assert.NotEmpty(forestMonsters);
         Assert.All(forestMonsters, actor => Assert.Equal(10, actor.Actor.Level));
+        Assert.All(forestMonsters, actor => Assert.True(actor.IsNamedMonster));
 
         var relative = await Describe(boss, 55625);
         Assert.Equal(11, Assert.Single(relative.Actors, actor => actor.Actor.Code == 59753)
             .Actor.Level);
+        Assert.True(Assert.Single(relative.Actors, actor => actor.Actor.Code == 59753).IsNamedMonster);
     }
 
     [SkippableFact]

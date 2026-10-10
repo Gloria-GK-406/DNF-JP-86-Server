@@ -71,6 +71,7 @@ public sealed record DungeonCellActorState(
     IReadOnlyList<RolledDrop> PendingLoot,
     bool IsMonster = true)
 {
+    public bool IsNamedMonster { get; init; }
     /// <summary>Clear participation is independent of ordinary monster experience eligibility.</summary>
     public bool BlocksClear => !IsHellTemplate && Actor.IsHostile
         && Actor.Declaration?.IsDummy != true

@@ -20,7 +20,7 @@ internal sealed class MonsterKillDomainService : IMonsterKillDomainService
                     actor.Actor.Code,
                     run.Layout.LevelOf(actor.Actor.Level),
                     (MonsterRank)actor.Actor.ActorType,
-                    actor.IsMonster),
+                    actor.IsMonster, actor.IsNamedMonster),
                 cell.Actors.Count));
     }
 

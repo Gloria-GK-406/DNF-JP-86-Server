@@ -27,6 +27,15 @@ namespace Dfo.Server.Protocol.Tests.Game.MonsterDeath;
 /// </remarks>
 public sealed class GrantKillExperienceCommandTests
 {
+    [Fact]
+    public async Task Named_champion_is_paid_once_with_stacked_multiplier_and_channel_bonus()
+    {
+        var award = await Award(5, MonsterRank.Champion, DeclaredChannelRate, named: true);
+        Assert.NotNull(award);
+        Assert.Equal(new ExperienceBreakdown(Base: 442, Channel: 22), award.Breakdown);
+        Assert.Equal(464u, award.Gained);
+    }
+
     /// <summary>Dungeon 144's weight, as the archive declares it and as a single.</summary>
     private const double CapturedDungeonWeight = 1.45f;
 
@@ -72,7 +81,7 @@ public sealed class GrantKillExperienceCommandTests
     }
 
     private static async Task<ExperienceAward?> Award(
-        int monsterLevel, MonsterRank rank, double channelRate)
+        int monsterLevel, MonsterRank rank, double channelRate, bool named = false)
     {
         var handler = new GrantKillExperienceCommandHandler(new PricingGrant(new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
                 new CapturedParameters(),
@@ -92,7 +101,7 @@ public sealed class GrantKillExperienceCommandTests
             new GrantKillExperienceCommand(
                 new AccountId(1),
                 new CharacterId(60),
-                new KilledMonster(Code: 63751, monsterLevel, rank),
+                new KilledMonster(Code: 63751, monsterLevel, rank, named),
                 CapturedDungeon,
                 Difficulty: 0,
                 CapturedDungeonWeight),

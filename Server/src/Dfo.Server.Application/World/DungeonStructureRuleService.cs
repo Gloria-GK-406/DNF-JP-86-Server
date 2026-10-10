@@ -121,7 +121,7 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
             maze.Cells,
             definition.BasisLevel,
             definition.ExperienceWeight,
-            purpose, definition.ConsumesFatigue);
+            purpose, definition.ConsumesFatigue) { NamedMonsterCodes = definition.NamedMonsterCodes };
     }
 
     public async ValueTask<DungeonLayout> PrepareLayoutAsync(DungeonLayout layout, CancellationToken cancellationToken)

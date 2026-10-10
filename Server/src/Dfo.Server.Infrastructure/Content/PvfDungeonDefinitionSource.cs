@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
@@ -50,6 +51,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         internal static readonly PvfField<IReadOnlyList<PvfToken>> StoryModeField = PvfField.Tokens("[story mode]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> RequiredItemsField = PvfField.Int32List("[required item]", optional: true);
         internal static readonly PvfField<int> TournamentField = PvfField.Int32("[tournament dungeon]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> NamedMonsterField = PvfField.Int32List("[named monster]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> RevengeField = PvfField.Int32List("[village attack revenge dungeon]", optional: true);
     }
 
@@ -121,6 +123,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         var entryMode = DungeonEntryMode.Maze;
         IReadOnlyList<DungeonRequiredItem> requiredItems = [];
         var hasStoryMode = false;
+        var namedMonsterCodes = ImmutableHashSet.CreateBuilder<int>();
 
         void Unique(PvfField field)
         {
@@ -129,6 +132,15 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         }
         foreach (var section in document.Sections)
         {
+            if (Fields.NamedMonsterField.Matches(section.Name))
+            {
+                foreach (var code in Fields.NamedMonsterField.Decode(archive, section.Values, archivePath))
+                {
+                    Require(code > 0, archivePath, Fields.NamedMonsterField, "monster code must be positive");
+                    namedMonsterCodes.Add(code);
+                }
+                continue;
+            }
             if (Fields.MazeInfoField.Matches(section.Name))
             {
                 Require(section.Values.Count == 0, archivePath, Fields.MazeInfoField, "expected an empty maze marker");
@@ -302,7 +314,8 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         return mazes.Count == 0 ? null : new DungeonDefinition(
             dungeonId, archivePath, minimumLevel, consumesFatigue, mazes, basisLevel,
             experienceWeight, offersPaidCard, questConnection,
-            designatedDifficulties ?? difficultyLevels ?? (fixedDifficulty is >= 0 ? [(byte)fixedDifficulty.Value] : []), entryMode) { RequiredItems = requiredItems, HasStoryMode = hasStoryMode };
+            designatedDifficulties ?? difficultyLevels ?? (fixedDifficulty is >= 0 ? [(byte)fixedDifficulty.Value] : []), entryMode)
+        { RequiredItems = requiredItems, HasStoryMode = hasStoryMode, NamedMonsterCodes = namedMonsterCodes.ToImmutable() };
     }
 
     private static byte CellCoordinate(int value, string path, PvfField field)

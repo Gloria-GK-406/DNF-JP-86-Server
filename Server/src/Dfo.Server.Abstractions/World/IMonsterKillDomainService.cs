@@ -13,7 +13,7 @@ namespace Dfo.Server.Abstractions.World;
 /// beside the player rather than against them, so their death pays nothing and drops nothing.
 /// </param>
 public readonly record struct IdentifiedKill(
-    int Code, int Level, MonsterRank Rank, bool IsMonster);
+    int Code, int Level, MonsterRank Rank, bool IsMonster, bool IsNamedMonster = false);
 
 /// <summary>
 /// Which of a room's declared actors a reported kill names, and how many it declares.

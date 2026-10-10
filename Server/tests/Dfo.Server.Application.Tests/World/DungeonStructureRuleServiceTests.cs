@@ -15,6 +15,14 @@ namespace Dfo.Server.Application.Tests.World;
 /// </remarks>
 public sealed class DungeonStructureRuleServiceTests
 {
+    [Fact]
+    public async Task Named_monster_declarations_are_frozen_in_the_layout()
+    {
+        var definition = Tutorial() with { NamedMonsterCodes = [61670] };
+        var layout = await Service(definition).ResolveAsync(10000, DungeonEntryFacts.None, 12345, default);
+        Assert.Same(definition.NamedMonsterCodes, layout!.NamedMonsterCodes);
+    }
+
     /// <summary>The tutorial's maze, as read out of the archive on 2026-08-18.</summary>
     private static readonly MazeDefinition TutorialMaze = new(
         Index: 0,

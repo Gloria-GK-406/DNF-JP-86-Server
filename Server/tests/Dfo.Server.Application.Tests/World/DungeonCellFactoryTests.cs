@@ -101,6 +101,7 @@ public sealed class DungeonCellFactoryTests
 
         var actor = Assert.Single(seed.Actors);
         Assert.Equal(isMonster, actor.IsMonster);
+        Assert.Equal(isMonster, actor.IsNamedMonster);
         Assert.Equal(isMonster || actorType >= 5 ? 1 : 0, loot.CallCount);
         Assert.Equal(isMonster || actorType >= 5 ? 1 + memberCount : 0, actor.PendingLoot.Count);
         Assert.Equal(isMonster || actorType >= 5 ? memberCount : 0, loot.PersonalCalls.Count);
@@ -219,7 +220,7 @@ public sealed class DungeonCellFactoryTests
                                 ? DungeonActorSpawnSource.SpecialPassiveObject : DungeonActorSpawnSource.Monster, 0)
                             { IsDummy = dummy, IsSceneOwnedWave = sceneWave, ParentObjectIndex = 2, ChildIndex = 3 } : null },
                     IsAiCharacter: actorType >= 5)
-                    { ObjectTemplateOwner = objectTemplate ? (byte)2 : null, ObjectTemplateIndex = objectTemplate ? 3 : 0 }],
+                    { IsNamedMonster = true, ObjectTemplateOwner = objectTemplate ? (byte)2 : null, ObjectTemplateIndex = objectTemplate ? 3 : 0 }],
                 [],
                 FirstActorSequence: 100));
 

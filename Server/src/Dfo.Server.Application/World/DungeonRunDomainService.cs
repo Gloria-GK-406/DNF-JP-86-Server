@@ -831,11 +831,9 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             if (award is not null && claim.Death.ActorState is { IsMonster: true } actor)
             {
                 var summary = aggregate.KillExperiences.GetValueOrDefault(claim.CharacterId) ?? new();
-                aggregate.KillExperiences[claim.CharacterId] = summary.Add(
-                    (MonsterRank)actor.Actor.ActorType, award.Breakdown.Base) with
-                {
-                    GrowthContract = checked(summary.GrowthContract + award.Breakdown.GrowthContract),
-                };
+                aggregate.KillExperiences[claim.CharacterId] = summary.Record(new(
+                    claim.Death.Actor, actor.Actor.Code, (MonsterRank)actor.Actor.ActorType,
+                    actor.IsNamedMonster, award.Breakdown));
             }
             return true;
         }

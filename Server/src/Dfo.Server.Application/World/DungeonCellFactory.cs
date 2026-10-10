@@ -95,7 +95,8 @@ internal sealed class DungeonCellFactory(
                 described.IsAiCharacter,
                 IsDead: false,
                 pending.ToArray(),
-                isMonster) { IsHellTemplate = described.IsHellTemplate, HellOrder = described.HellOrder,
+                isMonster) { IsNamedMonster = isMonster && described.IsNamedMonster,
+                    IsHellTemplate = described.IsHellTemplate, HellOrder = described.HellOrder,
                     HellGroupIndex = described.HellGroupIndex, EligibleForHellGroupReward = eligibleForGroupReward,
                     ObjectTemplateOwner = described.ObjectTemplateOwner, ObjectTemplateIndex = described.ObjectTemplateIndex });
         }

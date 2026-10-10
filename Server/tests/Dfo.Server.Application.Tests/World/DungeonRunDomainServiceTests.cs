@@ -1036,6 +1036,11 @@ public sealed class DungeonRunDomainServiceTests
         Assert.Equal(90u, service.Find(leader.CharacterId)!.KillExperience.Ordinary);
         Assert.Equal(18u, service.Find(leader.CharacterId)!.KillExperience.GrowthContract);
         Assert.Equal(0u, service.Find(member.CharacterId)!.KillExperience.Ordinary);
+        var leaderEntry = Assert.Single(service.Find(leader.CharacterId)!.KillExperience.Actors);
+        Assert.Equal(firstDeath.Actor, leaderEntry.Actor);
+        Assert.Equal(61670, leaderEntry.MonsterCode);
+        Assert.Equal(award.Breakdown, leaderEntry.Experience);
+        Assert.Empty(service.Find(member.CharacterId)!.KillExperience.Actors);
         Assert.Equal(0u, service.Find(member.CharacterId)!.KillExperience.GrowthContract);
         var failedMemberEffect = Assert.IsType<DungeonParticipantKillEffectClaim>(
             service.TryClaimParticipantKillEffect(firstDeath, member.CharacterId));
@@ -1053,8 +1058,40 @@ public sealed class DungeonRunDomainServiceTests
         Assert.Equal(18u, service.Find(leader.CharacterId)!.KillExperience.GrowthContract);
         Assert.Equal(45u, service.Find(member.CharacterId)!.KillExperience.Ordinary);
         Assert.Equal(9u, service.Find(member.CharacterId)!.KillExperience.GrowthContract);
+        Assert.Single(service.Find(leader.CharacterId)!.KillExperience.Actors);
+        Assert.Equal(45u, Assert.Single(service.Find(member.CharacterId)!.KillExperience.Actors).Experience.Base);
         Assert.NotNull(service.CommitActorDeath(retry));
         Assert.Null(service.TryClaimActorDeath(leader.CharacterId, FirstSequence));
+    }
+
+    [Fact]
+    public async Task Named_identity_and_granted_rewards_survive_death_and_keep_old_snapshots_immutable()
+    {
+        var service = new DungeonRunDomainService();
+        var run = BeginWithCell(service, actors:
+        [
+            CellActor(FirstSequence, new DungeonRoomActor(56349, 5, 1)) with { IsNamedMonster = true },
+            CellActor((ushort)(FirstSequence + 1), new DungeonRoomActor(61670, 5, 0)),
+        ]);
+        var identified = await new MonsterKillDomainService().IdentifyAsync(run, FirstSequence, default);
+        Assert.True(identified.Kill!.Value.IsNamedMonster);
+        Assert.Equal(MonsterRank.Champion, identified.Kill.Value.Rank);
+        var before = run.KillExperience;
+        var death = service.TryClaimActorDeath(Character, FirstSequence)!;
+        var effect = service.TryClaimParticipantKillEffect(death, Character)!;
+        Assert.True(service.CommitParticipantKillEffect(effect, new(new(Base: 442, Channel: 22), 1, 464, false)));
+        Assert.NotNull(service.CommitActorDeath(death));
+        var first = service.Find(Character)!.KillExperience;
+        var entry = Assert.Single(first.Actors);
+        Assert.True(entry.IsNamedMonster);
+        Assert.Equal(442u, first.Champion);
+        Assert.Empty(before.Actors);
+
+        var next = service.TryClaimActorDeath(Character, (ushort)(FirstSequence + 1))!;
+        var nextEffect = service.TryClaimParticipantKillEffect(next, Character)!;
+        Assert.True(service.CommitParticipantKillEffect(nextEffect, new(new(Base: 72), 1, 72, false)));
+        Assert.Single(first.Actors);
+        Assert.Equal(2, service.Find(Character)!.KillExperience.Actors.Length);
     }
 
     [Fact]

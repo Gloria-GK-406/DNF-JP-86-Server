@@ -551,7 +551,7 @@ public sealed class MonsterDeathHandler(
                             new KilledMonster(
                                 verifiedKill.Code,
                                 verifiedKill.Level,
-                                verifiedKill.Rank),
+                                verifiedKill.Rank, verifiedKill.IsNamedMonster),
                             run.Layout.DungeonId,
                             run.Difficulty,
                             run.Layout.ExperienceWeight,
@@ -853,7 +853,7 @@ public sealed class MonsterDeathHandler(
                             new KilledMonster(
                                 verifiedKill.Code,
                                 verifiedKill.Level,
-                                verifiedKill.Rank),
+                                verifiedKill.Rank, verifiedKill.IsNamedMonster),
                             deathClaim.Run.Layout.DungeonId,
                             deathClaim.Run.Difficulty,
                             deathClaim.Run.Layout.ExperienceWeight,

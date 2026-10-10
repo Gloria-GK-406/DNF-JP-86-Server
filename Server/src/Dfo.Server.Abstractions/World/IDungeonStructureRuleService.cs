@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 
@@ -119,6 +120,7 @@ public sealed record DungeonLayout(
 {
     public DungeonEntryKind EntryKind { get; init; } = DungeonEntryKind.Normal;
     public HellEntryPlan? Hell { get; init; }
+    public ImmutableHashSet<int> NamedMonsterCodes { get; init; } = [];
 
     /// <summary>Both cells must expose the matching door, not just be adjacent on the grid.</summary>
     public bool CanTraverse(MazeCell from, MazeCell target)

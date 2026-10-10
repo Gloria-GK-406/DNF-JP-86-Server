@@ -43,7 +43,11 @@ internal sealed class DungeonRoomRuleService(
                 BasisLevelOffset = null,
             }
             : actor).ToArray();
-        var described = this.Describe(resolved);
+        IReadOnlyList<RoomActorDescription> described = this.Describe(resolved)
+            .Select(actor => actor with
+            {
+                IsNamedMonster = actor.IsNamedMonster || context.Layout.NamedMonsterCodes.Contains(actor.Actor.Code),
+            }).ToArray();
         if (context.Layout.Hell is { } hell && context.Cell == hell.Cell)
             described = described.Concat(hell.Actors.Select(actor => new RoomActorDescription(actor.Actor,
                 actor.Actor.ActorType >= FirstAiCharacterActorType)
@@ -68,6 +72,7 @@ internal sealed class DungeonRoomRuleService(
             var row = actor.Declaration;
             return new RoomActorDescription(actor, actor.ActorType >= FirstAiCharacterActorType)
             {
+                IsNamedMonster = IsNamedMonster(actor.Code),
                 ObjectTemplateOwner = row?.Source == DungeonActorSpawnSource.SpecialPassiveObject
                     ? checked((byte)(row.ParentObjectIndex ?? throw new InvalidDataException("Object template has no parent index.")))
                     : null,
@@ -75,6 +80,10 @@ internal sealed class DungeonRoomRuleService(
             };
         })];
     }
+
+    // A21 client RVA 0x02791EF0; dungeon declarations extend these built-in ranges.
+    private static bool IsNamedMonster(int code) =>
+        code is >= 50000 and <= 51000 or >= 56000 and <= 60000 or >= 110900 and <= 110999;
 
     /// <summary>
     /// The number the room's first actor is given, derived rather than drawn.
