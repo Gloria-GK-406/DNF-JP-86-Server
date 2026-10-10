@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Data.Channel;
 using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
@@ -43,8 +45,13 @@ public sealed class GameLoginTests
         Assert.Equal("0123456789ABCDEF0123456789ABCDEF", authentication.Ticket);
     }
 
-    [Fact]
-    public async Task MessageHandler_ResolvesConnectionAndSendsSuccessToSameConnection()
+    [Theory]
+    [InlineData(null, 1)]
+    [InlineData((byte)23, 23)]
+    [InlineData((byte)8, 8)]
+    [InlineData((byte)13, 13)]
+    [InlineData((byte)24, 24)]
+    public async Task MessageHandler_ResolvesConnectionAndSendsSuccessToSameConnection(byte? channelEnvironment, byte expectedEnvironment)
     {
         var account = new AccountId(7);
         var onlineUsers = new UserDomainServices(account);
@@ -64,7 +71,8 @@ public sealed class GameLoginTests
             new StubServerConfigService(),
             accountEntryState,
             closer,
-            NullLogger<GameLoginHandler>.Instance);
+            NullLogger<GameLoginHandler>.Instance,
+            new LoginChannelPolicy(channelEnvironment));
 
         await handler.HandleAsync(
             new NetworkDispatchContext(connection),
@@ -88,7 +96,7 @@ public sealed class GameLoginTests
 
         Assert.True(sender.Sends[0].IsCmd);
         Assert.Equal(
-            new GameLoginResponse(true, 1, 10128, "192.0.2.20", 17200, 17200),
+            new GameLoginResponse(true, expectedEnvironment, 10128, "192.0.2.20", 17200, 17200),
             sender.Sends[0].Message);
 
         Assert.All(sender.Sends.Skip(1), send => Assert.False(send.IsCmd));
@@ -378,6 +386,16 @@ public sealed class GameLoginTests
             Exception? exception,
             Func<TState, Exception?, string> formatter) =>
             this.messages.Add(formatter(state, exception));
+    }
+
+    private sealed class LoginChannelPolicy(byte? environment) : IChannelEntryPolicy
+    {
+        public ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken)
+        {
+            Assert.Equal(10011, listenerPort);
+            return ValueTask.FromResult(new ChannelEntryIdentity(200, listenerPort, ChannelEntryKind.General, environment));
+        }
+        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => null;
     }
 
     /// <remarks>

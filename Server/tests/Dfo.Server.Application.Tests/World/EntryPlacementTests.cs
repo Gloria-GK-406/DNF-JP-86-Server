@@ -20,6 +20,28 @@ public sealed class EntryPlacementTests
         Assert.Equal(expected, await Placement().CanRememberInnAsync(town, default));
     }
 
+    [Theory]
+    [InlineData(ChannelEntryKind.FreeDuel, 10)]
+    [InlineData(ChannelEntryKind.Pvp, 10)]
+    [InlineData(ChannelEntryKind.Raid, 19)]
+    public async Task Special_channel_uses_its_own_town_without_overwriting_home(ChannelEntryKind kind, int town)
+    {
+        var placement = Placement();
+        var channel = new ChannelEntryIdentity(68, 10068, kind);
+        var result = await placement.ResolveAsync(channel, 2, default);
+        Assert.Equal(town, result.Spawn.TownId);
+        Assert.True(result.Spawn.IsTransient);
+        Assert.False(result.PersistsPosition);
+        Assert.True(await placement.CanEnterTownAsync(channel, town, default));
+        Assert.False(await placement.CanEnterTownAsync(channel, 2, default));
+        Assert.False(await placement.CanEnterTownAsync(StubChannelEntryPolicy.GeneralChannel, town, default));
+        Assert.False(await placement.CanRememberInnAsync(town, default));
+        var home = await placement.ResolveAsync(StubChannelEntryPolicy.GeneralChannel, 2, default);
+        Assert.Equal(2, home.Spawn.TownId);
+        var historicalSpecialSave = await placement.ResolveAsync(StubChannelEntryPolicy.GeneralChannel, town, default);
+        Assert.Equal(1, historicalSpecialSave.Spawn.TownId);
+    }
+
     [Fact]
     public async Task A_character_arrives_at_the_gate_of_the_town_they_were_last_in()
     {
@@ -209,6 +231,8 @@ public sealed class EntryPlacementTests
                 // Town 7 has areas but no gate, which the real content also contains.
                 Town(7, [Area(0, "warfare.map", TownAreaKind.Unrecognized)]),
                 Town(17, [Area(0, "saint-gate.map", TownAreaKind.Gate, 474, 234)]),
+                Town(10, [Area(0, "pvp-gate.map", TownAreaKind.Gate, 300, 200)]),
+                Town(19, [Area(0, "raid-gate.map", TownAreaKind.Gate, 400, 200)]),
             ], new Dictionary<string, MapGeometry>()),
             ChannelEntryOptions.Legacy);
 

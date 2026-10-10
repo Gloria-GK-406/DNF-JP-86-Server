@@ -32,6 +32,10 @@ public sealed record ChannelEntryOptions(
     int DefaultTownId,
     int SaintHornTownId)
 {
+    public int PvpTownId { get; init; } = 10;
+
+    public int RaidTownId { get; init; } = 19;
+
     /// <summary>The values the legacy server uses.</summary>
     public static ChannelEntryOptions Legacy { get; } = new(
         SaintHornChannelId: 100,

@@ -13,7 +13,7 @@ namespace Dfo.Server.Application.World;
 /// <remarks>
 /// Reverse-engineered from the legacy channel spawn policy. Ordinary channels put a
 /// character at their remembered inn's arrival gate. Their live town is saved separately. Saint Horn
-/// serves one town and uses its own arrival gate without overwriting the remembered town.
+/// and other special channels use their own arrival gates without overwriting the remembered town.
 /// </remarks>
 internal sealed class EntryPlacementRuleService(
     ITownDefinitionSource towns,
@@ -26,7 +26,7 @@ internal sealed class EntryPlacementRuleService(
     private const byte ArrivalAreaState = 3;
 
     public async ValueTask<bool> CanRememberInnAsync(int townId, CancellationToken cancellationToken) =>
-        townId != options.SaintHornTownId
+        !IsSpecialTown(townId)
         && await TryResolveTownGateSpawnAsync(townId, cancellationToken).ConfigureAwait(false) is not null;
 
     public async ValueTask<ChannelEntryPolicyState> ResolveAsync(
@@ -37,14 +37,14 @@ internal sealed class EntryPlacementRuleService(
         ArgumentNullException.ThrowIfNull(channel);
 
         var spawn = channel.IsTransient
-            ? await ResolveTransientSpawnAsync(cancellationToken).ConfigureAwait(false)
+            ? await ResolveTransientSpawnAsync(channel, cancellationToken).ConfigureAwait(false)
             : await ResolveTownGateSpawnAsync(persistedTownId, cancellationToken).ConfigureAwait(false);
 
         return new ChannelEntryPolicyState(
             channel.ChannelId,
             spawn,
             PersistsPosition: !channel.IsTransient,
-            PvpSkillProfileApplies: channel.IsFreeDuel);
+            PvpSkillProfileApplies: channel.IsPvp);
     }
 
     public ValueTask<bool> CanEnterTownAsync(
@@ -55,10 +55,9 @@ internal sealed class EntryPlacementRuleService(
         ArgumentNullException.ThrowIfNull(channel);
         cancellationToken.ThrowIfCancellationRequested();
 
-        // Saint Horn is a separate channel: neither side may cross into the other town set.
-        return ValueTask.FromResult(channel.Kind is ChannelEntryKind.SaintHorn
-            ? townId == options.SaintHornTownId
-            : townId != options.SaintHornTownId);
+        return ValueTask.FromResult(channel.IsTransient
+            ? townId == SpecialTownOf(channel)
+            : !IsSpecialTown(townId));
     }
 
     public async ValueTask<bool> DeclaresAreaAsync(
@@ -90,7 +89,7 @@ internal sealed class EntryPlacementRuleService(
         CancellationToken cancellationToken)
     {
         // Historical saves may contain the special town; a general channel must not restore it.
-        var townId = persistedTownId > 0 && persistedTownId != options.SaintHornTownId
+        var townId = persistedTownId > 0 && !IsSpecialTown(persistedTownId)
             ? persistedTownId : options.DefaultTownId;
         var spawn = await TryResolveTownGateSpawnAsync(townId, cancellationToken).ConfigureAwait(false);
         if (spawn is not null)
@@ -132,12 +131,25 @@ internal sealed class EntryPlacementRuleService(
             SharesTownPresence: SharesTownPresence(gate));
     }
 
-    private async ValueTask<EntrySpawnState> ResolveTransientSpawnAsync(CancellationToken cancellationToken)
+    private bool IsSpecialTown(int townId) =>
+        townId == options.SaintHornTownId || townId == options.PvpTownId || townId == options.RaidTownId;
+
+    private int SpecialTownOf(ChannelEntryIdentity channel) => channel.Kind switch
     {
-        var spawn = await TryResolveTownGateSpawnAsync(options.SaintHornTownId, cancellationToken)
+        ChannelEntryKind.SaintHorn => options.SaintHornTownId,
+        ChannelEntryKind.Raid => options.RaidTownId,
+        ChannelEntryKind.FreeDuel or ChannelEntryKind.Pvp => options.PvpTownId,
+        _ => throw new InvalidOperationException("Channel has no transient town."),
+    };
+
+    private async ValueTask<EntrySpawnState> ResolveTransientSpawnAsync(
+        ChannelEntryIdentity channel, CancellationToken cancellationToken)
+    {
+        var townId = SpecialTownOf(channel);
+        var spawn = await TryResolveTownGateSpawnAsync(townId, cancellationToken)
             .ConfigureAwait(false)
             ?? throw new EntryPlacementUnavailableException(
-                $"Saint Horn town {options.SaintHornTownId} declares no usable arrival gate.");
+                $"Channel {channel.ChannelId} town {townId} declares no usable arrival gate.");
         return spawn with { IsTransient = true };
     }
 

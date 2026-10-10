@@ -88,8 +88,8 @@ internal sealed class CharacterCurrentStateQueryDomainService(
                 await towns.SharesTownPresenceAsync(position.TownId, position.AreaId, cancellationToken)
                     .ConfigureAwait(false)),
             PersistsPosition: !channel.IsTransient,
-            PvpSkillProfileApplies: channel.IsFreeDuel);
-        if (channel.IsFreeDuel)
+            PvpSkillProfileApplies: channel.IsPvp);
+        if (channel.IsPvp)
         {
             var profile = await pvpSkills.ReadAsync(
                 session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);

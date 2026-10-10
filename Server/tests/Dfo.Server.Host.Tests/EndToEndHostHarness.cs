@@ -363,6 +363,7 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         startInfo.Environment["LauncherAuth__ListenUrl"] = $"http://127.0.0.1:{httpPort}";
         startInfo.Environment["LauncherAuth__PublicChannel__Host"] = ChannelHost;
         startInfo.Environment["LauncherAuth__PublicChannel__Port"] = AdvertisedChannelPort.ToString();
+        startInfo.Environment["Channel__UseScriptCatalog"] = "false";
         startInfo.Environment["Networking__Enabled"] = "true";
         startInfo.Environment["Networking__UdpDiscoveryEnabled"] = "false";
         startInfo.Environment["Networking__ChannelPort"] = channelListenerPort.ToString();

@@ -6,6 +6,24 @@ namespace Dfo.Server.Application.Tests.Channel;
 
 public sealed class ChannelAdmissionTests
 {
+    [Theory]
+    [InlineData(50, (byte)24, ChannelEntryKind.Pvp)]
+    [InlineData(60, (byte)8, ChannelEntryKind.Pvp)]
+    [InlineData(68, (byte)13, ChannelEntryKind.FreeDuel)]
+    [InlineData(70, (byte)13, ChannelEntryKind.FreeDuel)]
+    [InlineData(200, (byte)23, ChannelEntryKind.Raid)]
+    public async Task Script_channel_environment_controls_login_and_pvp_profile(int id, byte environment, ChannelEntryKind kind)
+    {
+        var policy = new ChannelEntryPolicy(new ChannelContentRuleService(new StubChannelCatalog(
+            [new ChannelServerInfo(id, $"#ch.{id}", 100, 0, "127.0.0.1", 10000 + id, environment)]),
+            new NoChannelScript()), ChannelEntryOptions.Legacy,
+            new ChannelListenerOptions([10000 + id], AllowAdvertisedPortFallback: false));
+        var channel = await policy.ResolveAsync(10000 + id, default);
+        Assert.Equal(environment, channel.LoginEnvironment);
+        Assert.Equal(kind, channel.Kind);
+        Assert.Equal(environment is 8 or 13 or 24, channel.IsPvp);
+    }
+
     [Fact]
     public async Task A_listener_resolves_to_the_channel_configured_on_that_port()
     {
@@ -129,7 +147,7 @@ public sealed class ChannelAdmissionTests
     }
 
     [Fact]
-    public async Task Only_the_restricted_channel_places_a_character_transiently()
+    public async Task Special_channels_place_a_character_transiently()
     {
         var policy = Policy(freeDuelEnabled: true);
 
@@ -139,7 +157,7 @@ public sealed class ChannelAdmissionTests
 
         Assert.True(restricted.IsTransient);
         Assert.False(general.IsTransient);
-        Assert.False(duel.IsTransient);
+        Assert.True(duel.IsTransient);
     }
 
     [Fact]

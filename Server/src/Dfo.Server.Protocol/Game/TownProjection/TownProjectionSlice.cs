@@ -301,7 +301,11 @@ public sealed class SetUserAreaHandler(
                 context.Connection.ConnectionId, session, result, standing,
                 channel.Kind is Dfo.Server.Data.Channel.ChannelEntryKind.SaintHorn
                     ? "请切换频道离开圣者之鸣号。"
-                    : "请切换到圣者之鸣号频道后进入。", cancellationToken).ConfigureAwait(false);
+                    : channel.IsTransient
+                        ? "请切换频道离开当前专属区域。"
+                        : message.TownId == 17
+                            ? "请切换到圣者之鸣号频道后进入。"
+                            : "请切换到对应的专属频道后进入。", cancellationToken).ConfigureAwait(false);
             return;
         }
 

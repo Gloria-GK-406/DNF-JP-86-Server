@@ -243,7 +243,8 @@ public sealed record ChannelSourceOptions(
             maximumUsers,
             currentUsers,
             section["Host"] ?? defaultHost,
-            port);
+            port,
+            byte.TryParse(section["LoginEnvironment"], out var environment) ? environment : null);
     }
 
     private static ChannelServerInfo CreateDefaultChannel(int index, int port)
