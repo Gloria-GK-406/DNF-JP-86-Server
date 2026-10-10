@@ -213,11 +213,11 @@ public sealed class PvfQuestDefinitionSourceTests
         var training = await source.GetTrainingAvailabilityAsync(CancellationToken.None);
         var questIds = quests.Select(quest => quest.QuestId).ToHashSet();
 
-        // The counts are the A21 archive's. The older client's catalogue validated to 2,719
-        // definitions; this one validates to 2,814, and the per-field counts move with it. They
-        // are pinned rather than derived because the point is that the projection is stable
-        // against one named archive, not that it agrees with whichever archive is present.
-        Assert.Equal(2_814, quests.Count);
+        // Snapshot: server PVF SHA-256 49D4CAFA402DAA93E9C60EFAC8550C20789BB5BD9F99DD7B9235FD0F20666E7A.
+        // The unified kill-objective parser retains regional/five-field declarations that the
+        // former four-field initial-trigger projection excluded. Keep exact catalogue counts
+        // alongside the field-level checks so accidental projection changes remain visible.
+        Assert.Equal(3_252, quests.Count);
         Assert.Equal(quests.Count, questIds.Count);
         Assert.All(quests, quest => Assert.InRange(quest.QuestId, 1, 29_999));
         Assert.Equal(444, quests.Count(quest => quest.IsExposedByNpc.HasValue));
@@ -225,7 +225,7 @@ public sealed class PvfQuestDefinitionSourceTests
         Assert.Equal(351, quests.Count(quest => quest.IsEventOnly == true));
         Assert.Equal(15, quests.Count(quest => quest.CreatureKindRequirement.HasValue));
         Assert.Equal(6, quests.Count(quest => quest.ExpertJobRequirement is not null));
-        Assert.Equal(143, quests.Count(quest => quest.TargetCharacterRestriction is not null));
+        Assert.Equal(147, quests.Count(quest => quest.TargetCharacterRestriction is not null));
         Assert.DoesNotContain(
             quests,
             quest => quest.TargetCharacterRestriction?.IsValid == false);
