@@ -41,6 +41,8 @@ internal sealed class UsageQuotaViewChangedHandler(IUsageQuotaSnapshotDomainServ
             || sessions.FindByConnection(session.ConnectionId) != session) return [];
         return notification.Family switch
         {
+            UsageQuotaFamily.DimensionDungeon => [new DimensionDungeonQuotaMessage(
+                snapshot.Dimension ?? throw new InvalidDataException("Missing dimension quota snapshot."))],
             UsageQuotaFamily.Consumable => ItemUsageCountMessage.FullSnapshot(snapshot.Items)
                 .Cast<IServerNetworkMessage>().Concat(ItemUsageCooldownProjection.Snapshot(snapshot.Items, snapshot.At)).ToArray(),
             UsageQuotaFamily.Premium => [new PremiumServiceStateMessage(

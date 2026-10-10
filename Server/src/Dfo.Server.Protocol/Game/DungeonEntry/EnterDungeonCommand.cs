@@ -13,7 +13,7 @@ public sealed record EnterDungeonCommand(DungeonEntryContext Entry) : ICommand<D
 public sealed class EnterDungeonCommandHandler(
     IDungeonEntryDecisionDomainService decisions, IDungeonVisitDomainService visits,
     IHellDungeonEntryDomainService? hell = null, ICycleDungeonEntryDomainService? cycles = null,
-    IMirrorDungeonEntryDomainService? mirrors = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
+    IMirrorDungeonEntryDomainService? mirrors = null, IDimensionDungeonDomainService? dimensions = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
 {
     public ValueTask<DungeonEntryAttempt> HandleAsync(CommandExecutionContext context, EnterDungeonCommand command,
         CancellationToken cancellationToken) => command.Entry.MirrorQuestId is not null
@@ -24,6 +24,7 @@ public sealed class EnterDungeonCommandHandler(
             ?? ValueTask.FromResult(DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite))
         : decisions.ResolveEntryKind(command.Entry) switch
         {
+            DungeonEntryKind.Normal when dimensions is not null => dimensions.EnterAsync(command.Entry, cancellationToken),
             DungeonEntryKind.Normal => visits.TryEnterPartyAsync(command.Entry.Participants, command.Entry.DungeonId,
                 command.Entry.Facts, cancellationToken),
             DungeonEntryKind.ManualHell => hell?.EnterManualAsync(command.Entry, cancellationToken)

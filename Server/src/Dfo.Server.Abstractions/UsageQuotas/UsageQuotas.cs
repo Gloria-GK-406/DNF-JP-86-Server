@@ -7,11 +7,12 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Abstractions.UsageQuotas;
 
-public enum UsageQuotaFamily { Consumable, Premium, MirrorDungeon }
+public enum UsageQuotaFamily { Consumable, Premium, MirrorDungeon, DimensionDungeon }
 
 /// <summary>Storage identity, independent of limits and reset rules owned by each domain.</summary>
 public sealed record UsageQuotaKey(UsageQuotaFamily Family, string Name, DateOnly? Day = null)
 {
+    public static UsageQuotaKey Dimension(DateOnly period) => new(UsageQuotaFamily.DimensionDungeon, "entries", period);
     public static UsageQuotaKey Consumable(int itemId) => new(UsageQuotaFamily.Consumable,
         itemId.ToString(System.Globalization.CultureInfo.InvariantCulture));
     public static UsageQuotaKey Premium(string name) => new(UsageQuotaFamily.Premium, name);
@@ -50,6 +51,10 @@ public sealed record MirrorEntryQuotaUpdate(AccountId AccountId, CharacterId Cha
 public sealed record MirrorEntryRecorded(ImmutableArray<MirrorEntryQuotaUpdate> Participants) : IDomainEvent;
 public sealed record MirrorRewardRecorded(AccountId AccountId, CharacterId CharacterId,
     DateOnly Day, MirrorDailyQuota Expected, MirrorDailyQuota Value) : IDomainEvent;
+
+public sealed record DimensionQuotaSnapshot(DateOnly Period, int Used, int Remaining, int ExtraRemaining);
+public sealed record DimensionEntryQuotaUpdate(CharacterId CharacterId, DateOnly Period, UsageQuotaValue? Expected, int Used);
+public sealed record DimensionEntryRecorded(ImmutableArray<DimensionEntryQuotaUpdate> Participants) : IDomainEvent;
 
 /// <summary>Committed-counter refresh signal. Consumers read authoritative state rather than replaying a delta.</summary>
 public sealed record UsageQuotaChanged(CharacterId CharacterId, UsageQuotaFamily Family) : IDomainEvent;

@@ -17,6 +17,19 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class UsageQuotaProjectionTests
 {
     [Fact]
+    public async Task Dimension_refresh_sends_remaining_and_extra_counts_as_NOTI_0326()
+    {
+        var sessions = new Sessions(); var snapshots = new Snapshots();
+        snapshots.Value = snapshots.Value with { Dimension = new(new(2026, 10, 10), 2, 3, 1) };
+        var message = Assert.IsType<DimensionDungeonQuotaMessage>(Assert.Single(await new UsageQuotaViewChangedHandler(snapshots, sessions)
+            .ComposeAsync(new(sessions.Current!.CharacterId, sessions.Current.ConnectionId),
+                new(sessions.Current.CharacterId, UsageQuotaFamily.DimensionDungeon), default)));
+        Assert.IsAssignableFrom<IGameNotiMessage>(message);
+        Assert.Equal(0x0326, message.Type);
+        Assert.Equal(Convert.FromHexString("0300000001000000"), message.EncodeBody());
+    }
+
+    [Fact]
     public async Task Mirror_refresh_reads_latest_authority_and_never_projects_clears_into_the_unknown_field()
     {
         var sessions = new Sessions(); var snapshots = new Snapshots();

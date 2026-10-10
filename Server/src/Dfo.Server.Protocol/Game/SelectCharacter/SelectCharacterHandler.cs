@@ -415,6 +415,10 @@ public sealed class SelectCharacterHandler(
             await itemUsageProjection.SendAsync(session, cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && quotaProjection is not null)
+            _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.DimensionDungeon,
+                cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker && quotaProjection is not null)
             _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.MirrorDungeon,
                 cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);

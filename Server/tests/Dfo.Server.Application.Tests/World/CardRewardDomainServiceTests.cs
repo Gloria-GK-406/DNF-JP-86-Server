@@ -620,7 +620,8 @@ public sealed class CardRewardDomainServiceTests
         var constructor = Assert.Single(typeof(CardRewardDomainService).GetConstructors());
 
         Assert.Equal(
-            [typeof(IClearRewardRuleService), typeof(IDungeonRunDomainService), typeof(IPremiumServiceDomainService)],
+            [typeof(IClearRewardRuleService), typeof(IDungeonRunDomainService), typeof(IPremiumServiceDomainService),
+                typeof(IDimensionDungeonRuleService), typeof(Dfo.Server.Abstractions.Characters.ICharacterDomainService)],
             constructor.GetParameters().Select(parameter => parameter.ParameterType));
     }
 

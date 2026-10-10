@@ -98,6 +98,10 @@ public sealed class ApplicationModule : IServerModule
             Dfo.Server.Application.UsageQuotas.UsageQuotaNotificationSubscriber>("usage-quota.notifications",
             Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
             fact => $"{fact.CharacterId.Value}:{(int)fact.Family}");
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.DimensionEntryRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.TryAddSingleton<IDimensionDungeonRuleService, DimensionDungeonRuleService>();
+        services.TryAddSingleton<IDimensionDungeonDomainService, DimensionDungeonDomainService>();
         services.AddMirrorAradQuests();
         Dfo.Server.Application.Achievements.AchievementRegistration.AddAchievements(services);
         services.AddDomainEvent<MailCreated>("mail.created", 1);

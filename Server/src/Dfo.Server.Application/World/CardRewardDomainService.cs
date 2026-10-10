@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Data.Characters;
 
@@ -16,7 +17,8 @@ namespace Dfo.Server.Application.World;
 internal sealed class CardRewardDomainService(
     IClearRewardRuleService cardRules,
     IDungeonRunDomainService runs,
-    IPremiumServiceDomainService premiums) : ICardRewardDomainService
+    IPremiumServiceDomainService premiums, IDimensionDungeonRuleService? dimensions = null,
+    ICharacterDomainService? characters = null) : ICardRewardDomainService
 {
     public async ValueTask<ClearRewardSettlementResult?> SettleAsync(
         ClearRewardSettlement settlement, CancellationToken cancellationToken)
@@ -74,8 +76,11 @@ internal sealed class CardRewardDomainService(
         var accountId = run.Participants.Single(participant => participant.CharacterId == settlement.CharacterId).AccountId;
         var eligible = await premiums.For(accountId).IsActiveAsync(
             PremiumServiceType.BlackDiamond, cancellationToken).ConfigureAwait(false);
-        var free = this.FaceFor(run, settlement, ClearRewardCardKind.Free, eligible);
-        var paid = this.FaceFor(run, settlement, ClearRewardCardKind.Paid, eligible);
+        var identity = dimensions?.IsDimension(run.Layout.DungeonId) == true
+            ? await (characters ?? throw new InvalidOperationException("Dimension cards require character facts."))
+                .Get(settlement.CharacterId).IdentityAsync(cancellationToken).ConfigureAwait(false) : null;
+        var free = this.FaceFor(run, settlement, ClearRewardCardKind.Free, eligible, identity);
+        var paid = this.FaceFor(run, settlement, ClearRewardCardKind.Paid, eligible, identity);
         var blackDiamond = eligible
             ? this.FaceFor(run, settlement, ClearRewardCardKind.BlackDiamond, eligible)
             : null;
@@ -118,8 +123,10 @@ internal sealed class CardRewardDomainService(
     /// </para>
     /// </remarks>
     private ClearRewardCardFace FaceFor(
-        DungeonRunState run, ClearRewardSettlement settlement, ClearRewardCardKind kind, bool eligible) =>
-        cardRules.FaceFor(
+        DungeonRunState run, ClearRewardSettlement settlement, ClearRewardCardKind kind, bool eligible,
+        CharacterIdentityState? identity = null)
+    {
+        var face = cardRules.FaceFor(
             new ClearRewardOccasion(
                 kind,
                 settlement.CharacterLevel,
@@ -134,6 +141,11 @@ internal sealed class CardRewardDomainService(
             kind is ClearRewardCardKind.BlackDiamond
                 ? SeedFor(run, kind) ^ unchecked((ulong)settlement.CharacterId.Value * 0x9E3779B97F4A7C15UL)
                 : SeedFor(run, kind));
+        return identity is not null && dimensions is not null
+            ? dimensions.DrawCard(run.Layout.DungeonId, identity.Job, identity.GrowType, face,
+                SeedFor(run, kind) ^ unchecked((ulong)settlement.CharacterId.Value * 0x9E3779B97F4A7C15UL)) ?? face
+            : face;
+    }
 
     /// <summary>
     /// The seed one face of one clear is drawn from.

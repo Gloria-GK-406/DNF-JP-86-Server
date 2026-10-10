@@ -222,6 +222,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddSingleton<UsageQuotaProjectionDelivery>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.UsageQuotas.UsageQuotaViewChanged, UsageQuotaViewChangedHandler>(retryLimit: 0);
         services.AddHostedService<MirrorQuotaDailyRefreshService>();
+        services.AddHostedService<DimensionQuotaDailyRefreshService>();
         services.AddSingleton<ItemUsageProjectionDelivery>();
         services.AddHostedService<ItemUsageDailyRefreshService>();
         services.AddCommandHandler<ReadItemUsageSnapshotCommand, ItemUsageSnapshotResult, ReadItemUsageSnapshotCommandHandler>(CommandExecutionKind.ReadOnly);

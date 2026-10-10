@@ -207,7 +207,7 @@ internal sealed class CharacterSide
                 new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System, null!, new DisabledDefaultPremiumSettings()),
                 new Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService(
                     new LegacyUsageQuotaStore(new SqliteConsumableUsageTable(this.database),
-                        new SqlitePremiumServiceUsageTable(this.database), new Dfo.Server.Persistence.Quests.SqliteMirrorAradQuestDomainStore(this.database)),
+                        new SqlitePremiumServiceUsageTable(this.database), new Dfo.Server.Persistence.Quests.SqliteMirrorAradQuestDomainStore(this.database), this.database),
                     this.Scope, null!),
                 new SqliteCharacterTable(this.database), new PremiumServiceRuleService(new UsageRules()),
                 new DailyResetRuleService(new ResetSettings()), this.Scope, TimeProvider.System, null!), new SqliteCharacterSkillBuildTable(this.database));

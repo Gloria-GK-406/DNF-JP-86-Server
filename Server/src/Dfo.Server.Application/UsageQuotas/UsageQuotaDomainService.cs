@@ -11,7 +11,8 @@ namespace Dfo.Server.Application.UsageQuotas;
 internal sealed class UsageQuotaDomainService(IUsageQuotaStore store, IDomainTransactionAccessor transactions,
     IEventService events) : IUsageQuotaDomainService,
     IDomainEventSubscriber<ConsumableUsageRecorded>, IDomainEventSubscriber<PremiumUsageRecorded>,
-    IDomainEventSubscriber<MirrorEntryRecorded>, IDomainEventSubscriber<MirrorRewardRecorded>
+    IDomainEventSubscriber<MirrorEntryRecorded>, IDomainEventSubscriber<MirrorRewardRecorded>,
+    IDomainEventSubscriber<DimensionEntryRecorded>
 {
     public ValueTask<UsageQuotaValue?> ReadAsync(CharacterId character, UsageQuotaKey key, CancellationToken ct) =>
         store.ReadAsync(character, key, ct);
@@ -49,6 +50,10 @@ internal sealed class UsageQuotaDomainService(IUsageQuotaStore store, IDomainTra
             new(p.CharacterId, UsageQuotaKey.Mirror("daily-reward", p.Day), new(p.Expected.DailyRewardClaimed ? 1 : 0, null),
                 new(p.Value.DailyRewardClaimed ? 1 : 0, null), p.AccountId)], ct);
     }
+    public ValueTask HandleAsync(DomainEventEnvelope<DimensionEntryRecorded> message, CancellationToken ct) =>
+        ApplyAsync(message.Payload.Participants.Select(x => new UsageQuotaWrite(x.CharacterId, UsageQuotaKey.Dimension(x.Period),
+            x.Expected, new(x.Used, null))).ToArray(), ct);
+
     private async ValueTask ApplyAsync(IReadOnlyList<UsageQuotaWrite> writes, CancellationToken ct)
     {
         if (transactions.Current is not { IsReadOnly: false })
@@ -62,7 +67,9 @@ internal sealed class UsageQuotaDomainService(IUsageQuotaStore store, IDomainTra
             if (!identities.Add((write.CharacterId, write.Key)) || write.Value.UsedCount < 0
                 || write.Expected?.UsedCount < 0 || string.IsNullOrWhiteSpace(write.Key.Name)
                 || !Enum.IsDefined(write.Key.Family)
-                || write.Key.Family != UsageQuotaFamily.MirrorDungeon && (write.Key.Day is not null || write.Value.LastUsedAt is null)
+                || write.Key.Family is not (UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon) && (write.Key.Day is not null || write.Value.LastUsedAt is null)
+                || write.Key.Family == UsageQuotaFamily.DimensionDungeon && (write.Key.Day is null
+                    || write.Key.Name != "entries" || write.Value.LastUsedAt is not null)
                 || write.Key.Family == UsageQuotaFamily.Premium && write.Value.UsedCount > byte.MaxValue
                 || write.Key.Family == UsageQuotaFamily.MirrorDungeon && (write.Key.Day is null || write.Value.LastUsedAt is not null
                     || write.Key.Name is not ("entries" or "clears" or "daily-reward")

@@ -65,6 +65,8 @@ internal sealed class GameServerStartupService(IServiceProvider services, IHostE
             var worldTimer = System.Diagnostics.Stopwatch.StartNew();
             var worldCount = services.GetRequiredService<IWorldDropRuleService>().Initialize();
             logger.LogInformation("World drop tables initialized: {Count} levels in {ElapsedMs} ms", worldCount, worldTimer.ElapsedMilliseconds);
+            var dimensionCount = services.GetRequiredService<IDimensionDungeonRuleService>().Initialize();
+            logger.LogInformation("Dimension dungeon content initialized: {Count} dungeons", dimensionCount);
             await services.GetRequiredService<ICharacterStatRuleService>().InitializeAsync(cancellationToken);
             await services.GetRequiredService<Dfo.Server.Abstractions.Inventory.IEpicBookDomainService>()
                 .InitializeAsync(cancellationToken).ConfigureAwait(false);

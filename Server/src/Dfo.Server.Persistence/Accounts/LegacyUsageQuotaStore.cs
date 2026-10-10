@@ -1,4 +1,5 @@
 using System.Globalization;
+using Dfo.Server.Persistence.Database;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.UsageQuotas;
@@ -8,12 +9,16 @@ namespace Dfo.Server.Persistence.Accounts;
 
 /// <summary>Preserves the existing tables, counter keys, timestamps, and mirror midnight buckets.</summary>
 internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
-    IPremiumServiceUsageTable premiums, IMirrorAradQuestDomainStore mirror) : IUsageQuotaStore
+    IPremiumServiceUsageTable premiums, IMirrorAradQuestDomainStore mirror, SqliteDatabase database) : IUsageQuotaStore
 {
     public async ValueTask<UsageQuotaValue?> ReadAsync(CharacterId character, UsageQuotaKey key, CancellationToken ct)
     {
         switch (key.Family)
         {
+            case UsageQuotaFamily.DimensionDungeon:
+                return (await database.ReadAllAsync("SELECT value FROM character_daily_counters WHERE character_id=@id AND counter_key=@key",
+                    p => { p.AddWithValue("@id", character.Value); p.AddWithValue("@key", DimensionKey(key)); },
+                    r => new UsageQuotaValue(r.GetInt32(0), null), ct).ConfigureAwait(false)).SingleOrDefault();
             case UsageQuotaFamily.Consumable:
                 var item = await consumables.ReadAsync(character, ItemId(key), ct).ConfigureAwait(false);
                 return item is null ? null : new(item.UsedCount, item.LastUsedAt);
@@ -38,6 +43,18 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
         var (character, key, expected, value, owner) = write;
         switch (key.Family)
         {
+            case UsageQuotaFamily.DimensionDungeon:
+                return await database.ExecuteAsync("""
+                    INSERT INTO character_daily_counters(character_id,counter_key,period,value,last_consumed_at)
+                    SELECT @id,@key,@period,@value,NULL
+                    WHERE @exists=0 OR EXISTS(SELECT 1 FROM character_daily_counters
+                        WHERE character_id=@id AND counter_key=@key AND value=@old)
+                    ON CONFLICT(character_id,counter_key) DO UPDATE SET value=excluded.value
+                    WHERE @exists=1 AND value=@old
+                    """, p => { p.AddWithValue("@id", character.Value); p.AddWithValue("@key", DimensionKey(key));
+                        p.AddWithValue("@period", Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+                        p.AddWithValue("@value", value.UsedCount); p.AddWithValue("@exists", expected is null ? 0 : 1);
+                        p.AddWithValue("@old", expected?.UsedCount ?? 0); }, ct).ConfigureAwait(false) == 1;
             case UsageQuotaFamily.Consumable:
                 return await consumables.TryWriteAsync(character, ItemId(key), expected.Consumable(),
                     value.UsedCount, value.LastUsedAt!.Value, ct).ConfigureAwait(false) == 1;
@@ -63,6 +80,8 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
             default: throw new ArgumentOutOfRangeException(nameof(write));
         }
     }
+    private static string DimensionKey(UsageQuotaKey key) => key.Name == "entries"
+        ? "dimension.entries:" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : throw new InvalidDataException("Invalid dimension quota key.");
     private static int ItemId(UsageQuotaKey key) => int.TryParse(key.Name, NumberStyles.None, CultureInfo.InvariantCulture, out var id) && id > 0
         ? id : throw new InvalidDataException("Invalid consumable quota key.");
     private static DateOnly Day(UsageQuotaKey key) => key.Day ?? throw new InvalidDataException("Mirror quota requires a day.");

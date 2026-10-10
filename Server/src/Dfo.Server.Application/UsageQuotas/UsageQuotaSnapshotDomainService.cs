@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Notifications;
@@ -10,7 +11,7 @@ namespace Dfo.Server.Application.UsageQuotas;
 
 internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService quotas,
     IItemUsageDomainService items, IPremiumServiceDomainService premiums,
-    IPremiumServiceUsageDomainService premiumUsage, TimeProvider clock) : IUsageQuotaSnapshotDomainService
+    IPremiumServiceUsageDomainService premiumUsage, TimeProvider clock, IDimensionDungeonDomainService dimensions) : IUsageQuotaSnapshotDomainService
 {
     public async ValueTask<UsageQuotaSnapshot> ReadAsync(AccountId accountId, CharacterId characterId,
         UsageQuotaFamily family, CancellationToken cancellationToken)
@@ -18,6 +19,8 @@ internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService q
         var at = clock.GetUtcNow();
         return family switch
         {
+            UsageQuotaFamily.DimensionDungeon => new(at, [], null, [], null,
+                await dimensions.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.Consumable => new(at,
                 await items.GetSnapshotAtAsync(characterId, at, cancellationToken).ConfigureAwait(false), null, [], null),
             UsageQuotaFamily.Premium => new(at, [],

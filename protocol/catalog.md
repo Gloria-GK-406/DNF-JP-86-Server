@@ -1,5 +1,13 @@
 # 协议清单
 
+## 2026-10-10 融合异界基础流程（CurrentImplementation，实机待测）
+
+DGN7100 继续使用 [CMD0010](game/client-to-server/0x0010.md) 普通入场；在 CMD 业务路由接入独立异界领域服务。
+成功准备后通过 DirectAsync 更新持久化 UsageQuota，失败及事务回滚不扣；[NOTI0326](game/server-to-client/NOTI-0x0326.md)
+推送普通/额外剩余次数，登录和每日周期切换刷新。职业、转职装备池及次数来自 PVF，精英/Boss 的专属掉落数量沿用上游基础策略，非原生概率结论。
+服务端 PVF 修正 7100 起始房绑定错位；保留共用地图门校验，六房和 Boss/掉落生成有真实内容测试。
+客户端未改动，复杂机关、抗魔、随机异界尚不在验收范围。[实现与测试集](../Document/DimensionDungeon-20261010.md)。
+
 ## 2026-10-10 镜像阿拉德（CurrentImplementation，未部署）
 
 [CMD02B6](game/client-to-server/0x02B6.md)按8字节历史地下城/镜像任务配对接入独立入口；失败使用[专用响应](game/server-to-client/CMD-0x02B6.md)错误表，成功走[0278本局任务推送](game/server-to-client/NOTI-0x0278.md)及共用加载，不重复发送成功ACK。独立场次任务支持真实PVF候选目标，奖励和每日次数同事务；离场事实经 EventBus Reliable 订阅清理，通知消费时读取当前快照。普通 Quest 保持既有流程，仅必要刷新合并当前镜像任务。请求已有原始body运行日志，回包/交互依据 ClientStatic；未记作ClientVerified。[任务结果与边界](../Document/tasks/mirror-arad-entry-20261010/spec-result.md)。
