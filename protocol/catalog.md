@@ -1,8 +1,23 @@
 # 协议清单
 
-## 2026-10-11 装备/时装钻孔镶嵌（CurrentImplementation，实机待测）
+## 2026-10-11 装备/时装钻孔镶嵌（开孔一期接受，镶嵌待实测）
 
-[037A](game/client-to-server/0x037A.md)/[00CE](game/client-to-server/0x00CE.md)开孔、[0379](game/client-to-server/0x0379.md)/[00C9](game/client-to-server/0x00C9.md)镶嵌已接独立领域服务与装备/时装实例。请求分别为8B、8B、7+n×7B、8+n×7B；0379自动区的前导列表字节已被客户端分支证据推翻，人工区为当前结论。成功开孔ACK只含两个u16并本地扣一；成功镶嵌ACK含材料槽/绝对剩余量，不含目标模板ID。首次ACK先于权威NOTI000E，事务失败不消耗、重放不重扣。孔色/布局来自PVF，时装通用投影限3孔；[说明](../Document/EquipmentSockets-20261011.md)。无此次归档实帧或实机验收，不记ClientVerified。
+[037A](game/client-to-server/0x037A.md)/[00CE](game/client-to-server/0x00CE.md)开孔、[0379](game/client-to-server/0x0379.md)/[00C9](game/client-to-server/0x00C9.md)镶嵌已接独立领域服务与装备/时装实例。请求分别为8B、8B、7+n×7B、8+n×7B；0379自动区的前导列表字节已被客户端分支证据推翻，人工区为当前结论。成功开孔ACK只含两个u16并本地扣一；成功镶嵌ACK含材料槽/绝对剩余量，不含目标模板ID。首次ACK先于权威NOTI000E，事务失败不消耗、重放不重扣。孔色/布局来自PVF，时装通用投影限3孔；[说明](../Document/EquipmentSockets-20261011.md)。用户2026-10-11接受当前开孔功能一期，直接实机确认7421装扮开孔及说明正常，00CE正常路径记有限范围ClientVerified；无新增归档实帧，不提升逐字段线级证据。037A未单独补录实帧；镶嵌、替换、合成/转换和未测变体继续由[#53](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/53)跟踪。
+
+### 开孔与镶嵌接入登记
+
+下表只登记当前decoder/encoder覆盖，实机成熟度以上面的验收边界及各协议页为准。
+
+| Command | Type | 当前代码入口 | 文档 |
+|---|---|---|---|
+| `0x01` | `0x00C9` | ItemSocketDecoder | [0x00C9](game/client-to-server/0x00C9.md) |
+| `0x01` CMD | `0x00C9` | ItemSocketResponse / ItemSocketEncoder | [0x00C9](game/client-to-server/0x00C9.md) |
+| `0x01` | `0x00CE` | ItemSocketDecoder | [0x00CE](game/client-to-server/0x00CE.md) |
+| `0x01` CMD | `0x00CE` | ItemSocketResponse / ItemSocketEncoder | [0x00CE](game/client-to-server/0x00CE.md) |
+| `0x01` | `0x0379` | ItemSocketDecoder | [0x0379](game/client-to-server/0x0379.md) |
+| `0x01` CMD | `0x0379` | ItemSocketResponse / ItemSocketEncoder | [0x0379](game/client-to-server/0x0379.md) |
+| `0x01` | `0x037A` | ItemSocketDecoder | [0x037A](game/client-to-server/0x037A.md) |
+| `0x01` CMD | `0x037A` | ItemSocketResponse / ItemSocketEncoder | [0x037A](game/client-to-server/0x037A.md) |
 
 ## 2026-10-10 融合异界单人基础可玩一期接受
 
