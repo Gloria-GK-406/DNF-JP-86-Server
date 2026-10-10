@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -21,7 +22,8 @@ public sealed class GameLoginHandler(
     IServerConfigService serverConfig,
     IAccountEntryStateDomainService accountEntryState,
     INetworkConnectionCloser closer,
-    ILogger<GameLoginHandler> logger) : ClientMessageHandler<GameLoginRequest>
+    ILogger<GameLoginHandler> logger,
+    IChannelEntryPolicy? channels = null) : ClientMessageHandler<GameLoginRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -65,9 +67,11 @@ public sealed class GameLoginHandler(
             var notifications = await BuildAccountSettingsAsync(
                 accountId,
                 cancellationToken).ConfigureAwait(false);
+            var channel = channels is null ? null : await channels.ResolveAsync(
+                context.Connection.ListenerPort, cancellationToken).ConfigureAwait(false);
             var response = new GameLoginResponse(
                 Succeeded: true,
-                serverConfig.GetConfig<byte>(GameLoginConfigKeys.Environment),
+                channel?.LoginEnvironment ?? serverConfig.GetConfig<byte>(GameLoginConfigKeys.Environment),
                 serverConfig.GetConfig<int>(GameLoginConfigKeys.ConnectionPort),
                 serverConfig.GetConfig<string>(GameLoginConfigKeys.EndpointHost),
                 serverConfig.GetConfig<int>(GameLoginConfigKeys.EndpointPortA),

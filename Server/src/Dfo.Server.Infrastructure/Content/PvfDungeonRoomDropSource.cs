@@ -43,6 +43,14 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
                 groups[dungeonId] = table = ParseGroups(ReadSection("dungeon", dungeonId,
                     Fields.SpecialPassiveObjectItemField).Select(t => int.Parse(t, System.Globalization.CultureInfo.InvariantCulture)).ToArray(), dungeonId,
                     item => PvfEquipmentDurability.Read(provider.Archive, Paths("equipment"), item));
+            // MAPs may retain item actions while the dungeon explicitly has no object loot table.
+            // Parsing above still validates both declarations; an empty table disables only loot.
+            if (table.Count == 0)
+            {
+                IReadOnlyList<ObjectDropDefinition> empty = ImmutableArray<ObjectDropDefinition>.Empty;
+                cache[(dungeonId, mapId)] = empty;
+                return ValueTask.FromResult(empty);
+            }
             var result = ImmutableArray.CreateBuilder<ObjectDropDefinition>();
             foreach (var action in actions)
             {
@@ -66,7 +74,13 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
             {
                 var declared = ParseOrdinaryObjects(ReadSection("map", mapId, Fields.PassiveObjectField), mapId).ToList();
                 ParseActions(ReadSection("map", mapId, Fields.SpecialPassiveObjectField), mapId, declared);
-                objects[mapId] = result = declared.ToImmutableArray();
+                objects[mapId] = result = declared.Select(obj => obj with
+                {
+                    // A21 00FE locates the built-in object code 1113, not a dungeon ID.
+                    Mechanism = obj.Code == 1113 && Paths("passiveobject").TryGetValue(obj.Code, out var path)
+                        && path.Replace('\\', '/').Equals("MapObject/Obstacle/ElevatorControl.obj", StringComparison.OrdinalIgnoreCase)
+                        ? Dfo.Server.Abstractions.World.DungeonRoomMechanismKind.Elevator : null,
+                }).ToImmutableArray();
             }
             return ValueTask.FromResult(result);
         }

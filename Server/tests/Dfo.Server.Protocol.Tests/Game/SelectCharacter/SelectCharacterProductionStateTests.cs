@@ -84,6 +84,7 @@ public sealed class SelectCharacterProductionStateTests
         public ValueTask<IReadOnlyList<Dfo.Server.Data.Inventory.EpicPieceBalance>> GetBalancesAsync(Dfo.Server.Data.Accounts.AccountId account, CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<Dfo.Server.Data.Inventory.EpicPieceBalance>>([new(10300000, 13)]);
         public ValueTask<IReadOnlyList<Dfo.Server.Data.Inventory.EpicBookEntry>> GetBookAsync(Dfo.Server.Data.Accounts.AccountId account, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask InitializeAsync(CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<Dfo.Server.Data.Inventory.EpicPieceBalance?> TrySpendPiecesAsync(Dfo.Server.Data.Accounts.AccountId account, int pieceId, int count, CancellationToken ct) => throw new NotSupportedException();
     }
 
     [Fact]

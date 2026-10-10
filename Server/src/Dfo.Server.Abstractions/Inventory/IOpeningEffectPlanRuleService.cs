@@ -15,6 +15,9 @@ public interface IOpeningEffectPlanRuleService
     ImmutableArray<OpeningSlotConsumption> SourceCosts(BusinessSlot source, int itemId, ItemUseRule rule, int count);
     RecipeEffectCosts RecipeCosts(RecipePlan recipe, int sourceId, ItemUseRule rule, int quantity,
         IReadOnlyList<OpeningHeldItem> held, DateTimeOffset at);
+    RecipeEffectCosts MaterialCosts(IEnumerable<RecipeAmount> required, int quantity,
+        IReadOnlyList<OpeningHeldItem> held, DateTimeOffset at);
+    ImmutableArray<DomainEffect> MaterialCraftEffects(RecipeEffectCosts costs, OpeningPreparedGrant grant);
     DoublePotUsageDecision DoublePot(DoublePotUsageFacts facts);
     ImmutableArray<DomainEffect> Build(int sourceId, ItemUseRule rule, IReadOnlyList<OpeningSlotConsumption> consumed,
         ImmutableArray<OpeningPreparedGrant> grants, IReadOnlyList<AccountPremiumEntryState> premiums, DateTimeOffset at,

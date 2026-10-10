@@ -279,7 +279,7 @@ internal sealed class CharacterRosterService(
                 throw new InvalidDataException($"Starting piece {piece.ItemId} is not wearable equipment.");
             var snapshot = new ItemSnapshot { ItemId = piece.ItemId, LegacyKind = piece.ItemKind,
                 Type = ItemTraitClassification.For(piece.ItemKind, piece.ItemId), IsPile = false,
-                InstanceValue = Random.Shared.Next(1, int.MaxValue), Durability = piece.Durability };
+                InstanceValue = Dfo.Server.Application.Inventory.EquipmentQualitySeeds.NewRandom(), Durability = piece.Durability };
             await grants.PutNewAsync(ContainerId.ForCharacter(characterId, InventoryContainerType.Equipment),
                 piece.SlotIndex, snapshot, cancellationToken).ConfigureAwait(false);
         }

@@ -96,7 +96,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         quote = quote with { Grants = boundedGrants.ToImmutable() };
         var gold = await character.GoldAsync(cancellationToken).ConfigureAwait(false);
         var before = wallet;
-        var planned = rules.Plan(quote, held, gold, before, Random.Shared.Next(1, int.MaxValue));
+        var planned = rules.Plan(quote, held, gold, before, Dfo.Server.Application.Inventory.EquipmentQualitySeeds.NewRandom());
         if (planned.Plan is not { } plan)
             return CeraShopPurchaseResult.Refused(planned.Rejection, planned.Detail);
 

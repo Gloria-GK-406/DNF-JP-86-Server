@@ -14,10 +14,51 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 /// </remarks>
 public sealed class PvfDungeonRoomActorSourceTests
 {
+    [SkippableFact]
+    public async Task Elevator_uses_one_blocking_aggregate_and_object_selected_mechanism()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var actors = await new PvfDungeonRoomActorSource(provider).GetAsync(16408, default);
+        var actor = Assert.Single(actors);
+        Assert.Equal(56716, actor.Code);
+        Assert.True(actor.Declaration!.IsSceneOwnedWave);
+        Assert.Equal(1112, actor.Declaration.ParentObjectCode);
+        var objects = await new PvfDungeonRoomDropSource(provider).GetObjectsAsync(16408, default);
+        var mechanism = Assert.Single(objects, obj => obj.Mechanism is not null);
+        Assert.Equal(1113, mechanism.Code);
+        Assert.Equal(Dfo.Server.Abstractions.World.DungeonRoomMechanismKind.Elevator, mechanism.Mechanism);
+        Assert.DoesNotContain(await new PvfDungeonRoomDropSource(provider).GetObjectsAsync(61000, default),
+            obj => obj.Mechanism is not null);
+    }
+
     private const int TutorialStartMap = 61000;
     private const int TutorialSecondMap = 61001;
     private const int TutorialThirdMap = 61002;
     private const int TutorialBossMap = 61005;
+
+    [SkippableFact]
+    public async Task Gent_south_gate_cycle_boss_and_enemy_APCs_preserve_rank_and_allegiance()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonRoomActorSource(provider);
+        var actors = await source.GetAsync(57323, default);
+        Assert.Equal(7, actors.Count);
+        Assert.All(actors, actor => Assert.True(actor.IsHostile));
+        var boss = Assert.Single(actors, actor => actor.IsBoss);
+        Assert.Equal(14003, boss.Code);
+        Assert.Equal(8, boss.ActorType);
+        Assert.Equal(58, boss.Level);
+        Assert.All(actors.Where(actor => !actor.IsBoss), actor =>
+        {
+            Assert.Equal(10610, actor.Code);
+            Assert.Equal(5, actor.ActorType);
+        });
+        var guide = Assert.Single(await source.GetAsync(TutorialStartMap, default), actor => actor.ActorType >= 5);
+        Assert.False(guide.IsHostile);
+        Assert.False(guide.IsBoss);
+    }
 
     [SkippableFact]
     public async Task The_tutorials_first_room_holds_one_monster_and_its_guide()
@@ -36,7 +77,7 @@ public sealed class PvfDungeonRoomActorSourceTests
                 new DungeonRoomActor(61670, 0, 0, BasisLevelOffset: 0), // 相对副本基础等级
                 new DungeonRoomActor(461, 80, 5),   // 阿甘左, [ai character]
             ],
-            actors);
+            actors.Select(actor => actor with { Declaration = null }));
     }
 
     [SkippableFact]

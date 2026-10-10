@@ -27,7 +27,17 @@ internal sealed class OpeningEffectPlanRuleService(IItemUseJudgementService useR
     {
         var required = recipe.Required.AsEnumerable();
         if (rule.IsConsumedOnUse) required = required.Prepend(new RecipeAmount(sourceId, 1));
-        var requirements = required.GroupBy(x => x.ItemId)
+        return MaterialCosts(required, quantity, held, at);
+    }
+
+    public RecipeEffectCosts MaterialCosts(IEnumerable<RecipeAmount> required, int quantity,
+        IReadOnlyList<OpeningHeldItem> held, DateTimeOffset at)
+    {
+        if (quantity <= 0) throw Reject(OpeningRejection.InvalidRequest, "Invalid material quantity.");
+        var entries = required.ToArray();
+        if (entries.Any(x => x.ItemId <= 0 || x.Count <= 0))
+            throw Reject(OpeningRejection.UnsupportedContent, "Invalid material recipe.");
+        var requirements = entries.GroupBy(x => x.ItemId)
             .ToDictionary(g => g.Key, g => checked(g.Sum(x => (long)x.Count) * quantity));
         if (requirements.Values.Any(x => x > int.MaxValue)) throw Reject(OpeningRejection.InvalidRequest, "Crafting cost overflow.");
         var consumed = ImmutableArray.CreateBuilder<OpeningSlotConsumption>();
@@ -53,6 +63,9 @@ internal sealed class OpeningEffectPlanRuleService(IItemUseJudgementService useR
             throw Reject(OpeningRejection.PremiumUnavailable, "Double pot subscription or daily quota unavailable.");
         return new(facts.Counters, checked(facts.RoundUsed + 1), checked(facts.TotalUsed + 1), facts.At);
     }
+
+    public ImmutableArray<DomainEffect> MaterialCraftEffects(RecipeEffectCosts costs, OpeningPreparedGrant grant) =>
+        [.. costs.Items.Select(x => (DomainEffect)new ConsumeFromContainerEffect(x.Slot, x.ItemId, x.Count)), new GrantPreparedItemEffect(grant)];
 
     public ImmutableArray<DomainEffect> Build(int sourceId, ItemUseRule rule, IReadOnlyList<OpeningSlotConsumption> consumed,
         ImmutableArray<OpeningPreparedGrant> grants, IReadOnlyList<AccountPremiumEntryState> premiums, DateTimeOffset at,

@@ -26,6 +26,7 @@ public sealed class InfrastructureModule : IServerModule
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.IDimensionDungeonContentSource, PvfDimensionDungeonContentSource>();
         services.TryAddSingleton<ITeleportConsumableDefinitionSource, PvfTeleportConsumableDefinitionSource>();
         services.TryAddSingleton<IServerConfigService>(_ => new ServerConfigService(configuration));
         if (bool.TryParse(configuration["LauncherAuth:Enabled"], out var launcherEnabled)
@@ -65,6 +66,8 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDefinitionSource, PvfWeeklyAttendanceDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustDefinitionSource, PvfJoustDefinitionSource>();
         services.TryAddSingleton<IQuestDefinitionSource, PvfQuestDefinitionSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.ICycleDungeonDefinitionSource, PvfCycleDungeonDefinitionSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.IMirrorDungeonDefinitionSource, PvfMirrorDungeonDefinitionSource>();
         services.TryAddSingleton<IMailItemDefinitionSource, PvfMailItemDefinitionSource>();
         services.TryAddSingleton<IInventoryExpansionDefinitionSource, PvfInventoryExpansionDefinitionSource>();
         services.TryAddSingleton<ICargoItemDefinitionSource, PvfCargoItemDefinitionSource>();
@@ -129,6 +132,11 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IItemSaleDefinitionSource, PvfItemSaleDefinitionSource>();
         services.TryAddSingleton<IEquipmentRepairDefinitionSource, PvfEquipmentRepairDefinitionSource>();
         services.TryAddSingleton<IEquipmentDefinitionSource, PvfEquipmentDefinitionSource>();
+        services.TryAddSingleton<IItemSocketDefinitionSource, PvfItemSocketDefinitionSource>();
+        services.TryAddSingleton<IEquipmentQualityDefinitionSource, PvfEquipmentQualityDefinitionSource>();
+        services.TryAddSingleton<IAvatarCompoundDefinitionSource, PvfAvatarCompoundDefinitionSource>();
+        services.TryAddSingleton<IAvatarAppearanceDefinitionSource, PvfAvatarAppearanceDefinitionSource>();
+        services.TryAddSingleton<IEquipmentMagicSealGradeDefinitionSource, PvfEquipmentMagicSealGradeDefinitionSource>();
         services.TryAddSingleton<IEquipmentReinforcementDefinitionSource,
             PvfEquipmentReinforcementDefinitionSource>();
         services.TryAddSingleton<IEquipmentEnchantContentSource, PvfEquipmentEnchantContentSource>();
@@ -237,7 +245,8 @@ public sealed record ChannelSourceOptions(
             maximumUsers,
             currentUsers,
             section["Host"] ?? defaultHost,
-            port);
+            port,
+            byte.TryParse(section["LoginEnvironment"], out var environment) ? environment : null);
     }
 
     private static ChannelServerInfo CreateDefaultChannel(int index, int port)

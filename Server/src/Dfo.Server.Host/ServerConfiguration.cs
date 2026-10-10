@@ -21,6 +21,7 @@ internal static class ServerConfiguration
             .AddCommandLine(args)
             // Preserve the existing host's balance-file precedence.
             .AddJsonFile("experience.json", optional: true, reloadOnChange: false);
+        ScriptChannelConfiguration.Apply(configuration);
         return configuration;
     }
 }

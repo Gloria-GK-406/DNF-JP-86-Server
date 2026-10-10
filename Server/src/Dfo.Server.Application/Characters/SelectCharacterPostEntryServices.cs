@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
+using Dfo.Server.Application.Quests;
 
 namespace Dfo.Server.Application.Characters;
 
@@ -16,23 +17,27 @@ internal sealed class SelectCharacterQuestEntryService(
     public async ValueTask<SelectCharacterQuestSynchronization?> SynchronizeAsync(
         SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken)
     {
-        var planned = new List<SeekingQuestTriggerUpdate>();
+        var planned = new List<QuestTriggerUpdate>();
         foreach (var active in result.CharacterEntry.Quests.ActiveQuests.OrderBy(value => value.Slot))
         {
             var definition = await quests.FindAsync(active.QuestId, cancellationToken).ConfigureAwait(false);
-            if (definition?.SeekingItems is not { Count: > 0 } requirements) continue;
-            long missing = 0;
-            foreach (var requirement in requirements)
-                missing += Math.Max(0, requirement.RequiredCount - Count(result.CharacterInventory, requirement.ItemId));
-            var after = ReplaceChannel0(active.TriggerValue, missing);
+            if (definition is null) continue;
+            var after = QuestKillObjectiveRules.RepairRegionalResidual(definition.KillObjectives, active.TriggerValue);
+            if (definition.SeekingItems is { Count: > 0 } requirements)
+            {
+                long missing = 0;
+                foreach (var requirement in requirements)
+                    missing += Math.Max(0, requirement.RequiredCount - Count(result.CharacterInventory, requirement.ItemId));
+                after = ReplaceChannel0(after, missing);
+            }
             if (after != active.TriggerValue)
-                planned.Add(new SeekingQuestTriggerUpdate(active.Slot, active.QuestId, active.TriggerValue, after));
+                planned.Add(new QuestTriggerUpdate(active.Slot, active.QuestId, active.TriggerValue, after));
         }
         if (planned.Count == 0) return null;
         // Each write carries the value this entry snapshot was built from, so a slot that has
         // moved since fails rather than being overwritten with a decision made about the old one.
         var log = logs.LogOf(session.AccountId, session.CharacterId);
-        var committed = new List<SeekingQuestTriggerUpdate>();
+        var committed = new List<QuestTriggerUpdate>();
         foreach (var update in planned.OrderBy(value => value.Slot))
         {
             if (update.After == update.Before) continue;
@@ -46,7 +51,7 @@ internal sealed class SelectCharacterQuestEntryService(
                     .ConfigureAwait(false))
             {
                 throw new InvalidDataException(
-                    $"Seeking quest {update.QuestId} changed concurrently.");
+                    $"Quest {update.QuestId} changed concurrently during entry synchronization.");
             }
 
             committed.Add(update);

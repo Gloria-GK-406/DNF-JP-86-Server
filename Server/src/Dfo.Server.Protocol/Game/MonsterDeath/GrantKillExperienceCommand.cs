@@ -13,7 +13,7 @@ namespace Dfo.Server.Protocol.Game.MonsterDeath;
 /// The monster's level as the client was told it, with the dungeon's basis level already
 /// substituted where its map declared none.
 /// </param>
-public readonly record struct KilledMonster(int Code, int Level, MonsterRank Rank);
+public readonly record struct KilledMonster(int Code, int Level, MonsterRank Rank, bool IsNamedMonster = false);
 
 /// <summary>What came of awarding a kill.</summary>
 /// <param name="Award">The applied reward, or null when the character does not exist.</param>
@@ -75,5 +75,5 @@ public sealed class GrantKillExperienceCommandHandler(
                 new ExperienceOccasion(ExperienceEvent.MonsterKill, command.AccountId,
                     command.CharacterId, command.DungeonId),
                 command.Monster.Level, command.Monster.Rank, command.Difficulty,
-                command.DungeonWeight, command.PartyMemberCount), at, command.Session, cancellationToken);
+                command.DungeonWeight, command.PartyMemberCount, command.Monster.IsNamedMonster), at, command.Session, cancellationToken);
 }

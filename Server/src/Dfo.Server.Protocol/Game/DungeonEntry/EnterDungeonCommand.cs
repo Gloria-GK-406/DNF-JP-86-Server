@@ -12,11 +12,19 @@ public sealed record EnterDungeonCommand(DungeonEntryContext Entry) : ICommand<D
 /// <summary>Route all entry kinds here; packet and projection layers do not choose game modes.</summary>
 public sealed class EnterDungeonCommandHandler(
     IDungeonEntryDecisionDomainService decisions, IDungeonVisitDomainService visits,
-    IHellDungeonEntryDomainService? hell = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
+    IHellDungeonEntryDomainService? hell = null, ICycleDungeonEntryDomainService? cycles = null,
+    IMirrorDungeonEntryDomainService? mirrors = null, IDimensionDungeonDomainService? dimensions = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
 {
     public ValueTask<DungeonEntryAttempt> HandleAsync(CommandExecutionContext context, EnterDungeonCommand command,
-        CancellationToken cancellationToken) => decisions.ResolveEntryKind(command.Entry) switch
+        CancellationToken cancellationToken) => command.Entry.MirrorQuestId is not null
+        ? mirrors?.EnterAsync(command.Entry, cancellationToken)
+            ?? ValueTask.FromResult(DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite))
+        : command.Entry.Facts.Intent.Kind == DungeonEntryIntentKind.Cycle
+        ? cycles?.EnterAsync(command.Entry, cancellationToken)
+            ?? ValueTask.FromResult(DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite))
+        : decisions.ResolveEntryKind(command.Entry) switch
         {
+            DungeonEntryKind.Normal when dimensions is not null => dimensions.EnterAsync(command.Entry, cancellationToken),
             DungeonEntryKind.Normal => visits.TryEnterPartyAsync(command.Entry.Participants, command.Entry.DungeonId,
                 command.Entry.Facts, cancellationToken),
             DungeonEntryKind.ManualHell => hell?.EnterManualAsync(command.Entry, cancellationToken)

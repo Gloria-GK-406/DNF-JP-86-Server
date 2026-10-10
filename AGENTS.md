@@ -438,8 +438,10 @@ PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝�
 - `EnqueueAsync<TEvent>`：当前可写业务事务内记录强类型事实与匹配订阅的 delivery；
   与业务使用同一个 SQLite 事务。提交后只向容量 1 的 Channel TryWrite 唤醒，回滚不投递。
   每事务一个 BatchId，每事实一个 EventId，payload 不带服务、连接、协议消息或可变聚合。
-- `PublishAsync<TEvent>`：已退出事务的即时领域事件，等待运行时订阅者；不落库、不重放。
-  马战维护发布阶段变化，查询不发布。启动恢复静默、变化去重、失败不重复公告。
+- `DirectAsync<TEvent>`：不入队、直接依序等待运行时订阅者；不自行开启事务，继承调用方当前事务，
+  可在事务内外调用，失败与取消向上传播。次数写入订阅要求当前可写业务事务，扣次事实不注册为队列订阅；
+  提交后的界面刷新另由持久化变化事件进入 ProjectAsync。马战维护仍在事务外发布阶段变化，
+  查询不发布；启动恢复静默、变化去重、失败不重复公告。
 - `ProjectAsync<TNotification>`：等待即时协议投影，原样返回 NotificationDelivery；
   不持久化 Session/CMD 回复，也不能在未提交的可写事务内调用。登录、队伍、库存等流程
   保持批次、精确会话与 ACK 顺序。单连接直接 sender 和明确协议投递工作流仍可使用。

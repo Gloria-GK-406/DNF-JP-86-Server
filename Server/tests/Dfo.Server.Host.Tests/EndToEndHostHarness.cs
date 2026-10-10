@@ -232,6 +232,20 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         using var finalSwitch = await LoginGameAsync(advertisedGame, newMId, newTicket);
     }
 
+    public async Task VerifyAvatarCompoundRefusalAsync()
+    {
+        using var client = await ConnectThroughAdvertisedRouteAsync(new(GameHost, AdvertisedGamePort));
+        _ = await ReadGameFrameAsync(client.GetStream(), timeout.Token);
+        foreach (var length in new[] { 22, 21 })
+        {
+            await client.GetStream().WriteAsync(EncodeGameClientFrame(1, 0x0063, new byte[length]), timeout.Token);
+            var response = await ReadGameFrameAsync(client.GetStream(), timeout.Token);
+            Assert.Equal((byte)1, response.Command);
+            Assert.Equal((ushort)0x0063, response.Type);
+            Assert.Equal(new byte[] { 0, 0x17 }, response.Body);
+        }
+    }
+
     private async Task AcknowledgeExitAsync(TcpClient client)
     {
         await client.GetStream().WriteAsync(EncodeGameClientFrame(0x01, 0x0003, [0]), timeout.Token);
@@ -349,6 +363,7 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         startInfo.Environment["LauncherAuth__ListenUrl"] = $"http://127.0.0.1:{httpPort}";
         startInfo.Environment["LauncherAuth__PublicChannel__Host"] = ChannelHost;
         startInfo.Environment["LauncherAuth__PublicChannel__Port"] = AdvertisedChannelPort.ToString();
+        startInfo.Environment["Channel__UseScriptCatalog"] = "false";
         startInfo.Environment["Networking__Enabled"] = "true";
         startInfo.Environment["Networking__UdpDiscoveryEnabled"] = "false";
         startInfo.Environment["Networking__ChannelPort"] = channelListenerPort.ToString();

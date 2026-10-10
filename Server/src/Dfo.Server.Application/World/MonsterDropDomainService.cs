@@ -22,7 +22,7 @@ internal sealed partial class MonsterDropDomainService(
     IMonsterDeclaredDropRuleService declaredDrops,
     IExtraDropRuleService extraDrops,
     IIndependentDropRuleService independentDrops,
-    IPremiumServiceDomainService premiums) : IMonsterDropDomainService
+    IPremiumServiceDomainService premiums, IDimensionDungeonRuleService? dimensions = null) : IMonsterDropDomainService
 {
     public async ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(
         int monsterId, MonsterDropContext context, CancellationToken cancellationToken)
@@ -44,7 +44,7 @@ internal sealed partial class MonsterDropDomainService(
         return result;
     }
 
-    public ValueTask<IReadOnlyList<RolledDrop>> GeneratePersonalAsync(
+    public async ValueTask<IReadOnlyList<RolledDrop>> GeneratePersonalAsync(
         int monsterId, CharacterId characterId, MonsterDropContext context,
         CancellationToken cancellationToken)
     {
@@ -52,7 +52,16 @@ internal sealed partial class MonsterDropDomainService(
         var matches = context.Participants.Where(p => p.CharacterId == characterId).ToArray();
         if (matches.Length != 1)
             throw new ArgumentException("Personal drop recipient must belong to the run.", nameof(characterId));
-        return questDrops.DrawAsync(QuestEnemyDropRequest.FromMonster(new MonsterDropRequest(monsterId, context)), matches[0], cancellationToken);
+        var result = new List<RolledDrop>(await questDrops.DrawAsync(
+            QuestEnemyDropRequest.FromMonster(new MonsterDropRequest(monsterId, context)), matches[0], cancellationToken).ConfigureAwait(false));
+        if (context.SourceType == IndependentDropSourceType.Monster && dimensions?.IsDimension(context.DungeonId) == true)
+        {
+            var seed = DropRandom.SeedFor(context.Seed, context.MapId, context.Cell.X, context.Cell.Y, context.ActorSequence)
+                ^ unchecked((ulong)characterId.Value * 0x9E3779B97F4A7C15UL) ^ 0x44494D454E53494FUL;
+            result.AddRange(dimensions.DrawMonster(new(monsterId, context), seed)
+                .Select(item => item with { OwnerCharacterId = characterId }));
+        }
+        return result;
     }
 
     private static void Validate(MonsterDropContext context, CancellationToken cancellationToken)

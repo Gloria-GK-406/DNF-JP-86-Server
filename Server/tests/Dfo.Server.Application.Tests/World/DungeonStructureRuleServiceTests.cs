@@ -15,6 +15,14 @@ namespace Dfo.Server.Application.Tests.World;
 /// </remarks>
 public sealed class DungeonStructureRuleServiceTests
 {
+    [Fact]
+    public async Task Named_monster_declarations_are_frozen_in_the_layout()
+    {
+        var definition = Tutorial() with { NamedMonsterCodes = [61670] };
+        var layout = await Service(definition).ResolveAsync(10000, DungeonEntryFacts.None, 12345, default);
+        Assert.Same(definition.NamedMonsterCodes, layout!.NamedMonsterCodes);
+    }
+
     /// <summary>The tutorial's maze, as read out of the archive on 2026-08-18.</summary>
     private static readonly MazeDefinition TutorialMaze = new(
         Index: 0,
@@ -195,13 +203,44 @@ public sealed class DungeonStructureRuleServiceTests
             .ResolveAsync(1, DungeonEntryFacts.None, 1, default));
     }
 
-    private sealed class PreflightMaps(bool ordinaryAcceptsLeft, bool bossPresent) : IDungeonMapDefinitionSource
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Start_resource_is_required_but_does_not_need_a_revisit_entrance(bool startPresent)
+    {
+        var start = new MazeCell(0, 0);
+        var middle = new MazeCell(1, 0);
+        var boss = new MazeCell(2, 0);
+        var maze = new MazeDefinition(0, 3, 1, new Dictionary<MazeCell, DungeonCellDefinition>
+        {
+            [start] = new(DungeonPathDirection.Right, [10], []),
+            [middle] = new(DungeonPathDirection.Left | DungeonPathDirection.Right, [11], []),
+            [boss] = new(DungeonPathDirection.Left, [], [12]),
+        }, [start], [boss]);
+        var rules = new DungeonStructureRuleService(new StubDungeonSource(new(1, "test", 1, false, [maze])),
+            new PreflightMaps(true, true, startAcceptsReturn: false, startPresent));
+        if (!startPresent)
+        {
+            var error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
+                await rules.ResolveAsync(1, DungeonEntryFacts.None, 1, default));
+            Assert.Contains("start cell", error.Message);
+            return;
+        }
+        var layout = await rules.ResolveAsync(1, DungeonEntryFacts.None, 1, default);
+        Assert.NotNull(layout);
+        Assert.Equal(10, layout.StartRoomMapId);
+        Assert.True(layout.CanTraverse(middle, start));
+    }
+
+    private sealed class PreflightMaps(bool ordinaryAcceptsLeft, bool bossPresent,
+        bool startAcceptsReturn = true, bool startPresent = true) : IDungeonMapDefinitionSource
     {
         public ValueTask<DungeonMapDefinition?> GetAsync(int id, CancellationToken token) =>
             ValueTask.FromResult<DungeonMapDefinition?>(id switch
             {
-                10 => new(10, [1], DungeonMapKind.Normal,
-                    [new(DungeonPathDirection.Right, DungeonPathDirection.Right)], true),
+                10 when startPresent => new(10, [1], DungeonMapKind.Normal,
+                    [new(DungeonPathDirection.Right,
+                        startAcceptsReturn ? DungeonPathDirection.Right : DungeonPathDirection.Left)], true),
                 11 => new(11, [1], DungeonMapKind.Normal,
                     [new(DungeonPathDirection.Left | DungeonPathDirection.Right,
                         ordinaryAcceptsLeft ? DungeonPathDirection.All : DungeonPathDirection.Right)], false),
@@ -371,6 +410,24 @@ public sealed class DungeonStructureRuleServiceTests
 
     private static DungeonDefinition Tutorial() =>
         new(10000, "dungeon/Tutorial/Tutorial.dgn", 1, false, [TutorialMaze]);
+
+    [Fact]
+    public async Task Cycle_selects_only_its_bound_active_quest_and_never_falls_back()
+    {
+        var rules = Service(MixedQuestMazes());
+        var intent = DungeonEntryIntent.Cycle(144, 1776);
+        var facts = new DungeonEntryFacts(Dfo.Server.Data.World.DungeonDifficulty.Tier3, [1776, 2212], [1776], intent);
+        for (var seed = 0; seed < 12; seed++)
+        {
+            var layout = await rules.ResolveAsync(144, facts, seed, default);
+            Assert.Equal(1, layout!.MazeIndex);
+            Assert.Equal(DungeonRunPurposeKind.Cycle, layout.Purpose.Kind);
+            Assert.Equal(1776, layout.Purpose.QuestId);
+        }
+        Assert.Null(await rules.ResolveAsync(144, facts with { ActiveQuestIds = [] }, 1, default));
+        Assert.NotNull(await rules.ResolveAsync(144, facts with { Difficulty = Dfo.Server.Data.World.DungeonDifficulty.Tier2 }, 1, default));
+        Assert.Null(await rules.ResolveAsync(144, facts with { Intent = DungeonEntryIntent.Cycle(145, 1776) }, 1, default));
+    }
 
     private static DungeonDefinition ManyCandidates()
     {

@@ -205,9 +205,12 @@ internal sealed class CharacterSide
                 new SqliteMailboxMessageTable(this.database), new SqliteMailboxAttachmentTable(this.database)),
             goldLimits, new PremiumServiceUsageDomainService(
                 new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System, null!, new DisabledDefaultPremiumSettings()),
-                new SqlitePremiumServiceUsageTable(this.database),
+                new Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService(
+                    new LegacyUsageQuotaStore(new SqliteConsumableUsageTable(this.database),
+                        new SqlitePremiumServiceUsageTable(this.database), new Dfo.Server.Persistence.Quests.SqliteMirrorAradQuestDomainStore(this.database), this.database),
+                    this.Scope, null!),
                 new SqliteCharacterTable(this.database), new PremiumServiceRuleService(new UsageRules()),
-                new DailyResetRuleService(new ResetSettings()), this.Scope, TimeProvider.System), new SqliteCharacterSkillBuildTable(this.database));
+                new DailyResetRuleService(new ResetSettings()), this.Scope, TimeProvider.System, null!), new SqliteCharacterSkillBuildTable(this.database));
 
     /// <summary>
     /// The roster with a use case around every call, which is how the server dispatches these.

@@ -24,6 +24,17 @@ namespace Dfo.Server.Application.Tests.World;
 /// </remarks>
 public sealed class MonsterExperienceRulesTests
 {
+    [Theory]
+    [InlineData(MonsterRank.Ordinary, 220u)]
+    [InlineData(MonsterRank.Champion, 442u)]
+    [InlineData(MonsterRank.SuperChampion, 664u)]
+    [InlineData(MonsterRank.Boss, 885u)]
+    public void Named_multiplier_stacks_with_rank_before_the_two_roundings(MonsterRank rank, uint expected)
+    {
+        var kill = Kill(5, rank, 2) with { IsNamedMonster = true };
+        Assert.Equal(expected, Worth(kill, CapturedRates));
+    }
+
     /// <summary>Dungeon 144's weight, as the archive declares it and as a single.</summary>
     private const double CapturedDungeonWeight = 1.45f;
 

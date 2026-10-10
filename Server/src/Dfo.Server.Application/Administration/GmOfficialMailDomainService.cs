@@ -127,7 +127,7 @@ internal sealed class GmOfficialMailDomainService(IGmMailPersistence persistence
                     for (var count = 0; count < grant.Requested.Count; count++)
                     {
                         int instanceValue;
-                        do { instanceValue = Random.Shared.Next(1, int.MaxValue); } while (!instanceValues.Add(instanceValue));
+                        do { instanceValue = Dfo.Server.Application.Inventory.EquipmentQualitySeeds.NewRandom(); } while (!instanceValues.Add(instanceValue));
                         var record = await lifecycle.CreateAsync(grant.Snapshot with { InstanceValue = instanceValue }, token);
                         var uid = record.ItemUid!.Value.Value;
                         records.Add(record); uids.Add(uid); builder.AddEquipment(new ItemIdentity(uid));

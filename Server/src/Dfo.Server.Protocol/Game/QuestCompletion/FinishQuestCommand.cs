@@ -9,6 +9,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Game;
 
 namespace Dfo.Server.Protocol.Game.QuestCompletion;
 
@@ -40,7 +41,9 @@ public sealed record QuestFinishOutcome(
     IReadOnlyList<InventoryRuntimeValueState>? AccountMaterials = null,
     byte? GrowType = null)
 {
+    public bool MirrorCompletion { get; init; }
     public uint NotificationExperience { get; init; } = NewExperience;
+    public IReadOnlyList<CommittedInventoryUpdateState> ConsumedItemUpdates { get; init; } = [];
 
     public static QuestFinishOutcome Refuse(
         ushort questId, QuestProgressSnapshot? questProgress = null) =>
@@ -93,7 +96,8 @@ public sealed class QuestFinishRejectedException : Exception
 /// dedicated failure outside the boundary and maps it to the reference server's wire code 22.
 /// </remarks>
 public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Effects.IQuestCompletionDomainService completion,
-    IBusinessInventorySlotDomainService inventorySlots)
+    IBusinessInventorySlotDomainService inventorySlots, IQuestDefinitionDomainService? definitions = null,
+    IMirrorAradQuestDomainService? mirror = null)
     : ICommandHandler<FinishQuestCommand, QuestFinishOutcome>
 {
     public async ValueTask<QuestFinishOutcome> HandleAsync(CommandExecutionContext context, FinishQuestCommand command,
@@ -103,15 +107,25 @@ public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Effects.IQ
         if (context.ExecutionKind != CommandExecutionKind.Transactional) throw new InvalidOperationException("Quest completion requires a transaction.");
         try
         {
-            var result = await completion.FinishAsync(command.AccountId, command.CharacterId, command.QuestId,
-                command.RewardSelection, command.CompletionCount, DateTimeOffset.FromUnixTimeSeconds(command.AcquiredAtUnixTime), cancellationToken, command.Session).ConfigureAwait(false);
+            var definition = definitions is null ? null : await definitions.FindAsync(command.QuestId, cancellationToken).ConfigureAwait(false);
+            var isMirror = definition?.Grade == QuestGrade.Crack;
+            if (isMirror && mirror is null) return QuestFinishOutcome.Refuse(command.QuestId);
+            var result = isMirror
+                ? await mirror!.FinishAsync(command.AccountId, command.CharacterId, command.QuestId, command.RewardSelection, command.CompletionCount,
+                    DateTimeOffset.FromUnixTimeSeconds(command.AcquiredAtUnixTime), command.Session, cancellationToken).ConfigureAwait(false)
+                : await completion.FinishAsync(command.AccountId, command.CharacterId, command.QuestId,
+                    command.RewardSelection, command.CompletionCount, DateTimeOffset.FromUnixTimeSeconds(command.AcquiredAtUnixTime), cancellationToken, command.Session).ConfigureAwait(false);
             if (!result.Finished) return QuestFinishOutcome.Refuse(command.QuestId, result.Projection);
             var slots = new InventorySlotMappingRuleService();
             var items = new List<FinishedQuestItem>();
             var account = new List<InventoryRuntimeValueState>();
+            var consumed = new HashSet<BusinessSlot>();
             foreach (var applied in result.Applied!.Applied)
                 switch (applied.Change)
                 {
+                    case ContainerConsumptionChange change:
+                        consumed.Add(change.Slot);
+                        break;
                     case Dfo.Server.Abstractions.Effects.BasicCharacterItemChange basic:
                         items.AddRange(basic.Additions.Select(x => new FinishedQuestItem(checked((ushort)slots.ToGameSlot(x.Slot).Index),
                             (uint)((Dfo.Server.Abstractions.Effects.GrantBasicCharacterItemEffect)applied.Effect).ItemId, checked((uint)x.Count))));
@@ -127,8 +141,21 @@ public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Effects.IQ
                         items.Add(new(0, 0, checked((uint)(gold.After - gold.Before))));
                         break;
                 }
+            var updates = new List<CommittedInventoryUpdateState>();
+            if (isMirror)
+                foreach (var addition in result.Applied.Applied.Select(x => x.Change).OfType<Dfo.Server.Abstractions.Effects.BasicCharacterItemChange>().SelectMany(x => x.Additions))
+                    consumed.Add(addition.Slot);
+            foreach (var slot in consumed)
+            {
+                var bound = inventorySlots.Find(command.CharacterId, slot) ?? throw new InvalidDataException("Consumed quest slot vanished.");
+                var item = await bound.Container.GetAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
+                var wire = slots.ToGameSlot(slot);
+                updates.Add(new(wire.Space, [new(item?.ItemUid, wire.Index,
+                    item?.Snapshot.ToCore() ?? StackableItemCore.Create(0, -1, 0))], DateTimeOffset.FromUnixTimeSeconds(command.AcquiredAtUnixTime)));
+            }
             return new(true, command.QuestId, ObjectiveKindOf(result.Objective), result.Award!.Gained, items,
-                result.Award.Level, result.Award.Total, QuestProgress: result.Projection, AccountMaterials: account, GrowType: result.GrowType) { NotificationExperience = result.Award.NotificationTotal };
+                result.Award.Level, result.Award.Total, QuestProgress: result.Projection, AccountMaterials: account, GrowType: result.GrowType)
+            { MirrorCompletion = isMirror, NotificationExperience = result.Award.NotificationTotal, ConsumedItemUpdates = updates };
         }
         catch (Exception exception) when ((exception is not (QuestFinishRejectedException or OperationCanceledException)) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(exception))
         {

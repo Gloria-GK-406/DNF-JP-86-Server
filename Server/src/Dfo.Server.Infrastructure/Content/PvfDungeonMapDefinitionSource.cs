@@ -11,6 +11,7 @@ internal sealed class PvfDungeonMapDefinitionSource(PvfArchiveProvider provider)
     private static readonly PvfField<string> Type = PvfField.String("[type]", optional: true);
     private static readonly PvfField<string> Greed = PvfField.String("[greed]", optional: true);
     private static readonly PvfField<IReadOnlyList<int>> StartArea = PvfField.Int32List("[start area]", optional: true);
+    private static readonly PvfField<IReadOnlyList<int>> DungeonStartArea = PvfField.Int32List("[dungeon start area]", optional: true);
     private readonly Lock gate = new();
     private readonly Dictionary<int, DungeonMapDefinition?> cache = [];
     private IReadOnlyDictionary<int, string>? paths;
@@ -64,8 +65,8 @@ internal sealed class PvfDungeonMapDefinitionSource(PvfArchiveProvider provider)
         if (!Paths().TryGetValue(mapId, out var relativePath)) return null;
         var path = "map/" + relativePath;
         if (provider.Archive.FindFile(path) < 0) return null;
-        // Only the leading map metadata participates in registration. Nested actor declarations
-        // can also use [type], [dungeon] or [greed] and must never be mistaken for map metadata.
+        // MAP fields may follow tile/actor blocks. Read every root field while excluding
+        // nested declarations that reuse [type], [dungeon], [greed] or start-area tags.
         var metadata = Metadata(path);
         var owners = Decode(metadata, Dungeon, path) ?? [];
         var kindText = Decode(metadata, Type, path);
@@ -86,15 +87,18 @@ internal sealed class PvfDungeonMapDefinitionSource(PvfArchiveProvider provider)
             for (var offset = 0; offset < values.Count; offset += 2)
                 connections.Add(new(values[offset], values[offset + 1]));
         }
-        var start = PvfDocument.Open(provider.Archive, path).Sections.FirstOrDefault(section => StartArea.Matches(section.Name));
-        var hasStart = start is not null && StartArea.Decode(provider.Archive, start.Values, path).Count > 0;
+        var sections = metadata;
+        var hasStart = sections.Any(section => StartArea.Matches(section.Name)
+                && StartArea.Decode(provider.Archive, section.Values, path).Count > 0
+            || DungeonStartArea.Matches(section.Name)
+                && DungeonStartArea.Decode(provider.Archive, section.Values, path).Count >= 4);
         var result = new DungeonMapDefinition(mapId, owners, kind, connections.AsReadOnly(), hasStart);
         cache.Add(mapId, result);
         return result;
     }
 
     private IReadOnlyList<PvfSection> Metadata(string path) => PvfDocument.Open(provider.Archive, path)
-        .Sections.TakeWhile(section => section.Name is not ("[tile]" or "[monster]" or "[aicharacter]" or "[object]")).ToArray();
+        .AtRoot().Sections;
 
     private T? Decode<T>(IReadOnlyList<PvfSection> sections, PvfField<T> field, string path) where T : class
     {

@@ -109,7 +109,7 @@ public sealed class PremiumContractTests
         await using var f = new LearningFixture(); await f.SeedAsync();
         var eligibility = new EquipmentWearDomainService(f.Services.GetRequiredService<ICharacterTable>(),
             new Requirement(required), new Placement(kind), f.Services.GetRequiredService<IPremiumServiceDomainService>(),
-            new PremiumServiceRuleService(new Levels()));
+            new PremiumServiceRuleService(new Levels()), f.Services.GetRequiredService<AvatarAppearanceRuleService>());
         Assert.False(await eligibility.CanWearAsync(new(71), 1, default));
         f.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,22,4000000000)");
         Assert.Equal(allowed, await eligibility.CanWearAsync(new(71), 1, default));

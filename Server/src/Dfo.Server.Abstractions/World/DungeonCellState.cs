@@ -71,6 +71,17 @@ public sealed record DungeonCellActorState(
     IReadOnlyList<RolledDrop> PendingLoot,
     bool IsMonster = true)
 {
+    public bool IsNamedMonster { get; init; }
+    /// <summary>Clear participation is independent of ordinary monster experience eligibility.</summary>
+    public bool BlocksClear => !IsHellTemplate && Actor.IsHostile
+        && Actor.Declaration?.IsDummy != true
+        && (Actor.Declaration?.MonsterTeam is null or 100)
+        && (Actor.Declaration?.Source != DungeonActorSpawnSource.SpecialPassiveObject
+            || Actor.Declaration.IsSceneOwnedWave);
+
+    public byte? ObjectTemplateOwner { get; init; }
+    public int ObjectTemplateIndex { get; init; }
+
     public bool IsHellTemplate { get; init; }
     public ushort HellOrder { get; init; }
     public int? HellGroupIndex { get; init; }
@@ -95,9 +106,10 @@ public sealed record DungeonCellState(
 {
     public IReadOnlyList<DungeonCellObjectState> Objects { get; init; } = [];
     public IReadOnlyList<DungeonCellHellGroupState> HellGroups { get; init; } = [];
+    public IReadOnlyList<DungeonRoomMechanismState> Mechanisms { get; init; } = [];
 
     public bool IsCleared => this.Actors
-        .Where(actor => actor.IsMonster)
+        .Where(actor => actor.BlocksClear)
         .All(actor => actor.IsDead);
 
     public DungeonCellActorState? FindActor(ushort sequence) =>
@@ -121,6 +133,7 @@ public sealed record DungeonCellSeed(
 {
     public IReadOnlyList<DungeonCellObjectState> Objects { get; init; } = [];
     public IReadOnlyList<DungeonCellHellGroupState> HellGroups { get; init; } = [];
+    public IReadOnlyList<DungeonRoomMechanismDefinition> Mechanisms { get; init; } = [];
 
     public DungeonCellState Snapshot() => new(
         this.Cell,
@@ -128,7 +141,8 @@ public sealed record DungeonCellSeed(
         Revision: 0,
         this.FirstActorSequence,
         this.Actors,
-        this.GroundItems) { Objects = this.Objects, HellGroups = this.HellGroups };
+        this.GroundItems) { Objects = this.Objects, HellGroups = this.HellGroups,
+            Mechanisms = this.Mechanisms.Select(definition => new DungeonRoomMechanismState(definition)).ToArray() };
 
     public static DungeonCellSeed CompleteEmpty(MazeCell cell, int mapId) =>
         new(cell, mapId, FirstActorSequence: 1, [], []);

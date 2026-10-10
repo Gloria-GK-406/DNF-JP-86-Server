@@ -282,7 +282,7 @@ public sealed class GiveUpGameHandler(
                 new GameExplicitMessageDelivery([new GiveUpGameResponse()], []),
                 cancellationToken).ConfigureAwait(false);
             await townAreaProjection.EnterAsync(
-                [new TownAreaEntry(session, result, position)],
+                [new TownAreaEntry(session, result, position, ProjectWeaknessBeforeTown: true)],
                 cancellationToken).ConfigureAwait(false);
             return;
         }
@@ -422,7 +422,14 @@ internal static class DungeonClearPayloadCodec
         writer.Write(kills.SuperChampion);
         writer.Write(kills.Boss);
 
-        writer.Write(0u); // no per-object experience entries
+        // A21 looks up each dead monster row by its room actor sequence (RVA 0x01546C60).
+        // Entries are display-only: these rewards were already granted on death.
+        writer.Write(checked((uint)kills.Actors.Length));
+        foreach (var actor in kills.Actors)
+        {
+            writer.Write((uint)actor.Actor.Sequence);
+            writer.Write(actor.Experience.Base);
+        }
 
         // The card tail: a record count, then one group per row of the panel with the paid flip's
         // cost between the first two, then the trailer. Three rows, eight columns apiece; the
@@ -448,10 +455,11 @@ internal static class DungeonClearPayloadCodec
         var expected = partyCards is null ? ClearRewardBodyLengthFor(freeCards)
             : ClearRewardBodyLength + partyCards.Count(card => RewardOf(card.Cards) is not null) * CardEntryLength;
         expected += bonusEntries * CardEntryLength;
+        expected += kills.Actors.Length * 8;
         if (body.Length != expected)
         {
             throw new InvalidDataException(
-                $"CLEAR_DUNGEON_REWARD with no per-object experience entries and "
+                $"CLEAR_DUNGEON_REWARD with {kills.Actors.Length} per-object experience entries and "
                     + $"{(RewardOf(cards) is null ? "nothing" : "something")} behind the card is "
                     + $"'{expected}' bytes; built '{body.Length}'.");
         }

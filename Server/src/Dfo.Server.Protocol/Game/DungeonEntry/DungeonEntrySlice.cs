@@ -43,9 +43,10 @@ public sealed record SelectDungeonRequest(
     int DungeonId,
     DungeonDifficulty Difficulty,
     byte RequestMode,
-    byte PracticeMode) : IClientNetworkMessage
+    byte PracticeMode,
+    int? MirrorQuestId = null) : IClientNetworkMessage
 {
-    public ClientMessageType MessageType => ClientMessageType.GameSelectDungeon;
+    public ClientMessageType MessageType => MirrorQuestId is null ? ClientMessageType.GameSelectDungeon : ClientMessageType.GameMirrorDungeonEntry;
 }
 
 /// <summary>
@@ -61,7 +62,7 @@ public sealed record SelectDungeonRequest(
 /// training room the archive declares no maze for -- produced exactly that silence.
 /// </para>
 /// </remarks>
-public sealed record SelectDungeonRefusal(byte ErrorCode, byte Context) : IGameCmdMessage
+public sealed record SelectDungeonRefusal(byte ErrorCode, byte Context, bool Mirror = false) : IGameCmdMessage
 {
     /// <summary>The archive declares no enterable dungeon under that identifier.</summary>
     public const byte DungeonNotFound = 0x15;
@@ -96,7 +97,7 @@ public sealed record SelectDungeonRefusal(byte ErrorCode, byte Context) : IGameC
     /// <summary>The current selection cohort cannot enter. This is not a quota failure.</summary>
     public const byte SelectionCohortUnavailable = InvalidSelectionState;
 
-    public ServerMessageType MessageType => ServerMessageType.GameSelectDungeon;
+    public ServerMessageType MessageType => Mirror ? ServerMessageType.GameMirrorDungeonEntry : ServerMessageType.GameSelectDungeon;
 
     /// <summary>The refusals that are about the character rather than about a party member.</summary>
     public static SelectDungeonRefusal For(byte errorCode) => new(errorCode, 0);
@@ -251,11 +252,11 @@ internal static class DungeonEntryPayloadCodec
             // one has nothing to say in it; the sequence is what the client names the actor by
             // afterwards; the packet index is the actor's place within its own kind.
             var actor = actors[index].Actor;
-            var packetIndex = actors[index].IsAiCharacter
-                ? aiCharactersWritten++
-                : monstersWritten++;
+            var templateOwner = actors[index].ObjectTemplateOwner;
+            var packetIndex = templateOwner.HasValue ? actors[index].ObjectTemplateIndex
+                : actors[index].IsAiCharacter ? aiCharactersWritten++ : monstersWritten++;
 
-            writer.Write(actors[index].HellOrder);
+            writer.Write(templateOwner.HasValue ? (ushort)templateOwner.Value : actors[index].HellOrder);
             writer.Write(packetIndex);
             writer.Write(unchecked((ushort)(firstActorSequence + index)));
             writer.Write(actor.Code);
@@ -263,8 +264,8 @@ internal static class DungeonEntryPayloadCodec
             // dungeon. LevelOf remains the fallback for any actor with no declared level.
             writer.Write(layout.LevelOf(actor.Level));
             writer.Write(actor.ActorType);
-            writer.Write(actors[index].IsHellTemplate ? (byte)1 : (byte)0);
-            writer.Write(actors[index].IsHellTemplate ? (byte)0xFF : (byte)0);
+            writer.Write(templateOwner.HasValue || actors[index].IsHellTemplate ? (byte)1 : (byte)0);
+            writer.Write(templateOwner ?? (actors[index].IsHellTemplate ? (byte)0xFF : (byte)0));
             writer.Write(0); // extra state
             writer.Write((byte)0); // A21 actor record extension
         }
@@ -358,7 +359,7 @@ internal sealed class SelectDungeonRefusalEncoder : GameCmdMessageEncoder<Select
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(SelectDungeonRefusal message) =>
         OnePayload(
-            GameProtocol.SelectDungeonType,
+            message.Mirror ? (ushort)0x02B6 : GameProtocol.SelectDungeonType,
             new byte[] { 0x00, message.ErrorCode, message.Context });
 }
 
@@ -471,8 +472,8 @@ public sealed class SelectDungeonHandler(
 
         var intent = entryIntents.Consume(session);
         if (intent is null
-            || (intent.Value.Kind == DungeonEntryIntentKind.Directed
-                && intent.Value.DirectedDungeonId != message.DungeonId))
+            || (intent.Value.Kind is DungeonEntryIntentKind.Directed or DungeonEntryIntentKind.Cycle
+                && intent.Value.DirectedDungeonId != message.DungeonId && message.MirrorQuestId is null))
         {
             if (intent is { } refusedIntent && selectedSessions.FindByCharacter(session.CharacterId) == session)
                 entryIntents.RestoreIfAbsent(session, refusedIntent);
@@ -484,7 +485,7 @@ public sealed class SelectDungeonHandler(
             await sender.SendExplicitAsync(
                 context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery(
-                    [SelectDungeonRefusal.For(SelectDungeonRefusal.InvalidSelectionState)], []),
+                    [new SelectDungeonRefusal(SelectDungeonRefusal.InvalidSelectionState, 0, message.MirrorQuestId is not null)], []),
                 cancellationToken).ConfigureAwait(false);
             return;
         }
@@ -519,13 +520,13 @@ public sealed class SelectDungeonHandler(
                 context.Connection.ConnectionId,
                 SelectDungeonRefusal.NotPartyLeader,
                 context: 0,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken, message.MirrorQuestId is not null).ConfigureAwait(false);
             return;
         }
 
         // The legacy tower shortcut accepts ordinary entry only. Manual hell must reach the
         // CMD decision/hell admission path, where towers have no valid hell declaration.
-        if (message.RequestMode != 1 && illusionTower is not null && illusionTowerProjection is not null
+        if (message.MirrorQuestId is null && message.RequestMode != 1 && illusionTower is not null && illusionTowerProjection is not null
             && await illusionTower.SupportsDungeonAsync(message.DungeonId, cancellationToken).ConfigureAwait(false))
         {
             _ = await illusionTowerProjection.EnterAsync(
@@ -575,10 +576,10 @@ public sealed class SelectDungeonHandler(
         NetworkConnectionId connectionId,
         byte errorCode,
         byte context,
-        CancellationToken cancellationToken) =>
+        CancellationToken cancellationToken, bool mirror = false) =>
         sender.SendExplicitAsync(
             connectionId,
-            new GameExplicitMessageDelivery([new SelectDungeonRefusal(errorCode, context)], []),
+            new GameExplicitMessageDelivery([new SelectDungeonRefusal(errorCode, context, mirror)], []),
             cancellationToken);
 
 }

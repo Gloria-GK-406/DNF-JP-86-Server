@@ -34,3 +34,9 @@ CMD	JoustResponse	0x04E7	Game/Joust/JoustSlice.cs	JoustBetHandler passes bet res
 CMD	JoustResponse	0x04E8	Game/Joust/JoustSlice.cs	JoustQueryHandler passes history response type to dynamic encoder
 CMD	TitleBookMutationResponse	0x019C	Game/TitleBook/TitleBookSlice.cs	Store true emits title-book store confirmation
 CMD	TitleBookMutationResponse	0x019D	Game/TitleBook/TitleBookSlice.cs	Store false emits title-book withdraw confirmation
+CMD	ItemSocketResponse	0x00C9	Game/ItemSockets/ItemSocketsSlice.cs	ItemSocketResponse.MessageType admits this request type; ItemSocketEncoder echoes message.Type
+CMD	ItemSocketResponse	0x00CE	Game/ItemSockets/ItemSocketsSlice.cs	ItemSocketResponse.MessageType admits this request type; ItemSocketEncoder echoes message.Type
+CMD	ItemSocketResponse	0x0379	Game/ItemSockets/ItemSocketsSlice.cs	ItemSocketResponse.MessageType admits this request type; ItemSocketEncoder echoes message.Type
+CMD	ItemSocketResponse	0x037A	Game/ItemSockets/ItemSocketsSlice.cs	ItemSocketResponse.MessageType admits this request type; ItemSocketEncoder echoes message.Type
+CMD	SelectDungeonRefusal	0x0010	Game/DungeonEntry/DungeonEntrySlice.cs	Mirror false emits GameProtocol.SelectDungeonType in SelectDungeonRefusalEncoder
+CMD	SelectDungeonRefusal	0x02B6	Game/DungeonEntry/DungeonEntrySlice.cs	Mirror true emits mirror-entry refusal type in SelectDungeonRefusalEncoder

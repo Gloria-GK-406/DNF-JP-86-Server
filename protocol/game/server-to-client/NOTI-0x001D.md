@@ -72,6 +72,14 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
+## 2026-10-09 APC 类型保留
+
+**PVF / CurrentImplementation**：根特南门循环房间 57323 的 `[ai character]` 包含
+`14003 ... [monster] [boss]` 和 `10610 ... [monster] [normal]`。
+服务端现在按 APC 类型带 `5 + rank(0..3)` 投影，因此 Boss APC 为 8、普通 APC 为 5，
+不再统一投影为 5。对应映射有上游 A21 `DungeonActorTemplateProjector` 和本仓幻影塔内容源
+交叉证据；本次实机验收待部署后测试。记录长度、身份序列和 APC 内部索引布局保持原样。
+
 本帧尚无 recv 侧抓包，但**已由服务端实际发出并被客户端接受**（实机 2026-08-18）：
 角色因此站进了教程副本的第一个房间。以下是机器区之外的内容，机器区的字段计数
 （14）是静态分析在间接调用处停下的位置，不是体长。
@@ -363,3 +371,11 @@ actor 都没有**，所以「actor 表恒发 0 条」与它逐字节相同；它
 `START_MAP` 的 mapId 来自本局 cell 已选资源，不再取自布局的固定坐标/mapId 字典。
 同一 MAP 被不同 cell 使用时，actor 序列基数加入 cell 坐标；回访仍使用原 cell 和既有空重访投影。
 字节布局未改；详见 [结构规则](../../../Document/DungeonStructureRules.md)。本次变更的客户端验收待补。
+
+### 2026-10-09：特殊对象怪物模板投影（UpstreamReference / CurrentImplementation）
+
+21字节actor行布局不变。MAP内联特殊对象的monster子项使用：templateOrder=u16原父对象序号，packetIndex=i32原子项序号，flag0=1，flag1=原父对象序号。空对象及item/trap/quest子项仍占其原索引；模板行不递增普通monster/APC的MAP索引计数。actor sequence仍由Cell统一分配，运行死亡账本与此一致。
+
+依据为上游`DungeonActorTemplateProjector.AppendSpecialPassiveObjectTemplates`与`DungeonNotificationBuilder`，新回归保护索引与flags。根特防御21314声明APC10409及30个对象monster模板。此模板扩展尚未实机验收，不升级原有普通教学房间的ClientVerified范围。
+
+怪物资源解析改为typed token游标，保留dummy/NPC/精英尾部/条件及来源；dummy仍占普通MAP索引但不进入普通清房、经验、奖励或任务击杀结算。详见 [声明重构](../../../Document/MonsterDeclarations-20261009.md)。

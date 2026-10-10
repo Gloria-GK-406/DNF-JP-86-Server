@@ -27,7 +27,7 @@ internal static class ArrivingAvatar
     private const int NeverExpires = 0;
 
     /// <summary>A positive instance value for a newly granted independent item.</summary>
-    internal static int NewIdentity() => Random.Shared.Next(1, int.MaxValue);
+    internal static int NewIdentity() => Dfo.Server.Application.Inventory.EquipmentQualitySeeds.NewRandom();
 
     /// <summary>
     /// The six facts an avatar arrives carrying, none of them yet anything but a default.

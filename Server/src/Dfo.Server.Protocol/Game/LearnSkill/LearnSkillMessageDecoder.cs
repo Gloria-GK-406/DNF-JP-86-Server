@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using System.Security.Cryptography;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -29,15 +28,6 @@ internal sealed class LearnSkillMessageDecoder : IGameMessageDecoder
         return new LearnSkillRequest(metadata, body[0], Array.AsReadOnly(changes), body[logicalLength - 1]);
     }
 
-    // A21 RVA 01034D10 -> 00026A20, documented with image hash in protocol/0x001D.
-    // MD5 is a wire compatibility checksum, not an authentication primitive.
-    internal static bool HasValidChecksum(ReadOnlySpan<byte> body, ReadOnlySpan<byte> checksum)
-    {
-        Span<byte> md5 = stackalloc byte[16];
-        MD5.HashData(body, md5);
-        return checksum[0] == (byte)(md5[0] ^ md5[13] ^ md5[8] ^ md5[10] ^ 0x81)
-            && checksum[1] == (byte)(md5[1] ^ md5[9] ^ md5[5] ^ md5[12] ^ 0x78)
-            && checksum[2] == (byte)(md5[2] ^ md5[6] ^ md5[14] ^ md5[4] ^ 0x1a)
-            && checksum[3] == (byte)(md5[3] ^ md5[15] ^ md5[11] ^ md5[7] ^ 0xbf);
-    }
+    internal static bool HasValidChecksum(ReadOnlySpan<byte> body, ReadOnlySpan<byte> checksum) =>
+        GameBodyChecksum.IsValid(body, checksum);
 }

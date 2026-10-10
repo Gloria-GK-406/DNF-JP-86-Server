@@ -27,7 +27,7 @@ internal sealed class ExperienceCalculationDomainService(
         {
             case KillExperienceContext kill:
                 var worth = valuation.WorthOfKill(new(kill.MonsterLevel, kill.Rank, characterLevel,
-                    kill.Difficulty, kill.DungeonWeight, kill.PartyMemberCount));
+                    kill.Difficulty, kill.DungeonWeight, kill.PartyMemberCount, kill.IsNamedMonster));
                 var result = new ExperienceBreakdown(Base: worth);
                 if (worth == 0) return result;
                 foreach (var modifier in await bonuses.CollectAsync(kill.Occasion, cancellationToken)

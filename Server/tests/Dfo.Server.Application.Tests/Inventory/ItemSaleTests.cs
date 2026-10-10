@@ -13,6 +13,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.SellItem;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -227,14 +228,91 @@ public sealed class ItemSaleTests
     }
 
     [Fact]
-    public async Task Equipment_with_an_unverified_special_price_branch_is_retained()
+    public async Task Equipment_attributes_are_not_NPC_sale_restrictions()
     {
         using var shop = Fixture();
-        await shop.SeedCore(9, StackableItemCore.Create(1, 3000, 1111) with { Durability = 45, RandomOptionState = 1 });
+        await shop.SeedCore(9, StackableItemCore.Create(1, 3000, 1111) with
+        {
+            Durability = 45, Attribute = 12, SealFlag = 1, AmplifyType = 1, GenuineUpgrade = 2,
+            EmancipateEquipmentLevel = 1, RandomOptionState = 1, RandomOption0 = new(240, 47, 47),
+            RandomOption1 = new(1, 1, 1), RandomOption2 = new(2, 2, 2), TradeRestriction = 1,
+        });
         await Sell(shop, 9, 1);
+        Assert.Equal(102332, shop.Gold);
+        Assert.Equal(0, shop.Count(3000));
+        Assert.NotNull(Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages)).Slot);
+    }
+
+    [Theory]
+    [InlineData("missing", 3)]
+    [InlineData("malformed", 10)]
+    [InlineData("negative", 3)]
+    [InlineData("type", 10)]
+    [InlineData("unsupported", 3)]
+    public async Task Pricing_failure_sells_at_zero_with_context_in_ERROR_and_one_success_ACK(string reason, int count)
+    {
+        var logger = new SaleLogger();
+        var price = reason switch
+        {
+            "malformed" => new ItemSaleDefinition(0, 0, true, PricingFailure: "PVF duplicate [value]."),
+            "negative" => new(-1, 200, true),
+            "type" => new(155, 200, true, true),
+            "unsupported" => new(0, 0, true, PricingFailure: "Unsupported sale price branch."),
+            _ => null,
+        };
+        using var shop = Fixture(prices: new Prices(price, missing: reason == "missing"), logger: logger);
+        await shop.Seed(65, 5000, 10);
+        await Sell(shop, 65, count);
         Assert.Equal(100000, shop.Gold);
-        Assert.Equal(1, shop.Count(3000));
+        Assert.Equal(10 - count, shop.Count(5000));
+        var ack = Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages));
+        Assert.NotNull(ack.Slot);
+        Assert.Equal((65, count, 100000), (ack.Slot.Value.Index, ack.Count, ack.Gold));
+        var error = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Error, error.Level);
+        Assert.Equal(1, error.Fields["CharacterId"]);
+        Assert.Equal(5000, error.Fields["ItemId"]);
+        Assert.True(error.Fields.ContainsKey("ItemUid"));
+        Assert.Equal(new BusinessSlot(BusinessInventorySpace.Consumable, 0), error.Fields["Slot"]);
+        Assert.Equal(count, error.Fields["Count"]);
+        Assert.False(string.IsNullOrWhiteSpace(Assert.IsType<string>(error.Fields["Reason"])));
+        Assert.IsType<ItemSnapshot>(error.Fields["ItemState"]);
+    }
+
+    [Fact]
+    public async Task An_explicit_zero_price_sells_without_ERROR()
+    {
+        var logger = new SaleLogger();
+        using var shop = Fixture(prices: new Prices(new(0, 200, true)), logger: logger);
+        await shop.Seed(65, 5000, 2);
+        await Sell(shop, 65, 1);
+        Assert.Equal(1, shop.Count(5000));
+        Assert.Equal(100000, shop.Gold);
+        Assert.NotNull(Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages)).Slot);
+        Assert.Empty(logger.Entries);
+    }
+
+    [Fact]
+    public async Task A_real_sale_prohibition_is_not_overridden_by_a_missing_price()
+    {
+        using var shop = Fixture(prices: new Prices(new(0, 0, false, PricingFailure: "Missing price.")));
+        await shop.Seed(65, 5000, 2);
+        await Sell(shop, 65, 1);
+        Assert.Equal(2, shop.Count(5000));
+        Assert.Equal(100000, shop.Gold);
         Assert.Null(Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages)).Slot);
+    }
+
+    [Fact]
+    public async Task A_zero_price_storage_failure_still_propagates_and_rolls_back()
+    {
+        using var shop = Fixture(prices: new Prices(missing: true));
+        await shop.Seed(65, 5000, 2);
+        shop.Sql("CREATE TRIGGER refuse_zero_sale BEFORE DELETE ON item_slots BEGIN SELECT RAISE(ABORT,'zero sale failure'); END;");
+        await Assert.ThrowsAsync<SqliteException>(() => Sell(shop, 65, 2).AsTask());
+        Assert.Equal(2, shop.Count(5000));
+        Assert.Equal(100000, shop.Gold);
+        Assert.Empty(shop.Sender.Messages);
     }
 
     private static ValueTask Sell(ShopFixture shop, int slot, int count,
@@ -246,21 +324,32 @@ public sealed class ItemSaleTests
                 checked((short)count), npc, sum ?? (byte)container + slot + count),
             default);
 
-    private static ShopFixture Fixture(int cap = 1000000) => new(services =>
+    private static ShopFixture Fixture(int cap = 1000000, IItemSaleDefinitionSource? prices = null,
+        SaleLogger? logger = null) => new(services =>
     {
-        services.AddSingleton<IItemSaleDefinitionSource>(new Prices());
+        services.AddSingleton<IItemSaleDefinitionSource>(prices ?? new Prices());
         services.AddSingleton<IGoldCarryLimitSource>(new GoldLimit(cap));
+        if (logger is not null) services.AddSingleton<ILogger<ItemSaleDomainService>>(logger);
     });
 
-    private sealed class Prices : IItemSaleDefinitionSource
+    private sealed class Prices(ItemSaleDefinition? definition = null, bool missing = false) : IItemSaleDefinitionSource
     {
         public ValueTask<ItemSaleDefinition?> GetAsync(int itemId, CancellationToken ct) =>
-            ValueTask.FromResult<ItemSaleDefinition?>(itemId switch
+            ValueTask.FromResult<ItemSaleDefinition?>(missing ? null : definition ?? (itemId switch
             {
                 3000 => new(12960, 200, true, true, 45),
                 5000 => new(155, 200, true),
                 _ => null,
-            });
+            }));
+    }
+    private sealed class SaleLogger : ILogger<ItemSaleDomainService>
+    {
+        internal List<(LogLevel Level, Dictionary<string, object?> Fields)> Entries { get; } = [];
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel level) => true;
+        public void Log<TState>(LogLevel level, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter) => Entries.Add((level,
+                ((IEnumerable<KeyValuePair<string, object?>>)state!).ToDictionary(pair => pair.Key, pair => pair.Value)));
     }
     private sealed class GoldLimit(int cap) : IGoldCarryLimitSource
     {

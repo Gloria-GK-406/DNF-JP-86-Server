@@ -14,7 +14,7 @@ public sealed class QuestProgressDomainService(
     IQuestDefinitionDomainService definitions,
     ICharacterQuestLogDomainService logs,
     IQuestTriggerDomainService clientReports,
-    ISeekingQuestProgressDomainService seeking) : IQuestProgressDomainService
+    ISeekingQuestProgressDomainService seeking, IMirrorAradQuestDomainService? mirror = null) : IQuestProgressDomainService
 {
     public async ValueTask<QuestProgressReport> ReportAsync(
         AccountId accountId,
@@ -47,8 +47,9 @@ public sealed class QuestProgressDomainService(
                 case ClientQuestTriggerReport report:
                     var definition = await definitions.FindAsync(report.QuestId, cancellationToken)
                         .ConfigureAwait(false);
-                    clientResponse = definition is null
-                        ? QuestAdvance.Refused
+                    clientResponse = definition?.Grade == QuestGrade.Crack
+                        ? mirror is null ? QuestAdvance.Refused : await mirror.TriggerAsync(accountId, characterId, checked((ushort)report.QuestId), cancellationToken).ConfigureAwait(false)
+                        : definition is null ? QuestAdvance.Refused
                         : await clientReports.ApplyClientReportAsync(
                             accountId, characterId, definition, report.Selector,
                             report.Increment, cancellationToken).ConfigureAwait(false);
@@ -58,10 +59,7 @@ public sealed class QuestProgressDomainService(
                     var advanced = await AdvanceEnemyQuestsAsync(
                         log, death, cancellationToken).ConfigureAwait(false);
                     changes.AddRange(advanced);
-                    var monsterAdvanced = await AdvanceMonsterQuestsAsync(
-                        log, death, cancellationToken).ConfigureAwait(false);
-                    changes.AddRange(monsterAdvanced);
-                    serverProgressChanged |= advanced.Count != 0 || monsterAdvanced.Count != 0;
+                    serverProgressChanged |= advanced.Count != 0;
                     break;
 
                 case QuestDungeonCleared dungeonClear:
@@ -86,15 +84,23 @@ public sealed class QuestProgressDomainService(
                     serverProgressChanged |= dependents.Count != 0;
                     break;
 
+                case QuestRoomCleared:
+                case QuestCharacterRevived:
+                    break;
+
                 default:
                     throw new ArgumentOutOfRangeException(
                         nameof(facts), fact, "Unknown quest progress fact.");
             }
         }
 
+        if (mirror is not null && clientFact is null)
+            serverProgressChanged |= await mirror.ReportAsync(accountId, characterId, facts, cancellationToken).ConfigureAwait(false);
         var snapshot = serverProgressChanged
             ? new QuestProgressSnapshot(await log.CarriedAsync(cancellationToken).ConfigureAwait(false))
             : null;
+        if (snapshot is not null && mirror is not null)
+            snapshot = await mirror.MergeAsync(characterId, snapshot, cancellationToken).ConfigureAwait(false);
         return new QuestProgressReport(clientResponse, changes, snapshot);
     }
 
@@ -109,15 +115,17 @@ public sealed class QuestProgressDomainService(
         {
             var definition = await definitions.FindAsync(active.QuestId, cancellationToken)
                 .ConfigureAwait(false);
-            if (definition?.HuntEnemyRequirements is not { Count: > 0 } targets)
+            if (definition?.Grade == QuestGrade.Crack) continue;
+            if (definition?.KillObjectives is not { Status: QuestKillParseStatus.Parsed } objectives)
                 continue;
+            var targets = objectives.Targets;
 
             var before = new QuestTrigger(unchecked((uint)active.TriggerValue));
             var after = before;
-            for (var index = 0; index < Math.Min(targets.Count, QuestTrigger.ChannelCount); index++)
+            foreach (var target in targets)
             {
-                if (Matches(targets[index], death))
-                    after = after.ReplaceChannel(index, after.GetChannel(index) - 1L);
+                if (QuestKillObjectiveRules.Matches(target, death))
+                    after = after.ReplaceChannel(target.ChannelIndex, after.GetChannel(target.ChannelIndex) - 1L);
             }
 
             if (after == before)
@@ -137,12 +145,6 @@ public sealed class QuestProgressDomainService(
         return changes;
     }
 
-    private static bool Matches(HuntEnemyRequirement target, QuestEnemyDefeated death) =>
-        target.DungeonId == death.DungeonId
-        && (target.Difficulty < 0 || target.Difficulty == (int)death.Difficulty)
-        && target.EnemyCode == death.EnemyCode
-        && target.EnemyType == death.EnemyType;
-
     private async ValueTask<IReadOnlyList<QuestProgressChange>> AdvanceDungeonClearQuestsAsync(
         IQuestLog log,
         QuestDungeonCleared clear,
@@ -154,6 +156,7 @@ public sealed class QuestProgressDomainService(
         {
             var definition = await definitions.FindAsync(active.QuestId, cancellationToken)
                 .ConfigureAwait(false);
+            if (definition?.Grade == QuestGrade.Crack) continue;
             var target = definition?.DungeonClearRequirement;
             if (target is null || target.DungeonId != clear.DungeonId
                 || (target.Difficulty >= 0 && target.Difficulty != (int)clear.Difficulty))
@@ -173,65 +176,6 @@ public sealed class QuestProgressDomainService(
         }
 
         return changes;
-    }
-
-    private async ValueTask<IReadOnlyList<QuestProgressChange>> AdvanceMonsterQuestsAsync(
-        IQuestLog log,
-        QuestEnemyDefeated death,
-        CancellationToken cancellationToken)
-    {
-        if (death.EnemyType != HuntEnemyTargetTypes.Monster)
-            return [];
-
-        var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
-        var changes = new List<QuestProgressChange>();
-        foreach (var active in carried)
-        {
-            var definition = await definitions.FindAsync(active.QuestId, cancellationToken)
-                .ConfigureAwait(false);
-            if (definition?.HuntMonsterRequirements is not { Count: > 0 } targets)
-                continue;
-
-            var before = new QuestTrigger(unchecked((uint)active.TriggerValue));
-            var after = before;
-            for (var index = 0; index < Math.Min(targets.Count, QuestTrigger.ChannelCount); index++)
-            {
-                if (Matches(targets[index], death))
-                    after = after.ReplaceChannel(index, after.GetChannel(index) - 1L);
-            }
-
-            if (after == before)
-                continue;
-            if (!await log.RecordProgressAsync(
-                    active, unchecked((int)after.PackedValue), cancellationToken)
-                .ConfigureAwait(false))
-            {
-                throw new InvalidDataException(
-                    $"Quest {active.QuestId} changed while reporting a verified monster death.");
-            }
-
-            changes.Add(new QuestProgressChange(active.QuestId, before.PackedValue,
-                after.PackedValue));
-        }
-
-        return changes;
-    }
-
-    private static bool Matches(HuntMonsterRequirement target, QuestEnemyDefeated death)
-    {
-        if (death.EnemyCode <= 0
-            || (target.DungeonId != -1 && target.DungeonId != death.DungeonId)
-            || (int)death.Difficulty < target.MinimumDifficulty)
-            return false;
-
-        return target.MonsterCode switch
-        {
-            > 0 => target.MonsterCode == death.EnemyCode,
-            -1 => death.Rank == MonsterRank.Ordinary,
-            -2 => death.Rank == MonsterRank.Champion,
-            -3 => death.Rank == MonsterRank.Boss,
-            _ => false,
-        };
     }
 
     private async ValueTask<IReadOnlyList<QuestProgressChange>> AdvanceClearedQuestDependentsAsync(

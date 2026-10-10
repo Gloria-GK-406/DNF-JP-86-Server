@@ -1,0 +1,34 @@
+id 14299 -> CrackOfDimension/crack_499.qst
+=== n_quest/CrackOfDimension/crack_499.qst ===
+[grade]
+[crack]
+[difficulty]
+Y
+[gold multiple]
+200
+[npc index]
+1050
+[complete npc index]
+-1
+[level]
+1 99
+[type]
+[condition under clear]
+[sub type]
+6
+[int data]
+32 -1
+[/int data]
+[reward type]
+[crack of dimension]
+[name]
+[镜像]散发气息之地
+[depend message]
+<npc::1050>这回我们换个方向， 不要找那些怪物， 改从有气息的地方下手。 调查的事就交给我了， 但是可能需要你帮我清除下路上的怪物。 可以吗？
+[condition message]
+    调查领主怪物所在地， 从而寻找线索。
+[solve message]
+强烈的气息消失了， 那些怪物好像去了其它地方。 好在它们都指向了同一个方向， 我们沿着这个线索继续调查吧。
+[dialog]
+0 0 0 0 0 0 0 0 <npc::1050>这回我们换个方向， 不要找那些怪物， 改从有气息的地方下手。 调查的事就交给我了， 但是可能需要你帮我清除下路上的怪物。 可以吗？
+[/dialog]

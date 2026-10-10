@@ -14,6 +14,16 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 /// </remarks>
 public sealed class PvfDungeonDefinitionSourceTests
 {
+    [SkippableFact]
+    public async Task Dungeon_named_list_is_parsed_without_inventing_Gent_entries()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonDefinitionSource(provider);
+        Assert.Contains(56349, (await source.GetAsync(5006, default))!.NamedMonsterCodes);
+        Assert.Empty((await source.GetAsync(80, default))!.NamedMonsterCodes);
+    }
+
     private const int TutorialDungeonId = 10000;
     private const int SwordmanTutorialDungeonId = 10004;
 

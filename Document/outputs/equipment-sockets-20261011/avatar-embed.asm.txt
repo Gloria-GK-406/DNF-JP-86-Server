@@ -1,0 +1,326 @@
+RVA 00D2D1C0 VA 0112D1C0  55                         push     ebp
+RVA 00D2D1C1 VA 0112D1C1  8B EC                      mov      ebp, esp
+RVA 00D2D1C3 VA 0112D1C3  6A FF                      push     -1
+RVA 00D2D1C5 VA 0112D1C5  68 68 99 CF 02             push     0x2cf9968
+RVA 00D2D1CA VA 0112D1CA  64 A1 00 00 00 00          mov      eax, dword ptr fs:[0]
+RVA 00D2D1D0 VA 0112D1D0  50                         push     eax
+RVA 00D2D1D1 VA 0112D1D1  83 EC 30                   sub      esp, 0x30
+RVA 00D2D1D4 VA 0112D1D4  53                         push     ebx
+RVA 00D2D1D5 VA 0112D1D5  56                         push     esi
+RVA 00D2D1D6 VA 0112D1D6  57                         push     edi
+RVA 00D2D1D7 VA 0112D1D7  A1 E0 CE 99 03             mov      eax, dword ptr [0x399cee0]
+RVA 00D2D1DC VA 0112D1DC  33 C5                      xor      eax, ebp
+RVA 00D2D1DE VA 0112D1DE  50                         push     eax
+RVA 00D2D1DF VA 0112D1DF  8D 45 F4                   lea      eax, [ebp - 0xc]
+RVA 00D2D1E2 VA 0112D1E2  64 A3 00 00 00 00          mov      dword ptr fs:[0], eax
+RVA 00D2D1E8 VA 0112D1E8  8B 0D BC C9 A5 03          mov      ecx, dword ptr [0x3a5c9bc]
+RVA 00D2D1EE VA 0112D1EE  E8 6D 61 5C 00             call     0x12f3360
+RVA 00D2D1F3 VA 0112D1F3  80 7D 0C 00                cmp      byte ptr [ebp + 0xc], 0
+RVA 00D2D1F7 VA 0112D1F7  0F 84 15 02 00 00          je       0xd2d412
+RVA 00D2D1FD VA 0112D1FD  8D 45 0F                   lea      eax, [ebp + 0xf]
+RVA 00D2D200 VA 0112D200  6A 01                      push     1
+RVA 00D2D202 VA 0112D202  50                         push     eax
+RVA 00D2D203 VA 0112D203  C6 45 0F 00                mov      byte ptr [ebp + 0xf], 0
+RVA 00D2D207 VA 0112D207  E8 24 80 69 01             call     0x23c5230
+RVA 00D2D20C VA 0112D20C  83 C4 08                   add      esp, 8
+RVA 00D2D20F VA 0112D20F  33 FF                      xor      edi, edi
+RVA 00D2D211 VA 0112D211  33 F6                      xor      esi, esi
+RVA 00D2D213 VA 0112D213  80 7D 0F 00                cmp      byte ptr [ebp + 0xf], 0
+RVA 00D2D217 VA 0112D217  76 4C                      jbe      0xd2d265
+RVA 00D2D219 VA 0112D219  8D A4 24 00 00 00 00       lea      esp, [esp]
+RVA 00D2D220 VA 0112D220  8D 4D F0                   lea      ecx, [ebp - 0x10]
+RVA 00D2D223 VA 0112D223  51                         push     ecx
+RVA 00D2D224 VA 0112D224  E8 77 80 69 01             call     0x23c52a0
+RVA 00D2D229 VA 0112D229  8D 55 E8                   lea      edx, [ebp - 0x18]
+RVA 00D2D22C VA 0112D22C  52                         push     edx
+RVA 00D2D22D VA 0112D22D  E8 DE 80 69 01             call     0x23c5310
+RVA 00D2D232 VA 0112D232  8B 0D BC C9 A5 03          mov      ecx, dword ptr [0x3a5c9bc]
+RVA 00D2D238 VA 0112D238  83 C4 08                   add      esp, 8
+RVA 00D2D23B VA 0112D23B  3B CF                      cmp      ecx, edi
+RVA 00D2D23D VA 0112D23D  74 1D                      je       0xd2d25c
+RVA 00D2D23F VA 0112D23F  0F B7 45 F0                movzx    eax, word ptr [ebp - 0x10]
+RVA 00D2D243 VA 0112D243  50                         push     eax
+RVA 00D2D244 VA 0112D244  E8 77 14 5C 00             call     0x12ee6c0
+RVA 00D2D249 VA 0112D249  3B C7                      cmp      eax, edi
+RVA 00D2D24B VA 0112D24B  74 0F                      je       0xd2d25c
+RVA 00D2D24D VA 0112D24D  8B 4D E8                   mov      ecx, dword ptr [ebp - 0x18]
+RVA 00D2D250 VA 0112D250  8B 10                      mov      edx, dword ptr [eax]
+RVA 00D2D252 VA 0112D252  8B 52 40                   mov      edx, dword ptr [edx + 0x40]
+RVA 00D2D255 VA 0112D255  6A 01                      push     1
+RVA 00D2D257 VA 0112D257  51                         push     ecx
+RVA 00D2D258 VA 0112D258  8B C8                      mov      ecx, eax
+RVA 00D2D25A VA 0112D25A  FF D2                      call     edx
+RVA 00D2D25C VA 0112D25C  0F B6 45 0F                movzx    eax, byte ptr [ebp + 0xf]
+RVA 00D2D260 VA 0112D260  46                         inc      esi
+RVA 00D2D261 VA 0112D261  3B F0                      cmp      esi, eax
+RVA 00D2D263 VA 0112D263  7C BB                      jl       0xd2d220
+RVA 00D2D265 VA 0112D265  8B 0D B8 C9 A5 03          mov      ecx, dword ptr [0x3a5c9b8]
+RVA 00D2D26B VA 0112D26B  57                         push     edi
+RVA 00D2D26C VA 0112D26C  68 C4 FB 95 03             push     0x395fbc4
+RVA 00D2D271 VA 0112D271  68 A0 E7 95 03             push     0x395e7a0
+RVA 00D2D276 VA 0112D276  57                         push     edi
+RVA 00D2D277 VA 0112D277  68 98 00 00 00             push     0x98
+RVA 00D2D27C VA 0112D27C  E8 6F 8E 1D 01             call     0x1f060f0
+RVA 00D2D281 VA 0112D281  50                         push     eax
+RVA 00D2D282 VA 0112D282  E8 E3 65 B3 01             call     0x286386a
+RVA 00D2D287 VA 0112D287  8B D8                      mov      ebx, eax
+RVA 00D2D289 VA 0112D289  83 C4 14                   add      esp, 0x14
+RVA 00D2D28C VA 0112D28C  3B DF                      cmp      ebx, edi
+RVA 00D2D28E VA 0112D28E  0F 84 37 01 00 00          je       0xd2d3cb
+RVA 00D2D294 VA 0112D294  6A 08                      push     8
+RVA 00D2D296 VA 0112D296  89 7D C4                   mov      dword ptr [ebp - 0x3c], edi
+RVA 00D2D299 VA 0112D299  E8 C2 61 2F FF             call     0x23460
+RVA 00D2D29E VA 0112D29E  83 C4 04                   add      esp, 4
+RVA 00D2D2A1 VA 0112D2A1  3B C7                      cmp      eax, edi
+RVA 00D2D2A3 VA 0112D2A3  0F 84 45 01 00 00          je       0xd2d3ee
+RVA 00D2D2A9 VA 0112D2A9  89 45 C4                   mov      dword ptr [ebp - 0x3c], eax
+RVA 00D2D2AC VA 0112D2AC  33 C9                      xor      ecx, ecx
+RVA 00D2D2AE VA 0112D2AE  89 08                      mov      dword ptr [eax], ecx
+RVA 00D2D2B0 VA 0112D2B0  33 D2                      xor      edx, edx
+RVA 00D2D2B2 VA 0112D2B2  89 50 04                   mov      dword ptr [eax + 4], edx
+RVA 00D2D2B5 VA 0112D2B5  8B 55 C4                   mov      edx, dword ptr [ebp - 0x3c]
+RVA 00D2D2B8 VA 0112D2B8  8D 4D C4                   lea      ecx, [ebp - 0x3c]
+RVA 00D2D2BB VA 0112D2BB  89 0A                      mov      dword ptr [edx], ecx
+RVA 00D2D2BD VA 0112D2BD  89 7D C8                   mov      dword ptr [ebp - 0x38], edi
+RVA 00D2D2C0 VA 0112D2C0  89 7D CC                   mov      dword ptr [ebp - 0x34], edi
+RVA 00D2D2C3 VA 0112D2C3  89 7D D0                   mov      dword ptr [ebp - 0x30], edi
+RVA 00D2D2C6 VA 0112D2C6  89 7D FC                   mov      dword ptr [ebp - 4], edi
+RVA 00D2D2C9 VA 0112D2C9  E8 12 AE A9 00             call     0x17c80e0
+RVA 00D2D2CE VA 0112D2CE  8B 45 CC                   mov      eax, dword ptr [ebp - 0x34]
+RVA 00D2D2D1 VA 0112D2D1  8D 4D EC                   lea      ecx, [ebp - 0x14]
+RVA 00D2D2D4 VA 0112D2D4  3B C8                      cmp      ecx, eax
+RVA 00D2D2D6 VA 0112D2D6  8B 4D C8                   mov      ecx, dword ptr [ebp - 0x38]
+RVA 00D2D2D9 VA 0112D2D9  C7 45 EC 01 00 00 00       mov      dword ptr [ebp - 0x14], 1
+RVA 00D2D2E0 VA 0112D2E0  73 2E                      jae      0xd2d310
+RVA 00D2D2E2 VA 0112D2E2  8D 55 EC                   lea      edx, [ebp - 0x14]
+RVA 00D2D2E5 VA 0112D2E5  3B CA                      cmp      ecx, edx
+RVA 00D2D2E7 VA 0112D2E7  77 27                      ja       0xd2d310
+RVA 00D2D2E9 VA 0112D2E9  8B F2                      mov      esi, edx
+RVA 00D2D2EB VA 0112D2EB  2B F1                      sub      esi, ecx
+RVA 00D2D2ED VA 0112D2ED  C1 FE 02                   sar      esi, 2
+RVA 00D2D2F0 VA 0112D2F0  3B 45 D0                   cmp      eax, dword ptr [ebp - 0x30]
+RVA 00D2D2F3 VA 0112D2F3  75 0D                      jne      0xd2d302
+RVA 00D2D2F5 VA 0112D2F5  6A 01                      push     1
+RVA 00D2D2F7 VA 0112D2F7  8D 4D C4                   lea      ecx, [ebp - 0x3c]
+RVA 00D2D2FA VA 0112D2FA  E8 E1 27 7B 00             call     0x14dfae0
+RVA 00D2D2FF VA 0112D2FF  8B 45 CC                   mov      eax, dword ptr [ebp - 0x34]
+RVA 00D2D302 VA 0112D302  3B C7                      cmp      eax, edi
+RVA 00D2D304 VA 0112D304  74 29                      je       0xd2d32f
+RVA 00D2D306 VA 0112D306  8B 4D C8                   mov      ecx, dword ptr [ebp - 0x38]
+RVA 00D2D309 VA 0112D309  8B 14 B1                   mov      edx, dword ptr [ecx + esi*4]
+RVA 00D2D30C VA 0112D30C  89 10                      mov      dword ptr [eax], edx
+RVA 00D2D30E VA 0112D30E  EB 1C                      jmp      0xd2d32c
+RVA 00D2D310 VA 0112D310  3B 45 D0                   cmp      eax, dword ptr [ebp - 0x30]
+RVA 00D2D313 VA 0112D313  75 0D                      jne      0xd2d322
+RVA 00D2D315 VA 0112D315  6A 01                      push     1
+RVA 00D2D317 VA 0112D317  8D 4D C4                   lea      ecx, [ebp - 0x3c]
+RVA 00D2D31A VA 0112D31A  E8 C1 27 7B 00             call     0x14dfae0
+RVA 00D2D31F VA 0112D31F  8B 45 CC                   mov      eax, dword ptr [ebp - 0x34]
+RVA 00D2D322 VA 0112D322  3B C7                      cmp      eax, edi
+RVA 00D2D324 VA 0112D324  74 09                      je       0xd2d32f
+RVA 00D2D326 VA 0112D326  C7 00 01 00 00 00          mov      dword ptr [eax], 1
+RVA 00D2D32C VA 0112D32C  8B 45 CC                   mov      eax, dword ptr [ebp - 0x34]
+RVA 00D2D32F VA 0112D32F  83 C0 04                   add      eax, 4
+RVA 00D2D332 VA 0112D332  8D 4D EC                   lea      ecx, [ebp - 0x14]
+RVA 00D2D335 VA 0112D335  89 45 CC                   mov      dword ptr [ebp - 0x34], eax
+RVA 00D2D338 VA 0112D338  89 7D EC                   mov      dword ptr [ebp - 0x14], edi
+RVA 00D2D33B VA 0112D33B  3B C8                      cmp      ecx, eax
+RVA 00D2D33D VA 0112D33D  73 30                      jae      0xd2d36f
+RVA 00D2D33F VA 0112D33F  8B D1                      mov      edx, ecx
+RVA 00D2D341 VA 0112D341  8B 4D C8                   mov      ecx, dword ptr [ebp - 0x38]
+RVA 00D2D344 VA 0112D344  3B CA                      cmp      ecx, edx
+RVA 00D2D346 VA 0112D346  77 27                      ja       0xd2d36f
+RVA 00D2D348 VA 0112D348  8B F2                      mov      esi, edx
+RVA 00D2D34A VA 0112D34A  2B F1                      sub      esi, ecx
+RVA 00D2D34C VA 0112D34C  C1 FE 02                   sar      esi, 2
+RVA 00D2D34F VA 0112D34F  3B 45 D0                   cmp      eax, dword ptr [ebp - 0x30]
+RVA 00D2D352 VA 0112D352  75 0D                      jne      0xd2d361
+RVA 00D2D354 VA 0112D354  6A 01                      push     1
+RVA 00D2D356 VA 0112D356  8D 4D C4                   lea      ecx, [ebp - 0x3c]
+RVA 00D2D359 VA 0112D359  E8 82 27 7B 00             call     0x14dfae0
+RVA 00D2D35E VA 0112D35E  8B 45 CC                   mov      eax, dword ptr [ebp - 0x34]
+RVA 00D2D361 VA 0112D361  3B C7                      cmp      eax, edi
+RVA 00D2D363 VA 0112D363  74 25                      je       0xd2d38a
+RVA 00D2D365 VA 0112D365  8B 4D C8                   mov      ecx, dword ptr [ebp - 0x38]
+RVA 00D2D368 VA 0112D368  8B 14 B1                   mov      edx, dword ptr [ecx + esi*4]
+RVA 00D2D36B VA 0112D36B  89 10                      mov      dword ptr [eax], edx
+RVA 00D2D36D VA 0112D36D  EB 18                      jmp      0xd2d387
+RVA 00D2D36F VA 0112D36F  3B 45 D0                   cmp      eax, dword ptr [ebp - 0x30]
+RVA 00D2D372 VA 0112D372  75 0D                      jne      0xd2d381
+RVA 00D2D374 VA 0112D374  6A 01                      push     1
+RVA 00D2D376 VA 0112D376  8D 4D C4                   lea      ecx, [ebp - 0x3c]
+RVA 00D2D379 VA 0112D379  E8 62 27 7B 00             call     0x14dfae0
+RVA 00D2D37E VA 0112D37E  8B 45 CC                   mov      eax, dword ptr [ebp - 0x34]
+RVA 00D2D381 VA 0112D381  3B C7                      cmp      eax, edi
+RVA 00D2D383 VA 0112D383  74 05                      je       0xd2d38a
+RVA 00D2D385 VA 0112D385  89 38                      mov      dword ptr [eax], edi
+RVA 00D2D387 VA 0112D387  8B 45 CC                   mov      eax, dword ptr [ebp - 0x34]
+RVA 00D2D38A VA 0112D38A  83 C0 04                   add      eax, 4
+RVA 00D2D38D VA 0112D38D  89 45 CC                   mov      dword ptr [ebp - 0x34], eax
+RVA 00D2D390 VA 0112D390  8D 45 C4                   lea      eax, [ebp - 0x3c]
+RVA 00D2D393 VA 0112D393  50                         push     eax
+RVA 00D2D394 VA 0112D394  57                         push     edi
+RVA 00D2D395 VA 0112D395  8B CB                      mov      ecx, ebx
+RVA 00D2D397 VA 0112D397  E8 14 D6 48 00             call     0x11ba9b0
+RVA 00D2D39C VA 0112D39C  8B 45 C8                   mov      eax, dword ptr [ebp - 0x38]
+RVA 00D2D39F VA 0112D39F  C7 45 FC FF FF FF FF       mov      dword ptr [ebp - 4], 0xffffffff
+RVA 00D2D3A6 VA 0112D3A6  3B C7                      cmp      eax, edi
+RVA 00D2D3A8 VA 0112D3A8  74 09                      je       0xd2d3b3
+RVA 00D2D3AA VA 0112D3AA  50                         push     eax
+RVA 00D2D3AB VA 0112D3AB  E8 CE 23 B3 01             call     0x285f77e
+RVA 00D2D3B0 VA 0112D3B0  83 C4 04                   add      esp, 4
+RVA 00D2D3B3 VA 0112D3B3  8B 4D C4                   mov      ecx, dword ptr [ebp - 0x3c]
+RVA 00D2D3B6 VA 0112D3B6  51                         push     ecx
+RVA 00D2D3B7 VA 0112D3B7  89 7D C8                   mov      dword ptr [ebp - 0x38], edi
+RVA 00D2D3BA VA 0112D3BA  89 7D CC                   mov      dword ptr [ebp - 0x34], edi
+RVA 00D2D3BD VA 0112D3BD  89 7D D0                   mov      dword ptr [ebp - 0x30], edi
+RVA 00D2D3C0 VA 0112D3C0  E8 B9 23 B3 01             call     0x285f77e
+RVA 00D2D3C5 VA 0112D3C5  83 C4 04                   add      esp, 4
+RVA 00D2D3C8 VA 0112D3C8  89 7D C4                   mov      dword ptr [ebp - 0x3c], edi
+RVA 00D2D3CB VA 0112D3CB  6A FF                      push     -1
+RVA 00D2D3CD VA 0112D3CD  6A FF                      push     -1
+RVA 00D2D3CF VA 0112D3CF  57                         push     edi
+RVA 00D2D3D0 VA 0112D3D0  57                         push     edi
+RVA 00D2D3D1 VA 0112D3D1  6A FF                      push     -1
+RVA 00D2D3D3 VA 0112D3D3  68 94 3D 24 03             push     0x3243d94
+RVA 00D2D3D8 VA 0112D3D8  E8 E3 D8 68 01             call     0x23bacc0
+RVA 00D2D3DD VA 0112D3DD  83 C4 04                   add      esp, 4
+RVA 00D2D3E0 VA 0112D3E0  50                         push     eax
+RVA 00D2D3E1 VA 0112D3E1  E8 3A B6 51 00             call     0x1248a20
+RVA 00D2D3E6 VA 0112D3E6  83 C4 18                   add      esp, 0x18
+RVA 00D2D3E9 VA 0112D3E9  E9 BA 00 00 00             jmp      0xd2d4a8
+RVA 00D2D3EE VA 0112D3EE  8D 55 E4                   lea      edx, [ebp - 0x1c]
+RVA 00D2D3F1 VA 0112D3F1  52                         push     edx
+RVA 00D2D3F2 VA 0112D3F2  8D 4D D8                   lea      ecx, [ebp - 0x28]
+RVA 00D2D3F5 VA 0112D3F5  89 7D E4                   mov      dword ptr [ebp - 0x1c], edi
+RVA 00D2D3F8 VA 0112D3F8  E8 D0 42 B3 01             call     0x28616cd
+RVA 00D2D3FD VA 0112D3FD  68 98 8D 76 03             push     0x3768d98
+RVA 00D2D402 VA 0112D402  8D 45 D8                   lea      eax, [ebp - 0x28]
+RVA 00D2D405 VA 0112D405  50                         push     eax
+RVA 00D2D406 VA 0112D406  C7 45 D8 70 38 04 03       mov      dword ptr [ebp - 0x28], 0x3043870
+RVA 00D2D40D VA 0112D40D  E8 C2 4D B3 01             call     0x28621d4
+RVA 00D2D412 VA 0112D412  8A 5D 10                   mov      bl, byte ptr [ebp + 0x10]
+RVA 00D2D415 VA 0112D415  0F B6 F3                   movzx    esi, bl
+RVA 00D2D418 VA 0112D418  56                         push     esi
+RVA 00D2D419 VA 0112D419  68 14 1C 24 03             push     0x3241c14
+RVA 00D2D41E VA 0112D41E  E8 9D D8 68 01             call     0x23bacc0
+RVA 00D2D423 VA 0112D423  83 C4 04                   add      esp, 4
+RVA 00D2D426 VA 0112D426  50                         push     eax
+RVA 00D2D427 VA 0112D427  68 60 19 00 00             push     0x1960
+RVA 00D2D42C VA 0112D42C  68 F0 41 24 03             push     0x32441f0
+RVA 00D2D431 VA 0112D431  E8 8A D8 68 01             call     0x23bacc0
+RVA 00D2D436 VA 0112D436  83 C4 04                   add      esp, 4
+RVA 00D2D439 VA 0112D439  50                         push     eax
+RVA 00D2D43A VA 0112D43A  68 90 2F 24 03             push     0x3242f90
+RVA 00D2D43F VA 0112D43F  E8 7C D8 68 01             call     0x23bacc0
+RVA 00D2D444 VA 0112D444  83 C4 04                   add      esp, 4
+RVA 00D2D447 VA 0112D447  50                         push     eax
+RVA 00D2D448 VA 0112D448  6A 00                      push     0
+RVA 00D2D44A VA 0112D44A  E8 21 0E 69 01             call     0x23be270
+RVA 00D2D44F VA 0112D44F  6A 01                      push     1
+RVA 00D2D451 VA 0112D451  6A 01                      push     1
+RVA 00D2D453 VA 0112D453  6A 01                      push     1
+RVA 00D2D455 VA 0112D455  6A 01                      push     1
+RVA 00D2D457 VA 0112D457  6A 00                      push     0
+RVA 00D2D459 VA 0112D459  56                         push     esi
+RVA 00D2D45A VA 0112D45A  E8 61 AD 4E 01             call     0x22181c0
+RVA 00D2D45F VA 0112D45F  83 C4 30                   add      esp, 0x30
+RVA 00D2D462 VA 0112D462  80 FB 11                   cmp      bl, 0x11
+RVA 00D2D465 VA 0112D465  75 09                      jne      0xd2d470
+RVA 00D2D467 VA 0112D467  6A 00                      push     0
+RVA 00D2D469 VA 0112D469  68 54 A4 00 00             push     0xa454
+RVA 00D2D46E VA 0112D46E  EB 1A                      jmp      0xd2d48a
+RVA 00D2D470 VA 0112D470  80 FB 04                   cmp      bl, 4
+RVA 00D2D473 VA 0112D473  75 09                      jne      0xd2d47e
+RVA 00D2D475 VA 0112D475  6A 00                      push     0
+RVA 00D2D477 VA 0112D477  68 55 A4 00 00             push     0xa455
+RVA 00D2D47C VA 0112D47C  EB 0C                      jmp      0xd2d48a
+RVA 00D2D47E VA 0112D47E  80 FB D6                   cmp      bl, 0xd6
+RVA 00D2D481 VA 0112D481  75 20                      jne      0xd2d4a3
+RVA 00D2D483 VA 0112D483  6A 00                      push     0
+RVA 00D2D485 VA 0112D485  68 F8 A4 00 00             push     0xa4f8
+RVA 00D2D48A VA 0112D48A  E8 31 40 79 01             call     0x24c14c0
+RVA 00D2D48F VA 0112D48F  8B 0D B8 C9 A5 03          mov      ecx, dword ptr [0x3a5c9b8]
+RVA 00D2D495 VA 0112D495  83 C4 04                   add      esp, 4
+RVA 00D2D498 VA 0112D498  50                         push     eax
+RVA 00D2D499 VA 0112D499  68 09 02 00 00             push     0x209
+RVA 00D2D49E VA 0112D49E  E8 CD 77 1D 01             call     0x1f04c70
+RVA 00D2D4A3 VA 0112D4A3  E8 C8 C3 42 01             call     0x2159870
+RVA 00D2D4A8 VA 0112D4A8  E8 83 95 42 01             call     0x2156a30
+RVA 00D2D4AD VA 0112D4AD  8B 4D F4                   mov      ecx, dword ptr [ebp - 0xc]
+RVA 00D2D4B0 VA 0112D4B0  64 89 0D 00 00 00 00       mov      dword ptr fs:[0], ecx
+RVA 00D2D4B7 VA 0112D4B7  59                         pop      ecx
+RVA 00D2D4B8 VA 0112D4B8  5F                         pop      edi
+RVA 00D2D4B9 VA 0112D4B9  5E                         pop      esi
+RVA 00D2D4BA VA 0112D4BA  5B                         pop      ebx
+RVA 00D2D4BB VA 0112D4BB  8B E5                      mov      esp, ebp
+RVA 00D2D4BD VA 0112D4BD  5D                         pop      ebp
+RVA 00D2D4BE VA 0112D4BE  C3                         ret
+RVA 00D2D4BF VA 0112D4BF  CC                         int3
+RVA 00D2D4C0 VA 0112D4C0  55                         push     ebp
+RVA 00D2D4C1 VA 0112D4C1  8B EC                      mov      ebp, esp
+RVA 00D2D4C3 VA 0112D4C3  6A FF                      push     -1
+RVA 00D2D4C5 VA 0112D4C5  68 C0 29 E6 02             push     0x2e629c0
+RVA 00D2D4CA VA 0112D4CA  64 A1 00 00 00 00          mov      eax, dword ptr fs:[0]
+RVA 00D2D4D0 VA 0112D4D0  50                         push     eax
+RVA 00D2D4D1 VA 0112D4D1  83 EC 68                   sub      esp, 0x68
+RVA 00D2D4D4 VA 0112D4D4  53                         push     ebx
+RVA 00D2D4D5 VA 0112D4D5  56                         push     esi
+RVA 00D2D4D6 VA 0112D4D6  57                         push     edi
+RVA 00D2D4D7 VA 0112D4D7  A1 E0 CE 99 03             mov      eax, dword ptr [0x399cee0]
+RVA 00D2D4DC VA 0112D4DC  33 C5                      xor      eax, ebp
+RVA 00D2D4DE VA 0112D4DE  50                         push     eax
+RVA 00D2D4DF VA 0112D4DF  8D 45 F4                   lea      eax, [ebp - 0xc]
+RVA 00D2D4E2 VA 0112D4E2  64 A3 00 00 00 00          mov      dword ptr fs:[0], eax
+RVA 00D2D4E8 VA 0112D4E8  80 7D 0C 00                cmp      byte ptr [ebp + 0xc], 0
+RVA 00D2D4EC VA 0112D4EC  0F 84 76 09 00 00          je       0xd2de68
+RVA 00D2D4F2 VA 0112D4F2  8D 45 F3                   lea      eax, [ebp - 0xd]
+RVA 00D2D4F5 VA 0112D4F5  6A 01                      push     1
+RVA 00D2D4F7 VA 0112D4F7  50                         push     eax
+RVA 00D2D4F8 VA 0112D4F8  C6 45 F3 00                mov      byte ptr [ebp - 0xd], 0
+RVA 00D2D4FC VA 0112D4FC  E8 2F 7D 69 01             call     0x23c5230
+RVA 00D2D501 VA 0112D501  8B 0D B8 DF B3 03          mov      ecx, dword ptr [0x3b3dfb8]
+RVA 00D2D507 VA 0112D507  33 F6                      xor      esi, esi
+RVA 00D2D509 VA 0112D509  83 C4 08                   add      esp, 8
+RVA 00D2D50C VA 0112D50C  3B CE                      cmp      ecx, esi
+RVA 00D2D50E VA 0112D50E  0F 84 58 0A 00 00          je       0xd2df6c
+RVA 00D2D514 VA 0112D514  8A 45 F3                   mov      al, byte ptr [ebp - 0xd]
+RVA 00D2D517 VA 0112D517  3C FF                      cmp      al, 0xff
+RVA 00D2D519 VA 0112D519  75 03                      jne      0xd2d51e
+RVA 00D2D51B VA 0112D51B  56                         push     esi
+RVA 00D2D51C VA 0112D51C  EB 04                      jmp      0xd2d522
+RVA 00D2D51E VA 0112D51E  0F BE D0                   movsx    edx, al
+RVA 00D2D521 VA 0112D521  52                         push     edx
+RVA 00D2D522 VA 0112D522  E8 89 52 70 00             call     0x14327b0
+RVA 00D2D527 VA 0112D527  8D 45 E0                   lea      eax, [ebp - 0x20]
+RVA 00D2D52A VA 0112D52A  50                         push     eax
+RVA 00D2D52B VA 0112D52B  C6 45 F2 00                mov      byte ptr [ebp - 0xe], 0
+RVA 00D2D52F VA 0112D52F  C6 45 0F 00                mov      byte ptr [ebp + 0xf], 0
+RVA 00D2D533 VA 0112D533  89 75 E8                   mov      dword ptr [ebp - 0x18], esi
+RVA 00D2D536 VA 0112D536  89 75 E0                   mov      dword ptr [ebp - 0x20], esi
+RVA 00D2D539 VA 0112D539  89 75 DC                   mov      dword ptr [ebp - 0x24], esi
+RVA 00D2D53C VA 0112D53C  E8 5F 7D 69 01             call     0x23c52a0
+RVA 00D2D541 VA 0112D541  8D 4D DC                   lea      ecx, [ebp - 0x24]
+RVA 00D2D544 VA 0112D544  51                         push     ecx
+RVA 00D2D545 VA 0112D545  E8 56 7D 69 01             call     0x23c52a0
+RVA 00D2D54A VA 0112D54A  6A 08                      push     8
+RVA 00D2D54C VA 0112D54C  89 75 8C                   mov      dword ptr [ebp - 0x74], esi
+RVA 00D2D54F VA 0112D54F  E8 0C 5F 2F FF             call     0x23460
+RVA 00D2D554 VA 0112D554  83 C4 0C                   add      esp, 0xc
+RVA 00D2D557 VA 0112D557  3B C6                      cmp      eax, esi
+RVA 00D2D559 VA 0112D559  0F 84 E5 08 00 00          je       0xd2de44
+RVA 00D2D55F VA 0112D55F  89 45 8C                   mov      dword ptr [ebp - 0x74], eax
+RVA 00D2D562 VA 0112D562  33 D2                      xor      edx, edx
+RVA 00D2D564 VA 0112D564  89 50 04                   mov      dword ptr [eax + 4], edx
+RVA 00D2D567 VA 0112D567  33 C9                      xor      ecx, ecx
+RVA 00D2D569 VA 0112D569  89 08                      mov      dword ptr [eax], ecx
+RVA 00D2D56B VA 0112D56B  8B 45 8C                   mov      eax, dword ptr [ebp - 0x74]
+RVA 00D2D56E VA 0112D56E  8D 55 8C                   lea      edx, [ebp - 0x74]
+RVA 00D2D571 VA 0112D571  89 10                      mov      dword ptr [eax], edx
+RVA 00D2D573 VA 0112D573  89 75 90                   mov      dword ptr [ebp - 0x70], esi
+RVA 00D2D576 VA 0112D576  89 75 94                   mov      dword ptr [ebp - 0x6c], esi
+RVA 00D2D579 VA 0112D579  89 75 98                   mov      dword ptr [ebp - 0x68], esi
+RVA 00D2D57C VA 0112D57C  89 75 FC                   mov      dword ptr [ebp - 4], esi
+RVA 00D2D57F VA 0112D57F  66 39 75 E0                cmp      word ptr [ebp - 0x20], si
+RVA 00D2D583 VA 0112D583  0F 85 C6 00 00 00          jne      0xd2d64f
+RVA 00D2D589 VA 0112D589  8B 0D 80 C9 A5 03          mov      ecx, dword ptr [0x3a5c980]

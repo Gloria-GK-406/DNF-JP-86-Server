@@ -608,6 +608,8 @@ internal static class StateSynchronizationEncoderRegistration
         AddNoti<EpicBookStateMessage>(services);
         AddNoti<UsableCountBaselineMessage>(services);
         AddNoti<ItemUsageCountMessage>(services);
+        AddNoti<MirrorDungeonQuotaMessage>(services);
+        AddNoti<DimensionDungeonQuotaMessage>(services);
         AddNoti<PartyBaselineMessage>(services);
         AddNoti<GuildMedalBaselineMessage>(services);
         AddNoti<ServerEventBaselineMessage>(services);

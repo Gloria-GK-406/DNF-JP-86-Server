@@ -27,18 +27,16 @@ internal sealed class ItemSaleRuleService(IItemSaleDefinitionSource prices, INpc
             || item.Snapshot.ExpireTime != 0)
             return new(ItemSaleRejection.CannotSell);
         var definition = await prices.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
-        if (definition is not { CanSell: true, Value: >= 0, RatePerThousand: >= 0 })
+        if (definition is { CanSell: false })
             return new(ItemSaleRejection.CannotSell);
+        if (definition is null)
+            return new(ItemSaleRejection.None, count, 0, "Missing sale price definition.");
+        if (definition.PricingFailure is { } failure)
+            return new(ItemSaleRejection.None, count, 0, failure);
+        if (definition.Value < 0 || definition.RatePerThousand < 0)
+            return new(ItemSaleRejection.None, count, 0, "Negative sale value or rate.");
         if (definition.IsEquipment != ((!item.IsPile && item.Type.HasFlag(ItemTraits.Equipment))))
-            return new(ItemSaleRejection.CannotSell);
-        // Special equipment can select other client price branches. Keep it intact until those
-        // mappings are verified; the ordinary equipment path is backed by the A21 live probe.
-        if (definition.IsEquipment && (item.Snapshot.Attribute != 0 || item.Snapshot.SealFlag != 0
-            || item.Snapshot.AmplifyType != 0 || item.Snapshot.GenuineUpgrade != 0
-            || item.Snapshot.EmancipateEquipmentLevel != 0 || item.Snapshot.RandomOptionState != 0
-            || item.Snapshot.RandomOption0.Type != 0 || item.Snapshot.RandomOption1.Type != 0
-            || item.Snapshot.RandomOption2.Type != 0))
-            return new(ItemSaleRejection.CannotSell);
+            return new(ItemSaleRejection.None, count, 0, "Sale definition and item equipment type differ.");
 
         // Match A21 RVA 02538230: float32 arithmetic, truncate, then equipment's 90/100.
         // Rounding the combined percentage or multiplying the pile before truncation differs.

@@ -1,3 +1,7 @@
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.UsageQuotas;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -130,11 +134,31 @@ public sealed class DungeonLoadingProjectionDeliveryTests
         Assert.Equal(Replacement, world.Sessions.FindByCharacter(Current.CharacterId));
     }
 
+    [Fact]
+    public async Task Mirror_authority_is_projected_only_after_loading_release_without_adding_a_CMD_ACK_or_deducting_again()
+    {
+        var events = new QuotaEvents();
+        var world = World(mirror: true, quotaProjection: new(events));
+        var released = false;
+        events.BeforeProjection = () => Assert.True(released);
+        Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId,
+            _ => { released = true; return ValueTask.CompletedTask; }, default));
+        Assert.Equal(Current, Assert.Single(Assert.IsType<NotificationAudience.TheseSessions>(events.Audiences.Single()).Sessions));
+        Assert.Equal(1, world.Commands.Submissions);
+        Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId, _ => ValueTask.CompletedTask, default));
+        Assert.Equal(2, events.Audiences.Count); // A repeated load may reconcile; it never records another entry.
+        var ordinary = World(quotaProjection: new(events));
+        Assert.True(await ordinary.Delivery.CompleteLoadingAsync(Current.ConnectionId, _ => ValueTask.CompletedTask, default));
+        Assert.Equal(2, events.Audiences.Count);
+    }
+
     private static TestWorld World(
         TaskCompletionSource? enteredCommand = null,
         TaskCompletionSource? releaseCommand = null,
         byte weaknessValue = 19,
-        long roomVersion = 0)
+        long roomVersion = 0,
+        bool mirror = false,
+        UsageQuotaProjectionDelivery? quotaProjection = null)
     {
         var participant = new DungeonRunParticipant(
             Current.AccountId, Current.CharacterId, Slot: 0, IsLeader: true);
@@ -148,7 +172,8 @@ public sealed class DungeonLoadingProjectionDeliveryTests
                 new MazeCell(0, 0),
                 61000,
                 1,
-                new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)}),
+                new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)})
+            { Mirror = mirror ? new(8000, 31, 14299) : null },
             new MazeCell(0, 0),
             61000,
             new HashSet<MazeCell> { new(0, 0) },
@@ -174,7 +199,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
             transitionGate,
             new DungeonProjectionGate(),
             commands,
-            new WeaknessProjectionDelivery(new WeaknessState(weaknessValue), sessions, sender));
+            new WeaknessProjectionDelivery(new WeaknessState(weaknessValue), sessions, sender), quotaProjection);
         return new TestWorld(delivery, sessions, runs, commands, transitionGate, sender);
     }
 
@@ -300,6 +325,22 @@ public sealed class DungeonLoadingProjectionDeliveryTests
             ClearRewardCardKind kind,
             int index) => null;
         public bool End(CharacterId characterId) => false;
+    }
+
+    private sealed class QuotaEvents : IEventService
+    {
+        public List<NotificationAudience> Audiences = [];
+        public Action? BeforeProjection;
+        public ValueTask<Guid> EnqueueAsync<T>(T payload, CancellationToken cancellationToken = default) where T : class, IDomainEvent => throw new NotSupportedException();
+        public ValueTask DirectAsync<T>(T payload, CancellationToken cancellationToken = default) where T : class, IDomainEvent => throw new NotSupportedException();
+        public ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience, T notification, CancellationToken cancellationToken = default)
+            where T : class, INotification<T>
+        {
+            BeforeProjection?.Invoke();
+            Assert.Equal(new UsageQuotaViewChanged(Current.CharacterId, UsageQuotaFamily.MirrorDungeon), Assert.IsType<UsageQuotaViewChanged>(notification));
+            Audiences.Add(audience);
+            return ValueTask.FromResult(new NotificationDelivery([new(Current.CharacterId, NotificationOutcome.Delivered)]));
+        }
     }
 
     private sealed class ReadyCommandBus(

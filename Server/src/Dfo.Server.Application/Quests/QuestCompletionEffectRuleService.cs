@@ -71,6 +71,23 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
         QuestCompletionFacts facts, CancellationToken ct)
     {
         var effects = ImmutableArray.CreateBuilder<DomainEffect>();
+        foreach (var requirement in (reward.ConsumedItems ?? []).GroupBy(x => x.ItemId))
+        {
+            var remaining = checked(requirement.Sum(x => x.RequiredCount));
+            if (requirement.Key <= 0 || remaining <= 0) throw new InventoryEffectException(InventoryEffectRejection.UnsupportedItem);
+            foreach (var item in facts.Main.Where(x => x.ItemId == requirement.Key && x.IsPile && x.Snapshot.EquipmentLockId == 0)
+                         .OrderBy(x => x.StorageSlotIndex))
+            {
+                var take = Math.Min(remaining, item.Count);
+                if (take <= 0) continue;
+                var slot = item.BusinessSlot ?? new InventorySlotMappingRuleService().ToBusinessSlot(
+                    new GameSlot(InventoryContainerType.Main, item.StorageSlotIndex));
+                effects.Add(new ConsumeFromContainerEffect(slot, item.ItemId, take));
+                remaining -= take;
+                if (remaining == 0) break;
+            }
+            if (remaining != 0) throw new InventoryEffectException(InventoryEffectRejection.InvalidTarget);
+        }
         foreach (var item in reward.Items)
         {
             {

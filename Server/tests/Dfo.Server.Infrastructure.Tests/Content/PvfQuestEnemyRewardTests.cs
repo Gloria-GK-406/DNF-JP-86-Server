@@ -73,9 +73,10 @@ public sealed class PvfQuestEnemyRewardTests
         Assert.Equal(new[] { (1,80), (2,60), (3,30) }, repeated!.EnemyRewardItems
             .Where(r => r.EnemyCode == 66315 && r.DungeonId == 80).Select(r => (r.Count, r.DropRate)));
         var all = await source.GetAllAsync(CancellationToken.None);
-        // The existing catalogue filters some raw quest.lst declarations (unsupported restrictions/relationships).
-        Assert.Equal(2814, all.Count);
-        Assert.Equal(3826, all.Sum(q => q.EnemyRewardItems.Count(r => r.EnemyType == QuestEnemyType.APC)));
-        Assert.Equal(5, all.Sum(q => q.EnemyRewardItems.Count(r => r.EnemyType == QuestEnemyType.PassiveObject)));
+        // Same server-PVF snapshot as Projects_every_neutral_eligibility_input_from_the_real_archive.
+        // Regional/five-field kill objectives now survive catalogue projection.
+        Assert.Equal(3252, all.Count);
+        Assert.Equal(3827, all.Sum(q => q.EnemyRewardItems.Count(r => r.EnemyType == QuestEnemyType.APC)));
+        Assert.Equal(9, all.Sum(q => q.EnemyRewardItems.Count(r => r.EnemyType == QuestEnemyType.PassiveObject)));
     }
 }

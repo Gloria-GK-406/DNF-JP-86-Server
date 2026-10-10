@@ -240,6 +240,7 @@ public sealed class ChannelHostStartupTests
             RedirectStandardError = true,
             UseShellExecute = false,
         };
+        startInfo.Environment["Channel__UseScriptCatalog"] = "false";
         startInfo.Environment["Networking__Enabled"] = "true";
         startInfo.Environment["Networking__UdpDiscoveryEnabled"] = "false";
         startInfo.Environment["Networking__ChannelPort"] = channelPort.ToString();

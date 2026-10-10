@@ -401,8 +401,15 @@ public sealed class MonsterDeathHandler(
     {
         try
         {
-            return runs.CommitActorDeathChange(claim)
+            var change = runs.CommitActorDeathChange(claim)
                 ?? throw new InvalidOperationException("The actor-death claim was no longer current after its durable effects.");
+            if (change.Run.Layout.Mirror is not null && change.IsCellCleared)
+                foreach (var member in change.Run.Participants)
+                    await commandBus.SendAsync(new Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommand(
+                        member.AccountId, member.CharacterId, change.Run.RunId,
+                        [new QuestRoomCleared(change.Run.RunId, change.Run.Layout.DungeonId, change.Run.Difficulty,
+                            change.Run.CurrentCell, change.Run.CurrentRoomMapId)]), CancellationToken.None).ConfigureAwait(false);
+            return change;
         }
         catch (Exception cause) when (paid.Count > 0)
         {
@@ -551,7 +558,7 @@ public sealed class MonsterDeathHandler(
                             new KilledMonster(
                                 verifiedKill.Code,
                                 verifiedKill.Level,
-                                verifiedKill.Rank),
+                                verifiedKill.Rank, verifiedKill.IsNamedMonster),
                             run.Layout.DungeonId,
                             run.Difficulty,
                             run.Layout.ExperienceWeight,
@@ -562,7 +569,8 @@ public sealed class MonsterDeathHandler(
                             deathClaim!.ActorState?.PendingLoot,
                             run.PartyKey,
                             run.IsBossRoom && verifiedKill.IsMonster
-                                && verifiedKill.Rank == MonsterRank.Boss, Session: session),
+                                && verifiedKill.Rank == MonsterRank.Boss, Session: session,
+                            RunId: run.RunId, Actor: deathClaim.Actor, WorldMapId: run.Layout.Mirror?.WorldMapId),
                         cancellationToken).ConfigureAwait(false);
                     durableCommitted = true;
                     if (!runs.CommitParticipantKillEffect(effectClaim, appliedKill?.Award))
@@ -626,9 +634,7 @@ public sealed class MonsterDeathHandler(
         }
         else if (deathClaim is not null)
         {
-            var deathChange = runs.CommitActorDeathChange(deathClaim)
-                ?? throw new InvalidOperationException(
-                    "The actor-death claim was no longer current after validation.");
+            var deathChange = await PublishActorDeathAsync(deathClaim, []).ConfigureAwait(false);
             run = deathChange.Run;
             autoKilled = deathChange.AutoKilledActorSequences;
         }
@@ -853,7 +859,7 @@ public sealed class MonsterDeathHandler(
                             new KilledMonster(
                                 verifiedKill.Code,
                                 verifiedKill.Level,
-                                verifiedKill.Rank),
+                                verifiedKill.Rank, verifiedKill.IsNamedMonster),
                             deathClaim.Run.Layout.DungeonId,
                             deathClaim.Run.Difficulty,
                             deathClaim.Run.Layout.ExperienceWeight,
@@ -864,7 +870,8 @@ public sealed class MonsterDeathHandler(
                             deathClaim.ActorState?.PendingLoot,
                             deathClaim.Run.PartyKey,
                             deathClaim.Run.IsBossRoom && verifiedKill.IsMonster
-                                && verifiedKill.Rank == MonsterRank.Boss, Session: recipient.Session),
+                                && verifiedKill.Rank == MonsterRank.Boss, Session: recipient.Session,
+                            RunId: deathClaim.RunId, Actor: deathClaim.Actor, WorldMapId: deathClaim.Run.Layout.Mirror?.WorldMapId),
                         cancellationToken).ConfigureAwait(false);
                     participantCommitted = true;
                     paidRecipients.Add(recipient.Session);

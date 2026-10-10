@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Mail;
@@ -12,10 +14,10 @@ namespace Dfo.Server.Application.Accounts;
 
 internal sealed class QuestHelperPuppetDomainService(
     IPremiumServiceDomainService premiums, IQuestHelperPuppetRuleService rules,
-    IPremiumServiceUsageTable checks, IDailyResetRuleService days,
+    IUsageQuotaDomainService checks, IDailyResetRuleService days,
     ICharacterTable characters, ICharacterItemTable items,
     IMailboxRepository repository, IMailboxDomainService mailbox,
-    IDomainTransactionAccessor transactions, TimeProvider clock) : IQuestHelperPuppetDomainService
+    IDomainTransactionAccessor transactions, TimeProvider clock, IEventService events) : IQuestHelperPuppetDomainService
 {
     private const string CheckKey = "quest_helper_puppets_checked";
 
@@ -32,7 +34,7 @@ internal sealed class QuestHelperPuppetDomainService(
             return false;
 
         var now = clock.GetUtcNow();
-        var previous = await checks.ReadAsync(characterId, CheckKey, token).ConfigureAwait(false);
+        var previous = (await checks.ReadAsync(characterId, UsageQuotaKey.Premium(CheckKey), token).ConfigureAwait(false)).Premium();
         if (previous?.LastConsumedAt is { } recorded && days.IsCurrentPeriod(recorded, now))
             return false;
 
@@ -47,8 +49,7 @@ internal sealed class QuestHelperPuppetDomainService(
         }
 
         // A fully stocked character also consumes today's check, not today's items.
-        if (await checks.TryWriteAsync(characterId, CheckKey, previous, 1, now, token).ConfigureAwait(false) != 1)
-            throw new InvalidOperationException("Daily puppet check changed during settlement.");
+        await events.DirectAsync(new PremiumUsageRecorded(characterId, [new(CheckKey, previous, 1, now)]), token).ConfigureAwait(false);
         return true;
     }
 

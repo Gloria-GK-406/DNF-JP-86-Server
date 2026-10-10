@@ -36,6 +36,12 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
         await using var lease = await transitions.BorrowOrAcquireExclusiveAsync(session.AccountId, ct).ConfigureAwait(false);
         safety.DemandCurrent(recipient);
         var snapshot = await commands.SendAsync(new ReadReplayStateCommand(session, request), ct).ConfigureAwait(false);
+        if (snapshot.Quests is { } quests && services.GetService<Dfo.Server.Abstractions.Quests.IMirrorAradQuestDomainService>() is { } mirror)
+        {
+            var merged = await mirror.MergeAsync(session.CharacterId, new(quests.Carried.Select(x =>
+                new Dfo.Server.Abstractions.Quests.CarriedQuest(checked((short)x.Slot), x.QuestId, x.TriggerValue)).ToArray()), ct).ConfigureAwait(false);
+            snapshot = snapshot with { Quests = quests with { Carried = merged.Quests.Select(x => new CharacterQuestProgressState(x.Slot, x.QuestId, x.TriggerValue)).ToImmutableArray() } };
+        }
         var messages = Create(snapshot);
         safety.DemandCurrent(recipient);
         await sender.SendBatchAsync(originalConnection, messages, ct).ConfigureAwait(false);
@@ -63,6 +69,10 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
         state.Request.Validate();
         var needs = state.Request.Needs;
         var messages = ImmutableArray.CreateBuilder<IGameServerMessage>();
+        // Exact-connection replay: close an initialized compound UI without replaying deductions/rewards.
+        // Its temporary material restoration must precede the authoritative current inventory below.
+        if (needs.HasFlag(ReplayProjectionNeeds.AvatarCompound))
+            messages.Add(new Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundResponse(null, Recovery: true));
         if (needs.HasFlag(ReplayProjectionNeeds.ItemUsage))
         {
             messages.AddRange(ItemUsageCountMessage.FullSnapshot(state.ItemUsage));
@@ -143,6 +153,8 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
         }
         if (needs.HasFlag(ReplayProjectionNeeds.Joust))
             messages.AddRange(Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Snapshot(state.Joust ?? throw Missing("Joust")));
+        if (needs.HasFlag(ReplayProjectionNeeds.EpicBook))
+            messages.Add(new EpicBookStateMessage(0, state.EpicPieces.IsDefault ? throw Missing("Epic book") : state.EpicPieces));
         return messages.ToImmutable();
     }
     private static InvalidDataException Missing(string name) => new($"Required replay projection '{name}' is unavailable.");

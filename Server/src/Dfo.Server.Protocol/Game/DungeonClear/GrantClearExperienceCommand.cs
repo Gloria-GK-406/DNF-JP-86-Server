@@ -32,7 +32,8 @@ public sealed record GrantClearExperienceCommand(
 /// <summary>Calculate settlement and persist progression within one transaction.</summary>
 public sealed class GrantClearExperienceCommandHandler(
     ICharacterDomainService grant, TimeProvider clock, ICharacterDungeonDifficultyDomainService difficulties,
-    Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance = null)
+    Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance = null,
+    IQuestProgressDomainService? quests = null, IDungeonRunDomainService? runs = null)
     : ICommandHandler<GrantClearExperienceCommand, ClearExperienceResult>
 {
     public async ValueTask<ClearExperienceResult> HandleAsync(CommandExecutionContext context,
@@ -43,13 +44,18 @@ public sealed class GrantClearExperienceCommandHandler(
         if (context.ExecutionKind is not CommandExecutionKind.Transactional)
             throw new InvalidOperationException("Awarding experience requires a transaction.");
         var now = command.SettledAt ?? clock.GetUtcNow();
+        if (quests is not null && runs?.Find(command.CharacterId) is { Layout.Mirror: not null } mirror
+            && mirror.RunId.Value == command.RunId && mirror.ClearOpen)
+            await quests.ReportAsync(command.AccountId, command.CharacterId,
+                [new QuestDungeonCleared(command.DungeonId, mirror.Difficulty, mirror.RunId, mirror.ClearedAt ?? now)], cancellationToken).ConfigureAwait(false);
         var award = await grant.Get(command.CharacterId).AddExpAsync(new ClearExperienceContext(
                 new ExperienceOccasion(ExperienceEvent.DungeonClear, command.AccountId,
                     command.CharacterId, command.DungeonId), command.Clear), now, command.Session,
             cancellationToken).ConfigureAwait(false);
         var changed = award is not null && attendance is not null && command.RunId != Guid.Empty
             && await attendance.RecordClearAsync(command.AccountId,command.RunId,command.DungeonId,command.SettlementLevel,now,cancellationToken);
-        var unlocked = await difficulties.UnlockAfterClearAsync(command.CharacterId, command.DungeonId,
+        var unlocked = runs?.Find(command.CharacterId)?.Layout.Mirror is not null ? null
+            : await difficulties.UnlockAfterClearAsync(command.CharacterId, command.DungeonId,
             (DungeonDifficulty)command.Clear.Difficulty, cancellationToken).ConfigureAwait(false);
         return new(award, award?.Breakdown.Base ?? 0, award?.Breakdown.ClearRank ?? 0,changed,unlocked);
     }

@@ -1,3 +1,4 @@
+using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Transactions;
@@ -77,7 +78,7 @@ public sealed class CommonExperienceEffectTests
         var trace = new EffectTrace();
         var quests = new OrdinaryQuestEffectTests.Rules();
         quests.Quest = quests.Quest with { ObjectiveTypeCode = "hunt enemy", InitialTrigger = 1,
-            HuntEnemyRequirements = [new(144, -1, 13099, HuntEnemyTargetTypes.Monster, 1)] };
+            KillObjectives = QuestKillObjectiveParser.Parse("hunt enemy", [144, -1, 13099, HuntEnemyTargetTypes.Monster, 1]) };
         using var shop = Shop(new Calculation(), trace, s => s.AddSingleton<IQuestContentRuleService>(quests));
         shop.Sql("INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(1,0,2001,1); CREATE TRIGGER fail_quest BEFORE UPDATE ON character_active_quests BEGIN SELECT RAISE(ABORT,'quest flush failed'); END");
         await Assert.ThrowsAsync<SqliteException>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Kill(shop.Session)));
@@ -261,8 +262,8 @@ public sealed class CommonExperienceEffectTests
     {
         string[] readOnly = ["QueryJoustStateCommand","QueryJoustHistoryCommand","QueryTitleBookCommand"];
         string[] expected = ["EquipCarriedTitleReplacingMirrorCommand","ClaimWeeklyAttendanceCommand","UseStackableCommand","RenameCreatureCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
-            "GrantKillExperienceCommand","ApplyMonsterKillCommand","GrantClearExperienceCommand","ReinforceItemCommand","EnchantByBeadCommand","MagicSealCommand","OutworldCommand",
-            "ForgingCommand","NpcDisjointItemCommand","PortableDisjointItemCommand","CompoundItemCommand","PackageOpeningCommand","AvatarPackageOpeningCommand",
+            "GrantKillExperienceCommand","ApplyMonsterKillCommand","GrantClearExperienceCommand","AvatarCompoundCommand","ResetItemQualityCommand","ResetRandomOptionCommand","ReinforceItemCommand","EnchantByBeadCommand","MagicSealCommand","OutworldCommand",
+            "ForgingCommand","NpcDisjointItemCommand","PortableDisjointItemCommand","CompoundItemCommand","EpicCraftCommand","ItemSocketCommand","PackageOpeningCommand","AvatarPackageOpeningCommand",
             "MagicBoxSingleOpeningCommand","MagicBoxBatchOpeningCommand","LotteryOpeningCommand","VendingMachineCommand","TeleportCommand","WarehouseCommand","JoustBetCommand","StoreTitleCommand","WithdrawTitleCommand","SetTitleAppearanceCommand","ReconcileAchievementCommand"];
         var actual = typeof(GrantClearExperienceCommand).Assembly.GetTypes().Where(x => !x.IsAbstract && typeof(ISelectedSessionCommand).IsAssignableFrom(x)).ToArray();
         Assert.Equal(expected.Concat(readOnly).Order(),actual.Select(x => x.Name).Order());

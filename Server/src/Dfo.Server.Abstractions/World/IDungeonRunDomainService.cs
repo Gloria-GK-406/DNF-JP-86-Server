@@ -39,6 +39,8 @@ public sealed record DungeonRunState(
     bool CardLayoutOpen = false,
     DungeonCellState? CurrentCellState = null)
 {
+    public DateTimeOffset? ClearedAt { get; init; }
+    public ImmutableHashSet<MazeCell> ClearedCells { get; init; } = [];
     public DungeonEntryKind EntryKind => Layout.EntryKind;
     public HellEntryPlan? Hell => Layout.Hell;
 
@@ -287,7 +289,10 @@ public sealed record DungeonActorDeathClaim(
     RoomActorId Actor,
     long Token,
     DungeonRunId RunId = default,
-    DungeonCellActorState? ActorState = null);
+    DungeonCellActorState? ActorState = null)
+{
+    public DateTimeOffset? OccurredAt { get; init; }
+}
 
 /// <summary>The ordered Cell change produced by one committed actor death.</summary>
 public sealed record DungeonActorDeathChange(
@@ -450,6 +455,8 @@ public readonly record struct GroundDropId(MazeCell Cell, ushort Number);
 /// </remarks>
 public interface IDungeonRunDomainService
 {
+    IReadOnlyList<DungeonRoomMechanismView> AdvanceRoomMechanisms(DateTimeOffset now) => [];
+
     ValueTask<bool> EndAsync(CharacterId characterId, DungeonRunId expectedRunId) =>
         ValueTask.FromResult(End(characterId, expectedRunId));
 
@@ -464,6 +471,8 @@ public interface IDungeonRunDomainService
     void ScheduleClearReturn(CharacterId characterId, DungeonRunId runId, DateTimeOffset now) { }
     IReadOnlyList<DungeonRunId> FindExpiredClearReturns(DateTimeOffset now) => [];
     DungeonRunState? TryEndClearReturn(DungeonRunId runId, DateTimeOffset now) => null;
+    ValueTask<DungeonRunState?> TryEndClearReturnAsync(DungeonRunId runId, DateTimeOffset now) =>
+        ValueTask.FromResult(TryEndClearReturn(runId, now));
 
     IReadOnlyList<DungeonRunId> FindExpiredPartyWipes(DateTimeOffset now) => [];
     DungeonRunState? TryEndPartyWipe(DungeonRunId runId, DateTimeOffset now) => null;

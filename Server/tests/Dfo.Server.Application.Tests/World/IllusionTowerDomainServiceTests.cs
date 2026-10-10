@@ -1,3 +1,4 @@
+using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
@@ -1058,7 +1059,7 @@ public sealed class IllusionTowerDomainServiceTests
     {
         public ValueTask<QuestDefinition?> FindAsync(int id, CancellationToken token) => ValueTask.FromResult<QuestDefinition?>(
             id is 64 or 65 ? new(id, "", null, null, null, null, null, null, [], "hunt enemy", "", null, null, null, null, null, null, null,
-                [], [], [], [], HuntEnemyRequirements: [new(11001, -1, 608, HuntEnemyTargetTypes.AiCharacter, 2)])
+                [], [], [], [], KillObjectives: QuestKillObjectiveParser.Parse("hunt enemy", [11001, -1, 608, HuntEnemyTargetTypes.AiCharacter, 2]))
             : new(id, "", null, null, null, null, null, null, [], "condition under clear", "", null, null, null, null, null, null, null,
                 [], [], [], [], DungeonClearRequirement: new(11001, -1)));
         public ValueTask<IReadOnlyList<QuestDefinition>> AllAsync(CancellationToken token) => ValueTask.FromResult<IReadOnlyList<QuestDefinition>>([]);

@@ -39,6 +39,32 @@ internal sealed class SqliteEpicBookDomainStore(SqliteDatabase database) : IEpic
         await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
+    public async ValueTask<EpicPieceBalance?> TrySpendAsync(AccountId account, int pieceId, int count, CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(account.Value);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pieceId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
+        EpicPieceBalance? result = null;
+        await database.WriteAsync(async (command, ct) =>
+        {
+            await AcquireWriterAsync(command, ct).ConfigureAwait(false);
+            command.Parameters.AddWithValue("@account", account.Value);
+            command.Parameters.AddWithValue("@piece", pieceId);
+            command.CommandText = "SELECT count FROM account_epic_pieces WHERE account_id=@account AND piece_id=@piece";
+            var stored = await command.ExecuteScalarAsync(ct).ConfigureAwait(false);
+            if (stored is null || Convert.ToInt32(stored) < count) return;
+            var remaining = Convert.ToInt32(stored) - count;
+            command.Parameters.AddWithValue("@remaining", remaining);
+            command.CommandText = remaining == 0
+                ? "DELETE FROM account_epic_pieces WHERE account_id=@account AND piece_id=@piece"
+                : "UPDATE account_epic_pieces SET count=@remaining WHERE account_id=@account AND piece_id=@piece";
+            if (await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false) != 1)
+                throw new InvalidDataException("Epic piece balance changed during debit.");
+            result = new(pieceId, remaining);
+        }, cancellationToken).ConfigureAwait(false);
+        return result;
+    }
+
     private static async ValueTask<EpicPieceAddition> AddAsync(SqliteCommand command, long account, int piece, int count, CancellationToken ct)
     {
         command.Parameters.Clear();

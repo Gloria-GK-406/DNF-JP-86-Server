@@ -67,3 +67,15 @@ body = 00        ← 一个字节,值为零
 这一帧的当前发送时机仍应随结算链复验。
 
 **在此之前客户端什么都不问。** 它随后才发 [`CMD 0x002E SET_PLAY_RESULT`](../client-to-server/0x002E.md)。
+
+## 2026-10-09 敌对 APC Boss 判定
+
+**RuntimeObserved / High**：根特南门循环房间 57323 曾在普通 APC 10610 死亡后发送本通知，
+早于 Boss APC 14003 死亡约 15 秒。证据为仓库根
+`artifacts/cycle-retry-20261009/stdout.log` 的 21:28:28 和 21:28:43 解码日志。
+实际 PVF 声明 14003 为敌方 Boss，10610 为普通敌方 APC。
+
+**CurrentImplementation**：清房不再按经验资格 `IsMonster` 排除全部 APC。
+敌对 APC 阻止清房；APC Boss 同样参与最终 Boss 死亡判定，多 Boss 需全部死亡。
+余下普通敌人沿用空掉落死亡投影，友方、中立和深渊模板不参与普通通关。
+本通知布局仍为单字节 `00`，只改服务端触发条件；修复后的实机结果待验收。

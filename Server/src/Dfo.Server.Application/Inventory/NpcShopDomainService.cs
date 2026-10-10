@@ -77,7 +77,7 @@ internal sealed class NpcShopDomainService(
         }
 
         var gold = await character.GoldAsync(cancellationToken).ConfigureAwait(false);
-        var planned = rules.Plan(quote, held, gold, Random.Shared.Next(1, int.MaxValue));
+        var planned = rules.Plan(quote, held, gold, Dfo.Server.Application.Inventory.EquipmentQualitySeeds.NewRandom());
         if (planned.Plan is not { } plan)
             return NpcShopPurchaseResult.Refused(planned.Rejection);
 

@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.UsageQuotas;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
@@ -10,13 +12,14 @@ using Dfo.Server.Data.Characters;
 namespace Dfo.Server.Application.Effects;
 
 internal sealed class ConsumableStateDomainService(ICharacterFatigueDomainService fatigue, ICharacterFatigueTable fatigueTable,
-    IConsumableUsageTable usage, IQuestDomainStore quests, ICharacterSkillTable skills,
-    IDomainTransactionAccessor transactions) : IConsumableStateDomainService
+    IUsageQuotaDomainService usage, IQuestDomainStore quests, ICharacterSkillTable skills,
+    IDomainTransactionAccessor transactions, IEventService events) : IConsumableStateDomainService
 {
     private IDomainTransaction Transaction => transactions.Current ?? throw new InvalidOperationException("State mutations require a transaction.");
     public async ValueTask<FatigueStateFacts> FatigueAsync(CharacterId id, CancellationToken ct) =>
         new((await fatigue.BalanceOfAsync(id, ct).ConfigureAwait(false)).Total, await fatigueTable.ReadAsync(id, ct).ConfigureAwait(false));
-    public ValueTask<ConsumableUsageRow?> UsageAsync(CharacterId id, int itemId, CancellationToken ct) => usage.ReadAsync(id, itemId, ct);
+    public async ValueTask<ConsumableUsageRow?> UsageAsync(CharacterId id, int itemId, CancellationToken ct) =>
+        (await usage.ReadAsync(id, UsageQuotaKey.Consumable(itemId), ct).ConfigureAwait(false)).Consumable();
     public async ValueTask<QuestStateFacts> QuestsAsync(AccountId account, CharacterId character, CancellationToken ct)
     {
         var session = quests.SessionIn(Transaction);
@@ -33,8 +36,7 @@ internal sealed class ConsumableStateDomainService(ICharacterFatigueDomainServic
     public async ValueTask SetUsageAsync(CharacterId id, SetItemUsageStateEffect effect, CancellationToken ct)
     {
         _ = Transaction;
-        if (await usage.TryWriteAsync(id, effect.ItemId, effect.Expected, effect.Value.UsedCount,
-                effect.Value.LastUsedAt!.Value, ct).ConfigureAwait(false) != 1) throw Changed();
+        await events.DirectAsync(new ConsumableUsageRecorded(id, effect.ItemId, effect.Expected, effect.Value), ct).ConfigureAwait(false);
     }
     public async ValueTask SetCarriedAsync(AccountId account, CharacterId id, SetCarriedQuestEffect effect, CancellationToken ct)
     {

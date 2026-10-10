@@ -90,6 +90,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             ["[daily random]"] = QuestGrade.DailyRandom,
             ["[special daily]"] = QuestGrade.SpecialDaily,
             ["[normaly repeat]"] = QuestGrade.NormallyRepeat,
+            ["[circle]"] = QuestGrade.Circle,
             ["[sub]"] = QuestGrade.Sub,
             ["[system]"] = QuestGrade.System,
             ["[schedule]"] = QuestGrade.Schedule,
@@ -113,6 +114,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             ["[hell challenge]"] = QuestRewardKind.HellChallenge,
             ["[slot expansion]"] = QuestRewardKind.SlotExpansion,
             ["[crack of dimension]"] = QuestRewardKind.CrackOfDimension,
+            ["[circle dungeon]"] = QuestRewardKind.CircleDungeon,
         };
 
     private readonly PvfArchiveProvider _provider;
@@ -455,16 +457,16 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             ComputeInitialTrigger(objectiveType, objectiveIntData),
             ProjectEventItems(eventItemValues),
             paysAtCharacterLevel,
-            ProjectHuntEnemyRequirements(objectiveType, objectiveIntData),
+            QuestKillObjectiveParser.Parse(objectiveType, objectiveIntData),
             ProjectItemRewards(
                 fixedItemRewardOperands,
                 selectableItemRewardOperands,
                 questId),
             OptionalNonNegative(goldMultiplierValues, questId, "gold multiple") ?? 0,
             enemyRewards,
-            ProjectHuntMonsterRequirements(objectiveType, objectiveIntData),
             ProjectClearedQuestRequirements(objectiveType, objectiveIntData),
-            ProjectDungeonClearRequirement(objectiveType, objectiveSubType, objectiveIntData));
+            ProjectDungeonClearRequirement(objectiveType, objectiveSubType, objectiveIntData))
+        { ObjectiveSubType = objectiveSubType.Count == 1 ? objectiveSubType[0] : null, ObjectiveArguments = objectiveIntData.ToArray() };
 
         return new RawQuestDefinition(
             definition,
@@ -476,25 +478,16 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
 
     /// <summary>What the acceptance answer reports as this quest's starting progress.</summary>
     /// <remarks>
-    /// A trigger is three nine-bit channels packed into a word, and which counts fill them depends
-    /// on what the quest is about. The reference server reads them out of <c>[int data]</c> at a
-    /// stride set by the objective type, and falls back to one for everything it does not
-    /// recognise.
-    /// <para>
-    /// <b>Three of its branches are not implemented here</b>, and each falls back to one rather
-    /// than to a guess: <c>seek n meet npc</c> and the quest-clear family both need indexes this
-    /// source does not build, and the <c>[sub type] 6</c> case needs a tag it does not read. The
-    /// two quests observed being accepted on the wire are <c>meet npc</c>, which reaches the same
-    /// fallback in the reference server itself -- so what is evidenced end to end is the fallback,
-    /// and the strided branches are transcribed rather than confirmed. See
-    /// protocol/game/client-to-server/0x001F.md.
-    /// </para>
+    /// Non-kill objectives retain their existing projection. Kill counts come exclusively from
+    /// QuestDefinition.KillObjectives, shared with progress matching; they must not use a second
+    /// stride-based interpretation here. A trigger holds three nine-bit remaining-count channels.
+    /// See protocol/game/client-to-server/0x001F.md for the acceptance response.
     /// </remarks>
     private static uint ComputeInitialTrigger(string objectiveType, IReadOnlyList<int> intData) =>
         objectiveType switch
         {
-            "condition under clear" or "clear map" or "hunt monster" => PackChannels(intData, 4),
-            "condition under clear2" or "hunt enemy" => PackChannels(intData, 5),
+            "condition under clear" or "clear map" => PackChannels(intData, 4),
+            "condition under clear2" => PackChannels(intData, 5),
             "clear quest" or "quest clear" when intData.Count is > 0 and <= 3
                 && intData.All(id => id > 0)
                 && intData.Distinct().Count() == intData.Count => (uint)intData.Count,
@@ -626,68 +619,6 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             && values.Count == 2 && values[0] > 0 && values[1] >= -1
             ? new DungeonClearRequirement(values[0], values[1])
             : null;
-    }
-
-    internal static IReadOnlyList<HuntMonsterRequirement> ProjectHuntMonsterRequirements(
-        string objectiveType,
-        IReadOnlyList<int> values)
-    {
-        if (!string.Equals(objectiveType.Trim().Trim('[', ']'), "hunt monster",
-                StringComparison.OrdinalIgnoreCase)
-            || values.Count == 0 || values.Count % 4 != 0 || values.Count > 12)
-        {
-            return [];
-        }
-
-        var result = new List<HuntMonsterRequirement>();
-        for (var index = 0; index < values.Count; index += 4)
-        {
-            var dungeonId = values[index];
-            var difficulty = values[index + 1];
-            var monsterCode = values[index + 2];
-            var count = values[index + 3];
-            // -3 dungeon scope requires the character's recommended-level check, which the
-            // kill fact does not carry. Keep that format unprojected rather than count it broadly.
-            if ((dungeonId <= 0 && dungeonId != -1) || difficulty < -1
-                || (monsterCode <= 0 && monsterCode is not (-1 or -2 or -3))
-                || count <= 0)
-            {
-                return [];
-            }
-
-            result.Add(new HuntMonsterRequirement(dungeonId, difficulty, monsterCode, count));
-        }
-
-        return result;
-    }
-
-    internal static IReadOnlyList<HuntEnemyRequirement> ProjectHuntEnemyRequirements(
-        string objectiveType,
-        IReadOnlyList<int> values)
-    {
-        if (!string.Equals(
-                objectiveType.Trim().Trim('[', ']'),
-                "hunt enemy",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return [];
-        }
-
-        var result = new List<HuntEnemyRequirement>();
-        for (var index = 0; index + 5 <= values.Count; index += 5)
-        {
-            if (values[index] > 0 && values[index + 2] > 0 && values[index + 4] > 0)
-            {
-                result.Add(new HuntEnemyRequirement(
-                    values[index],
-                    values[index + 1],
-                    values[index + 2],
-                    values[index + 3],
-                    values[index + 4]));
-            }
-        }
-
-        return result;
     }
 
     internal static RelationshipProjection? NormalizeRelationships(

@@ -2,6 +2,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Abstractions.Quests;
 
@@ -15,10 +16,18 @@ public sealed record ClientQuestTriggerReport(int QuestId, byte Selector, bool I
 /// <summary>An actor death already claimed and verified by the dungeon run.</summary>
 public sealed record QuestEnemyDefeated(
     int DungeonId, DungeonDifficulty Difficulty, int EnemyCode, int EnemyType,
-    MonsterRank? Rank = null) : QuestProgressFact;
+    MonsterRank? Rank = null,
+    int? WorldMapId = null,
+    bool? IsRecommendedDungeon = null, DungeonRunId? RunId = null, RoomActorId? Actor = null) : QuestProgressFact;
 
 /// <summary>The run opened its clear after the boss room was verified empty.</summary>
-public sealed record QuestDungeonCleared(int DungeonId, DungeonDifficulty Difficulty) : QuestProgressFact;
+public sealed record QuestDungeonCleared(int DungeonId, DungeonDifficulty Difficulty,
+    DungeonRunId? RunId = null, DateTimeOffset? ClearedAt = null) : QuestProgressFact;
+
+public sealed record QuestRoomCleared(DungeonRunId RunId, int DungeonId, DungeonDifficulty Difficulty,
+    MazeCell Cell, int MapId) : QuestProgressFact;
+
+public sealed record QuestCharacterRevived(DungeonRunId RunId, CharacterId CharacterId) : QuestProgressFact;
 
 /// <summary>The authoritative inventory or currency balance changed; item goals are re-read.</summary>
 public sealed record QuestHoldingsChanged : QuestProgressFact;

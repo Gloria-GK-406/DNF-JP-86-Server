@@ -645,6 +645,30 @@ public sealed class MonsterDeathHandlerTests
         Assert.Single(sent.OfType<EnableClearDungeonNotification>());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Enemy_APC_death_only_projects_clear_when_the_actual_APC_boss_dies(bool killBoss)
+    {
+        var runs = new DungeonRunDomainService();
+        var layout = BossLayout();
+        var other = checked((ushort)(DeadActor + 1));
+        var primary = new DungeonRoomActor(killBoss ? 14003 : 10610, 60,
+            killBoss ? (byte)8 : (byte)5) { IsHostile = true };
+        var secondary = new DungeonRoomActor(killBoss ? 10610 : 14003, 60,
+            killBoss ? (byte)5 : (byte)8) { IsHostile = true };
+        runs.PreparePartyEntry([new(new(1), new(60), 0, true)], layout, 0,
+            new DungeonCellSeed(layout.StartCell, layout.StartRoomMapId, DeadActor,
+            [new(DeadActor, primary, true, false, [], IsMonster: false),
+                new(other, secondary, true, false, [], IsMonster: false)], []),
+            DungeonRunId.New(), DateTimeOffset.UnixEpoch);
+        var sent = await Kill(run: runs, killRules: new MonsterKillDomainService());
+        Assert.Equal(killBoss, runs.Find(new CharacterId(60))!.ClearOpen);
+        Assert.Equal(killBoss ? 1 : 0, sent.OfType<EnableClearDungeonNotification>().Count());
+        Assert.Equal(killBoss ? new[] { DeadActor, other } : new[] { DeadActor },
+            sent.OfType<MonsterDeathNotification>().Select(message => message.ActorSequence));
+    }
+
     [Fact]
     public async Task Boss_death_projects_remaining_monsters_as_empty_deaths_before_clear()
     {

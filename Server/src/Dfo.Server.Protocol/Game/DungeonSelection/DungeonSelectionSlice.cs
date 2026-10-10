@@ -564,7 +564,8 @@ public sealed class EnterSelectDungeonHandler(
     IGameMessageSender sender,
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<EnterSelectDungeonHandler> logger,
-    IPartyService parties)
+    IPartyService parties,
+    UsageQuotaProjectionDelivery? quotaProjection = null)
     : ClientMessageHandler<EnterSelectDungeonRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -705,6 +706,10 @@ public sealed class EnterSelectDungeonHandler(
                             value.Session.ConnectionId,
                             value.Messages))]),
                 cancellationToken).ConfigureAwait(false);
+            if (quotaProjection is not null)
+                foreach (var member in deliveries)
+                    _ = await quotaProjection.SendAsync(member.Session,
+                        Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.MirrorDungeon, cancellationToken).ConfigureAwait(false);
             logger.LogInformation(
                 "Enter select dungeon {ConnectionId}: {Count} notifications handed to the sender",
                 context.Connection.ConnectionId,

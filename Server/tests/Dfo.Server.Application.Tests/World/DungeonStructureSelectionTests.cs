@@ -44,7 +44,7 @@ public sealed class DungeonStructureSelectionTests
     }
 
     [Fact]
-    public async Task Explicit_candidates_require_the_full_pattern_and_entrance_in_the_same_pair()
+    public async Task Explicit_candidates_use_entrances_without_requiring_the_random_pool_pattern()
     {
         var layout = Layout(new(Horizontal, [10, 11, 12], []));
         var wrongPattern = Map(10, DungeonPathDirection.All, DungeonPathDirection.Left);
@@ -54,18 +54,35 @@ public sealed class DungeonStructureSelectionTests
                 new(DungeonPathDirection.All, DungeonPathDirection.Left)],
         };
         var rules = Rules(new Maps([wrongPattern, differentPairs, Map(12, Horizontal, DungeonPathDirection.Left)]));
-        for (var seed = 0; seed < 30; seed++)
-            Assert.Equal(12, (await rules.SelectMapAsync(layout with { Seed = seed }, Left, Right, default)).MapId);
+        var selected = new HashSet<int>();
+        for (var seed = 0; seed < 100; seed++)
+            selected.Add((await rules.SelectMapAsync(layout with { Seed = seed }, Left, Right, default)).MapId!.Value);
+        Assert.Equal(new HashSet<int> { 10, 11, 12 }, selected);
     }
 
     [Fact]
-    public async Task Explicit_start_filters_the_declared_pattern_without_requiring_an_entrance()
+    public async Task Implicit_candidates_still_require_pattern_and_entrance_in_the_same_pair()
+    {
+        var layout = Layout(new(Horizontal, [], []));
+        var differentPairs = Map(10, Horizontal, DungeonPathDirection.Right) with
+        {
+            Connections = [new(Horizontal, DungeonPathDirection.Right),
+                new(DungeonPathDirection.All, DungeonPathDirection.Left)],
+        };
+        var rules = Rules(new Maps([differentPairs, Map(11, Horizontal, DungeonPathDirection.Left)]));
+        Assert.Equal(11, (await rules.SelectMapAsync(layout, Left, Right, default)).MapId);
+    }
+
+    [Fact]
+    public async Task Explicit_start_uses_declared_resources_without_random_pool_pattern_or_entrance_filters()
     {
         var layout = Layout(new(Horizontal, [10, 11], [])) with { StartCell = Right };
         var rules = Rules(new Maps([Map(10, DungeonPathDirection.All, DungeonPathDirection.All),
             Map(11, Horizontal, DungeonPathDirection.None)]));
-        for (var seed = 0; seed < 30; seed++)
-            Assert.Equal(11, (await rules.SelectMapAsync(layout with { Seed = seed }, null, Right, default)).MapId);
+        var selected = new HashSet<int>();
+        for (var seed = 0; seed < 100; seed++)
+            selected.Add((await rules.SelectMapAsync(layout with { Seed = seed }, null, Right, default)).MapId!.Value);
+        Assert.Equal(new HashSet<int> { 10, 11 }, selected);
     }
 
     [Fact]

@@ -1,0 +1,34 @@
+[
+  {
+    "Project": "Dfo.Server.Application.Tests",
+    "ExitCode": 0
+  },
+  {
+    "Project": "Dfo.Server.Protocol.Tests",
+    "ExitCode": 0
+  },
+  {
+    "Project": "Dfo.Server.Persistence.Tests",
+    "ExitCode": 0
+  },
+  {
+    "Project": "Dfo.Server.Host.Tests",
+    "ExitCode": 0
+  },
+  {
+    "Project": "Dfo.Server.Networking.Tests",
+    "ExitCode": 0
+  },
+  {
+    "Project": "Dfo.Server.HttpApi.Tests",
+    "ExitCode": 0
+  },
+  {
+    "Project": "Dfo.Pvf.Tests",
+    "ExitCode": 0
+  },
+  {
+    "Project": "Dfo.Server.Infrastructure.Tests",
+    "ExitCode": 1
+  }
+]

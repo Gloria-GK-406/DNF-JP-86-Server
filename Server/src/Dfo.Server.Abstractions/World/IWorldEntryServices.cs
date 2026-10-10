@@ -8,6 +8,10 @@ namespace Dfo.Server.Abstractions.World;
 /// </summary>
 public interface IWorldContentEntryRuleService
 {
+    /// <summary>Check declared prerequisites without deciding its UI offer category or active state.</summary>
+    ValueTask<bool> MeetsQuestRequirementsAsync(Dfo.Server.Abstractions.Content.QuestDefinition quest,
+        WorldContentSubject subject, CancellationToken cancellationToken) =>
+        ValueTask.FromException<bool>(new NotSupportedException("Quest eligibility read is unavailable."));
     ValueTask<AvailableQuestEntryState> ReadOffersAsync(WorldContentSubject subject, CancellationToken cancellationToken) =>
         ValueTask.FromException<AvailableQuestEntryState>(new NotSupportedException("Bounded quest offer read is unavailable."));
     ValueTask<WorldContentEntryState> LoadAsync(

@@ -12,6 +12,13 @@ internal sealed class DungeonEntryIntentDomainService : IDungeonEntryIntentDomai
     public void Record(SelectedSessionIdentity session, DungeonEntryIntent intent) =>
         _intents[session.CharacterId] = new OwnedIntent(session, intent);
 
+    public DungeonEntryIntent? Find(SelectedSessionIdentity session) =>
+        _intents.TryGetValue(session.CharacterId, out var owned) && owned.Session == session ? owned.Intent : null;
+
+    public bool TryReplaceExact(SelectedSessionIdentity session, DungeonEntryIntent expected, DungeonEntryIntent replacement) =>
+        _intents.TryGetValue(session.CharacterId, out var owned) && owned.Session == session && owned.Intent == expected
+        && _intents.TryUpdate(session.CharacterId, new(session, replacement), owned);
+
     public DungeonEntryIntent? Consume(SelectedSessionIdentity session)
     {
         while (_intents.TryGetValue(session.CharacterId, out var owned))

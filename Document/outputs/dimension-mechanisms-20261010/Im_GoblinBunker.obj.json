@@ -1,0 +1,219 @@
+{
+  "Path": "passiveobject/ActionObject/monster/dimensiongate/new_pattern/GoblinKingdom/GoblinBunker/Im_GoblinBunker.obj",
+  "Sections": [
+    {
+      "Tag": "[width]",
+      "Values": [
+        "126",
+        "42"
+      ]
+    },
+    {
+      "Tag": "[floating height]",
+      "Values": [
+        "0"
+      ]
+    },
+    {
+      "Tag": "[layer]",
+      "Values": [
+        "[normal]"
+      ]
+    },
+    {
+      "Tag": "[pass type]",
+      "Values": [
+        "[pass only float type]"
+      ]
+    },
+    {
+      "Tag": "[piercing power]",
+      "Values": [
+        "1000"
+      ]
+    },
+    {
+      "Tag": "[basic motion]",
+      "Values": [
+        "Ani/Body.ani"
+      ]
+    },
+    {
+      "Tag": "[etc motion]",
+      "Values": [
+        "",
+        "",
+        "Ani/Body.ani",
+        "Ani/Body_Damage.ani",
+        "Ani/Body2.ani",
+        "Ani/Body2_Damage.ani",
+        "Ani/DoorReady.ani",
+        "Ani/Door_Damage.ani",
+        "Ani/Door2Ready.ani",
+        "Ani/Door2_Damage.ani",
+        "Ani/Flag.ani",
+        "Ani/Flag_Damage.ani",
+        "Ani/Flag2.ani",
+        "Ani/Flag2_Damage.ani",
+        "Ani/Grass.ani",
+        "Ani/Grass_Damage.ani",
+        "Ani/FloorGrass.ani"
+      ]
+    },
+    {
+      "Tag": "[/etc motion]",
+      "Values": []
+    },
+    {
+      "Tag": "[destroy particle]",
+      "Values": [
+        "Particle/Destroy.ptl"
+      ]
+    },
+    {
+      "Tag": "[object destroy condition]",
+      "Values": [
+        "[destroy action]",
+        "[object create after destroy]",
+        "[add object index]",
+        "1",
+        "61986"
+      ]
+    },
+    {
+      "Tag": "[/object destroy condition]",
+      "Values": []
+    },
+    {
+      "Tag": "[int data]",
+      "Values": [
+        "1",
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "4000000",
+        "4000000",
+        "0",
+        "200",
+        "5000",
+        "6000",
+        "16",
+        "61337",
+        "70",
+        "100",
+        "0",
+        "0",
+        "61337",
+        "70",
+        "100",
+        "0",
+        "0",
+        "61338",
+        "70",
+        "100",
+        "0",
+        "0",
+        "61337",
+        "70",
+        "100",
+        "0",
+        "0",
+        "61337",
+        "70",
+        "100",
+        "0",
+        "0",
+        "61338",
+        "70",
+        "100",
+        "0",
+        "0",
+        "61337",
+        "70",
+        "100",
+        "0",
+        "0",
+        "61337",
+        "70",
+        "100",
+        "0",
+        "0",
+        "61338",
+        "70",
+        "100",
+        "0",
+        "0",
+        "61337",
+        "70",
+        "100",
+        "0",
+        "0",
+        "61337",
+        "70",
+        "100",
+        "0",
+        "0",
+        "61338",
+        "70",
+        "100",
+        "0",
+        "0",
+        "61337",
+        "70",
+        "100",
+        "0",
+        "0",
+        "61337",
+        "70",
+        "100",
+        "0",
+        "0",
+        "61338",
+        "70",
+        "100",
+        "0",
+        "0",
+        "61338",
+        "70",
+        "100",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "Tag": "[/int data]",
+      "Values": []
+    },
+    {
+      "Tag": "[string data]",
+      "Values": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "Particle/GetToDamageMode.ptl"
+      ]
+    },
+    {
+      "Tag": "[/string data]",
+      "Values": []
+    },
+    {
+      "Tag": "[hp gage]",
+      "Values": [
+        "1"
+      ]
+    },
+    {
+      "Tag": "[name]",
+      "Values": [
+        "\u4E0D\u53EF\u80FD\u7684\u7889\u5821"
+      ]
+    }
+  ]
+}

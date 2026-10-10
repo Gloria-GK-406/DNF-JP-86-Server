@@ -10,12 +10,14 @@ public sealed record QuestCompletionRewardPlan(
     uint Experience,
     int Gold,
     IReadOnlyList<QuestRewardItemGrant> Items,
-    byte? GrowType = null);
+    byte? GrowType = null,
+    IReadOnlyList<SeekingItemRequirement>? ConsumedItems = null);
 
 public enum QuestRewardRejection
 {
     InvalidCompletionCount,
     InvalidCareerReward,
+    CycleRewardUnavailable,
     UnmappedTitleReward,
     RewardSelectionForbidden,
     RewardSelectionRequired,

@@ -78,8 +78,10 @@ internal sealed class QuestLog(
         QuestDefinition definition, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(definition);
-        if (definition.Grade is QuestGrade.Title)
+        if (definition.Grade is QuestGrade.Title or QuestGrade.Crack)
             return QuestAcceptance.Refused(QuestRefusal.ManagedByAchievement);
+        if (definition.KillObjectives.Status is QuestKillParseStatus.Invalid or QuestKillParseStatus.Unsupported)
+            return QuestAcceptance.Refused(QuestRefusal.UnsupportedObjective);
         var carried = await this.CarriedAsync(cancellationToken).ConfigureAwait(false);
         if (carried.Any(quest => quest.QuestId == definition.QuestId))
         {

@@ -28,7 +28,8 @@ public sealed record ApplyMonsterKillCommand(
     IReadOnlyList<RolledDrop>? PendingLoot = null,
     PartyKey PartyKey = default,
     bool IsFinalBossDeath = false,
-    SelectedSessionIdentity? Session = null) : ICommand<ApplyMonsterKillResult>, ISelectedSessionCommand;
+    SelectedSessionIdentity? Session = null, DungeonRunId? RunId = null, RoomActorId? Actor = null,
+    int? WorldMapId = null) : ICommand<ApplyMonsterKillResult>, ISelectedSessionCommand;
 
 public sealed record ApplyMonsterKillResult(
     ExperienceAward? Award,
@@ -84,9 +85,9 @@ public sealed class ApplyMonsterKillCommandHandler(
         {
             new QuestEnemyDefeated(
                 command.DungeonId, command.Difficulty, command.Monster.Code, command.EnemyType,
-                command.Monster.Rank),
+                command.Monster.Rank, WorldMapId: command.WorldMapId, RunId: command.RunId, Actor: command.Actor),
         };
-        if (command.IsFinalBossDeath && command.Monster.Rank == MonsterRank.Boss
+        if (command.WorldMapId is null && command.IsFinalBossDeath && command.Monster.Rank == MonsterRank.Boss
             && command.EnemyType == HuntEnemyTargetTypes.Monster)
             facts.Add(new QuestDungeonCleared(command.DungeonId, command.Difficulty));
         if (granted.HasChanges)

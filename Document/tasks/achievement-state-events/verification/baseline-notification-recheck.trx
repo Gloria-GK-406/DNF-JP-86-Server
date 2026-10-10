@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="2a370279-5eec-4a94-bce4-f7bef6bab683" name="Gloria@家庭台式机 2026-10-09 12:01:09" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-09T12:01:09.5610055+08:00" queuing="2026-10-09T12:01:09.5610056+08:00" start="2026-10-09T12:01:06.0348443+08:00" finish="2026-10-09T12:01:09.5652850+08:00" />
+  <TestSettings name="default" id="c82f225f-d904-451f-93a6-896c88362eb6">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-09_12_01_09" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="be37f207-1113-474b-ba38-6881fade5066" testId="a1a6d06d-71d8-430e-4011-11c5d36df766" testName="Dfo.Server.Application.Tests.Notifications.NotificationRegistrationTests.The_registry_is_asked_for_before_the_first_hosted_service_starts" computerName="家庭台式机" duration="00:00:01.1497920" startTime="2026-10-09T12:01:08.3320670+08:00" endTime="2026-10-09T12:01:09.4899508+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="be37f207-1113-474b-ba38-6881fade5066">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Contains() Failure: Sub-string not found&#xD;
+String:    "An error occurred while writing to logger"···&#xD;
+Not found: "'UnhandledProbe'"</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Notifications.NotificationRegistrationTests.The_registry_is_asked_for_before_the_first_hosted_service_starts() in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Notifications\NotificationRegistrationTests.cs:line 78&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Notifications.NotificationRegistrationTests.The_registry_is_asked_for_before_the_first_hosted_service_starts" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="a1a6d06d-71d8-430e-4011-11c5d36df766">
+      <Execution id="be37f207-1113-474b-ba38-6881fade5066" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Notifications.NotificationRegistrationTests" name="The_registry_is_asked_for_before_the_first_hosted_service_starts" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="a1a6d06d-71d8-430e-4011-11c5d36df766" executionId="be37f207-1113-474b-ba38-6881fade5066" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.77]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:01.37]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:01.39]   Starting:    Dfo.Server.Application.Tests&#xD;
+fail: Microsoft.Extensions.Hosting.Internal.Host[11]&#xD;
+      Hosting failed to start&#xD;
+      System.InvalidOperationException: Notifications are declared with no registered handler: 'TestNotification' (from 'Dfo.Server.Application.Tests'), 'TownBellRang' (from 'Dfo.Server.Application.Tests'), 'UnhandledProbe' (from 'Dfo.Server.Application.Tests').&#xD;
+         at Dfo.Server.Application.Notifications.NotificationHandlerRegistry..ctor(IEnumerable`1 registrations, IEnumerable`1 catalogues) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Notifications\NotificationHandlerRegistry.cs:line 67&#xD;
+         at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Constructor(Object obj, IntPtr* args)&#xD;
+         at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)&#xD;
+         at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)&#xD;
+         at System.Reflection.RuntimeConstructorInfo.Invoke(BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitConstructor(ConstructorCallSite constructorCallSite, RuntimeResolverContext context)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSiteMain(ServiceCallSite callSite, TArgument argument)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitConstructor(ConstructorCallSite constructorCallSite, RuntimeResolverContext context)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSiteMain(ServiceCallSite callSite, TArgument argument)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitIEnumerable(IEnumerableCallSite enumerableCallSite, RuntimeResolverContext context)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSiteMain(ServiceCallSite callSite, TArgument argument)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitNoCache(ServiceCallSite callSite, TArgument argument)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.DynamicServiceProviderEngine.&lt;&gt;c__DisplayClass2_0.&lt;RealizeService&gt;b__0(ServiceProviderEngineScope scope)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(Type serviceType)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)&#xD;
+         at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:02.57]       Assert.Contains() Failure: Sub-string not found&#xD;
+[xUnit.net 00:00:02.57]       String:    "An error occurred while writing to logger"···&#xD;
+[xUnit.net 00:00:02.57]       Not found: "'UnhandledProbe'"&#xD;
+[xUnit.net 00:00:02.57]       Stack Trace:&#xD;
+[xUnit.net 00:00:02.57]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Notifications\NotificationRegistrationTests.cs(78,0): at Dfo.Server.Application.Tests.Notifications.NotificationRegistrationTests.The_registry_is_asked_for_before_the_first_hosted_service_starts()&#xD;
+[xUnit.net 00:00:02.57]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:02.58]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-09T12:01:09.4922883+08:00">
+        <Text>[xUnit.net 00:00:02.57]     Dfo.Server.Application.Tests.Notifications.NotificationRegistrationTests.The_registry_is_asked_for_before_the_first_hosted_service_starts [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

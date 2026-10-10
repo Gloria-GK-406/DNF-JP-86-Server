@@ -70,7 +70,8 @@ public sealed class SelectCharacterHandler(
     Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionDelivery? weaknessProjection = null,
     LotteryCounterExperimentOptions? lotteryCounterExperiment = null,
     ItemUsageProjectionDelivery? itemUsageProjection = null,
-    Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? achievementProjectionGate = null) : ClientMessageHandler<SelectCharacterRequest>
+    Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? achievementProjectionGate = null,
+    UsageQuotaProjectionDelivery? quotaProjection = null) : ClientMessageHandler<SelectCharacterRequest>
 {
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -412,6 +413,14 @@ public sealed class SelectCharacterHandler(
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && itemUsageProjection is not null)
             await itemUsageProjection.SendAsync(session, cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker && quotaProjection is not null)
+            _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.DimensionDungeon,
+                cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker && quotaProjection is not null)
+            _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.MirrorDungeon,
+                cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && lotteryCounterExperiment is { Enabled: true } experiment)
         {

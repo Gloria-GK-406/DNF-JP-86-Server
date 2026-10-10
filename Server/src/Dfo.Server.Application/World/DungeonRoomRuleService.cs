@@ -17,7 +17,8 @@ internal sealed class DungeonRoomRuleService(
     IDungeonRoomActorSource roomActors,
     IDungeonRoomDropSource roomDrops,
     IObjectDropRuleService objectDrops,
-    IDungeonRoomObjectSource roomObjects) : IDungeonRoomRuleService
+    IDungeonRoomObjectSource roomObjects,
+    IDungeonRoomMechanismRuleService? mechanisms = null) : IDungeonRoomRuleService
 {
     /// <summary>Where an actor type stops being a monster and starts being an AI character.</summary>
     /// <remarks>
@@ -39,15 +40,20 @@ internal sealed class DungeonRoomRuleService(
         var resolved = declared.Select(actor => actor.ActorType < FirstAiCharacterActorType
             ? actor with
             {
-                Level = context.Layout.LevelOf(actor.Level, actor.BasisLevelOffset),
+                Level = ResolveMonsterLevel(context.Layout, actor),
                 BasisLevelOffset = null,
             }
             : actor).ToArray();
-        var described = this.Describe(resolved);
+        IReadOnlyList<RoomActorDescription> described = this.Describe(resolved)
+            .Select(actor => actor with
+            {
+                IsNamedMonster = actor.IsNamedMonster || context.Layout.NamedMonsterCodes.Contains(actor.Actor.Code),
+            }).ToArray();
         if (context.Layout.Hell is { } hell && context.Cell == hell.Cell)
             described = described.Concat(hell.Actors.Select(actor => new RoomActorDescription(actor.Actor,
                 actor.Actor.ActorType >= FirstAiCharacterActorType)
                 { IsHellTemplate = true, HellOrder = actor.Order, HellGroupIndex = actor.GroupIndex })).ToArray();
+        var objects = await roomObjects.GetObjectsAsync(context.MapId, cancellationToken).ConfigureAwait(false);
         return new DungeonRoomContents(
             described,
             [.. objectDrops.Draw(await roomDrops.GetAsync(
@@ -56,16 +62,44 @@ internal sealed class DungeonRoomRuleService(
                 .Select((drop, index) => new GroundDrop(checked((ushort)(index + 1)), drop))],
             this.FirstActorSequenceFor(context))
         {
-            Objects = await roomObjects.GetObjectsAsync(context.MapId, cancellationToken).ConfigureAwait(false),
+            Objects = objects,
+            Mechanisms = objects.Where(obj => obj.Mechanism is not null).Select(obj => obj.Mechanism!.Value)
+                .Distinct().Select(kind => (mechanisms ?? new DungeonRoomMechanismRuleService()).Define(kind)).ToArray(),
         };
+    }
+
+    private static byte ResolveMonsterLevel(DungeonLayout layout, DungeonRoomActor actor)
+    {
+        // Object templates and conditional summons may be script-owned helpers/controllers.
+        // Do not turn them into scaled combat monsters merely because their rank is 0..3.
+        if (layout.FixedMonsterLevel is byte level && level > 0 && actor.ActorType <= 3
+            && actor.Declaration is not { IsDummy: true }
+            && (actor.Declaration is null || actor.Declaration.Source is
+                DungeonActorSpawnSource.Monster or DungeonActorSpawnSource.ConditionalMonster))
+            return level;
+        return layout.LevelOf(actor.Level, actor.BasisLevelOffset);
     }
 
     public IReadOnlyList<RoomActorDescription> Describe(IReadOnlyList<DungeonRoomActor> declared)
     {
         ArgumentNullException.ThrowIfNull(declared);
-        return [.. declared.Select(
-            actor => new RoomActorDescription(actor, actor.ActorType >= FirstAiCharacterActorType))];
+        return [.. declared.Select(actor =>
+        {
+            var row = actor.Declaration;
+            return new RoomActorDescription(actor, actor.ActorType >= FirstAiCharacterActorType)
+            {
+                IsNamedMonster = IsNamedMonster(actor.Code),
+                ObjectTemplateOwner = row?.Source == DungeonActorSpawnSource.SpecialPassiveObject
+                    ? checked((byte)(row.ParentObjectIndex ?? throw new InvalidDataException("Object template has no parent index.")))
+                    : null,
+                ObjectTemplateIndex = row?.ChildIndex ?? 0,
+            };
+        })];
     }
+
+    // A21 client RVA 0x02791EF0; dungeon declarations extend these built-in ranges.
+    private static bool IsNamedMonster(int code) =>
+        code is >= 50000 and <= 51000 or >= 56000 and <= 60000 or >= 110900 and <= 110999;
 
     /// <summary>
     /// The number the room's first actor is given, derived rather than drawn.

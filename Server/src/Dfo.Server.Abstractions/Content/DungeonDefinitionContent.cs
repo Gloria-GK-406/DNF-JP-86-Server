@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Dfo.Server.Abstractions.Content;
 
 /// <summary>One cell of a maze grid.</summary>
@@ -143,6 +145,7 @@ public sealed record DungeonDefinition(
     DungeonEntryMode EntryMode = DungeonEntryMode.Maze)
 {
     public bool HasStoryMode { get; init; }
+    public ImmutableHashSet<int> NamedMonsterCodes { get; init; } = [];
     public IReadOnlyList<DungeonRequiredItem> RequiredItems { get; init; } = [];
 }
 

@@ -18,9 +18,12 @@ internal sealed class EquipmentWearRuleService(IEquipmentRequirementDefinitionSo
 
 internal sealed class EquipmentWearDomainService(ICharacterTable characters,
     IEquipmentWearRuleService rules, IItemPlacementRuleService placements,
-    IPremiumServiceDomainService premiums, IPremiumServiceRuleService premiumRules) : IEquipmentWearDomainService
+    IPremiumServiceDomainService premiums, IPremiumServiceRuleService premiumRules, AvatarAppearanceRuleService appearances) : IEquipmentWearDomainService
 {
     public ItemSnapshot UnsealForEquip(ItemSnapshot item) => rules.UnsealForEquip(item);
+
+    public ValueTask<ItemSnapshot> PrepareForWearAsync(ItemSnapshot item, ItemSnapshot? previous, CancellationToken ct) =>
+        appearances.PrepareAsync(rules.UnsealForEquip(item), previous, ct);
 
     public async ValueTask<bool> CanWearAsync(CharacterId characterId, int itemId, CancellationToken cancellationToken)
     {

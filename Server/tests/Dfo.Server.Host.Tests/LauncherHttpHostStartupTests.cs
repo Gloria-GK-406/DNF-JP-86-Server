@@ -322,6 +322,7 @@ public sealed class LauncherHttpHostStartupTests
         startInfo.Environment["LauncherAuth__ListenUrl"] = $"http://127.0.0.1:{httpPort}";
         startInfo.Environment["LauncherAuth__PublicChannel__Host"] = "127.0.0.1";
         startInfo.Environment["LauncherAuth__PublicChannel__Port"] = channelPort.ToString();
+        startInfo.Environment["Channel__UseScriptCatalog"] = "false";
         startInfo.Environment["Networking__Enabled"] = "true";
         startInfo.Environment["Networking__UdpDiscoveryEnabled"] = "false";
         startInfo.Environment["Networking__ChannelPort"] = channelPort.ToString();

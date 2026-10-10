@@ -144,6 +144,18 @@ public sealed class DungeonEntryCodecTests
         Assert.Equal(0, body[9]);
     }
 
+    [Fact]
+    public void Mirror_start_map_serializes_final_monster_level_without_overriding_APC_level()
+    {
+        var layout = Tutorial with { BasisLevel = 86, FixedMonsterLevel = 86, Mirror = new(8000, 31, 14299) };
+        var run = AtStart with { Layout = layout };
+        DungeonRoomActor[] actors = [new(61670, 86, 0), new(461, 26, 5)];
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(
+            run, true, Rooms.Describe(actors), FirstSequence, NoDrops);
+        Assert.Equal((byte)86, body[19 + 12]);
+        Assert.Equal((byte)26, body[19 + 21 + 12]);
+    }
+
     /// <summary>
     /// A room's actors reach the client, twenty-one bytes each, numbered from the run's base.
     /// </summary>
@@ -183,6 +195,19 @@ public sealed class DungeonEntryCodecTests
 
         // The four bytes the frame has always ended with sit after the actors, not before them.
         Assert.Equal([0, 0, 0, 0xFF], body[^4..]);
+    }
+
+    [Fact]
+    public void Start_map_preserves_hostile_APC_boss_and_normal_APC_wire_ranks()
+    {
+        DungeonRoomActor[] actors =
+        [new(14003, 58, 8) { IsHostile = true }, new(10610, 60, 5) { IsHostile = true }];
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(
+            AtStart, firstEntry: true, Rooms.Describe(actors), FirstSequence, NoDrops);
+        Assert.Equal(8, body[19 + 13]);
+        Assert.Equal(5, body[19 + 21 + 13]);
+        Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(21)));
+        Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(42)));
     }
 
     /// <summary>
@@ -840,5 +865,26 @@ public sealed class DungeonEntryCodecTests
     public void The_support_roster_is_a_count_of_zero()
     {
         Assert.Equal([0x00, 0x00], DungeonEntryPayloadCodec.EncodeSupportTag());
+    }
+
+    [Fact]
+    public void Object_templates_use_parent_and_child_indices_without_consuming_ordinary_map_indices()
+    {
+        DungeonRoomActor[] actors =
+        [new(61150, 62, 3),
+         new(61801, 62, 0) { Declaration = new(61801, DungeonActorSpawnSource.SpecialPassiveObject, 0)
+             { ParentObjectIndex = 2, ChildIndex = 3 } },
+         new(61305, 62, 0), new(10409, 62, 8)];
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(AtStart, true, Rooms.Describe(actors), FirstSequence, NoDrops);
+        Assert.Equal(4, body[18]);
+        var template = body.AsSpan(19 + 21, 21);
+        Assert.Equal(2, BinaryPrimitives.ReadUInt16LittleEndian(template));
+        Assert.Equal(3, BinaryPrimitives.ReadInt32LittleEndian(template[2..]));
+        Assert.Equal((ushort)(FirstSequence + 1), BinaryPrimitives.ReadUInt16LittleEndian(template[6..]));
+        Assert.Equal(61801, BinaryPrimitives.ReadInt32LittleEndian(template[8..]));
+        Assert.Equal(1, template[14]);
+        Assert.Equal(2, template[15]);
+        Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(19 + 42 + 2)));
+        Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(19 + 63 + 2)));
     }
 }

@@ -164,7 +164,7 @@ public sealed class TitleBookProtocolTests
     {
         public List<object> Projected { get; }=[];
         public ValueTask<Guid> EnqueueAsync<T>(T payload,CancellationToken ct=default) where T:class,IDomainEvent=>throw new NotSupportedException();
-        public ValueTask PublishAsync<T>(T payload,CancellationToken ct=default) where T:class,IDomainEvent=>throw new NotSupportedException();
+        public ValueTask DirectAsync<T>(T payload,CancellationToken ct=default) where T:class,IDomainEvent=>throw new NotSupportedException();
         public ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience,T notice,CancellationToken ct=default) where T:class,INotification<T> {Projected.Add(notice);return ValueTask.FromResult(new NotificationDelivery([]));}
     }
 }

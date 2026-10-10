@@ -1,0 +1,115 @@
+RVA 023C5230 VA 027C5230  55                         push     ebp
+RVA 023C5231 VA 027C5231  8B EC                      mov      ebp, esp
+RVA 023C5233 VA 027C5233  A1 38 AE BA 03             mov      eax, dword ptr [0x3baae38]
+RVA 023C5238 VA 027C5238  8A 08                      mov      cl, byte ptr [eax]
+RVA 023C523A VA 027C523A  8B 55 08                   mov      edx, dword ptr [ebp + 8]
+RVA 023C523D VA 027C523D  40                         inc      eax
+RVA 023C523E VA 027C523E  FF 0D 3C AE BA 03          dec      dword ptr [0x3baae3c]
+RVA 023C5244 VA 027C5244  88 0A                      mov      byte ptr [edx], cl
+RVA 023C5246 VA 027C5246  A3 38 AE BA 03             mov      dword ptr [0x3baae38], eax
+RVA 023C524B VA 027C524B  79 44                      jns      0x23c5291
+RVA 023C524D VA 027C524D  83 3D 58 AE BA 03 00       cmp      dword ptr [0x3baae58], 0
+RVA 023C5254 VA 027C5254  75 3B                      jne      0x23c5291
+RVA 023C5256 VA 027C5256  8B 0D 40 AE BA 03          mov      ecx, dword ptr [0x3baae40]
+RVA 023C525C VA 027C525C  A1 44 AE BA 03             mov      eax, dword ptr [0x3baae44]
+RVA 023C5261 VA 027C5261  56                         push     esi
+RVA 023C5262 VA 027C5262  57                         push     edi
+RVA 023C5263 VA 027C5263  8B F0                      mov      esi, eax
+RVA 023C5265 VA 027C5265  8B F9                      mov      edi, ecx
+RVA 023C5267 VA 027C5267  85 C9                      test     ecx, ecx
+RVA 023C5269 VA 027C5269  74 24                      je       0x23c528f
+RVA 023C526B VA 027C526B  85 C0                      test     eax, eax
+RVA 023C526D VA 027C526D  78 20                      js       0x23c528f
+RVA 023C526F VA 027C526F  50                         push     eax
+RVA 023C5270 VA 027C5270  C7 05 58 AE BA 03 00 00 00 00 mov      dword ptr [0x3baae58], 0
+RVA 023C527A VA 027C527A  E8 E1 CC 04 FE             call     0x411f60
+RVA 023C527F VA 027C527F  56                         push     esi
+RVA 023C5280 VA 027C5280  57                         push     edi
+RVA 023C5281 VA 027C5281  50                         push     eax
+RVA 023C5282 VA 027C5282  A3 58 AE BA 03             mov      dword ptr [0x3baae58], eax
+RVA 023C5287 VA 027C5287  E8 74 C9 49 00             call     0x2861c00
+RVA 023C528C VA 027C528C  83 C4 10                   add      esp, 0x10
+RVA 023C528F VA 027C528F  5F                         pop      edi
+RVA 023C5290 VA 027C5290  5E                         pop      esi
+RVA 023C5291 VA 027C5291  5D                         pop      ebp
+RVA 023C5292 VA 027C5292  C3                         ret
+RVA 023C5293 VA 027C5293  CC                         int3
+RVA 023C5294 VA 027C5294  CC                         int3
+RVA 023C5295 VA 027C5295  CC                         int3
+RVA 023C5296 VA 027C5296  CC                         int3
+RVA 023C5297 VA 027C5297  CC                         int3
+RVA 023C5298 VA 027C5298  CC                         int3
+RVA 023C5299 VA 027C5299  CC                         int3
+RVA 023C529A VA 027C529A  CC                         int3
+RVA 023C529B VA 027C529B  CC                         int3
+RVA 023C529C VA 027C529C  CC                         int3
+RVA 023C529D VA 027C529D  CC                         int3
+RVA 023C529E VA 027C529E  CC                         int3
+RVA 023C529F VA 027C529F  CC                         int3
+RVA 023C52A0 VA 027C52A0  55                         push     ebp
+RVA 023C52A1 VA 027C52A1  8B EC                      mov      ebp, esp
+RVA 023C52A3 VA 027C52A3  A1 38 AE BA 03             mov      eax, dword ptr [0x3baae38]
+RVA 023C52A8 VA 027C52A8  66 8B 08                   mov      cx, word ptr [eax]
+RVA 023C52AB VA 027C52AB  8B 55 08                   mov      edx, dword ptr [ebp + 8]
+RVA 023C52AE VA 027C52AE  83 C0 02                   add      eax, 2
+RVA 023C52B1 VA 027C52B1  83 2D 3C AE BA 03 02       sub      dword ptr [0x3baae3c], 2
+RVA 023C52B8 VA 027C52B8  66 89 0A                   mov      word ptr [edx], cx
+RVA 023C52BB VA 027C52BB  A3 38 AE BA 03             mov      dword ptr [0x3baae38], eax
+RVA 023C52C0 VA 027C52C0  79 44                      jns      0x23c5306
+RVA 023C52C2 VA 027C52C2  83 3D 58 AE BA 03 00       cmp      dword ptr [0x3baae58], 0
+RVA 023C52C9 VA 027C52C9  75 3B                      jne      0x23c5306
+RVA 023C52CB VA 027C52CB  8B 0D 40 AE BA 03          mov      ecx, dword ptr [0x3baae40]
+RVA 023C52D1 VA 027C52D1  A1 44 AE BA 03             mov      eax, dword ptr [0x3baae44]
+RVA 023C52D6 VA 027C52D6  56                         push     esi
+RVA 023C52D7 VA 027C52D7  57                         push     edi
+RVA 023C52D8 VA 027C52D8  8B F0                      mov      esi, eax
+RVA 023C52DA VA 027C52DA  8B F9                      mov      edi, ecx
+RVA 023C52DC VA 027C52DC  85 C9                      test     ecx, ecx
+RVA 023C52DE VA 027C52DE  74 24                      je       0x23c5304
+RVA 023C52E0 VA 027C52E0  85 C0                      test     eax, eax
+RVA 023C52E2 VA 027C52E2  78 20                      js       0x23c5304
+RVA 023C52E4 VA 027C52E4  50                         push     eax
+RVA 023C52E5 VA 027C52E5  C7 05 58 AE BA 03 00 00 00 00 mov      dword ptr [0x3baae58], 0
+RVA 023C52EF VA 027C52EF  E8 6C CC 04 FE             call     0x411f60
+RVA 023C52F4 VA 027C52F4  56                         push     esi
+RVA 023C52F5 VA 027C52F5  57                         push     edi
+RVA 023C52F6 VA 027C52F6  50                         push     eax
+RVA 023C52F7 VA 027C52F7  A3 58 AE BA 03             mov      dword ptr [0x3baae58], eax
+RVA 023C52FC VA 027C52FC  E8 FF C8 49 00             call     0x2861c00
+RVA 023C5301 VA 027C5301  83 C4 10                   add      esp, 0x10
+RVA 023C5304 VA 027C5304  5F                         pop      edi
+RVA 023C5305 VA 027C5305  5E                         pop      esi
+RVA 023C5306 VA 027C5306  5D                         pop      ebp
+RVA 023C5307 VA 027C5307  C3                         ret
+RVA 023C5308 VA 027C5308  CC                         int3
+RVA 023C5309 VA 027C5309  CC                         int3
+RVA 023C530A VA 027C530A  CC                         int3
+RVA 023C530B VA 027C530B  CC                         int3
+RVA 023C530C VA 027C530C  CC                         int3
+RVA 023C530D VA 027C530D  CC                         int3
+RVA 023C530E VA 027C530E  CC                         int3
+RVA 023C530F VA 027C530F  CC                         int3
+RVA 023C5310 VA 027C5310  55                         push     ebp
+RVA 023C5311 VA 027C5311  8B EC                      mov      ebp, esp
+RVA 023C5313 VA 027C5313  A1 38 AE BA 03             mov      eax, dword ptr [0x3baae38]
+RVA 023C5318 VA 027C5318  8B 08                      mov      ecx, dword ptr [eax]
+RVA 023C531A VA 027C531A  8B 55 08                   mov      edx, dword ptr [ebp + 8]
+RVA 023C531D VA 027C531D  83 C0 04                   add      eax, 4
+RVA 023C5320 VA 027C5320  83 2D 3C AE BA 03 04       sub      dword ptr [0x3baae3c], 4
+RVA 023C5327 VA 027C5327  89 0A                      mov      dword ptr [edx], ecx
+RVA 023C5329 VA 027C5329  A3 38 AE BA 03             mov      dword ptr [0x3baae38], eax
+RVA 023C532E VA 027C532E  79 44                      jns      0x23c5374
+RVA 023C5330 VA 027C5330  83 3D 58 AE BA 03 00       cmp      dword ptr [0x3baae58], 0
+RVA 023C5337 VA 027C5337  75 3B                      jne      0x23c5374
+RVA 023C5339 VA 027C5339  8B 0D 40 AE BA 03          mov      ecx, dword ptr [0x3baae40]
+RVA 023C533F VA 027C533F  A1 44 AE BA 03             mov      eax, dword ptr [0x3baae44]
+RVA 023C5344 VA 027C5344  56                         push     esi
+RVA 023C5345 VA 027C5345  57                         push     edi
+RVA 023C5346 VA 027C5346  8B F0                      mov      esi, eax
+RVA 023C5348 VA 027C5348  8B F9                      mov      edi, ecx
+RVA 023C534A VA 027C534A  85 C9                      test     ecx, ecx
+RVA 023C534C VA 027C534C  74 24                      je       0x23c5372
+RVA 023C534E VA 027C534E  85 C0                      test     eax, eax
+RVA 023C5350 VA 027C5350  78 20                      js       0x23c5372
+RVA 023C5352 VA 027C5352  50                         push     eax
+RVA 023C5353 VA 027C5353  C7 05 58 AE BA 03 00 00 00 00 mov      dword ptr [0x3baae58], 0

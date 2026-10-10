@@ -1,0 +1,35 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Infrastructure.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Debug\net10.0\Dfo.Server.Infrastructure.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Debug\net10.0\Dfo.Server.Infrastructure.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:07.99]     Dfo.Server.Infrastructure.Tests.Content.PvfQuestEnemyRewardTests.A21_APC_object_and_repeated_candidate_declarations_are_preserved [FAIL]
+  失败 Dfo.Server.Infrastructure.Tests.Content.PvfQuestEnemyRewardTests.A21_APC_object_and_repeated_candidate_declarations_are_preserved [1 s]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 2814
+Actual:   3252
+  堆栈跟踪:
+     at Dfo.Server.Infrastructure.Tests.Content.PvfQuestEnemyRewardTests.A21_APC_object_and_repeated_candidate_declarations_are_preserved() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\tests\Dfo.Server.Infrastructure.Tests\Content\PvfQuestEnemyRewardTests.cs:line 77
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:09.04]     Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.Projects_every_neutral_eligibility_input_from_the_real_archive [FAIL]
+  失败 Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.Projects_every_neutral_eligibility_input_from_the_real_archive [1 s]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 2814
+Actual:   3252
+  堆栈跟踪:
+     at Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.Projects_every_neutral_eligibility_input_from_the_real_archive() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Server\tests\Dfo.Server.Infrastructure.Tests\Content\PvfQuestDefinitionSourceTests.cs:line 220
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:10.15]     Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message [SKIP]
+  已跳过 Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message [1 ms]
+[xUnit.net 00:00:20.69]     Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog [SKIP]
+  已跳过 Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog [1 ms]
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\monster-declaration-parser\Document\tasks\mirror-arad-entry-20261010\verification\full-Infrastructure.trx
+
+失败!  - 失败:     2，通过:   852，已跳过:     2，总计:   856，持续时间: 27 s - Dfo.Server.Infrastructure.Tests.dll (net10.0)

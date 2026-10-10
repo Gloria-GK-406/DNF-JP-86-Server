@@ -9,7 +9,7 @@ internal abstract class ProjectionEventService : IEventService
     public ValueTask<Guid> EnqueueAsync<TEvent>(TEvent payload, CancellationToken cancellationToken = default)
         where TEvent : class, IDomainEvent => throw new InvalidOperationException("This protocol test does not publish durable facts.");
 
-    public ValueTask PublishAsync<TEvent>(TEvent payload, CancellationToken cancellationToken = default)
+    public ValueTask DirectAsync<TEvent>(TEvent payload, CancellationToken cancellationToken = default)
         where TEvent : class, IDomainEvent => throw new InvalidOperationException("This protocol test does not publish runtime facts.");
 
     public abstract ValueTask<NotificationDelivery> ProjectAsync<TNotification>(NotificationAudience audience,

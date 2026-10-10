@@ -22,7 +22,9 @@ jobs:
             timeout: 30
           - os: windows-2022
             rid: win-x64
-            timeout: 45
+            # SQLite-backed tests on hosted Windows runners can exceed the former
+            # 45-minute job budget; keep the per-test 3m hang guard below.
+            timeout: 90
     runs-on: ${{ matrix.os }}
     timeout-minutes: ${{ matrix.timeout }}
     env:

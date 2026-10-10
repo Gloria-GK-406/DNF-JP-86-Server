@@ -1,0 +1,5731 @@
+{
+  "Archive": "E:/Project/DNF/DNF-JP-86-Server/artifacts/dimension-dungeon-20261010/Script.dimension.pvf",
+  "ArchiveSHA256": "ADAC21543D89AE1A8228C6D6031757BB54A5A15F996AF062B331B09795EBF096",
+  "Scope": "Direct MAP object and monster declarations; not transitive OBJ/ACT dependencies. Sections retained for seven candidate MAPs only.",
+  "Dungeons": {
+    "62": "dungeon/Impossible/GoblinKingdom.dgn",
+    "63": "dungeon/Impossible/ActiveSkyCastle.dgn",
+    "64": "dungeon/Impossible/RanjerusDogs.dgn",
+    "65": "dungeon/Impossible/bakalcastle.dgn",
+    "66": "dungeon/Impossible/Cosmofiend.dgn",
+    "67": "dungeon/Impossible/blackearth.dgn",
+    "180": "dungeon/Impossible/tutorial_Cosmofiend.dgn",
+    "181": "dungeon/Impossible/tutorial_bakalcastle.dgn",
+    "182": "dungeon/Impossible/tutorial_blackearth.dgn",
+    "183": "dungeon/Impossible/tutorial_GoblinKingdom.dgn",
+    "184": "dungeon/Impossible/tutorial_ActiveSkyCastle.dgn",
+    "185": "dungeon/Impossible/tutorial_RanjerusDogs.dgn",
+    "7100": "dungeon/Impossible/dimension.dgn"
+  },
+  "MapCount": 138,
+  "Maps": [
+    {
+      "Id": 16100,
+      "Path": "map/GoblinKingdom/Impossible01.map",
+      "Owners": [
+        62
+      ],
+      "Objects": [
+        246,
+        251,
+        283,
+        284,
+        285,
+        295,
+        840,
+        8220,
+        8496
+      ],
+      "Monsters": [
+        1,
+        61409,
+        61410
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16101,
+      "Path": "map/GoblinKingdom/Impossible02.map",
+      "Owners": [
+        62
+      ],
+      "Objects": [
+        284,
+        61982,
+        61985
+      ],
+      "Monsters": [
+        61337,
+        61338,
+        61339,
+        61340
+      ],
+      "Sections": [
+        {
+          "Tag": "[dungeon]",
+          "Values": [
+            "62"
+          ]
+        },
+        {
+          "Tag": "[/dungeon]",
+          "Values": []
+        },
+        {
+          "Tag": "[type]",
+          "Values": [
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[greed]",
+          "Values": [
+            "FF FF"
+          ]
+        },
+        {
+          "Tag": "[/tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[pathgate pos]",
+          "Values": [
+            "1",
+            "288",
+            "1130",
+            "216",
+            "560",
+            "144",
+            "560",
+            "348"
+          ]
+        },
+        {
+          "Tag": "[/animation]",
+          "Values": []
+        },
+        {
+          "Tag": "[passive object]",
+          "Values": [
+            "284",
+            "141",
+            "140",
+            "0",
+            "284",
+            "697",
+            "448",
+            "0",
+            "284",
+            "647",
+            "473",
+            "0",
+            "61985",
+            "845",
+            "415",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/passive object]",
+          "Values": []
+        },
+        {
+          "Tag": "[monster]",
+          "Values": [
+            "61337",
+            "1",
+            "0",
+            "650",
+            "281",
+            "0",
+            "1",
+            "1",
+            "[fixed]",
+            "[normal]",
+            "61337",
+            "1",
+            "0",
+            "517",
+            "208",
+            "0",
+            "1",
+            "1",
+            "[fixed]",
+            "[normal]",
+            "61340",
+            "1",
+            "0",
+            "923",
+            "240",
+            "0",
+            "1",
+            "1",
+            "[fixed]",
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[/monster]",
+          "Values": []
+        },
+        {
+          "Tag": "[monster specific AI]",
+          "Values": [
+            "[normal]",
+            "[normal]",
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[/monster specific AI]",
+          "Values": []
+        },
+        {
+          "Tag": "[special passive object]",
+          "Values": [
+            "61982",
+            "259",
+            "240",
+            "0",
+            "11",
+            "[monster]",
+            "61337",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61337",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61337",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61337",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61338",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61338",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61338",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61339",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61339",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61339",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61339",
+            "80",
+            "1",
+            "1",
+            "-1"
+          ]
+        },
+        {
+          "Tag": "[/special passive object]",
+          "Values": []
+        },
+        {
+          "Tag": "[map name]",
+          "Values": [
+            "PVP\u65E0\u540D"
+          ]
+        }
+      ]
+    },
+    {
+      "Id": 16102,
+      "Path": "map/GoblinKingdom/Impossible03.map",
+      "Owners": [
+        62
+      ],
+      "Objects": [
+        243,
+        244,
+        245,
+        246,
+        247,
+        248,
+        250,
+        251,
+        761,
+        762,
+        8219,
+        8220,
+        8563,
+        8564,
+        8565,
+        8598,
+        80105,
+        80106,
+        80107
+      ],
+      "Monsters": [
+        56108,
+        61119,
+        61121,
+        61122
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16103,
+      "Path": "map/GoblinKingdom/Impossible04.map",
+      "Owners": [
+        62
+      ],
+      "Objects": [
+        245,
+        246,
+        282,
+        8219
+      ],
+      "Monsters": [
+        61341,
+        62940
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16104,
+      "Path": "map/GoblinKingdom/Impossible05.map",
+      "Owners": [
+        62
+      ],
+      "Objects": [
+        5,
+        6,
+        284,
+        8363,
+        63156,
+        63158,
+        63160
+      ],
+      "Monsters": [
+        56507,
+        61520
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16105,
+      "Path": "map/GoblinKingdom/Impossible06.map",
+      "Owners": [
+        62
+      ],
+      "Objects": [
+        8421,
+        8427,
+        8438
+      ],
+      "Monsters": [
+        61809
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16200,
+      "Path": "map/RealSkyCastle/RealSkyCastle01.map",
+      "Owners": [
+        63
+      ],
+      "Objects": [
+        8492
+      ],
+      "Monsters": [
+        107000103,
+        107000104,
+        107000105
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16201,
+      "Path": "map/RealSkyCastle/RealSkyCastle02.map",
+      "Owners": [
+        63
+      ],
+      "Objects": [
+        235,
+        1035
+      ],
+      "Monsters": [
+        107000104,
+        107000106
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16202,
+      "Path": "map/RealSkyCastle/RealSkyCastle03.map",
+      "Owners": [
+        63
+      ],
+      "Objects": [
+        1035,
+        8251
+      ],
+      "Monsters": [
+        61412,
+        61413
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16203,
+      "Path": "map/RealSkyCastle/RealSkyCastle04.map",
+      "Owners": [
+        63
+      ],
+      "Objects": [
+        1033,
+        8599
+      ],
+      "Monsters": [
+        61347,
+        61348,
+        61349
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16204,
+      "Path": "map/RealSkyCastle/RealSkyCastle05.map",
+      "Owners": [
+        63
+      ],
+      "Objects": [
+        1033
+      ],
+      "Monsters": [
+        107000105,
+        107000107
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16205,
+      "Path": "map/RealSkyCastle/RealSkyCastle06.map",
+      "Owners": [
+        63
+      ],
+      "Objects": [
+        1033,
+        57627
+      ],
+      "Monsters": [
+        61128,
+        61129
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16300,
+      "Path": "map/RanjerusDogs/RanjerusDogs00.map",
+      "Owners": [
+        64
+      ],
+      "Objects": [],
+      "Monsters": [
+        61415,
+        61525,
+        61526
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16301,
+      "Path": "map/RanjerusDogs/RanjerusDogs01.map",
+      "Owners": [
+        64
+      ],
+      "Objects": [],
+      "Monsters": [
+        56506,
+        61525,
+        61526
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16302,
+      "Path": "map/RanjerusDogs/RanjerusDogs02.map",
+      "Owners": [
+        64
+      ],
+      "Objects": [
+        8056
+      ],
+      "Monsters": [
+        61353,
+        61525,
+        61527,
+        61530
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16303,
+      "Path": "map/RanjerusDogs/RanjerusDogs03.map",
+      "Owners": [
+        64
+      ],
+      "Objects": [
+        8056
+      ],
+      "Monsters": [
+        56140,
+        61525
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16304,
+      "Path": "map/RanjerusDogs/RanjerusDogs04.map",
+      "Owners": [
+        64
+      ],
+      "Objects": [
+        8056
+      ],
+      "Monsters": [
+        56715,
+        61525,
+        61527,
+        61530
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 16305,
+      "Path": "map/RanjerusDogs/RanjerusDogs05.map",
+      "Owners": [
+        64
+      ],
+      "Objects": [
+        8056
+      ],
+      "Monsters": [
+        61135,
+        61415,
+        61525,
+        61530
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 15074,
+      "Path": "map/bakalcastle/15074ashcore.map",
+      "Owners": [
+        65
+      ],
+      "Objects": [],
+      "Monsters": [
+        56146
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 15075,
+      "Path": "map/bakalcastle/15075itrenog.map",
+      "Owners": [
+        65
+      ],
+      "Objects": [],
+      "Monsters": [
+        59009
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 15076,
+      "Path": "map/bakalcastle/15076nagor.map",
+      "Owners": [
+        65
+      ],
+      "Objects": [
+        10051
+      ],
+      "Monsters": [
+        56721
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 15077,
+      "Path": "map/bakalcastle/15077nmaug.map",
+      "Owners": [
+        65
+      ],
+      "Objects": [],
+      "Monsters": [
+        56448
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 15078,
+      "Path": "map/bakalcastle/15078bakal.map",
+      "Owners": [
+        65
+      ],
+      "Objects": [
+        80110,
+        80111
+      ],
+      "Monsters": [
+        61238
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 15085,
+      "Path": "map/bakalcastle/15085normal.map",
+      "Owners": [
+        65
+      ],
+      "Objects": [],
+      "Monsters": [
+        107000101,
+        107000102
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 15079,
+      "Path": "map/blackearth/15079normal.map",
+      "Owners": [
+        67
+      ],
+      "Objects": [
+        9479,
+        9480,
+        9482,
+        9483,
+        9484,
+        9485
+      ],
+      "Monsters": [
+        62144,
+        62145,
+        62146,
+        62147
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 15080,
+      "Path": "map/blackearth/15080astaroth.map",
+      "Owners": [
+        67
+      ],
+      "Objects": [
+        9467,
+        9480,
+        9481,
+        9482,
+        9483,
+        9484,
+        9485
+      ],
+      "Monsters": [
+        56151
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 15081,
+      "Path": "map/blackearth/15081tiamat.map",
+      "Owners": [
+        67
+      ],
+      "Objects": [
+        9479,
+        9480,
+        9482,
+        9483
+      ],
+      "Monsters": [
+        56453
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 15082,
+      "Path": "map/blackearth/15082berias.map",
+      "Owners": [
+        67
+      ],
+      "Objects": [
+        9479,
+        9480,
+        9481,
+        9483
+      ],
+      "Monsters": [
+        59388
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 15083,
+      "Path": "map/blackearth/15083michaela.map",
+      "Owners": [
+        67
+      ],
+      "Objects": [
+        9479,
+        9482,
+        9483,
+        9485,
+        10362,
+        10365,
+        19269
+      ],
+      "Monsters": [
+        56025,
+        61391
+      ],
+      "Sections": [
+        {
+          "Tag": "[dungeon]",
+          "Values": [
+            "67"
+          ]
+        },
+        {
+          "Tag": "[/dungeon]",
+          "Values": []
+        },
+        {
+          "Tag": "[type]",
+          "Values": [
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[greed]",
+          "Values": [
+            "FF FF"
+          ]
+        },
+        {
+          "Tag": "[/tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[extended tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[tile files]",
+          "Values": [
+            "0",
+            "Tile/attileex.til"
+          ]
+        },
+        {
+          "Tag": "[/tile files]",
+          "Values": []
+        },
+        {
+          "Tag": "[tile map]",
+          "Values": [
+            "0",
+            "0",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/tile map]",
+          "Values": []
+        },
+        {
+          "Tag": "[/extended tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[pathgate pos]",
+          "Values": [
+            "7",
+            "252",
+            "1100",
+            "407",
+            "0",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/animation]",
+          "Values": []
+        },
+        {
+          "Tag": "[passive object]",
+          "Values": [
+            "9485",
+            "790",
+            "158",
+            "0",
+            "9482",
+            "469",
+            "158",
+            "0",
+            "9483",
+            "344",
+            "149",
+            "0",
+            "9479",
+            "987",
+            "169",
+            "0",
+            "10365",
+            "127",
+            "230",
+            "0",
+            "19269",
+            "657",
+            "329",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/passive object]",
+          "Values": []
+        },
+        {
+          "Tag": "[monster]",
+          "Values": [
+            "61391",
+            "1",
+            "0",
+            "394",
+            "311",
+            "10000",
+            "1",
+            "1",
+            "[fixed]",
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[/monster]",
+          "Values": []
+        },
+        {
+          "Tag": "[monster specific AI]",
+          "Values": [
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[/monster specific AI]",
+          "Values": []
+        },
+        {
+          "Tag": "[special passive object]",
+          "Values": [
+            "10362",
+            "394",
+            "311",
+            "0",
+            "1",
+            "[monster]",
+            "56025",
+            "70",
+            "-1",
+            "-1",
+            "1"
+          ]
+        },
+        {
+          "Tag": "[/special passive object]",
+          "Values": []
+        },
+        {
+          "Tag": "[map name]",
+          "Values": [
+            "PVP\u65E0\u540D"
+          ]
+        }
+      ]
+    },
+    {
+      "Id": 15084,
+      "Path": "map/blackearth/15084ozma.map",
+      "Owners": [
+        67
+      ],
+      "Objects": [
+        9479,
+        9482,
+        9483,
+        9484,
+        9485,
+        57522,
+        57545
+      ],
+      "Monsters": [
+        62141,
+        62144,
+        62145,
+        62146,
+        62147
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 15086,
+      "Path": "map/blackearth/maze_15086astaroth.map",
+      "Owners": [
+        67
+      ],
+      "Objects": [
+        9480,
+        9481,
+        9482,
+        9483,
+        9484,
+        9485
+      ],
+      "Monsters": [
+        56028,
+        56151
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 15087,
+      "Path": "map/blackearth/maze_15087tiamat.map",
+      "Owners": [
+        67
+      ],
+      "Objects": [
+        9479,
+        9480,
+        9482,
+        9483
+      ],
+      "Monsters": [
+        56026,
+        56453
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 15088,
+      "Path": "map/blackearth/maze_15088berias.map",
+      "Owners": [
+        67
+      ],
+      "Objects": [
+        9479,
+        9480,
+        9481,
+        9483
+      ],
+      "Monsters": [
+        56027,
+        56451
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 17053,
+      "Path": "map/Cosmofiend/17053_Start.map",
+      "Owners": [
+        66
+      ],
+      "Objects": [
+        14104
+      ],
+      "Monsters": [
+        63018,
+        63019
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 17054,
+      "Path": "map/Cosmofiend/17054_Normal.map",
+      "Owners": [
+        66
+      ],
+      "Objects": [
+        10285,
+        10286,
+        10289,
+        10291,
+        63146,
+        63147
+      ],
+      "Monsters": [
+        56023
+      ],
+      "Sections": [
+        {
+          "Tag": "[dungeon]",
+          "Values": [
+            "66"
+          ]
+        },
+        {
+          "Tag": "[/dungeon]",
+          "Values": []
+        },
+        {
+          "Tag": "[type]",
+          "Values": [
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[greed]",
+          "Values": [
+            "FF FF"
+          ]
+        },
+        {
+          "Tag": "[/tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[extended tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[tile files]",
+          "Values": [
+            "0",
+            "Tile/Tile04_EX.til",
+            "1",
+            "Tile/Tile07_EX.til",
+            "2",
+            "Tile/Tile05_EX.til"
+          ]
+        },
+        {
+          "Tag": "[/tile files]",
+          "Values": []
+        },
+        {
+          "Tag": "[tile map]",
+          "Values": [
+            "0",
+            "1",
+            "1",
+            "1",
+            "1",
+            "2"
+          ]
+        },
+        {
+          "Tag": "[/tile map]",
+          "Values": []
+        },
+        {
+          "Tag": "[/extended tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[pathgate pos]",
+          "Values": [
+            "48",
+            "179",
+            "1306",
+            "197",
+            "201",
+            "642",
+            "110",
+            "631"
+          ]
+        },
+        {
+          "Tag": "[/animation]",
+          "Values": []
+        },
+        {
+          "Tag": "[passive object]",
+          "Values": [
+            "10289",
+            "782",
+            "224",
+            "0",
+            "10291",
+            "915",
+            "341",
+            "0",
+            "10285",
+            "378",
+            "231",
+            "0",
+            "10286",
+            "379",
+            "231",
+            "0",
+            "10286",
+            "479",
+            "350",
+            "0",
+            "63146",
+            "698",
+            "309",
+            "0",
+            "63147",
+            "869",
+            "314",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/passive object]",
+          "Values": []
+        },
+        {
+          "Tag": "[monster]",
+          "Values": [
+            "56023",
+            "1",
+            "0",
+            "754",
+            "289",
+            "0",
+            "1",
+            "1",
+            "[fixed]",
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[/monster]",
+          "Values": []
+        },
+        {
+          "Tag": "[monster specific AI]",
+          "Values": [
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[/monster specific AI]",
+          "Values": []
+        },
+        {
+          "Tag": "[event monster position]",
+          "Values": [
+            "197",
+            "178",
+            "0",
+            "196",
+            "345",
+            "0",
+            "982",
+            "188",
+            "0",
+            "1102",
+            "308",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/event monster position]",
+          "Values": []
+        },
+        {
+          "Tag": "[map name]",
+          "Values": [
+            "PVP\u65E0\u540D"
+          ]
+        }
+      ]
+    },
+    {
+      "Id": 17055,
+      "Path": "map/Cosmofiend/17055_Normal.map",
+      "Owners": [
+        66
+      ],
+      "Objects": [
+        9160,
+        9161,
+        9164,
+        9169
+      ],
+      "Monsters": [
+        56449
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 17056,
+      "Path": "map/Cosmofiend/17056_Normal.map",
+      "Owners": [
+        66
+      ],
+      "Objects": [
+        10058,
+        10060,
+        76004
+      ],
+      "Monsters": [
+        56722
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 17057,
+      "Path": "map/Cosmofiend/17057_Normal.map",
+      "Owners": [
+        66
+      ],
+      "Objects": [
+        9450,
+        9452,
+        9453,
+        9454,
+        57015
+      ],
+      "Monsters": [
+        62140
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 17058,
+      "Path": "map/Cosmofiend/17058_Boss.map",
+      "Owners": [
+        66
+      ],
+      "Objects": [
+        14105,
+        14106,
+        14107,
+        14108,
+        14109,
+        14133
+      ],
+      "Monsters": [
+        63020
+      ],
+      "Sections": [
+        {
+          "Tag": "[sort bottom]",
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Tag": "[dungeon]",
+          "Values": [
+            "66"
+          ]
+        },
+        {
+          "Tag": "[/dungeon]",
+          "Values": []
+        },
+        {
+          "Tag": "[type]",
+          "Values": [
+            "[boss]"
+          ]
+        },
+        {
+          "Tag": "[greed]",
+          "Values": [
+            "EE EE"
+          ]
+        },
+        {
+          "Tag": "[/tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[extended tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[tile files]",
+          "Values": [
+            "0",
+            "Tile/Tile00_EX.til",
+            "1",
+            "Tile/Boss_Tile02_EX.til",
+            "2",
+            "Tile/Boss_Tile03_EX.til",
+            "3",
+            "Tile/Boss_Tile04_EX.til",
+            "4",
+            "Tile/Boss_Tile05_EX.til",
+            "5",
+            "Tile/Boss_Tile06_EX.til",
+            "6",
+            "Tile/Boss_Tile12_EX.til",
+            "7",
+            "Tile/Boss_Tile13_EX.til",
+            "8",
+            "Tile/Boss_Tile13a_EX.til",
+            "9",
+            "Tile/Boss_Tile15_EX.til",
+            "10",
+            "Tile/Boss_Tile16_EX.til"
+          ]
+        },
+        {
+          "Tag": "[/tile files]",
+          "Values": []
+        },
+        {
+          "Tag": "[tile map]",
+          "Values": [
+            "0",
+            "0",
+            "0",
+            "1",
+            "2",
+            "2",
+            "3",
+            "3",
+            "4",
+            "5",
+            "0",
+            "0",
+            "0",
+            "0",
+            "6",
+            "7",
+            "8",
+            "8",
+            "8",
+            "8",
+            "9",
+            "10",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/tile map]",
+          "Values": []
+        },
+        {
+          "Tag": "[/extended tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[pathgate pos]",
+          "Values": [
+            "1256",
+            "247",
+            "903",
+            "1670",
+            "432",
+            "1563",
+            "264",
+            "1542"
+          ]
+        },
+        {
+          "Tag": "[/animation]",
+          "Values": []
+        },
+        {
+          "Tag": "[passive object]",
+          "Values": [
+            "14133",
+            "1245",
+            "145",
+            "0",
+            "14106",
+            "490",
+            "175",
+            "0",
+            "14105",
+            "1615",
+            "175",
+            "0",
+            "14105",
+            "1165",
+            "175",
+            "0",
+            "14105",
+            "715",
+            "175",
+            "0",
+            "14105",
+            "1389",
+            "175",
+            "0",
+            "14105",
+            "940",
+            "175",
+            "0",
+            "14107",
+            "1840",
+            "175",
+            "0",
+            "14105",
+            "1085",
+            "205",
+            "0",
+            "14107",
+            "1760",
+            "205",
+            "0",
+            "14106",
+            "410",
+            "205",
+            "0",
+            "14105",
+            "635",
+            "205",
+            "0",
+            "14105",
+            "1535",
+            "205",
+            "0",
+            "14105",
+            "860",
+            "205",
+            "0",
+            "14105",
+            "1310",
+            "205",
+            "0",
+            "14107",
+            "1910",
+            "235",
+            "0",
+            "14105",
+            "1235",
+            "235",
+            "0",
+            "14105",
+            "1685",
+            "235",
+            "0",
+            "14106",
+            "555",
+            "235",
+            "0",
+            "14105",
+            "1460",
+            "235",
+            "0",
+            "14105",
+            "1010",
+            "235",
+            "0",
+            "14105",
+            "785",
+            "235",
+            "0",
+            "14105",
+            "705",
+            "265",
+            "0",
+            "14105",
+            "1605",
+            "265",
+            "0",
+            "14105",
+            "930",
+            "265",
+            "0",
+            "14105",
+            "1380",
+            "265",
+            "0",
+            "14105",
+            "1155",
+            "266",
+            "0",
+            "14105",
+            "1755",
+            "295",
+            "0",
+            "14105",
+            "1305",
+            "295",
+            "0",
+            "14105",
+            "855",
+            "295",
+            "0",
+            "14105",
+            "1530",
+            "295",
+            "0",
+            "14105",
+            "1080",
+            "295",
+            "0",
+            "14105",
+            "1450",
+            "325",
+            "0",
+            "14105",
+            "1225",
+            "325",
+            "0",
+            "14105",
+            "1000",
+            "325",
+            "0",
+            "14105",
+            "775",
+            "325",
+            "0",
+            "14105",
+            "1675",
+            "325",
+            "0",
+            "14105",
+            "1150",
+            "355",
+            "0",
+            "14105",
+            "1600",
+            "355",
+            "0",
+            "14105",
+            "925",
+            "355",
+            "0",
+            "14105",
+            "1825",
+            "355",
+            "0",
+            "14105",
+            "1375",
+            "355",
+            "0",
+            "14105",
+            "1295",
+            "385",
+            "0",
+            "14105",
+            "1520",
+            "385",
+            "0",
+            "14105",
+            "1070",
+            "385",
+            "0",
+            "14105",
+            "1745",
+            "385",
+            "0",
+            "14105",
+            "845",
+            "385",
+            "0",
+            "14105",
+            "1895",
+            "415",
+            "0",
+            "14105",
+            "1445",
+            "415",
+            "0",
+            "14105",
+            "1220",
+            "415",
+            "0",
+            "14105",
+            "995",
+            "415",
+            "0",
+            "14105",
+            "1670",
+            "415",
+            "0",
+            "14109",
+            "2040",
+            "445",
+            "0",
+            "14105",
+            "1590",
+            "445",
+            "0",
+            "14105",
+            "1140",
+            "445",
+            "0",
+            "14105",
+            "1365",
+            "445",
+            "0",
+            "14105",
+            "1815",
+            "445",
+            "0",
+            "14105",
+            "915",
+            "445",
+            "0",
+            "14105",
+            "1290",
+            "475",
+            "0",
+            "14109",
+            "2190",
+            "475",
+            "0",
+            "14105",
+            "1515",
+            "475",
+            "0",
+            "14105",
+            "1065",
+            "475",
+            "0",
+            "14105",
+            "1965",
+            "475",
+            "0",
+            "14108",
+            "840",
+            "475",
+            "0",
+            "14105",
+            "1740",
+            "475",
+            "0",
+            "14105",
+            "985",
+            "505",
+            "0",
+            "14105",
+            "1435",
+            "505",
+            "0",
+            "14105",
+            "1660",
+            "505",
+            "0",
+            "14105",
+            "1885",
+            "505",
+            "0",
+            "14105",
+            "1210",
+            "505",
+            "0",
+            "14108",
+            "760",
+            "505",
+            "0",
+            "14109",
+            "2110",
+            "505",
+            "0",
+            "14108",
+            "910",
+            "535",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/passive object]",
+          "Values": []
+        },
+        {
+          "Tag": "[monster]",
+          "Values": [
+            "63020",
+            "1",
+            "0",
+            "1305",
+            "295",
+            "0",
+            "2",
+            "1",
+            "[fixed]",
+            "[boss]"
+          ]
+        },
+        {
+          "Tag": "[/monster]",
+          "Values": []
+        },
+        {
+          "Tag": "[monster specific AI]",
+          "Values": [
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[/monster specific AI]",
+          "Values": []
+        },
+        {
+          "Tag": "[NPC]",
+          "Values": [
+            "1000",
+            "[left]",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/NPC]",
+          "Values": []
+        },
+        {
+          "Tag": "[ai character]",
+          "Values": [
+            "5619",
+            "1190",
+            "315",
+            "0",
+            "[character]",
+            "[normal]",
+            "0",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/ai character]",
+          "Values": []
+        },
+        {
+          "Tag": "[apc create condition]",
+          "Values": [
+            "0",
+            "[\u003E=]",
+            "1",
+            "[=]"
+          ]
+        },
+        {
+          "Tag": "[/apc create condition]",
+          "Values": []
+        },
+        {
+          "Tag": "[apc follow type]",
+          "Values": [
+            "none"
+          ]
+        },
+        {
+          "Tag": "[/apc follow type]",
+          "Values": []
+        },
+        {
+          "Tag": "[event monster position]",
+          "Values": [
+            "840",
+            "293",
+            "0",
+            "885",
+            "296",
+            "0",
+            "938",
+            "298",
+            "0",
+            "990",
+            "293",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/event monster position]",
+          "Values": []
+        },
+        {
+          "Tag": "[map name]",
+          "Values": [
+            "PVP\u65E0\u540D"
+          ]
+        },
+        {
+          "Tag": "[resolution change zoom level]",
+          "Values": [
+            "0"
+          ]
+        }
+      ]
+    },
+    {
+      "Id": 39100,
+      "Path": "map/dimensiongate_tutorial/Cosmofiend/39100(0,0)start.map",
+      "Owners": [
+        180
+      ],
+      "Objects": [
+        120466
+      ],
+      "Monsters": [
+        120038,
+        120039
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39101,
+      "Path": "map/dimensiongate_tutorial/Cosmofiend/39101(1,0)normal.map",
+      "Owners": [
+        180
+      ],
+      "Objects": [
+        10285,
+        10289,
+        10291,
+        63228,
+        63229,
+        120007
+      ],
+      "Monsters": [
+        57021
+      ],
+      "Sections": [
+        {
+          "Tag": "[dungeon]",
+          "Values": [
+            "180"
+          ]
+        },
+        {
+          "Tag": "[/dungeon]",
+          "Values": []
+        },
+        {
+          "Tag": "[type]",
+          "Values": [
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[greed]",
+          "Values": [
+            "FF FF"
+          ]
+        },
+        {
+          "Tag": "[/tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[extended tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[tile files]",
+          "Values": [
+            "0",
+            "Tile/Tile04_EX.til",
+            "1",
+            "Tile/Tile07_EX.til",
+            "2",
+            "Tile/Tile05_EX.til"
+          ]
+        },
+        {
+          "Tag": "[/tile files]",
+          "Values": []
+        },
+        {
+          "Tag": "[tile map]",
+          "Values": [
+            "0",
+            "1",
+            "1",
+            "1",
+            "1",
+            "2"
+          ]
+        },
+        {
+          "Tag": "[/tile map]",
+          "Values": []
+        },
+        {
+          "Tag": "[/extended tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[pathgate pos]",
+          "Values": [
+            "48",
+            "179",
+            "1306",
+            "197",
+            "201",
+            "642",
+            "110",
+            "631"
+          ]
+        },
+        {
+          "Tag": "[/animation]",
+          "Values": []
+        },
+        {
+          "Tag": "[passive object]",
+          "Values": [
+            "10289",
+            "784",
+            "225",
+            "0",
+            "120007",
+            "452",
+            "231",
+            "0",
+            "10291",
+            "916",
+            "342",
+            "0",
+            "120007",
+            "565",
+            "350",
+            "0",
+            "63228",
+            "671",
+            "321",
+            "0",
+            "63229",
+            "823",
+            "322",
+            "0",
+            "10285",
+            "449",
+            "306",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/passive object]",
+          "Values": []
+        },
+        {
+          "Tag": "[monster]",
+          "Values": [
+            "57021",
+            "1",
+            "0",
+            "712",
+            "290",
+            "0",
+            "1",
+            "1",
+            "[fixed]",
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[/monster]",
+          "Values": []
+        },
+        {
+          "Tag": "[monster specific AI]",
+          "Values": [
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[/monster specific AI]",
+          "Values": []
+        },
+        {
+          "Tag": "[event monster position]",
+          "Values": [
+            "197",
+            "178",
+            "0",
+            "196",
+            "345",
+            "0",
+            "982",
+            "188",
+            "0",
+            "1102",
+            "308",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/event monster position]",
+          "Values": []
+        },
+        {
+          "Tag": "[move layered map]",
+          "Values": []
+        },
+        {
+          "Tag": "[is revival]",
+          "Values": []
+        },
+        {
+          "Tag": "[/move layered map]",
+          "Values": []
+        },
+        {
+          "Tag": "[map name]",
+          "Values": [
+            "PVP\u65E0\u540D"
+          ]
+        }
+      ]
+    },
+    {
+      "Id": 39102,
+      "Path": "map/dimensiongate_tutorial/Cosmofiend/39102(2,0)normal.map",
+      "Owners": [
+        180
+      ],
+      "Objects": [
+        120021,
+        120024,
+        120025,
+        120026
+      ],
+      "Monsters": [
+        57025
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39103,
+      "Path": "map/dimensiongate_tutorial/Cosmofiend/39103(3,0)normal.map",
+      "Owners": [
+        180
+      ],
+      "Objects": [
+        10058,
+        10060,
+        76004
+      ],
+      "Monsters": [
+        57031
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39104,
+      "Path": "map/dimensiongate_tutorial/Cosmofiend/39104(4,0)normal.map",
+      "Owners": [
+        180
+      ],
+      "Objects": [
+        57049,
+        120107,
+        120116,
+        120117,
+        120118
+      ],
+      "Monsters": [
+        120024
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39105,
+      "Path": "map/dimensiongate_tutorial/Cosmofiend/39105(5,0)boss.map",
+      "Owners": [
+        180
+      ],
+      "Objects": [
+        120176,
+        120177,
+        120178,
+        120179,
+        120180,
+        120181
+      ],
+      "Monsters": [
+        120030
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39106,
+      "Path": "map/dimensiongate_tutorial/bakalcastle/39106ashcore.map",
+      "Owners": [
+        181
+      ],
+      "Objects": [
+        19277,
+        120030
+      ],
+      "Monsters": [
+        57019
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39107,
+      "Path": "map/dimensiongate_tutorial/bakalcastle/39107itrenog.map",
+      "Owners": [
+        181
+      ],
+      "Objects": [],
+      "Monsters": [
+        57020
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39108,
+      "Path": "map/dimensiongate_tutorial/bakalcastle/39108nagor.map",
+      "Owners": [
+        181
+      ],
+      "Objects": [
+        120106
+      ],
+      "Monsters": [
+        57023
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39109,
+      "Path": "map/dimensiongate_tutorial/bakalcastle/39109nmaug.map",
+      "Owners": [
+        181
+      ],
+      "Objects": [],
+      "Monsters": [
+        57027
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39110,
+      "Path": "map/dimensiongate_tutorial/bakalcastle/39110bakal.map",
+      "Owners": [
+        181
+      ],
+      "Objects": [],
+      "Monsters": [
+        120032
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39111,
+      "Path": "map/dimensiongate_tutorial/bakalcastle/39111normal.map",
+      "Owners": [
+        181
+      ],
+      "Objects": [],
+      "Monsters": [
+        120041,
+        120042
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39112,
+      "Path": "map/dimensiongate_tutorial/blackearth/39112normal.map",
+      "Owners": [
+        182
+      ],
+      "Objects": [
+        120086,
+        120088,
+        120089,
+        120090,
+        120091,
+        120092
+      ],
+      "Monsters": [
+        120012,
+        120013,
+        120047,
+        120048
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39113,
+      "Path": "map/dimensiongate_tutorial/blackearth/39113astaroth.map",
+      "Owners": [
+        182
+      ],
+      "Objects": [
+        120086,
+        120088,
+        120089,
+        120090,
+        120091,
+        120103,
+        120104
+      ],
+      "Monsters": [
+        57022
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39114,
+      "Path": "map/dimensiongate_tutorial/blackearth/39114tiamat.map",
+      "Owners": [
+        182
+      ],
+      "Objects": [
+        120086,
+        120088,
+        120091,
+        120092
+      ],
+      "Monsters": [
+        57026
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39115,
+      "Path": "map/dimensiongate_tutorial/blackearth/39115berias.map",
+      "Owners": [
+        182
+      ],
+      "Objects": [
+        9479,
+        9480,
+        9481,
+        9483
+      ],
+      "Monsters": [
+        57034
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39116,
+      "Path": "map/dimensiongate_tutorial/blackearth/39116michaela.map",
+      "Owners": [
+        182
+      ],
+      "Objects": [
+        19269,
+        120086,
+        120088,
+        120090,
+        120092,
+        120478,
+        120495
+      ],
+      "Monsters": [
+        57042,
+        57043
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39117,
+      "Path": "map/dimensiongate_tutorial/blackearth/39117ozma.map",
+      "Owners": [
+        182
+      ],
+      "Objects": [
+        120086,
+        120088,
+        120089,
+        120090,
+        120091,
+        120092
+      ],
+      "Monsters": [
+        120014
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39118,
+      "Path": "map/dimensiongate_tutorial/blackearth/maze_39118astaroth.map",
+      "Owners": [
+        182
+      ],
+      "Objects": [
+        120086,
+        120088,
+        120089,
+        120090,
+        120091,
+        120103
+      ],
+      "Monsters": [
+        57022,
+        57054
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39119,
+      "Path": "map/dimensiongate_tutorial/blackearth/maze_39119tiamat.map",
+      "Owners": [
+        182
+      ],
+      "Objects": [
+        120086,
+        120088,
+        120091,
+        120092
+      ],
+      "Monsters": [
+        57026,
+        57061
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39120,
+      "Path": "map/dimensiongate_tutorial/blackearth/maze_39120berias.map",
+      "Owners": [
+        182
+      ],
+      "Objects": [
+        120086,
+        120091,
+        120092,
+        120103
+      ],
+      "Monsters": [
+        57034,
+        57069
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39121,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39121Impossible01.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        246,
+        120142,
+        120143,
+        120144,
+        120147,
+        120148,
+        120151,
+        120152,
+        120172
+      ],
+      "Monsters": [
+        57029,
+        120057,
+        120058,
+        120066
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39122,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39122Impossible02.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        61985,
+        61987,
+        120143
+      ],
+      "Monsters": [
+        120059,
+        120061,
+        120062,
+        120089
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39123,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39123Impossible03.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        243,
+        244,
+        245,
+        246,
+        247,
+        248,
+        250,
+        120147,
+        120151,
+        120424,
+        120425,
+        120452,
+        120453,
+        120454,
+        120456,
+        120457,
+        120458,
+        120461,
+        120464
+      ],
+      "Monsters": [
+        57040,
+        120070,
+        120076,
+        120077
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39124,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39124Impossible04.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        245,
+        246,
+        120464,
+        120518
+      ],
+      "Monsters": [
+        120063
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39125,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39125Impossible05.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        5,
+        6,
+        284,
+        63191,
+        63206,
+        63209,
+        63212,
+        63226
+      ],
+      "Monsters": [
+        57048,
+        120118
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39126,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39126Impossible06.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        120638,
+        120639,
+        120640
+      ],
+      "Monsters": [
+        120139
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39127,
+      "Path": "map/dimensiongate_tutorial/ActiveSkyCastle/39127RealSkyCastle01.map",
+      "Owners": [
+        184
+      ],
+      "Objects": [
+        120459
+      ],
+      "Monsters": [
+        120086
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39128,
+      "Path": "map/dimensiongate_tutorial/ActiveSkyCastle/39128RealSkyCastle02.map",
+      "Owners": [
+        184
+      ],
+      "Objects": [
+        120516,
+        120523
+      ],
+      "Monsters": [
+        120096,
+        120097,
+        120098,
+        120099
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39129,
+      "Path": "map/dimensiongate_tutorial/ActiveSkyCastle/39129RealSkyCastle03.map",
+      "Owners": [
+        184
+      ],
+      "Objects": [
+        1035,
+        8251,
+        120545,
+        120546,
+        120549
+      ],
+      "Monsters": [
+        121000,
+        121001
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39130,
+      "Path": "map/dimensiongate_tutorial/ActiveSkyCastle/39130RealSkyCastle04.map",
+      "Owners": [
+        184
+      ],
+      "Objects": [
+        120149,
+        120597
+      ],
+      "Monsters": [
+        120136,
+        120137,
+        120138
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39131,
+      "Path": "map/dimensiongate_tutorial/ActiveSkyCastle/39131RealSkyCastle05.map",
+      "Owners": [
+        184
+      ],
+      "Objects": [
+        120149
+      ],
+      "Monsters": [
+        120067
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39132,
+      "Path": "map/dimensiongate_tutorial/ActiveSkyCastle/39132RealSkyCastle06.map",
+      "Owners": [
+        184
+      ],
+      "Objects": [
+        8593
+      ],
+      "Monsters": [
+        61129,
+        61130,
+        61131,
+        61132,
+        61133,
+        120081
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39133,
+      "Path": "map/dimensiongate_tutorial/RanjerusDogs/39133RanjerusDogs00.map",
+      "Owners": [
+        185
+      ],
+      "Objects": [],
+      "Monsters": [
+        120083,
+        120084,
+        120087
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39134,
+      "Path": "map/dimensiongate_tutorial/RanjerusDogs/39134RanjerusDogs01.map",
+      "Owners": [
+        185
+      ],
+      "Objects": [],
+      "Monsters": [
+        57041
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39135,
+      "Path": "map/dimensiongate_tutorial/RanjerusDogs/39135RanjerusDogs02.map",
+      "Owners": [
+        185
+      ],
+      "Objects": [],
+      "Monsters": [
+        120083,
+        120092,
+        120093,
+        120094
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39136,
+      "Path": "map/dimensiongate_tutorial/RanjerusDogs/39136RanjerusDogs03.map",
+      "Owners": [
+        185
+      ],
+      "Objects": [
+        8083,
+        120513
+      ],
+      "Monsters": [
+        57046,
+        120119
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39137,
+      "Path": "map/dimensiongate_tutorial/RanjerusDogs/39137RanjerusDogs04.map",
+      "Owners": [
+        185
+      ],
+      "Objects": [
+        120563
+      ],
+      "Monsters": [
+        57049,
+        120083,
+        120092,
+        120094
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39138,
+      "Path": "map/dimensiongate_tutorial/RanjerusDogs/39138RanjerusDogs05.map",
+      "Owners": [
+        185
+      ],
+      "Objects": [
+        120563
+      ],
+      "Monsters": [
+        120084,
+        120093,
+        120109,
+        120151,
+        120157
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39139,
+      "Path": "map/dimensiongate_tutorial/Cosmofiend/39139(1,0)movie.map",
+      "Owners": [
+        180
+      ],
+      "Objects": [
+        10285,
+        10289,
+        10291,
+        63228,
+        63229,
+        120007,
+        121000
+      ],
+      "Monsters": [
+        57021
+      ],
+      "Sections": [
+        {
+          "Tag": "[dungeon]",
+          "Values": [
+            "180"
+          ]
+        },
+        {
+          "Tag": "[/dungeon]",
+          "Values": []
+        },
+        {
+          "Tag": "[type]",
+          "Values": [
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[greed]",
+          "Values": [
+            "FF FF"
+          ]
+        },
+        {
+          "Tag": "[/tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[extended tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[tile files]",
+          "Values": [
+            "0",
+            "Tile/Tile04_EX.til",
+            "1",
+            "Tile/Tile07_EX.til",
+            "2",
+            "Tile/Tile05_EX.til"
+          ]
+        },
+        {
+          "Tag": "[/tile files]",
+          "Values": []
+        },
+        {
+          "Tag": "[tile map]",
+          "Values": [
+            "0",
+            "1",
+            "1",
+            "1",
+            "1",
+            "2"
+          ]
+        },
+        {
+          "Tag": "[/tile map]",
+          "Values": []
+        },
+        {
+          "Tag": "[/extended tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[pathgate pos]",
+          "Values": [
+            "48",
+            "179",
+            "1306",
+            "197",
+            "201",
+            "642",
+            "110",
+            "631"
+          ]
+        },
+        {
+          "Tag": "[static player start pos]",
+          "Values": []
+        },
+        {
+          "Tag": "[player 1]",
+          "Values": [
+            "100",
+            "320",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[player 2]",
+          "Values": [
+            "200",
+            "320",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[player 3]",
+          "Values": [
+            "300",
+            "320",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[player 4]",
+          "Values": [
+            "400",
+            "320",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/static player start pos]",
+          "Values": []
+        },
+        {
+          "Tag": "[/animation]",
+          "Values": []
+        },
+        {
+          "Tag": "[passive object]",
+          "Values": [
+            "10289",
+            "1006",
+            "226",
+            "0",
+            "120007",
+            "452",
+            "231",
+            "0",
+            "10291",
+            "1139",
+            "343",
+            "0",
+            "120007",
+            "565",
+            "350",
+            "0",
+            "63228",
+            "671",
+            "321",
+            "0",
+            "63229",
+            "823",
+            "322",
+            "0",
+            "10285",
+            "449",
+            "306",
+            "0",
+            "121000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/passive object]",
+          "Values": []
+        },
+        {
+          "Tag": "[monster]",
+          "Values": [
+            "57021",
+            "1",
+            "0",
+            "712",
+            "290",
+            "0",
+            "0",
+            "0",
+            "[fixed]",
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[/monster]",
+          "Values": []
+        },
+        {
+          "Tag": "[monster specific AI]",
+          "Values": [
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[/monster specific AI]",
+          "Values": []
+        },
+        {
+          "Tag": "[event monster position]",
+          "Values": [
+            "197",
+            "178",
+            "0",
+            "196",
+            "345",
+            "0",
+            "982",
+            "188",
+            "0",
+            "1102",
+            "308",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/event monster position]",
+          "Values": []
+        },
+        {
+          "Tag": "[move layered map]",
+          "Values": []
+        },
+        {
+          "Tag": "[is moive end]",
+          "Values": []
+        },
+        {
+          "Tag": "[revival map]",
+          "Values": []
+        },
+        {
+          "Tag": "[/move layered map]",
+          "Values": []
+        },
+        {
+          "Tag": "[map name]",
+          "Values": [
+            "PVP\u65E0\u540D"
+          ]
+        }
+      ]
+    },
+    {
+      "Id": 39140,
+      "Path": "map/dimensiongate_tutorial/Cosmofiend/39140(2,0)movie.map",
+      "Owners": [
+        180
+      ],
+      "Objects": [
+        120021,
+        120024,
+        120025,
+        120026,
+        121001
+      ],
+      "Monsters": [
+        57025
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39141,
+      "Path": "map/dimensiongate_tutorial/Cosmofiend/39141(3,0)movie.map",
+      "Owners": [
+        180
+      ],
+      "Objects": [
+        10058,
+        10060,
+        76004,
+        121002
+      ],
+      "Monsters": [
+        57031
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39142,
+      "Path": "map/dimensiongate_tutorial/Cosmofiend/39142(4,0)movie.map",
+      "Owners": [
+        180
+      ],
+      "Objects": [
+        57063,
+        120107,
+        120116,
+        120117,
+        120118,
+        121003
+      ],
+      "Monsters": [
+        120024
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39143,
+      "Path": "map/dimensiongate_tutorial/Cosmofiend/39143(5,0)movie.map",
+      "Owners": [
+        180
+      ],
+      "Objects": [
+        120176,
+        120177,
+        120178,
+        120179,
+        120180,
+        120181,
+        121004
+      ],
+      "Monsters": [
+        120030
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39174,
+      "Path": "map/dimensiongate_tutorial/Cosmofiend/39174(0,0)movie.map",
+      "Owners": [
+        180
+      ],
+      "Objects": [
+        120466,
+        121039
+      ],
+      "Monsters": [
+        120038,
+        120039
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39144,
+      "Path": "map/dimensiongate_tutorial/bakalcastle/39144movie.map",
+      "Owners": [
+        181
+      ],
+      "Objects": [
+        120030,
+        121011
+      ],
+      "Monsters": [
+        57019
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39145,
+      "Path": "map/dimensiongate_tutorial/bakalcastle/39145movie.map",
+      "Owners": [
+        181
+      ],
+      "Objects": [
+        121008
+      ],
+      "Monsters": [
+        57020
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39146,
+      "Path": "map/dimensiongate_tutorial/bakalcastle/39146movie.map",
+      "Owners": [
+        181
+      ],
+      "Objects": [
+        120106,
+        121009
+      ],
+      "Monsters": [
+        57023
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39147,
+      "Path": "map/dimensiongate_tutorial/bakalcastle/39147movie.map",
+      "Owners": [
+        181
+      ],
+      "Objects": [
+        121010
+      ],
+      "Monsters": [
+        57027
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39148,
+      "Path": "map/dimensiongate_tutorial/bakalcastle/39148movie.map",
+      "Owners": [
+        181
+      ],
+      "Objects": [
+        121012
+      ],
+      "Monsters": [
+        120032
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39175,
+      "Path": "map/dimensiongate_tutorial/bakalcastle/39175movie.map",
+      "Owners": [
+        181
+      ],
+      "Objects": [
+        121040
+      ],
+      "Monsters": [
+        120041,
+        120042
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39151,
+      "Path": "map/dimensiongate_tutorial/blackearth/39151movie.map",
+      "Owners": [
+        182
+      ],
+      "Objects": [
+        120086,
+        120088,
+        120089,
+        120090,
+        120091,
+        120103,
+        120104,
+        121015
+      ],
+      "Monsters": [
+        57022
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39152,
+      "Path": "map/dimensiongate_tutorial/blackearth/39152movie.map",
+      "Owners": [
+        182
+      ],
+      "Objects": [
+        120086,
+        120088,
+        120091,
+        120092,
+        121013
+      ],
+      "Monsters": [
+        57026
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39153,
+      "Path": "map/dimensiongate_tutorial/blackearth/39153movie.map",
+      "Owners": [
+        182
+      ],
+      "Objects": [
+        9479,
+        9480,
+        9481,
+        9483,
+        121014
+      ],
+      "Monsters": [
+        57034
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39154,
+      "Path": "map/dimensiongate_tutorial/blackearth/39154movie.map",
+      "Owners": [
+        182
+      ],
+      "Objects": [
+        19269,
+        120086,
+        120088,
+        120090,
+        120092,
+        120478,
+        120495,
+        121016
+      ],
+      "Monsters": [
+        57042,
+        57043,
+        120055
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39155,
+      "Path": "map/dimensiongate_tutorial/blackearth/39155movie.map",
+      "Owners": [
+        182
+      ],
+      "Objects": [
+        120086,
+        120088,
+        120089,
+        120090,
+        120091,
+        120092,
+        121017
+      ],
+      "Monsters": [
+        120014
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39176,
+      "Path": "map/dimensiongate_tutorial/blackearth/39176movie.map",
+      "Owners": [
+        182
+      ],
+      "Objects": [
+        120086,
+        120088,
+        120089,
+        120090,
+        120091,
+        120092,
+        121041
+      ],
+      "Monsters": [
+        120012,
+        120013,
+        120047,
+        120048
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39156,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39156movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        246,
+        120142,
+        120143,
+        120144,
+        120147,
+        120148,
+        120151,
+        120152,
+        120172,
+        121018
+      ],
+      "Monsters": [
+        57029,
+        120057,
+        120058,
+        120066
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39157,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39157movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        120143,
+        120172,
+        121019
+      ],
+      "Monsters": [
+        120058,
+        120059,
+        120061
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39158,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39158movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        243,
+        244,
+        245,
+        246,
+        247,
+        248,
+        250,
+        120147,
+        120151,
+        120424,
+        120425,
+        120452,
+        120453,
+        120454,
+        120456,
+        120457,
+        120458,
+        120461,
+        120464,
+        121021
+      ],
+      "Monsters": [
+        57040,
+        120070,
+        120076,
+        120077
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39159,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39159movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        245,
+        246,
+        120464,
+        120518,
+        121022
+      ],
+      "Monsters": [
+        120063
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39160,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39160movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        5,
+        6,
+        284,
+        63191,
+        63198,
+        63199,
+        63206,
+        63209,
+        63212,
+        63226,
+        121023
+      ],
+      "Monsters": [
+        57048,
+        120118
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39161,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39161movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        120638,
+        120639,
+        120640,
+        121024
+      ],
+      "Monsters": [
+        120139
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39162,
+      "Path": "map/dimensiongate_tutorial/ActiveSkyCastle/39162movie.map",
+      "Owners": [
+        184
+      ],
+      "Objects": [
+        120459,
+        121025
+      ],
+      "Monsters": [
+        120085,
+        120086
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39163,
+      "Path": "map/dimensiongate_tutorial/ActiveSkyCastle/39163movie.map",
+      "Owners": [
+        184
+      ],
+      "Objects": [
+        120523,
+        121026
+      ],
+      "Monsters": [
+        120096,
+        120097,
+        120098,
+        120099
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39164,
+      "Path": "map/dimensiongate_tutorial/ActiveSkyCastle/39164movie.map",
+      "Owners": [
+        184
+      ],
+      "Objects": [
+        1035,
+        8251,
+        120545,
+        120546,
+        120549,
+        121030
+      ],
+      "Monsters": [
+        121000,
+        121001
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39165,
+      "Path": "map/dimensiongate_tutorial/ActiveSkyCastle/39165movie.map",
+      "Owners": [
+        184
+      ],
+      "Objects": [
+        120149,
+        120597,
+        121031
+      ],
+      "Monsters": [
+        120136,
+        120137,
+        120138
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39166,
+      "Path": "map/dimensiongate_tutorial/ActiveSkyCastle/39166movie.map",
+      "Owners": [
+        184
+      ],
+      "Objects": [
+        120149,
+        121032
+      ],
+      "Monsters": [
+        120067
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39167,
+      "Path": "map/dimensiongate_tutorial/ActiveSkyCastle/39167movie.map",
+      "Owners": [
+        184
+      ],
+      "Objects": [
+        120410,
+        121033
+      ],
+      "Monsters": [
+        120078,
+        120079,
+        120080,
+        120081,
+        120082
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39169,
+      "Path": "map/dimensiongate_tutorial/RanjerusDogs/39169movie.map",
+      "Owners": [
+        185
+      ],
+      "Objects": [
+        121034
+      ],
+      "Monsters": [
+        57041
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39170,
+      "Path": "map/dimensiongate_tutorial/RanjerusDogs/39170movie.map",
+      "Owners": [
+        185
+      ],
+      "Objects": [
+        121035
+      ],
+      "Monsters": [
+        120083,
+        120092,
+        120093,
+        120094
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39171,
+      "Path": "map/dimensiongate_tutorial/RanjerusDogs/39171movie.map",
+      "Owners": [
+        185
+      ],
+      "Objects": [
+        8083,
+        120513,
+        121036
+      ],
+      "Monsters": [
+        57046,
+        120119
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39172,
+      "Path": "map/dimensiongate_tutorial/RanjerusDogs/39172movie.map",
+      "Owners": [
+        185
+      ],
+      "Objects": [
+        120563,
+        121037
+      ],
+      "Monsters": [
+        57049,
+        120083,
+        120092,
+        120094
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39173,
+      "Path": "map/dimensiongate_tutorial/RanjerusDogs/39173movie.map",
+      "Owners": [
+        185
+      ],
+      "Objects": [
+        120563,
+        121038
+      ],
+      "Monsters": [
+        120084,
+        120093,
+        120109,
+        120151,
+        120157
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 39177,
+      "Path": "map/dimensiongate_tutorial/RanjerusDogs/39177movie.map",
+      "Owners": [
+        185
+      ],
+      "Objects": [
+        121042
+      ],
+      "Monsters": [
+        120083,
+        120084,
+        120087
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53070,
+      "Path": "map/Dimension/Impossible01.map",
+      "Owners": [
+        7100
+      ],
+      "Objects": [
+        246,
+        251,
+        283,
+        284,
+        285,
+        295,
+        840,
+        8220,
+        8496
+      ],
+      "Monsters": [
+        1,
+        56407,
+        61409,
+        61410
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53071,
+      "Path": "map/Dimension/Impossible02.map",
+      "Owners": [
+        7100
+      ],
+      "Objects": [
+        284,
+        61982,
+        61985
+      ],
+      "Monsters": [
+        61337,
+        61338,
+        61339,
+        61340
+      ],
+      "Sections": [
+        {
+          "Tag": "[dungeon]",
+          "Values": [
+            "7100"
+          ]
+        },
+        {
+          "Tag": "[/dungeon]",
+          "Values": []
+        },
+        {
+          "Tag": "[type]",
+          "Values": [
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[greed]",
+          "Values": [
+            "FF FF"
+          ]
+        },
+        {
+          "Tag": "[/tile]",
+          "Values": []
+        },
+        {
+          "Tag": "[pathgate pos]",
+          "Values": [
+            "1",
+            "288",
+            "1130",
+            "216",
+            "560",
+            "144",
+            "560",
+            "348"
+          ]
+        },
+        {
+          "Tag": "[/animation]",
+          "Values": []
+        },
+        {
+          "Tag": "[passive object]",
+          "Values": [
+            "284",
+            "141",
+            "140",
+            "0",
+            "284",
+            "697",
+            "448",
+            "0",
+            "284",
+            "647",
+            "473",
+            "0",
+            "61985",
+            "845",
+            "415",
+            "0"
+          ]
+        },
+        {
+          "Tag": "[/passive object]",
+          "Values": []
+        },
+        {
+          "Tag": "[monster]",
+          "Values": [
+            "61337",
+            "1",
+            "0",
+            "650",
+            "281",
+            "0",
+            "1",
+            "1",
+            "[fixed]",
+            "[normal]",
+            "61337",
+            "1",
+            "0",
+            "517",
+            "208",
+            "0",
+            "1",
+            "1",
+            "[fixed]",
+            "[normal]",
+            "61340",
+            "1",
+            "0",
+            "923",
+            "240",
+            "0",
+            "1",
+            "1",
+            "[fixed]",
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[/monster]",
+          "Values": []
+        },
+        {
+          "Tag": "[monster specific AI]",
+          "Values": [
+            "[normal]",
+            "[normal]",
+            "[normal]"
+          ]
+        },
+        {
+          "Tag": "[/monster specific AI]",
+          "Values": []
+        },
+        {
+          "Tag": "[special passive object]",
+          "Values": [
+            "61982",
+            "259",
+            "240",
+            "0",
+            "11",
+            "[monster]",
+            "61337",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61337",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61337",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61337",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61338",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61338",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61338",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61339",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61339",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61339",
+            "80",
+            "1",
+            "1",
+            "-1",
+            "[monster]",
+            "61339",
+            "80",
+            "1",
+            "1",
+            "-1"
+          ]
+        },
+        {
+          "Tag": "[/special passive object]",
+          "Values": []
+        },
+        {
+          "Tag": "[map name]",
+          "Values": [
+            "PVP\u65E0\u540D"
+          ]
+        }
+      ]
+    },
+    {
+      "Id": 53072,
+      "Path": "map/Dimension/Impossible03.map",
+      "Owners": [
+        7100
+      ],
+      "Objects": [
+        243,
+        244,
+        245,
+        246,
+        247,
+        248,
+        250,
+        251,
+        761,
+        762,
+        8219,
+        8220,
+        8563,
+        8564,
+        8565,
+        8598,
+        80105,
+        80106,
+        80107
+      ],
+      "Monsters": [
+        56108,
+        61119,
+        61121,
+        61122
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53073,
+      "Path": "map/Dimension/Impossible04.map",
+      "Owners": [
+        7100
+      ],
+      "Objects": [
+        245,
+        246,
+        282,
+        8219
+      ],
+      "Monsters": [
+        61341
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53074,
+      "Path": "map/Dimension/Impossible05.map",
+      "Owners": [
+        7100
+      ],
+      "Objects": [
+        5,
+        6,
+        284,
+        8363,
+        63156,
+        63158,
+        63160
+      ],
+      "Monsters": [
+        56507,
+        61520
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53075,
+      "Path": "map/Dimension/Impossible06.map",
+      "Owners": [
+        7100
+      ],
+      "Objects": [
+        8421,
+        8427,
+        8438
+      ],
+      "Monsters": [
+        61809
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53076,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39121Impossible01.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        246,
+        120142,
+        120143,
+        120144,
+        120147,
+        120148,
+        120151,
+        120152,
+        120172
+      ],
+      "Monsters": [
+        57029,
+        120057,
+        120058,
+        120066
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53077,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39122Impossible02.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        61985,
+        61987,
+        120143
+      ],
+      "Monsters": [
+        120059,
+        120061,
+        120062,
+        120089
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53078,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39123Impossible03.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        243,
+        244,
+        245,
+        246,
+        247,
+        248,
+        250,
+        120147,
+        120151,
+        120424,
+        120425,
+        120452,
+        120453,
+        120454,
+        120456,
+        120457,
+        120458,
+        120461,
+        120464
+      ],
+      "Monsters": [
+        57040,
+        120070,
+        120076,
+        120077
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53079,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39124Impossible04.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        245,
+        246,
+        120464,
+        120518
+      ],
+      "Monsters": [
+        120063
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53080,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39125Impossible05.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        5,
+        6,
+        284,
+        63191,
+        63206,
+        63209,
+        63212,
+        63226
+      ],
+      "Monsters": [
+        57048,
+        120118
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53081,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39126Impossible06.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        120638,
+        120639,
+        120640
+      ],
+      "Monsters": [
+        120139
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53082,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39156movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        246,
+        120142,
+        120143,
+        120144,
+        120147,
+        120148,
+        120151,
+        120152,
+        120172,
+        121018
+      ],
+      "Monsters": [
+        57029,
+        120057,
+        120058,
+        120066
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53083,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39157movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        120143,
+        120172,
+        121019
+      ],
+      "Monsters": [
+        120058,
+        120059,
+        120061
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53084,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39158movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        243,
+        244,
+        245,
+        246,
+        247,
+        248,
+        250,
+        120147,
+        120151,
+        120424,
+        120425,
+        120452,
+        120453,
+        120454,
+        120456,
+        120457,
+        120458,
+        120461,
+        120464,
+        121021
+      ],
+      "Monsters": [
+        57040,
+        120070,
+        120076,
+        120077
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53085,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39159movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        245,
+        246,
+        120464,
+        120518,
+        121022
+      ],
+      "Monsters": [
+        120063
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53086,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39160movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        5,
+        6,
+        284,
+        63191,
+        63198,
+        63199,
+        63206,
+        63209,
+        63212,
+        63226,
+        121023
+      ],
+      "Monsters": [
+        57048,
+        120118
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53087,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39161movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        120638,
+        120639,
+        120640,
+        121024
+      ],
+      "Monsters": [
+        120139
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53088,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39156movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        246,
+        120142,
+        120143,
+        120144,
+        120147,
+        120148,
+        120151,
+        120152,
+        120172,
+        121018
+      ],
+      "Monsters": [
+        57029,
+        120057,
+        120058,
+        120066
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53089,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39157movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        120143,
+        120172,
+        121019
+      ],
+      "Monsters": [
+        120058,
+        120059,
+        120061
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53090,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39158movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        243,
+        244,
+        245,
+        246,
+        247,
+        248,
+        250,
+        120147,
+        120151,
+        120424,
+        120425,
+        120452,
+        120453,
+        120454,
+        120456,
+        120457,
+        120458,
+        120461,
+        120464,
+        121021
+      ],
+      "Monsters": [
+        57040,
+        120070,
+        120076,
+        120077
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53091,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39159movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        245,
+        246,
+        120464,
+        120518,
+        121022
+      ],
+      "Monsters": [
+        120063
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53092,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39160movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        5,
+        6,
+        284,
+        63191,
+        63198,
+        63199,
+        63206,
+        63209,
+        63212,
+        63226,
+        121023
+      ],
+      "Monsters": [
+        57048,
+        120118
+      ],
+      "Sections": []
+    },
+    {
+      "Id": 53093,
+      "Path": "map/dimensiongate_tutorial/GoblinKingdom/39161movie.map",
+      "Owners": [
+        183
+      ],
+      "Objects": [
+        120638,
+        120639,
+        120640,
+        121024
+      ],
+      "Monsters": [
+        120139
+      ],
+      "Sections": []
+    }
+  ],
+  "Objects": [
+    {
+      "Id": 5,
+      "Path": "passiveobject/MapObject/ParticleFactory/RayGround.obj"
+    },
+    {
+      "Id": 6,
+      "Path": "passiveobject/MapObject/ParticleFactory/Rays.obj"
+    },
+    {
+      "Id": 235,
+      "Path": "passiveobject/MapObject/BreakableObject/SKYCASTLE_SquareBox.obj"
+    },
+    {
+      "Id": 840,
+      "Path": "passiveobject/MapObject/BreakableObject/UNDERFOOT_TreeCross3.obj"
+    },
+    {
+      "Id": 243,
+      "Path": "passiveobject/MapObject/BreakableObject/LargeGrassLorien.obj"
+    },
+    {
+      "Id": 244,
+      "Path": "passiveobject/MapObject/BreakableObject/SmallGrassLorien.obj"
+    },
+    {
+      "Id": 245,
+      "Path": "passiveobject/MapObject/BreakableObject/LargeGrassMirkwood.obj"
+    },
+    {
+      "Id": 246,
+      "Path": "passiveobject/MapObject/BreakableObject/SmallGrassMirkwood.obj"
+    },
+    {
+      "Id": 247,
+      "Path": "passiveobject/MapObject/BreakableObject/LargeGrassSunderland.obj"
+    },
+    {
+      "Id": 248,
+      "Path": "passiveobject/MapObject/BreakableObject/SmallGrassSunderland.obj"
+    },
+    {
+      "Id": 250,
+      "Path": "passiveobject/MapObject/BreakableObject/SmallGrassGrakKarak.obj"
+    },
+    {
+      "Id": 251,
+      "Path": "passiveobject/MapObject/Trap/Swamp/Glass1.obj"
+    },
+    {
+      "Id": 1033,
+      "Path": "passiveobject/MapObject/Trap/FlappingBanner.obj"
+    },
+    {
+      "Id": 1035,
+      "Path": "passiveobject/MapObject/Trap/CrystalPillar.obj"
+    },
+    {
+      "Id": 282,
+      "Path": "passiveobject/MapObject/Obstacle/SmallPillar1.obj"
+    },
+    {
+      "Id": 283,
+      "Path": "passiveobject/MapObject/Obstacle/BurntTree1.obj"
+    },
+    {
+      "Id": 284,
+      "Path": "passiveobject/MapObject/Obstacle/SmallTreeA1.obj"
+    },
+    {
+      "Id": 285,
+      "Path": "passiveobject/MapObject/Obstacle/SmallTreeB1.obj"
+    },
+    {
+      "Id": 295,
+      "Path": "passiveobject/MapObject/Obstacle/SmallTreeB2.obj"
+    },
+    {
+      "Id": 761,
+      "Path": "passiveobject/MapObject/Obstacle/Grenselos_tree1.obj"
+    },
+    {
+      "Id": 762,
+      "Path": "passiveobject/MapObject/Obstacle/Grenselos_tree2.obj"
+    },
+    {
+      "Id": 8421,
+      "Path": "passiveobject/ActionObject/Obstacle/im_house2.obj"
+    },
+    {
+      "Id": 8427,
+      "Path": "passiveobject/ActionObject/Obstacle/im_pots4.obj"
+    },
+    {
+      "Id": 8438,
+      "Path": "passiveobject/ActionObject/Obstacle/im_water_pail.obj"
+    },
+    {
+      "Id": 8492,
+      "Path": "passiveobject/ActionObject/Obstacle/marble_column03.obj"
+    },
+    {
+      "Id": 8496,
+      "Path": "passiveobject/MapObject/Trap/GoblinBunker/Im_GoblinBunker.obj"
+    },
+    {
+      "Id": 8219,
+      "Path": "passiveobject/ActionObject/Obstacle/GoblinStones.obj"
+    },
+    {
+      "Id": 8220,
+      "Path": "passiveobject/ActionObject/Obstacle/GoblinSkeletones.obj"
+    },
+    {
+      "Id": 8251,
+      "Path": "passiveobject/ActionObject/BreakableObject/RSCBigJar.obj"
+    },
+    {
+      "Id": 8563,
+      "Path": "passiveobject/ActionObject/Common/Oli/Tree0.obj"
+    },
+    {
+      "Id": 8564,
+      "Path": "passiveobject/ActionObject/Common/Oli/Tree1.obj"
+    },
+    {
+      "Id": 8565,
+      "Path": "passiveobject/ActionObject/Common/Oli/Tree2.obj"
+    },
+    {
+      "Id": 8593,
+      "Path": "passiveobject/ActionObject/Monster/LizardMan/Lizard_StoneBody3.obj"
+    },
+    {
+      "Id": 8598,
+      "Path": "passiveobject/ActionObject/Monster/GuardianGoblin/Co_SpearJail.obj"
+    },
+    {
+      "Id": 8599,
+      "Path": "passiveobject/ActionObject/Monster/LizardMan/Lizard_StoneBody5.obj"
+    },
+    {
+      "Id": 9450,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/trap/garmea_trap.obj"
+    },
+    {
+      "Id": 9452,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/trap/cocozola_trap.obj"
+    },
+    {
+      "Id": 9453,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/trap/hernion_trap.obj"
+    },
+    {
+      "Id": 9454,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/trap/venommara_trap.obj"
+    },
+    {
+      "Id": 9467,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/blackearth/astaroth/darksoul.obj"
+    },
+    {
+      "Id": 9479,
+      "Path": "passiveobject/ActionObject/Map/DimentionGate/blackearth/rock.obj"
+    },
+    {
+      "Id": 9480,
+      "Path": "passiveobject/ActionObject/Map/DimentionGate/blackearth/fence.obj"
+    },
+    {
+      "Id": 9481,
+      "Path": "passiveobject/ActionObject/Map/DimentionGate/blackearth/ruin.obj"
+    },
+    {
+      "Id": 9482,
+      "Path": "passiveobject/ActionObject/Map/DimentionGate/blackearth/rock01.obj"
+    },
+    {
+      "Id": 9483,
+      "Path": "passiveobject/ActionObject/Map/DimentionGate/blackearth/rock02.obj"
+    },
+    {
+      "Id": 9484,
+      "Path": "passiveobject/ActionObject/Map/DimentionGate/blackearth/box.obj"
+    },
+    {
+      "Id": 9485,
+      "Path": "passiveobject/ActionObject/Map/DimentionGate/blackearth/tree.obj"
+    },
+    {
+      "Id": 8056,
+      "Path": "passiveobject/ActionObject/Obstacle/OdesaRice1.obj"
+    },
+    {
+      "Id": 8083,
+      "Path": "passiveobject/ActionObject/SPC/_Ranjerus/ElecBaricate/Body.obj"
+    },
+    {
+      "Id": 8363,
+      "Path": "passiveobject/ActionObject/Trap/GoblinBarrier.obj"
+    },
+    {
+      "Id": 10051,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/bakal/nagor/darkscalp.obj"
+    },
+    {
+      "Id": 10058,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/insent/infection.obj"
+    },
+    {
+      "Id": 10060,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/insent/infection_Defence.obj"
+    },
+    {
+      "Id": 10285,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/swaycle/swaycle_box_mgr.obj"
+    },
+    {
+      "Id": 10286,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/swaycle/swaycle_box.obj"
+    },
+    {
+      "Id": 10289,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/swaycle/trap_detination_up.obj"
+    },
+    {
+      "Id": 10291,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/swaycle/trap_detination_down.obj"
+    },
+    {
+      "Id": 10362,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/blackearth/michaela/micha.obj"
+    },
+    {
+      "Id": 10365,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/blackearth/michaela/micha1.obj"
+    },
+    {
+      "Id": 14104,
+      "Path": "passiveobject/ActionObject/Map/DimentionGate/Cosmofiend/Column.obj"
+    },
+    {
+      "Id": 14105,
+      "Path": "passiveobject/ActionObject/Map/DimentionGate/Cosmofiend/AutoTile_Normal.obj"
+    },
+    {
+      "Id": 14106,
+      "Path": "passiveobject/ActionObject/Map/DimentionGate/Cosmofiend/_SafeTile_Red.obj"
+    },
+    {
+      "Id": 14107,
+      "Path": "passiveobject/ActionObject/Map/DimentionGate/Cosmofiend/_SafeTile_Blue.obj"
+    },
+    {
+      "Id": 14108,
+      "Path": "passiveobject/ActionObject/Map/DimentionGate/Cosmofiend/_SafeTile_Yellow.obj"
+    },
+    {
+      "Id": 14109,
+      "Path": "passiveobject/ActionObject/Map/DimentionGate/Cosmofiend/_SafeTile_Purple.obj"
+    },
+    {
+      "Id": 14133,
+      "Path": "passiveobject/ActionObject/Map/DimentionGate/Cosmofiend/AutoTile_Boss.obj"
+    },
+    {
+      "Id": 9160,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/vanish/meteor.obj"
+    },
+    {
+      "Id": 9161,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/vanish/meteor1.obj"
+    },
+    {
+      "Id": 9164,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/vanish/Blackhole.obj"
+    },
+    {
+      "Id": 9169,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/vanish/hole.obj"
+    },
+    {
+      "Id": 120007,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/block_up.obj"
+    },
+    {
+      "Id": 120021,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/Blackhole.obj"
+    },
+    {
+      "Id": 120024,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/meteor1.obj"
+    },
+    {
+      "Id": 120025,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/hole.obj"
+    },
+    {
+      "Id": 120026,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/meteor.obj"
+    },
+    {
+      "Id": 120107,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/garmea_trap.obj"
+    },
+    {
+      "Id": 120116,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/venommara_trap.obj"
+    },
+    {
+      "Id": 120117,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/cocozola_trap.obj"
+    },
+    {
+      "Id": 120118,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/hernion_trap.obj"
+    },
+    {
+      "Id": 120176,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/AutoTile_Boss.obj"
+    },
+    {
+      "Id": 120177,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/_SafeTile_Red.obj"
+    },
+    {
+      "Id": 120178,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/AutoTile_Normal.obj"
+    },
+    {
+      "Id": 120179,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/_SafeTile_Blue.obj"
+    },
+    {
+      "Id": 120180,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/_SafeTile_Purple.obj"
+    },
+    {
+      "Id": 120181,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/_SafeTile_Yellow.obj"
+    },
+    {
+      "Id": 120466,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/cosmofiend/Column.obj"
+    },
+    {
+      "Id": 120030,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/bakalcastle/floor.obj"
+    },
+    {
+      "Id": 120106,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/bakalcastle/darkscalp.obj"
+    },
+    {
+      "Id": 120086,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/blackearth/rock02.obj"
+    },
+    {
+      "Id": 120088,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/blackearth/rock01.obj"
+    },
+    {
+      "Id": 120089,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/blackearth/box.obj"
+    },
+    {
+      "Id": 120090,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/blackearth/tree.obj"
+    },
+    {
+      "Id": 120091,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/blackearth/fence.obj"
+    },
+    {
+      "Id": 120092,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/blackearth/rock.obj"
+    },
+    {
+      "Id": 120103,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/blackearth/ruin.obj"
+    },
+    {
+      "Id": 120104,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/blackearth/darksoul.obj"
+    },
+    {
+      "Id": 120478,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/blackearth/micha1.obj"
+    },
+    {
+      "Id": 120495,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/blackearth/micha.obj"
+    },
+    {
+      "Id": 121000,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/cosmofiendRoom2.obj"
+    },
+    {
+      "Id": 121001,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/cosmofiendRoom3.obj"
+    },
+    {
+      "Id": 121002,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/cosmofiendRoom4.obj"
+    },
+    {
+      "Id": 121003,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/cosmofiendRoom5.obj"
+    },
+    {
+      "Id": 121004,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/cosmofiendRoom6.obj"
+    },
+    {
+      "Id": 121008,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/bakalcastleRoom2.obj"
+    },
+    {
+      "Id": 121009,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/bakalcastleRoom3.obj"
+    },
+    {
+      "Id": 121010,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/bakalcastleRoom4.obj"
+    },
+    {
+      "Id": 121011,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/bakalcastleRoom5.obj"
+    },
+    {
+      "Id": 121012,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/bakalcastleRoom6.obj"
+    },
+    {
+      "Id": 121013,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/blackearthRoom2.obj"
+    },
+    {
+      "Id": 121014,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/blackearthRoom3.obj"
+    },
+    {
+      "Id": 121015,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/blackearthRoom4.obj"
+    },
+    {
+      "Id": 121016,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/blackearthRoom5.obj"
+    },
+    {
+      "Id": 121017,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/blackearthRoom6.obj"
+    },
+    {
+      "Id": 121018,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/goblinkingdomRoom1.obj"
+    },
+    {
+      "Id": 121019,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/goblinkingdomRoom2.obj"
+    },
+    {
+      "Id": 121021,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/goblinkingdomRoom3_02.obj"
+    },
+    {
+      "Id": 121022,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/goblinkingdomRoom4.obj"
+    },
+    {
+      "Id": 121023,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/goblinkingdomRoom5.obj"
+    },
+    {
+      "Id": 121024,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/goblinkingdomRoom6.obj"
+    },
+    {
+      "Id": 121025,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/ActiveSkyCastleRoom1.obj"
+    },
+    {
+      "Id": 121026,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/ActiveSkyCastleRoom2_01.obj"
+    },
+    {
+      "Id": 121030,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/ActiveSkyCastleRoom3.obj"
+    },
+    {
+      "Id": 121031,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/ActiveSkyCastleRoom4.obj"
+    },
+    {
+      "Id": 121032,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/ActiveSkyCastleRoom5.obj"
+    },
+    {
+      "Id": 121033,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/ActiveSkyCastleRoom6.obj"
+    },
+    {
+      "Id": 121034,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/RanjerusDogsRoom2.obj"
+    },
+    {
+      "Id": 121035,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/RanjerusDogsRoom3.obj"
+    },
+    {
+      "Id": 121036,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/RanjerusDogsRoom4.obj"
+    },
+    {
+      "Id": 121037,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/RanjerusDogsRoom5.obj"
+    },
+    {
+      "Id": 121038,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/RanjerusDogsRoom6.obj"
+    },
+    {
+      "Id": 121039,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/cosmofiendRoom1.obj"
+    },
+    {
+      "Id": 121040,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/bakalcastleRoom1.obj"
+    },
+    {
+      "Id": 121041,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/blackearthRoom1.obj"
+    },
+    {
+      "Id": 121042,
+      "Path": "passiveobject/CinematicObject/DimensiongateDungeonMovie/RanjerusDogsRoom1.obj"
+    },
+    {
+      "Id": 120142,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/BurntTree1.obj"
+    },
+    {
+      "Id": 120143,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/SmallTreeA1.obj"
+    },
+    {
+      "Id": 120144,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/SmallTreeB1.obj"
+    },
+    {
+      "Id": 120147,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/GoblinSkeletones.obj"
+    },
+    {
+      "Id": 120148,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/UNDERFOOT_TreeCross3.obj"
+    },
+    {
+      "Id": 120151,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/Glass1.obj"
+    },
+    {
+      "Id": 120152,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/SmallTreeB2.obj"
+    },
+    {
+      "Id": 120172,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/Im_GoblinBunker.obj"
+    },
+    {
+      "Id": 120424,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/Grenselos_tree2.obj"
+    },
+    {
+      "Id": 120425,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/Tree0.obj"
+    },
+    {
+      "Id": 120452,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/Tree0_1.obj"
+    },
+    {
+      "Id": 120453,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/Tree2.obj"
+    },
+    {
+      "Id": 120454,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/Tree1_1.obj"
+    },
+    {
+      "Id": 120456,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/Grenselos_tree1.obj"
+    },
+    {
+      "Id": 120457,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/Tree1.obj"
+    },
+    {
+      "Id": 120458,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/Tree2_1.obj"
+    },
+    {
+      "Id": 120461,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/Co_SpearJail.obj"
+    },
+    {
+      "Id": 120464,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/GoblinStones.obj"
+    },
+    {
+      "Id": 120518,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/SmallPillar1.obj"
+    },
+    {
+      "Id": 120638,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/im_water_pail.obj"
+    },
+    {
+      "Id": 120639,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/im_house2.obj"
+    },
+    {
+      "Id": 120640,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/im_pots4.obj"
+    },
+    {
+      "Id": 120149,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/activeSkyCastle/FlappingBanner/FlappingBanner.obj"
+    },
+    {
+      "Id": 120410,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/activeSkyCastle/Lizard_StoneBody3/Lizard_StoneBody3.obj"
+    },
+    {
+      "Id": 120459,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/activeSkyCastle/marble_column03/marble_column03.obj"
+    },
+    {
+      "Id": 120516,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/activeSkyCastle/CrystalPillar/CrystalPillar.obj"
+    },
+    {
+      "Id": 120523,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/activeSkyCastle/SKYCASTLE_SquareBox/SKYCASTLE_SquareBox.obj"
+    },
+    {
+      "Id": 120545,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/activeSkyCastle/sky_Flash/sky_Flash.obj"
+    },
+    {
+      "Id": 120546,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/activeSkyCastle/sky_Flash1/sky_Flash1.obj"
+    },
+    {
+      "Id": 120549,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/activeSkyCastle/sky_Flash2/sky_Flash2.obj"
+    },
+    {
+      "Id": 120597,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/activeSkyCastle/Lizard_StoneBody5/Lizard_StoneBody5.obj"
+    },
+    {
+      "Id": 120513,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/ranjerusDogs/Bunker_Bottom/Bunker_Bottom.obj"
+    },
+    {
+      "Id": 120563,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/ranjerusDogs/OdesaRice1/OdesaRice1.obj"
+    },
+    {
+      "Id": 57522,
+      "Path": "passiveobject/ActionObject/Map/GentEastGate/notpass.obj"
+    },
+    {
+      "Id": 63146,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate/new_pattern/Cosmofiend/swaycle_1.obj"
+    },
+    {
+      "Id": 63147,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate/new_pattern/Cosmofiend/swaycle_2.obj"
+    },
+    {
+      "Id": 63228,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate_tutorial/new_pattern/Cosmofiend/swaycle_1.obj"
+    },
+    {
+      "Id": 63229,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate_tutorial/new_pattern/Cosmofiend/swaycle_2.obj"
+    },
+    {
+      "Id": 63156,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate/new_pattern/GoblinKingdom/goblin_2.obj"
+    },
+    {
+      "Id": 63158,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate/new_pattern/GoblinKingdom/goblin_summon_2.obj"
+    },
+    {
+      "Id": 63160,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate/new_pattern/GoblinKingdom/enginecover_1.obj"
+    },
+    {
+      "Id": 63198,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate_tutorial/new_pattern/GoblinKingdom/goblin.obj"
+    },
+    {
+      "Id": 63199,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate_tutorial/new_pattern/GoblinKingdom/goblin_1.obj"
+    },
+    {
+      "Id": 63226,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate_tutorial/new_pattern/GoblinKingdom/goblin_2.obj"
+    },
+    {
+      "Id": 63206,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate_tutorial/new_pattern/GoblinKingdom/enginecover_1.obj"
+    },
+    {
+      "Id": 63209,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate_tutorial/new_pattern/GoblinKingdom/enginecover_2.obj"
+    },
+    {
+      "Id": 63212,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate_tutorial/new_pattern/GoblinKingdom/enginecover_3.obj"
+    },
+    {
+      "Id": 63191,
+      "Path": "passiveobject/ActionObject/Trap/GoblinBarrier_1.obj"
+    },
+    {
+      "Id": 57015,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate/new_pattern/dimensiongate/cosmofiend/initialization.obj"
+    },
+    {
+      "Id": 19269,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate/new_pattern/blackearth/Astaroth/check_terror_appendage.obj"
+    },
+    {
+      "Id": 61982,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate/new_pattern/GoblinKingdom/GoblinBunker/Im_GoblinBunker.obj"
+    },
+    {
+      "Id": 61985,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate/new_pattern/GoblinKingdom/selfkill.obj"
+    },
+    {
+      "Id": 61987,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate_tutorial/goblinKingdom/GoblinBunker/Im_GoblinBunker.obj"
+    },
+    {
+      "Id": 76004,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/insent/PoisonTile.obj"
+    },
+    {
+      "Id": 57545,
+      "Path": "passiveobject/ActionObject/Map/DimentionGate/blackearth/dark_fence.obj"
+    },
+    {
+      "Id": 19277,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate_tutorial/new_pattern/bakal/Ashcore/zoom_ashcore.obj"
+    },
+    {
+      "Id": 57049,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate_tutorial/new_pattern/dimensiongate/cosmofiend/initialization.obj"
+    },
+    {
+      "Id": 57063,
+      "Path": "passiveobject/ActionObject/monster/dimensiongate_tutorial/new_pattern/dimensiongate/cosmofiend/TutorialTimer.obj"
+    },
+    {
+      "Id": 80105,
+      "Path": "passiveobject/ActionObject/Common/Oli/Tree_branch_0.obj"
+    },
+    {
+      "Id": 80106,
+      "Path": "passiveobject/ActionObject/Common/Oli/Tree_branch_1.obj"
+    },
+    {
+      "Id": 80107,
+      "Path": "passiveobject/ActionObject/Common/Oli/Tree_branch_2.obj"
+    },
+    {
+      "Id": 80110,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/bakal/bakal/trap_left.obj"
+    },
+    {
+      "Id": 80111,
+      "Path": "passiveobject/ActionObject/Monster/dimensiongate/bakal/bakal/trap_right.obj"
+    },
+    {
+      "Id": 57627,
+      "Path": "passiveobject/ActionObject/Monster/LizardMan/doll_master.obj"
+    }
+  ],
+  "Monsters": [
+    {
+      "Id": 1,
+      "Path": "monster/Goblin/Goblin.mob"
+    },
+    {
+      "Id": 56715,
+      "Path": "monster/NewMonsters/Heaven/smarine/smarine.mob"
+    },
+    {
+      "Id": 56721,
+      "Path": "monster/NewMonsters/dimensiongate/bakal/dark_dragon_nagor/dark_dragon_nagor.mob"
+    },
+    {
+      "Id": 56722,
+      "Path": "monster/NewMonsters/dimensiongate/cosmofiend/insent/insent.mob"
+    },
+    {
+      "Id": 56407,
+      "Path": "monster/NewMonsters/Goblin/Madman_Gonlin/Madman_Gonlin.mob"
+    },
+    {
+      "Id": 61409,
+      "Path": "monster/NewMonsters/Goblin/Bomber_Gonlin/Bomber_Gonlin.mob"
+    },
+    {
+      "Id": 61410,
+      "Path": "monster/NewMonsters/Goblin/foreman_Gonlin/foreman_Gonlin.mob"
+    },
+    {
+      "Id": 61412,
+      "Path": "monster/NewMonsters/LizardMan/Dragon_man/Dragon_man.mob"
+    },
+    {
+      "Id": 61413,
+      "Path": "monster/NewMonsters/LizardMan/Lizard_man/Lizard_man.mob"
+    },
+    {
+      "Id": 61415,
+      "Path": "monster/NewMonsters/Ranjerus/fireman/fireman.mob"
+    },
+    {
+      "Id": 56108,
+      "Path": "monster/NewMonsters/Goblin/GuardianMaster/GuardianMaster.mob"
+    },
+    {
+      "Id": 61119,
+      "Path": "monster/NewMonsters/Goblin/GuardianTraper/GuardianTraper1.mob"
+    },
+    {
+      "Id": 61121,
+      "Path": "monster/NewMonsters/Goblin/GuardianTraper/GuardianTraper2.mob"
+    },
+    {
+      "Id": 61122,
+      "Path": "monster/NewMonsters/Goblin/GuardianTraper/GuardianTraper3.mob"
+    },
+    {
+      "Id": 61128,
+      "Path": "monster/NewMonsters/LizardMan/Basilisk/Basilisk.mob"
+    },
+    {
+      "Id": 61129,
+      "Path": "monster/NewMonsters/LizardMan/LizardMan_Guard/LizardMan_Guard.mob"
+    },
+    {
+      "Id": 61130,
+      "Path": "monster/NewMonsters/LizardMan/LizardMan_Guard/Lizardman_Guard01.mob"
+    },
+    {
+      "Id": 61131,
+      "Path": "monster/NewMonsters/LizardMan/LizardMan_Guard/Lizardman_Guard02.mob"
+    },
+    {
+      "Id": 61132,
+      "Path": "monster/NewMonsters/LizardMan/LizardMan_Guard/Lizardman_Guard03.mob"
+    },
+    {
+      "Id": 61133,
+      "Path": "monster/NewMonsters/LizardMan/LizardMan_Guard/Lizardman_Guard04.mob"
+    },
+    {
+      "Id": 61135,
+      "Path": "monster/NewMonsters/Ranjerus/Gashengrigun/Gashengrigun.mob"
+    },
+    {
+      "Id": 56140,
+      "Path": "monster/NewMonsters/Ranjerus/Jeff/Jeff.mob"
+    },
+    {
+      "Id": 56146,
+      "Path": "monster/NewMonsters/dimensiongate/bakal/red_dragon_ashcore/red_dragon_ashcore.mob"
+    },
+    {
+      "Id": 62140,
+      "Path": "monster/NewMonsters/dimensiongate/cosmofiend/check_trap/check_trap.mob"
+    },
+    {
+      "Id": 56151,
+      "Path": "monster/NewMonsters/dimensiongate/blackearth/astaroth/astaroth.mob"
+    },
+    {
+      "Id": 62141,
+      "Path": "monster/NewMonsters/dimensiongate/blackearth/ozma/ozma.mob"
+    },
+    {
+      "Id": 62144,
+      "Path": "monster/NewMonsters/dimensiongate/blackearth/skewer/skewer_n.mob"
+    },
+    {
+      "Id": 62145,
+      "Path": "monster/NewMonsters/dimensiongate/blackearth/pincers/pincers_n.mob"
+    },
+    {
+      "Id": 62146,
+      "Path": "monster/NewMonsters/dimensiongate/blackearth/sawtooth/sawtooth_n.mob"
+    },
+    {
+      "Id": 62147,
+      "Path": "monster/NewMonsters/dimensiongate/blackearth/scissors/scissors_n.mob"
+    },
+    {
+      "Id": 61520,
+      "Path": "monster/NewMonsters/GoblinKingdom/DummyTank/DummyTank.mob"
+    },
+    {
+      "Id": 61525,
+      "Path": "monster/NewMonsters/Ranjerus/Assaulting/Assaulting.mob"
+    },
+    {
+      "Id": 61526,
+      "Path": "monster/NewMonsters/Ranjerus/MineSoldier/MineSoldier.mob"
+    },
+    {
+      "Id": 61527,
+      "Path": "monster/NewMonsters/Ranjerus/medic/medic.mob"
+    },
+    {
+      "Id": 61530,
+      "Path": "monster/NewMonsters/Ranjerus/BombGunSoldier/BombGunSoldier.mob"
+    },
+    {
+      "Id": 56506,
+      "Path": "monster/NewMonsters/Ranjerus/Bitbusty/Bitbusty.mob"
+    },
+    {
+      "Id": 56507,
+      "Path": "monster/NewMonsters/GoblinKingdom/GoblinCannon/GoblinCannon.mob"
+    },
+    {
+      "Id": 61809,
+      "Path": "monster/NewMonsters/GoblinKingdom/Golgo/Golgo.mob"
+    },
+    {
+      "Id": 61337,
+      "Path": "monster/NewMonsters/GoblinKingdom/Glig/Attack/Body.mob"
+    },
+    {
+      "Id": 61338,
+      "Path": "monster/NewMonsters/GoblinKingdom/Glig/Defend/Body.mob"
+    },
+    {
+      "Id": 61339,
+      "Path": "monster/NewMonsters/GoblinKingdom/Glig/Runaway/Body.mob"
+    },
+    {
+      "Id": 61340,
+      "Path": "monster/NewMonsters/GoblinKingdom/Glig/Glig/Body.mob"
+    },
+    {
+      "Id": 61341,
+      "Path": "monster/NewMonsters/GoblinKingdom/Tree/Rudolf/Body.mob"
+    },
+    {
+      "Id": 61347,
+      "Path": "monster/NewMonsters/LizardMan/Avengers/Alecto/Body.mob"
+    },
+    {
+      "Id": 61348,
+      "Path": "monster/NewMonsters/LizardMan/Avengers/Tispone/Body.mob"
+    },
+    {
+      "Id": 61349,
+      "Path": "monster/NewMonsters/LizardMan/Avengers/Megaira/Body.mob"
+    },
+    {
+      "Id": 61353,
+      "Path": "monster/NewMonsters/Ranjerus/Sniper/Sniper.mob"
+    },
+    {
+      "Id": 56023,
+      "Path": "monster/NewMonsters/dimensiongate/cosmofiend/swaycle/swaycle.mob"
+    },
+    {
+      "Id": 61238,
+      "Path": "monster/NewMonsters/dimensiongate/bakal/bakal/bakal.mob"
+    },
+    {
+      "Id": 56025,
+      "Path": "monster/NewMonsters/dimensiongate/blackearth/michaela/michaela1.mob"
+    },
+    {
+      "Id": 56026,
+      "Path": "monster/NewMonsters/dimensiongate/blackearth/michaela/michaela_quest.mob"
+    },
+    {
+      "Id": 56027,
+      "Path": "monster/NewMonsters/dimensiongate/blackearth/michaela/michaela_quest1.mob"
+    },
+    {
+      "Id": 56028,
+      "Path": "monster/NewMonsters/dimensiongate/blackearth/michaela/michaela_quest2.mob"
+    },
+    {
+      "Id": 56448,
+      "Path": "monster/NewMonsters/dimensiongate/bakal/Gold_dragon_main/Gold_dragon_main.mob"
+    },
+    {
+      "Id": 59009,
+      "Path": "monster/NewMonsters/dimensiongate/bakal/itrenog/itrenog.mob"
+    },
+    {
+      "Id": 63018,
+      "Path": "monster/NewMonsters/dimensiongate/cosmofiend/CrimsonReaper/CrimsonReaper.mob"
+    },
+    {
+      "Id": 63019,
+      "Path": "monster/NewMonsters/dimensiongate/cosmofiend/LemonRiles/LemonRiles.mob"
+    },
+    {
+      "Id": 63020,
+      "Path": "monster/NewMonsters/dimensiongate/cosmofiend/Gaunis/Gaunis.mob"
+    },
+    {
+      "Id": 56449,
+      "Path": "monster/NewMonsters/dimensiongate/cosmofiend/vanish/vanish.mob"
+    },
+    {
+      "Id": 56451,
+      "Path": "monster/NewMonsters/dimensiongate/blackearth/Berias/Berias.mob"
+    },
+    {
+      "Id": 56453,
+      "Path": "monster/NewMonsters/dimensiongate/blackearth/Tiamat/Tiamat.mob"
+    },
+    {
+      "Id": 57021,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/cosmofiend/swaycle/swaycle.mob"
+    },
+    {
+      "Id": 57025,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/cosmofiend/vanish/vanish.mob"
+    },
+    {
+      "Id": 57031,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/cosmofiend/insent/insent.mob"
+    },
+    {
+      "Id": 120024,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/cosmofiend/check_trap/check_trap.mob"
+    },
+    {
+      "Id": 120030,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/cosmofiend/Gaunis/Gaunis.mob"
+    },
+    {
+      "Id": 120038,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/cosmofiend/LemonRiles/LemonRiles.mob"
+    },
+    {
+      "Id": 120039,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/cosmofiend/CrimsonReaper/CrimsonReaper.mob"
+    },
+    {
+      "Id": 57019,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/bakalcastle/red_dragon_ashcore/red_dragon_ashcore.mob"
+    },
+    {
+      "Id": 57020,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/bakalcastle/itrenog/itrenog.mob"
+    },
+    {
+      "Id": 57023,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/bakalcastle/dark_dragon_nagor/dark_dragon_nagor.mob"
+    },
+    {
+      "Id": 57027,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/bakalcastle/Gold_dragon_main/Gold_dragon_main.mob"
+    },
+    {
+      "Id": 120032,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/bakalcastle/bakal/bakal.mob"
+    },
+    {
+      "Id": 120041,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/bakalcastle/Gizmo/Gizmo.mob"
+    },
+    {
+      "Id": 120042,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/bakalcastle/Shiger/Shiger.mob"
+    },
+    {
+      "Id": 120012,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/blackearth/pincers_n/pincers_n.mob"
+    },
+    {
+      "Id": 120013,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/blackearth/skewer_n/skewer_n.mob"
+    },
+    {
+      "Id": 120014,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/blackearth/ozma/ozma.mob"
+    },
+    {
+      "Id": 120047,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/blackearth/scissors_n/scissors_n.mob"
+    },
+    {
+      "Id": 120048,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/blackearth/sawtooth_n/sawtooth_n.mob"
+    },
+    {
+      "Id": 57022,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/blackearth/astaroth/astaroth.mob"
+    },
+    {
+      "Id": 57026,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/blackearth/Tiamat/Tiamat.mob"
+    },
+    {
+      "Id": 57034,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/blackearth/Berias/Berias.mob"
+    },
+    {
+      "Id": 57042,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/blackearth/michaela/michaela.mob"
+    },
+    {
+      "Id": 57043,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/blackearth/michaela1/michaela1.mob"
+    },
+    {
+      "Id": 57054,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/blackearth/michaela_quest2/michaela_quest2.mob"
+    },
+    {
+      "Id": 57061,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/blackearth/michaela_quest/michaela_quest.mob"
+    },
+    {
+      "Id": 57069,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/blackearth/michaela_quest1/michaela_quest1.mob"
+    },
+    {
+      "Id": 120055,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/blackearth/single_apc_coin/single_apc_coin.mob"
+    },
+    {
+      "Id": 120066,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/foreman_Gonlin/foreman_Gonlin.mob"
+    },
+    {
+      "Id": 57029,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/Madman_Gonlin/Madman_Gonlin.mob"
+    },
+    {
+      "Id": 120057,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/Bomber_Gonlin/Bomber_Gonlin.mob"
+    },
+    {
+      "Id": 120058,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/Goblin/Goblin.mob"
+    },
+    {
+      "Id": 120070,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/GuardianTraper3/GuardianTraper3.mob"
+    },
+    {
+      "Id": 120076,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/GuardianTraper1/GuardianTraper1.mob"
+    },
+    {
+      "Id": 57040,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/GuardianMaster/GuardianMaster.mob"
+    },
+    {
+      "Id": 120077,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/GuardianTraper2/GuardianTraper2.mob"
+    },
+    {
+      "Id": 57048,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/GoblinCannon_1/GoblinCannon.mob"
+    },
+    {
+      "Id": 120118,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/DummyTank_1/DummyTank.mob"
+    },
+    {
+      "Id": 120139,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/Golgo/Golgo.mob"
+    },
+    {
+      "Id": 120061,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/AttackGoblin/AttackGoblin.mob"
+    },
+    {
+      "Id": 120062,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/DefendGoblin/DefendGoblin.mob"
+    },
+    {
+      "Id": 120089,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/RunawayGoblin/RunawayGoblin.mob"
+    },
+    {
+      "Id": 120059,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/Glig/Glig.mob"
+    },
+    {
+      "Id": 120063,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/goblinKingdom/TreeRudolf/TreeRudolf.mob"
+    },
+    {
+      "Id": 120067,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Magneus/Magneus.mob"
+    },
+    {
+      "Id": 120078,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Lizardman_Guard02/Lizardman_Guard02.mob"
+    },
+    {
+      "Id": 120079,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Lizardman_Guard01/Lizardman_Guard01.mob"
+    },
+    {
+      "Id": 120080,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/LizardMan_Guard/LizardMan_Guard.mob"
+    },
+    {
+      "Id": 120081,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Basilisk/Basilisk.mob"
+    },
+    {
+      "Id": 120082,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Lizardman_Guard03/Lizardman_Guard03.mob"
+    },
+    {
+      "Id": 120085,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Minius/Minius.mob"
+    },
+    {
+      "Id": 120086,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Mirkius/Mirkius.mob"
+    },
+    {
+      "Id": 120096,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Body/Body.mob"
+    },
+    {
+      "Id": 120097,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Body0/Body.mob"
+    },
+    {
+      "Id": 120098,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Body1/Body.mob"
+    },
+    {
+      "Id": 120099,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Body2/Body.mob"
+    },
+    {
+      "Id": 121000,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Lizard_man/Lizard_man.mob"
+    },
+    {
+      "Id": 121001,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Dragon_man/Dragon_man.mob"
+    },
+    {
+      "Id": 120136,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Body3/Body.mob"
+    },
+    {
+      "Id": 120137,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Body4/Body.mob"
+    },
+    {
+      "Id": 120138,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/activeSkyCastle/Body5/Body.mob"
+    },
+    {
+      "Id": 120083,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/ranjerusDogs/Assaulting/Assaulting.mob"
+    },
+    {
+      "Id": 120084,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/ranjerusDogs/fireman/fireman.mob"
+    },
+    {
+      "Id": 120087,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/ranjerusDogs/MineSoldier/MineSoldier.mob"
+    },
+    {
+      "Id": 57041,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/ranjerusDogs/Bitbusty/Bitbusty.mob"
+    },
+    {
+      "Id": 120092,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/ranjerusDogs/BombGunSoldier/BombGunSoldier.mob"
+    },
+    {
+      "Id": 120093,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/ranjerusDogs/Sniper/Sniper.mob"
+    },
+    {
+      "Id": 120094,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/ranjerusDogs/medic/medic.mob"
+    },
+    {
+      "Id": 57046,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/ranjerusDogs/Jeff/Jeff.mob"
+    },
+    {
+      "Id": 120109,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/ranjerusDogs/Serve_fireman/Serve_fireman.mob"
+    },
+    {
+      "Id": 120119,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/ranjerusDogs/Dugong/Dugong.mob"
+    },
+    {
+      "Id": 57049,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/ranjerusDogs/smarine/smarine.mob"
+    },
+    {
+      "Id": 120151,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/ranjerusDogs/Gashengrigun/Gashengrigun.mob"
+    },
+    {
+      "Id": 120157,
+      "Path": "monster/NewMonsters/dimensiongate_tutorial/ranjerusDogs/MaryJane/MaryJane.mob"
+    },
+    {
+      "Id": 59388,
+      "Path": "monster/NewMonsters/dimensiongate/blackearth/Berias/Berias1.mob"
+    },
+    {
+      "Id": 61391,
+      "Path": "monster/NewMonsters/dimensiongate/blackearth/michaela/michaela.mob"
+    },
+    {
+      "Id": 62940,
+      "Path": "monster/NewMonsters/GoblinKingdom/Tree/Rudolf/Body_named.mob"
+    },
+    {
+      "Id": 107000101,
+      "Path": "monster/NewMonsters/dimensiongate/bakal/DragonSword/DragonSword.mob"
+    },
+    {
+      "Id": 107000102,
+      "Path": "monster/NewMonsters/dimensiongate/bakal/DragonSpear/DragonSpearMan.mob"
+    },
+    {
+      "Id": 107000103,
+      "Path": "monster/NewMonsters/LizardMan/Lizard_Fighter/Lizard_Fighter.mob"
+    },
+    {
+      "Id": 107000104,
+      "Path": "monster/NewMonsters/LizardMan/Lizard_Warrior/Lizard_Warrior.mob"
+    },
+    {
+      "Id": 107000105,
+      "Path": "monster/NewMonsters/LizardMan/Lizard_SpearMan/Lizard_SpearMan.mob"
+    },
+    {
+      "Id": 107000106,
+      "Path": "monster/NewMonsters/LizardMan/Komodos/Komodos.mob"
+    },
+    {
+      "Id": 107000107,
+      "Path": "monster/NewMonsters/LizardMan/Magneus/Magneus.mob"
+    }
+  ]
+}

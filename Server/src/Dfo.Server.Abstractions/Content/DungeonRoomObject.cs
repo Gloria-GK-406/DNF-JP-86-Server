@@ -8,7 +8,10 @@ public readonly record struct DungeonObjectId(DungeonObjectSection Section, int 
     public int RandomIdentity => checked(this.Index * 2 + (int)this.Section);
 }
 
-public sealed record DungeonRoomObject(DungeonObjectId Id, int Code, int X, int Y, int Z);
+public sealed record DungeonRoomObject(DungeonObjectId Id, int Code, int X, int Y, int Z)
+{
+    public Dfo.Server.Abstractions.World.DungeonRoomMechanismKind? Mechanism { get; init; }
+}
 
 public interface IDungeonRoomObjectSource
 {

@@ -1,3 +1,4 @@
+using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
@@ -24,6 +25,39 @@ namespace Dfo.Server.Application.Tests.Quests;
 /// </remarks>
 public sealed class QuestLogTests
 {
+    [Fact]
+    public async Task Regional_acceptance_uses_parsed_count_even_if_an_old_initial_value_is_supplied()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var quest = Quest(14396, trigger: 509, objective: "hunt monster") with
+        {
+            KillObjectives = QuestKillObjectiveParser.Parse("hunt monster", [-2, 31, -1, -3, 5]),
+        };
+        var accepted = await fixture.Log().AcceptAsync(quest, default);
+        Assert.True(accepted.Accepted);
+        Assert.Equal(5, accepted.TriggerValue);
+        Assert.Equal(5, Assert.Single(await fixture.Log().CarriedAsync(default)).TriggerValue);
+        var untrusted = await fixture.Log().AdvanceAsync(quest, 0, false, default);
+        Assert.Equal(QuestAdvanceVerdict.Unchanged, untrusted.Verdict);
+        Assert.Equal(5u, untrusted.Trigger.PackedValue);
+    }
+
+    [Theory]
+    [InlineData(new int[] { 144, 0, 1 })]
+    [InlineData(new int[] { 144, 0, -11, 5 })]
+    public async Task Malformed_or_unresolved_kill_objectives_do_not_create_an_active_quest(int[] operands)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var quest = Quest(14396, objective: "hunt monster") with
+        {
+            KillObjectives = QuestKillObjectiveParser.Parse("hunt monster", operands),
+        };
+        var accepted = await fixture.Log().AcceptAsync(quest, default);
+        Assert.False(accepted.Accepted);
+        Assert.Equal(QuestRefusal.UnsupportedObjective, accepted.Refusal);
+        Assert.Empty(await fixture.Log().CarriedAsync(default));
+    }
+
     private static readonly AccountId Account = new(6);
 
     private static readonly CharacterId Character = new(60);
@@ -507,11 +541,7 @@ public sealed class QuestLogTests
         var log = fixture.Log();
         var quest = Quest(1776, trigger: 1, objective: "hunt enemy") with
         {
-            HuntEnemyRequirements =
-            [
-                new HuntEnemyRequirement(
-                    144, -1, 13099, HuntEnemyTargetTypes.PassiveObject, 1),
-            ],
+            KillObjectives = QuestKillObjectiveParser.Parse("hunt enemy", [144, -1, 13099, HuntEnemyTargetTypes.PassiveObject, 1]),
         };
         await log.AcceptAsync(quest, CancellationToken.None);
 
@@ -531,11 +561,7 @@ public sealed class QuestLogTests
         var log = fixture.Log();
         var quest = Quest(2001, trigger: 1, objective: "hunt enemy") with
         {
-            HuntEnemyRequirements =
-            [
-                new HuntEnemyRequirement(
-                    144, -1, 13099, HuntEnemyTargetTypes.Monster, 1),
-            ],
+            KillObjectives = QuestKillObjectiveParser.Parse("hunt enemy", [144, -1, 13099, HuntEnemyTargetTypes.Monster, 1]),
         };
         await log.AcceptAsync(quest, CancellationToken.None);
 

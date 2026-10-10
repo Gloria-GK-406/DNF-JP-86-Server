@@ -53,6 +53,40 @@ public sealed class MonsterDropDomainServiceTests
     private const ushort ActorSequence = 30001;
     private const int MonsterLevel = 86;
 
+    [Fact]
+    public async Task Dimension_personal_loot_is_frozen_per_recipient_without_multiplying_by_party_size()
+    {
+        var service = new MonsterDropDomainService(new RecordingDropRules(), new NoDropRateAdjustment(), new NoQuestDrops(),
+            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(),
+            new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(),
+            new DimensionDungeonRuleService(new DimensionSource()));
+        for (var seed = 0; seed < 128; seed++)
+        {
+            var context = Kill(Run(), rank: 3, partyMemberCount: 4) with { DungeonId = 7100, Seed = seed };
+            var equipment = 0;
+            foreach (var participant in context.Participants)
+            {
+                var drops = await service.GeneratePersonalAsync(61809, participant.CharacterId, context, default);
+                Assert.All(drops, item => Assert.Equal(participant.CharacterId, item.OwnerCharacterId));
+                Assert.Equal(drops, await service.GeneratePersonalAsync(61809, participant.CharacterId, context, default));
+                Assert.InRange(drops.Count(item => item.Kind == DropItemKind.Equipment), 1, 2);
+                equipment += drops.Count(item => item.Kind == DropItemKind.Equipment);
+                Assert.Equal(2, Assert.Single(drops, item => item.ItemId == 3311).Count);
+            }
+            Assert.InRange(equipment, 4, 8);
+            Assert.Empty(await service.GeneratePersonalAsync(61809, Character, context with { DungeonId = 144 }, default));
+        }
+    }
+
+    private sealed class DimensionSource : IDimensionDungeonContentSource
+    {
+        public DimensionDungeonContent Load() => new(new HashSet<int> { 7100 }, 5, 0,
+            new Dictionary<(int, int), DimensionChroniclePool> { [(0, 1)] = new(
+                [new(100, 1, DropRarity.Rare, DropItemKind.Equipment)],
+                [new(200, 1, DropRarity.Rare, DropItemKind.Equipment)]) },
+            new(3311, 1, DropRarity.Common, DropItemKind.Stackable));
+    }
+
     private static readonly DungeonLayout Layout = new(
         DungeonId: 144,
         MazeIndex: 0,

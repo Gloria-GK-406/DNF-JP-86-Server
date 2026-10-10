@@ -12,6 +12,9 @@ namespace Dfo.Server.Abstractions.World;
 /// </remarks>
 public readonly record struct RoomActorDescription(DungeonRoomActor Actor, bool IsAiCharacter)
 {
+    public bool IsNamedMonster { get; init; }
+    public byte? ObjectTemplateOwner { get; init; }
+    public int ObjectTemplateIndex { get; init; }
     public bool IsHellTemplate { get; init; }
     public ushort HellOrder { get; init; }
     public int? HellGroupIndex { get; init; }
@@ -32,6 +35,7 @@ public sealed record DungeonRoomContents(
     ushort FirstActorSequence)
 {
     public IReadOnlyList<DungeonRoomObject> Objects { get; init; } = [];
+    public IReadOnlyList<DungeonRoomMechanismDefinition> Mechanisms { get; init; } = [];
 }
 
 /// <summary>

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <DfoPvfAssembly Condition="'$(DfoPvfAssembly)' == ''">../../../../Server/src/Dfo.Pvf/bin/Release/net10.0/Dfo.Pvf.dll</DfoPvfAssembly>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Dfo.Pvf"><HintPath>$(DfoPvfAssembly)</HintPath></Reference>
+  </ItemGroup>
+</Project>

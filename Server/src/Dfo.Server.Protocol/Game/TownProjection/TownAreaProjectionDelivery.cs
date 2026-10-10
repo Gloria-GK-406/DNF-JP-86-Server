@@ -20,7 +20,8 @@ public sealed class TownAreaProjectionGate : UserExecutionGate<TownAreaKey>;
 public sealed record TownAreaEntry(
     SelectedSessionIdentity Session,
     SelectCharacterResult Runtime,
-    Dfo.Server.Data.Characters.CharacterPositionState Position);
+    Dfo.Server.Data.Characters.CharacterPositionState Position,
+    bool ProjectWeaknessBeforeTown = false);
 
 internal sealed record TownAreaAdmission(
     TownAreaEntry Entry,
@@ -436,11 +437,15 @@ public sealed class TownAreaProjectionDelivery
 
         foreach (var delivery in deliveries)
         {
+            // FAIL_CLEAR_DUNGEON captures the client's current dungeon for its result window.
+            // A give-up must send it before the town frames discard that context, exactly once.
+            if (weaknessProjection is not null && delivery.Admission.Entry.ProjectWeaknessBeforeTown)
+                await weaknessProjection.SendCurrentAsync(delivery.Admission.Entry.Session, cancellationToken).ConfigureAwait(false);
             await sender.SendExplicitAsync(
                 delivery.Admission.Entry.Session.ConnectionId,
                 new GameExplicitMessageDelivery(delivery.Frames, []),
                 cancellationToken).ConfigureAwait(false);
-            if (weaknessProjection is not null)
+            if (weaknessProjection is not null && !delivery.Admission.Entry.ProjectWeaknessBeforeTown)
                 await weaknessProjection.SendCurrentAsync(delivery.Admission.Entry.Session, cancellationToken).ConfigureAwait(false);
         }
 

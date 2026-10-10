@@ -29,7 +29,7 @@ internal sealed class ChannelEntryPolicy(
                     return new ChannelEntryIdentity(
                         channel.ChannelId,
                         listenerPort,
-                        KindOf(channel.ChannelId));
+                        KindOf(channel), channel.LoginEnvironment);
                 }
             }
 
@@ -46,7 +46,7 @@ internal sealed class ChannelEntryPolicy(
                 return new ChannelEntryIdentity(
                     channel.ChannelId,
                     listenerPort,
-                    KindOf(channel.ChannelId));
+                    KindOf(channel), channel.LoginEnvironment);
             }
         }
 
@@ -81,10 +81,18 @@ internal sealed class ChannelEntryPolicy(
         ErrorCode: 0xFD,
         Message: $"圣者之鸣号频道仅限{options.SaintHornMinimumLevel}级及以上角色进入。");
 
-    private ChannelEntryKind KindOf(int channelId)
+    private ChannelEntryKind KindOf(ChannelServerInfo channel)
     {
+        var channelId = channel.ChannelId;
         if (channelId == options.SaintHornChannelId)
             return ChannelEntryKind.SaintHorn;
+
+        if (channel.LoginEnvironment == 13)
+            return ChannelEntryKind.FreeDuel;
+        if (channel.LoginEnvironment is 8 or 24)
+            return ChannelEntryKind.Pvp;
+        if (channel.LoginEnvironment == 23)
+            return ChannelEntryKind.Raid;
 
         // A duelling channel that is switched off is an ordinary channel, not a missing
         // one: the legacy server simply does not list its listener.

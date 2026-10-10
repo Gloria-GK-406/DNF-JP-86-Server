@@ -1,3 +1,4 @@
+using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application.Quests;
@@ -178,8 +179,8 @@ public sealed class QuestTriggerTests
     {
         var mixed = Quest(
             "hunt enemy",
-            new HuntEnemyRequirement(144, -1, 1001, HuntEnemyTargetTypes.Monster, 1),
-            new HuntEnemyRequirement(144, -1, 1002, HuntEnemyTargetTypes.PassiveObject, 1));
+            [144, -1, 1001, HuntEnemyTargetTypes.Monster, 1],
+            [144, -1, 1002, HuntEnemyTargetTypes.PassiveObject, 1]);
 
         Assert.Equal(
             QuestObjectiveAuthority.Server,
@@ -197,8 +198,8 @@ public sealed class QuestTriggerTests
     {
         var invalid = Quest(
             "hunt enemy",
-            new HuntEnemyRequirement(144, -1, 0, HuntEnemyTargetTypes.PassiveObject, 1),
-            new HuntEnemyRequirement(144, -1, 1002, 99, 1));
+            [144, -1, 0, HuntEnemyTargetTypes.PassiveObject, 1],
+            [144, -1, 1002, 99, 1]);
 
         Assert.Equal(
             QuestObjectiveAuthority.None,
@@ -228,14 +229,14 @@ public sealed class QuestTriggerTests
     private static QuestDefinition Quest(string objective, int enemyType) =>
         Quest(
             objective,
-            new HuntEnemyRequirement(144, -1, 13099, enemyType, 1));
+            [144, -1, 13099, enemyType, 1]);
 
     private static QuestDefinition Quest(
         string objective,
-        params HuntEnemyRequirement[] requirements) =>
+        params int[][] requirements) =>
         new(1776, "", null, null, null, null, null, null, [], objective, "",
             null, null, null, null, null, null, null, [], [], [], [],
-            HuntEnemyRequirements: requirements);
+            KillObjectives: QuestKillObjectiveParser.Parse(objective, requirements.SelectMany(target => target).ToArray()));
 
     /// <remarks>
     /// The safe direction. The archive's objective vocabulary is not closed and this server has not

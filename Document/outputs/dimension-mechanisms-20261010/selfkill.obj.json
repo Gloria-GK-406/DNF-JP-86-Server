@@ -1,0 +1,35 @@
+{
+  "Path": "passiveobject/ActionObject/monster/dimensiongate/new_pattern/GoblinKingdom/selfkill.obj",
+  "Sections": [
+    {
+      "Tag": "[layer]",
+      "Values": [
+        "[normal]"
+      ]
+    },
+    {
+      "Tag": "[pass type]",
+      "Values": [
+        "[pass all]"
+      ]
+    },
+    {
+      "Tag": "[hp max]",
+      "Values": [
+        "1000"
+      ]
+    },
+    {
+      "Tag": "[hp destroy]",
+      "Values": [
+        "1"
+      ]
+    },
+    {
+      "Tag": "[basic action]",
+      "Values": [
+        "Action/selfkill.act"
+      ]
+    }
+  ]
+}

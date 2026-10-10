@@ -6,7 +6,8 @@ public sealed record ChannelServerInfo(
     int MaximumUsers,
     int CurrentUsers,
     string Host,
-    int Port);
+    int Port,
+    byte? LoginEnvironment = null);
 
 /// <summary>
 /// The process-local Game listeners in the same order as the advertised channel catalogue.
@@ -30,6 +31,12 @@ public enum ChannelEntryKind
 
     /// <summary>The duelling channel, which carries its own skill profile.</summary>
     FreeDuel,
+
+    /// <summary>A ranked or practice duelling channel declared by the channel script.</summary>
+    Pvp,
+
+    /// <summary>An assault channel with its own transient town.</summary>
+    Raid,
 }
 
 /// <summary>
@@ -40,18 +47,23 @@ public enum ChannelEntryKind
 /// Entry policy asks what kind of channel this is rather than which port it is, so the
 /// listener numbering stays a configuration detail.
 /// </remarks>
-public sealed record ChannelEntryIdentity(int ChannelId, int ListenerPort, ChannelEntryKind Kind)
+public sealed record ChannelEntryIdentity(int ChannelId, int ListenerPort, ChannelEntryKind Kind,
+    byte? LoginEnvironment = null)
 {
-    /// <summary>True when the duelling skill profile applies on this channel.</summary>
+    /// <summary>True for the free-duelling channel type.</summary>
     public bool IsFreeDuel => Kind is ChannelEntryKind.FreeDuel;
+
+    /// <summary>True for every channel that uses duelling skills and entry projections.</summary>
+    public bool IsPvp => Kind is ChannelEntryKind.FreeDuel or ChannelEntryKind.Pvp;
 
     /// <summary>True when a character's position on this channel is not persisted.</summary>
     /// <remarks>
-    /// The Saint Horn channel places characters transiently: they return to wherever
-    /// they were before entering it, so writing the transient position back would strand
+    /// Special channels place characters transiently: they return to wherever
+    /// they were before entering them, so writing the transient position back would strand
     /// them there.
     /// </remarks>
-    public bool IsTransient => Kind is ChannelEntryKind.SaintHorn;
+    public bool IsTransient => Kind is ChannelEntryKind.SaintHorn or ChannelEntryKind.Raid
+        or ChannelEntryKind.FreeDuel or ChannelEntryKind.Pvp;
 }
 
 /// <summary>Why a character was refused entry to a channel.</summary>

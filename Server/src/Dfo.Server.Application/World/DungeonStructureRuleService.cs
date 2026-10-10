@@ -52,7 +52,10 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
             foreach (var mapId in declared)
             {
                 var map = await maps.GetAsync(mapId, cancellationToken).ConfigureAwait(false);
-                if (map is not null && IsCompatible(map, cell, entrance))
+                // An explicit DGN binding is not a random-pool registration. Native 70
+                // get_candidator_map / CheckEntrance use only the arrival mask here.
+                if (map is not null && (entrance == DungeonPathDirection.None
+                        || map.Connections.Any(pair => (pair.Entrances & entrance) != 0)))
                     candidates.Add(mapId);
             }
         }
@@ -121,7 +124,7 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
             maze.Cells,
             definition.BasisLevel,
             definition.ExperienceWeight,
-            purpose, definition.ConsumesFatigue);
+            purpose, definition.ConsumesFatigue) { NamedMonsterCodes = definition.NamedMonsterCodes };
     }
 
     public async ValueTask<DungeonLayout> PrepareLayoutAsync(DungeonLayout layout, CancellationToken cancellationToken)
@@ -194,6 +197,10 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
                 if (x < 0 || x >= layout.Width || y < 0 || y >= layout.Height) continue;
                 var target = new MazeCell((byte)x, (byte)y);
                 if (!layout.CanTraverse(source, target)) continue;
+                // Already generated cells retain their MAP on return; a MAP may support
+                // the first arrival direction without supporting the reverse re-entry.
+                // This proves one generation route; actual first moves still validate theirs.
+                if (reachable.Contains(target)) continue;
                 var selected = await SelectMapAsync(layout, source, target, token).ConfigureAwait(false);
                 if (selected.MapId is null)
                     throw ConfigurationFailure(layout.DungeonId, layout.MazeIndex,
@@ -236,6 +243,18 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
 
         if (facts.Intent.DirectedDungeonId != definition.DungeonId)
             return null;
+
+        if (facts.Intent.Kind == DungeonEntryIntentKind.Cycle)
+        {
+            if (facts.Intent.CycleQuestId is not { } questId
+                || !facts.ActiveQuestIds.Contains(questId)) return null;
+            var candidates = connected.Where(candidate => candidate.Connection!.QuestId == questId
+                && candidate.Connection.State == DungeonQuestConnectionState.Active
+                && IsEligible(candidate.Connection, facts)).ToArray();
+            if (candidates.Length == 0) return null;
+            var cycle = candidates[(int)(Mix(seed, salt: 0) % (uint)candidates.Length)];
+            return (cycle.Maze, new DungeonRunPurpose(DungeonRunPurposeKind.Cycle, questId, cycle.Connection!.State));
+        }
 
         if (connected.Length == 0)
             return ChooseMaze(definition.Mazes, seed, DungeonRunPurpose.Ordinary);

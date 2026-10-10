@@ -81,6 +81,28 @@ public sealed class ApplicationModule : IServerModule
 
         services.TryAddSingleton(TimeProvider.System);
         services.AddEventDispatching();
+        services.TryAddSingleton<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.ConsumableUsageRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.PremiumUsageRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.MirrorEntryRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.MirrorRewardRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.AddDomainEvent<Dfo.Server.Abstractions.UsageQuotas.UsageQuotaChanged>("usage-quota.changed", 1);
+        services.TryAddSingleton<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaSnapshotDomainService,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaSnapshotDomainService>();
+        services.AddDomainSubscriber<Dfo.Server.Abstractions.UsageQuotas.UsageQuotaChanged,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaNotificationSubscriber>("usage-quota.notifications",
+            Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
+            fact => $"{fact.CharacterId.Value}:{(int)fact.Family}");
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.DimensionEntryRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.TryAddSingleton<IDimensionDungeonRuleService, DimensionDungeonRuleService>();
+        services.TryAddSingleton<IDimensionDungeonDomainService, DimensionDungeonDomainService>();
+        services.AddMirrorAradQuests();
         Dfo.Server.Application.Achievements.AchievementRegistration.AddAchievements(services);
         services.AddDomainEvent<MailCreated>("mail.created", 1);
         services.AddDomainSubscriber<MailCreated, MailCreatedNotificationSubscriber>("mail.arrival",
@@ -167,6 +189,12 @@ public sealed class ApplicationModule : IServerModule
         });
         services.TryAddSingleton<IHellDungeonEntryDomainService, HellDungeonEntryDomainService>();
         services.TryAddSingleton<IDungeonEntryIntentDomainService, DungeonEntryIntentDomainService>();
+        services.TryAddSingleton<IDungeonLifecycleDomainService, DungeonLifecycleDomainService>();
+        services.TryAddSingleton<IMirrorDungeonRuleService, MirrorDungeonRuleService>();
+        services.TryAddSingleton<IMirrorDungeonEntryDomainService, MirrorDungeonEntryDomainService>();
+        services.AddDomainEvent<DungeonParticipantLeft>("dungeon.participant-left", 1);
+        services.TryAddSingleton<ICycleDungeonRuleService, CycleDungeonRuleService>();
+        services.TryAddSingleton<ICycleDungeonEntryDomainService, CycleDungeonEntryDomainService>();
         services.TryAddSingleton<IDungeonSettlementRuleService, DungeonSettlementRuleService>();
         services.TryAddSingleton<IDungeonClearDomainService, DungeonClearDomainService>();
         // What the server declares about its channels, and what a tutorial step hands over.
@@ -175,6 +203,9 @@ public sealed class ApplicationModule : IServerModule
         // What a room declares, and what a run standing in it makes of that: the actor numbering,
         // the monster-or-ally boundary, and which of the declared pieces are still on the floor.
         services.TryAddSingleton<IDungeonRoomRuleService, DungeonRoomRuleService>();
+        services.TryAddSingleton<IDungeonRoomMechanismRuleService, DungeonRoomMechanismRuleService>();
+        services.TryAddSingleton<IDungeonRoomMechanismWakeSignal, DungeonRoomMechanismWakeSignal>();
+        services.AddRuntimeEventSubscriber<DungeonRoomMechanismsChanged, DungeonRoomMechanismNotificationSubscriber>();
         services.TryAddSingleton<IIllusionTowerRuleService, IllusionTowerRuleService>();
         services.TryAddSingleton<IIllusionTowerRewardRuleService, IllusionTowerRewardRuleService>();
         services.TryAddSingleton<IIllusionTowerRewardDomainService, IllusionTowerRewardDomainService>();
@@ -184,6 +215,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IBusinessInventorySlotDomainService, BusinessInventorySlotDomainService>();
         services.TryAddSingleton<ICharacterBusinessInventoryDomainService, CharacterBusinessInventoryDomainService>();
         services.TryAddSingleton<IEquipmentDomainService, EquipmentDomainService>();
+        services.TryAddSingleton<IAvatarDomainService, AvatarDomainService>();
+        services.TryAddSingleton<IItemSocketRuleService, ItemSocketRuleService>();
+        services.TryAddSingleton<IItemSocketDomainService, ItemSocketDomainService>();
         services.TryAddSingleton<ICreatureRuleService, CreatureRuleService>();
         services.TryAddSingleton<ICreatureDomainService, CreatureDomainService>();
         services.TryAddSingleton<ICreatureNamingDomainService, CreatureNamingDomainService>();
@@ -207,6 +241,7 @@ public sealed class ApplicationModule : IServerModule
         // Where an arriving item goes, and which day a refill belongs to.
         services.TryAddSingleton<IItemArrivalRuleService, ItemArrivalRuleService>();
         services.TryAddSingleton<IItemLifecycleDomainService, ItemLifecycleDomainService>();
+        services.TryAddSingleton<IInventoryContentsEventDomainService, InventoryContentsEventDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IWeeklyAttendanceRuleService, Dfo.Server.Application.Events.WeeklyAttendanceRuleService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustRuleService, Dfo.Server.Application.Events.JoustRuleService>();
         services.TryAddSingleton<Dfo.Server.Application.Events.JoustDomainService>();
@@ -239,6 +274,13 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IItemGrantDomainService, ItemGrantDomainService>();
         services.TryAddSingleton<IEpicBookRuleService, EpicBookRuleService>();
         services.TryAddSingleton<IEpicBookDomainService, EpicBookDomainService>();
+        services.TryAddSingleton<IEpicCraftDomainService, EpicCraftDomainService>();
+        services.TryAddSingleton<IEquipmentQualitySeedSource, EquipmentQualitySeedSource>();
+        services.TryAddSingleton<IEquipmentQualityRuleService, EquipmentQualityRuleService>();
+        services.TryAddSingleton<IEquipmentMagicSealGradeRuleService, EquipmentMagicSealGradeRuleService>();
+        services.TryAddSingleton<IEquipmentQualityDomainService, EquipmentQualityDomainService>();
+        services.TryAddSingleton<IAvatarCompoundRuleService, AvatarCompoundRuleService>();
+        services.TryAddSingleton<IAvatarCompoundDomainService, AvatarCompoundDomainService>();
         // The store is looked up rather than demanded, because a host may be assembled without
         // persistence at all and this seam is built eagerly by the cleanup service. Asking for it
         // outright would make such a host fail to start; asking for it optionally lets it start
@@ -353,6 +395,7 @@ public sealed class ApplicationModule : IServerModule
         // rule service of its own.
         services.TryAddSingleton<IGroundPickupDomainService, GroundPickupDomainService>();
         services.TryAddSingleton<IEquipmentWearRuleService, EquipmentWearRuleService>();
+        services.TryAddSingleton<AvatarAppearanceRuleService>();
         services.TryAddSingleton<IEquipmentWearDomainService, EquipmentWearDomainService>();
         services.TryAddSingleton<IItemMovementDomainService, ItemMovementDomainService>();
         services.TryAddSingleton<IItemMirrorDomainService, ItemMirrorDomainService>();

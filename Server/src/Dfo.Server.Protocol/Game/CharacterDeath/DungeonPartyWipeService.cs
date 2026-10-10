@@ -25,9 +25,9 @@ public sealed record EndClearReturnCommand(DungeonRunId RunId, DateTimeOffset No
 public sealed class EndClearReturnCommandHandler(IDungeonRunDomainService runs)
     : ICommandHandler<EndClearReturnCommand, EndPartyWipeResult>
 {
-    public ValueTask<EndPartyWipeResult> HandleAsync(CommandExecutionContext context,
+    public async ValueTask<EndPartyWipeResult> HandleAsync(CommandExecutionContext context,
         EndClearReturnCommand command, CancellationToken cancellationToken) =>
-        ValueTask.FromResult(new EndPartyWipeResult(runs.TryEndClearReturn(command.RunId, command.Now)));
+        new(await runs.TryEndClearReturnAsync(command.RunId, command.Now).ConfigureAwait(false));
 }
 
 /// <summary>Observes shared life state, then returns only the exact generations admitted to an expired run.</summary>

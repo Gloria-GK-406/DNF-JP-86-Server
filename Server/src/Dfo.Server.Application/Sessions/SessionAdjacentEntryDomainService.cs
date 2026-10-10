@@ -62,7 +62,7 @@ internal sealed class SessionAdjacentEntryDomainService(
     /// </remarks>
     private PvpLobbyEntryState? ResolveLobby(SessionAdjacentSubject subject)
     {
-        if (!subject.Channel.IsFreeDuel)
+        if (!subject.Channel.IsPvp)
             return null;
 
         var listenerPort = subject.Channel.ListenerPort;

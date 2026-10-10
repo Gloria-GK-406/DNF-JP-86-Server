@@ -14,6 +14,24 @@ public sealed class DungeonEntryIntentDomainServiceTests
         new AccountId(1), Character, new NetworkConnectionId("one"), 1, 10010);
 
     [Fact]
+    public void Cycle_preparation_does_not_consume_or_overwrite_a_newer_selection()
+    {
+        var service = new DungeonEntryIntentDomainService();
+        var cycle = DungeonEntryIntent.Cycle(84, 15203);
+        service.Record(Session, DungeonEntryIntent.Interactive);
+        Assert.Equal(DungeonEntryIntent.Interactive, service.Find(Session));
+        Assert.Equal(DungeonEntryIntent.Interactive, service.Find(Session));
+        Assert.True(service.TryReplaceExact(Session, DungeonEntryIntent.Interactive, cycle));
+        Assert.False(service.TryReplaceExact(Session, DungeonEntryIntent.Interactive, cycle));
+        var replacement = Session with { ConnectionGeneration = 2 };
+        service.Record(replacement, DungeonEntryIntent.Interactive);
+        Assert.Null(service.Find(Session));
+        Assert.False(service.TryReplaceExact(Session, cycle, DungeonEntryIntent.Interactive));
+        Assert.Equal(DungeonEntryIntent.Interactive, service.Consume(replacement));
+        Assert.False(service.TryReplaceExact(replacement, DungeonEntryIntent.Interactive, cycle));
+    }
+
+    [Fact]
     public void Refused_intent_can_be_restored_but_cannot_replace_newer_selection()
     {
         var service = new DungeonEntryIntentDomainService();

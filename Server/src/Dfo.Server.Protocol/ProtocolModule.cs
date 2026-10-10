@@ -1,4 +1,6 @@
+using Dfo.Server.Protocol.Game.ItemSockets;
 using Dfo.Server.Protocol.Game.Achievements;
+using Dfo.Server.Protocol.Game.CycleDungeonEntry;
 using Dfo.Server.Protocol.Game.TitleBook;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -69,6 +71,10 @@ using Dfo.Server.Protocol.Game.EnchantByBead;
 using Dfo.Server.Protocol.Game.MagicSeal;
 using Dfo.Server.Protocol.Game.Outworld;
 using Dfo.Server.Protocol.Game.CompoundItem;
+using Dfo.Server.Protocol.Game.EpicCraft;
+using Dfo.Server.Protocol.Game.ResetItemQuality;
+using Dfo.Server.Protocol.Game.ResetRandomOption;
+using Dfo.Server.Protocol.Game.AvatarCompound;
 using Dfo.Server.Protocol.Game.Forging;
 using Dfo.Server.Protocol.Game.EquipmentDurability;
 using Dfo.Server.Protocol.Game.LearnSkill;
@@ -171,6 +177,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<Dfo.Server.Abstractions.Mail.MailDelivered, MailDeliveredHandler>(retryLimit: 0);
         services.AddCommandHandler<MailboxCommand, MailboxResult, MailboxCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddNotificationHandler<MailboxCompleted, MailboxCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.MirrorQuestViewChanged, Dfo.Server.Protocol.Game.QuestProgress.MirrorQuestViewChangedHandler>(retryLimit: 0);
         services.RegisterMessageHandler<MailboxClaimHandler>(ClientMessageType.GameMailboxClaim);
         services.AddGameCmdMessageDecoder<MailboxClaimDecoder>(0x005F, ClientMessageType.GameMailboxClaim);
         services.AddGameCmdMessageEncoder<MailboxClaimResponse, MailboxClaimEncoder>();
@@ -213,11 +220,15 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<CreatureEvolutionNotification, CreatureEvolutionEncoder>();
         services.AddGameNotiMessageEncoder<CreatureResponseNotification, CreatureResponseEncoder>();
         services.AddHostedService<PremiumDailyRefreshService>();
+        services.AddSingleton<UsageQuotaProjectionDelivery>();
+        services.AddNotificationHandler<Dfo.Server.Abstractions.UsageQuotas.UsageQuotaViewChanged, UsageQuotaViewChangedHandler>(retryLimit: 0);
+        services.AddHostedService<MirrorQuotaDailyRefreshService>();
+        services.AddHostedService<DimensionQuotaDailyRefreshService>();
         services.AddSingleton<ItemUsageProjectionDelivery>();
         services.AddHostedService<ItemUsageDailyRefreshService>();
-        services.AddCommandHandler<ReadItemUsageSnapshotCommand, ItemUsageSnapshotResult, ReadItemUsageSnapshotCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<ReadItemUsageSnapshotCommand, ItemUsageSnapshotResult, ReadItemUsageSnapshotCommandHandler>(CommandExecutionKind.ReadOnly);
         services.AddCommandHandler<ConsumeDungeonBuffCommand, PremiumSnapshotResult, ConsumeDungeonBuffCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ReadPremiumSnapshotCommand, PremiumSnapshotResult, ReadPremiumSnapshotCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<ReadPremiumSnapshotCommand, PremiumSnapshotResult, ReadPremiumSnapshotCommandHandler>(CommandExecutionKind.ReadOnly);
         services.AddCommandHandler<AdvanceWeaknessRecoveryCommand, IReadOnlyList<CharacterId>, AdvanceWeaknessRecoveryCommandHandler>(CommandExecutionKind.Transactional);
         var lotteryCounterExperiment = new LotteryCounterExperimentOptions(
             configuration.GetValue<bool>("LotteryCounterExperiment:Enabled"),
@@ -246,6 +257,12 @@ public sealed class ProtocolModule : IServerModule
         // check is only worth having while something says which assemblies it covers, and this
         // line is that something.
         services.AddNotificationCatalog(typeof(ProtocolModule).Assembly);
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.RoomMechanisms.ElevatorStateMessage,
+            Dfo.Server.Protocol.Game.RoomMechanisms.ElevatorStateEncoder>();
+        services.AddNotificationHandler<DungeonRoomMechanismsNotification,
+            Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismNotificationHandler>(retryLimit: 0);
+        services.TryAddSingleton<Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismProjectionDelivery>();
+        services.AddHostedService<Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismMaintenanceService>();
         services.AddNotificationCatalog(typeof(Dfo.Server.Abstractions.Mail.MailDelivered).Assembly);
         // BUY_ITEM adds to the client inventory. Replaying its acknowledgement could duplicate that addition.
         services.AddNotificationHandler<NpcShopPurchaseCompleted, NpcShopPurchaseCompletedHandler>(retryLimit: 0);
@@ -253,6 +270,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<CeraShopPurchaseCompleted, CeraShopPurchaseCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<Dfo.Server.Abstractions.Accounts.AccountWalletChanged, AccountWalletChangedHandler>(retryLimit: 1);
         services.AddNotificationHandler<OpeningCompleted, OpeningCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<EpicCraftCompleted, EpicCraftCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<ItemSocketCompleted, ItemSocketCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<EquipmentQualityCompleted, EquipmentQualityCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<MagicSealGradeCompleted, MagicSealGradeCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<AvatarCompoundCompleted, AvatarCompoundCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentRepairCompleted, EquipmentRepairCompletedHandler>(retryLimit: 0);
@@ -510,6 +532,16 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<CompoundItemCommand, RecipeCraftReceipt, CompoundItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<AvatarCompoundCommand, AvatarCompoundResult, AvatarCompoundCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<ResetRandomOptionCommand, EquipmentQualityResult, ResetRandomOptionCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<ItemSocketCommand, ItemSocketResult, ItemSocketCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<ResetItemQualityCommand, EquipmentQualityResult, ResetItemQualityCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<EpicCraftCommand, EpicCraftReceipt, EpicCraftCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<OutworldCommand, EquipmentOutworldResult,
             OutworldCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
@@ -659,6 +691,16 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameRuntimeTingStatistic);
         services.RegisterMessageHandler<EnterSelectDungeonHandler>(ClientMessageType.GameEnterSelectDungeon);
         services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameSelectDungeon);
+        services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameMirrorDungeonEntry);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommand, bool, Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommandHandler>(
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonEntryDecoder>(0x02B6, ClientMessageType.GameMirrorDungeonEntry);
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionNotification, Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionEncoder>();
+        services.RegisterMessageHandler<PrepareCycleDungeonEntryHandler>(ClientMessageType.GamePrepareCycleDungeonEntry);
+        services.AddCommandHandler<PrepareCycleDungeonEntryCommand, CycleDungeonPreparation, PrepareCycleDungeonEntryCommandHandler>(
+            CommandExecutionKind.Direct, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageDecoder<PrepareCycleDungeonEntryDecoder>(0x0308, ClientMessageType.GamePrepareCycleDungeonEntry);
+        services.AddGameCmdMessageEncoder<PrepareCycleDungeonEntryResponse, PrepareCycleDungeonEntryEncoder>();
         services.AddCommandHandler<EnterDungeonCommand, DungeonEntryAttempt, EnterDungeonCommandHandler>(
             CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.RegisterMessageHandler<FinishLoadingHandler>(ClientMessageType.GameFinishLoading);
@@ -769,6 +811,14 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameUnsealRandomOption);
         services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameChangeRandomOption);
         services.RegisterMessageHandler<CompoundItemHandler>(ClientMessageType.GameCompoundItem);
+        services.RegisterMessageHandler<AvatarCompoundHandler>(ClientMessageType.GameAvatarCompound);
+        services.RegisterMessageHandler<EpicCraftHandler>(ClientMessageType.GameEpicCraft);
+        services.RegisterMessageHandler<ItemSocketHandler>(ClientMessageType.GameEquipmentSocketOpen);
+        services.RegisterMessageHandler<ItemSocketHandler>(ClientMessageType.GameEquipmentEmblem);
+        services.RegisterMessageHandler<ItemSocketHandler>(ClientMessageType.GameAvatarSocketOpen);
+        services.RegisterMessageHandler<ItemSocketHandler>(ClientMessageType.GameAvatarEmblem);
+        services.RegisterMessageHandler<ResetItemQualityHandler>(ClientMessageType.GameResetItemQuality);
+        services.RegisterMessageHandler<ResetRandomOptionHandler>(ClientMessageType.GameResetRandomOption);
         services.RegisterMessageHandler<OutworldHandler>(ClientMessageType.GamePurifyItem);
         services.RegisterMessageHandler<OutworldHandler>(ClientMessageType.GameInvestAmplifyOption);
         services.RegisterMessageHandler<ForgingHandler>(ClientMessageType.GameSeparateUpgrade);
@@ -1001,6 +1051,14 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<VendingMachineDecoder>(0x00D7, ClientMessageType.GameVendingMachine);
         services.AddGameCmdMessageDecoder<LotteryOpeningDecoder>(0x001B, ClientMessageType.GameLotteryOpening);
         services.AddGameCmdMessageDecoder<CompoundItemDecoder>(GameProtocol.CompoundItemType, ClientMessageType.GameCompoundItem);
+        services.AddGameCmdMessageDecoder<EpicCraftDecoder>(GameProtocol.EpicCraftType, ClientMessageType.GameEpicCraft);
+        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(0x037A, ClientMessageType.GameEquipmentSocketOpen);
+        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(0x0379, ClientMessageType.GameEquipmentEmblem);
+        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(0x00CE, ClientMessageType.GameAvatarSocketOpen);
+        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(0x00C9, ClientMessageType.GameAvatarEmblem);
+        services.AddGameCmdMessageDecoder<ResetItemQualityDecoder>(0x0051, ClientMessageType.GameResetItemQuality);
+        services.AddGameCmdMessageDecoder<ResetRandomOptionDecoder>(0x01C8, ClientMessageType.GameResetRandomOption);
+        services.AddGameCmdMessageDecoder<AvatarCompoundDecoder>(0x0063, ClientMessageType.GameAvatarCompound);
         services.AddGameCmdMessageDecoder<PackageOpeningDecoder>(0x00A0, ClientMessageType.GamePackageOpening);
         services.AddGameCmdMessageDecoder<AvatarPackageOpeningDecoder>(0x0207, ClientMessageType.GameAvatarPackageOpening);
         services.AddGameCmdMessageDecoder<GenCeraTicketMessageDecoder>(0x0041, ClientMessageType.GameGenCeraTicket);
@@ -1110,6 +1168,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<VendingMachineResponse, VendingMachineEncoder>();
         services.AddGameCmdMessageEncoder<LotteryOpeningResponse, LotteryOpeningEncoder>();
         services.AddGameCmdMessageEncoder<CompoundItemResponse, CompoundItemEncoder>();
+        services.AddGameCmdMessageEncoder<EpicCraftResponse, EpicCraftEncoder>();
+        services.AddGameCmdMessageEncoder<ItemSocketResponse, ItemSocketEncoder>();
+        services.AddGameCmdMessageEncoder<ResetItemQualityResponse, ResetItemQualityEncoder>();
+        services.AddGameCmdMessageEncoder<ResetRandomOptionResponse, ResetRandomOptionEncoder>();
+        services.AddGameCmdMessageEncoder<AvatarCompoundResponse, AvatarCompoundEncoder>();
         services.AddGameCmdMessageEncoder<PackageOpeningResponse, PackageOpeningEncoder>();
         services.AddGameCmdMessageEncoder<AvatarPackageOpeningResponse, AvatarPackageOpeningEncoder>();
         services.AddGameCmdMessageEncoder<OpeningRewardPopup, OpeningRewardPopupEncoder>();

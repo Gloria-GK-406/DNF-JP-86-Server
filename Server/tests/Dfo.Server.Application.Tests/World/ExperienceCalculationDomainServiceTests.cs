@@ -8,6 +8,25 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed class ExperienceCalculationDomainServiceTests
 {
     [Fact]
+    public async Task Named_flag_reaches_valuation_and_bonuses_use_the_named_base()
+    {
+        var valuation = new NamedWorth();
+        var service = new ExperienceCalculationDomainService(valuation, new Bonuses());
+        var result = await service.CalculateAsync(new KillExperienceContext(
+            Occasion(ExperienceEvent.MonsterKill), 5, MonsterRank.Champion, 0, 1, 1, true), 3, default);
+        Assert.True(valuation.Last.IsNamedMonster);
+        Assert.Equal(MonsterRank.Champion, valuation.Last.Rank);
+        Assert.Equal(new ExperienceBreakdown(Base: 225, Channel: 22, GrowthContract: 45, FatigueBurning: 225), result);
+    }
+
+    private sealed class NamedWorth : IExperienceValuationDomainService
+    {
+        public KillCircumstances Last { get; private set; }
+        public uint WorthOfKill(in KillCircumstances kill) { Last = kill; return kill.IsNamedMonster ? 225u : 75u; }
+        public ClearExperienceWorth WorthOfClear(in ClearCircumstances clear) => throw new NotSupportedException();
+    }
+
+    [Fact]
     public async Task EachSourceRoundsSeparatelyAndRetainsItsDisplayAmount()
     {
         var service = new ExperienceCalculationDomainService(new FixedWorth(), new Bonuses());

@@ -616,8 +616,8 @@ public sealed class MoveItemSpaceCommandHandler(
             != SlotAdmission.Allowed)
             return ItemMoveResult.Refused(ItemMoveStatus.DisplacedCannotOccupySlot, displaced.ItemId);
 
-        var prepared = moves.UnsealForEquip(piece.Snapshot);
-        if (prepared.SealFlag != piece.Snapshot.SealFlag)
+        var prepared = await moves.PrepareForWearAsync(piece.Snapshot, displaced?.Snapshot, cancellationToken).ConfigureAwait(false);
+        if (prepared != piece.Snapshot)
             piece = await bag.Container.UpdateAsync(piece, _ => prepared, cancellationToken).ConfigureAwait(false);
         var movedRecord = await bag.Container.TakeAsync(piece, null, cancellationToken).ConfigureAwait(false);
         var displacedRecord = displaced is null ? null
@@ -793,8 +793,8 @@ public sealed class MoveItemSpaceCommandHandler(
 
         if (displaced is not null)
         {
-            var prepared = moves.UnsealForEquip(displaced.Snapshot);
-            if (prepared.SealFlag != displaced.Snapshot.SealFlag)
+            var prepared = await moves.PrepareForWearAsync(displaced.Snapshot, piece.Snapshot, cancellationToken).ConfigureAwait(false);
+            if (prepared != displaced.Snapshot)
                 displaced = await bag.Container.UpdateAsync(displaced, _ => prepared, cancellationToken).ConfigureAwait(false);
         }
         var movedRecord = await worn.Container.TakeAsync(piece, null, cancellationToken).ConfigureAwait(false);

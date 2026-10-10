@@ -17,6 +17,19 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 public sealed class PvfQuestAcceptanceContentTests
 {
     [SkippableTheory]
+    [InlineData(14396)]
+    [InlineData(14397)]
+    public async Task Regional_hunt_acceptance_starts_with_five_remaining_targets(int questId)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var quest = await new PvfQuestDefinitionSource(provider).GetAsync(questId, default);
+
+        Assert.NotNull(quest);
+        Assert.Equal(5u, quest.InitialTrigger);
+    }
+
+    [SkippableTheory]
     [InlineData(1016)]
     [InlineData(101)]
     public async Task The_accepted_quests_open_at_trigger_one_and_hand_over_nothing(int questId)
@@ -61,17 +74,18 @@ public sealed class PvfQuestAcceptanceContentTests
     }
 
     [Fact]
-    public void Hunt_monster_targets_require_complete_supported_four_field_groups()
+    public void Kill_targets_recognize_complete_four_and_five_field_grammars()
     {
-        Assert.Equal(
-            [new HuntMonsterRequirement(144, 1, 13099, 2),
-             new HuntMonsterRequirement(-1, -1, -3, 1)],
-            PvfQuestDefinitionSource.ProjectHuntMonsterRequirements(
-                "hunt monster", [144, 1, 13099, 2, -1, -1, -3, 1]));
-        Assert.Empty(PvfQuestDefinitionSource.ProjectHuntMonsterRequirements(
-            "hunt monster", [-2, 100, 0, -3, 1]));
-        Assert.Empty(PvfQuestDefinitionSource.ProjectHuntMonsterRequirements(
-            "hunt monster", [144, 1, 13099]));
+        var ordinary = QuestKillObjectiveParser.Parse("hunt monster", [144, 1, 13099, 2, -1, -1, -3, 1]);
+        Assert.Equal(QuestKillParseStatus.Parsed, ordinary.Status);
+        Assert.Equal(514u, ordinary.InitialTrigger);
+        Assert.Equal([0, 1], ordinary.Targets.Select(target => target.ChannelIndex));
+        var regional = QuestKillObjectiveParser.Parse("hunt monster", [-2, 31, -1, -3, 5]);
+        Assert.Equal(QuestKillParseStatus.Parsed, regional.Status);
+        Assert.Equal(new QuestKillScope(QuestKillScopeKind.WorldMap, 31), Assert.Single(regional.Targets).Scope);
+        Assert.Equal(5u, regional.InitialTrigger);
+        Assert.Equal(QuestKillParseStatus.Invalid,
+            QuestKillObjectiveParser.Parse("hunt monster", [144, 1, 13099]).Status);
     }
 
     [Fact]
@@ -94,7 +108,7 @@ public sealed class PvfQuestAcceptanceContentTests
         var quests = await source.GetAllAsync(CancellationToken.None);
 
         Assert.Contains(quests, quest => quest.ObjectiveTypeCode == "hunt monster"
-            && quest.HuntMonsterRequirements.Count > 0);
+            && quest.KillObjectives.Status == QuestKillParseStatus.Parsed);
         var clearQuest = quests.Where(quest => quest.ObjectiveTypeCode == "clear quest").ToArray();
         Assert.NotEmpty(clearQuest);
         Assert.All(clearQuest, quest => Assert.Single(quest.ClearedQuestRequirements));

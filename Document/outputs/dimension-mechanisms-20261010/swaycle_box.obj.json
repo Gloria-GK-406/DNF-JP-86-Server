@@ -1,0 +1,90 @@
+{
+  "Path": "passiveobject/ActionObject/Monster/dimensiongate/cosmofiend/swaycle/swaycle_box.obj",
+  "Sections": [
+    {
+      "Tag": "[width]",
+      "Values": [
+        "80",
+        "40"
+      ]
+    },
+    {
+      "Tag": "[floating height]",
+      "Values": [
+        "0"
+      ]
+    },
+    {
+      "Tag": "[layer]",
+      "Values": [
+        "[normal]"
+      ]
+    },
+    {
+      "Tag": "[pass type]",
+      "Values": [
+        "[do not pass]"
+      ]
+    },
+    {
+      "Tag": "[piercing power]",
+      "Values": [
+        "1000"
+      ]
+    },
+    {
+      "Tag": "[team]",
+      "Values": [
+        "100"
+      ]
+    },
+    {
+      "Tag": "[vanish on move collision]",
+      "Values": [
+        "0"
+      ]
+    },
+    {
+      "Tag": "[basic action]",
+      "Values": [
+        "Action/block1.act"
+      ]
+    },
+    {
+      "Tag": "[etc action]",
+      "Values": [
+        "action/block1.act",
+        "action/warningblock.act",
+        "action/block2.act"
+      ]
+    },
+    {
+      "Tag": "[/etc action]",
+      "Values": []
+    },
+    {
+      "Tag": "[apply physics]",
+      "Values": [
+        "1500"
+      ]
+    },
+    {
+      "Tag": "[attack info]",
+      "Values": [
+        ""
+      ]
+    },
+    {
+      "Tag": "[int data]",
+      "Values": [
+        "1300",
+        "40",
+        "-25"
+      ]
+    },
+    {
+      "Tag": "[/int data]",
+      "Values": []
+    }
+  ]
+}

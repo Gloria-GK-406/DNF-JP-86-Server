@@ -25,6 +25,7 @@ public sealed class ChannelSourcesTests
                 ["Channel:Channels:0:Name"] = "#ch.11",
                 ["Channel:Channels:0:MaximumUsers"] = "500",
                 ["Channel:Channels:0:Port"] = "10011",
+                ["Channel:Channels:0:LoginEnvironment"] = "24",
             });
             new InfrastructureModule().ConfigureServices(builder.Services, builder.Configuration);
             await using var provider = builder.Services.BuildServiceProvider();
@@ -48,6 +49,7 @@ public sealed class ChannelSourcesTests
             Assert.Equal(0, channel.CurrentUsers);
             Assert.Equal("192.0.2.10", channel.Host);
             Assert.Equal(10011, channel.Port);
+            Assert.Equal((byte)24, channel.LoginEnvironment);
         }
         finally
         {

@@ -13,7 +13,7 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 /// <remarks>
 /// Every one of these is pinned against a working A21 session's own bytes. The reward breakdown is
 /// the interesting one -- 354 bytes there against 274 here -- and the eighty-byte difference is
-/// accounted for exactly: ten per-object experience entries this server has none of.
+/// accounted for exactly: ten per-object experience entries absent from the empty-ledger case.
 /// <para>
 /// <b>The card tail is not asserted by offset anywhere below.</b> Its cases go through
 /// <see cref="CardPanelFrameReader"/>, which consumes the frame's counts the way the client does;
@@ -23,6 +23,29 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 /// </remarks>
 public sealed class DungeonClearCodecTests
 {
+    [Fact]
+    public void Actor_entries_use_sequences_keep_granted_base_and_preserve_card_tail()
+    {
+        var baseline = DungeonClearPayloadCodec.EncodeClearDungeonReward(350, 70,
+            freeCards: [Holding(0, 31001, 1)], paidFlipCost: 39);
+        var summary = new DungeonKillExperienceSummary().Record(new(
+            new(new(1, 0), 43210), 56349, MonsterRank.Ordinary, true,
+            new(Base: 220, Channel: 11, GrowthContract: 44))).Record(new(
+            new(new(2, 0), 43210), 50000, MonsterRank.Champion, true, new(Base: 443)));
+        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(350, 70,
+            freeCards: [Holding(0, 31001, 1)], paidFlipCost: 39, killExperience: summary);
+        Assert.Equal(baseline.Length + 16, body.Length);
+        Assert.Equal(baseline[..89], body[..89]); // Clear award remains unchanged.
+        Assert.Equal(2u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(155)));
+        Assert.Equal(43210u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(159)));
+        Assert.Equal(220u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(163)));
+        Assert.Equal(43210u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(167)));
+        Assert.Equal(443u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(171)));
+        Assert.Equal(baseline[159..], body[175..]);
+        var tail = CardPanelFrameReader.ReadClearDungeonReward(body);
+        Assert.Equal(new CardEntry(31001, 1), tail.FreeRow.Columns[0].Piece);
+    }
+
     [Fact]
     public void Black_diamond_row_is_personal_and_keeps_gold_before_equipment()
     {

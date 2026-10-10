@@ -18,12 +18,36 @@ internal sealed class EpicBookRuleService(IEpicBookDefinitionSource source) : IE
     });
     public IReadOnlyList<EpicPieceDefinition> Catalog() => catalog.Value;
     public EpicPieceDefinition? FindPiece(int pieceId) => Catalog().FirstOrDefault(x => x.PieceId == pieceId);
+    private readonly Lazy<IReadOnlyDictionary<int, EpicCraftRecipe>> recipes = new(() =>
+    {
+        var pieces = source.Load().ToDictionary(x => x.EquipmentId, x => x.PieceId);
+        var entries = source.LoadRecipes();
+        if (entries.Any(x => !pieces.TryGetValue(x.EquipmentId, out var piece) || piece != x.PieceId
+            || x.PieceCount <= 0 || x.Materials.IsDefault || x.Materials.Length > 64
+            || x.Materials.Any(m => m.ItemId <= 0 || m.Count <= 0 || pieces.Values.Contains(m.ItemId)))
+            || entries.Select(x => x.EquipmentId).Distinct().Count() != entries.Count)
+            throw new InvalidDataException("Invalid epic book recipes.");
+        return entries.ToDictionary(x => x.EquipmentId);
+    });
+    public EpicCraftRecipe? FindRecipe(int equipmentId)
+    {
+        _ = Catalog();
+        return recipes.Value.GetValueOrDefault(equipmentId);
+    }
 }
 
 internal sealed class EpicBookDomainService(IEpicBookRuleService rules, IEpicBookDomainStore store,
     DomainTransactionScope transactions) : IEpicBookDomainService
 {
     public EpicPieceDefinition? FindPiece(int pieceId) => rules.FindPiece(pieceId);
+    public ValueTask<EpicPieceBalance?> TrySpendPiecesAsync(AccountId account, int pieceId, int count, CancellationToken cancellationToken)
+    {
+        if (transactions.Current is null) throw new InvalidOperationException("Epic piece debit requires a transaction.");
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(account.Value);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
+        if (FindPiece(pieceId) is null) throw new ArgumentException("Unknown epic piece.", nameof(pieceId));
+        return store.TrySpendAsync(account, pieceId, count, cancellationToken);
+    }
     public ValueTask<EpicPieceAddition> AddPiecesAsync(AccountId account, int pieceId, int count, CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(account.Value);

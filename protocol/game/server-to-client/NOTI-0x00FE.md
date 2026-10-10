@@ -50,5 +50,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+## 2026-10-10 电梯机制接线
+
+ClientStatic（High）：继续跟进 handler RVA `0xD47600`，读取两个 u8 后遍历当前房间对象，匹配对象代码 `0x459`（1113，ElevatorControl），调用阶段 setter VA `0x01BCB410` 和结果 setter VA `0x01BCB400`。该路径没有按疑惑之村地下城编号判断。对象更新函数 VA `0x01BCCFF0` 根据阶段及结果选择动画，结果 1、2 分别进入正常与坠落分支。
+
+CurrentImplementation 的 body 为 `u8 stage + u8 outcome`，其中 stage 为 0～4，outcome 为 0 运行中、1 正常停梯、2 坠落。编码器输出 17 字节完整帧。上游参考采用 15 秒阶段与 60 秒分界；该时间规则不能单靠接收 handler 证明。
+
+领域状态变化经 EventService 投影；全员加载后启动、清怪时结束，加载恢复可发送当前快照。服务端不重复生成客户端 ElevatorSummon 的定时怪物。
+
+实现与验证见 [房间机制说明](../../../Document/dungeon-room-mechanisms-20261010.md)。目前为 **HumanPending**，尚未取得本次部署的实机动画及切房验收。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`；证据规则见 [evidence.md](../../evidence.md)。

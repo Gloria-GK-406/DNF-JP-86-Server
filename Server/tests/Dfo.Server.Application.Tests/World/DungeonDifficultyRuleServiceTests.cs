@@ -7,6 +7,31 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed class DungeonDifficultyRuleServiceTests
 {
     [Theory]
+    [InlineData(0, 0, 0)]
+    [InlineData(1, 1, 1)]
+    [InlineData(3, 1, 1)]
+    [InlineData(2, 3, 1)] // supported 1 and 3 are equally close; prefer the lower tier
+    [InlineData(4, 3, 3)]
+    [InlineData(255, 3, -1)]
+    [InlineData(0, 255, -1)]
+    public async Task Nearest_cycle_tier_honors_supported_tiers_and_unlocks_even_when_story_mode_exists(
+        byte requested, byte maximum, int expected)
+    {
+        var rules = new DungeonDifficultyRuleService(new Definitions("dungeon/timegate/a.dgn", story: true));
+        var actual = await rules.NearestUnlockedAsync(70, (DungeonDifficulty)requested, (DungeonDifficulty)maximum, default);
+        Assert.Equal(expected < 0 ? null : (DungeonDifficulty?)expected, actual);
+        Assert.False(await rules.IsUnlockedAsync(70, DungeonDifficulty.Tier3, DungeonDifficulty.Normal, default));
+        Assert.True(await rules.AllowsAsync(70, DungeonDifficulty.Tier3, DungeonDifficulty.Normal, default));
+    }
+
+    [Fact]
+    public async Task Lowest_declared_tier_is_available_when_normal_is_not_supported()
+    {
+        var rules = new DungeonDifficultyRuleService(new FixedDefinitions());
+        Assert.Equal(DungeonDifficulty.Tier2,
+            await rules.NearestUnlockedAsync(1500, DungeonDifficulty.Normal, DungeonDifficulty.Normal, default));
+    }
+    [Theory]
     [InlineData("dungeon/timegate/a.dgn", 0, 1)]
     [InlineData("dungeon/timegate/a.dgn", 1, 3)]
     [InlineData("dungeon/timegate/a.dgn", 3, -1)]
@@ -46,9 +71,9 @@ public sealed class DungeonDifficultyRuleServiceTests
             ValueTask.FromResult<DungeonDefinition?>(new(id, "dungeon/Ancient/N_Vilmark.dgn", 85, true, [], SupportedDifficulties: [2]));
     }
 
-    private sealed class Definitions(string path) : IDungeonDefinitionSource
+    private sealed class Definitions(string path, bool story = false) : IDungeonDefinitionSource
     {
         public ValueTask<DungeonDefinition?> GetAsync(int id, CancellationToken token) =>
-            ValueTask.FromResult<DungeonDefinition?>(new(id, path, 1, true, [], SupportedDifficulties: [0,1,3]));
+            ValueTask.FromResult<DungeonDefinition?>(new(id, path, 1, true, [], SupportedDifficulties: [0,1,3]) { HasStoryMode = story });
     }
 }

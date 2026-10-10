@@ -49,18 +49,15 @@ internal sealed class QuestTriggerDomainService(
             return false;
         }
 
-        for (var index = 0; index < QuestTrigger.ChannelCount; index++)
+        var targets = QuestKillObjectiveRules.Select(definition.KillObjectives, selector);
+        if (targets is null)
+            return false;
+        foreach (var target in targets)
         {
-            var mask = 0x10 << index;
-            if ((selector & mask) == 0)
-                continue;
-            if (index >= definition.HuntEnemyRequirements.Count)
-                return false;
-
-            var target = definition.HuntEnemyRequirements[index];
-            if (target.EnemyType != HuntEnemyTargetTypes.PassiveObject
-                || (target.DungeonId > 0 && target.DungeonId != run.Layout.DungeonId)
-                || (target.Difficulty >= 0 && target.Difficulty != (int)run.Difficulty))
+            if (target.Target.EnemyType != HuntEnemyTargetTypes.PassiveObject
+                || (target.Scope.Kind == QuestKillScopeKind.Dungeon && target.Scope.Id != run.Layout.DungeonId)
+                || target.Scope.Kind is not (QuestKillScopeKind.Dungeon or QuestKillScopeKind.AnyDungeon)
+                || !QuestKillObjectiveRules.MatchesDifficulty(target, (int)run.Difficulty))
             {
                 return false;
             }

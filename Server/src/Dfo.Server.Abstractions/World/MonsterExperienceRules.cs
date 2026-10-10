@@ -24,7 +24,8 @@ public readonly record struct KillCircumstances(
     int CharacterLevel,
     DungeonDifficulty Difficulty,
     double DungeonWeight,
-    int PartyMemberCount);
+    int PartyMemberCount,
+    bool IsNamedMonster = false);
 
 /// <summary>
 /// What one kill is worth, before anything the killing character carries.
@@ -71,6 +72,7 @@ public static class MonsterExperienceRules
             * parameters.DifficultyRate((int)kill.Difficulty)
             * kill.DungeonWeight
             * tuning.RankRate(kill.Rank)
+            * (kill.IsNamedMonster ? 3.0 : 1.0)
             * parameters.MonsterOverallRate);
 
         return Floor(

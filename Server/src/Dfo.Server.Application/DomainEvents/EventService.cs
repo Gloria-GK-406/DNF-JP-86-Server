@@ -36,27 +36,21 @@ internal sealed class EventService(DomainEventRegistry registry, IServiceProvide
         return item.EventId;
     }
 
-    public async ValueTask PublishAsync<TEvent>(TEvent payload, CancellationToken cancellationToken = default)
+    public async ValueTask DirectAsync<TEvent>(TEvent payload, CancellationToken cancellationToken = default)
         where TEvent : class, IDomainEvent
     {
         RequireConcrete(payload);
-        if (transactions.Current is not null)
-            throw new InvalidOperationException("Runtime facts publish after commit; enqueue facts inside a writable transaction.");
+        cancellationToken.ThrowIfCancellationRequested();
         var subscriptions = registry.RuntimeFor(typeof(TEvent));
         var envelope = new DomainEventEnvelope<TEvent>(Guid.NewGuid(), Guid.NewGuid(), clock.GetUtcNow(), instance.Id, payload);
-        List<Exception>? failures = null;
         foreach (var subscriber in subscriptions)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                await using var scope = scopes.CreateAsyncScope();
-                await subscriber.Invoke(scope.ServiceProvider, envelope, cancellationToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-            catch (Exception error) { (failures ??= []).Add(error); }
+            // The ambient transaction is inherited by the awaited subscriber. No queue,
+            // new transaction, exception aggregation, or background work is introduced.
+            await using var scope = scopes.CreateAsyncScope();
+            await subscriber.Invoke(scope.ServiceProvider, envelope, cancellationToken).ConfigureAwait(false);
         }
-        if (failures is not null) throw new AggregateException("Runtime event subscribers failed.", failures);
     }
 
     public async ValueTask<NotificationDelivery> ProjectAsync<TNotification>(NotificationAudience audience,

@@ -1,0 +1,94 @@
+{
+  "Results": [
+    {
+      "Project": "Dfo.Pvf.Tests",
+      "Passed": 80,
+      "Failed": 0,
+      "Skipped": 0,
+      "Failures": [],
+      "SkippedTests": [],
+      "Trx": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\usage-quota-direct-events-20261010\\verification\\Dfo.Pvf.Tests.trx",
+      "SHA256": "4F34CBECD00577D4436FF25E4D619F4CAAB7C84AE400A2F19CFD9F12EA2D9229"
+    },
+    {
+      "Project": "Dfo.Server.Application.Tests",
+      "Passed": 3502,
+      "Failed": 0,
+      "Skipped": 0,
+      "Failures": [],
+      "SkippedTests": [],
+      "Trx": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\usage-quota-direct-events-20261010\\verification\\Dfo.Server.Application.Tests.trx",
+      "SHA256": "89C6E0AC75530E9C8159C33A98B47A50E3FDAE4D0FABD50B6B47310AF777C19D"
+    },
+    {
+      "Project": "Dfo.Server.Host.Tests",
+      "Passed": 156,
+      "Failed": 0,
+      "Skipped": 0,
+      "Failures": [],
+      "SkippedTests": [],
+      "Trx": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\usage-quota-direct-events-20261010\\verification\\Dfo.Server.Host.Tests.trx",
+      "SHA256": "5AAC62ECE349730AF85E6CC3AF9839AF4CEF7B60419839B2A622C101BBE21539"
+    },
+    {
+      "Project": "Dfo.Server.HttpApi.Tests",
+      "Passed": 50,
+      "Failed": 0,
+      "Skipped": 0,
+      "Failures": [],
+      "SkippedTests": [],
+      "Trx": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\usage-quota-direct-events-20261010\\verification\\Dfo.Server.HttpApi.Tests.trx",
+      "SHA256": "6EE11D4B6C4F2059FC500F06060FE6AB84AA87130139397A5E650A59F030F649"
+    },
+    {
+      "Project": "Dfo.Server.Infrastructure.Tests",
+      "Passed": 852,
+      "Failed": 2,
+      "Skipped": 2,
+      "Failures": [
+        "Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.Projects_every_neutral_eligibility_input_from_the_real_archive",
+        "Dfo.Server.Infrastructure.Tests.Content.PvfQuestEnemyRewardTests.A21_APC_object_and_repeated_candidate_declarations_are_preserved"
+      ],
+      "SkippedTests": [
+        "Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog",
+        "Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message"
+      ],
+      "Trx": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\usage-quota-direct-events-20261010\\verification\\Dfo.Server.Infrastructure.Tests.trx",
+      "SHA256": "9D6AD57CC19CB8D8F2E953522D70E0A5920CB311BF6C56E7DB01B9570038DFAF"
+    },
+    {
+      "Project": "Dfo.Server.Networking.Tests",
+      "Passed": 91,
+      "Failed": 0,
+      "Skipped": 0,
+      "Failures": [],
+      "SkippedTests": [],
+      "Trx": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\usage-quota-direct-events-20261010\\verification\\Dfo.Server.Networking.Tests.trx",
+      "SHA256": "E3E5D9DE5528C33D78981179B009EC6E3147E53591DFE7FD52C3869900455B96"
+    },
+    {
+      "Project": "Dfo.Server.Persistence.Tests",
+      "Passed": 468,
+      "Failed": 0,
+      "Skipped": 0,
+      "Failures": [],
+      "SkippedTests": [],
+      "Trx": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\usage-quota-direct-events-20261010\\verification\\Dfo.Server.Persistence.Tests.trx",
+      "SHA256": "958E82E88952422D394C4E5DF0FE22595B5E6951984A691B9224273A7F120116"
+    },
+    {
+      "Project": "Dfo.Server.Protocol.Tests",
+      "Passed": 1432,
+      "Failed": 0,
+      "Skipped": 0,
+      "Failures": [],
+      "SkippedTests": [],
+      "Trx": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\usage-quota-direct-events-20261010\\verification\\Dfo.Server.Protocol.Tests.trx",
+      "SHA256": "B2BE67D8650557A413917A0709D4DCE03ADA0BD5122A36EE5811B47942AF8A0F"
+    }
+  ],
+  "Passed": 6631,
+  "Failed": 2,
+  "Skipped": 2,
+  "Classification": "Two previously reproduced PVF baseline assertion failures; no new failure."
+}
