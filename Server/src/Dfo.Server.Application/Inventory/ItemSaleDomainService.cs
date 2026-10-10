@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Inventory;
 
@@ -13,7 +14,8 @@ internal sealed class ItemSaleDomainService(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ITownAreaDomainService townAreas, ICharacterDomainService characters,
     IBusinessInventorySlotDomainService slots, IItemSaleRuleService rules,
-    IDungeonRunDomainService runs, IItemLifecycleDomainService lifecycle) : IItemSaleDomainService
+    IDungeonRunDomainService runs, IItemLifecycleDomainService lifecycle,
+    ILogger<ItemSaleDomainService> logger) : IItemSaleDomainService
 {
     public async ValueTask<ItemSaleResult> SellAsync(SelectedSessionIdentity session, BusinessSlot slot,
         int count, int npcId, DateTimeOffset now, CancellationToken cancellationToken)
@@ -44,6 +46,10 @@ internal sealed class ItemSaleDomainService(
         var character = characters.Get(session.CharacterId);
         if (await character.IdentityAsync(cancellationToken).ConfigureAwait(false) is null)
             return new(ItemSaleRejection.NoSession);
+        if (quote.PricingFailure is { } failure)
+            logger.LogError("NPC sale price calculation failed; using zero gold. Character={CharacterId} "
+                + "ItemId={ItemId} ItemUid={ItemUid} Slot={Slot} Count={Count} Reason={Reason} ItemState={ItemState}",
+                session.CharacterId.Value, item.ItemId, item.Snapshot.ItemUid, slot, quote.Count, failure, item.Snapshot);
         var gold = await character.GoldAsync(cancellationToken).ConfigureAwait(false);
         var targetGold = (long)gold + quote.Gold;
         if (targetGold > int.MaxValue)
