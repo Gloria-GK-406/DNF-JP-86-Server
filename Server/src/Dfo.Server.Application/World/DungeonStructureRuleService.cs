@@ -52,7 +52,10 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
             foreach (var mapId in declared)
             {
                 var map = await maps.GetAsync(mapId, cancellationToken).ConfigureAwait(false);
-                if (map is not null && IsCompatible(map, cell, entrance))
+                // An explicit DGN binding is not a random-pool registration. Native 70
+                // get_candidator_map / CheckEntrance use only the arrival mask here.
+                if (map is not null && (entrance == DungeonPathDirection.None
+                        || map.Connections.Any(pair => (pair.Entrances & entrance) != 0)))
                     candidates.Add(mapId);
             }
         }

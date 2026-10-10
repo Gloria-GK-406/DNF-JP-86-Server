@@ -65,8 +65,8 @@ internal sealed class PvfDungeonMapDefinitionSource(PvfArchiveProvider provider)
         if (!Paths().TryGetValue(mapId, out var relativePath)) return null;
         var path = "map/" + relativePath;
         if (provider.Archive.FindFile(path) < 0) return null;
-        // Only the leading map metadata participates in registration. Nested actor declarations
-        // can also use [type], [dungeon] or [greed] and must never be mistaken for map metadata.
+        // MAP fields may follow tile/actor blocks. Read every root field while excluding
+        // nested declarations that reuse [type], [dungeon], [greed] or start-area tags.
         var metadata = Metadata(path);
         var owners = Decode(metadata, Dungeon, path) ?? [];
         var kindText = Decode(metadata, Type, path);
@@ -87,7 +87,7 @@ internal sealed class PvfDungeonMapDefinitionSource(PvfArchiveProvider provider)
             for (var offset = 0; offset < values.Count; offset += 2)
                 connections.Add(new(values[offset], values[offset + 1]));
         }
-        var sections = PvfDocument.Open(provider.Archive, path).Sections;
+        var sections = metadata;
         var hasStart = sections.Any(section => StartArea.Matches(section.Name)
                 && StartArea.Decode(provider.Archive, section.Values, path).Count > 0
             || DungeonStartArea.Matches(section.Name)
@@ -98,7 +98,7 @@ internal sealed class PvfDungeonMapDefinitionSource(PvfArchiveProvider provider)
     }
 
     private IReadOnlyList<PvfSection> Metadata(string path) => PvfDocument.Open(provider.Archive, path)
-        .Sections.TakeWhile(section => section.Name is not ("[tile]" or "[monster]" or "[aicharacter]" or "[object]")).ToArray();
+        .AtRoot().Sections;
 
     private T? Decode<T>(IReadOnlyList<PvfSection> sections, PvfField<T> field, string path) where T : class
     {

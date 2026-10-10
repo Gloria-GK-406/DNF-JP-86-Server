@@ -1,0 +1,302 @@
+[
+  {
+    "Id": 1,
+    "Cases": 4,
+    "EdgeChecks": 24,
+    "Failures": []
+  },
+  {
+    "Id": 2,
+    "Cases": 4,
+    "EdgeChecks": 24,
+    "Failures": []
+  },
+  {
+    "Id": 3,
+    "Cases": 4,
+    "EdgeChecks": 72,
+    "Failures": []
+  },
+  {
+    "Id": 4,
+    "Cases": 4,
+    "EdgeChecks": 64,
+    "Failures": []
+  },
+  {
+    "Id": 5,
+    "Cases": 4,
+    "EdgeChecks": 40,
+    "Failures": []
+  },
+  {
+    "Id": 6,
+    "Cases": 2,
+    "EdgeChecks": 16,
+    "Failures": []
+  },
+  {
+    "Id": 7,
+    "Cases": 4,
+    "EdgeChecks": 68,
+    "Failures": []
+  },
+  {
+    "Id": 8,
+    "Cases": 4,
+    "EdgeChecks": 52,
+    "Failures": []
+  },
+  {
+    "Id": 9,
+    "Cases": 4,
+    "EdgeChecks": 52,
+    "Failures": []
+  },
+  {
+    "Id": 11,
+    "Cases": 4,
+    "EdgeChecks": 44,
+    "Failures": []
+  },
+  {
+    "Id": 12,
+    "Cases": 2,
+    "EdgeChecks": 28,
+    "Failures": []
+  },
+  {
+    "Id": 13,
+    "Cases": 2,
+    "EdgeChecks": 26,
+    "Failures": []
+  },
+  {
+    "Id": 14,
+    "Cases": 4,
+    "EdgeChecks": 48,
+    "Failures": []
+  },
+  {
+    "Id": 15,
+    "Cases": 2,
+    "EdgeChecks": 64,
+    "Failures": []
+  },
+  {
+    "Id": 17,
+    "Cases": 1,
+    "EdgeChecks": 8,
+    "Failures": []
+  },
+  {
+    "Id": 21,
+    "Cases": 4,
+    "EdgeChecks": 60,
+    "Failures": []
+  },
+  {
+    "Id": 22,
+    "Cases": 4,
+    "EdgeChecks": 120,
+    "Failures": []
+  },
+  {
+    "Id": 23,
+    "Cases": 4,
+    "EdgeChecks": 52,
+    "Failures": []
+  },
+  {
+    "Id": 24,
+    "Cases": 2,
+    "EdgeChecks": 22,
+    "Failures": []
+  },
+  {
+    "Id": 25,
+    "Cases": 2,
+    "EdgeChecks": 18,
+    "Failures": []
+  },
+  {
+    "Id": 26,
+    "Cases": 1,
+    "EdgeChecks": 12,
+    "Failures": []
+  },
+  {
+    "Id": 27,
+    "Cases": 2,
+    "EdgeChecks": 18,
+    "Failures": []
+  },
+  {
+    "Id": 31,
+    "Cases": 4,
+    "EdgeChecks": 112,
+    "Failures": []
+  },
+  {
+    "Id": 32,
+    "Cases": 3,
+    "EdgeChecks": 48,
+    "Failures": []
+  },
+  {
+    "Id": 34,
+    "Cases": 1,
+    "EdgeChecks": 13,
+    "Failures": []
+  },
+  {
+    "Id": 35,
+    "Cases": 1,
+    "EdgeChecks": 23,
+    "Failures": []
+  },
+  {
+    "Id": 36,
+    "Cases": 1,
+    "EdgeChecks": 28,
+    "Failures": []
+  },
+  {
+    "Id": 37,
+    "Cases": 4,
+    "EdgeChecks": 44,
+    "Failures": []
+  },
+  {
+    "Id": 40,
+    "Cases": 1,
+    "EdgeChecks": 9,
+    "Failures": []
+  },
+  {
+    "Id": 41,
+    "Cases": 1,
+    "EdgeChecks": 1,
+    "Failures": []
+  },
+  {
+    "Id": 42,
+    "Cases": 2,
+    "EdgeChecks": 24,
+    "Failures": []
+  },
+  {
+    "Id": 43,
+    "Cases": 2,
+    "EdgeChecks": 18,
+    "Failures": []
+  },
+  {
+    "Id": 44,
+    "Cases": 1,
+    "EdgeChecks": 15,
+    "Failures": []
+  },
+  {
+    "Id": 45,
+    "Cases": 2,
+    "EdgeChecks": 18,
+    "Failures": []
+  },
+  {
+    "Id": 50,
+    "Cases": 2,
+    "EdgeChecks": 22,
+    "Failures": []
+  },
+  {
+    "Id": 51,
+    "Cases": 3,
+    "EdgeChecks": 63,
+    "Failures": []
+  },
+  {
+    "Id": 52,
+    "Cases": 1,
+    "EdgeChecks": 12,
+    "Failures": []
+  },
+  {
+    "Id": 53,
+    "Cases": 1,
+    "EdgeChecks": 25,
+    "Failures": []
+  },
+  {
+    "Id": 60,
+    "Cases": 1,
+    "EdgeChecks": 12,
+    "Failures": []
+  },
+  {
+    "Id": 111,
+    "Cases": 1,
+    "EdgeChecks": 11,
+    "Failures": []
+  },
+  {
+    "Id": 112,
+    "Cases": 1,
+    "EdgeChecks": 13,
+    "Failures": []
+  },
+  {
+    "Id": 130,
+    "Cases": 1,
+    "EdgeChecks": 6,
+    "Failures": []
+  },
+  {
+    "Id": 131,
+    "Cases": 4,
+    "EdgeChecks": 44,
+    "Failures": []
+  },
+  {
+    "Id": 132,
+    "Cases": 3,
+    "EdgeChecks": 48,
+    "Failures": []
+  },
+  {
+    "Id": 133,
+    "Cases": 2,
+    "EdgeChecks": 18,
+    "Failures": []
+  },
+  {
+    "Id": 134,
+    "Cases": 6,
+    "EdgeChecks": 90,
+    "Failures": []
+  },
+  {
+    "Id": 135,
+    "Cases": 1,
+    "EdgeChecks": 0,
+    "Failures": []
+  },
+  {
+    "Id": 140,
+    "Cases": 1,
+    "EdgeChecks": 9,
+    "Failures": []
+  },
+  {
+    "Id": 141,
+    "Cases": 1,
+    "EdgeChecks": 9,
+    "Failures": []
+  },
+  {
+    "Id": 1000,
+    "Cases": 4,
+    "EdgeChecks": 112,
+    "Failures": []
+  }
+]

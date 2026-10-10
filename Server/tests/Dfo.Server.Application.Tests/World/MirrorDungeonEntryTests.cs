@@ -15,6 +15,31 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class MirrorDungeonEntryTests
 {
+    [SkippableTheory]
+    [InlineData(4)]
+    [InlineData(17)]
+    [InlineData(23)]
+    public async Task Historical_mirror_maps_prepare_every_ordinary_start_and_boss_combination(int dungeonId)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var content = ContentArchive.CreateContentProvider();
+        var definitions = content.GetRequiredService<IDungeonDefinitionSource>();
+        var structures = new DungeonStructureRuleService(definitions,
+            content.GetRequiredService<IDungeonMapDefinitionSource>());
+        var definition = await definitions.GetAsync(dungeonId, default);
+        Assert.NotNull(definition);
+        var mazes = definition.Mazes.Where(maze => maze.QuestConnection is null).ToArray();
+        Assert.NotEmpty(mazes);
+        foreach (var maze in mazes)
+        foreach (var start in maze.StartCandidates)
+        foreach (var boss in maze.BossCandidates)
+        {
+            var layout = new DungeonLayout(dungeonId, maze.Index, maze.Width, maze.Height,
+                start, boss, 0, 0, maze.Cells);
+            Assert.True((await structures.PrepareLayoutAsync(layout, default)).StartRoomMapId > 0);
+        }
+    }
+
     [SkippableFact]
     public async Task Observed_A21_pair_resolves_declared_difficulty_and_actual_ordinary_maze_without_wrapper_generation()
     {
