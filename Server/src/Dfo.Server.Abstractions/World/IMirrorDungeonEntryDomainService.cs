@@ -16,11 +16,6 @@ public sealed record MirrorDungeonCatalog(int WrapperDungeonId, int WorldMapId,
 }
 public sealed record MirrorDungeonRunIdentity(int WrapperDungeonId, int WorldMapId, int QuestId);
 public sealed record MirrorDungeonEntryRule(MirrorDungeonCatalog Catalog, DungeonDifficulty Difficulty);
-/// <summary>Opt-in, temporary historical-map acceptance settings. Disabled in normal deployments.</summary>
-public sealed record MirrorDungeonEntryTestSettings(bool Enabled, IReadOnlyList<int> DungeonIds, bool SkipEntryQuota)
-{
-    public static MirrorDungeonEntryTestSettings Disabled { get; } = new(false, [], false);
-}
 
 public interface IMirrorDungeonDefinitionSource
 {
@@ -30,7 +25,6 @@ public interface IMirrorDungeonDefinitionSource
 public interface IMirrorDungeonRuleService
 {
     MirrorDungeonCatalog Catalog { get; }
-    MirrorDungeonEntryTestSettings EntryTestSettings => MirrorDungeonEntryTestSettings.Disabled;
     ValueTask<MirrorDungeonEntryRule?> ResolveAsync(int dungeonId, int questId, CancellationToken cancellationToken);
 }
 

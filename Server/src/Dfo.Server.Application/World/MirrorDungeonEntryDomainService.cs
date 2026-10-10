@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
@@ -14,8 +13,6 @@ internal sealed class MirrorDungeonEntryDomainService(IMirrorDungeonRuleService 
     IDungeonRunDomainService runs, IMirrorDungeonQuotaDomainService quota,
     IDomainTransactionAccessor transactions) : IMirrorDungeonEntryDomainService
 {
-    private readonly ConcurrentDictionary<Dfo.Server.Data.Characters.CharacterId, int> testRotation = new();
-
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -63,38 +60,7 @@ internal sealed class MirrorDungeonEntryDomainService(IMirrorDungeonRuleService 
             if (catalog.RequiredQuestIds.Any(id => !cleared.Any(x => x.QuestId == id && x.Mark != 0)))
                 return new(null, DungeonEntryFailure.MissingPrerequisite, member.Slot);
         }
-        var test = rules.EntryTestSettings;
-        var leader = context.Participants.Single(x => x.IsLeader).CharacterId;
-        var cursor = 0;
-        var dungeonId = context.DungeonId;
-        var questId = context.MirrorQuestId.Value;
-        if (test.Enabled)
-        {
-            if (test.DungeonIds.Count == 0)
-                return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, "Mirror test rotation is empty.");
-            cursor = testRotation.GetOrAdd(leader, 0);
-            dungeonId = test.DungeonIds[cursor];
-            MirrorDungeonEntryRule? testRule = null;
-            try
-            {
-                foreach (var candidate in catalog.Candidates.Where(x => x.DungeonId == dungeonId))
-                {
-                    testRule = await rules.ResolveAsync(dungeonId, candidate.QuestId, cancellationToken).ConfigureAwait(false);
-                    if (testRule is null) continue;
-                    questId = candidate.QuestId;
-                    break;
-                }
-            }
-            catch (InvalidDataException error)
-            {
-                return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message);
-            }
-            if (testRule is null)
-                return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, $"Mirror test dungeon {dungeonId} has no valid mission pair.");
-            rule = testRule;
-        }
-        var skipQuota = test.Enabled && test.SkipEntryQuota;
-        if (!skipQuota && await quota.FindBlockedSlotAsync(context.Participants, catalog.DailyEntryLimit, cancellationToken).ConfigureAwait(false) is { } blocked)
+        if (await quota.FindBlockedSlotAsync(context.Participants, catalog.DailyEntryLimit, cancellationToken).ConfigureAwait(false) is { } blocked)
             return new(null, DungeonEntryFailure.DailyEntryLimitReached, blocked);
 
         // Mirror enters the historical dungeon's ordinary maze, independently of the
@@ -103,26 +69,20 @@ internal sealed class MirrorDungeonEntryDomainService(IMirrorDungeonRuleService 
         DungeonLayout? layout;
         try
         {
-            layout = await structures.ResolveAsync(dungeonId, facts, Random.Shared.Next(), cancellationToken).ConfigureAwait(false);
+            layout = await structures.ResolveAsync(context.DungeonId, facts, Random.Shared.Next(), cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidDataException error)
         {
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message);
         }
         if (layout is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, "Mirror historical maze unavailable.");
-        layout = layout with { Mirror = new(catalog.WrapperDungeonId, catalog.WorldMapId, questId) };
+        layout = layout with { Mirror = new(catalog.WrapperDungeonId, catalog.WorldMapId, context.MirrorQuestId.Value) };
         if (selected.Any(x => sessions.Find(x.AccountId) != x))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite, "Mirror participants changed during entry.");
         var attempt = await visits.TryEnterPreparedPartyAsync(context.Participants, layout, facts, cancellationToken).ConfigureAwait(false);
         if (attempt.Entry is null) return attempt;
-        if (!skipQuota && await quota.TryReserveEntryAsync(context.Participants, catalog.DailyEntryLimit, cancellationToken).ConfigureAwait(false) is not null)
+        if (await quota.TryReserveEntryAsync(context.Participants, catalog.DailyEntryLimit, cancellationToken).ConfigureAwait(false) is not null)
             throw new InvalidOperationException("Validated mirror entry quota changed in the shared transaction.");
-        if (test.Enabled)
-            transactions.Current.RegisterAfterCommit((this, leader), _ =>
-            {
-                testRotation[leader] = (cursor + 1) % test.DungeonIds.Count;
-                return ValueTask.CompletedTask;
-            });
         return attempt;
     }
 }

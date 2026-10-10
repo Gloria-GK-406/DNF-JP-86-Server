@@ -5,11 +5,9 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.World;
 
 internal sealed class MirrorDungeonRuleService(IMirrorDungeonDefinitionSource source,
-    IDungeonDefinitionSource dungeons, IQuestDefinitionSource quests,
-    MirrorDungeonEntryTestSettings? entryTestSettings = null) : IMirrorDungeonRuleService
+    IDungeonDefinitionSource dungeons, IQuestDefinitionSource quests) : IMirrorDungeonRuleService
 {
     public MirrorDungeonCatalog Catalog => source.Load();
-    public MirrorDungeonEntryTestSettings EntryTestSettings => entryTestSettings ?? MirrorDungeonEntryTestSettings.Disabled;
 
     public async ValueTask<MirrorDungeonEntryRule?> ResolveAsync(int dungeonId, int questId,
         CancellationToken cancellationToken)
