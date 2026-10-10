@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-11 装备/时装钻孔镶嵌（CurrentImplementation，实机待测）
+
+[037A](game/client-to-server/0x037A.md)/[00CE](game/client-to-server/0x00CE.md)开孔、[0379](game/client-to-server/0x0379.md)/[00C9](game/client-to-server/0x00C9.md)镶嵌已接独立领域服务与装备/时装实例。请求分别为8B、8B、7+n×7B、8+n×7B；0379自动区的前导列表字节已被客户端分支证据推翻，人工区为当前结论。成功开孔ACK只含两个u16并本地扣一；成功镶嵌ACK含材料槽/绝对剩余量，不含目标模板ID。首次ACK先于权威NOTI000E，事务失败不消耗、重放不重扣。孔色/布局来自PVF，时装通用投影限3孔；[说明](../Document/EquipmentSockets-20261011.md)。无此次归档实帧或实机验收，不记ClientVerified。
+
 ## 2026-10-10 融合异界单人基础可玩一期接受
 
 异界继续使用 [CMD0010](game/client-to-server/0x0010.md)，CMD 业务层按 PVF 的 [dimension dungeon] 分流独立领域服务；不只按7100硬编码。

@@ -47,6 +47,12 @@ internal static class EffectRequestTransport
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         switch (request)
         {
+            case Dfo.Server.Protocol.Game.ItemSockets.ItemSocketRequest x:
+                if (x.Avatar && !x.Open) writer.Write((byte)x.TargetList);
+                writer.Write(x.TargetSlot); writer.Write(x.ExpectedItemId);
+                if (x.Open) writer.Write(x.DrillSlot);
+                else { writer.Write(checked((byte)x.Emblems.Length)); foreach (var emblem in x.Emblems) { writer.Write(emblem.MaterialSlot); writer.Write(emblem.ItemId); writer.Write(emblem.SocketIndex); } }
+                break;
             case Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundRequest x:
                 writer.Write(x.MaterialSlot); writer.Write(x.FirstSlot); writer.Write(x.FirstItemId);
                 writer.Write(x.SecondSlot); writer.Write(x.SecondItemId); writer.Write(x.TargetItemId);

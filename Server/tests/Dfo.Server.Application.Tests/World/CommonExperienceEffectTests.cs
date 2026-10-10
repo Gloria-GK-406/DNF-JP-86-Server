@@ -263,7 +263,7 @@ public sealed class CommonExperienceEffectTests
         string[] readOnly = ["QueryJoustStateCommand","QueryJoustHistoryCommand","QueryTitleBookCommand"];
         string[] expected = ["EquipCarriedTitleReplacingMirrorCommand","ClaimWeeklyAttendanceCommand","UseStackableCommand","RenameCreatureCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
             "GrantKillExperienceCommand","ApplyMonsterKillCommand","GrantClearExperienceCommand","AvatarCompoundCommand","ResetItemQualityCommand","ResetRandomOptionCommand","ReinforceItemCommand","EnchantByBeadCommand","MagicSealCommand","OutworldCommand",
-            "ForgingCommand","NpcDisjointItemCommand","PortableDisjointItemCommand","CompoundItemCommand","EpicCraftCommand","PackageOpeningCommand","AvatarPackageOpeningCommand",
+            "ForgingCommand","NpcDisjointItemCommand","PortableDisjointItemCommand","CompoundItemCommand","EpicCraftCommand","ItemSocketCommand","PackageOpeningCommand","AvatarPackageOpeningCommand",
             "MagicBoxSingleOpeningCommand","MagicBoxBatchOpeningCommand","LotteryOpeningCommand","VendingMachineCommand","TeleportCommand","WarehouseCommand","JoustBetCommand","StoreTitleCommand","WithdrawTitleCommand","SetTitleAppearanceCommand","ReconcileAchievementCommand"];
         var actual = typeof(GrantClearExperienceCommand).Assembly.GetTypes().Where(x => !x.IsAbstract && typeof(ISelectedSessionCommand).IsAssignableFrom(x)).ToArray();
         Assert.Equal(expected.Concat(readOnly).Order(),actual.Select(x => x.Name).Order());

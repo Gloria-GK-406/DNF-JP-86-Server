@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
@@ -65,6 +66,27 @@ internal sealed class EquipmentInstance(IBusinessItemContainer container, ItemRe
             throw new InvalidOperationException("Equipment reference no longer occupies its original slot.");
         return current;
     }
+    public ValueTask<ItemReference> OpenSocketsAsync(ImmutableArray<ushort> types, CancellationToken ct) =>
+        ChangeAsync(core =>
+        {
+            if (types.Length is < 1 or > 2 || core.EmblemSocketCount != 0)
+                throw new InvalidOperationException("Equipment sockets cannot be reopened.");
+            return core with { EmblemSocketCount = (byte)types.Length, EmblemId1 = -1, EmblemId2 = types.Length == 2 ? -1 : 0 };
+        }, ct);
+
+    public ValueTask<ItemReference> EmbedAsync(ImmutableArray<ushort> types, ImmutableArray<SocketEmbedding> emblems, CancellationToken ct) =>
+        ChangeAsync(core =>
+        {
+            if (types.Length is < 1 or > 2 || core.EmblemSocketCount != types.Length
+                || emblems.IsDefaultOrEmpty || emblems.Any(x => x.SocketIndex >= types.Length || x.ItemId <= 0)
+                || emblems.Select(x => x.SocketIndex).Distinct().Count() != emblems.Length)
+                throw new InvalidOperationException("Invalid equipment socket mutation.");
+            var changed = core;
+            foreach (var emblem in emblems) changed = emblem.SocketIndex == 0
+                ? changed with { EmblemId1 = emblem.ItemId } : changed with { EmblemId2 = emblem.ItemId };
+            return changed;
+        }, ct);
+
     public ValueTask<ItemReference> SetReinforcementLevelAsync(byte level, CancellationToken ct)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(level, (byte)31);

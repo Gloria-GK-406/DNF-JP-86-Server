@@ -15,11 +15,10 @@ public interface IEquipmentCollection
 }
 
 /// <summary>A transaction-bound identity. Rules decide the values these operations apply.</summary>
-public interface IEquipmentInstance
+public interface IEquipmentInstance : IItemSocketInstance
 {
     ItemReference Reference { get; }
     int ItemUid { get; }
-    ValueTask<ItemReference> ReadAsync(CancellationToken cancellationToken);
     ValueTask<ItemReference> SetReinforcementLevelAsync(byte level, CancellationToken cancellationToken);
     ValueTask<ItemReference> SetEnchantmentAsync(int cardId, CancellationToken cancellationToken);
     ValueTask<ItemReference> SetForgingLevelAsync(byte level, CancellationToken cancellationToken);

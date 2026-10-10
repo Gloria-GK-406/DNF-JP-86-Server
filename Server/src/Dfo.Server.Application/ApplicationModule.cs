@@ -215,6 +215,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IBusinessInventorySlotDomainService, BusinessInventorySlotDomainService>();
         services.TryAddSingleton<ICharacterBusinessInventoryDomainService, CharacterBusinessInventoryDomainService>();
         services.TryAddSingleton<IEquipmentDomainService, EquipmentDomainService>();
+        services.TryAddSingleton<IAvatarDomainService, AvatarDomainService>();
+        services.TryAddSingleton<IItemSocketRuleService, ItemSocketRuleService>();
+        services.TryAddSingleton<IItemSocketDomainService, ItemSocketDomainService>();
         services.TryAddSingleton<ICreatureRuleService, CreatureRuleService>();
         services.TryAddSingleton<ICreatureDomainService, CreatureDomainService>();
         services.TryAddSingleton<ICreatureNamingDomainService, CreatureNamingDomainService>();
