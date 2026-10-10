@@ -23,6 +23,7 @@ using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.TownProjection;
+using Dfo.Server.Protocol.Game.Weakness;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Dfo.Server.Protocol.Tests.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.Party;
@@ -217,8 +218,10 @@ public sealed class LeaveDungeonTests
         Assert.Equal([helper], deliveries.Find(runs.RunId));
     }
 
-    [Fact]
-    public async Task GiveUpEndsTheRunAndProjectsTheSameTownState()
+    [Theory]
+    [InlineData((byte)10)]
+    [InlineData((byte)100)]
+    public async Task GiveUp_sends_weakness_once_after_success_and_before_town(byte weaknessValue)
     {
         var runs = new OneRun();
         var deliveries = new DungeonRunDeliveryRegistry();
@@ -232,10 +235,16 @@ public sealed class LeaveDungeonTests
             runs,
             deliveries,
             sender,
-            TownAreaProjectionTestFactory.Create(
+            new TownAreaProjectionDelivery(
+                new SessionPresenceDomainService(),
                 new OneSession(Identity),
                 new OneRuntimeSession(Entry()),
-                sender),
+                new NoopNotificationBus(),
+                new NoopPartyTownProjection(),
+                sender,
+                SharedTownMovementDomainService.Instance,
+                weaknessProjection: new WeaknessProjectionDelivery(
+                    new FixedWeakness(weaknessValue), new OneSession(Identity), sender)),
             NullLogger<GiveUpGameHandler>.Instance,
             new SelectedSessionTransitionGate(),
             new SessionPresenceDomainService(),
@@ -249,9 +258,10 @@ public sealed class LeaveDungeonTests
 
         Assert.True(runs.Ended);
         Assert.Equal(
-            [typeof(GiveUpGameResponse), typeof(UserStateNotification),
+            [typeof(GiveUpGameResponse), typeof(WeaknessProjectionNotification), typeof(UserStateNotification),
              typeof(UserAreaNotification), typeof(AreaUsersNotification)],
             sender.Sent.Select(frame => frame.GetType()));
+        Assert.Equal(weaknessValue, Assert.Single(sender.Sent.OfType<WeaknessProjectionNotification>()).Value);
         Assert.Equal(
             StandingAreaId,
             Assert.Single(sender.Sent.OfType<UserAreaNotification>()).AreaId);
@@ -754,8 +764,11 @@ public sealed class LeaveDungeonTests
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId, IGameNotiMessage message,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("These frames are sent explicitly.");
+            CancellationToken cancellationToken)
+        {
+            Sent.Add(message);
+            return ValueTask.CompletedTask;
+        }
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
@@ -765,6 +778,19 @@ public sealed class LeaveDungeonTests
             this.Sent.AddRange(delivery.RequiredDirectMessages);
             return ValueTask.CompletedTask;
         }
+    }
+
+    private sealed class FixedWeakness(byte value) : IWeaknessDomainService, IWeakness
+    {
+        public byte Value => value;
+        public IWeakness For(CharacterId characterId) => this;
+        public TimeSpan RecoveryInterval => TimeSpan.FromMinutes(1);
+        public IReadOnlyList<CharacterId> AdvanceRecovery() => [];
+        public ValueTask<int> RecoveryGoldCost(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public ValueTask SetWeakness() => throw new NotSupportedException();
+        public void Recover() => throw new NotSupportedException();
+        public void PauseRecovery() { }
+        public void ResumeRecovery() { }
     }
 
     private sealed class RecordingCommandBus : ICommandBus

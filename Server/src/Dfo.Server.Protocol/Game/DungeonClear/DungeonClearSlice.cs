@@ -282,7 +282,7 @@ public sealed class GiveUpGameHandler(
                 new GameExplicitMessageDelivery([new GiveUpGameResponse()], []),
                 cancellationToken).ConfigureAwait(false);
             await townAreaProjection.EnterAsync(
-                [new TownAreaEntry(session, result, position)],
+                [new TownAreaEntry(session, result, position, ProjectWeaknessBeforeTown: true)],
                 cancellationToken).ConfigureAwait(false);
             return;
         }
