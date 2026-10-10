@@ -1,0 +1,25 @@
+{
+  "collectedAt": "2026-10-11",
+  "scope": "Static exploration only; no runtime/client acceptance",
+  "current": {
+    "path": "E:/Project/DNF/DNF-JP-86-Server/.worktrees/monster-declaration-parser",
+    "head": "4491afdac14f1793f51bd29b3c4af773df8201fb",
+    "cleanAtStart": true
+  },
+  "upstream": {
+    "path": "E:/Project/DNF/ServerS4A21",
+    "head": "c20dba5fa52c2faf4b5087a3b477676be8434e8f"
+  },
+  "pvf": {
+    "path": "E:/Project/DNF/DNFClient-A21-protocol2/Script.pvf",
+    "sha256": "f997177d1d7de7bdd2d832d8533d09a40cb5ac05efabfcdc5369881914c980c5"
+  },
+  "server70": {
+    "path": "E:/Project/DNF/Research/1995chen-dnf/other/等级补丁/70/df_game_r",
+    "sha256": "cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7"
+  },
+  "clientDump": {
+    "path": "E:/Project/DNF/DNFClient-A21-debug/dumps/dnf-dump-20260922-194214-883-23144/DNF-memory-rva.bin",
+    "sha256": "aaae24216e0e260afa528445775e767d104f658fd68fdad21ec7bb601b9c8a3d"
+  }
+}
