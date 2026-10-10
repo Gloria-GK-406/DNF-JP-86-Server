@@ -38,3 +38,5 @@ CMD	ItemSocketResponse	0x00C9	Game/ItemSockets/ItemSocketsSlice.cs	ItemSocketRes
 CMD	ItemSocketResponse	0x00CE	Game/ItemSockets/ItemSocketsSlice.cs	ItemSocketResponse.MessageType admits this request type; ItemSocketEncoder echoes message.Type
 CMD	ItemSocketResponse	0x0379	Game/ItemSockets/ItemSocketsSlice.cs	ItemSocketResponse.MessageType admits this request type; ItemSocketEncoder echoes message.Type
 CMD	ItemSocketResponse	0x037A	Game/ItemSockets/ItemSocketsSlice.cs	ItemSocketResponse.MessageType admits this request type; ItemSocketEncoder echoes message.Type
+CMD	SelectDungeonRefusal	0x0010	Game/DungeonEntry/DungeonEntrySlice.cs	Mirror false emits GameProtocol.SelectDungeonType in SelectDungeonRefusalEncoder
+CMD	SelectDungeonRefusal	0x02B6	Game/DungeonEntry/DungeonEntrySlice.cs	Mirror true emits mirror-entry refusal type in SelectDungeonRefusalEncoder

@@ -19,4 +19,4 @@ ClientStatic / High：A21 原始内存 dump `DNFClient-A21-debug/dumps-keep/dnf-
 
 成功时当前服务端不发送此 CMD，直接以 [0278](NOTI-0x0278.md) 和共用地图加载继续。客户端成功 ACK 的非-1 DGN 路径会再发送000F/0010，不适用于服务端已创建的镜像实例。
 
-CurrentImplementation：编码和拒绝后重试已测试；实际客户端提示、等待状态解除与入场仍待部署后验证。
+CurrentImplementation：编码和拒绝后重试有自动验证；用户已接受测试范围内的镜像单人入场与地图流程，见[验收收尾](../../../Document/MirrorAradCloseout-20261010.md)，正常入场流程记有限范围ClientVerified。各错误码的实际文案、等待状态解除和完整拒绝矩阵尚未逐分支验收。

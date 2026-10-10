@@ -1,6 +1,6 @@
 # CMD `0x01C8` RESET_RANDOM_OPTION
 
-2026-10-09：ClientStatic / High（响应回调）+ 70Reference（信封、发帧顺序）；CurrentImplementation。ClientVerified 待实机。NOTI01C8 DUAL_RAID_PARTY_GROUP_INFO 是另一身份。
+2026-10-09：ClientStatic / High（响应回调）+ 70Reference（信封、发帧顺序）；CurrentImplementation。用户已确认所测试正常路径可用，记有限范围ClientVerified；全部词条序号、错误文案、耗尽和重登仍须专项验证。NOTI01C8 DUAL_RAID_PARTY_GROUP_INFO 是另一身份。
 
 A21 身份：DNF.exe SHA-256 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`；内存 dump `DNFClient-A21-debug/dumps/dnf-dump-20260922-194214-883-23144/DNF-memory-rva.bin`，SHA-256 `AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D`。
 
@@ -18,4 +18,4 @@ A21 身份：DNF.exe SHA-256 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732
 | 调级箱缺失或不支持 | 15 | 同上 |
 | 词条不可调整 | 17 | 同上 |
 
-请求及规则证据见 [01C8请求](../client-to-server/0x01C8.md)。自动检查不能证明真实客户端显示及错误文案；需验证等待释放、选中词条刷新、箱子数量、其他属性不变、重登持久化。
+请求及规则证据见 [01C8请求](../client-to-server/0x01C8.md)。正常操作已由用户接受；自动检查不替代错误文案、全部词条序号、材料耗尽、其他属性保持和重登持久化的专项实机验证。
