@@ -15,6 +15,28 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class MirrorDungeonEntryTests
 {
+    [SkippableFact]
+    public async Task Test_rotation_maps_have_valid_pvf_missions_and_prepare_with_their_declared_difficulty()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var content = ContentArchive.CreateContentProvider();
+        using var archive = new PvfArchiveProvider(new PvfContentOptions { ArchivePath = ContentArchive.Path });
+        var rules = new MirrorDungeonRuleService(new PvfMirrorDungeonDefinitionSource(archive),
+            content.GetRequiredService<IDungeonDefinitionSource>(), content.GetRequiredService<IQuestDefinitionSource>());
+        var structures = new DungeonStructureRuleService(content.GetRequiredService<IDungeonDefinitionSource>(),
+            content.GetRequiredService<IDungeonMapDefinitionSource>());
+        foreach (var id in new[] { 17, 23, 60, 4 })
+        {
+            var candidate = rules.Catalog.Candidates.First(x => x.DungeonId == id);
+            var rule = await rules.ResolveAsync(id, candidate.QuestId, default);
+            Assert.NotNull(rule);
+            var layout = await structures.ResolveAsync(id, DungeonEntryFacts.None with { Difficulty = rule.Difficulty }, 42, default);
+            Assert.NotNull(layout);
+            Assert.Equal(id, layout.DungeonId);
+            Assert.True(layout.StartRoomMapId > 0);
+        }
+    }
+
     [SkippableTheory]
     [InlineData(4)]
     [InlineData(17)]
@@ -125,6 +147,81 @@ public sealed class MirrorDungeonEntryTests
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await service.EnterAsync(Context(), default));
     }
 
+    [Fact]
+    public async Task Test_rotation_wraps_only_after_committed_success_and_bypasses_entry_quota()
+    {
+        await using var fixture = new LearningFixture();
+        await fixture.SeedAsync();
+        var (service, visits, quota) = Create(fixture, "quota", new TestRules(skipQuota: true));
+        // A successful preparation whose transaction is rolled back retains the first map.
+        await using (var transaction = fixture.Scope.Begin())
+        {
+            Assert.NotNull((await service.EnterAsync(Context(), default)).Entry);
+            Assert.Equal(17, visits.Layout!.DungeonId);
+        }
+        // A rejected visit also retains the same map, even if its transaction commits.
+        visits.Refused = true;
+        await using (var transaction = fixture.Scope.Begin())
+        {
+            Assert.Null((await service.EnterAsync(Context(), default)).Entry);
+            Assert.Equal(17, visits.Layout!.DungeonId);
+            await transaction.CommitAsync(default);
+        }
+        visits.Refused = false;
+        foreach (var id in new[] { 17, 23, 60, 4, 17 })
+        {
+            await using var transaction = fixture.Scope.Begin();
+            Assert.NotNull((await service.EnterAsync(Context(), default)).Entry);
+            Assert.Equal(id, visits.Layout!.DungeonId);
+            Assert.Equal(15000 + id, visits.Layout.Mirror!.QuestId);
+            await transaction.CommitAsync(default);
+        }
+        Assert.Equal(0, quota.Checks);
+        Assert.Equal(0, quota.Reservations);
+    }
+
+    [Fact]
+    public async Task Test_rotation_does_not_accept_invalid_client_pairs_and_can_keep_normal_quota()
+    {
+        await using var fixture = new LearningFixture();
+        await fixture.SeedAsync();
+        var (service, visits, quota) = Create(fixture, rules: new TestRules(skipQuota: false));
+        await using var transaction = fixture.Scope.Begin();
+        Assert.Null((await service.EnterAsync(Context() with { MirrorQuestId = 1 }, default)).Entry);
+        Assert.Equal(0, visits.Calls);
+        Assert.NotNull((await service.EnterAsync(Context(), default)).Entry);
+        Assert.Equal(17, visits.Layout!.DungeonId);
+        Assert.Equal(1, quota.Checks);
+        Assert.Equal(1, quota.Reservations);
+        await transaction.CommitAsync(default);
+    }
+
+    [Fact]
+    public async Task Test_rotation_is_independent_for_each_party_leader()
+    {
+        await using var fixture = new LearningFixture();
+        await fixture.SeedAsync();
+        var (service, visits, _) = Create(fixture, rules: new TestRules(skipQuota: true));
+        await using (var transaction = fixture.Scope.Begin())
+        {
+            Assert.NotNull((await service.EnterAsync(Context(), default)).Entry);
+            await transaction.CommitAsync(default);
+        }
+        await using (var transaction = fixture.Scope.Begin())
+        {
+            var otherLeader = Participants.Select(x => x with { IsLeader = !x.IsLeader }).ToArray();
+            Assert.NotNull((await service.EnterAsync(Context() with { Participants = otherLeader }, default)).Entry);
+            Assert.Equal(17, visits.Layout!.DungeonId);
+            await transaction.CommitAsync(default);
+        }
+        await using (var transaction = fixture.Scope.Begin())
+        {
+            Assert.NotNull((await service.EnterAsync(Context(), default)).Entry);
+            Assert.Equal(23, visits.Layout!.DungeonId);
+            await transaction.CommitAsync(default);
+        }
+    }
+
     private static readonly DungeonRunParticipant[] Participants = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)];
     private static readonly MirrorDungeonCatalog Catalog = new(8000, 31, 21, 2, 55, 10, 5,
         new(5, 3037, 10), [], [new(32, 14299)]) { RequiredQuestIds = [14395] };
@@ -132,7 +229,8 @@ public sealed class MirrorDungeonEntryTests
         new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(4403) });
     private static DungeonEntryContext Context() => new(32, DungeonEntryFacts.None, 0, 0, Participants, 14299);
 
-    private static (MirrorDungeonEntryDomainService Service, Visits Visits, Quota Quota) Create(LearningFixture fixture, string? boundary = null)
+    private static (MirrorDungeonEntryDomainService Service, Visits Visits, Quota Quota) Create(LearningFixture fixture, string? boundary = null,
+        IMirrorDungeonRuleService? rules = null)
     {
         fixture.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(71,14395,1);");
         if (boundary != "member-quest") fixture.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(72,14395,1);");
@@ -144,7 +242,7 @@ public sealed class MirrorDungeonEntryTests
         positions.Place(other, new(21, boundary == "position" ? (byte)1 : (byte)2, 865, 208, 0));
         var visits = new Visits();
         var quota = new Quota { Blocked = boundary == "quota" };
-        return (new(new Rules(), new Structures(), visits, sessions,
+        return (new(rules ?? new Rules(), new Structures(), visits, sessions,
             fixture.Services.GetRequiredService<ICharacterDomainService>(), positions,
             fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(), new DungeonRunDomainService(fixture.Scope),
             quota, fixture.Scope), visits, quota);
@@ -156,13 +254,26 @@ public sealed class MirrorDungeonEntryTests
         public ValueTask<MirrorDungeonEntryRule?> ResolveAsync(int dungeonId, int questId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<MirrorDungeonEntryRule?>(dungeonId == 32 && questId == 14299 ? new(Catalog, DungeonDifficulty.Tier3) : null);
     }
+    private sealed class TestRules(bool skipQuota) : IMirrorDungeonRuleService
+    {
+        public MirrorDungeonEntryTestSettings EntryTestSettings { get; } = new(true, [17, 23, 60, 4], skipQuota);
+        public MirrorDungeonCatalog Catalog { get; } = MirrorDungeonEntryTests.Catalog with
+        { Candidates = [new(32, 14299), new(17, 15017), new(23, 15023), new(60, 15060), new(4, 15004)] };
+        public ValueTask<MirrorDungeonEntryRule?> ResolveAsync(int dungeonId, int questId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<MirrorDungeonEntryRule?>(Catalog.Candidates.Contains(new(dungeonId, questId))
+                ? new(Catalog, DungeonDifficulty.Tier3) : null);
+    }
+
     private sealed class Quota : IMirrorDungeonQuotaDomainService
     {
         public bool Blocked { get; init; }
         public bool FailReservation { get; set; }
         public int Reservations { get; private set; }
+        public int Checks { get; private set; }
         public ValueTask<byte?> FindBlockedSlotAsync(IReadOnlyList<DungeonRunParticipant> participants, int limit, CancellationToken token) =>
-            ValueTask.FromResult<byte?>(Blocked ? (byte)1 : null);
+            Check();
+        private ValueTask<byte?> Check()
+        { Checks++; return ValueTask.FromResult<byte?>(Blocked ? (byte)1 : null); }
         public ValueTask<byte?> TryReserveEntryAsync(IReadOnlyList<DungeonRunParticipant> participants, int limit, CancellationToken token)
         { Reservations++; return ValueTask.FromResult<byte?>(FailReservation ? (byte)1 : null); }
     }
@@ -170,7 +281,7 @@ public sealed class MirrorDungeonEntryTests
     {
         public ValueTask<DungeonDefinition?> GetDefinitionAsync(int id, CancellationToken token) => throw new NotSupportedException();
         public ValueTask<DungeonLayout?> ResolveAsync(int id, DungeonEntryFacts facts, int seed, CancellationToken token) =>
-            ValueTask.FromResult<DungeonLayout?>(Layout with { Seed = seed });
+            ValueTask.FromResult<DungeonLayout?>(Layout with { DungeonId = id, Seed = seed });
         public ValueTask<DungeonMapSelection> SelectMapAsync(DungeonLayout layout, MazeCell? from, MazeCell target, CancellationToken token) => throw new NotSupportedException();
     }
     private sealed class Visits : IDungeonVisitDomainService

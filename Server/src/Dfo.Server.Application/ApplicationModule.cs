@@ -186,6 +186,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IHellDungeonEntryDomainService, HellDungeonEntryDomainService>();
         services.TryAddSingleton<IDungeonEntryIntentDomainService, DungeonEntryIntentDomainService>();
         services.TryAddSingleton<IDungeonLifecycleDomainService, DungeonLifecycleDomainService>();
+        services.TryAddSingleton(MirrorDungeonEntryTestSettingsSource.From(configuration));
         services.TryAddSingleton<IMirrorDungeonRuleService, MirrorDungeonRuleService>();
         services.TryAddSingleton<IMirrorDungeonEntryDomainService, MirrorDungeonEntryDomainService>();
         services.AddDomainEvent<DungeonParticipantLeft>("dungeon.participant-left", 1);
