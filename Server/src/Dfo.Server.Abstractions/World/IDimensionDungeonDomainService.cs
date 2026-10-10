@@ -13,8 +13,8 @@ public interface IDimensionDungeonRuleService
     int Initialize();
     bool IsDimension(int dungeonId);
     DimensionQuotaSnapshot Snapshot(DateOnly period, int used);
-    IReadOnlyList<RolledDrop> DrawMonster(int dungeonId, int monsterId, int job, int growType, ulong seed);
-    ClearRewardCardFace? DrawCard(int dungeonId, int job, int growType, ClearRewardCardFace ordinary, ulong seed);
+    IReadOnlyList<RolledDrop> DrawMonster(MonsterDropRequest request, ulong seed);
+    ClearRewardCardFace? DrawCard(int dungeonId, ClearRewardCardFace ordinary, ulong seed);
 }
 
 public interface IDimensionDungeonDomainService

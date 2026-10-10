@@ -7,6 +7,7 @@ using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
+using System.Collections.Immutable;
 using Dfo.Server.Infrastructure.Content;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -49,7 +50,7 @@ public sealed class DimensionDungeonTests
         Assert.All(cells, cell => Assert.NotEmpty(cell.Actors));
         var boss = Assert.Single(cells[^1].Actors, actor => actor.Actor.Code == 61809);
         Assert.True(boss.Actor.IsBoss);
-        Assert.Equal(2, boss.PendingLoot.Count(item => item.Kind == DropItemKind.Equipment && item.OwnerCharacterId == new Dfo.Server.Data.Characters.CharacterId(71)));
+        Assert.InRange(boss.PendingLoot.Count(item => item.Kind == DropItemKind.Equipment && item.OwnerCharacterId == new Dfo.Server.Data.Characters.CharacterId(71)), 1, 2);
         Assert.Equal(2, Assert.Single(boss.PendingLoot, item => item.ItemId == 3311 && item.OwnerCharacterId == new Dfo.Server.Data.Characters.CharacterId(71)).Count);
     }
 
@@ -75,14 +76,19 @@ public sealed class DimensionDungeonTests
             Assert.NotNull(map.MapId);
             if (x == 5) Assert.Equal(53075, map.MapId);
         }
-        var drops = rules.DrawMonster(7100, 61809, 0, 1, 42);
-        Assert.Equal(2, drops.Count(x => x.Kind == DropItemKind.Equipment));
-        var careerPool = content.GetRequiredService<IDimensionDungeonContentSource>().Load().Pools[(0, 1)];
+        var drops = rules.DrawMonster(Request(), 42);
+        Assert.InRange(drops.Count(x => x.Kind == DropItemKind.Equipment), 1, 2);
+        var pools = content.GetRequiredService<IDimensionDungeonContentSource>().Load().Pools.Values;
         Assert.All(drops.Where(x => x.Kind == DropItemKind.Equipment), item =>
-            Assert.Contains(item, careerPool.Normal.Concat(careerPool.Set)));
+            Assert.Contains(item, pools.SelectMany(pool => pool.Normal.Concat(pool.Set))));
+        var careerPool = content.GetRequiredService<IDimensionDungeonContentSource>().Load().Pools[(0, 1)];
+        var careerIds = careerPool.Normal.Concat(careerPool.Set).Select(item => item.ItemId).ToHashSet();
+        var sampled = Enumerable.Range(0, 256).SelectMany(seed => rules.DrawMonster(Request(), (ulong)seed))
+            .Where(item => item.Kind == DropItemKind.Equipment).ToArray();
+        Assert.Contains(sampled, item => !careerIds.Contains(item.ItemId));
         Assert.Equal(2, Assert.Single(drops, x => x.ItemId == 3311).Count);
-        Assert.Equal(drops, rules.DrawMonster(7100, 61809, 0, 17, 42));
-        Assert.Empty(rules.DrawMonster(144, 61809, 0, 1, 42));
+        Assert.Equal(drops, rules.DrawMonster(Request(), 42));
+        Assert.Empty(rules.DrawMonster(Request(dungeon: 144), 42));
     }
 
     [Fact]
@@ -166,17 +172,95 @@ public sealed class DimensionDungeonTests
     }
 
     [Fact]
-    public void Cards_use_career_normal_and_set_pools_and_preserve_the_ordinary_gold()
+    public void Monster_equipment_is_not_locked_to_the_recipients_career()
     {
-        var rules = new DimensionDungeonRuleService(new Source());
+        var rules = new DimensionDungeonRuleService(new CrossCareerSource());
+        var equipment = Enumerable.Range(0, 256)
+            .SelectMany(seed => rules.DrawMonster(Request(), (ulong)seed))
+            .Where(item => item.Kind == DropItemKind.Equipment).Select(item => item.ItemId).ToHashSet();
+        Assert.Contains(300, equipment);
+        Assert.Contains(400, equipment);
+    }
+
+    [Fact]
+    public void Cards_use_cross_career_normal_and_set_pools_and_preserve_the_ordinary_gold()
+    {
+        var rules = new DimensionDungeonRuleService(new CrossCareerSource());
         var face = new ClearRewardCardFace(ClearRewardCardKind.Free, [new(0, null), new(1, null)], 321);
-        var free = rules.DrawCard(7100, 0, 17, face, 42)!;
+        var free = rules.DrawCard(7100, face, 42)!;
         Assert.Equal(321, free.Gold);
-        Assert.All(free.Slots, slot => Assert.Equal(100, slot.Item!.Value.ItemId));
-        var paid = rules.DrawCard(7100, 0, 1, face with { Kind = ClearRewardCardKind.Paid }, 42)!;
-        Assert.All(paid.Slots, slot => Assert.Equal(200, slot.Item!.Value.ItemId));
-        Assert.Null(rules.DrawCard(144, 0, 1, face, 42));
-        Assert.Null(rules.DrawCard(7100, 0, 1, face with { Kind = ClearRewardCardKind.BlackDiamond }, 42));
+        Assert.Equal(free.Slots, rules.DrawCard(7100, face, 42)!.Slots);
+        var freeIds = Enumerable.Range(0, 128).SelectMany(seed => rules.DrawCard(7100, face, (ulong)seed)!.Slots)
+            .Select(slot => slot.Item!.Value.ItemId).ToHashSet();
+        Assert.Equal(new HashSet<int> { 100, 300 }, freeIds);
+        var paid = rules.DrawCard(7100, face with { Kind = ClearRewardCardKind.Paid }, 42)!;
+        Assert.Equal(face.Gold, paid.Gold);
+        var paidIds = Enumerable.Range(0, 128).SelectMany(seed => rules.DrawCard(7100,
+            face with { Kind = ClearRewardCardKind.Paid }, (ulong)seed)!.Slots).Select(slot => slot.Item!.Value.ItemId).ToHashSet();
+        Assert.Equal(new HashSet<int> { 200, 400 }, paidIds);
+        Assert.Null(rules.DrawCard(144, face, 42));
+        Assert.Null(rules.DrawCard(7100, face with { Kind = ClearRewardCardKind.BlackDiamond }, 42));
+    }
+
+    [Theory]
+    [InlineData(0, .20, .15, .20)]
+    [InlineData(1, .25, .20, .30)]
+    [InlineData(2, .30, .25, .40)]
+    [InlineData(3, .35, .30, .50)]
+    [InlineData(4, .40, .35, .60)]
+    public void Difficulty_controls_elite_chance_boss_extra_and_set_weight(int tier, double eliteChance,
+        double bossExtra, double setWeight)
+    {
+        var rules = new DimensionDungeonRuleService(new CrossCareerSource());
+        const int sample = 10000;
+        var eliteEquipment = 0;
+        var bossEquipment = new List<RolledDrop>();
+        for (ulong seed = 0; seed < sample; seed++)
+        {
+            var elite = rules.DrawMonster(Request(rank: 0, monster: 61340, tier: tier), seed);
+            Assert.Equal(1, Assert.Single(elite, x => x.ItemId == 3311).Count);
+            var eliteCount = elite.Count(x => x.Kind == DropItemKind.Equipment);
+            Assert.InRange(eliteCount, 0, 1);
+            eliteEquipment += eliteCount;
+            var boss = rules.DrawMonster(Request(tier: tier), seed);
+            Assert.Equal(2, Assert.Single(boss, x => x.ItemId == 3311).Count);
+            Assert.InRange(boss.Count(x => x.Kind == DropItemKind.Equipment), 1, 2);
+            bossEquipment.AddRange(boss.Where(x => x.Kind == DropItemKind.Equipment));
+        }
+        Assert.InRange(eliteEquipment / (double)sample, eliteChance - .02, eliteChance + .02);
+        Assert.InRange(bossEquipment.Count / (double)sample - 1, bossExtra - .02, bossExtra + .02);
+        Assert.InRange(bossEquipment.Count(x => x.ItemId is 200 or 400) / (double)bossEquipment.Count,
+            setWeight - .02, setWeight + .02);
+        // Every career within each category has equal weight.
+        Assert.InRange(bossEquipment.Count(x => x.ItemId == 200) / (double)bossEquipment.Count(x => x.ItemId is 200 or 400), .47, .53);
+    }
+
+    [Fact]
+    public void Actor_rank_defines_bosses_and_duplicate_career_rows_do_not_change_weights()
+    {
+        var original = new CrossCareerSource().Load();
+        var duplicate = original with { Pools = new Dictionary<(int, int), DimensionChroniclePool>(original.Pools)
+            { [(9, 1)] = original.Pools[(0, 1)] } };
+        var rules = new DimensionDungeonRuleService(new CrossCareerSource());
+        var duplicateRules = new DimensionDungeonRuleService(new FixedSource(duplicate));
+        for (ulong seed = 0; seed < 256; seed++)
+        {
+            var request = Request(monster: 99999);
+            var drops = rules.DrawMonster(request, seed);
+            Assert.InRange(drops.Count(x => x.Kind == DropItemKind.Equipment), 1, 2);
+            Assert.Equal(drops, duplicateRules.DrawMonster(request, seed));
+            Assert.Empty(rules.DrawMonster(Request(rank: 0, monster: 99999), seed));
+            Assert.Empty(rules.DrawMonster(request with { Context = request.Context with { SourceType = IndependentDropSourceType.APC } }, seed));
+        }
+    }
+
+    private static MonsterDropRequest Request(int dungeon = 7100, int monster = 61809, int rank = 3, int tier = 0) =>
+        new(monster, new(DungeonRunId.New(), dungeon, 42, new(0, 0), 53075, (DungeonDifficulty)tier, 1, 86, rank,
+            new(71), ImmutableArray.Create(new MonsterDropParticipant(new(1), new(71)))));
+
+    private sealed class FixedSource(DimensionDungeonContent content) : IDimensionDungeonContentSource
+    {
+        public DimensionDungeonContent Load() => content;
     }
 
     private static async Task<LearningFixture> Fixture(Clock clock)
@@ -195,6 +279,18 @@ public sealed class DimensionDungeonTests
             new Dictionary<(int, int), DimensionChroniclePool> { [(0, 1)] = new(
                 [new(100, 1, DropRarity.Rare, DropItemKind.Equipment, 10)],
                 [new(200, 1, DropRarity.Rare, DropItemKind.Equipment, 20)]) }, new(3311, 1, DropRarity.Common, DropItemKind.Stackable));
+    }
+    private sealed class CrossCareerSource : IDimensionDungeonContentSource
+    {
+        public DimensionDungeonContent Load()
+        {
+            var content = new Source().Load();
+            return content with { Pools = new Dictionary<(int, int), DimensionChroniclePool>(content.Pools)
+            {
+                [(1, 1)] = new([new(300, 1, DropRarity.Rare, DropItemKind.Equipment, 30)],
+                    [new(400, 1, DropRarity.Rare, DropItemKind.Equipment, 40)])
+            } };
+        }
     }
     private sealed class Clock : TimeProvider
     {
