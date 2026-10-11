@@ -33,8 +33,9 @@ public sealed class TournamentDungeonRuleServiceTests
             firstOpponents.Add(plan.PathActors[0].Code);
         }
         Assert.True(firstOpponents.Count > 1);
-        Assert.False(rules.IsSupported(121));
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => rules.PrepareAsync(121, 0, default).AsTask());
+        Assert.True(rules.IsSupported(121));
+        Assert.False(rules.IsSupported(122));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => rules.PrepareAsync(122, 0, default).AsTask());
     }
 
     [Fact]

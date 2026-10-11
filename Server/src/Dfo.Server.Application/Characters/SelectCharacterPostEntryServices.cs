@@ -27,7 +27,7 @@ internal sealed class SelectCharacterQuestEntryService(
             {
                 long missing = 0;
                 foreach (var requirement in requirements)
-                    missing += Math.Max(0, requirement.RequiredCount - Count(result.CharacterInventory, requirement.ItemId));
+                    missing += Math.Max(0, requirement.RequiredCount - Count(result, requirement.ItemId));
                 after = ReplaceChannel0(after, missing);
             }
             if (after != active.TriggerValue)
@@ -77,8 +77,14 @@ internal sealed class SelectCharacterQuestEntryService(
     internal static int ReplaceChannel0(int trigger, long value) =>
         (trigger & ~0x1FF) | (int)Math.Clamp(value, 0, 0x1FF);
 
-    private static int Count(CharacterInventoryEntryState inventory, int itemId)
+    private static int Count(SelectCharacterResult result, int itemId)
     {
+        // Shared materials belong to the account, not the character bag. Missing entries in
+        // this sparse projection mean zero; legacy bag copies must not count a second time.
+        if (AccountMaterialCatalog.ContainsItem(itemId))
+            return Math.Max(0, result.AccountInventory.VirtualResources
+                .SingleOrDefault(value => value.ItemId == itemId)?.Value ?? 0);
+        var inventory = result.CharacterInventory;
         var virtualValue = inventory.VirtualResources.SingleOrDefault(value => value.ItemId == itemId);
         if (virtualValue is not null) return Math.Max(0, virtualValue.Value);
         long total = inventory.Containers.Where(value => value.ContainerType == InventoryContainerType.Main)

@@ -142,6 +142,36 @@ public sealed class TournamentDungeonTests
     }
 
     [SkippableFact]
+    public async Task Blue_dragon_routes_to_tournament_consumes_its_ticket_and_finishes_four_rounds()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        await using var f = await Fixture();
+        await using (var tx = f.Scope.Begin())
+        {
+            await f.Services.GetRequiredService<IItemGrantDomainService>().GrantAllPersistentAsync(new(71), 4727, 1, default);
+            await tx.CommitAsync(default);
+        }
+        var entry = await Enter(f, Entry() with { DungeonId = 121 });
+        Assert.True(entry.Entry is not null, $"Entry refused: {entry.Failure}; {entry.Detail}");
+        Assert.Equal(17101, entry.Entry.Layout.StartRoomMapId);
+        Assert.Equal(0, Count(f, 4727));
+        Assert.Equal(3, Count(f, 4726));
+        var run = Runs(f).Find(new CharacterId(71))!;
+        Runs(f).TryMarkParticipantReady(new(71), run.RunId, run.RoomVersion);
+        TournamentActionResult? result = null;
+        for (ushort actor = 1; actor <= 4; actor++)
+        {
+            var death = await Kill(f, actor);
+            Assert.NotNull(death.Death?.Change);
+            result = Assert.IsType<TournamentActionResult>(death.Tournament);
+        }
+        Assert.Equal(TournamentStatus.Champion, State(f).Status);
+        Assert.Equal(500000u, result!.Experience!.Breakdown.Base);
+        Assert.Equal(8, (await f.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(new(71), default)).Used);
+        Assert.All(State(f).Rewards[1], card => Assert.Equal(3323, card.ItemId));
+    }
+
+    [SkippableFact]
     public async Task Future_actor_and_duplicate_death_cannot_skip_rounds_or_spend_fatigue()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

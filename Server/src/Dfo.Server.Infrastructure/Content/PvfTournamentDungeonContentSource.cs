@@ -15,7 +15,7 @@ internal sealed class PvfTournamentDungeonContentSource(
     public async ValueTask<TournamentDefinition> GetAsync(int dungeonId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (dungeonId != 120) throw new ArgumentOutOfRangeException(nameof(dungeonId));
+        if (dungeonId is not (120 or 121)) throw new ArgumentOutOfRangeException(nameof(dungeonId));
         lock (gate) if (cached.TryGetValue(dungeonId, out var found)) return found;
         var owned = await maps.ListForDungeonAsync(dungeonId, cancellationToken).ConfigureAwait(false);
         if (owned.Count != 1) throw new InvalidDataException($"Tournament {dungeonId}: expected one arena map.");

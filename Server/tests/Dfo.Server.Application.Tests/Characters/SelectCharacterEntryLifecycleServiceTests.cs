@@ -184,6 +184,66 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             .Select(value => value.TriggerValue));
     }
 
+    [Theory]
+    [InlineData(511, 1000, 0)]
+    [InlineData(0, 1000, 0)]
+    [InlineData(0, 999, 1)]
+    [InlineData(0, 0, 511)]
+    public async Task QuestSynchronization_UsesAccountMaterialsForAwakeningOnEveryLogin(
+        int before, int whiteCount, int expected)
+    {
+        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(602), 602, 1);
+        result = result with
+        {
+            CharacterEntry = result.CharacterEntry with
+            {
+                Quests = result.CharacterEntry.Quests with
+                {
+                    ActiveQuests = [new CharacterQuestProgressState(0, 974, before)]
+                }
+            },
+            CharacterInventory = result.CharacterInventory with
+            {
+                VirtualResources = [],
+                Containers = [new InventoryContainerState(InventoryContainerType.Main, 0,
+                    [new InventoryItemState(new ItemIdentity(1), 153, Core(3, 3155, 100)),
+                     new InventoryItemState(new ItemIdentity(2), 154, Core(3, 3150, 100)),
+                     // A legacy bag duplicate must not replace the account-owned count.
+                     new InventoryItemState(new ItemIdentity(3), 155, Core(11, 3034, 10000))])]
+            },
+            AccountInventory = result.AccountInventory with
+            {
+                VirtualResources = whiteCount == 0
+                    ? [new InventoryRuntimeValueState(356, 3035, 1000)]
+                    : [new InventoryRuntimeValueState(355, 3034, whiteCount),
+                       new InventoryRuntimeValueState(356, 3035, 1000)]
+            }
+        };
+        var logs = new RecordingQuestLogs
+        {
+            Carried = { [602] = [new CarriedQuest(0, 974, before)] }
+        };
+        var service = new SelectCharacterQuestEntryService(new QuestContentRuleService(
+            new QuestSource(new Dictionary<int, IReadOnlyList<SeekingItemRequirement>>
+            {
+                [974] = [new(3034, 1000), new(3035, 1000), new(3155, 100), new(3150, 100)]
+            }), new NoQuestParameters()), logs);
+
+        var projection = await service.SynchronizeAsync(Session(result), result, default);
+
+        if (before == expected)
+        {
+            Assert.Null(projection);
+            Assert.Empty(logs.ProgressWrites);
+        }
+        else
+        {
+            Assert.Equal([(new CarriedQuest(0, 974, before), expected)], logs.ProgressWrites);
+            Assert.Equal((uint)expected, Assert.Single(projection!.State.Quests).TriggerValue);
+            Assert.Equal(expected, Assert.Single(projection.Result.CharacterEntry.Quests.ActiveQuests).TriggerValue);
+        }
+    }
+
     [Fact]
     public async Task PetRevival_EmitsOnlyTheCommittedDeadToAliveTransition()
     {

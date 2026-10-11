@@ -29,6 +29,28 @@ public sealed class PvfTournamentDungeonContentSourceTests
         Assert.Equal(new TournamentResultCard(5, 0, 100, 0), definition.ResultCards[5]);
         Assert.Equal(new TournamentRewardItem[] { new(3329, 60, 1), new(3329, 35, 2), new(3329, 5, 3) }, definition.RewardItems);
         Assert.Same(definition, await source.GetAsync(120, default));
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => source.GetAsync(121, default).AsTask());
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => source.GetAsync(122, default).AsTask());
+    }
+
+    [SkippableFact]
+    public async Task Blue_dragon_reads_its_own_arena_candidates_ticket_and_rewards()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfTournamentDungeonContentSource(provider, new PvfDungeonMapDefinitionSource(provider));
+        var yellow = await source.GetAsync(120, default);
+        var blue = await source.GetAsync(121, default);
+        Assert.Equal(121, blue.DungeonId);
+        Assert.Equal(17101, blue.MapId);
+        Assert.Equal(77, blue.MinimumLevel);
+        Assert.Equal(80, blue.BasisLevel);
+        Assert.Equal(2, blue.Difficulty);
+        Assert.Equal(new DungeonRequiredItem(4727, 1, true), Assert.Single(blue.RequiredItems));
+        Assert.Equal(15, blue.Candidates.Count);
+        Assert.All(blue.Candidates, actor => { Assert.Equal(80, actor.Level); Assert.False(actor.IsAiCharacter); });
+        Assert.NotEqual(yellow.Candidates.Select(actor => actor.Code), blue.Candidates.Select(actor => actor.Code));
+        Assert.Equal(new uint[] { 0, 100000, 200000, 300000, 500000 }, blue.ExperienceByRound);
+        Assert.All(blue.RewardItems, item => Assert.Equal(3323, item.ItemId));
+        Assert.Same(blue, await source.GetAsync(121, default));
     }
 }
