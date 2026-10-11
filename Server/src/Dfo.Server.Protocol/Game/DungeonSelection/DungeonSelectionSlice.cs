@@ -125,7 +125,7 @@ internal sealed record UdpHostNotification(byte HostSlot = 0) : IGameNotiMessage
 /// </para>
 /// </remarks>
 internal sealed record EnterSelectDungeonNotification(
-    ImmutableArray<ushort> WireUserIds) : IGameNotiMessage
+    ImmutableArray<ushort> WireUserIds, ushort DespairFloor = 1) : IGameNotiMessage
 {
     public EnterSelectDungeonNotification(ushort wireUserId)
         : this(ImmutableArray.Create(wireUserId))
@@ -455,26 +455,27 @@ internal static class DungeonSelectionPayloadCodec
     /// The nineteen-byte shape this replaces came from the older client's builder and lines up with
     /// A21's at no offset. A21's own builder writes, in order: two zero <c>i32</c>s, a count of
     /// hell-quest blocked slots, a zero byte, the user count, then <c>{u16 userId, u8 0}</c> per
-    /// user, then a zero <c>i32</c>, a <c>u16</c> of one, a zero <c>u16</c>, a zero <c>i32</c>, two
+    /// user, then a zero <c>i32</c>, the despair floor <c>u16</c>, a zero <c>u16</c>, a zero <c>i32</c>, two
     /// zero bytes, two zero <c>i32</c>s and a final zero byte.
     ///
-    /// For one user that is 37 bytes with exactly three non-zero positions -- 10, 11 and 18 -- and
-    /// the reference session's frame has non-zero bytes at 10, 11 and 18 and nowhere else. Those
-    /// are the user count, the low byte of user id 1, and the constant one.
+    /// The reference sample's 37-byte solo frame has non-zero bytes at 10, 11 and 18:
+    /// user count, the low byte of user id 1, and floor 1.
     ///
-    /// The tower-of-despair floor this used to write has no place in A21's shape. It is not lost
-    /// evidence: it was the older client's field, at an offset A21 does not use.
+    /// ClientStatic 2026-10-11: the u16 at solo offset 18 calls RVA 0xA13E20,
+    /// clamps to 1..100, and sets the despair module's current floor. The reference's one
+    /// was a sample value, not a protocol constant. Party members shift this offset by three.
     /// </remarks>
     public static byte[] EncodeEnterSelectDungeon(ushort wireUserId) =>
         EncodeEnterSelectDungeon([wireUserId]);
 
-    public static byte[] EncodeEnterSelectDungeon(IReadOnlyList<ushort> wireUserIds)
+    public static byte[] EncodeEnterSelectDungeon(IReadOnlyList<ushort> wireUserIds, ushort despairFloor = 1)
     {
         ArgumentNullException.ThrowIfNull(wireUserIds);
         if (wireUserIds.Count is 0 or > byte.MaxValue)
             throw new ArgumentOutOfRangeException(nameof(wireUserIds));
         if (wireUserIds.Distinct().Count() != wireUserIds.Count)
             throw new InvalidDataException("Dungeon-selection users must be distinct.");
+        if (despairFloor is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(despairFloor));
 
         using var stream = new MemoryStream(34 + (wireUserIds.Count * 3));
         using var writer = new BinaryWriter(stream);
@@ -489,7 +490,7 @@ internal static class DungeonSelectionPayloadCodec
             writer.Write((byte)0);
         }
         writer.Write(0);
-        writer.Write((ushort)1);
+        writer.Write(despairFloor);
         writer.Write((ushort)0);
         writer.Write(0);
         writer.Write((byte)0);
@@ -533,7 +534,7 @@ internal sealed class EnterSelectDungeonEncoder
         EnterSelectDungeonNotification message) =>
         OnePayload(
             GameProtocol.EnterSelectDungeonNotificationType,
-            DungeonSelectionPayloadCodec.EncodeEnterSelectDungeon(message.WireUserIds));
+            DungeonSelectionPayloadCodec.EncodeEnterSelectDungeon(message.WireUserIds, message.DespairFloor));
 }
 
 /// <summary>
@@ -565,7 +566,7 @@ public sealed class EnterSelectDungeonHandler(
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<EnterSelectDungeonHandler> logger,
     IPartyService parties,
-    UsageQuotaProjectionDelivery? quotaProjection = null)
+    UsageQuotaProjectionDelivery? quotaProjection = null, IDespairTowerDomainService? despair = null)
     : ClientMessageHandler<EnterSelectDungeonRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -676,7 +677,12 @@ public sealed class EnterSelectDungeonHandler(
             if (!visits.DefersSelectionState(refreshed.Character.Progression.Level, refreshed.Character.TutorialCompleted))
             {
                 notifications.Add(new DungeonPermissionStateMessage(refreshed.CharacterEntry.Progression.Dungeons));
-                notifications.Add(new EnterSelectDungeonNotification(wireUserIds));
+                var tower = despair is null ? null
+                    : await despair.ReadStatusAsync(member.Session.CharacterId, cancellationToken).ConfigureAwait(false);
+                if (tower is not null)
+                    notifications.AddRange(tower.DungeonIds.Select(id =>
+                        new DungeonRemainingEntriesMessage(id, tower.FreeEntriesRemaining)));
+                notifications.Add(new EnterSelectDungeonNotification(wireUserIds, checked((ushort)(tower?.NextFloor ?? 1))));
             }
             deliveries.Add((member.Session, notifications));
         }

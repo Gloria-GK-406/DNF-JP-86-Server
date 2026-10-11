@@ -32,7 +32,8 @@ internal sealed class ItemSaleDomainService(
         var inTown = run is null && townAreas.Find(session.CharacterId) is { } member && session.Owns(member);
         var dungeonCleared = run is { IsBossRoom: true, IsCleared: true, ClearOpen: true }
             && run.Participants.Any(p => p.AccountId == session.AccountId && p.CharacterId == session.CharacterId);
-        if (!await rules.CanAccessShopAsync(npcId, inTown, dungeonCleared, cancellationToken).ConfigureAwait(false))
+        var despairCleared = dungeonCleared && run!.Layout.Despair is not null;
+        if (!await rules.CanAccessShopAsync(npcId, inTown, dungeonCleared, despairCleared, cancellationToken).ConfigureAwait(false))
             return new(ItemSaleRejection.ShopUnavailable);
         var bound = slots.Find(session.CharacterId, slot);
         var item = bound is null

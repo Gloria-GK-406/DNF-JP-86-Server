@@ -20,6 +20,32 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class ItemSaleTests
 {
     [Theory]
+    [InlineData(true, true, true, 1001, true)]
+    [InlineData(true, false, true, 1001, false)]
+    [InlineData(false, true, true, 1001, false)]
+    [InlineData(true, true, false, 1001, false)]
+    [InlineData(true, true, true, 2, false)]
+    public async Task Drapyus_accepts_sales_only_after_the_players_despair_clear(
+        bool tower, bool clear, bool owner, int npc, bool accepted)
+    {
+        using var shop = Fixture();
+        shop.Content.Shops[1001] = new(1001, 1001, [new(null, [])]);
+        await shop.Seed(65, 5000, 2);
+        var cell = new MazeCell(0, 0);
+        var layout = new DungeonLayout(11008, 0, 1, 1, cell, cell, 55611, 0,
+            new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611) })
+            { Despair = tower ? new(1, new(2026, 10, 11)) : null };
+        var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
+        var run = runs.PreparePartyEntry([new(owner ? shop.Session.AccountId : new(999),
+            shop.Session.CharacterId, 0, true)], layout, 0).Run;
+        if (clear) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);
+        await Sell(shop, 65, 1, npc: npc);
+        Assert.Equal(accepted ? 1 : 2, shop.Count(5000));
+        Assert.Equal(accepted ? 100031 : 100000, shop.Gold);
+        Assert.Equal(accepted, Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages)).Slot is not null);
+    }
+
+    [Theory]
     [InlineData(true, true, true, 1000, true)]
     [InlineData(true, false, true, 1000, false)]
     [InlineData(false, true, true, 1000, false)]

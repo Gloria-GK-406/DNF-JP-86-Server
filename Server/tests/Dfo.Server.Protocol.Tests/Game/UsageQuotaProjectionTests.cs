@@ -17,6 +17,28 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class UsageQuotaProjectionTests
 {
     [Fact]
+    public async Task Despair_refresh_updates_each_floor_with_remaining_free_entries()
+    {
+        var sessions = new Sessions(); var snapshots = new Snapshots();
+        snapshots.Value = snapshots.Value with { Despair = new(3, 0, Enumerable.Range(11008, 100).ToArray()) };
+        var messages = await new UsageQuotaViewChangedHandler(snapshots, sessions).ComposeAsync(
+            new(sessions.Current!.CharacterId, sessions.Current.ConnectionId),
+            new(sessions.Current.CharacterId, UsageQuotaFamily.DespairTower), default);
+        Assert.Equal(100, messages.Count);
+        foreach (var (value, index) in messages.Select((value, index) => (value, index)))
+        {
+            var message = Assert.IsType<DungeonRemainingEntriesMessage>(value);
+            Assert.IsAssignableFrom<IGameNotiMessage>(message);
+            Assert.Equal(0x0227, message.Type);
+            var body = message.EncodeBody();
+            Assert.Equal(5, body.Length);
+            Assert.Equal((uint)(11008 + index), BinaryPrimitives.ReadUInt32LittleEndian(body));
+            Assert.Equal(0, body[4]);
+        }
+        Assert.Equal(Convert.FromHexString("002B000001"), new DungeonRemainingEntriesMessage(11008, 1).EncodeBody());
+    }
+
+    [Fact]
     public async Task Dimension_refresh_sends_remaining_and_extra_counts_as_NOTI_0326()
     {
         var sessions = new Sessions(); var snapshots = new Snapshots();

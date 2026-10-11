@@ -157,15 +157,27 @@ public sealed class DespairTowerTests
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         var clock = new Clock();
         await using var f = await Fixture(clock);
+        var tower = f.Services.GetRequiredService<IDespairTowerDomainService>();
+        var initial = await tower.ReadStatusAsync(new(71), default);
+        Assert.Equal((1, (byte)1), (initial.NextFloor, initial.FreeEntriesRemaining));
+        Assert.Equal(Enumerable.Range(11008, 100), initial.DungeonIds);
         var first = (await Enter(f)).Entry!;
+        Assert.Equal((byte)0, (await tower.ReadStatusAsync(new(71), default)).FreeEntriesRemaining);
         Assert.NotNull(await Clear(f));
+        var cleared = await tower.ReadStatusAsync(new(71), default);
+        Assert.Equal((2, (byte)0), (cleared.NextFloor, cleared.FreeEntriesRemaining));
         await f.Services.GetRequiredService<IDungeonRunDomainService>().EndAsync(new(71), first.Visits[new(71)].Run.RunId);
         Assert.Equal(DungeonEntryFailure.MissingRequiredItem, (await Enter(f)).Failure);
         clock.Now = clock.Now.AddDays(1);
+        var reset = await tower.ReadStatusAsync(new(71), default);
+        Assert.Equal((2, (byte)1), (reset.NextFloor, reset.FreeEntriesRemaining));
         var next = await Enter(f);
         Assert.NotNull(next.Entry);
         Assert.Equal(2, next.Entry.Layout.Despair!.Floor);
         Assert.Empty(next.Entry.InventoryChanges);
+        f.Sql("UPDATE character_despair_tower SET highest_cleared_floor=100 WHERE character_id=71");
+        var finished = await tower.ReadStatusAsync(new(71), default);
+        Assert.Equal((100, (byte)0), (finished.NextFloor, finished.FreeEntriesRemaining));
     }
 
     private sealed class Clock : TimeProvider

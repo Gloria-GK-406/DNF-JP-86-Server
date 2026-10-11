@@ -2,11 +2,26 @@ using System.Buffers.Binary;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.DungeonSelection;
 
 namespace Dfo.Server.Protocol.Tests;
 
 public sealed class DespairTowerPayloadTests
 {
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(100)]
+    public void Selection_updates_only_the_floor_field(int floor)
+    {
+        var original = DungeonSelectionPayloadCodec.EncodeEnterSelectDungeon(new ushort[] { 17 });
+        var body = DungeonSelectionPayloadCodec.EncodeEnterSelectDungeon(new ushort[] { 17 }, (ushort)floor);
+        Assert.Equal(37, body.Length);
+        Assert.Equal((ushort)floor, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(18)));
+        body[18] = original[18]; body[19] = original[19];
+        Assert.Equal(original, body);
+    }
+
     [Fact]
     public void Clear_reward_uses_time_floor_and_ten_signed_item_pairs()
     {

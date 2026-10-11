@@ -10,6 +10,7 @@ public sealed record DespairTowerFloor(int Floor, int DungeonId, int DisplayApcI
 public sealed record DespairTowerCatalog(int MinimumLevel, int MaximumDailyClears, IReadOnlyList<DespairTowerFloor> Floors);
 public interface IDespairTowerContentSource { DespairTowerCatalog Load(); }
 public sealed record DespairTowerProgress(int HighestClearedFloor = 0);
+public sealed record DespairTowerStatus(int NextFloor, byte FreeEntriesRemaining, IReadOnlyList<int> DungeonIds);
 public interface IDespairTowerDomainStore
 {
     ValueTask<DespairTowerProgress> ReadAsync(CharacterId character, CancellationToken ct);
@@ -30,6 +31,7 @@ public interface IDespairTowerRuleService
 public interface IDespairTowerDomainService
 {
     bool IsTower(int dungeonId);
+    ValueTask<DespairTowerStatus> ReadStatusAsync(CharacterId character, CancellationToken ct);
     ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct);
     ValueTask<DespairTowerSettlement?> SettleAsync(AccountId account, CharacterId character, DungeonRunId runId, CancellationToken ct);
 }

@@ -29,6 +29,17 @@ internal sealed class DespairTowerDomainService(IDespairTowerRuleService rules,
     private DateOnly Period() => DateOnly.FromDateTime(daily.PeriodStart(clock.GetUtcNow())
         .ToOffset(TimeSpan.FromHours(8)).DateTime);
     public bool IsTower(int dungeonId) => rules.IsTower(dungeonId);
+    public async ValueTask<DespairTowerStatus> ReadStatusAsync(CharacterId character, CancellationToken ct)
+    {
+        var next = rules.NextFloor(await progress.ReadAsync(character, ct).ConfigureAwait(false));
+        var period = Period();
+        var entries = await quotas.ReadAsync(character, UsageQuotaKey.Despair("entries", period), ct).ConfigureAwait(false);
+        var clears = await quotas.ReadAsync(character, UsageQuotaKey.Despair("clears", period), ct).ConfigureAwait(false);
+        var free = next is not null && (entries?.UsedCount ?? 0) == 0
+            && (clears?.UsedCount ?? 0) < rules.Catalog.MaximumDailyClears;
+        return new(next?.Floor ?? rules.Catalog.Floors.Max(x => x.Floor), free ? (byte)1 : (byte)0,
+            rules.Catalog.Floors.Select(x => x.DungeonId).ToArray());
+    }
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct)
     {
         if (!IsTower(context.DungeonId) || context.Participants.Count != 1

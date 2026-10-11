@@ -970,6 +970,8 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x0111` | `CrossServerFriendBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x0111](game/server-to-client/NOTI-0x0111.md) |
 | `0x00` NOTI | `0x0117` | `SecretShopNpcNotification` | 仅证明 encoder 可产生该 identity | [0x0117](game/server-to-client/NOTI-0x0117.md) |
 | `0x00` NOTI | `0x0158` | `PvpMissionStateMessage` | 仅证明 encoder 可产生该 identity | [0x0158](game/server-to-client/NOTI-0x0158.md) |
+| `0x00` NOTI | `0x015B` | `DespairApcInfoNotification` | 仅证明 encoder 可产生该 identity | [0x015B](game/server-to-client/NOTI-0x015B.md) |
+| `0x00` NOTI | `0x015C` | `DespairClearRewardNotification` | 仅证明 encoder 可产生该 identity | [0x015C](game/server-to-client/NOTI-0x015C.md) |
 | `0x00` NOTI | `0x015F` | `SkillPointSlotStateMessage` | 仅证明 encoder 可产生该 identity | [0x015F](game/server-to-client/NOTI-0x015F.md) |
 | `0x00` NOTI | `0x0164` | `QuestVisibilityMessage` | 仅证明 encoder 可产生该 identity | [0x0164](game/server-to-client/NOTI-0x0164.md) |
 | `0x00` NOTI | `0x0165` | `UserVisibilityMessage` | 仅证明 encoder 可产生该 identity | [0x0165](game/server-to-client/NOTI-0x0165.md) |
@@ -990,6 +992,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x021C` | `ExpertStoreClosedMessage` | 仅证明 encoder 可产生该 identity | [0x021C](game/server-to-client/NOTI-0x021C.md) |
 | `0x00` NOTI | `0x021E` | `ItemUsageCountMessage`、`UsableCountBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x021E](game/server-to-client/NOTI-0x021E.md) |
 | `0x00` NOTI | `0x021F` | `BossTowerBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x021F](game/server-to-client/NOTI-0x021F.md) |
+| `0x00` NOTI | `0x0227` | `DungeonRemainingEntriesMessage` | 仅证明 encoder 可产生该 identity | [0x0227](game/server-to-client/NOTI-0x0227.md) |
 | `0x00` NOTI | `0x023F` | `AcceptedQuestProgressMessage` | 仅证明 encoder 可产生该 identity | [0x023F](game/server-to-client/NOTI-0x023F.md) |
 | `0x00` NOTI | `0x0245` | `KnightShieldDeckMessage` | 仅证明 encoder 可产生该 identity | [0x0245](game/server-to-client/NOTI-0x0245.md) |
 | `0x00` NOTI | `0x025B` | `ChampionBreakStateMessage` | 仅证明 encoder 可产生该 identity | [0x025B](game/server-to-client/NOTI-0x025B.md) |

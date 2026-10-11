@@ -12,6 +12,16 @@
 
 奖励候选参考上游：普通楼层抽取五次；10、20、…、90 层抽取九次并附加 1252；100 层附加 3314。装备类型、稀有度、等级范围和创建权重来自现有 PVF 清算奖励表与装备池，使用当前服务端随机算法。空候选不替换成虚构装备，装扮候选池尚未恢复。这不是原生 PRNG 或完整经济掉率的复刻。
 
-协议：[NOTI015B](../protocol/game/server-to-client/NOTI-0x015B.md)用于动态层 APC 显示资料；[NOTI015C](../protocol/game/server-to-client/NOTI-0x015C.md)用于专用通关奖励。普通结果/经验框架保留，普通翻牌奖励和翻牌调度关闭。没有为绝望塔虚构每日次数 NOTI。
+协议：[NOTI015B](../protocol/game/server-to-client/NOTI-0x015B.md)用于动态层 APC 显示资料；[NOTI015C](../protocol/game/server-to-client/NOTI-0x015C.md)用于专用通关奖励。普通结果/经验框架保留，普通翻牌奖励和翻牌调度关闭。
+
+2026-10-11 状态同步修复：长期楼层已有持久化，旧选图构包却把楼层写死为 1。现在 [NOTI001B](../protocol/game/server-to-client/NOTI-0x001B.md) 使用最高已通关层数 + 1（显示上限 100）。[NOTI0227](../protocol/game/server-to-client/NOTI-0x0227.md)按地下城 ID 同步免费入场剩余数；登录完成、次数变化、打开选图时覆盖 100 层的缓存。客户端的 1/1 表示每日免费资格，首入消耗后为 0/1；使用邀请函再次入场不恢复免费资格。次数变化继续走 UsageQuotaChanged → EventService → 通知投影，不重发会切换 UI 的 001B。
+
+死神 NPC 1001 的 PVF 商店有效，但没有德利拉商店使用的 `[visible on dungeon clear]` 标记，旧规则误当作仅城镇可用。现在只在当前角色自己的绝望塔 BOSS 房已清场且结算已开放时，允许死神出售；其他城镇商店和未通关场景仍拒绝。
+
+上述协议含义为 ClientStatic（High），回归测试为 CurrentImplementation；修复后的 UI 尚待实机验收。此次没有修改客户端或 PVF，也不重置玩家进度和计数。
 
 实机验证顺序：首次进入第一层 → 击败敌对 APC → 查看专用结算与奖励 → 回城重新登录确认第二层 → 当日缺邀请函尝试入场 → 携带邀请函再入并观察扣除 → 放弃后确认未跳层。动画、退出界面及动态楼层外观仍需实际客户端验收。
+
+同步修复验收：重新登录并打开绝望塔，核对已通关两层时显示第 3 层、当天首入已用时显示 0/1；携带邀请函进入并通关，重新选图显示第 4 层；通关后的死神可出售物品，物品扣除和金币增加一致。
+
+自动验证（2026-10-11）：Release 全解决方案构建 0 警告、0 错误；Application 3636、Protocol 1445、Infrastructure 872、Host 159 项通过，共 6112 项通过，Infrastructure 既有 2 项跳过。使用部署 PVF（SHA-256 `49D4CAFA402DAA93E9C60EFAC8550C20789BB5BD9F99DD7B9235FD0F20666E7A`）。覆盖每日重置、免费次数消费、通关推进、100 层上限、0227 剩余数编码、001B 仅楼层字段变化，以及死神出售的通关／参与者／副本类型边界。协议文档同步和工具自测均 0 失败。修复构建计划部署到 `artifacts/despair-tower-sync-20261011/runtime`，运行身份与数据库备份保存在同目录上层 `deployment.json`；实机结果单独验收。

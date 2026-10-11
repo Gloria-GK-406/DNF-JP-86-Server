@@ -9,6 +9,6 @@ public interface IItemSaleRuleService
 {
     ValueTask<bool> HasShopAsync(int npcId, CancellationToken cancellationToken);
     ValueTask<bool> CanAccessShopAsync(int npcId, bool inTown, bool dungeonCleared,
-        CancellationToken cancellationToken);
+        bool despairCleared, CancellationToken cancellationToken);
     ValueTask<ItemSaleQuote> QuoteAsync(ItemReference item, int count, CancellationToken cancellationToken);
 }
