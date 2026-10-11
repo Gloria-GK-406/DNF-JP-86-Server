@@ -13,12 +13,25 @@ namespace Dfo.Server.Application.Quests;
 
 internal sealed class QuestFactsDomainService(ICharacterContainerDomainService containers,
     ICharacterDomainService characters, ICharacterQuestLogDomainService logs,
-    IQuestStateRuleService rules, ICharacterTable owners, ICreatureDomainStore creatures, AmbientStoreAccess stores) : IQuestFactsDomainService
+    IQuestStateRuleService rules, ICharacterTable owners, ICreatureDomainStore creatures, AmbientStoreAccess stores,
+    IItemDomainStore items) : IQuestFactsDomainService
 {
     public async ValueTask<QuestHoldingsFacts> HoldingsAsync(CharacterId character, CancellationToken ct)
     {
         return await QuestHoldingsReader.ReadAsync(containers, rules, character,
             await characters.Get(character).GoldAsync(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+    }
+
+    public async ValueTask<QuestHoldingsFacts> PersistentHoldingsAsync(AccountId account, CharacterId character, CancellationToken ct)
+    {
+        if (await owners.FindOwnerAsync(character, ct).ConfigureAwait(false) != account)
+            throw new InvalidDataException("Quest holdings character ownership does not match.");
+        var main = await stores.ReadAsync(items, rows => rows.GetAllAsync(
+            ContainerId.ForCharacter(character, InventoryContainerType.Main), ct)).ConfigureAwait(false);
+        var shared = await stores.ReadAsync(items, rows => rows.GetAllAsync(
+            ContainerId.ForAccount(account, InventoryContainerType.SharedMaterial), ct)).ConfigureAwait(false);
+        return rules.Holdings(main.Select(x => x.Snapshot), shared.Select(x => x.Snapshot),
+            await characters.Get(character).GoldAsync(ct).ConfigureAwait(false));
     }
 
     public async ValueTask<WorldContentSubject> SubjectAsync(AccountId account, CharacterId character, CancellationToken ct)

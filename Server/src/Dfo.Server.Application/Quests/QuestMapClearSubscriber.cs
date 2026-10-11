@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
@@ -56,6 +57,7 @@ internal static class QuestMapClearRegistration
         services.AddDomainEvent<DungeonMapCleared>("dungeon.map-cleared", 1);
         services.AddDomainEvent<QuestProgressChanged>("quest.progress-changed", 1);
         services.AddDomainSubscriber<DungeonMapCleared, QuestMapClearSubscriber>("quest.map-clear", DomainEventDeliveryPolicy.Reliable);
+        services.AddDomainSubscriber<InventoryContentsChanged, SeekingQuestProgressDomainService>("quest.inventory", DomainEventDeliveryPolicy.Reliable);
         services.AddDomainSubscriber<DungeonMapCleared, MirrorAradQuestDomainService>("quest.mirror-map-clear", DomainEventDeliveryPolicy.Reliable);
         services.AddDomainSubscriber<QuestProgressChanged, QuestProgressNotificationSubscriber>("quest.progress-notification",
             DomainEventDeliveryPolicy.LiveOnly, x => x.CharacterId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));

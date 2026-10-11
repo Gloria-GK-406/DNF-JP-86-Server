@@ -32,6 +32,8 @@ public interface IQuestStateRuleService
 public interface IQuestFactsDomainService
 {
     ValueTask<QuestHoldingsFacts> HoldingsAsync(CharacterId character, CancellationToken ct);
+    /// <summary>Durable holdings for queued consumers, independent of online container bindings.</summary>
+    ValueTask<QuestHoldingsFacts> PersistentHoldingsAsync(AccountId account, CharacterId character, CancellationToken ct);
     ValueTask<WorldContentSubject> SubjectAsync(AccountId account, CharacterId character, CancellationToken ct);
 }
 /// <summary>Quest-owned eligibility rules; World is only a projection consumer.</summary>
