@@ -98,14 +98,12 @@ public sealed class TutorialRewardPlacementTests
     }
 
     [Fact]
-    public async Task An_item_the_archive_declares_nothing_for_is_left_out_and_the_rest_proceeds()
+    public async Task An_unknown_reward_refuses_the_entire_tutorial_step()
     {
         var inventory = new RewardInventory();
 
-        var result = await Grant(inventory, (Unknown, 1), (Scroll, 1));
-
-        Assert.Equal(new PlacedRewardItem(3, Scroll, 1), Assert.Single(result.Placed));
-        Assert.Equal([(3, Scroll, 1)], inventory.Rows());
+        await Assert.ThrowsAsync<InvalidDataException>(() => Grant(inventory, (Unknown, 1), (Scroll, 1)));
+        Assert.Empty(inventory.Rows());
     }
 
     /// <remarks>
@@ -127,19 +125,17 @@ public sealed class TutorialRewardPlacementTests
     }
 
     [Fact]
-    public async Task A_character_with_no_bound_container_receives_nothing()
+    public async Task A_character_with_no_bound_container_cannot_consume_the_reward()
     {
         var handler = new GrantTutorialRewardCommandHandler(
             new CharacterContainerDomainService(),
-            new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(), null!);
+            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService()), null!);
 
-        var result = await handler.HandleAsync(
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await handler.HandleAsync(
             Context,
             new GrantTutorialRewardCommand(
                 new CharacterId(60), [new DeclaredRewardItem(Potion, 1)], new AccountId(6)),
-            CancellationToken.None);
-
-        Assert.Empty(result.Placed);
+            CancellationToken.None));
     }
 
     private static async Task<TutorialRewardResult> Grant(
@@ -147,7 +143,7 @@ public sealed class TutorialRewardPlacementTests
     {
         var handler = new GrantTutorialRewardCommandHandler(
             inventory.Containers(new RewardPlacements()),
-            inventory.Grants(new RewardPlacements()), null!);
+            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(inventory.Grants(new RewardPlacements()), inventory.Containers(new RewardPlacements())), null!);
         var bus = new DirectCommandBus(reward: handler, scope: inventory.Scope);
         return await bus.SendAsync(
             new GrantTutorialRewardCommand(

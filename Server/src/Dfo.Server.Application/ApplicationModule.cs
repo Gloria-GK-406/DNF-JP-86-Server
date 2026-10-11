@@ -276,6 +276,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<AmbientStoreAccess>();
         services.TryAddSingleton<IAccountMaterialRuleService, AccountMaterialRuleService>();
         services.TryAddSingleton<IItemGrantDomainService, ItemGrantDomainService>();
+        services.TryAddSingleton<IItemDeliveryRuleService, ItemDeliveryRuleService>();
+        services.TryAddSingleton<IItemDeliveryDomainService, ItemDeliveryDomainService>();
         services.TryAddSingleton<IEpicBookRuleService, EpicBookRuleService>();
         services.TryAddSingleton<IEpicBookDomainService, EpicBookDomainService>();
         services.TryAddSingleton<IEpicCraftDomainService, EpicCraftDomainService>();

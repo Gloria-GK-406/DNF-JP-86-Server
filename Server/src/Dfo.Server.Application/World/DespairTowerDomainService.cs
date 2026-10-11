@@ -21,9 +21,7 @@ internal sealed class DespairTowerDomainService(IDespairTowerRuleService rules,
     IDungeonStructureRuleService layouts, IDungeonVisitDomainService visits,
     IDungeonRunDomainService runs, IUsageQuotaDomainService quotas, IEventService events,
     IDailyResetRuleService daily, TimeProvider clock, IDomainTransactionAccessor transactions,
-    ICharacterDomainService characters, IItemGrantDomainService grants,
-    ICharacterContainerDomainService containers, IItemPlacementRuleService placements,
-    IItemLifecycleDomainService lifecycle, IMailboxDomainService mailbox,
+    ICharacterDomainService characters, IItemDeliveryDomainService delivery,
     IQuestProgressDomainService quests) : IDespairTowerDomainService
 {
     private DateOnly Period() => DateOnly.FromDateTime(daily.PeriodStart(clock.GetUtcNow())
@@ -86,35 +84,11 @@ internal sealed class DespairTowerDomainService(IDespairTowerRuleService rules,
         var standing = await characters.Get(character).ProgressAsync(ct).ConfigureAwait(false)
             ?? throw new InvalidDataException("Tower recipient has no progression.");
         var rewards = rules.Rewards(plan.Floor, standing.Level, run.Layout.BasisLevel, unchecked((ulong)run.Layout.Seed));
-        var updates = new Dictionary<BusinessSlot, DespairTowerInventoryUpdate>();
-        foreach (var reward in rewards)
-        {
-            var remaining = reward.Count;
-            while (remaining > 0)
-            {
-                var added = await grants.GrantAsync(account, character, containers, reward.ItemId, remaining, ct, isDefault: true).ConfigureAwait(false);
-                var (slot, count) = added.Placement switch
-                {
-                    ItemPlacementOutcome.AddedToPile value when value.Added > 0 => (value.SlotIndex, value.Added),
-                    ItemPlacementOutcome.PutInEmptySlot value when value.Count > 0 => (value.SlotIndex, value.Count),
-                    ItemPlacementOutcome.NoRoom => (-1, 0),
-                    _ => throw new InvalidDataException($"Invalid tower reward placement: {added.Placement}"),
-                };
-                if (slot < 0)
-                {
-                    await MailRewardAsync(character, reward, remaining, plan.Floor, ct).ConfigureAwait(false);
-                    break;
-                }
-                remaining -= count;
-                var item = await added.Container.GetAsync(slot, ct).ConfigureAwait(false)
-                    ?? throw new InvalidDataException("Tower reward disappeared.");
-                if (!item.IsPile && item.Snapshot.Durability != reward.Durability)
-                    item = await added.Container.UpdateAsync(item, value => value with { Durability = reward.Durability }, ct).ConfigureAwait(false);
-                await added.Container.FlushAsync(ct).ConfigureAwait(false);
-                var key = new BusinessSlot(added.Container.Space, slot);
-                updates[key] = new(key, item.Snapshot);
-            }
-        }
+        var receipt = await delivery.DeliverAsync(account, character,
+            rewards.Select(x => new ItemDeliveryGrant(x.ItemId, x.Count) { Durability = x.Durability }).ToArray(),
+            "绝望之塔奖励", ct).ConfigureAwait(false);
+        var updates = receipt.Inventory.GroupBy(x => x.Slot).ToDictionary(x => x.Key,
+            x => new DespairTowerInventoryUpdate(x.Key, x.Last().Snapshot));
         // The entry period owns the run even when its last kill crosses the daily reset.
         var keyClears = UsageQuotaKey.Despair("clears", plan.Period);
         var before = await quotas.ReadAsync(character, keyClears, ct).ConfigureAwait(false);
@@ -128,25 +102,5 @@ internal sealed class DespairTowerDomainService(IDespairTowerRuleService rules,
             rewards.ToImmutableArray(), updates.Values.ToImmutableArray());
     }
 
-    private async ValueTask MailRewardAsync(CharacterId character, DespairTowerReward reward, int count, int floor, CancellationToken ct)
-    {
-        var itemId = reward.ItemId;
-        var definition = await placements.PlacementForAsync(itemId, ct).ConfigureAwait(false)
-            ?? throw new InvalidDataException($"Unknown tower reward {itemId}.");
-        var builder = MailBuilder.FromSystem(character).WithText("绝望之塔奖励", $"第 {floor} 层奖励，因背包空间不足转入邮件。");
-        if (definition.WorldClass == Dfo.Server.Abstractions.Content.ItemWorldClass.Interchangeable)
-        {
-            await mailbox.SendAsync(builder.AddStackable(itemId, count).Build(), ct).ConfigureAwait(false);
-            return;
-        }
-        for (var i = 0; i < count; i++)
-        {
-            var item = await lifecycle.CreateAsync(new ItemSnapshot { ItemId = itemId, LegacyKind = definition.ItemKind,
-                Type = definition.Traits, IsPile = false, Count = 1, Durability = reward.Durability, InstanceValue = Dfo.Server.Application.Inventory.ArrivingAvatar.NewIdentity() }, ct).ConfigureAwait(false);
-            var identity = item.Snapshot.ItemUid ?? throw new InvalidDataException("Tower equipment has no identity.");
-            var mail = MailBuilder.FromSystem(character).WithText("绝望之塔奖励", $"第 {floor} 层奖励，因背包空间不足转入邮件。")
-                .AddEquipment(identity).Build();
-            await mailbox.SendPreparedAsync(mail, [new(new MailAsset.Equipment(identity), [item])], ct).ConfigureAwait(false);
-        }
-    }
+
 }

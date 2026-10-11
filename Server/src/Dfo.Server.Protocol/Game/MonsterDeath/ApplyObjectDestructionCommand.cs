@@ -28,7 +28,7 @@ public sealed class ApplyObjectDestructionCommandHandler(
     ISelectedSessionDomainService sessions,
     ICharacterQuestLogDomainService questLogs,
     ICharacterContainerDomainService containers,
-    IItemGrantDomainService items,
+    IItemDeliveryDomainService items,
     IQuestProgressDomainService progress)
     : ICommandHandler<ApplyObjectDestructionCommand, ObjectDestructionResult>
 {

@@ -737,7 +737,7 @@ public sealed class IllusionTowerDomainServiceTests
     }
 
     [Fact]
-    public async Task Equipment_full_bag_preserves_candidates_but_only_receipts_actual_delivery()
+    public async Task Equipment_full_bag_preserves_all_candidates_between_inventory_and_mail()
     {
         var content = new TowerRewardTestContent();
         content.Table = content.Table with { ItemTypeRates = [0, 10000, 0, 0] };
@@ -752,11 +752,16 @@ public sealed class IllusionTowerDomainServiceTests
         var receipt = Assert.Single(result.Run!.Completion!.Receipt!.Members);
         Assert.Equal(4, receipt.Candidates.Length);
         Assert.All(receipt.Candidates, x => Assert.Equal(3000, x.ItemId));
-        Assert.Equal(2, receipt.Items.Length);
-        Assert.Equal(2, receipt.Candidates.Count(x => x.Delivered));
+        Assert.Equal(4, receipt.Items.Length);
+        Assert.Equal(4, receipt.Candidates.Count(x => x.Delivered));
+        Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM mailbox_attachments WHERE claimed_flag=0"));
         var update = receipt.InventoryUpdates[0];
         Assert.Equal(35, update.Item.Durability);
         Assert.Equal(update.Item.InstanceValue, receipt.Candidates[0].DisplayValue);
+        Assert.All(receipt.Candidates, candidate => Assert.NotEqual(0, candidate.DisplayValue));
+        var mailedSeeds = receipt.Candidates.Skip(2).Select(x => x.DisplayValue).ToArray();
+        foreach (var seed in mailedSeeds)
+            Assert.Equal(1, f.Scalar($"SELECT COUNT(*) FROM mailbox_attachments WHERE instance_value={seed} AND claimed_flag=0"));
         Assert.Equal(2, f.Count(3000));
         Assert.Equal((ushort)35, await f.Durability(InventoryContainerType.Main, 9));
         Assert.False((await tower.DieAsync(context, default)).Changed);
@@ -806,7 +811,7 @@ public sealed class IllusionTowerDomainServiceTests
             var result = await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
             Assert.Single(result.KillRewards);
             Assert.True(result.Run!.Completion!.Settled);
-            Assert.Equal(2, result.Run.Completion.Receipt!.Members[0].Items.Length);
+            Assert.Equal(4, result.Run.Completion.Receipt!.Members[0].Items.Length);
         }
         Assert.Equal(0, f.Count(3000));
         Assert.Equal((int)f.ExperienceForLevel(50), f.Scalar("SELECT exp FROM characters WHERE character_id=1"));

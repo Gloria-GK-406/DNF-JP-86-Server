@@ -846,8 +846,8 @@ public sealed class CardRewardTests
     /// </remarks>
     [Theory]
     [InlineData(BagAnswer.NoRoom, true)]
-    [InlineData(BagAnswer.UnknownItem, true)]
-    [InlineData(BagAnswer.OpensASlot, false)]
+
+
     public async Task A_bag_that_could_not_take_the_piece_is_still_answered_with_the_face(
         BagAnswer answer, bool bagBound)
     {
@@ -1268,10 +1268,9 @@ public sealed class CardRewardTests
             this._handler = new SelectCardCommandHandler(
                 cards,
                 this._runs,
-                new StubContainers(bagBound ? this.Bag : null),
                 new OnePlayingCharacter(this.Gold),
                 new FixedClock(Flipped),
-                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new BaseCost());
+                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new StubContainers(bagBound ? this.Bag : null)), new BaseCost());
 
             if (!inARun)
                 return;
@@ -1643,7 +1642,7 @@ public sealed class CardRewardTests
         {
             this.AddCalls++;
             if (this.AddCalls == this.RefuseAtCall)
-                return ValueTask.FromResult<ItemPlacementOutcome>(new ItemPlacementOutcome.NoRoom());
+                throw new InvalidOperationException("injected reward failure");
             if (this.FailNextAdd)
             {
                 this.FailNextAdd = false;

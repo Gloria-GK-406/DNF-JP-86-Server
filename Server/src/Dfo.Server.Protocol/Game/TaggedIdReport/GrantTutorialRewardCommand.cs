@@ -35,15 +35,12 @@ public sealed record GrantTutorialRewardCommand(
 /// with the first two. That also makes each item's placement see the ones before it, because the
 /// container's reads inside a use case include what that use case has already written.
 ///
-/// What the archive declares and what the character receives are not the same list. An item the
-/// archive knows nowhere to put, or whose band is full, is left out -- naming it in the
-/// acknowledgement would tell the client to draw something the server does not hold. Deciding that
-/// is this handler's own business: the bag reports what became of each item, and only something
-/// that knows an acknowledgement exists can decide that two of those answers mean "say nothing".
+/// The acknowledgement lists actual inventory changes. Remaining items are sent through system
+/// mail; invalid templates or unavailable storage fail the whole transactional step.
 /// </remarks>
 public sealed class GrantTutorialRewardCommandHandler(
     ICharacterContainerDomainService containers,
-    IItemGrantDomainService itemGrants,
+    IItemDeliveryDomainService delivery,
     ITutorialCompletionDomainService tutorial)
     : ICommandHandler<GrantTutorialRewardCommand, TutorialRewardResult>
 {
@@ -61,40 +58,16 @@ public sealed class GrantTutorialRewardCommandHandler(
 
         var container = containers.FindContainer(command.CharacterId, InventoryContainerType.Main);
         if (container is null)
-            return new TutorialRewardResult([], []);
+            throw new InvalidOperationException("Tutorial reward inventory is unavailable.");
 
         var placed = new List<PlacedRewardItem>(command.Declared.Count);
         var accountChanges = new List<InventoryRuntimeValueState>();
-        foreach (var declared in command.Declared)
+        var receipt = await delivery.DeliverAsync(command.AccountId, command.CharacterId,
+            command.Declared.Select(x => new ItemDeliveryGrant(x.ItemId, x.Count)).ToArray(), "教程奖励", cancellationToken).ConfigureAwait(false);
+        foreach (var item in receipt.Inventory)
         {
-            var granted = await itemGrants.GrantAsync(
-                    command.AccountId, command.CharacterId, containers, declared.ItemId, declared.Count,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            switch (granted)
-            {
-                case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.AddedToPile topped } character:
-                    placed.Add(new PlacedRewardItem(
-                        ItemGrantWireProjection.Index(character, topped.SlotIndex), declared.ItemId, topped.Added));
-                    break;
-
-                case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
-                    placed.Add(new PlacedRewardItem(
-                        ItemGrantWireProjection.Index(character, opened.SlotIndex), declared.ItemId, opened.Count));
-                    break;
-
-                case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.NoRoom }:
-                case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.UnknownItem }:
-                    // Left out of the acknowledgement, which is what the caller reports and logs.
-                    break;
-
-                default:
-                    // Listed rather than defaulted: an outcome nobody read would quietly become a
-                    // reward the player was promised and never given, with nothing said.
-                    throw new ArgumentOutOfRangeException(
-                        nameof(command), granted, "No reading was decided for this outcome.");
-            }
-            if (await ItemGrantWireProjection.SharedAsync(granted, cancellationToken).ConfigureAwait(false) is { } shared) accountChanges.Add(shared);
+            placed.Add(new(ItemGrantWireProjection.Index(item), item.Snapshot.ItemId, item.Count));
+            if (ItemGrantWireProjection.Shared(item) is { } shared) accountChanges.Add(shared);
         }
 
         return new TutorialRewardResult(placed, accountChanges);

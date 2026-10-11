@@ -65,7 +65,7 @@ internal sealed class OpeningEffectPlanRuleService(IItemUseJudgementService useR
     }
 
     public ImmutableArray<DomainEffect> MaterialCraftEffects(RecipeEffectCosts costs, OpeningPreparedGrant grant) =>
-        [.. costs.Items.Select(x => (DomainEffect)new ConsumeFromContainerEffect(x.Slot, x.ItemId, x.Count)), new GrantPreparedItemEffect(grant)];
+        [.. costs.Items.Select(x => (DomainEffect)new ConsumeFromContainerEffect(x.Slot, x.ItemId, x.Count)), new GrantPreparedItemEffect(grant, AllowMail: false)];
 
     public ImmutableArray<DomainEffect> Build(int sourceId, ItemUseRule rule, IReadOnlyList<OpeningSlotConsumption> consumed,
         ImmutableArray<OpeningPreparedGrant> grants, IReadOnlyList<AccountPremiumEntryState> premiums, DateTimeOffset at,

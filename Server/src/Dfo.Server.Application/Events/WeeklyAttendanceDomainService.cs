@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Events;
 using System.Text.Json;
 using Dfo.Server.Abstractions.Initialization;
@@ -11,7 +12,7 @@ using Dfo.Server.Data.Mail;
 namespace Dfo.Server.Application.Events;
 
 internal sealed class WeeklyAttendanceDomainService(IEventPersistence store,IWeeklyAttendanceRuleService rules,
-    IMailboxDomainService mailbox,ICharacterTable owners) : IManagedEventDomainService,IWeeklyAttendanceDomainService
+    IItemDeliveryDomainService delivery,ICharacterTable owners) : IManagedEventDomainService,IWeeklyAttendanceDomainService
 {
     public int EventId => 2208;
     private static EventConfiguration Initial => new(0,"initial",false,"累计周签到","周签到","", "","",null,null);
@@ -111,9 +112,8 @@ internal sealed class WeeklyAttendanceDomainService(IEventPersistence store,IWee
             return new(false,await StateAsync(account,now,ct));
         var no=state.AttendanceCount+1;
         var rewards=d.WeeklyRewards.Where(r=>r.AttendanceNo==no).Concat(d.CumulativeRewards.Where(r=>r.AttendanceNo==no));
-        var mail=MailBuilder.FromSystem(recipient).WithText(c.Title,$"累计第 {no} 次周签到奖励");
-        foreach (var r in rewards) mail.AddStackable(r.ItemId,r.Count);
-        await mailbox.SendAsync(mail.Build(),ct);
+        await delivery.DeliverAsync(account, recipient, rewards.Select(x => new ItemDeliveryGrant(x.ItemId, x.Count)).ToArray(),
+            c.Title, ct, ItemDeliveryMode.MailOnly);
         return new(true,await StateAsync(account,now,ct));
     }
 }

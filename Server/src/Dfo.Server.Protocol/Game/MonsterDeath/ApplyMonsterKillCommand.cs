@@ -46,7 +46,7 @@ public sealed class ApplyMonsterKillCommandHandler(
     ICharacterQuestLogDomainService questLogs,
     ICharacterContainerDomainService containers,
     IQuestProgressDomainService questProgress,
-    IItemGrantDomainService itemGrants,
+    IItemDeliveryDomainService itemGrants,
     IPartyService? parties = null, TimeProvider? clock = null,
     ICharacterGameplayFactDomainService? gameplay = null)
     : ICommandHandler<ApplyMonsterKillCommand, ApplyMonsterKillResult>

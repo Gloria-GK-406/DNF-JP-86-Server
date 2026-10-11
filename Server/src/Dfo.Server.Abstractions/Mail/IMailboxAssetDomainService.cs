@@ -4,10 +4,12 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Mail;
 namespace Dfo.Server.Abstractions.Mail;
 
-public sealed record MailboxInventoryUpdate(BusinessSlot Slot, ItemIdentity? Identity, InventoryItemCoreState Core);
+public sealed record MailboxInventoryUpdate(BusinessSlot Slot, ItemIdentity? Identity, InventoryItemCoreState Core,
+    InventoryAvatarDetailState? AvatarDetail = null);
 public sealed record MailboxAssetProjection(IReadOnlyList<MailboxInventoryUpdate> Updates,
     IReadOnlyList<BusinessSlot> Cleared,
-    int? Gold, DateTimeOffset PreparedAt);
+    int? Gold, DateTimeOffset PreparedAt,
+    IReadOnlyList<CharacterPetRuntimeState>? Pets = null);
 public interface IMailboxAssetDomainService
 {
     ValueTask<MailboxAssetProjection> PrepareAsync(CharacterId character, IReadOnlyList<MailAssetChange> changes, CancellationToken token);

@@ -27,7 +27,8 @@ public sealed class OpeningCompletedHandler(ISelectedSessionDomainService sessio
         var updates = receipt.Updates.GroupBy(update => OpeningWireSlots.Project(update.Slot, SlotMappings).Space)
             .Select(group => new CommittedInventoryUpdateState(group.Key,
                 group.Select(update => new InventoryItemState(update.Identity,
-                    OpeningWireSlots.Project(update.Slot, SlotMappings).Index, update.Core.ToCore())).ToArray(), receipt.PreparedAt)).ToArray();
+                    OpeningWireSlots.Project(update.Slot, SlotMappings).Index, update.Core.ToCore(),
+                    AvatarDetail: update.Core.AvatarDetail)).ToArray(), receipt.PreparedAt)).ToArray();
         messages.AddRange(GameInventoryDelivery.Notifications(updates));
         foreach (var slot in receipt.Cleared.Where(x => x.Space != BusinessInventorySpace.SharedMaterial))
         {

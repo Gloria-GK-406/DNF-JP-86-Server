@@ -13,7 +13,7 @@ namespace Dfo.Server.Application.World.IllusionTower;
 
 internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleService rules,
     ICharacterDomainService characters,
-    IItemGrantDomainService grants, ICharacterContainerDomainService containers,
+    IItemDeliveryDomainService delivery, ICharacterContainerDomainService containers,
     IQuestProgressDomainService quests, IQuestEnemyDropDomainService questDrops,
     ICharacterQuestLogDomainService questLogs,
     IDomainTransactionAccessor transactions, TimeProvider clock)
@@ -75,33 +75,13 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
                     ?? throw new InvalidDataException("Character inventory is unavailable.");
             var held = (await source.GetAllAsync(token).ConfigureAwait(false))
                 .Where(item => item.ItemId == drop.ItemId).Sum(item => (long)item.Count);
+            held += await delivery.PendingQuantityAsync(session.CharacterId, drop.ItemId, token).ConfigureAwait(false);
             var remaining = checked((int)Math.Min(drop.Count, Math.Max(0, drop.GrantLimit - held)));
-            while (remaining > 0)
+            if (remaining > 0)
             {
-                var granted = await grants.GrantAsync(session.AccountId, session.CharacterId, containers,
-                    drop.ItemId, remaining, token, isDefault: true).ConfigureAwait(false);
-                var placement = granted.Placement;
-                var localSlot = placement switch
-                {
-                    ItemPlacementOutcome.AddedToPile value when value.Added > 0 => value.SlotIndex,
-                    ItemPlacementOutcome.PutInEmptySlot value when value.Count > 0 => value.SlotIndex,
-                    ItemPlacementOutcome.NoRoom => -1,
-                    ItemPlacementOutcome.UnknownItem => throw new InvalidDataException(
-                        $"Tower quest item {drop.ItemId} has no inventory definition."),
-                    _ => throw new InvalidDataException(
-                        $"Tower quest item {drop.ItemId} placement made no progress: {placement}."),
-                };
-                if (localSlot < 0) break;
-                remaining -= placement switch
-                {
-                    ItemPlacementOutcome.AddedToPile value => value.Added,
-                    ItemPlacementOutcome.PutInEmptySlot value => value.Count,
-                    _ => 0,
-                };
-                var item = await granted.Container.GetAsync(localSlot, token).ConfigureAwait(false)
-                    ?? throw new InvalidDataException("Tower quest item disappeared before commit.");
-                var slot = new BusinessSlot(granted.Container.Space, localSlot);
-                changed[slot] = new(slot, item.Snapshot);
+                var receipt = await delivery.DeliverAsync(session.AccountId, session.CharacterId,
+                    [new(drop.ItemId, remaining)], "任务掉落奖励", token).ConfigureAwait(false);
+                foreach (var item in receipt.Inventory) changed[item.Slot] = new(item.Slot, item.Snapshot);
             }
         }
         return changed.OrderBy(value => value.Key.Space).ThenBy(value => value.Key.Index)
@@ -136,19 +116,12 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
                     continue;
                 }
                 if (candidate.ItemId < 0) continue;
-                var grant = await grants.GrantAsync(session.AccountId, session.CharacterId, containers,
-                    candidate.ItemId, 1, token, isDefault: true).ConfigureAwait(false);
-                if (grant.Placement is ItemPlacementOutcome.NoRoom) continue;
-                if (grant.Placement is not ItemPlacementOutcome.PutInEmptySlot { Count: 1 } placed)
-                    throw new InvalidDataException($"Tower equipment grant failed: {grant.Placement}.");
-                var item = await grant.Container.GetAsync(placed.SlotIndex, token).ConfigureAwait(false)
-                    ?? throw new InvalidDataException("Tower equipment disappeared.");
-                if (item.Snapshot.Durability != candidate.Durability)
-                    item = await grant.Container.UpdateAsync(item, x => x with { Durability = candidate.Durability }, token).ConfigureAwait(false);
-                await grant.Container.FlushAsync(token).ConfigureAwait(false);
-                candidates[i] = candidate with { DisplayValue = item.Snapshot.InstanceValue, Delivered = true };
+                var receipt = await delivery.DeliverAsync(session.AccountId, session.CharacterId,
+                    [new(candidate.ItemId, 1) { Durability = candidate.Durability }], "塔通关奖励", token).ConfigureAwait(false);
+                candidates[i] = candidate with { DisplayValue = receipt.Inventory.FirstOrDefault()?.Snapshot.InstanceValue
+                    ?? receipt.MailedItems.FirstOrDefault()?.InstanceValue ?? candidate.DisplayValue, Delivered = true };
                 delivered.Add(new(candidate.ItemId, 1));
-                updates.Add(new(new(grant.Container.Space, placed.SlotIndex), item.Snapshot));
+                updates.AddRange(receipt.Inventory.Select(x => new TowerInventoryUpdate(x.Slot, x.Snapshot)));
             }
             var award = await characters.Get(session.CharacterId).AddExpAsync(new TowerClearExperienceContext(
                 new(ExperienceEvent.TowerClear, session.AccountId, session.CharacterId, run.DungeonId), completion.RewardLevel),

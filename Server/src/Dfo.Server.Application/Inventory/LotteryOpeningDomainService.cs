@@ -79,7 +79,7 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
         var gold = applied.Applied.Changes<GoldEffectChange>().LastOrDefault()?.Remaining
             ?? await characters.Get(session.CharacterId).GoldAsync(token).ConfigureAwait(false);
         if (receipt.Rewards.Length != (mode == 1 ? 2 : 1)
-            || receipt.Updates.Count(x => x.Slot.Space == BusinessInventorySpace.CarriedEquipment) != (mode == 1 ? 2 : 1))
+            || receipt.Rewards.Any(x => x.Count != 1 || x.Snapshot is null))
             throw Reject("Unexpected lottery receipt layout.");
         return new(receipt, slot, gold);
     }

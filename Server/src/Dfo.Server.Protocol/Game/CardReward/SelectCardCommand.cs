@@ -82,11 +82,8 @@ public enum SelectCardStatus
 /// and for every refusal.
 /// </param>
 /// <remarks>
-/// <paramref name="Delivered"/> is null for more than a refusal: a position that held nothing has
-/// nothing to hand over, and a bag that could not take the piece -- no container bound, no room,
-/// an item the archive does not declare -- hands over nothing either. The face still goes back in
-/// every one of those cases, because the face is what the flip revealed and it was revealed
-/// whatever the bag did with it.
+/// <paramref name="Delivered"/> describes inventory changes only. Overflow is delivered through
+/// system mail in the same claim transaction. Unknown templates and storage errors abort the claim.
 /// <para>
 /// The two gold figures are reported rather than left to the store to remember, because a flip
 /// is the only thing on this path that both spends and pays, and a log that said which of the two
@@ -161,10 +158,9 @@ public sealed record SelectCardCommand(
 public sealed class SelectCardCommandHandler(
     ICardRewardDomainService cards,
     IDungeonRunDomainService runs,
-    ICharacterContainerDomainService containers,
     ICharacterDomainService characters,
     TimeProvider clock,
-    IItemGrantDomainService itemGrants,
+    IItemDeliveryDomainService itemDelivery,
     ICardFlipCostDomainService flipCosts) : ICommandHandler<SelectCardCommand, SelectCardResult>
 {
     public async ValueTask<SelectCardResult> HandleAsync(
@@ -237,8 +233,7 @@ public sealed class SelectCardCommandHandler(
             var bonusDelivery = bonus is { } bonusPiece
                 ? await this.DeliverAsync(command.AccountId, command.CharacterId, bonusPiece, cancellationToken)
                     .ConfigureAwait(false) : null;
-            if (bonus is not null && (bonusDelivery is null || (claim.Slot.Item is not null && delivery is null)))
-                throw new InvalidOperationException("The ordinary and black-diamond rewards could not both be delivered.");
+
 
             var commit = runs.CommitClearRewardCard(claim);
             if (!commit.IsDeferred && commit.Change is null)
@@ -313,66 +308,15 @@ public sealed class SelectCardCommandHandler(
         ClearRewardCardItem piece,
         CancellationToken cancellationToken)
     {
-        if (containers.FindContainer(characterId, InventoryContainerType.Main) is null)
-            return null;
-        var granted = await itemGrants.GrantAsync(
-                accountId, characterId, containers, piece.ItemId, piece.Quantity, cancellationToken)
-            .ConfigureAwait(false);
-        int slotIndex;
-        BusinessItemAdditionResult? delivered = null;
-        var opensASlot = false;
-        switch (granted)
-        {
-            case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.AddedToPile topped } character:
-                slotIndex = topped.SlotIndex;
-                delivered = character;
-                break;
-
-            case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
-                slotIndex = opened.SlotIndex;
-                delivered = character;
-                opensASlot = true;
-                break;
-
-            case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.NoRoom }:
-            case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.UnknownItem }:
-                return null;
-
-            default:
-                // Listed rather than defaulted: an outcome nobody read would become a piece the
-                // player was shown and never given, with nothing said about it.
-                throw new ArgumentOutOfRangeException(
-                    nameof(piece), granted, "No reading was decided for this outcome.");
-        }
-
-        var landed = await delivered!.Container.GetAsync(slotIndex, cancellationToken)
-            .ConfigureAwait(false);
-        if (landed is null)
-            return null;
-
-        if (await ItemGrantWireProjection.SharedAsync(granted, cancellationToken).ConfigureAwait(false) is { } shared)
-            return new CardItemDelivery(null, shared);
-        var core = landed.Snapshot.ToCore();
-        if (opensASlot)
-        {
-            // A slot the bag opens carries no durability, and a piece created at zero durability is
-            // a broken one. What it should carry was decided when the face was fixed and travels on
-            // the card for exactly this moment; a pile it joined already carries one of its own.
-            core = core with { Durability = piece.Durability };
-            await delivered.Container.UpdateAsync(landed, current => current with { Durability = piece.Durability }, cancellationToken).ConfigureAwait(false);
-        }
-
-        // Built from what was just written rather than re-read through the entry projection: that
-        // projection reads the character's rows and this change has not settled yet, so it would
-        // answer the piece as the bag opened it and not as it now stands. No name is carried
-        // because this frame has no field for one, and because the name of what was just written
-        // is settlement's to hand out rather than this caller's to guess at.
-        return new CardItemDelivery(
-            new CommittedInventoryUpdateState(
-                ItemGrantWireProjection.Slot(delivered, slotIndex).Space,
-                [new InventoryItemState(null, ItemGrantWireProjection.Index(delivered, slotIndex), core)],
-                clock.GetUtcNow()),
-            null);
+        var receipt = await itemDelivery.DeliverAsync(accountId, characterId,
+            [new(piece.ItemId, piece.Quantity) { Durability = piece.Durability }], "地下城翻牌奖励", cancellationToken).ConfigureAwait(false);
+        var ordinary = receipt.Inventory.Where(x => x.Slot.Space != BusinessInventorySpace.SharedMaterial)
+            .GroupBy(x => x.Slot).Select(x => x.Last()).ToArray();
+        var shared = receipt.Inventory.LastOrDefault(x => x.Slot.Space == BusinessInventorySpace.SharedMaterial);
+        return new CardItemDelivery(ordinary.Length == 0 ? null : new CommittedInventoryUpdateState(
+            ItemGrantWireProjection.Slot(ordinary[0]).Space,
+            ordinary.Select(x => new InventoryItemState(null, ItemGrantWireProjection.Index(x), x.Snapshot.ToCore())).ToArray(), clock.GetUtcNow()),
+            shared is null ? null : ItemGrantWireProjection.Shared(shared));
     }
 
     private sealed record CardItemDelivery(

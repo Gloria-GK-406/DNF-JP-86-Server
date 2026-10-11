@@ -42,7 +42,7 @@ public sealed class OpeningCapacityRegressionTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Full_physical_bag_allows_only_virtual_rewards_and_refusal_keeps_all_assets(bool physicalReward)
+    public async Task Full_physical_bag_mails_physical_rewards_and_still_applies_virtual_rewards(bool physicalReward)
     {
         using var f = new OpeningFixture();
         EnableCapacityChecks(f.Host);
@@ -57,18 +57,11 @@ public sealed class OpeningCapacityRegressionTests
         foreach (var slot in Enumerable.Range(4, 5).Concat(Enumerable.Range(65, 32)))
             await f.Host.Seed(slot, 6000, 1);
 
-        if (physicalReward)
-        {
-            var failure = await Assert.ThrowsAsync<OpeningRejectedException>(() => Open(f, 3));
-            Assert.Equal(OpeningRejection.NoRoom, failure.Reason);
-        }
-        else
-        {
-            var result = await Open(f, 3);
-            Assert.NotNull(result.Receipt);
-        }
-        Assert.Equal(physicalReward ? 2 : 1, f.Host.Count(1000));
-        Assert.Equal(physicalReward ? 0 : 3, f.Host.Count(1));
+        var result = await Open(f, 3);
+        Assert.NotNull(result.Receipt);
+        Assert.Equal(physicalReward ? 1 : 0, f.Host.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        Assert.Equal(1, f.Host.Count(1000));
+        Assert.Equal(3, f.Host.Count(1));
         Assert.Equal(0, f.Host.Count(3));
         Assert.Equal(37, f.Host.Count(6000));
     }

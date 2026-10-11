@@ -96,9 +96,14 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
     {
         if (count <= 0 || itemId <= 0 || placement.ItemKind == 0)
             Refuse(InventoryEffectRejection.UnsupportedItem);
-        placement = InventoryCapacityPlacement.Limit(placement,
-            await state.OpenSlotCountAsync(placement.Destination.Space, ct).ConfigureAwait(false))
-            ?? throw new InventoryEffectException(InventoryEffectRejection.NoRoom);
+        var limited = InventoryCapacityPlacement.Limit(placement,
+            await state.OpenSlotCountAsync(placement.Destination.Space, ct).ConfigureAwait(false));
+        if (limited is null)
+        {
+            if (placement.Destination.Space == BusinessInventorySpace.VirtualResource) Refuse(InventoryEffectRejection.NoRoom);
+            return;
+        }
+        placement = limited;
         var available = Enumerable.Range(placement.Destination.FirstIndex,
             placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
             .Select(index => new BusinessSlot(placement.Destination.Space, index));
@@ -123,7 +128,10 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
                 case ItemArrival.IntoEmptySlot empty:
                     target = empty.Slot; added = empty.Count; core = new ItemSnapshot { ItemId = itemId, Count = placement.WorldClass == ItemWorldClass.Interchangeable ? added : 1,
                         LegacyKind = placement.ItemKind, Type = placement.Traits, IsPile = placement.WorldClass == ItemWorldClass.Interchangeable }; break;
-                default: Refuse(InventoryEffectRejection.NoRoom); return;
+                case ItemArrival.NoRoom:
+                    if (placement.Destination.Space == BusinessInventorySpace.VirtualResource) Refuse(InventoryEffectRejection.NoRoom);
+                    return;
+                default: throw new InvalidDataException("Unsupported reward arrival.");
             }
             if (added <= 0 || added > remaining) throw new InvalidDataException("Invalid effect arrival progress.");
             state.SetSlot(target, core);

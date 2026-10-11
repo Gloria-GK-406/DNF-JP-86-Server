@@ -6,9 +6,12 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Mail;
+using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Application.Creatures;
 namespace Dfo.Server.Application.Mail;
 internal sealed class MailboxAssetDomainService(IItemDomainStore store, IDomainTransactionAccessor transactions,
-    ICharacterBusinessInventoryDomainService inventories, ICharacterTable owners, TimeProvider clock) : IMailboxAssetDomainService
+    ICharacterBusinessInventoryDomainService inventories, ICharacterTable owners, TimeProvider clock,
+    ICreatureDomainService creatures) : IMailboxAssetDomainService
 {
     public async ValueTask<MailboxAssetProjection> PrepareAsync(CharacterId character, IReadOnlyList<MailAssetChange> changes, CancellationToken token)
     {
@@ -30,8 +33,15 @@ internal sealed class MailboxAssetDomainService(IItemDomainStore store, IDomainT
             var item = await session.GetAsync(container.StorageId,
                 physical.Index, token).ConfigureAwait(false);
             if (item is null) cleared.Add(slot);
-            else updates.Add(new(slot, item.ItemUid, item.Snapshot.ToCore()));
+            else updates.Add(new(slot, item.ItemUid, item.Snapshot.ToCore(), item.Snapshot.AvatarDetail));
         }
-        return new(updates, cleared, changes.LastOrDefault(x => x.GoldBalance is not null)?.GoldBalance, at);
+        IReadOnlyList<CharacterPetRuntimeState>? pets = null;
+        if (updates.Any(x => x.Core.ItemKind == 5))
+        {
+            var states = await creatures.GetStore(character).ReadAllAsync(token).ConfigureAwait(false);
+            if (states.Count > byte.MaxValue) throw new MailException(MailFailure.NoCapacity, "Creature runtime list exceeds protocol capacity.");
+            pets = states.Select(CreatureRuntimeProjection.Build).ToArray();
+        }
+        return new(updates, cleared, changes.LastOrDefault(x => x.GoldBalance is not null)?.GoldBalance, at, pets);
     }
 }

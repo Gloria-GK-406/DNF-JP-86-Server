@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Globalization;
+using System.Text.Json;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
@@ -89,15 +90,17 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
                 _ => throw new MailException(MailFailure.InvalidMail, "Prepared records differ from the attachment descriptor.")
             };
             var core = snapshot is null ? null : (snapshot with { Count = count }).ToCore();
+            var itemKind = snapshot?.LegacyKind switch { 8 => "avatar", 5 => "creature", _ => kind };
+            var detail = snapshot is null ? "" : JsonSerializer.Serialize(new { Avatar = snapshot.AvatarDetail, Creature = snapshot.CreatureDetail });
             long attachmentId = 0;
             await database.WriteAsync(async (command, token) =>
             {
                 command.CommandText = """
                     INSERT INTO mailbox_attachments(message_id,ordinal,item_template_id,source_item_uid,
                         item_count,item_core,item_kind,item_type,instance_value,durability,seal_flag,
-                        expire_time,marker_16,asset_kind,gold_amount,claimed_flag)
-                    VALUES(@message,@ordinal,@item,@uid,@count,@core,@kind,@type,@instance,@durability,
-                        @seal,@expire,@marker,@kind,@gold,0) RETURNING attachment_id;
+                        expire_time,marker_16,asset_kind,gold_amount,claimed_flag,detail_json)
+                    VALUES(@message,@ordinal,@item,@uid,@count,@core,@itemKind,@type,@instance,@durability,
+                        @seal,@expire,@marker,@kind,@gold,0,@detail) RETURNING attachment_id;
                     """;
                 var p = command.Parameters;
                 p.AddWithValue("@message", id);
@@ -107,6 +110,8 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
                 p.AddWithValue("@count", count);
                 p.AddWithValue("@core", core is not null ? InventoryItemCore.Encode(core) : DBNull.Value);
                 p.AddWithValue("@kind", kind);
+                p.AddWithValue("@itemKind", itemKind);
+                p.AddWithValue("@detail", detail);
                 p.AddWithValue("@type", core?.ItemKind ?? 0);
                 p.AddWithValue("@instance", core?.Value ?? 0);
                 p.AddWithValue("@durability", core?.Durability ?? 0);

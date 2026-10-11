@@ -48,7 +48,7 @@ internal sealed class LotteryOpeningEncoder : GameCmdMessageEncoder<LotteryOpeni
         if (result is null) { writer.Write(message.Error); return stream.ToArray(); }
         var receipt = result.Receipt;
         var reward = receipt.Rewards[0];
-        var core = receipt.Updates.Single(x => x.Slot == reward.Slot).Core;
+        var core = reward.Snapshot ?? receipt.Updates.Single(x => x.Slot == reward.Slot).Core;
         writer.Write(checked((short)OpeningWireSlots.RewardIndex(result.SourceSlot))); writer.Write(checked((short)OpeningWireSlots.RewardIndex(reward.Slot)));
         writer.Write(reward.ItemId); writer.Write(receipt.Rewards.Sum(x => x.Count)); writer.Write(core.Durability);
         writer.Write(core.Attribute); writer.Write(core.AmplifyType); writer.Write(core.AmplifyValue);

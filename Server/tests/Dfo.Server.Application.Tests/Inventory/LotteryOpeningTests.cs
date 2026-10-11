@@ -70,12 +70,15 @@ public sealed class LotteryOpeningTests
     }
 
     [Dfo.Server.Testing.PvfFact]
-    public async Task Full_equipment_band_refuses_without_consuming_pot()
+    public async Task Full_equipment_band_consumes_pot_and_mails_reward_with_encodable_ack()
     {
         using var shop = Fixture(); await shop.Host.Seed(65, 7110, 3);
         for (var slot = 9; slot <= 64; slot++) await shop.Host.Seed(slot, 20002, 1, 1);
-        await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop));
-        Assert.Equal(3, shop.Host.Count(7110));
+        var result = await Command(shop);
+        Assert.Equal(2, shop.Host.Count(7110));
+        Assert.Null(Assert.Single(result.Receipt.Rewards).Slot);
+        Assert.Equal(1,shop.Host.Scalar("SELECT COUNT(*) FROM mailbox_attachments WHERE claimed_flag=0"));
+        Assert.NotEmpty(shop.Encode(new LotteryOpeningResponse(result)));
     }
 
     [Dfo.Server.Testing.PvfFact]
@@ -202,14 +205,31 @@ public sealed class LotteryOpeningTests
     }
 
     [Dfo.Server.Testing.PvfFact]
-    public async Task One_free_slot_rejects_double_and_rolls_back_pot_gold_and_quota()
+    public async Task One_free_slot_delivers_double_across_inventory_and_mail_with_encodable_ack()
     {
         using var shop = Fixture(); Subscribe(shop); await shop.Host.Seed(65, 7110, 2);
         for (var slot = 9; slot < 40; slot++) await shop.Host.Seed(slot, 20002, 1, 1);
-        var error = await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop, mode: 1));
-        Assert.Equal(OpeningRejection.NoRoom, error.Reason);
-        Assert.Equal(0, Used(shop)); Assert.Equal(2, shop.Host.Count(7110)); Assert.Equal(100000, shop.Host.Gold);
-        await Command(shop, mode: 0); Assert.Equal(1, shop.Host.Count(7110));
+        var result = await Command(shop, mode: 1);
+        Assert.Equal(1, Used(shop)); Assert.Equal(1, shop.Host.Count(7110)); Assert.Equal(100000, shop.Host.Gold);
+        Assert.Equal(2, result.Receipt.Rewards.Length);
+        Assert.Single(result.Receipt.Rewards.Where(x=>x.Slot is null));
+        Assert.Equal(1,shop.Host.Scalar("SELECT COUNT(*) FROM mailbox_attachments WHERE claimed_flag=0"));
+        Assert.NotEmpty(shop.Encode(new LotteryOpeningResponse(result)));
+    }
+
+    [Dfo.Server.Testing.PvfFact]
+    public async Task Full_double_reward_mails_both_instances_and_encodes_ack_without_inventory_reward_slots()
+    {
+        var selector = new Fixed(); using var shop = Fixture(selector); Subscribe(shop);
+        await shop.Host.Seed(65, 7110, 3);
+        for (var slot = 9; slot <= 64; slot++) await shop.Host.Seed(slot, 20002, 1, 1);
+        var result = await Command(shop, mode: 1);
+        Assert.Equal(1, selector.Calls); Assert.Equal(1, Used(shop));
+        Assert.Equal(2, shop.Host.Count(7110));
+        Assert.Equal(2, result.Receipt.Rewards.Length);
+        Assert.All(result.Receipt.Rewards, reward => Assert.Null(reward.Slot));
+        Assert.Equal(2, shop.Host.Scalar("SELECT COUNT(*) FROM mailbox_attachments WHERE claimed_flag=0"));
+        Assert.NotEmpty(shop.Encode(new LotteryOpeningResponse(result)));
     }
 
     [Dfo.Server.Testing.PvfFact]

@@ -71,8 +71,8 @@ internal sealed class MaterializeSkillBuildsEffectHandler(ICharacterSkillBuildTa
         return new SkillBuildsMaterializedChange();
     }
 }
-internal sealed class GrantBasicCharacterItemEffectHandler(IItemGrantDomainService grants,
-    IItemPlacementRuleService placements) : EffectHandler<GrantBasicCharacterItemEffect>
+internal sealed class GrantBasicCharacterItemEffectHandler(IItemDeliveryDomainService delivery,
+    IItemPlacementRuleService placements, IItemGrantDomainService resources) : EffectHandler<GrantBasicCharacterItemEffect>
 {
     public override async ValueTask ValidateAsync(EffectExecutionContext context, GrantBasicCharacterItemEffect effect, CancellationToken ct)
     {
@@ -82,8 +82,10 @@ internal sealed class GrantBasicCharacterItemEffectHandler(IItemGrantDomainServi
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, GrantBasicCharacterItemEffect effect, CancellationToken ct)
     {
-        var result = await grants.GrantAllAsync(context.CharacterId, effect.ItemId, effect.Count, ct).ConfigureAwait(false);
-        if (result.Items.Sum(x => (long)x.Count) != effect.Count) throw new InvalidOperationException("Basic physical grant was incomplete.");
-        return new BasicCharacterItemChange([.. result.Items]);
+        if (effect.Placement.Destination.Space == Dfo.Server.Data.Inventory.BusinessInventorySpace.VirtualResource)
+            return new BasicCharacterItemChange([.. (await resources.GrantAllPersistentAsync(context.CharacterId, effect.ItemId, effect.Count, ct).ConfigureAwait(false)).Items]);
+        var result = await delivery.DeliverAsync(context.AccountId, context.CharacterId,
+            [new(effect.ItemId, effect.Count)], "任务奖励", ct).ConfigureAwait(false);
+        return new BasicCharacterItemChange([.. result.Inventory.Select(x => new ContainerItemAddition(x.Container.Id, x.Slot, x.Count))]);
     }
 }

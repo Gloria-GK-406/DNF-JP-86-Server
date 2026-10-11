@@ -97,7 +97,7 @@ internal sealed class MailItemTransfers(IItemPlacementRuleService placements,
             var placement = await placements.PlacementForAsync(record.ItemId, ct).ConfigureAwait(false);
             if (placement is null || placement.ItemKind == 0
                 || record.IsPile != (placement.WorldClass == ItemWorldClass.Interchangeable)
-                || !record.IsPile && placement.WorldClass != ItemWorldClass.Equipment)
+                || !record.IsPile && placement.WorldClass is not (ItemWorldClass.Equipment or ItemWorldClass.Avatar or ItemWorldClass.Creature))
                 throw Error(MailFailure.InvalidItem, "Unsupported mailed item.");
             var containers = await ContainersAsync(character, placement, ct).ConfigureAwait(false);
             var target = containers.Single(value => value.Space == placement.Destination.Space);

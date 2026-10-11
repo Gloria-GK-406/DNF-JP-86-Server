@@ -72,13 +72,16 @@ public sealed class VendingMachineTests
         await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f)); Assert.Equal(4,f.Host.Count(7463));
     }
     [Dfo.Server.Testing.PvfFact]
-    public async Task Full_bag_leaves_coin_intact()
+    public async Task Full_bag_consumes_coin_and_mails_reward_with_encodable_ack()
     {
         using var f=Fixture(); await f.Host.Seed(121,7454,2);
         for(var i=65;i<=120;i++) await f.Host.Seed(i,201,1);
         for(var i=3;i<=8;i++) await f.Host.Seed(i,201,1);
-        var noRoom=await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f));
-        Assert.Equal(OpeningRejection.NoRoom,noRoom.Reason); Assert.Equal(2,f.Host.Count(7454));
+        var result=await Use(f);
+        Assert.Equal(1,f.Host.Count(7454)); Assert.Equal(0,f.Host.Count(7463));
+        Assert.Equal(4,f.Host.Scalar("SELECT SUM(item_count) FROM mailbox_attachments WHERE claimed_flag=0"));
+        Assert.All(result.Receipt.Rewards, reward=>Assert.Null(reward.Slot));
+        Assert.NotEmpty(f.Encode(new VendingMachineResponse(result)));
     }
     [Dfo.Server.Testing.PvfFact]
     public async Task Storage_failure_rolls_back_and_same_sequence_retries()

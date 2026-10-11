@@ -87,7 +87,7 @@ public sealed class AcceptQuestCommandHandler(
     ICharacterQuestLogDomainService logs,
     ICharacterContainerDomainService containers,
     IQuestProgressDomainService questProgress,
-    IItemGrantDomainService itemGrants,
+    IItemDeliveryDomainService delivery,
     ICycleDungeonEntryDomainService? cycles = null, IMirrorAradQuestDomainService? mirror = null)
     : ICommandHandler<AcceptQuestCommand, QuestAcceptOutcome>
 {
@@ -151,40 +151,12 @@ public sealed class AcceptQuestCommandHandler(
                     .ConfigureAwait(false);
             }
 
-            foreach (var item in declared)
+            var receipt = await delivery.DeliverAsync(command.AccountId, command.CharacterId,
+                declared.Select(x => new ItemDeliveryGrant(x.ItemId, x.Count)).ToArray(), "任务授予物品", cancellationToken).ConfigureAwait(false);
+            foreach (var item in receipt.Inventory)
             {
-                var granted = await itemGrants.GrantAsync(
-                        command.AccountId, command.CharacterId, containers, item.ItemId, item.Count,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-                switch (granted)
-                {
-                    case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.AddedToPile topped } character:
-                        placed.Add(new AcceptedQuestItem(
-                            checked((ushort)ItemGrantWireProjection.Index(character, topped.SlotIndex)),
-                            (uint)item.ItemId,
-                            (uint)topped.Added));
-                        break;
-
-                    case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
-                        placed.Add(new AcceptedQuestItem(
-                            checked((ushort)ItemGrantWireProjection.Index(character, opened.SlotIndex)),
-                            (uint)item.ItemId,
-                            (uint)opened.Count));
-                        break;
-
-                    case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.NoRoom }:
-                    case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.UnknownItem }:
-                        return await this.HandBackAsync(log, command.QuestId, cancellationToken)
-                            .ConfigureAwait(false);
-
-                    default:
-                        // Listed rather than defaulted: an outcome nobody read would quietly
-                        // become an item the quest promised and never handed over.
-                        throw new ArgumentOutOfRangeException(
-                            nameof(command), granted, "No reading was decided for this outcome.");
-                }
-                if (await ItemGrantWireProjection.SharedAsync(granted, cancellationToken).ConfigureAwait(false) is { } shared) accountChanges.Add(shared);
+                placed.Add(new(checked((ushort)ItemGrantWireProjection.Index(item)), (uint)item.Snapshot.ItemId, (uint)item.Count));
+                if (ItemGrantWireProjection.Shared(item) is { } shared) accountChanges.Add(shared);
             }
         }
 

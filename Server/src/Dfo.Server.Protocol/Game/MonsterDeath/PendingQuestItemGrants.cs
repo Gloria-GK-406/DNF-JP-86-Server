@@ -19,7 +19,7 @@ internal static class PendingQuestItemGrants
         AccountId accountId, CharacterId characterId,
         IReadOnlyList<RolledDrop>? pendingLoot, PartyKey partyKey,
         ICharacterQuestLogDomainService questLogs, ICharacterContainerDomainService containers,
-        IItemGrantDomainService itemGrants, IPartyService? parties,
+        IItemDeliveryDomainService delivery, IPartyService? parties,
         CancellationToken cancellationToken, bool failIfFull = false)
     {
         if (partyKey != default
@@ -34,11 +34,7 @@ internal static class PendingQuestItemGrants
             return QuestItemGrant.Empty;
 
         var bag = containers.FindContainer(characterId, InventoryContainerType.Main);
-        if (bag is null)
-        {
-            if (failIfFull) throw new InvalidOperationException("The quest inventory is unavailable; object reward was not consumed.");
-            return QuestItemGrant.Empty;
-        }
+        if (bag is null) throw new InvalidOperationException("Quest inventory is unavailable; reward must not be consumed.");
         var carried = await questLogs.LogOf(accountId, characterId)
             .CarriedAsync(cancellationToken).ConfigureAwait(false);
         var active = carried.Select(quest => quest.QuestId).ToHashSet();
@@ -56,39 +52,14 @@ internal static class PendingQuestItemGrants
             var held = (await sourceBag.GetAllAsync(cancellationToken).ConfigureAwait(false))
                 .Where(item => item.ItemId == drop.ItemId)
                 .Sum(item => (long)item.Count);
+            held += await delivery.PendingQuantityAsync(characterId, drop.ItemId, cancellationToken).ConfigureAwait(false);
             var count = checked((int)Math.Min(drop.Count, Math.Max(0, drop.GrantLimit - held)));
             if (count <= 0)
                 continue;
-            var remaining = count;
-            while (remaining > 0)
-            {
-                var granted = await itemGrants.GrantAsync(
-                        accountId, characterId, containers, drop.ItemId, remaining,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-                switch (granted)
-                {
-                    case BusinessItemAdditionResult
-                        { Placement: ItemPlacementOutcome.AddedToPile topped } character when topped.Added > 0:
-                        changed[MainQuestSlot(character, topped.SlotIndex)] = (character.Container, topped.SlotIndex);
-                        remaining -= topped.Added;
-                        break;
-                    case BusinessItemAdditionResult
-                        { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character when opened.Count > 0:
-                        changed[MainQuestSlot(character, opened.SlotIndex)] = (character.Container, opened.SlotIndex);
-                        remaining -= opened.Count;
-                        break;
-                    case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.NoRoom }:
-                        if (failIfFull) throw new InvalidOperationException("The quest inventory is full; object reward was not consumed.");
-                        remaining = 0;
-                        break;
-                    case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.UnknownItem }:
-                        throw new InvalidDataException($"Quest item {drop.ItemId} has no inventory definition.");
-                    default:
-                        throw new InvalidDataException(
-                            $"Quest item {drop.ItemId} placement made no progress: {granted}.");
-                }
-            }
+            var receipt = await delivery.DeliverAsync(accountId, characterId, [new(drop.ItemId, count)],
+                "任务掉落奖励", cancellationToken).ConfigureAwait(false);
+            foreach (var addition in receipt.Inventory)
+                changed[ItemGrantWireProjection.Index(addition)] = (addition.Container, addition.Slot.Index);
         }
 
         if (changed.Count == 0)
@@ -105,14 +76,6 @@ internal static class PendingQuestItemGrants
             new CommittedInventoryUpdateState(
                 InventoryContainerType.Main, items, DateTimeOffset.UtcNow),
             accountChanges);
-    }
-
-    private static int MainQuestSlot(BusinessItemAdditionResult grant, int localIndex)
-    {
-        var wire = ItemGrantWireProjection.Slot(grant, localIndex);
-        if (wire.Space != InventoryContainerType.Main)
-            throw new InvalidDataException($"Direct quest item cannot be projected into {wire.Space}.");
-        return wire.Index;
     }
 
     internal sealed record QuestItemGrant(

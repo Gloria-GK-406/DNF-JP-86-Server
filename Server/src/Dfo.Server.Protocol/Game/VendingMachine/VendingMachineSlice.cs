@@ -48,7 +48,7 @@ internal sealed class VendingMachineEncoder : GameCmdMessageEncoder<VendingMachi
         writer.Write(checked((short)OpeningWireSlots.RewardIndex(result.SourceSlot))); writer.Write(result.Remaining);
         writer.Write(result.Reward.ItemId); writer.Write(result.Reward.Count);
         writer.Write(-1); writer.Write(0); // No bonus pool in the captured ordinary machine.
-        var slots = result.Receipt.Rewards.Select(r => r.Slot).ToHashSet();
+        var slots = result.Receipt.Rewards.Where(r => r.Slot is not null).Select(r => r.Slot!.Value).ToHashSet();
         var entries = result.Receipt.Updates.Where(update => slots.Contains(update.Slot)
             && update.Core.ItemId == result.Reward.ItemId)
             .Select(update => (Wire: OpeningWireSlots.Project(update.Slot, new InventorySlotMappingRuleService()),

@@ -12,12 +12,13 @@ using Dfo.Server.Data.Events;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Mail;
 using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.Persistence;
 namespace Dfo.Server.Application.Events;
 
 internal sealed class JoustDomainService(IEventPersistence events, IJoustPersistence store, IJoustRuleService rules,
     ICharacterDomainService characters, IBusinessInventorySlotDomainService slots,
     ICharacterBusinessInventoryDomainService inventory, IMaterialConsumptionDomainService materials,
-    IItemLifecycleDomainService lifecycle, IMailboxDomainService mailbox, IDomainTransactionAccessor transactions,TimeProvider clock)
+    IItemDeliveryDomainService delivery, ICharacterTable owners, IDomainTransactionAccessor transactions,TimeProvider clock)
     : IJoustDomainService, IJoustProjectionDomainService, IManagedEventDomainService
 {
     public int EventId => 2365;
@@ -187,17 +188,15 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
             {
                 var participation=checked(group.Sum(b=>b.Amount));
                 var prize=checked((int)decimal.Floor(group.Where(b=>b.KnightIndex==winner).Sum(b=>(long)b.Amount)*odds));
-                var builder=MailBuilder.FromSystem(group.Key).WithText("骑士马战大竞猜奖励",$"轮次 {round.StartsAt:yyyy-MM-dd HH:mm} 的参与和竞猜奖励。");
-                var prepared=new List<PreparedMailAttachment>();
-                async ValueTask Add(JoustItem item,int count)
+                var grants = new List<ItemDeliveryGrant>();
+                void Add(JoustItem item, int count)
                 {
-                    if(count<=0)return;
-                    var asset=new MailAsset.Stackable(item.ItemId,count);builder.AddStackable(item.ItemId,count);
-                    var template=item.GrantTemplate ?? throw new InvalidDataException("轮次奖励快照不完整。");
-                    prepared.Add(new(asset,[await lifecycle.CreateAsync(template with{Count=count},ct)]));
+                    if (count > 0) grants.Add(new(item.ItemId, count, item.GrantTemplate
+                        ?? throw new InvalidDataException("轮次奖励快照不完整。")));
                 }
-                await Add(round.Definition.BettingReward,participation);await Add(round.Definition.Reward,prize);
-                await mailbox.SendPreparedAsync(builder.Build(),prepared,ct);
+                Add(round.Definition.BettingReward, participation); Add(round.Definition.Reward, prize);
+                var owner = await owners.FindOwnerAsync(group.Key, ct) ?? throw new InvalidDataException("Reward recipient is unavailable.");
+                await delivery.DeliverAsync(owner, group.Key, grants, "骑士马战大竞猜奖励", ct, ItemDeliveryMode.MailOnly);
             }
             // This marker and every attachment join the same ambient SQLite transaction.
             await store.SaveRoundAsync(round with{Settled=true},ct);

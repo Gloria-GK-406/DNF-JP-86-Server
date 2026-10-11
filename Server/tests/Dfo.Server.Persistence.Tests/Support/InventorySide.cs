@@ -105,7 +105,7 @@ internal sealed class InventorySide
         new CharacterBusinessInventoryDomainService(this.Containers,
             new ItemPlacementRuleService(this.placements, new NoWearables()),
             new ItemArrivalRuleService(), lifecycle: Lifecycle),
-        new ItemArrivalRuleService(), Grants);
+        new BagRewardDelivery(Grants, Containers));
 
     /// <summary>
     /// Binds a character to its own main container, as entry does.

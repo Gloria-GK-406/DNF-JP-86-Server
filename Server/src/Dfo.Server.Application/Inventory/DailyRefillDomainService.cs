@@ -7,14 +7,13 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
-/// <summary>Attempt every due item once per day; unavailable space loses the unplaced remainder.</summary>
+/// <summary>Deliver every due refill once per day, preserving overflow in mail.</summary>
 internal sealed class DailyRefillDomainService(
     ICharacterTable characters,
     ICharacterDailyCounterTable counters,
     IDailyRefillRuleService refillRules,
     ICharacterBusinessInventoryDomainService inventories,
-    IItemArrivalRuleService arrivals,
-    IItemGrantDomainService grants) : IDailyRefillDomainService
+    IItemDeliveryDomainService delivery) : IDailyRefillDomainService
 {
     /// <summary>What a refill counter is called, with the item appended.</summary>
     private const string CounterPrefix = "pvf_daily_refill_item_";
@@ -50,14 +49,18 @@ internal sealed class DailyRefillDomainService(
             }
 
             var bag = inventories.GetStore(characterId, BusinessInventoryOwnership.StoreOf(rule.Destination.Space))
-                .GetContainer(rule.Destination.Space);
+                .GetContainer(rule.Destination.Space, isDefault: true);
             var held = (await bag.GetAllAsync(cancellationToken).ConfigureAwait(false))
                 .Where(item => item.ItemId == rule.ItemId).ToArray();
-            var grant = refillRules.GrantFor(rule, (int)Math.Min(int.MaxValue, held.Sum(item => (long)Math.Max(0, item.Count))));
+            var pending = await delivery.PendingQuantityAsync(characterId, rule.ItemId, cancellationToken).ConfigureAwait(false);
+            var grant = refillRules.GrantFor(rule, (int)Math.Min(int.MaxValue, held.Sum(item => (long)Math.Max(0, item.Count)) + pending));
             if (grant > 0)
             {
-                await GrantAsync(bag, arrivals, rule, grant, committed, cancellationToken)
-                    .ConfigureAwait(false);
+                if (rule.ItemKind == 0 && held.Length == 0) throw new InvalidDataException("Daily refill cannot open an unknown item kind.");
+                var receipt = await delivery.DeliverAsync(accountId, characterId,
+                    [new(rule.ItemId, grant) { PlacementConstraint = new(rule.Destination, rule.StackLimit) }],
+                    "每日物品补充", cancellationToken).ConfigureAwait(false);
+                committed.AddRange(receipt.Inventory.Select(x => new DailyRefillCommittedGrant(x.Slot, rule.ItemId, x.Count, x.Snapshot.Count)));
             }
 
             if (await counters.ClaimAsync(characterId, key, period, cancellationToken)
@@ -75,42 +78,5 @@ internal sealed class DailyRefillDomainService(
                 .ThenBy(value => value.Slot.Index)]);
     }
 
-    private async ValueTask GrantAsync(IBusinessItemContainer bag, IItemArrivalRuleService arrivals,
-        DailyRefillRule rule, int remaining, List<DailyRefillCommittedGrant> committed, CancellationToken ct)
-    {
-        var open = await bag.OpenSlotCountAsync(ct);
-        if (open <= rule.Destination.FirstIndex) return;
-        var range = new BusinessSlotRange(rule.Destination.Space, rule.Destination.FirstIndex, Math.Min(rule.Destination.LastIndex, open - 1));
-        while (remaining > 0)
-        {
-            var held = (await bag.GetAllAsync(ct)).Where(item => range.Contains(new(rule.Destination.Space, item.SlotIndex))).ToArray();
-            var arrival = arrivals.ForDailyRefill(held.Where(item => item.ItemId == rule.ItemId && item.IsPile)
-                .Select(item => new ItemPile(new(rule.Destination.Space, item.SlotIndex), item.Count)).ToArray(), remaining, range,
-                held.Select(item => new BusinessSlot(rule.Destination.Space, item.SlotIndex)).ToHashSet(), rule.StackLimit);
-            BusinessSlot slot; int added; int total;
-            switch (arrival)
-            {
-                case ItemArrival.OntoExistingPile pile:
-                    slot = pile.Slot; added = pile.Added; total = pile.Total;
-                    var existing = held.Single(item => item.SlotIndex == slot.Index);
-                    await grants.ApplyPlannedAsync(bag, slot.Index, existing.Snapshot with { Count = total }, ct); break;
-                case ItemArrival.IntoEmptySlot empty:
-                    if (rule.ItemKind == 0) throw new InvalidDataException($"Daily refill item {rule.ItemId} has no kind.");
-                    slot = empty.Slot; added = empty.Count; total = empty.Count;
-                    await grants.ApplyPlannedAsync(bag, slot.Index, new ItemSnapshot
-                    {
-                        ItemId = rule.ItemId,
-                        Count = total,
-                        IsPile = true,
-                        LegacyKind = rule.ItemKind,
-                        Type = ItemTraitClassification.For(rule.ItemKind, rule.ItemId)
-                    }, ct); break;
-                case ItemArrival.NoRoom: return;
-                default: throw new InvalidOperationException("Unrecognized daily refill arrival.");
-            }
-            if (added <= 0) throw new InvalidDataException("Daily refill planner made no progress.");
-            await bag.FlushAsync(ct);
-            committed.Add(new(slot, rule.ItemId, added, total)); remaining -= added;
-        }
-    }
+
 }

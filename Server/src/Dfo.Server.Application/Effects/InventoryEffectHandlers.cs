@@ -18,8 +18,9 @@ internal sealed class SpendGoldEffectHandler(ICharacterDomainService characters)
             ?? throw new InventoryEffectException(InventoryEffectRejection.InsufficientAssets));
 }
 
-internal sealed class GrantStackableEffectHandler(IItemGrantDomainService grants,
-    IBusinessInventorySlotDomainService slots, IItemPlacementRuleService placements) : EffectHandler<GrantStackableEffect>
+internal sealed class GrantStackableEffectHandler(IItemDeliveryDomainService delivery,
+    IItemPlacementRuleService placements, IItemGrantDomainService resources,
+    IBusinessInventorySlotDomainService slots) : EffectHandler<GrantStackableEffect>
 {
     public override async ValueTask ValidateAsync(EffectExecutionContext context, GrantStackableEffect effect, CancellationToken ct)
     {
@@ -30,13 +31,18 @@ internal sealed class GrantStackableEffectHandler(IItemGrantDomainService grants
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, GrantStackableEffect effect, CancellationToken ct)
     {
-        var added = await grants.GrantAllAsync(context.CharacterId, effect.ItemId, effect.Count, ct).ConfigureAwait(false);
-        var changes = new List<InventorySlotEffectChange>();
-        foreach (var slot in added.Items.Select(x => x.Slot).Distinct())
-            changes.Add(new(slot, (await slots.Get(context.CharacterId, slot).Container.GetAsync(slot.Index, ct)
-                .ConfigureAwait(false))?.Snapshot));
-        return new StackableGrantEffectChange(added.Items.Select(x => new StackableGrantAddition(x.Slot, effect.ItemId, x.Count)).ToArray(),
-            changes.AsReadOnly());
+        if ((await placements.PlacementForAsync(effect.ItemId, ct).ConfigureAwait(false))?.Destination.Space == BusinessInventorySpace.VirtualResource)
+        {
+            var resource = await resources.GrantAllAsync(context.CharacterId, effect.ItemId, effect.Count, ct).ConfigureAwait(false);
+            var changes = new List<InventorySlotEffectChange>();
+            foreach (var slot in resource.Items.Select(x => x.Slot).Distinct())
+                changes.Add(new(slot, (await slots.Get(context.CharacterId, slot).Container.GetAsync(slot.Index, ct).ConfigureAwait(false))?.Snapshot));
+            return new StackableGrantEffectChange(resource.Items.Select(x => new StackableGrantAddition(x.Slot, effect.ItemId, x.Count)).ToArray(), changes);
+        }
+        var added = await delivery.DeliverAsync(context.AccountId, context.CharacterId,
+            [new(effect.ItemId, effect.Count)], "物品奖励", ct).ConfigureAwait(false);
+        return new StackableGrantEffectChange(added.Inventory.Select(x => new StackableGrantAddition(x.Slot, effect.ItemId, x.Count)).ToArray(),
+            added.Inventory.GroupBy(x => x.Slot).Select(x => new InventorySlotEffectChange(x.Key, x.Last().Snapshot)).ToArray());
     }
 }
 

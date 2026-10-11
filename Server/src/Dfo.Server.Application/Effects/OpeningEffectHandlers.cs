@@ -18,7 +18,7 @@ internal abstract class OpeningEffectHandler<T> : EffectHandler<T>, IInventoryEf
         IInventoryEffectPreviewState state, CancellationToken ct) => PreviewAsync(context, (T)effect, state, ct);
 }
 
-internal sealed class GrantPreparedItemEffectHandler(IBusinessInventorySlotDomainService slots, IItemArrivalRuleService arrivals, IItemGrantDomainService grants)
+internal sealed class GrantPreparedItemEffectHandler(IItemArrivalRuleService arrivals, IItemDeliveryDomainService delivery)
     : OpeningEffectHandler<GrantPreparedItemEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, GrantPreparedItemEffect effect, CancellationToken ct)
@@ -70,8 +70,12 @@ internal sealed class GrantPreparedItemEffectHandler(IBusinessInventorySlotDomai
     {
         await ValidateAsync(context, effect, ct).ConfigureAwait(false);
         var placement = InventoryCapacityPlacement.Limit(effect.Grant.Item.Placement,
-            await state.OpenSlotCountAsync(effect.Grant.Item.Placement.Destination.Space, ct).ConfigureAwait(false))
-            ?? throw new InventoryEffectException(InventoryEffectRejection.NoRoom);
+            await state.OpenSlotCountAsync(effect.Grant.Item.Placement.Destination.Space, ct).ConfigureAwait(false));
+        if (placement is null)
+        {
+            if (effect.AllowMail) return;
+            throw new InventoryEffectException(InventoryEffectRejection.NoRoom);
+        }
         effect = effect with { Grant = effect.Grant with { Item = effect.Grant.Item with { Placement = placement } } };
         var candidates = Candidates(placement);
         var held = new Dictionary<BusinessSlot, ItemSnapshot?>();
@@ -79,7 +83,9 @@ internal sealed class GrantPreparedItemEffectHandler(IBusinessInventorySlotDomai
         var remaining = effect.Grant.Reward.Count;
         while (remaining > 0)
         {
-            var (slot, added, core) = Next(Arrival(effect.Grant, candidates, held, remaining), effect.Grant, held, applying: false);
+            var arrival = Arrival(effect.Grant, candidates, held, remaining);
+            if (arrival is ItemArrival.NoRoom && effect.AllowMail) return;
+            var (slot, added, core) = Next(arrival, effect.Grant, held, applying: false);
             if (added <= 0 || added > remaining) throw new InvalidDataException("Nonprogressing prepared grant.");
             var item = core;
             held[slot] = item; state.SetSlot(slot, item); state.AddedRewardEntries(1); remaining -= added;
@@ -88,29 +94,20 @@ internal sealed class GrantPreparedItemEffectHandler(IBusinessInventorySlotDomai
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, GrantPreparedItemEffect effect, CancellationToken ct)
     {
         var grant = effect.Grant;
-        var placement = InventoryCapacityPlacement.Limit(grant.Item.Placement,
-            await slots.Get(context.CharacterId, new(grant.Item.Placement.Destination.Space, 0)).Container
-                .OpenSlotCountAsync(ct).ConfigureAwait(false))
-            ?? throw new InventoryEffectException(InventoryEffectRejection.NoRoom);
-        grant = grant with { Item = grant.Item with { Placement = placement } };
-        var candidates = Candidates(placement);
-        var held = new Dictionary<BusinessSlot, ItemSnapshot?>();
-        foreach (var s in candidates) held[s] = (await slots.Get(context.CharacterId, s).Container.GetAsync(s.Index, ct).ConfigureAwait(false))?.Snapshot;
-        var displayed = ImmutableArray.CreateBuilder<OpeningRewardDisplay>();
-        var changed = ImmutableArray.CreateBuilder<BusinessSlot>();
-        var remaining = grant.Reward.Count;
-        while (remaining > 0)
+        ItemDeliveryReceipt receipt;
+        try
         {
-            var arrival = Arrival(grant, candidates, held, remaining);
-            var (slot, added, core) = Next(arrival, grant, held);
-            if (added <= 0 || added > remaining) throw new InvalidDataException("Nonprogressing prepared grant.");
-            var bag = slots.Get(context.CharacterId, slot).Container;
-            var placed = await grants.ApplyPlannedAsync(bag, slot.Index, core, ct).ConfigureAwait(false);
-            held[slot] = placed.Snapshot;
-            changed.Add(slot); displayed.Add(new(slot, grant.Reward.ItemId, added, core.Durability, core.Attribute, grant.Expiration));
-            remaining -= added;
+            receipt = await delivery.DeliverAsync(context.AccountId, context.CharacterId,
+                [new(grant.Item.ItemId, grant.Reward.Count, Baseline(grant))], "礼包奖励", ct,
+                effect.AllowMail ? ItemDeliveryMode.InventoryThenMail : ItemDeliveryMode.InventoryOnly).ConfigureAwait(false);
         }
-        return new PreparedItemGrantChange(displayed.ToImmutable(), changed.Distinct().ToImmutableArray());
+        catch (ContainerAdditionException error) when (error.Reason == ContainerAdditionFailure.NoRoom)
+        { throw new InventoryEffectException(InventoryEffectRejection.NoRoom); }
+        var display = receipt.Inventory.Select(x => new OpeningRewardDisplay(x.Slot, grant.Reward.ItemId, x.Count,
+            x.Snapshot.Durability, x.Snapshot.Attribute, grant.Expiration, x.Snapshot)).ToList();
+        display.AddRange(receipt.MailedItems.Select(x => new OpeningRewardDisplay(null, x.ItemId, x.Count,
+            x.Durability, x.Attribute, grant.Expiration, x)));
+        return new PreparedItemGrantChange(display.ToImmutableArray(), receipt.Inventory.Select(x => x.Slot).Distinct().ToImmutableArray());
     }
 }
 

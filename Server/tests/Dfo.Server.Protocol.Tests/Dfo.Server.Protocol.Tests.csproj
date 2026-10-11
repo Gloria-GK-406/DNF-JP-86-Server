@@ -45,6 +45,7 @@
   <ItemGroup>
     <!-- Compiled in rather than copied: three test assemblies reach the inventory seam, and this
          is the one description of how the server wires it. -->
+    <Compile Include="..\Dfo.Server.Persistence.Tests\Support\BagRewardDelivery.cs" Link="Support\BagRewardDelivery.cs" />
     <Compile Include="..\Dfo.Server.Persistence.Tests\Support\InventorySide.cs"
              Link="Support\InventorySide.cs" />
     <Compile Include="..\Dfo.Server.Persistence.Tests\Support\VolatileItemDomainStore.cs" Link="Support\VolatileItemDomainStore.cs" />

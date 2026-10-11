@@ -284,7 +284,7 @@ public sealed class EquipmentDisjointTests
     }
 
     [Fact]
-    public async Task Full_material_band_keeps_the_source_and_returns_inventory_full()
+    public async Task Full_material_band_destroys_source_and_mails_the_outputs()
     {
         using var shop = Fixture();
         await shop.SeedCore(9, Piece());
@@ -295,11 +295,11 @@ public sealed class EquipmentDisjointTests
 
         await Disjoint(shop, 9);
 
-        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
         Assert.Equal(2000, shop.Count(1000));
-        var response = Assert.IsType<DisjointItemResponse>(Assert.Single(shop.Sender.Messages));
-        Assert.Null(response.TargetSlot);
-        Assert.Equal(0x04, response.ErrorCode);
+        Assert.True(shop.Scalar("SELECT SUM(item_count) FROM mailbox_attachments WHERE claimed_flag=0") > 0);
+        var response = Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>());
+        Assert.Equal(0, response.ErrorCode);
     }
 
     [Fact]

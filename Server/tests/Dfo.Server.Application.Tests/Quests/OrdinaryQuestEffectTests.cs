@@ -79,15 +79,16 @@ public sealed class OrdinaryQuestEffectTests
         var result=await Finish(shop); Assert.True(result.Finished); Assert.Equal(amount,shop.Count(2000)); Assert.Equal(entries,result.Items.Count);
     }
     [Fact]
-    public async Task Full_bag_refuses_without_touching_any_durable_state()
+    public async Task Full_bag_completes_once_and_mails_only_the_unplaced_remainder()
     {
         using var shop=Shop(s=>s.AddSingleton<IQuestContentRuleService>(new Rules()));
         for(var i=0;i<6;i++) await shop.Seed(3+i,2000,i==0?9:10);
         await shop.Seed(65,2000,10); await shop.Seed(66,2000,10); Carry(shop);
-        Assert.False((await Finish(shop)).Finished); Assert.Equal(79,shop.Count(2000));
-        Assert.Equal(1,shop.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=1"));
-        Assert.Equal(0,shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
-        Assert.Equal(100000,shop.Gold);
+        Assert.True((await Finish(shop)).Finished); Assert.Equal(80,shop.Count(2000));
+        Assert.Equal(0,shop.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=1"));
+        Assert.Equal(2,shop.Scalar("SELECT SUM(item_count) FROM mailbox_attachments WHERE claimed_flag=0"));
+        Assert.False((await Finish(shop)).Finished);
+        Assert.Equal(2,shop.Scalar("SELECT SUM(item_count) FROM mailbox_attachments WHERE claimed_flag=0"));
     }
     [Fact]
     public async Task Basic_rewards_preserve_existing_pile_fields_and_create_zero_default_core()
@@ -98,7 +99,7 @@ public sealed class OrdinaryQuestEffectTests
         var main=shop.Services.GetRequiredService<ICharacterContainerDomainService>().FindContainer(new(1),InventoryContainerType.Main)!;
         var existing=(await main.GetAsync(3,default))!.Snapshot.ToCore(); var created=(await main.GetAsync(4,default))!.Snapshot.ToCore();
         Assert.Equal((7,9,1,12345),((int)existing.Durability,(int)existing.Attribute,(int)existing.SealFlag,existing.ExpireTime));
-        Assert.Equal(StackableItemCore.Create(2,2000,2),created);
+        Assert.Equal(StackableItemCore.Create(2,2000,3),created);
     }
     [Fact]
     public async Task Equipment_reward_count_two_creates_two_distinct_durable_items()
@@ -349,12 +350,14 @@ public sealed class OrdinaryQuestEffectTests
         Assert.Equal((int)after,shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));Assert.Equal((int)afterLevel,shop.Scalar("SELECT level FROM characters WHERE character_id=1"));
     }
     [SkippableFact]
-    public async Task A_reward_exceeding_the_ack_entry_capacity_refuses_before_any_write()
+    public async Task Large_reward_finishes_once_with_inventory_entries_and_mailed_overflow()
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null,"PVF_ARCHIVE_PATH is not available.");
         var rules=new Rules();rules.Quest=rules.Quest with {ItemRewards=new([new(39032,200),new(63000,60)],[],false,0)};
         using var shop=new CeraShopFixture(useArchive:true,configure:s=>s.AddSingleton<IQuestContentRuleService>(rules));Carry(shop.Host);
-        Assert.False((await Finish(shop.Host)).Finished);Assert.Equal(0,shop.Host.Count(39032));Assert.Equal(0,shop.Host.Count(63000));Assert.Equal(1,shop.Host.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=1"));
+        var result=await Finish(shop.Host);Assert.True(result.Finished);Assert.True(result.Items.Count<=byte.MaxValue);
+        Assert.Equal(260,shop.Host.Count(39032)+shop.Host.Count(63000)+shop.Host.Scalar("SELECT SUM(item_count) FROM mailbox_attachments WHERE claimed_flag=0"));
+        Assert.Equal(0,shop.Host.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=1"));
     }
     [Fact]
     public async Task Missing_character_cannot_report_a_placeholder_completion()
