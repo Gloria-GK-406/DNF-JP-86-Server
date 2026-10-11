@@ -1,0 +1,13 @@
+{
+  "base": "67ffa14f82e8e789e53e7a22fe1af1b85627d57e",
+  "branch": "task/dungeon-admission-permits",
+  "reviewed_diff": "f63f7e167f0ad5e5292b781f93ef0f2728ecbb9b",
+  "reviewed_files": {
+    "Server/src/Dfo.Server.Application/World/DungeonAdmissionDomainService.cs": "5b05e94289abb9f55f76e3f86eda838a155c89b6",
+    "Server/src/Dfo.Server.Abstractions/World/IDungeonAdmissionDomainService.cs": "c6e6a6cf58b569c8a296aa1bacb9123345b86575",
+    "Server/tests/Dfo.Server.Application.Tests/Support/DungeonVisitTestFactory.cs": "2fedd64774d3b8568d47172031fde614204f0f1a",
+    "Document/DungeonAdmission.md": "052e792f2075eac49c6867f5c9bb63c0152d9e11"
+  },
+  "source_head_unchanged": true,
+  "diff_check": "pass"
+}

@@ -21,10 +21,8 @@ internal sealed class DungeonVisitDomainService(
     IDungeonRunDomainService runs,
     IDungeonSelectionRuleService selection,
     IDungeonCellFactory cells,
-    ICharacterDungeonDifficultyDomainService difficulties,
-    IDungeonDifficultyRuleService difficultyRules, ICharacterFatigueDomainService fatigue,
-    IIllusionTowerDomainService? tower = null, IDungeonEntryMaterialsDomainService? materials = null,
-    ICharacterDomainService? characters = null) : IDungeonVisitDomainService
+    ICharacterFatigueDomainService fatigue, IDungeonAdmissionDomainService admission,
+    IIllusionTowerDomainService? tower = null) : IDungeonVisitDomainService
 {
     public bool DefersSelectionState(byte characterLevel, bool tutorialCompleted = false) =>
         selection.DefersSelectionState(characterLevel, tutorialCompleted);
@@ -66,81 +64,28 @@ internal sealed class DungeonVisitDomainService(
     {
         ArgumentNullException.ThrowIfNull(participants);
         ArgumentNullException.ThrowIfNull(facts);
-        if (await ValidateAdmissionAsync(participants, dungeonId, facts, cancellationToken).ConfigureAwait(false) is { } refusal)
-            return refusal;
-        DungeonLayout? layout;
-        try
+        return await admission.ExecuteAsync(new(dungeonId, facts, 0, 0, participants), new(), async (receipt, ct) =>
         {
-            layout = await layouts.ResolveAsync(dungeonId, facts, Random.Shared.Next(), cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch (InvalidDataException error)
-        {
-            return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message);
-        }
-        return layout is null ? DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound)
-            : await EnterPreparedCoreAsync(participants, layout, facts, cancellationToken).ConfigureAwait(false);
+            DungeonLayout? layout;
+            try { layout = await layouts.ResolveAsync(dungeonId, facts, Random.Shared.Next(), ct).ConfigureAwait(false); }
+            catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
+            return layout is null ? DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound)
+                : await EnterGrantedPartyAsync(participants, layout, facts, receipt, ct).ConfigureAwait(false);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
-    public async ValueTask<DungeonEntryAttempt> TryEnterPreparedPartyAsync(
-        IReadOnlyList<DungeonRunParticipant> participants, DungeonLayout layout,
-        DungeonEntryFacts facts, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(participants);
-        ArgumentNullException.ThrowIfNull(layout);
-        ArgumentNullException.ThrowIfNull(facts);
-        if (await ValidateAdmissionAsync(participants, layout.DungeonId, facts, cancellationToken, layout.Mirror is not null).ConfigureAwait(false) is { } refusal)
-            return refusal;
-        return await EnterPreparedCoreAsync(participants, layout, facts, cancellationToken).ConfigureAwait(false);
-    }
+    public ValueTask<DungeonEntryAttempt> TryEnterPreparedPartyAsync(IReadOnlyList<DungeonRunParticipant> participants,
+        DungeonLayout layout, DungeonEntryFacts facts, CancellationToken cancellationToken) =>
+        admission.ExecuteAsync(new(layout.DungeonId, facts, 0, 0, participants),
+            new() { Mirror = layout.Mirror is not null, ConsumesFatigue = layout.ConsumesFatigue },
+            (receipt, ct) => EnterGrantedPartyAsync(participants, layout, facts, receipt, ct), cancellationToken);
 
-    private async ValueTask<DungeonEntryAttempt?> ValidateAdmissionAsync(
-        IReadOnlyList<DungeonRunParticipant> participants, int dungeonId,
-        DungeonEntryFacts facts, CancellationToken cancellationToken, bool mirror = false)
+    public ValueTask<DungeonEntryAttempt> EnterGrantedPartyAsync(IReadOnlyList<DungeonRunParticipant> participants,
+        DungeonLayout layout, DungeonEntryFacts facts, IDungeonAdmissionReceipt receipt, CancellationToken cancellationToken)
     {
-        if (participants.Any(x => tower?.IsInTower(x.CharacterId) == true))
-            return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
-
-        var difficulty = facts.Difficulty;
-        if (!Enum.IsDefined(difficulty)) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DifficultyNotUnlocked);
-        DungeonDefinition? definition;
-        try
-        {
-            definition = await layouts.GetDefinitionAsync(dungeonId, cancellationToken).ConfigureAwait(false);
-        }
-        catch (InvalidDataException error)
-        {
-            return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message);
-        }
-        foreach (var member in participants)
-        {
-            if (!mirror && definition is { HasStoryMode: false } && characters is not null)
-            {
-                var progress = await characters.Get(member.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
-                if (progress is null || progress.Level < definition.MinimumRequiredLevel)
-                    return new(null, DungeonEntryFailure.LevelTooLow, member.Slot);
-            }
-            if (mirror) continue;
-            var maximum = await difficulties.GetMaximumAsync(member.CharacterId, dungeonId, cancellationToken)
-                .ConfigureAwait(false);
-            var cycle = facts.Intent.Kind == DungeonEntryIntentKind.Cycle;
-            if (cycle && facts.Intent.DirectedDungeonId != dungeonId)
-                return new(null, DungeonEntryFailure.DifficultyNotUnlocked, member.Slot);
-            bool allowed;
-            try
-            {
-                allowed = cycle
-                    ? await difficultyRules.IsUnlockedAsync(dungeonId, difficulty, maximum, cancellationToken).ConfigureAwait(false)
-                    : await difficultyRules.AllowsAsync(dungeonId, difficulty, maximum, cancellationToken).ConfigureAwait(false);
-            }
-            catch (InvalidDataException error)
-            {
-                return new(null, DungeonEntryFailure.ConfigurationInvalid, member.Slot, error.Message);
-            }
-            if (!allowed)
-                return new(null, DungeonEntryFailure.DifficultyNotUnlocked, member.Slot);
-        }
-        return null;
+        if (admission.BeginEntry(receipt, participants, layout.DungeonId) is { } refusal)
+            return ValueTask.FromResult(refusal);
+        return EnterPreparedCoreAsync(participants, layout, facts, cancellationToken);
     }
 
     private async ValueTask<DungeonEntryAttempt> EnterPreparedCoreAsync(
@@ -148,28 +93,6 @@ internal sealed class DungeonVisitDomainService(
         DungeonEntryFacts facts, CancellationToken cancellationToken)
     {
         var difficulty = facts.Difficulty;
-        if (layout.ConsumesFatigue)
-            foreach (var participant in participants)
-                if ((await fatigue.BalanceOfAsync(participant.CharacterId, cancellationToken).ConfigureAwait(false)).Remaining == 0)
-                    return new(null, DungeonEntryFailure.InsufficientFatigue, participant.Slot);
-
-        DungeonDefinition? definition;
-        try
-        {
-            definition = await layouts.GetDefinitionAsync(layout.DungeonId, cancellationToken).ConfigureAwait(false);
-        }
-        catch (InvalidDataException error)
-        {
-            return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message);
-        }
-        IDungeonEntryMaterialPlan? materialPlan = null;
-        if (definition?.RequiredItems is { Count: > 0 } requirements)
-        {
-            var preparation = await (materials ?? throw new InvalidOperationException("Dungeon entry material service is unavailable."))
-                .PrepareAsync(participants, requirements, cancellationToken).ConfigureAwait(false);
-            if (preparation.Plan is null) return new(null, DungeonEntryFailure.MissingRequiredItem, preparation.BlockedSlot);
-            materialPlan = preparation.Plan;
-        }
         var runId = DungeonRunId.New();
         var startedAt = DateTimeOffset.UtcNow;
         var initialCell = await cells.CreateAsync(
@@ -194,8 +117,7 @@ internal sealed class DungeonVisitDomainService(
             participant => this.DescribeCreatedCell(
                 change.Run with { Participant = participant },
                 firstEntry: true));
-        var inventoryChanges = materialPlan is null ? [] : await materialPlan.ConsumeAsync(cancellationToken).ConfigureAwait(false);
-        return DungeonEntryAttempt.Accepted(new DungeonPartyEntry(layout, createdVisits, change) { InventoryChanges = inventoryChanges });
+        return DungeonEntryAttempt.Accepted(new DungeonPartyEntry(layout, createdVisits, change));
     }
 
     public async ValueTask<DungeonRoomVisit?> MoveAsync(

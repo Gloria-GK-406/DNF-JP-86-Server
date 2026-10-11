@@ -30,21 +30,27 @@ internal sealed class DungeonEntryMaterialsDomainService(ICharacterBusinessInven
             carried.AddRange((await shared.GetAllAsync(token).ConfigureAwait(false)).Select(x => (shared, x)));
             foreach (var group in requirements.GroupBy(x => x.ItemId))
             {
-                var needed = group.Sum(x => (long)x.Count);
                 var candidates = carried.Where(x => rules.IsConsumable(x.Item, group.Key))
                     .OrderBy(x => x.Container.Space).ThenBy(x => x.Item.SlotIndex).ToArray();
-                if (candidates.Sum(x => (long)x.Item.Count) < needed) return new(null, member.Slot);
-                var consume = group.Where(x => x.Consume).Sum(x => (long)x.Count);
-                foreach (var candidate in candidates)
+                var available = candidates.Select(x => x.Item.Count).ToArray();
+                foreach (var requirement in group.OrderBy(x => x.AllowSharedMaterial))
                 {
-                    if (consume == 0) break;
-                    var count = (int)Math.Min(consume, candidate.Item.Count);
-                    if (count > 0) debits.Add(new(member, candidate.Container, candidate.Item, count));
-                    consume -= count;
+                    var remaining = requirement.Count;
+                    for (var i = 0; i < candidates.Length && remaining > 0; i++)
+                    {
+                        var candidate = candidates[i];
+                        if (!requirement.AllowSharedMaterial && candidate.Container.Space == BusinessInventorySpace.SharedMaterial) continue;
+                        var count = Math.Min(remaining, available[i]);
+                        available[i] -= count;
+                        remaining -= count;
+                        if (requirement.Consume && count > 0) debits.Add(new(member, candidate.Container, candidate.Item, count));
+                    }
+                    if (remaining != 0) return new(null, member.Slot);
                 }
             }
         }
-        return new(new Plan(debits, lifecycle, transactions));
+        return new(new Plan(debits.GroupBy(x => (x.Member, x.Container, x.Item))
+            .Select(group => group.First() with { Count = group.Sum(x => x.Count) }).ToArray(), lifecycle, transactions));
     }
 
     private sealed record Debit(DungeonRunParticipant Member, IBusinessItemContainer Container, ItemReference Item, int Count);

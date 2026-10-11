@@ -537,12 +537,20 @@ public sealed class IllusionTowerDomainServiceTests
         await f.Seed(65, 4183, 2);
         var visits = f.Services.GetRequiredService<IDungeonVisitDomainService>();
         var difficulty = reason == "difficulty" ? DungeonDifficulty.Adventure : DungeonDifficulty.Normal;
-        await using var tx = Scope(f).Begin();
-        if (reason == "fatigue")
-            await f.Services.GetRequiredService<ICharacterFatigueDomainService>().SpendAsync(f.Session.CharacterId, 188, default);
-        Assert.Null(await visits.EnterAsync(f.Session.CharacterId, 10000, difficulty, new(difficulty, [], []), default));
-        Assert.Null((await Enter(f)).Rejection);
-        await tx.CommitAsync(default);
+        await using (var tx = Scope(f).Begin())
+        {
+            if (reason == "fatigue")
+                await f.Services.GetRequiredService<ICharacterFatigueDomainService>().SpendAsync(f.Session.CharacterId, 188, default);
+            Assert.Null(await visits.EnterAsync(f.Session.CharacterId, 10000, difficulty, new(difficulty, [], []), default));
+            Assert.False(Tower(f).IsInTower(f.Session.CharacterId));
+            await tx.CommitAsync(default);
+        }
+        // A failed paid-entry attempt settles its transaction before a new command can enter a tower.
+        await using (var tx = Scope(f).Begin())
+        {
+            Assert.Null((await Enter(f)).Rejection);
+            await tx.CommitAsync(default);
+        }
         Assert.NotNull(Tower(f).Find(f.Session));
     }
 

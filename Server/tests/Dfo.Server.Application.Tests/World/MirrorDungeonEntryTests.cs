@@ -76,6 +76,7 @@ public sealed class MirrorDungeonEntryTests
     [InlineData("position")]
     [InlineData("member-quest")]
     [InlineData("quota")]
+    [InlineData("late-session")]
     public async Task Refused_mirror_entry_does_not_create_a_run_or_reserve_daily_entry(string boundary)
     {
         await using var fixture = new LearningFixture();
@@ -92,6 +93,7 @@ public sealed class MirrorDungeonEntryTests
         Assert.Equal(0, visits.Calls);
         Assert.Equal(0, quota.Reservations);
         await transaction.CommitAsync(default);
+        Assert.Equal(0, quota.Reservations);
     }
 
     [Theory]
@@ -112,9 +114,9 @@ public sealed class MirrorDungeonEntryTests
         Assert.Equal((byte)85, visits.Layout.BasisLevel);
         Assert.Equal(DungeonDifficulty.Tier3, visits.Facts!.Difficulty);
         Assert.Equal(DungeonEntryIntentKind.Interactive, visits.Facts.Intent.Kind);
-        Assert.Equal(visitRefused ? 0 : 1, quota.Reservations);
         Assert.Equal(visitRefused, result.Entry is null);
         await transaction.CommitAsync(default);
+        Assert.Equal(visitRefused ? 0 : 1, quota.Reservations);
     }
 
     [Fact]
@@ -125,7 +127,7 @@ public sealed class MirrorDungeonEntryTests
         var (service, _, quota) = Create(fixture);
         quota.FailReservation = true;
         await using var transaction = fixture.Scope.Begin();
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await service.EnterAsync(Context(), default));
+        await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(async () => await service.EnterAsync(Context(), default));
     }
 
     [Theory]
@@ -187,11 +189,19 @@ public sealed class MirrorDungeonEntryTests
         positions.Place(fixture.Session, new(21, 2, 865, 208, 0));
         positions.Place(other, new(21, boundary == "position" ? (byte)1 : (byte)2, 865, 208, 0));
         var visits = new Visits();
-        var quota = new Quota { Blocked = boundary == "quota" };
-        return (new(new Rules(), new Structures(), visits, sessions,
-            fixture.Services.GetRequiredService<ICharacterDomainService>(), positions,
-            fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(), new DungeonRunDomainService(fixture.Scope),
-            quota, fixture.Scope), visits, quota);
+        var quota = new Quota(fixture);
+        if (boundary == "quota")
+            fixture.Sql($"INSERT INTO character_mirror_daily(character_id,day,entries,clears,daily_reward_claimed) VALUES(72,'{DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(8)).DateTime):yyyy-MM-dd}',10,0,0);");
+        var structures = new Structures(boundary == "late-session" ? () => sessions.Select(other with { ConnectionGeneration = 2 }) : null);
+        var admission = new DungeonAdmissionDomainService(structures,
+            fixture.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(),
+            fixture.Services.GetRequiredService<ICharacterFatigueDomainService>(), characters: fixture.Services.GetRequiredService<ICharacterDomainService>(),
+            quests: fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(),
+            quotas: fixture.Services.GetRequiredService<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService>(),
+            events: fixture.Services.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>(), transactions: fixture.Scope,
+            sessions: sessions, positions: positions, runs: new DungeonRunDomainService(fixture.Scope));
+        visits.Admission = admission;
+        return (new(new Rules(), structures, visits, fixture.Services.GetRequiredService<ICharacterDomainService>(), admission, TimeProvider.System), visits, quota);
     }
 
     private sealed class Rules : IMirrorDungeonRuleService
@@ -202,25 +212,27 @@ public sealed class MirrorDungeonEntryTests
         public ValueTask<MirrorDungeonEntryRule?> ResolveAsync(int dungeonId, int questId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<MirrorDungeonEntryRule?>(dungeonId == 32 && questId == 14299 ? new(Catalog, DungeonDifficulty.Tier3) : null);
     }
-    private sealed class Quota : IMirrorDungeonQuotaDomainService
+    private sealed class Quota(LearningFixture fixture)
     {
-        public bool Blocked { get; init; }
-        public bool FailReservation { get; set; }
-        public int Reservations { get; private set; }
-        public ValueTask<byte?> FindBlockedSlotAsync(IReadOnlyList<DungeonRunParticipant> participants, int limit, CancellationToken token) =>
-            ValueTask.FromResult<byte?>(Blocked ? (byte)1 : null);
-        public ValueTask<byte?> TryReserveEntryAsync(IReadOnlyList<DungeonRunParticipant> participants, int limit, CancellationToken token)
-        { Reservations++; return ValueTask.FromResult<byte?>(FailReservation ? (byte)1 : null); }
+        public int Reservations => fixture.Scalar("SELECT COALESCE(MAX(entries),0) FROM character_mirror_daily WHERE character_id=71");
+        public bool FailReservation { set { if (value) fixture.Sql("CREATE TRIGGER fail_mirror_entry BEFORE INSERT ON character_mirror_daily WHEN NEW.character_id=72 BEGIN SELECT RAISE(ABORT,'second member quota failure'); END;"); } }
     }
-    private sealed class Structures : IDungeonStructureRuleService
+    private sealed class Structures(Action? onResolve = null) : IDungeonStructureRuleService
     {
-        public ValueTask<DungeonDefinition?> GetDefinitionAsync(int id, CancellationToken token) => throw new NotSupportedException();
-        public ValueTask<DungeonLayout?> ResolveAsync(int id, DungeonEntryFacts facts, int seed, CancellationToken token) =>
-            ValueTask.FromResult<DungeonLayout?>(Layout with { Seed = seed });
+        public ValueTask<DungeonDefinition?> GetDefinitionAsync(int id, CancellationToken token) => ValueTask.FromResult<DungeonDefinition?>(new(id, "mirror-test", 55, true, []));
+        public ValueTask<DungeonLayout?> ResolveAsync(int id, DungeonEntryFacts facts, int seed, CancellationToken token)
+        {
+            onResolve?.Invoke();
+            return ValueTask.FromResult<DungeonLayout?>(Layout with { Seed = seed });
+        }
         public ValueTask<DungeonMapSelection> SelectMapAsync(DungeonLayout layout, MazeCell? from, MazeCell target, CancellationToken token) => throw new NotSupportedException();
     }
     private sealed class Visits : IDungeonVisitDomainService
     {
+        public IDungeonAdmissionDomainService Admission { get; set; } = null!;
+        public ValueTask<DungeonEntryAttempt> EnterGrantedPartyAsync(IReadOnlyList<DungeonRunParticipant> members, DungeonLayout layout,
+            DungeonEntryFacts facts, IDungeonAdmissionReceipt receipt, CancellationToken ct) => Admission.BeginEntry(receipt, members, layout.DungeonId) is { } refusal
+                ? ValueTask.FromResult(refusal) : TryEnterPreparedPartyAsync(members, layout, facts, ct);
         public bool Refused { get; set; }
         public int Calls { get; private set; }
         public DungeonLayout? Layout { get; private set; }

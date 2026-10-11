@@ -188,6 +188,19 @@ public sealed class DomainTransactionTests
         Assert.DoesNotContain(log, entry => entry.StartsWith("commit:", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task Rollback_only_commit_discards_changes_and_after_commit_effects()
+    {
+        var log = new List<string>(); var tx = new DomainTransaction();
+        var durable = Enlist(tx, log, "durable", true); var memory = Enlist(tx, log, "memory", false);
+        var published = false;
+        tx.RegisterAfterCommit("effect", _ => { published = true; return ValueTask.CompletedTask; });
+        tx.RequireRollback(); await tx.CommitAsync(default);
+        Assert.True(durable.RolledBack); Assert.True(memory.RolledBack);
+        Assert.False(durable.Applied); Assert.False(memory.Applied); Assert.False(published);
+        Assert.DoesNotContain(log, x => x.StartsWith("prepare:", StringComparison.Ordinal));
+    }
+
     private static RecordingParticipant Enlist(
         DomainTransaction transaction,
         List<string> log,

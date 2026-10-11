@@ -150,7 +150,10 @@ public sealed record DungeonDefinition(
 }
 
 /// <summary>All requirements must be held; only those marked Consume are debited on admission.</summary>
-public sealed record DungeonRequiredItem(int ItemId, int Count, bool Consume);
+public sealed record DungeonRequiredItem(int ItemId, int Count, bool Consume)
+{
+    public bool AllowSharedMaterial { get; init; } = true;
+}
 
 /// <summary>Reads dungeon declarations out of the content archive.</summary>
 public interface IDungeonDefinitionSource

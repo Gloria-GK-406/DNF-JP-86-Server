@@ -53,6 +53,12 @@ internal sealed class UnitOfWorkBehavior<TResult>(DomainTransactionScope scope, 
         try
         {
             var result = await next().ConfigureAwait(false);
+            if (scope.Current?.IsRollbackOnly == true)
+            {
+                await transaction.DisposeAsync().ConfigureAwait(false);
+                operations.RollbackConfirmed(context, command);
+                return result;
+            }
             operations.Freeze(context, command);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return result;

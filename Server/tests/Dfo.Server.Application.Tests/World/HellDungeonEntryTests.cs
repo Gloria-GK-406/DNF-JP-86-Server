@@ -169,6 +169,45 @@ public sealed class HellDungeonEntryTests
     }
 
     [Fact]
+    public async Task Enough_hell_tickets_but_missing_a_different_ordinary_material_preserves_ordinary_refusal()
+    {
+        await using var f = Fixture(); await f.SeedAsync(); await SeedTicket(f, new(71), 3330, 30, 0);
+        var (hell, runs) = Service(f, required: [new(5555, 1, true)]);
+        await using (var tx = f.Scope.Begin())
+        {
+            var result = await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default);
+            Assert.Equal(DungeonEntryFailure.MissingRequiredItem, result.Failure);
+            Assert.Equal((byte)0, result.BlockedSlot);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(30, await Count(f, new(71), 3330)); Assert.Null(runs.Find(new CharacterId(71)));
+    }
+
+    [Theory]
+    [InlineData(3330, DungeonEntryFailure.MissingHellTicket)]
+    [InlineData(5555, DungeonEntryFailure.MissingRequiredItem)]
+    public async Task Payment_recheck_preserves_which_kind_of_material_became_insufficient(int removedItem, DungeonEntryFailure expected)
+    {
+        await using var f = Fixture(); await f.SeedAsync();
+        await SeedTicket(f, new(71), 3330, 30, 0); await SeedTicket(f, new(71), 5555, 1, 1);
+        var admission = new DungeonAdmissionDomainService(new Structures([new(5555, 1, true)]),
+            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
+            f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
+        await using (var tx = f.Scope.Begin())
+        {
+            var prepared = await admission.PrepareAsync(Context() with { Participants = [Party[0]] },
+                new() { HellTickets = [new(3330, 20)] }, default);
+            Assert.NotNull(prepared.Batch);
+            var material = f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>().GetStore(new(71), BusinessInventoryStoreKind.Item)
+                .GetContainer(BusinessInventorySpace.Material);
+            await material.TakeAsync((await material.GetAllAsync(default)).Single(x => x.ItemId == removedItem), null, default);
+            var result = await admission.ConsumeAsync(prepared.Batch, default);
+            Assert.Equal(expected, result.Refusal!.Failure);
+        }
+        Assert.Equal(30, await Count(f, new(71), 3330)); Assert.Equal(1, await Count(f, new(71), 5555));
+    }
+
+    [Fact]
     public async Task Any_member_missing_tickets_refuses_without_debit_or_run()
     {
         await using var f = Fixture();
@@ -302,8 +341,8 @@ public sealed class HellDungeonEntryTests
             await tx.CommitAsync(default);
         }
         var start = runs.Find(new CharacterId(71))!;
-        var visits = new DungeonVisitDomainService(new Structures(), runs, new Selection(), new Cells(),
-            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f), materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>());
+        var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new Structures(), runs, new Selection(), new Cells(),
+            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f), materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
         await using (var tx = f.Scope.Begin())
         {
             var room = await visits.MoveAsync(new(71), start, start.Hell!.Cell, default);
@@ -368,12 +407,15 @@ public sealed class HellDungeonEntryTests
     {
         var structures = new Structures(required, failureBoundary);
         var runs = new DungeonRunDomainService(f.Scope);
-        var visits = new DungeonVisitDomainService(structures, runs, new Selection(), new Cells(failureBoundary),
-            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f), materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>());
-        return (new HellDungeonEntryDomainService(new FaultingHellRules(RuleService(new Content { Rules = rules ?? Rules }), failureBoundary), structures, visits,
-            f.Services.GetRequiredService<ICharacterDomainService>(), f.Services.GetRequiredService<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>(),
-            f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>(), f.Services.GetRequiredService<IItemLifecycleDomainService>(), f.Scope), runs);
+        var admission = new DungeonAdmissionDomainService(structures,
+            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
+            f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), f.Services.GetRequiredService<ICharacterDomainService>(),
+            quests: f.Services.GetRequiredService<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>(), transactions: f.Scope);
+        var visits = new DungeonVisitDomainService(structures, runs, new Selection(), new Cells(failureBoundary), Fatigue(f), admission);
+        return (new HellDungeonEntryDomainService(new FaultingHellRules(RuleService(new Content { Rules = rules ?? Rules }), failureBoundary),
+            structures, visits, admission), runs);
     }
+
     private static void Register(LearningFixture f, CharacterId character)
     {
         var registry = f.Services.GetRequiredService<ICharacterContainerDomainService>();

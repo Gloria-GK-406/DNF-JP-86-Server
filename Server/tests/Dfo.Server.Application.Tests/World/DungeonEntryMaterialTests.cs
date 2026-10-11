@@ -27,10 +27,10 @@ public sealed class DungeonEntryMaterialTests
     private static (DungeonVisitDomainService Visits, DungeonRunDomainService Runs) Service(LearningFixture f, bool throwCell = false)
     {
         var runs = new DungeonRunDomainService(f.Scope);
-        return (new DungeonVisitDomainService(new Structures(), runs, new Selection(), new Cells(throwCell),
+        return (Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new Structures(), runs, new Selection(), new Cells(throwCell),
             f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
             materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(),
-            characters: f.Services.GetRequiredService<ICharacterDomainService>()), runs);
+            characters: f.Services.GetRequiredService<ICharacterDomainService>(), transactions: f.Scope), runs);
     }
 
     private static async Task SeedMember(LearningFixture f, CharacterId character, bool enough = true)
@@ -128,9 +128,9 @@ public sealed class DungeonEntryMaterialTests
             await shared.AddAsync(3037, available, default); await tx.CommitAsync(default);
         }
         var runs = new DungeonRunDomainService(f.Scope);
-        var visits = new DungeonVisitDomainService(new Structures([new(3037, 12, true)]), runs, new Selection(), new Cells(false),
+        var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new Structures([new(3037, 12, true)]), runs, new Selection(), new Cells(false),
             f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
-            materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>());
+            materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
         await using (var tx = f.Scope.Begin())
         {
             var result = await visits.TryEnterPartyAsync([Party[0]], 1500, DungeonEntryFacts.None, default);
@@ -166,6 +166,168 @@ public sealed class DungeonEntryMaterialTests
             await tx.CommitAsync(default);
         }
         Assert.Null(runs.Find(new CharacterId(71)));
+    }
+
+
+    [Fact]
+    public async Task Materials_are_charged_before_room_creation_and_creation_failure_rolls_back()
+    {
+        await using var f = Fixture(); await f.SeedAsync(); await SeedMember(f, new(71));
+        var runs = new DungeonRunDomainService(f.Scope);
+        var cells = new InspectingCells(async () =>
+        {
+            Assert.Equal(3, await Count(f, new(71), 6337));
+            Assert.Equal(0, await Count(f, new(71), 3332));
+            throw new InvalidOperationException("room creation failed after payment");
+        });
+        var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new Structures(), runs, new Selection(), cells,
+            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
+            materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
+        await using (var tx = f.Scope.Begin())
+        {
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() => visits.TryEnterPartyAsync([Party[0]], 1500,
+                DungeonEntryFacts.None, default).AsTask());
+            Assert.Equal("room creation failed after payment", error.Message);
+        }
+        Assert.Equal(15, await Count(f, new(71), 6337));
+        Assert.Equal(1, await Count(f, new(71), 3332));
+        Assert.Null(runs.Find(new CharacterId(71)));
+        Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+    }
+
+    [Fact]
+    public async Task Committed_ordinary_run_can_be_replaced_by_a_valid_retry()
+    {
+        await using var f = Fixture(); await f.SeedAsync();
+        await SeedTicket(f, new(71), 6337, 30, 0); await SeedTicket(f, new(71), 3332, 2, 1); await SeedTicket(f, new(71), 5555, 1, 2);
+        var runs = new DungeonRunDomainService(f.Scope);
+        var admission = new DungeonAdmissionDomainService(new Structures(), f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(),
+            new DungeonDifficultyRuleService(), Fatigue(f), f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope, runs: runs);
+        var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new Structures(), runs, new Selection(), new Cells(false),
+            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
+            admission: admission);
+        await using (var tx = f.Scope.Begin())
+        {
+            Assert.NotNull((await visits.TryEnterPartyAsync([Party[0]], 1500, DungeonEntryFacts.None, default)).Entry);
+            await tx.CommitAsync(default);
+        }
+        var firstRun = runs.Find(new CharacterId(71))!.RunId;
+        await using (var tx = f.Scope.Begin())
+        {
+            var attempt = await visits.TryEnterPartyAsync([Party[0]], 1500, DungeonEntryFacts.None, default);
+            Assert.NotNull(attempt.Entry); Assert.NotEqual(firstRun, attempt.Entry.Visits[new(71)].Run.RunId);
+            await tx.CommitAsync(default);
+        }
+        Assert.NotEqual(firstRun, runs.Find(new CharacterId(71))!.RunId);
+        Assert.Equal(6, await Count(f, new(71), 6337)); Assert.Equal(0, await Count(f, new(71), 3332));
+        Assert.Equal(2, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+    }
+
+    private static DungeonAdmissionDomainService Admission(LearningFixture f, IReadOnlyList<DungeonRequiredItem>? requirements = null) =>
+        new(new Structures(requirements), f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(),
+            new DungeonDifficultyRuleService(), Fatigue(f), f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(),
+            transactions: f.Scope);
+    private static DungeonEntryContext Context(params DungeonRunParticipant[] members) => new(1500, DungeonEntryFacts.None, 0, 0, members);
+
+    [Fact]
+    public async Task Free_party_permits_have_no_cost_and_can_be_consumed_only_once()
+    {
+        await using var f = Fixture(); await f.SeedAsync();
+        var admission = Admission(f, []);
+        await using var tx = f.Scope.Begin();
+        var decision = await admission.PrepareAsync(Context(Party), new(), default);
+        Assert.Equal(2, decision.Batch!.Permits.Length);
+        Assert.All(decision.Batch.Permits, permit => Assert.Empty(permit.Costs));
+        var paid = await admission.ConsumeAsync(decision.Batch, default);
+        Assert.NotNull(paid.Receipt); Assert.Empty(paid.Receipt.InventoryChanges);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => admission.ConsumeAsync(decision.Batch, default).AsTask());
+        admission.BeginEntry(paid.Receipt, Party, 1500);
+        Assert.Throws<InvalidOperationException>(() => admission.BeginEntry(paid.Receipt, Party, 1500));
+        await tx.CommitAsync(default);
+        Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+    }
+
+    [Fact]
+    public async Task Foreign_and_cross_transaction_permits_cannot_charge_materials()
+    {
+        await using var f = Fixture(); await f.SeedAsync(); await SeedMember(f, new(71));
+        var admission = Admission(f); IDungeonAdmissionBatch batch;
+        await using (var tx = f.Scope.Begin())
+        {
+            batch = (await admission.PrepareAsync(Context(Party[0]), new(), default)).Batch!;
+            await Assert.ThrowsAsync<InvalidOperationException>(() => Admission(f).ConsumeAsync(batch, default).AsTask());
+            await tx.CommitAsync(default);
+        }
+        await using (var tx = f.Scope.Begin())
+            await Assert.ThrowsAsync<InvalidOperationException>(() => admission.ConsumeAsync(batch, default).AsTask());
+        Assert.Equal(15, await Count(f, new(71), 6337));
+    }
+
+    [Fact]
+    public async Task Changed_material_balance_is_rechecked_before_any_party_cost_is_paid()
+    {
+        await using var f = Fixture(); await f.SeedAsync(); await SeedMember(f, new(71)); await SeedMember(f, new(72));
+        var admission = Admission(f);
+        await using (var tx = f.Scope.Begin())
+        {
+            var decision = await admission.PrepareAsync(Context(Party), new(), default);
+            var material = f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>().GetStore(new(72), BusinessInventoryStoreKind.Item)
+                .GetContainer(BusinessInventorySpace.Material);
+            var ticket = (await material.GetAllAsync(default)).Single(x => x.ItemId == 3332);
+            await material.TakeAsync(ticket, null, default);
+            var result = await admission.ConsumeAsync(decision.Batch!, default);
+            Assert.Equal(DungeonEntryFailure.MissingRequiredItem, result.Refusal!.Failure);
+            Assert.Equal((byte)1, result.Refusal.BlockedSlot);
+            Assert.Equal(15, await Count(f, new(71), 6337));
+            Assert.Equal(1, await Count(f, new(71), 3332));
+        }
+    }
+
+    [Fact]
+    public async Task Second_member_write_failure_rolls_back_first_member_even_if_caller_attempts_commit()
+    {
+        await using var f = Fixture(); await f.SeedAsync(); await SeedMember(f, new(71)); await SeedMember(f, new(72));
+        // Failing on the second character occurs after the first participant's real SQL debits.
+        f.Sql("CREATE TRIGGER fail_second_entry BEFORE DELETE ON item_slots WHEN OLD.owner_id=72 BEGIN SELECT RAISE(ABORT,'second member payment failure'); END;");
+        var (visits, runs) = Service(f);
+        await using (var tx = f.Scope.Begin())
+        {
+            await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(() => visits.TryEnterPartyAsync(Party, 1500, DungeonEntryFacts.None, default).AsTask());
+            Assert.True(f.Scope.Current!.IsRollbackOnly);
+            await tx.CommitAsync(default);
+        }
+        foreach (var member in Party)
+        {
+            Assert.Equal(15, await Count(f, member.CharacterId, 6337));
+            Assert.Equal(1, await Count(f, member.CharacterId, 3332));
+            Assert.Null(runs.Find(member.CharacterId));
+        }
+    }
+
+    [Fact]
+    public async Task Ordinary_refusal_after_payment_rolls_back_even_if_caller_commits()
+    {
+        await using var f = Fixture(); await f.SeedAsync(); await SeedMember(f, new(71));
+        var admission = Admission(f);
+        await using (var tx = f.Scope.Begin())
+        {
+            var result = await admission.ExecuteAsync(Context(Party[0]), new(), (paid, ct) =>
+                ValueTask.FromResult(DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid)), default);
+            Assert.Equal(DungeonEntryFailure.ConfigurationInvalid, result.Failure);
+            Assert.True(f.Scope.Current!.IsRollbackOnly);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(15, await Count(f, new(71), 6337));
+        Assert.Equal(1, await Count(f, new(71), 3332));
+    }
+
+    private sealed class InspectingCells(Func<Task> inspect) : IDungeonCellFactory
+    {
+        public async ValueTask<DungeonCellSeed> CreateAsync(DungeonCellCreationContext context, CancellationToken token)
+        {
+            await inspect();
+            throw new InvalidOperationException("inspection must throw");
+        }
     }
 
     private static void Register(LearningFixture f, CharacterId character)

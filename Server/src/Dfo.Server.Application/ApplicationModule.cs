@@ -378,6 +378,7 @@ public sealed class ApplicationModule : IServerModule
         // Entering a dungeon and walking between its rooms.
         services.TryAddSingleton<IDungeonSelectionRuleService, DungeonSelectionRuleService>();
         services.TryAddSingleton<IDungeonEntryMaterialsDomainService, DungeonEntryMaterialsDomainService>();
+        services.TryAddSingleton<IDungeonAdmissionDomainService, DungeonAdmissionDomainService>();
         services.TryAddSingleton<DungeonVisitDomainService>();
         services.TryAddSingleton<IDungeonVisitDomainService, TransactionalDungeonVisitDomainService>();
         services.TryAddSingleton<IDungeonDifficultyRuleService, DungeonDifficultyRuleService>();

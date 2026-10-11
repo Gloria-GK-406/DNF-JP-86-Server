@@ -1,0 +1,129 @@
+{
+  "steps": [
+    {
+      "step": "build",
+      "args": [
+        "dotnet",
+        "build",
+        "Server/86JP.Server.slnx",
+        "-c",
+        "Release",
+        "-m:1"
+      ],
+      "exit": 0,
+      "seconds": 5.57
+    },
+    {
+      "step": "test",
+      "args": [
+        "dotnet",
+        "test",
+        "Server/86JP.Server.slnx",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "-m:1",
+        "--logger",
+        "trx",
+        "--results-directory",
+        "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\dungeon-admission-permits\\artifacts\\admission-verification\\final\\test-results",
+        "--blame-hang-timeout",
+        "3m",
+        "--blame-hang-dump-type",
+        "none"
+      ],
+      "exit": 0,
+      "seconds": 228.17
+    }
+  ],
+  "projects": [
+    {
+      "project": "Dfo.Pvf.Tests.dll",
+      "total": 80,
+      "passed": 80,
+      "failed": 0,
+      "skipped": 0,
+      "skipped_tests": [],
+      "trx": "artifacts\\admission-verification\\final\\test-results\\Gloria_家庭台式机_2026-10-11_10_17_15_net10.0.trx",
+      "sha256": "dfb16f0efd4308c86b25de8fca82c25aa678f3312f3a5aa9a9b25e184edc5f18"
+    },
+    {
+      "project": "Dfo.Server.Application.Tests.dll",
+      "total": 3625,
+      "passed": 3625,
+      "failed": 0,
+      "skipped": 0,
+      "skipped_tests": [],
+      "trx": "artifacts\\admission-verification\\final\\test-results\\Gloria_家庭台式机_2026-10-11_10_17_17_net10.0.trx",
+      "sha256": "cd5f9822b5801a4df12d711c3161041780d425f1f54cf0005f36f1852fbe0f33"
+    },
+    {
+      "project": "Dfo.Server.Host.Tests.dll",
+      "total": 159,
+      "passed": 159,
+      "failed": 0,
+      "skipped": 0,
+      "skipped_tests": [],
+      "trx": "artifacts\\admission-verification\\final\\test-results\\Gloria_家庭台式机_2026-10-11_10_18_19_net10.0.trx",
+      "sha256": "6e0074eb4d4cbfb24aa2267d5ccb7a64c4592cc971ec8ffe74bb89f1e147da29"
+    },
+    {
+      "project": "Dfo.Server.HttpApi.Tests.dll",
+      "total": 50,
+      "passed": 50,
+      "failed": 0,
+      "skipped": 0,
+      "skipped_tests": [],
+      "trx": "artifacts\\admission-verification\\final\\test-results\\Gloria_家庭台式机_2026-10-11_10_20_09_net10.0.trx",
+      "sha256": "20ad4ad2c3a4e377d0ccfd046be9ef3c65c0f74d341a2e5ca0fd96dfca23c678"
+    },
+    {
+      "project": "Dfo.Server.Infrastructure.Tests.dll",
+      "total": 874,
+      "passed": 872,
+      "failed": 0,
+      "skipped": 2,
+      "skipped_tests": [
+        "Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message",
+        "Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog"
+      ],
+      "trx": "artifacts\\admission-verification\\final\\test-results\\Gloria_家庭台式机_2026-10-11_10_20_11_net10.0.trx",
+      "sha256": "7419b85e17e7a484c5d6409d3ea038dd56cebcc3a598f1cdd20a490e65f869e5"
+    },
+    {
+      "project": "Dfo.Server.Networking.Tests.dll",
+      "total": 91,
+      "passed": 91,
+      "failed": 0,
+      "skipped": 0,
+      "skipped_tests": [],
+      "trx": "artifacts\\admission-verification\\final\\test-results\\Gloria_家庭台式机_2026-10-11_10_20_29_net10.0.trx",
+      "sha256": "173b9aa2985e24ac246de2e362d0708273a17bba35db1abeede5e207557040e0"
+    },
+    {
+      "project": "Dfo.Server.Persistence.Tests.dll",
+      "total": 468,
+      "passed": 468,
+      "failed": 0,
+      "skipped": 0,
+      "skipped_tests": [],
+      "trx": "artifacts\\admission-verification\\final\\test-results\\Gloria_家庭台式机_2026-10-11_10_20_35_net10.0.trx",
+      "sha256": "1f9d1cf8cd1b14e6e50f0edbd9df20a3e483d26c5c1197aa320828b2127847e7"
+    },
+    {
+      "project": "Dfo.Server.Protocol.Tests.dll",
+      "total": 1439,
+      "passed": 1439,
+      "failed": 0,
+      "skipped": 0,
+      "skipped_tests": [],
+      "trx": "artifacts\\admission-verification\\final\\test-results\\Gloria_家庭台式机_2026-10-11_10_20_59_net10.0.trx",
+      "sha256": "562b3d9af1f999df03ddff35e1cc492e5c8c13b4ba15bfb300c9e8b6c56ba67a"
+    }
+  ],
+  "total": 6786,
+  "passed": 6784,
+  "failed": 0,
+  "skipped": 2
+}
