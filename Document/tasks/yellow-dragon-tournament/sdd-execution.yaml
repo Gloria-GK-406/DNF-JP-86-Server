@@ -3,7 +3,7 @@ contract:
   path: ./TaskContract.md
   revision: 1
 current_stage: verification
-state: in_progress
+state: complete
 artifacts:
   spec: ./spec.md
   result: ./spec-result.md

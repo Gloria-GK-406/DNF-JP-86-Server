@@ -4,4 +4,4 @@
 
 RQ-007 软件回归通过：Release全解决方案0警告/0错误；Application 3685、Protocol 1453、Persistence 468全部通过且无跳过；真实PVF内容测试1项通过。独立审查结论见 reviews/change-review.md。
 
-SC-1～SC-4 已有软件/研究证据；SC-5部署待执行。此提交是接受的软件实现，部署结果随后写入 completion-evidence。原生客户端实机验收由用户执行 human-test-list.md，不将静态或自动测试记为 ClientVerified。
+SC-1～SC-5均已有证据。实现提交 `acf29009106a64dd0a29d399563ae9f8586370fe` 已发布为 `0.2.4-tournament.20261011+acf29009`，PID43496，31监听端口及GM/Launcher就绪通过。数据库备份与旧包完整保留；详情见 verification/completion-evidence.md。原生客户端实机验收由用户执行 human-test-list.md，不将静态或自动测试记为 ClientVerified。
