@@ -106,8 +106,8 @@ internal static class FinishQuestPayloadCodec
         // Reserved, and observed zero in every captured answer. The reference server has a field
         // here it fills only on a branch this codec does not write.
         BinaryPrimitives.WriteUInt32LittleEndian(payload.AsSpan(8), 0);
-        // Nothing was taken back. A quest that consumes what it asked the player to collect fills
-        // this, and none that this server can finish does.
+        // Consumption is sent as authoritative inventory deltas after this ACK. Do not also
+        // make the client subtract it through an ACK consumption list.
         payload[12] = 0;
         payload[13] = (byte)message.Items.Count;
 

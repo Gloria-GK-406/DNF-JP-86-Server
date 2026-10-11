@@ -59,6 +59,102 @@ public sealed class OrdinaryQuestEffectTests
         shop.Services.GetRequiredService<ICommandBus>().SendAsync(new FinishQuestCommand(new(1),new(1),2001,selection,count,0)).AsTask();
     private static void Carry(ShopFixture shop, int trigger=0) => shop.Sql($"INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(1,0,2001,{trigger})");
 
+    [Theory]
+    [InlineData(1000, true)]
+    [InlineData(999, false)]
+    public async Task Seeking_acceptance_and_completion_use_shared_cubes_and_carried_materials(int white, bool enough)
+    {
+        var rules = new Rules();
+        rules.Quest = rules.Quest with { ObjectiveTypeCode = "seeking",
+            SeekingItems = [new(3034, 1000), new(3035, 1000), new(1000, 100), new(2000, 100)] };
+        using var shop = Shop(s => s.AddSingleton<IQuestContentRuleService>(rules));
+        await shop.SeedShared(3034, white);
+        await shop.SeedShared(3035, 1000);
+        await shop.Seed(121, 1000, 100, 3);
+        await shop.Seed(65, 2000, 100);
+        var bus = shop.Services.GetRequiredService<ICommandBus>();
+        var accepted = await bus.SendAsync(new Dfo.Server.Protocol.Game.QuestAcceptance.AcceptQuestCommand(new(1), new(1), 2001));
+        Assert.True(accepted.Accepted);
+        Assert.Equal(enough ? 0 : 1, shop.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=2001"));
+        if (enough) Assert.Equal(0, Assert.Single(accepted.QuestProgress!.Quests).TriggerValue);
+
+        var result = await Finish(shop);
+        Assert.Equal(enough, result.Finished);
+        Assert.Equal(enough ? 0 : white, shop.SharedCount(3034));
+        Assert.Equal(enough ? 0 : 1000, shop.SharedCount(3035));
+        Assert.Equal(enough ? 0 : 100, shop.Count(1000));
+        Assert.Equal(enough ? 3 : 100, shop.Count(2000));
+        if (enough)
+        {
+            Assert.Contains(result.ConsumedItemUpdates.SelectMany(x => x.Items), x => x.SlotIndex == 355 && x.Core.ItemId == -1);
+            Assert.Contains(result.ConsumedItemUpdates.SelectMany(x => x.Items), x => x.SlotIndex == 356 && x.Core.ItemId == -1);
+            Assert.False((await Finish(shop)).Finished);
+            Assert.Equal(3, shop.Count(2000));
+        }
+    }
+
+    [Fact]
+    public async Task Seeking_gold_is_spent_before_reward_and_the_final_balance_is_projected()
+    {
+        var rules = new Rules();
+        rules.Quest = rules.Quest with { ObjectiveTypeCode = "seeking", SeekingItems = [new(0, 100)],
+            ItemRewards = new([], [], false, 20) };
+        using var shop = Shop(s => s.AddSingleton<IQuestContentRuleService>(rules));
+        Carry(shop);
+        var result = await Finish(shop);
+        Assert.True(result.Finished);
+        Assert.Equal(99920, shop.Gold);
+        Assert.Equal(99920, Assert.Single(Assert.Single(result.ConsumedItemUpdates).Items).Core.Value);
+        Assert.Equal(20u, Assert.Single(result.Items).Count);
+    }
+
+    [Fact]
+    public async Task Shared_material_changes_recompute_progress_and_post_consumption_projection_for_other_quests()
+    {
+        var rules = new Rules();
+        rules.Quest = rules.Quest with { ObjectiveTypeCode = "seeking", SeekingItems = [new(3034, 1000)] };
+        rules.Others.Add(rules.Quest with { QuestId = 2002 });
+        using var shop = Shop(s => s.AddSingleton<IQuestContentRuleService>(rules));
+        await shop.SeedShared(3034, 1000);
+        Carry(shop, 1);
+        shop.Sql("INSERT INTO character_active_quests VALUES(1,1,2002,1)");
+        var scope = shop.Services.GetRequiredService<DomainTransactionScope>();
+        await using (var tx = scope.Begin())
+        {
+            var progress = await shop.Services.GetRequiredService<IQuestProgressDomainService>()
+                .ReportAsync(new(1), new(1), [new QuestHoldingsChanged()], default);
+            Assert.All(progress.NotificationSnapshot!.Quests, x => Assert.Equal(0, x.TriggerValue));
+            Assert.Empty(await shop.Services.GetRequiredService<IQuestMaterialRequirementDomainService>()
+                .GetOutstandingMaterialIdsAsync(new(1), new(1), default));
+            await tx.CommitAsync(default);
+        }
+        var result = await Finish(shop);
+        Assert.True(result.Finished);
+        Assert.Equal(511, Assert.Single(result.QuestProgress!.Quests).TriggerValue);
+        Assert.Equal(0, shop.SharedCount(3034));
+    }
+
+    [Fact]
+    public async Task Rolling_back_completion_restores_shared_materials_carried_materials_and_quest()
+    {
+        var rules = new Rules();
+        rules.Quest = rules.Quest with { ObjectiveTypeCode = "seeking", SeekingItems = [new(3034, 1000), new(1000, 2)] };
+        using var shop = Shop(s => s.AddSingleton<IQuestContentRuleService>(rules));
+        await shop.SeedShared(3034, 1000);
+        await shop.Seed(121, 1000, 2, 3);
+        Carry(shop);
+        await using (var tx = shop.Services.GetRequiredService<DomainTransactionScope>().Begin())
+        {
+            var receipt = await shop.Services.GetRequiredService<IQuestCompletionDomainService>()
+                .FinishAsync(new(1), new(1), 2001, ushort.MaxValue, 1, DateTimeOffset.UnixEpoch, default);
+            Assert.True(receipt.Finished);
+        }
+        Assert.Equal(1000, shop.SharedCount(3034));
+        Assert.Equal(2, shop.Count(1000));
+        Assert.Equal(1, shop.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE quest_id=2001"));
+        Assert.Equal(0, shop.Count(2000));
+    }
+
     [Fact]
     public async Task Stale_missing_trigger_uses_live_holdings_and_never_consumes_requirement_items()
     {
@@ -110,7 +206,7 @@ public sealed class OrdinaryQuestEffectTests
         Assert.Equal(2,shop.Scalar("SELECT COUNT(DISTINCT core_uid) FROM item_slots WHERE owner_scope='character' AND owner_id=1"));
     }
     [Fact]
-    public async Task Holdings_snapshot_contains_untouched_main_and_overlays_quick_rewards_but_not_account_materials()
+    public async Task Holdings_snapshot_contains_untouched_main_and_overlays_quick_and_account_rewards()
     {
         var rules=new Rules(); rules.Quest=rules.Quest with {ItemRewards=new([new(2000,3),new(3033,2)],[],false,0)};
         rules.Others.Add(rules.Quest with {QuestId=2002,SeekingItems=[new(1000,2),new(2000,3)]});
@@ -119,7 +215,7 @@ public sealed class OrdinaryQuestEffectTests
         await shop.Seed(121,1000,2,3); Carry(shop);
         shop.Sql("INSERT INTO character_active_quests VALUES(1,1,2002,5),(1,2,2003,1)");
         var result=await Finish(shop); Assert.True(result.Finished); Assert.Equal(0,result.QuestProgress!.Quests.Single(x=>x.QuestId==2002).TriggerValue);
-        Assert.Equal(1,result.QuestProgress.Quests.Single(x=>x.QuestId==2003).TriggerValue);
+        Assert.Equal(0,result.QuestProgress.Quests.Single(x=>x.QuestId==2003).TriggerValue);
         Assert.Equal(2,Assert.Single(result.AccountMaterials!).Value);
     }
     [Fact]

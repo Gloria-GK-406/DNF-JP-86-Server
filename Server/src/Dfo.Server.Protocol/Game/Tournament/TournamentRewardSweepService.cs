@@ -18,7 +18,7 @@ public sealed class TournamentRewardSweepService(ITournamentDungeonDomainService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(250), clock);
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50), clock);
         try
         {
             while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
@@ -51,6 +51,8 @@ public sealed class TournamentRewardSweepService(ITournamentDungeonDomainService
             var slot = runs.Find(candidate.CharacterId)?.Participant?.Slot ?? 0;
             await sender.SendExplicitAsync(session.ConnectionId,
                 new([.. delivery.CompletionFrames(action), new TournamentSelectionResponse(current, slot)], []), ct).ConfigureAwait(false);
+            logger.LogInformation("Tournament automatic card selected character={CharacterId} run={RunId} row={Row} deadlineLagMs={Lag}",
+                current.CharacterId, current.RunId, row, (clock.GetUtcNow() - deadline).TotalMilliseconds);
         }
     }
 }

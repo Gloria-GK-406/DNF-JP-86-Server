@@ -7,7 +7,7 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Quests;
 
-/// <summary>Persists the remaining seeking count derived from the live bag and carried gold.</summary>
+/// <summary>Persists remaining seeking counts from the live bag, shared materials and carried gold.</summary>
 internal sealed class SeekingQuestProgressDomainService(
     IQuestContentRuleService quests,
     ICharacterQuestLogDomainService logs,
@@ -32,6 +32,9 @@ internal sealed class SeekingQuestProgressDomainService(
             .Where(item => item.ItemId > 0)
             .GroupBy(item => item.ItemId)
             .ToDictionary(group => group.Key, group => group.Sum(item => (long)item.Count));
+        if (containers.FindContainer(characterId, InventoryContainerType.SharedMaterial) is { } shared)
+            foreach (var item in await shared.GetAllAsync(cancellationToken).ConfigureAwait(false))
+                counts[item.ItemId] = item.Count;
         counts[0] = await characters.Get(characterId).GoldAsync(cancellationToken)
             .ConfigureAwait(false);
 

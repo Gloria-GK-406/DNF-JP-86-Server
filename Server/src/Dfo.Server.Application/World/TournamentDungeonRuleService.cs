@@ -7,6 +7,9 @@ namespace Dfo.Server.Application.World;
 internal sealed class TournamentDungeonRuleService(
     ITournamentDungeonContentSource content, IClearRewardRuleService clearRewards) : ITournamentDungeonRuleService
 {
+    // A21's single-player flip initialization runs only during the 1.5-second selection state.
+    public TimeSpan RewardSelectionWindow => TimeSpan.FromSeconds(1);
+
     public bool IsSupported(int dungeonId) => dungeonId == 120;
 
     public async ValueTask<TournamentPlan> PrepareAsync(int dungeonId, uint seed, CancellationToken cancellationToken)

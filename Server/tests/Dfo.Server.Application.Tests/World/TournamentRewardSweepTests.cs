@@ -72,16 +72,16 @@ public sealed class TournamentRewardSweepTests
     {
         var tournament = new TournamentRewards();
         using var shop = new ShopFixture(services => services.AddSingleton<ITournamentDungeonDomainService>(tournament));
-        tournament.State = Finished(shop, Enter(shop), shop.Clock.GetUtcNow().AddSeconds(3));
+        tournament.State = Finished(shop, Enter(shop), shop.Clock.GetUtcNow().AddSeconds(1));
         var candidate = tournament.State;
 
         await Sweep(shop, candidate);
-        shop.Clock.Advance(TimeSpan.FromSeconds(2));
+        shop.Clock.Advance(TimeSpan.FromMilliseconds(999));
         await Sweep(shop, candidate);
         Assert.Empty(tournament.Selections);
         Assert.Empty(shop.Sender.Messages);
 
-        shop.Clock.Advance(TimeSpan.FromSeconds(1));
+        shop.Clock.Advance(TimeSpan.FromMilliseconds(1));
         await Sweep(shop, candidate);
         Assert.Equal(2, tournament.Selections.Count);
         Assert.Equal(2, shop.Sender.Messages.Count);

@@ -142,6 +142,17 @@ public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Effects.IQ
                         break;
                 }
             var updates = new List<CommittedInventoryUpdateState>();
+            if (result.Applied.Applied.Any(x => x.Change is Dfo.Server.Abstractions.Effects.GoldEffectChange))
+            {
+                var balance = result.Applied.Applied.Select(x => x.Change).Select(x => x switch
+                {
+                    Dfo.Server.Abstractions.Effects.GoldEffectChange spent => (int?)spent.Remaining,
+                    Dfo.Server.Abstractions.Effects.QuestRewardGoldChange paid => paid.After,
+                    _ => null,
+                }).Last(x => x.HasValue)!.Value;
+                updates.Add(new(InventoryContainerType.Main, [new(null, 0, StackableItemCore.Create(0, 0, balance))],
+                    DateTimeOffset.FromUnixTimeSeconds(command.AcquiredAtUnixTime)));
+            }
             if (isMirror)
                 foreach (var addition in result.Applied.Applied.Select(x => x.Change).OfType<Dfo.Server.Abstractions.Effects.BasicCharacterItemChange>().SelectMany(x => x.Additions))
                     consumed.Add(addition.Slot);

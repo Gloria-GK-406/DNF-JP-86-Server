@@ -160,7 +160,7 @@ public sealed class AcceptQuestCommandHandler(
             }
         }
 
-        var progress = placed.Count > 0
+        var progress = placed.Count > 0 || definition.SeekingItems is { Count: > 0 }
             ? (await questProgress.ReportAsync(
                 command.AccountId, command.CharacterId,
                 [new QuestHoldingsChanged()], cancellationToken).ConfigureAwait(false))

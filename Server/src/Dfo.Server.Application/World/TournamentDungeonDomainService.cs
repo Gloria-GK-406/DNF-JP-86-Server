@@ -171,7 +171,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
         var state = Find(session.CharacterId);
         if (CurrentRun(session, runId) is null || state is not { IsFinished: true }) return false;
         if (state.RewardSelectionEndsAt is null)
-            Put(state with { RewardSelectionEndsAt = clock.GetUtcNow() + TimeSpan.FromSeconds(3) });
+            Put(state with { RewardSelectionEndsAt = clock.GetUtcNow() + rules.RewardSelectionWindow });
         return true;
     }
 

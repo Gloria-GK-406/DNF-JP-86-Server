@@ -206,8 +206,16 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
             var main = containers?.FindContainer(context.CharacterId, InventoryContainerType.Main)
                 ?? throw new InventoryEffectException(InventoryEffectRejection.InvalidTarget);
             var result = (await main.GetAllAsync(ct).ConfigureAwait(false)).ToDictionary(x => x.SlotIndex, x => x.Snapshot);
+            var sharedContainer = containers?.FindContainer(context.CharacterId, InventoryContainerType.SharedMaterial);
+            var shared = sharedContainer is null ? new Dictionary<int, ItemSnapshot>()
+                : (await sharedContainer.GetAllAsync(ct).ConfigureAwait(false)).ToDictionary(x => x.SlotIndex, x => x.Snapshot);
             foreach (var (slot, item) in items)
             {
+                if (slot.Space == BusinessInventorySpace.SharedMaterial)
+                {
+                    if (item is null) shared.Remove(slot.Index); else shared[slot.Index] = item;
+                    continue;
+                }
                 var physical = LegacyInventoryStorageCoordinates.ToStorage(slot);
                 if (physical.List != InventoryContainerType.Main) continue;
                 if (item is null) result.Remove(physical.Index);
@@ -215,7 +223,8 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
             }
             foreach (var (index, item) in virtualItems)
                 if (item is null) result.Remove(index); else result[index] = item;
-            return new(System.Collections.Immutable.ImmutableDictionary.ToImmutableDictionary(result), await GoldAsync(ct).ConfigureAwait(false));
+            return new(System.Collections.Immutable.ImmutableDictionary.ToImmutableDictionary(result), await GoldAsync(ct).ConfigureAwait(false))
+            { SharedMaterials = System.Collections.Immutable.ImmutableDictionary.ToImmutableDictionary(shared) };
         }
     }
 }

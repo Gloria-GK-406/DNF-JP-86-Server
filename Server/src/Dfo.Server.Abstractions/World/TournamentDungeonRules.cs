@@ -28,6 +28,7 @@ public interface ITournamentDungeonContentSource
 
 public interface ITournamentDungeonRuleService
 {
+    TimeSpan RewardSelectionWindow { get; }
     bool IsSupported(int dungeonId);
     ValueTask<TournamentPlan> PrepareAsync(int dungeonId, uint seed, CancellationToken cancellationToken);
     IReadOnlyList<IReadOnlyList<TournamentRewardCard>> Rewards(TournamentPlan plan, int completedRounds, int characterLevel);

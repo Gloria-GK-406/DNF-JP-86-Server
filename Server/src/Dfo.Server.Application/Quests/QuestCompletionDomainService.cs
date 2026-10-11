@@ -33,8 +33,11 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         if (identity is null || progress is null || bag is null || heldGold is null) return Refuse();
         var quests = await state.QuestsAsync(account, id, ct).ConfigureAwait(false);
         var main = await bag.GetAllAsync(ct).ConfigureAwait(false);
-        var facts = new QuestCompletionFacts(identity, progress, quests, main, heldGold, null, null);
-        var effective = await rules.EffectiveAsync(quests, main.Select(item => item.Snapshot), heldGold.Carried, ct).ConfigureAwait(false);
+        var shared = containers.FindContainer(id, InventoryContainerType.SharedMaterial) is { } sharedContainer
+            ? await sharedContainer.GetAllAsync(ct).ConfigureAwait(false) : [];
+        var facts = new QuestCompletionFacts(identity, progress, quests, main, heldGold, null, null) { SharedMaterials = shared };
+        var effective = await rules.EffectiveAsync(quests, main.Select(item => item.Snapshot), heldGold.Carried, ct,
+            shared.Select(item => item.Snapshot)).ConfigureAwait(false);
         var projected = effective.Any(x => quests.Carried.Single(y => y.Slot == x.Slot).TriggerValue != x.TriggerValue)
             ? new QuestProgressSnapshot(effective) : null;
         if (projected is not null && mirror is not null)

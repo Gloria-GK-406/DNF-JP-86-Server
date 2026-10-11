@@ -331,12 +331,15 @@ public sealed class TournamentDungeonTests
         await using (var tx = f.Scope.Begin())
             Assert.True(Tournament(f).BeginRewardSelection(f.Session, State(f).RunId));
         Assert.Null(State(f).RewardSelectionEndsAt);
+        var clock = f.Services.GetRequiredService<TimeProvider>();
+        var startedAt = clock.GetUtcNow();
         await using (var tx = f.Scope.Begin())
         {
             Assert.True(Tournament(f).BeginRewardSelection(f.Session, State(f).RunId));
             await tx.CommitAsync(default);
         }
         var deadline = State(f).RewardSelectionEndsAt!.Value;
+        Assert.InRange(deadline, startedAt.AddSeconds(1), clock.GetUtcNow().AddSeconds(1));
         Assert.Empty(Tournament(f).PendingRewards(deadline.AddTicks(-1)));
         Assert.Single(Tournament(f).PendingRewards(deadline));
         await using (var tx = f.Scope.Begin())

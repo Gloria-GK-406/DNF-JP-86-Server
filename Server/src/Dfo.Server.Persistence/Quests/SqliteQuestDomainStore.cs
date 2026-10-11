@@ -127,6 +127,22 @@ internal sealed class CarriedQuestSection(SqliteDatabaseParticipant owner)
 {
     protected override short KeyOf(StoredActiveQuest value) => value.Slot;
 
+    public override void Write(OwnedCharacterId place, StoredActiveQuest value)
+    {
+        // A correction may follow acceptance or another correction before the single flush.
+        // Callers can carry the staged value or the already preserved SQL expectation.
+        // Keep the first SQL expectation (null for a staged acceptance) until flush.
+        if (value.ExpectedTriggerValue is { } expected && TryGetStaged(place, value.Slot, out var staged)
+            && staged is not null)
+        {
+            if (staged.QuestId != value.QuestId
+                || staged.TriggerValue != expected && staged.ExpectedTriggerValue != expected)
+                throw new InvalidDataException($"Quest {value.QuestId} changed in the current transaction.");
+            value = value with { ExpectedTriggerValue = staged.ExpectedTriggerValue };
+        }
+        base.Write(place, value);
+    }
+
     protected override async ValueTask<IReadOnlyList<StoredActiveQuest>> ReadRowsAsync(
         OwnedCharacterId place, CancellationToken cancellationToken)
     {

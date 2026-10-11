@@ -22,6 +22,9 @@ internal sealed class QuestMaterialRequirementDomainService(
         var held = (await bag.GetAllAsync(cancellationToken).ConfigureAwait(false))
             .Where(item => item.ItemId > 0).GroupBy(item => item.ItemId)
             .ToDictionary(group => group.Key, group => group.Sum(item => (long)item.Count));
+        if (containers.FindContainer(characterId, InventoryContainerType.SharedMaterial) is { } shared)
+            foreach (var item in await shared.GetAllAsync(cancellationToken).ConfigureAwait(false))
+                held[item.ItemId] = item.Count;
         var result = new HashSet<int>();
         foreach (var active in carried)
         {
