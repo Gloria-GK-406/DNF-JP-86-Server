@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Settlement;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Application.Tests.Inventory;
@@ -31,6 +32,28 @@ public sealed class QuestClearCouponDomainServiceTests
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=71"));
         Assert.Equal(9, f.Scalar("SELECT slot_index FROM character_quest_notify_selections WHERE character_id=71"));
         Assert.Equal((int)f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(85), f.Scalar("SELECT exp FROM characters WHERE character_id=71"));
+    }
+
+    [Fact]
+    public async Task Clearance_plan_is_task_only_and_readonly_until_the_coupon_settles()
+    {
+        await using var f = Fixture();
+        await f.SeedAsync();
+        SeedQuests(f);
+        await using (var tx = f.Scope.Begin())
+        {
+            var state = await f.Services.GetRequiredService<IConsumableStateDomainService>().QuestsAsync(new(1), new(71), default);
+            var plan = await f.Services.GetRequiredService<IQuestClearancePlanRuleService>().BuildAsync(state, [101, 102, 103], default);
+            Assert.Equal(new[] { 101, 102 }, plan.Completed.ToArray());
+            Assert.All(plan.Effects, x => Assert.True(x is SetCarriedQuestEffect or RemoveTrackedQuestEffect or SetClearedQuestEffect));
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+        Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
+        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71"));
+        Assert.Equal([101, 102], (await Use(f)).CompletedQuestIds);
+        await Assert.ThrowsAsync<OpeningRejectedException>(() => Use(f));
+        Assert.Equal(4, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
     }
 
     [Theory]
@@ -73,7 +96,7 @@ public sealed class QuestClearCouponDomainServiceTests
     private static async Task<QuestClearCouponResult> Use(LearningFixture f)
     {
         await using var tx = f.Scope.Begin();
-        var result = await f.Services.GetRequiredService<IQuestClearCouponDomainService>().UseAsync(f.Session,Slot,At,default);
+        var result = await f.Services.GetRequiredService<IQuestClearCouponSettlementDomainService>().UseAsync(f.Session,Slot,At,default);
         await tx.CommitAsync(default); return result;
     }
     private static LearningFixture Fixture(int[]? selected = null, int sourceId = 10_006_007) => new(configure: s =>

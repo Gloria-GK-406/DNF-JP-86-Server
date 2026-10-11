@@ -179,13 +179,8 @@ public sealed class AcceptQuestCommandHandler(
             AccountMaterials: accountChanges);
     }
 
-    /// <remarks>
-    /// The items this acceptance already handed over are not taken back with it, which is the
-    /// behaviour this server has always had: a quest declaring several items, of which a later one
-    /// would not fit, leaves the earlier ones with the player and tells them the quest was refused.
-    /// No quest in the archive reaches that shape from a real client, and correcting it is a
-    /// decision about what a partial grant means rather than a move of existing rules.
-    /// </remarks>
+    // Missing the main container refuses the acceptance before any item delivery.
+    // Grants themselves are handled by the transactional inventory/mail delivery service.
     private async ValueTask<QuestAcceptOutcome> HandBackAsync(
         IQuestLog log, ushort questId, CancellationToken cancellationToken)
     {

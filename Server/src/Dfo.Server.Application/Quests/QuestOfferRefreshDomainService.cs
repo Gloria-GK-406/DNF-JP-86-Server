@@ -29,11 +29,12 @@ namespace Dfo.Server.Application.Quests;
 internal sealed class QuestOfferRefreshDomainService(
     IWorldContentEntryRuleService worldContent,
     ICharacterQuestLogDomainService logs, ICharacterDomainService characters,
-    Dfo.Server.Abstractions.Creatures.ICreatureDomainService? creatures = null) : IQuestOfferRefreshDomainService
+    Dfo.Server.Abstractions.Creatures.ICreatureDomainService? creatures = null, IQuestQueryDomainService? query = null) : IQuestOfferRefreshDomainService
 {
     public async ValueTask<AvailableQuestEntryState> ReadAvailableAsync(
         AccountId accountId, CharacterId characterId, int level, CancellationToken ct)
     {
+        if (query is not null) return await query.ReadAvailableAsync(accountId, characterId, ct).ConfigureAwait(false);
         var identity = await characters.Get(characterId).IdentityAsync(ct).ConfigureAwait(false)
             ?? throw new InvalidDataException("Character identity is unavailable while refreshing quest offers.");
         var log = logs.LogOf(accountId, characterId);

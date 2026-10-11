@@ -110,7 +110,7 @@ internal sealed class QuestLog(
                 .Where(quest => quest.Mark != 0)
                 .Select(quest => quest.QuestId)
                 .ToHashSet();
-            triggerValue = definition.ClearedQuestRequirements.Count(id => !clearedIds.Contains(id));
+            triggerValue = QuestStateRuleService.ApplyClearedRequirements(definition, triggerValue, clearedIds);
         }
         await stores.ChangeAsync(store, session =>
         {

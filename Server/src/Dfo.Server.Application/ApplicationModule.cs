@@ -16,6 +16,7 @@ using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Application.Effects;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Settlement;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
@@ -34,6 +35,7 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Notifications;
 using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Application.Quests;
+using Dfo.Server.Application.Settlement;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Parties;
 using Dfo.Server.Application.Sessions;
@@ -175,12 +177,17 @@ public sealed class ApplicationModule : IServerModule
         // What the archive declares about quests, and the shared parameters a reward is worked
         // out from. One reader for both, because no quest outcome is decided without both.
         services.TryAddSingleton<IQuestContentRuleService, QuestContentRuleService>();
+        services.TryAddSingleton<IQuestStateRuleService, QuestStateRuleService>();
+        services.TryAddSingleton<IQuestAvailabilityRuleService, QuestAvailabilityRuleService>();
+        services.TryAddSingleton<IQuestFactsDomainService, QuestFactsDomainService>();
+        services.TryAddSingleton<IQuestQueryDomainService, QuestQueryDomainService>();
         services.TryAddSingleton<ISeekingQuestProgressDomainService, SeekingQuestProgressDomainService>();
         services.TryAddSingleton<IQuestMaterialRequirementDomainService, QuestMaterialRequirementDomainService>();
         services.TryAddSingleton<IQuestHelperGroundBonusDomainService, QuestHelperGroundBonusDomainService>();
         services.TryAddSingleton<IQuestRewardRuleService, QuestRewardRuleService>();
         services.TryAddSingleton<IQuestCompletionEffectRuleService, QuestCompletionEffectRuleService>();
         services.TryAddSingleton<IQuestCompletionDomainService, QuestCompletionDomainService>();
+        services.TryAddSingleton<IQuestCompletionSettlementDomainService, QuestCompletionSettlementService>();
         services.TryAddSingleton<IDungeonStructureRuleService, DungeonStructureRuleService>();
         services.TryAddSingleton<IDungeonEntryDecisionDomainService, DungeonEntryDecisionDomainService>();
         services.TryAddSingleton<IHellDungeonEntryRuleService, HellDungeonEntryRuleService>();
@@ -469,7 +476,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IItemDiscardRuleService, ItemDiscardRuleService>();
         services.TryAddSingleton<IQuestDefinitionDomainService, QuestDefinitionDomainService>();
         services.TryAddSingleton<IQuestClearCouponRuleService, QuestClearCouponRuleService>();
-        services.TryAddSingleton<IQuestClearCouponDomainService, QuestClearCouponDomainService>();
+        services.TryAddSingleton<IQuestClearancePlanRuleService, QuestClearancePlanRuleService>();
+        services.TryAddSingleton<IQuestClearCouponSettlementDomainService, QuestClearCouponSettlementService>();
         services.TryAddSingleton<ILevelUpTicketDomainService, LevelUpTicketDomainService>();
         services.TryAddSingleton<ILevelUpTicketRuleService, LevelUpTicketRuleService>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetCharacterLevelEffectHandler>());

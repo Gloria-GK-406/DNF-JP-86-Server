@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Settlement;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
@@ -58,6 +59,57 @@ public sealed class OrdinaryQuestEffectTests
     private static Task<QuestFinishOutcome> Finish(ShopFixture shop, ushort selection = ushort.MaxValue, ushort count = 1) =>
         shop.Services.GetRequiredService<ICommandBus>().SendAsync(new FinishQuestCommand(new(1),new(1),2001,selection,count,0)).AsTask();
     private static void Carry(ShopFixture shop, int trigger=0) => shop.Sql($"INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(1,0,2001,{trigger})");
+
+    [Fact]
+    public void Quest_planning_query_and_settlement_services_resolve_from_the_production_service_graph()
+    {
+        using var shop = Shop(s => s.AddSingleton<IQuestContentRuleService>(new Rules()));
+        Assert.NotNull(shop.Services.GetRequiredService<IQuestQueryDomainService>());
+        Assert.NotNull(shop.Services.GetRequiredService<IQuestCompletionDomainService>());
+        Assert.NotNull(shop.Services.GetRequiredService<IQuestCompletionSettlementDomainService>());
+        Assert.NotNull(shop.Services.GetRequiredService<IQuestClearancePlanRuleService>());
+        Assert.NotNull(shop.Services.GetRequiredService<IQuestClearCouponSettlementDomainService>());
+    }
+
+    [Fact]
+    public async Task Prepare_describes_cost_reward_and_quest_changes_without_writing_even_when_committed()
+    {
+        var rules = new Rules();
+        rules.Quest = rules.Quest with { ObjectiveTypeCode = "seeking",
+            SeekingItems = [new(3034, 1000), new(1000, 2), new(0, 100)],
+            ItemRewards = new([new(2000, 3)], [], false, 20) };
+        using var shop = Shop(s => s.AddSingleton<IQuestContentRuleService>(rules));
+        await shop.SeedShared(3034, 1000);
+        await shop.Seed(121, 1000, 2, 3);
+        Carry(shop, 1);
+        var events = shop.Scalar("SELECT COUNT(*) FROM domain_events");
+        await using (var tx = shop.Services.GetRequiredService<DomainTransactionScope>().Begin())
+        {
+            var prepared = await shop.Services.GetRequiredService<IQuestCompletionDomainService>()
+                .PrepareAsync(new(1), new(1), 2001, ushort.MaxValue, 1, DateTimeOffset.UnixEpoch, default);
+            Assert.True(prepared.Prepared);
+            var reward = prepared.Plan!.Reward!;
+            Assert.Equal(rules.Quest.SeekingItems, reward.ConsumedItems);
+            Assert.Equal(new QuestRewardItemGrant(2000, 3), Assert.Single(reward.Items));
+            Assert.Equal(20, reward.Gold);
+            Assert.Contains(prepared.Plan.Effects, x => x is SetCarriedQuestEffect { Value: null });
+            Assert.Contains(prepared.Plan.Effects, x => x is SetClearedQuestEffect { QuestId: 2001 });
+            Assert.Contains(prepared.Plan.Effects, x => x is SpendGoldEffect { Amount: 100 });
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(1000, shop.SharedCount(3034));
+        Assert.Equal(2, shop.Count(1000));
+        Assert.Equal(0, shop.Count(2000));
+        Assert.Equal(100000, shop.Gold);
+        Assert.Equal(1, shop.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=2001"));
+        Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE slot_index=2001"));
+        Assert.Equal(events, shop.Scalar("SELECT COUNT(*) FROM domain_events"));
+        Assert.True((await Finish(shop)).Finished);
+        Assert.Equal(0, shop.SharedCount(3034));
+        Assert.Equal(0, shop.Count(1000));
+        Assert.Equal(3, shop.Count(2000));
+        Assert.Equal(99920, shop.Gold);
+    }
 
     [Theory]
     [InlineData(1000, true)]
@@ -145,7 +197,7 @@ public sealed class OrdinaryQuestEffectTests
         Carry(shop);
         await using (var tx = shop.Services.GetRequiredService<DomainTransactionScope>().Begin())
         {
-            var receipt = await shop.Services.GetRequiredService<IQuestCompletionDomainService>()
+            var receipt = await shop.Services.GetRequiredService<IQuestCompletionSettlementDomainService>()
                 .FinishAsync(new(1), new(1), 2001, ushort.MaxValue, 1, DateTimeOffset.UnixEpoch, default);
             Assert.True(receipt.Finished);
         }

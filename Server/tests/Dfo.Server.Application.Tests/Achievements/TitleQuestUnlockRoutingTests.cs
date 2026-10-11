@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Settlement;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Achievements;
@@ -51,7 +52,7 @@ public sealed partial class AchievementTitleBookTests
         await f.DrainAsync();
         Assert.Equal(1, (await f.Achievements.GetAsync(Character, default)).Single(x => x.AchievementId == 6501).P1);
         Assert.Empty(f.ItemUids(26596));
-        var completion = f.Services.GetRequiredService<IQuestCompletionDomainService>();
+        var completion = f.Services.GetRequiredService<IQuestCompletionSettlementDomainService>();
         Assert.True((await f.WriteAsync(async () => await completion.FinishAsync(new(1), Character, 4303, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default))).Finished);
         Assert.Empty(f.ItemUids(26596)); // Reward is delivered through the committed quest event.
         await f.DrainAsync();
@@ -73,7 +74,7 @@ public sealed partial class AchievementTitleBookTests
         await HuntQuestReadyAsync(f);
         var events = f.Scalar("SELECT COUNT(*) FROM domain_events");
         await using (var tx = f.Scope.Begin())
-            Assert.True((await f.Services.GetRequiredService<IQuestCompletionDomainService>().FinishAsync(new(1), Character, 4303, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default)).Finished);
+            Assert.True((await f.Services.GetRequiredService<IQuestCompletionSettlementDomainService>().FinishAsync(new(1), Character, 4303, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default)).Finished);
         Assert.Equal(events, f.Scalar("SELECT COUNT(*) FROM domain_events"));
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE slot_index=4303"));
         Assert.Single(await f.Services.GetRequiredService<ICharacterQuestLogDomainService>().LogOf(new(1), Character).CarriedAsync(default));

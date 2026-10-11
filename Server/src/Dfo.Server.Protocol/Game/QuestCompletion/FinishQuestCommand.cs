@@ -87,7 +87,7 @@ public sealed class QuestFinishRejectedException : Exception
 /// completion that granted the items and then failed to record the clear would be a quest the
 /// player could hand in twice.
 ///
-/// The domain service decides the full effect plan before applying any write. Seeking progress
+/// The quest domain prepares the full effect plan; the settlement service applies its writes. Seeking progress
 /// is projected from current holdings, so a refusal can correct the client without writing it.
 ///
 /// Every ordinary refusal is decided before the log writes. A refusal discovered afterwards throws
@@ -95,9 +95,8 @@ public sealed class QuestFinishRejectedException : Exception
 /// disposes without committing and rolls every enlisted store back. The package handler catches that
 /// dedicated failure outside the boundary and maps it to the reference server's wire code 22.
 /// </remarks>
-public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Effects.IQuestCompletionDomainService completion,
-    IBusinessInventorySlotDomainService inventorySlots, IQuestDefinitionDomainService? definitions = null,
-    IMirrorAradQuestDomainService? mirror = null)
+public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Settlement.IQuestCompletionSettlementDomainService completion,
+    IBusinessInventorySlotDomainService inventorySlots)
     : ICommandHandler<FinishQuestCommand, QuestFinishOutcome>
 {
     public async ValueTask<QuestFinishOutcome> HandleAsync(CommandExecutionContext context, FinishQuestCommand command,
@@ -107,14 +106,9 @@ public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Effects.IQ
         if (context.ExecutionKind != CommandExecutionKind.Transactional) throw new InvalidOperationException("Quest completion requires a transaction.");
         try
         {
-            var definition = definitions is null ? null : await definitions.FindAsync(command.QuestId, cancellationToken).ConfigureAwait(false);
-            var isMirror = definition?.Grade == QuestGrade.Crack;
-            if (isMirror && mirror is null) return QuestFinishOutcome.Refuse(command.QuestId);
-            var result = isMirror
-                ? await mirror!.FinishAsync(command.AccountId, command.CharacterId, command.QuestId, command.RewardSelection, command.CompletionCount,
-                    DateTimeOffset.FromUnixTimeSeconds(command.AcquiredAtUnixTime), command.Session, cancellationToken).ConfigureAwait(false)
-                : await completion.FinishAsync(command.AccountId, command.CharacterId, command.QuestId,
-                    command.RewardSelection, command.CompletionCount, DateTimeOffset.FromUnixTimeSeconds(command.AcquiredAtUnixTime), cancellationToken, command.Session).ConfigureAwait(false);
+            var result = await completion.FinishAsync(command.AccountId, command.CharacterId, command.QuestId,
+                command.RewardSelection, command.CompletionCount, DateTimeOffset.FromUnixTimeSeconds(command.AcquiredAtUnixTime), cancellationToken, command.Session).ConfigureAwait(false);
+            var isMirror = result.MirrorCompletion;
             if (!result.Finished) return QuestFinishOutcome.Refuse(command.QuestId, result.Projection);
             var slots = new InventorySlotMappingRuleService();
             var items = new List<FinishedQuestItem>();

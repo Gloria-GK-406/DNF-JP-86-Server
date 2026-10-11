@@ -7,73 +7,52 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Quests;
 
-/// <summary>Persists remaining seeking counts from the live bag, shared materials and carried gold.</summary>
-internal sealed class SeekingQuestProgressDomainService(
-    IQuestContentRuleService quests,
-    ICharacterQuestLogDomainService logs,
-    ICharacterContainerDomainService containers,
-    ICharacterDomainService characters) : ISeekingQuestProgressDomainService
+/// <summary>Persists derived quest progress; condition evaluation is shared with all read paths.</summary>
+internal sealed class SeekingQuestProgressDomainService(IQuestContentRuleService quests,
+    ICharacterQuestLogDomainService logs, ICharacterContainerDomainService containers,
+    ICharacterDomainService characters, IQuestStateRuleService? stateRules = null,
+    IQuestFactsDomainService? facts = null) : ISeekingQuestProgressDomainService
 {
-    public async ValueTask<SeekingQuestProgressSynchronization?> SynchronizeAsync(
-        AccountId accountId,
-        CharacterId characterId,
-        CancellationToken cancellationToken)
+    private readonly IQuestStateRuleService rules = stateRules ?? new QuestStateRuleService(quests);
+    public async ValueTask<SeekingQuestProgressSynchronization?> SynchronizeAsync(AccountId accountId,
+        CharacterId characterId, CancellationToken ct)
     {
         var log = logs.LogOf(accountId, characterId);
-        var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
-        if (carried.Count == 0)
-            return null;
-
-        var bag = containers.FindContainer(characterId, InventoryContainerType.Main);
-        if (bag is null)
-            return null;
-        var items = await bag.GetAllAsync(cancellationToken).ConfigureAwait(false);
-        var counts = items
-            .Where(item => item.ItemId > 0)
-            .GroupBy(item => item.ItemId)
-            .ToDictionary(group => group.Key, group => group.Sum(item => (long)item.Count));
-        if (containers.FindContainer(characterId, InventoryContainerType.SharedMaterial) is { } shared)
-            foreach (var item in await shared.GetAllAsync(cancellationToken).ConfigureAwait(false))
-                counts[item.ItemId] = item.Count;
-        counts[0] = await characters.Get(characterId).GoldAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        var updated = carried.ToDictionary(quest => quest.Slot);
+        var carried = await log.CarriedAsync(ct).ConfigureAwait(false);
+        if (carried.Count == 0 || containers.FindContainer(characterId, InventoryContainerType.Main) is null) return null;
+        var holdings = facts is not null ? await facts.HoldingsAsync(characterId, ct).ConfigureAwait(false)
+            : await QuestHoldingsReader.ReadAsync(containers, rules, characterId,
+                await characters.Get(characterId).GoldAsync(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+        var evaluated = await rules.EvaluateAsync(carried, await log.ClearedAsync(ct).ConfigureAwait(false), holdings, ct).ConfigureAwait(false);
+        var bySlot = evaluated.ToDictionary(x => x.Quest.Slot, x => x.Quest);
+        var updated = new List<CarriedQuest>(carried.Count);
         var changed = false;
-        foreach (var active in carried.OrderBy(quest => quest.Slot))
+        foreach (var active in carried.OrderBy(x => x.Slot))
         {
-            var definition = await quests.FindAsync(active.QuestId, cancellationToken)
-                .ConfigureAwait(false);
-            if (definition?.SeekingItems is not { Count: > 0 } requirements)
-                continue;
-
-            long missing = 0;
-            foreach (var requirement in requirements)
+            var after = bySlot.GetValueOrDefault(active.Slot) ?? active;
+            if (after.QuestId != active.QuestId) throw new InvalidDataException("Quest slot changed while refreshing progress.");
+            if (after.TriggerValue != active.TriggerValue)
             {
-                missing += Math.Max(
-                    0,
-                    requirement.RequiredCount - counts.GetValueOrDefault(requirement.ItemId));
+                if (!await log.RecordProgressAsync(active, after.TriggerValue, ct).ConfigureAwait(false))
+                    throw new InvalidDataException($"Quest {active.QuestId} changed concurrently.");
+                changed = true;
             }
-            var after = ReplaceChannel0(active.TriggerValue, missing);
-            if (after == active.TriggerValue)
-                continue;
-
-            if (!await log.RecordProgressAsync(active, after, cancellationToken).ConfigureAwait(false))
-            {
-                throw new InvalidDataException(
-                    $"Seeking quest {active.QuestId} changed concurrently.");
-            }
-
-            updated[active.Slot] = active with { TriggerValue = after };
-            changed = true;
+            updated.Add(after);
         }
-
-        return changed
-            ? new SeekingQuestProgressSynchronization(
-                [.. updated.Values.OrderBy(quest => quest.Slot)])
-            : null;
+        return changed ? new(updated) : null;
     }
+}
 
-    internal static int ReplaceChannel0(int trigger, long value) =>
-        (trigger & ~0x1FF) | (int)Math.Clamp(value, 0, 0x1FF);
+internal static class QuestHoldingsReader
+{
+    public static async ValueTask<QuestHoldingsFacts> ReadAsync(ICharacterContainerDomainService containers,
+        IQuestStateRuleService rules, CharacterId character, int gold, CancellationToken ct)
+    {
+        var bag = containers.FindContainer(character, InventoryContainerType.Main)
+            ?? throw new InvalidOperationException($"Missing inventory for quest state query: {character}.");
+        var main = await bag.GetAllAsync(ct).ConfigureAwait(false);
+        var shared = containers.FindContainer(character, InventoryContainerType.SharedMaterial) is { } account
+            ? await account.GetAllAsync(ct).ConfigureAwait(false) : [];
+        return rules.Holdings(main.Select(x => x.Snapshot), shared.Select(x => x.Snapshot), gold);
+    }
 }

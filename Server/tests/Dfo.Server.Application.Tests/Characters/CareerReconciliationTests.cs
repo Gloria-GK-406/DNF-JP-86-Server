@@ -164,7 +164,7 @@ public sealed class CareerReconciliationTests
         var rules=(OrdinaryQuestEffectTests.Rules)f.Services.GetRequiredService<IQuestContentRuleService>();
         rules.Quest=rules.Quest with {Rewards=[new(QuestRewardKind.GrowType,[grow])]};
         f.Sql("INSERT OR IGNORE INTO character_active_quests VALUES(71,0,2001,0)");
-        return await f.Services.GetRequiredService<Dfo.Server.Abstractions.Effects.IQuestCompletionDomainService>()
+        return await f.Services.GetRequiredService<Dfo.Server.Abstractions.Settlement.IQuestCompletionSettlementDomainService>()
             .FinishAsync(new(account),new(71),2001,ushort.MaxValue,1,DateTimeOffset.UnixEpoch,default);
     }
     private sealed class Stats : ICharacterStatDefinitionSource

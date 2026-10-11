@@ -13,8 +13,10 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDefinitionSource actions,
     IItemUsageRuleSource usages, IDailyResetRuleService days, IItemUseJudgementService uses,
-    IQuestContentRuleService quests, ICharacterSkillRuleService? skills = null) : ISpecialConsumableEffectPlanRuleService
+    IQuestContentRuleService quests, ICharacterSkillRuleService? skills = null, IQuestClearancePlanRuleService? clearance = null) : ISpecialConsumableEffectPlanRuleService
 {
+    private readonly IQuestClearancePlanRuleService clearance = clearance ?? new Dfo.Server.Application.Quests.QuestClearancePlanRuleService(quests);
+
     public async ValueTask<ImmutableArray<DomainEffect>> FatigueAsync(FatiguePotionFacts f, CancellationToken ct)
     {
         var action = await actions.GetAsync(f.Item.ItemId, ct).ConfigureAwait(false);
@@ -43,25 +45,9 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
     public async ValueTask<QuestCouponPlan> CouponAsync(BusinessSlot source, ItemReference item, QuestStateFacts state,
         IReadOnlyList<int> selected, DateTimeOffset at, CancellationToken ct)
     {
-        var ids = selected.ToHashSet();
-        var marks = state.Cleared.ToDictionary(x => x.QuestId, x => x.Mark);
-        var completed = ids.Where(id => marks.GetValueOrDefault(id) == 0).Order().ToImmutableArray();
-        if (completed.Length == 0) throw new OpeningRejectedException(OpeningRejection.InvalidChoice, "No eligible quests remain.");
-        var result = (await ConsumptionAsync(source, item, ct).ConfigureAwait(false)).ToBuilder();
-        foreach (var row in state.Carried.Where(x => ids.Contains(x.QuestId))) result.Add(new SetCarriedQuestEffect(row, null));
-        foreach (var row in state.Tracked.Where(x => ids.Contains(x.QuestId))) result.Add(new RemoveTrackedQuestEffect(row));
-        foreach (var id in completed) result.Add(new SetClearedQuestEffect(id, marks.TryGetValue(id, out var mark) ? mark : null, IQuestLog.ClearedMark));
-        var newly = completed.ToHashSet();
-        var clearedAfter = state.Cleared.Where(x => x.Mark != 0).Select(x => x.QuestId).Concat(completed).ToHashSet();
-        foreach (var row in state.Carried.Where(x => !ids.Contains(x.QuestId)))
-        {
-            var definition = await quests.FindAsync(row.QuestId, ct).ConfigureAwait(false);
-            if (definition?.ClearedQuestRequirements is not { Count: > 0 } requirements || !requirements.Any(newly.Contains)) continue;
-            var before = new QuestTrigger(unchecked((uint)row.TriggerValue));
-            var after = before.ReplaceChannel(0, requirements.Count(id => !clearedAfter.Contains(id)));
-            if (after != before) result.Add(new SetCarriedQuestEffect(row, row with { TriggerValue = unchecked((int)after.PackedValue) }));
-        }
-        return new(completed, result.ToImmutable());
+        var task = await clearance.BuildAsync(state, selected, ct).ConfigureAwait(false);
+        var consumption = await ConsumptionAsync(source, item, ct).ConfigureAwait(false);
+        return task with { Effects = consumption.AddRange(task.Effects) };
     }
 
     public async ValueTask<ImmutableArray<DomainEffect>> RefundAsync(BusinessSlot source, ItemReference water, int page,

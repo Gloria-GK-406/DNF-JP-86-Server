@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Settlement;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Tests.Characters;
@@ -108,7 +109,7 @@ public sealed class RealConsumableIntegrationTests
         async Task Use()
         {
             await using var tx = f.Scope.Begin();
-            var result = await f.Services.GetRequiredService<IQuestClearCouponDomainService>()
+            var result = await f.Services.GetRequiredService<IQuestClearCouponSettlementDomainService>()
                 .UseAsync(f.Session, MainSource, f.Services.GetRequiredService<TimeProvider>().GetUtcNow(), default);
             Assert.Equal([101], result.CompletedQuestIds);
             await tx.CommitAsync(default);

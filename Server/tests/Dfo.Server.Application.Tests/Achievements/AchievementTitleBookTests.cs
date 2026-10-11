@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Settlement;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
@@ -307,7 +308,7 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
         // Existing legacy active records must not provide a second reward route either.
         f.Sql($"INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(1,0,{questId},0)");
         var before = f.ItemsAndPositions();
-        var finish = await f.WriteAsync(async () => await f.Services.GetRequiredService<IQuestCompletionDomainService>().FinishAsync(new(1), Character, questId, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default));
+        var finish = await f.WriteAsync(async () => await f.Services.GetRequiredService<IQuestCompletionSettlementDomainService>().FinishAsync(new(1), Character, questId, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default));
         Assert.False(finish.Finished); Assert.Equal(before, f.ItemsAndPositions());
         Assert.Single(await log.CarriedAsync(default));
     }

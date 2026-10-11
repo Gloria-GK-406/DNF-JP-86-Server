@@ -29,12 +29,20 @@ public sealed record QuestCompletionFacts(CharacterIdentityState Identity, Chara
     public IReadOnlyList<ItemReference> SharedMaterials { get; init; } = [];
 }
 public sealed record QuestCompletionPlan(ushort QuestId, ImmutableArray<DomainEffect> Effects,
-    ExperienceAward Award, QuestProgressSnapshot? Projection, byte? GrowType);
+    ExperienceAward Award, QuestProgressSnapshot? Projection, byte? GrowType)
+{
+    public QuestCompletionRewardPlan? Reward { get; init; }
+}
+public sealed record QuestCompletionPreparation(bool Prepared, ushort QuestId, string? Objective,
+    QuestCompletionPlan? Plan, QuestProgressSnapshot? Projection);
 public sealed record QuestCompletionReceipt(bool Finished, ushort QuestId, string? Objective,
-    ExperienceAward? Award, ApplyEffectsResult? Applied, QuestProgressSnapshot? Projection, byte? GrowType);
+    ExperienceAward? Award, ApplyEffectsResult? Applied, QuestProgressSnapshot? Projection, byte? GrowType)
+{
+    public bool MirrorCompletion { get; init; }
+}
 public interface IQuestCompletionDomainService
 {
-    ValueTask<QuestCompletionReceipt> FinishAsync(AccountId account, CharacterId character, ushort quest,
+    ValueTask<QuestCompletionPreparation> PrepareAsync(AccountId account, CharacterId character, ushort quest,
         ushort selection, ushort count, DateTimeOffset at, CancellationToken ct, SelectedSessionIdentity? session = null);
 }
 public interface IQuestCompletionEffectRuleService
