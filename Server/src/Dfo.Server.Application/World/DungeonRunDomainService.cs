@@ -695,6 +695,21 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
+    public bool IsActorDeathClaimCurrent(DungeonActorDeathClaim claim)
+    {
+        lock (gate) return deathClaims.GetValueOrDefault(new DeathClaimKey(claim.RunId, claim.Actor)) == claim.Token
+            && runsById.TryGetValue(claim.RunId, out var run) && run.IsActiveMember(claim.CharacterId)
+            && run.RoomVersion == claim.Run.RoomVersion && run.CurrentCell == claim.Actor.Cell;
+    }
+
+    public bool IsParticipantKillEffectClaimCurrent(DungeonParticipantKillEffectClaim claim)
+    {
+        lock (gate) return IsActorDeathClaimCurrent(claim.Death)
+            && participantEffectClaims.GetValueOrDefault(new ParticipantEffectClaimKey(claim.Death.RunId,
+                new ParticipantEffectKey(claim.Death.Actor, claim.CharacterId))) == claim.Token
+            && runsById.TryGetValue(claim.Death.RunId, out var run) && run.IsActiveMember(claim.CharacterId);
+    }
+
     public DungeonActorDeathClaim? TryClaimActorDeath(
         CharacterId characterId,
         ushort actorSequence)

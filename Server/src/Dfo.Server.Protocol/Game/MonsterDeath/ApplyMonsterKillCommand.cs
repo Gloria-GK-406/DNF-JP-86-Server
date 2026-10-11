@@ -42,13 +42,7 @@ public sealed record ApplyMonsterKillResult(
 /// Keeps experience and server-authoritative quest progress on the same transaction boundary.
 /// </summary>
 public sealed class ApplyMonsterKillCommandHandler(
-    ICharacterDomainService experience,
-    ICharacterQuestLogDomainService questLogs,
-    ICharacterContainerDomainService containers,
-    IQuestProgressDomainService questProgress,
-    IItemDeliveryDomainService itemGrants,
-    IPartyService? parties = null, TimeProvider? clock = null,
-    ICharacterGameplayFactDomainService? gameplay = null)
+    IMonsterKillRewardsDomainService rewards)
     : ICommandHandler<ApplyMonsterKillCommand, ApplyMonsterKillResult>
 {
     public async ValueTask<ApplyMonsterKillResult> HandleAsync(
@@ -65,52 +59,13 @@ public sealed class ApplyMonsterKillCommandHandler(
                     + "transaction.");
         }
 
-        var awarded = command.EnemyType == HuntEnemyTargetTypes.Monster
-            ? await GrantKillExperienceCommandHandler.ApplyAwardAsync(
-                experience,
-                new GrantKillExperienceCommand(
-                    command.AccountId,
-                    command.CharacterId,
-                    command.Monster,
-                    command.DungeonId,
-                    command.Difficulty,
-                    command.DungeonWeight,
-                    command.PartyMemberCount, command.Session),
-                (clock ?? TimeProvider.System).GetUtcNow(), cancellationToken).ConfigureAwait(false)
-            : null;
-        var granted = await PendingQuestItemGrants.GrantAsync(
-            command.AccountId, command.CharacterId, command.PendingLoot, command.PartyKey,
-            questLogs, containers, itemGrants, parties, cancellationToken).ConfigureAwait(false);
-        var facts = new List<QuestProgressFact>
-        {
-            new QuestEnemyDefeated(
-                command.DungeonId, command.Difficulty, command.Monster.Code, command.EnemyType,
-                command.Monster.Rank, WorldMapId: command.WorldMapId, RunId: command.RunId, Actor: command.Actor),
-        };
-        if (command.WorldMapId is null && command.IsFinalBossDeath && command.Monster.Rank == MonsterRank.Boss
-            && command.EnemyType == HuntEnemyTargetTypes.Monster)
-            facts.Add(new QuestDungeonCleared(command.DungeonId, command.Difficulty));
-        if (granted.HasChanges)
-            facts.Add(new QuestHoldingsChanged());
-        var reported = await questProgress.ReportAsync(
-            command.AccountId, command.CharacterId, facts, cancellationToken).ConfigureAwait(false);
-        var advanced = reported.Changes
-            .Select(change => new HuntEnemyQuestAdvance(change.QuestId, change.Before, change.After))
-            .ToArray();
-        if (gameplay is not null && command.EnemyType == HuntEnemyTargetTypes.Monster)
-        {
-            await gameplay.RecordMonsterDefeatedAsync(new(command.CharacterId, command.Monster.Code,
-                (int)command.Monster.Rank, command.DungeonId, (int)command.Difficulty), cancellationToken).ConfigureAwait(false);
-            if (command.IsFinalBossDeath && command.Monster.Rank == MonsterRank.Boss)
-                await gameplay.RecordDungeonCompletedAsync(new(command.CharacterId, command.DungeonId,
-                    (int)command.Difficulty), cancellationToken).ConfigureAwait(false);
-        }
-        return new ApplyMonsterKillResult(
-            awarded,
-            advanced,
-            granted.CharacterItems,
-            QuestProgress: reported.NotificationSnapshot,
-            AccountMaterials: granted.AccountMaterials);
+        var applied = await rewards.ApplyAsync(
+            command.Session, command.AccountId, command.CharacterId,
+            new IdentifiedKill(command.Monster.Code, command.Monster.Level, command.Monster.Rank,
+                command.EnemyType == HuntEnemyTargetTypes.Monster, command.Monster.IsNamedMonster),
+            command.DungeonId, command.Difficulty, command.DungeonWeight, command.PartyMemberCount,
+            command.PartyKey, command.IsFinalBossDeath, command.RunId, command.Actor,
+            command.WorldMapId, command.PendingLoot, cancellationToken).ConfigureAwait(false);
+        return new(applied.Award, applied.QuestChanges.Select(x => new HuntEnemyQuestAdvance(x.QuestId, x.Before, x.After)).ToArray(), applied.QuestItems, applied.QuestProgress, applied.AccountMaterials);
     }
-
 }

@@ -40,6 +40,11 @@ public interface ISelectedSessionCommand : ICommand
 /// <summary>The single primary settlement belonging to an effect network request. XP and reads are separate.</summary>
 public interface IRequestSettlementCommand : ISelectedSessionCommand;
 
+public interface IMultiSelectedSessionCommand : ISelectedSessionCommand
+{
+    IReadOnlyList<SelectedSessionIdentity> Sessions { get; }
+}
+
 public interface IOnlineUserCommand : ICommand
 {
     OnlineUserId OnlineUserId { get; }

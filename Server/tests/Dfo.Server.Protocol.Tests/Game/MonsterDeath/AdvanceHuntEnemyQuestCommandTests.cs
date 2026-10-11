@@ -47,11 +47,11 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     public async Task TheAtomicKillUsesMonsterFamilyRatherThanMonsterRankForQuestMatching()
     {
         var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = new ApplyMonsterKillCommandHandler(new NoExperienceAward(),
+        var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
             new OneCharacterLog(log),
             new CharacterContainerDomainService(),
             Progress(log),
-            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService()));
+            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
 
         var result = await handler.HandleAsync(
             new CommandExecutionContext(
@@ -84,11 +84,11 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             "condition under clear", "", null, null, null, null, null, null,
             null, [], [], [], [],
             DungeonClearRequirement: new DungeonClearRequirement(146, -1));
-        var handler = new ApplyMonsterKillCommandHandler(new NoExperienceAward(),
+        var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
             new OneCharacterLog(log),
             new CharacterContainerDomainService(),
             Progress(log, definition),
-            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService()));
+            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
 
         var result = await handler.HandleAsync(
             new CommandExecutionContext(Guid.Empty, typeof(ApplyMonsterKillCommand),
@@ -106,11 +106,11 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     public async Task AnAiCharacterDeathAdvancesItsTargetWithoutAwardingExperience()
     {
         var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = new ApplyMonsterKillCommandHandler(new ExperienceMustNotBeAwarded(),
+        var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new ExperienceMustNotBeAwarded(),
             new OneCharacterLog(log),
             new CharacterContainerDomainService(),
             Progress(log, Quest1776(HuntEnemyTargetTypes.AiCharacter)),
-            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService()));
+            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
 
         var result = await handler.HandleAsync(
             new CommandExecutionContext(
@@ -137,11 +137,11 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     {
         var valuation = new RecordingValuation();
         var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = new ApplyMonsterKillCommandHandler(new PricingOnlyExperience(new Dfo.Server.Application.World.ExperienceCalculationDomainService(valuation, new UnusedBonuses())),
+        var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new PricingOnlyExperience(new Dfo.Server.Application.World.ExperienceCalculationDomainService(valuation, new UnusedBonuses())),
             new OneCharacterLog(log),
             new CharacterContainerDomainService(),
             Progress(log),
-            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService()));
+            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
 
         await handler.HandleAsync(
             new CommandExecutionContext(
@@ -170,11 +170,11 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         containers.Register(Character, bag);
         var seeking = new RecordingSeekingProgress();
         var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = new ApplyMonsterKillCommandHandler(new NoExperienceAward(),
+        var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
             new OneCharacterLog(log),
             containers,
             Progress(log, seeking: seeking),
-            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers));
+            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers)));
 
         var result = await handler.HandleAsync(
             new CommandExecutionContext(
@@ -397,12 +397,12 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         var containers = new CharacterContainerDomainService();
         containers.Register(Character, bag);
         var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = new ApplyMonsterKillCommandHandler(new NoExperienceAward(),
+        var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
             new OneCharacterLog(log),
             containers,
             Progress(log),
             new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers),
-            new VirtualOnlyPartyService());
+            new VirtualOnlyPartyService()));
 
         var result = await handler.HandleAsync(
             new CommandExecutionContext(Guid.Empty, typeof(ApplyMonsterKillCommand),

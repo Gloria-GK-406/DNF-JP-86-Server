@@ -636,6 +636,9 @@ public interface IDungeonRunDomainService
     DungeonObjectDestructionClaim? ClaimObjectDestruction(
         CharacterId characterId, DungeonRunId runId, long roomVersion, int objectCode) => null;
 
+    bool IsActorDeathClaimCurrent(DungeonActorDeathClaim claim) => Find(claim.CharacterId)?.RunId == claim.RunId;
+    bool IsParticipantKillEffectClaimCurrent(DungeonParticipantKillEffectClaim claim) => IsActorDeathClaimCurrent(claim.Death);
+
     DungeonActorDeathClaim? TryClaimActorDeath(
         CharacterId characterId,
         ushort actorSequence) => null;
