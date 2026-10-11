@@ -379,7 +379,7 @@ public sealed class PackageOpeningTests
     }
 
     [Fact]
-    public async Task Full_reward_band_consumes_source_and_preserves_reward_in_mail()
+    public async Task Full_reward_band_does_not_consume_material_or_source()
     {
         using var opening = new OpeningFixture();
         opening.Content.Items[3] = opening.Content.Items[3] with {
@@ -387,9 +387,9 @@ public sealed class PackageOpeningTests
         // Quick slots also belong to the main consumable band.
         foreach (var slot in new[] { 3, 4, 5, 6, 7, 8, 65 }) await opening.Host.Seed(slot, 3, 1);
         await opening.Host.Seed(80, 1000, 1); await opening.Host.Seed(120, 2000, 1);
-        await opening.Box(1);
-        Assert.Equal(0, opening.Host.Count(1000)); Assert.Equal(0, opening.Host.Count(2000));
-        Assert.True(opening.Host.Scalar("SELECT COUNT(*) FROM mailbox_attachments WHERE claimed_flag=0") > 0);
+        var error = await Assert.ThrowsAsync<OpeningRejectedException>(() => opening.Box(1));
+        Assert.Equal(OpeningRejection.NoRoom, error.Reason); Assert.Equal(1, opening.Host.Count(1000)); Assert.Equal(1, opening.Host.Count(2000));
+        Assert.Equal(0, opening.Host.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
     }
 
     [Fact]

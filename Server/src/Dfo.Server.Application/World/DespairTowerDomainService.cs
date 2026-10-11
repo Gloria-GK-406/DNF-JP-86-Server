@@ -86,7 +86,7 @@ internal sealed class DespairTowerDomainService(IDespairTowerRuleService rules,
         var rewards = rules.Rewards(plan.Floor, standing.Level, run.Layout.BasisLevel, unchecked((ulong)run.Layout.Seed));
         var receipt = await delivery.DeliverAsync(account, character,
             rewards.Select(x => new ItemDeliveryGrant(x.ItemId, x.Count) { Durability = x.Durability }).ToArray(),
-            "绝望之塔奖励", ct).ConfigureAwait(false);
+            "绝望之塔奖励", ct, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
         var updates = receipt.Inventory.GroupBy(x => x.Slot).ToDictionary(x => x.Key,
             x => new DespairTowerInventoryUpdate(x.Key, x.Last().Snapshot));
         // The entry period owns the run even when its last kill crosses the daily reset.

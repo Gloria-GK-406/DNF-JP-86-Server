@@ -25,7 +25,7 @@ internal sealed class ItemDeliveryDomainService(IItemPlacementRuleService placem
 
     public async ValueTask<ItemDeliveryReceipt> DeliverAsync(AccountId account, CharacterId character,
         IReadOnlyList<ItemDeliveryGrant> grants, string source, CancellationToken ct,
-        ItemDeliveryMode mode = ItemDeliveryMode.InventoryThenMail)
+        ItemDeliveryMode mode)
     {
         var transaction = transactions.Current ?? throw new InvalidOperationException("Item delivery requires the use-case transaction.");
         try

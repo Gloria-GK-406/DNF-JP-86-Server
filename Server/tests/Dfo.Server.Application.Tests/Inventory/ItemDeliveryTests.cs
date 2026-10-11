@@ -28,7 +28,7 @@ public sealed class ItemDeliveryTests
     private static async Task<ItemDeliveryReceipt> Grant(ShopFixture f, params ItemDeliveryGrant[] items)
     {
         await using var tx = Scope(f).Begin();
-        var result = await Delivery(f).DeliverAsync(new(1), new(1), items, "测试奖励", default);
+        var result = await Delivery(f).DeliverAsync(new(1), new(1), items, "测试奖励", default, ItemDeliveryMode.InventoryThenMail);
         await tx.CommitAsync(default);
         return result;
     }
@@ -45,6 +45,27 @@ public sealed class ItemDeliveryTests
         Assert.Equal(10, f.Count(9001));
         Assert.Equal(new MailAsset.Stackable(9001, 5), Assert.Single(Assert.Single(await Mail(f).InboxAsync(new(1))).Attachments).Asset);
         Assert.Equal(5, await Delivery(f).PendingQuantityAsync(new(1), 9001, default));
+    }
+
+    [Theory]
+    [InlineData(8, 7)]
+    [InlineData(10, 1)]
+    public async Task Inventory_only_refuses_partial_or_full_overflow_without_mail_and_rolls_back_payment(int held, int reward)
+    {
+        using var f = Fixture();
+        await f.Seed(121, 9001, held, 3);
+        await FillQuick(f);
+        await using (var tx = Scope(f).Begin())
+        {
+            await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(1)).TrySpendGoldAsync(100, default);
+            var error = await Assert.ThrowsAsync<ContainerAdditionException>(() => Delivery(f).DeliverAsync(
+                new(1), new(1), [new(9001, reward)], "主动开启", default, ItemDeliveryMode.InventoryOnly).AsTask());
+            Assert.Equal(ContainerAdditionFailure.NoRoom, error.Reason);
+            await tx.CommitAsync(default); // A caught refusal must still prevent a partial commit.
+        }
+        Assert.Equal(held, f.Count(9001));
+        Assert.Equal(100000, f.Gold);
+        Assert.Empty(await Mail(f).InboxAsync(new(1)));
     }
 
     [Fact]
@@ -115,7 +136,7 @@ public sealed class ItemDeliveryTests
         await using (var tx = Scope(f).Begin())
         {
             await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(1)).TrySpendGoldAsync(100, default);
-            await Assert.ThrowsAsync<SqliteException>(() => Delivery(f).DeliverAsync(new(1), new(1), [new(9001, 7)], "回滚奖励", default).AsTask());
+            await Assert.ThrowsAsync<SqliteException>(() => Delivery(f).DeliverAsync(new(1), new(1), [new(9001, 7)], "回滚奖励", default, ItemDeliveryMode.InventoryThenMail).AsTask());
         }
         Assert.Equal(8, f.Count(9001)); Assert.Equal(100000, f.Gold);
         Assert.Empty(await Mail(f).InboxAsync(new(1)));
@@ -128,7 +149,7 @@ public sealed class ItemDeliveryTests
         await using (var tx = Scope(f).Begin())
         {
             await Assert.ThrowsAsync<InvalidDataException>(() => Delivery(f).DeliverAsync(new(1), new(1),
-                [new(9001, 1), new(9999, 1)], "无效奖励", default).AsTask());
+                [new(9001, 1), new(9999, 1)], "无效奖励", default, ItemDeliveryMode.InventoryThenMail).AsTask());
             await tx.CommitAsync(default);
         }
         Assert.Equal(0, f.Count(9001)); Assert.Empty(await Mail(f).InboxAsync(new(1)));

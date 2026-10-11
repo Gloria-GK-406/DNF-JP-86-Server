@@ -80,7 +80,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
             if (remaining > 0)
             {
                 var receipt = await delivery.DeliverAsync(session.AccountId, session.CharacterId,
-                    [new(drop.ItemId, remaining)], "任务掉落奖励", token).ConfigureAwait(false);
+                    [new(drop.ItemId, remaining)], "任务掉落奖励", token, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
                 foreach (var item in receipt.Inventory) changed[item.Slot] = new(item.Slot, item.Snapshot);
             }
         }
@@ -117,7 +117,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
                 }
                 if (candidate.ItemId < 0) continue;
                 var receipt = await delivery.DeliverAsync(session.AccountId, session.CharacterId,
-                    [new(candidate.ItemId, 1) { Durability = candidate.Durability }], "塔通关奖励", token).ConfigureAwait(false);
+                    [new(candidate.ItemId, 1) { Durability = candidate.Durability }], "塔通关奖励", token, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
                 candidates[i] = candidate with { DisplayValue = receipt.Inventory.FirstOrDefault()?.Snapshot.InstanceValue
                     ?? receipt.MailedItems.FirstOrDefault()?.InstanceValue ?? candidate.DisplayValue, Delivered = true };
                 delivered.Add(new(candidate.ItemId, 1));

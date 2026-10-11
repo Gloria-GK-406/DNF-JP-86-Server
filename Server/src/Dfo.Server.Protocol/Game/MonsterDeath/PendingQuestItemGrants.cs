@@ -57,7 +57,7 @@ internal static class PendingQuestItemGrants
             if (count <= 0)
                 continue;
             var receipt = await delivery.DeliverAsync(accountId, characterId, [new(drop.ItemId, count)],
-                "任务掉落奖励", cancellationToken).ConfigureAwait(false);
+                "任务掉落奖励", cancellationToken, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
             foreach (var addition in receipt.Inventory)
                 changed[ItemGrantWireProjection.Index(addition)] = (addition.Container, addition.Slot.Index);
         }

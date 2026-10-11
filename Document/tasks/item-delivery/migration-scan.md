@@ -19,7 +19,7 @@
 | [Server/src/Dfo.Server.Application/Effects/EffectOperationContext.cs](../../../../Server/src/Dfo.Server.Application/Effects/EffectOperationContext.cs) | 奖励计划/投影，不直接制造 | 142, 147, 152 |
 | [Server/src/Dfo.Server.Application/Effects/InventoryEffectHandlers.cs](../../../../Server/src/Dfo.Server.Application/Effects/InventoryEffectHandlers.cs) | 统一奖励/共享Effect | 21, 22, 23, 25, 32, 36, 42 |
 | [Server/src/Dfo.Server.Application/Effects/InventoryEffectPreflightDomainService.cs](../../../../Server/src/Dfo.Server.Application/Effects/InventoryEffectPreflightDomainService.cs) | 奖励计划/投影，不直接制造 | 67, 70, 87 |
-| [Server/src/Dfo.Server.Application/Effects/OpeningEffectHandlers.cs](../../../../Server/src/Dfo.Server.Application/Effects/OpeningEffectHandlers.cs) | 统一奖励/共享Effect | 21, 22, 24, 69, 94, 100, 114, 140 |
+| [Server/src/Dfo.Server.Application/Effects/OpeningEffectHandlers.cs](../../../../Server/src/Dfo.Server.Application/Effects/OpeningEffectHandlers.cs) | 统一奖励/共享Effect | 21, 22, 24, 69, 95, 101, 115, 141 |
 | [Server/src/Dfo.Server.Application/Effects/QuestCompletionEffectHandlers.cs](../../../../Server/src/Dfo.Server.Application/Effects/QuestCompletionEffectHandlers.cs) | 统一奖励/共享Effect | 74, 75, 77, 83, 86, 87 |
 | [Server/src/Dfo.Server.Application/Events/JoustDomainService.cs](../../../../Server/src/Dfo.Server.Application/Events/JoustDomainService.cs) | 统一奖励/共享Effect | 21, 199 |
 | [Server/src/Dfo.Server.Application/Events/WeeklyAttendanceDomainService.cs](../../../../Server/src/Dfo.Server.Application/Events/WeeklyAttendanceDomainService.cs) | 统一奖励/共享Effect | 15, 115 |

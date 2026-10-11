@@ -63,7 +63,7 @@ public sealed class GrantTutorialRewardCommandHandler(
         var placed = new List<PlacedRewardItem>(command.Declared.Count);
         var accountChanges = new List<InventoryRuntimeValueState>();
         var receipt = await delivery.DeliverAsync(command.AccountId, command.CharacterId,
-            command.Declared.Select(x => new ItemDeliveryGrant(x.ItemId, x.Count)).ToArray(), "教程奖励", cancellationToken).ConfigureAwait(false);
+            command.Declared.Select(x => new ItemDeliveryGrant(x.ItemId, x.Count)).ToArray(), "教程奖励", cancellationToken, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
         foreach (var item in receipt.Inventory)
         {
             placed.Add(new(ItemGrantWireProjection.Index(item), item.Snapshot.ItemId, item.Count));

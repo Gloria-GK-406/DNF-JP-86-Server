@@ -23,5 +23,5 @@ public interface IItemDeliveryDomainService
     ValueTask<long> PendingQuantityAsync(CharacterId character, int itemId, CancellationToken ct);
     ValueTask<ItemDeliveryReceipt> DeliverAsync(AccountId account, CharacterId character,
         IReadOnlyList<ItemDeliveryGrant> grants, string source, CancellationToken ct,
-        ItemDeliveryMode mode = ItemDeliveryMode.InventoryThenMail);
+        ItemDeliveryMode mode);
 }

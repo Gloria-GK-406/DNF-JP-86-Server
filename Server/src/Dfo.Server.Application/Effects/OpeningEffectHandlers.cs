@@ -24,7 +24,7 @@ internal sealed class GrantPreparedItemEffectHandler(IItemArrivalRuleService arr
     public override ValueTask ValidateAsync(EffectExecutionContext context, GrantPreparedItemEffect effect, CancellationToken ct)
     {
         var g = effect.Grant;
-        if (g.Reward.Count <= 0 || g.Item.ItemId <= 0 || g.Item.PremiumType != 0
+        if (!Enum.IsDefined(effect.DeliveryMode) || g.Reward.Count <= 0 || g.Item.ItemId <= 0 || g.Item.PremiumType != 0
             || g.Item.Placement.Destination.Space == BusinessInventorySpace.VirtualResource
             || g.Item.Placement.WorldClass == ItemWorldClass.Creature && g.Item.CreatureStartLevel is null)
             Refuse(InventoryEffectRejection.UnsupportedItem);
@@ -69,11 +69,12 @@ internal sealed class GrantPreparedItemEffectHandler(IItemArrivalRuleService arr
     public override async ValueTask PreviewAsync(EffectExecutionContext context, GrantPreparedItemEffect effect, IInventoryEffectPreviewState state, CancellationToken ct)
     {
         await ValidateAsync(context, effect, ct).ConfigureAwait(false);
+        if (effect.DeliveryMode == ItemDeliveryMode.MailOnly) return;
         var placement = InventoryCapacityPlacement.Limit(effect.Grant.Item.Placement,
             await state.OpenSlotCountAsync(effect.Grant.Item.Placement.Destination.Space, ct).ConfigureAwait(false));
         if (placement is null)
         {
-            if (effect.AllowMail) return;
+            if (effect.DeliveryMode == ItemDeliveryMode.InventoryThenMail) return;
             throw new InventoryEffectException(InventoryEffectRejection.NoRoom);
         }
         effect = effect with { Grant = effect.Grant with { Item = effect.Grant.Item with { Placement = placement } } };
@@ -84,7 +85,7 @@ internal sealed class GrantPreparedItemEffectHandler(IItemArrivalRuleService arr
         while (remaining > 0)
         {
             var arrival = Arrival(effect.Grant, candidates, held, remaining);
-            if (arrival is ItemArrival.NoRoom && effect.AllowMail) return;
+            if (arrival is ItemArrival.NoRoom && effect.DeliveryMode == ItemDeliveryMode.InventoryThenMail) return;
             var (slot, added, core) = Next(arrival, effect.Grant, held, applying: false);
             if (added <= 0 || added > remaining) throw new InvalidDataException("Nonprogressing prepared grant.");
             var item = core;
@@ -99,7 +100,7 @@ internal sealed class GrantPreparedItemEffectHandler(IItemArrivalRuleService arr
         {
             receipt = await delivery.DeliverAsync(context.AccountId, context.CharacterId,
                 [new(grant.Item.ItemId, grant.Reward.Count, Baseline(grant))], "礼包奖励", ct,
-                effect.AllowMail ? ItemDeliveryMode.InventoryThenMail : ItemDeliveryMode.InventoryOnly).ConfigureAwait(false);
+                effect.DeliveryMode).ConfigureAwait(false);
         }
         catch (ContainerAdditionException error) when (error.Reason == ContainerAdditionFailure.NoRoom)
         { throw new InventoryEffectException(InventoryEffectRejection.NoRoom); }

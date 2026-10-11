@@ -59,7 +59,7 @@ internal sealed class DailyRefillDomainService(
                 if (rule.ItemKind == 0 && held.Length == 0) throw new InvalidDataException("Daily refill cannot open an unknown item kind.");
                 var receipt = await delivery.DeliverAsync(accountId, characterId,
                     [new(rule.ItemId, grant) { PlacementConstraint = new(rule.Destination, rule.StackLimit) }],
-                    "每日物品补充", cancellationToken).ConfigureAwait(false);
+                    "每日物品补充", cancellationToken, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
                 committed.AddRange(receipt.Inventory.Select(x => new DailyRefillCommittedGrant(x.Slot, rule.ItemId, x.Count, x.Snapshot.Count)));
             }
 

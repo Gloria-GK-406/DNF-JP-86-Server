@@ -24,7 +24,7 @@ public sealed class OpeningEffectExecutionTests
         var refusal = await Assert.ThrowsAsync<InventoryEffectException>(() => Apply(f,
             [new SpendGoldEffect(100), new ConsumeFromContainerEffect(new(BusinessInventorySpace.Consumable, 15), 1001, 1),
                 new SetOpeningPremiumEffect((PremiumServiceType)31, 0, f.Host.Clock.GetUtcNow().AddDays(1).ToUnixTimeSeconds(), new(30, 1)),
-                new GrantPreparedItemEffect(grants.Single(), AllowMail: false)]).AsTask());
+                new GrantPreparedItemEffect(grants.Single(), DeliveryMode: ItemDeliveryMode.InventoryOnly)]).AsTask());
         Assert.Equal(InventoryEffectRejection.NoRoom, refusal.Rejection);
         await tx.CommitAsync(default);
         Assert.Equal(100000, f.Host.Gold); Assert.Equal(1, f.Host.Count(1001));

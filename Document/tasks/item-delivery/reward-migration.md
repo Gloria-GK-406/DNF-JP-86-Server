@@ -2,6 +2,8 @@
 
 基线：`4aec17baa083271f322012043511f9f2845112db`。证据层级：CurrentImplementation / 自动化存储与协议编码测试；不是 ClientVerified。
 
+后续边界修正（基于38ede835）：用户明确要求主动开罐/礼包容量不足时拒绝，当前策略见 [交付模式](delivery-policy.md)。这些入口仍走统一服务，但使用 InventoryOnly；被动奖励保留邮寄兜底。
+
 ## 结构和职责变化
 
 此前来源各自调用底层授予或发送邮件，满包可能忽略奖励、拒绝整个操作，绝望塔另有单独邮件回退。
@@ -23,9 +25,9 @@
 | 普通/循环任务完成 `Application/Quests/QuestCompletionEffectRuleService.cs` | GrantBasicCharacterItemEffect → Delivery | 预检查允许物理奖励溢出；任务完成、材料扣除与奖励同事务 |
 | 镜像阿拉德任务 `Application/Quests/MirrorAradQuestRuleService.cs` | 同上 | 保留任务生命周期和唯一领取规则 |
 | 击杀/破坏物直接任务奖励 `Protocol/Game/MonsterDeath/PendingQuestItemGrants.cs`，由 ApplyMonsterKill / ApplyObjectDestruction 调用 | 直接 Delivery | 加入未领取邮件数量检查；缺失任务包报错并回滚 |
-| 普通礼包/可选礼包、装扮包、魔盒（含批量）`Application/Inventory/OpeningEffectPlanRuleService.cs` | GrantPreparedItemEffect → Delivery | 邮件奖励返回独立快照，不依赖背包槽；预检查允许溢出；装扮详情透传 |
-| 幸运罐/双倍罐 `Application/Inventory/LotteryOpeningDomainService.cs` | 上述 Prepared Effect | 删除“背包更新数必须等于奖励件数”检查；ACK直接读取奖励快照；满包/一格双倍均测试 |
-| 售货机 `Application/Inventory/VendingMachineDomainService.cs` | 同上 | 邮件展示的 null 槽不计入背包更新列表；满包扣币并寄奖励，ACK可编码 |
+| 普通礼包/可选礼包、装扮包、魔盒（含批量）`Application/Inventory/OpeningEffectPlanRuleService.cs` | GrantPreparedItemEffect → Delivery / InventoryOnly | 全部容量预检查；满包拒绝并保留来源和材料，装扮详情透传 |
+| 幸运罐/双倍罐 `Application/Inventory/LotteryOpeningDomainService.cs` | 上述 Prepared Effect / InventoryOnly | 满包或仅一格无法容纳双倍时拒绝，不扣罐、金币或次数；ACK继续读取实际奖励快照 |
+| 售货机 `Application/Inventory/VendingMachineDomainService.cs` | 同上 / InventoryOnly | 满包拒绝，不扣代币，不产生邮件 |
 | 强化破坏返还/分解产物 `Application/Inventory/EquipmentEffectPlanRuleService.cs` | GrantStackableEffect → Delivery | 产物不因材料包满而丢失；共享材料先填剩余容量再邮寄；扣费/装备销毁一起回滚 |
 | 每日补充 `Application/Inventory/DailyRefillDomainService.cs` | 直接 Delivery | 领取周期照常持久化；未领取邮件计入持有量，防跨天重复补发 |
 | 每周签到 `Application/Events/WeeklyAttendanceDomainService.cs` | Delivery / MailOnly | 原本就是邮件奖励，保留邮件交付方式及签到幂等标记 |
@@ -42,7 +44,7 @@
 | `Application/Inventory/ItemGrantDomainService.cs`、`ItemGrantDelivery.cs`、`ItemLifecycleDomainService.cs`、`ItemContainers.cs`、`CharacterBusinessInventoryDomainService.cs` | 容器/生命周期基础设施；为下列明确例外服务，不是另一个奖励来源 |
 | `Application/Effects/InventoryEffectHandlers.cs`、`QuestCompletionEffectHandlers.cs` | 仅 VirtualResource 分支保留底层授予；物理分支均调用 Delivery |
 | `Application/Effects/OpeningEffectHandlers.cs` | GrantOpeningVirtualEffect 保留虚拟槽更新；GrantPreparedItemEffect 物理分支走 Delivery |
-| `Application/Inventory/OpeningEffectPlanRuleService.cs`、`RecipeCraftDomainService.cs` | 材料合成/配方制作显式 AllowMail=false，调用 Delivery/InventoryOnly；保留制作必须入库保证 |
+| `Application/Inventory/OpeningEffectPlanRuleService.cs`、`RecipeCraftDomainService.cs` | 主动开启及材料合成/配方制作显式 DeliveryMode=InventoryOnly；保留制作必须入库保证 |
 | `Application/Inventory/EpicCraftDomainService.cs` | 委托上述配方制作；史诗制作成功仍需有背包容量 |
 | `Application/Inventory/AvatarCompoundDomainService.cs` | 消耗两件装扮的合成置换；指定输出槽，属于制作，不改变为邮寄产物 |
 | `Application/Inventory/NpcShopDomainService.cs`、`CeraShopDomainService.cs` | 玩家购买；原容量/扣费/货币协议不改，保留 ApplyPlannedAsync |
@@ -62,4 +64,4 @@
 
 独立审查从未修改的制造者反查，首轮发现并修复邮件类型/详情、宠物运行态、开罐和售货机后置检查、共享材料部分容量、塔奖励展示种子六类缺陷，详见 [审查记录](reviews/change-review.md)。
 
-实机待验证：背包满/部分容量下翻牌、任务、礼包与罐子，邮件提示和领取；装扮/宠物邮件展示与领取。自动化编码成功只证明现有 codec 可以构包，不代替客户端行为验收。
+实机待验证：背包满/部分容量下翻牌和任务余量邮寄；礼包、罐子及售货机容量不足时拒绝且不扣来源；装扮/宠物邮件展示与领取。自动化编码成功只证明现有 codec 可以构包，不代替客户端行为验收。

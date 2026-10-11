@@ -309,7 +309,7 @@ public sealed class SelectCardCommandHandler(
         CancellationToken cancellationToken)
     {
         var receipt = await itemDelivery.DeliverAsync(accountId, characterId,
-            [new(piece.ItemId, piece.Quantity) { Durability = piece.Durability }], "地下城翻牌奖励", cancellationToken).ConfigureAwait(false);
+            [new(piece.ItemId, piece.Quantity) { Durability = piece.Durability }], "地下城翻牌奖励", cancellationToken, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
         var ordinary = receipt.Inventory.Where(x => x.Slot.Space != BusinessInventorySpace.SharedMaterial)
             .GroupBy(x => x.Slot).Select(x => x.Last()).ToArray();
         var shared = receipt.Inventory.LastOrDefault(x => x.Slot.Space == BusinessInventorySpace.SharedMaterial);

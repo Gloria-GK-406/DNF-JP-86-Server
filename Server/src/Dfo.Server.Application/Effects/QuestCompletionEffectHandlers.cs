@@ -85,7 +85,7 @@ internal sealed class GrantBasicCharacterItemEffectHandler(IItemDeliveryDomainSe
         if (effect.Placement.Destination.Space == Dfo.Server.Data.Inventory.BusinessInventorySpace.VirtualResource)
             return new BasicCharacterItemChange([.. (await resources.GrantAllPersistentAsync(context.CharacterId, effect.ItemId, effect.Count, ct).ConfigureAwait(false)).Items]);
         var result = await delivery.DeliverAsync(context.AccountId, context.CharacterId,
-            [new(effect.ItemId, effect.Count)], "任务奖励", ct).ConfigureAwait(false);
+            [new(effect.ItemId, effect.Count)], "任务奖励", ct, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
         return new BasicCharacterItemChange([.. result.Inventory.Select(x => new ContainerItemAddition(x.Container.Id, x.Slot, x.Count))]);
     }
 }

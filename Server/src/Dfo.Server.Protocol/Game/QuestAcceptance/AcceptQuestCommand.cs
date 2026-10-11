@@ -152,7 +152,7 @@ public sealed class AcceptQuestCommandHandler(
             }
 
             var receipt = await delivery.DeliverAsync(command.AccountId, command.CharacterId,
-                declared.Select(x => new ItemDeliveryGrant(x.ItemId, x.Count)).ToArray(), "任务授予物品", cancellationToken).ConfigureAwait(false);
+                declared.Select(x => new ItemDeliveryGrant(x.ItemId, x.Count)).ToArray(), "任务授予物品", cancellationToken, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
             foreach (var item in receipt.Inventory)
             {
                 placed.Add(new(checked((ushort)ItemGrantWireProjection.Index(item)), (uint)item.Snapshot.ItemId, (uint)item.Count));

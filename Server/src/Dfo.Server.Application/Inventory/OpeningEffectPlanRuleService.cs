@@ -65,7 +65,7 @@ internal sealed class OpeningEffectPlanRuleService(IItemUseJudgementService useR
     }
 
     public ImmutableArray<DomainEffect> MaterialCraftEffects(RecipeEffectCosts costs, OpeningPreparedGrant grant) =>
-        [.. costs.Items.Select(x => (DomainEffect)new ConsumeFromContainerEffect(x.Slot, x.ItemId, x.Count)), new GrantPreparedItemEffect(grant, AllowMail: false)];
+        [.. costs.Items.Select(x => (DomainEffect)new ConsumeFromContainerEffect(x.Slot, x.ItemId, x.Count)), new GrantPreparedItemEffect(grant, DeliveryMode: ItemDeliveryMode.InventoryOnly)];
 
     public ImmutableArray<DomainEffect> Build(int sourceId, ItemUseRule rule, IReadOnlyList<OpeningSlotConsumption> consumed,
         ImmutableArray<OpeningPreparedGrant> grants, IReadOnlyList<AccountPremiumEntryState> premiums, DateTimeOffset at,
@@ -98,7 +98,7 @@ internal sealed class OpeningEffectPlanRuleService(IItemUseJudgementService useR
                     throw Reject(OpeningRejection.UnsupportedContent, "Invalid virtual reward destination.");
                 result.Add(new GrantOpeningVirtualEffect(range.FirstIndex, grant.Item.ItemId, grant.Item.Placement.ItemKind, grant.Reward));
             }
-            else result.Add(new GrantPreparedItemEffect(grant));
+            else result.Add(new GrantPreparedItemEffect(grant, ItemDeliveryMode.InventoryOnly));
         }
         if (luckBefore is { } before && luckAfter is { } after) result.Add(new SetSeriaLuckEffect(before, after));
         else if (luckBefore is not null || luckAfter is not null) throw Reject(OpeningRejection.InvalidRequest, "Incomplete luck decision.");

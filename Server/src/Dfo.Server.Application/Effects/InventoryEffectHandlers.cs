@@ -40,7 +40,7 @@ internal sealed class GrantStackableEffectHandler(IItemDeliveryDomainService del
             return new StackableGrantEffectChange(resource.Items.Select(x => new StackableGrantAddition(x.Slot, effect.ItemId, x.Count)).ToArray(), changes);
         }
         var added = await delivery.DeliverAsync(context.AccountId, context.CharacterId,
-            [new(effect.ItemId, effect.Count)], "物品奖励", ct).ConfigureAwait(false);
+            [new(effect.ItemId, effect.Count)], "物品奖励", ct, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
         return new StackableGrantEffectChange(added.Inventory.Select(x => new StackableGrantAddition(x.Slot, effect.ItemId, x.Count)).ToArray(),
             added.Inventory.GroupBy(x => x.Slot).Select(x => new InventorySlotEffectChange(x.Key, x.Last().Snapshot)).ToArray());
     }

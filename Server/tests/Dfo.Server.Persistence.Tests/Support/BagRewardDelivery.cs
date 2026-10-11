@@ -14,7 +14,7 @@ internal sealed class BagRewardDelivery(IItemGrantDomainService grants, ICharact
     public ValueTask<long> PendingQuantityAsync(CharacterId character, int itemId, CancellationToken ct) => ValueTask.FromResult(0L);
     public async ValueTask<ItemDeliveryReceipt> DeliverAsync(AccountId account, CharacterId character,
         IReadOnlyList<ItemDeliveryGrant> items, string source, CancellationToken ct,
-        ItemDeliveryMode mode = ItemDeliveryMode.InventoryThenMail)
+        ItemDeliveryMode mode)
     {
         var added = new List<ItemDeliveryAddition>();
         var mailed = 0;
