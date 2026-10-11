@@ -2,7 +2,6 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
@@ -12,9 +11,9 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class ItemSaleDomainService(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ITownAreaDomainService townAreas, ICharacterDomainService characters,
+    ICharacterDomainService characters,
     IBusinessInventorySlotDomainService slots, IItemSaleRuleService rules,
-    IDungeonRunDomainService runs, IItemLifecycleDomainService lifecycle,
+    IItemLifecycleDomainService lifecycle,
     ILogger<ItemSaleDomainService> logger) : IItemSaleDomainService
 {
     public async ValueTask<ItemSaleResult> SellAsync(SelectedSessionIdentity session, BusinessSlot slot,
@@ -28,13 +27,7 @@ internal sealed class ItemSaleDomainService(
         // Worn pieces, avatars and creatures require their own appearance/lifecycle updates.
         if (!slot.Space.IsCarriedItemSpace() || count <= 0)
             return new(ItemSaleRejection.InvalidRequest);
-        var run = runs.Find(session.CharacterId);
-        var inTown = run is null && townAreas.Find(session.CharacterId) is { } member && session.Owns(member);
-        var dungeonCleared = run is { IsBossRoom: true, IsCleared: true, ClearOpen: true }
-            && run.Participants.Any(p => p.AccountId == session.AccountId && p.CharacterId == session.CharacterId);
-        var despairCleared = dungeonCleared && run!.Layout.Despair is not null;
-        if (!await rules.CanAccessShopAsync(npcId, inTown, dungeonCleared, despairCleared, cancellationToken).ConfigureAwait(false))
-            return new(ItemSaleRejection.ShopUnavailable);
+        // NPC identity is kept by the protocol for diagnostics, not as a sale permission.
         var bound = slots.Find(session.CharacterId, slot);
         var item = bound is null
             ? null

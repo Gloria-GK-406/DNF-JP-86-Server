@@ -58,7 +58,7 @@ public sealed class SellItemHandler(IOnlineUserQueryDomainService onlineUsers, I
         ItemSaleRejection.Locked => 0xd6,
         ItemSaleRejection.GoldLimit => 22,
         ItemSaleRejection.ItemUnavailable => 17,
-        ItemSaleRejection.NoSession or ItemSaleRejection.ShopUnavailable or ItemSaleRejection.InvalidRequest
+        ItemSaleRejection.NoSession or ItemSaleRejection.InvalidRequest
             or ItemSaleRejection.CannotSell => 1,
         _ => throw new ArgumentOutOfRangeException(nameof(reason)),
     };

@@ -4,22 +4,9 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class ItemSaleRuleService(IItemSaleDefinitionSource prices, INpcShopDefinitionSource shops)
+internal sealed class ItemSaleRuleService(IItemSaleDefinitionSource prices)
     : IItemSaleRuleService
 {
-    public async ValueTask<bool> HasShopAsync(int npcId, CancellationToken cancellationToken) =>
-        await shops.GetShopAsync(npcId, cancellationToken).ConfigureAwait(false) is not null;
-
-    public async ValueTask<bool> CanAccessShopAsync(int npcId, bool inTown, bool dungeonCleared,
-        bool despairCleared, CancellationToken cancellationToken)
-    {
-        var shop = await shops.GetShopAsync(npcId, cancellationToken).ConfigureAwait(false);
-        // Drapyus also appears after a despair floor clear. His PVF has an empty town-shop
-        // page and no [visible on dungeon clear] marker, unlike Delilah's dungeon-only shop.
-        return shop is not null && (shop.VisibleOnDungeonClear ? dungeonCleared
-            : inTown || npcId == 1001 && despairCleared);
-    }
-
     public async ValueTask<ItemSaleQuote> QuoteAsync(ItemReference item, int count, CancellationToken cancellationToken)
     {
         if (count <= 0 || count > short.MaxValue || count > item.Count)

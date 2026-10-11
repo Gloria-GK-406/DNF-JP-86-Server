@@ -20,13 +20,14 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class ItemSaleTests
 {
     [Theory]
-    [InlineData(true, true, true, 1001, true)]
-    [InlineData(true, false, true, 1001, false)]
-    [InlineData(false, true, true, 1001, false)]
-    [InlineData(true, true, false, 1001, false)]
-    [InlineData(true, true, true, 2, false)]
-    public async Task Drapyus_accepts_sales_only_after_the_players_despair_clear(
-        bool tower, bool clear, bool owner, int npc, bool accepted)
+    [InlineData(true, true, 1001)]
+    [InlineData(true, false, 1001)]
+    [InlineData(false, true, 1001)]
+    [InlineData(false, false, 1001)]
+    [InlineData(true, true, 2)]
+    [InlineData(false, false, 999)]
+    public async Task Sale_does_not_require_a_tower_clear_or_registered_NPC(
+        bool tower, bool clear, int npc)
     {
         using var shop = Fixture();
         shop.Content.Shops[1001] = new(1001, 1001, [new(null, [])]);
@@ -36,23 +37,23 @@ public sealed class ItemSaleTests
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611) })
             { Despair = tower ? new(1, new(2026, 10, 11)) : null };
         var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
-        var run = runs.PreparePartyEntry([new(owner ? shop.Session.AccountId : new(999),
+        var run = runs.PreparePartyEntry([new(shop.Session.AccountId,
             shop.Session.CharacterId, 0, true)], layout, 0).Run;
         if (clear) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);
         await Sell(shop, 65, 1, npc: npc);
-        Assert.Equal(accepted ? 1 : 2, shop.Count(5000));
-        Assert.Equal(accepted ? 100031 : 100000, shop.Gold);
-        Assert.Equal(accepted, Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages)).Slot is not null);
+        Assert.Equal(1, shop.Count(5000));
+        Assert.Equal(100031, shop.Gold);
+        Assert.NotNull(Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages)).Slot);
     }
 
     [Theory]
-    [InlineData(true, true, true, 1000, true)]
-    [InlineData(true, false, true, 1000, false)]
-    [InlineData(false, true, true, 1000, false)]
-    [InlineData(true, true, false, 1000, false)]
-    [InlineData(true, true, true, 2, false)]
-    public async Task Dungeon_shop_requires_current_clear_boss_and_matching_participant(
-        bool boss, bool open, bool owner, int npc, bool accepted)
+    [InlineData(true, true, 1000)]
+    [InlineData(true, false, 1000)]
+    [InlineData(false, true, 1000)]
+    [InlineData(false, false, 1000)]
+    [InlineData(true, true, 2)]
+    public async Task Sale_does_not_require_a_boss_room_or_dungeon_shop_marker(
+        bool boss, bool open, int npc)
     {
         using var shop = Fixture();
         shop.Content.Shops[1000] = new(1000, 1000, [new(null, [5000])]) { VisibleOnDungeonClear = true };
@@ -62,27 +63,42 @@ public sealed class ItemSaleTests
             boss ? new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)}
                 : new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611), [other] = DungeonCellDefinition.Fixed(55611)});
         var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
-        var run = runs.PreparePartyEntry([new(owner ? shop.Session.AccountId : new(999),
+        var run = runs.PreparePartyEntry([new(shop.Session.AccountId,
             shop.Session.CharacterId, 0, true)], layout, 0).Run;
         if (open) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);
         await Sell(shop, 65, 1, npc: npc);
-        Assert.Equal(accepted ? 1 : 2, shop.Count(5000));
-        Assert.Equal(accepted ? 100031 : 100000, shop.Gold);
-        Assert.Equal(accepted, Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages)).Slot is not null);
-        runs.End(shop.Session.CharacterId, run.RunId);
-        await Sell(shop, 65, 1, npc: 1000);
-        Assert.Equal(accepted ? 1 : 2, shop.Count(5000));
+        Assert.Equal(1, shop.Count(5000));
+        Assert.Equal(100031, shop.Gold);
+        Assert.NotNull(Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages)).Slot);
     }
 
     [Fact]
-    public async Task Dungeon_only_shop_cannot_be_used_from_town()
+    public async Task Dungeon_only_shop_marker_does_not_prevent_sales_from_town()
     {
         using var shop = Fixture();
         shop.Content.Shops[1000] = new(1000, 1000, [new(null, [5000])]) { VisibleOnDungeonClear = true };
         await shop.Seed(65, 5000, 2);
         await Sell(shop, 65, 1, npc: 1000);
-        Assert.Equal(2, shop.Count(5000));
-        Assert.Equal(100000, shop.Gold);
+        Assert.Equal(1, shop.Count(5000));
+        Assert.Equal(100031, shop.Gold);
+    }
+
+    [Theory]
+    [InlineData(int.MinValue)]
+    [InlineData(-1)]
+    [InlineData(0)]
+    [InlineData(999)]
+    [InlineData(1001)]
+    [InlineData(int.MaxValue)]
+    public async Task Any_NPC_ID_is_accepted_without_looking_up_a_shop(int npc)
+    {
+        using var shop = Fixture();
+        shop.Content.Shops.Clear();
+        await shop.Seed(65, 5000, 2);
+        await Sell(shop, 65, 1, npc: npc);
+        Assert.Equal(1, shop.Count(5000));
+        Assert.Equal(100031, shop.Gold);
+        Assert.NotNull(Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages)).Slot);
     }
     [Theory]
     [InlineData(1, 9, 100031)]
@@ -115,8 +131,7 @@ public sealed class ItemSaleTests
     [InlineData(0, 65, 0, 2)]
     [InlineData(0, 65, -1, 2)]
     [InlineData(0, 65, 11, 2)]
-    [InlineData(0, 65, 1, 999)]
-    public async Task Invalid_quantity_container_slot_or_npc_cannot_change_the_inventory(byte container, short slot, short count, int npc)
+    public async Task Invalid_quantity_cannot_change_the_inventory(byte container, short slot, short count, int npc)
     {
         using var shop = Fixture();
         await shop.Seed(65, 5000, 10);

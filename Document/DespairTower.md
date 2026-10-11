@@ -16,7 +16,9 @@
 
 2026-10-11 状态同步修复：长期楼层已有持久化，旧选图构包却把楼层写死为 1。现在 [NOTI001B](../protocol/game/server-to-client/NOTI-0x001B.md) 使用最高已通关层数 + 1（显示上限 100）。[NOTI0227](../protocol/game/server-to-client/NOTI-0x0227.md)按地下城 ID 同步免费入场剩余数；登录完成、次数变化、打开选图时覆盖 100 层的缓存。客户端的 1/1 表示每日免费资格，首入消耗后为 0/1；使用邀请函再次入场不恢复免费资格。次数变化继续走 UsageQuotaChanged → EventService → 通知投影，不重发会切换 UI 的 001B。
 
-死神 NPC 1001 的 PVF 商店有效，但没有德利拉商店使用的 `[visible on dungeon clear]` 标记，旧规则误当作仅城镇可用。现在只在当前角色自己的绝望塔 BOSS 房已清场且结算已开放时，允许死神出售；其他城镇商店和未通关场景仍拒绝。
+死神 NPC 1001 的 PVF 商店有效，但没有德利拉商店使用的 `[visible on dungeon clear]` 标记，旧规则误当作仅城镇可用。最初补了绝望塔清场例外；随后按用户决定，统一移除出售的 NPC ID／商店／场景资格检查，不再逐个 NPC 放行。物品和金币规则继续校验，见 [出售规则](ItemSale-20260909.md)。
+
+三层限制来源：当前 `etc/towerofdespair.etc` 的 `[enterable count]=3`，以及 4473 邀请函说明“当日最多只能挑战3层以内”。将其映射为 `MaximumDailyClears`、用每日已通关数提前拒绝，是当前服务器的规则解释，不是直接照搬 70 原生判定；用户正在重新确认次数或邀请函的预期，本次出售修复不改变塔的入场规则。
 
 上述协议含义为 ClientStatic（High），回归测试为 CurrentImplementation；修复后的 UI 尚待实机验收。此次没有修改客户端或 PVF，也不重置玩家进度和计数。
 
