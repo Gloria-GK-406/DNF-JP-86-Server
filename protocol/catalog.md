@@ -1094,3 +1094,7 @@ CMD [0012](game/client-to-server/0x0012.md)增加operation=3特效消费；晶�
 ## 2026-10-10 配额职责与镜像次数同步
 
 [NOTI0279](game/server-to-client/NOTI-0x0279.md)为两个u32快照，第二字段Confirmed为已入场数，第一字段Unknown且保守写0。补入统一配额投影，保持加载仅NOTI001E；本次实机待验收，未标ClientVerified。[021E](game/server-to-client/NOTI-0x021E.md)和[CMD036F](game/server-to-client/CMD-0x036F.md)复用原编码，由提交后变化投影读取当前次数。消耗品、权益、镜像计数经直接事件进入中央服务，同一业务事务更新，异步订阅不再承担扣次。[职责与验收](../Document/tasks/usage-quota-direct-events-20261010/spec.md)。
+
+## 2026-10-11 绝望之塔初次实现（待实机）
+
+[NOTI015B](game/server-to-client/NOTI-0x015B.md) 动态层 APC 资料、[NOTI015C](game/server-to-client/NOTI-0x015C.md) 专用通关奖励已编码并接入。布局为 ClientStatic 前缀 + UpstreamReference 完整结构；服务器入场、楼层和每日记录为 CurrentImplementation，尚未取得 ClientVerified。见 [实现规则](../Document/DespairTower.md)。

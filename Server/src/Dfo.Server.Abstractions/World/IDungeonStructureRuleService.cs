@@ -119,6 +119,7 @@ public sealed record DungeonLayout(
     bool ConsumesFatigue = true)
 {
     public DungeonEntryKind EntryKind { get; init; } = DungeonEntryKind.Normal;
+    public DespairTowerEntryPlan? Despair { get; init; }
     public HellEntryPlan? Hell { get; init; }
     public MirrorDungeonRunIdentity? Mirror { get; init; }
     /// <summary>

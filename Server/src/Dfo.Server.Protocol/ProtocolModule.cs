@@ -904,6 +904,8 @@ public sealed class ProtocolModule : IServerModule
             GroundGoldPickupNotification, GroundGoldPickupEncoder>();
         services.AddGameNotiMessageEncoder<EnableClearDungeonNotification, EnableClearDungeonEncoder>();
         services.AddGameNotiMessageEncoder<SecretShopNpcNotification, SecretShopNpcEncoder>();
+        services.AddGameNotiMessageEncoder<DespairClearRewardNotification, DespairClearRewardEncoder>();
+        services.AddGameNotiMessageEncoder<DespairApcInfoNotification, DespairApcInfoEncoder>();
         services.AddGameNotiMessageEncoder<PlayResultNotification, PlayResultEncoder>();
         services.AddGameNotiMessageEncoder<ClearDungeonRewardNotification, ClearDungeonRewardEncoder>();
         services.AddGameCmdMessageDecoder<RosterFollowUpMessageDecoder>(

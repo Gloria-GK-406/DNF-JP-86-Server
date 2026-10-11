@@ -51,7 +51,21 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- rks:machine:end -->
 
-<!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
+<!-- 人工区：以下为当前人工核对布局，自动生成区保留原始提取结果；阅读完整布局以本节为准。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+# NOTI 0x015B — 绝望之塔动态 APC 资料
+
+日期：2026-10-11。证据：ClientStatic / High（A21 RVA 0xA14EC0：层号、Dstr、职业等级前缀）；UpstreamReference / High（ServerS4A21 c20dba5f TowerOfDespairApcInfoBuilder）。完整尾部参考上游，尚无本次 WireCaptured / ClientVerified。
+
+| 字段 | 类型 | 含义 |
+|---|---|---|
+| layer | u8 | 0 为基础资料；随后发送当前动态层号 |
+| name | i32 长度 + bytes | 角色名 |
+| level, job, growType | 3 × u8 | 等级、职业、转职 |
+| guildName | Dstr | 当前空串 |
+| guildId | i32 | 当前 0 |
+| equipmentAndAvatarIds | 22 × i32 | 前十位置为装扮 0..9，第十索引为武器（A21 worn slot 12）；剩余为 0 |
+| creatureName | Dstr | 当前空串（背包投影无宠物昵称） |
+| creatureItemId | u32 | 当前穿戴宠物物品 ID，无则 0 |
+
+CurrentImplementation：进入 10、20、…、90 层后在 START_MAP 后发送 layer 0 和当前层两个通知。外观使用现有 DrawnAppearance 显示映射，含透明装扮继承。此消息不授予客户端跳层权限。动态 APC 外观需实际客户端验收。

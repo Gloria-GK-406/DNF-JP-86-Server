@@ -19,7 +19,10 @@ namespace Dfo.Server.Protocol.Game.DungeonClear;
 /// <param name="RankBonus">What the run's rank added, likewise.</param>
 public sealed record ClearExperienceResult(
     ExperienceAward? Award, uint ClearBase, uint RankBonus, bool AttendanceChanged = false,
-    CharacterDungeonDifficulty? DifficultyUnlocked = null);
+    CharacterDungeonDifficulty? DifficultyUnlocked = null)
+{
+    public DespairTowerSettlement? Despair { get; init; }
+}
 
 /// <summary>One character's finished run, paid.</summary>
 public sealed record GrantClearExperienceCommand(
@@ -33,7 +36,7 @@ public sealed record GrantClearExperienceCommand(
 public sealed class GrantClearExperienceCommandHandler(
     ICharacterDomainService grant, TimeProvider clock, ICharacterDungeonDifficultyDomainService difficulties,
     Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance = null,
-    IQuestProgressDomainService? quests = null, IDungeonRunDomainService? runs = null)
+    IQuestProgressDomainService? quests = null, IDungeonRunDomainService? runs = null, IDespairTowerDomainService? despair = null)
     : ICommandHandler<GrantClearExperienceCommand, ClearExperienceResult>
 {
     public async ValueTask<ClearExperienceResult> HandleAsync(CommandExecutionContext context,
@@ -44,6 +47,13 @@ public sealed class GrantClearExperienceCommandHandler(
         if (context.ExecutionKind is not CommandExecutionKind.Transactional)
             throw new InvalidOperationException("Awarding experience requires a transaction.");
         var now = command.SettledAt ?? clock.GetUtcNow();
+        DespairTowerSettlement? tower = null;
+        if (runs?.Find(command.CharacterId) is { Layout.Despair: not null } towerRun)
+        {
+            tower = await (despair ?? throw new InvalidOperationException("Despair settlement is unavailable."))
+                .SettleAsync(command.AccountId, command.CharacterId, new(command.RunId), cancellationToken).ConfigureAwait(false);
+            if (tower is null) return new(null, 0, 0);
+        }
         if (quests is not null && runs?.Find(command.CharacterId) is { Layout.Mirror: not null } mirror
             && mirror.RunId.Value == command.RunId && mirror.ClearOpen)
             await quests.ReportAsync(command.AccountId, command.CharacterId,
@@ -54,9 +64,9 @@ public sealed class GrantClearExperienceCommandHandler(
             cancellationToken).ConfigureAwait(false);
         var changed = award is not null && attendance is not null && command.RunId != Guid.Empty
             && await attendance.RecordClearAsync(command.AccountId,command.RunId,command.DungeonId,command.SettlementLevel,now,cancellationToken);
-        var unlocked = runs?.Find(command.CharacterId)?.Layout.Mirror is not null ? null
+        var unlocked = runs?.Find(command.CharacterId)?.Layout is { Mirror: not null } or { Despair: not null } ? null
             : await difficulties.UnlockAfterClearAsync(command.CharacterId, command.DungeonId,
             (DungeonDifficulty)command.Clear.Difficulty, cancellationToken).ConfigureAwait(false);
-        return new(award, award?.Breakdown.Base ?? 0, award?.Breakdown.ClearRank ?? 0,changed,unlocked);
+        return new(award, award?.Breakdown.Base ?? 0, award?.Breakdown.ClearRank ?? 0,changed,unlocked) { Despair = tower };
     }
 }

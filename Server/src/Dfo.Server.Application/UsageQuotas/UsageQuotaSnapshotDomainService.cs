@@ -36,7 +36,11 @@ internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService q
 
 internal sealed class UsageQuotaNotificationSubscriber(IEventService events) : IDomainEventSubscriber<UsageQuotaChanged>
 {
-    public async ValueTask HandleAsync(DomainEventEnvelope<UsageQuotaChanged> message, CancellationToken cancellationToken) =>
+    public async ValueTask HandleAsync(DomainEventEnvelope<UsageQuotaChanged> message, CancellationToken cancellationToken)
+    {
+        // No verified A21 quota notification exists for Despair Tower. Its UI follows the floor DGN.
+        if (message.Payload.Family == UsageQuotaFamily.DespairTower) return;
         _ = await events.ProjectAsync(new NotificationAudience.TheseCharacters([message.Payload.CharacterId]),
             new UsageQuotaViewChanged(message.Payload.CharacterId, message.Payload.Family), cancellationToken).ConfigureAwait(false);
+    }
 }

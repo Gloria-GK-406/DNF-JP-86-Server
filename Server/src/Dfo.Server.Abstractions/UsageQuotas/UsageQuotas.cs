@@ -7,11 +7,12 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Abstractions.UsageQuotas;
 
-public enum UsageQuotaFamily { Consumable, Premium, MirrorDungeon, DimensionDungeon }
+public enum UsageQuotaFamily { Consumable, Premium, MirrorDungeon, DimensionDungeon, DespairTower }
 
 /// <summary>Storage identity, independent of limits and reset rules owned by each domain.</summary>
 public sealed record UsageQuotaKey(UsageQuotaFamily Family, string Name, DateOnly? Day = null)
 {
+    public static UsageQuotaKey Despair(string counter, DateOnly period) => new(UsageQuotaFamily.DespairTower, counter, period);
     public static UsageQuotaKey Dimension(DateOnly period) => new(UsageQuotaFamily.DimensionDungeon, "entries", period);
     public static UsageQuotaKey Consumable(int itemId) => new(UsageQuotaFamily.Consumable,
         itemId.ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -51,6 +52,8 @@ public sealed record MirrorEntryQuotaUpdate(AccountId AccountId, CharacterId Cha
 public sealed record MirrorEntryRecorded(ImmutableArray<MirrorEntryQuotaUpdate> Participants) : IDomainEvent;
 public sealed record MirrorRewardRecorded(AccountId AccountId, CharacterId CharacterId,
     DateOnly Day, MirrorDailyQuota Expected, MirrorDailyQuota Value) : IDomainEvent;
+
+public sealed record DespairQuotaRecorded(CharacterId CharacterId, DateOnly Period, string Counter, UsageQuotaValue? Expected, int Used) : IDomainEvent;
 
 public sealed record DimensionQuotaSnapshot(DateOnly Period, int Used, int Remaining, int ExtraRemaining);
 public sealed record DimensionEntryQuotaUpdate(CharacterId CharacterId, DateOnly Period, UsageQuotaValue? Expected, int Used);

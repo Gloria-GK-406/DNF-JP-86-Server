@@ -248,6 +248,14 @@ public sealed class DungeonEntryProjectionDelivery(
                     visit.Actors,
                     visit.FirstActorSequence,
                     FloorPieceValues.Describe(visit.Run, visit.FloorDrops)));
+                if (layout.Despair is { Floor: >= 10 and <= 90 } tower && tower.Floor % 10 == 0)
+                {
+                    var view = refreshed[receiver.Session.CharacterId];
+                    var equipment = view.CharacterInventory.Containers.SingleOrDefault(x => x.ContainerType ==
+                        Dfo.Server.Data.Inventory.InventoryContainerType.Equipment)?.Items ?? [];
+                    frames.Add(new DespairApcInfoNotification(0, view.Character, equipment));
+                    frames.Add(new DespairApcInfoNotification(checked((byte)tower.Floor), view.Character, equipment));
+                }
                 if (HellPartyProjection.For(visit.Run) is { } hellInfo) frames.Add(hellInfo);
                 frames.Add(new Fatigue.FatigueNotification(await fatigue.BalanceOfAsync(receiver.Session.CharacterId, cancellationToken).ConfigureAwait(false)));
                 deliveries.Add((receiver.Session, frames));

@@ -17,6 +17,7 @@ public sealed record DungeonAdmissionOptions
     public IReadOnlyList<int> RequiredQuestIds { get; init; } = [];
     public IReadOnlyList<HellTicketAlternative>? HellTickets { get; init; }
     public MirrorDungeonCatalog? MirrorCatalog { get; init; }
+    public IReadOnlyList<DungeonRequiredItem>? RequiredItemsOverride { get; init; }
     public DungeonAdmissionQuota? Quota { get; init; }
 }
 public sealed record DungeonAdmissionQuota(UsageQuotaFamily Family, DateOnly Period, int Maximum);

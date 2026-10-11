@@ -55,7 +55,8 @@ public sealed class SchemaOwnershipTests
 
         // Counted rather than sampled: naming a handful of tables would stay green while forty of
         // the declarations went missing.
-        Assert.Equal(75, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(76, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Contains("character_despair_tower(character_id:INTEGER,highest_cleared_floor:INTEGER,last_clear_run:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("character_mirror_quests(character_id:INTEGER,run_id:TEXT,state_json:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("character_mirror_daily(character_id:INTEGER,clears:INTEGER,daily_reward_claimed:INTEGER,day:TEXT,entries:INTEGER)", shape, StringComparison.Ordinal);
         Assert.Contains("achievement_consumed_facts(character_id:INTEGER,event_id:TEXT)", shape, StringComparison.Ordinal);

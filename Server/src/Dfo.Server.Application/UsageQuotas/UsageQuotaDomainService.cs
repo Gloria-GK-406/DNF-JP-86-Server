@@ -12,7 +12,7 @@ internal sealed class UsageQuotaDomainService(IUsageQuotaStore store, IDomainTra
     IEventService events) : IUsageQuotaDomainService,
     IDomainEventSubscriber<ConsumableUsageRecorded>, IDomainEventSubscriber<PremiumUsageRecorded>,
     IDomainEventSubscriber<MirrorEntryRecorded>, IDomainEventSubscriber<MirrorRewardRecorded>,
-    IDomainEventSubscriber<DimensionEntryRecorded>
+    IDomainEventSubscriber<DimensionEntryRecorded>, IDomainEventSubscriber<DespairQuotaRecorded>
 {
     public ValueTask<UsageQuotaValue?> ReadAsync(CharacterId character, UsageQuotaKey key, CancellationToken ct) =>
         store.ReadAsync(character, key, ct);
@@ -54,6 +54,12 @@ internal sealed class UsageQuotaDomainService(IUsageQuotaStore store, IDomainTra
         ApplyAsync(message.Payload.Participants.Select(x => new UsageQuotaWrite(x.CharacterId, UsageQuotaKey.Dimension(x.Period),
             x.Expected, new(x.Used, null))).ToArray(), ct);
 
+    public ValueTask HandleAsync(DomainEventEnvelope<DespairQuotaRecorded> message, CancellationToken ct)
+    {
+        var p = message.Payload;
+        return ApplyAsync([new(p.CharacterId, UsageQuotaKey.Despair(p.Counter, p.Period), p.Expected, new(p.Used, null))], ct);
+    }
+
     private async ValueTask ApplyAsync(IReadOnlyList<UsageQuotaWrite> writes, CancellationToken ct)
     {
         if (transactions.Current is not { IsReadOnly: false })
@@ -67,9 +73,11 @@ internal sealed class UsageQuotaDomainService(IUsageQuotaStore store, IDomainTra
             if (!identities.Add((write.CharacterId, write.Key)) || write.Value.UsedCount < 0
                 || write.Expected?.UsedCount < 0 || string.IsNullOrWhiteSpace(write.Key.Name)
                 || !Enum.IsDefined(write.Key.Family)
-                || write.Key.Family is not (UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon) && (write.Key.Day is not null || write.Value.LastUsedAt is null)
+                || write.Key.Family is not (UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon or UsageQuotaFamily.DespairTower) && (write.Key.Day is not null || write.Value.LastUsedAt is null)
                 || write.Key.Family == UsageQuotaFamily.DimensionDungeon && (write.Key.Day is null
                     || write.Key.Name != "entries" || write.Value.LastUsedAt is not null)
+                || write.Key.Family == UsageQuotaFamily.DespairTower && (write.Key.Day is null || write.Value.LastUsedAt is not null
+                    || write.Key.Name is not ("entries" or "clears"))
                 || write.Key.Family == UsageQuotaFamily.Premium && write.Value.UsedCount > byte.MaxValue
                 || write.Key.Family == UsageQuotaFamily.MirrorDungeon && (write.Key.Day is null || write.Value.LastUsedAt is not null
                     || write.Key.Name is not ("entries" or "clears" or "daily-reward")

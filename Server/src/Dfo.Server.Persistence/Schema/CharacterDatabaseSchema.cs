@@ -229,6 +229,11 @@ internal static class CharacterDatabaseSchema
     /// allocates it rather than on a caller, because allocation is the only place one is made.
     /// </remarks>
     private const string TableDeclarations = """
+        CREATE TABLE IF NOT EXISTS character_despair_tower (
+            character_id INTEGER PRIMARY KEY REFERENCES characters(character_id) ON DELETE CASCADE,
+            highest_cleared_floor INTEGER NOT NULL CHECK(highest_cleared_floor BETWEEN 1 AND 100),
+            last_clear_run TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS character_mirror_quests(
             character_id INTEGER NOT NULL, run_id TEXT NOT NULL, state_json TEXT NOT NULL,
             PRIMARY KEY(character_id,run_id), FOREIGN KEY(character_id) REFERENCES characters(character_id));

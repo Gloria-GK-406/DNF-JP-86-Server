@@ -100,6 +100,10 @@ public sealed class ApplicationModule : IServerModule
             fact => $"{fact.CharacterId.Value}:{(int)fact.Family}");
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.DimensionEntryRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.TryAddSingleton<IDespairTowerRuleService, DespairTowerRuleService>();
+        services.TryAddSingleton<IDespairTowerDomainService, DespairTowerDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.DespairQuotaRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.TryAddSingleton<IDimensionDungeonRuleService, DimensionDungeonRuleService>();
         services.TryAddSingleton<IDimensionDungeonDomainService, DimensionDungeonDomainService>();
         services.AddMirrorAradQuests();

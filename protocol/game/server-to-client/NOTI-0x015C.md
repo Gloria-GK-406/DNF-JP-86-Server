@@ -51,7 +51,19 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- rks:machine:end -->
 
-<!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
+<!-- 人工区：以下为当前人工核对布局，自动生成区保留原始提取结果；阅读完整布局以本节为准。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+# NOTI 0x015C — 绝望之塔通关奖励
+
+日期：2026-10-11。证据：ClientStatic / High（A21 RVA 0xA15BA0 的 u32、u16、u8 前缀）；UpstreamReference / High（ServerS4A21 c20dba5f DungeonNotificationBuilder.BuildTowerOfDespairClearReward）。完整尾部参考上游，尚无当前客户端 WireCaptured / ClientVerified。
+
+| 字段 | 类型 | 含义 |
+|---|---|---|
+| clearTime | u32 LE | 通关毫秒 |
+| floor | u16 LE | 已通关楼层 |
+| count | u8 | 后续奖励位置数，当前为 10 |
+| itemId, quantity | count × (i32 LE, i32 LE) | 奖励物品及数量；空位 -1, 0 |
+
+当前固定 body 87 字节。通知只展示已经提交的奖励；物品绝对状态通过 NOTI000E 同步。满背包时奖励进入邮件，015C 仍展示本层所得。前置通关权威来自运行态的 ClearOpen，重复 CMD002E 不重复发奖。
+
+CurrentImplementation：DespairTowerDomainService → GrantClearExperienceCommandHandler → SetPlayResultHandler → DespairTowerProjection / DespairClearRewardEncoder。测试 DespairTowerPayloadTests 与 DespairTowerTests。部署后的实机状态待用户验收。

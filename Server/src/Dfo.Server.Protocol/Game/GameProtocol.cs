@@ -122,6 +122,8 @@ internal static class GameProtocol
 
     public const ushort DungeonInfoNotificationType = 0x001C;
 
+    public const ushort DespairApcInfoType = 0x015B;
+    public const ushort DespairClearRewardType = 0x015C;
     public const ushort StartMapNotificationType = 0x001D;
 
     public const ushort SupportTagNotificationType = 0x019F;

@@ -27,7 +27,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             || context.Participants.Select(x => x.AccountId).Distinct().Count() != context.Participants.Count
             || context.Participants.Select(x => x.Slot).Distinct().Count() != context.Participants.Count)
             return Refuse(DungeonEntryFailure.MissingPrerequisite);
-        if (options.Quota is { Family: not (UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon) })
+        if (options.Quota is { Family: not (UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon or UsageQuotaFamily.DespairTower) })
             throw new ArgumentException("Unsupported dungeon entry quota family.", nameof(options));
         if (!Enum.IsDefined(context.Facts.Difficulty)) return Refuse(DungeonEntryFailure.DifficultyNotUnlocked);
         DungeonDefinition? definition;
@@ -81,7 +81,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             if ((options.ConsumesFatigue ?? definition?.ConsumesFatigue ?? true)
                 && (await fatigue.BalanceOfAsync(member.CharacterId, ct).ConfigureAwait(false)).Remaining == 0)
                 return Refuse(DungeonEntryFailure.InsufficientFatigue, member.Slot);
-            var requirements = (definition?.RequiredItems ?? []).ToImmutableArray();
+            var requirements = (options.RequiredItemsOverride ?? definition?.RequiredItems ?? []).ToImmutableArray();
             int? hellTicketItemId = null;
             if (options.HellTickets is { } alternatives)
             {
@@ -101,7 +101,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             costs.AddRange(requirements.Where(x => x.Consume).Select(x => new DungeonMaterialAdmissionCost(x.ItemId, x.Count, x.AllowSharedMaterial)));
             if (options.Quota is { } limit)
             {
-                var key = limit.Family == UsageQuotaFamily.MirrorDungeon ? UsageQuotaKey.Mirror("entries", limit.Period) : UsageQuotaKey.Dimension(limit.Period);
+                var key = limit.Family == UsageQuotaFamily.MirrorDungeon ? UsageQuotaKey.Mirror("entries", limit.Period) : limit.Family == UsageQuotaFamily.DespairTower ? UsageQuotaKey.Despair("entries", limit.Period) : UsageQuotaKey.Dimension(limit.Period);
                 UsageQuotaValue? expected;
                 if (limit.Family == UsageQuotaFamily.MirrorDungeon)
                 {
@@ -168,6 +168,8 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
                     if (quota.Key.Family == UsageQuotaFamily.MirrorDungeon)
                         await bus.DirectAsync(new MirrorEntryRecorded([new(member.AccountId, member.CharacterId, quota.Key.Day!.Value,
                             quota.Expected!.UsedCount, quota.Used)]), ct).ConfigureAwait(false);
+                    else if (quota.Key.Family == UsageQuotaFamily.DespairTower)
+                        await bus.DirectAsync(new DespairQuotaRecorded(member.CharacterId, quota.Key.Day!.Value, "entries", quota.Expected, quota.Used), ct).ConfigureAwait(false);
                     else await bus.DirectAsync(new DimensionEntryRecorded([new(member.CharacterId, quota.Key.Day!.Value,
                         quota.Expected, quota.Used)]), ct).ConfigureAwait(false);
                 }
