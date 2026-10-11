@@ -52,6 +52,19 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
+## 2026-10-11 地图清理异步任务刷新（CurrentImplementation）
+
+普通地下城清房与死亡／迷妄塔清层统一在原业务事务中入队 `DungeonMapCleared`。
+可靠任务订阅者提交 trigger 更新后，继续经 EventBus 投递任务变化，通知订阅者通过
+`IQuestQueryDomainService.ReadAcceptedAsync` 查询当前任务列表，再发送本 NOTI；镜像任务
+保留原运行作用域及其任务变化通知。该刷新允许晚于清房 CMD／NOTI 到达，不与死亡
+回复绑定。没有修改本帧的字段布局，也没有改为客户端 `SET_QUEST_TRIGGER` 计数。
+
+服务端测试已核对实际编码的 `cmd=0,type=0x023F,count=1,questId=975,trigger=0`，
+并验证持久化恢复及重复消费不重复产生任务变化。A21 实机的死亡之塔第 30 层任务
+提示和交付仍待本次部署后验收。实现说明见
+[任务进度事件入口](../../../Document/QuestProgressEventModel.md)。
+
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
 

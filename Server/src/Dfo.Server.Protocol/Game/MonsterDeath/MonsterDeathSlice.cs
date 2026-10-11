@@ -431,12 +431,6 @@ public sealed class MonsterDeathHandler(
         }
         try
         {
-            if (change.Run.Layout.Mirror is not null && change.IsCellCleared)
-                foreach (var participant in change.Run.Participants)
-                    await commandBus.SendAsync(new Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommand(
-                        participant.AccountId, participant.CharacterId, change.Run.RunId,
-                        [new QuestRoomCleared(change.Run.RunId, change.Run.Layout.DungeonId, change.Run.Difficulty,
-                            change.Run.CurrentCell, change.Run.CurrentRoomMapId)]), ct).ConfigureAwait(false);
             if (creatures is not null && change.Run.Layout.ConsumesFatigue && change.IsCellCleared)
                 foreach (var participant in settled.Participants)
                     creatures.QueueRoomExperience(participant.Session, change.Run.RunId, change.Run.CurrentCell, 1);

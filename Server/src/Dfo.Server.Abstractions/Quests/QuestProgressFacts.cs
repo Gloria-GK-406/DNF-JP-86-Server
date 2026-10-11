@@ -24,9 +24,6 @@ public sealed record QuestEnemyDefeated(
 public sealed record QuestDungeonCleared(int DungeonId, DungeonDifficulty Difficulty,
     DungeonRunId? RunId = null, DateTimeOffset? ClearedAt = null) : QuestProgressFact;
 
-public sealed record QuestRoomCleared(DungeonRunId RunId, int DungeonId, DungeonDifficulty Difficulty,
-    MazeCell Cell, int MapId) : QuestProgressFact;
-
 public sealed record QuestCharacterRevived(DungeonRunId RunId, CharacterId CharacterId) : QuestProgressFact;
 
 /// <summary>The authoritative inventory or currency balance changed; item goals are re-read.</summary>

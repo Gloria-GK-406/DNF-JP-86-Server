@@ -84,7 +84,6 @@ public sealed class QuestProgressDomainService(
                     serverProgressChanged |= dependents.Count != 0;
                     break;
 
-                case QuestRoomCleared:
                 case QuestCharacterRevived:
                     break;
 

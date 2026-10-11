@@ -25,6 +25,28 @@ public sealed class DungeonRunDomainServiceTests
 {
     private static readonly CharacterId Character = new(1);
 
+    [Fact]
+    public void Map_clear_preview_tracks_only_the_transition_after_the_last_blocking_actor()
+    {
+        var service = new DungeonRunDomainService();
+        BeginWithCell(service, actors:
+        [
+            CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0)),
+            CellActor(FirstSequence + 1, new DungeonRoomActor(61671, 1, 5) { IsHostile = true }),
+            CellActor(FirstSequence + 2, new DungeonRoomActor(61672, 1, 0) { IsHostile = false }),
+        ]);
+        var first = service.TryClaimActorDeath(Character, FirstSequence)!;
+        Assert.False(service.WillClearMap(first));
+        Assert.False(service.CommitActorDeathChange(first)!.IsCellCleared);
+        var last = service.TryClaimActorDeath(Character, FirstSequence + 1)!;
+        Assert.True(service.WillClearMap(last));
+        Assert.True(service.CommitActorDeathChange(last)!.IsCellCleared);
+        var nonblocking = service.TryClaimActorDeath(Character, FirstSequence + 2)!;
+        Assert.False(service.WillClearMap(nonblocking));
+        Assert.True(service.CommitActorDeathChange(nonblocking)!.IsCellCleared);
+        Assert.False(service.WillClearMap(last));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -810,6 +832,7 @@ public sealed class DungeonRunDomainServiceTests
 
         var claim = Assert.IsType<DungeonActorDeathClaim>(
             service.TryClaimActorDeath(Character, boss));
+        Assert.True(service.WillClearMap(claim));
         var change = Assert.IsType<DungeonActorDeathChange>(service.CommitActorDeathChange(claim));
 
         Assert.True(change.IsCellCleared);
@@ -847,11 +870,13 @@ public sealed class DungeonRunDomainServiceTests
             service.TryClaimActorDeath(Character, other));
         var bossClaim = Assert.IsType<DungeonActorDeathClaim>(
             service.TryClaimActorDeath(Character, FirstSequence));
+        Assert.False(service.WillClearMap(bossClaim));
         var bossChange = Assert.IsType<DungeonActorDeathChange>(
             service.CommitActorDeathChange(bossClaim));
 
         Assert.Empty(bossChange.AutoKilledActorSequences);
         Assert.False(bossChange.IsCellCleared);
+        Assert.True(service.WillClearMap(otherClaim));
         var otherChange = Assert.IsType<DungeonActorDeathChange>(
             service.CommitActorDeathChange(otherClaim));
         Assert.True(otherChange.IsCellCleared);
@@ -872,10 +897,12 @@ public sealed class DungeonRunDomainServiceTests
                  { IsSceneOwnedWave = true, ParentObjectIndex = 0, ChildIndex = 0 } },
                 pendingLoot: [new(3330, 1, DropRarity.Common, DropItemKind.Stackable)])])));
         var bossClaim = Assert.IsType<DungeonActorDeathClaim>(service.TryClaimActorDeath(Character, FirstSequence));
+        Assert.False(service.WillClearMap(bossClaim));
         var bossChange = Assert.IsType<DungeonActorDeathChange>(service.CommitActorDeathChange(bossClaim));
         Assert.Empty(bossChange.AutoKilledActorSequences);
         Assert.False(bossChange.IsCellCleared);
         var waveClaim = Assert.IsType<DungeonActorDeathClaim>(service.TryClaimActorDeath(Character, waveSequence));
+        Assert.True(service.WillClearMap(waveClaim));
         var waveChange = Assert.IsType<DungeonActorDeathChange>(service.CommitActorDeathChange(waveClaim));
         Assert.True(waveChange.IsCellCleared);
         Assert.Equal(3330, Assert.Single(waveChange.AddedGroundItems).ItemId);

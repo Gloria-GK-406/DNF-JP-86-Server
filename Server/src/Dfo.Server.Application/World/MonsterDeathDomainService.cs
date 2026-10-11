@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
@@ -13,7 +14,8 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
     ISelectedSessionDomainService sessions, ISelectedSessionRuntimeDirectory published,
     ICharacterDomainService characters, IDungeonRunDomainService runs, IMonsterKillDomainService kills,
     IMonsterKillRewardsDomainService rewards, IQuestOfferRefreshDomainService offers,
-    ILogger<MonsterDeathDomainService> logger, ITournamentDungeonDomainService? tournaments = null) : IMonsterDeathDomainService
+    ILogger<MonsterDeathDomainService> logger, ITournamentDungeonDomainService? tournaments = null,
+    IEventService? events = null) : IMonsterDeathDomainService
 {
     public async ValueTask<MonsterDeathSettlementResult> SettleAsync(MonsterDeathSettlementRequest request, CancellationToken ct)
     {
@@ -40,7 +42,8 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
         }
         var death = runs.TryClaimActorDeath(request.Reporter.CharacterId, request.Actor);
         if (death is null) return new([]);
-        var pending = new DeathCommit(runs, death);
+        var clearsMap = runs.WillClearMap(death);
+        var pending = new DeathCommit(runs, death, clearsMap);
         try { transaction.Enlist((runs, death.RunId, death.Actor, "death-settlement"), () => pending); }
         catch { runs.ReleaseActorDeath(death); throw; }
         var result = new List<MonsterDeathParticipantResult>();
@@ -72,12 +75,18 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
             ? await tournaments!.AdvanceAsync(request.Reporter, run.RunId, request.Actor, ct).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("The accepted tournament death could not advance its round.")
             : null;
+        if (clearsMap)
+            await (events ?? throw new InvalidOperationException("Map-clear events are unavailable."))
+                .EnqueueAsync(new DungeonMapCleared(run.RunId, run.Layout.DungeonId, run.Difficulty,
+                    run.CurrentCell, run.CurrentRoomMapId, run.RoomVersion, death.OccurredAt!.Value,
+                    [.. request.Participants.DistinctBy(x => x.CharacterId).Select(session =>
+                        run.Participants.Single(x => x.CharacterId == session.CharacterId))]), ct).ConfigureAwait(false);
         logger.LogInformation("Monster death prepared run={RunId} actor={Actor} participants={Count}; one transaction, no entry inventory query",
             run.RunId, request.Actor, result.Count);
         return new(result, pending) { Tournament = tournament };
     }
 
-    private sealed class DeathCommit(IDungeonRunDomainService runs, DungeonActorDeathClaim death)
+    private sealed class DeathCommit(IDungeonRunDomainService runs, DungeonActorDeathClaim death, bool clearsMap)
         : ITransactionParticipant, ICommittedActorDeath
     {
         private readonly List<DungeonParticipantKillEffectClaim> effects = [];
@@ -90,7 +99,8 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
             var current = runs.Find(death.CharacterId);
             if (current is null || current.RunId != death.RunId || current.RoomVersion != death.Run.RoomVersion
                 || current.CurrentCell != death.Actor.Cell || !runs.IsActorDeathClaimCurrent(death)
-                || effects.Any(x => !runs.IsParticipantKillEffectClaimCurrent(x)))
+                || effects.Any(x => !runs.IsParticipantKillEffectClaimCurrent(x))
+                || runs.WillClearMap(death) != clearsMap)
                 throw new InvalidOperationException("Dungeon death reservation changed before commit.");
             return ValueTask.CompletedTask;
         }

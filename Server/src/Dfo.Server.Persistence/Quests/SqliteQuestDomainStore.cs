@@ -138,7 +138,7 @@ internal sealed class CarriedQuestSection(SqliteDatabaseParticipant owner)
             if (staged.QuestId != value.QuestId
                 || staged.TriggerValue != expected && staged.ExpectedTriggerValue != expected)
                 throw new InvalidDataException($"Quest {value.QuestId} changed in the current transaction.");
-            value = value with { ExpectedTriggerValue = staged.ExpectedTriggerValue };
+            value = value with { ExpectedTriggerValue = staged.ExpectedTriggerValue, AcceptedAt = staged.AcceptedAt };
         }
         base.Write(place, value);
     }
@@ -148,14 +148,19 @@ internal sealed class CarriedQuestSection(SqliteDatabaseParticipant owner)
     {
         await using var command = await this.Owner.CommandAsync(cancellationToken).ConfigureAwait(false);
         command.CommandText =
-            "SELECT slot, quest_id, trigger_value FROM character_active_quests WHERE character_id=@character;";
+            """
+            SELECT q.slot,q.quest_id,q.trigger_value,t.accepted_at_ticks FROM character_active_quests q
+            LEFT JOIN character_quest_acceptance_times t ON t.character_id=q.character_id AND t.slot=q.slot
+            WHERE q.character_id=@character;
+            """;
         command.Parameters.AddWithValue("@character", place.Character.Value);
         var rows = new List<StoredActiveQuest>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             rows.Add(new StoredActiveQuest(
-                checked((short)reader.GetInt32(0)), reader.GetInt32(1), reader.GetInt32(2)));
+                checked((short)reader.GetInt32(0)), reader.GetInt32(1), reader.GetInt32(2))
+                { AcceptedAt = reader.IsDBNull(3) ? DateTimeOffset.UnixEpoch : new DateTimeOffset(reader.GetInt64(3), TimeSpan.Zero) });
         }
 
         return rows;
@@ -194,6 +199,16 @@ internal sealed class CarriedQuestSection(SqliteDatabaseParticipant owner)
         {
             throw new InvalidDataException($"Seeking quest {value.QuestId} changed concurrently.");
         }
+        if (value.ExpectedTriggerValue is null)
+        {
+            command.CommandText = """
+                INSERT INTO character_quest_acceptance_times(character_id,slot,accepted_at_ticks)
+                VALUES(@character,@slot,@accepted)
+                ON CONFLICT(character_id,slot) DO UPDATE SET accepted_at_ticks=@accepted;
+                """;
+            command.Parameters.AddWithValue("@accepted", value.AcceptedAt.UtcTicks);
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 
     protected override async ValueTask EmptyAsync(
@@ -204,6 +219,8 @@ internal sealed class CarriedQuestSection(SqliteDatabaseParticipant owner)
             "DELETE FROM character_active_quests WHERE character_id=@character AND slot=@slot;";
         command.Parameters.AddWithValue("@character", place.Character.Value);
         command.Parameters.AddWithValue("@slot", key);
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        command.CommandText = "DELETE FROM character_quest_acceptance_times WHERE character_id=@character AND slot=@slot;";
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 }

@@ -17,7 +17,7 @@ internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore s
     ICharacterQuestLogDomainService logs, ICharacterDomainService characters,
     IInventoryEffectPreflightDomainService preview,
     TimeProvider clock, IEventService events, IUsageQuotaDomainService quotas) : IMirrorAradQuestDomainService,
-    IDomainEventSubscriber<DungeonParticipantLeft>
+    IDomainEventSubscriber<DungeonParticipantLeft>, IDomainEventSubscriber<DungeonMapCleared>
 {
     private DungeonRunState? Authorized(AccountId account, CharacterId character, int quest)
     {
@@ -147,6 +147,22 @@ internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore s
     }
     public ValueTask HandleAsync(DomainEventEnvelope<DungeonParticipantLeft> message, CancellationToken ct) =>
         ClearRunAsync(message.Payload.CharacterId, message.Payload.RunId, ct);
+    public async ValueTask HandleAsync(DomainEventEnvelope<DungeonMapCleared> message, CancellationToken ct)
+    {
+        var clear = message.Payload;
+        foreach (var participant in clear.Participants.DistinctBy(x => x.CharacterId))
+        {
+            // The originating run may have ended. Never attach a delayed fact to the current run.
+            var state = await store.ReadAsync(participant.CharacterId, clear.RunId, ct).ConfigureAwait(false);
+            if (state is null || state.GivenUp || state.RewardClaimed || state.AcceptedAt > clear.ClearedAt) continue;
+            var objective = await rules.ResolveAsync(clear.DungeonId, state.QuestId, ct).ConfigureAwait(false);
+            if (objective is null) continue;
+            var updated = rules.ApplyMapClear(objective, state, clear);
+            if (updated == state) continue;
+            await store.WriteAsync(participant.AccountId, updated, ct).ConfigureAwait(false);
+            if (updated.TriggerValue != state.TriggerValue) await ChangedAsync(participant.CharacterId, ct).ConfigureAwait(false);
+        }
+    }
     private async ValueTask ChangedAsync(CharacterId character, CancellationToken ct) =>
         _ = await events.EnqueueAsync(new MirrorQuestChanged(character), ct).ConfigureAwait(false);
 }

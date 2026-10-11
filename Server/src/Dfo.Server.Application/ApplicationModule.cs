@@ -109,6 +109,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IDimensionDungeonRuleService, DimensionDungeonRuleService>();
         services.TryAddSingleton<IDimensionDungeonDomainService, DimensionDungeonDomainService>();
         services.AddMirrorAradQuests();
+        services.AddMapClearQuests();
         Dfo.Server.Application.Achievements.AchievementRegistration.AddAchievements(services);
         services.AddDomainEvent<MailCreated>("mail.created", 1);
         services.AddDomainSubscriber<MailCreated, MailCreatedNotificationSubscriber>("mail.arrival",

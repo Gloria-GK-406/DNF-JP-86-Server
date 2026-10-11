@@ -7,6 +7,21 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Game.QuestProgress;
 
+internal sealed class QuestProgressViewChangedHandler(IQuestQueryDomainService quests,
+    ISelectedSessionDomainService sessions) : INotificationHandler<QuestProgressViewChanged>
+{
+    public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
+        QuestProgressViewChanged notification, CancellationToken ct)
+    {
+        if (recipient.CharacterId != notification.CharacterId) return [];
+        var session = sessions.FindByCharacter(recipient.CharacterId);
+        if (session is null || session.ConnectionId != recipient.ConnectionId) return [];
+        var accepted = await quests.ReadAcceptedAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
+        return [new AcceptedQuestProgressMessage([.. accepted.Select(x =>
+            new AcceptedQuestProgressState(checked((ushort)x.Quest.QuestId), unchecked((uint)x.Quest.TriggerValue)))])];
+    }
+}
+
 internal sealed class MirrorQuestViewChangedHandler(IMirrorAradQuestDomainService mirror,
     ISelectedSessionDomainService sessions) : INotificationHandler<MirrorQuestViewChanged>
 {

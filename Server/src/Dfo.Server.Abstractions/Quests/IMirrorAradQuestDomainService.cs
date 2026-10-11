@@ -46,6 +46,7 @@ public interface IMirrorAradQuestRuleService
     MirrorDungeonCatalog Catalog { get; }
     ValueTask<MirrorQuestObjective?> ResolveAsync(int dungeonId, int questId, CancellationToken ct);
     MirrorQuestState Apply(MirrorQuestObjective objective, MirrorQuestState state, DungeonRunState run, QuestProgressFact fact);
+    MirrorQuestState ApplyMapClear(MirrorQuestObjective objective, MirrorQuestState state, DungeonMapCleared clear);
     bool CanFinish(MirrorQuestObjective objective, MirrorQuestState state, DungeonRunState run);
     ValueTask<ImmutableArray<DomainEffect>?> RewardEffectsAsync(byte level, MirrorDailyQuota quota, CancellationToken ct);
 }

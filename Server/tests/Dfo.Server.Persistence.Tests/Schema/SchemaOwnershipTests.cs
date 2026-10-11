@@ -55,7 +55,7 @@ public sealed class SchemaOwnershipTests
 
         // Counted rather than sampled: naming a handful of tables would stay green while forty of
         // the declarations went missing.
-        Assert.Equal(76, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(77, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.Contains("character_despair_tower(character_id:INTEGER,highest_cleared_floor:INTEGER,last_clear_run:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("character_mirror_quests(character_id:INTEGER,run_id:TEXT,state_json:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("character_mirror_daily(character_id:INTEGER,clears:INTEGER,daily_reward_claimed:INTEGER,day:TEXT,entries:INTEGER)", shape, StringComparison.Ordinal);
@@ -83,6 +83,7 @@ public sealed class SchemaOwnershipTests
         Assert.Contains("account_purchase_restrictions(account_id:INTEGER,end_time:INTEGER,restriction_id:INTEGER)", shape, StringComparison.Ordinal);
         Assert.DoesNotContain("login_tickets(", shape, StringComparison.Ordinal);
         Assert.Contains("character_active_quests(", shape, StringComparison.Ordinal);
+        Assert.Contains("character_quest_acceptance_times(accepted_at_ticks:INTEGER,character_id:INTEGER,slot:INTEGER)", shape, StringComparison.Ordinal);
         Assert.Contains("npc_shop_purchase_counts(count:INTEGER,item_id:INTEGER,npc_id:INTEGER,owner_id:INTEGER,owner_scope:TEXT,period:TEXT)",
             shape, StringComparison.Ordinal);
 

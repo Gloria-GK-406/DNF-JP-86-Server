@@ -1,6 +1,8 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
@@ -55,9 +57,31 @@ public sealed class MonsterDeathHandlerTests
         _ = unusedView;
         var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
         var service = new MonsterDeathDomainService(scope, sessions, new PublishedSessions(), characters,
-            runs, kills, new RewardAdapter(rewards), new OfferAdapter(offers), NullLogger<MonsterDeathDomainService>.Instance);
+            runs, kills, new RewardAdapter(rewards), new OfferAdapter(offers), NullLogger<MonsterDeathDomainService>.Instance,
+            events: new DeathEvents(scope));
         return new MonsterDeathHandler(sessions, runs, clear, clearProjection, new DeathBus(scope, service, rewards),
             registry, sender, diagnostics, logger, partyRecipients, creatures, safety);
+    }
+    private sealed class DeathEvents(Dfo.Server.Application.Transactions.DomainTransactionScope scope) : IEventService
+    {
+        public List<IDomainEvent> Committed { get; } = [];
+        public ValueTask<Guid> EnqueueAsync<TEvent>(TEvent payload, CancellationToken cancellationToken = default)
+            where TEvent : class, IDomainEvent
+        {
+            var eventId = Guid.NewGuid();
+            var transaction = scope.Current ?? throw new InvalidOperationException("A death fact requires a transaction.");
+            transaction.RegisterAfterCommit(eventId, _ =>
+            {
+                this.Committed.Add(payload);
+                return ValueTask.CompletedTask;
+            });
+            return ValueTask.FromResult(eventId);
+        }
+        public ValueTask DirectAsync<TEvent>(TEvent payload, CancellationToken cancellationToken = default)
+            where TEvent : class, IDomainEvent => throw new NotSupportedException();
+        public ValueTask<NotificationDelivery> ProjectAsync<TNotification>(NotificationAudience audience,
+            TNotification notification, CancellationToken cancellationToken = default)
+            where TNotification : class, INotification<TNotification> => throw new NotSupportedException();
     }
     private sealed class PublishedSessions : ISelectedSessionRuntimeDirectory
     {

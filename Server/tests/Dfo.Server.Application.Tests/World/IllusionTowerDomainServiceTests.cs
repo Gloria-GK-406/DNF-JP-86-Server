@@ -32,6 +32,26 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed class IllusionTowerDomainServiceTests
 {
     [Fact]
+    public async Task Cleared_floor_advances_its_map_quest_asynchronously_even_after_leaving_the_tower()
+    {
+        var content = new Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Rules();
+        content.Quest = content.Quest with { QuestId = 975, ObjectiveTypeCode = "clear map", ObjectiveArguments = [60001] };
+        using var f = Fixture(configure: s => s.AddSingleton<IQuestContentRuleService>(content));
+        await f.Seed(65, 4183, 1);
+        f.Sql("INSERT INTO character_active_quests VALUES(1,0,975,1);");
+        var tower = Tower(f);
+        var run = (await Enter(f)).Run!;
+        var context = Context(run, f.Session);
+        await tower.LoadAsync(context, default);
+        await tower.StartAsync(context, default);
+        await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+        Assert.Equal(1, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=975"));
+        await tower.LeaveAsync(context, false, default);
+        await f.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
+        Assert.Equal(0, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=975"));
+    }
+
+    [Fact]
     public async Task Clear_report_keeps_the_current_floor_until_a_move_request()
     {
         using var f = Fixture(configure: services => services.AddSingleton<INetworkConnectionCloser>(new RecordingCloser()));

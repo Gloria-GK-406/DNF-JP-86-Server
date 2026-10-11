@@ -23,6 +23,41 @@ namespace Dfo.Server.Application.Tests.Quests;
 public sealed class MirrorAradQuestTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 10, 7, 0, 0, TimeSpan.Zero);
+    [Fact]
+    public async Task Delayed_map_clear_updates_only_the_originating_mirror_run_and_never_recreates_removed_state()
+    {
+        var runtime = new Runtime { Current = Run() };
+        await using var f = new LearningFixture(configure: services =>
+        {
+            services.AddSingleton<IDungeonRunDomainService>(runtime);
+            services.AddSingleton<IQuestContentRuleService>(new Definitions { Value = Quest("clear map", null, 4403) });
+            services.AddSingleton<IMirrorDungeonRuleService>(new MirrorRules());
+            services.AddSingleton<IItemPlacementRuleService>(new Placements());
+            services.AddSingleton<TimeProvider>(new Clock { Now = Now });
+        });
+        await f.SeedAsync();
+        var service = f.Services.GetRequiredService<IMirrorAradQuestDomainService>();
+        var store = f.Services.GetRequiredService<IMirrorAradQuestDomainStore>();
+        var events = f.Services.GetRequiredService<IEventService>();
+        var old = runtime.Current;
+        await Write(f, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
+        var clear = new DungeonMapCleared(old.RunId, 32, 0, old.CurrentCell, 4403, old.RoomVersion, Now, [.. old.Participants]);
+        await Write(f, async () => { await events.EnqueueAsync(clear); await events.EnqueueAsync(clear); });
+        runtime.Current = Run();
+        await Write(f, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
+        var dispatcher = f.Services.GetRequiredService<DomainEventDispatcher>();
+        await dispatcher.DrainOnceAsync("quest.mirror-map-clear");
+        var previous = await store.ReadAsync(new(71), old.RunId, default);
+        Assert.Equal(0u, previous!.TriggerValue);
+        Assert.Single(previous.ClearedCells);
+        Assert.Equal(1u, (await store.ReadAsync(new(71), runtime.Current.RunId, default))!.TriggerValue);
+        await Write(f, async () => await service.ClearRunAsync(new(71), old.RunId, default));
+        await Write(f, async () => { await events.EnqueueAsync(clear); });
+        await dispatcher.DrainOnceAsync("quest.mirror-map-clear");
+        Assert.Null(await store.ReadAsync(new(71), old.RunId, default));
+        Assert.Equal(1u, (await store.ReadAsync(new(71), runtime.Current.RunId, default))!.TriggerValue);
+    }
+
     private static QuestDefinition Quest(string type = "condition under clear", int? subtype = 6, params int[] args) =>
         new(14299, "mirror", QuestGrade.Crack, null, null, null, null, null,
             [new(QuestRewardKind.CrackOfDimension, [])], type, "", null, null, null, null, null, null, null, [], [], [], [])
@@ -62,8 +97,8 @@ public sealed class MirrorAradQuestTests
         definitions.Value = Quest("clear map", null, 32);
         var map = (await rules.ResolveAsync(32, 14299, default))!;
         Assert.False(rules.CanFinish(map, state, run)); // DGN 32 is not MAP 32.
-        Assert.True(rules.CanFinish(map, rules.Apply(map, state, run,
-            new QuestRoomCleared(run.RunId, 32, 0, new(0, 0), 32)), run));
+        Assert.True(rules.CanFinish(map, rules.ApplyMapClear(map, state,
+            new(run.RunId, 32, 0, new(0, 0), 32, run.RoomVersion, Now, [.. run.Participants])), run));
 
         definitions.Value = Quest(subtype: 0, args: [32, -1, 30]);
         var timed = (await rules.ResolveAsync(32, 14299, default))!;
@@ -73,9 +108,9 @@ public sealed class MirrorAradQuestTests
         definitions.Value = Quest(subtype: 11, args: [32, -1, 2]);
         var locations = (await rules.ResolveAsync(32, 14299, default))!;
         Assert.False(rules.CanFinish(locations, state, run with { VisitedCells = new HashSet<MazeCell> { new(0, 0), new(1, 0) } }));
-        var room = new QuestRoomCleared(run.RunId, 32, 0, new(0, 0), 4403);
-        state = rules.Apply(locations, state, run, room);
-        Assert.Equal(state, rules.Apply(locations, state, run, room));
+        var room = new DungeonMapCleared(run.RunId, 32, 0, new(0, 0), 4403, run.RoomVersion, Now, [.. run.Participants]);
+        state = rules.ApplyMapClear(locations, state, room);
+        Assert.Equal(state, rules.ApplyMapClear(locations, state, room));
         Assert.True(rules.CanFinish(locations, state, run with { ClearedCells = [new(0, 0), new(1, 0)] }));
     }
 
