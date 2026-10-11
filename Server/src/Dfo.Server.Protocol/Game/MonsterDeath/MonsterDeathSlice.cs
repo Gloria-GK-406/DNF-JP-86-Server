@@ -377,7 +377,8 @@ public sealed class MonsterDeathHandler(
     ICommandBus commandBus, DungeonRunDeliveryRegistry runDeliveries, IGameMessageSender sender,
     ExperienceDiagnostics diagnostics, ILogger<MonsterDeathHandler> logger,
     DungeonPartyRecipients? partyRecipients = null, ICreatureRuntimeDomainService? creatures = null,
-    SelectedSessionSafety? safety = null, IllusionTowerProjectionDelivery? illusionTower = null)
+    SelectedSessionSafety? safety = null, IllusionTowerProjectionDelivery? illusionTower = null,
+    Dfo.Server.Protocol.Game.Tournament.TournamentProjectionDelivery? tournamentProjection = null)
     : ClientMessageHandler<MonsterDeathRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
@@ -447,7 +448,8 @@ public sealed class MonsterDeathHandler(
             var death = new MonsterDeathNotification(message.ActorSequence, drops, reporter.WireUserId,
                 GameDropIdentity.ForKill(change.Run, message.ActorSequence), owners);
             var targets = settled.Participants.Where(x => selectedSessions.FindByCharacter(x.Session.CharacterId) == x.Session)
-                .Select(x => new GameExplicitMessageTarget(x.Session.ConnectionId, Frames(x, death, change.AutoKilledActorSequences))).ToArray();
+                .Select(x => new GameExplicitMessageTarget(x.Session.ConnectionId, Frames(x, death, change.AutoKilledActorSequences,
+                    settled.Tournament))).ToArray();
             await DeliverAsync(reporter, targets, ct).ConfigureAwait(false);
             if (clear is not null) await clearProjection.DeliverAsync(reporter, clear, ct).ConfigureAwait(false);
             logger.LogInformation("Monster death committed run={RunId} actor={Actor} participants={Count} drops={Drops}",
@@ -470,7 +472,7 @@ public sealed class MonsterDeathHandler(
             targets.Where(x => x.ConnectionId != reporter.ConnectionId).ToArray()), ct);
 
     private IReadOnlyList<IGameServerMessage> Frames(MonsterDeathParticipantResult participant,
-        MonsterDeathNotification death, IReadOnlyList<ushort> autoKilled)
+        MonsterDeathNotification death, IReadOnlyList<ushort> autoKilled, TournamentActionResult? tournament = null)
     {
         var award = participant.Effects.Award;
         var total = award?.NotificationTotal ?? participant.Progress.Experience;
@@ -481,6 +483,9 @@ public sealed class MonsterDeathHandler(
         frames.AddRange(QuestFrames(new ApplyMonsterKillResult(award, [], participant.Effects.QuestItems,
             participant.Effects.QuestProgress, participant.Effects.AccountMaterials)));
         if (participant.AvailableQuests is { } quests) frames.Add(new AvailableQuestListMessage(participant.Progress.Level, quests));
+        if (tournament is not null)
+            frames.AddRange((tournamentProjection ?? throw new InvalidOperationException("Tournament projection is unavailable."))
+                .CompletionFrames(tournament));
         return frames;
     }
 

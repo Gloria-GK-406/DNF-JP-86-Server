@@ -2,6 +2,8 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameTournamentRewardStatus = 0x0001_01CA,
+    GameTournamentSelectReward = 0x0001_01CB,
     GameMirrorDungeonEntry = 0x0001_02B6,
     GamePrepareCycleDungeonEntry = 0x0001_0308,
     GameResetItemQuality = 0x0001_0051,
@@ -213,6 +215,11 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameTournamentInfo = 0x0000_0183,
+    GameTournamentMap = 0x0000_0184,
+    GameTournamentReward = 0x0000_0185,
+    GameTournamentRewardStatus = 0x0001_01CA,
+    GameTournamentSelectReward = 0x0001_01CB,
     GameElevatorState = 0x0000_00FE,
     GameMirrorDungeonEntry = 0x0001_02B6,
     GameMirrorDungeonMission = 0x0000_0278,

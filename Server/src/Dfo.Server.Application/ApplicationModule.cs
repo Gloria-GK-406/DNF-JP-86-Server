@@ -197,6 +197,10 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IMirrorDungeonRuleService, MirrorDungeonRuleService>();
         services.TryAddSingleton<IMirrorDungeonEntryDomainService, MirrorDungeonEntryDomainService>();
         services.AddDomainEvent<DungeonParticipantLeft>("dungeon.participant-left", 1);
+        services.TryAddSingleton<ITournamentDungeonRuleService, TournamentDungeonRuleService>();
+        services.TryAddSingleton<TournamentDungeonDomainService>();
+        services.TryAddSingleton<ITournamentDungeonDomainService>(sp => sp.GetRequiredService<TournamentDungeonDomainService>());
+        services.AddDomainSubscriber<DungeonParticipantLeft, TournamentDungeonDomainService>("tournament.departure", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
         services.TryAddSingleton<ICycleDungeonRuleService, CycleDungeonRuleService>();
         services.TryAddSingleton<ICycleDungeonEntryDomainService, CycleDungeonEntryDomainService>();
         services.TryAddSingleton<IDungeonSettlementRuleService, DungeonSettlementRuleService>();

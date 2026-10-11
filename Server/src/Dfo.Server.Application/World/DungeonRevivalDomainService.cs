@@ -8,16 +8,22 @@ namespace Dfo.Server.Application.World;
 
 internal sealed class DungeonRevivalDomainService(ISelectedSessionDomainService sessions,
     ICharacterContainerDomainService containers, IDungeonRunDomainService runs,
-    Dfo.Server.Abstractions.Quests.IQuestProgressDomainService? quests = null) : IDungeonRevivalDomainService
+    Dfo.Server.Abstractions.Quests.IQuestProgressDomainService? quests = null,
+    ITournamentDungeonDomainService? tournaments = null) : IDungeonRevivalDomainService
 {
     public async ValueTask<DungeonRevivalResult> ReviveAsync(SelectedSessionIdentity payer,
         CharacterId target, DungeonRunId runId, CancellationToken cancellationToken)
     {
         if (sessions.FindByCharacter(payer.CharacterId) != payer) return new(false);
+        var isTournament = runs.Find(target)?.Layout.Tournament is not null;
+        if (isTournament && !(tournaments ?? throw new InvalidOperationException("Tournament lifecycle is unavailable."))
+            .CanRevive(target, runId)) return new(false);
         var bag = containers.FindContainer(payer.CharacterId, InventoryContainerType.Main);
         var coin = bag is null ? null : await bag.GetAsync(1, cancellationToken).ConfigureAwait(false);
         if (coin is null || coin.Snapshot.ItemId != 1 || coin.Count <= 0) return new(false);
         if (!runs.StageRevival(payer.CharacterId, target, runId)) return new(false);
+        if (isTournament && !tournaments!.StageRevival(target, runId))
+            throw new InvalidOperationException("Tournament revival changed after admission; roll back the complete revival.");
         var remaining = (coin.Snapshot with { Count = coin.Count - 1 }).ToCore();
         // Keep the virtual counter at zero; the transactional item store commits before life state.
         await bag!.UpdateAsync(coin, current => current with { Count = current.Count - 1 }, cancellationToken).ConfigureAwait(false);

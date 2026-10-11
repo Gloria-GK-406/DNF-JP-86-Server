@@ -41,8 +41,8 @@ public sealed class EffectSettlementRegistrationTests
         });
         var protectedNonMain = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(ISelectedSessionCommand).IsAssignableFrom(x.CommandType)
             && !typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).Select(x => x.CommandType.Name).Order().ToArray();
-        Assert.Equal(new[] { "ApplyMonsterKillCommand", "ClaimWeeklyAttendanceCommand", "EquipCarriedTitleReplacingMirrorCommand", "GrantClearExperienceCommand", "GrantKillExperienceCommand",
-            "ProcessMonsterDeathCommand", "QueryJoustHistoryCommand", "QueryJoustStateCommand", "QueryTitleBookCommand", "ReadReplayStateCommand", "ReconcileAchievementCommand", "SetTitleAppearanceCommand", "StoreTitleCommand", "WithdrawTitleCommand" }, protectedNonMain);
+        Assert.Equal(new[] { "ApplyMonsterKillCommand", "BeginTournamentRewardsCommand", "ClaimWeeklyAttendanceCommand", "EliminateTournamentCommand", "EquipCarriedTitleReplacingMirrorCommand", "GrantClearExperienceCommand", "GrantKillExperienceCommand",
+            "ProcessMonsterDeathCommand", "QueryJoustHistoryCommand", "QueryJoustStateCommand", "QueryTitleBookCommand", "ReadReplayStateCommand", "ReconcileAchievementCommand", "SelectTournamentRewardCommand", "SetTitleAppearanceCommand", "StoreTitleCommand", "WithdrawTitleCommand" }, protectedNonMain);
         Assert.DoesNotContain(services.GetServices<CommandHandlerRegistration>(), x => x.CommandType.Name.Contains("ReplayGuard"));
         Assert.NotNull(services.GetRequiredService<EffectOperationLedger>());
     }

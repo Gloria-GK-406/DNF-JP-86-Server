@@ -15,6 +15,18 @@ public sealed class DungeonClearDomainServiceTests
     private static readonly CharacterId Helper = new(200);
 
     [Fact]
+    public async Task Tournament_room_clear_never_opens_the_ordinary_result_screen()
+    {
+        var definition = new TournamentDefinition(120, 17100, 69, 72, 2, 2, [], [], [], [], [], 16);
+        var layout = BossLayout() with { Tournament = new(definition, [], [], 1) };
+        var runs = new DungeonRunDomainService();
+        var run = runs.Begin(Leader, layout, difficulty: 0);
+        var service = new DungeonClearDomainService(runs, new MutableRoomCleared { Cleared = true });
+        Assert.Null(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+        Assert.False(runs.Find(Leader)!.ClearOpen);
+    }
+
+    [Fact]
     public async Task Enemy_APC_death_does_not_clear_a_room_while_its_APC_boss_is_alive()
     {
         var runs = new DungeonRunDomainService();

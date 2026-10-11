@@ -1,6 +1,7 @@
 using Dfo.Server.Protocol.Game.ItemSockets;
 using Dfo.Server.Protocol.Game.Achievements;
 using Dfo.Server.Protocol.Game.CycleDungeonEntry;
+using Dfo.Server.Protocol.Game.Tournament;
 using Dfo.Server.Protocol.Game.TitleBook;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -241,6 +242,24 @@ public sealed class ProtocolModule : IServerModule
         if (revivalFlag > 1) throw new InvalidOperationException("RevivalAckFlag must be 0 or 1.");
         services.TryAddSingleton(new RevivalOptions(revivalFlag));
         services.TryAddSingleton<DungeonEntryProjectionDelivery>();
+        services.TryAddSingleton<TournamentProjectionDelivery>();
+        services.TryAddSingleton<TournamentRewardSweepService>();
+        services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<TournamentRewardSweepService>());
+        services.AddCommandHandler<BeginTournamentRewardsCommand, bool, BeginTournamentRewardsCommandHandler>(
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.RegisterMessageHandler<TournamentRewardHandler>(ClientMessageType.GameTournamentRewardStatus);
+        services.RegisterMessageHandler<TournamentRewardHandler>(ClientMessageType.GameTournamentSelectReward);
+        services.AddGameCmdMessageDecoder<TournamentStatusDecoder>(0x01CA, ClientMessageType.GameTournamentRewardStatus);
+        services.AddGameCmdMessageDecoder<TournamentSelectionDecoder>(0x01CB, ClientMessageType.GameTournamentSelectReward);
+        services.AddGameNotiMessageEncoder<TournamentInfoMessage, TournamentInfoEncoder>();
+        services.AddGameNotiMessageEncoder<TournamentMapMessage, TournamentMapEncoder>();
+        services.AddGameNotiMessageEncoder<TournamentRewardMessage, TournamentRewardEncoder>();
+        services.AddGameCmdMessageEncoder<TournamentStatusResponse, TournamentStatusEncoder>();
+        services.AddGameCmdMessageEncoder<TournamentSelectionResponse, TournamentSelectionEncoder>();
+        services.AddCommandHandler<SelectTournamentRewardCommand, TournamentCommandResult, SelectTournamentRewardCommandHandler>(
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<EliminateTournamentCommand, TournamentCommandResult, EliminateTournamentCommandHandler>(
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.TryAddSingleton<DungeonPickupProjectionDelivery>();
         services.TryAddSingleton<DungeonPickupPostCommitCoordinator>();
         services.TryAddSingleton<DungeonClearProjectionDelivery>();

@@ -13,7 +13,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
     ISelectedSessionDomainService sessions, ISelectedSessionRuntimeDirectory published,
     ICharacterDomainService characters, IDungeonRunDomainService runs, IMonsterKillDomainService kills,
     IMonsterKillRewardsDomainService rewards, IQuestOfferRefreshDomainService offers,
-    ILogger<MonsterDeathDomainService> logger) : IMonsterDeathDomainService
+    ILogger<MonsterDeathDomainService> logger, ITournamentDungeonDomainService? tournaments = null) : IMonsterDeathDomainService
 {
     public async ValueTask<MonsterDeathSettlementResult> SettleAsync(MonsterDeathSettlementRequest request, CancellationToken ct)
     {
@@ -22,6 +22,9 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
         var run = runs.Find(request.Reporter.CharacterId);
         if (run is null || run.RunId != request.RunId || run.RoomVersion != request.RoomVersion
             || !request.Participants.Contains(request.Reporter)) return new([]);
+        var isTournament = run.Layout.Tournament is not null;
+        if (isTournament && !(tournaments ?? throw new InvalidOperationException("Tournament lifecycle is unavailable."))
+            .CanKill(run, request.Actor)) return new([]);
         foreach (var session in request.Participants)
             if (sessions.FindByCharacter(session.CharacterId) != session || !published.IsPublishedExact(session)
                 || runs.Find(session.CharacterId)?.RunId != run.RunId)
@@ -50,7 +53,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
             var points = pointLedgers[session.CharacterId];
             var applied = await rewards.ApplyAsync(session, session.AccountId, session.CharacterId, kill,
                 run.Layout.DungeonId, run.Difficulty, run.Layout.ExperienceWeight, run.PartyMemberCount,
-                run.PartyKey, run.IsBossRoom && kill.IsMonster && kill.Rank == MonsterRank.Boss,
+                run.PartyKey, !isTournament && run.IsBossRoom && kill.IsMonster && kill.Rank == MonsterRank.Boss,
                 run.RunId, death.Actor, run.Layout.Mirror?.WorldMapId, death.ActorState?.PendingLoot, ct).ConfigureAwait(false);
             pending.Awards[session.CharacterId] = applied.Award;
             var progress = applied.Award is { } award ? new CharacterProgressionState(award.Level, award.Total)
@@ -65,9 +68,13 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
             }
             result.Add(new(session, progress, points, applied, available));
         }
+        var tournament = isTournament
+            ? await tournaments!.AdvanceAsync(request.Reporter, run.RunId, request.Actor, ct).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("The accepted tournament death could not advance its round.")
+            : null;
         logger.LogInformation("Monster death prepared run={RunId} actor={Actor} participants={Count}; one transaction, no entry inventory query",
             run.RunId, request.Actor, result.Count);
-        return new(result, pending);
+        return new(result, pending) { Tournament = tournament };
     }
 
     private sealed class DeathCommit(IDungeonRunDomainService runs, DungeonActorDeathClaim death)

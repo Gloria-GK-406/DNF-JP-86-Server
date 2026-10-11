@@ -241,13 +241,21 @@ public sealed class DungeonEntryProjectionDelivery(
                         ? new InventoryDeltaMessage(slot.Space, [new Dfo.Server.Data.Inventory.InventoryItemState(null, slot.Index, remaining)], refreshed[receiver.Session.CharacterId].World.PreparedAt)
                         : GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, refreshed[receiver.Session.CharacterId].World.PreparedAt));
                 }
-                frames.Add(new DungeonInfoNotification(layout, leaderVisit.Run.Difficulty));
-                frames.Add(new StartMapNotification(
-                    roster.IsVirtual ? visit.Run with { Participant = null } : visit.Run,
-                    FirstEntry: true,
-                    visit.Actors,
-                    visit.FirstActorSequence,
-                    FloorPieceValues.Describe(visit.Run, visit.FloorDrops)));
+                if (layout.Tournament is { } tournament)
+                {
+                    frames.Add(new Dfo.Server.Protocol.Game.Tournament.TournamentInfoMessage(tournament));
+                    frames.Add(new Dfo.Server.Protocol.Game.Tournament.TournamentMapMessage(tournament));
+                }
+                else
+                {
+                    frames.Add(new DungeonInfoNotification(layout, leaderVisit.Run.Difficulty));
+                    frames.Add(new StartMapNotification(
+                        roster.IsVirtual ? visit.Run with { Participant = null } : visit.Run,
+                        FirstEntry: true,
+                        visit.Actors,
+                        visit.FirstActorSequence,
+                        FloorPieceValues.Describe(visit.Run, visit.FloorDrops)));
+                }
                 if (layout.Despair is { Floor: >= 10 and <= 90 } tower && tower.Floor % 10 == 0)
                 {
                     var view = refreshed[receiver.Session.CharacterId];

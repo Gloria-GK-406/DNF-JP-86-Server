@@ -26,7 +26,10 @@ public interface ICommittedActorDeath
 }
 
 public sealed record MonsterDeathSettlementResult(IReadOnlyList<MonsterDeathParticipantResult> Participants,
-    ICommittedActorDeath? Death = null);
+    ICommittedActorDeath? Death = null)
+{
+    public TournamentActionResult? Tournament { get; init; }
+}
 
 public interface IMonsterDeathDomainService
 {
