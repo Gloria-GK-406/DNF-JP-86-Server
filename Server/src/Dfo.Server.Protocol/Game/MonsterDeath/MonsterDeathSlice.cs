@@ -378,7 +378,8 @@ public sealed class MonsterDeathHandler(
     ExperienceDiagnostics diagnostics, ILogger<MonsterDeathHandler> logger,
     DungeonPartyRecipients? partyRecipients = null, ICreatureRuntimeDomainService? creatures = null,
     SelectedSessionSafety? safety = null, IllusionTowerProjectionDelivery? illusionTower = null,
-    Dfo.Server.Protocol.Game.Tournament.TournamentProjectionDelivery? tournamentProjection = null)
+    Dfo.Server.Protocol.Game.Tournament.TournamentProjectionDelivery? tournamentProjection = null,
+    Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery? altarProjection = null)
     : ClientMessageHandler<MonsterDeathRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
@@ -446,6 +447,7 @@ public sealed class MonsterDeathHandler(
                     settled.Tournament))).ToArray();
             await DeliverAsync(reporter, targets, ct).ConfigureAwait(false);
             if (clear is not null) await clearProjection.DeliverAsync(reporter, clear, ct).ConfigureAwait(false);
+            if (change.Run.Layout.Altar is not null) altarProjection?.Wake();
             logger.LogInformation("Monster death committed run={RunId} actor={Actor} participants={Count} drops={Drops}",
                 run.RunId, message.ActorSequence, settled.Participants.Count, drops.Length);
         }
@@ -483,7 +485,7 @@ public sealed class MonsterDeathHandler(
         return frames;
     }
 
-    private static IReadOnlyList<IGameServerMessage> QuestFrames(ApplyMonsterKillResult? applied)
+    internal static IReadOnlyList<IGameServerMessage> QuestFrames(ApplyMonsterKillResult? applied)
     {
         var frames = new List<IGameServerMessage>();
         if (applied?.QuestItems is { } items) frames.Add(GameInventoryDelivery.Notification(items));

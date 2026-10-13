@@ -44,7 +44,8 @@ public sealed class DungeonPartyWipeService(
     ICommandBus commands,
     TimeProvider clock,
     ILogger<DungeonPartyWipeService> logger,
-    Dfo.Server.Protocol.Game.Tournament.TournamentProjectionDelivery? tournaments = null) : BackgroundService
+    Dfo.Server.Protocol.Game.Tournament.TournamentProjectionDelivery? tournaments = null,
+    Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery? altars = null) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -81,6 +82,12 @@ public sealed class DungeonPartyWipeService(
             // The same ordering as entry: instance, then accounts in stable order.
             foreach (var account in frozen.Select(x => x.AccountId).Distinct().OrderBy(x => x.Value))
                 leases.Add(await transitionGate.AcquireAsync(account, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
+            if (!cleared && runs.Find(runId)?.Layout.Altar is not null)
+            {
+                await (altars ?? throw new InvalidOperationException("Altar projection is unavailable."))
+                    .FailAsync(runId, cancellationToken).ConfigureAwait(false);
+                return;
+            }
             if (!cleared && runs.Find(runId)?.Layout.Tournament is not null)
             {
                 await (tournaments ?? throw new InvalidOperationException("Tournament projection is unavailable."))

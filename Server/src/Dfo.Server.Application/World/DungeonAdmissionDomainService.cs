@@ -27,7 +27,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             || context.Participants.Select(x => x.AccountId).Distinct().Count() != context.Participants.Count
             || context.Participants.Select(x => x.Slot).Distinct().Count() != context.Participants.Count)
             return Refuse(DungeonEntryFailure.MissingPrerequisite);
-        if (options.Quota is { Family: not (UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon or UsageQuotaFamily.DespairTower) })
+        if (options.Quota is { Family: not (UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon or UsageQuotaFamily.DespairTower or UsageQuotaFamily.AltarDungeon) })
             throw new ArgumentException("Unsupported dungeon entry quota family.", nameof(options));
         if (!Enum.IsDefined(context.Facts.Difficulty)) return Refuse(DungeonEntryFailure.DifficultyNotUnlocked);
         DungeonDefinition? definition;
@@ -98,10 +98,17 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             if (requirements.Length > 0 && (await PrepareMaterialsAsync(member, requirements, ct).ConfigureAwait(false)).Plan is null)
                 return Refuse(DungeonEntryFailure.MissingRequiredItem, member.Slot);
             var costs = ImmutableArray.CreateBuilder<DungeonAdmissionCost>();
+            if (options.GoldCosts.TryGetValue(member.CharacterId, out var goldCost))
+            {
+                if (goldCost < 0) throw new InvalidDataException("Negative dungeon entry gold cost.");
+                if (await (characters ?? throw new InvalidOperationException("Character service unavailable.")).Get(member.CharacterId).GoldAsync(ct).ConfigureAwait(false) < goldCost)
+                    return Refuse(DungeonEntryFailure.InsufficientGold, member.Slot);
+                if (goldCost > 0) costs.Add(new DungeonGoldAdmissionCost(goldCost));
+            }
             costs.AddRange(requirements.Where(x => x.Consume).Select(x => new DungeonMaterialAdmissionCost(x.ItemId, x.Count, x.AllowSharedMaterial)));
             if (options.Quota is { } limit)
             {
-                var key = limit.Family == UsageQuotaFamily.MirrorDungeon ? UsageQuotaKey.Mirror("entries", limit.Period) : limit.Family == UsageQuotaFamily.DespairTower ? UsageQuotaKey.Despair("entries", limit.Period) : UsageQuotaKey.Dimension(limit.Period);
+                var key = limit.Family == UsageQuotaFamily.AltarDungeon ? UsageQuotaKey.Altar(limit.DungeonId ?? throw new InvalidDataException("Altar quota requires dungeon id."), limit.Period) : limit.Family == UsageQuotaFamily.MirrorDungeon ? UsageQuotaKey.Mirror("entries", limit.Period) : limit.Family == UsageQuotaFamily.DespairTower ? UsageQuotaKey.Despair("entries", limit.Period) : UsageQuotaKey.Dimension(limit.Period);
                 UsageQuotaValue? expected;
                 if (limit.Family == UsageQuotaFamily.MirrorDungeon)
                 {
@@ -144,6 +151,9 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
                 if (result.Plan is null) return new(null, new(null, DungeonEntryFailure.MissingRequiredItem, permit.Participant.Slot));
                 if (permit.Costs.OfType<DungeonMaterialAdmissionCost>().Any()) plans.Add(result.Plan);
             }
+            foreach (var gold in permit.Costs.OfType<DungeonGoldAdmissionCost>())
+                if (await (characters ?? throw new InvalidOperationException("Character service unavailable.")).Get(permit.Participant.CharacterId).GoldAsync(ct).ConfigureAwait(false) < gold.Amount)
+                    return new(null, new(null, DungeonEntryFailure.InsufficientGold, permit.Participant.Slot));
             foreach (var quota in permit.Costs.OfType<DungeonQuotaAdmissionCost>())
             {
                 var now = quota.Key.Family == UsageQuotaFamily.MirrorDungeon
@@ -162,10 +172,15 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             foreach (var raw in owned.Permits)
             {
                 var member = raw.Participant;
+                foreach (var gold in raw.Costs.OfType<DungeonGoldAdmissionCost>())
+                    if (await (characters ?? throw new InvalidOperationException("Character service unavailable.")).Get(member.CharacterId).TrySpendGoldAsync(gold.Amount, ct).ConfigureAwait(false) is null)
+                        throw new InvalidOperationException("Entry gold changed after preflight.");
                 foreach (var quota in raw.Costs.OfType<DungeonQuotaAdmissionCost>())
                 {
                     var bus = events ?? throw new InvalidOperationException("Entry event service unavailable.");
-                    if (quota.Key.Family == UsageQuotaFamily.MirrorDungeon)
+                    if (quota.Key.Family == UsageQuotaFamily.AltarDungeon)
+                        await bus.DirectAsync(new AltarEntryRecorded(member.CharacterId, int.Parse(quota.Key.Name, System.Globalization.CultureInfo.InvariantCulture), quota.Key.Day!.Value, quota.Expected, quota.Used), ct).ConfigureAwait(false);
+                    else if (quota.Key.Family == UsageQuotaFamily.MirrorDungeon)
                         await bus.DirectAsync(new MirrorEntryRecorded([new(member.AccountId, member.CharacterId, quota.Key.Day!.Value,
                             quota.Expected!.UsedCount, quota.Used)]), ct).ConfigureAwait(false);
                     else if (quota.Key.Family == UsageQuotaFamily.DespairTower)

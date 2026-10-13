@@ -24,6 +24,7 @@ using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Game.Weakness;
+using Dfo.Server.Protocol.Game.Altar;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Dfo.Server.Protocol.Tests.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.Party;
@@ -301,6 +302,31 @@ public sealed class LeaveDungeonTests
     }
 
     [Fact]
+    public async Task Altar_give_up_settles_the_departing_member_before_removing_the_run()
+    {
+        var runs = new OneRun(isAltar: true);
+        var deliveries = new DungeonRunDeliveryRegistry(); deliveries.Register(runs.RunId, [Identity]);
+        var sessions = new OneSession(Identity); var commands = new RecordingCommandBus();
+        var sender = new RecordingSender(); var transitions = new SelectedSessionTransitionGate();
+        var projections = new DungeonProjectionGate(); var clock = TimeProvider.System;
+        var altars = new AltarView(runs.RunId); var wake = new AltarWakeSignal(clock);
+        var projection = new AltarProjectionDelivery(altars, runs, sessions, deliveries, commands,
+            new NoopNotificationBus(), clock, wake, null!, NullLogger<AltarProjectionDelivery>.Instance);
+        var coordinator = new AltarProtocolCoordinator(runs, sessions, projections, transitions,
+            projection, commands, sender, null!);
+        runs.BeforeEnd = () => Assert.Equal(AltarOperation.SettleParticipantBeforeExit,
+            Assert.IsType<AltarActionCommand>(Assert.Single(commands.Commands)).Operation);
+        var handler = new GiveUpGameHandler(sessions, new OneRuntimeSession(Entry()), new StandingWhereTheyAre(),
+            runs, deliveries, sender, TownAreaProjectionTestFactory.Create(sessions, new OneRuntimeSession(Entry()), sender),
+            NullLogger<GiveUpGameHandler>.Instance, transitions, altars: coordinator, projectionGate: projections);
+        await handler.HandleAsync(Dispatch(), new GiveUpGameRequest(GameMessageMetadata.Empty), default);
+        Assert.True(runs.Ended); Assert.Empty(deliveries.Find(runs.RunId));
+        Assert.Single(sender.Sent.OfType<GiveUpGameResponse>());
+        await handler.HandleAsync(Dispatch(), new GiveUpGameRequest(GameMessageMetadata.Empty), default);
+        Assert.Single(commands.Commands);
+    }
+
+    [Fact]
     public async Task Stale_give_up_stops_before_any_current_run_or_party_capture()
     {
         var stale = new GameMessageMetadata(1, 0x002A, 0, 9)
@@ -563,7 +589,7 @@ public sealed class LeaveDungeonTests
         listenerPort: 10010);
 
     /// <summary>A run that records whether it was ended, and refuses everything else.</summary>
-    private sealed class OneRun(bool hasRun = true) : IDungeonRunDomainService
+    private sealed class OneRun(bool hasRun = true, bool isAltar = false) : IDungeonRunDomainService
     {
         private static readonly DungeonLayout Layout = new(
             144, 0, 1, 1,
@@ -572,6 +598,7 @@ public sealed class LeaveDungeonTests
             5);
 
         public bool Ended { get; private set; }
+        public Action? BeforeEnd { get; set; }
 
         public DungeonRunId RunId { get; } = DungeonRunId.New();
 
@@ -584,18 +611,20 @@ public sealed class LeaveDungeonTests
 
         public bool End(CharacterId characterId)
         {
+            BeforeEnd?.Invoke();
             this.Ended = true;
             return hasRun;
         }
 
         public DungeonRunState? Find(CharacterId characterId) => hasRun && !this.Ended
             ? new DungeonRunState(
-                Layout,
+                isAltar ? Layout with { Altar = new(AltarDungeonKind.Ultimate, new(2026, 10, 13)) } : Layout,
                 Layout.StartCell,
                 Layout.StartRoomMapId,
                 new HashSet<MazeCell> { Layout.StartCell },
                 DateTimeOffset.UnixEpoch,
                 RunId: this.RunId,
+                Participants: isAltar ? [new(Identity.AccountId, Identity.CharacterId, 0, true)] : [],
                 CurrentCellState: DungeonCellSeed.CompleteEmpty(
                     Layout.StartCell, Layout.StartRoomMapId).Snapshot())
             : null;
@@ -803,9 +832,27 @@ public sealed class LeaveDungeonTests
             where TResult : notnull
         {
             Commands.Add(command);
+            if (command is AltarActionCommand) return ValueTask.FromResult((TResult)(object)new AltarCommandResult(null));
             return ValueTask.FromResult(
                 (TResult)(object)PartyOperationResult.Success());
         }
+    }
+
+    private sealed class AltarView(DungeonRunId runId) : IAltarDungeonDomainService
+    {
+        public bool Supports(int id) => true;
+        public AltarDungeonState? Find(DungeonRunId id) => id == runId ? new(runId,
+            new(11007, AltarDungeonKind.Ultimate, 65, 70, 7, 7, [], null!, 3), [], DateTimeOffset.UnixEpoch, 0, 17030) : null;
+        public IReadOnlyList<AltarDeadline> Pending() => [];
+        public ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<AltarActionResult?> ReadyAsync(SelectedSessionIdentity session, DungeonRunId id, long room, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<AltarActionResult?> AdvanceAsync(DungeonRunId id, long room, long generation, DateTimeOffset now, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<AltarActionResult?> SelectDifficultyAsync(SelectedSessionIdentity session, DungeonRunId id, long room, long generation, byte difficulty, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<AltarActionResult?> FailAsync(DungeonRunId id, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<AltarActionResult?> SettleBeforeExitAsync(DungeonRunId id, CancellationToken ct, CharacterId? participant = null) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<AltarQuotaSnapshot>> ReadQuotaAsync(CharacterId id, CancellationToken ct) => throw new NotSupportedException();
+        public bool CanRevive(CharacterId character, DungeonRunId id) => false;
+        public bool StageRevival(CharacterId character, DungeonRunId id) => false;
     }
 
     private sealed class NoopNotificationBus : Dfo.Server.Testing.ProjectionEventService

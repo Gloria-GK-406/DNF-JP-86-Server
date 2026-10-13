@@ -107,8 +107,9 @@ public sealed record DungeonCellState(
     public IReadOnlyList<DungeonCellObjectState> Objects { get; init; } = [];
     public IReadOnlyList<DungeonCellHellGroupState> HellGroups { get; init; } = [];
     public IReadOnlyList<DungeonRoomMechanismState> Mechanisms { get; init; } = [];
+    public bool MechanismBlocksClear { get; init; }
 
-    public bool IsCleared => this.Actors
+    public bool IsCleared => !this.MechanismBlocksClear && this.Actors
         .Where(actor => actor.BlocksClear)
         .All(actor => actor.IsDead);
 
@@ -134,6 +135,7 @@ public sealed record DungeonCellSeed(
     public IReadOnlyList<DungeonCellObjectState> Objects { get; init; } = [];
     public IReadOnlyList<DungeonCellHellGroupState> HellGroups { get; init; } = [];
     public IReadOnlyList<DungeonRoomMechanismDefinition> Mechanisms { get; init; } = [];
+    public bool MechanismBlocksClear { get; init; }
 
     public DungeonCellState Snapshot() => new(
         this.Cell,
@@ -141,7 +143,7 @@ public sealed record DungeonCellSeed(
         Revision: 0,
         this.FirstActorSequence,
         this.Actors,
-        this.GroundItems) { Objects = this.Objects, HellGroups = this.HellGroups,
+        this.GroundItems) { Objects = this.Objects, HellGroups = this.HellGroups, MechanismBlocksClear = this.MechanismBlocksClear,
             Mechanisms = this.Mechanisms.Select(definition => new DungeonRoomMechanismState(definition)).ToArray() };
 
     public static DungeonCellSeed CompleteEmpty(MazeCell cell, int mapId) =>

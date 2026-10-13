@@ -168,7 +168,9 @@ public sealed class GiveUpGameHandler(
     PartyNotificationDelivery? partyNotifications = null,
     DungeonCardPresentationCoordinator? cardPresentation = null,
     IllusionTowerProjectionDelivery? illusionTower = null,
-    IllusionTowerPartyCoordinator? towerParties = null)
+    IllusionTowerPartyCoordinator? towerParties = null,
+    Dfo.Server.Protocol.Game.Altar.AltarProtocolCoordinator? altars = null,
+    DungeonProjectionGate? projectionGate = null)
     : ClientMessageHandler<GiveUpGameRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -224,19 +226,22 @@ public sealed class GiveUpGameHandler(
             var ended = false;
             var reroute = false;
             PartyCommandExecution? partyExecution = null;
-            await using (var transition = await transitionGate.AcquireAsync(
-                session.AccountId, UserAccessMode.Exclusive, cancellationToken)
-                .ConfigureAwait(false))
+            var expectedRun = runs.Find(session.CharacterId);
+            await using (var transition = await AcquireGiveUpAsync(session, expectedRun, cancellationToken).ConfigureAwait(false))
             {
                 if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session)
                     return;
-                if (towerParties?.HasInvolvedTower(session) == true)
+                if (towerParties?.HasInvolvedTower(session) == true
+                    || runs.Find(session.CharacterId)?.RunId != expectedRun?.RunId)
                 {
                     reroute = true;
                 }
                 else
                 {
                     var currentRun = runs.Find(session.CharacterId);
+                    if (currentRun?.Layout.Altar is not null)
+                        await (altars ?? throw new InvalidOperationException("Altar coordinator is unavailable."))
+                            .SettleGiveUpUnderGatesAsync(session, currentRun.RunId, cancellationToken).ConfigureAwait(false);
                     if (currentRun is not null)
                         cardPresentation?.Cancel(session.CharacterId, currentRun.RunId);
                     ended = currentRun is not null
@@ -285,6 +290,30 @@ public sealed class GiveUpGameHandler(
                 [new TownAreaEntry(session, result, position, ProjectWeaknessBeforeTown: true)],
                 cancellationToken).ConfigureAwait(false);
             return;
+        }
+    }
+
+    private async ValueTask<IAsyncDisposable> AcquireGiveUpAsync(SelectedSessionIdentity session, DungeonRunState? expected, CancellationToken ct)
+    {
+        if (expected?.Layout.Altar is null)
+            return await transitionGate.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
+        var leases = new List<IAsyncDisposable>();
+        try
+        {
+            leases.Add(await (projectionGate ?? throw new InvalidOperationException("Altar projection gate is unavailable."))
+                .AcquireAsync(expected.RunId, UserAccessMode.Exclusive, ct).ConfigureAwait(false));
+            foreach (var account in expected.Participants.Select(x => x.AccountId).Append(session.AccountId).Distinct().OrderBy(x => x.Value))
+                leases.Add(await transitionGate.AcquireAsync(account, UserAccessMode.Exclusive, ct).ConfigureAwait(false));
+            return new GiveUpLeases(leases);
+        }
+        catch { await new GiveUpLeases(leases).DisposeAsync().ConfigureAwait(false); throw; }
+    }
+    private sealed class GiveUpLeases(IReadOnlyList<IAsyncDisposable> leases) : IAsyncDisposable
+    {
+        public async ValueTask DisposeAsync()
+        {
+            for (var index = leases.Count - 1; index >= 0; index--)
+                await leases[index].DisposeAsync().ConfigureAwait(false);
         }
     }
 }

@@ -244,6 +244,32 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton(new RevivalOptions(revivalFlag));
         services.TryAddSingleton<DungeonEntryProjectionDelivery>();
         services.TryAddSingleton<TournamentProjectionDelivery>();
+        services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarWakeSignal>();
+        services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery>();
+        services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarProtocolCoordinator>();
+        services.AddHostedService<Dfo.Server.Protocol.Game.Altar.AltarScheduler>();
+        services.AddHostedService<Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService>();
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.Altar.AltarStateChanged,
+            Dfo.Server.Protocol.Game.Altar.AltarStateChangedHandler>(retryLimit: 0);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarPrepareHandler>(ClientMessageType.GameAltarPrepare);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchHandler>(ClientMessageType.GameAltarDeathBatch);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarDifficultyHandler>(ClientMessageType.GameAltarDifficulty);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarPrepareDecoder>(0x0102, ClientMessageType.GameAltarPrepare);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchDecoder>(0x00FF, ClientMessageType.GameAltarDeathBatch);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyDecoder>(0x013D, ClientMessageType.GameAltarDifficulty);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.Altar.AltarActionCommand, Dfo.Server.Protocol.Game.Altar.AltarCommandResult,
+            Dfo.Server.Protocol.Game.Altar.AltarActionCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchCommand, IReadOnlyList<MonsterDeathSettlementResult>,
+            Dfo.Server.Protocol.Game.Altar.AltarDeathBatchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarInfoMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarInfoMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarMapMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarMapMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarWaveMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarWaveMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarIntervalMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarIntervalMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyPromptMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyPromptMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResolvedMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResolvedMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarRankingMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarRankingMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarRewardMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarRewardMessage>>();
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResponse, GameCmdStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResponse>>();
         services.TryAddSingleton<TournamentRewardSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<TournamentRewardSweepService>());
         services.AddCommandHandler<BeginTournamentRewardsCommand, bool, BeginTournamentRewardsCommandHandler>(

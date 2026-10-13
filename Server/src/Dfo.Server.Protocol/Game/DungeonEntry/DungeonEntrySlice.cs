@@ -775,7 +775,11 @@ public sealed class MoveMapHandler(
             FloorPieceValues.Describe(run, visit.FloorDrops));
 
         IReadOnlyList<IGameServerMessage> FramesFor(DungeonRunState run) =>
-            visit.FirstEntry && HellPartyProjection.For(run) is { } info
+            run.Layout.Altar is not null
+                ? run.IsCleared
+                    ? [new Dfo.Server.Protocol.Game.Altar.AltarMapMessage(run), new Dfo.Server.Protocol.Game.Altar.AltarWaveMessage([], 0)]
+                    : [new Dfo.Server.Protocol.Game.Altar.AltarMapMessage(run)]
+                : visit.FirstEntry && HellPartyProjection.For(run) is { } info
                 ? [RoomFor(run), info] : [RoomFor(run)];
 
         await sender.SendExplicitAsync(

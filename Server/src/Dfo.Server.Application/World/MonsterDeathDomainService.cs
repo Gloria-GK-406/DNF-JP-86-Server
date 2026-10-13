@@ -56,7 +56,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
             var points = pointLedgers[session.CharacterId];
             var applied = await rewards.ApplyAsync(session, session.AccountId, session.CharacterId, kill,
                 run.Layout.DungeonId, run.Difficulty, run.Layout.ExperienceWeight, run.PartyMemberCount,
-                run.PartyKey, !isTournament && run.IsBossRoom && kill.IsMonster && kill.Rank == MonsterRank.Boss,
+                run.PartyKey, !isTournament && run.Layout.Altar is null && run.IsBossRoom && kill.IsMonster && kill.Rank == MonsterRank.Boss,
                 run.RunId, death.Actor, run.Layout.Mirror?.WorldMapId, death.ActorState?.PendingLoot, ct).ConfigureAwait(false);
             pending.Awards[session.CharacterId] = applied.Award;
             var progress = applied.Award is { } award ? new CharacterProgressionState(award.Level, award.Total)

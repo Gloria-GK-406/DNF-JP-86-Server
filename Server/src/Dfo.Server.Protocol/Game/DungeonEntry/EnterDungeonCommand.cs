@@ -14,10 +14,12 @@ public sealed class EnterDungeonCommandHandler(
     IDungeonEntryDecisionDomainService decisions, IDungeonVisitDomainService visits,
     IHellDungeonEntryDomainService? hell = null, ICycleDungeonEntryDomainService? cycles = null,
     IMirrorDungeonEntryDomainService? mirrors = null, IDimensionDungeonDomainService? dimensions = null, IDespairTowerDomainService? despair = null,
-    ITournamentDungeonDomainService? tournaments = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
+    ITournamentDungeonDomainService? tournaments = null, IAltarDungeonDomainService? altars = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
 {
     public ValueTask<DungeonEntryAttempt> HandleAsync(CommandExecutionContext context, EnterDungeonCommand command,
-        CancellationToken cancellationToken) => tournaments?.Supports(command.Entry.DungeonId) == true
+        CancellationToken cancellationToken) => altars?.Supports(command.Entry.DungeonId) == true
+        ? altars.EnterAsync(command.Entry, cancellationToken)
+        : tournaments?.Supports(command.Entry.DungeonId) == true
         ? tournaments.EnterAsync(command.Entry, cancellationToken)
         : despair?.IsTower(command.Entry.DungeonId) == true
         ? despair.EnterAsync(command.Entry, cancellationToken)

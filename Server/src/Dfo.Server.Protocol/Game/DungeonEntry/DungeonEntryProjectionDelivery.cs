@@ -241,7 +241,15 @@ public sealed class DungeonEntryProjectionDelivery(
                         ? new InventoryDeltaMessage(slot.Space, [new Dfo.Server.Data.Inventory.InventoryItemState(null, slot.Index, remaining)], refreshed[receiver.Session.CharacterId].World.PreparedAt)
                         : GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, refreshed[receiver.Session.CharacterId].World.PreparedAt));
                 }
-                if (layout.Tournament is { } tournament)
+                if (layout.Altar is { } altar)
+                {
+                    frames.Add(new Dfo.Server.Protocol.Game.Altar.AltarInfoMessage(layout.DungeonId, altar.Kind));
+                    frames.Add(new Dfo.Server.Protocol.Game.Altar.AltarMapMessage(visit.Run));
+                    frames.Add(GameInventoryDelivery.CarriedGoldNotification(
+                        await characters.Get(receiver.Session.CharacterId).GoldAsync(cancellationToken).ConfigureAwait(false),
+                        refreshed[receiver.Session.CharacterId].World.PreparedAt));
+                }
+                else if (layout.Tournament is { } tournament)
                 {
                     frames.Add(new Dfo.Server.Protocol.Game.Tournament.TournamentInfoMessage(tournament));
                     frames.Add(new Dfo.Server.Protocol.Game.Tournament.TournamentMapMessage(tournament));

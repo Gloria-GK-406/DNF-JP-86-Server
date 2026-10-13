@@ -76,6 +76,19 @@ public sealed class ApplicationModule : IServerModule
         return rates.Count == 0 ? ExperienceEntitlementPolicy.None : new(rates);
     }
 
+    private static AltarDungeonPolicy AltarPolicyFrom(IConfiguration configuration)
+    {
+        var windows = configuration.GetSection("AltarDungeons:OpeningWindows").GetChildren().Select(row =>
+        {
+            if (!int.TryParse(row["DungeonId"], out var id) || id is not (11006 or 11007)
+                || !TimeOnly.TryParse(row["Opens"], System.Globalization.CultureInfo.InvariantCulture, out var opens)
+                || !TimeOnly.TryParse(row["Closes"], System.Globalization.CultureInfo.InvariantCulture, out var closes))
+                throw new InvalidDataException("Invalid altar opening window configuration.");
+            return new AltarOpeningWindow(id, opens, closes);
+        }).ToArray();
+        return new() { OpeningWindows = windows };
+    }
+
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -101,6 +114,18 @@ public sealed class ApplicationModule : IServerModule
             Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
             fact => $"{fact.CharacterId.Value}:{(int)fact.Family}");
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.DimensionEntryRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.TryAddSingleton(AltarPolicyFrom(configuration));
+        services.TryAddSingleton<IAltarDungeonRuleService, AltarDungeonRuleService>();
+        services.TryAddSingleton<AltarDungeonEngine>();
+        services.TryAddSingleton<EndlessAltarDomainService>();
+        services.TryAddSingleton<UltimateAltarDomainService>();
+        services.TryAddSingleton<AltarDungeonDomainService>();
+        services.TryAddSingleton<IAltarDungeonDomainService>(sp => sp.GetRequiredService<AltarDungeonDomainService>());
+        services.AddDomainEvent<AltarChallengeCompleted>("altar.challenge-completed", 1);
+        services.AddDomainSubscriber<AltarChallengeCompleted, AltarDungeonQuestSubscriber>("quest.altar-complete", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
+        services.AddDomainSubscriber<DungeonParticipantLeft, AltarDungeonDomainService>("altar.departure", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.AltarEntryRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.TryAddSingleton<IDespairTowerRuleService, DespairTowerRuleService>();
         services.TryAddSingleton<IDespairTowerDomainService, DespairTowerDomainService>();

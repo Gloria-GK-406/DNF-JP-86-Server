@@ -1,5 +1,11 @@
 # 协议清单
 
+## 2026-10-13 无尽／极限祭坛（CurrentImplementation，待实机验收）
+
+DGN11006/11007由两个独立领域服务管理，复用凭证消费、UsageQuota、动态Cell与死亡事务。入场D4→D3→加载0025→CMD0102→D7/D2波次；极限0129/013D选择；最终D0→D1→经验/ITEMLIST，0048退出。D3为u32 mapId/15B；D1为四组8B行；D2尾u16为(tail==0)清房许可，非毫秒，人工区覆盖旧推断。不发送错误0104[0]退出就绪包。
+
+每日各3次。PVF时段表空、70样本开放检查已patch恒通过，按用户查证优先授权默认全天，可配置OpeningWindows，不宣称原生日程已闭合。无尽真实PVF金币分档，不扣疲劳。历史最佳尚未持久化。没有本轮WireCaptured/ClientVerified。[契约](../Document/tasks/altar-dungeons/TaskContract.md)、[来源、协议顺序与测试清单](../Document/tasks/altar-dungeons/research-and-implementation.md)。
+
 ## 2026-10-11 黄龙／青龙大会一期（CurrentImplementation，待实机验收）
 
 DGN120／121以独立大会领域服务复用统一门禁、单Cell四轮和死亡事务。入场[0183](game/server-to-client/NOTI-0x0183.md)260B＋[0184](game/server-to-client/NOTI-0x0184.md)15B替代普通地图包；客户端本地换轮，服务端按当前actor门控。四胜或死亡复活窗口超时发送[0185](game/server-to-client/NOTI-0x0185.md)，[CMD01CA](game/client-to-server/0x01CA.md)启动翻牌、[CMD01CB](game/client-to-server/0x01CB.md)每行一次选牌。单人自动补选窗口为1秒，后台每50ms检查，以适配客户端1500ms的可见初始化状态；不承诺高延迟下的显示。角色经验/金币、曲玉派发与领取标记同事务；满包邮寄。

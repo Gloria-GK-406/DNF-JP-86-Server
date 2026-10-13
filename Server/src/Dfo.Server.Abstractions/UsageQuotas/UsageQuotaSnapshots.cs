@@ -10,7 +10,7 @@ namespace Dfo.Server.Abstractions.UsageQuotas;
 /// <summary>One explicit-time, read-only projection of a quota family. Each domain keeps its reset rules.</summary>
 public sealed record UsageQuotaSnapshot(DateTimeOffset At, IReadOnlyList<ItemUsageState> Items,
     AccountEntitlementEntryState? Entitlements, IReadOnlyList<CharacterPremiumUsageSlotState> PremiumUsage,
-    MirrorDailyQuota? Mirror, DimensionQuotaSnapshot? Dimension = null, DespairTowerStatus? Despair = null);
+    MirrorDailyQuota? Mirror, DimensionQuotaSnapshot? Dimension = null, DespairTowerStatus? Despair = null, IReadOnlyList<AltarQuotaSnapshot>? Altars = null);
 
 public interface IUsageQuotaSnapshotDomainService
 {

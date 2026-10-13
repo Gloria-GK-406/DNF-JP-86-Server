@@ -22,6 +22,9 @@ internal static class DungeonEntryRefusalCodes
         DungeonEntryFailure.LevelTooLow => manualHell ? SelectDungeonRefusal.HellLevelTooLow : SelectDungeonRefusal.LevelTooLow,
         DungeonEntryFailure.HellQuestNotCleared or DungeonEntryFailure.MissingPrerequisite => SelectDungeonRefusal.MissingPrerequisite,
         DungeonEntryFailure.InsufficientFatigue => SelectDungeonRefusal.InsufficientFatigue,
+        // A21 switch D0B68C / D0B948; the latter differs from the 70 server's F4.
+        DungeonEntryFailure.InsufficientGold => 0x0A,
+        DungeonEntryFailure.OutsideOpeningHours => 0xF5,
         DungeonEntryFailure.DailyEntryLimitReached => SelectDungeonRefusal.DailyEntryLimitReached,
         DungeonEntryFailure.MemberEntryLimitReached => SelectDungeonRefusal.MemberEntryLimitReached,
         DungeonEntryFailure.AlreadyInDungeon => SelectDungeonRefusal.InvalidSelectionState,

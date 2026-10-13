@@ -437,6 +437,9 @@ public sealed class SelectCharacterHandler(
         if (SendsFramesAfterTheCompletionMarker && quotaProjection is not null)
             _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.DespairTower,
                 cancellationToken).ConfigureAwait(false);
+        if (SendsFramesAfterTheCompletionMarker && quotaProjection is not null)
+            _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.AltarDungeon,
+                cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && lotteryCounterExperiment is { Enabled: true } experiment)
         {

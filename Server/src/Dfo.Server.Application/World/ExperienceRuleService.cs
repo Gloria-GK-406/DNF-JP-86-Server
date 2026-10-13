@@ -29,6 +29,7 @@ internal sealed class ExperienceRuleService(
 
     public uint WorthOfKill(in KillCircumstances kill) =>
         MonsterExperienceRules.WorthOf(kill, parameters.Load(), tuning);
+    public uint MobReward(int level) => MonsterExperienceWorth.For(level, tuning.Curve);
 
     public bool IsMonster(byte declaredActorType) =>
         MonsterExperienceRules.IsMonster(declaredActorType);
