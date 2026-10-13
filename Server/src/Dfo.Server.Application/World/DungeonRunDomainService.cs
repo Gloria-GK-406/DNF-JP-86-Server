@@ -1284,7 +1284,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
                 || aggregate.RunId != expectedRunId) return false;
-            failed = !aggregate.Cells[aggregate.CurrentCell].ClearOpen;
+            failed = aggregate.Layout.AppliesFailureWeakness && !aggregate.Cells[aggregate.CurrentCell].ClearOpen;
             departure = new(characterId, aggregate.RunId, aggregate.Layout.DungeonId);
             if (!this.DetachParticipant(characterId)) return false;
         }
@@ -1301,7 +1301,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         if (ended is not null && this.lifecycle is not null)
             foreach (var member in ended.Participants)
                 await this.lifecycle.RecordDepartureAsync(new(member.CharacterId, ended.RunId, ended.Layout.DungeonId)).ConfigureAwait(false);
-        if (ended is not null && this.weakness is not null)
+        if (ended is not null && ended.Layout.AppliesFailureWeakness && this.weakness is not null)
             foreach (var member in ended.Participants)
                 await this.weakness.For(member.CharacterId).SetWeakness().ConfigureAwait(false);
         return ended;

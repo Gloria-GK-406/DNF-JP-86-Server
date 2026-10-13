@@ -97,6 +97,40 @@ public sealed class AltarLifecycleTests
         Assert.Equal(2, (await altars.ReadQuotaAsync(new(71), default)).Single(x => x.DungeonId == dungeonId).Remaining);
     }
 
+    [SkippableTheory]
+    [InlineData(11006)]
+    [InlineData(11007)]
+    public async Task Character_state_reads_current_altar_quota_instead_of_legacy_defaults(int dungeonId)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        var clock = new TestClock();
+        await using var f = await Fixture(clock);
+        f.Sql("INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0); INSERT INTO character_pvp(character_id) VALUES(71); INSERT INTO character_settings(character_id) VALUES(71); INSERT INTO character_expert_job(character_id) VALUES(71)");
+        var entries = f.Services.GetRequiredService<ICharacterEntryStateDomainService>();
+        var initial = await entries.LoadAsync(new(1), new(71), default);
+        Assert.Equal(3, Assert.Single(initial.Public.Extras.Dimensions, x => x.Key == dungeonId).Value2);
+        f.Sql("INSERT INTO character_dimensions(character_id,sort_order,dim_key,val1,val2) VALUES(71,0,11006,7,3),(71,1,11007,8,3),(71,2,11006,99,99),(71,3,122,4,9)");
+        var altars = f.Services.GetRequiredService<IAltarDungeonDomainService>();
+        var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+        for (var used = 1; used <= 3; used++)
+        {
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.NotNull((await altars.EnterAsync(Entry(dungeonId), default)).Entry);
+                await tx.CommitAsync(default);
+            }
+            Assert.True(await runs.EndAsync(new(71), runs.Find(new CharacterId(71))!.RunId));
+            var state = await entries.LoadAsync(new(1), new(71), default);
+            Assert.Equal(3 - used, Assert.Single(state.Public.Extras.Dimensions, x => x.Key == dungeonId).Value2);
+            Assert.Equal(dungeonId == 11006 ? 7 : 8, Assert.Single(state.Public.Extras.Dimensions, x => x.Key == dungeonId).Value1);
+            Assert.Equal(3, Assert.Single(state.Public.Extras.Dimensions, x => x.Key == (dungeonId == 11006 ? 11007 : 11006)).Value2);
+            Assert.Equal((3, 122L, 4, 9), Assert.Single(state.Public.Extras.Dimensions, x => x.Key == 122));
+        }
+        clock.At = clock.At.AddDays(1);
+        var nextDay = await entries.LoadAsync(new(1), new(71), default);
+        Assert.Equal(3, Assert.Single(nextDay.Public.Extras.Dimensions, x => x.Key == dungeonId).Value2);
+    }
+
     private static DungeonEntryContext Entry(int id) => new(id, DungeonEntryFacts.None with { Difficulty = DungeonDifficulty.Normal },
         0, 0, [new(new(1), new(71), 0, true)]);
     private static async Task<LearningFixture> Fixture(TestClock clock)

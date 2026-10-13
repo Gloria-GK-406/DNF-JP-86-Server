@@ -211,6 +211,51 @@ public sealed class WeaknessTests
         Assert.All(members, member => Assert.Equal(19, weakness.For(member.CharacterId).Value));
     }
 
+    [Theory]
+    [InlineData(0, false, false)]
+    [InlineData(0, true, false)]
+    [InlineData(11006, false, false)]
+    [InlineData(11006, true, false)]
+    [InlineData(11007, false, false)]
+    [InlineData(11007, true, false)]
+    [InlineData(11006, false, true)]
+    [InlineData(11006, true, true)]
+    [InlineData(11007, false, true)]
+    [InlineData(11007, true, true)]
+    public async Task Altar_exit_and_wipe_do_not_add_or_reset_weakness(int altarId, bool wipe, bool alreadyWeak)
+    {
+        var weakness = Create();
+        if (alreadyWeak)
+        {
+            await weakness.For(Id).SetWeakness();
+            weakness.AdvanceRecovery();
+        }
+        var before = weakness.For(Id).Value;
+        var runs = new DungeonRunDomainService(null!, null!, weakness);
+        var layout = altarId == 0 ? Layout : Layout with
+        {
+            DungeonId = altarId,
+            Altar = new(altarId == 11006 ? AltarDungeonKind.Endless : AltarDungeonKind.Ultimate,
+                new DateOnly(2026, 10, 13)),
+        };
+        var run = runs.Begin(Id, layout, DungeonDifficulty.Normal);
+        if (wipe)
+        {
+            runs.TryMarkParticipantReady(Id, run.RunId, run.RoomVersion);
+            runs.TryMarkParticipantDead(Id, run.RunId, run.RoomVersion);
+            runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch);
+            Assert.NotNull(await runs.TryEndPartyWipeAsync(run.RunId, DateTimeOffset.UnixEpoch.AddSeconds(10)));
+        }
+        else Assert.True(await runs.EndAsync(Id, run.RunId));
+        Assert.Null(runs.Find(Id));
+        Assert.Equal(altarId == 0 ? (byte)10 : before, weakness.For(Id).Value);
+        if (alreadyWeak)
+        {
+            weakness.AdvanceRecovery();
+            Assert.Equal(28, weakness.For(Id).Value);
+        }
+    }
+
     private static readonly DungeonLayout Layout = new(10000, 0, 1, 1,
         new(0, 0), new(0, 0), 61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)});
 }

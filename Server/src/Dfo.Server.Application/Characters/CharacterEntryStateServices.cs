@@ -9,6 +9,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Application.Creatures;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.Characters;
 
@@ -233,7 +234,8 @@ internal sealed class CharacterEntryStateDomainService(
     ICharacterFeatureEntryProjection features,
     ICharacterDomainService characters, INoticeStateDomainService notices,
     IPremiumServiceDomainService premiums,
-    ICreatureDomainStore? creatureStore = null, AmbientStoreAccess? stores = null) : ICharacterEntryStateDomainService
+    ICreatureDomainStore? creatureStore = null, AmbientStoreAccess? stores = null,
+    IAltarDungeonDomainService? altars = null) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,
@@ -271,6 +273,22 @@ internal sealed class CharacterEntryStateDomainService(
                 SpecialRewardQuestIds = specialRewardQuestIds,
             },
         };
+        if (altars is not null)
+        {
+            var quota = await altars.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false);
+            // A21 subtype1 and NOTI0227 write the same counter cache. Legacy dimensions
+            // must never reset a committed altar quota when the full character view refreshes.
+            var dimensions = publicState.Extras.Dimensions
+                .Where(value => quota.All(current => current.DungeonId != value.Key)).ToList();
+            var nextOrder = dimensions.Count == 0 ? 0 : checked(dimensions.Max(value => value.SortOrder) + 1);
+            foreach (var current in quota)
+            {
+                var previous = publicState.Extras.Dimensions.OrderBy(value => value.SortOrder)
+                    .FirstOrDefault(value => value.Key == current.DungeonId);
+                dimensions.Add((nextOrder++, current.DungeonId, previous.Value1, current.Remaining));
+            }
+            publicState = publicState with { Extras = publicState.Extras with { Dimensions = dimensions } };
+        }
         var featureState = features.Build(storage.Features);
         if (creatureStore is not null)
         {

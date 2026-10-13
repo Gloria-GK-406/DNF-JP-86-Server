@@ -16,6 +16,7 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 
@@ -717,6 +718,8 @@ public sealed class SelectCharacterPayloadCodecTests
             services.AddSingleton<IQuestParameterSource>(new NoQuestParameters());
             new ApplicationModule().ConfigureServices(
                 services, new ConfigurationBuilder().Build());
+            // This profile/quest fixture does not register dungeon content or run services.
+            services.RemoveAll<Dfo.Server.Abstractions.World.IAltarDungeonDomainService>();
             await using var provider = services.BuildServiceProvider();
             var typed = await provider.GetRequiredService<ICharacterEntryStateDomainService>().LoadAsync(
                 new AccountId(12), new CharacterId(22), CancellationToken.None);
