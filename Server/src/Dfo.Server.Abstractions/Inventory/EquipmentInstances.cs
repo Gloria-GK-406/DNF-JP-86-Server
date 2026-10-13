@@ -20,6 +20,7 @@ public interface IEquipmentInstance : IItemSocketInstance
     ItemReference Reference { get; }
     int ItemUid { get; }
     ValueTask<ItemReference> SetReinforcementLevelAsync(byte level, CancellationToken cancellationToken);
+    ValueTask<ItemReference> ResealAsync(byte nextCount, CancellationToken cancellationToken);
     ValueTask<ItemReference> SetEnchantmentAsync(int cardId, CancellationToken cancellationToken);
     ValueTask<ItemReference> SetForgingLevelAsync(byte level, CancellationToken cancellationToken);
     ValueTask<ItemReference> SetDimensionalAttributeAsync(byte type, ushort value, CancellationToken cancellationToken);

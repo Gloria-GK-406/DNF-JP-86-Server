@@ -39,7 +39,7 @@ internal sealed class ResetItemQualityDecoder(ILogger<ResetItemQualityDecoder> l
     }
 }
 public sealed record ResetItemQualityResponse(bool Success, ushort MaterialSlot = 0, int Remaining = 0,
-    byte Error = 0x13) : IGameCmdMessage
+    byte Error = 0x13, ushort Operation = 2) : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameResetItemQuality;
 }
@@ -51,7 +51,7 @@ internal sealed class ResetItemQualityEncoder : GameCmdMessageEncoder<ResetItemQ
         var body = new byte[9]; body[0] = 1;
         BinaryPrimitives.WriteUInt16LittleEndian(body.AsSpan(1), message.MaterialSlot);
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(3), message.Remaining);
-        BinaryPrimitives.WriteUInt16LittleEndian(body.AsSpan(7), 2);
+        BinaryPrimitives.WriteUInt16LittleEndian(body.AsSpan(7), message.Operation);
         return OnePayload(0x0051, body);
     }
 }
@@ -61,12 +61,13 @@ public sealed record ResetItemQualityCommand(OnlineUserId OnlineUserId, Selected
 {
     public AccountId AccountId => Session.AccountId;
 }
-public sealed class ResetItemQualityCommandHandler(IEquipmentQualityDomainService quality)
+public sealed class ResetItemQualityCommandHandler(IEquipmentQualityDomainService quality, IEquipmentResealDomainService reseal)
     : ICommandHandler<ResetItemQualityCommand, EquipmentQualityResult>
 {
-    public ValueTask<EquipmentQualityResult> HandleAsync(CommandExecutionContext context,
+    public async ValueTask<EquipmentQualityResult> HandleAsync(CommandExecutionContext context,
         ResetItemQualityCommand command, CancellationToken ct) =>
-        quality.RerollAsync(command.Session, command.Target, command.ExpectedItemId, command.Material, ct);
+        await reseal.TryResealAsync(command.Session, command.Target, command.ExpectedItemId, command.Material, ct).ConfigureAwait(false)
+        ?? await quality.RerollAsync(command.Session, command.Target, command.ExpectedItemId, command.Material, ct).ConfigureAwait(false);
 }
 public sealed class ResetItemQualityHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     IInventorySlotMappingRuleService mappings, ICommandBus commands, IEventService events,
@@ -93,17 +94,24 @@ public sealed class ResetItemQualityHandler(ISelectedSessionDomainService sessio
         }
         catch (Exception failure) when (failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure))
         {
-            logger.LogError(failure, "Quality reroll transaction failed character={Character}", session.CharacterId);
+            logger.LogError(failure, "Equipment attribute reset transaction failed character={Character}", session.CharacterId);
             await Reject(0x13); return;
         }
         if (result.Receipt is not { } receipt)
         {
-            logger.LogInformation("Quality reroll rejected character={Character} reason={Reason}", session.CharacterId, result.Rejection);
-            await Reject(result.Rejection == EquipmentQualityRejection.MaterialUnavailable ? (byte)0x11 : (byte)0x13);
+            logger.LogInformation("Equipment attribute reset rejected character={Character} reason={Reason}", session.CharacterId, result.Rejection);
+            await Reject(result.Rejection switch
+            {
+                EquipmentQualityRejection.MaterialUnavailable => 0x11,
+                EquipmentQualityRejection.AlreadySealed => 0x12,
+                EquipmentQualityRejection.ResealLimitReached => 0x0D,
+                _ => (byte)0x13,
+            });
             return;
         }
-        logger.LogInformation("Quality reroll committed character={Character} target={Slot} item={Item} seed={Seed} materialRemaining={Count}",
-            session.CharacterId, request.TargetSlot, request.ExpectedItemId, receipt.Equipment.InstanceValue, receipt.MaterialRemaining);
+        logger.LogInformation("Equipment attribute reset committed character={Character} target={Slot} item={Item} operation={Operation} resealCount={ResealCount} seed={Seed} materialRemaining={Count}",
+            session.CharacterId, request.TargetSlot, request.ExpectedItemId, receipt.Operation, receipt.Equipment.ResealCount,
+            receipt.Equipment.InstanceValue, receipt.MaterialRemaining);
         await events.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
             new EquipmentQualityCompleted(receipt), ct).ConfigureAwait(false);
         ValueTask Reject(byte error) => sender.SendCmdAsync(context.Connection.ConnectionId, new ResetItemQualityResponse(false, Error: error), ct);
@@ -124,7 +132,7 @@ public sealed class EquipmentQualityCompletedHandler(ISelectedSessionDomainServi
         var target = slots.Project(receipt.TargetSlot);
         // CMD0051 updates/removes the material itself. Only the target needs NOTI000E.
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([
-            new ResetItemQualityResponse(true, checked((ushort)material.Index), receipt.MaterialRemaining),
+            new ResetItemQualityResponse(true, checked((ushort)material.Index), receipt.MaterialRemaining, Operation: receipt.Operation),
             GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(target.Space,
                 [new InventoryItemState(receipt.Equipment.ItemUid, target.Index, receipt.Equipment.ToCore())], receipt.At))]);
     }

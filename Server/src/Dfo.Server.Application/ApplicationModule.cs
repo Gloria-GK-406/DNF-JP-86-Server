@@ -322,6 +322,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEquipmentQualityRuleService, EquipmentQualityRuleService>();
         services.TryAddSingleton<IEquipmentMagicSealGradeRuleService, EquipmentMagicSealGradeRuleService>();
         services.TryAddSingleton<IEquipmentQualityDomainService, EquipmentQualityDomainService>();
+        services.TryAddSingleton<IEquipmentResealRuleService, EquipmentResealRuleService>();
+        services.TryAddSingleton<IEquipmentResealDomainService, EquipmentResealDomainService>();
         services.TryAddSingleton<IAvatarCompoundRuleService, AvatarCompoundRuleService>();
         services.TryAddSingleton<IAvatarCompoundDomainService, AvatarCompoundDomainService>();
         // The store is looked up rather than demanded, because a host may be assembled without

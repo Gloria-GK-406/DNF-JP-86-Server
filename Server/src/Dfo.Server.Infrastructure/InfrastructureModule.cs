@@ -137,6 +137,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IEquipmentDefinitionSource, PvfEquipmentDefinitionSource>();
         services.TryAddSingleton<IItemSocketDefinitionSource, PvfItemSocketDefinitionSource>();
         services.TryAddSingleton<IEquipmentQualityDefinitionSource, PvfEquipmentQualityDefinitionSource>();
+        services.TryAddSingleton<IEquipmentResealContentSource, PvfEquipmentResealContentSource>();
         services.TryAddSingleton<IAvatarCompoundDefinitionSource, PvfAvatarCompoundDefinitionSource>();
         services.TryAddSingleton<IAvatarAppearanceDefinitionSource, PvfAvatarAppearanceDefinitionSource>();
         services.TryAddSingleton<IEquipmentMagicSealGradeDefinitionSource, PvfEquipmentMagicSealGradeDefinitionSource>();

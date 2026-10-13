@@ -52,6 +52,7 @@ public sealed record ItemSnapshot
     public InventoryAvatarDetailState? AvatarDetail { get; init; }
     public InventoryCreatureDetailState? CreatureDetail { get; init; }
     public byte ReinforcementLevel => (byte)(Attribute & 0x1F);
+    public byte ResealCount => (byte)(Attribute >> 5);
 
     public ItemSnapshot DeepCopy() => this with
     {

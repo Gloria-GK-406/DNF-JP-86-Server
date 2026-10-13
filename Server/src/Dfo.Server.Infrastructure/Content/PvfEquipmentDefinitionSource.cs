@@ -17,6 +17,7 @@ internal sealed class PvfEquipmentDefinitionSource(PvfArchiveProvider provider) 
         internal static readonly PvfField<int> DurabilityField = PvfField.Int32("[durability]", optional: true, minimum: 0, maximum: ushort.MaxValue);
         internal static readonly PvfField<IReadOnlyList<PvfToken>> EquipmentTypeField = PvfField.Tokens("[equipment type]");
         internal static readonly PvfField<IReadOnlyList<string>> ImpossibleContentsField = PvfField.Strings("[impossible contents]", optional: true);
+        internal static readonly PvfField<string> AttachTypeField = PvfField.String("[attach type]", optional: true);
     }
 
     private const string IndexPath = "equipment/equipment.lst";
@@ -104,8 +105,12 @@ internal sealed class PvfEquipmentDefinitionSource(PvfArchiveProvider provider) 
                 if (name.Length == 0 || !declarations.Add(name))
                     throw Invalid(itemId, path, Fields.ImpossibleContentsField.Name, "empty or duplicate declaration");
             }
+        var attach = OneSection(sections, itemId, path, Fields.AttachTypeField, required: false);
+        if (attach is not null && (attach.Count != 1 || !attach[0].IsString))
+            throw Invalid(itemId, path, Fields.AttachTypeField.Name, "expected one attach type string");
         return new(minimumLevel, grade, rarity, typeName, maximum)
         {
+            AttachType = attach is null ? string.Empty : Normalize(archive.ResolveString(attach[0].Value)),
             ImpossibleContents = declarations.ToFrozenSet(StringComparer.Ordinal),
         };
     }

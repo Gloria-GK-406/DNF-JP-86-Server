@@ -1127,6 +1127,10 @@ CMD [0012](game/client-to-server/0x0012.md)增加operation=3特效消费；晶�
 
 [NOTI015B](game/server-to-client/NOTI-0x015B.md) 动态层 APC 资料、[NOTI015C](game/server-to-client/NOTI-0x015C.md) 专用通关奖励已编码并接入。布局为 ClientStatic 前缀 + UpstreamReference 完整结构；服务器入场、楼层和每日记录为 CurrentImplementation，尚未取得 ClientVerified。见 [实现规则](../Document/DespairTower.md)。
 
+## 2026-10-13 黄金蜜蜡再封装（待实机）
+
+2026-10-13 黄金蜜蜡 CurrentImplementation：CMD0051 按材料进入独立再封装领域，读取 PVF reseal 费用表，扣料和原装备封装／次数增长同事务；成功操作类型1，原调级为2。Attribute高三位记录0..7次，保留强化与其他装备属性。已观察旧服务拒绝请求的日志，未归档原始请求帧，尚非 ClientVerified。见[请求](game/client-to-server/0x0051.md)、[结果](game/server-to-client/CMD-0x0051.md)及[验收清单](../Document/EquipmentReseal-20261013.md)。
+
 ## 2026-10-13 设置blob持久化
 
 C5／C6／170事务保存接线完成，C0补选角生命周期保护；AD／1C7／187在登录／选角恢复。

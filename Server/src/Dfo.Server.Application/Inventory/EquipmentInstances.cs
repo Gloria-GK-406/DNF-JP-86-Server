@@ -99,6 +99,14 @@ internal sealed class EquipmentInstance(IBusinessItemContainer container, ItemRe
         return ChangeAsync(core => core with { EnchantCardId = cardId }, ct);
     }
 
+    public ValueTask<ItemReference> ResealAsync(byte nextCount, CancellationToken ct) =>
+        ChangeAsync(core =>
+        {
+            if (core.SealFlag != 0 || nextCount is < 1 or > 7 || nextCount != core.ResealCount + 1)
+                throw new InvalidOperationException("Invalid equipment reseal transition.");
+            return core with { SealFlag = 1, Attribute = (byte)((core.Attribute & 0x1F) | (nextCount << 5)) };
+        }, ct);
+
     public ValueTask<ItemReference> SetForgingLevelAsync(byte level, CancellationToken ct) =>
         ChangeAsync(core => core with { GenuineUpgrade = level }, ct);
 

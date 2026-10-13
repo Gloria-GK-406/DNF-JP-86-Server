@@ -10,6 +10,7 @@ public sealed record EquipmentDefinition(
     string EquipmentType,
     ushort? MaxDurability)
 {
+    public string AttachType { get; init; } = string.Empty;
     /// <summary>Normalized raw declarations from <c>[impossible contents]</c>.</summary>
     public IReadOnlySet<string> ImpossibleContents { get; init; } = FrozenSet<string>.Empty;
 }
