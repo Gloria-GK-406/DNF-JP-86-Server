@@ -26,26 +26,19 @@ public sealed class RosterScreenQueryCodecTests
     {
         // The capture's real shape: u32(134) then 134 bytes, the same blob the server had just
         // pushed in NOTI 0x00AD.
-        var body = OptionBody(134, 134);
+        var body = OptionBody(150, 150);
         body[sizeof(int)] = 0x86;
 
         var request = SaveGameOption1PayloadCodec.Decode(GameMessageMetadata.Empty, body);
 
-        Assert.Equal(134, request.Options.Length);
+        Assert.Equal(150, request.Options.Length);
         Assert.Equal(0x86, request.Options[0]);
     }
 
     [Fact]
-    public void SaveGameOption_KeepsTheDeclaredLengthEvenWhenTheBodyIsLonger()
-    {
-        // The length is a prefix, not the body size. Trusting the body size instead would silently
-        // absorb any trailing bytes into the blob.
-        var request = SaveGameOption1PayloadCodec.Decode(
-            GameMessageMetadata.Empty,
-            OptionBody(4, 12));
-
-        Assert.Equal(4, request.Options.Length);
-    }
+    public void SaveGameOption_RejectsTrailingBytes() =>
+        Assert.Throws<InvalidDataException>(() => SaveGameOption1PayloadCodec.Decode(
+            GameMessageMetadata.Empty, OptionBody(150, 151)));
 
     [Theory]
     [InlineData(0)]

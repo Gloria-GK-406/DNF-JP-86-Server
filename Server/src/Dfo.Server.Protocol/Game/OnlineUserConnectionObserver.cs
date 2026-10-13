@@ -23,7 +23,7 @@ public sealed class OnlineUserConnectionObserver(
     IServerConfigService serverConfig,
     IGameMessageSender gameSender,
     ICleanupNotificationDelivery cleanupDelivery,
-    TimeProvider timeProvider) : INetworkConnectionObserver
+    TimeProvider timeProvider, Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService? clientSettings = null) : INetworkConnectionObserver
 {
     public async ValueTask ConnectedAsync(
         NetworkConnectionContext connection,
@@ -72,6 +72,7 @@ public sealed class OnlineUserConnectionObserver(
             return;
         }
 
+        clientSettings?.ForgetConnection(connection.ConnectionId);
         if (!onlineUsers.TryGetByConnection(connection.ConnectionId, out var observed)
             || observed is null)
         {
@@ -109,7 +110,12 @@ public sealed class OnlineUserConnectionObserver(
             if (onlineUsers.TryGetByConnection(connection.ConnectionId, out current)
                 && current is not null && current.OnlineUserId == observed.OnlineUserId
                 && (cleanedSelected || current.Generation == observed.Generation))
+            {
                 onlineUsers.TryDisconnectConnection(connection.ConnectionId);
+                // Activation can have waited behind the early Forget above. Remove again while
+                // holding the online lease, and never remove a replacement connection identity.
+                clientSettings?.ForgetConnection(observed.SessionIdentity);
+            }
             return;
         }
     }

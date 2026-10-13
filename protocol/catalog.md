@@ -547,10 +547,10 @@ NOTI 没有信封。
 | Command | Type | 方向 | 名称 | 文档 |
 |---:|---:|---|---|---|
 | `0x01` CMD | `0x00C5` | C→S | 主游戏选项上传 | [game-settings](patterns/game-settings.md) |
-| `0x01` CMD | `0x00C6` | C→S | 按键槽上传 | 同上 |
+| `0x01` CMD | `0x00C6` | C→S | 键位文本上传（A21） | 同上 |
 | `0x01` CMD | `0x0170` | C→S | 快速聊天上传（带 bankIndex） | 同上 |
 | `0x01` CMD | `0x01C0` | C→S | 角色设置上传 | 同上 |
-| `0x00` NOTI | `0x00AD` | S→C | 游戏选项催传信号（body 被丢弃） | 同上 |
+| `0x00` NOTI | `0x00AD` | S→C | 主游戏选项与两个快捷聊天bank下发（旧否证已撤回） | 同上 |
 | `0x00` NOTI | `0x01C7` | S→C | 按键设置下发 | 同上 |
 | `0x00` NOTI | `0x0187` | S→C | 角色设置下发 | 同上 |
 
@@ -1114,3 +1114,9 @@ CMD [0012](game/client-to-server/0x0012.md)增加operation=3特效消费；晶�
 ## 2026-10-11 绝望之塔初次实现（待实机）
 
 [NOTI015B](game/server-to-client/NOTI-0x015B.md) 动态层 APC 资料、[NOTI015C](game/server-to-client/NOTI-0x015C.md) 专用通关奖励已编码并接入。布局为 ClientStatic 前缀 + UpstreamReference 完整结构；服务器入场、楼层和每日记录为 CurrentImplementation，尚未取得 ClientVerified。见 [实现规则](../Document/DespairTower.md)。
+
+## 2026-10-13 设置blob持久化
+
+C5／C6／170事务保存接线完成，C0补选角生命周期保护；AD／1C7／187在登录／选角恢复。
+1C7从旧二进制槽表改为当前A21文本。当前为ServerImplemented、ClientStatic，未新增ClientVerified。
+详见[设置族](patterns/game-settings.md)及[静态证据](patterns/data/traces/a21-settings-text-static-20261013.md)。

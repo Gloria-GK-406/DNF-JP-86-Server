@@ -74,7 +74,7 @@ internal static class SelectedCharacterStateMessageFactory
         messages.Add(new UsableCountBaselineMessage());
         messages.Add(new DailyChallengeStateMessage(result.CharacterEntry.Progression));
         messages.Add(new AccountGameOptionsMessage(result.Account.Settings));
-        messages.Add(new HotkeyStateMessage(result.Account.Settings, result.CharacterEntry.Settings));
+        messages.Add(new HotkeyStateMessage(result.Account.Settings, result.CharacterEntry.Settings, result.Character.Identity.Job == 10 ? (byte)1 : (byte)0));
         if (result.Events is { } events)
         {
             messages.Add(new Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage(events.Information));

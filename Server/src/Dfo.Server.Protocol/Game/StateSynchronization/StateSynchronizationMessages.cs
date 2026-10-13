@@ -140,11 +140,11 @@ internal sealed record AccountGameOptionsMessage(
 
 internal sealed record HotkeyStateMessage(
     AccountSettingsEntryState AccountSettings,
-    CharacterSettingsEntryState CharacterSettings) : GameStateSynchronizationMessage, IGameNotiMessage
+    CharacterSettingsEntryState CharacterSettings, byte KeyType = 0) : GameStateSynchronizationMessage, IGameNotiMessage
 {
     internal override ushort Type => 0x01C7;
     internal override byte[] EncodeBody() =>
-        StateSynchronizationPayloadCodec.EncodeHotkeys(AccountSettings, CharacterSettings);
+        StateSynchronizationPayloadCodec.EncodeHotkeys(AccountSettings, CharacterSettings, KeyType);
 }
 
 /// <summary>0x01C7 as sent at login, before any character exists to contribute slots.</summary>

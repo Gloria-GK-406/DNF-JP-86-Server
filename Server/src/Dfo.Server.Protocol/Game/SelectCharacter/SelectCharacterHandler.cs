@@ -71,7 +71,8 @@ public sealed class SelectCharacterHandler(
     LotteryCounterExperimentOptions? lotteryCounterExperiment = null,
     ItemUsageProjectionDelivery? itemUsageProjection = null,
     Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? achievementProjectionGate = null,
-    UsageQuotaProjectionDelivery? quotaProjection = null) : ClientMessageHandler<SelectCharacterRequest>
+    UsageQuotaProjectionDelivery? quotaProjection = null,
+    Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService? clientSettings = null) : ClientMessageHandler<SelectCharacterRequest>
 {
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -329,6 +330,17 @@ public sealed class SelectCharacterHandler(
             new PublishSelectedCharacterSessionCommand(session, prepared),
             cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
+        if (clientSettings is not null)
+        {
+            if (!onlineUsers.TryGetByConnection(session.ConnectionId, out var current) || current is null)
+                throw new InvalidOperationException("Selected hotkey profile has no current connection.");
+            var origin = new Dfo.Server.Data.Accounts.ClientSettingsOrigin(current.SessionIdentity, session.AccountId, current.Generation, session);
+            // Job 10 is Creator in the server career catalog (70/upstream reference); A21's
+            // receiver selects its Creator default resource when 1C7.keyType is 1.
+            var keyType = prepared.Character.Identity.Job == 10 ? (byte)1 : (byte)0;
+            if (!await commandBus.SendAsync(new ActivateClientHotkeyProfileCommand(origin, keyType), cancellationToken))
+                throw new InvalidOperationException("Selected hotkey profile identity changed during delivery.");
+        }
         if (SendsFramesAfterTheCompletionMarker && publication.TownPresence is { } town)
         {
             await townAreaProjection.PublishCommittedEntryAsync(

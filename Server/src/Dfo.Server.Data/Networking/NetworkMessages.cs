@@ -91,6 +91,8 @@ public enum ClientMessageType
     GameJoustHistory = 0x0001_04E8,
     GameWeeklyAttendance = 0x0001_0441,
     GameSaveGameOption1 = 0x0001_00C5,
+    GameSaveHotkeys = 0x0001_00C6,
+    GameSaveQuickChat = 0x0001_0170,
     GameContentsPlayInfo = 0x0001_02C1,
 
     // The client's own periodic liveness probe on the Game endpoint. It arrives with no body

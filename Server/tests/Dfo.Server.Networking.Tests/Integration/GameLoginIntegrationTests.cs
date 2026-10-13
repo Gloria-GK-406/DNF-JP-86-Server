@@ -71,6 +71,14 @@ public sealed class GameLoginIntegrationTests
             Assert.Equal(AuthenticationStatus.Success, issued.Status);
             Assert.NotNull(issued.Ticket);
 
+            byte[] savedMain = Enumerable.Range(0,150).Select(i => (byte)i).ToArray();
+            byte[] savedKeys = [65,9,49,10,0];
+            byte[] savedChat = Enumerable.Repeat((byte)123,300).ToArray();
+            static byte[] Blob(byte[] value)
+            {
+                var body = new byte[value.Length+4];
+                BinaryPrimitives.WriteInt32LittleEndian(body,value.Length); value.CopyTo(body,4); return body;
+            }
             NetworkConnectionId connectionId;
             using (var client = new TcpClient())
             {
@@ -106,6 +114,16 @@ public sealed class GameLoginIntegrationTests
                     Assert.Equal(0, state[0]);
                     Assert.Equal(expectedType, BinaryPrimitives.ReadUInt16LittleEndian(state.AsSpan(1)));
                 }
+
+                // Opaque settings traverse actual TCP framing, decoding and command transactions.
+                await client.GetStream().WriteAsync(EncodeClientFrame(1,0x00C5,Blob(savedMain)),timeout.Token);
+                await client.GetStream().WriteAsync(EncodeClientFrame(1,0x00C6,Blob(savedKeys)),timeout.Token);
+                await client.GetStream().WriteAsync(EncodeClientFrame(1,0x0170,[0,..Blob(savedChat)]),timeout.Token);
+                await client.GetStream().WriteAsync(EncodeClientFrame(1,0x0170,[1,..Blob(savedChat)]),timeout.Token);
+                while (await ScalarAsync(databasePath,
+                    "SELECT COUNT(*) FROM account_settings WHERE length(main_game_option)=150 AND length(quickchat_bank0)=300 AND length(quickchat_bank1)=300;") != 1
+                    || await ScalarAsync(databasePath,"SELECT COUNT(*) FROM account_hotkey_options WHERE key_type=0;") != 1)
+                    await Task.Delay(10,timeout.Token);
 
                 // Real decoder -> command transaction -> seen-notice table. There is no ACK.
                 await client.GetStream().WriteAsync(EncodeClientFrame(1, 0x01DE, [8,0,0,0]), timeout.Token);
@@ -164,6 +182,8 @@ public sealed class GameLoginIntegrationTests
                     var frame = await ReadFrameAsync(reconnected.GetStream(), timeout.Token);
                     Assert.Equal(expectedType, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));
                     if (expectedType == 0x01A1) Assert.Equal(new byte[] { 1,8 }, frame[15..]);
+                    if (expectedType == 0x01C7) Assert.Equal(new byte[] { 0 }.Concat(Blob(savedKeys)).ToArray(),frame[15..]);
+                    if (expectedType == 0x00AD) Assert.Equal(Blob(savedMain).Concat(Blob(savedChat)).Concat(Blob(savedChat)).ToArray(),frame[15..]);
                 }
             }
             Assert.Equal(1L, await ScalarAsync(databasePath, "SELECT COUNT(*) FROM accounts;"));

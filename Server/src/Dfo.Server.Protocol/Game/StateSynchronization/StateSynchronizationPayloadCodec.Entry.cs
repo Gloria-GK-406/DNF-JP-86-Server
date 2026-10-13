@@ -391,71 +391,20 @@ internal static partial class StateSynchronizationPayloadCodec
         WriteBlob(writer, settings.QuickChatBank1); return stream.ToArray();
     }
 
-    /// <summary>The 99-entry key binding table a character receives when it has stored none.</summary>
-    /// <remarks>
-    /// The table is positional: the index is the action and the value is the key bound to it, with
-    /// <c>0x0086</c> meaning unbound. A character that has never saved its keys still has to be told
-    /// what they are, and a slot count of zero is not the same statement -- it leaves the client
-    /// without the table the rest of the town session indexes. This mirrors the account-scoped
-    /// substitution above for the same reason.
-    ///
-    /// Transcribed from the entry batch of a working A21 session (see the trace archived under
-    /// <c>protocol/patterns/data/traces/</c>). That session sends 0x01C7 exactly once, at entry,
-    /// carrying these 99 values. Whether they are the stock defaults or that character's own
-    /// bindings is not established -- what the capture fixes is the table's length and layout.
-    /// </remarks>
-    private static readonly ushort[] DefaultCharacterHotkeyTable =
-    [
-        0x0002, 0x0000, 0x0003, 0x0001, 0x004E, 0x0039, 0x0050, 0x000D, 0x004C, 0x0043, 0x0041, 0x003F,
-        0x0045, 0x0052, 0x004B, 0x0055, 0x0044, 0x0056, 0x0054, 0x0051, 0x0037, 0x0049, 0x003A, 0x003C,
-        0x003D, 0x003E, 0x0047, 0x004D, 0x003B, 0x0048, 0x004A, 0x004F, 0x002E, 0x002F, 0x0030, 0x0031,
-        0x0032, 0x0033, 0x0086, 0x001C, 0x0053, 0x0057, 0x0086, 0x006C, 0x0086, 0x0086, 0x0086, 0x0086,
-        0x001A, 0x0046, 0x0068, 0x0069, 0x0042, 0x001B, 0x006A, 0x0086, 0x0086, 0x0086, 0x0038, 0x0086,
-        0x0086, 0x0086, 0x0086, 0x0086, 0x0086, 0x0086, 0x0007, 0x0086, 0x0086, 0x0086, 0x0086, 0x0086,
-        0x0086, 0x0086, 0x0059, 0x0086, 0x0086, 0x0086, 0x0086, 0x0058, 0x0086, 0x005A, 0x005B, 0x005C,
-        0x0086, 0x0086, 0x0086, 0x0086, 0x001F, 0x0086, 0x0086, 0x0086, 0x0086, 0x0086, 0x0086, 0x0015,
-        0x0086, 0x0018, 0x0086
-    ];
+    // A21 reads KEY=VALUE text, not the legacy u16 slot array. Empty text loads the
+    // selected profile's .co defaults; see protocol/patterns/game-settings.md.
+    public static byte[] EncodeHotkeys(AccountSettingsEntryState accountSettings,
+        CharacterSettingsEntryState characterSettings, byte keyType = 0) => EncodeHotkeyProfile(accountSettings, keyType);
 
-    public static byte[] EncodeHotkeys(
-        AccountSettingsEntryState accountSettings,
-        CharacterSettingsEntryState characterSettings)
+    public static byte[] EncodeAccountHotkeys(AccountSettingsEntryState accountSettings) =>
+        EncodeHotkeyProfile(accountSettings, 0);
+
+    private static byte[] EncodeHotkeyProfile(AccountSettingsEntryState settings, byte keyType)
     {
-        var slots = characterSettings.HotkeySlots.Count > 0
-            ? characterSettings.HotkeySlots
-            : DefaultCharacterHotkeyTable;
+        var payload = settings.HotkeyProfiles.SingleOrDefault(p => p.KeyType == keyType)?.Payload ?? [];
+        if (payload.Length > 65536) throw new InvalidDataException("Hotkey text exceeds the supported size.");
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        writer.Write(accountSettings.HotkeyKeyType); writer.Write(checked(slots.Count * 2));
-        foreach (var slot in slots) writer.Write(slot); return stream.ToArray();
-    }
-
-    /// <summary>The client's account-scoped hotkey slot when the account has none stored.</summary>
-    /// <remarks>
-    /// The first slot of the legacy default hotkey table. An account that has never saved its
-    /// hotkeys still has to be told what they are, and a slot count of zero is not the same
-    /// statement -- the legacy server substituted its default table here rather than sending an
-    /// empty list, so a fresh account receives the same bytes it would from a working server.
-    /// </remarks>
-    private const ushort DefaultAccountHotkeySlot = 0x0002;
-
-    /// <summary>The same 0x01C7 layout, carrying only the account-scoped slot.</summary>
-    /// <remarks>
-    /// Sent at login, where no character is selected and the per-character slots therefore do not
-    /// exist yet. Exactly one slot is account scoped, which is why
-    /// <see cref="AccountSettingsEntryState.AccountHotkeySlot"/> is a single value rather than a
-    /// list -- the legacy server took the same one slot off the front of its hotkey array.
-    ///
-    /// A null slot means "never stored", a distinction the domain deliberately keeps. Choosing what
-    /// to put on the wire in that case is a wire concern and is therefore decided here, which is
-    /// also where the legacy server decided it.
-    /// </remarks>
-    public static byte[] EncodeAccountHotkeys(AccountSettingsEntryState accountSettings)
-    {
-        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        writer.Write(accountSettings.HotkeyKeyType);
-        writer.Write(sizeof(ushort));
-        writer.Write(accountSettings.AccountHotkeySlot ?? DefaultAccountHotkeySlot);
-        return stream.ToArray();
+        writer.Write(keyType); WriteBlob(writer, payload); return stream.ToArray();
     }
 
     public static byte[] EncodeDungeonPermissions(IReadOnlyList<CharacterDungeonProgressState> entries)

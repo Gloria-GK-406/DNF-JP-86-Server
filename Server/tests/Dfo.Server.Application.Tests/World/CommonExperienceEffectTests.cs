@@ -261,15 +261,16 @@ public sealed class CommonExperienceEffectTests
     public void All_selected_session_commands_have_their_declared_read_or_transactional_registration()
     {
         string[] readOnly = ["QueryJoustStateCommand","QueryJoustHistoryCommand","QueryTitleBookCommand"];
+        string[] direct = ["ActivateClientHotkeyProfileCommand"];
         string[] expected = ["BeginTournamentRewardsCommand","SelectTournamentRewardCommand","EliminateTournamentCommand","ProcessMonsterDeathCommand","EquipCarriedTitleReplacingMirrorCommand","ClaimWeeklyAttendanceCommand","UseStackableCommand","RenameCreatureCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
             "GrantKillExperienceCommand","ApplyMonsterKillCommand","GrantClearExperienceCommand","AvatarCompoundCommand","ResetItemQualityCommand","ResetRandomOptionCommand","ReinforceItemCommand","EnchantByBeadCommand","MagicSealCommand","OutworldCommand",
             "ForgingCommand","NpcDisjointItemCommand","PortableDisjointItemCommand","CompoundItemCommand","EpicCraftCommand","ItemSocketCommand","PackageOpeningCommand","AvatarPackageOpeningCommand",
-            "MagicBoxSingleOpeningCommand","MagicBoxBatchOpeningCommand","LotteryOpeningCommand","VendingMachineCommand","TeleportCommand","WarehouseCommand","JoustBetCommand","StoreTitleCommand","WithdrawTitleCommand","SetTitleAppearanceCommand","ReconcileAchievementCommand"];
+            "MagicBoxSingleOpeningCommand","MagicBoxBatchOpeningCommand","LotteryOpeningCommand","VendingMachineCommand","TeleportCommand","WarehouseCommand","JoustBetCommand","StoreTitleCommand","WithdrawTitleCommand","SetTitleAppearanceCommand","ReconcileAchievementCommand","SaveCharacterOptionCommand","SaveClientSettingsCommand"];
         var actual = typeof(GrantClearExperienceCommand).Assembly.GetTypes().Where(x => !x.IsAbstract && typeof(ISelectedSessionCommand).IsAssignableFrom(x)).ToArray();
-        Assert.Equal(expected.Concat(readOnly).Order(),actual.Select(x => x.Name).Order());
+        Assert.Equal(expected.Concat(readOnly).Concat(direct).Order(),actual.Select(x => x.Name).Order());
         using var shop = Shop(new Calculation(),new EffectTrace());
         var registry = shop.Services.GetRequiredService<CommandHandlerRegistry>();
-        Assert.All(actual, type => Assert.Equal(readOnly.Contains(type.Name)?CommandExecutionKind.ReadOnly:CommandExecutionKind.Transactional,
+        Assert.All(actual, type => Assert.Equal(readOnly.Contains(type.Name)?CommandExecutionKind.ReadOnly:direct.Contains(type.Name)?CommandExecutionKind.Direct:CommandExecutionKind.Transactional,
             registry.GetRegistration(type).ExecutionKind));
         Assert.Contains(shop.Services.GetServices<ICommandPipelineBehavior<ClearExperienceResult>>(),x => x.Order == 45);
         Assert.Contains(shop.Services.GetServices<ICommandPipelineBehavior<ClearExperienceResult>>(),x => x.Order == 58);
