@@ -1123,6 +1123,8 @@ CMD [0012](game/client-to-server/0x0012.md)增加operation=3特效消费；晶�
 
 ## 2026-10-11 绝望之塔初次实现（待实机）
 
+2026-10-13 `ClientStatic / CurrentImplementation`：修复场景楼层牌一直显示 1。NOTI001C 小地图组后的第一个字段实际为 u16 场景楼层（无图标时 offset 12），客户端物件 10386 由该值组合数字动画；现在写入已冻结的实际入场层数，普通报文保持。见[协议更正](game/server-to-client/NOTI-0x001C.md#2026-10-13-更正场景楼层不是固定标记)及[取证](../Document/outputs/despair-floor-sign-20261013/evidence.md)。未部署，无新增实帧或 ClientVerified。
+
 [NOTI015B](game/server-to-client/NOTI-0x015B.md) 动态层 APC 资料、[NOTI015C](game/server-to-client/NOTI-0x015C.md) 专用通关奖励已编码并接入。布局为 ClientStatic 前缀 + UpstreamReference 完整结构；服务器入场、楼层和每日记录为 CurrentImplementation，尚未取得 ClientVerified。见 [实现规则](../Document/DespairTower.md)。
 
 ## 2026-10-13 设置blob持久化

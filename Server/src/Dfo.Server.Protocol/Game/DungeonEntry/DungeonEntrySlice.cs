@@ -174,8 +174,10 @@ internal static class DungeonEntryPayloadCodec
         writer.Write(layout.Hell?.Cell.Y ?? (byte)0);
         writer.Write((byte)0); // practice mode
         writer.Write((byte)0); // no minimap groups
-        writer.Write((byte)1); // the constant after the group list
-        writer.Write(new byte[5]);
+        // A21 DUNGEON_INFO reads this u16 into scene +0x43c. The despair banner
+        // renders that value; the ordinary reference's 01 00 was floor 1, not a fixed flag.
+        writer.Write(checked((ushort)(layout.Despair?.Floor ?? 1)));
+        writer.Write(new byte[4]);
         writer.Write(unchecked((int)0xFFFFFFFF)); // builder default packet seed
         writer.Write(new byte[10]);
         return stream.ToArray();
