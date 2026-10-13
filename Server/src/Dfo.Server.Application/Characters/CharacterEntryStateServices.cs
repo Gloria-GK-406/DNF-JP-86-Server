@@ -235,7 +235,7 @@ internal sealed class CharacterEntryStateDomainService(
     ICharacterDomainService characters, INoticeStateDomainService notices,
     IPremiumServiceDomainService premiums,
     ICreatureDomainStore? creatureStore = null, AmbientStoreAccess? stores = null,
-    IAltarDungeonDomainService? altars = null) : ICharacterEntryStateDomainService
+    IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,
@@ -273,19 +273,27 @@ internal sealed class CharacterEntryStateDomainService(
                 SpecialRewardQuestIds = specialRewardQuestIds,
             },
         };
+        var remainingEntries = new List<(int DungeonId, int Remaining)>();
         if (altars is not null)
+            remainingEntries.AddRange((await altars.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false))
+                .Select(value => (value.DungeonId, value.Remaining)));
+        if (tournaments is not null)
+            remainingEntries.AddRange((await tournaments.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false))
+                .Select(value => (value.DungeonId, value.Remaining)));
+        if (remainingEntries.Count > 0)
         {
-            var quota = await altars.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false);
             // A21 subtype1 and NOTI0227 write the same counter cache. Legacy dimensions
-            // must never reset a committed altar quota when the full character view refreshes.
+            // must never reset committed dungeon quotas when the full character view refreshes.
             var dimensions = publicState.Extras.Dimensions
-                .Where(value => quota.All(current => current.DungeonId != value.Key)).ToList();
-            var nextOrder = dimensions.Count == 0 ? 0 : checked(dimensions.Max(value => value.SortOrder) + 1);
-            foreach (var current in quota)
+                .Where(value => remainingEntries.All(current => current.DungeonId != value.Key)).ToList();
+            var nextOrder = publicState.Extras.Dimensions.Count == 0 ? 0
+                : checked(publicState.Extras.Dimensions.Max(value => value.SortOrder) + 1);
+            foreach (var current in remainingEntries)
             {
-                var previous = publicState.Extras.Dimensions.OrderBy(value => value.SortOrder)
-                    .FirstOrDefault(value => value.Key == current.DungeonId);
-                dimensions.Add((nextOrder++, current.DungeonId, previous.Value1, current.Remaining));
+                var previous = publicState.Extras.Dimensions.Where(value => value.Key == current.DungeonId)
+                    .OrderBy(value => value.SortOrder).ToArray();
+                dimensions.Add((previous.Length == 0 ? nextOrder++ : previous[0].SortOrder,
+                    current.DungeonId, previous.FirstOrDefault().Value1, current.Remaining));
             }
             publicState = publicState with { Extras = publicState.Extras with { Dimensions = dimensions } };
         }

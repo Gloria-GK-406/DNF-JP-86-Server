@@ -16,6 +16,50 @@ namespace Dfo.Server.Protocol.Tests.Game;
 
 public sealed class UsageQuotaProjectionTests
 {
+    [Theory]
+    [InlineData(9)]
+    [InlineData(8)]
+    [InlineData(0)]
+    public async Task Black_dragon_projects_absolute_remaining_entries_in_existing_NOTI0227(byte remaining)
+    {
+        var sessions = new Sessions(); var snapshots = new Snapshots();
+        snapshots.Value = snapshots.Value with { Tournaments = [new(122, new(2026, 10, 14), 9 - remaining, remaining, 9)] };
+        var message = Assert.IsType<DungeonRemainingEntriesMessage>(Assert.Single(await new UsageQuotaViewChangedHandler(snapshots, sessions)
+            .ComposeAsync(new(sessions.Current!.CharacterId, sessions.Current.ConnectionId),
+                new(sessions.Current.CharacterId, UsageQuotaFamily.TournamentDungeon), default)));
+        Assert.Equal(0x0227, message.Type);
+        Assert.Equal(new byte[] { 122, 0, 0, 0, remaining }, message.EncodeBody());
+    }
+
+    [Fact]
+    public async Task Tournament_online_refresh_follows_daily_reset_and_retries_failed_delivery()
+    {
+        var sessions = new Sessions(); var clock = new Clock();
+        var events = new Events { Family = UsageQuotaFamily.TournamentDungeon };
+        using var worker = new Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService(sessions, sessions,
+            new SelectedSessionTransitionGate(), new UsageQuotaProjectionDelivery(events), new Daily(), clock,
+            NullLogger<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>.Instance);
+        await worker.RefreshAsync(default); await worker.RefreshAsync(default);
+        Assert.Single(events.Projections);
+        clock.Now = new(2026, 10, 11, 5, 59, 0, TimeSpan.FromHours(8));
+        await worker.RefreshAsync(default); Assert.Single(events.Projections);
+        clock.Now = clock.Now.AddMinutes(1); events.Outcome = NotificationOutcome.Failed;
+        await worker.RefreshAsync(default); Assert.Equal(2, events.Projections.Count);
+        events.Outcome = NotificationOutcome.Delivered;
+        await worker.RefreshAsync(default); await worker.RefreshAsync(default);
+        Assert.Equal(3, events.Projections.Count);
+    }
+
+    private sealed class Daily : Dfo.Server.Abstractions.Configuration.IDailyResetRuleService
+    {
+        public DateTimeOffset PeriodStart(DateTimeOffset now)
+        {
+            var local = now.ToOffset(TimeSpan.FromHours(8));
+            var start = new DateTimeOffset(local.Date.AddHours(6), local.Offset);
+            return local < start ? start.AddDays(-1) : start;
+        }
+        public bool IsCurrentPeriod(DateTimeOffset recordedAt, DateTimeOffset now) => recordedAt >= PeriodStart(now);
+    }
     [Fact]
     public async Task Despair_refresh_updates_each_floor_with_remaining_free_entries()
     {
@@ -167,6 +211,7 @@ public sealed class UsageQuotaProjectionTests
     }
     private sealed class Events : IEventService
     {
+        public UsageQuotaFamily Family = UsageQuotaFamily.MirrorDungeon;
         public List<NotificationAudience> Projections = [];
         public NotificationOutcome Outcome = NotificationOutcome.Delivered;
         public ValueTask<Guid> EnqueueAsync<T>(T payload, CancellationToken cancellationToken = default) where T : class, IDomainEvent => throw new NotSupportedException();
@@ -175,7 +220,7 @@ public sealed class UsageQuotaProjectionTests
             where T : class, INotification<T>
         {
             Projections.Add(audience); var view = Assert.IsType<UsageQuotaViewChanged>(notification);
-            Assert.Equal(UsageQuotaFamily.MirrorDungeon, view.Family);
+            Assert.Equal(Family, view.Family);
             return ValueTask.FromResult(new NotificationDelivery([new(view.CharacterId, Outcome)]));
         }
     }

@@ -77,7 +77,21 @@ internal sealed class PvfTournamentDungeonContentSource(
         var candidates = ReadCandidates(archive, map, mapPath, (byte)basisLevel);
         return new(dungeonId, mapId, minimumLevel, basisLevel, (byte)difficulty, fatigue,
             requiredItems.AsReadOnly(), candidates, Array.AsReadOnly(experienceByRound), resultCards,
-            rewardItems.AsReadOnly(), goldRate) { CoinLimit = coinLimit, ConsumesFatigue = withoutFatigue != 1 };
+            rewardItems.AsReadOnly(), goldRate) { CoinLimit = coinLimit, ConsumesFatigue = withoutFatigue != 1,
+                DailyEntries = ReadDailyEntries(archive, dungeonId) };
+    }
+
+    private static int? ReadDailyEntries(PvfArchive archive, int dungeonId)
+    {
+        const string path = "etc/dungeonetc/dungeonincountinfo.etc";
+        var values = PvfDocument.Open(archive, path).Read(PvfField.Int32List("[dungeon incount info]"));
+        Require(values.Count % 4 == 0, path, "truncated dungeon incount rows");
+        var matches = Enumerable.Range(0, values.Count / 4).Select(index => index * 4)
+            .Where(index => values[index + 1] == dungeonId).ToArray();
+        if (matches.Length == 0) return null;
+        Require(matches.Length == 1 && values[matches[0] + 2] is > 0 and <= byte.MaxValue,
+            path, "invalid tournament daily entry count");
+        return values[matches[0] + 2];
     }
 
     private static IReadOnlyList<TournamentResultCard> ReadResultCards(PvfDocument document, string path)

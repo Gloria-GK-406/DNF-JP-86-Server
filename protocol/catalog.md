@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-14 大会APC编号与黑龙次数（CurrentImplementation，待实机验收）
+
+[0183](game/server-to-client/NOTI-0x0183.md)的actorId独立于round；大会APC与玩家共用客户端类别0x111，原固定1..4使WireUserId=2的玩家第二轮重号。现开局生成避开玩家的四个唯一编号，并统一用于Cell、任务掉落与死亡门控。黑龙每日上限从PVF读取为9，经统一门禁、UsageQuota及EventBus持久化和[0227](game/server-to-client/NOTI-0x0227.md)投影；登录、完整角色状态及跨日刷新同源，无数据库结构变更。[修复证据及验收项](../Document/TournamentApcAndQuotaFix-20261014.md)。
+
 ## 2026-10-13 无尽／极限祭坛（CurrentImplementation，待实机验收）
 
 DGN11006/11007由两个独立领域服务管理，复用凭证消费、UsageQuota、动态Cell与死亡事务。入场D4→D3→加载0025→CMD0102→D7/D2波次；极限0129/013D选择；最终D0→D1→经验/ITEMLIST，0048退出。D3为u32 mapId/15B；D1为四组8B行；D2尾u16为(tail==0)清房许可，非毫秒，人工区覆盖旧推断。不发送错误0104[0]退出就绪包。

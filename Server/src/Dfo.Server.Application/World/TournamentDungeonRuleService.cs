@@ -9,13 +9,19 @@ internal sealed class TournamentDungeonRuleService(
 {
     // A21's single-player flip initialization runs only during the 1.5-second selection state.
     public TimeSpan RewardSelectionWindow => TimeSpan.FromSeconds(1);
+    public IReadOnlyList<int> DungeonIds { get; } = Array.AsReadOnly(new[] { 120, 121, 122 });
 
-    public bool IsSupported(int dungeonId) => dungeonId is 120 or 121 or 122;
+    public bool IsSupported(int dungeonId) => DungeonIds.Contains(dungeonId);
 
-    public async ValueTask<TournamentPlan> PrepareAsync(int dungeonId, uint seed, CancellationToken cancellationToken)
+    public ValueTask<TournamentDefinition> GetDefinitionAsync(int dungeonId, CancellationToken cancellationToken)
     {
         if (!IsSupported(dungeonId)) throw new ArgumentOutOfRangeException(nameof(dungeonId));
-        var definition = await content.GetAsync(dungeonId, cancellationToken).ConfigureAwait(false);
+        return content.GetAsync(dungeonId, cancellationToken);
+    }
+
+    public async ValueTask<TournamentPlan> PrepareAsync(int dungeonId, uint seed, IReadOnlySet<ushort> reservedActorIds, CancellationToken cancellationToken)
+    {
+        var definition = await GetDefinitionAsync(dungeonId, cancellationToken).ConfigureAwait(false);
         if (definition.Candidates.Count < 15 || definition.Candidates.Any(value => value.Code <= 0
             || value.Strength <= 0 || value.Level == 0)
             || definition.Candidates.Select(value => value.Code).Distinct().Count() != definition.Candidates.Count)
@@ -38,12 +44,16 @@ internal sealed class TournamentDungeonRuleService(
         var rounds = new List<TournamentBracketRound>();
         var path = new List<TournamentPathActor>();
         var teams = first;
+        // Players and APCs share A21 identity category 0x111. Round numbers are not actor IDs.
+        var availableIds = Enumerable.Range(1, ushort.MaxValue - 1).Select(value => (ushort)value)
+            .Where(value => !reservedActorIds.Contains(value)).Take(4).ToArray();
+        if (availableIds.Length != 4) throw new InvalidDataException("Tournament actor IDs exhausted.");
         for (byte round = 1; round <= 4; round++)
         {
             rounds.Add(new(round, Array.AsReadOnly(teams)));
             var playerIndex = Array.FindIndex(teams, team => team.Code == 0);
             var opponent = candidates.Single(candidate => candidate.Code == teams[playerIndex ^ 1].Code);
-            path.Add(new(round, opponent.Code, opponent.Level,
+            path.Add(new(availableIds[round - 1], opponent.Code, opponent.Level,
                 (byte)((opponent.IsAiCharacter ? 5 : 0) + (round == 4 ? 3 : 0)), opponent.IsAiCharacter));
             if (round == 4) break;
             var next = new TournamentTeam[teams.Length / 2];

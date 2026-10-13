@@ -249,6 +249,7 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarProtocolCoordinator>();
         services.AddHostedService<Dfo.Server.Protocol.Game.Altar.AltarScheduler>();
         services.AddHostedService<Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService>();
+        services.AddHostedService<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>();
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.Altar.AltarStateChanged,
             Dfo.Server.Protocol.Game.Altar.AltarStateChangedHandler>(retryLimit: 0);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarPrepareHandler>(ClientMessageType.GameAltarPrepare);

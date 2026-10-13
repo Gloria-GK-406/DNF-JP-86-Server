@@ -15,6 +15,7 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
     {
         switch (key.Family)
         {
+            case UsageQuotaFamily.TournamentDungeon:
             case UsageQuotaFamily.AltarDungeon:
             case UsageQuotaFamily.DespairTower:
             case UsageQuotaFamily.DimensionDungeon:
@@ -45,6 +46,7 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
         var (character, key, expected, value, owner) = write;
         switch (key.Family)
         {
+            case UsageQuotaFamily.TournamentDungeon:
             case UsageQuotaFamily.AltarDungeon:
             case UsageQuotaFamily.DespairTower:
             case UsageQuotaFamily.DimensionDungeon:
@@ -84,7 +86,10 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
             default: throw new ArgumentOutOfRangeException(nameof(write));
         }
     }
-    private static string DimensionKey(UsageQuotaKey key) => key.Family == UsageQuotaFamily.AltarDungeon
+    private static string DimensionKey(UsageQuotaKey key) => key.Family == UsageQuotaFamily.TournamentDungeon
+        ? key.Name is "120" or "121" or "122" ? "tournament." + key.Name + ":" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : throw new InvalidDataException("Invalid tournament quota key.")
+        : key.Family == UsageQuotaFamily.AltarDungeon
         ? key.Name is "11006" or "11007" ? "altar." + key.Name + ":" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
             : throw new InvalidDataException("Invalid altar quota key.")
         : key.Family == UsageQuotaFamily.DespairTower

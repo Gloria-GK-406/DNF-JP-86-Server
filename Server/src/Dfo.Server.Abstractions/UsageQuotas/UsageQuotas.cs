@@ -7,11 +7,12 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Abstractions.UsageQuotas;
 
-public enum UsageQuotaFamily { Consumable, Premium, MirrorDungeon, DimensionDungeon, DespairTower, AltarDungeon }
+public enum UsageQuotaFamily { Consumable, Premium, MirrorDungeon, DimensionDungeon, DespairTower, AltarDungeon, TournamentDungeon }
 
 /// <summary>Storage identity, independent of limits and reset rules owned by each domain.</summary>
 public sealed record UsageQuotaKey(UsageQuotaFamily Family, string Name, DateOnly? Day = null)
 {
+    public static UsageQuotaKey Tournament(int dungeonId, DateOnly period) => new(UsageQuotaFamily.TournamentDungeon, dungeonId.ToString(System.Globalization.CultureInfo.InvariantCulture), period);
     public static UsageQuotaKey Altar(int dungeonId, DateOnly period) => new(UsageQuotaFamily.AltarDungeon, dungeonId.ToString(System.Globalization.CultureInfo.InvariantCulture), period);
     public static UsageQuotaKey Despair(string counter, DateOnly period) => new(UsageQuotaFamily.DespairTower, counter, period);
     public static UsageQuotaKey Dimension(DateOnly period) => new(UsageQuotaFamily.DimensionDungeon, "entries", period);
@@ -72,3 +73,4 @@ public static class UsageQuotaRows
 }
 
 public sealed record AltarEntryRecorded(CharacterId CharacterId, int DungeonId, DateOnly Period, UsageQuotaValue? Expected, int Used) : IDomainEvent;
+public sealed record TournamentEntryRecorded(CharacterId CharacterId, int DungeonId, DateOnly Period, UsageQuotaValue? Expected, int Used) : IDomainEvent;

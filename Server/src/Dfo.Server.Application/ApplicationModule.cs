@@ -125,6 +125,8 @@ public sealed class ApplicationModule : IServerModule
         services.AddDomainEvent<AltarChallengeCompleted>("altar.challenge-completed", 1);
         services.AddDomainSubscriber<AltarChallengeCompleted, AltarDungeonQuestSubscriber>("quest.altar-complete", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
         services.AddDomainSubscriber<DungeonParticipantLeft, AltarDungeonDomainService>("altar.departure", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.TournamentEntryRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.AltarEntryRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.TryAddSingleton<IDespairTowerRuleService, DespairTowerRuleService>();

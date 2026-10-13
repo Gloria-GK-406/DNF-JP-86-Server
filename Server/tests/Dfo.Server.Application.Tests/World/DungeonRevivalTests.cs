@@ -156,6 +156,7 @@ public sealed class DungeonRevivalTests
 
     private sealed class TournamentRevival : ITournamentDungeonDomainService
     {
+        public ValueTask<IReadOnlyList<TournamentQuotaSnapshot>> ReadQuotaAsync(Dfo.Server.Data.Characters.CharacterId characterId, CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<TournamentQuotaSnapshot>>([]);
         public bool Allowed { get; init; } = true;
         public int Revivals { get; private set; }
         public Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor? Transactions { get; set; }

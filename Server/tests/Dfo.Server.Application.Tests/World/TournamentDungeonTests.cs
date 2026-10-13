@@ -48,13 +48,13 @@ public sealed class TournamentDungeonTests
     private static IDungeonRunDomainService Runs(LearningFixture f) => f.Services.GetRequiredService<IDungeonRunDomainService>();
     private static TournamentDungeonState State(LearningFixture f) => Assert.IsType<TournamentDungeonState>(Tournament(f).Find(new(71)));
 
-    private static async Task<MonsterDeathSettlementResult> Kill(LearningFixture f, ushort actor, bool commit = true)
+    private static async Task<MonsterDeathSettlementResult> Kill(LearningFixture f, ushort actor, bool commit = true, SelectedSessionIdentity? session = null)
     {
         var run = Runs(f).Find(new CharacterId(71))!;
         await using var tx = f.Scope.Begin();
         var result = await ActivatorUtilities.CreateInstance<ProcessMonsterDeathCommandHandler>(f.Services)
             .HandleAsync(new(Guid.NewGuid(), typeof(ProcessMonsterDeathCommand), typeof(ProcessMonsterDeathCommandHandler), CommandExecutionKind.Transactional),
-                new(new(f.Session, [f.Session], run.RunId, run.RoomVersion, actor)), default);
+                new(new(session ?? f.Session, [session ?? f.Session], run.RunId, run.RoomVersion, actor)), default);
         if (commit) await tx.CommitAsync(default);
         return result;
     }
@@ -211,6 +211,83 @@ public sealed class TournamentDungeonTests
         Assert.All(State(f).Rewards[1],card => Assert.Equal(4831,card.ItemId));
         Assert.Equal(before,await f.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(new(71),default));
         if (hasQuest) Assert.Equal(expected==30 ? 0 : 30-expected,f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71 AND quest_id=4730"));
+    }
+
+    [SkippableTheory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task Black_dragon_wire_player_ids_do_not_collide_and_all_four_nonordinal_actor_deaths_finish(ushort wireId)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        await using var f = await Fixture(tickets: 0);
+        var registry = f.Services.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>();
+        Assert.True(registry.TryGetByConnection(f.Session.ConnectionId, out var online));
+        var session = f.Session with { WireUserId = wireId, ConnectionGeneration = online!.Generation };
+        registry.Publish(session);
+        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().Select(session);
+        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionRuntimeDirectory>().Publish(session, false);
+        var entry = (await Enter(f, Entry() with { DungeonId = 122 })).Entry!;
+        Assert.NotNull(entry);
+        var state = State(f); var run = Runs(f).Find(new CharacterId(71))!;
+        var actors = state.Plan.PathActors.Select(actor => actor.Sequence).ToArray();
+        Assert.DoesNotContain(wireId, actors);
+        Assert.Equal(actors, run.CurrentCellState.Actors.Select(actor => actor.Sequence));
+        Assert.Equal(actors[0], run.CurrentCellState.FirstActorSequence);
+        Assert.Equal(actors[0], entry.Visits[new(71)].FirstActorSequence);
+        Runs(f).TryMarkParticipantReady(new(71), run.RunId, run.RoomVersion);
+        Assert.Null((await Kill(f, wireId, session: session)).Death);
+        Assert.Null((await Kill(f, actors[1], session: session)).Death);
+        foreach (var actor in actors)
+        {
+            Assert.NotNull((await Kill(f, actor, session: session)).Death?.Change);
+            Assert.Null((await Kill(f, actor, session: session)).Death);
+        }
+        Assert.Equal(TournamentStatus.Champion, State(f).Status);
+    }
+
+    [SkippableFact]
+    public async Task Black_dragon_nine_entries_are_transactional_persistent_projected_and_reset_at_six()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        var clock = new QuotaClock();
+        await using var f = await Fixture(tickets: 0, configure: services => services.AddSingleton<TimeProvider>(clock));
+        f.Sql("INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0); INSERT INTO character_pvp(character_id) VALUES(71); INSERT INTO character_settings(character_id) VALUES(71); INSERT INTO character_expert_job(character_id) VALUES(71)");
+        var tournament = Tournament(f);
+        async Task<Dfo.Server.Abstractions.World.TournamentQuotaSnapshot> Quota() => Assert.Single(await tournament.ReadQuotaAsync(new(71), default));
+        Assert.Equal(9, (await Quota()).Remaining);
+        Assert.NotNull((await Enter(f, Entry() with { DungeonId = 122 }, commit: false)).Entry);
+        Assert.Equal(9, (await Quota()).Remaining);
+        Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='usage-quota.changed'"));
+        for (var i = 0; i < 9; i++)
+        {
+            Assert.NotNull((await Enter(f, Entry() with { DungeonId = 122 })).Entry);
+            var run = Runs(f).Find(new CharacterId(71))!;
+            await Runs(f).EndAsync(new(71), run.RunId);
+            Assert.Equal(8 - i, (await Quota()).Remaining);
+        }
+        Assert.Equal(DungeonEntryFailure.DailyEntryLimitReached, (await Enter(f, Entry() with { DungeonId = 122 })).Failure);
+        Assert.Equal(9, (await Quota()).Used);
+        Assert.Equal(9, f.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='usage-quota.changed'"));
+        await using (var reload = new LearningFixture(existing: f.Path, useArchive: true, configure: services =>
+        {
+            services.AddSingleton(new PvfContentOptions { ArchivePath = ContentArchive.Path });
+            services.AddSingleton<TimeProvider>(clock);
+        }))
+        {
+            Assert.Equal(0, Assert.Single(await Tournament(reload).ReadQuotaAsync(new(71), default)).Remaining);
+            var view = await reload.Services.GetRequiredService<ICharacterEntryStateDomainService>().LoadAsync(new(1), new(71), default);
+            Assert.Equal(0, Assert.Single(view.Public.Extras.Dimensions, value => value.Key == 122).Value2);
+        }
+        clock.At = clock.At.AddMinutes(1);
+        Assert.Equal(9, (await Quota()).Remaining);
+        Assert.NotNull((await Enter(f, Entry() with { DungeonId = 122 })).Entry);
+        Assert.Equal(8, (await Quota()).Remaining);
+    }
+
+    private sealed class QuotaClock : TimeProvider
+    {
+        public DateTimeOffset At = new(2026, 10, 14, 5, 59, 0, TimeSpan.FromHours(8));
+        public override DateTimeOffset GetUtcNow() => At;
     }
 
     [SkippableFact]

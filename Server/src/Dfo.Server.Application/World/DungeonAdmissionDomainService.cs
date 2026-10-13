@@ -27,7 +27,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             || context.Participants.Select(x => x.AccountId).Distinct().Count() != context.Participants.Count
             || context.Participants.Select(x => x.Slot).Distinct().Count() != context.Participants.Count)
             return Refuse(DungeonEntryFailure.MissingPrerequisite);
-        if (options.Quota is { Family: not (UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon or UsageQuotaFamily.DespairTower or UsageQuotaFamily.AltarDungeon) })
+        if (options.Quota is { Family: not (UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon or UsageQuotaFamily.DespairTower or UsageQuotaFamily.AltarDungeon or UsageQuotaFamily.TournamentDungeon) })
             throw new ArgumentException("Unsupported dungeon entry quota family.", nameof(options));
         if (!Enum.IsDefined(context.Facts.Difficulty)) return Refuse(DungeonEntryFailure.DifficultyNotUnlocked);
         DungeonDefinition? definition;
@@ -108,7 +108,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             costs.AddRange(requirements.Where(x => x.Consume).Select(x => new DungeonMaterialAdmissionCost(x.ItemId, x.Count, x.AllowSharedMaterial)));
             if (options.Quota is { } limit)
             {
-                var key = limit.Family == UsageQuotaFamily.AltarDungeon ? UsageQuotaKey.Altar(limit.DungeonId ?? throw new InvalidDataException("Altar quota requires dungeon id."), limit.Period) : limit.Family == UsageQuotaFamily.MirrorDungeon ? UsageQuotaKey.Mirror("entries", limit.Period) : limit.Family == UsageQuotaFamily.DespairTower ? UsageQuotaKey.Despair("entries", limit.Period) : UsageQuotaKey.Dimension(limit.Period);
+                var key = limit.Family == UsageQuotaFamily.TournamentDungeon ? UsageQuotaKey.Tournament(limit.DungeonId ?? throw new InvalidDataException("Tournament quota requires dungeon id."), limit.Period) : limit.Family == UsageQuotaFamily.AltarDungeon ? UsageQuotaKey.Altar(limit.DungeonId ?? throw new InvalidDataException("Altar quota requires dungeon id."), limit.Period) : limit.Family == UsageQuotaFamily.MirrorDungeon ? UsageQuotaKey.Mirror("entries", limit.Period) : limit.Family == UsageQuotaFamily.DespairTower ? UsageQuotaKey.Despair("entries", limit.Period) : UsageQuotaKey.Dimension(limit.Period);
                 UsageQuotaValue? expected;
                 if (limit.Family == UsageQuotaFamily.MirrorDungeon)
                 {
@@ -178,7 +178,9 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
                 foreach (var quota in raw.Costs.OfType<DungeonQuotaAdmissionCost>())
                 {
                     var bus = events ?? throw new InvalidOperationException("Entry event service unavailable.");
-                    if (quota.Key.Family == UsageQuotaFamily.AltarDungeon)
+                    if (quota.Key.Family == UsageQuotaFamily.TournamentDungeon)
+                        await bus.DirectAsync(new TournamentEntryRecorded(member.CharacterId, int.Parse(quota.Key.Name, System.Globalization.CultureInfo.InvariantCulture), quota.Key.Day!.Value, quota.Expected, quota.Used), ct).ConfigureAwait(false);
+                    else if (quota.Key.Family == UsageQuotaFamily.AltarDungeon)
                         await bus.DirectAsync(new AltarEntryRecorded(member.CharacterId, int.Parse(quota.Key.Name, System.Globalization.CultureInfo.InvariantCulture), quota.Key.Day!.Value, quota.Expected, quota.Used), ct).ConfigureAwait(false);
                     else if (quota.Key.Family == UsageQuotaFamily.MirrorDungeon)
                         await bus.DirectAsync(new MirrorEntryRecorded([new(member.AccountId, member.CharacterId, quota.Key.Day!.Value,

@@ -1,11 +1,13 @@
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
@@ -18,13 +20,28 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
     ICharacterDomainService characters, ICharacterFatigueDomainService fatigue,
     IItemDeliveryDomainService delivery, IQuestProgressDomainService quests,
     ISelectedSessionDomainService sessions, IDomainTransactionAccessor transactions, TimeProvider clock,
-    ICharacterGameplayFactDomainService gameplay, IQuestEnemyDropDomainService questLoot)
+    ICharacterGameplayFactDomainService gameplay, IQuestEnemyDropDomainService questLoot,
+    IUsageQuotaDomainService quotas, IDailyResetRuleService daily)
     : ITournamentDungeonDomainService, IDomainEventSubscriber<DungeonParticipantLeft>
 {
     private readonly IDungeonRunDomainService dungeonRuns = runs;
     private readonly Lock gate = new();
     private readonly Dictionary<CharacterId, TournamentDungeonState> states = [];
     public bool Supports(int dungeonId) => rules.IsSupported(dungeonId);
+    private DateOnly Period() => DateOnly.FromDateTime(daily.PeriodStart(clock.GetUtcNow()).ToOffset(TimeSpan.FromHours(8)).DateTime);
+    public async ValueTask<IReadOnlyList<TournamentQuotaSnapshot>> ReadQuotaAsync(CharacterId characterId, CancellationToken ct)
+    {
+        var period = Period();
+        var result = new List<TournamentQuotaSnapshot>();
+        foreach (var id in rules.DungeonIds)
+        {
+            var definition = await rules.GetDefinitionAsync(id, ct).ConfigureAwait(false);
+            if (definition.DailyEntries is not { } maximum) continue;
+            var used = (await quotas.ReadAsync(characterId, UsageQuotaKey.Tournament(id, period), ct).ConfigureAwait(false))?.UsedCount ?? 0;
+            result.Add(new(id, period, used, Math.Max(0, maximum - used), maximum));
+        }
+        return result.AsReadOnly();
+    }
     public TournamentDungeonState? Find(CharacterId characterId)
     {
         lock (gate)
@@ -43,13 +60,18 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
         var player = context.Participants[0];
         if (dungeonRuns.Find(player.CharacterId) is not null)
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
+        var selected = context.Participants.Select(member => sessions.FindByCharacter(member.CharacterId)).ToArray();
+        if (selected.Any(value => value is null)) return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
         TournamentPlan plan;
-        try { plan = await rules.PrepareAsync(context.DungeonId, unchecked((uint)Random.Shared.Next()), ct).ConfigureAwait(false); }
+        try { plan = await rules.PrepareAsync(context.DungeonId, unchecked((uint)Random.Shared.Next()),
+            selected.Select(value => value!.WireUserId).ToHashSet(), ct).ConfigureAwait(false); }
         catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
         var facts = context.Facts with { Difficulty = (DungeonDifficulty)plan.Definition.Difficulty };
         return await admission.ExecuteAsync(context with { Facts = facts }, new()
         {
             RequireMinimumLevel = true, ConsumesFatigue = plan.Definition.ConsumesFatigue, RequiredItemsOverride = plan.Definition.RequiredItems,
+            Quota = plan.Definition.DailyEntries is { } maximum
+                ? new(UsageQuotaFamily.TournamentDungeon, Period(), maximum, context.DungeonId) : null,
         }, async (receipt, token) =>
         {
             if (admission.BeginEntry(receipt, context.Participants, context.DungeonId) is { } refusal) return refusal;
@@ -72,12 +94,12 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
             if (plan.Definition.RoundFatigue > 0)
                 await fatigue.SpendAsync(player.CharacterId, checked((ushort)plan.Definition.RoundFatigue), token).ConfigureAwait(false);
             var change = dungeonRuns.PreparePartyEntry(context.Participants, layout, facts.Difficulty,
-                new(cell, plan.Definition.MapId, 1, actors, []), runId, clock.GetUtcNow());
+                new(cell, plan.Definition.MapId, plan.PathActors[0].Sequence, actors, []), runId, clock.GetUtcNow());
             Put(new(runId, player.CharacterId, plan));
             return DungeonEntryAttempt.Accepted(new(layout,
                 new Dictionary<CharacterId, DungeonRoomVisit>
                 {
-                    [player.CharacterId] = new(change.Run, true, [], [], 1),
+                    [player.CharacterId] = new(change.Run, true, [], [], plan.PathActors[0].Sequence),
                 }, change));
         }, ct).ConfigureAwait(false);
     }

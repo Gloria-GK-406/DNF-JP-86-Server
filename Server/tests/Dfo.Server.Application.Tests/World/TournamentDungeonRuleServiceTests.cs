@@ -5,6 +5,23 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class TournamentDungeonRuleServiceTests
 {
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(65534)]
+    public async Task Path_actor_ids_are_unique_and_never_shadow_reserved_player_ids(ushort playerId)
+    {
+        var rules = new TournamentDungeonRuleService(new Source(Definition()), new GoldRules());
+        var plan = await rules.PrepareAsync(120, 7, new HashSet<ushort> { playerId }, default);
+        Assert.Equal(4, plan.PathActors.Select(actor => actor.Sequence).Distinct().Count());
+        Assert.DoesNotContain(plan.PathActors, actor => actor.Sequence == playerId || actor.Sequence == 0);
+        if (playerId == 2) Assert.Equal(new ushort[] { 1, 3, 4, 5 }, plan.PathActors.Select(actor => actor.Sequence));
+        var multiple = await rules.PrepareAsync(120, 7, new HashSet<ushort> { 1, 2, 3, 4 }, default);
+        Assert.Equal(new ushort[] { 5, 6, 7, 8 }, multiple.PathActors.Select(actor => actor.Sequence));
+    }
+
     [Fact]
     public async Task Every_draw_has_one_player_fifteen_unique_opponents_and_a_four_round_legal_path()
     {
@@ -12,8 +29,8 @@ public sealed class TournamentDungeonRuleServiceTests
         var firstOpponents = new HashSet<int>();
         for (uint seed = 0; seed < 64; seed++)
         {
-            var plan = await rules.PrepareAsync(120, seed, default);
-            var repeat = await rules.PrepareAsync(120, seed, default);
+            var plan = await rules.PrepareAsync(120, seed, new HashSet<ushort>(), default);
+            var repeat = await rules.PrepareAsync(120, seed, new HashSet<ushort>(), default);
             Assert.Equal(new[] { 16, 8, 4, 2 }, plan.Rounds.Select(round => round.Teams.Count));
             Assert.Equal(plan.PathActors, repeat.PathActors);
             Assert.Equal(16, plan.Rounds[0].Teams.Select(team => team.Code).Distinct().Count());
@@ -36,7 +53,7 @@ public sealed class TournamentDungeonRuleServiceTests
         Assert.True(rules.IsSupported(121));
         Assert.True(rules.IsSupported(122));
         Assert.False(rules.IsSupported(123));
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => rules.PrepareAsync(123, 0, default).AsTask());
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => rules.PrepareAsync(123, 0, new HashSet<ushort>(), default).AsTask());
     }
 
     [Fact]
@@ -44,7 +61,7 @@ public sealed class TournamentDungeonRuleServiceTests
     {
         var gold = new GoldRules();
         var rules = new TournamentDungeonRuleService(new Source(Definition()), gold);
-        var plan = await rules.PrepareAsync(120, 42, default);
+        var plan = await rules.PrepareAsync(120, 42, new HashSet<ushort>(), default);
         var failure = rules.Rewards(plan, 0, 86);
         Assert.All(failure[0], card => Assert.Equal(new TournamentRewardCard(-1, 0), card));
         Assert.Empty(failure[1]);
@@ -64,9 +81,9 @@ public sealed class TournamentDungeonRuleServiceTests
     {
         var definition = Definition();
         var shortPool = new TournamentDungeonRuleService(new Source(definition with { Candidates = definition.Candidates.Take(14).ToArray() }), new GoldRules());
-        await Assert.ThrowsAsync<InvalidDataException>(() => shortPool.PrepareAsync(120, 1, default).AsTask());
+        await Assert.ThrowsAsync<InvalidDataException>(() => shortPool.PrepareAsync(120, 1, new HashSet<ushort>(), default).AsTask());
         var duplicatePool = new TournamentDungeonRuleService(new Source(definition with { Candidates = Enumerable.Repeat(definition.Candidates[0], 15).ToArray() }), new GoldRules());
-        await Assert.ThrowsAsync<InvalidDataException>(() => duplicatePool.PrepareAsync(120, 1, default).AsTask());
+        await Assert.ThrowsAsync<InvalidDataException>(() => duplicatePool.PrepareAsync(120, 1, new HashSet<ushort>(), default).AsTask());
     }
 
     private static TournamentDefinition Definition() => new(120, 17100, 69, 72, 2, 2, [],

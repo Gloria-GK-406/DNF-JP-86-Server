@@ -19,6 +19,7 @@ public sealed class PvfTournamentDungeonContentSourceTests
         Assert.Equal(2, definition.Difficulty);
         Assert.Equal(2, definition.RoundFatigue);
         Assert.Equal(3, definition.CoinLimit);
+        Assert.Null(definition.DailyEntries);
         Assert.Equal(16, definition.GoldRate);
         Assert.Equal(new DungeonRequiredItem(4726, 1, true), Assert.Single(definition.RequiredItems));
         Assert.Equal(15, definition.Candidates.Count);
@@ -41,6 +42,7 @@ public sealed class PvfTournamentDungeonContentSourceTests
         var yellow = await source.GetAsync(120, default);
         var blue = await source.GetAsync(121, default);
         Assert.Equal(121, blue.DungeonId);
+        Assert.Null(blue.DailyEntries);
         Assert.Equal(17101, blue.MapId);
         Assert.Equal(77, blue.MinimumLevel);
         Assert.Equal(80, blue.BasisLevel);
@@ -62,6 +64,7 @@ public sealed class PvfTournamentDungeonContentSourceTests
         var source = new PvfTournamentDungeonContentSource(provider, new PvfDungeonMapDefinitionSource(provider));
         var black = await source.GetAsync(122,default);
         Assert.Equal(17102,black.MapId);
+        Assert.Equal(9, black.DailyEntries);
         Assert.Equal(75,black.MinimumLevel); Assert.Equal(75,black.BasisLevel);
         Assert.Equal(0,black.Difficulty); Assert.Equal(0,black.RoundFatigue);
         Assert.False(black.ConsumesFatigue);

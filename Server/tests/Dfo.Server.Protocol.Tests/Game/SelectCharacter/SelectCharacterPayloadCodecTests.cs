@@ -720,6 +720,7 @@ public sealed class SelectCharacterPayloadCodecTests
                 services, new ConfigurationBuilder().Build());
             // This profile/quest fixture does not register dungeon content or run services.
             services.RemoveAll<Dfo.Server.Abstractions.World.IAltarDungeonDomainService>();
+            services.RemoveAll<Dfo.Server.Abstractions.World.ITournamentDungeonDomainService>();
             await using var provider = services.BuildServiceProvider();
             var typed = await provider.GetRequiredService<ICharacterEntryStateDomainService>().LoadAsync(
                 new AccountId(12), new CharacterId(22), CancellationToken.None);
