@@ -53,6 +53,7 @@ public sealed class OrdinaryQuestEffectTests
     private static ShopFixture Shop(Action<IServiceCollection>? configure = null) => new(services =>
     {
         services.AddSingleton<IExperienceRuleService>(new FixedProgression());
+        services.AddSingleton<ICarriedGoldRuleService>(new CompositeGoldLimits());
         configure?.Invoke(services);
     });
 

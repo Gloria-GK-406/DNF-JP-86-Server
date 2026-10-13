@@ -68,6 +68,7 @@ public sealed class HellDungeonEntryTests
             services.AddSingleton<IDungeonStructureRuleService>(new Structures());
             services.AddSingleton<IDungeonDifficultyRuleService>(new Dfo.Server.Application.Tests.Support.TestDungeonDifficultyRules());
             services.AddSingleton<IHellDungeonDefinitionSource>(new Content());
+            services.AddSingleton<IDespairTowerContentSource>(new NoDespairFloors());
             services.AddSingleton<IDungeonRoomActorSource>(new RoomActors());
             services.AddSingleton<IDungeonCellFactory>(new Cells());
         });
@@ -439,6 +440,10 @@ public sealed class HellDungeonEntryTests
     private sealed class Placements : IItemPlacementDefinitionSource
     {
         public ValueTask<ItemPlacement?> GetAsync(int id, CancellationToken token) => ValueTask.FromResult<ItemPlacement?>(new(3, 1000, new(BusinessInventorySpace.Material, 0, 55)) { ItemId = id });
+    }
+    private sealed class NoDespairFloors : IDespairTowerContentSource
+    {
+        public DespairTowerCatalog Load() => new(70, 3, []);
     }
     private sealed class Content : IHellDungeonDefinitionSource
     {
