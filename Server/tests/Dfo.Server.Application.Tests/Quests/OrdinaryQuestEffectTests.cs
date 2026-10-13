@@ -254,9 +254,25 @@ public sealed class OrdinaryQuestEffectTests
     public async Task Equipment_reward_count_two_creates_two_distinct_durable_items()
     {
         var rules=new Rules(); rules.Quest=rules.Quest with {ItemRewards=new([new(3000,2)],[],false,0)};
-        using var shop=Shop(s=>s.AddSingleton<IQuestContentRuleService>(rules)); Carry(shop);
+        using var shop=Shop(s=>
+        {
+            s.AddSingleton<IQuestContentRuleService>(rules);
+            s.AddSingleton<IEquipmentDefinitionSource>(new RewardEquipmentDefinition());
+        }); Carry(shop);
         var result=await Finish(shop); Assert.True(result.Finished); Assert.Equal(2,result.Items.Count);
         Assert.Equal(2,shop.Scalar("SELECT COUNT(DISTINCT core_uid) FROM item_slots WHERE owner_scope='character' AND owner_id=1"));
+        await using var read = shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
+        var bag = shop.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
+            .GetPersistentStore(new(InventoryOwnerType.Character, 1), BusinessInventoryOwnership.StoreOf(BusinessInventorySpace.CarriedEquipment))
+            .GetContainer(BusinessInventorySpace.CarriedEquipment);
+        Assert.All(await bag.GetAllAsync(default), item => Assert.Equal((ushort)45, item.Snapshot.Durability));
+    }
+
+    private sealed class RewardEquipmentDefinition : IEquipmentDefinitionSource
+    {
+        public ValueTask<int> InitializeAsync(CancellationToken ct) => ValueTask.FromResult(1);
+        public ValueTask<EquipmentDefinition?> GetEquipmentAsync(int itemId, CancellationToken ct) =>
+            ValueTask.FromResult<EquipmentDefinition?>(itemId == 3000 ? new(1, 1, 1, "weapon", 45) : null);
     }
     [Fact]
     public async Task Holdings_snapshot_contains_untouched_main_and_overlays_quick_and_account_rewards()

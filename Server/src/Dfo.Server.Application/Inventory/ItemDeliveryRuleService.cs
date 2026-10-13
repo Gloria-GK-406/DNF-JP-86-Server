@@ -8,7 +8,8 @@ internal interface IItemDeliveryRuleService
 {
     ValueTask<ItemSnapshot> TemplateAsync(int itemId, CancellationToken ct);
 }
-internal sealed class ItemDeliveryRuleService(IItemPlacementRuleService placements, ICreatureDefinitionSource creatures) : IItemDeliveryRuleService
+internal sealed class ItemDeliveryRuleService(IItemPlacementRuleService placements, ICreatureDefinitionSource creatures,
+    IEquipmentDefinitionSource equipment) : IItemDeliveryRuleService
 {
     public async ValueTask<ItemSnapshot> TemplateAsync(int itemId, CancellationToken ct)
     {
@@ -16,6 +17,12 @@ internal sealed class ItemDeliveryRuleService(IItemPlacementRuleService placemen
             ?? throw new InvalidDataException($"Unknown reward {itemId}.");
         var value = new ItemSnapshot { ItemId = itemId, LegacyKind = p.ItemKind, Type = p.Traits,
             IsPile = p.WorldClass == ItemWorldClass.Interchangeable, Count = 1 };
+        if (p.WorldClass == ItemWorldClass.Equipment)
+        {
+            var definition = await equipment.GetEquipmentAsync(itemId, ct).ConfigureAwait(false)
+                ?? throw new InvalidDataException($"Unknown equipment reward {itemId}.");
+            value = value with { Durability = definition.MaxDurability ?? 0 };
+        }
         if (p.WorldClass == ItemWorldClass.Avatar) value = value with { AvatarDetail = ArrivingAvatar.Facts() };
         if (p.WorldClass == ItemWorldClass.Creature)
         {
