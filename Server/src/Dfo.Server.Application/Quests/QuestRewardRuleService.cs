@@ -28,12 +28,11 @@ internal sealed class QuestRewardRuleService(ICycleDungeonRuleService? cycles = 
             return QuestRewardResolution.Refused(QuestRewardRejection.InvalidCareerReward);
         byte? growType = careerRewards.Length == 0 ? null : checked((byte)careerRewards[0].Values[0]);
         var awakeningRewards = definition.Rewards.Where(reward => reward.Kind == QuestRewardKind.AwakeningType).ToArray();
-        // Second awakening has not been implemented; never clear its quest without applying the reward.
-        if (awakeningRewards.Length > 1 || awakeningRewards.Any(reward => reward.Values.Count != 1 || reward.Values[0] != 1)
-            || awakeningRewards.Length != 0 && (growType is not null || (candidate.GrowType >> 4) != 0
+        if (awakeningRewards.Length > 1 || awakeningRewards.Any(reward => reward.Values.Count != 1 || reward.Values[0] is not (1 or 2))
+            || awakeningRewards.Length != 0 && (growType is not null || (candidate.GrowType >> 4) != awakeningRewards[0].Values[0] - 1
                 || (candidate.GrowType & 0xF) == 0 && candidate.Job is not (9 or 10)))
             return QuestRewardResolution.Refused(QuestRewardRejection.InvalidCareerReward);
-        byte? awakening = awakeningRewards.Length == 0 ? null : (byte)1;
+        byte? awakening = awakeningRewards.Length == 0 ? null : checked((byte)awakeningRewards[0].Values[0]);
         var declaration = definition.ItemRewards;
         var eligibleSelection = declaration.Selectable
             .Where(rule => Matches(rule, candidate))

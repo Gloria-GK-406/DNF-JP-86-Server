@@ -171,6 +171,48 @@ public sealed class TournamentDungeonTests
         Assert.All(State(f).Rewards[1], card => Assert.Equal(3323, card.ItemId));
     }
 
+    [SkippableTheory]
+    [InlineData(true,0,4)]
+    [InlineData(true,29,30)]
+    [InlineData(false,0,0)]
+    public async Task Black_dragon_enters_at_zero_fatigue_and_its_apc_deaths_grant_only_active_quest_breath_up_to_target(bool hasQuest, int held, int expected)
+    {
+        Skip.IfNot(ContentArchive.Available,ContentArchive.SkipReason);
+        await using var f = await Fixture(tickets:0);
+        if (hasQuest) f.Sql("INSERT INTO character_active_quests VALUES(71,0,4730,30)");
+        await using (var tx = f.Scope.Begin())
+        {
+            await f.Services.GetRequiredService<ICharacterFatigueDomainService>().SpendAsync(new(71),ushort.MaxValue,default);
+            if (held > 0) await f.Services.GetRequiredService<IItemGrantDomainService>().GrantAllPersistentAsync(new(71),4831,held,default);
+            await tx.CommitAsync(default);
+        }
+        var before = await f.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(new(71),default);
+        Assert.Equal(0,before.Remaining);
+        var entry = await Enter(f,Entry() with { DungeonId=122 });
+        Assert.True(entry.Entry is not null,$"Entry refused: {entry.Failure}; {entry.Detail}");
+        var run = Runs(f).Find(new CharacterId(71))!;
+        Assert.Equal(17102,run.CurrentRoomMapId); Assert.Equal(DungeonDifficulty.Normal,run.Difficulty);
+        Assert.All(run.CurrentCellState.Actors,actor =>
+        {
+            Assert.True(actor.IsAiCharacter); Assert.False(actor.IsMonster);
+            if (hasQuest) Assert.Contains(actor.PendingLoot,x => x.ItemId==4831 && x.Delivery==RolledDropDelivery.DirectQuestItem);
+            else Assert.Empty(actor.PendingLoot);
+        });
+        Runs(f).TryMarkParticipantReady(new(71),run.RunId,run.RoomVersion);
+        for (ushort actor=1; actor<=4; actor++)
+        {
+            Assert.NotNull((await Kill(f,actor)).Death);
+            var count = Count(f,4831);
+            Assert.Null((await Kill(f,actor)).Death);
+            Assert.Equal(count,Count(f,4831));
+        }
+        Assert.Equal(expected,Count(f,4831));
+        Assert.Equal(TournamentStatus.Champion,State(f).Status);
+        Assert.All(State(f).Rewards[1],card => Assert.Equal(4831,card.ItemId));
+        Assert.Equal(before,await f.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(new(71),default));
+        if (hasQuest) Assert.Equal(expected==30 ? 0 : 30-expected,f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71 AND quest_id=4730"));
+    }
+
     [SkippableFact]
     public async Task Future_actor_and_duplicate_death_cannot_skip_rounds_or_spend_fatigue()
     {

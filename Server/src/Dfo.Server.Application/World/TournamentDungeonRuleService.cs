@@ -10,7 +10,7 @@ internal sealed class TournamentDungeonRuleService(
     // A21's single-player flip initialization runs only during the 1.5-second selection state.
     public TimeSpan RewardSelectionWindow => TimeSpan.FromSeconds(1);
 
-    public bool IsSupported(int dungeonId) => dungeonId is 120 or 121;
+    public bool IsSupported(int dungeonId) => dungeonId is 120 or 121 or 122;
 
     public async ValueTask<TournamentPlan> PrepareAsync(int dungeonId, uint seed, CancellationToken cancellationToken)
     {

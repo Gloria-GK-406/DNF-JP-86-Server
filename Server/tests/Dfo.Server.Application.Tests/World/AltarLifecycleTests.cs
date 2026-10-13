@@ -142,11 +142,12 @@ public sealed class AltarLifecycleTests
             services.AddSingleton<IPartyMemberStatusDomainService>(new StubPartyMemberStatusDomainService());
         });
         await f.SeedAsync();
-        f.Sql("INSERT INTO character_stats(character_id,carried_gold) VALUES(71,0)");
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71),
-            new PersistentItemContainer(ContainerId.ForCharacter(new(71), InventoryContainerType.Main),
-                new(InventoryContainerType.Main, 0), f.Services.GetRequiredService<IItemDomainStore>(), f.Scope,
-                f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>()));
+        f.Sql("INSERT INTO character_stats(character_id,carried_gold) VALUES(71,0),(72,0)");
+        foreach (var memberId in new CharacterId[] { new(71), new(72) })
+            f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(memberId,
+                new PersistentItemContainer(ContainerId.ForCharacter(memberId, InventoryContainerType.Main),
+                    new(InventoryContainerType.Main, 0), f.Services.GetRequiredService<IItemDomainStore>(), f.Scope,
+                    f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>()));
         f.Services.GetRequiredService<IIndependentDropRuleService>().Initialize();
         f.Services.GetRequiredService<IExtraDropRuleService>().Initialize();
         f.Services.GetRequiredService<IMonsterDeclaredDropRuleService>().Initialize();

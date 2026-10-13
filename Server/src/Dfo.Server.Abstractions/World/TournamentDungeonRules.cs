@@ -12,6 +12,7 @@ public sealed record TournamentDefinition(
     IReadOnlyList<TournamentRewardItem> RewardItems, double GoldRate)
 {
     public int CoinLimit { get; init; }
+    public bool ConsumesFatigue { get; init; } = true;
 }
 public sealed record TournamentTeam(byte Position, int Code, int Strength);
 public sealed record TournamentBracketRound(byte Number, IReadOnlyList<TournamentTeam> Teams);

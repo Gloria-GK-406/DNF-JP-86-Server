@@ -164,6 +164,7 @@ public sealed class FinishQuestHandlerTests
     [Theory]
     [InlineData((byte)4, null)]
     [InlineData((byte)17, (byte)1)]
+    [InlineData((byte)33, (byte)2)]
     public async Task Advancement_sends_new_skills_before_ack_and_projects_the_new_identity_afterwards(byte grow, byte? awakening)
     {
         var ledger = new SkillPointLedger();

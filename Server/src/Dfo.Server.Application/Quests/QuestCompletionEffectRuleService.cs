@@ -147,8 +147,8 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
         if (reward.Awakening is { } awakening)
         {
             var before = CharacterCareer.FromPacked(facts.Identity.Job, facts.Identity.GrowType);
-            if (awakening != 1 || before.Awakening != 0 || reward.GrowType is not null)
-                throw new InvalidOperationException("Invalid first awakening.");
+            if (awakening is not (1 or 2) || before.Awakening != awakening - 1 || reward.GrowType is not null)
+                throw new InvalidOperationException("Invalid awakening transition.");
             var career = new CharacterCareer(before.Job, before.GrowType, awakening);
             await stats.InitializeAsync(ct).ConfigureAwait(false);
             _ = stats.GetStats(career, xp.Award.Level);

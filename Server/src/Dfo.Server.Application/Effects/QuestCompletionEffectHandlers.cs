@@ -60,8 +60,9 @@ internal sealed class SetCharacterAwakeningEffectHandler(ICharacterTable charact
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, SetCharacterAwakeningEffect effect, CancellationToken ct)
     {
-        if ((effect.Expected >> 4) != 0 || effect.Value != (effect.Expected | 0x10))
-            throw new ArgumentException("Invalid first awakening.");
+        var stage = effect.Expected >> 4;
+        if (stage > 1 || effect.Value != ((effect.Expected & 0x0F) | ((stage + 1) << 4)))
+            throw new ArgumentException("Invalid awakening transition.");
         return ValueTask.CompletedTask;
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, SetCharacterAwakeningEffect effect, CancellationToken ct)

@@ -95,8 +95,11 @@ public sealed class QuestRewardRuleServiceTests
     [InlineData(1, 33, false)]
     [InlineData(1, 0, false)]
     [InlineData(0, 1, false)]
-    [InlineData(2, 17, false)]
-    public void Awakening_reward_requires_an_unawakened_career_and_only_supports_stage_one(int stage, byte current, bool valid)
+    [InlineData(2, 17, true)]
+    [InlineData(2, 1, false)]
+    [InlineData(2, 33, false)]
+    [InlineData(3, 33, false)]
+    public void Awakening_reward_only_allows_the_next_supported_stage(int stage, byte current, bool valid)
     {
         var quest = Quest(QuestItemRewardDefinition.Empty) with { Rewards = [new(QuestRewardKind.AwakeningType,[stage])] };
         Assert.Equal(valid, Resolve(quest, growType: current).IsValid);

@@ -28,14 +28,15 @@ public sealed class FinishQuestPayloadCodecTests
     }
 
     [Theory]
-    [InlineData(0, "01D10300640000000000000000020001052E00030107B30007")]
-    [InlineData(4, "01D103046400000000000000020001052E00030107B30007")]
-    [InlineData(0x19, "01D10319640000000000000000020001052E00030107B30007")]
-    public void Awakening_ack_uses_chain_two_reserved_zero_and_the_retained_compact_skill_pages(byte objective, string hex)
+    [InlineData(0, "01D10300640000000000000000020001052E00030107B30007",1)]
+    [InlineData(4, "01D103046400000000000000020001052E00030107B30007",1)]
+    [InlineData(0x19, "01D10319640000000000000000020001052E00030107B30007",1)]
+    [InlineData(0, "01D10300640000000000000000020001052E00030107B30007",2)]
+    public void Awakening_ack_uses_chain_two_reserved_zero_and_the_retained_compact_skill_pages(byte objective, string hex, byte stage)
     {
         var body = FinishQuestPayloadCodec.Encode(new(true,977,objective,100,[],0,0,GrowType:17)
         {
-            Awakening = 1,
+            Awakening = stage,
             SkillPages = [new(0,[new(5,46,3,[])]),new(1,[new(7,179,7,[])])],
         });
         Assert.Equal(Convert.FromHexString(hex),body);

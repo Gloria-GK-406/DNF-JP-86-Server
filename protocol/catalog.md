@@ -10,9 +10,9 @@ DGN11006/11007由两个独立领域服务管理，复用凭证消费、UsageQuot
 
 ## 2026-10-11 黄龙／青龙大会一期（CurrentImplementation，待实机验收）
 
-DGN120／121以独立大会领域服务复用统一门禁、单Cell四轮和死亡事务。入场[0183](game/server-to-client/NOTI-0x0183.md)260B＋[0184](game/server-to-client/NOTI-0x0184.md)15B替代普通地图包；客户端本地换轮，服务端按当前actor门控。四胜或死亡复活窗口超时发送[0185](game/server-to-client/NOTI-0x0185.md)，[CMD01CA](game/client-to-server/0x01CA.md)启动翻牌、[CMD01CB](game/client-to-server/0x01CB.md)每行一次选牌。单人自动补选窗口为1秒，后台每50ms检查，以适配客户端1500ms的可见初始化状态；不承诺高延迟下的显示。角色经验/金币、曲玉派发与领取标记同事务；满包邮寄。
+DGN120／121／122以独立大会领域服务复用统一门禁、单Cell四轮和死亡事务。入场[0183](game/server-to-client/NOTI-0x0183.md)260B＋[0184](game/server-to-client/NOTI-0x0184.md)15B替代普通地图包；客户端本地换轮，服务端按当前actor门控。四胜或死亡复活窗口超时发送[0185](game/server-to-client/NOTI-0x0185.md)，[CMD01CA](game/client-to-server/0x01CA.md)启动翻牌、[CMD01CB](game/client-to-server/0x01CB.md)每行一次选牌。单人自动补选窗口为1秒，后台每50ms检查，以适配客户端1500ms的可见初始化状态；不承诺高延迟下的显示。角色经验/金币、曲玉派发与领取标记同事务；满包邮寄。
 
-静态字段已与当前上游交叉核对，旧0183自动平坦表由人工区显式校正。青龙配置与奖励读取其自身PVF；黑龙／祭坛不包含在此实现。没有本次WireCaptured或ClientVerified。[契约、计划与研究](../Document/tasks/yellow-dragon-tournament/TaskContract.md)、[自动翻牌修复及青龙接入证据](../Document/outputs/tournament-autoflip-awakening-20261011.md)。
+静态字段已与当前上游交叉核对，旧0183自动平坦表由人工区显式校正。三大会配置与奖励分别读取自身PVF；黑龙122使用44个APC候选、难度0、无门票及不耗疲劳，任务掉落经通用预生成/死亡结算；祭坛使用独立实现。黑龙与二觉尚无新增WireCaptured或ClientVerified。[黑龙与二觉说明](../Document/BlackDragonAndSecondAwakening-20261013.md)。[契约、计划与研究](../Document/tasks/yellow-dragon-tournament/TaskContract.md)、[自动翻牌修复及青龙接入证据](../Document/outputs/tournament-autoflip-awakening-20261011.md)。
 
 ## 2026-10-11 装备/时装钻孔镶嵌（开孔一期接受，镶嵌待实测）
 

@@ -15,7 +15,7 @@ internal sealed class PvfTournamentDungeonContentSource(
     public async ValueTask<TournamentDefinition> GetAsync(int dungeonId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (dungeonId is not (120 or 121)) throw new ArgumentOutOfRangeException(nameof(dungeonId));
+        if (dungeonId is not (120 or 121 or 122)) throw new ArgumentOutOfRangeException(nameof(dungeonId));
         lock (gate) if (cached.TryGetValue(dungeonId, out var found)) return found;
         var owned = await maps.ListForDungeonAsync(dungeonId, cancellationToken).ConfigureAwait(false);
         if (owned.Count != 1) throw new InvalidDataException($"Tournament {dungeonId}: expected one arena map.");
@@ -37,11 +37,12 @@ internal sealed class PvfTournamentDungeonContentSource(
         var basisLevel = dungeon.Read(PvfField.Int32("[basis level]", minimum: 1, maximum: 255));
         var difficulty = dungeon.Read(PvfField.Int32("[designate dungeon difficulty]", minimum: 0, maximum: 4));
         var fatigue = dungeon.Read(PvfField.Int32("[tournament round fatigue]", minimum: 0));
+        var withoutFatigue = dungeon.Read(PvfField.Int32("[enter without fatigue]", optional: true));
         var coinLimit = dungeon.Read(PvfField.Int32("[coin limit]", minimum: 0));
         var goldRate = dungeon.Read(PvfField.Number("[tournament clear reward gold rate]"));
         Require(double.IsFinite(goldRate) && goldRate > 0, path, "invalid gold multiplier");
         var requiredItems = new List<DungeonRequiredItem>();
-        var required = dungeon.Read(PvfField.Int32List("[required item]"));
+        var required = dungeon.Read(PvfField.Int32List("[required item]", optional: true)) ?? [];
         Require(required.Count % 3 == 0, path, "truncated required item triples");
         for (var index = 0; index < required.Count; index += 3)
         {
@@ -76,7 +77,7 @@ internal sealed class PvfTournamentDungeonContentSource(
         var candidates = ReadCandidates(archive, map, mapPath, (byte)basisLevel);
         return new(dungeonId, mapId, minimumLevel, basisLevel, (byte)difficulty, fatigue,
             requiredItems.AsReadOnly(), candidates, Array.AsReadOnly(experienceByRound), resultCards,
-            rewardItems.AsReadOnly(), goldRate) { CoinLimit = coinLimit };
+            rewardItems.AsReadOnly(), goldRate) { CoinLimit = coinLimit, ConsumesFatigue = withoutFatigue != 1 };
     }
 
     private static IReadOnlyList<TournamentResultCard> ReadResultCards(PvfDocument document, string path)

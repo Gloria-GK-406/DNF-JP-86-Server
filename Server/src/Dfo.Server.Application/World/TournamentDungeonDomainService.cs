@@ -18,7 +18,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
     ICharacterDomainService characters, ICharacterFatigueDomainService fatigue,
     IItemDeliveryDomainService delivery, IQuestProgressDomainService quests,
     ISelectedSessionDomainService sessions, IDomainTransactionAccessor transactions, TimeProvider clock,
-    ICharacterGameplayFactDomainService gameplay)
+    ICharacterGameplayFactDomainService gameplay, IQuestEnemyDropDomainService questLoot)
     : ITournamentDungeonDomainService, IDomainEventSubscriber<DungeonParticipantLeft>
 {
     private readonly IDungeonRunDomainService dungeonRuns = runs;
@@ -49,7 +49,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
         var facts = context.Facts with { Difficulty = (DungeonDifficulty)plan.Definition.Difficulty };
         return await admission.ExecuteAsync(context with { Facts = facts }, new()
         {
-            RequireMinimumLevel = true, ConsumesFatigue = true, RequiredItemsOverride = plan.Definition.RequiredItems,
+            RequireMinimumLevel = true, ConsumesFatigue = plan.Definition.ConsumesFatigue, RequiredItemsOverride = plan.Definition.RequiredItems,
         }, async (receipt, token) =>
         {
             if (admission.BeginEntry(receipt, context.Participants, context.DungeonId) is { } refusal) return refusal;
@@ -59,9 +59,18 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
                 unchecked((int)plan.Seed), new Dictionary<MazeCell, DungeonCellDefinition>
                 { [cell] = DungeonCellDefinition.Fixed(plan.Definition.MapId) }, (byte)plan.Definition.BasisLevel,
                 ConsumesFatigue: false) { Tournament = plan };
-            var actors = plan.PathActors.Select(x => new DungeonCellActorState(x.Sequence,
-                new(x.Code, x.Level, x.Type, RandomDropCount: 0) { IsHostile = true }, x.IsAiCharacter, false, [], !x.IsAiCharacter)).ToArray();
-            await fatigue.SpendAsync(player.CharacterId, checked((ushort)plan.Definition.RoundFatigue), token).ConfigureAwait(false);
+            var actors = new List<DungeonCellActorState>();
+            foreach (var actor in plan.PathActors)
+            {
+                var pending = await questLoot.DrawAsync(new(actor.IsAiCharacter ? QuestEnemyType.APC
+                    : QuestEnemyType.Monster, actor.Code, actor.Sequence,
+                    context.DungeonId, facts.Difficulty, unchecked((int)plan.Seed), cell.X, cell.Y, plan.Definition.MapId),
+                    new(player.AccountId,player.CharacterId), token).ConfigureAwait(false);
+                actors.Add(new(actor.Sequence, new(actor.Code, actor.Level, actor.Type, RandomDropCount: 0) { IsHostile = true },
+                    actor.IsAiCharacter, false, pending.ToArray(), !actor.IsAiCharacter));
+            }
+            if (plan.Definition.RoundFatigue > 0)
+                await fatigue.SpendAsync(player.CharacterId, checked((ushort)plan.Definition.RoundFatigue), token).ConfigureAwait(false);
             var change = dungeonRuns.PreparePartyEntry(context.Participants, layout, facts.Difficulty,
                 new(cell, plan.Definition.MapId, 1, actors, []), runId, clock.GetUtcNow());
             Put(new(runId, player.CharacterId, plan));
@@ -90,7 +99,8 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
         var state = Find(session.CharacterId)!;
         var next = state with { CompletedRounds = state.CompletedRounds + 1 };
         if (next.CompletedRounds == 4) return await FinishAsync(session, next, TournamentStatus.Champion, ct).ConfigureAwait(false);
-        await fatigue.SpendAsync(session.CharacterId, checked((ushort)next.Plan.Definition.RoundFatigue), ct).ConfigureAwait(false);
+        if (next.Plan.Definition.RoundFatigue > 0)
+            await fatigue.SpendAsync(session.CharacterId, checked((ushort)next.Plan.Definition.RoundFatigue), ct).ConfigureAwait(false);
         Put(next);
         return new(next) { Fatigue = await fatigue.BalanceOfAsync(session.CharacterId, ct).ConfigureAwait(false) };
     }
@@ -139,7 +149,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
         if (reward.ItemId > 0 && reward.Count > 0)
         {
             receipt = await delivery.DeliverAsync(session.AccountId, session.CharacterId, [new(reward.ItemId, reward.Count)],
-                "黄龙大会奖励", ct, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
+                "武斗大会奖励", ct, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
         }
         else if (reward.ItemId == 0 && reward.Count > 0)
             gold = await characters.Get(session.CharacterId).AddGoldAsync(reward.Count, ct).ConfigureAwait(false);
