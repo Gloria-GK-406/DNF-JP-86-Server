@@ -795,7 +795,7 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(entry.CloneTitleItemId); writer.Write((byte)0); writer.Write(checked((byte)c.CreatureField2)); writer.Write(checked((byte)c.CreatureField3)); writer.Write(checked((byte)c.CreatureField4));
         writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(checked((byte)c.Stamina)); writer.Write(checked((uint)c.FatiguePenalty)); writer.Write(c.EventCharacter != 0 ? (byte)1 : (byte)0);
         WriteCreatureTriple(writer, creature, pet);
-        writer.Write(BuildSubtypeZeroTail(job, entry.HasBlackDiamond));
+        writer.Write(BuildSubtypeZeroTail(job, entry.HasBlackDiamond, checked((byte)entry.VisibilityBits)));
         return stream.ToArray();
     }
 
@@ -906,6 +906,7 @@ internal static partial class StateSynchronizationPayloadCodec
 
     private const int SubtypeZeroTailExpertJobTypeOffset = 23;
     private const int SubtypeZeroTailExpertJobExperienceOffset = 24;
+    private const int SubtypeZeroTailVisibilityOffset = 47;
     private const int SubtypeZeroTailChannelOffset = 59;
 
     /// <summary>The channel value the reference carries, and the upstream default.</summary>
@@ -918,12 +919,15 @@ internal static partial class StateSynchronizationPayloadCodec
     /// </remarks>
     private const ushort SubtypeZeroTailChannel = 2;
 
-    private static byte[] BuildSubtypeZeroTail(CharacterExpertJobStorageRecord job, bool hasBlackDiamond)
+    private static byte[] BuildSubtypeZeroTail(CharacterExpertJobStorageRecord job, bool hasBlackDiamond, byte visibilityBits)
     {
         var tail = SubtypeZeroFixedTail.ToArray();
         // A21 read at VA013E2DB0 -> user info +0x2E8; name renderer selects diamond frame 3.
         // Byte 0 is the separate premium PC-room flag and must not be changed here.
         tail[1] = hasBlackDiamond ? (byte)1 : (byte)0;
+        // A21 VA013E1A30 applies bit1 to growth effects, and bits3/4 to avatar visibility.
+        // Keep this full appearance refresh consistent with NOTI0165, including after awakening.
+        tail[SubtypeZeroTailVisibilityOffset] = visibilityBits;
         tail[SubtypeZeroTailExpertJobTypeOffset] = checked((byte)job.Type);
         // No expert job means no experience. The upstream projects the same way, and specifically
         // refuses to send the older sentinel of -1.

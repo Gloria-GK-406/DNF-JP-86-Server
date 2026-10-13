@@ -253,7 +253,12 @@ public sealed class SelectCharacterAcceptedTranscriptTests
             },
         };
 
-        var hashes = CaptureCurrentTranscript(result).Select(WithoutReferenceOnlyTitleExtension).Select(Sha256).ToArray();
+        var frames = CaptureCurrentTranscript(result);
+        // USERINFO0 visibility at tail+47 is now authoritative, rather than the old literal zero.
+        // Assert it before normalizing only that known patch point for the historical byte baseline.
+        Assert.Equal(checked((byte)result.CharacterEntry.Public.VisibilityBits), frames[1][^17]);
+        frames[1][^17] = 0;
+        var hashes = frames.Select(WithoutReferenceOnlyTitleExtension).Select(Sha256).ToArray();
 
         Assert.Equal(AcceptedKnightFrameSha256.Length, hashes.Length);
         for (var i = 0; i < hashes.Length; i++)

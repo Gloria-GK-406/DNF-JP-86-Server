@@ -175,6 +175,8 @@ public sealed class FinishQuestHandlerTests
             CharacterEntry = before.CharacterEntry with
             {
                 Features = new([], null!, null!, null!, []),
+                Public = Dfo.Server.Protocol.Tests.Game.SelectCharacter.SelectCharacterPayloadTestData.CreateComplete()
+                    .CharacterEntry.Public with { VisibilityBits = 3 },
                 Skills = before.CharacterEntry.Skills with
                 {
                     Pages = [new(0, [new(5, 100, 1, [])]), new(1, [new(5, 100, 1, [])])],
@@ -188,6 +190,7 @@ public sealed class FinishQuestHandlerTests
         Assert.Equal(awakening, Assert.IsType<FinishQuestAcknowledgement>(sent[1]).Awakening);
         Assert.Equal(after.CharacterEntry.Skills.Pages, Assert.IsType<FinishQuestAcknowledgement>(sent[1]).SkillPages);
         Assert.Equal(grow, Assert.Single(sent.OfType<CurrentUserStateMessage>()).Character.Identity.GrowType);
+        Assert.Equal(3, Assert.Single(sent.OfType<CurrentUserStateMessage>()).EncodeBody()[^17]);
         Assert.Equal(grow, Assert.Single(sent.OfType<ExtendedUserStateMessage>()).Character.Identity.GrowType);
         Assert.Single(sent.OfType<InventorySnapshotMessage>());
         Assert.Equal(28, Assert.IsType<WeaknessProjectionNotification>(sent[^1]).Value);
