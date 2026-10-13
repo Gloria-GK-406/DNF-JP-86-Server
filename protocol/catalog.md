@@ -221,6 +221,8 @@ P01–P10由用户确认通过；实例重构及常规事务回归已交付。�
 
 ## 2026-09-29 CMD0050 普通强化候选实现
 
+2026-10-13 `CurrentImplementation` 补充：CMD0050 `method=0` 支持 PVF `[enchant random]` 祝福强化券，按声明权重覆盖等级、扣一张券、零金币，沿用原装备实例与 ACK／槽刷新。普通与固定券规则保持；附带额外材料的活动变体暂拒绝。来源与待验收范围见[祝福随机强化券](game/client-to-server/0x0050.md#祝福随机强化券2026-10-13currentimplementation)，不新增 WireCaptured／ClientVerified 声明。
+
 [请求](game/client-to-server/0x0050.md)与[结果](game/server-to-client/CMD-0x0050.md)已按 A21 静态读取路径、真实 PVF 和参考端规则接入普通强化；金币/材料/装备/破坏产物共命令事务，支持同连接同序列重放防二次消费。普通强化已有用户 GUI、保护券和重登反馈。2026-10-01 `method=1` 增幅事务已接入独立 `etc/amplifyupgrade.etc`，成功率、费用、失败处罚、保护券与返奖按增幅规则；高级 `method=2` 保持拒绝。增幅当前为 `ContentStatic + UpstreamReference + ClientStatic + CurrentImplementation`，实机确认待[验收清单](../Document/equipment-amplification-and-crystal-notifications.md)，不提前标记 ClientVerified。
 
 ## 2026-09-29 自动整理接入

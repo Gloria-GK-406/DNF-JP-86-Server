@@ -112,7 +112,9 @@ internal sealed class EquipmentReinforcementDomainService(
                 protectionDefinition = selected.Definition;
             }
         }
-        var succeeded = rule.TryReinforce(rolls.Next(100_000));
+        var draw = rolls.Next(rule.RollUpperBound);
+        rule = rule.ResolveRoll(draw);
+        var succeeded = rule.TryReinforce(draw);
         var plan = await plans.ReinforcementAsync(target, rule,
             new(materialLocation, rule.MaterialItemId, rule.MaterialCount),
             protectionSlot is { } ticket ? new(ticket, protectionItem!.ItemId, 1) : null,

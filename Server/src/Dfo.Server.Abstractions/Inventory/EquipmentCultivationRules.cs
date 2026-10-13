@@ -39,6 +39,9 @@ public static class EquipmentReinforcementFailureRuleExtensions
 
 public interface IEquipmentReinforcementRule
 {
+    int RollUpperBound => 100_000;
+    /// <summary>Returns an immutable, resolved target for a weighted ticket; ordinary rules keep themselves.</summary>
+    IEquipmentReinforcementRule ResolveRoll(int draw) => this;
     /// <summary>Null for NPC +1; a declared level for a fixed-level ticket.</summary>
     byte? FixedTargetLevel => null;
     int GoldCost { get; }

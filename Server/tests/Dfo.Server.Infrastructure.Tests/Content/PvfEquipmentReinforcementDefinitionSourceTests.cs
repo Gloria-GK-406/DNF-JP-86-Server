@@ -8,6 +8,53 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 public sealed class PvfEquipmentReinforcementDefinitionSourceTests
 {
     [SkippableTheory]
+    [InlineData(2682155, 3)]
+    [InlineData(2682156, 2)]
+    [InlineData(2682157, 1)]
+    public async Task Real_blessing_tickets_preserve_weighted_levels_and_restrictions(int itemId, int slot)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var ticket = await new PvfEquipmentReinforcementDefinitionSource(provider).GetTicketAsync(itemId, default);
+        Assert.NotNull(ticket);
+        Assert.Equal("random", ticket.ApplyMode);
+        Assert.Equal(slot, ticket.SlotRestriction);
+        Assert.Equal(2, ticket.SealRestriction);
+        Assert.Equal(new[] { 0, 1, 2, 3, 5, 6 }, ticket.AllowedRarities);
+        Assert.Equal(new[] { 6, 7, 8, 9, 10, 11, 12, 13 }, ticket.RandomLevels.Select(value => (int)value.Level));
+        Assert.Equal(new[] { 15285, 30805, 32150, 11201, 8600, 1440, 437, 82 }, ticket.RandomLevels.Select(value => value.Weight));
+        Assert.False(ticket.RequiresAdditionalMaterials);
+    }
+
+    [Theory]
+    [InlineData("count")]
+    [InlineData("negative")]
+    [InlineData("zero")]
+    [InlineData("level")]
+    [InlineData("duplicate")]
+    [InlineData("missing-close")]
+    [InlineData("early-close")]
+    public async Task Malformed_blessing_ticket_weights_are_rejected_with_source_path(string defect)
+    {
+        var builder = new PvfArchiveBuilder();
+        builder.AddScript("stackable", "stackable.lst").Int(9000).Quoted("ticket.stk").End();
+        var script = builder.AddScript("stackable", "ticket.stk")
+            .Tag("[enchant random]").Tag("[er_grade]").Int(2)
+            .Tag("[er_slot]").Int(1).Tag("[er_seal]").Int(2);
+        if (defect == "early-close") script.Tag("[/er_enchant]");
+        script.Tag("[er_enchant]").Int(defect == "count" ? 3 : 2)
+            .Int(defect == "level" ? 32 : 6).Int(defect == "negative" ? -1 : defect == "zero" ? 0 : 50)
+            .Int(defect == "duplicate" ? 6 : 7).Int(defect == "zero" ? 0 : 50);
+        if (defect != "early-close") script.Tag("[/er_enchant]");
+        if (defect != "missing-close") script.Tag("[/enchant random]");
+        script.End();
+        using var archive = new BuiltArchive(builder);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() =>
+            new PvfEquipmentReinforcementDefinitionSource(archive.Provider).GetTicketAsync(9000, default).AsTask());
+        Assert.Contains("ticket.stk", error.Message);
+    }
+
+    [SkippableTheory]
     [InlineData(7275, EquipmentUpgradeKind.Reinforcement, 12, 100)]
     [InlineData(7814, EquipmentUpgradeKind.Reinforcement, 13, 100)]
     [InlineData(10008100, EquipmentUpgradeKind.Amplification, 11, 90)]
