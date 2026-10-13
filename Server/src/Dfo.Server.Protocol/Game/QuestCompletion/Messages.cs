@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Protocol.Game.QuestCompletion;
 
@@ -53,5 +54,7 @@ public sealed record FinishQuestAcknowledgement(
     byte RefusalCode,
     byte? GrowType = null) : IGameCmdMessage
 {
+    public byte? Awakening { get; init; }
+    public IReadOnlyList<CharacterSkillPageState> SkillPages { get; init; } = [];
     public ServerMessageType MessageType => ServerMessageType.GameFinishQuest;
 }

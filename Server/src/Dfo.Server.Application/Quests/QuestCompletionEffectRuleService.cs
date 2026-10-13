@@ -116,6 +116,7 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
         effects.AddRange(rewardEffects);
         var xp = experience.DecideAward(facts.Progress, new ExperienceBreakdown(Base: reward.Experience));
         effects.Add(new CharacterExperienceEffect(xp));
+        byte? packedGrowType = reward.GrowType;
         if (reward.GrowType is { } grow)
         {
             var beforeCareer = CharacterCareer.FromPacked(facts.Identity.Job, facts.Identity.GrowType);
@@ -143,6 +144,42 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
                 }
             }
         }
+        if (reward.Awakening is { } awakening)
+        {
+            var before = CharacterCareer.FromPacked(facts.Identity.Job, facts.Identity.GrowType);
+            if (awakening != 1 || before.Awakening != 0 || reward.GrowType is not null)
+                throw new InvalidOperationException("Invalid first awakening.");
+            var career = new CharacterCareer(before.Job, before.GrowType, awakening);
+            await stats.InitializeAsync(ct).ConfigureAwait(false);
+            _ = stats.GetStats(career, xp.Award.Level);
+            var skillFacts = facts.Skills ?? throw new InvalidOperationException("Skill state is unavailable.");
+            var builds = facts.Builds ?? throw new InvalidOperationException("Skill builds are unavailable.");
+            _ = skills.GetLedger(career, xp.Award.Level, skillFacts.Pages, skillFacts.PointBasis);
+            packedGrowType = career.PackedGrowType;
+            effects.Add(new SetCharacterAwakeningEffect(before.Job, facts.Identity.GrowType, career.PackedGrowType));
+            effects.Add(new MaterializeSkillBuildsEffect(builds.Active, [.. builds.Builds]));
+            foreach (var page in skillFacts.Pages.OrderBy(x => x.PageIndex))
+            {
+                var occupied = page.Skills.Select(x => (int)x.Slot).ToHashSet();
+                foreach (var rule in skills.GetAll(career.Job).OrderBy(x => x.SkillId))
+                {
+                    var free = rule.GetFreeLevel(career, xp.Award.Level);
+                    if (free <= rule.GetFreeLevel(before, facts.Progress.Level)) continue;
+                    var learned = page.Skills.SingleOrDefault(x => x.SkillId == rule.SkillId);
+                    if (learned is not null)
+                    {
+                        if (learned.Level < free)
+                            effects.Add(new SetLearnedSkillEffect(page.PageIndex, learned.Slot, rule.SkillId, learned.Level, checked((byte)free)));
+                    }
+                    else
+                    {
+                        var slot = rule.FindAvailableSlot(occupied) ?? throw new InvalidDataException("No slot for an awakening skill.");
+                        effects.Add(new SetLearnedSkillEffect(page.PageIndex, slot, rule.SkillId, null, checked((byte)free)));
+                        occupied.Add(slot);
+                    }
+                }
+            }
+        }
         var remaining = facts.Quests with
         {
             Carried = [.. facts.Quests.Carried.Where(x => x.Slot != target.Slot)],
@@ -156,6 +193,6 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
         }
         var changed = effects.Any(x => x is SetCarriedQuestEffect { Value: not null });
         return new(questId, effects.ToImmutable(), xp.Award,
-            changed ? new QuestProgressSnapshot(projected) : null, reward.GrowType);
+            changed ? new QuestProgressSnapshot(projected) : null, packedGrowType) { Awakening = reward.Awakening };
     }
 }

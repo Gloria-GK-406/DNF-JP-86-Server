@@ -89,6 +89,28 @@ public sealed class QuestRewardRuleServiceTests
         Assert.False(Resolve(quest).IsValid);
     }
 
+    [Theory]
+    [InlineData(1, 1, true)]
+    [InlineData(1, 17, false)]
+    [InlineData(1, 33, false)]
+    [InlineData(1, 0, false)]
+    [InlineData(0, 1, false)]
+    [InlineData(2, 17, false)]
+    public void Awakening_reward_requires_an_unawakened_career_and_only_supports_stage_one(int stage, byte current, bool valid)
+    {
+        var quest = Quest(QuestItemRewardDefinition.Empty) with { Rewards = [new(QuestRewardKind.AwakeningType,[stage])] };
+        Assert.Equal(valid, Resolve(quest, growType: current).IsValid);
+    }
+
+    [Fact]
+    public void Ambiguous_career_and_awakening_rewards_are_refused()
+    {
+        var quest = Quest(QuestItemRewardDefinition.Empty) with
+            { Rewards = [new(QuestRewardKind.AwakeningType,[1]),new(QuestRewardKind.GrowType,[1])] };
+        Assert.False(Resolve(quest, growType: 1).IsValid);
+        Assert.False(Resolve(quest with { Rewards = [new(QuestRewardKind.AwakeningType,[1,2])] }, growType: 1).IsValid);
+    }
+
     private static QuestRewardResolution Resolve(
         QuestDefinition quest,
         byte job = 0,

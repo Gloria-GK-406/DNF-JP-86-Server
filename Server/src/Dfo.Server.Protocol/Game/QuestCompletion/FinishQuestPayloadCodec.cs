@@ -82,6 +82,33 @@ internal static class FinishQuestPayloadCodec
         if (!message.Finished)
             return [0x00, message.RefusalCode];
 
+        if (message.Awakening is not null)
+        {
+            // ServerS4A21 QuestAckBuilder: chain 2, reserved zero, then both compact skill pages.
+            using var stream = new MemoryStream();
+            using var writer = new BinaryWriter(stream);
+            writer.Write((byte)1);
+            writer.Write(message.QuestId);
+            writer.Write(message.ObjectiveKind);
+            writer.Write(message.Experience);
+            writer.Write(0u);
+            if (message.ObjectiveKind is 0x00 or 0x19) writer.Write((byte)0);
+            writer.Write((byte)2);
+            writer.Write((byte)0);
+            for (var pageIndex = 0; pageIndex < 2; pageIndex++)
+            {
+                var skills = message.SkillPages.SingleOrDefault(page => page.PageIndex == pageIndex)?.Skills ?? [];
+                writer.Write(checked((byte)skills.Count));
+                foreach (var skill in skills)
+                {
+                    writer.Write(checked((byte)skill.Slot));
+                    writer.Write(checked((ushort)skill.SkillId));
+                    writer.Write(skill.Level);
+                }
+            }
+            return stream.ToArray();
+        }
+
         if (message.GrowType is { } growType)
         {
             // Reference 86JP QuestAckBuilder.BuildFinish chain 1; A21 live acceptance is pending.

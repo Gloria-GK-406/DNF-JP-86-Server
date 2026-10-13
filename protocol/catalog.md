@@ -1051,6 +1051,7 @@ CMD [0029 USE_COIN](game/client-to-server/0x0029.md)：请求 2B，成功 ACK 4B
 [NOTI 0x0021](game/server-to-client/NOTI-0x0021.md)：登录 32/100 单值实验经用户实机确认；已接内存虚弱与自然恢复，完整生命周期待用户实机验收。CMD 0009 付费恢复仍未实现。
 
 - 2026-09-21：`0x0022` 转职任务奖励实现与候选17B特殊ACK，规则/事务测试通过；A21实机验收待完成，详见 [FINISH_QUEST](game/client-to-server/0x0022.md)。
+- 2026-10-13：`0x0022` 增加一次觉醒奖励结算，保留已学技能并合并新增免费技能；chain=2回完整两页技能，真实PVF任务977与回滚/发帧测试通过，A21实机验收待完成。二觉最终奖励暂拒绝，详见 [FINISH_QUEST](game/client-to-server/0x0022.md)。
 
 - 2026-09-22：黄金翻牌第10次免费及额度用尽后的付费入口经用户验收；服务日志扣费0，持久化已用次数9→10，见 [SELECT_CARD](game/client-to-server/0x0047.md)。
 

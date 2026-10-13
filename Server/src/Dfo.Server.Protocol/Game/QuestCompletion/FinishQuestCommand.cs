@@ -42,6 +42,7 @@ public sealed record QuestFinishOutcome(
     byte? GrowType = null)
 {
     public bool MirrorCompletion { get; init; }
+    public byte? Awakening { get; init; }
     public uint NotificationExperience { get; init; } = NewExperience;
     public IReadOnlyList<CommittedInventoryUpdateState> ConsumedItemUpdates { get; init; } = [];
 
@@ -160,7 +161,7 @@ public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Settlement
             }
             return new(true, command.QuestId, ObjectiveKindOf(result.Objective), result.Award!.Gained, items,
                 result.Award.Level, result.Award.Total, QuestProgress: result.Projection, AccountMaterials: account, GrowType: result.GrowType)
-            { MirrorCompletion = isMirror, NotificationExperience = result.Award.NotificationTotal, ConsumedItemUpdates = updates };
+            { MirrorCompletion = isMirror, Awakening = result.Awakening, NotificationExperience = result.Award.NotificationTotal, ConsumedItemUpdates = updates };
         }
         catch (Exception exception) when ((exception is not (QuestFinishRejectedException or OperationCanceledException)) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(exception))
         {

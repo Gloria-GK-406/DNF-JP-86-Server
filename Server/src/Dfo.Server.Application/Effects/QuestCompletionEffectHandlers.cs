@@ -56,6 +56,23 @@ internal sealed class SetCharacterGrowTypeEffectHandler(ICharacterTable characte
         return new CharacterGrowTypeChange(effect.Value);
     }
 }
+internal sealed class SetCharacterAwakeningEffectHandler(ICharacterTable characters) : EffectHandler<SetCharacterAwakeningEffect>
+{
+    public override ValueTask ValidateAsync(EffectExecutionContext context, SetCharacterAwakeningEffect effect, CancellationToken ct)
+    {
+        if ((effect.Expected >> 4) != 0 || effect.Value != (effect.Expected | 0x10))
+            throw new ArgumentException("Invalid first awakening.");
+        return ValueTask.CompletedTask;
+    }
+    public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, SetCharacterAwakeningEffect effect, CancellationToken ct)
+    {
+        var row = await characters.FindStandingAsync(context.CharacterId, ct).ConfigureAwait(false);
+        if (row is null || row.Job != effect.Job || row.GrowType != effect.Expected
+            || await characters.SetGrowTypeAsync(context.CharacterId, effect.Expected, effect.Value, ct).ConfigureAwait(false) != 1)
+            throw new InvalidOperationException("Decided awakening target changed.");
+        return new CharacterGrowTypeChange(effect.Value);
+    }
+}
 internal sealed class MaterializeSkillBuildsEffectHandler(ICharacterSkillBuildTable builds) : EffectHandler<MaterializeSkillBuildsEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, MaterializeSkillBuildsEffect effect, CancellationToken ct)

@@ -171,6 +171,7 @@ internal sealed class EffectOperationContext : IRequestReplayProjectionDomainSer
                 case (CharacterExperienceEffect, CharacterExperienceChange): frame.Needs |= ReplayProjectionNeeds.Experience; break;
                 case (SetCharacterLevelEffect, CharacterLevelChange): frame.Needs |= ReplayProjectionNeeds.Experience | ReplayProjectionNeeds.Skills; break;
                 case (SetCharacterGrowTypeEffect, CharacterGrowTypeChange):
+                case (SetCharacterAwakeningEffect, CharacterGrowTypeChange):
                 case (MaterializeSkillBuildsEffect, SkillBuildsMaterializedChange):
                     frame.Needs |= ReplayProjectionNeeds.CharacterAppearance | ReplayProjectionNeeds.Skills; break;
                 case (SetOpeningPremiumEffect, OpeningPremiumChange):

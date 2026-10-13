@@ -11,7 +11,10 @@ public sealed record QuestCompletionRewardPlan(
     int Gold,
     IReadOnlyList<QuestRewardItemGrant> Items,
     byte? GrowType = null,
-    IReadOnlyList<SeekingItemRequirement>? ConsumedItems = null);
+    IReadOnlyList<SeekingItemRequirement>? ConsumedItems = null)
+{
+    public byte? Awakening { get; init; }
+}
 
 public enum QuestRewardRejection
 {

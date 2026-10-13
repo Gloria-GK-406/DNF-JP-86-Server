@@ -379,7 +379,94 @@ public sealed class OrdinaryQuestEffectTests
     private sealed class CareerStats : ICharacterStatDefinitionSource
     {
         public ValueTask<CharacterBaseStats> GetInitialAsync(byte job,CancellationToken ct)=>ValueTask.FromResult(new CharacterStatValues(HpMax:100).ToFixedPoint());
-        public ValueTask<IReadOnlyList<CharacterStatDefinition>> GetAllAsync(CancellationToken ct)=>ValueTask.FromResult<IReadOnlyList<CharacterStatDefinition>>([new(12,new(HpMax:100),new Dictionary<CharacterCareer,CharacterStatValues>{[new(12)]=new(HpMax:1),[new(12,1)]=new(HpMax:2)})]);
+        public ValueTask<IReadOnlyList<CharacterStatDefinition>> GetAllAsync(CancellationToken ct)=>ValueTask.FromResult<IReadOnlyList<CharacterStatDefinition>>([new(12,new(HpMax:100),new Dictionary<CharacterCareer,CharacterStatValues>{[new(12)]=new(HpMax:1),[new(12,1)]=new(HpMax:2),[new(12,1,1)]=new(HpMax:3)})]);
+    }
+    private sealed class AwakeningContent : ISkillRuleDefinitionSource
+    {
+        public SkillRuleCatalog Get(byte job)
+        {
+            var content = new LearningContent();
+            content.Grants.Add(new(7, 3, 1, 1));
+            return content.Get(job) with { SupportedCareers = new HashSet<CharacterCareer> { new(12), new(12,1), new(12,1,1) } };
+        }
+    }
+
+    private static ShopFixture AwakeningShop()
+    {
+        var rules = new Rules();
+        rules.Quest = rules.Quest with { ObjectiveTypeCode = "seeking", SeekingItems = [new(2000,2)],
+            Rewards = [new(QuestRewardKind.AwakeningType,[1])], ItemRewards = QuestItemRewardDefinition.Empty };
+        return Shop(s =>
+        {
+            s.AddSingleton<IQuestContentRuleService>(rules);
+            s.AddSingleton<ISkillRuleDefinitionSource>(new AwakeningContent());
+            s.AddSingleton<ICharacterStatDefinitionSource>(new CareerStats());
+        });
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task First_awakening_preserves_learning_slots_extras_and_builds_and_only_merges_free_grants(bool materialized)
+    {
+        using var shop = AwakeningShop(); CompositeSeed(shop,materialized);
+        shop.Sql("UPDATE characters SET grow_type=1 WHERE character_id=1; DELETE FROM character_active_quests WHERE quest_id=2002; INSERT INTO character_skills VALUES(1,'pve',0,7,7,1,X'0506'),(1,'pve',1,9,7,5,X'0708')");
+        await shop.Seed(3,2000,2);
+        var result = await Finish(shop);
+        Assert.True(result.Finished); Assert.Equal((byte?)17,result.GrowType);
+        Assert.Equal(17,shop.Scalar("SELECT grow_type FROM characters WHERE character_id=1"));
+        Assert.Equal(0,shop.Count(2000));
+        Assert.Equal(3,shop.Scalar("SELECT level FROM character_skills WHERE character_id=1 AND page_index=0 AND slot=0 AND skill_id=999 AND hex(extra_values)='0102'"));
+        Assert.Equal(2,shop.Scalar("SELECT level FROM character_skills WHERE character_id=1 AND page_index=1 AND slot=3 AND skill_id=1 AND hex(extra_values)='0908'"));
+        Assert.Equal(3,shop.Scalar("SELECT level FROM character_skills WHERE character_id=1 AND page_index=0 AND slot=7 AND skill_id=7 AND hex(extra_values)='0506'"));
+        Assert.Equal(5,shop.Scalar("SELECT level FROM character_skills WHERE character_id=1 AND page_index=1 AND slot=9 AND skill_id=7 AND hex(extra_values)='0708'"));
+        var state = shop.Services.GetRequiredService<ICharacterSkillStateDomainService>();
+        var facts = (await state.ReadAsync(new(1),default))!;
+        Assert.Equal(1,facts.Career.Awakening); Assert.All(facts.Pages,page => Assert.True(page.Skills.Single(x => x.SkillId==7).Level >= 3));
+        var builds = await state.BuildsAsync(new(1),default);
+        Assert.Equal(0,builds.Active.Value); Assert.False(builds.IsUnlocked(new(1)));
+        if (materialized) Assert.False(builds.IsUnlocked(new(256)));
+        Assert.Equal(5,shop.Scalar("SELECT bonus_sp FROM characters WHERE character_id=1"));
+        Assert.Equal(3,shop.Scalar("SELECT bonus_tp FROM characters WHERE character_id=1"));
+        Assert.False((await Finish(shop)).Finished);
+    }
+
+    [Fact]
+    public async Task Failed_awakening_skill_grant_rolls_back_materials_quest_career_and_learning()
+    {
+        using var shop = AwakeningShop(); CompositeSeed(shop,true);
+        shop.Sql("UPDATE characters SET grow_type=1 WHERE character_id=1; DELETE FROM character_active_quests WHERE quest_id=2002; CREATE TRIGGER fail_awaken BEFORE INSERT ON character_skills WHEN NEW.skill_id=7 BEGIN SELECT RAISE(ABORT,'awakening grant failed'); END");
+        await shop.Seed(3,2000,2);
+        var error = await Assert.ThrowsAsync<QuestFinishRejectedException>(async () => await Finish(shop));
+        Assert.Contains("awakening grant failed",error.InnerException!.Message);
+        Assert.Equal(1,shop.Scalar("SELECT grow_type FROM characters WHERE character_id=1"));
+        Assert.Equal(2,shop.Count(2000));
+        Assert.Equal(1,shop.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE quest_id=2001"));
+        Assert.Equal(3,shop.Scalar("SELECT COUNT(*) FROM character_skills WHERE character_id=1"));
+        Assert.Equal(90,shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
+    }
+
+    [SkippableFact]
+    public async Task Real_sword_saint_final_quest_consumes_materials_and_unlocks_first_awakening_without_resetting_skills()
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null,"PVF_ARCHIVE_PATH is not available.");
+        using var fixture = new CeraShopFixture(useArchive:true);
+        var shop = fixture.Host;
+        shop.Sql("UPDATE characters SET job=0,grow_type=1 WHERE character_id=1; INSERT INTO character_active_quests VALUES(1,0,977,0); INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values) VALUES(1,'pve',0,5,179,7,X'0102')");
+        await shop.Seed(121,3229,60,3); await shop.Seed(122,3051,80,3); await shop.Seed(123,3052,120,3);
+        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new FinishQuestCommand(new(1),new(1),977,ushort.MaxValue,1,0));
+        Assert.True(result.Finished); Assert.Equal((byte?)1,result.Awakening); Assert.Equal((byte?)17,result.GrowType);
+        Assert.Equal(0,shop.Count(3229)); Assert.Equal(0,shop.Count(3051)); Assert.Equal(0,shop.Count(3052));
+        Assert.Equal(7,shop.Scalar("SELECT level FROM character_skills WHERE character_id=1 AND page_index=0 AND slot=5 AND skill_id=179 AND hex(extra_values)='0102'"));
+        var character = shop.Services.GetRequiredService<ICharacterDomainService>().Get(new(1));
+        Assert.Equal(17,(await character.IdentityAsync(default))!.GrowType);
+        Assert.NotNull(await character.BaseStatsAsync(default));
+        var skills = shop.Services.GetRequiredService<ICharacterSkillRuleService>();
+        var facts = (await shop.Services.GetRequiredService<ICharacterSkillStateDomainService>().ReadAsync(new(1),default))!;
+        var grants = skills.GetAll(0).Where(x => x.GetFreeLevel(new(0,1,1),85)>x.GetFreeLevel(new(0,1),85)).ToArray();
+        Assert.NotEmpty(grants);
+        Assert.All(facts.Pages,page => Assert.All(grants,rule =>
+            Assert.True(page.Skills.Single(x => x.SkillId==rule.SkillId).Level >= rule.GetFreeLevel(new(0,1,1),85))));
     }
     private static Rules CompositeRules()
     {

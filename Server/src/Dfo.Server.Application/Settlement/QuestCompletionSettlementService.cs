@@ -39,6 +39,6 @@ internal sealed class QuestCompletionSettlementService(IQuestCompletionDomainSer
         var result = await apply.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
         await events.EnqueueAsync(new QuestCompleted(character, quest), ct).ConfigureAwait(false);
         var projection = plan.Projection is null ? null : await mirror.MergeAsync(character, plan.Projection, ct).ConfigureAwait(false);
-        return new(true, quest, ordinary.Objective, plan.Award, result, projection, plan.GrowType);
+        return new(true, quest, ordinary.Objective, plan.Award, result, projection, plan.GrowType) { Awakening = plan.Awakening };
     }
 }

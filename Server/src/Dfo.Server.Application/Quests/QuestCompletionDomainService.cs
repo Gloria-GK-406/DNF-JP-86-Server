@@ -45,7 +45,7 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         if (effective.FirstOrDefault(x => x.QuestId == quest) is not { TriggerValue: 0 }) return Refuse(projected);
         var reward = rules.Rewards(definition, facts, selection, count);
         if (!reward.IsValid) return Refuse(projected);
-        if (reward.Plan!.GrowType is not null)
+        if (reward.Plan!.GrowType is not null || reward.Plan.Awakening is not null)
             facts = facts with { Skills = await skills.ReadAsync(id, ct).ConfigureAwait(false), Builds = await skills.BuildsAsync(id, ct).ConfigureAwait(false) };
         var rewards = await rules.RewardsAsync(reward.Plan, facts, ct).ConfigureAwait(false);
         var context = new EffectExecutionContext(account, id, at, session);
