@@ -1,10 +1,10 @@
 # 协议清单
 
-## 2026-10-11 黄龙大会一期（CurrentImplementation，待实机验收）
+## 2026-10-11 黄龙／青龙大会一期（CurrentImplementation，待实机验收）
 
-DGN120以独立大会领域服务复用统一门禁、单Cell四轮和死亡事务。入场[0183](game/server-to-client/NOTI-0x0183.md)260B＋[0184](game/server-to-client/NOTI-0x0184.md)15B替代普通地图包；客户端本地换轮，服务端按当前actor门控。四胜或死亡复活窗口超时发送[0185](game/server-to-client/NOTI-0x0185.md)，[CMD01CA](game/client-to-server/0x01CA.md)启动翻牌、[CMD01CB](game/client-to-server/0x01CB.md)每行一次选牌及3秒自动补领。角色经验/金币、曲玉派发与领取标记同事务；满包邮寄。
+DGN120／121以独立大会领域服务复用统一门禁、单Cell四轮和死亡事务。入场[0183](game/server-to-client/NOTI-0x0183.md)260B＋[0184](game/server-to-client/NOTI-0x0184.md)15B替代普通地图包；客户端本地换轮，服务端按当前actor门控。四胜或死亡复活窗口超时发送[0185](game/server-to-client/NOTI-0x0185.md)，[CMD01CA](game/client-to-server/0x01CA.md)启动翻牌、[CMD01CB](game/client-to-server/0x01CB.md)每行一次选牌。单人自动补选窗口为1秒，后台每50ms检查，以适配客户端1500ms的可见初始化状态；不承诺高延迟下的显示。角色经验/金币、曲玉派发与领取标记同事务；满包邮寄。
 
-静态字段已与当前上游交叉核对，旧0183自动平坦表由人工区显式校正。没有本次WireCaptured或ClientVerified，青龙/黑龙/祭坛不包含在此实现。[契约、计划与研究](../Document/tasks/yellow-dragon-tournament/TaskContract.md)。
+静态字段已与当前上游交叉核对，旧0183自动平坦表由人工区显式校正。青龙配置与奖励读取其自身PVF；黑龙／祭坛不包含在此实现。没有本次WireCaptured或ClientVerified。[契约、计划与研究](../Document/tasks/yellow-dragon-tournament/TaskContract.md)、[自动翻牌修复及青龙接入证据](../Document/outputs/tournament-autoflip-awakening-20261011.md)。
 
 ## 2026-10-11 装备/时装钻孔镶嵌（开孔一期接受，镶嵌待实测）
 
@@ -771,6 +771,8 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x01BA` | `MercenaryInfoMessageDecoder` | 仅证明 decoder 已注册 | [0x01BA](game/client-to-server/0x01BA.md) |
 | `0x01` | `0x01C0` | `SaveCharacterOptionDecoder` | 仅证明 decoder 已注册 | [0x01C0](game/client-to-server/0x01C0.md) |
 | `0x01` | `0x01C8` | `ResetRandomOptionDecoder` | 仅证明 decoder 已注册 | [0x01C8](game/client-to-server/0x01C8.md) |
+| `0x01` | `0x01CA` | `TournamentStatusDecoder` | 仅证明 decoder 已注册 | [0x01CA](game/client-to-server/0x01CA.md) |
+| `0x01` | `0x01CB` | `TournamentSelectionDecoder` | 仅证明 decoder 已注册 | [0x01CB](game/client-to-server/0x01CB.md) |
 | `0x01` | `0x01DD` | `ClientHardwareDetailMessageDecoder` | 仅证明 decoder 已注册 | [0x01DD](game/client-to-server/0x01DD.md) |
 | `0x01` | `0x01DE` | `NoticeSeenDecoder` | 仅证明 decoder 已注册 | [0x01DE](game/client-to-server/0x01DE.md) |
 | `0x01` | `0x01E4` | `TutorialLevelUpDecoder` | 仅证明 decoder 已注册 | [0x01E4](game/client-to-server/0x01E4.md) |
@@ -886,6 +888,8 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x01B7` | `ForgingResponse` | 仅证明 encoder 可产生该 identity | [0x01B7](game/client-to-server/0x01B7.md) |
 | `0x01` CMD | `0x01BA` | `MercenaryInfoResponse`、`MercenarySupportStateMessage` | 仅证明 encoder 可产生该 identity | [0x01BA](game/client-to-server/0x01BA.md) |
 | `0x01` CMD | `0x01C8` | `ResetRandomOptionResponse` | 仅证明 encoder 可产生该 identity | [0x01C8](game/client-to-server/0x01C8.md) |
+| `0x01` CMD | `0x01CA` | `TournamentStatusResponse` | 仅证明 encoder 可产生该 identity | [0x01CA](game/client-to-server/0x01CA.md) |
+| `0x01` CMD | `0x01CB` | `TournamentSelectionResponse` | 仅证明 encoder 可产生该 identity | [0x01CB](game/client-to-server/0x01CB.md) |
 | `0x01` CMD | `0x01E4` | `TutorialLevelUpResponse` | 仅证明 encoder 可产生该 identity | [0x01E4](game/client-to-server/0x01E4.md) |
 | `0x01` CMD | `0x0204` | `QuestClearCouponResponse` | 仅证明 encoder 可产生该 identity | [0x0204](game/client-to-server/0x0204.md) |
 | `0x01` CMD | `0x0207` | `AvatarPackageOpeningResponse` | 仅证明 encoder 可产生该 identity | [0x0207](game/client-to-server/0x0207.md) |
@@ -985,6 +989,9 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x0167` | `AchievementStateMessage` | 仅证明 encoder 可产生该 identity | [0x0167](game/server-to-client/NOTI-0x0167.md) |
 | `0x00` NOTI | `0x0168` | `TitleUnlockedMessage` | 仅证明 encoder 可产生该 identity | [0x0168](game/server-to-client/NOTI-0x0168.md) |
 | `0x00` NOTI | `0x017B` | `ClientEffectBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x017B](game/server-to-client/NOTI-0x017B.md) |
+| `0x00` NOTI | `0x0183` | `TournamentInfoMessage` | 仅证明 encoder 可产生该 identity | [0x0183](game/server-to-client/NOTI-0x0183.md) |
+| `0x00` NOTI | `0x0184` | `TournamentMapMessage` | 仅证明 encoder 可产生该 identity | [0x0184](game/server-to-client/NOTI-0x0184.md) |
+| `0x00` NOTI | `0x0185` | `TournamentRewardMessage` | 仅证明 encoder 可产生该 identity | [0x0185](game/server-to-client/NOTI-0x0185.md) |
 | `0x00` NOTI | `0x0187` | `CharacterOptionStateMessage` | 仅证明 encoder 可产生该 identity | [0x0187](game/server-to-client/NOTI-0x0187.md) |
 | `0x00` NOTI | `0x019D` | `LuckyStarStateMessage` | 仅证明 encoder 可产生该 identity | [0x019D](game/server-to-client/NOTI-0x019D.md) |
 | `0x00` NOTI | `0x019F` | `SupportCharacterStateMessage`、`SupportTagNotification` | 仅证明 encoder 可产生该 identity | [0x019F](game/server-to-client/NOTI-0x019F.md) |
