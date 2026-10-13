@@ -271,8 +271,11 @@ public sealed class DimensionDungeonTests
     }
     private static DimensionDungeonDomainService Service(LearningFixture f, Clock clock, Visits visits) => new(
         new DimensionDungeonRuleService(new Source()), new Structures(), visits,
-        f.Services.GetRequiredService<IUsageQuotaDomainService>(), f.Services.GetRequiredService<IEventService>(),
-        new Daily(), clock, f.Scope);
+        f.Services.GetRequiredService<IUsageQuotaDomainService>(), new DungeonAdmissionDomainService(new Structures(),
+            f.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterDungeonDifficultyDomainService>(),
+            new DungeonDifficultyRuleService(), f.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterFatigueDomainService>(),
+            quotas: f.Services.GetRequiredService<IUsageQuotaDomainService>(), events: f.Services.GetRequiredService<IEventService>(), transactions: f.Scope),
+        new Daily(), clock);
     private sealed class Source : IDimensionDungeonContentSource
     {
         public DimensionDungeonContent Load() => new(new HashSet<int> { 7100 }, 5, 0,
@@ -309,7 +312,7 @@ public sealed class DimensionDungeonTests
     }
     private sealed class Structures : IDungeonStructureRuleService
     {
-        public ValueTask<DungeonDefinition?> GetDefinitionAsync(int id, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<DungeonDefinition?> GetDefinitionAsync(int id, CancellationToken ct) => ValueTask.FromResult<DungeonDefinition?>(new(id, "dimension-test", 1, true, []));
         public ValueTask<DungeonLayout?> ResolveAsync(int id, DungeonEntryFacts facts, int seed, CancellationToken ct) =>
             ValueTask.FromResult<DungeonLayout?>(new(id, 0, 1, 1, new(0, 0), new(0, 0), 53070, seed,
                 new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(53070) }));
@@ -317,6 +320,8 @@ public sealed class DimensionDungeonTests
     }
     private sealed class Visits : IDungeonVisitDomainService
     {
+        public ValueTask<DungeonEntryAttempt> EnterGrantedPartyAsync(IReadOnlyList<DungeonRunParticipant> members, DungeonLayout layout,
+            DungeonEntryFacts facts, IDungeonAdmissionReceipt receipt, CancellationToken ct) => TryEnterPreparedPartyAsync(members, layout, facts, ct);
         public bool Refuse;
         public bool DefersSelectionState(byte level, bool tutorialCompleted = false) => false;
         public ValueTask<DungeonEntryAttempt> TryEnterPreparedPartyAsync(IReadOnlyList<DungeonRunParticipant> members, DungeonLayout layout,

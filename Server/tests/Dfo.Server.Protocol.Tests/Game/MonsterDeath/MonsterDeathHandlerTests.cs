@@ -1,6 +1,8 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
@@ -41,6 +43,87 @@ namespace Dfo.Server.Protocol.Tests.Game.MonsterDeath;
 /// </remarks>
 public sealed class MonsterDeathHandlerTests
 {
+    // Keep the wire assertions and injected reward outcomes, but execute the new domain settlement
+    // and its real transaction coordinator rather than emulating transaction boundaries in the handler.
+    private static MonsterDeathHandler CreateHandler(ISelectedSessionDomainService sessions,
+        ISelectedCharacterCurrentViewDomainService unusedView, ICharacterDomainService characters,
+        IDungeonRunDomainService runs, IMonsterKillDomainService kills, IDungeonClearDomainService clear,
+        DungeonClearProjectionDelivery clearProjection, ICommandBus rewards, IQuestOfferRefreshDomainService offers,
+        DungeonRunDeliveryRegistry registry, IGameMessageSender sender, ExperienceDiagnostics diagnostics,
+        Microsoft.Extensions.Logging.ILogger<MonsterDeathHandler> logger, DungeonPartyRecipients? partyRecipients = null,
+        Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService? creatures = null,
+        Dfo.Server.Application.Commands.SelectedSessionSafety? safety = null)
+    {
+        _ = unusedView;
+        var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
+        var service = new MonsterDeathDomainService(scope, sessions, new PublishedSessions(), characters,
+            runs, kills, new RewardAdapter(rewards), new OfferAdapter(offers), NullLogger<MonsterDeathDomainService>.Instance,
+            events: new DeathEvents(scope));
+        return new MonsterDeathHandler(sessions, runs, clear, clearProjection, new DeathBus(scope, service, rewards),
+            registry, sender, diagnostics, logger, partyRecipients, creatures, safety);
+    }
+    private sealed class DeathEvents(Dfo.Server.Application.Transactions.DomainTransactionScope scope) : IEventService
+    {
+        public List<IDomainEvent> Committed { get; } = [];
+        public ValueTask<Guid> EnqueueAsync<TEvent>(TEvent payload, CancellationToken cancellationToken = default)
+            where TEvent : class, IDomainEvent
+        {
+            var eventId = Guid.NewGuid();
+            var transaction = scope.Current ?? throw new InvalidOperationException("A death fact requires a transaction.");
+            transaction.RegisterAfterCommit(eventId, _ =>
+            {
+                this.Committed.Add(payload);
+                return ValueTask.CompletedTask;
+            });
+            return ValueTask.FromResult(eventId);
+        }
+        public ValueTask DirectAsync<TEvent>(TEvent payload, CancellationToken cancellationToken = default)
+            where TEvent : class, IDomainEvent => throw new NotSupportedException();
+        public ValueTask<NotificationDelivery> ProjectAsync<TNotification>(NotificationAudience audience,
+            TNotification notification, CancellationToken cancellationToken = default)
+            where TNotification : class, INotification<TNotification> => throw new NotSupportedException();
+    }
+    private sealed class PublishedSessions : ISelectedSessionRuntimeDirectory
+    {
+        public bool IsPublishedExact(SelectedSessionIdentity session) => true;
+        public void Publish(SelectedSessionIdentity session, bool persist) => throw new NotSupportedException();
+        public bool TryGetPositionPersistence(SelectedSessionIdentity session, out bool persist) { persist = false; return false; }
+        public bool RemoveExact(SelectedSessionIdentity session) => throw new NotSupportedException();
+    }
+    private sealed class DeathBus(Dfo.Server.Application.Transactions.DomainTransactionScope scope,
+        IMonsterDeathDomainService service, ICommandBus fallback) : ICommandBus
+    {
+        public async ValueTask<T> SendAsync<T>(ICommand<T> command, CancellationToken ct = default) where T : notnull
+        {
+            if (command is not ProcessMonsterDeathCommand death) return await fallback.SendAsync(command, ct);
+            await using var tx = scope.Begin();
+            var result = await service.SettleAsync(death.Request, ct);
+            await tx.CommitAsync(ct);
+            return (T)(object)result;
+        }
+    }
+    private sealed class RewardAdapter(ICommandBus bus) : IMonsterKillRewardsDomainService
+    {
+        public async ValueTask<MonsterKillEffects> ApplyAsync(SelectedSessionIdentity? session, AccountId account,
+            CharacterId character, IdentifiedKill kill, int dungeon, DungeonDifficulty difficulty, double weight,
+            int count, PartyKey party, bool boss, DungeonRunId? run, RoomActorId? actor, int? world,
+            IReadOnlyList<RolledDrop>? loot, CancellationToken ct)
+        {
+            var applied = await bus.SendAsync(new ApplyMonsterKillCommand(account, character,
+                new(kill.Code, kill.Level, kill.Rank, kill.IsNamedMonster), dungeon, difficulty, weight,
+                kill.IsMonster ? HuntEnemyTargetTypes.Monster : HuntEnemyTargetTypes.AiCharacter,
+                count, loot, party, boss, session, run, actor, world), ct);
+            return new(applied.Award, applied.QuestProgress, applied.QuestItems, applied.AccountMaterials ?? []);
+        }
+    }
+    private sealed class OfferAdapter(IQuestOfferRefreshDomainService original) : IQuestOfferRefreshDomainService
+    {
+        public ValueTask<SelectCharacterResult> RefreshAsync(SelectCharacterResult result, AccountId account,
+            CharacterId character, int level, CancellationToken ct) => original.RefreshAsync(result, account, character, level, ct);
+        public async ValueTask<AvailableQuestEntryState> ReadAvailableAsync(AccountId account, CharacterId character, int level, CancellationToken ct) =>
+            (await original.RefreshAsync(ExperienceFrameEntry.At(checked((byte)level), StartingExperience), account, character, level, ct)).World.Content.AvailableQuests;
+    }
+
     /// <summary>What the character held before the kill.</summary>
     private const uint StartingExperience = 1000;
 
@@ -295,7 +378,7 @@ public sealed class MonsterDeathHandlerTests
         var settlement = new RecordingSettlementRules();
         var sender = new PartyRecordingSender();
         var killRules = new OneClearedBossMonster();
-        var handler = new MonsterDeathHandler(
+        var handler = CreateHandler(
             sessions,
             runtime,
             new PartyCharacters([leader.CharacterId, member.CharacterId]),
@@ -358,7 +441,7 @@ public sealed class MonsterDeathHandlerTests
         var kills = new OneDeclaredMonster();
         var replacement = member with { ConnectionId = new("replacement"), ConnectionGeneration = 2 };
         var bus = new ObjectRewardBus(() => { if (replaceMember) sessions.Select(replacement); });
-        var handler = new MonsterDeathHandler(sessions, new PartyRuntimeSessions([leader, member]),
+        var handler = CreateHandler(sessions, new PartyRuntimeSessions([leader, member]),
             new PartyCharacters([leader.CharacterId, member.CharacterId]), run, kills,
             new DungeonClearDomainService(run, kills),
             new DungeonClearProjectionDelivery(sessions, run, registry, sender), bus,
@@ -427,7 +510,7 @@ public sealed class MonsterDeathHandlerTests
         var sessions = new PartySessions([leader, replacement]);
         var killRules = new OneClearedBossMonster();
         var settlement = new RecordingSettlementRules();
-        var handler = new MonsterDeathHandler(
+        var handler = CreateHandler(
             sessions,
             new PartyRuntimeSessions([leader, replacement]),
             new PartyCharacters([leader.CharacterId, frozenMember.CharacterId]),
@@ -478,7 +561,7 @@ public sealed class MonsterDeathHandlerTests
         var sender = new PartyRecordingSender();
         var sessions = new PartySessions([member]);
         var killRules = new OneClearedBossMonster();
-        var handler = new MonsterDeathHandler(
+        var handler = CreateHandler(
             sessions,
             new PartyRuntimeSessions([member]),
             new PartyCharacters([member.CharacterId]),
@@ -563,7 +646,7 @@ public sealed class MonsterDeathHandlerTests
     }
 
     [Fact]
-    public async Task AFailureAfterOneParticipantWriteRetriesOnlyTheUnfinishedParticipant()
+    public async Task AFailureAfterOneParticipantWriteRetriesTheWholeKill()
     {
         var leader = SelectedSessionIdentity.Create(
             new AccountId(1), new CharacterId(60), new NetworkConnectionId("leader"), 1, 10010);
@@ -584,7 +667,7 @@ public sealed class MonsterDeathHandlerTests
         var sessions = new PartySessions([leader, member]);
         var killRules = new OneClearedBossMonster();
         var settlement = new RecordingSettlementRules();
-        var handler = new MonsterDeathHandler(
+        var handler = CreateHandler(
             sessions,
             runtime,
             new PartyCharacters([leader.CharacterId, member.CharacterId]),
@@ -612,7 +695,7 @@ public sealed class MonsterDeathHandlerTests
             CancellationToken.None);
 
         Assert.Equal(
-            [leader.CharacterId, member.CharacterId, member.CharacterId],
+            [leader.CharacterId, member.CharacterId, leader.CharacterId, member.CharacterId],
             bus.Commands.Select(command => command.CharacterId));
         Assert.Equal(1, run.CommitCount);
         Assert.Equal(1, run.ReleaseCount);
@@ -731,7 +814,7 @@ public sealed class MonsterDeathHandlerTests
         var sender = new PartyRecordingSender();
         var killRules = new OneClearedBossMonster();
         var bus = new PartyKillBus();
-        var handler = new MonsterDeathHandler(
+        var handler = CreateHandler(
             sessions,
             new PartyRuntimeSessions([leader, member]),
             new PartyCharacters([leader.CharacterId, member.CharacterId]),
@@ -799,7 +882,7 @@ public sealed class MonsterDeathHandlerTests
         registry.Register(run.RunId, [session]);
         var sender = new ThrowingSender();
         var killRules = new OneClearedBossMonster();
-        var handler = new MonsterDeathHandler(
+        var handler = CreateHandler(
             sessions,
             new OneRuntimeSession(ExperienceFrameEntry.At(
                 StartingLevel, StartingExperience)),
@@ -818,7 +901,7 @@ public sealed class MonsterDeathHandlerTests
             ExperienceDiagnostics.None,
             NullLogger<MonsterDeathHandler>.Instance);
 
-        await Assert.ThrowsAsync<IOException>(async () =>
+        await Assert.ThrowsAsync<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(async () =>
             await handler.HandleAsync(
                 ContextOf(session),
                 new MonsterDeathRequest(
@@ -845,7 +928,7 @@ public sealed class MonsterDeathHandlerTests
     }
 
     [Fact]
-    public async Task Party_publication_failure_fences_paid_recipient_context_and_preserves_previous_member()
+    public async Task Party_publication_failure_fences_every_recipient_of_the_shared_settlement()
     {
         var leader = SelectedSessionIdentity.Create(new(1),new(60),new("leader"),1,10010);
         var member = SelectedSessionIdentity.Create(new(2),new(61),new("member"),1,10011);
@@ -862,15 +945,15 @@ public sealed class MonsterDeathHandlerTests
         Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService>(services,users);
         using var provider = Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(services);
         var safety = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<SelectedSessionSafety>(provider);
-        var handler = new MonsterDeathHandler(sessions,new PartyRuntimeSessions([leader,member]),new PartyCharacters([leader.CharacterId,member.CharacterId]),
+        var handler = CreateHandler(sessions,new PartyRuntimeSessions([leader,member]),new PartyCharacters([leader.CharacterId,member.CharacterId]),
             run,killRules,new DungeonClearDomainService(run,killRules),new DungeonClearProjectionDelivery(sessions,run,registry,sender),bus,
             new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain()),
             registry,sender,ExperienceDiagnostics.None,NullLogger<MonsterDeathHandler>.Instance,safety:safety);
         await Assert.ThrowsAsync<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(async () =>
             await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default));
         Assert.True(safety.IsBlocked(users.Connections[member.ConnectionId]));
-        Assert.False(safety.IsBlocked(users.Connections[leader.ConnectionId]));
-        Assert.True(safety.IsBlocked(member)); Assert.False(safety.IsBlocked(leader));
+        Assert.True(safety.IsBlocked(users.Connections[leader.ConnectionId]));
+        Assert.True(safety.IsBlocked(member)); Assert.True(safety.IsBlocked(leader));
         Assert.Equal(0,run.ReleaseCount);
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default));
@@ -929,7 +1012,7 @@ public sealed class MonsterDeathHandlerTests
         if (effectiveRun.Find(session.CharacterId) is { } active && active.RunId != default)
             registry.Register(active.RunId, [session]);
 
-        var handler = new MonsterDeathHandler(
+        var handler = CreateHandler(
             sessions,
             new OneRuntimeSession(ExperienceFrameEntry.At(StartingLevel, StartingExperience)),
             new OnePlayingCharacter(ledger ?? new SkillPointLedger(withLedger)),
@@ -1203,7 +1286,7 @@ public sealed class MonsterDeathHandlerTests
         public bool ThrowActorPublication { get; init; }
         private bool claimActive;
         private bool committed;
-        private CharacterId? pendingEffect;
+        private readonly HashSet<CharacterId> pendingEffects = [];
         private readonly HashSet<CharacterId> completedEffects = [];
         private readonly DungeonLayout layout = new(
             DungeonId: 144,
@@ -1304,30 +1387,27 @@ public sealed class MonsterDeathHandlerTests
             CharacterId characterId)
         {
             if (!this.claimActive
-                || this.pendingEffect is not null
-                || this.completedEffects.Contains(characterId))
+                || this.completedEffects.Contains(characterId)
+                || !this.pendingEffects.Add(characterId))
             {
                 return null;
             }
 
-            this.pendingEffect = characterId;
             return new DungeonParticipantKillEffectClaim(death, characterId, 1);
         }
 
         public bool CommitParticipantKillEffect(DungeonParticipantKillEffectClaim claim)
         {
-            if (this.pendingEffect != claim.CharacterId)
+            if (!this.pendingEffects.Remove(claim.CharacterId))
                 return false;
-            this.pendingEffect = null;
             if (RejectParticipantPublication || RejectParticipantCharacter == claim.CharacterId) return false; // Production may remove the claim before refusing publication.
             return this.completedEffects.Add(claim.CharacterId);
         }
 
         public bool ReleaseParticipantKillEffect(DungeonParticipantKillEffectClaim claim)
         {
-            if (this.pendingEffect != claim.CharacterId)
+            if (!this.pendingEffects.Remove(claim.CharacterId))
                 return false;
-            this.pendingEffect = null;
             return true;
         }
 

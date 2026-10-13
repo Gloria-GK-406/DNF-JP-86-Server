@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Settlement;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
@@ -5,11 +6,11 @@ using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
-namespace Dfo.Server.Application.Quests;
+namespace Dfo.Server.Application.Settlement;
 
-internal sealed class QuestClearCouponDomainService(IOpeningInventoryDomainService inventory,
+internal sealed class QuestClearCouponSettlementService(IOpeningInventoryDomainService inventory,
     ICharacterDomainService characters, IConsumableStateDomainService states,
-    IQuestClearCouponRuleService rules, ISpecialConsumableEffectPlanRuleService plans) : IQuestClearCouponDomainService
+    IQuestClearCouponRuleService rules, ISpecialConsumableEffectPlanRuleService plans) : IQuestClearCouponSettlementDomainService
 {
     public async ValueTask<QuestClearCouponResult> UseAsync(SelectedSessionIdentity session,
         BusinessSlot sourceSlot, DateTimeOffset now, CancellationToken ct)

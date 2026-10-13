@@ -15,9 +15,9 @@ namespace Dfo.Server.Application.Quests;
 internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore store,
     IMirrorAradQuestRuleService rules, IDungeonRunDomainService runs,
     ICharacterQuestLogDomainService logs, ICharacterDomainService characters,
-    IInventoryEffectPreflightDomainService preview, IApplyEffectsDomainService apply,
+    IInventoryEffectPreflightDomainService preview,
     TimeProvider clock, IEventService events, IUsageQuotaDomainService quotas) : IMirrorAradQuestDomainService,
-    IDomainEventSubscriber<DungeonParticipantLeft>
+    IDomainEventSubscriber<DungeonParticipantLeft>, IDomainEventSubscriber<DungeonMapCleared>
 {
     private DungeonRunState? Authorized(AccountId account, CharacterId character, int quest)
     {
@@ -49,10 +49,10 @@ internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore s
         var trigger = objective is not null && rules.CanFinish(objective, state, run) ? 0 : state.TriggerValue;
         return new(QuestAdvanceVerdict.NotEvaluable, new(trigger));
     }
-    public async ValueTask<QuestCompletionReceipt> FinishAsync(AccountId account, CharacterId character, ushort quest,
+    public async ValueTask<MirrorQuestCompletionPreparation> PrepareCompletionAsync(AccountId account, CharacterId character, ushort quest,
         ushort selection, ushort count, DateTimeOffset at, SelectedSessionIdentity? session, CancellationToken ct)
     {
-        QuestCompletionReceipt Refused() => new(false, quest, null, null, null, null, null);
+        MirrorQuestCompletionPreparation Refused() => new(false, quest, null, null, [], null, null, null, null);
         if (count != 1 || selection != ushort.MaxValue) return Refused();
         var run = Authorized(account, character, quest);
         var state = run is null ? null : await store.ReadAsync(character, run.RunId, ct).ConfigureAwait(false);
@@ -62,7 +62,7 @@ internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore s
         if (progress is null) return Refused();
         var award = ExperienceAward.Nothing(progress.Level, progress.Experience);
         if (state.RewardClaimed)
-            return new(true, quest, objective.Quest.ObjectiveTypeCode, award, new([]), await SnapshotAsync(account, character, ct).ConfigureAwait(false), null);
+            return new(true, quest, objective.Quest.ObjectiveTypeCode, award, [], new(0, 0, []), state, null, null, AlreadyClaimed: true);
         if (!rules.CanFinish(objective, state, run)) return Refused();
         var day = MirrorDungeonQuotaDomainService.Day(clock);
         var quota = await quotas.ReadMirrorAsync(character, day, ct).ConfigureAwait(false);
@@ -71,19 +71,36 @@ internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore s
         var context = new EffectExecutionContext(account, character, at, session);
         var inventory = await preview.PreviewAsync(context, effects.Value, ct).ConfigureAwait(false);
         if (inventory.Rejection != InventoryEffectRejection.None || inventory.RewardEntries > byte.MaxValue) return Refused();
-        // Reward state and inventory join the same database transaction. Exceptions propagate
-        // to the existing command boundary, which rolls both ledgers back.
-        var applied = await apply.ApplyAsync(context, effects.Value, ct).ConfigureAwait(false);
         var daily = rules.Catalog.DailyReward;
-        await events.DirectAsync(new MirrorRewardRecorded(account, character, day, quota, quota with
+        var quotaChange = new MirrorRewardRecorded(account, character, day, quota, quota with
         {
             Clears = checked(quota.Clears + 1),
             DailyRewardClaimed = quota.DailyRewardClaimed || (daily.RequiredClears > 0 && quota.Clears + 1 >= daily.RequiredClears),
-        }), ct).ConfigureAwait(false);
-        await store.WriteAsync(account, state with { RewardClaimed = true, TriggerValue = 0 }, ct).ConfigureAwait(false);
+        });
+        var reward = new QuestCompletionRewardPlan(0, 0,
+            effects.Value.OfType<GrantBasicCharacterItemEffect>().Select(x => new QuestRewardItemGrant(x.ItemId, x.Count)).ToArray());
+        return new(true, quest, objective.Quest.ObjectiveTypeCode, award, effects.Value, reward,
+            state, state with { RewardClaimed = true, TriggerValue = 0 }, quotaChange);
+    }
+    public async ValueTask CommitCompletionAsync(AccountId account, CharacterId character,
+        MirrorQuestCompletionPreparation preparation, CancellationToken ct)
+    {
+        if (!preparation.Prepared || preparation.AlreadyClaimed || preparation.Expected is not { } expected
+            || preparation.Completed is not { } completed || expected.CharacterId != character
+            || completed.CharacterId != character || completed.RunId != expected.RunId
+            || completed.QuestId != expected.QuestId || !completed.RewardClaimed)
+            throw new InvalidOperationException("Invalid mirror quest completion decision.");
+        var run = Authorized(account, character, preparation.QuestId);
+        var current = run is null ? null : await store.ReadAsync(character, run.RunId, ct).ConfigureAwait(false);
+        if (current is null || current.RunId != expected.RunId || current.QuestId != expected.QuestId
+            || current.AcceptedAt != expected.AcceptedAt || current.TriggerValue != expected.TriggerValue
+            || current.RewardClaimed || current.GivenUp || current.ReviveUsed != expected.ReviveUsed
+            || current.TargetMapCleared != expected.TargetMapCleared
+            || !current.ObservedDeaths.SequenceEqual(expected.ObservedDeaths)
+            || !current.ClearedCells.SequenceEqual(expected.ClearedCells))
+            throw new InvalidOperationException("Mirror quest changed since completion was prepared.");
+        await store.WriteAsync(account, completed, ct).ConfigureAwait(false);
         await ChangedAsync(character, ct).ConfigureAwait(false);
-        return new(true, quest, objective.Quest.ObjectiveTypeCode, award, applied,
-            await SnapshotAsync(account, character, ct).ConfigureAwait(false), null);
     }
     public async ValueTask<bool> GiveUpAsync(AccountId account, CharacterId character, ushort quest, CancellationToken ct)
     {
@@ -130,6 +147,22 @@ internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore s
     }
     public ValueTask HandleAsync(DomainEventEnvelope<DungeonParticipantLeft> message, CancellationToken ct) =>
         ClearRunAsync(message.Payload.CharacterId, message.Payload.RunId, ct);
+    public async ValueTask HandleAsync(DomainEventEnvelope<DungeonMapCleared> message, CancellationToken ct)
+    {
+        var clear = message.Payload;
+        foreach (var participant in clear.Participants.DistinctBy(x => x.CharacterId))
+        {
+            // The originating run may have ended. Never attach a delayed fact to the current run.
+            var state = await store.ReadAsync(participant.CharacterId, clear.RunId, ct).ConfigureAwait(false);
+            if (state is null || state.GivenUp || state.RewardClaimed || state.AcceptedAt > clear.ClearedAt) continue;
+            var objective = await rules.ResolveAsync(clear.DungeonId, state.QuestId, ct).ConfigureAwait(false);
+            if (objective is null) continue;
+            var updated = rules.ApplyMapClear(objective, state, clear);
+            if (updated == state) continue;
+            await store.WriteAsync(participant.AccountId, updated, ct).ConfigureAwait(false);
+            if (updated.TriggerValue != state.TriggerValue) await ChangedAsync(participant.CharacterId, ct).ConfigureAwait(false);
+        }
+    }
     private async ValueTask ChangedAsync(CharacterId character, CancellationToken ct) =>
         _ = await events.EnqueueAsync(new MirrorQuestChanged(character), ct).ConfigureAwait(false);
 }

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
@@ -18,7 +19,8 @@ internal sealed class IllusionTowerDomainService(
     ICharacterDomainService characters, ICharacterBusinessInventoryDomainService inventory,
     IMaterialConsumptionDomainService materials, IMaterialConsumptionRuleService materialRules,
     IDungeonRunDomainService ordinary, DomainTransactionScope scope, TransactionalExecutionGate executionGate, TimeProvider clock,
-    IIllusionTowerRewardDomainService? rewards = null, TowerInventoryDomainService? towerInventory = null)
+    IIllusionTowerRewardDomainService? rewards = null, TowerInventoryDomainService? towerInventory = null,
+    IEventService? events = null)
     : IIllusionTowerDomainService
 {
     private readonly object sync = new();
@@ -249,6 +251,17 @@ internal sealed class IllusionTowerDomainService(
         var next = current.Clone();
         var result = action(next);
         if (!result.Changed) return result;
+        if (current.Room.State.Phase != TowerRoomPhase.Cleared && next.Room.State.Phase == TowerRoomPhase.Cleared)
+        {
+            var participants = next.Members.Where(x => ValidSession(x.Session)).ToArray();
+            foreach (var member in participants) Pending.AuthenticatedSessions.Add(member.Session);
+            await (events ?? throw new InvalidOperationException("Map-clear events are unavailable."))
+                .EnqueueAsync(new DungeonMapCleared(new(next.RunId), next.DungeonId, DungeonDifficulty.Normal,
+                    new(0, checked((byte)(next.Room.State.Level - 1))), next.Room.State.MapId, next.Room.State.Version,
+                    next.Room.State.ClearedAt!.Value, [.. participants.Select(member =>
+                        new DungeonRunParticipant(member.Session.AccountId, member.Session.CharacterId, member.Slot, member.IsLeader))]),
+                    token).ConfigureAwait(false);
+        }
         var wasSettled = current.Completion is { Settled: true };
         var killRewards = ImmutableArray<TowerKillReward>.Empty;
         if (rewards is not null)

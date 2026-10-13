@@ -431,10 +431,9 @@ public sealed class PaidCardFlipCostTests
             this._handler = new SelectCardCommandHandler(
                 this._cards,
                 runs,
-                new OneBag(this.Bag),
                 new OneCharacter(new RealCarriedGold(this._carried)),
                 TimeProvider.System,
-                new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(), new BaseCost());
+                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(), new OneBag(this.Bag)), new BaseCost());
         }
 
         /// <summary>

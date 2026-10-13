@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
@@ -45,15 +46,21 @@ public interface IMirrorAradQuestRuleService
     MirrorDungeonCatalog Catalog { get; }
     ValueTask<MirrorQuestObjective?> ResolveAsync(int dungeonId, int questId, CancellationToken ct);
     MirrorQuestState Apply(MirrorQuestObjective objective, MirrorQuestState state, DungeonRunState run, QuestProgressFact fact);
+    MirrorQuestState ApplyMapClear(MirrorQuestObjective objective, MirrorQuestState state, DungeonMapCleared clear);
     bool CanFinish(MirrorQuestObjective objective, MirrorQuestState state, DungeonRunState run);
     ValueTask<ImmutableArray<DomainEffect>?> RewardEffectsAsync(byte level, MirrorDailyQuota quota, CancellationToken ct);
 }
+public sealed record MirrorQuestCompletionPreparation(bool Prepared, ushort QuestId, string? Objective,
+    ExperienceAward? Award, ImmutableArray<DomainEffect> Effects, QuestCompletionRewardPlan? Reward,
+    MirrorQuestState? Expected, MirrorQuestState? Completed, MirrorRewardRecorded? QuotaChange, bool AlreadyClaimed = false);
+
 public interface IMirrorAradQuestDomainService
 {
     ValueTask<QuestAcceptance> AcceptAsync(AccountId account, CharacterId character, ushort quest, CancellationToken ct);
     ValueTask<QuestAdvance> TriggerAsync(AccountId account, CharacterId character, ushort quest, CancellationToken ct);
-    ValueTask<QuestCompletionReceipt> FinishAsync(AccountId account, CharacterId character, ushort quest,
+    ValueTask<MirrorQuestCompletionPreparation> PrepareCompletionAsync(AccountId account, CharacterId character, ushort quest,
         ushort selection, ushort count, DateTimeOffset at, SelectedSessionIdentity? session, CancellationToken ct);
+    ValueTask CommitCompletionAsync(AccountId account, CharacterId character, MirrorQuestCompletionPreparation preparation, CancellationToken ct);
     ValueTask<bool> GiveUpAsync(AccountId account, CharacterId character, ushort quest, CancellationToken ct);
     ValueTask<bool> ReportAsync(AccountId account, CharacterId character, IReadOnlyList<QuestProgressFact> facts, CancellationToken ct);
     ValueTask<QuestProgressSnapshot> SnapshotAsync(AccountId account, CharacterId character, CancellationToken ct);

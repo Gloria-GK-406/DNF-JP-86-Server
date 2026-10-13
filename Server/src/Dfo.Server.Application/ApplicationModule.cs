@@ -16,6 +16,7 @@ using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Application.Effects;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Settlement;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
@@ -34,6 +35,7 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Notifications;
 using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Application.Quests;
+using Dfo.Server.Application.Settlement;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Parties;
 using Dfo.Server.Application.Sessions;
@@ -100,9 +102,14 @@ public sealed class ApplicationModule : IServerModule
             fact => $"{fact.CharacterId.Value}:{(int)fact.Family}");
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.DimensionEntryRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.TryAddSingleton<IDespairTowerRuleService, DespairTowerRuleService>();
+        services.TryAddSingleton<IDespairTowerDomainService, DespairTowerDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.DespairQuotaRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.TryAddSingleton<IDimensionDungeonRuleService, DimensionDungeonRuleService>();
         services.TryAddSingleton<IDimensionDungeonDomainService, DimensionDungeonDomainService>();
         services.AddMirrorAradQuests();
+        services.AddMapClearQuests();
         Dfo.Server.Application.Achievements.AchievementRegistration.AddAchievements(services);
         services.AddDomainEvent<MailCreated>("mail.created", 1);
         services.AddDomainSubscriber<MailCreated, MailCreatedNotificationSubscriber>("mail.arrival",
@@ -171,12 +178,17 @@ public sealed class ApplicationModule : IServerModule
         // What the archive declares about quests, and the shared parameters a reward is worked
         // out from. One reader for both, because no quest outcome is decided without both.
         services.TryAddSingleton<IQuestContentRuleService, QuestContentRuleService>();
+        services.TryAddSingleton<IQuestStateRuleService, QuestStateRuleService>();
+        services.TryAddSingleton<IQuestAvailabilityRuleService, QuestAvailabilityRuleService>();
+        services.TryAddSingleton<IQuestFactsDomainService, QuestFactsDomainService>();
+        services.TryAddSingleton<IQuestQueryDomainService, QuestQueryDomainService>();
         services.TryAddSingleton<ISeekingQuestProgressDomainService, SeekingQuestProgressDomainService>();
         services.TryAddSingleton<IQuestMaterialRequirementDomainService, QuestMaterialRequirementDomainService>();
         services.TryAddSingleton<IQuestHelperGroundBonusDomainService, QuestHelperGroundBonusDomainService>();
         services.TryAddSingleton<IQuestRewardRuleService, QuestRewardRuleService>();
         services.TryAddSingleton<IQuestCompletionEffectRuleService, QuestCompletionEffectRuleService>();
         services.TryAddSingleton<IQuestCompletionDomainService, QuestCompletionDomainService>();
+        services.TryAddSingleton<IQuestCompletionSettlementDomainService, QuestCompletionSettlementService>();
         services.TryAddSingleton<IDungeonStructureRuleService, DungeonStructureRuleService>();
         services.TryAddSingleton<IDungeonEntryDecisionDomainService, DungeonEntryDecisionDomainService>();
         services.TryAddSingleton<IHellDungeonEntryRuleService, HellDungeonEntryRuleService>();
@@ -193,6 +205,10 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IMirrorDungeonRuleService, MirrorDungeonRuleService>();
         services.TryAddSingleton<IMirrorDungeonEntryDomainService, MirrorDungeonEntryDomainService>();
         services.AddDomainEvent<DungeonParticipantLeft>("dungeon.participant-left", 1);
+        services.TryAddSingleton<ITournamentDungeonRuleService, TournamentDungeonRuleService>();
+        services.TryAddSingleton<TournamentDungeonDomainService>();
+        services.TryAddSingleton<ITournamentDungeonDomainService>(sp => sp.GetRequiredService<TournamentDungeonDomainService>());
+        services.AddDomainSubscriber<DungeonParticipantLeft, TournamentDungeonDomainService>("tournament.departure", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
         services.TryAddSingleton<ICycleDungeonRuleService, CycleDungeonRuleService>();
         services.TryAddSingleton<ICycleDungeonEntryDomainService, CycleDungeonEntryDomainService>();
         services.TryAddSingleton<IDungeonSettlementRuleService, DungeonSettlementRuleService>();
@@ -272,6 +288,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<AmbientStoreAccess>();
         services.TryAddSingleton<IAccountMaterialRuleService, AccountMaterialRuleService>();
         services.TryAddSingleton<IItemGrantDomainService, ItemGrantDomainService>();
+        services.TryAddSingleton<IItemDeliveryRuleService, ItemDeliveryRuleService>();
+        services.TryAddSingleton<IItemDeliveryDomainService, ItemDeliveryDomainService>();
         services.TryAddSingleton<IEpicBookRuleService, EpicBookRuleService>();
         services.TryAddSingleton<IEpicBookDomainService, EpicBookDomainService>();
         services.TryAddSingleton<IEpicCraftDomainService, EpicCraftDomainService>();
@@ -378,12 +396,15 @@ public sealed class ApplicationModule : IServerModule
         // Entering a dungeon and walking between its rooms.
         services.TryAddSingleton<IDungeonSelectionRuleService, DungeonSelectionRuleService>();
         services.TryAddSingleton<IDungeonEntryMaterialsDomainService, DungeonEntryMaterialsDomainService>();
+        services.TryAddSingleton<IDungeonAdmissionDomainService, DungeonAdmissionDomainService>();
         services.TryAddSingleton<DungeonVisitDomainService>();
         services.TryAddSingleton<IDungeonVisitDomainService, TransactionalDungeonVisitDomainService>();
         services.TryAddSingleton<IDungeonDifficultyRuleService, DungeonDifficultyRuleService>();
         services.TryAddSingleton<ICharacterDungeonDifficultyDomainService, CharacterDungeonDifficultyDomainService>();
         // Runtime kill interpretation reads only the published Cell snapshot.
         services.TryAddSingleton<IMonsterKillDomainService, MonsterKillDomainService>();
+        services.TryAddSingleton<IMonsterKillRewardsDomainService, MonsterKillRewardsDomainService>();
+        services.TryAddSingleton<IMonsterDeathDomainService, MonsterDeathDomainService>();
         // Recomputing a session's offer list after a level or a quest moved what it is made of.
         services.TryAddSingleton<
             IQuestOfferRefreshDomainService, QuestOfferRefreshDomainService>();
@@ -456,7 +477,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IItemDiscardRuleService, ItemDiscardRuleService>();
         services.TryAddSingleton<IQuestDefinitionDomainService, QuestDefinitionDomainService>();
         services.TryAddSingleton<IQuestClearCouponRuleService, QuestClearCouponRuleService>();
-        services.TryAddSingleton<IQuestClearCouponDomainService, QuestClearCouponDomainService>();
+        services.TryAddSingleton<IQuestClearancePlanRuleService, QuestClearancePlanRuleService>();
+        services.TryAddSingleton<IQuestClearCouponSettlementDomainService, QuestClearCouponSettlementService>();
         services.TryAddSingleton<ILevelUpTicketDomainService, LevelUpTicketDomainService>();
         services.TryAddSingleton<ILevelUpTicketRuleService, LevelUpTicketRuleService>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetCharacterLevelEffectHandler>());

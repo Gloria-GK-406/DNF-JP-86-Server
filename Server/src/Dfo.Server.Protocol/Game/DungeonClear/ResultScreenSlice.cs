@@ -204,7 +204,7 @@ public sealed class ScoreScrollStateHandler(
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
 
         if (session is not null
-            && runs?.Find(session.CharacterId) is { } run
+            && runs?.Find(session.CharacterId) is { Layout.Despair: null } run
             && cardPresentation is not null)
         {
             logger.LogInformation(

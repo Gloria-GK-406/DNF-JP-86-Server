@@ -14,14 +14,14 @@ namespace Dfo.Server.Application.Quests;
 internal sealed class QuestCompletionDomainService(ICharacterDomainService characters, ICharacterTable rows,
     ICharacterContainerDomainService containers, IConsumableStateDomainService state,
     ICharacterSkillStateDomainService skills, IQuestCompletionEffectRuleService rules,
-    IInventoryEffectPreflightDomainService preview, IApplyEffectsDomainService apply,
+    IInventoryEffectPreflightDomainService preview,
     ICharacterCarriedGoldTable gold,
-    Dfo.Server.Abstractions.DomainEvents.IEventService? events = null, IMirrorAradQuestDomainService? mirror = null) : IQuestCompletionDomainService
+    IMirrorAradQuestDomainService? mirror = null) : IQuestCompletionDomainService
 {
-    public async ValueTask<QuestCompletionReceipt> FinishAsync(AccountId account, CharacterId id, ushort quest,
+    public async ValueTask<QuestCompletionPreparation> PrepareAsync(AccountId account, CharacterId id, ushort quest,
         ushort selection, ushort count, DateTimeOffset at, CancellationToken ct, SelectedSessionIdentity? session = null)
     {
-        QuestCompletionReceipt Refuse(QuestProgressSnapshot? projection = null) => new(false, quest, null, null, null, projection, null);
+        QuestCompletionPreparation Refuse(QuestProgressSnapshot? projection = null) => new(false, quest, null, null, projection);
         var definition = await rules.DefinitionAsync(quest, ct).ConfigureAwait(false);
         if (definition is null || definition.Grade is QuestGrade.Title or QuestGrade.Crack
             || await rows.FindOwnerAsync(id, ct).ConfigureAwait(false) != account) return Refuse();
@@ -33,8 +33,11 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         if (identity is null || progress is null || bag is null || heldGold is null) return Refuse();
         var quests = await state.QuestsAsync(account, id, ct).ConfigureAwait(false);
         var main = await bag.GetAllAsync(ct).ConfigureAwait(false);
-        var facts = new QuestCompletionFacts(identity, progress, quests, main, heldGold, null, null);
-        var effective = await rules.EffectiveAsync(quests, main.Select(item => item.Snapshot), heldGold.Carried, ct).ConfigureAwait(false);
+        var shared = containers.FindContainer(id, InventoryContainerType.SharedMaterial) is { } sharedContainer
+            ? await sharedContainer.GetAllAsync(ct).ConfigureAwait(false) : [];
+        var facts = new QuestCompletionFacts(identity, progress, quests, main, heldGold, null, null) { SharedMaterials = shared };
+        var effective = await rules.EffectiveAsync(quests, main.Select(item => item.Snapshot), heldGold.Carried, ct,
+            shared.Select(item => item.Snapshot)).ConfigureAwait(false);
         var projected = effective.Any(x => quests.Carried.Single(y => y.Slot == x.Slot).TriggerValue != x.TriggerValue)
             ? new QuestProgressSnapshot(effective) : null;
         if (projected is not null && mirror is not null)
@@ -52,11 +55,6 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
             || inventory.RewardEntries + goldEntry > byte.MaxValue)
             return Refuse(projected);
         var plan = await rules.CompleteAsync(quest, reward.Plan, facts, rewards, inventory.Holdings!, ct).ConfigureAwait(false);
-        var applied = await apply.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
-        if (events is not null)
-            await events.EnqueueAsync(new Dfo.Server.Abstractions.Achievements.QuestCompleted(id, quest), ct);
-        var projection = plan.Projection is null || mirror is null ? plan.Projection
-            : await mirror.MergeAsync(id, plan.Projection, ct).ConfigureAwait(false);
-        return new(true, quest, definition.ObjectiveTypeCode, plan.Award, applied, projection, plan.GrowType);
+        return new(true, quest, definition.ObjectiveTypeCode, plan with { Reward = reward.Plan }, plan.Projection);
     }
 }

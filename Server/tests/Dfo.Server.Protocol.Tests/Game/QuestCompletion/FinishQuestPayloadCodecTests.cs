@@ -122,6 +122,44 @@ public sealed class FinishQuestPayloadCodecTests
         Assert.Equal(14, body.Length);
     }
 
+    [Theory]
+    [InlineData(0x00, 0)]
+    [InlineData(0x00, 1)]
+    [InlineData(0x00, 2)]
+    [InlineData(0x00, 3)]
+    [InlineData(0x19, 0)]
+    [InlineData(0x19, 3)]
+    public void Encode_MaterialCompletionReadsAsOrdinaryRewardsInTheA21Reader(byte objectiveKind, int rewardCount)
+    {
+        // A21 D40B23..D40C87: only kinds 0/0x19 read a consumption prefix before chain.
+        // D4181A opens the abyss window for chain=3, so the reward count must not occupy it.
+        var rewards = Enumerable.Range(0, rewardCount)
+            .Select(index => new FinishedQuestItem((ushort)(index + 4), (uint)(1111 + index), 20))
+            .ToArray();
+        var body = FinishQuestPayloadCodec.Encode(new(true, 974, objectiveKind, 790245, rewards, 123, 0));
+        using var reader = new BinaryReader(new MemoryStream(body));
+
+        Assert.Equal(1, reader.ReadByte());
+        Assert.Equal(974, reader.ReadUInt16());
+        Assert.Equal(objectiveKind, reader.ReadByte());
+        Assert.Equal(790245u, reader.ReadUInt32());
+        Assert.Equal(0u, reader.ReadUInt32());
+        Assert.Equal(0, reader.ReadByte()); // Consumption is projected by inventory NOTI instead.
+        Assert.Equal(0, reader.ReadByte()); // Ordinary reward chain, independent of reward count.
+        Assert.Equal(rewardCount, reader.ReadByte());
+        foreach (var reward in rewards)
+        {
+            Assert.Equal(reward.SlotIndex, reader.ReadUInt16());
+            Assert.Equal(reward.ItemId, reader.ReadUInt32());
+            Assert.Equal(reward.Count, reader.ReadUInt32());
+            Assert.Equal(0, reader.ReadByte());
+            Assert.Equal(0, reader.ReadUInt16());
+            Assert.Equal(123u, reader.ReadUInt32());
+            Assert.Equal(0, reader.ReadUInt16());
+        }
+        Assert.Equal(reader.BaseStream.Length, reader.BaseStream.Position);
+    }
+
     /// <summary>A refusal is two bytes and says nothing but the code.</summary>
     [Fact]
     public void Encode_WritesARefusalAsAZeroAndACode()

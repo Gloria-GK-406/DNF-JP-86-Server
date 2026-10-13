@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Abstractions.Accounts;
@@ -16,7 +17,7 @@ internal sealed class QuestHelperPuppetDomainService(
     IPremiumServiceDomainService premiums, IQuestHelperPuppetRuleService rules,
     IUsageQuotaDomainService checks, IDailyResetRuleService days,
     ICharacterTable characters, ICharacterItemTable items,
-    IMailboxRepository repository, IMailboxDomainService mailbox,
+    IMailboxRepository repository, IMailboxDomainService mailbox, IItemDeliveryDomainService delivery,
     IDomainTransactionAccessor transactions, TimeProvider clock, IEventService events) : IQuestHelperPuppetDomainService
 {
     private const string CheckKey = "quest_helper_puppets_checked";
@@ -42,10 +43,8 @@ internal sealed class QuestHelperPuppetDomainService(
         var missing = rules.PuppetItemIds.Where(id => !held.Contains(id)).ToArray();
         if (missing.Length > 0)
         {
-            var builder = MailBuilder.FromSystem(characterId)
-                .WithText("魔王之契约：任务助手", "任务助手为您补充了缺少的人偶，请领取附件。");
-            foreach (var id in missing) builder.AddStackable(id, 1);
-            await mailbox.SendAsync(builder.Build(), token).ConfigureAwait(false);
+            await delivery.DeliverAsync(accountId, characterId, missing.Select(x => new ItemDeliveryGrant(x, 1)).ToArray(),
+                "魔王之契约：任务助手", token, ItemDeliveryMode.MailOnly).ConfigureAwait(false);
         }
 
         // A fully stocked character also consumes today's check, not today's items.

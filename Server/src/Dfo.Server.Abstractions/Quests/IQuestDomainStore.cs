@@ -68,7 +68,10 @@ public interface IQuestDomainStoreSession
 /// as it is now.
 /// </remarks>
 public sealed record StoredActiveQuest(
-    short Slot, int QuestId, int TriggerValue, int? ExpectedTriggerValue = null);
+    short Slot, int QuestId, int TriggerValue, int? ExpectedTriggerValue = null)
+{
+    public DateTimeOffset AcceptedAt { get; init; } = DateTimeOffset.UnixEpoch;
+}
 
 /// <summary>The mark one finished quest left behind.</summary>
 /// <remarks>

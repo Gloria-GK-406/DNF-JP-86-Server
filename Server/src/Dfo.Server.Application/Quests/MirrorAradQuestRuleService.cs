@@ -8,7 +8,7 @@ using Dfo.Server.Abstractions.World;
 namespace Dfo.Server.Application.Quests;
 
 internal sealed class MirrorAradQuestRuleService(IQuestContentRuleService quests,
-    IMirrorDungeonRuleService mirror, IItemPlacementRuleService placements) : IMirrorAradQuestRuleService
+    IMirrorDungeonRuleService mirror, IItemPlacementRuleService placements, IQuestMapClearRuleService? mapClears = null) : IMirrorAradQuestRuleService
 {
     public MirrorDungeonCatalog Catalog => mirror.Catalog;
 
@@ -36,7 +36,8 @@ internal sealed class MirrorAradQuestRuleService(IQuestContentRuleService quests
             return new(q, MirrorQuestKind.Hunt, targets);
         }
         if (type == "clear map")
-            return a.Count is 1 or 2 && a[0] > 0 ? new(q, MirrorQuestKind.ClearMap, [], MapId: a[0]) : null;
+            return (mapClears ?? new QuestMapClearRuleService()).TargetMapOf(q) is { } mapId
+                ? new(q, MirrorQuestKind.ClearMap, [], MapId: mapId) : null;
         if (type != "condition under clear" || a.Count < 2 || a[0] != dungeonId || a[1] < -1) return null;
         return q.ObjectiveSubType switch
         {
@@ -52,16 +53,6 @@ internal sealed class MirrorAradQuestRuleService(IQuestContentRuleService quests
         if (state.RewardClaimed || state.GivenUp) return state;
         if (fact is QuestCharacterRevived revive && revive.RunId == run.RunId && revive.CharacterId == state.CharacterId)
             state = state with { ReviveUsed = true };
-        if (fact is QuestRoomCleared room && room.RunId == run.RunId && room.DungeonId == run.Layout.DungeonId
-            && room.Difficulty == run.Difficulty && !state.ClearedCells.Contains(room.Cell))
-        {
-            state = state with { ClearedCells = [.. state.ClearedCells, room.Cell],
-                TargetMapCleared = state.TargetMapCleared || room.MapId == objective.MapId };
-            if (objective.Kind == MirrorQuestKind.Locations)
-                state = state with { TriggerValue = (uint)Math.Max(0, objective.LocationCount - state.ClearedCells.Concat(run.ClearedCells).Distinct().Count()) };
-            else if (objective.Kind == MirrorQuestKind.ClearMap && state.TargetMapCleared)
-                state = state with { TriggerValue = 0 };
-        }
         if (objective.Kind == MirrorQuestKind.Hunt && fact is QuestEnemyDefeated death
             && death.RunId == run.RunId && death.DungeonId == run.Layout.DungeonId && death.Actor is { } actor
             && actor.Cell == run.CurrentCell && !state.ObservedDeaths.Contains(actor))
@@ -89,6 +80,21 @@ internal sealed class MirrorAradQuestRuleService(IQuestContentRuleService quests
         if (fact is QuestDungeonCleared clear && clear.RunId == run.RunId && CanFinish(objective, state, run))
             state = state with { TriggerValue = 0 };
         return state;
+    }
+
+    public MirrorQuestState ApplyMapClear(MirrorQuestObjective objective, MirrorQuestState state, DungeonMapCleared clear)
+    {
+        if (state.GivenUp || state.RewardClaimed || state.RunId != clear.RunId || state.AcceptedAt > clear.ClearedAt
+            || (objective.MinimumDifficulty >= 0 && (int)clear.Difficulty < objective.MinimumDifficulty)
+            || state.ClearedCells.Contains(clear.Cell)) return state;
+        var updated = state with { ClearedCells = [.. state.ClearedCells, clear.Cell],
+            TargetMapCleared = state.TargetMapCleared || clear.MapId == objective.MapId };
+        return objective.Kind switch
+        {
+            MirrorQuestKind.Locations => updated with { TriggerValue = (uint)Math.Max(0, objective.LocationCount - updated.ClearedCells.Count) },
+            MirrorQuestKind.ClearMap when updated.TargetMapCleared => updated with { TriggerValue = 0 },
+            _ => updated,
+        };
     }
 
     public bool CanFinish(MirrorQuestObjective objective, MirrorQuestState state, DungeonRunState run)

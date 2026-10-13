@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Settlement;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
@@ -32,6 +33,17 @@ public sealed class FinishQuestCommandHandlerTests
         Assert.Equal(new[]{new FinishedQuestItem(3,2000,1),new FinishedQuestItem(65,2000,2),new FinishedQuestItem(0,0,5)},output.Items);
     }
     [Fact]
+    public async Task Command_uses_the_settlement_receipt_mode_without_reclassifying_the_quest()
+    {
+        var receipt = new QuestCompletionReceipt(true, 2001, "condition under clear",
+            Dfo.Server.Abstractions.World.ExperienceAward.Nothing(86, 700), new([]), null, null) { MirrorCompletion = true };
+        var result = await Run(new Completion(receipt));
+        Assert.True(result.Finished);
+        Assert.True(result.MirrorCompletion);
+        Assert.Empty(result.Items);
+    }
+
+    [Fact]
     public async Task Refusal_keeps_its_readonly_effective_progress_projection()
     {
         var projection = new QuestProgressSnapshot([new(0,2001,1)]);
@@ -58,7 +70,7 @@ public sealed class FinishQuestCommandHandlerTests
     private static ValueTask<QuestFinishOutcome> Run(Completion completion) => new FinishQuestCommandHandler(completion, null!).HandleAsync(
         new(Guid.Empty,typeof(FinishQuestCommand),typeof(FinishQuestCommandHandler),CommandExecutionKind.Transactional),
         new(new(1),new(1),2001,ushort.MaxValue,1,0),default);
-    private sealed class Completion(QuestCompletionReceipt? receipt,Exception? error=null):IQuestCompletionDomainService
+    private sealed class Completion(QuestCompletionReceipt? receipt,Exception? error=null):IQuestCompletionSettlementDomainService
     {
         public ValueTask<QuestCompletionReceipt> FinishAsync(AccountId account,CharacterId id,ushort quest,ushort selection,ushort count,DateTimeOffset at,CancellationToken ct,Dfo.Server.Data.World.SelectedSessionIdentity? session=null)
         {

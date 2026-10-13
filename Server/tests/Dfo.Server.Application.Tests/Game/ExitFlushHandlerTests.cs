@@ -235,7 +235,7 @@ public sealed class ExitFlushHandlerTests
             scope: inventory.Scope,
             reward: new GrantTutorialRewardCommandHandler(
                 inventory.Containers(placements),
-                inventory.Grants(placements), null!));
+                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(inventory.Grants(placements), inventory.Containers(placements)), null!));
 
     /// <summary>The character's main container, and what reached it.</summary>
     private sealed class RecordingInventory() : FakeMainInventory(characterId: 1)

@@ -32,6 +32,26 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed class IllusionTowerDomainServiceTests
 {
     [Fact]
+    public async Task Cleared_floor_advances_its_map_quest_asynchronously_even_after_leaving_the_tower()
+    {
+        var content = new Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Rules();
+        content.Quest = content.Quest with { QuestId = 975, ObjectiveTypeCode = "clear map", ObjectiveArguments = [60001] };
+        using var f = Fixture(configure: s => s.AddSingleton<IQuestContentRuleService>(content));
+        await f.Seed(65, 4183, 1);
+        f.Sql("INSERT INTO character_active_quests VALUES(1,0,975,1);");
+        var tower = Tower(f);
+        var run = (await Enter(f)).Run!;
+        var context = Context(run, f.Session);
+        await tower.LoadAsync(context, default);
+        await tower.StartAsync(context, default);
+        await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+        Assert.Equal(1, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=975"));
+        await tower.LeaveAsync(context, false, default);
+        await f.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
+        Assert.Equal(0, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=975"));
+    }
+
+    [Fact]
     public async Task Clear_report_keeps_the_current_floor_until_a_move_request()
     {
         using var f = Fixture(configure: services => services.AddSingleton<INetworkConnectionCloser>(new RecordingCloser()));
@@ -537,12 +557,20 @@ public sealed class IllusionTowerDomainServiceTests
         await f.Seed(65, 4183, 2);
         var visits = f.Services.GetRequiredService<IDungeonVisitDomainService>();
         var difficulty = reason == "difficulty" ? DungeonDifficulty.Adventure : DungeonDifficulty.Normal;
-        await using var tx = Scope(f).Begin();
-        if (reason == "fatigue")
-            await f.Services.GetRequiredService<ICharacterFatigueDomainService>().SpendAsync(f.Session.CharacterId, 188, default);
-        Assert.Null(await visits.EnterAsync(f.Session.CharacterId, 10000, difficulty, new(difficulty, [], []), default));
-        Assert.Null((await Enter(f)).Rejection);
-        await tx.CommitAsync(default);
+        await using (var tx = Scope(f).Begin())
+        {
+            if (reason == "fatigue")
+                await f.Services.GetRequiredService<ICharacterFatigueDomainService>().SpendAsync(f.Session.CharacterId, 188, default);
+            Assert.Null(await visits.EnterAsync(f.Session.CharacterId, 10000, difficulty, new(difficulty, [], []), default));
+            Assert.False(Tower(f).IsInTower(f.Session.CharacterId));
+            await tx.CommitAsync(default);
+        }
+        // A failed paid-entry attempt settles its transaction before a new command can enter a tower.
+        await using (var tx = Scope(f).Begin())
+        {
+            Assert.Null((await Enter(f)).Rejection);
+            await tx.CommitAsync(default);
+        }
         Assert.NotNull(Tower(f).Find(f.Session));
     }
 
@@ -729,7 +757,7 @@ public sealed class IllusionTowerDomainServiceTests
     }
 
     [Fact]
-    public async Task Equipment_full_bag_preserves_candidates_but_only_receipts_actual_delivery()
+    public async Task Equipment_full_bag_preserves_all_candidates_between_inventory_and_mail()
     {
         var content = new TowerRewardTestContent();
         content.Table = content.Table with { ItemTypeRates = [0, 10000, 0, 0] };
@@ -744,11 +772,16 @@ public sealed class IllusionTowerDomainServiceTests
         var receipt = Assert.Single(result.Run!.Completion!.Receipt!.Members);
         Assert.Equal(4, receipt.Candidates.Length);
         Assert.All(receipt.Candidates, x => Assert.Equal(3000, x.ItemId));
-        Assert.Equal(2, receipt.Items.Length);
-        Assert.Equal(2, receipt.Candidates.Count(x => x.Delivered));
+        Assert.Equal(4, receipt.Items.Length);
+        Assert.Equal(4, receipt.Candidates.Count(x => x.Delivered));
+        Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM mailbox_attachments WHERE claimed_flag=0"));
         var update = receipt.InventoryUpdates[0];
         Assert.Equal(35, update.Item.Durability);
         Assert.Equal(update.Item.InstanceValue, receipt.Candidates[0].DisplayValue);
+        Assert.All(receipt.Candidates, candidate => Assert.NotEqual(0, candidate.DisplayValue));
+        var mailedSeeds = receipt.Candidates.Skip(2).Select(x => x.DisplayValue).ToArray();
+        foreach (var seed in mailedSeeds)
+            Assert.Equal(1, f.Scalar($"SELECT COUNT(*) FROM mailbox_attachments WHERE instance_value={seed} AND claimed_flag=0"));
         Assert.Equal(2, f.Count(3000));
         Assert.Equal((ushort)35, await f.Durability(InventoryContainerType.Main, 9));
         Assert.False((await tower.DieAsync(context, default)).Changed);
@@ -798,7 +831,7 @@ public sealed class IllusionTowerDomainServiceTests
             var result = await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
             Assert.Single(result.KillRewards);
             Assert.True(result.Run!.Completion!.Settled);
-            Assert.Equal(2, result.Run.Completion.Receipt!.Members[0].Items.Length);
+            Assert.Equal(4, result.Run.Completion.Receipt!.Members[0].Items.Length);
         }
         Assert.Equal(0, f.Count(3000));
         Assert.Equal((int)f.ExperienceForLevel(50), f.Scalar("SELECT exp FROM characters WHERE character_id=1"));

@@ -39,6 +39,10 @@ public interface ITransactionParticipant
 public interface IDomainTransaction
 {
     bool IsReadOnly => false;
+    bool IsRollbackOnly => false;
+
+    /// <summary>A refused use case must discard its changes even if its caller requests commit.</summary>
+    void RequireRollback() => throw new NotSupportedException("Rollback-only transactions are unavailable.");
 
     /// <summary>
     /// Registers a best-effort effect after the entire transaction commits. A repeated key

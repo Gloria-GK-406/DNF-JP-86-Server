@@ -11,7 +11,8 @@ namespace Dfo.Server.Application.UsageQuotas;
 
 internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService quotas,
     IItemUsageDomainService items, IPremiumServiceDomainService premiums,
-    IPremiumServiceUsageDomainService premiumUsage, TimeProvider clock, IDimensionDungeonDomainService dimensions) : IUsageQuotaSnapshotDomainService
+    IPremiumServiceUsageDomainService premiumUsage, TimeProvider clock, IDimensionDungeonDomainService dimensions,
+    IDespairTowerDomainService despair) : IUsageQuotaSnapshotDomainService
 {
     public async ValueTask<UsageQuotaSnapshot> ReadAsync(AccountId accountId, CharacterId characterId,
         UsageQuotaFamily family, CancellationToken cancellationToken)
@@ -19,6 +20,8 @@ internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService q
         var at = clock.GetUtcNow();
         return family switch
         {
+            UsageQuotaFamily.DespairTower => new(at, [], null, [], null, Despair:
+                await despair.ReadStatusAsync(characterId, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.DimensionDungeon => new(at, [], null, [], null,
                 await dimensions.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.Consumable => new(at,
@@ -36,7 +39,9 @@ internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService q
 
 internal sealed class UsageQuotaNotificationSubscriber(IEventService events) : IDomainEventSubscriber<UsageQuotaChanged>
 {
-    public async ValueTask HandleAsync(DomainEventEnvelope<UsageQuotaChanged> message, CancellationToken cancellationToken) =>
+    public async ValueTask HandleAsync(DomainEventEnvelope<UsageQuotaChanged> message, CancellationToken cancellationToken)
+    {
         _ = await events.ProjectAsync(new NotificationAudience.TheseCharacters([message.Payload.CharacterId]),
             new UsageQuotaViewChanged(message.Payload.CharacterId, message.Payload.Family), cancellationToken).ConfigureAwait(false);
+    }
 }

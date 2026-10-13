@@ -422,6 +422,10 @@ public sealed class SelectCharacterHandler(
             _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.MirrorDungeon,
                 cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker && quotaProjection is not null)
+            _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.DespairTower,
+                cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && lotteryCounterExperiment is { Enabled: true } experiment)
         {
             await sender.SendExplicitAsync(session.ConnectionId,

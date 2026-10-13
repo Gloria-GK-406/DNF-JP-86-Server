@@ -21,6 +21,12 @@ internal abstract class SqliteOwnedCharacterSection<TKey, TValue>(SqliteDatabase
 
     protected SqliteDatabaseParticipant Owner { get; } = owner;
 
+    protected bool TryGetStaged(OwnedCharacterId place, TKey key, out TValue? value)
+    {
+        value = null;
+        return this.staged.TryGetValue(place, out var rows) && rows.TryGetValue(key, out value);
+    }
+
     public async ValueTask<IReadOnlyList<TValue>> ReadAllAsync(
         OwnedCharacterId place, CancellationToken cancellationToken)
     {

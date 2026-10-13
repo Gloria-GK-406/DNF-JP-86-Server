@@ -763,7 +763,8 @@ public sealed class SetPlayResultHandler(
     IGameMessageSender sender,
     ILogger<SetPlayResultHandler> logger,
     DungeonCardPresentationCoordinator? cardPresentation = null, SelectedSessionSafety? safety = null,
-    Dfo.Server.Abstractions.DomainEvents.IEventService? eventNotices = null)
+    Dfo.Server.Abstractions.DomainEvents.IEventService? eventNotices = null,
+    Dfo.Server.Abstractions.Inventory.IInventorySlotProjectionDomainService? inventoryProjection = null)
     : ClientMessageHandler<SetPlayResultRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -848,7 +849,10 @@ public sealed class SetPlayResultHandler(
                 runs.ReleaseSettlement(settlementClaim);
                 return;
             }
-            var settled = await cardRewards.SettleAsync(
+            var settled = run.Layout.Despair is not null
+                ? new ClearRewardSettlementResult(new(new(ClearRewardCardKind.Free, [], 0),
+                    new(ClearRewardCardKind.Paid, [], 0), System.Collections.Immutable.ImmutableHashSet<ClearRewardCardId>.Empty, null), null)
+                : await cardRewards.SettleAsync(
                 new ClearRewardSettlement(
                     session.CharacterId,
                     clearProgress.Level,
@@ -948,6 +952,11 @@ public sealed class SetPlayResultHandler(
                     RunId:run.RunId.Value,SettlementLevel:clearProgress.Level),
                 cancellationToken).ConfigureAwait(false));
 
+            if (run.Layout.Despair is not null && paid.Despair is null)
+            {
+                runs.ReleaseSettlement(settlementClaim);
+                return;
+            }
             durableCommitted = true;
 
             // The whole award, in its parts. Experience is a number nobody can check by looking, so
@@ -1056,11 +1065,14 @@ public sealed class SetPlayResultHandler(
                 : new ClearDungeonRewardNotification(
                     award.Breakdown.Base, award.Breakdown.ClearRank, freeCards, cardGold, paidFlipCost, partyCards, run.KillExperience, award.Breakdown, settled.Cards.BlackDiamond));
 
+            if (paid.Despair is { } tower)
+                frames.AddRange(DespairTowerProjection.Rewards(tower, result.World.PreparedAt,
+                    inventoryProjection ?? throw new InvalidOperationException("Inventory projection is required.")));
             await sender.SendExplicitAsync(
                 context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery(frames, []),
                 cancellationToken).ConfigureAwait(false);
-            cardPresentation?.ScheduleAfterSettlement(session, currentRun.RunId);
+            if (run.Layout.Despair is null) cardPresentation?.ScheduleAfterSettlement(session, currentRun.RunId);
         }
         catch (Exception failure)
         {

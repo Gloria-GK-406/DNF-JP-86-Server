@@ -178,6 +178,8 @@ public sealed partial class AchievementTitleBookTests
         await f.DrainAsync();
         Assert.Equal(0, (await f.Achievements.GetAsync(Character, default)).Single().P1);
         Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='inventory.contents-changed'"));
+        Assert.Equal(2, f.Scalar("SELECT json_array_length(payload_json,'$.ChangedItemIds') FROM domain_events WHERE event_type='inventory.contents-changed' ORDER BY rowid DESC LIMIT 1"));
+        Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM domain_events e, json_each(e.payload_json,'$.ChangedItemIds') j WHERE e.event_type='inventory.contents-changed' AND e.rowid=(SELECT MAX(rowid) FROM domain_events WHERE event_type='inventory.contents-changed') AND j.value IN(63022,63000)"));
     }
 
     private static ItemSnapshot Material(int id, int count) => new()

@@ -26,7 +26,11 @@ public sealed record StackableGrantEffectChange(IReadOnlyList<StackableGrantAddi
 public enum InventoryEffectRejection { None, InvalidTarget, InsufficientAssets, UnsupportedItem, NoRoom }
 public sealed record InventoryEffectPreviewResult(InventoryEffectRejection Rejection, int RewardEntries = 0,
     InventoryEffectHoldingsSnapshot? Holdings = null);
-public sealed record InventoryEffectHoldingsSnapshot(System.Collections.Immutable.ImmutableDictionary<int, ItemSnapshot> Main, int Gold);
+public sealed record InventoryEffectHoldingsSnapshot(System.Collections.Immutable.ImmutableDictionary<int, ItemSnapshot> Main, int Gold)
+{
+    public System.Collections.Immutable.ImmutableDictionary<int, ItemSnapshot> SharedMaterials { get; init; } =
+        System.Collections.Immutable.ImmutableDictionary<int, ItemSnapshot>.Empty;
+}
 public sealed class InventoryEffectException(InventoryEffectRejection rejection)
     : InvalidOperationException($"Inventory effect plan refused: {rejection}.")
 {

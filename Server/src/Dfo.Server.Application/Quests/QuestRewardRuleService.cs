@@ -91,7 +91,9 @@ internal sealed class QuestRewardRuleService(ICycleDungeonRuleService? cycles = 
                 return QuestRewardResolution.Refused(QuestRewardRejection.CycleRewardUnavailable);
             return QuestRewardResolution.Valid(new(experience, 0, regional, ConsumedItems: definition.SeekingItems));
         }
-        return QuestRewardResolution.Valid(new QuestCompletionRewardPlan(experience, gold, items, growType));
+        var consumes = definition.ObjectiveTypeCode.Trim().Trim('[', ']').ToLowerInvariant()
+            is "seeking" or "seek n meet npc" ? definition.SeekingItems : null;
+        return QuestRewardResolution.Valid(new QuestCompletionRewardPlan(experience, gold, items, growType, consumes));
     }
 
     private static bool Matches(QuestItemRewardRule rule, QuestRewardCandidate candidate)

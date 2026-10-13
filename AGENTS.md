@@ -220,7 +220,8 @@ PVF 表索引 84。数据库 `level` 仅为 SQL 兼容投影，启动时归一�
 **疲劳已按日记账。** `CharacterFatigueDomainService` 将配置总量与账号黑钻加成合并，
 按 `IDailyResetRuleService` 的当前周期读取已用量；`SpendAsync`/`RefundAsync` 在命令事务内
 通过条件写入更新，退款不降低当日累计消耗。`DungeonVisitDomainService` 先检查
-`ConsumesFatigue`，需要疲劳的副本拒绝零剩余角色，并在入场事务内扣除 1 点；
+`ConsumesFatigue`，由 `DungeonAdmissionDomainService` 检查需要疲劳的副本拒绝零剩余角色，
+Visit 在创建出生房时扣除 1 点；入场凭证不含疲劳费用，避免重复扣除。后续首次进入新房间扣 1 点，重访不扣；
 不消耗疲劳的副本跳过这两步。当前实现和自动测试不等同于 A21 实机验收。
 
 **设置与连招今天刻意没有消费方，别当死代码删掉。** 两者都有真实的表、真实的 SQL，判据对着真库
@@ -257,7 +258,7 @@ PVF 表索引 84。数据库 `level` 仅为 SQL 兼容投影，启动时归一�
   2. `OnlineUserExecutionBehavior`（50）：按 OnlineUserId 取共享/独占租约
   3. `AccountExecutionBehavior`（55）：按 AccountId 取租约
   4. `UnitOfWorkBehavior`（60）：Transactional 命令在此开领域事务，命令正常返回
-     后提交，任何其他出路回滚；其余执行方式原样放行。**Order 必须严格落在
+     后提交；显式标记 `RequireRollback()` 的正常拒绝结果也先回滚再返回，其他失败出路回滚；其余执行方式原样放行。**Order 必须严格落在
      55 与 100 之间**，事务才整个待在账号租约之内（对**声明了**账号访问方式的
      命令而言——未声明的命令 `AccountExecutionBehavior` 直接放行，不取租约，
      道具移动与道具使用两条即是如此）、又整个包住 handler

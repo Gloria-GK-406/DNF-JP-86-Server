@@ -43,7 +43,8 @@ public sealed class DungeonPartyWipeService(
     TownAreaProjectionDelivery towns,
     ICommandBus commands,
     TimeProvider clock,
-    ILogger<DungeonPartyWipeService> logger) : BackgroundService
+    ILogger<DungeonPartyWipeService> logger,
+    Dfo.Server.Protocol.Game.Tournament.TournamentProjectionDelivery? tournaments = null) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -80,6 +81,12 @@ public sealed class DungeonPartyWipeService(
             // The same ordering as entry: instance, then accounts in stable order.
             foreach (var account in frozen.Select(x => x.AccountId).Distinct().OrderBy(x => x.Value))
                 leases.Add(await transitionGate.AcquireAsync(account, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
+            if (!cleared && runs.Find(runId)?.Layout.Tournament is not null)
+            {
+                await (tournaments ?? throw new InvalidOperationException("Tournament projection is unavailable."))
+                    .EliminateAsync(runId, cancellationToken).ConfigureAwait(false);
+                return;
+            }
             var entries = new List<TownAreaEntry>();
             foreach (var session in frozen)
             {

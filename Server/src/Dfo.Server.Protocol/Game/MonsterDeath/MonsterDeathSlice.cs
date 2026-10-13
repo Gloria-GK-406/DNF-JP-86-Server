@@ -370,804 +370,128 @@ internal sealed class MonsterDeathDecoder(
     }
 }
 
-/// <summary>Acknowledges a kill and reports what the character is worth after it.</summary>
+/// <summary>Transport projection of one committed actor-death settlement.</summary>
 public sealed class MonsterDeathHandler(
-    ISelectedSessionDomainService selectedSessions,
-    ISelectedCharacterCurrentViewDomainService currentViews,
-    ICharacterDomainService characters,
-    IDungeonRunDomainService runs,
-    IMonsterKillDomainService kills,
-    IDungeonClearDomainService clearEvaluator,
-    DungeonClearProjectionDelivery clearProjection,
-    ICommandBus commandBus,
-    IQuestOfferRefreshDomainService offers,
-    DungeonRunDeliveryRegistry runDeliveries,
-    IGameMessageSender sender,
-    ExperienceDiagnostics diagnostics,
-    ILogger<MonsterDeathHandler> logger,
-    DungeonPartyRecipients? partyRecipients = null,
-    ICreatureRuntimeDomainService? creatures = null, SelectedSessionSafety? safety = null,
-    IllusionTowerProjectionDelivery? illusionTower = null) : ClientMessageHandler<MonsterDeathRequest>
+    ISelectedSessionDomainService selectedSessions, IDungeonRunDomainService runs,
+    IDungeonClearDomainService clearEvaluator, DungeonClearProjectionDelivery clearProjection,
+    ICommandBus commandBus, DungeonRunDeliveryRegistry runDeliveries, IGameMessageSender sender,
+    ExperienceDiagnostics diagnostics, ILogger<MonsterDeathHandler> logger,
+    DungeonPartyRecipients? partyRecipients = null, ICreatureRuntimeDomainService? creatures = null,
+    SelectedSessionSafety? safety = null, IllusionTowerProjectionDelivery? illusionTower = null,
+    Dfo.Server.Protocol.Game.Tournament.TournamentProjectionDelivery? tournamentProjection = null)
+    : ClientMessageHandler<MonsterDeathRequest>
 {
-    private ValueTask<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException> PublicationFailureAsync(
-        SelectedSessionRecipient recipient, Exception failure) => safety is not null
-        ? safety.PublicationFailedAsync(recipient, failure, nameof(MonsterDeathHandler))
-        : ValueTask.FromResult(new Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException(
-            Dfo.Server.Abstractions.Transactions.TransactionUncertaintyReason.PostCommitPublicationFailure,
-            "Durable kill effects could not be published.", failure));
-
-    private async ValueTask<DungeonActorDeathChange> PublishActorDeathAsync(DungeonActorDeathClaim claim,
-        IReadOnlyList<SelectedSessionRecipient> paid)
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        MonsterDeathRequest message, CancellationToken ct)
     {
-        try
-        {
-            var change = runs.CommitActorDeathChange(claim)
-                ?? throw new InvalidOperationException("The actor-death claim was no longer current after its durable effects.");
-            if (change.Run.Layout.Mirror is not null && change.IsCellCleared)
-                foreach (var member in change.Run.Participants)
-                    await commandBus.SendAsync(new Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommand(
-                        member.AccountId, member.CharacterId, change.Run.RunId,
-                        [new QuestRoomCleared(change.Run.RunId, change.Run.Layout.DungeonId, change.Run.Difficulty,
-                            change.Run.CurrentCell, change.Run.CurrentRoomMapId)]), CancellationToken.None).ConfigureAwait(false);
-            return change;
-        }
-        catch (Exception cause) when (paid.Count > 0)
-        {
-            Exception failure = cause;
-            foreach (var recipient in paid)
-                failure = await PublicationFailureAsync(recipient, failure).ConfigureAwait(false);
-            throw failure;
-        }
-    }
-
-    private void QueueCreatureClear(SelectedSessionIdentity session, DungeonRunState run)
-    {
-        if (creatures is null || !run.Layout.ConsumesFatigue || !run.CurrentCellState.IsCleared) return;
-        creatures.QueueRoomExperience(session, run.RunId, run.CurrentCell, 1);
-    }
-
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        MonsterDeathRequest message,
-        CancellationToken cancellationToken)
-    {
-        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        var capturedRecipient = session is null ? null : safety?.Capture(session) ?? new SelectedSessionRecipient(session, context.Connection);
-        var result = session is null ? null
-            : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
-        if (session is null || result is null)
-        {
-            logger.LogWarning(
-                "Monster death {ConnectionId}: no published session, ignoring actor={Actor}",
-                context.Connection.ConnectionId,
-                message.ActorSequence);
-            return;
-        }
-
+        var reporter = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        if (reporter is null) return;
         if (message.ObjectCode is null && illusionTower is not null
-            && await illusionTower.KillAsync(
-                context.Connection.ConnectionId, message.Metadata,
-                message.ActorSequence, message.WireUserId, cancellationToken).ConfigureAwait(false))
-            return;
-
-        if (message.ObjectCode is { } objectCode)
+            && await illusionTower.KillAsync(reporter.ConnectionId, message.Metadata,
+                message.ActorSequence, message.WireUserId, ct).ConfigureAwait(false)) return;
+        var run = runs.Find(reporter.CharacterId);
+        if (run is null)
         {
-            var objectRun = runs.Find(session.CharacterId);
-            if (objectRun is null) return;
-            var recipients = objectRun.PartyMemberCount > 1
-                ? partyRecipients?.Find(session, objectRun.RunId) ?? runDeliveries.Find(objectRun.RunId)
-                : [session];
-            var applied = await commandBus.SendAsync(new ApplyObjectDestructionCommand(
-                session, objectRun.RunId, objectRun.RoomVersion, objectCode, recipients), cancellationToken)
-                .ConfigureAwait(false);
-            if (applied.Rewards is { } rewards)
-            {
-                var secondary = new List<GameExplicitMessageTarget>();
-                IReadOnlyList<IGameServerMessage> reporterFrames = [];
-                foreach (var reward in rewards)
-                {
-                    if (selectedSessions.FindByConnection(reward.Session.ConnectionId) != reward.Session)
-                        continue;
-                    var objectFrames = new List<IGameServerMessage>();
-                    AppendQuestGrantFrames(objectFrames, reward.Effects);
-                    if (reward.Session == session) reporterFrames = objectFrames;
-                    else if (objectFrames.Count > 0) secondary.Add(new(reward.Session.ConnectionId, objectFrames));
-                }
-                await sender.SendExplicitAsync(session.ConnectionId,
-                    new GameExplicitMessageDelivery(reporterFrames, secondary), cancellationToken).ConfigureAwait(false);
-            }
-            logger.LogInformation("Object destruction character={CharacterId} code={Code} accepted={Accepted} recipients={Recipients}",
-                session.CharacterId.Value, objectCode, applied.Rewards is not null,
-                applied.Rewards is null ? "" : string.Join(',', applied.Rewards.Select(value => value.Session.CharacterId.Value)));
+            await sender.SendExplicitAsync(reporter.ConnectionId,
+                new GameExplicitMessageDelivery([MonsterDeathNotification.Empty(message.ActorSequence)], []), ct).ConfigureAwait(false);
             return;
         }
-
-        var currentRun = runs.Find(session.CharacterId);
-        if (currentRun is not null && partyRecipients is not null
-            && !partyRecipients.Find(session, currentRun.RunId).Contains(session))
-            return;
-        if (currentRun is { PartyMemberCount: > 1 })
+        var participants = (run.PartyMemberCount > 1
+                ? partyRecipients?.Find(reporter, run.RunId) ?? runDeliveries.Find(run.RunId) : [reporter])
+            .Where(x => selectedSessions.FindByCharacter(x.CharacterId) == x).DistinctBy(x => x.CharacterId).ToArray();
+        if (!participants.Contains(reporter)) return;
+        var captured = participants.Select(x => safety?.Capture(x) ?? new SelectedSessionRecipient(x, x == reporter ? context.Connection : null)).ToArray();
+        if (message.ObjectCode is { } code)
         {
-            await this.HandlePartyDeathAsync(
-                context, message, session, currentRun, cancellationToken).ConfigureAwait(false);
+            var objects = await commandBus.SendAsync(new ApplyObjectDestructionCommand(reporter,
+                run.RunId, run.RoomVersion, code, participants), ct).ConfigureAwait(false);
+            if (objects.Rewards is null) return;
+            var targets = objects.Rewards.Where(x => selectedSessions.FindByCharacter(x.Session.CharacterId) == x.Session)
+                .Select(x => new GameExplicitMessageTarget(x.Session.ConnectionId, QuestFrames(x.Effects))).ToArray();
+            await DeliverAsync(reporter, targets, ct).ConfigureAwait(false);
             return;
         }
-
-        // Asked before anything is consumed. The experience frame carries the character's
-        // remaining skill points as well as the total, so without them there is no frame to send
-        // -- and awarding first would leave the character paid, the death spent, and the session
-        // still holding the old total with no frame to correct it.
-        //
-        // Asked of the character rather than read off the session. The session's copy is the
-        // projection entry made on the way in, and nothing has ever recomputed it: a character who
-        // levelled up mid-run was told the figure they entered with until they logged out again.
-        var character = characters.Get(session.CharacterId);
-        var mirror = await character.RemainingSkillPointsAsync(cancellationToken)
-            .ConfigureAwait(false);
-        if (mirror is null)
-        {
-            logger.LogWarning(
-                "Monster death {ConnectionId}: the character has no skill point ledger to report, "
-                    + "acknowledging the kill without awarding or reporting experience",
-                context.Connection.ConnectionId);
-            await sender.SendExplicitAsync(
-                context.Connection.ConnectionId,
-                new GameExplicitMessageDelivery(
-                    [MonsterDeathNotification.Empty(message.ActorSequence)], []),
-                cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        // Claimed first, and everything else hangs off whether that took. The durable experience
-        // and quest writes share one transaction. Failure releases this exact claim for one retry;
-        // success commits it as dead, so an echo cannot pay either ledger twice.
-        var deathClaim = runs.TryClaimActorDeath(session.CharacterId, message.ActorSequence);
-        var run = deathClaim?.Run;
-        ExperienceAward? award = null;
-        ApplyMonsterKillResult? appliedKill = null;
-        IReadOnlyList<MonsterDrop> dropped = [];
-        IReadOnlyList<ushort> autoKilled = [];
-        var instance = 0u;
-        IdentifiedKill? killed;
+        MonsterDeathSettlementResult settled;
         try
         {
-            killed = run is null
-                ? null
-                : await this.KilledAsync(context, run, message.ActorSequence, cancellationToken)
-                    .ConfigureAwait(false);
+            settled = await commandBus.SendAsync(new ProcessMonsterDeathCommand(new(reporter, participants,
+                run.RunId, run.RoomVersion, message.ActorSequence)), ct).ConfigureAwait(false);
         }
-        catch
+        catch (Exception failure) when (Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
         {
-            if (deathClaim is not null)
-                runs.ReleaseActorDeath(deathClaim);
+            if (safety is not null)
+                foreach (var recipient in captured) await safety.BlockAsync(recipient, failure, nameof(MonsterDeathHandler)).ConfigureAwait(false);
             throw;
         }
-        var durableCommitted = false;
-        if (run is not null && killed is { } verifiedKill)
+        if (settled.Death?.Change is not { } change)
         {
-            var effectClaim = runs.TryClaimParticipantKillEffect(
-                deathClaim!, session.CharacterId);
-            if (effectClaim is not null)
-            {
-                try
-                {
-                    appliedKill = await commandBus.SendAsync(
-                        new ApplyMonsterKillCommand(
-                            session.AccountId,
-                            session.CharacterId,
-                            new KilledMonster(
-                                verifiedKill.Code,
-                                verifiedKill.Level,
-                                verifiedKill.Rank, verifiedKill.IsNamedMonster),
-                            run.Layout.DungeonId,
-                            run.Difficulty,
-                            run.Layout.ExperienceWeight,
-                            verifiedKill.IsMonster
-                                ? HuntEnemyTargetTypes.Monster
-                                : HuntEnemyTargetTypes.AiCharacter,
-                            run.PartyMemberCount,
-                            deathClaim!.ActorState?.PendingLoot,
-                            run.PartyKey,
-                            run.IsBossRoom && verifiedKill.IsMonster
-                                && verifiedKill.Rank == MonsterRank.Boss, Session: session,
-                            RunId: run.RunId, Actor: deathClaim.Actor, WorldMapId: run.Layout.Mirror?.WorldMapId),
-                        cancellationToken).ConfigureAwait(false);
-                    durableCommitted = true;
-                    if (!runs.CommitParticipantKillEffect(effectClaim, appliedKill?.Award))
-                    {
-                        throw new InvalidOperationException(
-                            "The participant kill effect claim was no longer current.");
-                    }
-                }
-                catch (Exception failure)
-                {
-                    if (durableCommitted)
-                        throw await PublicationFailureAsync(capturedRecipient!, failure).ConfigureAwait(false);
-                    if (Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure)) throw;
-                    runs.ReleaseParticipantKillEffect(effectClaim);
-                    var restored = runs.ReleaseActorDeath(deathClaim!);
-                    logger.LogWarning(
-                        "Monster death {ConnectionId}: durable kill transaction failed; "
-                            + "actor={Actor} claim restored={Restored}",
-                        context.Connection.ConnectionId,
-                        message.ActorSequence,
-                        restored);
-                    throw;
-                }
-            }
-
-            award = appliedKill?.Award;
-            logger.LogInformation(
-                "Kill experience character={CharacterId}: monster={Monster} "
-                    + "level={MonsterLevel} rank={Rank} award={Award}",
-                session.CharacterId.Value,
-                verifiedKill.Code,
-                verifiedKill.Level,
-                verifiedKill.Rank,
-                award);
-
-            foreach (var advance in appliedKill?.QuestAdvances ?? [])
-            {
-                logger.LogInformation(
-                    "Monster death {ConnectionId}: quest={QuestId} trigger={Before}->{After} "
-                        + "dungeon={DungeonId} enemy={EnemyCode} type={EnemyType}",
-                    context.Connection.ConnectionId,
-                    advance.QuestId,
-                    advance.Before,
-                    advance.After,
-                    run.Layout.DungeonId,
-                    verifiedKill.Code,
-                    verifiedKill.IsMonster
-                        ? HuntEnemyTargetTypes.Monster
-                        : HuntEnemyTargetTypes.AiCharacter);
-            }
-
-            var deathChange = await PublishActorDeathAsync(deathClaim!,
-                durableCommitted ? [capturedRecipient!] : []).ConfigureAwait(false);
-            run = deathChange.Run;
-            autoKilled = deathChange.AutoKilledActorSequences;
-            if (verifiedKill.IsMonster || deathChange.AddedGroundItems.Count > 0)
-            {
-                dropped = [.. deathChange.AddedGroundItems.Select(item => item.ToMonsterDrop())];
-                instance = GameDropIdentity.ForKill(run, message.ActorSequence);
-            }
-        }
-        else if (deathClaim is not null)
-        {
-            var deathChange = await PublishActorDeathAsync(deathClaim, []).ConfigureAwait(false);
-            run = deathChange.Run;
-            autoKilled = deathChange.AutoKilledActorSequences;
-        }
-
-        if (run is not null)
-            QueueCreatureClear(session, run);
-        logger.LogInformation(
-            "Monster death {ConnectionId} user={WireUserId}: actor={Actor} killedBy={KilledBy}",
-            context.Connection.ConnectionId,
-            session.WireUserId,
-            message.ActorSequence,
-            message.WireUserId);
-
-        // Keep the compatibility projection aligned with the award. Without an award, ask the
-        // character for its current progress rather than reporting the old projection.
-        var currentProgress = award is null
-            ? await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false)
-            : new CharacterProgressionState(award.Level, award.Total);
-        if (currentProgress is null)
+            await sender.SendExplicitAsync(reporter.ConnectionId,
+                new GameExplicitMessageDelivery([MonsterDeathNotification.Empty(message.ActorSequence)], []), ct).ConfigureAwait(false);
             return;
-        var level = currentProgress.Level;
-        var total = currentProgress.Experience;
-        if (award is not null)
-        {
-            result = result with
-            {
-                Character = result.Character with
-                {
-                    Progression = new CharacterProgressionState(level, total),
-                },
-                CharacterEntry = result.CharacterEntry with
-                {
-                    Public = result.CharacterEntry.Public with
-                    {
-                        Extras = result.CharacterEntry.Public.Extras with
-                        {
-                            CharacterExperience = total,
-                        },
-                    },
-                },
-            };
-
-            // A level decides which quests are offered, so crossing one has to be followed by
-            // working that out again -- otherwise a quest whose band the character has just
-            // entered stays hidden until they next enter the world.
-            if (award.LeveledUp)
-            {
-                // And it decides how many skill points the character has, so the figure asked for
-                // before the award is now a level out of date. Asked again here rather than every
-                // time, because a level is the only input to that ledger a kill can move: what has
-                // been learned and what bonus is stored are untouched by one. A character that has
-                // gone in the meantime keeps the answer already in hand, exactly as the level and
-                // the total above keep theirs.
-                mirror = await character.RemainingSkillPointsAsync(cancellationToken)
-                    .ConfigureAwait(false) ?? mirror;
-
-                result = await offers
-                    .RefreshAsync(result, session.AccountId, session.CharacterId, level,
-                        cancellationToken).ConfigureAwait(false);
-            }
-
         }
+        try
+        {
+            if (creatures is not null && change.Run.Layout.ConsumesFatigue && change.IsCellCleared)
+                foreach (var participant in settled.Participants)
+                    creatures.QueueRoomExperience(participant.Session, change.Run.RunId, change.Run.CurrentCell, 1);
+            var clear = await clearEvaluator.EvaluateAsync(reporter.AccountId, reporter.CharacterId,
+                change.Run.RunId, change.Run.RoomVersion, ct).ConfigureAwait(false);
+            var drops = change.AddedGroundItems.Select(x => x.ToMonsterDrop()).ToArray();
+            var owners = drops.Where(x => x.Rolled.OwnerCharacterId.HasValue)
+                .ToDictionary(x => x.Number, x => SelectedSessionIdentity.ToWireUserId(x.Rolled.OwnerCharacterId!.Value));
+            var death = new MonsterDeathNotification(message.ActorSequence, drops, reporter.WireUserId,
+                GameDropIdentity.ForKill(change.Run, message.ActorSequence), owners);
+            var targets = settled.Participants.Where(x => selectedSessions.FindByCharacter(x.Session.CharacterId) == x.Session)
+                .Select(x => new GameExplicitMessageTarget(x.Session.ConnectionId, Frames(x, death, change.AutoKilledActorSequences,
+                    settled.Tournament))).ToArray();
+            await DeliverAsync(reporter, targets, ct).ConfigureAwait(false);
+            if (clear is not null) await clearProjection.DeliverAsync(reporter, clear, ct).ConfigureAwait(false);
+            logger.LogInformation("Monster death committed run={RunId} actor={Actor} participants={Count} drops={Drops}",
+                run.RunId, message.ActorSequence, settled.Participants.Count, drops.Length);
+        }
+        catch (Exception failure)
+        {
+            var uncertain = new Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException(
+                Dfo.Server.Abstractions.Transactions.TransactionUncertaintyReason.PostCommitPublicationFailure,
+                "Monster death committed but client publication failed.", failure);
+            if (safety is not null)
+                foreach (var recipient in captured) await safety.BlockAsync(recipient, uncertain, nameof(MonsterDeathHandler)).ConfigureAwait(false);
+            throw uncertain;
+        }
+    }
 
-        // The experience frame first, then the acknowledgement. That is the order a working A21
-        // session sends them in, and the popup the first one raises names the kill the second one
-        // confirms.
-        List<IGameServerMessage> frames =
-        [
-            new ExperienceNotification(
-                // The probe raises only what is reported, never what is stored: the
-                // client draws a breakdown of a gain nobody was paid, and the next
-                // kill's frame carries the real total and puts it back. A measurement
-                // that moved the character would have to be undone by hand, and the
-                // account it ran on could not be trusted for anything afterwards.
-                level,
-                diagnostics.LabelProbe ? checked((award?.NotificationTotal ?? total) + ExperienceDiagnostics.ProbeTotal) : award?.NotificationTotal ?? total,
-                mirror, AccountHonorLevel.Initial,
-                ExperienceBonusLines.Of(award), diagnostics.LabelProbe),
-            new MonsterDeathNotification(
-                message.ActorSequence,
-                dropped,
-                session.WireUserId,
-                instance,
-                run is null
-                    ? new Dictionary<ushort, ushort>()
-                    : DropOwners(dropped)),
-        ];
+    private ValueTask DeliverAsync(SelectedSessionIdentity reporter, IReadOnlyList<GameExplicitMessageTarget> targets, CancellationToken ct) =>
+        sender.SendExplicitAsync(reporter.ConnectionId, new GameExplicitMessageDelivery(
+            targets.FirstOrDefault(x => x.ConnectionId == reporter.ConnectionId)?.OrderedMessages ?? [],
+            targets.Where(x => x.ConnectionId != reporter.ConnectionId).ToArray()), ct);
+
+    private IReadOnlyList<IGameServerMessage> Frames(MonsterDeathParticipantResult participant,
+        MonsterDeathNotification death, IReadOnlyList<ushort> autoKilled, TournamentActionResult? tournament = null)
+    {
+        var award = participant.Effects.Award;
+        var total = award?.NotificationTotal ?? participant.Progress.Experience;
+        var frames = new List<IGameServerMessage> { new ExperienceNotification(participant.Progress.Level,
+            diagnostics.LabelProbe ? checked(total + ExperienceDiagnostics.ProbeTotal) : total, participant.SkillPoints,
+            AccountHonorLevel.Initial, ExperienceBonusLines.Of(award), diagnostics.LabelProbe), death };
         frames.AddRange(autoKilled.Select(MonsterDeathNotification.Empty));
-        AppendQuestGrantFrames(frames, appliedKill);
-
-        if (award?.LeveledUp == true)
-        {
-            frames.Add(new AvailableQuestListMessage(
-                level, result.World.Content.AvailableQuests));
-        }
-
-        DungeonClearChange? clear = null;
-        if (run is not null
-            && await clearEvaluator.EvaluateAsync(
-                session.AccountId,
-                session.CharacterId,
-                run.RunId,
-                run.RoomVersion,
-                cancellationToken).ConfigureAwait(false) is { } opened)
-        {
-            clear = opened;
-        }
-
-        await sender.SendExplicitAsync(
-            context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery(frames, []),
-            cancellationToken).ConfigureAwait(false);
-        if (clear is not null)
-        {
-            _ = await clearProjection.DeliverAsync(session, clear, cancellationToken)
-                .ConfigureAwait(false);
-        }
-    }
-
-    private async ValueTask HandlePartyDeathAsync(
-        NetworkDispatchContext context,
-        MonsterDeathRequest message,
-        SelectedSessionIdentity reporter,
-        DungeonRunState initialRun,
-        CancellationToken cancellationToken)
-    {
-        var recipients = new List<PartyDeathRecipient>();
-        var capturedRecipients = new Dictionary<SelectedSessionIdentity, SelectedSessionRecipient>();
-        foreach (var frozen in partyRecipients?.Find(reporter, initialRun.RunId)
-                     ?? runDeliveries.Find(initialRun.RunId))
-        {
-            if (selectedSessions.FindByCharacter(frozen.CharacterId) != frozen) continue;
-            var captured = safety?.Capture(frozen) ?? new SelectedSessionRecipient(frozen, null);
-            capturedRecipients[frozen] = captured;
-            var result = await currentViews.TryLoadAsync(frozen, cancellationToken).ConfigureAwait(false);
-            safety?.DemandCurrent(captured);
-            if (selectedSessions.FindByCharacter(frozen.CharacterId) != frozen
-                || result is null)
-            {
-                continue;
-            }
-
-            var mirror = await characters.Get(frozen.CharacterId)
-                .RemainingSkillPointsAsync(cancellationToken).ConfigureAwait(false);
-            safety?.DemandCurrent(captured);
-            recipients.Add(new PartyDeathRecipient(frozen, result, mirror));
-        }
-
-        var reporterRecipient = recipients.SingleOrDefault(value => value.Session == reporter);
-        if (reporterRecipient is null
-            || recipients.Any(recipient => recipient.SkillPoints is null))
-        {
-            logger.LogWarning(
-                "Party monster death {ConnectionId}: every attached participant requires a "
-                    + "skill-point mirror; acknowledging actor={Actor} without consuming it",
-                context.Connection.ConnectionId,
-                message.ActorSequence);
-            await sender.SendExplicitAsync(
-                context.Connection.ConnectionId,
-                new GameExplicitMessageDelivery(
-                    [MonsterDeathNotification.Empty(message.ActorSequence)], []),
-                cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        var deathClaim = runs.TryClaimActorDeath(reporter.CharacterId, message.ActorSequence);
-        if (deathClaim is null)
-        {
-            await sender.SendExplicitAsync(
-                context.Connection.ConnectionId,
-                new GameExplicitMessageDelivery(
-                    [MonsterDeathNotification.Empty(message.ActorSequence)], []),
-                cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        IdentifiedKill? killed;
-        try
-        {
-            killed = await this.KilledAsync(
-                context, deathClaim.Run, message.ActorSequence, cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch
-        {
-            runs.ReleaseActorDeath(deathClaim);
-            throw;
-        }
-
-        var paidRecipients = new HashSet<SelectedSessionIdentity>();
-        var results = recipients
-            .Select(recipient => new
-            {
-                recipient.Session.CharacterId,
-                Result = runDeliveries.FindKillResult(
-                    deathClaim.RunId, deathClaim.Actor, recipient.Session.CharacterId),
-            })
-            .Where(value => value.Result is not null)
-            .ToDictionary(value => value.CharacterId, value => value.Result!);
-        if (killed is { } verifiedKill)
-        {
-            foreach (var recipient in recipients)
-            {
-                if (selectedSessions.FindByCharacter(recipient.Session.CharacterId)
-                        != recipient.Session)
-                {
-                    continue;
-                }
-
-                var effectClaim = runs.TryClaimParticipantKillEffect(
-                    deathClaim, recipient.Session.CharacterId);
-                if (effectClaim is null)
-                    continue;
-
-                var participantCommitted = false;
-                try
-                {
-                    var applied = await commandBus.SendAsync(
-                        new ApplyMonsterKillCommand(
-                            recipient.Session.AccountId,
-                            recipient.Session.CharacterId,
-                            new KilledMonster(
-                                verifiedKill.Code,
-                                verifiedKill.Level,
-                                verifiedKill.Rank, verifiedKill.IsNamedMonster),
-                            deathClaim.Run.Layout.DungeonId,
-                            deathClaim.Run.Difficulty,
-                            deathClaim.Run.Layout.ExperienceWeight,
-                            verifiedKill.IsMonster
-                                ? HuntEnemyTargetTypes.Monster
-                                : HuntEnemyTargetTypes.AiCharacter,
-                            deathClaim.Run.PartyMemberCount,
-                            deathClaim.ActorState?.PendingLoot,
-                            deathClaim.Run.PartyKey,
-                            deathClaim.Run.IsBossRoom && verifiedKill.IsMonster
-                                && verifiedKill.Rank == MonsterRank.Boss, Session: recipient.Session,
-                            RunId: deathClaim.RunId, Actor: deathClaim.Actor, WorldMapId: deathClaim.Run.Layout.Mirror?.WorldMapId),
-                        cancellationToken).ConfigureAwait(false);
-                    participantCommitted = true;
-                    paidRecipients.Add(recipient.Session);
-                    if (!runs.CommitParticipantKillEffect(effectClaim, applied.Award))
-                    {
-                        throw new InvalidOperationException(
-                            "The participant kill effect claim was no longer current.");
-                    }
-                    results[recipient.Session.CharacterId] = applied;
-                    runDeliveries.RecordKillResult(
-                        deathClaim.RunId,
-                        deathClaim.Actor,
-                        recipient.Session.CharacterId,
-                        applied);
-                    this.LogAppliedKill(context, recipient.Session, deathClaim.Run, verifiedKill, applied);
-                }
-                catch (Exception failure)
-                {
-                    if (participantCommitted)
-                        throw await PublicationFailureAsync(capturedRecipients[recipient.Session], failure).ConfigureAwait(false);
-                    if (Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure)) throw;
-                    runs.ReleaseParticipantKillEffect(effectClaim);
-                    var restored = runs.ReleaseActorDeath(deathClaim);
-                    logger.LogWarning(
-                        "Party monster death {ConnectionId}: participant={CharacterId} durable "
-                            + "effect failed; actor={Actor} claim released={Released}; completed "
-                            + "participant effects remain fixed for a selective retry",
-                        context.Connection.ConnectionId,
-                        recipient.Session.CharacterId.Value,
-                        message.ActorSequence,
-                        restored);
-                    throw;
-                }
-            }
-        }
-
-        var deathChange = await PublishActorDeathAsync(deathClaim,
-            [.. paidRecipients.Select(paid => capturedRecipients[paid])]).ConfigureAwait(false);
-        var run = deathChange.Run;
-        var dropped = killed is { IsMonster: true } || deathChange.AddedGroundItems.Count > 0
-            ? deathChange.AddedGroundItems.Select(item => item.ToMonsterDrop()).ToArray()
-            : [];
-        var instance = killed is { IsMonster: true } || dropped.Length > 0
-            ? GameDropIdentity.ForKill(run, message.ActorSequence)
-            : 0u;
-
-        foreach (var recipient in recipients)
-            QueueCreatureClear(recipient.Session, run);
-        var sharedDeath = new MonsterDeathNotification(
-            message.ActorSequence,
-            dropped,
-            reporter.WireUserId,
-            instance,
-            DropOwners(dropped));
-        IReadOnlyList<IGameServerMessage> autoDeaths =
-            [.. deathChange.AutoKilledActorSequences.Select(MonsterDeathNotification.Empty)];
-
-        var framesByCharacter = new Dictionary<CharacterId, IReadOnlyList<IGameServerMessage>>();
-        foreach (var recipient in recipients)
-        {
-            var frames = await this.PartyFramesAsync(
-                recipient,
-                results.GetValueOrDefault(recipient.Session.CharacterId),
-                sharedDeath,
-                autoDeaths,
-                cancellationToken).ConfigureAwait(false);
-            framesByCharacter[recipient.Session.CharacterId] = frames;
-        }
-
-        var requiredFrames = selectedSessions.FindByCharacter(reporter.CharacterId) == reporter
-            && framesByCharacter.TryGetValue(reporter.CharacterId, out var reporterFrames)
-                ? reporterFrames
-                : [];
-        var secondary = recipients
-            .Where(value => value.Session != reporter)
-            .Where(value => selectedSessions.FindByCharacter(value.Session.CharacterId)
-                == value.Session)
-            .Where(value => framesByCharacter.ContainsKey(value.Session.CharacterId))
-            .Select(value => new GameExplicitMessageTarget(
-                value.Session.ConnectionId,
-                framesByCharacter[value.Session.CharacterId]))
-            .ToArray();
-
-        var clear = await clearEvaluator.EvaluateAsync(
-            reporter.AccountId,
-            reporter.CharacterId,
-            run.RunId,
-            run.RoomVersion,
-            cancellationToken).ConfigureAwait(false);
-
-        await sender.SendExplicitAsync(
-            context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery(requiredFrames, secondary),
-            cancellationToken).ConfigureAwait(false);
-        runDeliveries.CompleteKillDelivery(deathClaim.RunId, deathClaim.Actor);
-        if (clear is not null)
-        {
-            _ = await clearProjection.DeliverAsync(reporter, clear, cancellationToken)
-                .ConfigureAwait(false);
-        }
-    }
-
-    private async ValueTask<IReadOnlyList<IGameServerMessage>> PartyFramesAsync(
-        PartyDeathRecipient recipient,
-        ApplyMonsterKillResult? applied,
-        MonsterDeathNotification sharedDeath,
-        IReadOnlyList<IGameServerMessage> clearedFrames,
-        CancellationToken cancellationToken)
-    {
-        var award = applied?.Award;
-        var currentProgress = award is null
-            ? await characters.Get(recipient.Session.CharacterId)
-                .ProgressAsync(cancellationToken).ConfigureAwait(false)
-            : new CharacterProgressionState(award.Level, award.Total);
-        var frames = new List<IGameServerMessage>();
-        if (currentProgress is not null && recipient.SkillPoints is { } originalMirror)
-        {
-            var level = currentProgress.Level;
-            var total = currentProgress.Experience;
-            var result = recipient.Runtime;
-            var mirror = originalMirror;
-            if (award is not null)
-            {
-                result = result with
-                {
-                    Character = result.Character with
-                    {
-                        Progression = new CharacterProgressionState(level, total),
-                    },
-                    CharacterEntry = result.CharacterEntry with
-                    {
-                        Public = result.CharacterEntry.Public with
-                        {
-                            Extras = result.CharacterEntry.Public.Extras with
-                            {
-                                CharacterExperience = total,
-                            },
-                        },
-                    },
-                };
-                if (award.LeveledUp)
-                {
-                    mirror = await characters.Get(recipient.Session.CharacterId)
-                        .RemainingSkillPointsAsync(cancellationToken).ConfigureAwait(false) ?? mirror;
-                    result = await offers.RefreshAsync(
-                        result,
-                        recipient.Session.AccountId,
-                        recipient.Session.CharacterId,
-                        level,
-                        cancellationToken).ConfigureAwait(false);
-                }
-            }
-
-            frames.Add(new ExperienceNotification(
-                level,
-                diagnostics.LabelProbe ? checked((award?.NotificationTotal ?? total) + ExperienceDiagnostics.ProbeTotal) : award?.NotificationTotal ?? total,
-                mirror,
-                AccountHonorLevel.Initial,
-                ExperienceBonusLines.Of(award),
-                diagnostics.LabelProbe));
-            frames.Add(sharedDeath);
-            if (award?.LeveledUp == true)
-            {
-                frames.Add(new AvailableQuestListMessage(
-                    level, result.World.Content.AvailableQuests));
-            }
-        }
-        else
-        {
-            frames.Add(sharedDeath);
-        }
-        AppendQuestGrantFrames(frames, applied);
-        frames.AddRange(clearedFrames);
+        frames.AddRange(QuestFrames(new ApplyMonsterKillResult(award, [], participant.Effects.QuestItems,
+            participant.Effects.QuestProgress, participant.Effects.AccountMaterials)));
+        if (participant.AvailableQuests is { } quests) frames.Add(new AvailableQuestListMessage(participant.Progress.Level, quests));
+        if (tournament is not null)
+            frames.AddRange((tournamentProjection ?? throw new InvalidOperationException("Tournament projection is unavailable."))
+                .CompletionFrames(tournament));
         return frames;
     }
 
-    private static void AppendQuestGrantFrames(
-        List<IGameServerMessage> frames,
-        ApplyMonsterKillResult? applied)
+    private static IReadOnlyList<IGameServerMessage> QuestFrames(ApplyMonsterKillResult? applied)
     {
-        if (applied?.QuestItems is { } items)
-            frames.Add(GameInventoryDelivery.Notification(items));
-        if (applied?.AccountMaterials is { Count: > 0 } accountMaterials)
-        {
-            frames.Add(GameInventoryDelivery.VirtualResourceNotification(
-                [.. accountMaterials.Select(material => new InventoryRuntimeValueState(
-                    material.SlotIndex,
-                    material.ItemId,
-                    material.Value))],
-                DateTimeOffset.UtcNow));
-        }
-        var quests = applied?.QuestProgress?.Quests;
-        if (quests is not null)
-        {
-            frames.Add(new AcceptedQuestProgressMessage(
-                [.. quests.OrderBy(quest => quest.Slot)
-                    .Select(quest => new AcceptedQuestProgressState(
-                        checked((ushort)quest.QuestId),
-                        unchecked((uint)quest.TriggerValue)))]));
-        }
+        var frames = new List<IGameServerMessage>();
+        if (applied?.QuestItems is { } items) frames.Add(GameInventoryDelivery.Notification(items));
+        if (applied?.AccountMaterials is { Count: > 0 } shared)
+            frames.Add(GameInventoryDelivery.VirtualResourceNotification(shared, DateTimeOffset.UtcNow));
+        if (applied?.QuestProgress?.Quests is { } quests)
+            frames.Add(new AcceptedQuestProgressMessage([.. quests.OrderBy(x => x.Slot)
+                .Select(x => new AcceptedQuestProgressState(checked((ushort)x.QuestId), unchecked((uint)x.TriggerValue)))]));
+        return frames;
     }
-
-    private void LogAppliedKill(
-        NetworkDispatchContext context,
-        SelectedSessionIdentity session,
-        DungeonRunState run,
-        IdentifiedKill killed,
-        ApplyMonsterKillResult applied)
-    {
-        logger.LogInformation(
-            "Party kill experience character={CharacterId}: monster={Monster} "
-                + "level={MonsterLevel} rank={Rank} award={Award} party={PartyMemberCount}",
-            session.CharacterId.Value,
-            killed.Code,
-            killed.Level,
-            killed.Rank,
-            applied.Award,
-            run.PartyMemberCount);
-        foreach (var advance in applied.QuestAdvances)
-        {
-            logger.LogInformation(
-                "Party monster death {ConnectionId}: character={CharacterId} quest={QuestId} "
-                    + "trigger={Before}->{After} dungeon={DungeonId} enemy={EnemyCode} "
-                    + "type={EnemyType}",
-                context.Connection.ConnectionId,
-                session.CharacterId.Value,
-                advance.QuestId,
-                advance.Before,
-                advance.After,
-                run.Layout.DungeonId,
-                killed.Code,
-                killed.IsMonster
-                    ? HuntEnemyTargetTypes.Monster
-                    : HuntEnemyTargetTypes.AiCharacter);
-        }
-    }
-
-    private static IReadOnlyDictionary<ushort, ushort> DropOwners(
-        IReadOnlyList<MonsterDrop> drops)
-    {
-        if (drops.All(drop => drop.Rolled.OwnerCharacterId is null))
-            return new Dictionary<ushort, ushort>();
-
-        return drops
-            .Where(drop => drop.Rolled.OwnerCharacterId is { })
-            .ToDictionary(
-                drop => drop.Number,
-                drop => SelectedSessionIdentity.ToWireUserId(
-                    drop.Rolled.OwnerCharacterId!.Value));
-    }
-
-    private sealed record PartyDeathRecipient(
-        SelectedSessionIdentity Session,
-        SelectCharacterResult Runtime,
-        CharacterSkillProtocolMirrorState? SkillPoints);
-
-    /// <summary>
-    /// What died, or nothing when the room cannot name it.
-    /// </summary>
-    /// <remarks>
-    /// The monster is looked up in the room the client is standing in, by the running number that
-    /// room's actors were given. A sequence the room does not account for yields nothing: it means
-    /// the client and this server disagree about what is in the room, and paying an invented
-    /// monster would turn that disagreement into experience and items.
-    /// <para>
-    /// Answered once and used twice, because experience and drops are decided from the same three
-    /// facts -- what it was, what level, what rank -- and looking it up separately for each would
-    /// let the two disagree.
-    /// </para>
-    /// </remarks>
-    private async ValueTask<IdentifiedKill?> KilledAsync(
-        NetworkDispatchContext context,
-        DungeonRunState run,
-        ushort actorSequence,
-        CancellationToken cancellationToken)
-    {
-        var lookup = await kills.IdentifyAsync(run, actorSequence, cancellationToken)
-            .ConfigureAwait(false);
-        if (lookup.Kill is not { } killed)
-        {
-            logger.LogWarning(
-                "Monster death {ConnectionId}: actor {Actor} is not one of the {Count} this room "
-                    + "declares, so nothing was awarded and nothing dropped",
-                context.Connection.ConnectionId, actorSequence, lookup.DeclaredCount);
-            return null;
-        }
-
-        if (!killed.IsMonster)
-        {
-            logger.LogInformation(
-                "Monster death {ConnectionId}: actor {Actor} is an AI character, not a monster; "
-                    + "only server-verified quest progress may be recorded",
-                context.Connection.ConnectionId, actorSequence);
-        }
-
-        return killed;
-    }
-
 }

@@ -22,6 +22,10 @@ namespace Dfo.Server.Abstractions.Quests;
 /// </remarks>
 public interface IQuestOfferRefreshDomainService
 {
+    ValueTask<Dfo.Server.Data.World.AvailableQuestEntryState> ReadAvailableAsync(
+        AccountId accountId, CharacterId characterId, int level, CancellationToken ct) =>
+        ValueTask.FromException<Dfo.Server.Data.World.AvailableQuestEntryState>(new NotSupportedException("Bounded quest offer query is unavailable."));
+
     /// <summary>
     /// The session with its offer list, and the inputs behind it, brought up to date.
     /// </summary>

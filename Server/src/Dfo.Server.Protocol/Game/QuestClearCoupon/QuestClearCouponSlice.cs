@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Settlement;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
@@ -98,7 +99,7 @@ public sealed record QuestClearCouponCommand(OnlineUserId OnlineUserId, Selected
     public AccountId AccountId => Session.AccountId;
 }
 
-public sealed class QuestClearCouponCommandHandler(IQuestClearCouponDomainService coupons, TimeProvider clock)
+public sealed class QuestClearCouponCommandHandler(IQuestClearCouponSettlementDomainService coupons, TimeProvider clock)
     : ICommandHandler<QuestClearCouponCommand, QuestClearCouponResult>
 {
     public ValueTask<QuestClearCouponResult> HandleAsync(CommandExecutionContext context,

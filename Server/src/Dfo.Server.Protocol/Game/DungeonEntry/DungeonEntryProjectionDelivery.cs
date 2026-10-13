@@ -241,13 +241,29 @@ public sealed class DungeonEntryProjectionDelivery(
                         ? new InventoryDeltaMessage(slot.Space, [new Dfo.Server.Data.Inventory.InventoryItemState(null, slot.Index, remaining)], refreshed[receiver.Session.CharacterId].World.PreparedAt)
                         : GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, refreshed[receiver.Session.CharacterId].World.PreparedAt));
                 }
-                frames.Add(new DungeonInfoNotification(layout, leaderVisit.Run.Difficulty));
-                frames.Add(new StartMapNotification(
-                    roster.IsVirtual ? visit.Run with { Participant = null } : visit.Run,
-                    FirstEntry: true,
-                    visit.Actors,
-                    visit.FirstActorSequence,
-                    FloorPieceValues.Describe(visit.Run, visit.FloorDrops)));
+                if (layout.Tournament is { } tournament)
+                {
+                    frames.Add(new Dfo.Server.Protocol.Game.Tournament.TournamentInfoMessage(tournament));
+                    frames.Add(new Dfo.Server.Protocol.Game.Tournament.TournamentMapMessage(tournament));
+                }
+                else
+                {
+                    frames.Add(new DungeonInfoNotification(layout, leaderVisit.Run.Difficulty));
+                    frames.Add(new StartMapNotification(
+                        roster.IsVirtual ? visit.Run with { Participant = null } : visit.Run,
+                        FirstEntry: true,
+                        visit.Actors,
+                        visit.FirstActorSequence,
+                        FloorPieceValues.Describe(visit.Run, visit.FloorDrops)));
+                }
+                if (layout.Despair is { Floor: >= 10 and <= 90 } tower && tower.Floor % 10 == 0)
+                {
+                    var view = refreshed[receiver.Session.CharacterId];
+                    var equipment = view.CharacterInventory.Containers.SingleOrDefault(x => x.ContainerType ==
+                        Dfo.Server.Data.Inventory.InventoryContainerType.Equipment)?.Items ?? [];
+                    frames.Add(new DespairApcInfoNotification(0, view.Character, equipment));
+                    frames.Add(new DespairApcInfoNotification(checked((byte)tower.Floor), view.Character, equipment));
+                }
                 if (HellPartyProjection.For(visit.Run) is { } hellInfo) frames.Add(hellInfo);
                 frames.Add(new Fatigue.FatigueNotification(await fatigue.BalanceOfAsync(receiver.Session.CharacterId, cancellationToken).ConfigureAwait(false)));
                 deliveries.Add((receiver.Session, frames));

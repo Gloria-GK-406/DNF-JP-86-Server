@@ -84,7 +84,6 @@ public sealed class QuestProgressDomainService(
                     serverProgressChanged |= dependents.Count != 0;
                     break;
 
-                case QuestRoomCleared:
                 case QuestCharacterRevived:
                     break;
 
@@ -198,8 +197,8 @@ public sealed class QuestProgressDomainService(
                 continue;
 
             var before = new QuestTrigger(unchecked((uint)active.TriggerValue));
-            var missing = requirements.Count(id => !clearedIds.Contains(id));
-            var after = before.ReplaceChannel(0, missing);
+            var after = new QuestTrigger(unchecked((uint)QuestStateRuleService.ApplyClearedRequirements(
+                definition!, active.TriggerValue, clearedIds)));
             if (after == before)
                 continue;
             if (!await log.RecordProgressAsync(

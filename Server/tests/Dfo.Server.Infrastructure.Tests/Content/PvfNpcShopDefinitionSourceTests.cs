@@ -18,6 +18,11 @@ public sealed class PvfNpcShopDefinitionSourceTests
         Assert.Equal(1000, shop.ShopId);
         Assert.Contains(shop.Pages, page => page.ItemIds.Contains(2600655));
         Assert.False((await source.GetShopAsync(2, default))!.VisibleOnDungeonClear);
+        var drapyus = await source.GetShopAsync(1001, default);
+        Assert.NotNull(drapyus);
+        Assert.Equal(1001, drapyus.ShopId);
+        Assert.False(drapyus.VisibleOnDungeonClear);
+        Assert.Empty(drapyus.Pages.SelectMany(page => page.ItemIds));
     }
     [SkippableTheory]
     [InlineData(false, false, false)]

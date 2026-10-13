@@ -1,6 +1,7 @@
 using Dfo.Server.Protocol.Game.ItemSockets;
 using Dfo.Server.Protocol.Game.Achievements;
 using Dfo.Server.Protocol.Game.CycleDungeonEntry;
+using Dfo.Server.Protocol.Game.Tournament;
 using Dfo.Server.Protocol.Game.TitleBook;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -178,6 +179,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<MailboxCommand, MailboxResult, MailboxCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddNotificationHandler<MailboxCompleted, MailboxCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.MirrorQuestViewChanged, Dfo.Server.Protocol.Game.QuestProgress.MirrorQuestViewChangedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.QuestProgressViewChanged, Dfo.Server.Protocol.Game.QuestProgress.QuestProgressViewChangedHandler>(retryLimit: 0);
         services.RegisterMessageHandler<MailboxClaimHandler>(ClientMessageType.GameMailboxClaim);
         services.AddGameCmdMessageDecoder<MailboxClaimDecoder>(0x005F, ClientMessageType.GameMailboxClaim);
         services.AddGameCmdMessageEncoder<MailboxClaimResponse, MailboxClaimEncoder>();
@@ -241,6 +243,24 @@ public sealed class ProtocolModule : IServerModule
         if (revivalFlag > 1) throw new InvalidOperationException("RevivalAckFlag must be 0 or 1.");
         services.TryAddSingleton(new RevivalOptions(revivalFlag));
         services.TryAddSingleton<DungeonEntryProjectionDelivery>();
+        services.TryAddSingleton<TournamentProjectionDelivery>();
+        services.TryAddSingleton<TournamentRewardSweepService>();
+        services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<TournamentRewardSweepService>());
+        services.AddCommandHandler<BeginTournamentRewardsCommand, bool, BeginTournamentRewardsCommandHandler>(
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.RegisterMessageHandler<TournamentRewardHandler>(ClientMessageType.GameTournamentRewardStatus);
+        services.RegisterMessageHandler<TournamentRewardHandler>(ClientMessageType.GameTournamentSelectReward);
+        services.AddGameCmdMessageDecoder<TournamentStatusDecoder>(0x01CA, ClientMessageType.GameTournamentRewardStatus);
+        services.AddGameCmdMessageDecoder<TournamentSelectionDecoder>(0x01CB, ClientMessageType.GameTournamentSelectReward);
+        services.AddGameNotiMessageEncoder<TournamentInfoMessage, TournamentInfoEncoder>();
+        services.AddGameNotiMessageEncoder<TournamentMapMessage, TournamentMapEncoder>();
+        services.AddGameNotiMessageEncoder<TournamentRewardMessage, TournamentRewardEncoder>();
+        services.AddGameCmdMessageEncoder<TournamentStatusResponse, TournamentStatusEncoder>();
+        services.AddGameCmdMessageEncoder<TournamentSelectionResponse, TournamentSelectionEncoder>();
+        services.AddCommandHandler<SelectTournamentRewardCommand, TournamentCommandResult, SelectTournamentRewardCommandHandler>(
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<EliminateTournamentCommand, TournamentCommandResult, EliminateTournamentCommandHandler>(
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.TryAddSingleton<DungeonPickupProjectionDelivery>();
         services.TryAddSingleton<DungeonPickupPostCommitCoordinator>();
         services.TryAddSingleton<DungeonClearProjectionDelivery>();
@@ -367,6 +387,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<AdvanceHuntEnemyQuestCommand, AdvanceHuntEnemyQuestResult, AdvanceHuntEnemyQuestCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<ApplyObjectDestructionCommand, ObjectDestructionResult, ApplyObjectDestructionCommandHandler>(
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<ProcessMonsterDeathCommand, MonsterDeathSettlementResult, ProcessMonsterDeathCommandHandler>(
             CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<ApplyMonsterKillCommand, ApplyMonsterKillResult, ApplyMonsterKillCommandHandler>(
             CommandExecutionKind.Transactional);
@@ -904,6 +926,8 @@ public sealed class ProtocolModule : IServerModule
             GroundGoldPickupNotification, GroundGoldPickupEncoder>();
         services.AddGameNotiMessageEncoder<EnableClearDungeonNotification, EnableClearDungeonEncoder>();
         services.AddGameNotiMessageEncoder<SecretShopNpcNotification, SecretShopNpcEncoder>();
+        services.AddGameNotiMessageEncoder<DespairClearRewardNotification, DespairClearRewardEncoder>();
+        services.AddGameNotiMessageEncoder<DespairApcInfoNotification, DespairApcInfoEncoder>();
         services.AddGameNotiMessageEncoder<PlayResultNotification, PlayResultEncoder>();
         services.AddGameNotiMessageEncoder<ClearDungeonRewardNotification, ClearDungeonRewardEncoder>();
         services.AddGameCmdMessageDecoder<RosterFollowUpMessageDecoder>(

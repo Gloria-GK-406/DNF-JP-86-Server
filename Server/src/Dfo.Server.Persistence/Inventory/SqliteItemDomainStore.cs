@@ -43,8 +43,8 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
         session.contentsEvents ??= contentsEvents;
         return session;
     }
-    private ValueTask ContentsChangedAsync(ContainerId container, CancellationToken ct) =>
-        contentsEvents?.RecordAsync(container, ct) ?? ValueTask.CompletedTask;
+    private ValueTask ContentsChangedAsync(ContainerId container, CancellationToken ct, params int[] itemIds) =>
+        contentsEvents?.RecordAsync(container, itemIds, ct) ?? ValueTask.CompletedTask;
     public bool HasStagedWork => changed;
     private void Active()
     {
@@ -116,14 +116,14 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
             {
                 await DeleteSlotAsync(reference.ContainerId, reference.StorageSlotIndex, ct).ConfigureAwait(false);
                 Advance(reference.ContainerId, reference.StorageSlotIndex);
-                await ContentsChangedAsync(reference.ContainerId, ct).ConfigureAwait(false);
+                await ContentsChangedAsync(reference.ContainerId, ct, row.Snapshot.ItemId).ConfigureAwait(false);
                 return Issue(row.Uid, row.Snapshot);
             }
             var remainder = row.Snapshot with { Count = row.Snapshot.Count - amount };
             await SaveAsync(row.Uid, remainder, ct).ConfigureAwait(false);
             await SetSlotCountAsync(row.Uid, remainder.Count, ct).ConfigureAwait(false);
             var piece = row.Snapshot with { Count = amount };
-            await ContentsChangedAsync(reference.ContainerId, ct).ConfigureAwait(false);
+            await ContentsChangedAsync(reference.ContainerId, ct, row.Snapshot.ItemId).ConfigureAwait(false);
             return Issue(await InsertAsync(piece, ct).ConfigureAwait(false), piece);
         }).ConfigureAwait(false);
     }
@@ -149,7 +149,7 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
                 if (!foreign) await RemoveRowAsync(uid, ct).ConfigureAwait(false);
                 await scope.AcceptAsync(record, identity, ct).ConfigureAwait(false);
                 detached.Remove(record);
-                await ContentsChangedAsync(container, ct).ConfigureAwait(false);
+                await ContentsChangedAsync(container, ct, incoming.ItemId).ConfigureAwait(false);
                 return Reference(container, slot, merged);
             }
             if (foreign) uid = await InsertAsync(incoming, ct).ConfigureAwait(false);
@@ -165,7 +165,7 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
             await scope.AcceptAsync(record, identity, ct).ConfigureAwait(false);
             detached.Remove(record);
             Advance(container, slot);
-            await ContentsChangedAsync(container, ct).ConfigureAwait(false);
+            await ContentsChangedAsync(container, ct, incoming.ItemId).ConfigureAwait(false);
             return Reference(container, slot, incoming);
         }).ConfigureAwait(false);
     }
@@ -192,7 +192,7 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
             command.Parameters.AddWithValue("@uid", row.Uid);
             await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
             if (next.ItemId != row.Snapshot.ItemId || next.Count != row.Snapshot.Count)
-                await ContentsChangedAsync(reference.ContainerId, ct).ConfigureAwait(false);
+                await ContentsChangedAsync(reference.ContainerId, ct, row.Snapshot.ItemId, next.ItemId).ConfigureAwait(false);
             var result = Reference(reference.ContainerId, reference.StorageSlotIndex, next);
             return reference.BusinessSlot is { } business ? result.WithBusinessSlot(business) : result;
         }).ConfigureAwait(false);

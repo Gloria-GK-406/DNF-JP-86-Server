@@ -30,6 +30,9 @@ internal sealed class TransactionalDungeonVisitDomainService(DungeonVisitDomainS
     public ValueTask<DungeonEntryAttempt> TryEnterPreparedPartyAsync(IReadOnlyList<DungeonRunParticipant> members,
         DungeonLayout layout, DungeonEntryFacts facts, CancellationToken token) =>
         Execute(() => inner.TryEnterPreparedPartyAsync(members, layout, facts, token), token);
+    public ValueTask<DungeonEntryAttempt> EnterGrantedPartyAsync(IReadOnlyList<DungeonRunParticipant> members,
+        DungeonLayout layout, DungeonEntryFacts facts, IDungeonAdmissionReceipt receipt, CancellationToken token) =>
+        Execute(() => inner.EnterGrantedPartyAsync(members, layout, facts, receipt, token), token);
     public ValueTask<DungeonRoomVisit?> MoveAsync(CharacterId id, DungeonRunState current, MazeCell target, CancellationToken token) =>
         Execute(() => inner.MoveAsync(id, current, target, token), token);
 }

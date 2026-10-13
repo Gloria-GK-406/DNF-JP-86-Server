@@ -8,16 +8,6 @@ public sealed record QuestClearCouponResult(
     OpeningInventoryReceipt Inventory,
     IReadOnlyList<int> CompletedQuestIds);
 
-/// <summary>Uses a task-clear coupon within the caller's transaction.</summary>
-public interface IQuestClearCouponDomainService
-{
-    ValueTask<QuestClearCouponResult> UseAsync(
-        SelectedSessionIdentity session,
-        BusinessSlot sourceSlot,
-        DateTimeOffset now,
-        CancellationToken cancellationToken);
-}
-
 /// <summary>Selects eligible quests from content and current character facts.</summary>
 public interface IQuestClearCouponRuleService
 {

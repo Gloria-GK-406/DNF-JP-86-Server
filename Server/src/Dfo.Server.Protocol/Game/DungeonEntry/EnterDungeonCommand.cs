@@ -13,10 +13,15 @@ public sealed record EnterDungeonCommand(DungeonEntryContext Entry) : ICommand<D
 public sealed class EnterDungeonCommandHandler(
     IDungeonEntryDecisionDomainService decisions, IDungeonVisitDomainService visits,
     IHellDungeonEntryDomainService? hell = null, ICycleDungeonEntryDomainService? cycles = null,
-    IMirrorDungeonEntryDomainService? mirrors = null, IDimensionDungeonDomainService? dimensions = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
+    IMirrorDungeonEntryDomainService? mirrors = null, IDimensionDungeonDomainService? dimensions = null, IDespairTowerDomainService? despair = null,
+    ITournamentDungeonDomainService? tournaments = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
 {
     public ValueTask<DungeonEntryAttempt> HandleAsync(CommandExecutionContext context, EnterDungeonCommand command,
-        CancellationToken cancellationToken) => command.Entry.MirrorQuestId is not null
+        CancellationToken cancellationToken) => tournaments?.Supports(command.Entry.DungeonId) == true
+        ? tournaments.EnterAsync(command.Entry, cancellationToken)
+        : despair?.IsTower(command.Entry.DungeonId) == true
+        ? despair.EnterAsync(command.Entry, cancellationToken)
+        : command.Entry.MirrorQuestId is not null
         ? mirrors?.EnterAsync(command.Entry, cancellationToken)
             ?? ValueTask.FromResult(DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite))
         : command.Entry.Facts.Intent.Kind == DungeonEntryIntentKind.Cycle

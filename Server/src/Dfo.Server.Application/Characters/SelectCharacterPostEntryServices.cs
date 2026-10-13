@@ -12,26 +12,28 @@ namespace Dfo.Server.Application.Characters;
 
 internal sealed class SelectCharacterQuestEntryService(
     IQuestContentRuleService quests,
-    ICharacterQuestLogDomainService logs) : ISelectCharacterQuestEntryDomainService
+    ICharacterQuestLogDomainService logs, IQuestQueryDomainService? query = null,
+    IQuestStateRuleService? stateRules = null) : ISelectCharacterQuestEntryDomainService
 {
     public async ValueTask<SelectCharacterQuestSynchronization?> SynchronizeAsync(
         SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken)
     {
+        var rules = stateRules ?? new QuestStateRuleService(quests);
+        var carried = result.CharacterEntry.Quests.ActiveQuests
+            .Select(x => new CarriedQuest(x.Slot, x.QuestId, x.TriggerValue)).ToArray();
+        var evaluated = query is not null
+            ? await query.ReadAcceptedAsync(session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false)
+            : await rules.EvaluateAsync(carried,
+                result.CharacterEntry.Quests.VisibilityFlags.Select((mark, id) => new ClearedQuest(id, mark)).Where(x => x.Mark != 0).ToArray(),
+                EntryHoldings(result, rules), cancellationToken).ConfigureAwait(false);
+        var byQuestSlot = evaluated.ToDictionary(x => x.Quest.Slot, x => x.Quest);
         var planned = new List<QuestTriggerUpdate>();
-        foreach (var active in result.CharacterEntry.Quests.ActiveQuests.OrderBy(value => value.Slot))
+        foreach (var active in carried)
         {
-            var definition = await quests.FindAsync(active.QuestId, cancellationToken).ConfigureAwait(false);
-            if (definition is null) continue;
-            var after = QuestKillObjectiveRules.RepairRegionalResidual(definition.KillObjectives, active.TriggerValue);
-            if (definition.SeekingItems is { Count: > 0 } requirements)
-            {
-                long missing = 0;
-                foreach (var requirement in requirements)
-                    missing += Math.Max(0, requirement.RequiredCount - Count(result.CharacterInventory, requirement.ItemId));
-                after = ReplaceChannel0(after, missing);
-            }
-            if (after != active.TriggerValue)
-                planned.Add(new QuestTriggerUpdate(active.Slot, active.QuestId, active.TriggerValue, after));
+            if (!byQuestSlot.TryGetValue(active.Slot, out var effective) || effective.QuestId != active.QuestId)
+                throw new InvalidDataException($"Quest {active.QuestId} changed during entry synchronization.");
+            if (effective.TriggerValue != active.TriggerValue)
+                planned.Add(new QuestTriggerUpdate(active.Slot, active.QuestId, active.TriggerValue, effective.TriggerValue));
         }
         if (planned.Count == 0) return null;
         // Each write carries the value this entry snapshot was built from, so a slot that has
@@ -74,19 +76,20 @@ internal sealed class SelectCharacterQuestEntryService(
                 checked((ushort)value.QuestId), unchecked((uint)value.TriggerValue))).ToArray()));
     }
 
-    internal static int ReplaceChannel0(int trigger, long value) =>
-        (trigger & ~0x1FF) | (int)Math.Clamp(value, 0, 0x1FF);
-
-    private static int Count(CharacterInventoryEntryState inventory, int itemId)
+    private static QuestHoldingsFacts EntryHoldings(SelectCharacterResult result, IQuestStateRuleService rules)
     {
-        var virtualValue = inventory.VirtualResources.SingleOrDefault(value => value.ItemId == itemId);
-        if (virtualValue is not null) return Math.Max(0, virtualValue.Value);
-        long total = inventory.Containers.Where(value => value.ContainerType == InventoryContainerType.Main)
-            .SelectMany(value => value.Items).Where(value => value.Core.ItemId == itemId)
-            .Sum(value => value.Core.ItemKind is 2 or 3 or 4 or 7 or 9 or 10 or 11
-                ? Math.Max(0, value.Core.Value) : 1);
-        return checked((int)Math.Min(int.MaxValue, total));
+        var main = result.CharacterInventory.Containers.Where(x => x.ContainerType == InventoryContainerType.Main)
+            .SelectMany(x => x.Items).Select(x => ItemSnapshot.FromCore(x.Core,
+                x.Core.ItemKind is 2 or 3 or 4 or 7 or 9 or 10 or 11));
+        var shared = result.AccountInventory.VirtualResources.Select(x => new ItemSnapshot { ItemId = x.ItemId, Count = x.Value });
+        var gold = result.CharacterInventory.VirtualResources.SingleOrDefault(x => x.ItemId == 0)?.Value ?? 0;
+        var holdings = rules.Holdings(main, shared, gold);
+        var quantities = holdings.Quantities.ToDictionary(x => x.Key, x => x.Value);
+        foreach (var resource in result.CharacterInventory.VirtualResources.Where(x => !AccountMaterialCatalog.ContainsItem(x.ItemId)))
+            quantities[resource.ItemId] = Math.Max(0, resource.Value);
+        return new(quantities);
     }
+
 }
 
 /// <remarks>

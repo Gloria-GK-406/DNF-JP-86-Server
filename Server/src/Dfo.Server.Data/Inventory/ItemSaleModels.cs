@@ -2,7 +2,7 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Data.Inventory;
 
-public enum ItemSaleRejection { None, NoSession, ShopUnavailable, InvalidRequest, ItemUnavailable, Locked, CannotSell, GoldLimit }
+public enum ItemSaleRejection { None, NoSession, InvalidRequest, ItemUnavailable, Locked, CannotSell, GoldLimit }
 
 public sealed record ItemSaleReceipt(
     SelectedSessionIdentity Session, BusinessSlot Slot, int ItemId,

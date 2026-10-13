@@ -76,6 +76,7 @@ public sealed class LotteryOpeningTests
         for (var slot = 9; slot <= 64; slot++) await shop.Host.Seed(slot, 20002, 1, 1);
         await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop));
         Assert.Equal(3, shop.Host.Count(7110));
+        Assert.Equal(0, shop.Host.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
     }
 
     [Dfo.Server.Testing.PvfFact]
@@ -210,6 +211,20 @@ public sealed class LotteryOpeningTests
         Assert.Equal(OpeningRejection.NoRoom, error.Reason);
         Assert.Equal(0, Used(shop)); Assert.Equal(2, shop.Host.Count(7110)); Assert.Equal(100000, shop.Host.Gold);
         await Command(shop, mode: 0); Assert.Equal(1, shop.Host.Count(7110));
+        Assert.Equal(0, shop.Host.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+    }
+
+    [Dfo.Server.Testing.PvfFact]
+    public async Task Full_double_reward_rejects_without_consuming_source_or_quota()
+    {
+        var selector = new Fixed(); using var shop = Fixture(selector); Subscribe(shop);
+        await shop.Host.Seed(65, 7110, 3);
+        for (var slot = 9; slot <= 64; slot++) await shop.Host.Seed(slot, 20002, 1, 1);
+        var error = await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop, mode: 1));
+        Assert.Equal(OpeningRejection.NoRoom, error.Reason);
+        Assert.Equal(0, Used(shop)); Assert.Equal(3, shop.Host.Count(7110));
+        Assert.Equal(100000, shop.Host.Gold);
+        Assert.Equal(0, shop.Host.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
     }
 
     [Dfo.Server.Testing.PvfFact]

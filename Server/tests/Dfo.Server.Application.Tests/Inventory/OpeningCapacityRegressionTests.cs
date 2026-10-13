@@ -69,6 +69,7 @@ public sealed class OpeningCapacityRegressionTests
         }
         Assert.Equal(physicalReward ? 2 : 1, f.Host.Count(1000));
         Assert.Equal(physicalReward ? 0 : 3, f.Host.Count(1));
+        Assert.Equal(0, f.Host.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
         Assert.Equal(0, f.Host.Count(3));
         Assert.Equal(37, f.Host.Count(6000));
     }

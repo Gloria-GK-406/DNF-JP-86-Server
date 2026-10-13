@@ -79,6 +79,7 @@ public sealed class VendingMachineTests
         for(var i=3;i<=8;i++) await f.Host.Seed(i,201,1);
         var noRoom=await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f));
         Assert.Equal(OpeningRejection.NoRoom,noRoom.Reason); Assert.Equal(2,f.Host.Count(7454));
+        Assert.Equal(0,f.Host.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
     }
     [Dfo.Server.Testing.PvfFact]
     public async Task Storage_failure_rolls_back_and_same_sequence_retries()

@@ -1,0 +1,234 @@
+using Dfo.Server.Abstractions.Achievements;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
+
+namespace Dfo.Server.Application.World;
+
+/// <summary>Owns the tournament lifecycle; the shared dungeon run owns its single Cell.</summary>
+internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleService rules,
+    IDungeonAdmissionDomainService admission, IDungeonRunDomainService runs,
+    ICharacterDomainService characters, ICharacterFatigueDomainService fatigue,
+    IItemDeliveryDomainService delivery, IQuestProgressDomainService quests,
+    ISelectedSessionDomainService sessions, IDomainTransactionAccessor transactions, TimeProvider clock,
+    ICharacterGameplayFactDomainService gameplay)
+    : ITournamentDungeonDomainService, IDomainEventSubscriber<DungeonParticipantLeft>
+{
+    private readonly IDungeonRunDomainService dungeonRuns = runs;
+    private readonly Lock gate = new();
+    private readonly Dictionary<CharacterId, TournamentDungeonState> states = [];
+    public bool Supports(int dungeonId) => rules.IsSupported(dungeonId);
+    public TournamentDungeonState? Find(CharacterId characterId)
+    {
+        lock (gate)
+        {
+            var state = states.GetValueOrDefault(characterId);
+            return state is not null && dungeonRuns.Find(characterId)?.RunId == state.RunId ? state : null;
+        }
+    }
+
+    public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct)
+    {
+        if (!Supports(context.DungeonId) || context.Participants.Count != 1 || context.RequestMode != 0
+            || context.PracticeMode != 0 || context.MirrorQuestId is not null
+            || context.Facts.Intent.Kind == DungeonEntryIntentKind.Cycle)
+            return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
+        var player = context.Participants[0];
+        if (dungeonRuns.Find(player.CharacterId) is not null)
+            return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
+        TournamentPlan plan;
+        try { plan = await rules.PrepareAsync(context.DungeonId, unchecked((uint)Random.Shared.Next()), ct).ConfigureAwait(false); }
+        catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
+        var facts = context.Facts with { Difficulty = (DungeonDifficulty)plan.Definition.Difficulty };
+        return await admission.ExecuteAsync(context with { Facts = facts }, new()
+        {
+            RequireMinimumLevel = true, ConsumesFatigue = true, RequiredItemsOverride = plan.Definition.RequiredItems,
+        }, async (receipt, token) =>
+        {
+            if (admission.BeginEntry(receipt, context.Participants, context.DungeonId) is { } refusal) return refusal;
+            var runId = DungeonRunId.New();
+            var cell = new MazeCell(0, 0);
+            var layout = new DungeonLayout(context.DungeonId, 0, 1, 1, cell, cell, plan.Definition.MapId,
+                unchecked((int)plan.Seed), new Dictionary<MazeCell, DungeonCellDefinition>
+                { [cell] = DungeonCellDefinition.Fixed(plan.Definition.MapId) }, (byte)plan.Definition.BasisLevel,
+                ConsumesFatigue: false) { Tournament = plan };
+            var actors = plan.PathActors.Select(x => new DungeonCellActorState(x.Sequence,
+                new(x.Code, x.Level, x.Type, RandomDropCount: 0) { IsHostile = true }, x.IsAiCharacter, false, [], !x.IsAiCharacter)).ToArray();
+            await fatigue.SpendAsync(player.CharacterId, checked((ushort)plan.Definition.RoundFatigue), token).ConfigureAwait(false);
+            var change = dungeonRuns.PreparePartyEntry(context.Participants, layout, facts.Difficulty,
+                new(cell, plan.Definition.MapId, 1, actors, []), runId, clock.GetUtcNow());
+            Put(new(runId, player.CharacterId, plan));
+            return DungeonEntryAttempt.Accepted(new(layout,
+                new Dictionary<CharacterId, DungeonRoomVisit>
+                {
+                    [player.CharacterId] = new(change.Run, true, [], [], 1),
+                }, change));
+        }, ct).ConfigureAwait(false);
+    }
+
+    public bool CanKill(DungeonRunState run, ushort actor)
+    {
+        var state = Find(run.Participant?.CharacterId ?? run.Participants[0].CharacterId);
+        return state is { IsFinished: false } && state.RunId == run.RunId
+            && run.ReadyParticipants.Contains(state.CharacterId) && !run.DeadParticipants.Contains(state.CharacterId)
+            && state.Plan.PathActors[state.CompletedRounds].Sequence == actor
+            && run.CurrentCellState.FindActor(actor) is { IsDead: false };
+    }
+
+    public async ValueTask<TournamentActionResult?> AdvanceAsync(SelectedSessionIdentity session,
+        DungeonRunId runId, ushort actor, CancellationToken ct)
+    {
+        var run = CurrentRun(session, runId);
+        if (run is null || !CanKill(run, actor)) return null;
+        var state = Find(session.CharacterId)!;
+        var next = state with { CompletedRounds = state.CompletedRounds + 1 };
+        if (next.CompletedRounds == 4) return await FinishAsync(session, next, TournamentStatus.Champion, ct).ConfigureAwait(false);
+        await fatigue.SpendAsync(session.CharacterId, checked((ushort)next.Plan.Definition.RoundFatigue), ct).ConfigureAwait(false);
+        Put(next);
+        return new(next) { Fatigue = await fatigue.BalanceOfAsync(session.CharacterId, ct).ConfigureAwait(false) };
+    }
+
+    public async ValueTask<TournamentActionResult?> EliminateAsync(SelectedSessionIdentity session, DungeonRunId runId, CancellationToken ct)
+    {
+        var run = CurrentRun(session, runId);
+        var state = Find(session.CharacterId);
+        if (run is null || state is null || state.IsFinished || !run.DeadParticipants.Contains(session.CharacterId)) return null;
+        return await FinishAsync(session, state, TournamentStatus.Eliminated, ct).ConfigureAwait(false);
+    }
+
+    private async ValueTask<TournamentActionResult> FinishAsync(SelectedSessionIdentity session,
+        TournamentDungeonState state, TournamentStatus status, CancellationToken ct)
+    {
+        var character = characters.Get(session.CharacterId);
+        var progress = await character.ProgressAsync(ct).ConfigureAwait(false) ?? throw new InvalidDataException("Tournament character is unavailable.");
+        var experience = state.Plan.Definition.ExperienceByRound[state.CompletedRounds];
+        var award = await character.AddExpAsync(new ExperienceBreakdown(Base: experience), progress, ct).ConfigureAwait(false);
+        var next = state with { Status = status, Rewards = rules.Rewards(state.Plan, state.CompletedRounds, progress.Level) };
+        QuestProgressReport? report = null;
+        if (status == TournamentStatus.Champion)
+        {
+            report = await quests.ReportAsync(session.AccountId, session.CharacterId,
+                [new QuestDungeonCleared(state.Plan.Definition.DungeonId, (DungeonDifficulty)state.Plan.Definition.Difficulty,
+                    state.RunId, clock.GetUtcNow())], ct).ConfigureAwait(false);
+            await gameplay.RecordDungeonCompletedAsync(new(session.CharacterId, state.Plan.Definition.DungeonId,
+                state.Plan.Definition.Difficulty), ct).ConfigureAwait(false);
+        }
+        Put(next);
+        return new(next) { Experience = award, SkillPoints = await character.RemainingSkillPointsAsync(ct).ConfigureAwait(false),
+            Quests = report?.NotificationSnapshot, QuestChanges = report?.Changes ?? [] };
+    }
+
+    public async ValueTask<TournamentActionResult?> SelectRewardAsync(SelectedSessionIdentity session,
+        DungeonRunId runId, byte row, byte index, CancellationToken ct)
+    {
+        var state = Find(session.CharacterId);
+        if (CurrentRun(session, runId) is null || state is not { IsFinished: true } || row >= state.Rewards.Count
+            || index >= state.Rewards[row].Count) return null;
+        // A retransmitted selection acknowledges the frozen row without granting it twice.
+        if (state.Selections[row].HasValue) return new(state);
+        var reward = state.Rewards[row][index];
+        ItemDeliveryReceipt? receipt = null;
+        int? gold = null;
+        if (reward.ItemId > 0 && reward.Count > 0)
+        {
+            receipt = await delivery.DeliverAsync(session.AccountId, session.CharacterId, [new(reward.ItemId, reward.Count)],
+                "黄龙大会奖励", ct, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
+        }
+        else if (reward.ItemId == 0 && reward.Count > 0)
+            gold = await characters.Get(session.CharacterId).AddGoldAsync(reward.Count, ct).ConfigureAwait(false);
+        var selections = state.Selections.ToArray();
+        selections[row] = index;
+        var next = state with { Selections = Array.AsReadOnly(selections) };
+        QuestProgressReport? report = receipt is not null
+            ? await quests.ReportAsync(session.AccountId, session.CharacterId, [new QuestHoldingsChanged()], ct).ConfigureAwait(false) : null;
+        Put(next);
+        return new(next) { Delivery = receipt, GoldBalance = gold, Quests = report?.NotificationSnapshot,
+            QuestChanges = report?.Changes ?? [] };
+    }
+
+    public bool CanRevive(CharacterId characterId, DungeonRunId runId)
+    {
+        var state = Find(characterId);
+        return state is not null && state.RunId == runId && !state.IsFinished && state.Revivals < state.Plan.Definition.CoinLimit;
+    }
+
+    public IReadOnlyList<TournamentDungeonState> PendingRewards(DateTimeOffset now)
+    {
+        lock (gate)
+            return states.Values.Where(x => x.IsFinished && x.RewardSelectionEndsAt <= now
+                && x.Rewards.Where((row, index) => row.Count > 0 && !x.Selections[index].HasValue).Any()).ToArray();
+    }
+
+    public bool BeginRewardSelection(SelectedSessionIdentity session, DungeonRunId runId)
+    {
+        var state = Find(session.CharacterId);
+        if (CurrentRun(session, runId) is null || state is not { IsFinished: true }) return false;
+        if (state.RewardSelectionEndsAt is null)
+            Put(state with { RewardSelectionEndsAt = clock.GetUtcNow() + rules.RewardSelectionWindow });
+        return true;
+    }
+
+    public bool StageRevival(CharacterId characterId, DungeonRunId runId)
+    {
+        var state = Find(characterId);
+        if (state is null || state.RunId != runId || state.IsFinished || state.Revivals >= state.Plan.Definition.CoinLimit) return false;
+        Put(state with { Revivals = state.Revivals + 1 });
+        return true;
+    }
+
+    private DungeonRunState? CurrentRun(SelectedSessionIdentity session, DungeonRunId runId) =>
+        sessions.FindByCharacter(session.CharacterId) == session && dungeonRuns.Find(session.CharacterId) is { } run
+        && run.RunId == runId && run.Layout.Tournament is not null ? run : null;
+
+    private void Put(TournamentDungeonState state)
+    {
+        var tx = transactions.Current ?? throw new InvalidOperationException("Tournament mutations require a transaction.");
+        tx.Enlist(this, () => new Changes(this)).Put(state);
+    }
+
+    public ValueTask HandleAsync(DomainEventEnvelope<DungeonParticipantLeft> message, CancellationToken ct)
+    {
+        lock (gate)
+            if (states.GetValueOrDefault(message.Payload.CharacterId)?.RunId == message.Payload.RunId)
+                states.Remove(message.Payload.CharacterId);
+        return ValueTask.CompletedTask;
+    }
+
+    private sealed class Changes(TournamentDungeonDomainService owner) : ITransactionParticipant
+    {
+        private readonly Dictionary<CharacterId, TournamentDungeonState?> before = [];
+        private readonly Dictionary<CharacterId, TournamentDungeonState> after = [];
+        public bool CommitCanFail => false;
+        public void Put(TournamentDungeonState state)
+        {
+            lock (owner.gate) before.TryAdd(state.CharacterId, owner.states.GetValueOrDefault(state.CharacterId));
+            after[state.CharacterId] = state;
+        }
+        public ValueTask PrepareAsync(CancellationToken ct)
+        {
+            lock (owner.gate)
+                if (before.Any(x => owner.states.GetValueOrDefault(x.Key) != x.Value))
+                    throw new InvalidOperationException("Tournament state changed before commit.");
+            return ValueTask.CompletedTask;
+        }
+        public ValueTask CommitAsync(CancellationToken ct)
+        {
+            lock (owner.gate)
+                foreach (var (character, state) in after)
+                {
+                    owner.states[character] = state;
+                    if (state.IsFinished && owner.dungeonRuns.Find(character) is { ClearOpen: false } run && run.RunId == state.RunId)
+                        owner.dungeonRuns.TryOpenClear(character, state.RunId, run.RoomVersion);
+                }
+            return ValueTask.CompletedTask;
+        }
+        public ValueTask RollbackAsync(CancellationToken ct) => ValueTask.CompletedTask;
+    }
+}

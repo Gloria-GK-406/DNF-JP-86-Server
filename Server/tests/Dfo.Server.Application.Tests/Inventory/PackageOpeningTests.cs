@@ -389,6 +389,7 @@ public sealed class PackageOpeningTests
         await opening.Host.Seed(80, 1000, 1); await opening.Host.Seed(120, 2000, 1);
         var error = await Assert.ThrowsAsync<OpeningRejectedException>(() => opening.Box(1));
         Assert.Equal(OpeningRejection.NoRoom, error.Reason); Assert.Equal(1, opening.Host.Count(1000)); Assert.Equal(1, opening.Host.Count(2000));
+        Assert.Equal(0, opening.Host.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
     }
 
     [Fact]

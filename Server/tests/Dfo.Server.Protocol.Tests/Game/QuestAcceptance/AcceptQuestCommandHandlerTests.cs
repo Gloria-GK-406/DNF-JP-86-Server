@@ -115,19 +115,15 @@ public sealed class AcceptQuestCommandHandlerTests
     /// the use case that staged it.
     /// </remarks>
     [Fact]
-    public async Task AQuestWhoseItemsCannotBePlacedIsHandedBackAndLeavesNoRow()
+    public async Task Unknown_quest_reward_aborts_acceptance_and_leaves_no_row()
     {
         await using var fixture = await Fixture.CreateAsync(placementIsKnown: false);
         var handler = fixture.Handler(Quest(QuestId, items: [new QuestEventItem(8474, 1)]));
 
         await using var boundary = fixture.Scope.Begin();
-        var outcome = await handler.HandleAsync(
-            Transactional, new AcceptQuestCommand(Account, Character, QuestId),
-            CancellationToken.None);
-        await boundary.CommitAsync(CancellationToken.None);
-
-        Assert.Equal(
-            QuestAcceptOutcome.Refuse(QuestId, QuestAcceptRefusal.NoRoomForItems), outcome);
+        await Assert.ThrowsAsync<InvalidDataException>(async () => await handler.HandleAsync(
+            Transactional, new AcceptQuestCommand(Account, Character, QuestId), CancellationToken.None));
+        await boundary.DisposeAsync();
         Assert.Empty(await fixture.ReadQuestsAsync());
         Assert.Empty(await fixture.ReadItemsAsync());
     }
@@ -234,10 +230,10 @@ public sealed class AcceptQuestCommandHandlerTests
                     new SqliteQuestDomainStore(this.Path), new AmbientStoreAccess(this.Scope)),
                 containers,
                 this.Progress,
-                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(
+                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(
                     new ItemPlacementRuleService(new Placements(this.PlacementIsKnown), new NoWearables()),
                     new ItemLifecycleDomainService(new SqliteItemDomainStore(this.Path), this.Scope,
-                        new ItemPlacementRuleService(new Placements(this.PlacementIsKnown), new NoWearables()))));
+                        new ItemPlacementRuleService(new Placements(this.PlacementIsKnown), new NoWearables()))), containers));
         }
 
         public async Task<List<(int Slot, int QuestId, int TriggerValue)>> ReadQuestsAsync()

@@ -15,9 +15,11 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
     IQuestRewardRuleService rewards, IExperienceRuleService experience, ICarriedGoldRuleService gold,
     IItemPlacementRuleService placements, IAccountMaterialRuleService accounts,
     ICharacterStatRuleService stats, ICharacterSkillRuleService skills, ICreatureDefinitionSource creatures,
-    IAchievementRuleService achievements, ITitleBookRuleService titleBook)
+    IAchievementRuleService achievements, ITitleBookRuleService titleBook, IQuestStateRuleService? stateRules = null)
     : IQuestCompletionEffectRuleService
 {
+    private readonly IQuestStateRuleService stateRules = stateRules ?? new QuestStateRuleService(quests);
+
     public ValueTask<QuestDefinition?> DefinitionAsync(int id, CancellationToken ct) => quests.FindAsync(id, ct);
     public QuestRewardResolution Rewards(QuestDefinition definition, QuestCompletionFacts facts, ushort selection, ushort count)
     {
@@ -47,41 +49,35 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
     }
 
     public async ValueTask<ImmutableArray<CarriedQuest>> EffectiveAsync(QuestStateFacts state,
-        IEnumerable<ItemSnapshot> main, int carriedGold, CancellationToken ct)
+        IEnumerable<ItemSnapshot> main, int carriedGold, CancellationToken ct, IEnumerable<ItemSnapshot>? sharedMaterials = null)
     {
-        var counts = main.Where(x => x.ItemId > 0 && !accounts.TryGetByItemId(x.ItemId, out _))
-            .GroupBy(x => x.ItemId).ToDictionary(x => x.Key, x => x.Sum(y => (long)y.Count));
-        counts[0] = carriedGold;
-        var result = ImmutableArray.CreateBuilder<CarriedQuest>();
-        foreach (var row in state.Carried.OrderBy(x => x.Slot))
-        {
-            var definition = await quests.FindAsync(row.QuestId, ct).ConfigureAwait(false);
-            var trigger = row.TriggerValue;
-            if (definition?.SeekingItems is { Count: > 0 } requirements)
-            {
-                var missing = requirements.Sum(x => Math.Max(0, x.RequiredCount - counts.GetValueOrDefault(x.ItemId)));
-                trigger = unchecked((int)new QuestTrigger(unchecked((uint)trigger)).ReplaceChannel(0, missing).PackedValue);
-            }
-            result.Add(new(row.Slot, row.QuestId, trigger));
-        }
-        return result.ToImmutable();
+        var evaluated = await stateRules.EvaluateAsync(
+            state.Carried.Select(x => new CarriedQuest(x.Slot, x.QuestId, x.TriggerValue)).ToArray(),
+            state.Cleared.Select(x => new ClearedQuest(x.QuestId, x.Mark)).ToArray(),
+            stateRules.Holdings(main, sharedMaterials ?? [], carriedGold), ct).ConfigureAwait(false);
+        return evaluated.Select(x => x.Quest).ToImmutableArray();
     }
 
     public async ValueTask<ImmutableArray<DomainEffect>> RewardsAsync(QuestCompletionRewardPlan reward,
         QuestCompletionFacts facts, CancellationToken ct)
     {
         var effects = ImmutableArray.CreateBuilder<DomainEffect>();
+        var goldCost = checked((reward.ConsumedItems ?? []).Where(x => x.ItemId == 0).Sum(x => x.RequiredCount));
+        if (goldCost < 0 || goldCost > facts.Gold.Carried) throw new InventoryEffectException(InventoryEffectRejection.InsufficientAssets);
+        if (goldCost > 0) effects.Add(new SpendGoldEffect(goldCost));
         foreach (var requirement in (reward.ConsumedItems ?? []).GroupBy(x => x.ItemId))
         {
+            if (requirement.Key == 0) continue;
             var remaining = checked(requirement.Sum(x => x.RequiredCount));
             if (requirement.Key <= 0 || remaining <= 0) throw new InventoryEffectException(InventoryEffectRejection.UnsupportedItem);
-            foreach (var item in facts.Main.Where(x => x.ItemId == requirement.Key && x.IsPile && x.Snapshot.EquipmentLockId == 0)
+            var isShared = accounts.TryGetByItemId(requirement.Key, out _);
+            foreach (var item in (isShared ? facts.SharedMaterials : facts.Main).Where(x => x.ItemId == requirement.Key && x.IsPile && x.Snapshot.EquipmentLockId == 0)
                          .OrderBy(x => x.StorageSlotIndex))
             {
                 var take = Math.Min(remaining, item.Count);
                 if (take <= 0) continue;
-                var slot = item.BusinessSlot ?? new InventorySlotMappingRuleService().ToBusinessSlot(
-                    new GameSlot(InventoryContainerType.Main, item.StorageSlotIndex));
+                var slot = item.BusinessSlot ?? (isShared ? new BusinessSlot(BusinessInventorySpace.SharedMaterial, item.StorageSlotIndex)
+                    : new InventorySlotMappingRuleService().ToBusinessSlot(new GameSlot(InventoryContainerType.Main, item.StorageSlotIndex)));
                 effects.Add(new ConsumeFromContainerEffect(slot, item.ItemId, take));
                 remaining -= take;
                 if (remaining == 0) break;
@@ -102,9 +98,10 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
         if (reward.Gold > 0)
         {
             var ceiling = gold.CarryLimitFor(facts.Gold.Level, facts.Gold.StoredCarryLimit);
-            var after = checked((int)Math.Max(0, Math.Min(ceiling, (long)facts.Gold.Carried + reward.Gold)));
-            if (after < facts.Gold.Carried) throw new InventoryEffectException(InventoryEffectRejection.InvalidTarget);
-            effects.Add(new SetQuestRewardGoldEffect(facts.Gold.Carried, after));
+            var beforeReward = facts.Gold.Carried - goldCost;
+            var after = checked((int)Math.Max(0, Math.Min(ceiling, (long)beforeReward + reward.Gold)));
+            if (after < beforeReward) throw new InventoryEffectException(InventoryEffectRejection.InvalidTarget);
+            effects.Add(new SetQuestRewardGoldEffect(beforeReward, after));
         }
         return effects.ToImmutable();
     }
@@ -146,23 +143,19 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
                 }
             }
         }
-        var remaining = facts.Quests with { Carried = [.. facts.Quests.Carried.Where(x => x.Slot != target.Slot)] };
-        var projected = await EffectiveAsync(remaining, after.Main.Values, after.Gold, ct).ConfigureAwait(false);
-        var cleared = facts.Quests.Cleared.Where(x => x.Mark != 0).Select(x => x.QuestId).Append((int)questId).ToHashSet();
-        var final = ImmutableArray.CreateBuilder<CarriedQuest>();
+        var remaining = facts.Quests with
+        {
+            Carried = [.. facts.Quests.Carried.Where(x => x.Slot != target.Slot)],
+            Cleared = [.. facts.Quests.Cleared.Where(x => x.QuestId != questId), new(questId, IQuestLog.ClearedMark)],
+        };
+        var projected = await EffectiveAsync(remaining, after.Main.Values, after.Gold, ct, after.SharedMaterials.Values).ConfigureAwait(false);
         foreach (var row in projected)
         {
-            var definition = await quests.FindAsync(row.QuestId, ct).ConfigureAwait(false);
-            var next = row;
-            if (definition?.ClearedQuestRequirements is { Count: > 0 } required && required.Contains(questId))
-                next = row with { TriggerValue = unchecked((int)new QuestTrigger(unchecked((uint)row.TriggerValue))
-                    .ReplaceChannel(0, required.Count(x => !cleared.Contains(x))).PackedValue) };
             var old = remaining.Carried.Single(x => x.Slot == row.Slot);
-            if (old.TriggerValue != next.TriggerValue) effects.Add(new SetCarriedQuestEffect(old, old with { TriggerValue = next.TriggerValue }));
-            final.Add(next);
+            if (old.TriggerValue != row.TriggerValue) effects.Add(new SetCarriedQuestEffect(old, old with { TriggerValue = row.TriggerValue }));
         }
         var changed = effects.Any(x => x is SetCarriedQuestEffect { Value: not null });
         return new(questId, effects.ToImmutable(), xp.Award,
-            changed ? new QuestProgressSnapshot(final.ToImmutable()) : null, reward.GrowType);
+            changed ? new QuestProgressSnapshot(projected) : null, reward.GrowType);
     }
 }

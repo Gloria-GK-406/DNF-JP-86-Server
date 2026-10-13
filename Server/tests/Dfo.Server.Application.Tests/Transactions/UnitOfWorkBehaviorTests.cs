@@ -135,6 +135,16 @@ public sealed class UnitOfWorkBehaviorTests
             "the command must execute inside the transaction");
     }
 
+    [Fact]
+    public async Task Business_refusal_returns_normally_but_rolls_back_every_participant()
+    {
+        var probe = new ParticipantProbe { RefuseWithoutThrowing = true };
+        await using var provider = BuildProvider(probe, CommandExecutionKind.Transactional);
+        Assert.NotNull(await provider.GetRequiredService<ICommandBus>().SendAsync(new TestCommand(), default));
+        Assert.All(probe.Participants, p => { Assert.True(p.RolledBack); Assert.False(p.Applied); });
+        Assert.Null(provider.GetRequiredService<IDomainTransactionAccessor>().Current);
+    }
+
     private static ServiceProvider BuildProvider(
         ParticipantProbe probe,
         CommandExecutionKind executionKind)
@@ -164,6 +174,8 @@ public sealed class UnitOfWorkBehaviorTests
 
         public Exception? HandlerFailure { get; init; }
         public Exception? RollbackFailure { get; init; }
+
+        public bool RefuseWithoutThrowing { get; init; }
 
         public bool SawAmbientTransaction { get; set; }
     }
@@ -199,6 +211,7 @@ public sealed class UnitOfWorkBehaviorTests
 
             probe.Participants[0].RollbackFailure = probe.RollbackFailure;
 
+            if (probe.RefuseWithoutThrowing) transaction.RequireRollback();
             return probe.HandlerFailure is null
                 ? ValueTask.FromResult(new TestResult())
                 : throw probe.HandlerFailure;

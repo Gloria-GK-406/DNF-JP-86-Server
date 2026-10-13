@@ -17,7 +17,8 @@ public sealed record BusinessPackageOpeningInput(BusinessSlot SourceSlot, Immuta
 public sealed record BusinessAvatarPackageOpeningInput(BusinessSlot SourceSlot, ImmutableArray<AvatarPackageChoice> Choices);
 public enum OpeningRejection { None, NoSession, InvalidRequest, WrongItem, MissingMaterial, UnsupportedContent, InvalidChoice, NoRoom, StateChanged, StorageFailure, ItemUnusable, PremiumUnavailable }
 public sealed record OpeningReward(int ItemId, int Count, byte Ability = 0, int PeriodDays = 0);
-public sealed record OpeningRewardDisplay(BusinessSlot? Slot, int ItemId, int Count, ushort Durability, byte Ability, int Expiration);
+public sealed record OpeningRewardDisplay(BusinessSlot? Slot, int ItemId, int Count, ushort Durability, byte Ability, int Expiration,
+    ItemSnapshot? Snapshot = null);
 public sealed record OpeningInventoryUpdate(BusinessSlot Slot, ItemIdentity? Identity, ItemSnapshot Core);
 public sealed record OpeningInventoryReceipt(SelectedSessionIdentity Session,
     ImmutableArray<OpeningInventoryUpdate> Updates, ImmutableArray<BusinessSlot> Cleared,

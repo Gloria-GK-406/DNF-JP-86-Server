@@ -16,11 +16,30 @@ internal sealed class SelectedSessionExecutionBehavior<TResult>(SelectedSessionT
         var recipient = safety.Capture(session);
         if (command is IAccountCommand owner && owner.AccountId != session.AccountId)
             throw new InvalidOperationException("Command account differs from its selected session.");
-        await using var lease = await lifecycle.BorrowOrAcquireSharedAsync(session.AccountId, ct).ConfigureAwait(false);
-        safety.DemandCurrent(recipient);
-        operations.DemandRecipient(context, command, safety);
-        using var selected = scope.Enter(recipient);
-        return await next().ConfigureAwait(false);
+        var targets = command is IMultiSelectedSessionCommand multi ? multi.Sessions : [session];
+        if (!targets.Contains(session) || targets.Count == 0)
+            throw new InvalidOperationException("The reporting session must belong to the frozen participant set.");
+        var leases = new List<IAsyncDisposable>();
+        try
+        {
+            foreach (var account in targets.Select(x => x.AccountId).Distinct().OrderBy(x => x.Value))
+                leases.Add(await lifecycle.BorrowOrAcquireSharedAsync(account, ct).ConfigureAwait(false));
+            foreach (var target in targets) safety.DemandCurrent(target);
+            safety.DemandCurrent(recipient);
+            operations.DemandRecipient(context, command, safety);
+            using var selected = scope.Enter(recipient);
+            return await next().ConfigureAwait(false);
+        }
+        catch (Exception error) when (Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error))
+        {
+            foreach (var target in targets)
+                await safety.BlockAsync(new(target, null), error, context.CommandType.Name).ConfigureAwait(false);
+            throw;
+        }
+        finally
+        {
+            for (var i = leases.Count - 1; i >= 0; i--) await leases[i].DisposeAsync().ConfigureAwait(false);
+        }
     }
 }
 

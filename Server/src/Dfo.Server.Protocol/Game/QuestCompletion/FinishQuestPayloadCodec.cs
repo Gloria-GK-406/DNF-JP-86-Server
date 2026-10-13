@@ -9,8 +9,9 @@ namespace Dfo.Server.Protocol.Game.QuestCompletion;
 /// <remarks>
 /// Request: <c>{u16 echoed type, u16 questId, u16 rewardSelection, u16 completionCount,
 /// u16 sentinel}</c>, the sentinel being 0xFFFF. Answer: <c>{0x00, u8 reason}</c> when refused and
-/// <c>{0x01, u16 questId, u8 objectiveKind, u32 experience, u32 reserved, u8 consumedCount,
-/// u8 itemCount, itemCount x 19 B}</c> when finished.
+/// <c>{0x01, u16 questId, u8 objectiveKind, u32 experience, u32 reserved,
+/// [u8 consumedCount, consumedCount x 7 B], u8 chain(0), u8 itemCount, itemCount x 19 B}</c>
+/// for ordinary rewards. The consumption prefix is present only for objective kinds 0/0x19.
 ///
 /// <b>Both directions are pinned to a capture taken on 2026-08-27</b>, of the reference server
 /// answering the real client finishing quest 1016:
@@ -20,7 +21,10 @@ namespace Dfo.Server.Protocol.Game.QuestCompletion;
 /// </code>
 /// See protocol/game/client-to-server/0x0022.md.
 ///
-/// Ordinary completion retains its captured A21 shape. Career completion uses the reference
+/// The met-NPC capture has chain=0 at offset 12, not a universal consumption count.
+/// A21 reader RVA 0x00D40B23..0x00D40C87 reads the conditional prefix, then chain independently;
+/// RVA 0x00D4181A opens a special window for chain=3. Material quests must not put reward count there.
+/// Career completion uses the reference
 /// server's chain-1 shape; this branch is not yet ClientVerified.
 /// </remarks>
 internal static class FinishQuestPayloadCodec
@@ -98,7 +102,9 @@ internal static class FinishQuestPayloadCodec
                 $"FINISH_QUEST hands over '{message.Items.Count}' items; the count is one byte.");
         }
 
-        var payload = new byte[14 + (message.Items.Count * ItemEntryLength)];
+        var hasConsumptionPrefix = message.ObjectiveKind is 0x00 or 0x19;
+        var headerLength = hasConsumptionPrefix ? 15 : 14;
+        var payload = new byte[headerLength + (message.Items.Count * ItemEntryLength)];
         payload[0] = 0x01;
         BinaryPrimitives.WriteUInt16LittleEndian(payload.AsSpan(1), message.QuestId);
         payload[3] = message.ObjectiveKind;
@@ -106,12 +112,14 @@ internal static class FinishQuestPayloadCodec
         // Reserved, and observed zero in every captured answer. The reference server has a field
         // here it fills only on a branch this codec does not write.
         BinaryPrimitives.WriteUInt32LittleEndian(payload.AsSpan(8), 0);
-        // Nothing was taken back. A quest that consumes what it asked the player to collect fills
-        // this, and none that this server can finish does.
-        payload[12] = 0;
-        payload[13] = (byte)message.Items.Count;
+        var at = 12;
+        // Consumption is sent as authoritative inventory deltas after this ACK. Seeking/0x19
+        // still require an empty consumption prefix; other objectives read chain immediately.
+        if (hasConsumptionPrefix)
+            payload[at++] = 0;
+        payload[at++] = 0; // Ordinary item reward chain; independent of objective and item count.
+        payload[at++] = (byte)message.Items.Count;
 
-        var at = 14;
         foreach (var item in message.Items)
         {
             var entry = payload.AsSpan(at, ItemEntryLength);

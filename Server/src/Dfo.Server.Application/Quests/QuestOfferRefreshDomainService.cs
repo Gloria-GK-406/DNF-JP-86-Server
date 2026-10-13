@@ -28,8 +28,25 @@ namespace Dfo.Server.Application.Quests;
 /// </remarks>
 internal sealed class QuestOfferRefreshDomainService(
     IWorldContentEntryRuleService worldContent,
-    ICharacterQuestLogDomainService logs, ICharacterDomainService characters) : IQuestOfferRefreshDomainService
+    ICharacterQuestLogDomainService logs, ICharacterDomainService characters,
+    Dfo.Server.Abstractions.Creatures.ICreatureDomainService? creatures = null, IQuestQueryDomainService? query = null) : IQuestOfferRefreshDomainService
 {
+    public async ValueTask<AvailableQuestEntryState> ReadAvailableAsync(
+        AccountId accountId, CharacterId characterId, int level, CancellationToken ct)
+    {
+        if (query is not null) return await query.ReadAvailableAsync(accountId, characterId, ct).ConfigureAwait(false);
+        var identity = await characters.Get(characterId).IdentityAsync(ct).ConfigureAwait(false)
+            ?? throw new InvalidDataException("Character identity is unavailable while refreshing quest offers.");
+        var log = logs.LogOf(accountId, characterId);
+        var carried = await log.CarriedAsync(ct).ConfigureAwait(false);
+        var cleared = await log.ClearedAsync(ct).ConfigureAwait(false);
+        var creature = creatures is null ? null : await creatures.GetStore(characterId).CurrentAsync(ct).ConfigureAwait(false);
+        var subject = new WorldContentSubject(level, identity.Job, identity.GrowType,
+            cleared.ToDictionary(x => x.QuestId, x => (int)x.Mark), [.. carried.Select(x => x.QuestId)], [], [],
+            creature?.ItemTemplateId ?? 0, creature?.Level ?? 0);
+        return await worldContent.ReadOffersAsync(subject, ct).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// The session with its offer list, and the inputs behind it, brought up to date.
     /// </summary>

@@ -410,7 +410,7 @@ public sealed class EquipmentReinforcementDomainTests
     }
 
     [Fact]
-    public async Task No_space_for_destroy_bonus_refuses_before_any_asset_change()
+    public async Task No_space_for_destroy_bonus_mails_destroy_rewards()
     {
         using var shop = Fixture(100_000, penaltyType: 3, targetLevel: 12);
         await shop.SeedCore(9, Piece(11));
@@ -421,11 +421,12 @@ public sealed class EquipmentReinforcementDomainTests
 
         var result = await Reinforce(shop);
 
-        Assert.Equal(EquipmentReinforcementRejection.NoRoom, result.Rejection);
-        Assert.Equal((byte)11, (await Target(shop))!.ReinforcementLevel);
-        Assert.Equal(0, shop.Count(3243));
-        Assert.Equal(20, shop.Count(1000));
-        Assert.Equal(100_000, shop.Gold);
+        Assert.Equal(EquipmentReinforcementOutcome.Destroyed, result.Receipt!.Outcome);
+        Assert.Null(await Target(shop));
+        Assert.True(shop.Scalar("SELECT COUNT(*) FROM mailbox_attachments WHERE claimed_flag=0") > 0);
+        Assert.Equal(1, shop.SharedCount(3037, 1));
+        Assert.Equal(10, shop.Count(1000));
+        Assert.Equal(99_900, shop.Gold);
     }
 
     [Fact]
@@ -773,7 +774,7 @@ public sealed class EquipmentReinforcementDomainTests
     }
 
     [Fact]
-    public async Task Distinct_rewards_compete_for_the_last_slot_and_refuse_the_whole_operation()
+    public async Task Distinct_rewards_compete_for_the_last_slot_and_mail_the_overflow()
     {
         using var shop = Fixture(100_000, penaltyType: 3, targetLevel: 12);
         await shop.SeedCore(9, Piece(11));
@@ -782,35 +783,31 @@ public sealed class EquipmentReinforcementDomainTests
         await shop.Seed(65, 4001, 1);
         await shop.Seed(66, 4001, 1);
         var result = await Reinforce(shop);
-        Assert.Equal(EquipmentReinforcementRejection.NoRoom, result.Rejection);
-        Assert.Equal((byte)11, (await Target(shop))!.ReinforcementLevel);
-        Assert.Equal(0, shop.Count(3166));
-        Assert.Equal(0, shop.Count(3243));
-        Assert.Equal(0, shop.SharedCount(3037, 1));
-        Assert.Equal(20, shop.Count(1000));
-        Assert.Equal(100_000, shop.Gold);
+        Assert.Equal(EquipmentReinforcementOutcome.Destroyed, result.Receipt!.Outcome);
+        Assert.Null(await Target(shop));
+        Assert.True(shop.Scalar("SELECT COUNT(*) FROM mailbox_attachments WHERE claimed_flag=0") > 0);
+        Assert.Equal(1, shop.SharedCount(3037, 1));
+        Assert.Equal(10, shop.Count(1000));
+        Assert.Equal(99_900, shop.Gold);
     }
 
     [Theory]
     [InlineData(20, false, 43)]
     [InlineData(2147483624, false, 2147483647)]
-    [InlineData(2147483625, true, 2147483625)]
-    public async Task Virtual_reward_capacity_uses_the_balance_after_material_debit(
-        int initial, bool rejected, int expected)
+    [InlineData(2147483625, true, 2147483647)]
+    public async Task Shared_material_capacity_uses_post_debit_balance_and_mails_overflow(
+        int initial, bool mailed, int expected)
     {
         using var shop = Fixture(100_000, penaltyType: 3, targetLevel: 12, materialId: 3037, white: true);
         await shop.SeedCore(9, Piece(11));
         await SeedClearCubes(shop, initial);
         var result = await Reinforce(shop, accountMaterialItemId: 3037);
-        Assert.Equal(rejected ? EquipmentReinforcementRejection.NoRoom : EquipmentReinforcementRejection.None, result.Rejection);
+        Assert.Equal(EquipmentReinforcementRejection.None, result.Rejection);
         Assert.Equal(expected, shop.SharedCount(3037, 1));
-        Assert.Equal(rejected ? 100_000 : 99_900, shop.Gold);
-        if (rejected) Assert.Equal((byte)11, (await Target(shop))!.ReinforcementLevel);
-        else
-        {
-            Assert.Null(await Target(shop));
-            Assert.Equal(expected, result.Receipt!.MaterialRemaining);
-        }
+        Assert.Equal(99_900, shop.Gold);
+        Assert.Null(await Target(shop));
+        Assert.Equal(expected, result.Receipt!.MaterialRemaining);
+        Assert.Equal(mailed ? 1 : 0, shop.Scalar("SELECT COALESCE(SUM(item_count),0) FROM mailbox_attachments WHERE claimed_flag=0"));
     }
 
     [Fact]
@@ -836,7 +833,7 @@ public sealed class EquipmentReinforcementDomainTests
         await shop.SeedCore(9, Piece(11));
         await shop.Seed(121, 1000, 20, 3);
         var uid = EquipmentUid(shop);
-        await Assert.ThrowsAsync<ContainerAdditionException>(() => Reinforce(shop).AsTask());
+        await Assert.ThrowsAsync<InvalidDataException>(() => Reinforce(shop).AsTask());
         Assert.Equal((byte)11, (await Target(shop))!.ReinforcementLevel);
         Assert.Equal(uid, EquipmentUid(shop));
         Assert.Equal(0, shop.SharedCount(3037, 1));

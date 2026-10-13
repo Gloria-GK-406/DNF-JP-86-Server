@@ -48,7 +48,7 @@ internal sealed partial class SqliteItemDomainStoreSession : IMailItemCustodySes
         if (row.Kind == "equipment")
         {
             if (records.Count != 1 || copies[0].ItemUid?.Value != row.Uid || row.Count != 1
-                || !copies[0].Type.HasFlag(ItemTraits.Equipment)
+                || copies[0].IsPile || (copies[0].Type & (ItemTraits.Equipment | ItemTraits.Avatar | ItemTraits.Creature)) == 0
                 || await PendingMailCountAsync(row.Uid, ct).ConfigureAwait(false) != 1)
                 throw MailError(MailFailure.NotOwned, "Equipment is not exclusively held by this attachment.");
             if (row.Core is null || !row.Core.AsSpan().SequenceEqual(InventoryItemCore.Encode(copies[0].ToCore())))
@@ -108,7 +108,8 @@ internal sealed partial class SqliteItemDomainStoreSession : IMailItemCustodySes
                 throw MailError(MailFailure.NotOwned, "Equipment is not exclusively in mail custody.");
             var snapshot = await ReadMailWorldAsync(row.Uid, ct).ConfigureAwait(false)
                 ?? throw MailError(MailFailure.NotOwned, "Equipment row is absent.");
-            if (snapshot.ItemId != row.ItemId || !snapshot.Type.HasFlag(ItemTraits.Equipment))
+            if (snapshot.ItemId != row.ItemId || snapshot.IsPile
+                || (snapshot.Type & (ItemTraits.Equipment | ItemTraits.Avatar | ItemTraits.Creature)) == 0)
                 throw MailError(MailFailure.InvalidItem, "Attachment does not identify supported equipment.");
             snapshots = [snapshot];
         }

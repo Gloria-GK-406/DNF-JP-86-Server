@@ -19,11 +19,16 @@ public sealed class DungeonRevivalTests
             .FindContainer(shop.Session.CharacterId, InventoryContainerType.Main)!
             .GetAsync(1, default))?.Snapshot.ToCore().Value ?? 0;
 
-    private static DungeonRunId EnterDead(ShopFixture shop)
+    private static DungeonRunId EnterDead(ShopFixture shop, bool tournament = false)
     {
         var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
         var layout = new DungeonLayout(144, 0, 1, 1, new(0, 0), new(0, 0), 61000, 1,
             new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)});
+        if (tournament) layout = layout with
+        {
+            Tournament = new(new TournamentDefinition(120, 17100, 69, 72, 2, 2, [], [], [], [], [], 16)
+                { CoinLimit = 1 }, [], [], 1),
+        };
         var run = runs.PreparePartyEntry([new(shop.Session.AccountId, shop.Session.CharacterId, 0, true)],
             layout, DungeonDifficulty.Normal).Run;
         runs.TryMarkParticipantReady(shop.Session.CharacterId, run.RunId, run.RoomVersion);
@@ -106,6 +111,77 @@ public sealed class DungeonRevivalTests
         Assert.False(result.Succeeded);
         Assert.Equal(foreignTarget ? 10 : 0, (await Coins(shop)));
         Assert.Equal([run], shop.Services.GetRequiredService<IDungeonRunDomainService>().FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
+    }
+
+    [Fact]
+    public async Task Tournament_revival_limit_refusal_keeps_coin_life_state_and_wipe_deadline()
+    {
+        var tournament = new TournamentRevival { Allowed = false };
+        using var shop = new ShopFixture(services => services.AddSingleton<ITournamentDungeonDomainService>(tournament));
+        await shop.Seed(1, 1, 10, 0);
+        var run = EnterDead(shop, tournament: true);
+        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
+            new UseRevivalCoinCommand(shop.OnlineUser, shop.Session, shop.Session.CharacterId, run));
+        Assert.False(result.Succeeded);
+        Assert.Equal(10, await Coins(shop));
+        Assert.Equal(0, tournament.Revivals);
+        Assert.Equal([run], shop.Services.GetRequiredService<IDungeonRunDomainService>().FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
+    }
+
+    [Fact]
+    public async Task Tournament_revival_counter_commits_with_coin_and_rolls_back_on_durable_failure()
+    {
+        var tournament = new TournamentRevival();
+        using var shop = new ShopFixture(services => services.AddSingleton<ITournamentDungeonDomainService>(provider =>
+        {
+            tournament.Transactions = provider.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>();
+            return tournament;
+        }));
+        await shop.Seed(1, 1, 10, 0);
+        var run = EnterDead(shop, tournament: true);
+        var bus = shop.Services.GetRequiredService<ICommandBus>();
+        var command = new UseRevivalCoinCommand(shop.OnlineUser, shop.Session, shop.Session.CharacterId, run);
+        shop.Sql("CREATE TRIGGER refuse_coin BEFORE UPDATE OF count ON item_slots BEGIN SELECT RAISE(ABORT,'coin failure'); END;");
+        await Assert.ThrowsAsync<SqliteException>(async () => await bus.SendAsync(command));
+        Assert.Equal(10, await Coins(shop));
+        Assert.Equal(0, tournament.Revivals);
+        Assert.Equal([run], shop.Services.GetRequiredService<IDungeonRunDomainService>().FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
+        shop.Sql("DROP TRIGGER refuse_coin;");
+        Assert.True((await bus.SendAsync(command)).Succeeded);
+        Assert.Equal(9, await Coins(shop));
+        Assert.Equal(1, tournament.Revivals);
+        Assert.False((await bus.SendAsync(command)).Succeeded);
+        Assert.Equal(9, await Coins(shop));
+    }
+
+    private sealed class TournamentRevival : ITournamentDungeonDomainService
+    {
+        public bool Allowed { get; init; } = true;
+        public int Revivals { get; private set; }
+        public Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor? Transactions { get; set; }
+        public bool CanRevive(Dfo.Server.Data.Characters.CharacterId characterId, DungeonRunId runId) => Allowed && Revivals == 0;
+        public bool StageRevival(Dfo.Server.Data.Characters.CharacterId characterId, DungeonRunId runId)
+        {
+            if (!CanRevive(characterId, runId)) return false;
+            Transactions!.Current!.Enlist(this, () => new Revival(this));
+            return true;
+        }
+        private sealed class Revival(TournamentRevival owner) : Dfo.Server.Abstractions.Transactions.ITransactionParticipant
+        {
+            public bool CommitCanFail => false;
+            public ValueTask PrepareAsync(CancellationToken ct) => ValueTask.CompletedTask;
+            public ValueTask CommitAsync(CancellationToken ct) { owner.Revivals++; return ValueTask.CompletedTask; }
+            public ValueTask RollbackAsync(CancellationToken ct) => ValueTask.CompletedTask;
+        }
+        public IReadOnlyList<TournamentDungeonState> PendingRewards(DateTimeOffset now) => [];
+        public bool BeginRewardSelection(SelectedSessionIdentity session, DungeonRunId runId) => false;
+        public bool Supports(int dungeonId) => dungeonId == 120;
+        public TournamentDungeonState? Find(Dfo.Server.Data.Characters.CharacterId characterId) => null;
+        public bool CanKill(DungeonRunState run, ushort actor) => throw new NotSupportedException();
+        public ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<TournamentActionResult?> AdvanceAsync(SelectedSessionIdentity session, DungeonRunId runId, ushort actor, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<TournamentActionResult?> EliminateAsync(SelectedSessionIdentity session, DungeonRunId runId, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<TournamentActionResult?> SelectRewardAsync(SelectedSessionIdentity session, DungeonRunId runId, byte row, byte index, CancellationToken ct) => throw new NotSupportedException();
     }
 }
 

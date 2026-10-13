@@ -15,6 +15,7 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
     {
         switch (key.Family)
         {
+            case UsageQuotaFamily.DespairTower:
             case UsageQuotaFamily.DimensionDungeon:
                 return (await database.ReadAllAsync("SELECT value FROM character_daily_counters WHERE character_id=@id AND counter_key=@key",
                     p => { p.AddWithValue("@id", character.Value); p.AddWithValue("@key", DimensionKey(key)); },
@@ -43,6 +44,7 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
         var (character, key, expected, value, owner) = write;
         switch (key.Family)
         {
+            case UsageQuotaFamily.DespairTower:
             case UsageQuotaFamily.DimensionDungeon:
                 return await database.ExecuteAsync("""
                     INSERT INTO character_daily_counters(character_id,counter_key,period,value,last_consumed_at)
@@ -80,7 +82,10 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
             default: throw new ArgumentOutOfRangeException(nameof(write));
         }
     }
-    private static string DimensionKey(UsageQuotaKey key) => key.Name == "entries"
+    private static string DimensionKey(UsageQuotaKey key) => key.Family == UsageQuotaFamily.DespairTower
+        ? key.Name is "entries" or "clears" ? "despair." + key.Name + ":" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : throw new InvalidDataException("Invalid despair quota key.")
+        : key.Name == "entries"
         ? "dimension.entries:" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : throw new InvalidDataException("Invalid dimension quota key.");
     private static int ItemId(UsageQuotaKey key) => int.TryParse(key.Name, NumberStyles.None, CultureInfo.InvariantCulture, out var id) && id > 0
         ? id : throw new InvalidDataException("Invalid consumable quota key.");

@@ -64,7 +64,8 @@ internal sealed class RecipeCraftDomainService(IOpeningInventoryDomainService in
             || g.Item.Placement.WorldClass is ItemWorldClass.Avatar or ItemWorldClass.Creature
             || g.Item.Placement.Destination.Space == BusinessInventorySpace.VirtualResource))
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Unsupported crafting output family.");
-        var effects = plans.Build(source.ItemId, useRule, costs.Items, grants, [], now);
+        var effects = plans.Build(source.ItemId, useRule, costs.Items, grants, [], now)
+            .Select(x => x is GrantPreparedItemEffect g ? g with { DeliveryMode = ItemDeliveryMode.InventoryOnly } : x).ToArray();
         var applied = await inventory.ApplyAsync(session, effects, now, ct).ConfigureAwait(false);
         var receipt = applied.Inventory;
         if (costs.Items.Length > byte.MaxValue || receipt.Rewards.Length > byte.MaxValue)

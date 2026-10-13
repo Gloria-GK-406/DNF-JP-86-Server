@@ -18,6 +18,12 @@ internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTra
 {
     private readonly Dictionary<object, Func<CancellationToken, ValueTask>> afterCommit = [];
     public bool IsReadOnly => readOnly;
+    public bool IsRollbackOnly { get; private set; }
+    public void RequireRollback()
+    {
+        if (settled) throw new InvalidOperationException("The transaction is already settled.");
+        IsRollbackOnly = true;
+    }
 
     public void RegisterAfterCommit(object key, Func<CancellationToken, ValueTask> callback)
     {
@@ -83,6 +89,11 @@ internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTra
             throw new InvalidOperationException("The transaction has already been settled.");
         }
 
+        if (IsRollbackOnly)
+        {
+            await AbortAsync(cause: null).ConfigureAwait(false);
+            return;
+        }
         this.settled = true;
 
         try

@@ -70,6 +70,10 @@ public sealed record DungeonMoveAttempt(DungeonRoomVisit? Visit, DungeonMoveFail
 /// </remarks>
 public interface IDungeonVisitDomainService
 {
+    ValueTask<DungeonEntryAttempt> EnterGrantedPartyAsync(IReadOnlyList<DungeonRunParticipant> participants,
+        DungeonLayout layout, DungeonEntryFacts facts, IDungeonAdmissionReceipt receipt, CancellationToken ct) =>
+        throw new NotSupportedException("This visit service cannot start a paid entry.");
+
     ValueTask<DungeonEntryAttempt> TryEnterPreparedPartyAsync(
         IReadOnlyList<DungeonRunParticipant> participants, DungeonLayout layout,
         DungeonEntryFacts facts, CancellationToken cancellationToken) =>

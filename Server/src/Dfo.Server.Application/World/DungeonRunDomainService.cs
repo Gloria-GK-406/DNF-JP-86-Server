@@ -695,6 +695,21 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
+    public bool IsActorDeathClaimCurrent(DungeonActorDeathClaim claim)
+    {
+        lock (gate) return deathClaims.GetValueOrDefault(new DeathClaimKey(claim.RunId, claim.Actor)) == claim.Token
+            && runsById.TryGetValue(claim.RunId, out var run) && run.IsActiveMember(claim.CharacterId)
+            && run.RoomVersion == claim.Run.RoomVersion && run.CurrentCell == claim.Actor.Cell;
+    }
+
+    public bool IsParticipantKillEffectClaimCurrent(DungeonParticipantKillEffectClaim claim)
+    {
+        lock (gate) return IsActorDeathClaimCurrent(claim.Death)
+            && participantEffectClaims.GetValueOrDefault(new ParticipantEffectClaimKey(claim.Death.RunId,
+                new ParticipantEffectKey(claim.Death.Actor, claim.CharacterId))) == claim.Token
+            && runsById.TryGetValue(claim.Death.RunId, out var run) && run.IsActiveMember(claim.CharacterId);
+    }
+
     public DungeonActorDeathClaim? TryClaimActorDeath(
         CharacterId characterId,
         ushort actorSequence)
@@ -729,6 +744,26 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     public DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim) =>
         this.CommitActorDeathChange(claim)?.Run;
 
+    public bool WillClearMap(DungeonActorDeathClaim claim)
+    {
+        lock (this.gate)
+        {
+            if (!this.IsActorDeathClaimCurrent(claim)) return false;
+            var aggregate = this.runsById[claim.RunId];
+            var cell = aggregate.Cells[claim.Actor.Cell];
+            if (cell.IsCleared) return false;
+            var suppressed = this.SuppressedAfterDeath(aggregate, cell, claim);
+            return cell.WillClearAfterDeath(claim.Actor.Sequence, suppressed);
+        }
+    }
+
+    private IReadOnlyList<ushort> SuppressedAfterDeath(DungeonRunAggregate aggregate, DungeonCellAggregate cell, DungeonActorDeathClaim claim) =>
+        cell.FindActor(claim.Actor.Sequence) is { BlocksClear: true, Actor.IsBoss: true }
+        && aggregate.Layout.KindOf(claim.Actor.Cell) == DungeonRoomKind.Boss
+        && !cell.HasLivingBossExcept(claim.Actor.Sequence)
+            ? cell.SuppressibleEnemies(sequence => !this.deathClaims.ContainsKey(new DeathClaimKey(
+                claim.RunId, new RoomActorId(claim.Actor.Cell, sequence)))) : [];
+
     public DungeonActorDeathChange? CommitActorDeathChange(DungeonActorDeathClaim claim)
     {
         ArgumentNullException.ThrowIfNull(claim);
@@ -744,6 +779,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
             var cell = aggregate.Cells[claim.Actor.Cell];
             var killedActor = cell.FindActor(claim.Actor.Sequence);
+            var autoKilled = this.SuppressedAfterDeath(aggregate, cell, claim);
             var added = cell.CommitActorDeath(
                 claim.Actor.Sequence,
                 rolled => rolled.OwnerCharacterId is not { } owner
@@ -758,13 +794,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                     aggregate.Layout.LevelOf(killedActor.Actor.Level),
                     (MonsterRank)killedActor.Actor.ActorType));
             }
-            var autoKilled = killedActor is { BlocksClear: true, Actor.IsBoss: true }
-                && aggregate.Layout.KindOf(claim.Actor.Cell) == DungeonRoomKind.Boss
-                && !cell.HasLivingBoss
-                    ? cell.SuppressRemainingEnemies(sequence =>
-                        !this.deathClaims.ContainsKey(new DeathClaimKey(
-                            claim.RunId, new RoomActorId(claim.Actor.Cell, sequence))))
-                    : [];
+            cell.SuppressEnemies(autoKilled);
             if (cell.IsCleared)
                 cell.Mechanisms = cell.Mechanisms.Select(state => this.mechanismRules.Complete(state,
                     claim.OccurredAt ?? this.clock.GetUtcNow())).ToArray();
@@ -1811,6 +1841,11 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         public long Revision { get; set; }
         public bool ClearOpen { get; set; }
         public bool IsCleared => this.actors.Values.Where(x => x.BlocksClear).All(x => x.IsDead);
+        public bool WillClearAfterDeath(ushort sequence, IReadOnlyList<ushort> suppressed) =>
+            this.actors.Values.All(actor => !actor.BlocksClear || actor.IsDead
+                || actor.Sequence == sequence || suppressed.Contains(actor.Sequence));
+        public bool HasLivingBossExcept(ushort sequence) => this.actors.Values.Any(actor =>
+            actor.Sequence != sequence && actor.BlocksClear && actor.Actor.IsBoss && !actor.IsDead);
 
         public DungeonCellObjectState ObjectAt(int index) => this.objects[index];
 
@@ -1872,22 +1907,19 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             return added;
         }
 
-        public bool HasLivingBoss => this.actors.Values.Any(actor =>
-            actor.BlocksClear && actor.Actor.IsBoss && !actor.IsDead);
-
         // Part of the final boss death change: no separate ground roll, reward, or revision.
-        public IReadOnlyList<ushort> SuppressRemainingEnemies(Func<ushort, bool> canSuppress)
-        {
-            var sequences = this.actors.Values
+        public IReadOnlyList<ushort> SuppressibleEnemies(Func<ushort, bool> canSuppress) => this.actors.Values
                 .Where(actor => actor.BlocksClear && !actor.Actor.IsBoss
                     && actor.Actor.Declaration?.Source != DungeonActorSpawnSource.SpecialPassiveObject
                     && !actor.IsDead && canSuppress(actor.Sequence))
                 .OrderBy(actor => actor.Sequence)
                 .Select(actor => actor.Sequence)
                 .ToArray();
+
+        public void SuppressEnemies(IReadOnlyList<ushort> sequences)
+        {
             foreach (var sequence in sequences)
                 this.actors[sequence] = this.actors[sequence] with { IsDead = true, PendingLoot = [] };
-            return sequences;
         }
 
         public IReadOnlyList<DungeonGroundItem> AppendGroundItems(

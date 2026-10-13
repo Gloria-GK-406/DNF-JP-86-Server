@@ -52,7 +52,7 @@ public sealed class CycleQuestFlowTests
     }
 
     [Fact]
-    public async Task Full_reward_space_preserves_the_cycle_quest_and_its_material()
+    public async Task Full_reward_space_finishes_the_cycle_and_mails_rewards()
     {
         using var fixture = Fixture();
         var commands = fixture.Services.GetRequiredService<ICommandBus>();
@@ -62,10 +62,11 @@ public sealed class CycleQuestFlowTests
         await fixture.Seed(121, 1000, 1, 3);
         foreach (var slot in new[] { 3, 4, 5, 6, 7, 8, 65, 66 }) await fixture.Seed(slot, 5000, 10);
         var result = await commands.SendAsync(new FinishQuestCommand(new(1), new(1), 2001, ushort.MaxValue, 1, 0));
-        Assert.False(result.Finished);
-        Assert.Equal(1, fixture.Count(1000));
+        Assert.True(result.Finished);
+        Assert.Equal(0, fixture.Count(1000));
         Assert.Equal(80, fixture.Count(5000));
-        Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests"));
+        Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests"));
+        Assert.True(fixture.Scalar("SELECT SUM(item_count) FROM mailbox_attachments WHERE claimed_flag=0") > 0);
     }
 
     [Fact]

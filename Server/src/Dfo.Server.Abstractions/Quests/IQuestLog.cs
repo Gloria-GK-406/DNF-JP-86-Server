@@ -135,6 +135,10 @@ public interface IQuestLog
     /// <summary>Every quest the character is carrying, in slot order.</summary>
     ValueTask<IReadOnlyList<CarriedQuest>> CarriedAsync(CancellationToken cancellationToken);
 
+    /// <summary>The current acceptance time; legacy rows predate asynchronous facts.</summary>
+    ValueTask<DateTimeOffset> AcceptedAtAsync(CarriedQuest quest, CancellationToken ct) =>
+        ValueTask.FromResult(DateTimeOffset.UnixEpoch);
+
     /// <summary>The carried quest with this number, or null when it is not being carried.</summary>
     ValueTask<CarriedQuest?> FindCarriedAsync(int questId, CancellationToken cancellationToken);
 

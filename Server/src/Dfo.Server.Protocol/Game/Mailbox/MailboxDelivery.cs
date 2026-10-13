@@ -34,13 +34,14 @@ public sealed class MailboxCompletedHandler(ISelectedSessionDomainService sessio
             frames.AddRange(assets.Updates.GroupBy(x => mappings.ToGameSlot(x.Slot).Space)
                 .Select(group => GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(group.Key,
                     group.Select(x => new InventoryItemState(x.Identity,
-                        mappings.ToGameSlot(x.Slot).Index, x.Core)).ToArray(), assets.PreparedAt))));
+                        mappings.ToGameSlot(x.Slot).Index, x.Core, AvatarDetail: x.AvatarDetail)).ToArray(), assets.PreparedAt))));
             frames.AddRange(assets.Cleared.Select(x =>
             {
                 var wire = mappings.ToGameSlot(x);
                 return GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, assets.PreparedAt);
             }));
             if (assets.Gold is { } gold) frames.Add(GameInventoryDelivery.CarriedGoldNotification(gold, assets.PreparedAt));
+            if (assets.Pets is { } pets) frames.Add(GameInstanceDelivery.Creatures(pets));
         }
         if (!sending) frames.Add(notice.Reply);
         if (notice.Result.Inbox is { } inbox) frames.Add(new MailboxStateMessage(inbox));

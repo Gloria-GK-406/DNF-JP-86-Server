@@ -22,7 +22,7 @@ namespace Dfo.Server.Application.Quests;
 /// exists to prevent.
 /// </remarks>
 internal sealed class QuestLog(
-    OwnedCharacterId place, IQuestDomainStore store, AmbientStoreAccess stores) : IQuestLog
+    OwnedCharacterId place, IQuestDomainStore store, AmbientStoreAccess stores, TimeProvider clock) : IQuestLog
 {
     /// <summary>How many quests a character can carry at once.</summary>
     /// <remarks>
@@ -41,6 +41,14 @@ internal sealed class QuestLog(
             return (IReadOnlyList<CarriedQuest>)[.. rows
                 .OrderBy(row => row.Slot)
                 .Select(row => new CarriedQuest(row.Slot, row.QuestId, row.TriggerValue))];
+        });
+
+    public ValueTask<DateTimeOffset> AcceptedAtAsync(CarriedQuest quest, CancellationToken ct) =>
+        stores.ReadAsync(store, async session =>
+        {
+            var rows = await session.Carried.ReadAllAsync(place, ct).ConfigureAwait(false);
+            return rows.FirstOrDefault(x => x.Slot == quest.Slot && x.QuestId == quest.QuestId)?.AcceptedAt
+                ?? DateTimeOffset.MaxValue;
         });
 
     public async ValueTask<CarriedQuest?> FindCarriedAsync(
@@ -110,12 +118,12 @@ internal sealed class QuestLog(
                 .Where(quest => quest.Mark != 0)
                 .Select(quest => quest.QuestId)
                 .ToHashSet();
-            triggerValue = definition.ClearedQuestRequirements.Count(id => !clearedIds.Contains(id));
+            triggerValue = QuestStateRuleService.ApplyClearedRequirements(definition, triggerValue, clearedIds);
         }
         await stores.ChangeAsync(store, session =>
         {
             session.Carried.Write(
-                place, new StoredActiveQuest(slot, definition.QuestId, triggerValue));
+                place, new StoredActiveQuest(slot, definition.QuestId, triggerValue) { AcceptedAt = clock.GetUtcNow() });
             return ValueTask.CompletedTask;
         }, cancellationToken).ConfigureAwait(false);
         return QuestAcceptance.Taken(slot, triggerValue);
@@ -298,9 +306,9 @@ internal sealed class QuestLog(
 /// are the same log in every way that matters: they read and write the same place through the same
 /// store.
 /// </remarks>
-internal sealed class CharacterQuestLogDomainService(IQuestDomainStore store, AmbientStoreAccess stores)
+internal sealed class CharacterQuestLogDomainService(IQuestDomainStore store, AmbientStoreAccess stores, TimeProvider? clock = null)
     : ICharacterQuestLogDomainService
 {
     public IQuestLog LogOf(AccountId accountId, CharacterId characterId) =>
-        new QuestLog(new OwnedCharacterId(accountId, characterId), store, stores);
+        new QuestLog(new OwnedCharacterId(accountId, characterId), store, stores, clock ?? TimeProvider.System);
 }

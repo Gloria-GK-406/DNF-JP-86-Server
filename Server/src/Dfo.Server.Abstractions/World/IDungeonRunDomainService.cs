@@ -636,6 +636,11 @@ public interface IDungeonRunDomainService
     DungeonObjectDestructionClaim? ClaimObjectDestruction(
         CharacterId characterId, DungeonRunId runId, long roomVersion, int objectCode) => null;
 
+    bool IsActorDeathClaimCurrent(DungeonActorDeathClaim claim) => Find(claim.CharacterId)?.RunId == claim.RunId;
+    /// <summary>Whether this reserved death changes the current map from uncleared to cleared.</summary>
+    bool WillClearMap(DungeonActorDeathClaim claim) => false;
+    bool IsParticipantKillEffectClaimCurrent(DungeonParticipantKillEffectClaim claim) => IsActorDeathClaimCurrent(claim.Death);
+
     DungeonActorDeathClaim? TryClaimActorDeath(
         CharacterId characterId,
         ushort actorSequence) => null;
