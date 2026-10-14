@@ -192,7 +192,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             else if (values[0].IsString && DateTime.TryParseExact(provider.Archive.ResolveString(values[0].Value),
                 "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
             {
-                var seconds = new DateTimeOffset(date, TimeZoneInfo.Local.GetUtcOffset(date)).ToUnixTimeSeconds();
+                var seconds = new DateTimeOffset(DateTime.SpecifyKind(date, DateTimeKind.Unspecified), TimeSpan.FromHours(8)).ToUnixTimeSeconds();
                 expiration = seconds is > 0 and <= int.MaxValue ? (int)seconds : -1;
             }
             else expiration = -1;

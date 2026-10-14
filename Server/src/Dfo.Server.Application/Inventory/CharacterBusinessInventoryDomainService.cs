@@ -203,6 +203,21 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
         if (placement is null) return new(this, new ItemPlacementOutcome.UnknownItem());
         if (placement.Destination.Space != space)
             throw new InvalidOperationException($"Item {itemId} belongs to {placement.Destination.Space}, not {space}.");
+        var creator = (backing is MemoryItemContainer memory ? memory.Lifecycle : lifecycle)
+            ?? throw new InvalidOperationException("Item lifecycle service is missing.");
+        var isPile = placement.WorldClass == ItemWorldClass.Interchangeable;
+        var snapshot = new ItemSnapshot
+        {
+            ItemId = itemId, Count = 1, Type = placement.Traits, IsPile = isPile, LegacyKind = placement.ItemKind,
+        };
+        if (placement.WorldClass == ItemWorldClass.Creature)
+        {
+            var creature = creatures is null ? null : await creatures.FindByEquipmentAsync(itemId, cancellationToken).ConfigureAwait(false);
+            if (creature is null) throw new InvalidDataException($"Creature template {itemId} has no definition.");
+            snapshot = snapshot with { CreatureDetail = new(100, 0, 0, 0, 0, creature.StartLevel, [], 0) };
+        }
+        else if (placement.WorldClass == ItemWorldClass.Avatar) snapshot = snapshot with { AvatarDetail = ArrivingAvatar.Facts() };
+        snapshot = await (lifecycle ?? creator).PrepareNewAsync(snapshot, cancellationToken).ConfigureAwait(false);
         var quick = backing.Type == InventoryContainerType.Main
             && ItemSlotRuleService.AllowsQuickSlot(placement)
             ? new BusinessItemContainer(BusinessInventorySpace.QuickSlot, backing, placements, arrivals, creatures, capacities, lifecycle)
@@ -216,7 +231,7 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
         var open = await OpenSlotCountAsync(cancellationToken).ConfigureAwait(false);
         for (var index = open; index <= placement.Destination.LastIndex; index++)
             occupied.Add(new(space, index));
-        var piles = held.Where(entry => entry.Item.ItemId == itemId
+        var piles = held.Where(entry => entry.Item.Snapshot.CanStackWith(snapshot)
                 && (entry.Slot.Space != space || entry.Slot.Index < open))
             .Select(entry => new ItemPile(entry.Slot, entry.Item.Count)).ToArray();
         var arrival = arrivals.ForGrant(piles, count, placement, occupied);
@@ -235,25 +250,8 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
                     ?? throw new InvalidDataException("Arrival selected a quick slot without a quick container.");
                 if (placement.ItemKind == 0)
                     throw new InvalidDataException($"Item {itemId} has no item kind.");
-                var isPile = placement.WorldClass == ItemWorldClass.Interchangeable;
-                var snapshot = new ItemSnapshot
-                {
-                    ItemId = itemId, Count = isPile ? empty.Count : 1, Type = placement.Traits,
-                    IsPile = isPile, LegacyKind = placement.ItemKind,
-                    InstanceValue = isPile ? 0 : ArrivingAvatar.NewIdentity(),
-                };
-                if (placement.WorldClass == ItemWorldClass.Creature)
-                {
-                    var creature = creatures is null ? null
-                        : await creatures.FindByEquipmentAsync(itemId, cancellationToken).ConfigureAwait(false);
-                    if (creature is null) throw new InvalidDataException($"Creature template {itemId} has no definition.");
-                    snapshot = snapshot with { CreatureDetail = new(100, 0, 0, 0, 0, creature.StartLevel, [], 0) };
-                }
-                else if (placement.WorldClass == ItemWorldClass.Avatar)
-                    snapshot = snapshot with { AvatarDetail = ArrivingAvatar.Facts() };
-                var record = await ((backing is MemoryItemContainer memory ? memory.Lifecycle : lifecycle)
-                    ?? throw new InvalidOperationException("Item lifecycle service is missing."))
-                    .CreateAsync(snapshot, cancellationToken).ConfigureAwait(false);
+                var record = await creator.CreateAsync(snapshot with
+                { Count = isPile ? empty.Count : 1, InstanceValue = isPile ? 0 : ArrivingAvatar.NewIdentity() }, cancellationToken).ConfigureAwait(false);
                 await destination.PutAsync(empty.Slot.Index, record, cancellationToken).ConfigureAwait(false);
                 await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
                 return new(destination, new ItemPlacementOutcome.PutInEmptySlot(empty.Slot.Index, empty.Count));

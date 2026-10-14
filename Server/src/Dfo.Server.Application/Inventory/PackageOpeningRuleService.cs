@@ -5,7 +5,8 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class PackageOpeningRuleService(IPackageOpeningDefinitionSource content, IItemPlacementRuleService placements) : IPackageOpeningRuleService
+internal sealed class PackageOpeningRuleService(IPackageOpeningDefinitionSource content, IItemPlacementRuleService placements,
+    IItemExpirationRuleService? expirationRules = null) : IPackageOpeningRuleService
 {
     public async ValueTask<OpeningPackageDefinition> DefinitionAsync(int itemId, OpeningPackageKind kind, CancellationToken ct)
     {
@@ -77,6 +78,11 @@ internal sealed class PackageOpeningRuleService(IPackageOpeningDefinitionSource 
                 ? reward.PeriodDays : Math.Min(reward.PeriodDays, item.DefaultPeriodDays);
             var expiration = days == 0 ? 0 : checked((int)now.AddDays(days).ToUnixTimeSeconds());
             if (item.AbsoluteExpiration > 0) expiration = expiration == 0 ? item.AbsoluteExpiration : Math.Min(expiration, item.AbsoluteExpiration);
+            if (expirationRules is not null)
+            {
+                var declared = expirationRules.Prepare(new ItemSnapshot(), item.Placement.Lifetime, now).ExpireTime;
+                if (declared > 0) expiration = expiration == 0 ? declared : Math.Min(expiration, declared);
+            }
             if (expiration != 0 && expiration <= now.ToUnixTimeSeconds())
                 throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, $"Reward {reward.ItemId} has already expired.");
             result.Add(new(reward, item, expiration));

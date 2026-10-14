@@ -15,7 +15,7 @@ using Dfo.Server.Protocol.Game.Mailbox;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
-public sealed class ItemDeliveryTests
+public sealed partial class ItemDeliveryTests
 {
     [SkippableTheory]
     [InlineData(false)]

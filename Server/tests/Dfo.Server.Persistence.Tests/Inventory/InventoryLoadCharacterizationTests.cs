@@ -177,6 +177,7 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[0].Core.DisplayItemId = 2001
         CharacterItems[0].Core.Traits = Equipment
         CharacterItems[0].Core.ReinforcementLevel = 11
+        CharacterItems[0].Core.ResealCount = 4
         CharacterItems[0].AvatarDetail = null
         CharacterItems[0].CreatureDetail = null
         CharacterItems[0].Count = 1
@@ -242,6 +243,7 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[1].Core.DisplayItemId = 2002
         CharacterItems[1].Core.Traits = Equipment
         CharacterItems[1].Core.ReinforcementLevel = 9
+        CharacterItems[1].Core.ResealCount = 5
         CharacterItems[1].AvatarDetail = null
         CharacterItems[1].CreatureDetail = null
         CharacterItems[1].Count = 1
@@ -307,6 +309,7 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[2].Core.DisplayItemId = 2003
         CharacterItems[2].Core.Traits = Equipment
         CharacterItems[2].Core.ReinforcementLevel = 13
+        CharacterItems[2].Core.ResealCount = 3
         CharacterItems[2].AvatarDetail = null
         CharacterItems[2].CreatureDetail = null
         CharacterItems[2].Count = 1
@@ -372,6 +375,7 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[3].Core.DisplayItemId = 2500
         CharacterItems[3].Core.Traits = Avatar
         CharacterItems[3].Core.ReinforcementLevel = 17
+        CharacterItems[3].Core.ResealCount = 1
         CharacterItems[3].AvatarDetail.ExpireDate = 7001
         CharacterItems[3].AvatarDetail.ClearAvatarId = 7002
         CharacterItems[3].AvatarDetail.JewelSocket = 0xC9CACBCCCDCECFD0D1D2D3D4D5D6D7D8D9DADBDCDDDEDFE0E1E2E3E4E5E6
@@ -493,6 +497,7 @@ public sealed class InventoryLoadCharacterizationTests
         AccountCargoItems[0].Core.DisplayItemId = 2601
         AccountCargoItems[0].Core.Traits = Equipment
         AccountCargoItems[0].Core.ReinforcementLevel = 25
+        AccountCargoItems[0].Core.ResealCount = 2
         AccountCargoItems[0].AvatarDetail = null
         AccountCargoItems[0].CreatureDetail = null
         AccountCargoItems[0].Count = 1
@@ -558,6 +563,7 @@ public sealed class InventoryLoadCharacterizationTests
         AccountCargoItems[1].Core.DisplayItemId = 2600
         AccountCargoItems[1].Core.Traits = Equipment
         AccountCargoItems[1].Core.ReinforcementLevel = 5
+        AccountCargoItems[1].Core.ResealCount = 2
         AccountCargoItems[1].AvatarDetail = null
         AccountCargoItems[1].CreatureDetail = null
         AccountCargoItems[1].Count = 1

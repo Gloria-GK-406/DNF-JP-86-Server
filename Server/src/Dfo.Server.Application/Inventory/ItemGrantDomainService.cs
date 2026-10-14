@@ -21,6 +21,7 @@ internal sealed class ItemGrantDomainService(ICharacterBusinessInventoryDomainSe
     public async ValueTask<ItemReference> ApplyPlannedAsync(IBusinessItemContainer container, int slot, ItemSnapshot next, CancellationToken ct)
     {
         _ = Transaction;
+        next = await lifecycle.PrepareNewAsync(next, ct).ConfigureAwait(false);
         var current = await container.GetAsync(slot, ct).ConfigureAwait(false);
         if (current is null) return await container.PutAsync(slot, await lifecycle.CreateAsync(next, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
         ValidateStack(current, next);
@@ -29,6 +30,7 @@ internal sealed class ItemGrantDomainService(ICharacterBusinessInventoryDomainSe
     public async ValueTask<ItemReference> ApplyPlannedAsync(IItemContainer container, int slot, ItemSnapshot next, CancellationToken ct)
     {
         _ = Transaction;
+        next = await lifecycle.PrepareNewAsync(next, ct).ConfigureAwait(false);
         var current = await container.GetAsync(slot, ct).ConfigureAwait(false);
         if (current is null) return await container.PutAsync(slot, await lifecycle.CreateAsync(next, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
         ValidateStack(current, next);

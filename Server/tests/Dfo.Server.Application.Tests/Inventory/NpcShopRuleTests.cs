@@ -113,7 +113,12 @@ internal sealed class NpcShopTestContent : INpcShopDefinitionSource, IItemPlacem
     };
 
     public NpcShopRuleService Rules() => new(this,
-        new ItemPlacementRuleService(this, new NoWearables()), new ItemArrivalRuleService(), new DailyRefillRuleService());
+        new ItemPlacementRuleService(this, new NoWearables()), new ItemArrivalRuleService(), new DailyRefillRuleService(), new PermanentExpiration(), TimeProvider.System);
+
+    private sealed class PermanentExpiration : IItemExpirationRuleService
+    {
+        public ItemSnapshot Prepare(ItemSnapshot item, ItemLifetimeDefinition lifetime, DateTimeOffset at) => item;
+    }
 
     public ValueTask<NpcShopDefinition?> GetShopAsync(int npcId, CancellationToken ct) =>
         ValueTask.FromResult<NpcShopDefinition?>(Shops.GetValueOrDefault(npcId)

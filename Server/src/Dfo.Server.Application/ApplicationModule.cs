@@ -286,6 +286,7 @@ public sealed class ApplicationModule : IServerModule
         // Where an arriving item goes, and which day a refill belongs to.
         services.TryAddSingleton<IItemArrivalRuleService, ItemArrivalRuleService>();
         services.TryAddSingleton<IItemLifecycleDomainService, ItemLifecycleDomainService>();
+        services.TryAddSingleton<IItemExpirationRuleService, ItemExpirationRuleService>();
         services.TryAddSingleton<IInventoryContentsEventDomainService, InventoryContentsEventDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IWeeklyAttendanceRuleService, Dfo.Server.Application.Events.WeeklyAttendanceRuleService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustRuleService, Dfo.Server.Application.Events.JoustRuleService>();
