@@ -124,3 +124,17 @@ A21 主表：u16 entryCount；每项 u16 eventId、u32 未知值、开始/结束
 当前实现由注册活动实例投影日历，2208 detail 的 flagA=0/flagB=5 来自上游 seed，含义尚未闭合；第三字符串和 tail 为空。linkKey `total attendance check event/0/0` 满足原生解析语法，静态映射到窗口0x1E1，但可点击效果仍须实机确认。配置有效期、启停和内容有效性同时控制日历与玩法。
 
 CurrentImplementation：`Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/WeeklyAttendanceSlice.cs` 的 EventInformationMessage；选角、有效通关、签到和 GM 配置后经统一通知刷新。自动编码/隔离HTTP与消息派发证明服务端闭环，不能替代真实窗口验收。
+
+
+## 2026-10-14 SAO入口活动补证
+
+**ClientStatic / Confirmed**：A21选图添加函数VA02736B90，在DGN info+44C标记为1时要求
+活动0xD6（214）存在，否则VA02736CEB跳到02737646退出。绑定B1 SHA256
+`CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14`。
+**RuntimeObserved**：已加载补丁PVF的protocol2现场缓存含3600且info+44C=1，但活动树仅2208/2365，
+最终选图无3600；用户截图也确认没有入口。
+
+**CurrentImplementation**：新增入口活动注册到既有活动管理集合，按持久化开关/有效期进入登录与选角色的006C列表；
+事件ID为214，LinkKey为`sao aincrad event/0/0`，默认关闭，本地测试环境显式启用。
+没有修改006C codec或自动生成区，没有新的SAO实帧；追加修复后的实际显示仍待用户确认。
+见 [SAO入口调查、静态指令和只读现场](../../../Document/SaoTowerEntrance-20261014.md)。

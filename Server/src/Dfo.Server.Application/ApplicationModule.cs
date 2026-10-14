@@ -304,6 +304,7 @@ public sealed class ApplicationModule : IServerModule
         services.AddCommandHandler<Dfo.Server.Application.Events.ChangeGmJoustChampionCommand,Dfo.Server.Data.Events.JoustCurrentRound,Dfo.Server.Application.Events.ChangeGmJoustChampionCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Events.AdvanceJoustLifecycleCommand,Dfo.Server.Data.Events.JoustLifecycleResult,Dfo.Server.Application.Events.AdvanceJoustLifecycleCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService,Dfo.Server.Application.Events.JoustMaintenanceService>());
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SaoTowerEntranceEventDomainService>();
         services.TryAddSingleton<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>());
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>());

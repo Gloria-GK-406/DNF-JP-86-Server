@@ -1,0 +1,84 @@
+ClientStatic B1 SHA256=CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14
+ImageBase=00400000
+RuntimeObserved process=44824, executable=DNFClient-A21-protocol2/DNF.exe
+Client PVF SHA256=EFDB5B6469949A55427C1058A82187EADF6A59A1F06EBAE239BC339499E4641B
+
+VA=02736CB0 RVA=02336CB0
+02736CB0 cmp bl, 1
+02736CB3 je 0x2737646
+02736CB9 push esi
+02736CBA call 0x10cdca0
+02736CBF add esp, 4
+02736CC2 test eax, eax
+02736CC4 je 0x2736cf1
+02736CC6 mov ecx, eax
+02736CC8 call 0x171c570
+02736CCD mov ecx, eax
+02736CCF call 0x171c4d0
+02736CD4 cmp al, 1
+02736CD6 jne 0x2736cf1
+02736CD8 push 0xd6
+02736CDD call 0x141a170
+02736CE2 mov ecx, eax
+02736CE4 call 0x14172d0
+02736CE9 test al, al
+02736CEB je 0x2737646
+02736CF1 push esi
+
+VA=0171C4D0 RVA=0131C4D0
+0171C4D0 mov al, byte ptr [ecx + 0x44c]
+0171C4D6 ret
+
+VA=014172D0 RVA=010172D0
+014172D0 push ebp
+014172D1 mov ebp, esp
+014172D3 sub esp, 0x18
+014172D6 mov eax, dword ptr [ebp + 8]
+014172D9 push esi
+014172DA mov esi, dword ptr [ecx + 0x18]
+014172DD mov dword ptr [ebp + 8], eax
+014172E0 test esi, esi
+014172E2 jne 0x14172ed
+014172E4 xor al, al
+014172E6 pop esi
+014172E7 mov esp, ebp
+014172E9 pop ebp
+014172EA ret 4
+014172ED push edi
+014172EE lea ecx, [ebp - 0xc]
+014172F1 push ecx
+014172F2 mov ecx, esi
+014172F4 call 0x293b470
+014172F9 lea edx, [ebp + 8]
+014172FC mov edi, eax
+014172FE push edx
+014172FF lea eax, [ebp - 0x18]
+01417302 push eax
+01417303 mov ecx, esi
+01417305 call 0x140e780
+0141730A mov ecx, dword ptr [eax]
+0141730C test ecx, ecx
+0141730E je 0x1417333
+01417310 mov ecx, dword ptr [ecx]
+01417312 test ecx, ecx
+01417314 je 0x1417333
+01417316 mov edx, dword ptr [edi]
+01417318 test edx, edx
+0141731A je 0x141731e
+0141731C mov edx, dword ptr [edx]
+0141731E cmp ecx, edx
+01417320 jne 0x1417333
+01417322 mov ecx, dword ptr [eax + 8]
+01417325 cmp ecx, dword ptr [edi + 8]
+01417328 pop edi
+01417329 setne al
+0141732C pop esi
+0141732D mov esp, ebp
+0141732F pop ebp
+01417330 ret 4
+01417333 call 0x2c623e1
+
+RuntimeObserved shown IDs=[11000, 11001, 11006, 11007, 11008]
+RuntimeObserved loaded DGN=3600, info+44C=01
+RuntimeObserved active EVENT_INFO IDs=[2208, 2365]
+No process writes, remote calls, breakpoints, or injected packets were used.

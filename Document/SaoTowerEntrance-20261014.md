@@ -4,7 +4,7 @@
 
 用户授权：“那就是没加入到入口是吧，你先加进去然后看看协议是用什么驱动的。”
 
-当前工作分支 `task/next-round-20261013`。本次只恢复入口并研究协议，不实现 SAO 战斗、门票、推进或奖励服务。
+当前工作分支 `task/next-round-20261013`。本次恢复入口并研究协议；根据入口未显示的实机反馈，追加活动开关接线，不实现 SAO 战斗、门票、推进或奖励服务。
 
 **ContentStatic / Confirmed**：客户端原有 `worldmap/ui/Towers.xui` 已声明
 `IDC_WORLDMAP_BUTTON6`，`dungeonIndex=3600`，位置 `(280,150)`，采用
@@ -28,7 +28,7 @@
 
 | 阶段 | 当前证据 | 结论与边界 |
 | --- | --- | --- |
-| 选图入口 | PVF 的 WDM 列表和原生 XUI 按钮 | 本次恢复静态入口；仍待重启客户端确认实际可见性 |
+| 选图入口 | PVF 的 WDM 列表和原生 XUI 按钮 | 初次实机仍隐藏；还需要 EVENT_INFO 活动214，追加修复后的可见性待第二次实机确认 |
 | 点击入场 | 原生按钮采用共用选图控件；普通请求是 CMD0010 | **Hypothesis**：沿用 0010，地下城 ID 为 3600；尚无 SAO 点击实帧，不排除特殊分支 |
 | 轮次与层数 | NOTI03E9 客户端处理函数 | **ClientStatic / Confirmed**：先读 u32 TryRound，再读 u32 TryFloor；写入 SAO 状态并刷新选图数字 |
 | 层数映射 | ETC 的 100 项映射 | 内容提供映射，服务端仍需负责持久化状态和合法目标选择；客户端是否自动重映射入场 ID 待取样 |
@@ -94,6 +94,55 @@ repeat 8:
 - 对已打补丁档案再次应用被拒绝，未创建输出。
 - 运行配置语义对比仅 `Pvf.ArchivePath` 改变；服务启动 ready，GM HTTP 200，31 个监听端口，SQLite 完整性通过且 schema 不变。
 - 部署记录：`artifacts/sao-entrance-20261014/deployment-verification.json`。备份位于同目录 `rollback/`，含原配置、客户端 PVF 和数据库；部署脚本为一次性脚本，不重复运行。
-- 尚未更新其他客户端、OneKey 或 ReleasePackage。用户重启 protocol2 后确认入口并点击入场的采样仍待完成。
+- 尚未更新其他客户端、OneKey 或 ReleasePackage。用户重启 protocol2 后反馈没有入口；追加活动开关修复见下，点击入场采样仍待完成。
 
-本次没有 SAO 的 ClientVerified/WireCaptured 结论，也没有宣称塔玩法已经可用。下一步先确认真实请求，再设计专用层数状态、入场与通关推进服务。
+本次尚无 SAO 成功入场或 WireCaptured 结论，也没有宣称塔玩法已经可用。下一步先确认真实请求，再设计专用层数状态、入场与通关推进服务。
+
+
+## 追加：活动开关是第二道入口条件
+
+**ClientVerified（否定结果）**：用户重启客户端后截图仍没有“艾恩葛朗特”。不能把档案补丁通过当作界面恢复完成。
+
+**RuntimeObserved / Confirmed**：只读核对运行中的 protocol2 客户端 PID44824（2026-10-14 18:32:24启动），PVF hash与前述补丁一致。
+客户端地下城缓存已经加载3600，DGN info+44C=1；选图最终列表却只有11000、11001、11006、11007、11008。
+活动表只有2208、2365，没有214。它证明客户端已经读到补丁中的地下城，排除启动错目录/旧PVF这一假设。
+
+**ClientStatic / Confirmed**：原生选图添加函数 VA02736B90 / RVA02336B90，
+在 VA02736CB9..02736CEB 取得DGN，调用VA0171C4D0读取info+44C；该标记为1时，
+调用活动管理器检查0xD6（十进制214），未开启就跳到02737646退出，不添加选图行。
+活动检查VA014172D0以传入ID查询当前活动树，缺失即返回false。
+证据见 [活动过滤静态指令与只读现场](evidence/sao-visibility-gate-20261014.txt)。
+这里的214是活动身份；`sao aincrad event`字符串映射中的0x49D是另一种分类值，不能混为活动ID或opcode。
+
+由此，入口驱动关系补全为：
+
+```text
+PVF Towers.wdm声明3600 + 原生XUI按钮
+    + NOTI006C EVENT_INFO包含已开启的活动214
+    → 客户端选图过滤允许添加SAO入口
+    → 点击后的实际入场请求仍待取样
+```
+
+### 追加修复
+
+- 新增 `SaoTowerEntranceEventDomainService`，注册到既有 `IManagedEventDomainService` 集合。
+- 使用现有 `IEventPersistence` 配置启停与有效期；默认关闭。本地测试环境显式开启214，未改签到、马战配置。
+- 登录/选角色沿用 `IEventManagementDomainService.GetEventInfoListAsync` → 现有 `EventInformationMessage` → NOTI006C，未新增网络旁路或客户端内存修改。
+- LinkKey采用客户端已有的 `sao aincrad event/0/0` 分类。该入口活动仅用于本次协议调查，不能据此认为SAO战斗/奖励服务可用。
+- 新增三项回归：开启后进入登录活动列表、关闭后重开数据库仍关闭、账号与有效期边界。测试不依赖真实PVF；首次有效RED为“活动未注册”，早先测试访问内部codec的编译错误不计为行为RED。
+
+完整应用回归3885项通过；GM活动HTTP回归11项通过。无数据库schema变更。
+
+### 追加部署
+
+当前进程PID50792，运行目录 `artifacts/sao-activity-20261014/runtime`，版本
+`0.2.5-sao-entrance.20261014+snapshot.1cd86aaf0d4b6916`。
+源身份由本次ApplicationModule与新增服务文件内容计算，和部署Application DLL SHA一起写入部署证据。
+
+活动214测试有效期为2026-10-01至2037-12-31。部署只向现有event_configuration增加214，
+原2208/2365行逐字保留；已备份数据库和原运行配置，完整性检查通过、schema一致、启动ready、GM200、31端口齐全。
+客户端PVF未再次更改，也未部署EXE/DLL patch。
+
+记录：`artifacts/sao-activity-20261014/deployment-verification.json`；备份与活动行回退输入在同目录 `rollback/`。
+仅恢复入口列表的部署记录仍保留在 `artifacts/sao-entrance-20261014`，不应将旧进程PID当作当前实例。
+第二轮实机可见性与入场请求采样待用户重新登录后反馈。
