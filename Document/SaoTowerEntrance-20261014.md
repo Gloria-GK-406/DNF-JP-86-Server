@@ -28,7 +28,7 @@
 
 | 阶段 | 当前证据 | 结论与边界 |
 | --- | --- | --- |
-| 选图入口 | PVF 的 WDM 列表和原生 XUI 按钮 | 初次实机仍隐藏；还需要 EVENT_INFO 活动214，追加修复后的可见性待第二次实机确认 |
+| 选图入口 | PVF 的 WDM 列表和原生 XUI 按钮 | 初次实机仍隐藏；还需要 EVENT_INFO 活动214，用户已确认追加活动214后入口出现，入场请求待取样 |
 | 点击入场 | 原生按钮采用共用选图控件；普通请求是 CMD0010 | **Hypothesis**：沿用 0010，地下城 ID 为 3600；尚无 SAO 点击实帧，不排除特殊分支 |
 | 轮次与层数 | NOTI03E9 客户端处理函数 | **ClientStatic / Confirmed**：先读 u32 TryRound，再读 u32 TryFloor；写入 SAO 状态并刷新选图数字 |
 | 层数映射 | ETC 的 100 项映射 | 内容提供映射，服务端仍需负责持久化状态和合法目标选择；客户端是否自动重映射入场 ID 待取样 |
@@ -145,4 +145,51 @@ PVF Towers.wdm声明3600 + 原生XUI按钮
 
 记录：`artifacts/sao-activity-20261014/deployment-verification.json`；备份与活动行回退输入在同目录 `rollback/`。
 仅恢复入口列表的部署记录仍保留在 `artifacts/sao-entrance-20261014`，不应将旧进程PID当作当前实例。
-第二轮实机可见性与入场请求采样待用户重新登录后反馈。
+第二轮用户确认入口出现，但提示需要“克雷娅的庇护”；入口显示已在该客户端验收，入场请求仍待取样。
+
+
+## 追加：门票历史期限与 GM 发放（2026-10-14）
+
+**ClientVerified（有限范围）**：用户确认入口已经出现，客户端提示需要“克雷娅的庇护”。这证明活动214修复后的入口显示；不证明入场、战斗或奖励可用。
+
+**ContentStatic / Confirmed**：物品ID10004322，路径
+`stackable/event/chn_event_20141111_sao_event/10004322_material_enter.stk`，名称“克雷娅的庇护”，材料类，
+说明是亡者峡谷“艾恩葛朗特”的入场券，原声明 `[expiration date] 2014-12-30 06:00:00`。
+客户端、服务端原PVF均为此历史期限。
+
+**CurrentImplementation / Confirmed**：GM邮件选择策略 `PermanentOrdinaryItemRules.Allows` 要求
+`DefaultPeriodDays==0 && AbsoluteExpiration==0`，因此该门票被搜索用途过滤；发放准备也检查期限并拒绝已过期物品。
+这不是缺少名称索引，不能用绕过GM准入或者强塞数据库的方式代替修复内容。
+
+### 内容修复及验证
+
+`Tool/PvfSaoTowerEntrancePatch` 增加 `--ticket` 模式，只对已知ID10004322、名称与历史期限完全匹配的STK删除
+`[expiration date]`及其值两个token。其他条目、入口、DGN、XUI和固定过期物品规则不变。
+
+客户端、服务端分别从自己的现用PVF生成补丁。两份均逐条验证712010个档案条目，仅1个STK变化，712009个其他条目不变；
+已有压缩块、哈希/名称池字节不变。已打补丁的档案再次应用被拒绝且未生成输出。
+原入口模式从原始服务器PVF生成的hash仍严格等于已接受的9DF742F9…，无入口模式回归。
+工具Release构建0警告/错误；没有修改服务器程序集或数据库schema。
+
+| 档案 | 本轮部署SHA-256 |
+| --- | --- |
+| Server PVF | 8FAECD8525E831D17A25CD062B7991CB1E663D3009643BF4C9D2800355A60264 |
+| protocol2 Client PVF | D6D5D56EE057D191562D27E14E2DF64D25D011A3CF7C47577475AACAF6528068 |
+
+用户明确回复“已退出”后更新protocol2档案。服务仍使用 `artifacts/sao-activity-20261014/runtime` 原程序集，
+当前PID55204，版本仍为 `0.2.5-sao-entrance.20261014+snapshot.1cd86aaf0d4b6916`，仅运行配置PVF路径改变。
+数据库已备份，完整性ok、schema一致；ready、GM200、31监听齐全。
+本轮证据与回退输入位于 `artifacts/sao-ticket-20261014/`，旧部署脚本为一次性操作，不重复运行。
+
+### 门票发放
+
+GM Web原搜索弹窗保留了过期模板的旧查询结果；精确ID10004322重新查询后显示“克雷娅的庇护”，材料、Lv1、稀有。
+通过现有GM邮件预览和发送流程给角色名1123（角色ID2）发放10张；未放宽GM规则或直接改物品数据库。
+
+- 标题：SAO入口测试门票。
+- 操作编号：9c60435a-1399-4596-96dc-4e4dbeddb6e8。
+- 邮件ID57，附件10004322×10，`expire_time=0`；SQLite只读查询再次核实。
+- GM发送详情显示已持久化提交，玩家可领取。邮件本身仍为普通30天有效，不等于门票物品有30天期限。
+- 发放证据：`artifacts/sao-ticket-20261014/mail-receipt.json`。
+
+尚待用户重启客户端、领取后点击一次入场；当前SAO专用入场/层数推进/奖励仍未实现。

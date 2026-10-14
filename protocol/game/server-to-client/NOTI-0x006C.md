@@ -138,3 +138,8 @@ CurrentImplementation：`Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/We
 事件ID为214，LinkKey为`sao aincrad event/0/0`，默认关闭，本地测试环境显式启用。
 没有修改006C codec或自动生成区，没有新的SAO实帧；追加修复后的实际显示仍待用户确认。
 见 [SAO入口调查、静态指令和只读现场](../../../Document/SaoTowerEntrance-20261014.md)。
+
+
+**2026-10-14 用户追加确认 / ClientVerified（有限范围）**：重新登录后“艾恩葛朗特”入口出现，
+点击提示需要物品10004322“克雷娅的庇护”。支持活动214与PVF入口组合恢复选图显示；
+不等于SAO入场或专用通知生命周期已验证。门票原带2014年固定期限，本轮已单独修复PVF并提供测试门票，见上述调查记录。

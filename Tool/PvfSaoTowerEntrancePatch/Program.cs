@@ -10,7 +10,9 @@ using Dfo.Pvf.Tokens;
 
 try
 {
-    if (args.Length != 2) throw new ArgumentException("Usage: PvfSaoTowerEntrancePatch <source.pvf> <new.pvf|--inspect>");
+    if (args.Length is not (2 or 3) || args.Length == 3 && args[2] != "--ticket")
+        throw new ArgumentException("Usage: PvfSaoTowerEntrancePatch <source.pvf> <new.pvf|--inspect> [--ticket]");
+    var ticketMode = args.Length == 3;
     var input = Path.GetFullPath(args[0]);
     using var archive = PvfArchive.Open(input);
     Console.OutputEncoding = Encoding.UTF8;
@@ -26,27 +28,41 @@ try
     if (input.Equals(output, StringComparison.OrdinalIgnoreCase) || File.Exists(output) || File.Exists(output + ".json"))
         throw new IOException("Refuse in-place editing or overwriting an existing output.");
     var source = File.ReadAllBytes(input);
-    string[] targets = ["worldmap/Towers.wdm"];
-    var entrance = Tokens(targets[0]);
-    var open = Enumerable.Range(0, entrance.Count).Single(i => IsTag(entrance[i], "[dungeon]"));
-    var close = Enumerable.Range(0, entrance.Count).Single(i => IsTag(entrance[i], "[/dungeon]"));
-    int[] expectedIds = [11000, -1, 11001, -1, 11006, -1, 11007, -1, 11008, -1, 3505, -1, 4001, -1];
-    if (close - open - 1 != expectedIds.Length || !entrance.Skip(open + 1).Take(expectedIds.Length)
-        .SequenceEqual(expectedIds.Select(x => new PvfToken(PvfTokenKind.Int32, x))))
-        throw new InvalidDataException("Unfamiliar tower entrance list; re-audit before patching.");
-    entrance.InsertRange(close, [new(PvfTokenKind.Int32, 3600), new(PvfTokenKind.Int32, -1)]);
-    var sao = Tokens("dungeon/Towers/SAO/SAO_TowerOfDespair001.dgn");
-    if (!sao.Any(token => IsTag(token, "[tower of despair sao]")))
-        throw new InvalidDataException("Missing native SAO tower marker.");
-    var uiIndex = archive.FindFile("worldmap/ui/Towers.xui");
-    if (uiIndex < 0) throw new InvalidDataException("Missing native tower layout.");
-    var ui = System.Xml.Linq.XDocument.Parse(archive.ReadUnicodeText(uiIndex).TrimEnd('\0'));
-    var button = ui.Descendants("CNUIControlWorldmapBalloonForRDAR")
-        .Single(x => (string?)x.Attribute("dungeonIndex") == "NUM:3600");
-    if ((string?)button.Attribute("ID") != "STR:IDC_WORLDMAP_BUTTON6"
-        || (string?)button.Attribute("Pos") != "VECTOR:280, 150")
-        throw new InvalidDataException("Unfamiliar native SAO button; re-audit layout before patching.");
-    var replacements = new Dictionary<int, byte[]> { [archive.FindFile(targets[0])] = Encode(entrance) };
+    string[] targets = [ticketMode ? "stackable/event/chn_event_20141111_sao_event/10004322_material_enter.stk" : "worldmap/Towers.wdm"];
+    var tokens = Tokens(targets[0]);
+    if (ticketMode)
+    {
+        var expiry = Enumerable.Range(0, tokens.Count).Single(i => IsTag(tokens[i], "[expiration date]"));
+        if (expiry + 2 != tokens.Count || !tokens[expiry + 1].IsString
+            || archive.ResolveString(tokens[expiry + 1].Value) != "2014-12-30 06:00:00")
+            throw new InvalidDataException("Unfamiliar SAO ticket expiration; re-audit before patching.");
+        var name = Enumerable.Range(0, tokens.Count).Single(i => IsTag(tokens[i], "[name]"));
+        if (!tokens[name + 1].IsString || archive.ResolveString(tokens[name + 1].Value) != "克雷娅的庇护")
+            throw new InvalidDataException("Unexpected SAO ticket identity.");
+        tokens.RemoveRange(expiry, 2);
+    }
+    else
+    {
+        var open = Enumerable.Range(0, tokens.Count).Single(i => IsTag(tokens[i], "[dungeon]"));
+        var close = Enumerable.Range(0, tokens.Count).Single(i => IsTag(tokens[i], "[/dungeon]"));
+        int[] expectedIds = [11000, -1, 11001, -1, 11006, -1, 11007, -1, 11008, -1, 3505, -1, 4001, -1];
+        if (close - open - 1 != expectedIds.Length || !tokens.Skip(open + 1).Take(expectedIds.Length)
+            .SequenceEqual(expectedIds.Select(x => new PvfToken(PvfTokenKind.Int32, x))))
+            throw new InvalidDataException("Unfamiliar tower entrance list; re-audit before patching.");
+        tokens.InsertRange(close, [new(PvfTokenKind.Int32, 3600), new(PvfTokenKind.Int32, -1)]);
+        var sao = Tokens("dungeon/Towers/SAO/SAO_TowerOfDespair001.dgn");
+        if (!sao.Any(token => IsTag(token, "[tower of despair sao]")))
+            throw new InvalidDataException("Missing native SAO tower marker.");
+        var uiIndex = archive.FindFile("worldmap/ui/Towers.xui");
+        if (uiIndex < 0) throw new InvalidDataException("Missing native tower layout.");
+        var ui = System.Xml.Linq.XDocument.Parse(archive.ReadUnicodeText(uiIndex).TrimEnd('\0'));
+        var button = ui.Descendants("CNUIControlWorldmapBalloonForRDAR")
+            .Single(x => (string?)x.Attribute("dungeonIndex") == "NUM:3600");
+        if ((string?)button.Attribute("ID") != "STR:IDC_WORLDMAP_BUTTON6"
+            || (string?)button.Attribute("Pos") != "VECTOR:280, 150")
+            throw new InvalidDataException("Unfamiliar native SAO button; re-audit layout before patching.");
+    }
+    var replacements = new Dictionary<int, byte[]> { [archive.FindFile(targets[0])] = Encode(tokens) };
     var headerBytes=source.AsSpan(0,PvfHeader.Size).ToArray();PvfCipher.DecryptSection("HeaD",headerBytes);
     var header=PvfHeader.Read(headerBytes,source.Length);var layout=new SectionLayout(header);
     var table=source.AsSpan((int)layout.FileTableOffset,layout.FileTableLength).ToArray();
@@ -101,8 +117,10 @@ try
         Source=input,Output=output,SourceSha256=Convert.ToHexString(SHA256.HashData(source)),
         OutputSha256=Convert.ToHexString(SHA256.HashData(written)),FileCount=archive.FileCount,
         UnchangedFiles=archive.FileCount-replacements.Count,PreservedExistingChunks=archive.ChunkCount,
-        ModifiedFiles=targets,AddedEntrance="3600 -1",NativeControl="IDC_WORLDMAP_BUTTON6",NativePosition="280,150",
-        ModifiedFileCount=replacements.Count,InsertedTokenCount=2,ChangedTokenCount=0,
+        ModifiedFiles=targets,Mode=ticketMode ? "sao-ticket-permanent" : "sao-entrance",
+        AddedEntrance=ticketMode ? null : "3600 -1",NativeControl=ticketMode ? null : "IDC_WORLDMAP_BUTTON6",
+        NativePosition=ticketMode ? null : "280,150",ModifiedFileCount=replacements.Count,
+        InsertedTokenCount=ticketMode ? 0 : 2,RemovedTokenCount=ticketMode ? 2 : 0,ChangedTokenCount=0,
     };
     var json=JsonSerializer.Serialize(report,new JsonSerializerOptions{WriteIndented=true});
     File.WriteAllText(output+".json",json);Console.WriteLine(json);
