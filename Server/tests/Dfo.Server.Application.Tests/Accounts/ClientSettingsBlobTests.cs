@@ -104,6 +104,11 @@ public sealed class ClientSettingsBlobTests
         var entry = await f.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterEntryStateDomainService>().LoadAsync(new(1), new(71), default);
         Assert.Equal(25, entry.Public.VisibilityBits); Assert.Equal(25, entry.Public.Settings.UserStateBits);
         Assert.Equal(25, entry.Settings.VisibilityBits);
+        var roster = await f.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterRepository>()
+            .ListByAccountWithAppearanceAsync(new(1), default);
+        var display = Assert.Single(roster).Display!;
+        Assert.False(display.ShowGrowEffect); Assert.False(display.ShowAwakeningAvatar);
+        Assert.False(display.ShowFullAvatar); Assert.Equal(25, display.VisibilityBits);
         Assert.Equal(3, f.Scalar("SELECT user_state_bits FROM character_settings WHERE character_id=71"));
     }
 

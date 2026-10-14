@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-14 角色列表与登录外貌归一（CurrentImplementation，待实机验收）
+
+角色页与登录Roster共用编码，A21尾部offset24与世界subtype0/0165共用显隐定义；修正固定0覆盖关闭设置，人物候选/最终计算与所有消费路径归一。见[职责与静态依据](../Document/CharacterAppearance-20261014.md)。
+
 ## 2026-10-14 职业外观与显示设置（CurrentImplementation，待实机验收）
 
 [USERINFO subtype0](game/server-to-client/NOTI-0x0002.md)尾部+47不再固定写0，修复职业进阶在线刷新关闭特效。主设置00C5 blob仍为三项显示选项唯一真源，以只读视图解释槽1／55／74；保存变化提交后经EventBus投影[0165](game/server-to-client/NOTI-0x0165.md)，本人与当前同场景成员同步。登录、公开外观和完整角色状态同源，不改写旧user_state_bits、不新增数据库字段。[证据、结构与验收边界](../Document/CareerAppearanceVisibility-20261014.md)。

@@ -143,6 +143,7 @@ internal sealed class ReplayStateDomainService(IServiceProvider services, IDomai
             var character = await Get<ICharacterDomainService>().LoadForSelectionAsync(session.AccountId, identity!.SlotIndex, ct).ConfigureAwait(false);
             if (character.Identity.CharacterId != session.CharacterId)
                 throw new InvalidDataException("Current character selection changed its owner.");
+            entry = CharacterStateProjection.CompleteAppearanceProjection(character with { Identity = identity! }, entry!, characterInventory!);
             appearance = new(character with { Identity = identity, Progression = progress!,
                 Fatigue = new(fatigue!.Value.Total, fatigue.Value.Used) { ConsumedToday = fatigue.Value.ConsumedToday } },
                 entry!.Public with { Extras = entry.Public.Extras with { CharacterExperience = progress!.Experience,

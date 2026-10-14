@@ -28,52 +28,8 @@ internal static class SupplementalSynchronizationCodec
         return Payload(0x0239, stream.ToArray());
     }
 
-    public static GameMessagePayload EncodeRoster(CharacterRosterEntryState value)
-    {
-        ArgumentNullException.ThrowIfNull(value);
-        var characters = value.Characters ?? throw Missing("Roster.Characters");
-        using var stream = new MemoryStream();
-        using var writer = new BinaryWriter(stream);
-        writer.Write((byte)2);
-        writer.Write(value.SlotLimit);
-        writer.Write(value.SecondarySlotLimit);
-        writer.Write(value.ManageLevel);
-        writer.Write(value.AdventurePoint);
-        writer.Write(value.Compatibility16);
-        writer.Write(value.Compatibility32);
-        writer.Write(checked((ushort)characters.Count));
-        foreach (var character in characters)
-        {
-            var appearances = character.Appearances ?? throw Missing($"Roster.Appearance[{character.CharacterId}]");
-            writer.Write(character.SlotIndex);
-            WriteDstr(writer, character.Name);
-            writer.Write((byte)0);
-            writer.Write((byte)0);
-            writer.Write(character.Job);
-            writer.Write(character.GrowType);
-            writer.Write(character.Level);
-            // The same ten bytes the roster screen writes, from the same reading: two observed
-            // literals and eight zeros. This used to model them as two progress values plus a
-            // reserved field, which sends four zeros on any character whose first progress value
-            // is not 267 -- and the reference session's entry-path copy of this frame is byte for
-            // byte its roster-screen copy, 0B 01 included. Two codecs for one wire fact is the
-            // dissonance recorded in Docs/ProtocolScaffoldDissonances.md; until they are one, the
-            // least they can do is agree.
-            //
-            // Which reading is right is still open: 0B 01 00 00 is also the little-endian u32 267.
-            // A second character whose progress differs would settle it.
-            writer.Write(AccountRoster.AccountCharacterRosterPayloadCodec.FirstByteAfterLevel);
-            writer.Write(AccountRoster.AccountCharacterRosterPayloadCodec.SecondByteAfterLevel);
-            writer.Write(0u);
-            writer.Write(0u);
-            writer.Write(checked((byte)appearances.Count));
-            foreach (var appearance in appearances)
-                WriteAppearance(writer, appearance);
-            WriteRosterTail(writer, character.CloneTitleItemId);
-        }
-
-        return new GameMessagePayload(0x0002, stream.ToArray(), Checksum: 2);
-    }
+    public static GameMessagePayload EncodeRoster(CharacterRosterEntryState value) =>
+        new(0x0002, AccountRoster.AccountCharacterRosterPayloadCodec.EncodeRosterState(value), Checksum: 2);
 
     public static GameMessagePayload EncodeHonor(uint level, uint experience)
     {
@@ -279,44 +235,6 @@ internal static class SupplementalSynchronizationCodec
             writer.Write(room.MatchingType);
         }
         return Payload(0x0029, stream.ToArray());
-    }
-
-    private static void WriteAppearance(BinaryWriter writer, CharacterRosterAppearanceState value)
-    {
-        var expansion = value.ExpansionData ?? throw Missing("Roster.Appearance.ExpansionData");
-        if (expansion.Length != 4 || value.ExpansionLength != 4)
-            throw new InvalidDataException("Roster appearance expansion must be the loaded four-byte value.");
-        writer.Write(value.Slot);
-        writer.Write(value.DisplayItemId);
-        writer.Write(value.ExpansionLength);
-        writer.Write(expansion);
-        writer.Write(value.State);
-        writer.Write(value.LinkItemId);
-        writer.Write(value.EnchantValue);
-        writer.Write(value.Flag20);
-    }
-
-    /// <summary>The same thirty-six byte close the roster screen writes.</summary>
-    /// <remarks>
-    /// This is the second encoder of subtype 2 in the repository -- the roster screen has its own
-    /// -- so the tail lives twice, and both were corrected together because the tail is one wire
-    /// fact. Only the tail: the ten bytes after the level still differ between the two, this one
-    /// writing progress values where the roster screen writes the bytes that session carried.
-    /// Both of those, and why they were not merged here, are in
-    /// Docs/ProtocolScaffoldDissonances.md.
-    /// </remarks>
-    private static void WriteRosterTail(BinaryWriter writer, uint cloneTitleItemId)
-    {
-        writer.Write(cloneTitleItemId);
-        writer.Write(new byte[4]);
-        writer.Write(0u);
-        writer.Write(0u);
-        writer.Write((byte)0);
-        writer.Write(0u);
-        writer.Write(new byte[6]);
-        writer.Write((byte)0xFF);
-        writer.Write(new byte[4]);
-        writer.Write(0u);
     }
 
     private static void WriteDstr(BinaryWriter writer, byte[]? value)

@@ -25,8 +25,8 @@ internal sealed class ClientAppearanceSettingsSubscriber(IEventService events, I
     }
 }
 
-internal sealed class ClientAppearanceVisibilityProjection(IClientSettingsDomainService settings,
-    ICharacterSettingsDomainService characters, ISelectedSessionDomainService sessions,
+internal sealed class ClientAppearanceVisibilityProjection(ICharacterAppearanceDomainService appearances,
+    ISelectedSessionDomainService sessions,
     ITownAreaDomainService towns, IDungeonRunDomainService runs, IIllusionTowerDomainService? towers = null)
     : INotificationHandler<ClientAppearanceVisibilityRefresh>
 {
@@ -64,13 +64,11 @@ internal sealed class ClientAppearanceVisibilityProjection(IClientSettingsDomain
         if (receiver is null || receiver.ConnectionId != recipient.ConnectionId
             || recipient.ExpectedSession is { } expected && receiver != expected
             || !Recipients(owner).Contains(receiver)) return [];
-        var legacy = await characters.FindAsync(owner.CharacterId, ct).ConfigureAwait(false);
-        if (legacy is null) return [];
-        var options = await settings.ReadAppearanceAsync(owner.AccountId, checked((byte)legacy.VisibilityBits), ct).ConfigureAwait(false);
+        var display = await appearances.ResolveAsync(owner.AccountId, owner.CharacterId, [], ct).ConfigureAwait(false);
         // Both the owner and recipient may move or reconnect while storage is awaited.
         if (sessions.FindByCharacter(receiver.CharacterId) != receiver
             || sessions.FindByConnection(receiver.ConnectionId) != receiver
             || !Recipients(owner).Contains(receiver)) return [];
-        return [new UserVisibilityMessage(owner.WireUserId, options.VisibilityBits)];
+        return [new UserVisibilityMessage(owner.WireUserId, display.VisibilityBits)];
     }
 }

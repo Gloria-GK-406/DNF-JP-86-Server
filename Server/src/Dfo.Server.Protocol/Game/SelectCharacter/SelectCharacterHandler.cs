@@ -465,8 +465,8 @@ public sealed class SelectCharacterHandler(
         {
             new UserVisibilityMessage(
                 session.WireUserId,
-                checked((byte)result.CharacterEntry.Public.VisibilityBits)),
-            new CloneTitleStateMessage(result.CharacterEntry.Public.CloneTitleItemId),
+                result.CharacterEntry.Public.Display?.VisibilityBits ?? checked((byte)result.CharacterEntry.Public.VisibilityBits)),
+            new CloneTitleStateMessage(result.CharacterEntry.Public.Display?.TitleAppearanceItemId ?? result.CharacterEntry.Public.CloneTitleItemId),
             new AccountRosterStateMessage(result.RosterEntry
                 ?? throw new InvalidDataException("Roster state is unavailable.")),
             // The same account-wide standing the roster screen already received, not a character

@@ -252,7 +252,7 @@ internal static class TitleBookEquipmentProjection
     internal static IReadOnlyList<IGameServerMessage> Compose(Dfo.Server.Data.Game.SelectCharacterResult current)
     {
         var equipment = current.CharacterInventory.Containers.Single(x => x.ContainerType == InventoryContainerType.Equipment).Items;
-        var state = current.CharacterEntry.Public with { CloneTitleItemId = checked((uint)(equipment.SingleOrDefault(x => x.SlotIndex == 13)?.Core.AppearanceItemId ?? 0)) };
+        var state = current.CharacterEntry.Public;
         return [new ExtendedUserStateMessage(current.Character, state, current.CharacterEntry.Skills, equipment, current.World.PreparedAt),
             new CurrentUserStateMessage(current.Character, state, equipment, current.CharacterEntry.Features.Pets)];
     }

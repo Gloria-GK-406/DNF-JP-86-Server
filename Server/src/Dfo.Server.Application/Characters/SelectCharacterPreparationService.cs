@@ -158,7 +158,7 @@ public sealed class SelectCharacterPreparationService(
             preparationRules, preparedAt,
             cancellationToken).ConfigureAwait(false);
 
-        characterEntry = CharacterStateProjection.CompleteTitleAppearanceProjection(characterEntry, characterInventory);
+        characterEntry = CharacterStateProjection.CompleteAppearanceProjection(character, characterEntry, characterInventory);
         if (achievements is not null)
             characterEntry = characterEntry with { Features = characterEntry.Features with
             { Collections = characterEntry.Features.Collections with

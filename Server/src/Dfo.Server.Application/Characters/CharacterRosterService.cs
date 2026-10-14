@@ -36,7 +36,7 @@ internal sealed class CharacterRosterService(
     ICharacterContainerStateTable containerState,
     ICharacterItemTable items,
     IItemPlacementRuleService placementRules, ICharacterFatigueDomainService fatigue,
-    IItemGrantDomainService grants) : ICharacterRepository
+    IItemGrantDomainService grants, ICharacterAppearanceDomainService? appearances = null) : ICharacterRepository
 {
     /// <summary>
     /// A new character enters at full health. Written explicitly because the column's schema
@@ -176,15 +176,17 @@ internal sealed class CharacterRosterService(
             .ToDictionary(
                 group => group.Key,
                 group => (IReadOnlyList<InventoryItemState>)[.. group.Select(Worn)]);
-        return
-        [
-            .. rows.Select(row =>
-            {
-                var pieces = byCharacter.GetValueOrDefault(row.CharacterId) ?? [];
-                return Summary(row, DrawnAppearance.Of(pieces)) with
-                { CloneTitleItemId = checked((uint)(pieces.SingleOrDefault(x => x.SlotIndex == 13)?.Core.AppearanceItemId ?? 0)) };
-            }),
-        ];
+        var result = new List<CharacterSummary>(rows.Count);
+        foreach (var row in rows)
+        {
+            var pieces = byCharacter.GetValueOrDefault(row.CharacterId) ?? [];
+            var display = appearances is null
+                ? CharacterAppearanceRuleService.Shared.Resolve(new(CharacterCareer.FromPacked(checked((byte)row.Job), row.GrowType)), pieces, new(null, 0))
+                : await appearances.ResolveAsync(accountId, new(row.CharacterId), pieces, cancellationToken).ConfigureAwait(false);
+            result.Add(Summary(row, display.Parts) with
+            { CloneTitleItemId = display.TitleAppearanceItemId, Display = display });
+        }
+        return result;
     }
 
     /// <summary>One row as the listing names it, however much was worked out about it.</summary>

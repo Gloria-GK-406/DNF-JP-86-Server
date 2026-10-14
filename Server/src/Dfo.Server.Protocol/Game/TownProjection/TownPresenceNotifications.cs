@@ -118,7 +118,7 @@ internal static class TownPresenceMessages
             participant.Pets));
         messages.Add(new UserVisibilityMessage(
             wireUserId,
-            checked((byte)participant.Public.VisibilityBits)));
+            participant.Public.Display?.VisibilityBits ?? checked((byte)participant.Public.VisibilityBits)));
         messages.Add(new UserAreaNotification(
             wireUserId,
             participant.Spawn,

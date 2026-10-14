@@ -74,7 +74,10 @@ public sealed record CharacterRosterMemberState(
     uint HonorExperience,
     ushort HonorReserved,
     IReadOnlyList<CharacterRosterAppearanceState> Appearances,
-    uint CloneTitleItemId);
+    uint CloneTitleItemId)
+{
+    public Dfo.Server.Data.Characters.CharacterAppearance? Display { get; init; }
+}
 
 public sealed record CharacterRosterEntryState(
     ushort SlotLimit,

@@ -32,6 +32,19 @@ public interface ICharacter
 {
     CharacterId Id { get; }
 
+    async ValueTask<CharacterAvatarCandidates?> GetAvatarCandidatesAsync(CancellationToken ct) =>
+        await IdentityAsync(ct).ConfigureAwait(false) is { } identity
+            ? new(CharacterCareer.FromPacked(identity.Job, identity.GrowType)) : null;
+
+    async ValueTask<CharacterCareer?> GetDefaultAvatarAsync(CancellationToken ct) =>
+        (await GetAvatarCandidatesAsync(ct).ConfigureAwait(false))?.Default;
+
+    async ValueTask<CharacterCareer?> GetCareerAvatarAsync(CancellationToken ct) =>
+        (await GetAvatarCandidatesAsync(ct).ConfigureAwait(false))?.Career;
+
+    async ValueTask<CharacterCareer?> GetAwakeningAvatarAsync(CancellationToken ct) =>
+        (await GetAvatarCandidatesAsync(ct).ConfigureAwait(false))?.Awakening;
+
     /// <summary>Price and settle a reward in the caller's transaction, including max-level overflow.</summary>
     ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at,
         Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken ct);

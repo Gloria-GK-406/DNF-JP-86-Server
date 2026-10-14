@@ -44,7 +44,9 @@ internal static class DespairTowerPayloadCodec
         writer.Write(message.Character.Identity.GrowType);
         writer.Write(0); // empty guild Dstr
         writer.Write(0); // guild id
-        var appearances = Dfo.Server.Application.Characters.DrawnAppearance.Of(message.Equipment);
+        var appearances = Dfo.Server.Application.Characters.CharacterAppearanceRuleService.Shared.Resolve(
+            new(CharacterCareer.FromPacked(message.Character.Identity.Job, message.Character.Identity.GrowType)),
+            message.Equipment, new(null, 0)).Parts;
         for (var i = 0; i < 22; i++)
         {
             var wornSlot = i < 10 ? i : i == 10 ? 12 : -1;
