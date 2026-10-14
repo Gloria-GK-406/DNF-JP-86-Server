@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
@@ -13,7 +15,8 @@ namespace Dfo.Server.Application.Accounts;
 
 internal sealed class ClientSettingsDomainService(IClientSettingsTable table,
     IOnlineUserQueryDomainService users, ISelectedSessionDomainService sessions,
-    IDomainTransactionAccessor transactions) : IClientSettingsDomainService
+    IDomainTransactionAccessor transactions, ICharacterSettingsDomainService characterSettings,
+    IEventService events) : IClientSettingsDomainService
 {
     private sealed record Profile(ClientSettingsOrigin Origin, byte KeyType, Guid Token);
     private readonly ConcurrentDictionary<NetworkConnectionId, Profile> profiles = new();
@@ -22,9 +25,21 @@ internal sealed class ClientSettingsDomainService(IClientSettingsTable table,
     {
         DemandTransaction();
         if (payload.Length != 150 || !IsCurrent(origin)) return false;
+        ClientAppearanceOptions? previous = null;
+        byte fallback = 0;
+        if (origin.SelectedSession is { } selected)
+        {
+            fallback = checked((byte)((await characterSettings.FindAsync(selected.CharacterId, ct).ConfigureAwait(false))?.VisibilityBits ?? 0));
+            previous = await ReadAppearanceAsync(origin.AccountId, fallback, ct).ConfigureAwait(false);
+        }
         await table.SaveMainAsync(origin.AccountId, [.. payload], ct);
+        if (previous is not null && previous.VisibilityBits != new ClientAppearanceOptions(payload, fallback).VisibilityBits)
+            _ = await events.EnqueueAsync(new ClientAppearanceSettingsChanged(origin.AccountId, origin.SelectedSession!.CharacterId), ct).ConfigureAwait(false);
         return true;
     }
+
+    public async ValueTask<ClientAppearanceOptions> ReadAppearanceAsync(AccountId accountId, byte fallbackVisibility, CancellationToken ct) =>
+        new(await table.ReadMainAsync(accountId, ct).ConfigureAwait(false), fallbackVisibility);
 
     public async ValueTask<bool> SaveQuickChatAsync(ClientSettingsOrigin origin, byte bank, byte[] payload, CancellationToken ct)
     {

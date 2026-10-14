@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-14 职业外观与显示设置（CurrentImplementation，待实机验收）
+
+[USERINFO subtype0](game/server-to-client/NOTI-0x0002.md)尾部+47不再固定写0，修复职业进阶在线刷新关闭特效。主设置00C5 blob仍为三项显示选项唯一真源，以只读视图解释槽1／55／74；保存变化提交后经EventBus投影[0165](game/server-to-client/NOTI-0x0165.md)，本人与当前同场景成员同步。登录、公开外观和完整角色状态同源，不改写旧user_state_bits、不新增数据库字段。[证据、结构与验收边界](../Document/CareerAppearanceVisibility-20261014.md)。
+
 ## 2026-10-14 大会APC编号与黑龙次数（CurrentImplementation，待实机验收）
 
 [0183](game/server-to-client/NOTI-0x0183.md)的actorId独立于round；大会APC与玩家共用客户端类别0x111，原固定1..4使WireUserId=2的玩家第二轮重号。现开局生成避开玩家的四个唯一编号，并统一用于Cell、任务掉落与死亡门控。黑龙每日上限从PVF读取为9，经统一门禁、UsageQuota及EventBus持久化和[0227](game/server-to-client/NOTI-0x0227.md)投影；登录、完整角色状态及跨日刷新同源，无数据库结构变更。[修复证据及验收项](../Document/TournamentApcAndQuotaFix-20261014.md)。

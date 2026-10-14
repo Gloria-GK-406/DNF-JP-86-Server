@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Application.Tests.Characters;
+using Dfo.Server.Application.Tests.World;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
@@ -13,11 +14,155 @@ using Dfo.Server.Protocol.Game.SaveGameOption;
 using Dfo.Server.Protocol.Game.SaveHotkeys;
 using Dfo.Server.Protocol.Game.SaveQuickChat;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.Notifications;
+using Dfo.Server.Application.DomainEvents;
 
 namespace Dfo.Server.Application.Tests.Accounts;
 
 public sealed class ClientSettingsBlobTests
 {
+    [Fact]
+    public async Task Registered_event_subscription_projects_latest_blob_only_after_commit_and_skips_offline_owner()
+    {
+        var bus = new VisibilityBus();
+        await using var f = new LearningFixture(configure: services =>
+        {
+            new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
+            services.AddSingleton<INotificationBus>(bus);
+        });
+        await f.SeedAsync();
+        f.Sql("INSERT INTO character_settings(character_id,user_state_bits) VALUES(71,3)");
+        var peer = Dfo.Server.Data.World.SelectedSessionIdentity.Create(new(2), new(72), new("visibility-peer"), 1, 10011);
+        var sessions = f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>();
+        sessions.Select(peer);
+        var towns = f.Services.GetRequiredService<Dfo.Server.Abstractions.World.ITownAreaDomainService>();
+        towns.Enter(new(peer.CharacterId, peer.TownAreaLease(), new(1, 0, 0), new(0, 0, 0, 0, 0), true));
+        var service = f.Services.GetRequiredService<IClientSettingsDomainService>(); var origin = Origin(f);
+        var on = new byte[150]; on[2] = on[110] = on[148] = 1;
+        await using (var tx = f.Scope.Begin())
+        {
+            await f.Services.GetRequiredService<IClientSettingsTable>().SaveMainAsync(new(1), on, default);
+            await tx.CommitAsync(default);
+        }
+        bus.Compose = async (recipient, notice) =>
+        {
+            Assert.Null(f.Services.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>().Current);
+            using var scope = f.Services.CreateScope();
+            var registry = scope.ServiceProvider.GetRequiredService<NotificationHandlerRegistry>();
+            var registration = registry.GetRegistration(notice.GetType());
+            return await ((INotificationComposer)scope.ServiceProvider.GetRequiredService(registration.ComposerType))
+                .ComposeAsync(recipient, notice, default);
+        };
+        var dispatcher = f.Services.GetRequiredService<DomainEventDispatcher>();
+        await using (var tx = f.Scope.Begin())
+        {
+            await service.SaveMainAsync(origin, new byte[150], default);
+            await service.SaveMainAsync(origin, on, default);
+            await service.SaveMainAsync(origin, new byte[150], default);
+            Assert.Empty(bus.Messages);
+            await tx.CommitAsync(default);
+        }
+        Assert.Empty(bus.Messages);
+        Assert.Equal(3, await dispatcher.DrainOnceAsync());
+        Assert.Equal(2, bus.Messages.Count); // Self and the visible town peer see the owner's flags.
+        Assert.All(bus.Messages, message =>
+        {
+            Assert.Equal("UserVisibilityMessage", message.GetType().Name);
+            Assert.Equal((byte)25, message.GetType().GetProperty("UserStateBits")!.GetValue(message));
+            Assert.Equal((ushort)71, message.GetType().GetProperty("UserId")!.GetValue(message));
+        });
+        towns.Enter(new(peer.CharacterId, peer.TownAreaLease(), new(1, 0, 1), new(0, 1, 0, 0, 0), true));
+        await using (var tx = f.Scope.Begin())
+        {
+            await service.SaveMainAsync(origin, on, default);
+            await tx.CommitAsync(default);
+        }
+        await dispatcher.DrainOnceAsync();
+        Assert.Equal(3, bus.Messages.Count); // The peer in another area receives no refresh.
+        await using (var tx = f.Scope.Begin())
+        {
+            await service.SaveMainAsync(origin, new byte[150], default);
+            await tx.CommitAsync(default);
+        }
+        sessions.ReleaseExact(f.Session);
+        await dispatcher.DrainOnceAsync();
+        Assert.Equal(3, bus.Messages.Count);
+    }
+
+    [SkippableFact]
+    public async Task Full_character_views_derive_visibility_from_blob_without_updating_the_legacy_row()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        await using var f = new LearningFixture(useArchive: true, configure: services => services.AddSingleton(
+            new Dfo.Server.Infrastructure.Content.PvfContentOptions { ArchivePath = ContentArchive.Path }));
+        await f.SeedAsync();
+        f.Sql("INSERT INTO character_settings(character_id,user_state_bits) VALUES(71,3); INSERT INTO character_stats(character_id) VALUES(71); INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0); INSERT INTO character_pvp(character_id) VALUES(71); INSERT INTO character_expert_job(character_id) VALUES(71)");
+        var table = f.Services.GetRequiredService<IClientSettingsTable>();
+        await using (var tx = f.Scope.Begin()) { await table.SaveMainAsync(new(1), new byte[150], default); await tx.CommitAsync(default); }
+        var entry = await f.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterEntryStateDomainService>().LoadAsync(new(1), new(71), default);
+        Assert.Equal(25, entry.Public.VisibilityBits); Assert.Equal(25, entry.Public.Settings.UserStateBits);
+        Assert.Equal(25, entry.Settings.VisibilityBits);
+        Assert.Equal(3, f.Scalar("SELECT user_state_bits FROM character_settings WHERE character_id=71"));
+    }
+
+    private sealed class VisibilityBus : INotificationBus
+    {
+        public Func<NotificationRecipient, object, Task<IReadOnlyList<IServerNetworkMessage>>> Compose = null!;
+        public List<IServerNetworkMessage> Messages = [];
+        public async ValueTask<NotificationDelivery> PublishAsync<T>(NotificationAudience audience, T notice, CancellationToken ct)
+            where T : class, INotification<T>
+        {
+            var results = new List<NotificationAttempt>();
+            foreach (var session in Assert.IsType<NotificationAudience.TheseSessions>(audience).Sessions)
+            {
+                Messages.AddRange(await Compose(new(session.CharacterId, session.ConnectionId, session), notice));
+                results.Add(new(session.CharacterId, NotificationOutcome.Delivered));
+            }
+            return new(results);
+        }
+    }
+
+    [Fact]
+    public async Task Appearance_keeps_blob_as_the_only_write_and_emits_only_changed_selected_options_after_commit()
+    {
+        await using var f = new LearningFixture(); await f.SeedAsync();
+        f.Sql("INSERT INTO character_settings(character_id,user_state_bits) VALUES(71,3)");
+        var service = f.Services.GetRequiredService<IClientSettingsDomainService>(); var origin = Origin(f);
+        var on = new byte[150]; on[2] = on[110] = on[148] = 1;
+        await using (var tx = f.Scope.Begin())
+        {
+            Assert.True(await service.SaveMainAsync(origin, on, default));
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='settings.appearance-changed'"));
+        await using (var tx = f.Scope.Begin())
+            Assert.True(await service.SaveMainAsync(origin, new byte[150], default));
+        Assert.Equal(3, (await service.ReadAppearanceAsync(new(1), 3, default)).VisibilityBits);
+        Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='settings.appearance-changed'"));
+        await using (var tx = f.Scope.Begin())
+        {
+            Assert.True(await service.SaveMainAsync(origin, new byte[150], default));
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(25, (await service.ReadAppearanceAsync(new(1), 3, default)).VisibilityBits);
+        Assert.Equal(3, f.Scalar("SELECT user_state_bits FROM character_settings WHERE character_id=71"));
+        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='settings.appearance-changed'"));
+        var unrelated = new byte[150]; unrelated[20] = 7;
+        await using (var tx = f.Scope.Begin())
+        {
+            Assert.True(await service.SaveMainAsync(origin, unrelated, default));
+            Assert.True(await service.SaveMainAsync(origin, unrelated, default));
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='settings.appearance-changed'"));
+        await using var reload = new LearningFixture(existing: f.Path);
+        Assert.Equal(25, (await reload.Services.GetRequiredService<IClientSettingsDomainService>()
+            .ReadAppearanceAsync(new(1), 3, default)).VisibilityBits);
+        Assert.Equal(3, reload.Scalar("SELECT user_state_bits FROM character_settings WHERE character_id=71"));
+    }
+
     private static ClientSettingsOrigin Origin(LearningFixture f)
     {
         var users = f.Services.GetRequiredService<IOnlineUserQueryDomainService>();

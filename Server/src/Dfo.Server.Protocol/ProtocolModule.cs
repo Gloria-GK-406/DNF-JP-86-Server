@@ -224,6 +224,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddHostedService<PremiumDailyRefreshService>();
         services.AddSingleton<UsageQuotaProjectionDelivery>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.UsageQuotas.UsageQuotaViewChanged, UsageQuotaViewChangedHandler>(retryLimit: 0);
+        services.TryAddScoped<ClientAppearanceVisibilityProjection>();
+        services.AddNotificationHandler<ClientAppearanceVisibilityRefresh, ClientAppearanceVisibilityProjection>(retryLimit: 0);
+        services.AddDomainSubscriber<Dfo.Server.Abstractions.Accounts.ClientAppearanceSettingsChanged,
+            ClientAppearanceSettingsSubscriber>("settings.appearance-visibility", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
+            fact => $"{fact.AccountId.Value}:{fact.CharacterId.Value}");
         services.AddHostedService<MirrorQuotaDailyRefreshService>();
         services.AddHostedService<DimensionQuotaDailyRefreshService>();
         services.AddSingleton<ItemUsageProjectionDelivery>();

@@ -6,6 +6,7 @@ namespace Dfo.Server.Abstractions.Accounts;
 
 public interface IClientSettingsDomainService
 {
+    ValueTask<ClientAppearanceOptions> ReadAppearanceAsync(AccountId accountId, byte fallbackVisibility, CancellationToken ct);
     ValueTask<bool> SaveMainAsync(ClientSettingsOrigin origin, byte[] payload, CancellationToken ct);
     ValueTask<bool> SaveQuickChatAsync(ClientSettingsOrigin origin, byte bank, byte[] payload, CancellationToken ct);
     ValueTask<bool> SaveHotkeysAsync(ClientHotkeyUploadContext context, byte[] payload, CancellationToken ct);

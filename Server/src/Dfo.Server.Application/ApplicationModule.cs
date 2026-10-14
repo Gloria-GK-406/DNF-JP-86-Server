@@ -530,6 +530,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterSkillResetRuleService, CharacterSkillResetRuleService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Notices.INoticeStateDomainService, Dfo.Server.Application.Notices.NoticeStateDomainService>();
         services.TryAddSingleton<IClientSettingsDomainService, ClientSettingsDomainService>();
+        services.AddDomainEvent<ClientAppearanceSettingsChanged>("settings.appearance-changed", 1);
         services.TryAddSingleton<ICharacterOptionsDomainService, CharacterOptionsDomainService>();
         services.TryAddSingleton<ICharacterSkillLearningDomainService, CharacterSkillLearningDomainService>();
         services.TryAddSingleton<ICharacterStateProjectionDomainService, CharacterStateProjectionDomainService>();

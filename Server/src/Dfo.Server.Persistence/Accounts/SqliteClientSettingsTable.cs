@@ -6,6 +6,11 @@ namespace Dfo.Server.Persistence.Accounts;
 
 internal sealed class SqliteClientSettingsTable(SqliteDatabase database) : IClientSettingsTable
 {
+    public async ValueTask<byte[]?> ReadMainAsync(AccountId account, CancellationToken ct) =>
+        (await database.ReadAllAsync("SELECT main_game_option FROM account_settings WHERE account_id=@id;",
+            p => p.AddWithValue("@id", account.Value),
+            r => r.IsDBNull(0) ? null : ((byte[])r.GetValue(0)).ToArray(), ct).ConfigureAwait(false)).SingleOrDefault();
+
     public async ValueTask SaveMainAsync(AccountId account, byte[] payload, CancellationToken ct) =>
         _ = await database.ExecuteAsync(
             "INSERT INTO account_settings(account_id,main_game_option) VALUES(@id,@blob) " +

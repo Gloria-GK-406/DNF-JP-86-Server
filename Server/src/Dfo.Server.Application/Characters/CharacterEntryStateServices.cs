@@ -235,7 +235,8 @@ internal sealed class CharacterEntryStateDomainService(
     ICharacterDomainService characters, INoticeStateDomainService notices,
     IPremiumServiceDomainService premiums,
     ICreatureDomainStore? creatureStore = null, AmbientStoreAccess? stores = null,
-    IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null) : ICharacterEntryStateDomainService
+    IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null,
+    IClientSettingsDomainService? clientSettings = null) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,
@@ -273,6 +274,12 @@ internal sealed class CharacterEntryStateDomainService(
                 SpecialRewardQuestIds = specialRewardQuestIds,
             },
         };
+        if (clientSettings is not null)
+        {
+            var appearance = await clientSettings.ReadAppearanceAsync(accountId, checked((byte)publicState.VisibilityBits), cancellationToken).ConfigureAwait(false);
+            publicState = publicState with { VisibilityBits = appearance.VisibilityBits,
+                Settings = publicState.Settings with { UserStateBits = appearance.VisibilityBits } };
+        }
         var remainingEntries = new List<(int DungeonId, int Remaining)>();
         if (altars is not null)
             remainingEntries.AddRange((await altars.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false))
@@ -313,6 +320,7 @@ internal sealed class CharacterEntryStateDomainService(
             publicState,
             profile.Settings with
             {
+                VisibilityBits = publicState.VisibilityBits,
                 SeenNotices = await notices.GetSeenAsync(NoticeOwner.ForCharacter(characterId), NoticeGroup.Secondary, cancellationToken),
             },
             skillQuest.Skills,
