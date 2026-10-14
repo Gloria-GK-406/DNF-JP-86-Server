@@ -97,6 +97,8 @@ public sealed class ApplicationModule : IServerModule
 
         services.TryAddSingleton(TimeProvider.System);
         services.AddTaskScheduling();
+        services.AddOnlineExpiredItemCleanup();
+        services.TryAddSingleton<ICharacterVisibleSessionDomainService, CharacterVisibleSessionDomainService>();
         services.AddEventDispatching();
         services.TryAddSingleton<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();

@@ -27,8 +27,8 @@ public sealed class ExpiredCharacterItemCleanupTests
 
             await using (var transaction = scope.Begin())
             {
-                Assert.True(await cleanup.CleanupAsync(
-                    new AccountId(41), new CharacterId(57), CancellationToken.None));
+                Assert.True((await cleanup.CleanupAsync(
+                    new AccountId(41), new CharacterId(57), CancellationToken.None)).Owned);
                 await transaction.CommitAsync(CancellationToken.None);
             }
 
@@ -37,8 +37,8 @@ public sealed class ExpiredCharacterItemCleanupTests
 
             await using (var transaction = scope.Begin())
             {
-                Assert.True(await cleanup.CleanupAsync(
-                    new AccountId(41), new CharacterId(57), CancellationToken.None));
+                Assert.True((await cleanup.CleanupAsync(
+                    new AccountId(41), new CharacterId(57), CancellationToken.None)).Owned);
                 await transaction.CommitAsync(CancellationToken.None);
             }
             Assert.Equal(new long[] { 2L, 4L }, await ReadItemUidsAsync(path));
@@ -67,8 +67,8 @@ public sealed class ExpiredCharacterItemCleanupTests
 
             await using (var transaction = scope.Begin())
             {
-                Assert.False(await cleanup.CleanupAsync(
-                    new AccountId(42), new CharacterId(57), CancellationToken.None));
+                Assert.False((await cleanup.CleanupAsync(
+                    new AccountId(42), new CharacterId(57), CancellationToken.None)).Owned);
                 await transaction.CommitAsync(CancellationToken.None);
             }
             Assert.Equal(new long[] { 1L, 2L, 3L, 4L }, await ReadItemUidsAsync(path));

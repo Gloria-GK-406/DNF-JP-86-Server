@@ -929,10 +929,10 @@ public sealed partial class SelectCharacterLifecycleTests
 
     private sealed class StubExpiredCleanup(bool refuse, bool fail) : IExpiredCharacterItemCleanupDomainService
     {
-        public ValueTask<bool> CleanupAsync(
+        public ValueTask<ExpiredItemCleanupResult> CleanupAsync(
             AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
-            fail ? ValueTask.FromException<bool>(new IOException("database write failed"))
-                : ValueTask.FromResult(!refuse);
+            fail ? ValueTask.FromException<ExpiredItemCleanupResult>(new IOException("database write failed"))
+                : ValueTask.FromResult(new ExpiredItemCleanupResult(!refuse, []));
     }
 
     private sealed class RejectedLoginCommandBus : ICommandBus
