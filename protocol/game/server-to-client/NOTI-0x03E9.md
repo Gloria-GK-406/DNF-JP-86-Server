@@ -61,3 +61,12 @@ BodyLength = 未知（字段集合已知不完整）
 ## 逆向工作日志
 
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
+
+## 2026-10-14 SAO 层数静态补证
+
+**ClientStatic / Confirmed**：绑定 B1 SHA256 `CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14`。
+VA01184242/0118424E 依次读两个 u32；处理函数日志按此顺序命名为 TryRound、TryFloor。
+它们写入 SAO 对象 +1D0/+1D4；后者传给 VA02714AF0 拆出三位数字刷新选图层数。
+TryRound 的单位仍未知；公告对 TryFloor=1 显示100，否则显示 TryFloor-1，故不能直接称为刚通关层。
+尚无实帧，自动区的结构完整性状态不变。
+详见 [入口与协议研究](../../../Document/SaoTowerEntrance-20261014.md)。
