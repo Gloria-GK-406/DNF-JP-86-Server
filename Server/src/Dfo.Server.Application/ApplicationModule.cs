@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Scheduling;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Application.Mail;
@@ -95,6 +96,7 @@ public sealed class ApplicationModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton(TimeProvider.System);
+        services.AddTaskScheduling();
         services.AddEventDispatching();
         services.TryAddSingleton<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
