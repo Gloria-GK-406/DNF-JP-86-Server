@@ -405,6 +405,7 @@ public enum ServerMessageType
     GameSecretShopNpc = 0x0000_0117,
     GameDespairApcInfo = 0x0000_015B,
     GameDespairClearReward = 0x0000_015C,
+    GameSaoCurrentFloor = 0x0000_03E9,
     GamePlayResult = 0x0000_0022,
     GameClearDungeonReward = 0x0000_0023,
     GameScoreScrollState = 0x0001_0045,

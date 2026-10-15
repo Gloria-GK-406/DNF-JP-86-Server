@@ -133,6 +133,9 @@ public sealed class ApplicationModule : IServerModule
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.AltarEntryRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.TryAddSingleton<ISaoTowerRuleService, SaoTowerRuleService>();
+        services.TryAddSingleton<ISaoTowerDomainService, SaoTowerDomainService>();
+        services.AddDomainEvent<SaoTowerCleared>("sao-tower.cleared", 1);
         services.TryAddSingleton<IDespairTowerRuleService, DespairTowerRuleService>();
         services.TryAddSingleton<IDespairTowerDomainService, DespairTowerDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.DespairQuotaRecorded,

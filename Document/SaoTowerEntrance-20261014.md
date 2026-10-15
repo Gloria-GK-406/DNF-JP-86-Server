@@ -20,7 +20,7 @@
 **ContentStatic / Confirmed**：
 
 - 首层 `dungeon/Towers/SAO/SAO_TowerOfDespair001.dgn` 名为“艾恩葛朗特”，带 `[tower of despair sao]`、`[no fatigue]`。
-- `etc/sao_towerofdespair.etc` 声明每日入场 3 次、最高 100 层，逐层映射 1→3600 至 100→3699；SAO coin 为 10004324。
+- `etc/sao_towerofdespair.etc` 声明 `[enterable count]=3`（2026-10-15更正：尚不能解释为额外每日入场上限）、最高 100 层，逐层映射 1→3600 至 100→3699；SAO coin 为 10004324。
 - 首层声明所需物品 `10004322 1 1`，使用 `[event monster2]`。不能把它直接当成普通地图拼装。
 - ETC 的最低等级 10 与首层 DGN 的最低等级 39 不一致，后续功能设计需裁决，不在入口恢复时猜测修改。
 

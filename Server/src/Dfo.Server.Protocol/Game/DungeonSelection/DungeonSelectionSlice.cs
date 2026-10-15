@@ -566,7 +566,7 @@ public sealed class EnterSelectDungeonHandler(
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<EnterSelectDungeonHandler> logger,
     IPartyService parties,
-    UsageQuotaProjectionDelivery? quotaProjection = null, IDespairTowerDomainService? despair = null)
+    UsageQuotaProjectionDelivery? quotaProjection = null, IDespairTowerDomainService? despair = null, ISaoTowerDomainService? sao = null)
     : ClientMessageHandler<EnterSelectDungeonRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -682,6 +682,8 @@ public sealed class EnterSelectDungeonHandler(
                 if (tower is not null)
                     notifications.AddRange(tower.DungeonIds.Select(id =>
                         new DungeonRemainingEntriesMessage(id, tower.FreeEntriesRemaining)));
+                if (sao is not null && await sao.ReadStatusAsync(cancellationToken).ConfigureAwait(false) is { } saoProgress)
+                    notifications.Add(new SaoCurrentFloorNotification(saoProgress));
                 notifications.Add(new EnterSelectDungeonNotification(wireUserIds, checked((ushort)(tower?.NextFloor ?? 1))));
             }
             deliveries.Add((member.Session, notifications));

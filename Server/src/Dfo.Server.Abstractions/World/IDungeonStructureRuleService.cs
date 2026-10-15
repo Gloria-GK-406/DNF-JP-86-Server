@@ -119,6 +119,7 @@ public sealed record DungeonLayout(
     bool ConsumesFatigue = true)
 {
     public DungeonEntryKind EntryKind { get; init; } = DungeonEntryKind.Normal;
+    public SaoTowerEntryPlan? Sao { get; init; }
     public DespairTowerEntryPlan? Despair { get; init; }
     public TournamentPlan? Tournament { get; init; }
     public AltarEntryPlan? Altar { get; init; }

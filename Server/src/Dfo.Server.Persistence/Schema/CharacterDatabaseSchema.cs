@@ -229,6 +229,9 @@ internal static class CharacterDatabaseSchema
     /// allocates it rather than on a caller, because allocation is the only place one is made.
     /// </remarks>
     private const string TableDeclarations = """
+        CREATE TABLE IF NOT EXISTS sao_tower_progress(season TEXT PRIMARY KEY,round INTEGER NOT NULL CHECK(round>=1),next_floor INTEGER NOT NULL CHECK(next_floor BETWEEN 1 AND 100),revision INTEGER NOT NULL CHECK(revision>=0));
+        CREATE TABLE IF NOT EXISTS sao_first_clears(season TEXT NOT NULL,round INTEGER NOT NULL,floor INTEGER NOT NULL,run_id TEXT NOT NULL UNIQUE,PRIMARY KEY(season,round,floor));
+        CREATE TABLE IF NOT EXISTS sao_first_clear_rewards(run_id TEXT NOT NULL,character_id INTEGER NOT NULL,item_id INTEGER NOT NULL,PRIMARY KEY(run_id,character_id),FOREIGN KEY(run_id) REFERENCES sao_first_clears(run_id));
         CREATE TABLE IF NOT EXISTS character_despair_tower (
             character_id INTEGER PRIMARY KEY REFERENCES characters(character_id) ON DELETE CASCADE,
             highest_cleared_floor INTEGER NOT NULL CHECK(highest_cleared_floor BETWEEN 1 AND 100),

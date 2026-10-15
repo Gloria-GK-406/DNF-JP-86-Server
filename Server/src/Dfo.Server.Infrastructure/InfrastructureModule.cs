@@ -27,6 +27,7 @@ public sealed class InfrastructureModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IAltarDungeonContentSource, PvfAltarDungeonContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.ISaoTowerContentSource, PvfSaoTowerContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDespairTowerContentSource, PvfDespairTowerContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ITournamentDungeonContentSource, PvfTournamentDungeonContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDimensionDungeonContentSource, PvfDimensionDungeonContentSource>();

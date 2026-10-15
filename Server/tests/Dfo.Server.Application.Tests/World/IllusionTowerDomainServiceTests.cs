@@ -1212,6 +1212,9 @@ public sealed class IllusionTowerDomainServiceTests
             s.AddSingleton<IIllusionTowerRuleService>(rules ?? new Rules());
             s.AddSingleton<IDungeonStructureRuleService>(layouts ?? new OrdinaryLayouts());
             s.AddSingleton<IDungeonDifficultyRuleService>(new Dfo.Server.Application.Tests.Support.TestDungeonDifficultyRules());
+            // Returning from the tower reads quota projections; the synthetic fixture must not load a real PVF.
+            s.AddSingleton<IAltarDungeonContentSource, NoAltarContent>();
+            s.AddSingleton<ITournamentDungeonContentSource, NoTournamentContent>();
             s.AddSingleton<IDungeonCellFactory, OrdinaryCells>();
             s.AddSingleton<IDungeonRunDomainService>(p => new DungeonRunDomainService(p.GetRequiredService<IDomainTransactionAccessor>()));
             configure?.Invoke(s);
@@ -1220,6 +1223,17 @@ public sealed class IllusionTowerDomainServiceTests
         return f;
     }
     private static IIllusionTowerDomainService Tower(ShopFixture f) => f.Services.GetRequiredService<IIllusionTowerDomainService>();
+    private sealed class NoAltarContent : IAltarDungeonContentSource
+    {
+        public ValueTask<AltarDungeonDefinition> GetAsync(int dungeonId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new AltarDungeonDefinition(dungeonId, AltarDungeonKind.Endless, 1, 1, 1, 0, [],
+                new(0, 0, 0, 0, [], [], [], [], ""), 3));
+    }
+    private sealed class NoTournamentContent : ITournamentDungeonContentSource
+    {
+        public ValueTask<TournamentDefinition> GetAsync(int dungeonId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new TournamentDefinition(dungeonId, 1, 1, 1, 0, 0, [], [], [], [], [], 0));
+    }
     private static DomainTransactionScope Scope(ShopFixture f) => (DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
     private static ValueTask<TowerEntryResult> Enter(ShopFixture f) => Tower(f).EnterAsync([new(f.Session, 2)], f.Session, 42, default);
     private static TowerActionContext Context(IllusionTowerSnapshot run, SelectedSessionIdentity session) => new(session, run.RunId, run.Room.Version);

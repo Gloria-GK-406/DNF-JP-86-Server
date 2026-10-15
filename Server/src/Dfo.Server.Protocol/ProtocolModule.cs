@@ -968,6 +968,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<EnableClearDungeonNotification, EnableClearDungeonEncoder>();
         services.AddGameNotiMessageEncoder<SecretShopNpcNotification, SecretShopNpcEncoder>();
         services.AddGameNotiMessageEncoder<DespairClearRewardNotification, DespairClearRewardEncoder>();
+        services.AddGameNotiMessageEncoder<SaoCurrentFloorNotification, SaoCurrentFloorEncoder>();
+        services.AddDomainSubscriber<SaoTowerCleared, SaoTowerNotificationSubscriber>("sao-tower.notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddNotificationHandler<SaoTowerRefresh, SaoTowerRefreshHandler>(retryLimit: 0);
         services.AddGameNotiMessageEncoder<DespairApcInfoNotification, DespairApcInfoEncoder>();
         services.AddGameNotiMessageEncoder<PlayResultNotification, PlayResultEncoder>();
         services.AddGameNotiMessageEncoder<ClearDungeonRewardNotification, ClearDungeonRewardEncoder>();

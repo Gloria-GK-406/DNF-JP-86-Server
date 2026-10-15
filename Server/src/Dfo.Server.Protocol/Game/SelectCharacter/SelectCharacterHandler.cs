@@ -72,7 +72,8 @@ public sealed class SelectCharacterHandler(
     ItemUsageProjectionDelivery? itemUsageProjection = null,
     Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? achievementProjectionGate = null,
     UsageQuotaProjectionDelivery? quotaProjection = null,
-    Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService? clientSettings = null) : ClientMessageHandler<SelectCharacterRequest>
+    Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService? clientSettings = null,
+    Dfo.Server.Abstractions.World.ISaoTowerDomainService? sao = null) : ClientMessageHandler<SelectCharacterRequest>
 {
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -444,6 +445,11 @@ public sealed class SelectCharacterHandler(
         if (SendsFramesAfterTheCompletionMarker && quotaProjection is not null)
             _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.TournamentDungeon,
                 cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker && sao is not null
+            && await sao.ReadStatusAsync(cancellationToken).ConfigureAwait(false) is { } saoProgress)
+            await sender.SendExplicitAsync(session.ConnectionId,
+                new GameExplicitMessageDelivery([new SaoCurrentFloorNotification(saoProgress)], []), cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && lotteryCounterExperiment is { Enabled: true } experiment)
         {
