@@ -5,8 +5,10 @@ namespace Dfo.Server.Application.World;
 
 internal sealed class TauKingdomRuleService(ITauKingdomContentSource source) : ITauKingdomRuleService
 {
-    public bool Supports(int dungeonId) => dungeonId == 3700;
-    public int EventId => 2215;
+    internal const int DungeonId = 3700;
+    internal const int ActivityId = 2215;
+    public bool Supports(int dungeonId) => dungeonId == DungeonId;
+    public int EventId => ActivityId;
     public int TicketItemId => 690001556;
     // ClientStatic: the generic event parser requires tag/int/int. Admission checks the event ID only.
     public string ActivityLink => "taukingdom/0/0";

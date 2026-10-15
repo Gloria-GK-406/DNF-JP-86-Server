@@ -116,10 +116,10 @@ internal sealed class CharacterCurrentStateQueryDomainService(
             new GameWorldEntryState(readAt, content, channelPolicy, contentSubject),
             new CharacterSessionEntryState(session.AccountId, session.CharacterId, adjacentState),
             roster, rosterEntry,
-            events is null || attendance is null ? null : new EventPlayerSnapshot(
+            events is null || attendance is null ? null : Dfo.Server.Application.Events.EventPlayerSnapshotProjection.WithScheduledDungeons(new EventPlayerSnapshot(
                 await events.GetEventInfoListAsync(session.AccountId, readAt, cancellationToken),
                 await attendance.StateAsync(session.AccountId, readAt, cancellationToken),
-                joust is null ? null : await joust.ReadAsync(session.CharacterId, readAt, cancellationToken)),
+                joust is null ? null : await joust.ReadAsync(session.CharacterId, readAt, cancellationToken))),
             epicBook is null ? [] : await epicBook.GetBalancesAsync(session.AccountId, cancellationToken).ConfigureAwait(false));
     }
 }

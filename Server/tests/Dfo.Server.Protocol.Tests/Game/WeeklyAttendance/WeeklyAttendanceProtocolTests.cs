@@ -7,6 +7,19 @@ using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 namespace Dfo.Server.Protocol.Tests.Game.WeeklyAttendance;
 public sealed class WeeklyAttendanceProtocolTests
 {
+    [Theory]
+    [InlineData(true, 1)]
+    [InlineData(false, 0)]
+    public void Scheduled_dungeon_state_is_sent_on_entry_as_A21_033f(bool open, byte state)
+    {
+        var snapshot = new EventPlayerSnapshot([],WeeklyAttendanceState.Empty) { ScheduledDungeons = [new(3700,open)] };
+        var result = SelectCharacterPayloadTestData.CreateComplete() with { Events = snapshot };
+        var messages = SelectedCharacterStateMessageFactory.Create(result);
+        var schedule = Assert.Single(messages,x => x.Type == 0x033F);
+        // Four u32: category=0 (dungeon), state, content ID=3700, remaining field=0.
+        Assert.Equal(new byte[] { 0,0,0,0, state,0,0,0, 0x74,0x0E,0,0, 0,0,0,0 },schedule.EncodeBody());
+        Assert.Equal(3,messages.Count(x => x.Type == 0x02D5));
+    }
     [Fact]
     public void Calendar_detail_less_entry_uses_short_record_without_displacing_visible_entries()
     {

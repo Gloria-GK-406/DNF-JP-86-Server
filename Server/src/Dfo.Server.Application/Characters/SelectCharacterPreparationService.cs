@@ -224,10 +224,10 @@ public sealed class SelectCharacterPreparationService(
                 adjacent),
             roster,
             rosterEntry,
-            events is null || attendance is null ? null : new Dfo.Server.Data.Events.EventPlayerSnapshot(
+            events is null || attendance is null ? null : Dfo.Server.Application.Events.EventPlayerSnapshotProjection.WithScheduledDungeons(new(
                 await events.GetEventInfoListAsync(accountId,preparedAt,cancellationToken),
                 await attendance.StateAsync(accountId,preparedAt,cancellationToken),
-                joust is null ? null : await joust.ReadAsync(character.Identity.CharacterId,preparedAt,cancellationToken)),
+                joust is null ? null : await joust.ReadAsync(character.Identity.CharacterId,preparedAt,cancellationToken))),
             epicBook is null ? [] : await epicBook.GetBalancesAsync(accountId, cancellationToken).ConfigureAwait(false));
 
         return result;

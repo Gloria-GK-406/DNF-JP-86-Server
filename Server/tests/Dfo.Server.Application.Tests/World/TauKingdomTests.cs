@@ -75,6 +75,7 @@ public sealed class TauKingdomTests
     public async Task Default_activity_is_open_and_an_explicit_disable_is_preserved()
     {
         await using var f = new LearningFixture();
+        await f.SeedAsync();
         var events = f.Services.GetRequiredService<IEventManagementDomainService>();
         var at = DateTimeOffset.UtcNow;
         var enabled = await events.GetEventInfoListAsync(new(1), at, default);
@@ -87,12 +88,15 @@ public sealed class TauKingdomTests
         Assert.Equal("", companion.EndNotice);
         Assert.DoesNotContain((await events.ListAsync(at, default)).Entries, x => x.EventId == 69);
         Assert.Empty(await events.GetEventInfoListAsync(new(0), at, default));
+        var projection = f.Services.GetRequiredService<IEventPlayerProjectionDomainService>();
+        Assert.True(Assert.Single((await projection.ReadNowAsync(f.Session, default)).ScheduledDungeons, x => x.DungeonId == 3700).Open);
         await using (var tx = f.Scope.Begin())
         {
             await events.ChangeAsync(new(2215, 0, "disable"), "test", at, default);
             await tx.CommitAsync(default);
         }
         Assert.DoesNotContain(await events.GetEventInfoListAsync(new(1), at, default), x => x.EventId is 2215 or 69);
+        Assert.False(Assert.Single((await projection.ReadNowAsync(f.Session, default)).ScheduledDungeons, x => x.DungeonId == 3700).Open);
         await using (var tx = f.Scope.Begin())
         {
             await events.ChangeAsync(new(2215, 1, "enable"), "test", at, default);
@@ -106,9 +110,10 @@ public sealed class TauKingdomTests
     [InlineData(1, 2)]
     public async Task Inactive_tau_period_excludes_primary_and_companion(int startOffset, int endOffset)
     {
-        await using var f = new LearningFixture();
-        var events = f.Services.GetRequiredService<IEventManagementDomainService>();
         var at = new DateTimeOffset(2026, 10, 15, 12, 0, 0, TimeSpan.Zero);
+        await using var f = new LearningFixture(configure: s => s.AddSingleton<TimeProvider>(new TauClock { Now = at }));
+        await f.SeedAsync();
+        var events = f.Services.GetRequiredService<IEventManagementDomainService>();
         await using (var tx = f.Scope.Begin())
         {
             await events.ChangeAsync(new(2215, 0, "configure", "牛头怪乐园", "牛头怪乐园", "", "", "",
@@ -116,6 +121,8 @@ public sealed class TauKingdomTests
             await tx.CommitAsync(default);
         }
         Assert.DoesNotContain(await events.GetEventInfoListAsync(new(1), at, default), x => x.EventId is 2215 or 69);
+        var snapshot = await f.Services.GetRequiredService<IEventPlayerProjectionDomainService>().ReadNowAsync(f.Session, default);
+        Assert.False(Assert.Single(snapshot.ScheduledDungeons, x => x.DungeonId == 3700).Open);
     }
     [SkippableFact]
     public void Real_boss_drops_three_books_through_existing_table_and_respects_level_ceiling()
