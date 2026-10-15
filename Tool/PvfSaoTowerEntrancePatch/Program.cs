@@ -10,8 +10,9 @@ using Dfo.Pvf.Tokens;
 
 try
 {
-    if (args.Length is not (2 or 3) || args.Length == 3 && args[2] is not ("--ticket" or "--sao-items" or "--sao-core"))
-        throw new ArgumentException("Usage: PvfSaoTowerEntrancePatch <source.pvf> <new.pvf|--inspect|--audit-sao> [--ticket|--sao-items|--sao-core]");
+    if (args.Length is not (2 or 3) || args.Length == 3 && args[2] is not ("--ticket" or "--sao-items" or "--sao-core" or "--sao-pot"))
+        throw new ArgumentException("Usage: PvfSaoTowerEntrancePatch <source.pvf> <new.pvf|--inspect|--audit-sao> [--ticket|--sao-items|--sao-core|--sao-pot]");
+    var potMode = args.Length == 3 && args[2] == "--sao-pot";
     var ticketMode = args.Length == 3 && args[2] == "--ticket";
     var coreMode = args.Length == 3 && args[2] == "--sao-core";
     var itemsMode = args.Length == 3 && args[2] is "--sao-items" or "--sao-core";
@@ -38,7 +39,22 @@ try
     var source = File.ReadAllBytes(input);
     string[] targets;
     var replacements = new Dictionary<int, byte[]>();
-    if (itemsMode)
+    if (potMode)
+    {
+        targets = ["stackable/event/chn_event_20141111_sao_event/10004331_booster.stk"];
+        var tokens = Tokens(targets[0]);
+        var name = Enumerable.Range(0, tokens.Count).Single(i => IsTag(tokens[i], "[name]"));
+        var material = Enumerable.Range(0, tokens.Count).Single(i => IsTag(tokens[i], "[need material]"));
+        if (!tokens[name + 1].IsString || archive.ResolveString(tokens[name + 1].Value) != "封弊者的袖珍罐"
+            || material + 3 >= tokens.Count || tokens[material + 1] != new PvfToken(PvfTokenKind.Int32, 10086503)
+            || tokens[material + 2] != new PvfToken(PvfTokenKind.Int32, 6)
+            || !IsTag(tokens[material + 3], "[/need material]")
+            || tokens.Count(x => IsTag(x, "[/need material]")) != 1)
+            throw new InvalidDataException("Unfamiliar SAO pot material declaration; re-audit before patching.");
+        tokens.RemoveRange(material, 4);
+        replacements.Add(archive.FindFile(targets[0]), Encode(tokens));
+    }
+    else if (itemsMode)
     {
         targets = audit.Items.Where(x => x.Expirations.Length > 0).Select(x => x.Path).ToArray();
         foreach (var item in audit.Items.Where(x => x.Expirations.Length > 0))
@@ -177,12 +193,12 @@ try
         Source=input,Output=output,SourceSha256=Convert.ToHexString(SHA256.HashData(source)),
         OutputSha256=Convert.ToHexString(SHA256.HashData(written)),FileCount=archive.FileCount,
         UnchangedFiles=archive.FileCount-replacements.Count,PreservedExistingChunks=archive.ChunkCount,
-        ModifiedFiles=targets,Mode=coreMode ? "sao-core" : itemsMode ? "sao-items-permanent" : ticketMode ? "sao-ticket-permanent" : "sao-entrance",
+        ModifiedFiles=targets,Mode=potMode ? "sao-pot-no-material" : coreMode ? "sao-core" : itemsMode ? "sao-items-permanent" : ticketMode ? "sao-ticket-permanent" : "sao-entrance",
         RemovedExpirations=itemsMode ? audit.Items.Where(x => x.Expirations.Length > 0).ToArray() : [],
         Audit=audit,
-        AddedEntrance=ticketMode || itemsMode ? null : "3600 -1",NativeControl=ticketMode || itemsMode ? null : "IDC_WORLDMAP_BUTTON6",
-        NativePosition=ticketMode || itemsMode ? null : "280,150",ModifiedFileCount=replacements.Count,
-        InsertedTokenCount=ticketMode || itemsMode ? 0 : 2,RemovedTokenCount=itemsMode ? audit.Items.Sum(x => x.Expirations.Length) * 2 : ticketMode ? 2 : 0,ChangedTokenCount=coreMode ? 2 : 0,
+        AddedEntrance=ticketMode || itemsMode || potMode ? null : "3600 -1",NativeControl=ticketMode || itemsMode || potMode ? null : "IDC_WORLDMAP_BUTTON6",
+        NativePosition=ticketMode || itemsMode || potMode ? null : "280,150",ModifiedFileCount=replacements.Count,
+        InsertedTokenCount=ticketMode || itemsMode || potMode ? 0 : 2,RemovedTokenCount=potMode ? 4 : itemsMode ? audit.Items.Sum(x => x.Expirations.Length) * 2 : ticketMode ? 2 : 0,ChangedTokenCount=coreMode ? 2 : 0,
         MazeSizeRepairs=coreMode ? new[] { "floor25:4x1->1x1", "floor55:2x1->1x1" } : [],
     };
     var json=JsonSerializer.Serialize(report,new JsonSerializerOptions{WriteIndented=true});
