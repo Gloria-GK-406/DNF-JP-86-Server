@@ -22,8 +22,15 @@ public sealed class OpeningCompletedHandler(ISelectedSessionDomainService sessio
         var receipt = notification.Receipt;
         if (recipient.CharacterId != receipt.Session.CharacterId || recipient.ConnectionId != receipt.Session.ConnectionId
             || sessions.Find(receipt.Session.AccountId) != receipt.Session) return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
-        // Native box acknowledgements decrement the two local piles. Absolute inventory deltas must follow them.
+        // Magic-box ACKs decrement local piles; ordinary 00A0 with zero flags does not.
+        // A21 0117E957 / 0117EAF4 will not replace an occupied class-1 stackable with another ID.
+        // Keep ACKs first, then clear reused slots before installing their final contents.
         var messages = new List<IServerNetworkMessage>(notification.Responses);
+        foreach (var slot in receipt.Replaced.Where(x => x.Space != BusinessInventorySpace.SharedMaterial))
+        {
+            var wire = OpeningWireSlots.Project(slot, SlotMappings);
+            messages.Add(GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, receipt.PreparedAt));
+        }
         var updates = receipt.Updates.GroupBy(update => OpeningWireSlots.Project(update.Slot, SlotMappings).Space)
             .Select(group => new CommittedInventoryUpdateState(group.Key,
                 group.Select(update => new InventoryItemState(update.Identity,

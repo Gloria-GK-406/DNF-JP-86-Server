@@ -73,6 +73,9 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
         var snapshot = await inventory.ReadCurrentAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
         var updates = ImmutableArray.CreateBuilder<OpeningInventoryUpdate>();
         var cleared = ImmutableArray.CreateBuilder<BusinessSlot>();
+        var exhausted = applied.Changes<ContainerConsumptionChange>().Where(x => x.RemainingCount == 0)
+            .Select(x => x.Slot).ToHashSet();
+        var replaced = ImmutableArray.CreateBuilder<BusinessSlot>();
         foreach (var slot in touched)
         {
             ItemSnapshot? item;
@@ -86,7 +89,12 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
             else
                 item = (await slots.Get(session.CharacterId, slot).Container.GetAsync(slot.Index, ct)
                     .ConfigureAwait(false))?.Snapshot;
-            if (item is null) cleared.Add(slot); else updates.Add(new(slot, item.ItemUid, item));
+            if (item is null) cleared.Add(slot);
+            else
+            {
+                updates.Add(new(slot, item.ItemUid, item));
+                if (exhausted.Contains(slot)) replaced.Add(slot);
+            }
         }
         var displayed = applied.Applied.SelectMany(x => x.Change switch {
             PreparedItemGrantChange physical => physical.Rewards.AsEnumerable(),
@@ -116,6 +124,7 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
                     row.FieldAfterValue, [.. row.CreatureText], checked((byte)row.TailFlag))).ToImmutableArray();
             }
         }
-        return new(new(session, updates.ToImmutable(), cleared.ToImmutable(), displayed, now, changedPremiums, pets, creaturesChanged), applied);
+        return new(new OpeningInventoryReceipt(session, updates.ToImmutable(), cleared.ToImmutable(), displayed, now,
+            changedPremiums, pets, creaturesChanged) { Replaced = replaced.ToImmutable() }, applied);
     }
 }

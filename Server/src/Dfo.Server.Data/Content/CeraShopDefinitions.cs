@@ -15,6 +15,7 @@ public sealed record CeraShopProductDefinition(int ProductId, int ItemId, int Co
     bool BuyOnlyCeraPoint, ImmutableArray<CeraShopDiagnostic> Diagnostics, string Source, int? ServiceSlot = null, int ServiceDays = 0)
 {
     public CeraShopPremiumDeclaration? Premium { get; init; }
+    public ImmutableArray<int> ServiceSlots { get; init; } = [];
     public CeraShopPurchaseRestrictionDeclaration? PurchaseRestriction { get; init; }
 }
 

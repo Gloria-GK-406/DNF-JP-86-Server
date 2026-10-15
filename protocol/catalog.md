@@ -413,7 +413,7 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x00` NOTI | `0x000B` | `USER_UDP_IP_PORT` | Notification / 队员 P2P 端点 | Implemented（双端已上报建队 UI 通过；待逐帧归因/回落/P2P） | [NOTI-0x000B.md](game/server-to-client/NOTI-0x000B.md) |
 | `0x00` NOTI | `0x0099` | `PARTY_MEMBER_REALTIME_INFO` | Notification / 队员实时摘要 | ClientVerified（A21 双端初始 HP） | [NOTI-0x0099.md](game/server-to-client/NOTI-0x0099.md) |
 | `0x00` NOTI | `0x000D` | `ITEM_LIST` | Notification / 入场背包快照 | ClientVerified（A21 101 字节条目及虚拟材料槽；本服账号材料在同账号换角后余额一致；本次换角 S2C body 未归档） | [NOTI-0x000D.md](game/server-to-client/NOTI-0x000D.md) |
-| `0x00` NOTI | `0x000E` | `UPDATE_ITEM_LIST` | Notification | ClientVerified（A21 随身金币绝对值；分解后的源槽/工具/账号晶体与品级灵魂刷新，并与换角后的 `0x000D` 重载一致；本次分解 S2C body 未归档） | [NOTI-0x000E.md](game/server-to-client/NOTI-0x000E.md) |
+| `0x00` NOTI | `0x000E` | `UPDATE_ITEM_LIST` | Notification | ClientVerified（A21 随身金币绝对值及已观察分解刷新；分解 S2C body 未归档）；2026-10-15 同格不同 ID 替换限制为 ClientStatic，先清后填修复为 CurrentImplementation、待实机 | [NOTI-0x000E.md](game/server-to-client/NOTI-0x000E.md) |
 | `0x00` NOTI | `0x0016` | `USER_POSITION` | Notification / 兼作 `0x0023` 的应答 | 实现服务端功能 | [NOTI-0x0016.md](game/server-to-client/NOTI-0x0016.md) |
 | `0x00` NOTI | `0x0018` | `AREA_USERS` | Notification | ClientVerified（A21 `[gate]` 私有、`[normal]` 共享投影；旧区权威移除待复验） | [NOTI-0x0018.md](game/server-to-client/NOTI-0x0018.md) |
 | `0x00` NOTI | `0x00CA` | `VILLAGE_OBJECT_LIST` | Notification | 实现服务端功能 | [NOTI-0x00CA.md](game/server-to-client/NOTI-0x00CA.md) |

@@ -24,7 +24,11 @@ public sealed record OpeningInventoryReceipt(SelectedSessionIdentity Session,
     ImmutableArray<OpeningInventoryUpdate> Updates, ImmutableArray<BusinessSlot> Cleared,
     ImmutableArray<OpeningRewardDisplay> Rewards, DateTimeOffset PreparedAt,
     ImmutableArray<AccountPremiumEntryState> ChangedPremiums = default,
-    ImmutableArray<CharacterPetRuntimeState> Pets = default, bool CreaturesChanged = false);
+    ImmutableArray<CharacterPetRuntimeState> Pets = default, bool CreaturesChanged = false)
+{
+    /// <summary>Exhausted slots occupied again during settlement; clear their old client objects before updates.</summary>
+    public ImmutableArray<BusinessSlot> Replaced { get; init; } = [];
+}
 public sealed record PackageOpeningResult(OpeningRejection Rejection, OpeningInventoryReceipt? Receipt = null, string? Detail = null);
 public sealed record MagicBoxOpeningResult(OpeningRejection Rejection, OpeningInventoryReceipt? Receipt = null,
     ImmutableArray<OpeningRewardDisplay> Primary = default, ImmutableArray<OpeningRewardDisplay> Bonus = default,
