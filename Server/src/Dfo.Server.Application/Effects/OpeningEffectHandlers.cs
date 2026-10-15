@@ -40,6 +40,7 @@ internal sealed class GrantPreparedItemEffectHandler(IItemArrivalRuleService arr
             CreatureDetail = grant.Item.Placement.WorldClass == ItemWorldClass.Creature
                 ? new(100, 0, 0, 0, 0, grant.Item.CreatureStartLevel!.Value, [], 0) : null,
             Attribute = grant.Reward.Ability, Durability = grant.Item.Durability,
+            TradeRestriction = grant.Reward.TradeRestriction,
             SealFlag = grant.Item.Placement.WorldClass == ItemWorldClass.Creature ? (byte)0 : grant.Item.Sealed ? (byte)1 : (byte)0,
             ExpireTime = grant.Item.Placement.WorldClass == ItemWorldClass.Avatar ? 0 : grant.Expiration,
         };

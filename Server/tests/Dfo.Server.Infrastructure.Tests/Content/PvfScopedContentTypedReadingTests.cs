@@ -221,6 +221,26 @@ public sealed class PvfScopedContentTypedReadingTests
         Assert.Contains(definition.Diagnostics, message => message.Contains("Duplicate", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData(10007316, 101600023, 100000, 1, 3, 0, true)]
+    [InlineData(10007317, 101600023, 100000, 1, 3, 0, false)]
+    [InlineData(10007316, 101600024, 100000, 1, 3, 0, false)]
+    [InlineData(10007316, 101600023, 100000, 2, 3, 0, false)]
+    [InlineData(10007316, 101600023, 100000, 1, 2, 0, false)]
+    [InlineData(10007316, 101600023, 100000, 1, 0, 0, false)]
+    [InlineData(10007316, 101600023, 99999, 1, 3, 0, false)]
+    [InlineData(10007316, 101600023, 100000, 1, 3, 1, false)]
+    public void Dark_repulsor_profile_is_bound_only_when_the_whole_observed_declaration_matches(
+        int box, int weapon, int weight, int count, int extension, int tail, bool supported)
+    {
+        Section[] sections = [new("[stackable type]", [new(PvfTokenKind.QuotedString, 1), I(0)]),
+            new("[booster info]", []), new("[avatar]", [I(1), I(weapon), I(weight), I(count), I(extension), I(tail)]),
+            new("[/avatar]", []), new("[/booster info]", [])];
+        var definition = PvfPackageOpeningDefinitionSource.Parse(box, sections, _ => "[booster]");
+        Assert.Equal(supported, definition.Diagnostics.IsEmpty);
+        Assert.Equal(supported ? 1 : 0, Assert.Single(Assert.Single(definition.Pools).Choices).Reward.TradeRestriction);
+    }
+
     private static PvfToken I(int value) => new(PvfTokenKind.Int32, value);
 
     private static PvfArchiveBuilder Lifetime(string? defect = null)

@@ -2,6 +2,7 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameIncreaseStatus = 0x0001_001E,
     GameAltarPrepare = 0x0001_0102,
     GameAltarDeathBatch = 0x0001_00FF,
     GameAltarDifficulty = 0x0001_013D,
@@ -220,6 +221,7 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameIncreaseStatus = 0x0001_001E,
     GameTournamentInfo = 0x0000_0183,
     GameTournamentMap = 0x0000_0184,
     GameTournamentReward = 0x0000_0185,

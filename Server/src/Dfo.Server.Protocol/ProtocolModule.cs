@@ -14,6 +14,7 @@ using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Protocol.Game.InventorySort;
 using Dfo.Server.Protocol.Game.CrystalContract;
 using Dfo.Server.Protocol.Game.Mailbox;
+using Dfo.Server.Protocol.Game.IncreaseStatus;
 using Dfo.Server.Protocol.Game.RecoverStamina;
 using Dfo.Server.Protocol.Game.Weakness;
 using Dfo.Server.Protocol.Game.Fatigue;
@@ -517,6 +518,10 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional, UserAccessMode.Unscoped, UserAccessMode.Exclusive);
         services.AddCommandHandler<UseStackableCommand, ItemUseResult, UseStackableCommandHandler>(
             CommandExecutionKind.Transactional);
+        services.AddCommandHandler<IncreaseStatusCommand, IncreaseStatusResult, IncreaseStatusCommandHandler>(CommandExecutionKind.Transactional);
+        services.RegisterMessageHandler<IncreaseStatusHandler>(ClientMessageType.GameIncreaseStatus);
+        services.AddGameCmdMessageDecoder<IncreaseStatusDecoder>(0x001E, ClientMessageType.GameIncreaseStatus);
+        services.AddGameCmdMessageEncoder<IncreaseStatusResponse, IncreaseStatusEncoder>();
         services.AddCommandHandler<HatchCreatureCommand, HatchCreatureResult, HatchCreatureCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<RenameCreatureCommand, RenameCreatureResult, RenameCreatureCommandHandler>(
