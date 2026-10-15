@@ -35,6 +35,23 @@ namespace Dfo.Server.Application.Tests.Game;
 public sealed partial class SelectCharacterLifecycleTests
 {
     [Fact]
+    public async Task Tau_current_period_is_rechecked_after_publication_even_when_scheduled_snapshot_missed_selection()
+    {
+        var f = await Fixture.CreateAsync(tau: new TauMarker());
+        await f.Handler.HandleAsync(f.Context, f.Command, default);
+        var types = f.Bus.DispatchedCommands;
+        Assert.True(types.IndexOf(typeof(Dfo.Server.Application.World.RefillOnlineTauTicketCommand))
+            > types.IndexOf(typeof(PublishSelectedCharacterSessionCommand)));
+        Assert.True(types.IndexOf(typeof(Dfo.Server.Application.World.RefillOnlineTauTicketCommand))
+            < types.IndexOf(typeof(SynchronizeSelectedCharacterQuestsCommand)));
+    }
+    private sealed class TauMarker : ITauKingdomDomainService
+    {
+        public bool Supports(int dungeonId) => dungeonId == 3700;
+        public ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<bool> RefillOnlineTicketAsync(SelectedSessionIdentity session, CancellationToken ct) => throw new NotSupportedException();
+    }
+    [Fact]
     public async Task Achievement_projection_waits_for_the_complete_entry_workflow()
     {
         var gate=new Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate();
@@ -717,7 +734,8 @@ public sealed partial class SelectCharacterLifecycleTests
             bool failFirstTownPublication = false,
             bool refuseExpiredCleanup = false,
             bool failExpiredCleanup = false,
-            Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? achievementGate = null)
+            Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? achievementGate = null,
+            ITauKingdomDomainService? tau = null)
         {
             var accountId = new AccountId(501);
             var connectionId = new NetworkConnectionId("Game:lifecycle");
@@ -821,7 +839,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 NullLogger<SelectCharacterHandler>.Instance,
                 // These tests describe the full delivery contract, including everything that
                 // follows the entry batch. Production runs the reference sequence instead.
-                SelectCharacterDeliveryOptions.Everything, achievementProjectionGate:achievementGate);
+                SelectCharacterDeliveryOptions.Everything, achievementProjectionGate:achievementGate, tau:tau);
             var command = new SelectCharacterRequest(GameMessageMetadata.Empty, 3);
             return new Fixture(
                 accountId, connectionId, result, ledger, directory, active, closer,
@@ -873,6 +891,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 CleanupExpiredCharacterItemsCommand value =>
                     await RunAsync(cleanupExpired, value, cancellationToken),
                 EnsureDailyContractPuppetsCommand => false,
+                Dfo.Server.Application.World.RefillOnlineTauTicketCommand => true,
                 PrepareSelectedCharacterStateCommand value =>
                     await RunAsync(prepareState, value, cancellationToken),
                 ApplySelectedCharacterDailyRefillCommand value =>

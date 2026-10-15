@@ -25,7 +25,11 @@ public sealed record SpiritPotionChange(double BonusRate, TimeSpan Duration) : E
 public sealed record PetStomachChange(Dfo.Server.Abstractions.Creatures.CreatureRuntimeChange Change) : EffectChange;
 
 public sealed record ItemUsePlan(ItemUsability Status, IReadOnlyList<DomainEffect> Effects);
-public sealed record ItemUseApplication(ItemUsability Status, int ItemId, int RemainingCount, ApplyEffectsResult? Applied = null);
+public sealed record ItemUseApplication(ItemUsability Status, int ItemId, int RemainingCount, ApplyEffectsResult? Applied = null)
+{
+    public Dfo.Server.Abstractions.World.ExperienceAward? ExperienceAward { get; init; }
+    public CharacterSkillProtocolMirrorState? SkillPoints { get; init; }
+}
 
 public interface IItemUseEffectRuleService
 {

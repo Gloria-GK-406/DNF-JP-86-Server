@@ -970,6 +970,10 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<DespairClearRewardNotification, DespairClearRewardEncoder>();
         services.AddGameNotiMessageEncoder<SaoCurrentFloorNotification, SaoCurrentFloorEncoder>();
         services.AddDomainSubscriber<SaoTowerCleared, SaoTowerNotificationSubscriber>("sao-tower.notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddDomainSubscriber<TauKingdomTicketRefilled, Dfo.Server.Protocol.Game.TauKingdom.TauTicketNotificationSubscriber>(
+            "tau-kingdom.ticket-notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.TauKingdom.TauTicketRefresh,
+            Dfo.Server.Protocol.Game.TauKingdom.TauTicketRefreshHandler>(retryLimit: 0);
         services.AddNotificationHandler<SaoTowerRefresh, SaoTowerRefreshHandler>(retryLimit: 0);
         services.AddGameNotiMessageEncoder<DespairApcInfoNotification, DespairApcInfoEncoder>();
         services.AddGameNotiMessageEncoder<PlayResultNotification, PlayResultEncoder>();

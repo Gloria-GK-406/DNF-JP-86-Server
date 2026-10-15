@@ -18,11 +18,27 @@ internal sealed class DailyRefillDomainService(
     /// <summary>What a refill counter is called, with the item appended.</summary>
     private const string CounterPrefix = "pvf_daily_refill_item_";
 
-    public async ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
+    public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
+        AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
+        DateTimeOffset preparedAt, CancellationToken cancellationToken) =>
+        ApplyAsync(accountId, characterId, rules, preparedAt, true, cancellationToken);
+
+    public ValueTask<DailyRefillMutationResult> ApplyIndependentRefillAsync(
+        AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
+        DateTimeOffset at, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        if (rules.Any(rule => !refillRules.UsesIndependentPeriod(rule)))
+            throw new InvalidDataException("Online refill requires independent game-day rules.");
+        return ApplyAsync(accountId, characterId, rules, at, false, cancellationToken);
+    }
+
+    private async ValueTask<DailyRefillMutationResult> ApplyAsync(
         AccountId accountId,
         CharacterId characterId,
         IReadOnlyList<DailyRefillRule> rules,
         DateTimeOffset preparedAt,
+        bool claimOrdinaryBatch,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(rules);
@@ -33,17 +49,19 @@ internal sealed class DailyRefillDomainService(
                 "Daily refill character ownership does not match the account.");
         }
 
-        var period = refillRules.PeriodOf(preparedAt);
+        var ordinaryPeriod = refillRules.PeriodOf(preparedAt);
         const string attemptKey = "daily_refill_attempt";
-        if (!refillRules.IsDue(await counters.FindClaimedPeriodAsync(characterId, attemptKey, cancellationToken), period))
-            return new DailyRefillMutationResult([]);
+        var attempted = await counters.FindClaimedPeriodAsync(characterId, attemptKey, cancellationToken).ConfigureAwait(false);
+        var ordinaryDue = refillRules.IsDue(attempted, ordinaryPeriod);
         var committed = new List<DailyRefillCommittedGrant>();
         foreach (var rule in rules)
         {
+            if (!ordinaryDue && !refillRules.UsesIndependentPeriod(rule)) continue;
+            var period = refillRules.PeriodOf(rule, preparedAt);
             var key = CounterPrefix + rule.ItemId;
             var claimed = await counters.FindClaimedPeriodAsync(characterId, key, cancellationToken)
                 .ConfigureAwait(false);
-            if (!refillRules.IsDue(claimed, period))
+            if (!refillRules.IsDue(rule, claimed, period))
             {
                 continue;
             }
@@ -70,7 +88,8 @@ internal sealed class DailyRefillDomainService(
             }
         }
 
-        if (await counters.ClaimAsync(characterId, attemptKey, period, cancellationToken) != 1)
+        if (ordinaryDue && claimOrdinaryBatch
+            && await counters.ClaimAsync(characterId, attemptKey, ordinaryPeriod, cancellationToken) != 1)
             throw new InvalidDataException("Daily refill attempt was not persisted.");
         return new DailyRefillMutationResult(
             [.. committed.GroupBy(value => value.Slot).Select(g => new DailyRefillCommittedGrant(g.Key, g.Last().ItemId, g.Sum(v => v.GrantedCount), g.Last().CommittedCount))

@@ -133,6 +133,10 @@ public sealed class ApplicationModule : IServerModule
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.AltarEntryRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.TryAddSingleton<ITauKingdomRuleService, TauKingdomRuleService>();
+        services.TryAddSingleton<ITauKingdomDomainService, TauKingdomDomainService>();
+        services.AddDomainEvent<TauKingdomTicketRefilled>("tau-kingdom.ticket-refilled", 1);
+        services.AddTauKingdomDailyRefill();
         services.TryAddSingleton<ISaoTowerRuleService, SaoTowerRuleService>();
         services.TryAddSingleton<ISaoTowerDomainService, SaoTowerDomainService>();
         services.AddDomainEvent<SaoTowerCleared>("sao-tower.cleared", 1);
@@ -308,6 +312,7 @@ public sealed class ApplicationModule : IServerModule
         services.AddCommandHandler<Dfo.Server.Application.Events.AdvanceJoustLifecycleCommand,Dfo.Server.Data.Events.JoustLifecycleResult,Dfo.Server.Application.Events.AdvanceJoustLifecycleCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService,Dfo.Server.Application.Events.JoustMaintenanceService>());
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SaoTowerEntranceEventDomainService>();
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.TauKingdomEntranceEventDomainService>();
         services.TryAddSingleton<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>());
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>());
@@ -618,6 +623,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IDailyRefillConfigurationDomainService, DailyRefillConfigurationDomainService>();
         services.TryAddSingleton<IItemUseEffectDomainService, ItemUseEffectDomainService>();
         services.TryAddSingleton<IItemUseEffectRuleService, ItemUseEffectRuleService>();
+        services.TryAddSingleton<IExperienceItemRuleService, ExperienceItemRuleService>();
+        services.TryAddSingleton<IExperienceItemDomainService, ExperienceItemDomainService>();
         services.TryAddSingleton<IApplyEffectsDomainService, ApplyEffectsDomainService>();
         services.TryAddSingleton<IInventoryEffectPreflightDomainService, InventoryEffectPreflightDomainService>();
         services.TryAddSingleton<IEquipmentEffectPlanRuleService, EquipmentEffectPlanRuleService>();

@@ -32,7 +32,9 @@ public sealed class OnlineExpiredItemScheduleTests
         services.AddSingleton<ISelectedSessionDomainService>(sessions);
         services.AddSingleton<ICommandBus>(commands);
         await using var provider = services.BuildServiceProvider();
-        var registration = Assert.Single(provider.GetServices<ScheduledTaskRegistration>());
+        var registrations = provider.GetServices<ScheduledTaskRegistration>().ToArray();
+        var registration = Assert.Single(registrations, x => x.Id == "inventory.expiration.online");
+        Assert.Contains(registrations, x => x.Id == "tau-kingdom.ticket-refill.online");
         Assert.Equal(new DateTimeOffset(2026, 10, 14, 22, 0, 0, TimeSpan.Zero),
             registration.Schedule.NextOccurrence(clock.GetUtcNow()));
         // Run only the actual registered scheduler; other host services are outside this fixture.
@@ -43,12 +45,14 @@ public sealed class OnlineExpiredItemScheduleTests
             await Until(() => clock.ActiveTimers > 0);
             Assert.Empty(commands.Accounts);
             clock.Advance(TimeSpan.FromMinutes(1));
-            await Until(() => commands.Accounts.Count == 1);
+            await Until(() => commands.Accounts.Count == 1 && commands.TauAccounts.Count == 1);
+            Assert.Equal(41, Assert.Single(commands.TauAccounts));
             Assert.Equal(41, Assert.Single(commands.Accounts));
             sessions.ReleaseExact(session);
             clock.Advance(TimeSpan.FromDays(1));
             await Until(() => clock.ActiveTimers > 0);
             Assert.Single(commands.Accounts);
+            Assert.Single(commands.TauAccounts);
         }
         finally { await scheduler.StopAsync(default).WaitAsync(TimeSpan.FromSeconds(10)); }
     }
@@ -73,9 +77,12 @@ public sealed class OnlineExpiredItemScheduleTests
     private sealed class RecordingCommands : ICommandBus
     {
         public System.Collections.Concurrent.ConcurrentQueue<int> Accounts { get; } = new();
+        public System.Collections.Concurrent.ConcurrentQueue<int> TauAccounts { get; } = new();
         public ValueTask<T> SendAsync<T>(ICommand<T> command, CancellationToken ct = default) where T : notnull
         {
-            Accounts.Enqueue(((IAccountCommand)command).AccountId.Value);
+            if (command is Dfo.Server.Application.World.RefillOnlineTauTicketCommand)
+                TauAccounts.Enqueue(((IAccountCommand)command).AccountId.Value);
+            else Accounts.Enqueue(((IAccountCommand)command).AccountId.Value);
             return ValueTask.FromResult((T)(object)true);
         }
     }

@@ -28,6 +28,7 @@ public sealed class InfrastructureModule : IServerModule
 
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IAltarDungeonContentSource, PvfAltarDungeonContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ISaoTowerContentSource, PvfSaoTowerContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.ITauKingdomContentSource, PvfTauKingdomContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDespairTowerContentSource, PvfDespairTowerContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ITournamentDungeonContentSource, PvfTournamentDungeonContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDimensionDungeonContentSource, PvfDimensionDungeonContentSource>();
@@ -151,6 +152,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IEquipmentDisjointDefinitionSource,
             PvfEquipmentDisjointDefinitionSource>();
         services.TryAddSingleton<IItemUseRuleDefinitionSource, PvfItemUseRuleDefinitionSource>();
+        services.TryAddSingleton<IExperienceItemDefinitionSource, PvfExperienceItemDefinitionSource>();
         services.TryAddSingleton<IStackableActionDefinitionSource, PvfStackableActionDefinitionSource>();
         services.TryAddSingleton<IItemUsageRuleSource, PvfItemUsageRuleSource>();
         services.TryAddSingleton(ReadChannelEntryOptions(configuration));

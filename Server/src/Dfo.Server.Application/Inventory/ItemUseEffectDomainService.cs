@@ -10,11 +10,21 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class ItemUseEffectDomainService(ICharacterDomainService characters,
     IItemUseEffectRuleService rules, IApplyEffectsDomainService effects,
     ICreatureInstanceDomainService creatures, TimeProvider clock,
-    Dfo.Server.Abstractions.DomainEvents.IEventService? events = null) : IItemUseEffectDomainService
+    Dfo.Server.Abstractions.DomainEvents.IEventService? events = null,
+    IExperienceItemDomainService? experienceItems = null) : IItemUseEffectDomainService
 {
     public async ValueTask<ItemUseApplication> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
         ItemReference item, CancellationToken ct)
     {
+        if (experienceItems is not null
+            && await experienceItems.TryUseAsync(session, source, item, ct).ConfigureAwait(false) is { } experience)
+        {
+            if (experience.Status == ItemUsability.Allowed && events is not null)
+                await events.EnqueueAsync(new Dfo.Server.Abstractions.Achievements.ItemUsed(
+                    session.CharacterId, item.ItemId, 1), ct).ConfigureAwait(false);
+            return experience;
+        }
+
         var rule = await rules.RuleForAsync(item.ItemId, ct).ConfigureAwait(false);
         var facts = rule is null || !rule.IsReadable ? null : await characters.Get(session.CharacterId)
             .ItemUseFactsAsync(rules.CooldownKeyFor(item.ItemId, rule), ct).ConfigureAwait(false);
