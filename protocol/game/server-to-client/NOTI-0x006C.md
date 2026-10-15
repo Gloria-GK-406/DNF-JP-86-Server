@@ -1,5 +1,15 @@
 # NOTI `0x006C` `EVENT_INFO`
 
+## A21 无详情活动记录（2026-10-15）
+
+证据等级：`ClientStatic / High`，不是 `ClientVerified`。客户端 SHA-256 仍为机器区所列 `1F8244D3…B00DD`。
+
+每条记录公共前缀为 `u16 EventId + u32 reserved + u32 StartNotice字节数/内容 + u32 EndNotice字节数/内容 + u8 HasDetail`。`HasDetail=0` 时本条记录结束，不附带标题、链接、时间或末尾详情状态。两个通知为空时记录共 15 字节。整包保留 `u16 count` 及循环后的尾字节 0。
+
+A21 VA `01419A31` 读取详情开关，零值跳至 `01419CBC`，之后公共路径在 `01419D5C` 插入活动身份表。因此无详情仍能满足 `014172D0` 的活动存在性查询。UI 是否完全隐藏需要实机确认。详细取证见 [69/75 调查](../../../../Document/TauKingdom-Event69-75-Investigation-20261015.md)。
+
+`CurrentImplementation`：牛头怪乐园 2215 开启时附带无详情 ID 69；启停通知为空，避免附带提示。原有详细活动记录字节布局保持一致。相关字节回归见 `WeeklyAttendanceProtocolTests.Calendar_detail_less_entry_uses_short_record_without_displacing_visible_entries`。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

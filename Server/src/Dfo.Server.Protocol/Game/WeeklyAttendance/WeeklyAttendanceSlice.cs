@@ -23,7 +23,9 @@ internal static class EventPayloadCodec
         writer.Write(checked((ushort)events.Count));
         foreach (var e in events)
         {
-            writer.Write(checked((ushort)e.EventId));writer.Write(0u);Text(e.StartNotice);Text(e.EndNotice);writer.Write((byte)1);
+            writer.Write(checked((ushort)e.EventId));writer.Write(0u);Text(e.StartNotice);Text(e.EndNotice);writer.Write((byte)(e.HasDetail ? 1 : 0));
+            // A21 HasDetail=0 still inserts the identity, then advances directly to the next record.
+            if (!e.HasDetail) continue;
             // A21 reader VA014196B0; flags 0/5 are the upstream seed, with semantics still unclosed.
             writer.Write((byte)0);writer.Write((byte)5);Text(e.Title);Text(e.ShortName);Text("");
             writer.Write(checked((uint)e.StartsAt.ToUnixTimeSeconds()));writer.Write(checked((uint)e.EndsAt.ToUnixTimeSeconds()));

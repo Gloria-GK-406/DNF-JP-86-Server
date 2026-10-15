@@ -8,6 +8,20 @@ namespace Dfo.Server.Protocol.Tests.Game.WeeklyAttendance;
 public sealed class WeeklyAttendanceProtocolTests
 {
     [Fact]
+    public void Calendar_detail_less_entry_uses_short_record_without_displacing_visible_entries()
+    {
+        var hidden = new EventInfo(69,"","","","","",DateTimeOffset.UnixEpoch,DateTimeOffset.UnixEpoch,"") { HasDetail = false };
+        // count=1, identity=69, reserved=0, two empty notices, HasDetail=0, final byte=0.
+        var shortPacket = new byte[] { 1,0, 69,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0, 0 };
+        Assert.Equal(shortPacket,EventPayloadCodec.Information([hidden]));
+        var visible = new EventInfo(2215,"牛头怪乐园","牛头","说明","开始","结束",
+            DateTimeOffset.FromUnixTimeSeconds(1),DateTimeOffset.FromUnixTimeSeconds(2),"taukingdom/0/0");
+        var visiblePacket = EventPayloadCodec.Information([visible]);
+        // The existing detailed record must stay byte-identical before and after the short record.
+        byte[] expected = [3,0, ..visiblePacket[2..^1], ..shortPacket[2..^1], ..visiblePacket[2..^1], 0];
+        Assert.Equal(expected,EventPayloadCodec.Information([visible,hidden,visible]));
+    }
+    [Fact]
     public void Calendar_chinese_notice_has_known_UTF8_bytes_and_decodes_with_patched_A21_codepage()
     {
         var info=new EventInfo(2208,"中文","中文","中文","中文","中文",DateTimeOffset.FromUnixTimeSeconds(1),DateTimeOffset.FromUnixTimeSeconds(2),"total attendance check event/0/0");

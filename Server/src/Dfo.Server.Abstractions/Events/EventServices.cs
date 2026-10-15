@@ -7,7 +7,7 @@ public interface IManagedEventDomainService
 {
     int EventId { get; }
     ValueTask<ManagedEventEntry> DescribeAsync(DateTimeOffset now, CancellationToken ct);
-    ValueTask<EventInfo?> GetEventInfoAsync(AccountId account, DateTimeOffset now, CancellationToken ct);
+    ValueTask<EventInfo[]> GetEventInfoEntriesAsync(AccountId account, DateTimeOffset now, CancellationToken ct);
     ValueTask ChangeAsync(EventChange change, string actor, DateTimeOffset now, CancellationToken ct);
 }
 public interface IEventManagementDomainService

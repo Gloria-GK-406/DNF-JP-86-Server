@@ -23,12 +23,12 @@ internal sealed class SaoTowerEntranceEventDomainService(IEventPersistence store
             c.Description, c.StartNotice, c.EndNotice, c.StartsAt, c.EndsAt, true, null, c.UpdatedAt, c.UpdatedBy);
     }
 
-    public async ValueTask<EventInfo?> GetEventInfoAsync(AccountId account, DateTimeOffset now, CancellationToken ct)
+    public async ValueTask<EventInfo[]> GetEventInfoEntriesAsync(AccountId account, DateTimeOffset now, CancellationToken ct)
     {
         var c = await Configuration(ct);
         return account.Value > 0 && Active(c, now)
-            ? new(EventId, c.Title, c.ShortName, c.Description, c.StartNotice, c.EndNotice,
-                c.StartsAt!.Value, c.EndsAt!.Value, "sao aincrad event/0/0") : null;
+            ? [new(EventId, c.Title, c.ShortName, c.Description, c.StartNotice, c.EndNotice,
+                c.StartsAt!.Value, c.EndsAt!.Value, "sao aincrad event/0/0")] : [];
     }
 
     public async ValueTask ChangeAsync(EventChange change, string actor, DateTimeOffset now, CancellationToken ct)

@@ -77,13 +77,45 @@ public sealed class TauKingdomTests
         await using var f = new LearningFixture();
         var events = f.Services.GetRequiredService<IEventManagementDomainService>();
         var at = DateTimeOffset.UtcNow;
-        Assert.Contains(await events.GetEventInfoListAsync(new(1), at, default), x => x.EventId == 2215 && x.LinkKey == "taukingdom/0/0");
+        var enabled = await events.GetEventInfoListAsync(new(1), at, default);
+        Assert.Contains(enabled, x => x.EventId == 2215 && x.LinkKey == "taukingdom/0/0");
+        var companion = Assert.Single(enabled, x => x.EventId == 69);
+        Assert.False(companion.HasDetail);
+        Assert.True(Assert.Single(enabled, x => x.EventId == 2215).HasDetail);
+        Assert.Equal("", companion.Title);
+        Assert.Equal("", companion.StartNotice);
+        Assert.Equal("", companion.EndNotice);
+        Assert.DoesNotContain((await events.ListAsync(at, default)).Entries, x => x.EventId == 69);
+        Assert.Empty(await events.GetEventInfoListAsync(new(0), at, default));
         await using (var tx = f.Scope.Begin())
         {
             await events.ChangeAsync(new(2215, 0, "disable"), "test", at, default);
             await tx.CommitAsync(default);
         }
-        Assert.DoesNotContain(await events.GetEventInfoListAsync(new(1), at, default), x => x.EventId == 2215);
+        Assert.DoesNotContain(await events.GetEventInfoListAsync(new(1), at, default), x => x.EventId is 2215 or 69);
+        await using (var tx = f.Scope.Begin())
+        {
+            await events.ChangeAsync(new(2215, 1, "enable"), "test", at, default);
+            await tx.CommitAsync(default);
+        }
+        Assert.Contains(await events.GetEventInfoListAsync(new(1), at, default), x => x.EventId == 69);
+    }
+
+    [Theory]
+    [InlineData(-2, -1)]
+    [InlineData(1, 2)]
+    public async Task Inactive_tau_period_excludes_primary_and_companion(int startOffset, int endOffset)
+    {
+        await using var f = new LearningFixture();
+        var events = f.Services.GetRequiredService<IEventManagementDomainService>();
+        var at = new DateTimeOffset(2026, 10, 15, 12, 0, 0, TimeSpan.Zero);
+        await using (var tx = f.Scope.Begin())
+        {
+            await events.ChangeAsync(new(2215, 0, "configure", "牛头怪乐园", "牛头怪乐园", "", "", "",
+                at.AddDays(startOffset), at.AddDays(endOffset)), "test", at, default);
+            await tx.CommitAsync(default);
+        }
+        Assert.DoesNotContain(await events.GetEventInfoListAsync(new(1), at, default), x => x.EventId is 2215 or 69);
     }
     [SkippableFact]
     public void Real_boss_drops_three_books_through_existing_table_and_respects_level_ceiling()

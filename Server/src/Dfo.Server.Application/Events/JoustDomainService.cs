@@ -93,11 +93,11 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         return new(EventId,"joust",c.Revision,c.SeasonId,c.Enabled,status,c.Title,c.ShortName,c.Description,c.StartNotice,c.EndNotice,
             c.StartsAt,c.EndsAt,d is not null,error,c.UpdatedAt,c.UpdatedBy);
     }
-    public async ValueTask<EventInfo?> GetEventInfoAsync(AccountId account,DateTimeOffset now,CancellationToken ct)
+    public async ValueTask<EventInfo[]> GetEventInfoEntriesAsync(AccountId account,DateTimeOffset now,CancellationToken ct)
     {
         var c=await Configuration(ct) ?? Initial;
-        if(account.Value<=0 || !Active(c,now) || (await rules.DefinitionAsync(ct)).Definition is null)return null;
-        return new(EventId,c.Title,c.ShortName,c.Description,c.StartNotice,c.EndNotice,c.StartsAt!.Value,c.EndsAt!.Value,"joust event/0/0");
+        if(account.Value<=0 || !Active(c,now) || (await rules.DefinitionAsync(ct)).Definition is null)return [];
+        return [new(EventId,c.Title,c.ShortName,c.Description,c.StartNotice,c.EndNotice,c.StartsAt!.Value,c.EndsAt!.Value,"joust event/0/0")];
     }
     public async ValueTask ChangeAsync(EventChange change,string actor,DateTimeOffset now,CancellationToken ct)
     {

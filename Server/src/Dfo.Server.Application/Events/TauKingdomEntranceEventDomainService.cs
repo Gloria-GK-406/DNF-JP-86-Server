@@ -7,7 +7,7 @@ using Dfo.Server.Data.Events;
 
 namespace Dfo.Server.Application.Events;
 
-// A21 checks active EVENT_INFO identity 2215 before enabling dungeon 3700.
+// A21 checks 2215 for dungeon 3700 and 69/75 for the earlier generic entry gate.
 // Configuration remains owned by the existing activity subsystem, including explicit GM disable.
 internal sealed class TauKingdomEntranceEventDomainService(IEventPersistence store, ITauKingdomRuleService rules) : IManagedEventDomainService
 {
@@ -24,12 +24,14 @@ internal sealed class TauKingdomEntranceEventDomainService(IEventPersistence sto
             c.Description, c.StartNotice, c.EndNotice, c.StartsAt, c.EndsAt, true, null, c.UpdatedAt, c.UpdatedBy);
     }
 
-    public async ValueTask<EventInfo?> GetEventInfoAsync(AccountId account, DateTimeOffset now, CancellationToken ct)
+    public async ValueTask<EventInfo[]> GetEventInfoEntriesAsync(AccountId account, DateTimeOffset now, CancellationToken ct)
     {
         var c = await Configuration(ct);
-        return account.Value > 0 && Active(c, now)
-            ? new(EventId, c.Title, c.ShortName, c.Description, c.StartNotice, c.EndNotice,
-                c.StartsAt!.Value, c.EndsAt!.Value, rules.ActivityLink) : null;
+        if (account.Value <= 0 || !Active(c, now)) return [];
+        // The companion is projected with its owner; it has no independently editable GM configuration.
+        return [new(EventId, c.Title, c.ShortName, c.Description, c.StartNotice, c.EndNotice,
+                c.StartsAt!.Value, c.EndsAt!.Value, rules.ActivityLink),
+            new(69, "", "", "", "", "", c.StartsAt.Value, c.EndsAt.Value, "") { HasDetail = false }];
     }
 
     public async ValueTask ChangeAsync(EventChange change, string actor, DateTimeOffset now, CancellationToken ct)
