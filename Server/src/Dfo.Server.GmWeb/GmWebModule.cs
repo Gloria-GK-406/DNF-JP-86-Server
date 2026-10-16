@@ -35,6 +35,7 @@ public sealed class GmWebModule(IConfiguration configuration) : IHttpApiFeature
         GmInitializationEndpoints.Map(group);
         GmDailyRefillEndpoints.Map(group);
         GmEventsEndpoints.Map(group);
+        GmServerInfoEndpoints.Map(group, options);
         group.MapGet("/gm/{**path}", ServePage);
     }
 
