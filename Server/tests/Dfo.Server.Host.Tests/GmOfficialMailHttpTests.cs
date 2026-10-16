@@ -563,7 +563,7 @@ public sealed partial class GmOfficialMailHttpTests
             await persistence.AppendAuditAsync(value, token);
             if (value.Action == "SendOfficialMail" && value.Outcome == "Succeeded") transactions.Current!.Enlist(poison, () => poison);
         }
-        public ValueTask<GmAuditPage> QueryAsync(int page, int size, CancellationToken token) => persistence.QueryAuditAsync(page, size, token);
+        public ValueTask<GmAuditPage> QueryAsync(int page, int size, GmAuditFilter filter, CancellationToken token) => persistence.QueryAuditAsync(page, size, filter, token);
     }
     private sealed class ExpiringDefinitions(int days, int expiration) : IPackageOpeningDefinitionSource
     {

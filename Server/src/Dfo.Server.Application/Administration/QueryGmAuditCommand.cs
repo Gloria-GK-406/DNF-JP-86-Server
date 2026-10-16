@@ -3,13 +3,14 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Administration;
 
 namespace Dfo.Server.Application.Administration;
-public sealed class QueryGmAuditCommand(int page, int pageSize) : ICommand<GmAuditPage>
+public sealed class QueryGmAuditCommand(int page, int pageSize, GmAuditFilter? filter = null) : ICommand<GmAuditPage>
 {
     public int Page { get; } = page;
     public int PageSize { get; } = pageSize;
+    public GmAuditFilter Filter { get; } = filter ?? GmAuditFilter.All;
 }
 internal sealed class QueryGmAuditCommandHandler(IGmAuditDomainService audit) : ICommandHandler<QueryGmAuditCommand, GmAuditPage>
 {
     public ValueTask<GmAuditPage> HandleAsync(CommandExecutionContext context, QueryGmAuditCommand command, CancellationToken cancellationToken) =>
-        audit.QueryAsync(command.Page, command.PageSize, cancellationToken);
+        audit.QueryAsync(command.Page, command.PageSize, command.Filter, cancellationToken);
 }
