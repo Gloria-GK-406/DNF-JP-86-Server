@@ -204,6 +204,10 @@ internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessi
                 {
                     own.Add(new WeddingInfoMessage(await engagement.ReadAsync(actor.AccountId, actor.CharacterId, ct).ConfigureAwait(false)));
                     other.Add(new WeddingInfoMessage(await engagement.ReadAsync(peer.AccountId, peer.CharacterId, ct).ConfigureAwait(false)));
+                    var actorChurch = await commands.SendAsync(new PrepareMarriageChurchCommand(actor), ct).ConfigureAwait(false);
+                    var peerChurch = await commands.SendAsync(new PrepareMarriageChurchCommand(peer), ct).ConfigureAwait(false);
+                    if (actorChurch.Snapshot is { } a) own.Add(new WeddingChurchPreparationNotification(a));
+                    if (peerChurch.Snapshot is { } p) other.Add(new WeddingChurchPreparationNotification(p));
                 }
             }
             else if (pending?.State == MarriageCeremonyState.Pending && actor == pending.Partner && peer == pending.Applicant

@@ -2,6 +2,7 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameWeddingChurchEntry = 0x0001_03F7,
     GameWeddingPartnerQuery = 0x0001_03F3,
     GameWeddingProposal = 0x0001_03F0,
     GameWeddingResponse = 0x0001_03F1,
@@ -224,6 +225,8 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameWeddingChurchEntry = 0x0001_03F7,
+    GameWeddingCeremonyPreparation = 0x0000_03D4,
     GameWeddingPartnerQuery = 0x0001_03F3,
     GameWeddingProposal = 0x0001_03F0,
     GameWeddingResponse = 0x0001_03F1,

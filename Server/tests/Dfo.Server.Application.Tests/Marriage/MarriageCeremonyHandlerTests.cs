@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Data.Marriage;
@@ -20,10 +21,19 @@ public sealed class MarriageCeremonyHandlerTests
         {
             s.AddSingleton<IGameMessageSender>(sender);
             s.AddSingleton<IMarriageCeremonyContentSource, Content>();
+            s.AddSingleton<Dfo.Server.Abstractions.Content.ITownDefinitionSource, ChurchTestTowns>();
+            s.AddCommandHandler<PrepareMarriageChurchCommand, MarriageChurchPreparationResult, PrepareMarriageChurchCommandHandler>(
+                CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
             s.AddCommandHandler<MarriageCeremonyCommand, MarriageCeremonyResult, MarriageCeremonyCommandHandler>(
                 CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         });
         await using var owned = f;
+        foreach (var actor in new[] { f.Session, peer })
+        {
+            var moved = f.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterPositionDomainService>().CrossInto(actor, 2, 1, 100, 200);
+            f.Services.GetRequiredService<Dfo.Server.Abstractions.World.ITownAreaDomainService>().TransferExact(actor.CharacterId,
+                actor.TownAreaLease(), new(1, 2, 1), moved, true);
+        }
         await MarriageProposalTests.Run(f, x => x.ProposeAsync(f.Session, peer, default));
         var engaged = await MarriageProposalTests.Run(f, x => x.RespondAsync(peer, f.Session, 0, default));
         f.Sql("INSERT INTO character_stats(character_id,carried_gold) VALUES(71,1000000),(72,1000000);");

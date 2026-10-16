@@ -229,7 +229,8 @@ public sealed class SetUserAreaHandler(
     SelectedSessionTransitionGate transitionGate,
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<SetUserAreaHandler> logger,
-    ISelectedSessionPositionPersistence persistence) : ClientMessageHandler<SetUserAreaRequest>
+    ISelectedSessionPositionPersistence persistence,
+    Dfo.Server.Abstractions.Marriage.IMarriageChurchDomainService? churches = null) : ClientMessageHandler<SetUserAreaRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -312,6 +313,13 @@ public sealed class SetUserAreaHandler(
         var sharesTownPresence = await towns
             .SharesTownPresenceAsync(message.TownId, message.AreaId, cancellationToken)
             .ConfigureAwait(false);
+        if (churches is not null && !await churches.CanCrossAsync(session, channel.ChannelId,
+                message.TownId, message.AreaId, cancellationToken).ConfigureAwait(false))
+        {
+            await townAreaProjection.RefuseTownChangeAsync(context.Connection.ConnectionId, session, result, standing,
+                "请通过自己的婚礼预约进入教堂。", cancellationToken).ConfigureAwait(false);
+            return;
+        }
         // Persist accepted area crossings before publishing memory state or client projections.
         // A failed write leaves the old town intact; transient channels retain the home position.
         if (!channel.IsTransient && (standing.TownId != message.TownId || standing.AreaId != message.AreaId))

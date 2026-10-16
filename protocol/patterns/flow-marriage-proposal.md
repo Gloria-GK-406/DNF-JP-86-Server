@@ -39,7 +39,7 @@ ClientStatic / Confirmed：A21未修正的共享窗口超时dispatcher实际匹�
 | action1 / 0 | 持久化订婚关系Engaged，投影状态与可接任务 | 用户已确认双端订婚成功；不是已婚 |
 | action1 / 1、2 | 拒绝或超时，释放Pending占位 | 手动拒绝已确认；自动超时未据本次婚礼测试扩大验收 |
 | action2 / 0 | 独立预约Reserved，投影03D0阶段2 | 用户报告普通档接受正常；婚礼仪式尚未实现 |
-| action2 / 1 | 预约Rejected，结束邀请 | 手动拒绝已确认；兼容补丁自动发送1的文案待验收 |
+| action2 / 1 | 预约Rejected，结束邀请 | 手动拒绝已确认；用户亦确认兼容补丁自动发送1后普通拒绝文本与等待窗收尾正常 |
 | action2 / 2 | 预约Expired，结束邀请 | 旧版路由补丁已观察到服务端成功处理；当前自动拒绝补丁改发1 |
 
 CurrentImplementation的重登恢复来自订婚与独立预约的持久事实；普通档仅做金币门槛预检，不收费、不发奖、不入教堂。详细领域范围、PVF与测试基线见[预约说明](../../Document/MarriageReservation-20261016.md)，本页不重复数值设定。铂金/豪华档、教堂、来宾、婚礼完成及费用结算不在此次范围。
@@ -52,6 +52,6 @@ CurrentImplementation的重登恢复来自订婚与独立预约的持久事实�
 | 求婚拒绝、接受、成功提示 | 有限范围ClientVerified：用户明确反馈双端操作成功 | 未测变体及每个字节的动态差分 |
 | 普通婚礼预约手动拒绝、接受 | 有限范围ClientVerified：用户报告两项正常 | 所有档位、重登恢复的独立验收 |
 | 旧版路由补丁自动发outcome2 | ObservedMetadata / Confirmed：接收日志、结果与回包metadata | 不能用该记录证明新版outcome1的提示效果 |
-| 当前自动发送普通拒绝outcome1 | ClientStatic / Confirmed：构包前缀与手动拒绝一致；CurrentImplementation：13项客户端回归通过、两端DLL已替换 | 用户双端自动超时文案与等待窗收尾反馈；尚未标ClientVerified |
+| 当前自动发送普通拒绝outcome1 | ClientStatic / Confirmed：构包前缀与手动拒绝一致；CurrentImplementation：13项客户端回归通过、两端DLL已替换 | 用户已明确确认普通拒绝提示和等待窗关闭，该路径有限范围ClientVerified；尚无本次完整正文归档 |
 
-没有以自动化通过、部署哈希相同或服务端成功日志代替上述待验收项。
+自动超时的实机结论来自用户明确反馈，没有以自动化通过或服务端成功日志代替。预约后普通新人进入教堂已另接入CurrentImplementation，详见[准备与入场流程](../../Document/MarriageChurchEntry-20261016.md)；原生入场尚待双端验收。

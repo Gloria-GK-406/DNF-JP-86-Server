@@ -5,6 +5,8 @@ namespace Dfo.Server.Protocol.Game;
 internal static class GameProtocol
 {
     public const ushort WeddingInfoType = 0x03D0;
+    public const ushort WeddingChurchEntryType = 0x03F7;
+    public const ushort WeddingCeremonyPreparationType = 0x03D4;
     public const ushort WeddingPartnerType = 0x03F3;
     public const ushort WeddingProposalType = 0x03F0;
     public const ushort WeddingResponseType = 0x03F1;

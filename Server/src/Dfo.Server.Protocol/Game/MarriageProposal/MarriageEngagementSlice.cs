@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.StateSynchronization;
@@ -90,7 +91,7 @@ internal sealed class WeddingPartnerEncoder : GameCmdMessageEncoder<WeddingPartn
 }
 
 internal sealed class WeddingPartnerHandler(ISelectedSessionDomainService sessions, IMarriageEngagementDomainService marriage,
-    IGameMessageSender sender, SelectedSessionTransitionGate gate) : ClientMessageHandler<WeddingPartnerQuery>
+    IGameMessageSender sender, SelectedSessionTransitionGate gate, ICommandBus commands) : ClientMessageHandler<WeddingPartnerQuery>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeddingPartnerQuery message, CancellationToken ct)
     {
@@ -101,8 +102,13 @@ internal sealed class WeddingPartnerHandler(ISelectedSessionDomainService sessio
                 : await marriage.ReadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
             var peer = snapshot.Partner;
             if (peer is not null && message.Target != 0 && message.Target != peer.CharacterId) peer = null;
-            await sender.SendExplicitAsync(context.Connection.ConnectionId,
-                new([new WeddingPartnerAck(peer)], []), ct).ConfigureAwait(false);
+            var messages = new List<IGameServerMessage> { new WeddingPartnerAck(peer) };
+            if (peer is not null && snapshot.IsCeremonyReserved && session is not null)
+            {
+                var prepared = await commands.SendAsync(new PrepareMarriageChurchCommand(session), ct).ConfigureAwait(false);
+                if (prepared.Snapshot is { } church) messages.Add(new WeddingChurchPreparationNotification(church));
+            }
+            await sender.SendExplicitAsync(context.Connection.ConnectionId, new(messages, []), ct).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
 }

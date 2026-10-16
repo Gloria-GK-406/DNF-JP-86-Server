@@ -15,11 +15,59 @@ using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
+using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Data.Marriage;
+using Dfo.Server.Protocol.Game.MarriageProposal;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Protocol.Tests.Game.TownProjection;
 
 public sealed class TownAreaProjectionDeliveryTests
 {
+    [Fact]
+    public async Task Wedding_entry_moves_both_partners_to_one_church_and_projects_their_presence()
+    {
+        var first = Session(1, "groom"); var second = Session(2, "bride");
+        var sessions = new SelectedSessionDomainService(); sessions.Select(first); sessions.Select(second);
+        var views = new FixedCurrentViews(); views.Publish(first, Entry(first, 100)); views.Publish(second, Entry(second, 300));
+        var positions = new CharacterPositionDomainService();
+        var areas = new SessionPresenceDomainService();
+        foreach (var session in new[] { first, second })
+        {
+            positions.Place(session, new(3, 6, 100, 200, 1));
+            ((ITownAreaDomainService)areas).Enter(Member(session, new(11, 3, 6), 100));
+        }
+        var notifications = new RecordingNotificationBus(); var sender = new RecordingSender();
+        var projection = new TownAreaProjectionDelivery(areas, sessions, views, notifications,
+            new NoopPartyProjection(), sender, SharedTownMovementDomainService.Instance);
+        var room = new MarriageChurchRoom(7, Guid.NewGuid(), 11, 2, 12, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMinutes(5));
+        var handler = new WeddingChurchEnterHandler(sessions, new ChurchCommands(room), sender,
+            new SelectedSessionTransitionGate(), positions, areas, views, projection, NullLogger<WeddingChurchEnterHandler>.Instance);
+        foreach (var session in new[] { first, second })
+            await handler.HandleAsync(new NetworkDispatchContext(new(session.ConnectionId, NetworkEndpointKind.Game, 10011)),
+                new WeddingChurchEnterRequest(GameMessageMetadata.Empty, (uint)(session == first ? 2 : 1), 0, 0), default);
+        Assert.Equal(new[] { first.CharacterId, second.CharacterId },
+            ((ITownAreaDomainService)areas).Find(new TownAreaKey(11, 2, 12))!.Members.Select(x => x.CharacterId));
+        Assert.Equal(12, positions.Find(first.CharacterId)!.AreaId); Assert.Equal(12, positions.Find(second.CharacterId)!.AreaId);
+        Assert.Equal(2, sender.Deliveries.SelectMany(x => x.Delivery.RequiredDirectMessages).OfType<WeddingChurchEnterAck>().Count(x => x.Status == 0));
+        Assert.Contains(sender.Deliveries.Where(x => x.ConnectionId == second.ConnectionId)
+            .SelectMany(x => x.Delivery.RequiredDirectMessages).OfType<CurrentUserStateMessage>(),
+            x => x.Character.Identity.CharacterId == first.CharacterId);
+        Assert.Contains(notifications.Publications, x => x.Notification is TownParticipantPublished publication
+            && publication.State.Newcomer.Character.Identity.CharacterId == second.CharacterId);
+    }
+
+    private sealed class ChurchCommands(MarriageChurchRoom room) : ICommandBus
+    {
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken ct = default) where TResult : notnull
+        {
+            var entry = Assert.IsType<EnterMarriageChurchCommand>(command);
+            var snapshot = new MarriageChurchSnapshot(room, new((int)entry.Peer), "groom"u8.ToArray(), "bride"u8.ToArray(), new(2, 12, 250, 300));
+            return ValueTask.FromResult((TResult)(object)new MarriageChurchEntryResult(0, snapshot));
+        }
+    }
     [Fact]
     public async Task Returning_to_town_receives_existing_players_and_publishes_itself_to_them()
     {
@@ -374,7 +422,7 @@ public sealed class TownAreaProjectionDeliveryTests
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId,
             IGameCmdMessage message,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
+            CancellationToken cancellationToken) => SendExplicitAsync(connectionId, new([message], []), cancellationToken);
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId,

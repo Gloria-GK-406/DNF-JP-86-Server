@@ -141,4 +141,4 @@ RVA 00891A86  68 37 1C 01 00                   push 0x11c37
       S->C Game:04-00-00-00 selector=0x00 type=0x03CE frame=27 WeddingResponseNotification
 ```
 
-该次申请16:16:58.832、自动答复16:17:04.833相距约6秒；仅为观察，不定义规范超时时间。当前outcome1自动答复与邀请方普通拒绝提示尚待用户反馈。协议编排及验证矩阵见[流程](../protocol/patterns/flow-marriage-proposal.md)。
+该次申请16:16:58.832、自动答复16:17:04.833相距约6秒；仅为观察，不定义规范超时时间。2026-10-16用户明确反馈自动超时后邀请方正常显示被拒绝、等待窗口关闭，该路径记有限范围ClientVerified；仍未归档完整新实帧。协议编排及验证矩阵见[流程](../protocol/patterns/flow-marriage-proposal.md)。

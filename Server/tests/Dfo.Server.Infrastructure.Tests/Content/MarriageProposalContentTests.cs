@@ -6,6 +6,26 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 public sealed class MarriageProposalContentTests
 {
     [SkippableFact]
+    public async Task Current_archive_declares_separate_underfoot_church_slots_with_walkable_spawn_points()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var towns = new PvfTownDefinitionSource(provider);
+        var underfoot = await towns.GetAsync(2, default);
+        Assert.NotNull(underfoot);
+        var slots = underfoot.Areas.Where(x => x.AreaId is >= 12 and <= 62
+            && x.MapPath.Replace('\\', '/').EndsWith("church/church.map", StringComparison.OrdinalIgnoreCase)).ToArray();
+        Assert.Equal(51, slots.Length);
+        foreach (var slot in slots)
+        {
+            var geometry = await towns.GetMapGeometryAsync(slot.MapPath, default);
+            Assert.NotNull(geometry);
+            Assert.NotEmpty(geometry.WalkableAreas);
+            var floor = geometry.WalkableAreas[0];
+            Assert.True(geometry.IsWalkable(floor.CenterX, floor.CenterY));
+        }
+    }
+    [SkippableFact]
     public void Ceremony_tiers_and_wait_selections_come_from_the_current_archive()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

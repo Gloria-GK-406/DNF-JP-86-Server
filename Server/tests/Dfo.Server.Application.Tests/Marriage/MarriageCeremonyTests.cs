@@ -21,8 +21,8 @@ public sealed class MarriageCeremonyTests
             [new MarriageCeremonyTier(0, 500_000, 0, 10)], [300, 600, 900]);
     }
 
-    private static async Task<(LearningFixture Fixture, SelectedSessionIdentity Peer,
-        RecordingQuestLogs Logs, MarriageProposalTests.Clock Clock)> Fixture()
+    internal static async Task<(LearningFixture Fixture, SelectedSessionIdentity Peer,
+        RecordingQuestLogs Logs, MarriageProposalTests.Clock Clock)> Fixture(Action<IServiceCollection>? configure = null)
     {
         var logs = new RecordingQuestLogs();
         var clock = new MarriageProposalTests.Clock();
@@ -33,11 +33,12 @@ public sealed class MarriageCeremonyTests
             services.AddCommandHandler<MarriageCeremonyCommand, MarriageCeremonyResult,
                 MarriageCeremonyCommandHandler>(CommandExecutionKind.Transactional,
                 accountAccessMode: UserAccessMode.Exclusive);
+            configure?.Invoke(services);
         });
         return (fixture, peer, logs, clock);
     }
 
-    private static async Task<Guid> MakeEligibleAsync(LearningFixture fixture,
+    internal static async Task<Guid> MakeEligibleAsync(LearningFixture fixture,
         SelectedSessionIdentity peer, RecordingQuestLogs logs, int applicantGold = 500_000)
     {
         Assert.True((await MarriageProposalTests.Run(fixture,
@@ -64,7 +65,7 @@ public sealed class MarriageCeremonyTests
         return relation;
     }
 
-    private static async Task<MarriageCeremonyResult> RunAsync(LearningFixture fixture,
+    internal static async Task<MarriageCeremonyResult> RunAsync(LearningFixture fixture,
         Func<IMarriageCeremonyDomainService, ValueTask<MarriageCeremonyResult>> action,
         bool commit = true)
     {

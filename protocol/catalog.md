@@ -1,10 +1,20 @@
 # 协议清单
 
+## 2026-10-16 普通婚礼进入教堂（CurrentImplementation，待双端实机）
+
+预约后投影原生79B准备上下文，普通新人通过03F7的对象编号/mode0/flag0进入当前预约房间。房间持久且按频道/town2/area12..62隔离，普通0024也检查许可；事务先保存入场许可/位置，再迁移城镇名册，CMD正文5B。当前只到准备阶段，不扣费、不发奖、不开始/完成仪式。准备窗口过期可在未开场时通过重登恢复原预约准备。[实现与测试步骤](../Document/MarriageChurchEntry-20261016.md)、[原生分支补证](../Document/MarriageChurchEntryEvidence-20261016.md)。
+
+| 族 | Type | 名称/实现 | 当前证据 | 记录 |
+|---|---|---|---|---|
+| `0x01` | `0x03F7` | WEDDING_ENTER_CEREMONY C2S | ClientStatic / CurrentImplementation | [请求](game/client-to-server/0x03F7.md) |
+| `0x01` CMD | `0x03F7` | WEDDING_ENTER_CEREMONY | ClientStatic / CurrentImplementation | [回包](game/server-to-client/CMD-0x03F7.md) |
+| `0x00` NOTI | `0x03D4` | WEDDING_CEREMONY | ClientStatic / CurrentImplementation | [准备通知](game/server-to-client/NOTI-0x03D4.md) |
+
 ## 2026-10-16 普通婚礼预约与客户端自动拒绝
 
 CurrentImplementation：03F0/03F1 action2接普通档预约，03CD第9字节为tier；独立持久预约，接受后双端03D0阶段2及重登恢复仍属于实现范围，不代表仪式完成。本步不收费、不发奖、不进教堂，未实现婚姻道具拒绝且不误耗。详见[预约实现边界](../Document/MarriageReservation-20261016.md)。
 
-有限范围ClientVerified：用户报告普通档手动拒绝、接受正常。上一版客户端路由补丁已由日志观察到自动outcome2答复；当前统一补丁将婚礼自动超时改发普通拒绝outcome1，邀请方走与手动点“否”相同的文本分支，接收方保留本地超时提示。ClientStatic / Confirmed、已部署；新版双端文本及等待窗收尾仍待用户反馈，没有扩大到ClientVerified或完整WireCaptured。[流程、协议链接与证据矩阵](patterns/flow-marriage-proposal.md)、[字节和日志补证](../Document/MarriageTimeoutProtocolEvidence-20261016.md)。
+有限范围ClientVerified：用户报告普通档手动拒绝、接受正常。上一版客户端路由补丁已由日志观察到自动outcome2答复；当前统一补丁将婚礼自动超时改发普通拒绝outcome1，邀请方走与手动点“否”相同的文本分支，接收方保留本地超时提示。用户已确认自动超时后邀请方正常显示被拒绝、等待窗口关闭，提升为该路径有限范围ClientVerified；未扩大为完整WireCaptured。[流程、协议链接与证据矩阵](patterns/flow-marriage-proposal.md)、[字节和日志补证](../Document/MarriageTimeoutProtocolEvidence-20261016.md)。
 
 ## 2026-10-16 组队申请方向与副本选择主机槽位（CurrentImplementation，待实机）
 
@@ -39,7 +49,7 @@ action1求婚、接受、拒绝与客户端超时已接入；action2婚礼预约
 
 ## 2026-10-16 婚姻后续协议的静态边界
 
-[03F7](game/client-to-server/0x03F7.md)正文23B、业务字段从+14开始；不能从原生结构再减去外层14B头。该进入仪式协议的正常业务流程及双端验收尚未接入；不能以03F0/03F1已能预约推定教堂、来宾或婚礼完成可用。
+[03F7](game/client-to-server/0x03F7.md)正文23B、业务字段从+14开始；不能从原生结构再减去外层14B头。普通新人进入教堂已接入（见上节），原生双端入场待验收；来宾、仪式开始/完成仍未接入，不能由预约或入场推定后续仪式可用。
 
 [NOTI03D8](game/server-to-client/NOTI-0x03D8.md)客户端读取 `u32 count + count×(u16+u32) + 13B tail`，消费17+6n；当前204零只用于空态兼容，不证明非空旧彩票语义。早期调查的“尚未修改发送路径”已不代表当前实现，历史推导见[一期调查](../Document/MarriagePhase1Research-20261016.md)。
 

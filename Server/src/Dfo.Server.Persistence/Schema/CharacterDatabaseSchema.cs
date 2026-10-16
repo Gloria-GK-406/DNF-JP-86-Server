@@ -263,6 +263,19 @@ internal static class CharacterDatabaseSchema
         );
         CREATE UNIQUE INDEX IF NOT EXISTS ux_marriage_ceremonies_active_relation
             ON marriage_ceremonies(relation_id) WHERE state IN (0,1);
+        CREATE TABLE IF NOT EXISTS marriage_church_rooms (
+            token INTEGER PRIMARY KEY AUTOINCREMENT,
+            ceremony_id TEXT NOT NULL UNIQUE REFERENCES marriage_ceremonies(id),
+            channel_id INTEGER NOT NULL CHECK(channel_id>0),
+            town_id INTEGER NOT NULL CHECK(town_id BETWEEN 0 AND 255),
+            area_id INTEGER NOT NULL CHECK(area_id BETWEEN 12 AND 62),
+            prepared_at INTEGER NOT NULL,ready_until INTEGER NOT NULL,
+            UNIQUE(channel_id,town_id,area_id)
+        );
+        CREATE TABLE IF NOT EXISTS marriage_church_admissions (
+            ceremony_id TEXT NOT NULL REFERENCES marriage_church_rooms(ceremony_id),
+            character_id INTEGER NOT NULL,PRIMARY KEY(ceremony_id,character_id)
+        );
         CREATE TABLE IF NOT EXISTS sao_tower_progress(season TEXT PRIMARY KEY,round INTEGER NOT NULL CHECK(round>=1),next_floor INTEGER NOT NULL CHECK(next_floor BETWEEN 1 AND 100),revision INTEGER NOT NULL CHECK(revision>=0));
         CREATE TABLE IF NOT EXISTS sao_first_clears(season TEXT NOT NULL,round INTEGER NOT NULL,floor INTEGER NOT NULL,run_id TEXT NOT NULL UNIQUE,PRIMARY KEY(season,round,floor));
         CREATE TABLE IF NOT EXISTS sao_first_clear_rewards(run_id TEXT NOT NULL,character_id INTEGER NOT NULL,item_id INTEGER NOT NULL,PRIMARY KEY(run_id,character_id),FOREIGN KEY(run_id) REFERENCES sao_first_clears(run_id));

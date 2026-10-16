@@ -262,6 +262,14 @@ public sealed class ProtocolModule : IServerModule
         services.AddHostedService<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>();
         services.AddHostedService<Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService>();
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalDecoder>(GameProtocol.WeddingProposalType, ClientMessageType.GameWeddingProposal);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterDecoder>(GameProtocol.WeddingChurchEntryType, ClientMessageType.GameWeddingChurchEntry);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterHandler>(ClientMessageType.GameWeddingChurchEntry);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchPreparationNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchPreparationEncoder>();
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.PrepareMarriageChurchCommand, Dfo.Server.Protocol.Game.MarriageProposal.MarriageChurchPreparationResult,
+            Dfo.Server.Protocol.Game.MarriageProposal.PrepareMarriageChurchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.EnterMarriageChurchCommand, Dfo.Server.Data.Marriage.MarriageChurchEntryResult,
+            Dfo.Server.Protocol.Game.MarriageProposal.EnterMarriageChurchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerDecoder>(GameProtocol.WeddingPartnerType, ClientMessageType.GameWeddingPartnerQuery);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerHandler>(ClientMessageType.GameWeddingPartnerQuery);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerEncoder>();
