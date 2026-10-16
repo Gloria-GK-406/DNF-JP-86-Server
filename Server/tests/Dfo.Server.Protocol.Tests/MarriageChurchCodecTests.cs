@@ -37,10 +37,44 @@ public sealed class MarriageChurchCodecTests
         Assert.Equal(72u, BinaryPrimitives.ReadUInt32LittleEndian(body));
         Assert.Equal(12u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(4)));
         Assert.Equal(1700000300u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(8)));
-        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(12)));
+        Assert.Equal(1u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(12)));
         Assert.Equal(0, body[16]); Assert.Equal(0, body[46]); Assert.Equal(0, body[76]);
         Assert.Equal(new string('婚', 9), new UTF8Encoding(false, true).GetString(body.AsSpan(17, 27)));
         Assert.Equal("bride"u8.ToArray(), body[47..52]);
         Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(77)));
     }
+    [Fact]
+    public void Wedding_begin_letters_and_remaining_quota_match_native_readers()
+    {
+        var room = new MarriageChurchRoom(13, Guid.NewGuid(), 1, 2, 12, DateTimeOffset.UnixEpoch, DateTimeOffset.FromUnixTimeSeconds(1700000300));
+        var church = new MarriageChurchSnapshot(room, new CharacterId(72), "groom"u8.ToArray(), "bride"u8.ToArray(), new(2, 12, 300, 350));
+        var avatar = Assert.Single(new WeddingAvatarEncoder().Encode(new WeddingAvatarNotification(church)))[15..];
+        Assert.Equal(67, avatar.Length); Assert.Equal(0, avatar[0]);
+        Assert.Equal("groom"u8.ToArray(), avatar[2..7]); Assert.Equal("bride"u8.ToArray(), avatar[32..37]);
+        Assert.Equal(12u, BinaryPrimitives.ReadUInt32LittleEndian(avatar.AsSpan(62)));
+        var begin = Assert.Single(new WeddingBeginEncoder().Encode(new WeddingBeginNotification(church)))[15..];
+        Assert.Equal(68, begin.Length); Assert.Equal(72u, BinaryPrimitives.ReadUInt32LittleEndian(begin));
+        Assert.Equal(12u, BinaryPrimitives.ReadUInt32LittleEndian(begin.AsSpan(4)));
+        Assert.Equal("groom"u8.ToArray(), begin[8..13]); Assert.Equal("bride"u8.ToArray(), begin[38..43]);
+        var letter = Assert.Single(new WeddingLetterEncoder().Encode(new WeddingLetterNotification(church, 72, true)))[15..];
+        Assert.Equal(78, letter.Length); Assert.Equal(1, letter[77]);
+        Assert.Equal(Convert.FromHexString("01000000000A00"), Assert.Single(new WeddingLetterAckEncoder().Encode(new WeddingLetterAck(0, 10)))[15..]);
+        Assert.Equal(Convert.FromHexString("010000000048000000"), Assert.Single(new WeddingGiftAckEncoder().Encode(new WeddingGiftAck(0, 72)))[15..]);
+        Assert.Equal(Convert.FromHexString("02490000004A000000"), Assert.Single(new WeddingInvitedGuestsEncoder().Encode(new WeddingInvitedGuestsNotification([73,74])))[15..]);
+    }
+    [Fact]
+    public void Invitation_and_blessing_decoders_keep_their_distinct_native_layouts()
+    {
+        var request = new byte[22]; request[14] = 1;
+        var letter = Assert.IsType<WeddingLetterRequest>(new WeddingLetterDecoder().Decode(GameMessageMetadata.Empty, request));
+        Assert.Equal(1, letter.Mode); Assert.Equal(0u, letter.Target);
+        var blessing = new byte[15]; BinaryPrimitives.WriteUInt32LittleEndian(blessing,72);
+        BinaryPrimitives.WriteInt32LittleEndian(blessing.AsSpan(4),10000); BinaryPrimitives.WriteInt32LittleEndian(blessing.AsSpan(8),3);
+        "yes"u8.CopyTo(blessing.AsSpan(12));
+        var gift = Assert.IsType<WeddingGiftRequest>(new WeddingGiftDecoder().Decode(GameMessageMetadata.Empty, blessing));
+        Assert.Equal(72u,gift.Key); Assert.Equal(10000,gift.Gold); Assert.Equal("yes",gift.Text);
+        Assert.Throws<InvalidDataException>(() => new WeddingGiftDecoder().Decode(GameMessageMetadata.Empty, blessing[..14]));
+        Assert.Throws<InvalidDataException>(() => new WeddingLetterDecoder().Decode(GameMessageMetadata.Empty, request[..21]));
+    }
+
 }

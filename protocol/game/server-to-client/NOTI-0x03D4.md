@@ -8,16 +8,16 @@ ClientStatic / Confirmed：handler RVA00895B10固定读取79B，没有CMD结果�
 |---:|---:|---|---|
 | 0 | 4 | u32 LE | 与婚姻manager+5C的对象编号比较；本服按接收者的配偶/订婚对象CharacterId编码，两端分别计算 |
 | 4 | 4 | u32 LE | 教堂area，写manager+0C；通知图标把当前记录该字段与角色area比较；本服填已分配Room.AreaId |
-| 8 | 4 | u32 LE | 后续计算该值减当前秒时钟；本服按准备截止Unix秒编码 |
-| 12 | 4 | u32 LE | 未闭合字段，本次写0，不称作仪式开始时间 |
+| 8 | 4 | u32 LE | 后续计算该值减当前秒时钟；本服按固定开场Unix秒编码 |
+| 12 | 4 | u32 LE | 婚礼所在频道，RVA00F9D072传给dstr11CE2；本服填Room.ChannelId |
 | 16 | 1 | u8 | 当前普通档写0；其它档未接入 |
 | 17 | 30 | bytes | 原生字符串转换；本服填申请者名称，UTF-8完整前缀且以0结尾，双方角色名排序仍待实机 |
 | 47 | 30 | bytes | 原生字符串转换；本服填另一方名称，同上 |
-| 77 | 2 | u16 LE | 请柬剩余额度，写manager+74，经RVA008918B0 getter用于RVA00885E7E额度文案；请柬派送未接，本服仍写0 |
+| 77 | 2 | u16 LE | 请柬剩余额度，写manager+74，经RVA008918B0 getter用于RVA00885E7E额度文案；本服按当前PVF普通档每人10份减持久已派送数量编码 |
 
-CurrentImplementation：普通婚礼接受后，及已预约角色重登的03F3查询后，为各接收者发送准备通知。数据库内部room token不进入正文；新人通知回调以构包参数(1,0,0)形成03F7，正文携带上下文area，服务器据当前预约定位房间。此通知不授予已婚、不开始仪式，也不代表后续03D7已经实现。
+CurrentImplementation：普通婚礼接受后，及已预约角色重登的03F3查询后，为各接收者发送准备通知。数据库内部room token不进入正文；新人通知回调以构包参数(1,0,0)形成03F7，正文携带上下文area，服务器据当前预约定位房间。此通知只表达准备上下文；到点成功结算另发03D7和03D0阶段4。预约确认后服务端自动迁移双方，图标用于离场后重入。
 
-当前可证明的是上述读取、赋值与分支；截止时间策略和未闭合字段取0属于CurrentImplementation。用户截图已确认请柬派送窗口显示双方名字与额度0；原生新人通知入口与入场表现仍待用户测试。见[定向补证](../../../Document/MarriageChurchEntryEvidence-20261016.md)、[请求](../client-to-server/0x03F7.md)与[阶段范围/测试步骤](../../../Document/MarriageChurchEntry-20261016.md)。
+当前可证明的是上述读取、赋值与分支；固定开场时刻策略属于CurrentImplementation。历史截图中额度0是上一版占位；本次额度、自动入场、动画及结算仍待用户实机测试。见[定向补证](../../../Document/MarriageChurchEntryEvidence-20261016.md)、[请求](../client-to-server/0x03F7.md)与[阶段范围/测试步骤](../../../Document/MarriageChurchEntry-20261016.md)。
 
 <!-- rks:machine:begin -->
 

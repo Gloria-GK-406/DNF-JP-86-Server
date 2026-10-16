@@ -81,7 +81,7 @@ public sealed class MarriageCeremonyHandlerTests
         Assert.Equal(new WeddingResponseNotification(peer.WireUserId, 0, 2), accepted.BestEffortTargets[0].OrderedMessages[0]);
         Assert.True((await f.Services.GetRequiredService<IMarriageEngagementDomainService>()
             .ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).IsCeremonyReserved);
-        Assert.Equal(2000000, f.Scalar("SELECT SUM(carried_gold) FROM character_stats"));
+        Assert.Equal(1500000, f.Scalar("SELECT SUM(carried_gold) FROM character_stats"));
         await response.HandleAsync(peerContext, new WeddingResponseRequest(GameMessageMetadata.Empty, 0, 2, 0, 0, 0), default);
         Assert.Equal(0, Assert.IsType<WeddingResponseAck>(sender.Deliveries[^1].RequiredDirectMessages[0]).Status);
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_ceremonies WHERE state=1"));

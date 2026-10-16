@@ -1,5 +1,11 @@
 # NOTI `0x03CF` `WEDDING_AVATAR`
 
+## A21 人工裁定与实现（2026-10-16）
+
+ClientStatic / CurrentImplementation：RVA00898220读取67B：u8 operation@0、u8 tier@1、name30@2、name30@32、u32 area@62、未知u8@66。普通档tier0、尾0。operation0应用婚礼临时装扮，非0恢复；不改真实装备。服务端自动入场和重入场后应用，离场/取消恢复，实际外观待用户验收。
+
+证据与边界见[定向补证](../../../Document/MarriageChurchEntryEvidence-20261016.md)及[普通婚礼流程](../../../Document/MarriageWeddingFlow-20261016.md)。未新增WireCaptured或ClientVerified。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

@@ -10,7 +10,7 @@ namespace Dfo.Server.Application.Marriage;
 
 internal sealed class MarriageEngagementDomainService(IMarriageProposalDomainStore store,
     IMarriageCeremonyDomainStore ceremonies, ICharacterDomainService characters,
-    ICharacterInventoryEntryDomainService inventory) : IMarriageEngagementDomainService
+    ICharacterInventoryEntryDomainService inventory, IMarriageWeddingDomainStore weddings) : IMarriageEngagementDomainService
 {
     public async ValueTask<MarriageEngagementSnapshot> ReadAsync(AccountId account, CharacterId character, CancellationToken ct)
     {
@@ -26,9 +26,11 @@ internal sealed class MarriageEngagementDomainService(IMarriageProposalDomainSto
         var current = await inventory.ReadCurrentAsync(peer.AccountId, peer.CharacterId, ct).ConfigureAwait(false);
         var worn = current.Containers.SingleOrDefault(x => x.ContainerType == InventoryContainerType.Equipment)?.Items ?? [];
         var equipment = Enumerable.Range(0, 13).Select(slot => worn.SingleOrDefault(x => x.SlotIndex == slot)?.Core.ItemId ?? 0).ToArray();
+        var married = await weddings.IsMarriedAsync(relation.Id, ct).ConfigureAwait(false);
         return new(relation.Id, new(peer.CharacterId.Value, identity.Name, identity.Job, progress.Level, identity.GrowType, equipment))
         {
-            IsCeremonyReserved = await ceremonies.IsReservedAsync(relation.Id, ct).ConfigureAwait(false),
+            IsCeremonyReserved = !married && await ceremonies.IsReservedAsync(relation.Id, ct).ConfigureAwait(false),
+            IsMarried = married,
         };
     }
 }

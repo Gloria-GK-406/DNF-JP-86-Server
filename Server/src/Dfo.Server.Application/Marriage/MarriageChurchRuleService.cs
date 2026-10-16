@@ -20,6 +20,14 @@ internal sealed class MarriageChurchRuleService(IMarriageCeremonyContentSource c
         return TimeSpan.FromSeconds(values[waitIndex]);
     }
 
+    public MarriageWeddingRules WeddingRules(int tier)
+    {
+        var content = ceremony.Load();
+        var rule = content.Tiers.Single(x => x.Tier == tier);
+        return new(rule.Gold, rule.OpaqueValue, rule.GiftItemId, content.GiftMinimum, content.GiftMaximum, content.GiftChargePercent)
+        { InvitationCutoffSeconds = content.InvitationCutoffSeconds, GuestRewards = content.GuestRewards.Where(x => x.Tier == tier).ToArray() };
+    }
+
     public async ValueTask<IReadOnlyList<MarriageChurchLocation>> LocationsAsync(byte townId, CancellationToken ct)
     {
         // A21 RVA008936A0 and RVA0089460A recognize churches only in town2, area12..62.

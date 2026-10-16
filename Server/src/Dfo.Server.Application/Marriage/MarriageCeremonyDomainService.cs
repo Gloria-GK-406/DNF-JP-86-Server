@@ -18,7 +18,7 @@ internal sealed class MarriageCeremonyDomainService(
     ICharacterDomainService characters,
     ISelectedSessionDomainService sessions,
     ITownAreaDomainService areas,
-    TimeProvider clock) : IMarriageCeremonyDomainService
+    TimeProvider clock, IMarriageWeddingDomainStore weddings) : IMarriageCeremonyDomainService
 {
     public ValueTask<MarriageCeremony?> FindReceivedAsync(CharacterId character, CancellationToken ct) =>
         store.FindLatestReceivedAsync(character, ct);
@@ -33,7 +33,7 @@ internal sealed class MarriageCeremonyDomainService(
             return new(MarriageCeremonyFailure.Invalid);
         if (!SameTown(applicant, partner)) return new(MarriageCeremonyFailure.Unavailable);
         var relation = await RelationAsync(applicant, partner, ct).ConfigureAwait(false);
-        if (relation is null) return new(MarriageCeremonyFailure.Ineligible);
+        if (relation is null || await weddings.IsMarriedAsync(relation.Id, ct).ConfigureAwait(false)) return new(MarriageCeremonyFailure.Ineligible);
         var existing = await ActiveAsync(relation.Id, ct).ConfigureAwait(false);
         if (existing is not null)
             return existing.State == MarriageCeremonyState.Pending

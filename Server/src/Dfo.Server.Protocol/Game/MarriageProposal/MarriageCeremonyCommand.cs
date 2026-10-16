@@ -14,11 +14,16 @@ public sealed record MarriageCeremonyCommand(SelectedSessionIdentity Actor, Sele
     public IReadOnlyList<AccountId> AccountIds => [Actor.AccountId, Peer.AccountId];
 }
 
-public sealed class MarriageCeremonyCommandHandler(IMarriageCeremonyDomainService ceremonies)
+public sealed class MarriageCeremonyCommandHandler(IMarriageCeremonyDomainService ceremonies, IMarriageWeddingDomainService weddings)
     : ICommandHandler<MarriageCeremonyCommand, MarriageCeremonyResult>
 {
-    public ValueTask<MarriageCeremonyResult> HandleAsync(CommandExecutionContext context, MarriageCeremonyCommand command, CancellationToken ct) =>
-        command.Response is { } response
-            ? ceremonies.RespondAsync(command.Actor, command.Peer, response, ct)
-            : ceremonies.RequestAsync(command.Actor, command.Peer, command.Tier, command.WaitIndex, ct);
+    public async ValueTask<MarriageCeremonyResult> HandleAsync(CommandExecutionContext context, MarriageCeremonyCommand command, CancellationToken ct)
+    {
+        var result = command.Response is { } response
+            ? await ceremonies.RespondAsync(command.Actor, command.Peer, response, ct).ConfigureAwait(false)
+            : await ceremonies.RequestAsync(command.Actor, command.Peer, command.Tier, command.WaitIndex, ct).ConfigureAwait(false);
+        if (result.Changed && result.Ceremony is { State: MarriageCeremonyState.Reserved } ceremony)
+            result = result with { Admissions = await weddings.PrepareAsync(ceremony, ct).ConfigureAwait(false) };
+        return result;
+    }
 }

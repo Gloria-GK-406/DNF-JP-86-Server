@@ -12,13 +12,14 @@ internal sealed class MarriageChurchDomainService(IMarriageProposalDomainStore r
     IMarriageCeremonyDomainStore ceremonies, IMarriageChurchRuleService rules,
     ISelectedSessionDomainService sessions, ITownAreaDomainService areas, ICharacterDomainService characters,
     TimeProvider clock, ICharacterPositionDomainService positions, ISelectedSessionPositionPersistence persistence,
-    IMarriageChurchDomainStore? store = null) : IMarriageChurchDomainService
+    IMarriageChurchDomainStore? store = null, IMarriageWeddingDomainStore? weddings = null) : IMarriageChurchDomainService
 {
     private async ValueTask<(MarriageProposal, MarriageCeremony)?> ReservedAsync(SelectedSessionIdentity actor, CancellationToken ct)
     {
         if (store is null || sessions.Find(actor.AccountId) != actor) return null;
         var relation = await relations.FindActiveAsync(actor.CharacterId, ct).ConfigureAwait(false);
-        if (relation is not { State: MarriageProposalState.Engaged }) return null;
+        if (relation is not { State: MarriageProposalState.Engaged }
+            || weddings is not null && await weddings.IsMarriedAsync(relation.Id, ct).ConfigureAwait(false)) return null;
         var own = relation.Proposer.CharacterId == actor.CharacterId ? relation.Proposer : relation.Recipient;
         if (own.AccountId != actor.AccountId || (relation.Proposer.CharacterId != actor.CharacterId
                 && relation.Recipient.CharacterId != actor.CharacterId)) return null;
@@ -48,14 +49,7 @@ internal sealed class MarriageChurchDomainService(IMarriageProposalDomainStore r
             }
         }
         if (room is null || room.ChannelId != member.Area.ChannelId) return null;
-        // Preparation can be reopened while no ceremony engine has begun it. The room and
-        // reservation stay stable; this is not completion or a new fee/reward settlement.
-        if (room.ReadyUntil <= now)
-        {
-            var until = now + rules.PreparationTime(ceremony.WaitIndex);
-            await store!.RenewAsync(room, now, until, ct).ConfigureAwait(false);
-            room = room with { PreparedAt = now, ReadyUntil = until };
-        }
+        if (room.ReadyUntil <= now) return null;
         return await SnapshotAsync(actor, ceremony, room, ct).ConfigureAwait(false);
     }
 
@@ -94,7 +88,21 @@ internal sealed class MarriageChurchDomainService(IMarriageProposalDomainStore r
         byte townId, byte areaId, CancellationToken ct)
     {
         if (!await rules.IsChurchAsync(townId, areaId, ct).ConfigureAwait(false)) return true;
-        if (await ReservedAsync(actor, ct).ConfigureAwait(false) is not { } reserved) return false;
+        if (await ReservedAsync(actor, ct).ConfigureAwait(false) is not { } reserved)
+        {
+            if (weddings is null || store is null || sessions.Find(actor.AccountId) != actor) return false;
+            foreach (var wedding in await weddings.PendingAsync(ct).ConfigureAwait(false))
+            {
+                var guestRoom = await store.ReadAsync(wedding.Ceremony.Id, ct).ConfigureAwait(false);
+                if (guestRoom is null || guestRoom.ChannelId != channelId || guestRoom.TownId != townId || guestRoom.AreaId != areaId) continue;
+                var member = areas.Find(actor.CharacterId);
+                var inside = member is not null && actor.Owns(member) && member.Area == new TownAreaKey(channelId, townId, areaId);
+                if (wedding.Phase == MarriageWeddingPhase.Completed && !inside) return false;
+                return (guestRoom.ReadyUntil > clock.GetUtcNow() || inside)
+                    && await store.IsAdmittedAsync(wedding.Ceremony.Id, actor.CharacterId, ct).ConfigureAwait(false);
+            }
+            return false;
+        }
         var room = await store!.ReadAsync(reserved.Item2.Id, ct).ConfigureAwait(false);
         if (room is null || room.ChannelId != channelId || room.TownId != townId || room.AreaId != areaId) return false;
         var standing = areas.Find(actor.CharacterId);

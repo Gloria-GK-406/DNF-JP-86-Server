@@ -263,6 +263,17 @@ internal static class CharacterDatabaseSchema
         );
         CREATE UNIQUE INDEX IF NOT EXISTS ux_marriage_ceremonies_active_relation
             ON marriage_ceremonies(relation_id) WHERE state IN (0,1);
+        CREATE TABLE IF NOT EXISTS marriage_weddings (
+            ceremony_id TEXT PRIMARY KEY REFERENCES marriage_ceremonies(id),
+            relation_id TEXT NOT NULL REFERENCES marriage_proposals(id),payload_json TEXT NOT NULL,
+            phase INTEGER NOT NULL CHECK(phase BETWEEN 0 AND 2),paid_gold INTEGER NOT NULL CHECK(paid_gold>=0)
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_marriage_weddings_married ON marriage_weddings(relation_id) WHERE phase=1;
+        CREATE TABLE IF NOT EXISTS marriage_wedding_guests (
+            ceremony_id TEXT NOT NULL REFERENCES marriage_weddings(ceremony_id),guest_character_id INTEGER NOT NULL,
+            inviter_character_id INTEGER NOT NULL,context_key INTEGER NOT NULL,gold INTEGER NOT NULL CHECK(gold>=0),
+            PRIMARY KEY(ceremony_id,guest_character_id)
+        );
         CREATE TABLE IF NOT EXISTS marriage_church_rooms (
             token INTEGER PRIMARY KEY AUTOINCREMENT,
             ceremony_id TEXT NOT NULL UNIQUE REFERENCES marriage_ceremonies(id),

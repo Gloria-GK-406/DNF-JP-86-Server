@@ -142,7 +142,7 @@ internal sealed class WeddingProposalHandler(ISelectedSessionDomainService sessi
 internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessions, IMarriageProposalDomainService marriage,
     ICommandBus commands, IGameMessageSender sender, SelectedSessionTransitionGate lifecycle, ILogger<WeddingResponseHandler> logger,
     IMarriageEngagementDomainService engagement, IQuestOfferRefreshDomainService offers, ICharacterDomainService characters,
-    IMarriageCeremonyDomainService ceremonies) : ClientMessageHandler<WeddingResponseRequest>
+    IMarriageCeremonyDomainService ceremonies, IMarriageWeddingDomainService weddings, TimeProvider clock, MarriageWeddingProjection? projection = null) : ClientMessageHandler<WeddingResponseRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeddingResponseRequest message, CancellationToken ct)
     {
@@ -189,10 +189,20 @@ internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessi
         var peer = pending is null ? null : sessions.FindByCharacter(pending.Applicant.CharacterId);
         await WeddingProposalExecution.RunAsync(lifecycle, actor, peer, async () =>
         {
-            var result = actor is null || peer is null || message.First != 0 || message.Second != 0 || message.Outcome > 2
-                || (message.Target != 0 && message.Target != peer.WireUserId)
-                ? new MarriageCeremonyResult(MarriageCeremonyFailure.Invalid)
-                : await commands.SendAsync(new MarriageCeremonyCommand(actor, peer, 0, 0, message.Outcome), ct).ConfigureAwait(false);
+            MarriageCeremonyResult result;
+            try
+            {
+                result = actor is null || peer is null || message.First != 0 || message.Second != 0 || message.Outcome > 2
+                    || (message.Target != 0 && message.Target != peer.WireUserId)
+                    ? new MarriageCeremonyResult(MarriageCeremonyFailure.Invalid)
+                    : await commands.SendAsync(new MarriageCeremonyCommand(actor, peer, 0, 0, message.Outcome), ct).ConfigureAwait(false);
+            }
+            catch (MarriageWeddingUnavailableException)
+            {
+                if (actor is not null && peer is not null)
+                    await commands.SendAsync(new MarriageCeremonyCommand(actor, peer, 0, 0, 2), ct).ConfigureAwait(false);
+                result = new(MarriageCeremonyFailure.Unavailable);
+            }
             logger.LogInformation("Marriage ceremony response actor={Actor} target={Target} outcome={Outcome} result={Result} id={Ceremony}",
                 actor?.CharacterId, message.Target, message.Outcome, result.Failure, result.Ceremony?.Id);
             var own = new List<IGameServerMessage> { new WeddingResponseAck(result.Succeeded ? 0 : -3, peer?.WireUserId ?? 0, 2, message.Outcome) };
@@ -206,8 +216,13 @@ internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessi
                     other.Add(new WeddingInfoMessage(await engagement.ReadAsync(peer.AccountId, peer.CharacterId, ct).ConfigureAwait(false)));
                     var actorChurch = await commands.SendAsync(new PrepareMarriageChurchCommand(actor), ct).ConfigureAwait(false);
                     var peerChurch = await commands.SendAsync(new PrepareMarriageChurchCommand(peer), ct).ConfigureAwait(false);
-                    if (actorChurch.Snapshot is { } a) own.Add(new WeddingChurchPreparationNotification(a));
-                    if (peerChurch.Snapshot is { } p) other.Add(new WeddingChurchPreparationNotification(p));
+                    if (actorChurch.Snapshot is { } a) own.Add(new WeddingChurchPreparationNotification(a, await weddings.RemainingAsync(a.Room.CeremonyId, actor.CharacterId, ct).ConfigureAwait(false)));
+                    if (peerChurch.Snapshot is { } p) other.Add(new WeddingChurchPreparationNotification(p, await weddings.RemainingAsync(p.Room.CeremonyId, peer.CharacterId, ct).ConfigureAwait(false)));
+                    if (result.Admissions.Count > 0 && result.Ceremony is { } accepted)
+                    {
+                        var billTo = accepted.Applicant.CharacterId == actor.CharacterId ? own : other;
+                        billTo.Add(GameInventoryDelivery.CarriedGoldNotification(await characters.Get(accepted.Applicant.CharacterId).GoldAsync(ct), clock.GetUtcNow()));
+                    }
                 }
             }
             else if (pending?.State == MarriageCeremonyState.Pending && actor == pending.Partner && peer == pending.Applicant
@@ -221,6 +236,13 @@ internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessi
             }
             await sender.SendExplicitAsync(context.Connection.ConnectionId, new(own,
                 peer is not null && other.Count > 0 ? [new(peer.ConnectionId, other)] : []), ct).ConfigureAwait(false);
+            if (projection is not null)
+            {
+                foreach (var entry in result.Admissions)
+                    await projection.MoveAsync(entry.Actor, entry.Church.Room.ChannelId, entry.Church.Location, ct).ConfigureAwait(false);
+                foreach (var entry in result.Admissions)
+                    await projection.AppearanceAsync(entry.Actor, entry.Church, false, ct).ConfigureAwait(false);
+            }
         }, ct).ConfigureAwait(false);
     }
 

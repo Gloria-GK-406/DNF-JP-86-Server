@@ -230,7 +230,9 @@ public sealed class SetUserAreaHandler(
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<SetUserAreaHandler> logger,
     ISelectedSessionPositionPersistence persistence,
-    Dfo.Server.Abstractions.Marriage.IMarriageChurchDomainService? churches = null) : ClientMessageHandler<SetUserAreaRequest>
+    Dfo.Server.Abstractions.Marriage.IMarriageChurchDomainService? churches = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageWeddingDomainService? weddings = null,
+    Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingProjection? weddingProjection = null) : ClientMessageHandler<SetUserAreaRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -331,6 +333,7 @@ public sealed class SetUserAreaHandler(
             await persistence.PersistAsync(session.AccountId, session.CharacterId, destination, cancellationToken)
                 .ConfigureAwait(false);
         }
+        var weddingAppearance = weddings is null ? null : await weddings.AppearanceAsync(session, cancellationToken).ConfigureAwait(false);
         var moved = positions.CrossInto(
             session, message.TownId, message.AreaId, message.X, message.Y);
         if (!await townAreaProjection.TransferAsync(
@@ -348,6 +351,10 @@ public sealed class SetUserAreaHandler(
                 context.Connection.ConnectionId);
             return;
         }
+
+        if (weddingAppearance is not null && weddingProjection is not null
+            && (message.TownId != weddingAppearance.Room.TownId || message.AreaId != weddingAppearance.Room.AreaId))
+            await weddingProjection.AppearanceAsync(session, weddingAppearance, true, cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation(
             "Set user area {ConnectionId} user={WireUserId}: {FromTown}:{FromArea} -> "

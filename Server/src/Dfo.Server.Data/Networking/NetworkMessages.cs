@@ -2,6 +2,8 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameWeddingSendLetter = 0x0001_03F6,
+    GameWeddingMoneyGift = 0x0001_03F2,
     GameWeddingChurchEntry = 0x0001_03F7,
     GameWeddingPartnerQuery = 0x0001_03F3,
     GameWeddingProposal = 0x0001_03F0,
@@ -225,8 +227,14 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameWeddingSendLetter = 0x0001_03F6,
+    GameWeddingMoneyGift = 0x0001_03F2,
     GameWeddingChurchEntry = 0x0001_03F7,
     GameWeddingCeremonyPreparation = 0x0000_03D4,
+    GameWeddingBegin = 0x0000_03D7,
+    GameWeddingAvatar = 0x0000_03CF,
+    GameWeddingLetter = 0x0000_03D5,
+    GameWeddingInvitedGuests = 0x0000_03D6,
     GameWeddingPartnerQuery = 0x0001_03F3,
     GameWeddingProposal = 0x0001_03F0,
     GameWeddingResponse = 0x0001_03F1,

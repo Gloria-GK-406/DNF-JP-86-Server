@@ -44,7 +44,7 @@ internal static class MarriageEngagementPayload
         BinaryPrimitives.WriteUInt32LittleEndian(result, checked((uint)snapshot.Partner!.CharacterId));
         // Native NPC dispatcher blocks another reservation only at stage 2 (RVA021AB558).
         // Stage 4 is married and must remain unreachable before ceremony completion.
-        result[4] = snapshot.IsCeremonyReserved ? (byte)2 : (byte)1;
+        result[4] = snapshot.IsMarried ? (byte)4 : snapshot.IsCeremonyReserved ? (byte)2 : (byte)1;
         return result;
     }
 
@@ -91,7 +91,7 @@ internal sealed class WeddingPartnerEncoder : GameCmdMessageEncoder<WeddingPartn
 }
 
 internal sealed class WeddingPartnerHandler(ISelectedSessionDomainService sessions, IMarriageEngagementDomainService marriage,
-    IGameMessageSender sender, SelectedSessionTransitionGate gate, ICommandBus commands) : ClientMessageHandler<WeddingPartnerQuery>
+    IGameMessageSender sender, SelectedSessionTransitionGate gate, ICommandBus commands, IMarriageWeddingDomainService weddings) : ClientMessageHandler<WeddingPartnerQuery>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeddingPartnerQuery message, CancellationToken ct)
     {
@@ -106,8 +106,14 @@ internal sealed class WeddingPartnerHandler(ISelectedSessionDomainService sessio
             if (peer is not null && snapshot.IsCeremonyReserved && session is not null)
             {
                 var prepared = await commands.SendAsync(new PrepareMarriageChurchCommand(session), ct).ConfigureAwait(false);
-                if (prepared.Snapshot is { } church) messages.Add(new WeddingChurchPreparationNotification(church));
+                if (prepared.Snapshot is { } church)
+                {
+                    messages.Add(new WeddingChurchPreparationNotification(church, await weddings.RemainingAsync(church.Room.CeremonyId, session.CharacterId, ct).ConfigureAwait(false)));
+                    messages.Add(new WeddingInvitedGuestsNotification(await weddings.InvitedAsync(church.Room.CeremonyId, ct).ConfigureAwait(false)));
+                }
             }
+            if (session is not null && await weddings.AppearanceAsync(session, ct).ConfigureAwait(false) is { } appearance)
+                messages.Add(new WeddingAvatarNotification(appearance));
             await sender.SendExplicitAsync(context.Connection.ConnectionId, new(messages, []), ct).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }

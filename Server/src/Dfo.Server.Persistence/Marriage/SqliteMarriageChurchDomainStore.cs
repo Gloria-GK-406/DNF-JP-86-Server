@@ -31,14 +31,11 @@ internal sealed class SqliteMarriageChurchDomainStore(SqliteDatabase database) :
         return await ReadAsync(ceremonyId, ct).ConfigureAwait(false);
     }
 
-    public async ValueTask RenewAsync(MarriageChurchRoom room, DateTimeOffset at, DateTimeOffset until, CancellationToken ct) =>
+    public async ValueTask ReleaseAsync(Guid ceremony, CancellationToken ct) =>
         _ = await database.ExecuteAsync("""
-            UPDATE marriage_church_rooms SET prepared_at=@at,ready_until=@until WHERE ceremony_id=@id AND token=@token
-            """, p =>
-        {
-            p.AddWithValue("@id", room.CeremonyId.ToString("N")); p.AddWithValue("@token", room.Token);
-            p.AddWithValue("@at", at.ToUnixTimeMilliseconds()); p.AddWithValue("@until", until.ToUnixTimeMilliseconds());
-        }, ct).ConfigureAwait(false);
+            DELETE FROM marriage_church_admissions WHERE ceremony_id=@id;
+            DELETE FROM marriage_church_rooms WHERE ceremony_id=@id;
+            """, p => p.AddWithValue("@id", ceremony.ToString("N")), ct).ConfigureAwait(false);
 
     public async ValueTask AdmitAsync(Guid ceremonyId, CharacterId character, CancellationToken ct) =>
         _ = await database.ExecuteAsync("""
