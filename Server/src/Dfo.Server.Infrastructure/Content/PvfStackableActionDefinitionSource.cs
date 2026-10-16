@@ -53,6 +53,15 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
                 unreadable = true;
         }
         var recovery = 0;
+        var entryDungeon = 0;
+        var entryIncrease = 0;
+        if (actionName == "[add enter limit dungeonincount]")
+        {
+            var operands = document.Read(Fields.ActionTypeField);
+            if (operands.Count != 3 || !operands[0].IsString || operands[1].Kind != PvfTokenKind.Int32
+                || operands[2].Kind != PvfTokenKind.Int32 || operands[1].Value <= 0 || operands[2].Value <= 0) unreadable = true;
+            else { entryIncrease = operands[1].Value; entryDungeon = operands[2].Value; }
+        }
         var increase = 1;
         var blockedInHardcore = false;
         if (actionName == "[level up ticket]")
@@ -91,6 +100,7 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
         return new(actionName, min, max, expiry,
             !unreadable && min >= 0 && max >= min
                 && (actionName != "[add fatigue]" || recovery is > 0 and <= ushort.MaxValue))
-        { FatigueRecovery = recovery, LevelIncrease = increase, BlockedInHardcore = blockedInHardcore };
+        { FatigueRecovery = recovery, LevelIncrease = increase, BlockedInHardcore = blockedInHardcore,
+            EntryDungeonId = entryDungeon, EntryIncrease = entryIncrease };
     }
 }

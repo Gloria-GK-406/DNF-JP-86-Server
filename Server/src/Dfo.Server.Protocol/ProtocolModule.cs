@@ -260,6 +260,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddHostedService<Dfo.Server.Protocol.Game.Altar.AltarScheduler>();
         services.AddHostedService<Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService>();
         services.AddHostedService<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>();
+        services.AddHostedService<Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService>();
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.Altar.AltarStateChanged,
             Dfo.Server.Protocol.Game.Altar.AltarStateChangedHandler>(retryLimit: 0);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarPrepareHandler>(ClientMessageType.GameAltarPrepare);
@@ -562,6 +563,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<UseFatiguePotionCommand, OpeningInventoryReceipt, UseFatiguePotionCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddSingleton<FatiguePotionHandler>();
+        services.AddCommandHandler<UseEntryAllowanceCommand, OpeningInventoryReceipt, UseEntryAllowanceCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddSingleton<EntryAllowanceHandler>();
         services.AddCommandHandler<ChangeSkillSlotCommand, bool, ChangeSkillSlotCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.RegisterMessageHandler<ChangeSkillSlotHandler>(ClientMessageType.GameChangeSkillSlot);
         services.AddGameCmdMessageDecoder<ChangeSkillSlotDecoder>(0x001C, ClientMessageType.GameChangeSkillSlot);

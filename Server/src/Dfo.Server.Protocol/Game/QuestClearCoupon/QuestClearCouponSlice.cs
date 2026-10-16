@@ -25,7 +25,7 @@ namespace Dfo.Server.Protocol.Game.QuestClearCoupon;
 public sealed record QuestClearCouponRequest(GameMessageMetadata Metadata, short SourceSlot, byte Container,
     uint Reserved1, uint Action, uint Reserved2, uint Reserved3, bool Complete) : IEffectSettlementRequest
 {
-    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory | (Action == 58 ? ReplayProjectionNeeds.Fatigue | ReplayProjectionNeeds.ItemUsage : ReplayProjectionNeeds.Quests);
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory | ReplayProjectionNeeds.ItemUsage | (Action == 58 ? ReplayProjectionNeeds.Fatigue : ReplayProjectionNeeds.None);
     public ClientMessageType MessageType => ClientMessageType.GameQuestClearCoupon;
     public bool IsSupported => Complete && SourceSlot >= 0 && Container == 0 && Reserved1 == 0
         && Action == 77 && Reserved2 == 0 && Reserved3 == 0;
@@ -136,11 +136,16 @@ public sealed class QuestClearCouponHandler(
     IEventService notifications,
     IGameMessageSender sender,
     ILogger<QuestClearCouponHandler> logger,
-    FatiguePotionHandler? fatiguePotions = null, IMirrorAradQuestDomainService? mirror = null) : ClientMessageHandler<QuestClearCouponRequest>
+    FatiguePotionHandler? fatiguePotions = null, IMirrorAradQuestDomainService? mirror = null, EntryAllowanceHandler? entryAllowances = null) : ClientMessageHandler<QuestClearCouponRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
         QuestClearCouponRequest message, CancellationToken ct)
     {
+        if (entryAllowances is not null && message.Complete && message.SourceSlot >= 0
+            && message.Container == 0 && message.Reserved1 == 0 && message.Reserved2 == 0 && message.Reserved3 == 0 && message.Action <= byte.MaxValue)
+        {
+            if (await entryAllowances.TryHandleAsync(context, message, ct).ConfigureAwait(false)) return;
+        }
         if (message.IsFatiguePotion && fatiguePotions is not null)
         {
             await fatiguePotions.HandleAsync(context, message, ct).ConfigureAwait(false);
@@ -185,7 +190,7 @@ public sealed class QuestClearCouponHandler(
         logger.LogDebug("Quest clear coupon completed quests character={CharacterId} questIds={QuestIds}",
             session.CharacterId, string.Join(',', result.CompletedQuestIds));
 
-        // ACK action 77 skips the client's local decrement path. The absolute inventory
+        // The absolute inventory corrects any local decrement made by the ACK. The
         // projection follows the ACK; the two quest-log projections do not depend on offers.
         var following = new List<IServerNetworkMessage>();
         try

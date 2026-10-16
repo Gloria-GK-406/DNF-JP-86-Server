@@ -142,7 +142,7 @@ public sealed class GmEventsHttpTests
         var change=Configure(0) with { Title="签到😀",ShortName="周签到𠮷",Description="说明한글",StartNotice="开始é",EndNotice="结束🚀" };
         await Change(host,token,change);await Change(host,token,new(2208,1,"enable"));
         var entry=await Get(host);
-        var info=Assert.Single(await host.Services.GetRequiredService<IEventManagementDomainService>().GetEventInfoListAsync(new(1),DateTimeOffset.UtcNow,default));
+        var info=Assert.Single(await host.Services.GetRequiredService<IEventManagementDomainService>().GetEventInfoListAsync(new(1),DateTimeOffset.UtcNow,default),e=>e.EventId==2208);
         Assert.Equal(change.Title,entry.Title);Assert.Equal(change.ShortName,entry.ShortName);Assert.Equal(change.Description,entry.Description);
         Assert.Equal(change.StartNotice,entry.StartNotice);Assert.Equal(change.EndNotice,entry.EndNotice);
         Assert.Equal(change.Title,info.Title);Assert.Equal(change.ShortName,info.ShortName);Assert.Equal(change.Description,info.Description);
@@ -175,10 +175,10 @@ public sealed class GmEventsHttpTests
         {
             await GmPlayerDirectoryHttpTests.SeedAsync(host);var csrf=await Enable(host);season=(await Get(host)).SeasonId;
             Assert.Same(host.Services.GetRequiredService<IWeeklyAttendanceDomainService>(),Assert.Single(host.Services.GetServices<IManagedEventDomainService>(),e=>e.EventId==2208));
-            var events=host.Services.GetRequiredService<IEventManagementDomainService>();Assert.Single(await events.GetEventInfoListAsync(new(1),DateTimeOffset.UtcNow,default));
+            var events=host.Services.GetRequiredService<IEventManagementDomainService>();Assert.Single(await events.GetEventInfoListAsync(new(1),DateTimeOffset.UtcNow,default), e=>e.EventId==2208);
             var start=DateTimeOffset.Parse("2026-01-01T00:00:00Z");var end=DateTimeOffset.Parse("2028-01-01T00:00:00Z");
-            Assert.Empty(await events.GetEventInfoListAsync(new(1),start.AddTicks(-1),default));Assert.Single(await events.GetEventInfoListAsync(new(1),start,default));
-            Assert.Empty(await events.GetEventInfoListAsync(new(1),end,default));
+            Assert.DoesNotContain(await events.GetEventInfoListAsync(new(1),start.AddTicks(-1),default),e=>e.EventId==2208);Assert.Single(await events.GetEventInfoListAsync(new(1),start,default),e=>e.EventId==2208);
+            Assert.DoesNotContain(await events.GetEventInfoListAsync(new(1),end,default),e=>e.EventId==2208);
             var bus=host.Services.GetRequiredService<ICommandBus>();var id=Guid.NewGuid();
             Assert.False(await bus.SendAsync(new Act(new(1),Claim:true)));
             Assert.False(await bus.SendAsync(new Act(new(1),RunId:Guid.NewGuid(),Dungeon:2)));
@@ -191,7 +191,7 @@ public sealed class GmEventsHttpTests
             var reward=Assert.IsType<Dfo.Server.Data.Mail.MailAsset.Stackable>(Assert.Single(mail.Attachments).Asset);Assert.Equal(3,reward.ItemId);Assert.Equal(1,reward.Count);
             Assert.Equal(1,(await host.Services.GetRequiredService<IWeeklyAttendanceDomainService>().StateAsync(new(1),DateTimeOffset.UtcNow,default)).CurrentAttendanceNo);
             await Change(host,csrf,new(2208,2,"disable"));Assert.False(await bus.SendAsync(new Act(new(1),RunId:Guid.NewGuid())));
-            Assert.Empty(await events.GetEventInfoListAsync(new(1),DateTimeOffset.UtcNow,default));await Change(host,csrf,new(2208,3,"enable"));
+            Assert.DoesNotContain(await events.GetEventInfoListAsync(new(1),DateTimeOffset.UtcNow,default),e=>e.EventId==2208);await Change(host,csrf,new(2208,3,"enable"));
             Assert.False(await bus.SendAsync(new Act(new(1),Claim:true)));Assert.Equal(season,(await Get(host)).SeasonId);
             Assert.Equal(HttpStatusCode.BadRequest,(await host.PostAsync(Url,csrf,Configure(4) with { EndsAt=DateTimeOffset.Parse("2029-01-01T00:00:00Z") })).StatusCode);
         }
@@ -284,8 +284,25 @@ public sealed class GmEventsHttpTests
         await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
         sender.Messages.Clear();await Change(host,csrf,new(2208,2,"disable"));
         await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();frames=Frames(host,sender);
-        var calendar=Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x006C);Assert.Equal(new byte[3],calendar[15..]);
+        var calendar=Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x006C);Assert.Equal(new ushort[]{2215,69,2367},ReadEventIds(calendar[15..]));
+        Assert.Contains(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x033F && BinaryPrimitives.ReadUInt32LittleEndian(f.AsSpan(23))==3900 && BinaryPrimitives.ReadUInt32LittleEndian(f.AsSpan(19))==1);
         var state=Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x042D);Assert.All(state[15..],b=>Assert.Equal(0,b));
         GmPlayerDirectoryHttpTests.Cleanup(host,session);
+    }
+
+    private static ushort[] ReadEventIds(byte[] body)
+    {
+        using var buffer = new MemoryStream(body);
+        using var reader = new BinaryReader(buffer);
+        var ids = new ushort[reader.ReadUInt16()];
+        void Text() { var length = checked((int)reader.ReadUInt32()); Assert.Equal(length, reader.ReadBytes(length).Length); }
+        for (var i = 0; i < ids.Length; i++)
+        {
+            ids[i] = reader.ReadUInt16(); Assert.Equal(0u, reader.ReadUInt32()); Text(); Text();
+            if (reader.ReadByte() == 0) continue;
+            reader.ReadBytes(2); Text(); Text(); Text(); reader.ReadBytes(8); Text(); Text(); reader.ReadByte();
+        }
+        Assert.Equal(0, reader.ReadByte()); Assert.Equal(buffer.Length, buffer.Position);
+        return ids;
     }
 }

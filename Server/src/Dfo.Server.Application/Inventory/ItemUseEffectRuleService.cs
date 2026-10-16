@@ -8,7 +8,14 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class ItemUseEffectRuleService(IItemUseJudgementService judgement) : IItemUseEffectRuleService
 {
-    public ValueTask<ItemUseRule?> RuleForAsync(int itemId, CancellationToken ct) => judgement.RuleForAsync(itemId, ct);
+    public async ValueTask<ItemUseRule?> RuleForAsync(int itemId, CancellationToken ct)
+    {
+        var rule = await judgement.RuleForAsync(itemId, ct).ConfigureAwait(false);
+        // A shop-listed MLA upgrade coupon must not fall through to a bare consumption.
+        if (itemId == 490002848 && rule is not null)
+            rule = rule with { HasUnreadableDeclaration = true };
+        return rule;
+    }
     public ItemCooldownKey CooldownKeyFor(int itemId, ItemUseRule rule) => judgement.CooldownKeyFor(itemId, rule);
     public ItemUsePlan Build(ItemUseRule? rule, BusinessSlot source, ItemReference item,
         ItemUseCandidate? character, int? currentPetUid, DateTimeOffset at)

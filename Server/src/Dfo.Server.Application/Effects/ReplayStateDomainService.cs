@@ -152,7 +152,9 @@ internal sealed class ReplayStateDomainService(IServiceProvider services, IDomai
         safety.DemandCurrent(recipient);
         return new(session, request, at, inventory, pets, skills, quests, progress, points, fatigue,
             itemUsage, premiums, premiumUsage, appearance)
-        { EpicPieces = needs.HasFlag(ReplayProjectionNeeds.EpicBook)
+        { HerasQuota = needs.HasFlag(ReplayProjectionNeeds.HerasQuota)
+            ? await Get<IHerasDungeonDomainService>().ReadQuotaAtAsync(session.CharacterId, at, ct).ConfigureAwait(false) : null,
+          EpicPieces = needs.HasFlag(ReplayProjectionNeeds.EpicBook)
             ? (await Get<IEpicBookDomainService>().GetBalancesAsync(session.AccountId, ct).ConfigureAwait(false)).ToImmutableArray() : default,
           Joust = needs.HasFlag(ReplayProjectionNeeds.Joust)
             ? await Get<Dfo.Server.Abstractions.Events.IJoustProjectionDomainService>().ReadAsync(session.CharacterId,at,ct).ConfigureAwait(false) : null };

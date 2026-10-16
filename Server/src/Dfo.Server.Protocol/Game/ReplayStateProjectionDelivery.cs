@@ -139,6 +139,8 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
             messages.Add(new ExperienceNotification(progress.Level, progress.Experience,
                 state.Points ?? throw Missing("Points"), AccountHonorLevel.Initial, ExperienceBonusLines.None));
         }
+        if (needs.HasFlag(ReplayProjectionNeeds.HerasQuota))
+            messages.Add(new DungeonRemainingEntriesMessage(3900, checked((byte)(state.HerasQuota ?? throw Missing("Heras quota")).Remaining)));
         if (needs.HasFlag(ReplayProjectionNeeds.Fatigue))
             messages.Add(new FatigueNotification(state.Fatigue ?? throw Missing("Fatigue")));
         if (needs.HasFlag(ReplayProjectionNeeds.Premium))

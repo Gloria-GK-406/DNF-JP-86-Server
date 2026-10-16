@@ -55,6 +55,8 @@ internal sealed class UsageQuotaViewChangedHandler(IUsageQuotaSnapshotDomainServ
             || sessions.FindByConnection(session.ConnectionId) != session) return [];
         return notification.Family switch
         {
+            UsageQuotaFamily.HerasDungeon => [new DungeonRemainingEntriesMessage(3900, checked((byte)(snapshot.Heras
+                ?? throw new InvalidDataException("Missing Heras quota snapshot.")).Remaining))],
             UsageQuotaFamily.TournamentDungeon => (snapshot.Tournaments
                 ?? throw new InvalidDataException("Missing tournament quota snapshot.")).Select(x =>
                     (IServerNetworkMessage)new DungeonRemainingEntriesMessage(x.DungeonId, checked((byte)x.Remaining))).ToArray(),

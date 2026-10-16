@@ -27,6 +27,7 @@ public sealed record PetStomachChange(Dfo.Server.Abstractions.Creatures.Creature
 public sealed record ItemUsePlan(ItemUsability Status, IReadOnlyList<DomainEffect> Effects);
 public sealed record ItemUseApplication(ItemUsability Status, int ItemId, int RemainingCount, ApplyEffectsResult? Applied = null)
 {
+    public OpeningInventoryReceipt? OpeningReceipt { get; init; }
     public Dfo.Server.Abstractions.World.ExperienceAward? ExperienceAward { get; init; }
     public CharacterSkillProtocolMirrorState? SkillPoints { get; init; }
 }

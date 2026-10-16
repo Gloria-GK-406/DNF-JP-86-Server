@@ -197,6 +197,8 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
         if (limits.FirstOrDefault() is { } limited)
         {
             var scope = limited.Values.Count > 0 ? Text(archive, limited.Values[0]) : null;
+            // The current Yinha PVF uses this exact misspelling for character limits.
+            if (scope == "chraracter") scope = "character";
             if (limited.Values.Count != 2 || scope is not ("account" or "character")
                 || limited.Values[1].Kind != PvfTokenKind.Int32 || limited.Values[1].Value <= 0)
                 readable = false;

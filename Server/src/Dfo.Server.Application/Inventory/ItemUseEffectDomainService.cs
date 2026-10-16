@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Effects;
@@ -11,11 +12,13 @@ internal sealed class ItemUseEffectDomainService(ICharacterDomainService charact
     IItemUseEffectRuleService rules, IApplyEffectsDomainService effects,
     ICreatureInstanceDomainService creatures, TimeProvider clock,
     Dfo.Server.Abstractions.DomainEvents.IEventService? events = null,
-    IExperienceItemDomainService? experienceItems = null) : IItemUseEffectDomainService
+    IExperienceItemDomainService? experienceItems = null, IEntryAllowanceItemDomainService? entryItems = null) : IItemUseEffectDomainService
 {
     public async ValueTask<ItemUseApplication> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
         ItemReference item, CancellationToken ct)
     {
+        if (entryItems is not null && await entryItems.TryUseAsync(session, source, item, ct).ConfigureAwait(false) is { } allowance)
+            return allowance;
         if (experienceItems is not null
             && await experienceItems.TryUseAsync(session, source, item, ct).ConfigureAwait(false) is { } experience)
         {

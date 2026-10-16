@@ -453,6 +453,9 @@ public sealed class SelectCharacterHandler(
             _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.TournamentDungeon,
                 cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker && quotaProjection is not null)
+            _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.HerasDungeon, cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && sao is not null
             && await sao.ReadStatusAsync(cancellationToken).ConfigureAwait(false) is { } saoProgress)
             await sender.SendExplicitAsync(session.ConnectionId,
