@@ -1,0 +1,69 @@
+id 3900 -> GTimeSpiral/TimeSpiral.dgn
+=== dungeon/GTimeSpiral/TimeSpiral.dgn ===
+[background pos]
+80
+[name]
+赫拉斯研究所
+[explain]
+    最接近安徒恩的地方。 由于受到使徒强大能量的侵蚀， 此地的空间已发生扭曲， 你永远都不知道即将面临的挑战是什么。 恐惧、 不安和怨恨犹如巨大的漩涡一般笼罩在整个区域， 冒险家， 要小心了……
+[entering title]
+Title/timspiral.ani
+[cutscene image]
+Map/CutScene/CutScene_cn.img 10
+[minimap image]
+Map/MiniMap/HelixLab.img
+[worldmap pattern info]
+1 4 WorldMap/SelectdungeonSlot/cn_dungeonslot.img 19
+[no fatigue]
+[enter without fatigue]
+1
+[designate dungeon difficulty]
+1
+[limit party count]
+1
+[prohibit practice]
+1
+[no giveup panalty]
+[recommend equipment]
+0 2 0 2 0 3 10 3 12 3
+[/recommend equipment]
+[schedule]
+2367
+[/schedule]
+[mob level charac level replace flag]
+1
+[minimum required level]
+50
+[basis level]
+50
+[recommended level]
+50 86
+[experience increasing point]
+1
+[champion]
+3 6 9 12 9
+[special passive object item]
+[/special passive object item]
+[pathgate object]
+5817 5821 5757 5818 5822 5760 5819 5823 5820 5824
+[maze info]
+[size]
+3 3
+[greed]
+IIJJMM
+ KKCCKK
+ DDFFGG
+[start map]
+0 0
+[/start map]
+[boss map]
+1 1
+[/boss map]
+[map specification]
+map 0 0 27100 map 0 1 27101 map 0 2 27108 map 1 0 27111 boss 1 1 27112 map 1 2 27114 map 2 0 27116 25644 25645 map 2 1 27123 map 2 2 27124
+[/map specification]
+[hell dungeon]
+0
+[named monster]
+64700 64701 64930 64931 64932
+[/named monster]

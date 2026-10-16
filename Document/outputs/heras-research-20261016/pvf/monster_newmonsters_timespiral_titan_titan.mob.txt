@@ -1,0 +1,109 @@
+=== monster/newmonsters/timespiral/titan/titan.mob ===
+[name]
+破坏者泰坦
+[face image]
+Monster/MonsterFace.img 718
+[category]
+[hybrid] [fort armor] [melee combat] [close-tough] [fixture]
+[/category]
+[ambient sound]
+
+[attack sound]
+
+[appear sound]
+
+[damage sound]
+R_TITAN_DMG
+[die sound]
+TITAN_DIE
+[ability category]
+[EQUIPMENT_PHYSICAL_ATTACK] * 100 [EQUIPMENT_PHYSICAL_DEFENSE] * 130 [EQUIPMENT_MAGICAL_ATTACK] * 100 [EQUIPMENT_MAGICAL_DEFENSE] * 130 [HP MAX] * 1100
+[/ability category]
+[level]
+70 70
+[fire resistance]
+10 10
+[light resistance]
+10 10
+[slow resistance]
+30 30
+[freeze resistance]
+30 30
+[poison resistance]
+10 10
+[stun resistance]
+10 10
+[curse resistance]
+30 30
+[blind resistance]
+50 50
+[lightning resistance]
+10 10
+[stone resistance]
+30 30
+[sleep resistance]
+30 30
+[bleeding resistance]
+10 10
+[piercing resistance]
+30 30
+[confuse resistance]
+30 30
+[hold resistance]
+30 30
+[move speed]
+1000 1000
+[attack speed]
+1000 1000
+[cast speed]
+1000 1000
+[hit recovery]
+1300 1300
+[weight]
+90000 90000
+[stuckbonus on damage]
+0 0 0 0
+[waiting action]
+Action/stay.act
+[damage action 1]
+Action/damage1.act
+[damage action 2]
+Action/damage2.act
+[attack action]
+Action/attack_0.act Action/attack_1.act Action/repeat_attack_0.act Action/attack_show.act
+[/attack action]
+[last action]
+Action/Last.act
+[attack info]
+AttackInfo/attack.atk  AttackInfo/attack.atk AttackInfo/attack.atk
+[/attack info]
+[cooltime]
+4000 12000 20000 9000
+[/cooltime]
+[think term]
+300
+[destination change term]
+700
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]
+[keep distance with target]
+0
+[warlike]
+0
+[vision]
+1000

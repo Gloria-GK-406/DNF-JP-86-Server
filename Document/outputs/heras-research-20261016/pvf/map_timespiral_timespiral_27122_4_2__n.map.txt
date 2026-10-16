@@ -1,0 +1,63 @@
+=== map/timespiral/timespiral_27122(4,2)_n.map ===
+[player number]
+1 1
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3900
+[/dungeon]
+[type]
+[normal]
+[greed]
+KK KK
+[tile]
+Tile/basic_5.til Tile/basic_point_1.til Tile/basic_point_3.til Tile/basic_3.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/basic_ex_1.til 1 Tile/basic_point_ex_1.til 2 Tile/basic_point_ex_4.til
+[/tile files]
+[tile map]
+0 1 2 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+56
+[middle sight scroll]
+80
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/timespiral_far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+1438 613 1458 652 107 100 99 459
+[dungeon start area]
+77 358 100 100
+[sound]
+AMB_POWERSTATION_GRANDINE M_HELIX_LAB
+[/sound]
+[animation]
+Animation/StoneStack1.ani [normal] 853 223 0 Animation/StoneStack1.ani [normal] 906 293 0 Animation/StoneStack1.ani [normal] 881 479 0 Animation/StoneStack1.ani [normal] 865 420 0 Animation/StoneStack1.ani [normal] 897 347 0 Animation/timespiral_back_middle_light.ani [middleback] 1160 110 0 Animation/timespiral_back_middle_light.ani [middleback] 931 110 0 Animation/timespiral_back_middle_light.ani [middleback] 702 108 0 Animation/timespiral_back_middle_light.ani [middleback] 473 110 0 Animation/timespiral_mid01.ani [middleback] 190 -171 0 Animation/remnant_dark_front02.ani [normal] 870 88 0 Animation/remnant_dark_front03.ani [normal] 608 27 0
+[/animation]
+[passive object]
+12905 443 460 0 12906 59 296 0 12907 82 332 0
+[/passive object]
+[monster]
+64909 1 0 575 221 0 1 1 [fixed] [normal] 64909 1 0 609 341 0 1 1 [fixed] [normal] 64909 1 0 653 272 0 1 1 [fixed] [normal] 64921 1 0 460 197 0 1 1 [fixed] [normal] 64921 1 0 360 224 0 1 1 [fixed] [normal] 64921 1 0 466 287 0 1 1 [fixed] [normal] 64921 1 0 381 337 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[special passive object]
+12942 249 263 0 1 [item] 0 1 -1 -1 -1
+[/special passive object]
+[map name]
+PVP无名

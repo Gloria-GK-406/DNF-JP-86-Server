@@ -1,0 +1,63 @@
+=== map/timespiral/timespiral_27109(1,4)_n.map ===
+[player number]
+1 1
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3900
+[/dungeon]
+[type]
+[normal]
+[greed]
+FF FF
+[tile]
+Tile/basic_4.til Tile/basic_1.til Tile/basic_2.til Tile/basic_3.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/basic_ex_3.til 1 Tile/basic_ex_4.til 2 Tile/basic_ex_5.til
+[/tile files]
+[tile map]
+0 1 2 2
+[/tile map]
+[/extended tile]
+[far sight scroll]
+56
+[middle sight scroll]
+80
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/timespiral_far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+1424 722 849 234 1375 731 1370 746
+[dungeon start area]
+712 186 100 100
+[sound]
+AMB_POWERSTATION_GRANDINE M_HELIX_LAB
+[/sound]
+[animation]
+Animation/timespiral_back_middle_light.ani [middleback] 1160 110 0 Animation/timespiral_back_middle_light.ani [middleback] 931 110 0 Animation/timespiral_back_middle_light.ani [middleback] 702 108 0 Animation/timespiral_back_middle_light.ani [middleback] 473 110 0 Animation/timespiral_mid01.ani [middleback] 0 -266 0 Animation/timespiral_spark02.ani [normal] 110 -127 0 Animation/timespiral_spark04.ani [normal] 91 -343 0 Animation/remnant_dark_front04.ani [normal] 116 91 0 Animation/remnant_dark_front01.ani [normal] 156 92 0
+[/animation]
+[passive object]
+12900 29 279 0
+[/passive object]
+[monster]
+64908 1 0 210 222 0 1 1 [fixed] [normal] 64908 1 0 202 357 0 1 1 [fixed] [normal] 64908 1 0 404 167 0 1 1 [fixed] [normal] 64908 1 0 395 389 0 1 1 [fixed] [normal] 64913 1 0 475 240 0 1 1 [fixed] [normal] 64913 1 0 472 312 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[special passive object]
+12941 654 135 0 1 [item] 0 1 -1 -1 -1
+[/special passive object]
+[map name]
+PVP无名

@@ -1,0 +1,87 @@
+=== etc/global_timespiral.etc ===
+[timespiral trap map list]
+27103 27119 27121 27110 27107 27113 27117
+[/timespiral trap map list]
+[teleport trap]
+27103
+[move list]
+0 4 300000 0 1 4 60000 1 2 4 65000 1 3 4 60000 1 4 3 60000 1 4 2 60000 1 4 1 60000 1 3 0 60000 1 2 0 60000 1 1 1 60000 1 1 2 50000 1 2 3 50000 1 3 2 50000 1 2 1 5000 1
+[/move list]
+[/teleport trap]
+[teleport trap]
+27119
+[move list]
+4 4 300000 0 4 3 85000 1 4 2 80000 1 4 1 80000 1 3 0 80000 1 2 0 80000 1 1 1 80000 1 1 2 70000 1 2 3 70000 1 3 2 70000 1 2 1 5000 1
+[/move list]
+[/teleport trap]
+[teleport trap]
+27121
+[move list]
+4 0 100000 0 3 0 205000 1 2 0 200000 1 1 1 190000 1 1 2 100000 1 2 3 100000 1 3 2 100000 1 2 1 5000 1
+[/move list]
+[/teleport trap]
+[teleport trap]
+27110
+[move list]
+1 0 200000 0 1 1 205000 1 1 2 200000 1 2 3 200000 1 3 2 190000 1 2 1 5000 1
+[/move list]
+[/teleport trap]
+[teleport trap]
+27107
+[move list]
+1 3 500000 0 2 3 405000 1 3 2 90000 1 2 1 5000 1
+[/move list]
+[/teleport trap]
+[teleport trap]
+27113
+[move list]
+3 3 550000 0 3 2 400000 1 2 1 50000 1
+[/move list]
+[/teleport trap]
+[teleport trap]
+27117
+[move list]
+3 1 900000 0 2 1 100000 1
+[/move list]
+[/teleport trap]
+[trap buff rate]
+0 30 1 30 2 30 3 10
+[/trap buff rate]
+[trap buff]
+0
+[physical attack]
+100
+[magical attack]
+100
+[buff time]
+60000
+[/trap buff]
+[trap buff]
+1
+[physical attack]
+75
+[magical attack]
+75
+[buff time]
+60000
+[/trap buff]
+[trap buff]
+2
+[physical attack]
+50
+[magical attack]
+50
+[buff time]
+60000
+[/trap buff]
+[trap buff]
+3
+[move speed]
+50
+[attack speed]
+50
+[cast speed]
+50
+[buff time]
+60000
+[/trap buff]

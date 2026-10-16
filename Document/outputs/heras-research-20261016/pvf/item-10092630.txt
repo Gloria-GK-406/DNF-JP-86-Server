@@ -1,0 +1,27 @@
+id 10092630 -> event/helixlab/10092630.stk
+=== stackable/event/helixlab/10092630.stk ===
+[name]
+能量残骸
+[grade]
+5
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[price]
+100
+[icon]
+Item/stackable/material_cn.img 130
+[field image]
+Item/FieldImage.img 30
+[stackable type]
+[material] 2
+[move wav]
+CUBE_TOUCH
+[expiration date]
+2016-09-27 06:00:00

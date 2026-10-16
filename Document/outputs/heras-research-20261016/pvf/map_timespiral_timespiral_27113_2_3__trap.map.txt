@@ -1,0 +1,63 @@
+=== map/timespiral/timespiral_27113(2,3)_trap.map ===
+[player number]
+1 1
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3900
+[/dungeon]
+[type]
+[normal]
+[greed]
+FF FF
+[tile]
+Tile/basic_4.til Tile/basic_1.til Tile/basic_2.til Tile/basic_3.til Tile/basic_4.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/basic_ex_3.til 1 Tile/basic_ex_4.til 2 Tile/basic_ex_5.til
+[/tile files]
+[tile map]
+0 1 2 2 2
+[/tile map]
+[/extended tile]
+[far sight scroll]
+56
+[middle sight scroll]
+80
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/timespiral_far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+1331 745 1084 237 1297 747 1370 746
+[dungeon start area]
+961 214 100 100
+[sound]
+M_HELIX_LAB_TRAP AMB_POWERSTATION_GRANDINE
+[/sound]
+[animation]
+Animation/timespiral_back_middle_light.ani [middleback] 1160 110 0 Animation/timespiral_back_middle_light.ani [middleback] 931 110 0 Animation/timespiral_back_middle_light.ani [middleback] 702 108 0 Animation/timespiral_back_middle_light.ani [middleback] 473 110 0 Animation/rail_3.ani [normal] 329 434 0 Animation/rail_2.ani [normal] 111 375 0 Animation/rail_2.ani [normal] 557 434 0 Animation/rail_2.ani [normal] 781 434 0 Animation/timespiral_mid01.ani [middleback] 803 -327 0 Animation/timespiral_spark02.ani [normal] 911 -192 0 Animation/remnant_dark_front00.ani [normal] 110 89 0 Animation/remnant_dark_back00.ani [normal] 110 91 0 Animation/remnant_dark_front01.ani [normal] 944 92 0 Animation/rail_2.ani [normal] 1005 434 0
+[/animation]
+[passive object]
+12900 40 269 0 12915 17 359 0
+[/passive object]
+[monster]
+64900 1 0 289 303 0 1 1 [fixed] [normal] 64900 1 0 843 307 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal]
+[/monster specific AI]
+[special passive object]
+12941 458 134 0 1 [item] 0 1 -1 -1 -1 12577 567 244 0 1 [item] 1 1 -1 -1 -1
+[/special passive object]
+[map name]
+PVP无名

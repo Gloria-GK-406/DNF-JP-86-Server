@@ -1,0 +1,23 @@
+id 10093393 -> event/helixlab/10093393.stk
+=== stackable/event/helixlab/10093393.stk ===
+[name]
+赫拉斯研究所的钥匙
+[explain]
+赫拉斯研究所的入场券， 凭此钥匙可进入赫拉斯研究所。
+[grade]
+1
+[rarity]
+3
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[icon]
+Item/stackable/quest.img 273
+[stackable type]
+[quest] 0
+[move wav]
+PAPER_TOUCH

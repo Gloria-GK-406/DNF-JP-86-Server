@@ -1,0 +1,5 @@
+=== passiveobject/actionobject/map/timespiral/action/timespiral_trap_destroy.act ===
+[MOTION]
+[BASE ANI]
+../Animation/timespiral_trap_destroy.ani
+[/MOTION]

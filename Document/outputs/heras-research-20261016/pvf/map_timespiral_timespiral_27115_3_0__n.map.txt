@@ -1,0 +1,63 @@
+=== map/timespiral/timespiral_27115(3,0)_n.map ===
+[player number]
+1 1
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3900
+[/dungeon]
+[type]
+[normal]
+[greed]
+FF FF
+[tile]
+Tile/basic_4.til Tile/basic_1.til Tile/basic_2.til Tile/basic_3.til Tile/basic_4.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/basic_ex_3.til 1 Tile/basic_ex_4.til 2 Tile/basic_ex_5.til
+[/tile files]
+[tile map]
+0 1 2 2 2
+[/tile map]
+[/extended tile]
+[far sight scroll]
+56
+[middle sight scroll]
+80
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/timespiral_far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+46 264 1419 743 1330 748 1370 746
+[dungeon start area]
+959 248 100 100
+[sound]
+AMB_POWERSTATION_GRANDINE M_HELIX_LAB
+[/sound]
+[animation]
+Animation/timespiral_back_middle_light.ani [middleback] 1160 110 0 Animation/timespiral_back_middle_light.ani [middleback] 931 110 0 Animation/timespiral_back_middle_light.ani [middleback] 702 108 0 Animation/timespiral_back_middle_light.ani [middleback] 473 110 0 Animation/rail_4.ani [normal] 106 376 0 Animation/rail_2.ani [normal] 555 434 0 Animation/rail_3.ani [normal] 326 434 0 Animation/CeilingWire.ani [normal] 131 -79 0 Animation/CeilingWire1.ani [normal] 285 -82 0 Animation/CeilingWire.ani [normal] 929 -81 0 Animation/CeilingWire1.ani [normal] 803 -82 0 Animation/timespiral_mid02.ani [middleback] 332 -243 0 Animation/timespiral_steam01.ani [middleback] 471 -270 0 Animation/remnant_dark_front01.ani [normal] 964 90 0 Animation/remnant_dark_front04.ani [normal] 984 90 0
+[/animation]
+[passive object]
+12901 1072 247 0 12919 367 188 0 12919 518 144 0 12919 669 178 0
+[/passive object]
+[monster]
+64918 1 0 422 266 0 1 1 [fixed] [normal] 64918 1 0 299 310 0 1 1 [fixed] [normal] 64918 1 0 432 363 0 1 1 [fixed] [normal] 64919 1 0 541 229 0 1 1 [fixed] [normal] 64919 1 0 548 396 0 1 1 [fixed] [normal] 64922 1 0 486 307 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[special passive object]
+12942 852 208 0 1 [item] 0 1 -1 -1 -1
+[/special passive object]
+[map name]
+PVP无名

@@ -1,0 +1,109 @@
+_ZN18DisPatcher_MoveMap20CheckTrapBitsHackCntEP5CUserR12MSG_MOVE_MAP
+081C4B7A push     ebp
+081C4B7B mov      ebp, esp
+081C4B7D push     ebx
+081C4B7E sub      esp, 0x34
+081C4B81 mov      eax, dword ptr [ebp + 0x10]
+081C4B84 movzx    ecx, word ptr [eax + 0x18]
+081C4B88 movzx    eax, cx
+081C4B8B imul     eax, eax, 0x2493
+081C4B91 shr      eax, 0x10
+081C4B94 mov      edx, ecx
+081C4B96 sub      dx, ax
+081C4B99 shr      dx, 1
+081C4B9C lea      eax, [edx + eax]
+081C4B9F mov      edx, eax
+081C4BA1 shr      dx, 2
+081C4BA5 mov      eax, edx
+081C4BA7 shl      eax, 3
+081C4BAA sub      ax, dx
+081C4BAD mov      edx, ecx
+081C4BAF sub      dx, ax
+081C4BB2 test     dx, dx
+081C4BB5 je       0x81c4d20
+081C4BBB mov      eax, dword ptr [ebp + 0xc]
+081C4BBE mov      dword ptr [esp], eax
+081C4BC1 call     0x80f995a _ZN5CUser15getHackAnalyzerEv
+081C4BC6 mov      dword ptr [esp + 0x14], 0
+081C4BCE mov      dword ptr [esp + 0x10], 0
+081C4BD6 mov      dword ptr [esp + 0xc], 1
+081C4BDE mov      dword ptr [esp + 8], 0x1f9
+081C4BE6 mov      edx, dword ptr [ebp + 0xc]
+081C4BE9 mov      dword ptr [esp + 4], edx
+081C4BED mov      dword ptr [esp], eax
+081C4BF0 call     0x80f8c7e _ZN8WongWork13CHackAnalyzer16addServerHackCntEP5CUserNS_13ENUM_HACKTYPEEjjj
+081C4BF5 mov      eax, dword ptr [ebp + 0xc]
+081C4BF8 mov      dword ptr [esp], eax
+081C4BFB call     0x80f995a _ZN5CUser15getHackAnalyzerEv
+081C4C00 mov      dword ptr [esp + 4], 0x1f9
+081C4C08 mov      dword ptr [esp], eax
+081C4C0B call     0x822eef6 _ZNK8WongWork13CHackAnalyzer27getServerHackAccumulatedCntENS_13ENUM_HACKTYPEE
+081C4C10 cmp      eax, 4
+081C4C13 setg     al
+081C4C16 test     al, al
+081C4C18 je       0x81c4d20
+081C4C1E mov      eax, dword ptr [ebp + 0xc]
+081C4C21 mov      dword ptr [esp], eax
+081C4C24 call     0x865514c _ZN5CUser8GetPartyEv
+081C4C29 mov      dword ptr [ebp - 0x14], eax
+081C4C2C cmp      dword ptr [ebp - 0x14], 0
+081C4C30 je       0x81c4d20
+081C4C36 mov      dword ptr [ebp - 0x10], 0
+081C4C3D jmp      0x81c4d11
+081C4C42 mov      eax, dword ptr [ebp - 0x10]
+081C4C45 mov      dword ptr [esp + 4], eax
+081C4C49 mov      eax, dword ptr [ebp - 0x14]
+081C4C4C mov      dword ptr [esp], eax
+081C4C4F call     0x8145868 _ZN6CParty14checkValidUserEi
+081C4C54 xor      eax, 1
+081C4C57 test     al, al
+081C4C59 jne      0x81c4d0c
+081C4C5F mov      eax, dword ptr [ebp - 0x10]
+081C4C62 mov      dword ptr [esp + 4], eax
+081C4C66 mov      eax, dword ptr [ebp - 0x14]
+081C4C69 mov      dword ptr [esp], eax
+081C4C6C call     0x8145764 _ZN6CParty8get_userEi
+081C4C71 mov      dword ptr [ebp - 0xc], eax
+081C4C74 mov      eax, dword ptr [ebp - 0xc]
+081C4C77 cmp      eax, dword ptr [ebp + 0xc]
+081C4C7A je       0x81c4cb6
+081C4C7C mov      eax, dword ptr [ebp - 0xc]
+081C4C7F mov      dword ptr [esp], eax
+081C4C82 call     0x80f995a _ZN5CUser15getHackAnalyzerEv
+081C4C87 mov      dword ptr [esp + 0x14], 0
+081C4C8F mov      dword ptr [esp + 0x10], 0
+081C4C97 mov      dword ptr [esp + 0xc], 1
+081C4C9F mov      dword ptr [esp + 8], 0x1fa
+081C4CA7 mov      edx, dword ptr [ebp - 0xc]
+081C4CAA mov      dword ptr [esp + 4], edx
+081C4CAE mov      dword ptr [esp], eax
+081C4CB1 call     0x80f8c7e _ZN8WongWork13CHackAnalyzer16addServerHackCntEP5CUserNS_13ENUM_HACKTYPEEjjj
+081C4CB6 mov      eax, dword ptr [ebp - 0xc]
+081C4CB9 add      eax, 0xe0
+081C4CBE mov      dword ptr [esp], eax
+081C4CC1 call     0x8236d0c _ZN8CNetworkILi4096ELi450000EE10get_str_ipEv
+081C4CC6 mov      ebx, eax
+081C4CC8 mov      eax, dword ptr [ebp - 0xc]
+081C4CCB mov      dword ptr [esp], eax
+081C4CCE call     0x80da36e _ZNK5CUser10get_acc_idEv
+081C4CD3 mov      dword ptr [esp + 8], ebx
+081C4CD7 mov      dword ptr [esp + 4], 0
+081C4CDF mov      dword ptr [esp], eax
+081C4CE2 call     0x8425494 _ZN24DB_ReqSaveHackUserPunish11makeRequestEjjPKc
+081C4CE7 mov      dword ptr [esp + 0xc], 0
+081C4CEF mov      dword ptr [esp + 8], 1
+081C4CF7 mov      dword ptr [esp + 4], 0x18
+081C4CFF mov      eax, dword ptr [ebp - 0xc]
+081C4D02 mov      dword ptr [esp], eax
+081C4D05 call     0x86489f4 _ZN5CUser10DisConnSigE11DISCONN_SIGbi
+081C4D0A jmp      0x81c4d0d
+081C4D0C nop
+081C4D0D add      dword ptr [ebp - 0x10], 1
+081C4D11 cmp      dword ptr [ebp - 0x10], 3
+081C4D15 setle    al
+081C4D18 test     al, al
+081C4D1A jne      0x81c4c42
+081C4D20 add      esp, 0x34
+081C4D23 pop      ebx
+081C4D24 pop      ebp
+081C4D25 ret

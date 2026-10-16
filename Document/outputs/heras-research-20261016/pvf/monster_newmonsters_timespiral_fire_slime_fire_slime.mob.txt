@@ -1,0 +1,99 @@
+=== monster/newmonsters/timespiral/fire_slime/fire_slime.mob ===
+[name]
+火焰史莱姆
+[face image]
+Monster/MonsterFace.img 712
+[die effect]
+0 7 1
+[category]
+[spirit]
+[/category]
+[ambient sound]
+
+[attack sound]
+
+[appear sound]
+FIRESLIME_CREATION
+[damage sound]
+R_BIGFIRESLIME_DMG
+[die sound]
+BIGFIRESLIME_DIE
+[ability category]
+[HP MAX] * 100 [EQUIPMENT_PHYSICAL_ATTACK] * 110 [EQUIPMENT_PHYSICAL_DEFENSE] * 140 [EQUIPMENT_MAGICAL_ATTACK] * 120 [EQUIPMENT_MAGICAL_DEFENSE] * 100
+[/ability category]
+[level]
+60 60
+[fire resistance]
+20 20
+[burn resistance]
+200 200
+[move speed]
+800 800
+[attack speed]
+700 700
+[cast speed]
+1000 1000
+[hit recovery]
+1100 1100
+[weight]
+90000 90000
+[stuckbonus on damage]
+0 0 0 0
+[waiting action]
+action/Stay.act
+[move action]
+action/Move.act
+[sit action]
+action/Sit.act
+[damage action 1]
+action/Damage1.act
+[damage action 2]
+action/Damage2.act
+[down action]
+action/Down.act
+[overturn action]
+action/Overturn.act
+[attack action]
+Action/Destroy.act
+[/attack action]
+[last action]
+Action/Destroy2.act
+[attack info]
+
+[/attack info]
+[cooltime]
+1000
+[/cooltime]
+[think term]
+500
+[destination change term]
+300
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]
+[keep distance with target]
+270
+[keep range distance with target]
+250 10 15 15
+[warlike]
+70
+[intelligence]
+70 80 2000
+[vision]
+2000
+[lie frame]
+0 1 2 1 4

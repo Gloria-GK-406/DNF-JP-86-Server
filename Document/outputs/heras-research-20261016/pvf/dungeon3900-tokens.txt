@@ -1,0 +1,138 @@
+1	Identifier	string=True	value=20993504	[background pos]
+2	Int32	string=False	value=80	80
+3	Identifier	string=True	value=14059926	[name]
+4	QuotedString	string=True	value=1660457	赫拉斯研究所
+5	Identifier	string=True	value=14085306	[explain]
+6	QuotedString	string=True	value=1660471	    最接近安徒恩的地方。 由于受到使徒强大能量的侵蚀， 此地的空间已发生扭曲， 你永远都不知道即将面临的挑战是什么。 恐惧、 不安和怨恨犹如巨大的漩涡一般笼罩在整个区域， 冒险家， 要小心了……
+7	Identifier	string=True	value=21009684	[entering title]
+8	QuotedString	string=True	value=21227450	Title/timspiral.ani
+9	Identifier	string=True	value=20993538	[cutscene image]
+10	QuotedString	string=True	value=21126938	Map/CutScene/CutScene_cn.img
+11	Int32	string=False	value=10	10
+12	Identifier	string=True	value=20993628	[minimap image]
+13	QuotedString	string=True	value=21227490	Map/MiniMap/HelixLab.img
+14	Identifier	string=True	value=20993702	[worldmap pattern info]
+15	Int32	string=False	value=1	1
+16	Int32	string=False	value=4	4
+17	QuotedString	string=True	value=21015826	WorldMap/SelectdungeonSlot/cn_dungeonslot.img
+18	Int32	string=False	value=19	19
+19	Identifier	string=True	value=21015918	[no fatigue]
+20	Identifier	string=True	value=21108448	[enter without fatigue]
+21	Int32	string=False	value=1	1
+22	Identifier	string=True	value=20994748	[designate dungeon difficulty]
+23	Int32	string=False	value=1	1
+24	Identifier	string=True	value=21005142	[limit party count]
+25	Int32	string=False	value=1	1
+26	Identifier	string=True	value=21005182	[prohibit practice]
+27	Int32	string=False	value=1	1
+28	Identifier	string=True	value=21108408	[no giveup panalty]
+29	Identifier	string=True	value=21020940	[recommend equipment]
+30	Int32	string=False	value=0	0
+31	Int32	string=False	value=2	2
+32	Int32	string=False	value=0	0
+33	Int32	string=False	value=2	2
+34	Int32	string=False	value=0	0
+35	Int32	string=False	value=3	3
+36	Int32	string=False	value=10	10
+37	Int32	string=False	value=3	3
+38	Int32	string=False	value=12	12
+39	Int32	string=False	value=3	3
+40	Identifier	string=True	value=21020984	[/recommend equipment]
+41	Identifier	string=True	value=21126252	[schedule]
+42	Int32	string=False	value=2367	2367
+43	Identifier	string=True	value=21126274	[/schedule]
+44	Identifier	string=True	value=20994470	[mob level charac level replace flag]
+45	Int32	string=False	value=1	1
+46	Identifier	string=True	value=20993834	[minimum required level]
+47	Int32	string=False	value=50	50
+48	Identifier	string=True	value=20993884	[basis level]
+49	Int32	string=False	value=50	50
+50	Identifier	string=True	value=21005096	[recommended level]
+51	Int32	string=False	value=50	50
+52	Int32	string=False	value=86	86
+53	Identifier	string=True	value=20993912	[experience increasing point]
+54	Single	string=False	value=1065353216	1
+55	Identifier	string=True	value=20993972	[champion]
+56	Int32	string=False	value=3	3
+57	Int32	string=False	value=6	6
+58	Int32	string=False	value=9	9
+59	Int32	string=False	value=12	12
+60	Int32	string=False	value=9	9
+61	Identifier	string=True	value=20994348	[special passive object item]
+62	Identifier	string=True	value=20994408	[/special passive object item]
+63	Identifier	string=True	value=20993994	[pathgate object]
+64	Int32	string=False	value=5817	5817
+65	Int32	string=False	value=5821	5821
+66	Int32	string=False	value=5757	5757
+67	Int32	string=False	value=5818	5818
+68	Int32	string=False	value=5822	5822
+69	Int32	string=False	value=5760	5760
+70	Int32	string=False	value=5819	5819
+71	Int32	string=False	value=5823	5823
+72	Int32	string=False	value=5820	5820
+73	Int32	string=False	value=5824	5824
+74	Identifier	string=True	value=20994030	[maze info]
+75	Identifier	string=True	value=20994054	[size]
+76	Int32	string=False	value=3	3
+77	Int32	string=False	value=3	3
+78	Identifier	string=True	value=20994068	[greed]
+79	QuotedString	string=True	value=21227646	IIJJMM
+ KKCCKK
+ DDFFGG
+80	Identifier	string=True	value=20994252	[start map]
+81	Int32	string=False	value=0	0
+82	Int32	string=False	value=0	0
+83	Identifier	string=True	value=20994276	[/start map]
+84	Identifier	string=True	value=20994302	[boss map]
+85	Int32	string=False	value=1	1
+86	Int32	string=False	value=1	1
+87	Identifier	string=True	value=20994324	[/boss map]
+88	Identifier	string=True	value=20994170	[map specification]
+89	QuotedString	string=True	value=20354112	map
+90	Int32	string=False	value=0	0
+91	Int32	string=False	value=0	0
+92	Int32	string=False	value=27100	27100
+93	QuotedString	string=True	value=20354112	map
+94	Int32	string=False	value=0	0
+95	Int32	string=False	value=1	1
+96	Int32	string=False	value=27101	27101
+97	QuotedString	string=True	value=20354112	map
+98	Int32	string=False	value=0	0
+99	Int32	string=False	value=2	2
+100	Int32	string=False	value=27108	27108
+101	QuotedString	string=True	value=20354112	map
+102	Int32	string=False	value=1	1
+103	Int32	string=False	value=0	0
+104	Int32	string=False	value=27111	27111
+105	QuotedString	string=True	value=17964702	boss
+106	Int32	string=False	value=1	1
+107	Int32	string=False	value=1	1
+108	Int32	string=False	value=27112	27112
+109	QuotedString	string=True	value=20354112	map
+110	Int32	string=False	value=1	1
+111	Int32	string=False	value=2	2
+112	Int32	string=False	value=27114	27114
+113	QuotedString	string=True	value=20354112	map
+114	Int32	string=False	value=2	2
+115	Int32	string=False	value=0	0
+116	Int32	string=False	value=27116	27116
+117	Int32	string=False	value=25644	25644
+118	Int32	string=False	value=25645	25645
+119	QuotedString	string=True	value=20354112	map
+120	Int32	string=False	value=2	2
+121	Int32	string=False	value=1	1
+122	Int32	string=False	value=27123	27123
+123	QuotedString	string=True	value=20354112	map
+124	Int32	string=False	value=2	2
+125	Int32	string=False	value=2	2
+126	Int32	string=False	value=27124	27124
+127	Identifier	string=True	value=20994210	[/map specification]
+128	Identifier	string=True	value=21006294	[hell dungeon]
+129	Int32	string=False	value=0	0
+130	Identifier	string=True	value=21135744	[named monster]
+131	Int32	string=False	value=64700	64700
+132	Int32	string=False	value=64701	64701
+133	Int32	string=False	value=64930	64930
+134	Int32	string=False	value=64931	64931
+135	Int32	string=False	value=64932	64932
+136	Identifier	string=True	value=21135776	[/named monster]

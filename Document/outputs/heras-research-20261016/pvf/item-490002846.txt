@@ -1,0 +1,28 @@
+id 490002846 -> chn_490002846.stk
+=== stackable/chn_490002846.stk ===
+[name]
+赫拉斯研究所的零件
+[explain]
+从赫拉斯研究所中获得的零件。 可以在NPC吟荷处兑换道具。
+[grade]
+5
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[icon]
+Item/stackable/material_jp.img 114
+[field image]
+Item/FieldImage.img 30
+[stackable type]
+[material] 2
+[move wav]
+CUBE_TOUCH
+[need material]
+10092630 2
+[/need material]

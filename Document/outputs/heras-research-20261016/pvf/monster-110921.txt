@@ -1,0 +1,122 @@
+id 110921 -> NewMonsters/Event/helix/granit_bomb/granit_bomb.mob
+=== monster/NewMonsters/Event/helix/granit_bomb/granit_bomb.mob ===
+[name]
+暴击格莱尼
+[face image]
+Monster/monsterFace.img 1155
+[die effect]
+0 1 0
+[floating height]
+60
+[category]
+[insect] [devil]
+[/category]
+[ambient sound]
+
+[attack sound]
+
+[appear sound]
+
+[damage sound]
+R_GRANITE_DMG
+[die sound]
+R_GRANITE_DIE
+[ability category]
+[EQUIPMENT_PHYSICAL_ATTACK] * 100 [EQUIPMENT_PHYSICAL_DEFENSE] * 100 [EQUIPMENT_MAGICAL_ATTACK] * 100 [EQUIPMENT_MAGICAL_DEFENSE] * 100 [HP MAX] * 1700
+[/ability category]
+[level]
+1 1
+[slow resistance]
+30 30
+[freeze resistance]
+30 30
+[poison resistance]
+10 10
+[stun resistance]
+10 10
+[curse resistance]
+30 30
+[blind resistance]
+50 50
+[lightning resistance]
+10 10
+[stone resistance]
+30 30
+[sleep resistance]
+30 30
+[burn resistance]
+30 30
+[bleeding resistance]
+10 10
+[piercing resistance]
+30 30
+[confuse resistance]
+30 30
+[hold resistance]
+30 30
+[move speed]
+1000 1000
+[attack speed]
+1000 1000
+[cast speed]
+1000 1000
+[hit recovery]
+1000 1000
+[weight]
+100000 100000
+[stuckbonus on damage]
+0 0 0 0
+[waiting action]
+Action/Stay.act
+[move action]
+Action/Move.act
+[damage action 1]
+Action/Damage0.act
+[damage action 2]
+Action/Damage1.act
+[down action]
+Action/Down.act
+[overturn action]
+Action/Overturn.act
+[attack action]
+Action/Attack_0.act Action/Attack_1.act Action/Attack_2.act
+[/attack action]
+[last action]
+Action/Last.act
+[proc action]
+Action/Proc.act
+[attack info]
+  attackinfo/Attack_2.atk
+[/attack info]
+[cooltime]
+10000 5000 8000
+[/cooltime]
+[think term]
+300
+[destination change term]
+700
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]
+[keep range distance with target]
+0 0 0 0
+[intelligence]
+100 100 300
+[vision]
+1000
+[lie frame]
+1 2 3 3 4

@@ -1,0 +1,95 @@
+=== monster/newmonsters/timespiral/coward_planet/coward_planet.mob ===
+[name]
+胆小的异形怪
+[face image]
+Monster/MonsterFace.img 721
+[category]
+[insect] [devil]
+[/category]
+[ambient sound]
+
+[attack sound]
+
+[appear sound]
+
+[damage sound]
+R_PLANET_S_DMG
+[die sound]
+R_PLANET_S_DIE
+[ability category]
+[EQUIPMENT_PHYSICAL_ATTACK] * 120 [EQUIPMENT_PHYSICAL_DEFENSE] * 120 [EQUIPMENT_MAGICAL_ATTACK] * 120 [EQUIPMENT_MAGICAL_DEFENSE] * 120 [HP MAX] * 850
+[/ability category]
+[level]
+82 82
+[fire resistance]
+10 10
+[light resistance]
+10 10
+[move speed]
+700 700
+[attack speed]
+1000 1000
+[cast speed]
+1000 1000
+[hit recovery]
+800 800
+[weight]
+90000 90000
+[stuckbonus on damage]
+0 0 0 0
+[waiting action]
+Action/stay.act
+[move action]
+Action/move.act
+[sit action]
+Action/sit.act
+[damage action 1]
+Action/damage1.act
+[damage action 2]
+Action/damage2.act
+[down action]
+Action/down.act
+[overturn action]
+Action/overturn.act
+[jump action]
+Action/jump.act
+[attack action]
+Action/Hide.act Action/Shoot.act Action/Finsh_attack.act
+[/attack action]
+[last action]
+Action/Last.act
+[attack info]
+  AttackInfo/Attack1.atk
+[/attack info]
+[cooltime]
+12000 8000 10000
+[/cooltime]
+[think term]
+600
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]
+[keep distance with target]
+0
+[keep range distance with target]
+200 0 50 50
+[warlike]
+0
+[vision]
+1000
+[lie frame]
+2 3 2 3 4

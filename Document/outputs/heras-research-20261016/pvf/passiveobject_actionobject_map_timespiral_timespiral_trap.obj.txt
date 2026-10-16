@@ -1,0 +1,35 @@
+=== passiveobject/actionobject/map/timespiral/timespiral_trap.obj ===
+[name]
+青铜石巨人的子弹
+[width]
+180 40
+[layer]
+[normal]
+[pass type]
+[do not pass]
+[piercing power]
+1000
+[hp max]
+5000000
+[hp destroy]
+1
+[team]
+100
+[hp gage]
+1
+[is hp by difficulty]
+1
+[trap]
+1
+[basic action]
+Action/Timespiral_Trap.act
+[last action]
+Action/Timespiral_Trap_destroy.act
+[add object effect]
+Animation/Timespiral_Trap_hole.ani -1 0
+[/add object effect]
+[sound category]
+[on destroyobject] QUEST_TRANSFER_TEST_04 43739
+[/sound category]
+[destroy particle]
+Particle/TimespiralDestroy.ptl

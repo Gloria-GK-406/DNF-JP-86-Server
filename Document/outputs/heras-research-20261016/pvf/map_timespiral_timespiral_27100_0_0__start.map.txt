@@ -1,0 +1,66 @@
+=== map/timespiral/timespiral_27100(0,0)_start.map ===
+[player number]
+1 1
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3900
+[/dungeon]
+[type]
+[normal]
+[greed]
+II II
+[tile]
+Tile/basic_2.til Tile/basic_2.til Tile/basic_2.til Tile/basic_2.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/basic_ex_1.til
+[/tile files]
+[tile map]
+0 0 0 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+56
+[middle sight scroll]
+80
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/timespiral_far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+1538 643 0 0 1146 637 578 464
+[dungeon start area]
+617 154 166 94
+[sound]
+AMB_POWERSTATION_GRANDINE M_HELIX_LAB
+[/sound]
+[animation]
+Animation/timespiral_back_middle_light.ani [middleback] 1160 110 0 Animation/timespiral_back_middle_light.ani [middleback] 931 110 0 Animation/timespiral_back_middle_light.ani [middleback] 702 108 0 Animation/timespiral_back_middle_light.ani [middleback] 473 110 0 Animation/timespiral_mid01.ani [middleback] -51 -313 0 Animation/timespiral_mid02.ani [middleback] 640 -258 0 Animation/timespiral_spark03.ani [middleback] 163 -197 0 Animation/timespiral_steam01.ani [normal] 783 -287 0 Animation/remnant_dark_front01.ani [normal] 265 32 0 Animation/remnant_dark_front00.ani [normal] 225 30 0 Animation/remnant_dark_front04.ani [normal] 433 30 0 Animation/eff/Bic_generator_spark1.ani [normal] 47 261 0 Animation/Smoke.ani [bottom] 787 128 0 Animation/Smoke.ani [normal] 67 414 0 Animation/bottomcable2.ani [bottom] 833 218 0 Animation/bottomcable_light.ani [bottom] 839 210 0 Animation/back_spark_1.ani [normal] 862 -66 0 Animation/bottom_1.ani [bottom] 655 356 0 Animation/bottom_2.ani [bottom] 728 320 0 ../Slough/Animation/bottom_stain.ani [bottom] 605 209 0 ../Slough/Animation/bottom_stain.ani [bottom] 394 352 0 ../kronos_dg/Animation/fire/FireCurtain01_opacity.ani [middleback] -39 -373 0 ../kronos_dg/Animation/fire/FireCurtain01_opacity.ani [middleback] 601 -379 0 ../kronos_dg/new_animation/map_animation/object/Tile_Smoke_1_3_s.ani [close] 386 406 0
+[/animation]
+[passive object]
+12912 88 455 0 12912 796 462 0 12907 349 470 0
+[/passive object]
+[monster]
+64907 1 0 334 161 0 1 1 [fixed] [normal] 64921 1 0 167 191 0 1 1 [fixed] [normal] 64907 1 0 470 164 0 1 1 [fixed] [normal] 64907 1 0 469 249 0 1 1 [fixed] [normal] 64907 1 0 332 256 0 1 1 [fixed] [normal] 64907 1 0 330 351 0 1 1 [fixed] [normal] 64921 1 0 167 309 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[special passive object]
+12940 79 135 0 1 [item] 0 1 -1 -1 -1 12941 637 123 0 1 [item] 0 1 -1 -1 -1
+[/special passive object]
+[event monster position]
+581 309 0 591 307 0 581 309 0 581 309 0
+[/event monster position]
+[map name]
+PVP无名

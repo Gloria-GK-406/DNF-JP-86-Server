@@ -1,0 +1,26 @@
+=== passiveobject/mapobject/breakableobject/timespiral_trap.obj ===
+[width]
+35 20
+[floating height]
+0
+[layer]
+[normal]
+[pass type]
+[do not pass]
+[basic motion]
+Animation/Timespiral_Trap.ani
+[etc motion]
+
+[/etc motion]
+[trap]
+1
+[int data]
+1 2 1 0 0 0 500
+[/int data]
+[destroy particle]
+Particle/TimespiralDestroy.ptl
+[string data]
+Animation/BakDamage.ani    R_GOURD_HIT GHOSTRUN_IN
+[/string data]
+[name]
+匏瓜

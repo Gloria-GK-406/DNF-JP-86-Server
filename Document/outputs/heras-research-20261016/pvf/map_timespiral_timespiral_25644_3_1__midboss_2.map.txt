@@ -1,0 +1,59 @@
+=== map/timespiral/timespiral_25644(3,1)_midboss_2.map ===
+[player number]
+1 1
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3900
+[/dungeon]
+[type]
+[normal]
+[greed]
+MM MM
+[tile]
+Tile/basic_5.til Tile/basic_point_1.til Tile/basic_point_3.til Tile/basic_3.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/basic_ex_1.til 1 Tile/basic_point_ex_1.til 2 Tile/basic_point_ex_4.til
+[/tile files]
+[tile map]
+0 1 2 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+56
+[middle sight scroll]
+80
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/timespiral_far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+44 158 1322 479 1054 695 717 463
+[sound]
+M_HELIX_LAB_TRAP AMB_POWERSTATION_GRANDINE
+[/sound]
+[animation]
+Animation/timespiral_back_middle_light.ani [middleback] 1160 110 0 Animation/timespiral_back_middle_light.ani [middleback] 931 110 0 Animation/timespiral_back_middle_light.ani [middleback] 702 108 0 Animation/timespiral_back_middle_light.ani [middleback] 473 110 0 Animation/timespiral_mid01.ani [middleback] 66 -154 0 Animation/remnant_dark_front01.ani [normal] 291 31 0 ../kronos_dg/Animation/fire/FireCurtain01_opacity.ani [middleback] 491 -309 0 ../kronos_dg/Animation/fire/FireCurtain01_opacity.ani [middleback] -149 -308 0 ../kronos_dg/Animation/farfog(1,0).ani [middleback] 1015 -191 0 ../kronos_dg/Animation/farfog(1,0).ani [middleback] 274 -192 0 ../kronos_dg/new_animation/map_animation/object/Tile_Smoke_1_3_s.ani [close] 369 426 0 ../kronos_dg/Animation/fire/fire01.ani [distantback] 752 267 0 ../kronos_dg/Animation/fire/fire01.ani [middleback] 145 277 0 ../kronos_dg/Animation/fire/fire01.ani [distantback] 671 200 0 ../kronos_dg/Animation/fire/fire01.ani [distantback] 432 234 0 ../kronos_dg/Animation/fire/fire01.ani [distantback] 337 237 0 ../kronos_dg/Animation/fire/fire01.ani [distantback] 525 224 0 ../kronos_dg/Animation/farfog(2,0).ani [middleback] 1095 -222 0 ../kronos_dg/Animation/farfog(2,0).ani [middleback] 347 -223 0 ../kronos_dg/Animation/fire/fire01.ani [distantback] 883 296 0 ../kronos_dg/Animation/fire/fire01.ani [distantback] 784 274 0 ../kronos_dg/Animation/fire/FireCurtain01_opacity.ani [middleback] 538 -310 0 ../kronos_dg/Animation/fire/FireCurtain01_opacity.ani [middleback] -102 -309 0
+[/animation]
+[passive object]
+12905 158 462 0 12906 461 434 0 12907 560 137 0 12915 832 464 0 12910 874 479 0 12917 808 243 0
+[/passive object]
+[monster]
+64908 1 0 260 178 0 1 1 [fixed] [normal] 64908 1 0 379 318 0 1 1 [fixed] [normal] 64908 1 0 317 250 0 1 1 [fixed] [normal] 64917 1 0 112 311 0 1 1 [fixed] [normal] 64931 1 0 482 259 0 1 1 [fixed] [champion] 0
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[event monster position]
+681 324 0 717 332 0 722 303 0 679 301 0
+[/event monster position]

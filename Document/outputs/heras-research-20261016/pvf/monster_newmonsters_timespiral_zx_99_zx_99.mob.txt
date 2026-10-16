@@ -1,0 +1,119 @@
+=== monster/newmonsters/timespiral/zx_99/zx_99.mob ===
+[floating height]
+0
+[name]
+ZX-99 萨博1号
+[face image]
+Monster/ch_Monsterface.img 27
+[die effect]
+0 1 0
+[overhead gauge type]
+2
+[ability table]
+0
+[ability category]
+[HP MAX] * 300 [EQUIPMENT_PHYSICAL_ATTACK] * 100 [EQUIPMENT_PHYSICAL_DEFENSE] * 90 [EQUIPMENT_MAGICAL_ATTACK] * 100 [EQUIPMENT_MAGICAL_DEFENSE] * 90
+[/ability category]
+[category]
+[machine]
+[/category]
+[fire resistance]
+10 10
+[water resistance]
+10 10
+[dark resistance]
+10 10
+[light resistance]
+-30 -30
+[freeze resistance]
+0 0
+[stun resistance]
+180 180
+[blind resistance]
+10 10
+[stone resistance]
+10 10
+[sleep resistance]
+180 180
+[hold resistance]
+1000 1000
+[slow resistance]
+0 0
+[curse resistance]
+180 180
+[confuse resistance]
+0 0
+[lightning resistance]
+-30 -30
+[bleeding resistance]
+180 180
+[poison resistance]
+180 180
+[burn resistance]
+30 30
+[piercing resistance]
+0 0
+[HP regen speed]
+0 0
+[MP regen speed]
+0 0
+[level]
+30 35
+[move speed]
+800 800
+[attack speed]
+500 500
+[cast speed]
+500 500
+[hit recovery]
+800 800
+[weight]
+55000 55000
+[lie frame]
+2 2 2 3 4
+[common champion drop item]
+[/common champion drop item]
+[waiting action]
+Action/Stay.act
+[move action]
+Action/Move.act
+[damage action 1]
+Action/Damage1.act
+[damage action 2]
+Action/Damage2.act
+[jump action]
+Action/Attack1.act
+[attack action]
+Action/Jumpattack.act Action/Stop.act
+[/attack action]
+[attack info]
+AttackInfo/Jumpattack.atk
+[/attack info]
+[cooltime]
+11000 30000
+[/cooltime]
+[stuckbonus on damage]
+0 0 0 0
+[vision]
+1000
+[think term]
+500
+[destination change term]
+500
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]

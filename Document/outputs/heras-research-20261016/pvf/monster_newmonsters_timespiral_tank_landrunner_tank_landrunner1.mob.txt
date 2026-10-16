@@ -1,0 +1,107 @@
+=== monster/newmonsters/timespiral/tank_landrunner/tank_landrunner1.mob ===
+[name]
+ZX-78 反坦克追击者
+[damage sound]
+LIGH_LIGHTNING
+[die sound]
+ROBOT_EX_02
+[ability category]
+[HP MAX] * 600 [EQUIPMENT_PHYSICAL_ATTACK] * 100 [EQUIPMENT_PHYSICAL_DEFENSE] * 50 [EQUIPMENT_MAGICAL_ATTACK] * 200 [EQUIPMENT_MAGICAL_DEFENSE] * 50
+[/ability category]
+[category]
+[fort armor] [machine] [melee combat] [close-tough]
+[/category]
+[fire resistance]
+10 10
+[water resistance]
+10 10
+[dark resistance]
+10 10
+[light resistance]
+-30 -30
+[freeze resistance]
+0 0
+[stun resistance]
+180 180
+[blind resistance]
+10 10
+[stone resistance]
+10 10
+[sleep resistance]
+180 180
+[hold resistance]
+1000 1000
+[slow resistance]
+0 0
+[curse resistance]
+180 180
+[confuse resistance]
+0 0
+[lightning resistance]
+-30 -30
+[bleeding resistance]
+180 180
+[poison resistance]
+180 180
+[burn resistance]
+30 30
+[piercing resistance]
+0 0
+[level]
+60 80
+[move speed]
+250 250
+[attack speed]
+750 750
+[cast speed]
+700 700
+[hit recovery]
+1500 1500
+[weight]
+45000 45000
+[waiting action]
+Action/Stay.act
+[move action]
+Action/Move.act
+[damage action 1]
+Action/Damage1.act
+[damage action 2]
+Action/Damage2.act
+[overturn action]
+Action/Overturn.act
+[attack action]
+Action/Boom.act Action/Boom2.act Action/Stop.act
+[/attack action]
+[attack info]
+
+[/attack info]
+[cooltime]
+1000 1000 30000
+[/cooltime]
+[vision]
+1000
+[think term]
+500
+[destination change term]
+500
+[keep distance with target]
+300
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]
+[face image]
+Monster/ch_Monsterface.img 29

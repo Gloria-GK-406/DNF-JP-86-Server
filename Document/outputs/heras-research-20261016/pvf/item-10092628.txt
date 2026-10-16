@@ -1,0 +1,25 @@
+id 10092628 -> event/helixlab/10092628.stk
+=== stackable/event/helixlab/10092628.stk ===
+[name]
+机械碎片
+[grade]
+5
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[price]
+100
+[icon]
+Item/stackable/material_cn.img 128
+[field image]
+Item/FieldImage.img 30
+[stackable type]
+[quest] 0
+[move wav]
+CUBE_TOUCH
