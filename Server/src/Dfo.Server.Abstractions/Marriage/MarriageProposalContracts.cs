@@ -31,6 +31,35 @@ public interface IMarriageProposalRuleService
     bool CanPair(byte firstJob, byte secondJob);
 }
 
+public interface IMarriageCeremonyDomainStore
+{
+    ValueTask<MarriageCeremony?> FindActiveByRelationAsync(Guid relationId, CancellationToken ct);
+    ValueTask<MarriageCeremony?> FindLatestReceivedAsync(CharacterId character, CancellationToken ct);
+    ValueTask CreateAsync(MarriageCeremony ceremony, CancellationToken ct);
+    ValueTask<bool> TransitionAsync(MarriageCeremony expected, MarriageCeremonyState state,
+        byte response, CancellationToken ct);
+    ValueTask<bool> IsReservedAsync(Guid relationId, CancellationToken ct);
+}
+
+public interface IMarriageCeremonyDomainService
+{
+    ValueTask<MarriageCeremony?> FindReceivedAsync(CharacterId character, CancellationToken ct);
+    ValueTask<MarriageCeremonyResult> RequestAsync(SelectedSessionIdentity applicant,
+        SelectedSessionIdentity partner, int tier, int waitIndex, CancellationToken ct);
+    ValueTask<MarriageCeremonyResult> RespondAsync(SelectedSessionIdentity partner,
+        SelectedSessionIdentity applicant, byte response, CancellationToken ct);
+}
+
+public interface IMarriageCeremonyContentSource { MarriageCeremonyContent Load(); }
+
+public interface IMarriageCeremonyRuleService
+{
+    TimeSpan Lifetime { get; }
+    int TrialQuestId { get; }
+    int MaterialQuestId { get; }
+    int? RequiredGold(int tier, int waitIndex);
+}
+
 public interface IMarriageEngagementDomainService
 {
     ValueTask<MarriageEngagementSnapshot> ReadAsync(AccountId account, CharacterId character, CancellationToken ct);

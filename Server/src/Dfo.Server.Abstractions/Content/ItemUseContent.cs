@@ -76,7 +76,8 @@ public sealed record ItemUseRule(
     ItemPlaceRestriction Places,
     bool HasUnreadableDeclaration = false,
     double ExpBonusRate = 0,
-    int EffectDurationMilliseconds = 0)
+    int EffectDurationMilliseconds = 0,
+    string? Action = null)
 {
     /// <summary>
     /// Whether every restriction this item declares could be read.

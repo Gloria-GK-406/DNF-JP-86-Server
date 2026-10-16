@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-16 普通婚礼预约（CurrentImplementation，原生验收待用户验证）
+
+03F0/03F1 action2接普通档申请、拒绝、超时和接受，03CD第9字节按tier编码。独立持久预约，接受双端03D0 state2且重登恢复，不改变订婚与任务绑定；本步不收费、不发奖、不进教堂。未实现婚姻道具拒绝且不误耗。见[实现和测试流程](../Document/MarriageReservation-20261016.md)。
+
 ## 2026-10-16 组队申请方向与副本选择主机槽位（CurrentImplementation，待实机）
 
 [000A](game/client-to-server/0x000A.md)补无队请求者申请加入现有队长，复用0007通知与000B答复，实际新成员和批准者分离，保留原队伍/队长/槽位。副本选择前奏[001A](game/server-to-client/NOTI-0x001A.md)由固定0改读当前队长slot，修正继任队长在slot1、新成员复用slot0时聊天与名册不一致。既有ClientVerified范围不自动扩大到本轮新方向或跨流程矩阵。[状态链报告](../Document/PartyStateAudit-20261016.md)。

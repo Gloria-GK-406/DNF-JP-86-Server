@@ -139,6 +139,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageProposalRuleService, Dfo.Server.Application.Marriage.MarriageProposalRuleService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageProposalDomainService, Dfo.Server.Application.Marriage.MarriageProposalDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageEngagementDomainService, Dfo.Server.Application.Marriage.MarriageEngagementDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCeremonyRuleService, Dfo.Server.Application.Marriage.MarriageCeremonyRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCeremonyDomainService, Dfo.Server.Application.Marriage.MarriageCeremonyDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService, Dfo.Server.Application.Marriage.MarriageQuestDomainService>();
         services.AddDomainSubscriber<DungeonMapCleared, Dfo.Server.Application.Marriage.MarriageQuestDomainService>(
             "quest.wedding-trial", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);

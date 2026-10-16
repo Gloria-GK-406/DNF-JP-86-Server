@@ -23,9 +23,9 @@ public sealed record WeddingProposalAck(int Status, uint Target, byte Action, by
     : IGameCmdMessage { public ServerMessageType MessageType => ServerMessageType.GameWeddingProposal; }
 public sealed record WeddingResponseAck(int Status, uint Target, byte Action, byte Outcome)
     : IGameCmdMessage { public ServerMessageType MessageType => ServerMessageType.GameWeddingResponse; }
-public sealed record WeddingProposalNotification(uint Actor)
+public sealed record WeddingProposalNotification(uint Actor, byte Action = 1, byte Tier = 0)
     : IGameNotiMessage { public ServerMessageType MessageType => ServerMessageType.GameWeddingProposalNotification; }
-public sealed record WeddingResponseNotification(uint Actor, byte Outcome)
+public sealed record WeddingResponseNotification(uint Actor, byte Outcome, byte Action = 1, int Status = 0)
     : IGameNotiMessage { public ServerMessageType MessageType => ServerMessageType.GameWeddingResponseNotification; }
 
 internal sealed class WeddingProposalDecoder : IGameMessageDecoder
@@ -51,12 +51,13 @@ internal sealed class WeddingResponseDecoder : IGameMessageDecoder
 }
 internal static class WeddingProposalPayload
 {
-    public static byte[] Fields(int status, uint target, byte action, byte? outcome = null)
+    public static byte[] Fields(int status, uint target, byte action, byte? outcome = null, byte tier = 0)
     {
         var body = new byte[outcome is null ? 11 : 12];
         BinaryPrimitives.WriteInt32LittleEndian(body, status);
         BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(4), target);
         body[8] = action;
+        body[9] = tier;
         if (outcome is { } value) body[11] = value;
         return body;
     }
@@ -76,12 +77,12 @@ internal sealed class WeddingResponseAckEncoder : GameCmdMessageEncoder<WeddingR
 internal sealed class WeddingProposalNotificationEncoder : GameNotiMessageEncoder<WeddingProposalNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeddingProposalNotification message) =>
-        OnePayload(GameProtocol.WeddingProposalNotificationType, WeddingProposalPayload.Fields(0, message.Actor, 1));
+        OnePayload(GameProtocol.WeddingProposalNotificationType, WeddingProposalPayload.Fields(0, message.Actor, message.Action, tier: message.Tier));
 }
 internal sealed class WeddingResponseNotificationEncoder : GameNotiMessageEncoder<WeddingResponseNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeddingResponseNotification message) =>
-        OnePayload(GameProtocol.WeddingResponseNotificationType, WeddingProposalPayload.Fields(0, message.Actor, 1, message.Outcome));
+        OnePayload(GameProtocol.WeddingResponseNotificationType, WeddingProposalPayload.Fields(message.Status, message.Actor, message.Action, message.Outcome));
 }
 
 public sealed record MarriageProposalCommand(SelectedSessionIdentity Actor, SelectedSessionIdentity Peer, byte? Response)
@@ -108,6 +109,21 @@ internal sealed class WeddingProposalHandler(ISelectedSessionDomainService sessi
         var peer = message.Target is > 0 and <= ushort.MaxValue ? sessions.FindByWireUserId((ushort)message.Target) : null;
         await WeddingProposalExecution.RunAsync(lifecycle, actor, peer, async () =>
         {
+            if (message.Action == 2)
+            {
+                var ceremony = actor is null || peer is null
+                    ? new MarriageCeremonyResult(MarriageCeremonyFailure.Invalid)
+                    : await commands.SendAsync(new MarriageCeremonyCommand(actor, peer, message.First, message.Second, null), ct).ConfigureAwait(false);
+                logger.LogInformation("Marriage ceremony request actor={Actor} target={Target} tier={Tier} waitIndex={WaitIndex} result={Result} id={Ceremony}",
+                    actor?.CharacterId, message.Target, message.First, message.Second, ceremony.Failure, ceremony.Ceremony?.Id);
+                var invited = ceremony.Succeeded && ceremony.Ceremony?.State == MarriageCeremonyState.Pending
+                    && actor is not null && peer is not null && sessions.Find(peer.AccountId) == peer
+                    ? new[] { new GameExplicitMessageTarget(peer.ConnectionId, [new WeddingProposalNotification(actor.WireUserId, 2, message.First)]) } : [];
+                await sender.SendExplicitAsync(context.Connection.ConnectionId, new(
+                    [new WeddingProposalAck(ceremony.Succeeded ? 0 : ceremony.Failure == MarriageCeremonyFailure.InsufficientFunds ? -7 : -1,
+                        message.Target, 2)], invited), ct).ConfigureAwait(false);
+                return;
+            }
             var result = actor is null || peer is null || message.Action != 1 || message.First != 0 || message.Second != 0
                 || sessions.Find(actor.AccountId) != actor || sessions.Find(peer.AccountId) != peer
                 ? new MarriageProposalResult(MarriageProposalFailure.Invalid)
@@ -125,11 +141,17 @@ internal sealed class WeddingProposalHandler(ISelectedSessionDomainService sessi
 
 internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessions, IMarriageProposalDomainService marriage,
     ICommandBus commands, IGameMessageSender sender, SelectedSessionTransitionGate lifecycle, ILogger<WeddingResponseHandler> logger,
-    IMarriageEngagementDomainService engagement, IQuestOfferRefreshDomainService offers, ICharacterDomainService characters) : ClientMessageHandler<WeddingResponseRequest>
+    IMarriageEngagementDomainService engagement, IQuestOfferRefreshDomainService offers, ICharacterDomainService characters,
+    IMarriageCeremonyDomainService ceremonies) : ClientMessageHandler<WeddingResponseRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeddingResponseRequest message, CancellationToken ct)
     {
         var actor = sessions.FindByConnection(context.Connection.ConnectionId);
+        if (message.Action == 2)
+        {
+            await RespondToCeremonyAsync(context, message, actor, ct).ConfigureAwait(false);
+            return;
+        }
         var pending = actor is null ? null : await marriage.FindReceivedAsync(actor.CharacterId, ct).ConfigureAwait(false);
         var peer = pending is null ? null : sessions.FindByCharacter(pending.Proposer.CharacterId);
         await WeddingProposalExecution.RunAsync(lifecycle, actor, peer, async () =>
@@ -157,6 +179,44 @@ internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessi
                 ? new[] { new GameExplicitMessageTarget(peer.ConnectionId, peerMessages) } : [];
             await sender.SendExplicitAsync(context.Connection.ConnectionId, new(
                 ownMessages, targets), ct).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
+    }
+
+    private async ValueTask RespondToCeremonyAsync(NetworkDispatchContext context, WeddingResponseRequest message,
+        SelectedSessionIdentity? actor, CancellationToken ct)
+    {
+        var pending = actor is null ? null : await ceremonies.FindReceivedAsync(actor.CharacterId, ct).ConfigureAwait(false);
+        var peer = pending is null ? null : sessions.FindByCharacter(pending.Applicant.CharacterId);
+        await WeddingProposalExecution.RunAsync(lifecycle, actor, peer, async () =>
+        {
+            var result = actor is null || peer is null || message.First != 0 || message.Second != 0 || message.Outcome > 2
+                || (message.Target != 0 && message.Target != peer.WireUserId)
+                ? new MarriageCeremonyResult(MarriageCeremonyFailure.Invalid)
+                : await commands.SendAsync(new MarriageCeremonyCommand(actor, peer, 0, 0, message.Outcome), ct).ConfigureAwait(false);
+            logger.LogInformation("Marriage ceremony response actor={Actor} target={Target} outcome={Outcome} result={Result} id={Ceremony}",
+                actor?.CharacterId, message.Target, message.Outcome, result.Failure, result.Ceremony?.Id);
+            var own = new List<IGameServerMessage> { new WeddingResponseAck(result.Succeeded ? 0 : -3, peer?.WireUserId ?? 0, 2, message.Outcome) };
+            var other = new List<IGameServerMessage>();
+            if (result.Succeeded && actor is not null && peer is not null && sessions.Find(peer.AccountId) == peer)
+            {
+                other.Add(new WeddingResponseNotification(actor.WireUserId, message.Outcome, 2));
+                if (result.Ceremony?.State == MarriageCeremonyState.Reserved)
+                {
+                    own.Add(new WeddingInfoMessage(await engagement.ReadAsync(actor.AccountId, actor.CharacterId, ct).ConfigureAwait(false)));
+                    other.Add(new WeddingInfoMessage(await engagement.ReadAsync(peer.AccountId, peer.CharacterId, ct).ConfigureAwait(false)));
+                }
+            }
+            else if (pending?.State == MarriageCeremonyState.Pending && actor == pending.Partner && peer == pending.Applicant
+                && message.First == 0 && message.Second == 0 && message.Outcome <= 2
+                && (message.Target == 0 || message.Target == peer.WireUserId)
+                && sessions.Find(actor.AccountId) == actor && sessions.Find(peer.AccountId) == peer)
+            {
+                // Native 03F1 failures close only the responder's window. 03CE closes
+                // the applicant's waiting window even on failure (RVA0089197D).
+                other.Add(new WeddingResponseNotification(actor.WireUserId, message.Outcome, 2, -3));
+            }
+            await sender.SendExplicitAsync(context.Connection.ConnectionId, new(own,
+                peer is not null && other.Count > 0 ? [new(peer.ConnectionId, other)] : []), ct).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
 

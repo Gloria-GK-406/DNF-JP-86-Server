@@ -10,6 +10,20 @@ namespace Dfo.Server.Protocol.Tests;
 public sealed class MarriageProposalCodecTests
 {
     [Fact]
+    public void Reservation_uses_action_two_without_shifting_tier_or_response_and_projects_stage_two()
+    {
+        Assert.Equal(Convert.FromHexString("0000000048000000020100"), WeddingProposalPayload.Fields(0, 72, 2, tier: 1));
+        Assert.Equal(Convert.FromHexString("010000000048000000020000"), WeddingProposalPayload.Cmd(0, 72, 2));
+        Assert.Equal(Convert.FromHexString("01000000004800000002000001"), WeddingProposalPayload.Cmd(0, 72, 2, 1));
+        Assert.Equal(Convert.FromHexString("0000000048000000020100"),
+            Assert.Single(new WeddingProposalNotificationEncoder().Encode(new WeddingProposalNotification(72, 2, 1)))[15..]);
+        Assert.Equal(Convert.FromHexString("FDFFFFFF4800000002000000"),
+            Assert.Single(new WeddingResponseNotificationEncoder().Encode(new WeddingResponseNotification(72, 0, 2, -3)))[15..]);
+        var profile = new MarriagePartnerProfile(72, "partner"u8.ToArray(), 0, 85, 0, new int[13]);
+        Assert.Equal(Convert.FromHexString("480000000200000000000000000000"),
+            MarriageEngagementPayload.Info(new(Guid.NewGuid(), profile) { IsCeremonyReserved = true }));
+    }
+    [Fact]
     public void Engagement_snapshot_changes_the_native_menu_stage_and_empty_snapshot_clears_it()
     {
         var profile = new MarriagePartnerProfile(72, "partner"u8.ToArray(), 0, 85, 0, Enumerable.Range(100, 13).ToArray());

@@ -45,6 +45,10 @@ public sealed class MarriageProposalIntegrationTests
             Assert.Equal(GameServerFrameEncoder.Encode(1, 0x03F0, Convert.FromHexString("01FFFFFFFF47000000010000")), await Read(stream, timeout.Token));
             await stream.WriteAsync(Frame(0x03F1, NativeBody("0000000001000001")), timeout.Token);
             Assert.Equal(GameServerFrameEncoder.Encode(1, 0x03F1, Convert.FromHexString("01FDFFFFFF0000000001000001")), await Read(stream, timeout.Token));
+            await stream.WriteAsync(Frame(0x03F0, NativeBody("47000000020002")), timeout.Token);
+            Assert.Equal(GameServerFrameEncoder.Encode(1, 0x03F0, Convert.FromHexString("01FFFFFFFF47000000020000")), await Read(stream, timeout.Token));
+            await stream.WriteAsync(Frame(0x03F1, NativeBody("0000000002000000")), timeout.Token);
+            Assert.Equal(GameServerFrameEncoder.Encode(1, 0x03F1, Convert.FromHexString("01FDFFFFFF0000000002000000")), await Read(stream, timeout.Token));
             await stream.WriteAsync(Frame(0x03F3, NativeBody("00000000")), timeout.Token);
             Assert.Equal(GameServerFrameEncoder.Encode(1, 0x03F3, new byte[] { 0, 1 }), await Read(stream, timeout.Token));
             await stream.WriteAsync(Frame(3, []), timeout.Token);

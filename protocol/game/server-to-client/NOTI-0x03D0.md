@@ -1,5 +1,11 @@
 # NOTI `0x03D0` `WEDDING_INFO`
 
+## 2026-10-16 普通婚礼预约接入
+
+当前补充：独立预约Reserved记录投影state2，接受后双端推送，选角/重登恢复。NPC RVA021AB558在state2阻止重复预约；其它未知字段仍0，仅ClientStatic/High安全性证据，待用户实机验证。
+
+CurrentImplementation：实现边界、A21证据及双端验收步骤见[本次报告](../../../Document/MarriageReservation-20261016.md)。不是婚礼完成或已婚状态；本节优先于下面的历史阶段说明。
+
 ## 2026-10-16 A21 人工裁定
 
 ClientStatic / Confirmed：RVA008959B0 的读取链闭合为15B，无CMD信封：

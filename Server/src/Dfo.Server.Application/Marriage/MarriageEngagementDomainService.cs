@@ -9,7 +9,8 @@ using Dfo.Server.Data.Marriage;
 namespace Dfo.Server.Application.Marriage;
 
 internal sealed class MarriageEngagementDomainService(IMarriageProposalDomainStore store,
-    ICharacterDomainService characters, ICharacterInventoryEntryDomainService inventory) : IMarriageEngagementDomainService
+    IMarriageCeremonyDomainStore ceremonies, ICharacterDomainService characters,
+    ICharacterInventoryEntryDomainService inventory) : IMarriageEngagementDomainService
 {
     public async ValueTask<MarriageEngagementSnapshot> ReadAsync(AccountId account, CharacterId character, CancellationToken ct)
     {
@@ -25,6 +26,9 @@ internal sealed class MarriageEngagementDomainService(IMarriageProposalDomainSto
         var current = await inventory.ReadCurrentAsync(peer.AccountId, peer.CharacterId, ct).ConfigureAwait(false);
         var worn = current.Containers.SingleOrDefault(x => x.ContainerType == InventoryContainerType.Equipment)?.Items ?? [];
         var equipment = Enumerable.Range(0, 13).Select(slot => worn.SingleOrDefault(x => x.SlotIndex == slot)?.Core.ItemId ?? 0).ToArray();
-        return new(relation.Id, new(peer.CharacterId.Value, identity.Name, identity.Job, progress.Level, identity.GrowType, equipment));
+        return new(relation.Id, new(peer.CharacterId.Value, identity.Name, identity.Job, progress.Level, identity.GrowType, equipment))
+        {
+            IsCeremonyReserved = await ceremonies.IsReservedAsync(relation.Id, ct).ConfigureAwait(false),
+        };
     }
 }

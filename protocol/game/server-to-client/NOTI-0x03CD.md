@@ -1,5 +1,11 @@
 # NOTI `0x03CD` `WEDDING_REQUEST`
 
+## 2026-10-16 普通婚礼预约接入
+
+当前补充：action2邀请正文11B：i32 status0 + u32 applicantWireId + 02 tier 00。第9字节是tier，不是waitIndex。
+
+CurrentImplementation：实现边界、A21证据及双端验收步骤见[本次报告](../../../Document/MarriageReservation-20261016.md)。不是婚礼完成或已婚状态；本节优先于下面的历史阶段说明。
+
 ## 2026-10-16 A21 action1 接入
 
 ClientStatic / Confirmed：正文11B，`i32 status=0,u32 proposerWireId,u8 action=1,u8 zero,u8 zero`，没有CMD结果信封。handler RVA00891140把ID交给窗口，再以action打开0x1C0请求窗口；窗口已打开时不会重复新建。CurrentImplementation在Pending事务提交后、请求者CMD确认之后发送给精确接收会话。见[补证](../../../Document/outputs/marriage-proposal-20261016/client-evidence.txt)。尚无本轮双端实帧/ClientVerified。

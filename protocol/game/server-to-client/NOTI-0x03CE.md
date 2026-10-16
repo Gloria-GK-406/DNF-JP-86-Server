@@ -1,5 +1,11 @@
 # NOTI `0x03CE` `WEDDING_RESPONSE`
 
+## 2026-10-16 普通婚礼预约接入
+
+当前补充：action2答复通知正文12B：i32 status + u32 responderWireId + 02 00 00 + outcome。有效答复成功status0；有效邀请接受重校验失败status-3，关闭申请方等待窗。
+
+CurrentImplementation：实现边界、A21证据及双端验收步骤见[本次报告](../../../Document/MarriageReservation-20261016.md)。不是婚礼完成或已婚状态；本节优先于下面的历史阶段说明。
+
 ## 2026-10-16 A21 action1 接入
 
 ClientStatic / Confirmed：正文12B，`i32 status=0,u32 responderWireId,u8 action=1,u8 zero,u8 zero,u8 outcome`，没有CMD结果信封。outcome0为成功路径，1对应dstr0x11C8A“对方拒绝求婚”，2对应0x11C37“请求超时自动取消”。CurrentImplementation在答复事务提交及答复者CMD确认之后通知发起者。见[补证](../../../Document/outputs/marriage-proposal-20261016/client-evidence.txt)。尚无本轮双端实帧/ClientVerified。

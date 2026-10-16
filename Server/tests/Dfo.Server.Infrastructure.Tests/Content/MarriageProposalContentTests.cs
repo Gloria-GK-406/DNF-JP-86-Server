@@ -6,6 +6,16 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 public sealed class MarriageProposalContentTests
 {
     [SkippableFact]
+    public void Ceremony_tiers_and_wait_selections_come_from_the_current_archive()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var content = new PvfMarriageCeremonyContentSource(provider).Load();
+        Assert.Equal(new[] { 0, 1, 2 }, content.Tiers.Select(x => x.Tier));
+        Assert.Equal(500000, content.Tiers.Single(x => x.Tier == 0).Gold);
+        Assert.Equal(new[] { 300, 600, 900 }, content.WaitDurations);
+    }
+    [SkippableFact]
     public void Minimum_proposal_level_comes_from_current_wedding_content()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

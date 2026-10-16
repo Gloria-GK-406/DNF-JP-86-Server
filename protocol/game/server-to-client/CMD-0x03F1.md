@@ -1,5 +1,11 @@
 # CMD `0x03F1` `WEDDING_RESPONSE`
 
+## 2026-10-16 普通婚礼预约接入
+
+当前补充：action2答复ACK正文13B：01 + i32 status + u32 peerWireId + 02 00 00 + outcome。成功status0，业务失败-3；匹配有效邀请的失败还向申请者发03CE失败以关闭等待窗。
+
+CurrentImplementation：实现边界、A21证据及双端验收步骤见[本次报告](../../../Document/MarriageReservation-20261016.md)。不是婚礼完成或已婚状态；本节优先于下面的历史阶段说明。
+
 2026-10-16，A21 ClientStatic / Confirmed；CurrentImplementation 已接入 action=1，待双端实机。
 
 handler RVA `00891FD0` 在 CMD `ok` 非零时读取 12B 类型载荷；加结果信封后线上正文 **13B**：

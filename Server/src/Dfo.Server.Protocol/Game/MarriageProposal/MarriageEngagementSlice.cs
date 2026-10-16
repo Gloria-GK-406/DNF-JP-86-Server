@@ -41,8 +41,9 @@ internal static class MarriageEngagementPayload
         var result = new byte[15];
         if (!snapshot.IsEngaged) return result;
         BinaryPrimitives.WriteUInt32LittleEndian(result, checked((uint)snapshot.Partner!.CharacterId));
-        // Native stages 1..3 have the engagement menu; 4 is married. This step has no ceremony.
-        result[4] = 1;
+        // Native NPC dispatcher blocks another reservation only at stage 2 (RVA021AB558).
+        // Stage 4 is married and must remain unreachable before ceremony completion.
+        result[4] = snapshot.IsCeremonyReserved ? (byte)2 : (byte)1;
         return result;
     }
 
