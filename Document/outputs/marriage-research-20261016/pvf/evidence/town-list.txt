@@ -1,0 +1,2 @@
+=== town/town.lst ===
+1 SilverCrown.twn 2 Underfoot.twn 3 Sewer.twn 4 Behemoth.twn 5 ShelterOfNorth.twn 6 Gent.twn 7 Warfare.twn 8 GuildAgit.twn 9 LuftHafen.twn 10 Fair_PVP.twn 11 Shonan.twn 12 TimeGate.twn 13 TimeGateRequiem.twn 14 Slough.twn 15 Twin_Raid.twn 17 SaintHorn.twn 18 Kor_Shonan_Holy.twn 19 BattleShip_Raid.twn 20 BattleShip_Normal.twn 21 WestCoast.twn 22 Jelva.twn 28 Event_hendon.twn 29 Event_AdventurerMaker.twn 99 Chn_Tournament.twn 101 CoupleRoom.twn 102 chn_zombie_dungeon.twn

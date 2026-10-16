@@ -1,0 +1,42 @@
+=== town/WestCoast.twn ===
+[entering title]
+Title/MirrorArad.ani
+[cutscene image]
+Map/CutScene/MirrorArad.img 0
+[dungeon what must be cleared]
+-1
+[area]
+0 Town/MirrorArad/Gate_West.map [minimap rect] 562 363 581 377 [/minimap rect]
+[permission]
+[need level]
+55
+[need quest]
+14395
+[/need quest]
+[/permission]
+[gate] 474 234
+[/area]
+[area]
+1 Town/MirrorArad/WestCoast.map [minimap rect] 542 383 617 411 [/minimap rect]
+[permission]
+[need level]
+55
+[need quest]
+14395
+[/need quest]
+[/permission]
+[normal]
+[/area]
+[area]
+2 Town/MirrorArad/D_WestCoast.map [minimap rect] 624 383 684 406 [/minimap rect]
+[permission]
+[need level]
+55
+[need quest]
+14395
+[/need quest]
+[/permission]
+[dungeon gate] 31
+[/area]
+[name]
+西海岸

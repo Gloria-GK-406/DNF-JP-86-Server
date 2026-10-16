@@ -1,0 +1,42 @@
+=== map/church/church.map ===
+[background correction]
+-77
+[player number]
+2 8
+[pvp start area]
+106 172 484 253 106 170 74 256 525 174 57 251
+[pvp practice start area]
+106 170 74 256 525 174 57 251
+[type]
+[normal]
+[tile]
+Tile/Churchtile01.til Tile/Churchtile00.til Tile/Churchtile01.til Tile/Churchtile01.til Tile/Churchtile00.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/ChurchtileEx00.til
+[/tile files]
+[tile map]
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+50
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[virtual movable area]
+2 233 642 198 650 287 68 89
+[/virtual movable area]
+[sound]
+M_CHURCH
+[/sound]
+[animation]
+Animation/chn_light_normal.ani [normal] 833 27 0 Animation/chn_light_dodge.ani [normal] 833 27 0 Animation/chn_light_normal.ani [normal] 153 29 0 Animation/chn_light_dodge.ani [normal] 153 29 0 Animation/chn_bridesmaid_normal_in_church.ani [normal] 576 37 0 Animation/chn_chair.ani [normal] 131 232 0 Animation/chn_chair.ani [normal] 302 232 0 Animation/chn_chair.ani [normal] 481 232 0 Animation/chn_flower_bigpot.ani [normal] 838 269 0 Animation/chn_flower_tunnel.ani [normal] 907 323 0 Animation/chn_flower_bigpot.ani [normal] 959 359 0 Animation/chn_table.ani [normal] 832 373 0 Animation/chn_tablering_dodge.ani [normal] 832 373 0 Animation/chn_chair.ani [normal] 971 535 0 Animation/chn_chair.ani [normal] 661 535 0 Animation/chn_chair.ani [normal] 114 535 0 Animation/chn_chair.ani [normal] 485 535 0 Animation/chn_chair.ani [normal] 297 535 0 Animation/chn_chair.ani [normal] 817 535 0 Animation/chn_flower_stand.ani [normal] 373 617 0 Animation/chn_flower_stand.ani [normal] 507 617 0 Animation/chn_flower_stand.ani [normal] 641 617 0 Animation/chn_flower_stand.ani [normal] 102 617 0 Animation/chn_flower_stand.ani [normal] 234 617 0 Animation/chn_flower_stand.ani [normal] 783 617 0 Animation/chn_flower_stand.ani [normal] 923 617 0 Animation/chn_big_Carpet.ani [bottom] 617 332 0 Animation/chn_big_Carpet.ani [bottom] 393 332 0 Animation/chn_big_Carpet.ani [bottom] 169 332 0 Animation/chn_big_Carpet.ani [bottom] -55 332 0 Animation/chn_big_Carpet.ani [bottom] 1065 332 0 Animation/chn_big_Carpet.ani [bottom] 841 332 0 Animation/chn_ribbon_silk.ani [closeback] 153 123 0 Animation/chn_ribbon_silk.ani [closeback] 288 126 0 Animation/chn_ribbon_silk.ani [closeback] 420 126 0 Animation/chn_flower_stand.ani [closeback] 79 117 0 Animation/chn_flower_stand.ani [closeback] 211 117 0 Animation/chn_flower_stand.ani [closeback] 346 118 0 Animation/chn_flower_stand.ani [closeback] 482 118 0 Animation/chn_organ.ani [closeback] 790 145 0 Animation/chn_ribbon_silk.ani [closeback] 582 628 0 Animation/chn_ribbon_silk.ani [closeback] 176 628 0 Animation/chn_ribbon_silk.ani [closeback] 312 628 0 Animation/chn_ribbon_silk.ani [closeback] 447 628 0 Animation/chn_ribbon_silk.ani [closeback] 721 628 0 Animation/chn_ribbon_silk.ani [closeback] 863 628 0
+[/animation]
+[NPC]
+20010 [left] 691 193 0 20014 [left] 888 328 0
+[/NPC]
+[map name]
+PVP无名

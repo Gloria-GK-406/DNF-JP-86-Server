@@ -1,0 +1,10 @@
+{
+  "RecordedAt": "2026-10-16T09:43:35.9613712+08:00",
+  "SourceCommit": "b4212fced67aba7e0d0cdcc0dc534fcf8d4a4c63",
+  "Branch": "task/next-round-20261013",
+  "DeploymentReceipt": "artifacts/heras-3x3-20261016/deployment.json",
+  "RecordedRuntimeVersion": "0.2.5-heras-3x3.20261016+850d9bb6716693277a47e5e5f9df5dd16517a730",
+  "PvfPath": "E:/Project/DNF/DNF-JP-86-Server/artifacts/sao-ticket-20261014/Script.server.pvf",
+  "PvfSHA256": "91902D91AA0015024B75F55BE037FE7C2900FD66432459B62578CA0E865DEBF4",
+  "Scope": "Research only; deployment receipt is historical evidence, not a new process inspection."
+}

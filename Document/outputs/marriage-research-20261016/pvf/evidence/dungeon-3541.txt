@@ -1,0 +1,62 @@
+id 3541 -> China/chn_wedding_couple.dgn
+=== dungeon/China/chn_wedding_couple.dgn ===
+[background pos]
+80
+[entering title]
+Title/chn_wedding_couple_Dungeon.ani
+[name]
+爱之摩伽陀
+[explain]
+    只有真心相爱的两人才能进入该地下城， 接受爱情的考验。 只要相信爱的力量， 就一定能够克服所有的困难！ 快去爱之摩伽陀里见证你们的爱情吧！
+[cutscene image]
+Map/CutScene/CutScene_cn.img 9
+[minimap image]
+Map/MiniMap/Act6.img
+[worldmap pattern info]
+2 5 WorldMap/SelectdungeonSlot/cn_dungeonslot.img 20
+[dungeon type]
+wedding couple
+[required item]
+10002609 3 1
+[/required item]
+[no fatigue]
+[minimum required level]
+30
+[basis level]
+50
+[experience increasing point]
+0.7
+[champion]
+4 8 12 16 18
+[special passive object item]
+0 -1 1 3235 3000 1 -1 1 3236 2500
+[/special passive object item]
+[pathgate object]
+5550 5551 5552 5553 5554 5555 5556 5557 5558 5559
+[maze info]
+[size]
+1 1
+[greed]
+BB
+[start map]
+0 0
+[/start map]
+[boss map]
+0 0
+[/boss map]
+[revision table]
+Dungeon/China/table/SouthernDale.tbl
+[recommended level]
+30 85
+[limit party count]
+2
+[prohibit practice]
+1
+[designate dungeon difficulty]
+2
+[recommend equipment]
+0 2 0 2 0 2 0 2 0 2
+[/recommend equipment]
+[recommend party]
+> 2 > 2 > 2 > 2 > 2
+[/recommend party]

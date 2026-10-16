@@ -1,0 +1,21 @@
+=== server documentation sync ===
+  registered C2S decoders       : 151 registrations / 151 identities
+  encoder-backed S2C identities : 225
+    CMD / NOTI                  : 102 / 123
+  catalog identities parsed     : 369
+  explicit outbound overrides   : 41 rows
+failures: 14
+  outbound registration CMD AltarDifficultyResponse/GameCmdStateSynchronizationEncoder has no resolvable wire type; add a source-backed row to server-wire-overrides.tsv
+  catalog missing registered inbound CMD 0x00C6
+  catalog missing registered inbound CMD 0x00FF
+  catalog missing registered inbound CMD 0x0102
+  catalog missing registered inbound CMD 0x013D
+  catalog missing registered inbound CMD 0x0170
+  catalog missing encoder-backed outbound NOTI 0x00D0
+  catalog missing encoder-backed outbound NOTI 0x00D1
+  catalog missing encoder-backed outbound NOTI 0x00D2
+  catalog missing encoder-backed outbound NOTI 0x00D3
+  catalog missing encoder-backed outbound NOTI 0x00D4
+  catalog missing encoder-backed outbound NOTI 0x00D7
+  catalog missing encoder-backed outbound NOTI 0x0129
+  catalog missing encoder-backed outbound NOTI 0x03E9

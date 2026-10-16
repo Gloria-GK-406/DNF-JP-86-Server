@@ -1,5 +1,11 @@
 # 协议清单
 
+## 2026-10-16 婚姻一期静态探查（ClientStatic，未实现/未实机）
+
+[03F0](game/client-to-server/0x03F0.md)、[03F1](game/client-to-server/0x03F1.md)、[03F7](game/client-to-server/0x03F7.md) 的旧机器记录把含 14B 帧头的 21/22/23B 总长记为 BodyLength；A21 构包补证确认为 **7/8/9B 正文**，人工区优先。请求依次为 `u32+action+2B opaque`、`u32+action+2B opaque+outcome`、`u32+u32+u8`；对应 CMD 回包固定消费 11/12/4B。action/outcome 的完整业务映射和原生入口仍未知，没有新增正常婚姻实帧。
+
+[NOTI03D8](game/server-to-client/NOTI-0x03D8.md) 的 A21 婚房读取结构为 `u32 count + count×(u16+u32) + 13B tail`，消费 `17+6n`。既有 204 零只证明 count=0 空态兼容，不证明非空旧彩票语义。当前选角仍可能按旧彩票数据编码，风险定位为 CurrentImplementation，尚未修改发送路径或验证其界面后果。不得根据 A12 名称无证据换号。详见[一期调查报告](../Document/MarriagePhase1Research-20261016.md)及其三路证据；婚姻业务、双端仪式及真实关系重登验收均未完成。
+
 ## 2026-10-14 角色列表与登录外貌归一（CurrentImplementation，待实机验收）
 
 角色页与登录Roster共用编码，A21尾部offset24与世界subtype0/0165共用显隐定义；修正固定0覆盖关闭设置，人物候选/最终计算与所有消费路径归一。见[职责与静态依据](../Document/CharacterAppearance-20261014.md)。
