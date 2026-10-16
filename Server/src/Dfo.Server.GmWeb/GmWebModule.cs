@@ -20,6 +20,7 @@ public sealed class GmWebModule(IConfiguration configuration) : IHttpApiFeature
         services.AddDataProtection().UseEphemeralDataProtectionProvider();
         services.AddAntiforgery(options => { options.HeaderName = "X-GM-CSRF"; options.Cookie.Name = "Dfo.Gm.Csrf"; options.Cookie.SameSite = SameSiteMode.Strict; options.Cookie.HttpOnly = true; });
         services.AddSingleton<GmLoginLimiter>();
+        services.AddSingleton<GmIconPackStore>();
         services.AddHostedService<GmBootstrapService>();
     }
     public void ConfigureMiddleware(IApplicationBuilder application) => application.UseMiddleware<GmAccessBoundary>();
@@ -36,6 +37,7 @@ public sealed class GmWebModule(IConfiguration configuration) : IHttpApiFeature
         GmDailyRefillEndpoints.Map(group);
         GmEventsEndpoints.Map(group);
         GmServerInfoEndpoints.Map(group, options);
+        GmItemEndpoints.Map(group);
         group.MapGet("/gm/{**path}", ServePage);
     }
 
