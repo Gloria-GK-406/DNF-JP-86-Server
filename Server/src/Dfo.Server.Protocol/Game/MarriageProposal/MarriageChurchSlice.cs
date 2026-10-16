@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.MarriageProposal;
 
-public sealed record WeddingChurchEnterRequest(GameMessageMetadata Metadata, uint Peer, uint Mode, byte Flag)
+public sealed record WeddingChurchEnterRequest(GameMessageMetadata Metadata, uint Peer, uint ChurchArea, byte Flag)
     : IClientNetworkMessage { public ClientMessageType MessageType => ClientMessageType.GameWeddingChurchEntry; }
 internal sealed record WeddingChurchEnterAck(int Status) : IGameCmdMessage
 { public ServerMessageType MessageType => ServerMessageType.GameWeddingChurchEntry; }
@@ -39,8 +39,8 @@ internal static class MarriageChurchPayload
         var bytes = new byte[79];
         // RVA00895C3F compares this with the partner id previously loaded by NOTI03D0.
         BinaryPrimitives.WriteUInt32LittleEndian(bytes, checked((uint)snapshot.Peer.Value));
-        // Native RVA0088799E passes this field as the builder's mode: keep it zero
-        // for the ordinary newlywed path instead of exposing an internal room id.
+        // RVA00F9CFC3 compares this record field with the player's town area.
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(4), snapshot.Room.AreaId);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(8), checked((uint)snapshot.Room.ReadyUntil.ToUnixTimeSeconds()));
         CopyName(snapshot.ApplicantName, bytes.AsSpan(17, 30));
         CopyName(snapshot.PartnerName, bytes.AsSpan(47, 30));
@@ -86,7 +86,7 @@ public sealed class PrepareMarriageChurchCommandHandler(IMarriageChurchDomainSer
         PrepareMarriageChurchCommand command, CancellationToken ct) =>
         new(await churches.PrepareAsync(command.Actor, ct).ConfigureAwait(false));
 }
-public sealed record EnterMarriageChurchCommand(SelectedSessionIdentity Actor, uint Peer, uint Mode, byte Flag)
+public sealed record EnterMarriageChurchCommand(SelectedSessionIdentity Actor, uint Peer, uint ChurchArea, byte Flag)
     : ICommand<MarriageChurchEntryResult>, IAccountCommand, ISelectedSessionCommand
 {
     public AccountId AccountId => Actor.AccountId;
@@ -97,7 +97,7 @@ public sealed class EnterMarriageChurchCommandHandler(IMarriageChurchDomainServi
 {
     public ValueTask<MarriageChurchEntryResult> HandleAsync(CommandExecutionContext context,
         EnterMarriageChurchCommand command, CancellationToken ct) =>
-        churches.EnterAsync(command.Actor, command.Peer, command.Mode, command.Flag, ct);
+        churches.EnterAsync(command.Actor, command.Peer, command.ChurchArea, command.Flag, ct);
 }
 
 public sealed class WeddingChurchEnterHandler(ISelectedSessionDomainService sessions, ICommandBus commands,
@@ -117,7 +117,7 @@ public sealed class WeddingChurchEnterHandler(ISelectedSessionDomainService sess
             var result = actor is null || sessions.Find(actor.AccountId) != actor || previous is null
                 || !actor.Owns(previous) || view is null
                 ? new MarriageChurchEntryResult(-10)
-                : await commands.SendAsync(new EnterMarriageChurchCommand(actor, message.Peer, message.Mode, message.Flag), ct).ConfigureAwait(false);
+                : await commands.SendAsync(new EnterMarriageChurchCommand(actor, message.Peer, message.ChurchArea, message.Flag), ct).ConfigureAwait(false);
             if (result.Succeeded && actor is not null && previous is not null && view is not null)
             {
                 var entry = result.Snapshot!;
@@ -125,8 +125,8 @@ public sealed class WeddingChurchEnterHandler(ISelectedSessionDomainService sess
                 if (!await projection.TransferAsync(actor.ConnectionId, actor, view, entry.Room.ChannelId,
                     moved, previous, true, ct).ConfigureAwait(false)) result = new(-10);
             }
-            logger.LogInformation("Marriage church entry actor={Actor} peer={Peer} mode={Mode} flag={Flag} status={Status} room={Room} area={Town}:{Area}",
-                actor?.CharacterId, message.Peer, message.Mode, message.Flag, result.Status, result.Snapshot?.Room.Token, result.Snapshot?.Room.TownId, result.Snapshot?.Room.AreaId);
+            logger.LogInformation("Marriage church entry actor={Actor} peer={Peer} churchArea={ChurchArea} flag={Flag} status={Status} room={Room} area={Town}:{Area}",
+                actor?.CharacterId, message.Peer, message.ChurchArea, message.Flag, result.Status, result.Snapshot?.Room.Token, result.Snapshot?.Room.TownId, result.Snapshot?.Room.AreaId);
             await sender.SendCmdAsync(context.Connection.ConnectionId, new WeddingChurchEnterAck(result.Status), ct).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }

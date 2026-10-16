@@ -15,7 +15,7 @@ public sealed class MarriageChurchCodecTests
         var body = Enumerable.Repeat((byte)0xA5, 23).ToArray();
         Convert.FromHexString("480000000D00000000").CopyTo(body, 14);
         var request = Assert.IsType<WeddingChurchEnterRequest>(new WeddingChurchEnterDecoder().Decode(GameMessageMetadata.Empty, body));
-        Assert.Equal(72u, request.Peer); Assert.Equal(13u, request.Mode); Assert.Equal(0, request.Flag);
+        Assert.Equal(72u, request.Peer); Assert.Equal(13u, request.ChurchArea); Assert.Equal(0, request.Flag);
         Assert.Equal(Convert.FromHexString("0100000000"), Assert.Single(new WeddingChurchEnterEncoder().Encode(new WeddingChurchEnterAck(0)))[15..]);
         Assert.Equal(Convert.FromHexString("01F6FFFFFF"), Assert.Single(new WeddingChurchEnterEncoder().Encode(new WeddingChurchEnterAck(-10)))[15..]);
     }
@@ -28,14 +28,14 @@ public sealed class MarriageChurchCodecTests
     [Fact]
     public void Preparation_matches_native_79_byte_reader_with_two_names_and_separate_tail_word()
     {
-        var room = new MarriageChurchRoom(13, Guid.NewGuid(), 1, 21, 12, DateTimeOffset.UnixEpoch, DateTimeOffset.FromUnixTimeSeconds(1700000300));
+        var room = new MarriageChurchRoom(13, Guid.NewGuid(), 1, 2, 12, DateTimeOffset.UnixEpoch, DateTimeOffset.FromUnixTimeSeconds(1700000300));
         var snapshot = new MarriageChurchSnapshot(room, new CharacterId(72), Encoding.UTF8.GetBytes(new string('婚', 12)),
-            "bride"u8.ToArray(), new(21, 12, 300, 350));
+            "bride"u8.ToArray(), new(2, 12, 300, 350));
         var frame = Assert.Single(new WeddingChurchPreparationEncoder().Encode(new WeddingChurchPreparationNotification(snapshot)));
         Assert.Equal(94, frame.Length); Assert.Equal(0, frame[0]); Assert.Equal(0x03D4, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));
         var body = frame[15..];
         Assert.Equal(72u, BinaryPrimitives.ReadUInt32LittleEndian(body));
-        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(4)));
+        Assert.Equal(12u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(4)));
         Assert.Equal(1700000300u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(8)));
         Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(12)));
         Assert.Equal(0, body[16]); Assert.Equal(0, body[46]); Assert.Equal(0, body[76]);

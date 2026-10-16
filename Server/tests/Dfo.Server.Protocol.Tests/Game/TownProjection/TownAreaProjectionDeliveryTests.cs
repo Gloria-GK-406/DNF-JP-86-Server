@@ -47,7 +47,7 @@ public sealed class TownAreaProjectionDeliveryTests
             new SelectedSessionTransitionGate(), positions, areas, views, projection, NullLogger<WeddingChurchEnterHandler>.Instance);
         foreach (var session in new[] { first, second })
             await handler.HandleAsync(new NetworkDispatchContext(new(session.ConnectionId, NetworkEndpointKind.Game, 10011)),
-                new WeddingChurchEnterRequest(GameMessageMetadata.Empty, (uint)(session == first ? 2 : 1), 0, 0), default);
+                new WeddingChurchEnterRequest(GameMessageMetadata.Empty, (uint)(session == first ? 2 : 1), room.AreaId, 0), default);
         Assert.Equal(new[] { first.CharacterId, second.CharacterId },
             ((ITownAreaDomainService)areas).Find(new TownAreaKey(11, 2, 12))!.Members.Select(x => x.CharacterId));
         Assert.Equal(12, positions.Find(first.CharacterId)!.AreaId); Assert.Equal(12, positions.Find(second.CharacterId)!.AreaId);

@@ -132,8 +132,8 @@ public sealed class MarriageChurchTests
         var secondRoom = (await Run(f, x => x.PrepareAsync(groom, default)))!;
         Assert.NotEqual(firstRoom.Room.Token, secondRoom.Room.Token);
         Assert.NotEqual(firstRoom.Room.AreaId, secondRoom.Room.AreaId);
-        Assert.True((await Run(f, x => x.EnterAsync(f.Session, (uint)peer.CharacterId.Value, 0, 0, default))).Succeeded);
-        Assert.True((await Run(f, x => x.EnterAsync(groom, (uint)bride.CharacterId.Value, 0, 0, default))).Succeeded);
+        Assert.True((await Run(f, x => x.EnterAsync(f.Session, (uint)peer.CharacterId.Value, firstRoom.Room.AreaId, 0, default))).Succeeded);
+        Assert.True((await Run(f, x => x.EnterAsync(groom, (uint)bride.CharacterId.Value, secondRoom.Room.AreaId, 0, default))).Succeeded);
         Assert.False(await Run(f, x => x.CanCrossAsync(groom, 1, 2, firstRoom.Room.AreaId, default)));
         Assert.False(await Run(f, x => x.CanCrossAsync(f.Session, 1, 2, secondRoom.Room.AreaId, default)));
         Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM marriage_church_rooms"));
@@ -156,19 +156,20 @@ public sealed class MarriageChurchTests
     }
 
     [Fact]
-    public async Task Entry_requires_exact_partner_native_mode_and_flag_and_admission_is_idempotent()
+    public async Task Entry_requires_exact_partner_church_area_and_flag_and_admission_is_idempotent()
     {
         var (f, peer, _) = await Reserved(); await using var owned = f;
         var church = (await Run(f, x => x.PrepareAsync(f.Session, default)))!;
-        foreach (var (target, token, flag) in new[] {
-            ((uint)peer.CharacterId.Value + 100u, 0u, (byte)0),
-            ((uint)peer.CharacterId.Value, 1u, (byte)0),
-            ((uint)peer.CharacterId.Value, 0u, (byte)1) })
-            Assert.False((await Run(f, x => x.EnterAsync(f.Session, target, token, flag, default))).Succeeded);
+        foreach (var (target, area, flag) in new[] {
+            ((uint)peer.CharacterId.Value + 100u, (uint)church.Room.AreaId, (byte)0),
+            ((uint)peer.CharacterId.Value, 0u, (byte)0),
+            ((uint)peer.CharacterId.Value, (uint)church.Room.AreaId + 1, (byte)0),
+            ((uint)peer.CharacterId.Value, (uint)church.Room.AreaId, (byte)1) })
+            Assert.False((await Run(f, x => x.EnterAsync(f.Session, target, area, flag, default))).Succeeded);
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_church_admissions"));
         Assert.False(await Run(f, x => x.CanCrossAsync(f.Session, 1, 2, church.Room.AreaId, default)));
         for (var replay = 0; replay < 2; replay++)
-            Assert.True((await Run(f, x => x.EnterAsync(f.Session, (uint)peer.CharacterId.Value, 0, 0, default))).Succeeded);
+            Assert.True((await Run(f, x => x.EnterAsync(f.Session, (uint)peer.CharacterId.Value, church.Room.AreaId, 0, default))).Succeeded);
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_church_admissions"));
         Assert.Equal(2, f.Scalar("SELECT town_id FROM characters WHERE character_id=71"));
         Assert.Equal(church.Room.AreaId, f.Scalar("SELECT area_id FROM characters WHERE character_id=71"));
@@ -178,7 +179,7 @@ public sealed class MarriageChurchTests
         Assert.False(await Run(f, x => x.CanCrossAsync(f.Session, 1, 2, 13, default)));
         Assert.True(await Run(f, x => x.CanCrossAsync(f.Session, 1, 2, 1, default)));
         var peerView = (await Run(f, x => x.PrepareAsync(peer, default)))!;
-        Assert.True((await Run(f, x => x.EnterAsync(peer, (uint)f.Session.CharacterId.Value, 0, 0, default))).Succeeded);
+        Assert.True((await Run(f, x => x.EnterAsync(peer, (uint)f.Session.CharacterId.Value, church.Room.AreaId, 0, default))).Succeeded);
         Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM marriage_church_admissions"));
         Assert.Equal(500000, f.Scalar("SELECT SUM(carried_gold) FROM character_stats"));
     }
@@ -192,7 +193,7 @@ public sealed class MarriageChurchTests
         var church = (await Run(f, x => x.PrepareAsync(f.Session, default)))!;
         var priorTown = f.Scalar("SELECT town_id FROM characters WHERE character_id=71");
         var priorArea = f.Scalar("SELECT area_id FROM characters WHERE character_id=71");
-        Assert.True((await Run(f, x => x.EnterAsync(f.Session, (uint)peer.CharacterId.Value, 0, 0, default), false)).Succeeded);
+        Assert.True((await Run(f, x => x.EnterAsync(f.Session, (uint)peer.CharacterId.Value, church.Room.AreaId, 0, default), false)).Succeeded);
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_church_admissions"));
         Assert.Equal(priorTown, f.Scalar("SELECT town_id FROM characters WHERE character_id=71"));
         Assert.Equal(priorArea, f.Scalar("SELECT area_id FROM characters WHERE character_id=71"));
@@ -205,7 +206,7 @@ public sealed class MarriageChurchTests
         var (f, peer, clock) = await Reserved(); await using var owned = f;
         var before = (await Run(f, x => x.PrepareAsync(f.Session, default)))!;
         clock.Now = before.Room.ReadyUntil + TimeSpan.FromSeconds(1);
-        Assert.False((await Run(f, x => x.EnterAsync(f.Session, (uint)peer.CharacterId.Value, 0, 0, default))).Succeeded);
+        Assert.False((await Run(f, x => x.EnterAsync(f.Session, (uint)peer.CharacterId.Value, before.Room.AreaId, 0, default))).Succeeded);
         var after = (await Run(f, x => x.PrepareAsync(peer, default)))!;
         Assert.Equal(before.Room.Token, after.Room.Token);
         Assert.Equal(before.Room.CeremonyId, after.Room.CeremonyId);
@@ -221,7 +222,7 @@ public sealed class MarriageChurchTests
         var before = (await Run(f, x => x.PrepareAsync(f.Session, default)))!;
         f.Sql("UPDATE marriage_ceremonies SET payload_json=json_set(payload_json,'$.Partner.CharacterId.Value',999) WHERE state=1");
         Assert.Null(await Run(f, x => x.PrepareAsync(f.Session, default)));
-        Assert.False((await Run(f, x => x.EnterAsync(f.Session, (uint)peer.CharacterId.Value, 0, 0, default))).Succeeded);
+        Assert.False((await Run(f, x => x.EnterAsync(f.Session, (uint)peer.CharacterId.Value, before.Room.AreaId, 0, default))).Succeeded);
         Assert.False(await Run(f, x => x.CanCrossAsync(f.Session, 1, 2, before.Room.AreaId, default)));
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_church_admissions"));
     }
@@ -234,7 +235,7 @@ public sealed class MarriageChurchTests
         var stale = SelectedSessionIdentity.Create(f.Session.AccountId, f.Session.CharacterId,
             f.Session.ConnectionId, f.Session.ConnectionGeneration + 1, f.Session.ListenerPort);
         Assert.Null(await Run(f, x => x.PrepareAsync(stale, default)));
-        Assert.False((await Run(f, x => x.EnterAsync(stale, (uint)peer.CharacterId.Value, 0, 0, default))).Succeeded);
+        Assert.False((await Run(f, x => x.EnterAsync(stale, (uint)peer.CharacterId.Value, church.Room.AreaId, 0, default))).Succeeded);
         Assert.False(await Run(f, x => x.CanCrossAsync(stale, 1, 2, church.Room.AreaId, default)));
     }
 }

@@ -71,16 +71,14 @@ internal sealed class MarriageChurchDomainService(IMarriageProposalDomainStore r
     }
 
     public async ValueTask<MarriageChurchEntryResult> EnterAsync(SelectedSessionIdentity actor,
-        uint peer, uint mode, byte flag, CancellationToken ct)
+        uint peer, uint churchArea, byte flag, CancellationToken ct)
     {
-        // The native wedding-list button treats raw04 as its mode byte. Ordinary
-        // newlyweds use zero, not our database's internal room token.
-        if (mode != 0 || flag != 0 || await ReservedAsync(actor, ct).ConfigureAwait(false) is not { } reserved
+        if (flag != 0 || await ReservedAsync(actor, ct).ConfigureAwait(false) is not { } reserved
             || areas.Find(actor.CharacterId) is not { } member || !actor.Owns(member)) return new(-10);
         var ceremony = reserved.Item2;
         var expectedPeer = actor.CharacterId == ceremony.Applicant.CharacterId ? ceremony.Partner.CharacterId : ceremony.Applicant.CharacterId;
         var room = await store!.ReadAsync(ceremony.Id, ct).ConfigureAwait(false);
-        if (room is null || peer != expectedPeer.Value || room.ChannelId != member.Area.ChannelId) return new(-10);
+        if (room is null || peer != expectedPeer.Value || churchArea != room.AreaId || room.ChannelId != member.Area.ChannelId) return new(-10);
         if (room.ReadyUntil <= clock.GetUtcNow()) return new(-7);
         var snapshot = await SnapshotAsync(actor, ceremony, room, ct).ConfigureAwait(false);
         if (snapshot is null || positions.Find(actor.CharacterId) is not { } standing) return new(-10);
