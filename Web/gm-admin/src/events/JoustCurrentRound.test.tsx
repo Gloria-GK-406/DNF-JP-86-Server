@@ -39,7 +39,7 @@ it.each(['Betting', 'Locked'])('阶段%s可选择和取消；单选不写入，�
   await open(); expect(screen.getAllByRole('radio')).toHaveLength(8); expect(screen.getAllByText('75.0%')).toHaveLength(8);
   expect(screen.getAllByText('12.5%')).toHaveLength(8); expect(screen.getAllByText('2.0×')).toHaveLength(8);
   fireEvent.click(screen.getAllByRole('radio')[2]); expect(writes()).toHaveLength(0);
-  fireEvent.click(screen.getByRole('button', { name: '设为本场冠军' })); await screen.findByText('本场内定冠军已保存。');
+  fireEvent.click(screen.getByRole('button', { name: '设为本场冠军' })); fireEvent.click(await screen.findByRole('button', { name: '就它了' })); await screen.findByText('本场内定冠军已保存。');
   expect(writes()).toEqual([[`${path}/champion`, { roundId: '1791252000', expectedRevision: 3, knightIndex: 2 }]]);
   expect(writing.mock.calls).toEqual([[true], [false]]);
   fireEvent.click(screen.getByRole('button', { name: '取消内定' })); await screen.findByText('已取消本场内定冠军，恢复原抽签结果。');
@@ -56,7 +56,7 @@ it.each([409, 500])('保存失败%i不会因自动轮询而解锁，需要明确
   let poll!: () => void; const interval = capturePoll(callback => { poll = callback; });
   const original = mocked.getMockImplementation()!;
   mocked.mockImplementation((request, payload) => payload ? Promise.reject(new ApiError(status, '提交待核对')) : original(request, payload));
-  await open(); fireEvent.click(screen.getAllByRole('radio')[2]); fireEvent.click(screen.getByRole('button', { name: '设为本场冠军' }));
+  await open(); fireEvent.click(screen.getAllByRole('radio')[2]); fireEvent.click(screen.getByRole('button', { name: '设为本场冠军' })); fireEvent.click(await screen.findByRole('button', { name: '就它了' }));
   await screen.findByText('请重新读取当前场次后再操作');
   await act(async () => poll()); expect((screen.getByRole('button', { name: '设为本场冠军' }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: '重新读取当前场次' }));
