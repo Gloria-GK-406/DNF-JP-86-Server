@@ -157,6 +157,91 @@ public sealed class MarriageEngagementTests
             .CountClearsAsync(new(72), 20737, (await reopened.Services.GetRequiredService<IMarriageEngagementDomainService>().ReadAsync(new(2), new(72), default)).RelationId!.Value, default));
     }
 
+    [Fact]
+    public async Task Repeated_acceptance_preserves_progress_binding_and_clear_deduplication_after_reopen()
+    {
+        var (f, peer) = await Fixture(); await using var owned = f;
+        await Engage(f, peer); await Accept(f, 1, 71);
+        var bindings = f.Services.GetRequiredService<IMarriageQuestDomainStore>();
+        var before = await bindings.ReadAsync(new(71), 20737, default);
+        var clear = new DungeonMapCleared(DungeonRunId.New(), 2, DungeonDifficulty.Normal, new(0, 0), 100, 1,
+            DateTimeOffset.UtcNow.AddSeconds(1), [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)]) { IsBossRoom = true };
+        var envelope = new DomainEventEnvelope<DungeonMapCleared>(Guid.NewGuid(), Guid.NewGuid(), clear.ClearedAt, Guid.NewGuid(), clear);
+        await using (var tx = f.Scope.Begin())
+        {
+            await ActivatorUtilities.CreateInstance<MarriageQuestDomainService>(f.Services).HandleAsync(envelope, default);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(4, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));
+        // Reopen the database so this also protects retries after server/session recovery.
+        await using var reopened = new LearningFixture(existing: f.Path, configure: s =>
+        {
+            s.AddSingleton<IQuestDefinitionSource, Definitions>();
+            s.AddSingleton<IQuestParameterSource, Parameters>();
+            s.AddSingleton<IMarriageProposalContentSource, Content>();
+            s.AddSingleton<IMarriageDungeonContentSource, Dungeons>();
+            s.AddCommandHandler<AcceptQuestCommand, QuestAcceptOutcome, AcceptQuestCommandHandler>(CommandExecutionKind.Transactional);
+        });
+        var replay = await reopened.Services.GetRequiredService<ICommandBus>().SendAsync(new AcceptQuestCommand(new(1), new(71), 20737), default);
+        Assert.True(replay.Accepted);
+        Assert.Equal(4u, replay.InitialTrigger);
+        Assert.Empty(replay.Items);
+        Assert.Equal(before, await reopened.Services.GetRequiredService<IMarriageQuestDomainStore>().ReadAsync(new(71), 20737, default));
+        Assert.Equal(1, reopened.Scalar("SELECT COUNT(*) FROM marriage_trial_clears"));
+        await using (var tx = reopened.Scope.Begin())
+        {
+            await ActivatorUtilities.CreateInstance<MarriageQuestDomainService>(reopened.Services).HandleAsync(envelope, default);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(4, reopened.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("different-relation")]
+    [InlineData("inactive-relation")]
+    [InlineData("wrong-account")]
+    public async Task Repeated_acceptance_cannot_repair_or_bypass_invalid_relationship_binding(string invalid)
+    {
+        var (f, peer) = await Fixture(); await using var owned = f;
+        Guid? oldRelation = null;
+        if (invalid == "different-relation")
+        {
+            await MarriageProposalTests.Run(f, x => x.ProposeAsync(f.Session, peer, default));
+            oldRelation = (await MarriageProposalTests.Run(f, x => x.RespondAsync(peer, f.Session, 1, default))).Proposal!.Id;
+        }
+        await Engage(f, peer); await Accept(f, 1, 71);
+        var bindings = f.Services.GetRequiredService<IMarriageQuestDomainStore>();
+        if (invalid == "missing") f.Sql("DELETE FROM marriage_quest_bindings WHERE character_id=71");
+        if (invalid == "different-relation") f.Sql($"UPDATE marriage_quest_bindings SET proposal_id='{oldRelation:N}' WHERE character_id=71");
+        if (invalid == "inactive-relation") f.Sql("UPDATE marriage_proposal_participants SET active=0");
+        var before = await bindings.ReadAsync(new(71), 20737, default);
+        var replay = await f.Services.GetRequiredService<ICommandBus>().SendAsync(
+            new AcceptQuestCommand(new(invalid == "wrong-account" ? 2 : 1), new(71), 20737), default);
+        Assert.False(replay.Accepted);
+        Assert.Equal(before, await bindings.ReadAsync(new(71), 20737, default));
+        Assert.Equal(5, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));
+    }
+
+    [Fact]
+    public async Task Give_up_then_accept_is_a_new_trial_with_a_fresh_clear_ledger()
+    {
+        var (f, peer) = await Fixture(); await using var owned = f;
+        await Engage(f, peer); await Accept(f, 1, 71);
+        var bindings = f.Services.GetRequiredService<IMarriageQuestDomainStore>();
+        var before = await bindings.ReadAsync(new(71), 20737, default);
+        await using (var tx = f.Scope.Begin())
+        {
+            Assert.True(await bindings.RecordClearAsync(new(71), 20737, before!.RelationId, DungeonRunId.New(), default));
+            Assert.True(await f.Services.GetRequiredService<ICharacterQuestLogDomainService>().LogOf(new(1), new(71)).GiveUpAsync(20737, default));
+            await tx.CommitAsync(default);
+        }
+        await Accept(f, 1, 71);
+        Assert.Equal(5, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));
+        Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_trial_clears"));
+        Assert.Equal(before!.RelationId, (await bindings.ReadAsync(new(71), 20737, default))!.RelationId);
+    }
+
     [SkippableFact]
     public async Task Current_PVF_trial_hand_in_grants_box_then_material_hand_in_consumes_doll_once()
     {

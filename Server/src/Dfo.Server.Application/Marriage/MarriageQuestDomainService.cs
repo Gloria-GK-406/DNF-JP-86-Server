@@ -30,11 +30,13 @@ internal sealed class MarriageQuestDomainService(IMarriageProposalDomainStore re
 
     public async ValueTask<bool> CanAcceptAsync(AccountId account, CharacterId character, int quest, CancellationToken ct)
     {
-        if (await RelationAsync(account, character, ct).ConfigureAwait(false) is null) return false;
+        var relation = await RelationAsync(account, character, ct).ConfigureAwait(false);
+        if (relation is null) return false;
         if (!await RequirementsAsync(account, character, quest, ct).ConfigureAwait(false)) return false;
         var log = logs.LogOf(account, character);
+        if ((await log.ClearedAsync(ct).ConfigureAwait(false)).Any(x => x.QuestId == quest && x.Mark != 0)) return false;
         return !(await log.CarriedAsync(ct).ConfigureAwait(false)).Any(x => x.QuestId == quest)
-            && !(await log.ClearedAsync(ct).ConfigureAwait(false)).Any(x => x.QuestId == quest && x.Mark != 0);
+            || (await bindings.ReadAsync(character, quest, ct).ConfigureAwait(false))?.RelationId == relation.Id;
     }
 
     private async ValueTask<bool> RequirementsAsync(AccountId account, CharacterId character, int questId, CancellationToken ct)

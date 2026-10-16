@@ -70,15 +70,17 @@ for body, questId in LIVE_BODIES:
     if not any(f[0] == 0x00 and f[1] == 0x0015 for f in answered):
         print("   *** the offer list did not follow"); failed = True
 
-# The same quest again: the reference refuses an active quest with 18, and so must this.
+# An active quest retry returns current progress without running acceptance effects again.
 c.send(0x01, 0x001F, bytes.fromhex(LIVE_BODIES[0][0]))
 again = drain(c, 4)
 repeat = next((f for f in again if f[0] == 0x01 and f[1] == 0x001F), None)
 print("\naccept 1016 a second time  ->  %s"
       % ("nothing" if repeat is None else repeat[2].hex(" ")))
-if repeat is None or repeat[2] != bytes([0x00, 18]):
-    print("   *** expected a refusal of 00 12"); failed = True
+if repeat is None or repeat[2] != REFERENCE_ACK:
+    print("   *** expected idempotent success for active quest 1016"); failed = True
+if not any(f[0] == 0x00 and f[1] == 0x023F for f in again):
+    print("   *** active quest snapshot did not follow the retry"); failed = True
 
 c.close()
-print("\nRESULT: %s" % ("FAILED" if failed else "matches the reference"))
+print("\nRESULT: %s" % ("FAILED" if failed else "acceptance and idempotent retry passed"))
 sys.exit(1 if failed else 0)

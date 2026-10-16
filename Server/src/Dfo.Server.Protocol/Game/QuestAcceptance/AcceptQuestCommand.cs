@@ -45,9 +45,8 @@ public sealed record AcceptedQuestItem(ushort SlotIndex, uint ItemId, uint Count
 
 /// <summary>What became of one attempt to accept a quest.</summary>
 /// <param name="InitialTrigger">
-/// The progress the client is told to start from. It is the archive's value rather than whatever
-/// was stored, because the two can differ and the reference server sends the archive's here and
-/// corrects it afterwards with a trigger notification of its own.
+/// First acceptance uses the archive's initial value, followed by a progress notification when
+/// needed. A retry for an active quest uses its current stored progress instead.
 /// </param>
 public sealed record QuestAcceptOutcome(
     bool Accepted,
@@ -127,16 +126,16 @@ public sealed class AcceptQuestCommandHandler(
         if (definition.Grade == QuestGrade.Wedding && (marriage is null
             || !await marriage.CanAcceptAsync(command.AccountId, command.CharacterId, command.QuestId, cancellationToken).ConfigureAwait(false)))
             return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
-        if (definition.Grade == QuestGrade.Circle)
+        if (definition.Grade == QuestGrade.Circle
+            && (cycles is null || !await cycles.CanAcceptAsync(command.AccountId, command.CharacterId,
+                command.QuestId, cancellationToken).ConfigureAwait(false)))
+            return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
+        var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
+        if (carried.SingleOrDefault(x => x.QuestId == command.QuestId) is { } active)
         {
-            if (cycles is null || !await cycles.CanAcceptAsync(command.AccountId, command.CharacterId,
-                    command.QuestId, cancellationToken).ConfigureAwait(false))
-                return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
-            var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
-            if (carried.Any(x => x.QuestId == command.QuestId))
-                return new(true, command.QuestId, definition.InitialTrigger, [],
-                    QuestProgress: mirror is null ? new QuestProgressSnapshot(carried)
-                        : await mirror.MergeAsync(command.CharacterId, new(carried), cancellationToken).ConfigureAwait(false));
+            return new(true, command.QuestId, unchecked((uint)active.TriggerValue), [],
+                QuestProgress: mirror is null ? new QuestProgressSnapshot(carried)
+                    : await mirror.MergeAsync(command.CharacterId, new(carried), cancellationToken).ConfigureAwait(false));
         }
         var taken = await log.AcceptAsync(definition, cancellationToken).ConfigureAwait(false);
         if (!taken.Accepted)
