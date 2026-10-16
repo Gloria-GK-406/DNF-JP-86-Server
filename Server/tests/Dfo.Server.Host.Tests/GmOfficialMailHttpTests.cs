@@ -262,9 +262,8 @@ public sealed partial class GmOfficialMailHttpTests
         Assert.Equal(new[] { "0" }, await host.ReadAsync("SELECT COUNT(*) FROM item_slots;"));
         var storedCores = await host.ReadAsync("SELECT item_uid || ':' || hex(item_core) FROM items ORDER BY item_uid;");
         var cores = storedCores.Select(x => x.Split(':')).ToDictionary(x => int.Parse(x[0], System.Globalization.CultureInfo.InvariantCulture), x => Convert.FromHexString(x[1]));
-        var instanceValues = cores.Values.Select(x => BinaryPrimitives.ReadInt32LittleEndian(x.AsSpan(5, 4))).ToArray();
-        Assert.All(instanceValues, value => Assert.InRange(value, 1, int.MaxValue - 1));
-        Assert.Equal(4, instanceValues.Distinct().Count());
+        // GM equipment carries the fixed 最上级 attribute seed rather than a per-send random roll.
+        Assert.All(cores.Values, core => Assert.Equal(999999998, BinaryPrimitives.ReadInt32LittleEndian(core.AsSpan(5, 4))));
         using var replay = await host.PostAsync("/api/gm/v1/mail/send", login.Csrf, Payload(requestId, [2, 1], items: items));
         Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
         Assert.True((await replay.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("replayed").GetBoolean());

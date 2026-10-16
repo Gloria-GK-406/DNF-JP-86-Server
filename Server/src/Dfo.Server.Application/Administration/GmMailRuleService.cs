@@ -71,9 +71,13 @@ internal sealed partial class GmMailRuleService(IPackageOpeningRuleService openi
                 try { core = await equipmentRules.ConfigureAsync(core, options, token); }
                 catch (ArgumentException e) { throw Invalid(e.Message); }
             }
+            // Every GM equipment piece carries the fixed seed of its tier (default 最上级); duplicates of fixed seeds are normal.
+            var quality = requested.Equipment?.Quality ?? EquipmentQualityTiers.Highest;
+            if (equipment) core = core with { InstanceValue = EquipmentQualitySeeds.FixedFor(quality) };
             var name = await catalog.ItemNameAsync(requested.ItemId, token);
             output.Add(new(requested, new(requested.ItemId, requested.Count, equipment ? "equipment" : "stackable",
-                core.Durability, core.SealFlag != 0, name, core.ReinforcementLevel, core.AmplifyType, core.AmplifyValue), core));
+                core.Durability, core.SealFlag != 0, name, core.ReinforcementLevel, core.AmplifyType, core.AmplifyValue,
+                core.GenuineUpgrade, core.EmblemSocketCount, equipment ? quality : EquipmentQualityTiers.Highest), core));
         }
         return output;
     }
@@ -93,6 +97,10 @@ internal sealed partial class GmMailRuleService(IPackageOpeningRuleService openi
             || options.Growth == "reinforcement" && options.Level == 0
             || (options.Growth == "amplification" ? options.AmplifyType is < 1 or > 4 : options.AmplifyType != 0))
             throw Invalid("装备封装、成长模式、等级或异次元属性组合无效。");
+        if (options.Forge is < 0 or > byte.MaxValue) throw Invalid("装备锻造等级无效。");
+        if (options.Quality is < EquipmentQualityTiers.Lowest or > EquipmentQualityTiers.Highest) throw Invalid("装备品级须为 0（最下级）到 4（最上级）。");
+        // The highest tier is the default; storing it as null keeps old JSON/hash and makes both spellings one configuration.
+        if (options.Quality == EquipmentQualityTiers.Highest) options = options with { Quality = null };
         // Omitting the default configuration preserves the exact JSON/hash of pre-extension mail.
         return options == new ItemEquipmentOptions() ? null : options;
     }
