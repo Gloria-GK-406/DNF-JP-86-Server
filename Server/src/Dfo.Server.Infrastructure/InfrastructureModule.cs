@@ -75,6 +75,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IInventoryExpansionDefinitionSource, PvfInventoryExpansionDefinitionSource>();
         services.TryAddSingleton<ICargoItemDefinitionSource, PvfCargoItemDefinitionSource>();
         services.TryAddSingleton<IItemCatalogSource, PvfItemCatalogSource>();
+        services.TryAddSingleton<IItemTooltipSource, PvfItemTooltipSource>();
         services.TryAddSingleton<IQuestParameterSource, PvfQuestParameterSource>();
         services.TryAddSingleton<IExperienceParameterSource, PvfExperienceParameterSource>();
         services.TryAddSingleton<IDungeonRankGradeSource, PvfDungeonRankGradeSource>();
