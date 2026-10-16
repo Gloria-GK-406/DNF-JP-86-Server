@@ -66,7 +66,12 @@ internal static class MarriageEngagementPayload
         result[44] = checked((byte)profile.Level);
         result[45] = profile.GrowType;
         for (var slot = 0; slot < 13; slot++)
-            BinaryPrimitives.WriteInt32LittleEndian(result.AsSpan(46 + slot * 4), profile.Equipment[slot]);
+        {
+            // This native appearance reader skips an absent part only for -1.
+            // Inventory's empty 0 would be looked up as an asset and dereferenced even if missing.
+            var item = profile.Equipment[slot];
+            BinaryPrimitives.WriteInt32LittleEndian(result.AsSpan(46 + slot * 4), item > 0 ? item : -1);
+        }
         return result;
     }
 }

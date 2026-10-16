@@ -36,6 +36,18 @@ public sealed class MarriageProposalCodecTests
     public void Partner_query_rejects_compact_truncated_extra_and_full_frames(int length) =>
         Assert.Throws<InvalidDataException>(() => new WeddingPartnerDecoder().Decode(GameMessageMetadata.Empty, new byte[length]));
     [Fact]
+    public void Missing_partner_appearance_parts_use_native_minus_one_sentinel_including_weapon_fallbacks()
+    {
+        // Native RVA013A52D0 chooses appearance entry11, falling back to entry9.
+        // RVA013973A0 skips asset lookup only for -1; 0 performs a null asset lookup.
+        var equipment = new int[13]; equipment[0] = 100; equipment[3] = 200;
+        var body = MarriageEngagementPayload.Partner(new(8, "peer"u8.ToArray(), 0, 70, 3, equipment));
+        for (var slot = 0; slot < 13; slot++)
+            Assert.Equal(slot == 0 ? 100 : slot == 3 ? 200 : -1,
+                BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(46 + slot * 4)));
+        Assert.Equal(98, body.Length);
+    }
+    [Fact]
     public void Partner_name_is_zero_terminated_without_splitting_utf8()
     {
         var name = System.Text.Encoding.UTF8.GetBytes(new string('婚', 12));
