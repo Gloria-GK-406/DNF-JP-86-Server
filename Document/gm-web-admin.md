@@ -2,7 +2,7 @@
 
 完整功能已包含查询、官方邮件和三币发放。按 [最终验收表](gm-acceptance-list.md) 接手；标准候选构建与发布资源检查见 [server-ci-release.md](server-ci-release.md)。本机已部署邮件附件配置版本，运行与恢复信息见 [部署记录](deployments/gm-mail-attachments-20261002.md)；真实 A21 验收边界仍按验收表保留。
 
-开发分支基于 0.2.0。当前提供独立 HTTP 模块、中文管理员登录、权限菜单、分页审计、服务概览与全服账号/角色查询，并支持官方邮件和按实际账号发放三种点券。模块说明见 [官方邮件](gm-official-mail.md) 与 [点券发放](gm-cera-grants.md)。
+开发分支基于 0.2.0。当前提供独立 HTTP 模块、中文管理员登录、按权限显示的导航、分页审计、服务概览与全服账号/角色查询，并支持官方邮件和按实际账号发放三种点券。模块说明见 [官方邮件](gm-official-mail.md) 与 [点券发放](gm-cera-grants.md)。
 
 ## 构建与启动
 
@@ -20,6 +20,21 @@ dotnet run --project Server/src/Dfo.Server.Host -c Release --no-build -- --GmWeb
 `GmWeb:Enabled` 默认 false，`GmWeb:ListenUrl` 默认本机 18081。与 `LauncherAuth:*`、`Networking:*` 开关独立；全部 HTTP 关闭时不启动 Kestrel。启用多个 HTTP 功能时使用不同端口，功能路由只在各自端口提供。Host 与各模块共享同一容器、运行态和数据库。
 
 前端先构建，再执行 dotnet build/publish；Host 项目把 `Web/gm-admin/dist` 复制到输出/发布目录的 `wwwroot/gm`。服务运行不需要 Node。没有前端资源时，页面返回 503；缺失 assets 返回 404，未知 API 不会返回 SPA。
+
+## 界面
+
+左侧深色导轨按「运营 / 游戏配置 / 审计」分组，只显示当前权限可用的页面，底部显示游戏服务状态、频道与游戏端口、PVF 摘要和版本（取自 `server-info`）。顶栏有全局搜索（Ctrl K，跳到账号与角色）、待确认发放提醒、外观（跟随系统 / 浅色 / 深色，青绿 / 靛蓝 / 琥珀铜 / 樱绯四套色系，只存本浏览器）和会话信息。宽度小于 900px 时导轨收进抽屉。
+
+| 路径 | 页面 | 权限 |
+|---|---|---|
+| `/gm/` | 服务概览：关键数字、需要处理（未确认发放、拒绝 / 回滚审计，可在本浏览器标记已读）、频道在线、活动排期、最近操作 | QueryPlayers（排期需全部权限，审计部分需 ViewAudit） |
+| `/gm/players` | 账号与角色：列表 + 右侧详情；输入纯数字按 ID 查，否则按姓名 / 登录名字面搜索；可勾选账号批量发点券 | QueryPlayers |
+| `/gm/grants` | 发放：邮件记录、点券记录、邮件模板、草稿，以及待确认发放的「查询原编号 / 按原内容安全重试」 | SendMail 或 GrantCera |
+| `/gm/grants/mail`、`/gm/grants/cera` | 写邮件 / 发点券三步页面；写邮件右侧是仿游戏「查看邮件」窗口的预览，核对步骤以服务端预览为准 | SendMail / GrantCera |
+| `/gm/initialization`、`/gm/daily-refill`、`/gm/events` | 初始化配置、每日补给、活动管理 | 全部权限 |
+| `/gm/operations` | 操作记录，按结果和操作类型筛选 | ViewAudit |
+
+旧地址 `/gm/characters`、`/gm/mail`、`/gm/wallet` 自动跳转到新页面。待确认发放的请求编号与冻结内容仍按管理员保存在 sessionStorage，刷新或换页不丢失、不自动重发；配置类页面遇到版本冲突或结果未确认时锁定写入，重新读取后才能继续。
 
 ## 管理员首次初始化
 

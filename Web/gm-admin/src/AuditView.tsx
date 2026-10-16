@@ -35,7 +35,7 @@ export function AuditView({ onExpired, onDenied }: { onExpired: () => void; onDe
         pagination={{ current: page, pageSize, total: data?.total ?? 0, size: 'small', showSizeChanger: true, showTotal: total => `共 ${total} 条`,
           onChange: (next, size) => { setPage(size === pageSize ? next : 1); setPageSize(size); } }}
         columns={[
-          { title: '时间', dataIndex: 'occurredAt', width: 150, render: v => <span className="mono small">{bjTime(v, true)}</span> },
+          { title: '时间', dataIndex: 'occurredAt', width: 172, render: v => <span className="mono small" style={{ whiteSpace: 'nowrap' }}>{bjTime(v, true)}</span> },
           { title: '操作', dataIndex: 'action', render: v => <span className="strong">{actionLabels[v] ?? v}</span> },
           { title: '对象', key: 'target', render: (_, r) => auditTarget(r) },
           { title: '结果', dataIndex: 'outcome', width: 110, render: v => <Pill kind={outcomeLabels[v]?.[1] ?? 'idle'}>{outcomeLabels[v]?.[0] ?? v}</Pill> },

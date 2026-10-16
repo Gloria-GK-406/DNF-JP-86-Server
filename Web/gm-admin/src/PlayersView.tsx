@@ -63,7 +63,7 @@ export function PlayersView({ initialQuery, onExpired, onDenied }: { initialQuer
                 onChange: (next, size) => { setPage(size === pageSize ? next : 1); setPageSize(size); } }}
               columns={[
                 { title: '角色', key: 'n', render: (_, c) => <span><span className="strong">{c.nameDecodeStatus === 'valid' ? c.name : <Typography.Text type="danger">{c.name}</Typography.Text>}</span> <span className="id">{c.characterId}</span></span> },
-                { title: '职业', key: 'j', render: (_, c) => <span>{careerName(c.job, c.growType)} <span className="faint small">{jobName(c.job)}</span></span> },
+                { title: '职业', key: 'j', render: (_, c) => <span>{careerName(c.job, c.growType)}{(c.growType & 0x0f) !== 0 && <span className="faint small"> {jobName(c.job)}</span>}</span> },
                 { title: 'Lv', dataIndex: 'level', align: 'end', width: 52, render: v => <span className="mono">{v}</span> },
                 { title: '账号', key: 'a', render: (_, c) => <span>{c.loginName} <span className="id">#{c.accountId}</span></span> },
                 { title: '状态', key: 's', render: (_, c) => c.isDeleted ? <span className="chip">已删除</span> : <span><span className={`dot ${c.isOnline ? 'on' : 'off'}`} />{c.isOnline ? c.channel?.name ?? '未知频道' : '离线'}</span> },
@@ -109,7 +109,7 @@ function DetailPanel({ target, onExpired, onDenied, onAccount, onCharacter, onAc
     <div><span>欢乐代币点券</span><b>{nf(value.balances.happyTokenCera)}</b></div></div>;
   if ('characterId' in value) return <section className="panel" aria-label="角色详情">{head}
     <div className="sheet-top"><span className="name">{value.nameDecodeStatus === 'valid' ? value.name : <Typography.Text type="danger">{value.name}</Typography.Text>}</span>
-      <span className="job">{careerName(value.job, value.growType)} · {jobName(value.job)} · Lv.{value.level}</span></div>
+      <span className="job">{(value.growType & 0x0f) !== 0 ? `${careerName(value.job, value.growType)} · ` : ''}{jobName(value.job)} · Lv.{value.level}</span></div>
     <KV flat={false} rows={[
       ['归属账号', <span key="a">{value.loginName} <span className="id">#{value.accountId}</span></span>],
       ['频道', value.isOnline ? value.channel?.name ?? '未知频道' : <span className="faint" key="c">不在线</span>],

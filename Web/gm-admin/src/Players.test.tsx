@@ -115,6 +115,8 @@ it('概览展示游戏关闭与真实人数并可刷新', async () => {
   open('/'); await screen.findByText('游戏服务未就绪'); expect(screen.getAllByText('游戏网络已关闭').length).toBe(2);
   expect(screen.getByText('频道甲')).toBeTruthy(); expect(screen.getByText('47')).toBeTruthy(); expect(screen.getByText(/采样 /)).toBeTruthy();
   expect(screen.getByLabelText('服务状态').textContent).toContain('游戏网络已关闭');
+  await waitFor(() => expect(screen.getByRole('button', { name: /刷新概览/ }).className).not.toContain('loading'));
+  await waitFor(() => expect(mocked.mock.calls.filter(([path]) => path === 'overview').length).toBe(2));
   const before = mocked.mock.calls.filter(([path]) => path === 'overview').length;
   fireEvent.click(screen.getByRole('button', { name: /刷新概览/ })); await waitFor(() => expect(mocked.mock.calls.filter(([path]) => path === 'overview').length).toBe(before + 1));
 });

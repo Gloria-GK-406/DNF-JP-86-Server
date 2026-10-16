@@ -69,7 +69,7 @@ kbd { font-family: var(--font-data); font-size: 10.5px; padding: 1px 5px; border
 .rail-item.on .ri-icon { color: var(--rail-accent); }
 .ri-meta { font-family: var(--font-data); font-size: 10.5px; color: var(--rail-ink-2); font-weight: 400; }
 .ri-meta.attn { color: var(--rail); background: var(--rail-attn); padding: 0 6px; border-radius: 8px; font-weight: 600; }
-.rail-tape { margin: 0 8px 10px; padding: 10px 12px; border: 1px solid var(--rail-line); border-radius: 4px; font-family: var(--font-data); font-size: 11px; color: var(--rail-ink-2); display: grid; gap: 4px; }
+.rail-tape { overflow: hidden; overflow-wrap: anywhere; margin: 0 8px 10px; padding: 10px 12px; border: 1px solid var(--rail-line); border-radius: 4px; font-family: var(--font-data); font-size: 11px; color: var(--rail-ink-2); display: grid; gap: 4px; }
 .rail-tape b { color: var(--rail-ink); font-weight: 500; }
 .rail-mood { font-family: var(--font-body); font-size: 12px; color: var(--rail-ink); padding-top: 6px; margin-top: 2px; border-top: 1px dashed var(--rail-line); }
 .rail-mood.attn { color: var(--rail-attn); }
@@ -82,7 +82,8 @@ kbd { font-family: var(--font-data); font-size: 10.5px; padding: 1px 5px; border
 .search { margin-inline-start: 12px; width: 340px; max-width: 40vw; }
 .top-right { margin-inline-start: auto; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .greet { font-size: 12.5px; color: var(--ink-2); margin-inline-end: 6px; white-space: nowrap; }
-.who { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
+.who { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 4px; cursor: pointer; border: 0; background: transparent; color: inherit; font: inherit; }
+.who:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .who:hover { background: var(--surface-2); }
 .avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--surface); display: grid; place-items: center; font-weight: 600; font-size: 12px; }
 .menu-btn { display: none !important; }
@@ -401,3 +402,5 @@ kbd { font-family: var(--font-data); font-size: 10.5px; padding: 1px 5px; border
 .skeleton-line { height: 12px; border-radius: 3px; background: var(--surface-2); }
 .recipient-known { display: inline-flex; gap: 4px; align-items: center; }
 .tip-loading { padding: 10px 12px; }
+.ledger .ant-table-cell-fix-right { background: var(--surface); }
+.ledger .ant-table-tbody > tr.is-selected > td.ant-table-cell-fix-right { background: var(--accent-soft); }

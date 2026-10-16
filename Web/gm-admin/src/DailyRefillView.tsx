@@ -72,7 +72,7 @@ export function DailyRefillView(access: Access) {
           { title: '有效期', dataIndex: 'expiresAt', render: v => !v ? <span className="faint">长期</span> : days(v) > 0
             ? <span><span className="mono small">{bjTime(v)}</span> <span className="faint small">还剩 {days(v)} 天</span></span> : <span className="mono small faint">{bjTime(v)}</span> },
           { title: '状态', dataIndex: 'status', render: v => <Pill kind={statuses[v]?.[1] ?? 'idle'}>{statuses[v]?.[0] ?? v}</Pill> },
-          { title: '', key: 'op', align: 'end', render: (_, e) => <span style={{ display: 'inline-flex', gap: 2 }}>
+          { title: '', key: 'op', align: 'end', fixed: 'right', width: 150, render: (_, e) => <span style={{ display: 'inline-flex', gap: 2 }}>
             {e.source === 'custom' ? <>
               <Button size="small" type="text" disabled={locked} onClick={() => setEditor({ revision: data!.revision, entry: e })}>编辑</Button>
               <Popconfirm title={`删除 ${e.name} 的自定义补给？`} description="删除后，如存在已启用且有效的同物品 PVF 规则，将恢复执行该规则。当天已处理记录保留。" okText="删除规则" cancelText="取消"

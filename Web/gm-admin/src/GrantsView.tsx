@@ -29,11 +29,12 @@ function Bits({ input, onExpired, onDenied }: { input: Pick<MailInput, 'gold' | 
     {input.gold === 0 && input.items.length === 0 && <span className="faint small">无附件</span>}</span>;
 }
 
-export function GrantsView({ onExpired, onDeniedMail, onDeniedCera }: { onExpired: () => void; onDeniedMail: () => void; onDeniedCera: () => void }) {
+export function GrantsView({ initialTab, onExpired, onDeniedMail, onDeniedCera }: { initialTab?: string; onExpired: () => void; onDeniedMail: () => void; onDeniedCera: () => void }) {
   const nav = useNav(); const grants = useGrants(); const noti = useNotiBar();
   const canMail = nav.can('SendMail'); const canCera = nav.can('GrantCera');
   const mailAccess = { onExpired, onDenied: onDeniedMail };
-  const [tab, setTab] = useState(() => grants.cera && !grants.mail && canCera ? 'cera' : canMail ? 'mail' : 'cera');
+  const [tab, setTab] = useState(() => initialTab === 'cera' && canCera || initialTab === 'mail' && canMail ? initialTab
+    : grants.cera && !grants.mail && canCera ? 'cera' : canMail ? 'mail' : 'cera');
   const [mailPage, setMailPage] = useState(1); const [ceraPage, setCeraPage] = useState(1);
   const mailHistory = useGmRead<MailHistory>(canMail ? `mail/operations?page=${mailPage}&pageSize=20` : null, onExpired, onDeniedMail);
   const ceraHistory = useGmRead<CeraHistory>(canCera ? `cera/operations?page=${ceraPage}&pageSize=20` : null, onExpired, onDeniedCera);
@@ -105,7 +106,7 @@ export function GrantsView({ onExpired, onDeniedMail, onDeniedCera }: { onExpire
           { title: '收件', key: 'r', align: 'end', width: 60, render: (_, r) => <span className="mono">{r.recipients.length}</span> },
           { title: '每人发放', key: 'c', render: (_, r) => <Bits input={r.input} {...mailAccess} /> },
           { title: '结果', key: 's', width: 90, render: () => <Pill kind="ok">已提交</Pill> },
-          { title: '', key: 'op', align: 'end', width: 130, render: (_, r) => <span style={{ display: 'inline-flex', gap: 10 }}>
+          { title: '', key: 'op', align: 'end', width: 130, fixed: 'right', render: (_, r) => <span style={{ display: 'inline-flex', gap: 10 }}>
             <button className="linkbtn" onClick={() => setReceipt({ kind: 'mail', value: r })}>回执</button>
             <button className="linkbtn" disabled={!!grants.mail} onClick={() => nav.composeMail({ input: { ...structuredClone(r.input), recipientIds: [] } })}>再发一封</button></span> },
         ]} />}
@@ -118,7 +119,7 @@ export function GrantsView({ onExpired, onDeniedMail, onDeniedCera }: { onExpire
           { title: '账号', key: 'n', align: 'end', render: (_, r) => <span className="mono">{r.accounts.length}</span> },
           { title: '原因', key: 'reason', render: (_, r) => r.input.reason || <span className="faint">—</span> },
           { title: '结果', key: 's', width: 90, render: () => <Pill kind="ok">已到账</Pill> },
-          { title: '', key: 'op', align: 'end', width: 64, render: (_, r) => <button className="linkbtn" onClick={() => setReceipt({ kind: 'cera', value: r })}>回执</button> },
+          { title: '', key: 'op', align: 'end', width: 64, fixed: 'right', render: (_, r) => <button className="linkbtn" onClick={() => setReceipt({ kind: 'cera', value: r })}>回执</button> },
         ]} />}
       {tab === 'templates' && canMail && (!templates.data?.length ? <div className="empty-line">{templates.busy ? '正在读取…' : '还没有模板，写邮件时常用的内容可以存成模板'}</div> :
         <div>{templates.data.map(t => <div className="tpl" key={t.id}>

@@ -89,7 +89,7 @@ export function MailComposer({ seed, onExpired, onDenied }: { seed?: MailSeed } 
     if (!preview || locked || grants.mail) return;
     const { outcome } = await grants.sendMail({ requestId: requestId.current, input: structuredClone(preview.input) });
     if (!alive.current) return;
-    if (outcome === 'committed') { setDirty(false); nav.go('/grants'); }
+    if (outcome === 'committed') { setDirty(false); nav.go('/grants', { tab: 'mail' }); }
     else if (outcome === 'rejected') { setPreview(undefined); setStep(0); }
     else { noti.warning('结果暂未确认：请到「发放」页查询原编号或按原内容重试，勿新建编号再次发送。', { key: 'mail-unconfirmed' }); nav.go('/grants'); }
   }

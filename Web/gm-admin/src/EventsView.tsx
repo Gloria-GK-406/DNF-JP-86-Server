@@ -26,7 +26,8 @@ export function EventTimeline({ events }: { events: EventEntry[] }) {
   const day = 86400000; const today = Date.now();
   const from = today - 25 * day; const to = today + 25 * day;
   const pos = (t: number) => Math.min(100, Math.max(0, (t - from) / (to - from) * 100));
-  const ticks = Array.from({ length: 5 }, (_, index) => from + (index * 10 + 5) * day);
+  // Ticks sit at ±10 and ±20 days so the 今天 marker at the centre never collides with one.
+  const ticks = [-20, -10, 10, 20].map(offset => today + offset * day);
   const rows = events.filter(e => e.startsAt && e.endsAt);
   if (rows.length === 0) return <div className="empty-line">还没有配置了有效期的活动</div>;
   return <div className="timeline" aria-label="活动排期">
@@ -94,7 +95,7 @@ export function EventsView(access: Access) {
           { title: '状态', key: 's', width: 120, render: (_, e) => <span><Pill kind={statuses[e.status][1]}>{statuses[e.status][0]}</Pill>
             {!e.available && <div className="faint small">{e.unavailableReason ?? '活动规则暂不可用'}</div>}</span> },
           { title: '有效期（北京时间）', key: 'p', render: (_, e) => e.startsAt ? <span className="mono small">{bjTime(e.startsAt)} → {bjTime(e.endsAt)}</span> : <span className="faint small">配置有效期后才能启用</span> },
-          { title: '', key: 'op', align: 'end', width: 270, render: (_, e) => <span style={{ display: 'inline-flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          { title: '', key: 'op', align: 'end', width: 270, fixed: 'right', render: (_, e) => <span style={{ display: 'inline-flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {activityView(e.type) && <Button size="small" onClick={() => setSettings({ type: e.type, title: e.title })}>设置活动</Button>}
             <Button size="small" type="text" disabled={locked} onClick={() => setEditor({ entry: structuredClone(e), action: 'configure' })}>通用配置</Button>
             <Popconfirm title={`${e.enabled ? '停用' : '启用'}「${e.title}」？`} description={toggleText(e)} okText={e.enabled ? '确认停用' : '确认启用'} cancelText="取消"

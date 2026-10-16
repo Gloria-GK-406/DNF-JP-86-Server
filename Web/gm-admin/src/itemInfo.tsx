@@ -97,7 +97,7 @@ export function ItemIcon({ itemId, brief, equip, capabilities, size }: { itemId:
 /** Slot face inside the game mail window (fixed dark slot, icon or initial). */
 export function SlotFace({ itemId, name }: { itemId: number; name: string }) { return <IconFace itemId={itemId} name={name} size={28} />; }
 export function ItemName({ itemId, brief, showId = true }: { itemId: number; brief?: ItemBrief; showId?: boolean }) {
-  return <span><span className={`r${brief?.rarity ?? 0}`} style={{ fontWeight: 600 }}>{brief?.name ?? `物品 ${itemId}`}</span>
+  return <span><span className={brief?.rarity != null ? `r${brief.rarity}` : undefined} style={{ fontWeight: 600 }}>{brief?.name ?? `物品 ${itemId}`}</span>
     {showId && <span className="id" style={{ marginInlineStart: 6 }}>{itemId}</span>}</span>;
 }
 export const briefOf = (details?: ItemCatalogDetails): ItemBrief | undefined => details && { name: details.item.name, rarity: details.item.rarity, category: details.item.category, level: details.item.level };

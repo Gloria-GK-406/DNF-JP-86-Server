@@ -127,13 +127,13 @@ export function AdminApp() {
   const page = pages.find(item => item.key === (sub?.parent ?? location.pathname));
   const allowed = page !== undefined && hasPermission(identity, page.need) && (!sub || hasPermission(identity, sub.need));
   const key = `${identity.id}:${viewGeneration}`;
-  const state = location.state as { seed?: unknown; q?: string } | null;
+  const state = location.state as { seed?: unknown; q?: string; tab?: string } | null;
   let content: ReactNode;
   if (!page) content = <Denied title="没有这个页面">地址可能写错了，从左侧导航进入吧。</Denied>;
   else if (!allowed) content = <Denied />;
   else if (location.pathname === '/') content = <OverviewView key={key} {...access} onDenied={deny('QueryPlayers')} />;
   else if (location.pathname === '/players') content = <PlayersView key={`${key}:${state?.q ?? ''}:${location.key}`} initialQuery={state?.q} {...access} onDenied={deny('QueryPlayers')} />;
-  else if (location.pathname === '/grants') content = <GrantsView key={key} {...access} onDeniedMail={deny('SendMail')} onDeniedCera={deny('GrantCera')} />;
+  else if (location.pathname === '/grants') content = <GrantsView key={`${key}:${location.key}`} initialTab={state?.tab} {...access} onDeniedMail={deny('SendMail')} onDeniedCera={deny('GrantCera')} />;
   else if (location.pathname === '/grants/mail') content = <MailComposer key={`${key}:${location.key}`} seed={state?.seed as MailSeed | undefined} {...access} onDenied={deny('SendMail')} />;
   else if (location.pathname === '/grants/cera') content = <CeraComposer key={`${key}:${location.key}`} seed={state?.seed as CeraSeed | undefined} {...access} onDenied={deny('GrantCera')} />;
   else if (location.pathname === '/initialization') content = <InitializationView key={key} {...access} onDenied={configDenied} />;
@@ -218,7 +218,7 @@ function Rail({ current, pending, info, overview }: { current?: string; pending:
     </div>)}</div>
     <div className="rail-tape" aria-label="服务状态">
       {ready === undefined ? <div><span className="led off" />状态未知</div> : <div><span className={`led ${ready ? '' : 'off'}`} /><b>{ready ? '游戏服务就绪' : overview && !overview.networkEnabled ? '游戏网络已关闭' : '游戏服务未就绪'}</b></div>}
-      {info && <div>CH <b>{info.channelPort ?? '—'}</b> · GAME <b>{info.gamePorts.join('/') || '—'}</b></div>}
+      {info && <div title={info.gamePorts.join(' / ')}>CH <b>{info.channelPort ?? '—'}</b> · GAME <b>{info.gamePorts.length > 2 ? `${info.gamePorts[0]} 等 ${info.gamePorts.length} 个` : info.gamePorts.join('/') || '—'}</b></div>}
       {info && <div>{info.pvfSha256 ? <>PVF <b>{info.pvfSha256.slice(0, 8).toUpperCase()}</b> · </> : null}v{info.version}</div>}
       <div className={`rail-mood ${pending ? 'attn' : ''}`}>{pending ? `有 ${pending} 件事等你处理` : '阿拉德今夜无事'}</div>
     </div>
