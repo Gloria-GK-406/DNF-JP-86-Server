@@ -1,8 +1,33 @@
 # 协议清单
 
+## 2026-10-16 订婚状态、对象资料与婚前任务（CurrentImplementation，待实机）
+
+接受后双端推03D0持久订婚快照并刷新可接任务；选角/重登复用同一事实。补接客户端状态更新自动触发的03F3查询，成功正文98B，固定13个装备模板；只读自己的绑定对象，允许对象离线。阶段1为本期Engaged初始策略，不代表婚礼完成。20737/20738按当前PVF及绑定资格开放，试炼使用服务端确认的双方普通图Boss房清场、按run去重，材料任务复用通用扣物发奖。详见[实现与证据边界](../Document/MarriageEngagement-20261016.md)。
+
+| 族 | Type | 名称/实现 | 当前证据 | 记录 |
+|---|---|---|---|---|
+| `0x01` | `0x03F3` | WEDDING_CHARAC C2S | ClientStatic / CurrentImplementation | [请求](game/client-to-server/0x03F3.md) |
+| `0x01` CMD | `0x03F3` | WEDDING_CHARAC | ClientStatic / CurrentImplementation | [回包](game/server-to-client/CMD-0x03F3.md) |
+| `0x00` NOTI | `0x03D0` | WEDDING_INFO | ClientStatic / CurrentImplementation | [通知](game/server-to-client/NOTI-0x03D0.md) |
+
+用户已确认前一步双端求婚、拒绝、接受及订婚成功提示，服务端日志和SQLite吻合；这不覆盖本节新增菜单、任务、重登与对象资料的可见验收，也不等于完整实帧归档。以下同日静态调查段为当时快照，已由上文与对应人工协议区更新实现状态。
+
+## 2026-10-16 原生求婚与答复（CurrentImplementation，待双端实机）
+
+仅接 action1 的求婚、接受、拒绝和客户端超时。请求正文21/22B（业务字段从正文+14开始）；CMD结果信封加handler载荷后为12/13B，NOTI为11/12B。outcome0接受、1拒绝、2超时取消已与客户端分支/dstr文本对齐。真实SQLite持久订婚、双方名额唯一、账号锁及完整投递期间会话保护已接入；不授予已婚、不结算婚礼。03D8改为204零空婚房兼容，停止从旧彩票状态构造非空体，旧数据库记录保留。
+
+| 族 | Type | 名称/实现 | 当前证据 | 记录 |
+|---|---|---|---|---|
+| `0x01` | `0x03F0` | WEDDING_REQUEST C2S | ClientStatic / CurrentImplementation | [请求](game/client-to-server/0x03F0.md) |
+| `0x01` | `0x03F1` | WEDDING_RESPONSE C2S | ClientStatic / CurrentImplementation | [请求](game/client-to-server/0x03F1.md) |
+| `0x01` CMD | `0x03F0` | WEDDING_REQUEST | ClientStatic / CurrentImplementation，C2S与S2C | [请求](game/client-to-server/0x03F0.md)、[回包](game/server-to-client/CMD-0x03F0.md) |
+| `0x01` CMD | `0x03F1` | WEDDING_RESPONSE | ClientStatic / CurrentImplementation，C2S与S2C | [请求](game/client-to-server/0x03F1.md)、[回包](game/server-to-client/CMD-0x03F1.md) |
+| `0x00` NOTI | `0x03CD` | WEDDING_REQUEST | ClientStatic / CurrentImplementation | [通知](game/server-to-client/NOTI-0x03CD.md) |
+| `0x00` NOTI | `0x03CE` | WEDDING_RESPONSE | ClientStatic / CurrentImplementation | [通知](game/server-to-client/NOTI-0x03CE.md) |
+
 ## 2026-10-16 婚姻一期静态探查（ClientStatic，未实现/未实机）
 
-[03F0](game/client-to-server/0x03F0.md)、[03F1](game/client-to-server/0x03F1.md)、[03F7](game/client-to-server/0x03F7.md) 的旧机器记录把含 14B 帧头的 21/22/23B 总长记为 BodyLength；A21 构包补证确认为 **7/8/9B 正文**，人工区优先。请求依次为 `u32+action+2B opaque`、`u32+action+2B opaque+outcome`、`u32+u32+u8`；对应 CMD 回包固定消费 11/12/4B。action/outcome 的完整业务映射和原生入口仍未知，没有新增正常婚姻实帧。
+[03F0](game/client-to-server/0x03F0.md)、[03F1](game/client-to-server/0x03F1.md)、[03F7](game/client-to-server/0x03F7.md) 的正文长度为 **21/22/23B**，业务字段位于正文+14；发送函数另写外层14B头，不能从raw结构长度再减14。11:35:24真实03F0因旧7B decoder断线，已据发送链修正；03F1/03F7仍以ClientStatic为据，没有新成功实帧。请求依次为 `u32+action+2B opaque`、`u32+action+2B opaque+outcome`、`u32+u32+u8`；对应 CMD 回包固定消费 11/12/4B。action/outcome 的完整业务映射和原生入口仍未知，没有新增正常婚姻实帧。
 
 [NOTI03D8](game/server-to-client/NOTI-0x03D8.md) 的 A21 婚房读取结构为 `u32 count + count×(u16+u32) + 13B tail`，消费 `17+6n`。既有 204 零只证明 count=0 空态兼容，不证明非空旧彩票语义。当前选角仍可能按旧彩票数据编码，风险定位为 CurrentImplementation，尚未修改发送路径或验证其界面后果。不得根据 A12 名称无证据换号。详见[一期调查报告](../Document/MarriagePhase1Research-20261016.md)及其三路证据；婚姻业务、双端仪式及真实关系重登验收均未完成。
 
@@ -1055,7 +1080,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x036A` | `CubeProgressionStateMessage` | 仅证明 encoder 可产生该 identity | [0x036A](game/server-to-client/NOTI-0x036A.md) |
 | `0x00` NOTI | `0x0381` | `CollectionBoxStateMessage` | 仅证明 encoder 可产生该 identity | [0x0381](game/server-to-client/NOTI-0x0381.md) |
 | `0x00` NOTI | `0x03C1` | `RentalStateMessage` | 仅证明 encoder 可产生该 identity | [0x03C1](game/server-to-client/NOTI-0x03C1.md) |
-| `0x00` NOTI | `0x03D8` | `LotteryProgressStateMessage` | 仅证明 encoder 可产生该 identity | [0x03D8](game/server-to-client/NOTI-0x03D8.md) |
+| `0x00` NOTI | `0x03D8` | `CoupleRoomEmptyCompatibilityMessage` | 仅证明 encoder 可产生该 identity | [0x03D8](game/server-to-client/NOTI-0x03D8.md) |
 | `0x00` NOTI | `0x042D` | `WeeklyAttendanceStateMessage` | 仅证明 encoder 可产生该 identity | [0x042D](game/server-to-client/NOTI-0x042D.md) |
 | `0x00` NOTI | `0x0465` | `EpicBookStateMessage` | 仅证明 encoder 可产生该 identity | [0x0465](game/server-to-client/NOTI-0x0465.md) |
 | `0x00` NOTI | `0x04B8` | `JoustStateMessage` | 仅证明 encoder 可产生该 identity | [0x04B8](game/server-to-client/NOTI-0x04B8.md) |

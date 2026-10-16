@@ -2,6 +2,9 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameWeddingPartnerQuery = 0x0001_03F3,
+    GameWeddingProposal = 0x0001_03F0,
+    GameWeddingResponse = 0x0001_03F1,
     GameIncreaseStatus = 0x0001_001E,
     GameAltarPrepare = 0x0001_0102,
     GameAltarDeathBatch = 0x0001_00FF,
@@ -221,6 +224,11 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameWeddingPartnerQuery = 0x0001_03F3,
+    GameWeddingProposal = 0x0001_03F0,
+    GameWeddingResponse = 0x0001_03F1,
+    GameWeddingProposalNotification = 0x0000_03CD,
+    GameWeddingResponseNotification = 0x0000_03CE,
     GameIncreaseStatus = 0x0001_001E,
     GameTournamentInfo = 0x0000_0183,
     GameTournamentMap = 0x0000_0184,

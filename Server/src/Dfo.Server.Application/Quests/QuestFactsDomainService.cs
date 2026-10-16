@@ -14,7 +14,7 @@ namespace Dfo.Server.Application.Quests;
 internal sealed class QuestFactsDomainService(ICharacterContainerDomainService containers,
     ICharacterDomainService characters, ICharacterQuestLogDomainService logs,
     IQuestStateRuleService rules, ICharacterTable owners, ICreatureDomainStore creatures, AmbientStoreAccess stores,
-    IItemDomainStore items) : IQuestFactsDomainService
+    IItemDomainStore items, Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? marriage = null) : IQuestFactsDomainService
 {
     public async ValueTask<QuestHoldingsFacts> HoldingsAsync(CharacterId character, CancellationToken ct)
     {
@@ -47,8 +47,9 @@ internal sealed class QuestFactsDomainService(ICharacterContainerDomainService c
         var carried = await log.CarriedAsync(ct).ConfigureAwait(false);
         var cleared = await log.ClearedAsync(ct).ConfigureAwait(false);
         var creature = await stores.ReadAsync(creatures, rows => rows.ReadCurrentAsync(character, ct)).ConfigureAwait(false);
-        return new(progress.Level, identity.Job, identity.GrowType,
+        return new WorldContentSubject(progress.Level, identity.Job, identity.GrowType,
             cleared.Where(x => x.Mark != 0).ToDictionary(x => x.QuestId, x => (int)x.Mark),
-            carried.Select(x => x.QuestId).ToArray(), [], [], creature?.ItemTemplateId ?? 0, creature?.Level ?? 0);
+            carried.Select(x => x.QuestId).ToArray(), [], [], creature?.ItemTemplateId ?? 0, creature?.Level ?? 0)
+        { EligibleWeddingQuestIds = marriage is null ? [] : await marriage.EligibleQuestIdsAsync(account, character, ct).ConfigureAwait(false) };
     }
 }

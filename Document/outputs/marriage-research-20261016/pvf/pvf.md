@@ -155,7 +155,7 @@
 - 目标是拜访大司祭 `20013`。
 - 奖励 `10003038` 爱的祝福礼盒。
 
-它可作为普通任务列表中的引导挂钩，但未被 `weddingsystem.etc` 或 `20737/20738` 声明为硬前置，且当前 town graph 找不到完成 NPC。旧活动任务 `20739` 标为 event 且 `exposed by npc = 0`，不适合作为当前常驻入口。
+它可作为普通任务列表中的引导挂钩，但未被 `weddingsystem.etc` 或 `20737/20738` 声明为硬前置。完成NPC20013在当前Underfoot area2中存在，初次调查的“town graph找不到”已撤回；任务显隐与交互仍待实机。旧活动任务 `20739` 标为 event 且 `exposed by npc = 0`，不适合作为当前常驻入口。
 
 ## 5. 当前服务端接任务路径
 
@@ -186,7 +186,7 @@
 |---|---|---|
 | `PvfQuestDefinitionSource` | 能加载 Wedding grade、20737/20738、前置、seeking 与奖励 | subtype 22、双方身份绑定和专用资格缺失 |
 | `SeekingQuestProgressDomainService` | 20738 接取后可按库存重算心意娃娃数量 | 接取资格仍可被通用 `0x001F` 绕过 |
-| `20743` 普通引导任务 | 可从现有 CommonUnique 任务体系起步 | 完成 NPC 20013 当前不可从 town graph 到达；它不是硬前置 |
+| `20743` 普通引导任务 | 可从现有 CommonUnique 任务体系起步；NPC20013在Underfoot area2 | 任务原生显隐待实机；它不是硬前置 |
 | `npc/chn_father.npc` 的 `[wedding] 0` role | 客户端内容保留婚姻 NPC 动作入口 | 当前服务端没有 Wedding NPC handler，原生 UI 是否依赖它待 A21 确认 |
 | 物品 `[upgrade wedding ring]` / `[love point coupon]` | 客户端物品类型与规则数据可复用 | 当前服务端没有婚戒/爱心点状态机和 action handler |
 
@@ -208,8 +208,22 @@
 
 ### 6.3 教堂与婚房
 
-- `map/church/church.map` 存在，内部放置 `20014` `chn_father_inside.npc`，其角色含 `[exit church]`；但没有对应 town 条目出现在 `town/town.lst`。静态上它不是普通 town graph 的一个 area，可能由婚礼协议动态进入，需 A21 实机确认。
+- **2026-10-16更正：**`map/church/church.map` 存在，内部放置 `20014` `chn_father_inside.npc`，其角色含 `[exit church]`。虽然没有独立教堂town条目，但当前`town/underfoot.twn`的area12..63引用`Church/Church.map`。初次报告将“没有独立town条目”误写为“不在普通town graph的area”，该推导错误。实际进入门控、仪式实例选择仍需A21取证。
 - `101 -> CoupleRoom.twn` 确实在 `town/town.lst`；它指向 `CoupleRoom/CoupleRoom.map`，并声明 `[couple room] 474 234`。房间资源被当前 town catalog 读取，但进入资格、状态同步和协议尚未实现，不能把“资源被列入”写成婚房可玩。
+
+### 6.4 当前Underfoot原生入口（2026-10-16补查）
+
+初次调查遗漏了`town/town.lst`中`2 -> Underfoot.twn`的可达路径。当前服务端PVF复核：
+
+- `town/underfoot.twn` area2指向`Town/Underfoot/Underfoot_Event.map`，该area等级门为17。
+- 地图`[NPC]`明确放置`20013 [left] 2016 182 0`，不是attacked monster中的同号数值。
+- `npc/chn_father.npc`名为“大司祭”，角色为`[item shop] 1208 [wedding] 0`。
+- `etc/popupmenu.etc`包含`1013 申请订婚 npc 10`；另一个`26 求婚 event 0`条目不能直接当作始终可见的玩家右键菜单。
+- protocol2客户端与服务端该地图的规范化dump逐行一致。此结论为ContentStatic/Confirmed，未证明NPC可见、菜单显隐或求婚已实机成功。
+
+证据：[Underfoot town](../../marriage-proposal-20261016/town-underfoot.txt)、[广场map](../../marriage-proposal-20261016/map-underfoot-event.txt)、[大司祭NPC](../../marriage-proposal-20261016/npc-father.txt)。此前“当前town graph中找不到大司祭”的整体结论撤回；第6.1/6.2仅证明各自地图的局部情况。
+
+历史操作参考：2015-02-05[游民转载官网指引](https://ol.gamersky.com/z/dnf/201502/520041.shtml)描述点击大司祭申请订婚，再输入名字或点选对象；2016-06-01[17173同期文章](https://dnf.17173.com/content/06012016/095012719_all.shtml)注明暗黑城广场。两者属于国服历史玩法参考，不升级为日服A21实机证据。
 
 ## 7. 爱之摩伽陀的下游前置
 

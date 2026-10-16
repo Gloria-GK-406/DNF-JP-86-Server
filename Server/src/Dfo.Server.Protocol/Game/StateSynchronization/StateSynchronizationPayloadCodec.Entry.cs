@@ -41,39 +41,6 @@ internal static partial class StateSynchronizationPayloadCodec
 
     public static byte[] EncodeCreatures(IReadOnlyList<CharacterPetRuntimeState> pets) => GameInstanceDelivery.EncodeCreatures(pets);
 
-    public static byte[] EncodeLotteryProgress(AccountProgressionEntryState progression)
-    {
-        const int bodyLength = 204;
-        const int recordCount = 8;
-        const int recordLength = 24;
-        const int claimCapacity = 20;
-        var records = progression.LotteryProgress
-            ?? throw Missing("Progression.LotteryProgress");
-        var normalized = records.Where(value => value.ItemTemplateId > 0)
-            .Take(recordCount).ToArray();
-        var body = new byte[bodyLength];
-        if (normalized.Length == 0)
-            return body;
-
-        WriteInt32(body, 0, 2);
-        WriteInt32(body, 4, -1);
-        WriteInt32(body, 8, -1);
-        for (var recordIndex = 0; recordIndex < normalized.Length; recordIndex++)
-        {
-            var record = normalized[recordIndex];
-            var offset = 12 + recordIndex * recordLength;
-            WriteInt32(body, offset, record.ItemTemplateId);
-            var claims = record.ClaimedRewardIndexes
-                ?? throw Missing($"Account.Progression.LotteryProgress[{recordIndex}].ClaimedRewardIndexes");
-            foreach (var (claim, claimIndex) in claims.Where(value => value < claimCapacity)
-                         .Distinct().Order().Take(claimCapacity).Select((value, index) => (value, index)))
-            {
-                body[offset + 4 + claimIndex] = checked((byte)(claim + 1));
-            }
-        }
-        return body;
-    }
-
     public static byte[] EncodeSupportCharacter(
         CharacterId ownerCharacterId,
         IReadOnlyList<AccountCharacterRelationEntryState> characterRelations,

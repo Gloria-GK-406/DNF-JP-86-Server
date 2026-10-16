@@ -133,6 +133,15 @@ public sealed class ApplicationModule : IServerModule
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.AltarEntryRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        var proposalTimeoutSeconds = configuration.GetValue<int>("Marriage:ProposalTimeoutSeconds", 60);
+        if (proposalTimeoutSeconds is < 1 or > 600) throw new InvalidOperationException("Marriage proposal timeout must be 1..600 seconds.");
+        services.TryAddSingleton(new Dfo.Server.Application.Marriage.MarriageProposalOptions(TimeSpan.FromSeconds(proposalTimeoutSeconds)));
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageProposalRuleService, Dfo.Server.Application.Marriage.MarriageProposalRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageProposalDomainService, Dfo.Server.Application.Marriage.MarriageProposalDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageEngagementDomainService, Dfo.Server.Application.Marriage.MarriageEngagementDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService, Dfo.Server.Application.Marriage.MarriageQuestDomainService>();
+        services.AddDomainSubscriber<DungeonMapCleared, Dfo.Server.Application.Marriage.MarriageQuestDomainService>(
+            "quest.wedding-trial", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
         services.TryAddSingleton<IHerasRuleService, HerasRuleService>();
         services.TryAddSingleton<IHerasDungeonDomainService, HerasDungeonDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.HerasQuotaRecorded,

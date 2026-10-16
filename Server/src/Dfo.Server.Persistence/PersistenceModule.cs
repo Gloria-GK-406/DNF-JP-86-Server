@@ -55,6 +55,8 @@ public sealed class PersistenceModule : IServerModule
         // puts the file in shape.
         services.TryAddSingleton(provider => new SqliteDatabase(
             databasePath, provider.GetRequiredService<IDomainTransactionAccessor>()));
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageProposalDomainStore, Dfo.Server.Persistence.Marriage.SqliteMarriageProposalDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainStore, Dfo.Server.Persistence.Marriage.SqliteMarriageQuestDomainStore>();
         services.TryAddSingleton<IEpicBookDomainStore, SqliteEpicBookDomainStore>();
         services.TryAddSingleton<IMirrorAradQuestDomainStore, SqliteMirrorAradQuestDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ISaoTowerDomainStore, Dfo.Server.Persistence.Characters.SqliteSaoTowerDomainStore>();

@@ -37,7 +37,9 @@ public sealed class SelectCharacterPreparationService(
     Dfo.Server.Abstractions.Events.IJoustProjectionDomainService? joust = null,
     IEpicBookDomainService? epicBook = null,
     Dfo.Server.Abstractions.Achievements.IAchievementDomainService? achievements = null,
-    Dfo.Server.Abstractions.Achievements.ITitleBookDomainService? titles = null) : ISelectCharacterPreparationDomainService
+    Dfo.Server.Abstractions.Achievements.ITitleBookDomainService? titles = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageEngagementDomainService? marriage = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? weddingQuests = null) : ISelectCharacterPreparationDomainService
 {
     public async ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
         SelectedSessionIdentity session,
@@ -168,6 +170,8 @@ public sealed class SelectCharacterPreparationService(
             { Collections = characterEntry.Features.Collections with
             { TitleBooks = await titles.GetAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) } } };
         var contentSubject = CharacterStateProjection.BuildContentSubject(equippedCreature, character, characterEntry, characterInventory);
+        if (weddingQuests is not null)
+            contentSubject = contentSubject with { EligibleWeddingQuestIds = await weddingQuests.EligibleQuestIdsAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) };
         var content = await worldContent.LoadAsync(contentSubject, cancellationToken)
             .ConfigureAwait(false);
         var channelPolicy = await placement.ResolveAsync(
@@ -228,7 +232,8 @@ public sealed class SelectCharacterPreparationService(
                 await events.GetEventInfoListAsync(accountId,preparedAt,cancellationToken),
                 await attendance.StateAsync(accountId,preparedAt,cancellationToken),
                 joust is null ? null : await joust.ReadAsync(character.Identity.CharacterId,preparedAt,cancellationToken))),
-            epicBook is null ? [] : await epicBook.GetBalancesAsync(accountId, cancellationToken).ConfigureAwait(false));
+            epicBook is null ? [] : await epicBook.GetBalancesAsync(accountId, cancellationToken).ConfigureAwait(false),
+            marriage is null ? null : await marriage.ReadAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false));
 
         return result;
     }

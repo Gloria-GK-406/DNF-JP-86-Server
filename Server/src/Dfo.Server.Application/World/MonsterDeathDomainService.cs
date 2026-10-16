@@ -83,7 +83,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
                 .EnqueueAsync(new DungeonMapCleared(run.RunId, run.Layout.DungeonId, run.Difficulty,
                     run.CurrentCell, run.CurrentRoomMapId, run.RoomVersion, death.OccurredAt!.Value,
                     [.. request.Participants.DistinctBy(x => x.CharacterId).Select(session =>
-                        run.Participants.Single(x => x.CharacterId == session.CharacterId))]), ct).ConfigureAwait(false);
+                        run.Participants.Single(x => x.CharacterId == session.CharacterId))]) { IsBossRoom = run.IsBossRoom }, ct).ConfigureAwait(false);
         logger.LogInformation("Monster death prepared run={RunId} actor={Actor} participants={Count}; one transaction, no entry inventory query",
             run.RunId, request.Actor, result.Count);
         return new(result, pending) { Tournament = tournament };

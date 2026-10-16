@@ -1,5 +1,9 @@
 # NOTI `0x03CE` `WEDDING_RESPONSE`
 
+## 2026-10-16 A21 action1 接入
+
+ClientStatic / Confirmed：正文12B，`i32 status=0,u32 responderWireId,u8 action=1,u8 zero,u8 zero,u8 outcome`，没有CMD结果信封。outcome0为成功路径，1对应dstr0x11C8A“对方拒绝求婚”，2对应0x11C37“请求超时自动取消”。CurrentImplementation在答复事务提交及答复者CMD确认之后通知发起者。见[补证](../../../Document/outputs/marriage-proposal-20261016/client-evidence.txt)。尚无本轮双端实帧/ClientVerified。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

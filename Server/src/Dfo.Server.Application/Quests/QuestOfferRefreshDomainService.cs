@@ -29,7 +29,8 @@ namespace Dfo.Server.Application.Quests;
 internal sealed class QuestOfferRefreshDomainService(
     IWorldContentEntryRuleService worldContent,
     ICharacterQuestLogDomainService logs, ICharacterDomainService characters,
-    Dfo.Server.Abstractions.Creatures.ICreatureDomainService? creatures = null, IQuestQueryDomainService? query = null) : IQuestOfferRefreshDomainService
+    Dfo.Server.Abstractions.Creatures.ICreatureDomainService? creatures = null, IQuestQueryDomainService? query = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? marriage = null) : IQuestOfferRefreshDomainService
 {
     public async ValueTask<AvailableQuestEntryState> ReadAvailableAsync(
         AccountId accountId, CharacterId characterId, int level, CancellationToken ct)
@@ -78,6 +79,7 @@ internal sealed class QuestOfferRefreshDomainService(
 
         var updated = subject with
         {
+            EligibleWeddingQuestIds = marriage is null ? [] : await marriage.EligibleQuestIdsAsync(accountId, characterId, cancellationToken).ConfigureAwait(false),
             Level = level,
             Job = identity.Job,
             GrowType = identity.GrowType,

@@ -40,7 +40,8 @@ internal sealed class QuestAvailabilityRuleService(IQuestContentRuleService ques
             // purpose -- recorded in Docs/ProtocolScaffoldDissonances.md.
             if (subject.CarriedQuestIds.Contains(quest.QuestId))
                 continue;
-            if (!IsOfferableGrade(quest.Grade))
+            if (!IsOfferableGrade(quest.Grade)
+                && !(quest.Grade == QuestGrade.Wedding && subject.EligibleWeddingQuestIds.Contains(quest.QuestId)))
                 continue;
             // A repeatable quest is offered again once cleared; that is what repeatable
             // means. Excluding every cleared quest would retire the dailies permanently

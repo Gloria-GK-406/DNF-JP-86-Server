@@ -88,7 +88,8 @@ public sealed class AcceptQuestCommandHandler(
     ICharacterContainerDomainService containers,
     IQuestProgressDomainService questProgress,
     IItemDeliveryDomainService delivery,
-    ICycleDungeonEntryDomainService? cycles = null, IMirrorAradQuestDomainService? mirror = null)
+    ICycleDungeonEntryDomainService? cycles = null, IMirrorAradQuestDomainService? mirror = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? marriage = null)
     : ICommandHandler<AcceptQuestCommand, QuestAcceptOutcome>
 {
     public async ValueTask<QuestAcceptOutcome> HandleAsync(
@@ -123,6 +124,9 @@ public sealed class AcceptQuestCommandHandler(
                 : QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
         }
         var log = logs.LogOf(command.AccountId, command.CharacterId);
+        if (definition.Grade == QuestGrade.Wedding && (marriage is null
+            || !await marriage.CanAcceptAsync(command.AccountId, command.CharacterId, command.QuestId, cancellationToken).ConfigureAwait(false)))
+            return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
         if (definition.Grade == QuestGrade.Circle)
         {
             if (cycles is null || !await cycles.CanAcceptAsync(command.AccountId, command.CharacterId,
@@ -137,6 +141,8 @@ public sealed class AcceptQuestCommandHandler(
         var taken = await log.AcceptAsync(definition, cancellationToken).ConfigureAwait(false);
         if (!taken.Accepted)
             return QuestAcceptOutcome.Refuse(command.QuestId, WireCodeFor(taken.Refusal));
+        if (definition.Grade == QuestGrade.Wedding)
+            await marriage!.BindAsync(command.AccountId, command.CharacterId, command.QuestId, cancellationToken).ConfigureAwait(false);
 
         var declared = definition.EventItems ?? [];
         var placed = new List<AcceptedQuestItem>(declared.Count);

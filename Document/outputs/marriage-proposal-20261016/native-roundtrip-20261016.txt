@@ -1,0 +1,26 @@
+2026-10-16 11:48:34.300 +08:00 info: Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalHandler[0]
+      Marriage proposal actor=1 target=8 action=1 result=None id=fac69362-ac1f-4ee2-81f0-a60342021fff
+2026-10-16 11:48:34.300 +08:00 dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:07-00-00-00 selector=0x01 type=0x03F0 frame=27 WeddingProposalAck
+2026-10-16 11:48:34.301 +08:00 dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:06-00-00-00 selector=0x00 type=0x03CD frame=26 WeddingProposalNotification
+2026-10-16 11:48:38.634 +08:00 info: Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseHandler[0]
+      Marriage response actor=8 target=0 action=1 outcome=1 result=None id=fac69362-ac1f-4ee2-81f0-a60342021fff
+2026-10-16 11:48:38.635 +08:00 dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:06-00-00-00 selector=0x01 type=0x03F1 frame=28 WeddingResponseAck
+2026-10-16 11:48:38.635 +08:00 dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:07-00-00-00 selector=0x00 type=0x03CE frame=27 WeddingResponseNotification
+2026-10-16 11:48:45.064 +08:00 info: Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalHandler[0]
+      Marriage proposal actor=1 target=8 action=1 result=None id=f7bdd877-ba98-44f0-bba0-6ce82a415a36
+2026-10-16 11:48:45.064 +08:00 dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:07-00-00-00 selector=0x01 type=0x03F0 frame=27 WeddingProposalAck
+2026-10-16 11:48:45.064 +08:00 dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:06-00-00-00 selector=0x00 type=0x03CD frame=26 WeddingProposalNotification
+2026-10-16 11:48:49.115 +08:00 info: Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseHandler[0]
+      Marriage response actor=8 target=1 action=1 outcome=0 result=None id=f7bdd877-ba98-44f0-bba0-6ce82a415a36
+2026-10-16 11:48:49.115 +08:00 dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:06-00-00-00 selector=0x01 type=0x03F1 frame=28 WeddingResponseAck
+2026-10-16 11:48:49.115 +08:00 dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:07-00-00-00 selector=0x00 type=0x03CE frame=27 WeddingResponseNotification
+
+Errors/unhandled since first proposal: 0

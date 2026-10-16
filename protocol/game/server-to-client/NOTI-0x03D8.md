@@ -1,5 +1,9 @@
 # NOTI `0x03D8` `INCREASE_CHANCE_LOTTERY_ALL`
 
+## 2026-10-16 空婚房兼容隔离已实现
+
+CurrentImplementation：选角使用 `CoupleRoomEmptyCompatibilityMessage`，固定发送既有204零空态；非空旧彩票不再进入A21婚房opcode，旧彩票数据库记录保留。回归以非空旧彩票输入仍得到204零保护，未擅自换号或缩短为17B。此改变不表示非空婚房已实现。
+
 ## A21 人工裁定（优先于机器区与 A12 历史区）
 
 > **2026-10-16 / ClientStatic / Confirmed。**A21 将 `0x03D8` 注册为 `COUPLE_ROOM`。

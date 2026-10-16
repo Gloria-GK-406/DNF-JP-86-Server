@@ -108,7 +108,9 @@ internal static class SelectedCharacterStateMessageFactory
         // client does register a receive handler for it. Pushing seventy-seven bytes at a live
         // handler the reference leaves alone is a difference we introduced, not one it asked
         // for. The record and its encoder stay registered for a path that does ask.
-        messages.Add(new LotteryProgressStateMessage(result.Account.Progression));
+        messages.Add(new CoupleRoomEmptyCompatibilityMessage());
+        if (result.Engagement is { } engagement)
+            messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoMessage(engagement));
         messages.Add(new ChampionBreakStateMessage(result.CharacterEntry.Progression));
         messages.Add(new GoldLimitStateMessage(result.CharacterEntry.Progression.GoldLimitUpgradeLevel));
         messages.Add(new FatigueAccelerationStateMessage(

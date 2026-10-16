@@ -229,6 +229,10 @@ public sealed record QuestDefinition(
     /// <summary>A quest offered regardless of grow type.</summary>
     public int? ObjectiveSubType { get; init; }
     public IReadOnlyList<int> ObjectiveArguments { get; init; } = [];
+    public int? WeddingTrialCount => Grade == QuestGrade.Wedding && ObjectiveTypeCode == "condition under clear"
+        && ObjectiveSubType == 22 && ObjectiveArguments.Count == 3
+        && ObjectiveArguments[0] == -1 && ObjectiveArguments[1] == -1 && ObjectiveArguments[2] is > 0 and <= 511
+            ? ObjectiveArguments[2] : null;
 
     public const int AnyGrowType = -1;
 
@@ -243,7 +247,7 @@ public sealed record QuestDefinition(
     private uint initialTrigger = InitialTrigger;
     public uint InitialTrigger
     {
-        get => KillObjectives.InitialTrigger ?? initialTrigger;
+        get => WeddingTrialCount is { } wedding ? checked((uint)wedding) : KillObjectives.InitialTrigger ?? initialTrigger;
         init => initialTrigger = value;
     }
 

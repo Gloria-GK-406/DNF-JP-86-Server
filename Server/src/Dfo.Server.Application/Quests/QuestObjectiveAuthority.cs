@@ -121,7 +121,7 @@ internal static class QuestObjectives
         byte selector)
     {
         ArgumentNullException.ThrowIfNull(definition);
-        if (definition.DungeonClearRequirement is not null)
+        if (definition.DungeonClearRequirement is not null || definition.Grade == QuestGrade.Wedding)
             return QuestTrigger.IsReportable(selector)
                 ? QuestObjectiveAuthority.Server
                 : QuestObjectiveAuthority.None;

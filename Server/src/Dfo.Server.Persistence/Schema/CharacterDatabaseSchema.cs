@@ -229,6 +229,25 @@ internal static class CharacterDatabaseSchema
     /// allocates it rather than on a caller, because allocation is the only place one is made.
     /// </remarks>
     private const string TableDeclarations = """
+        CREATE TABLE IF NOT EXISTS marriage_quest_bindings (
+            character_id INTEGER NOT NULL, quest_id INTEGER NOT NULL,
+            proposal_id TEXT NOT NULL REFERENCES marriage_proposals(id), accepted_at INTEGER NOT NULL,
+            PRIMARY KEY(character_id,quest_id)
+        );
+        CREATE TABLE IF NOT EXISTS marriage_trial_clears (
+            character_id INTEGER NOT NULL, quest_id INTEGER NOT NULL,
+            proposal_id TEXT NOT NULL REFERENCES marriage_proposals(id), run_id TEXT NOT NULL,
+            PRIMARY KEY(character_id,quest_id,proposal_id,run_id)
+        );
+        CREATE TABLE IF NOT EXISTS marriage_proposals (
+            id TEXT PRIMARY KEY, payload_json TEXT NOT NULL, state INTEGER NOT NULL CHECK(state BETWEEN 0 AND 3),
+            revision INTEGER NOT NULL, created_at INTEGER NOT NULL, response INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS marriage_proposal_participants (
+            proposal_id TEXT NOT NULL REFERENCES marriage_proposals(id), role INTEGER NOT NULL CHECK(role IN(0,1)),
+            character_id INTEGER NOT NULL, active INTEGER NOT NULL CHECK(active IN(0,1)),
+            PRIMARY KEY(proposal_id,role), UNIQUE(proposal_id,character_id)
+        );
         CREATE TABLE IF NOT EXISTS sao_tower_progress(season TEXT PRIMARY KEY,round INTEGER NOT NULL CHECK(round>=1),next_floor INTEGER NOT NULL CHECK(next_floor BETWEEN 1 AND 100),revision INTEGER NOT NULL CHECK(revision>=0));
         CREATE TABLE IF NOT EXISTS sao_first_clears(season TEXT NOT NULL,round INTEGER NOT NULL,floor INTEGER NOT NULL,run_id TEXT NOT NULL UNIQUE,PRIMARY KEY(season,round,floor));
         CREATE TABLE IF NOT EXISTS sao_first_clear_rewards(run_id TEXT NOT NULL,character_id INTEGER NOT NULL,item_id INTEGER NOT NULL,PRIMARY KEY(run_id,character_id),FOREIGN KEY(run_id) REFERENCES sao_first_clears(run_id));
@@ -348,6 +367,7 @@ internal static class CharacterDatabaseSchema
         """;
 
     private const string IndexDeclarations = """
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_marriage_proposal_character ON marriage_proposal_participants(character_id) WHERE active=1;
         CREATE INDEX IF NOT EXISTS ix_domain_delivery_due ON domain_event_deliveries(subscriber_id,state,next_attempt_at,event_id);
         CREATE INDEX IF NOT EXISTS ix_domain_delivery_coalescing ON domain_event_deliveries(subscriber_id,coalescing_key,state,event_id);
         CREATE INDEX IF NOT EXISTS ix_domain_event_batch ON domain_events(batch_id,event_id);

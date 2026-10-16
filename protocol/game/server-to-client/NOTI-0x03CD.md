@@ -1,5 +1,9 @@
 # NOTI `0x03CD` `WEDDING_REQUEST`
 
+## 2026-10-16 A21 action1 接入
+
+ClientStatic / Confirmed：正文11B，`i32 status=0,u32 proposerWireId,u8 action=1,u8 zero,u8 zero`，没有CMD结果信封。handler RVA00891140把ID交给窗口，再以action打开0x1C0请求窗口；窗口已打开时不会重复新建。CurrentImplementation在Pending事务提交后、请求者CMD确认之后发送给精确接收会话。见[补证](../../../Document/outputs/marriage-proposal-20261016/client-evidence.txt)。尚无本轮双端实帧/ClientVerified。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

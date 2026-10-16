@@ -42,7 +42,8 @@ public sealed record SelectCharacterResult(
     CharacterSessionEntryState Session,
     AccountCharacterRoster? Roster = null,
     CharacterRosterEntryState? RosterEntry = null, Dfo.Server.Data.Events.EventPlayerSnapshot? Events = null,
-    IReadOnlyList<EpicPieceBalance>? EpicPieces = null);
+    IReadOnlyList<EpicPieceBalance>? EpicPieces = null,
+    Dfo.Server.Data.Marriage.MarriageEngagementSnapshot? Engagement = null);
 
 public sealed record SelectCharacterQuestSynchronization(
     SelectCharacterResult Result,
