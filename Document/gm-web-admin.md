@@ -37,9 +37,17 @@ dotnet run --project Server/src/Dfo.Server.Host -c Release --no-build -- --GmWeb
 
 同来源、同登录名在 15 分钟失败 5 次后限流；同来源累计失败 20 次也限流，防止换登录名绕过。限流窗口与容量有边界，返回 429。登录失败提示不区分账号是否存在。
 
-登录成功、凭据失败、正常退出均写审计，审计页显示时间、操作、管理员、对象、结果和操作编号。官方邮件与点券的资产变更、成功收据和成功审计共同提交或回滚，拒绝、已确认回滚和未知状态分开记录。匿名私有请求返回 401，权限不足返回 403，分页参数不合法返回 400。
+登录成功、凭据失败、正常退出均写审计，审计页显示时间、操作、管理员、对象、结果和操作编号。`GET /api/gm/v1/audit` 除 `page`/`pageSize` 外还接受 `outcome`（`attention` = 除 Succeeded 以外的全部，或 `Succeeded|Rejected|RolledBack|Unknown` 之一）与 `action`（精确操作键：ChangeDailyRefill、ChangeEvent、ChangeJoustParameters、EditMailTemplate、GrantCera、Login、Logout、SaveInitialization、SaveMailDraft、SendOfficialMail、SetJoustChampion）；筛选在 SQLite 查询内完成，`total` 为筛选后的总数。未知取值或重复参数返回 400 `{ message }`。官方邮件与点券的资产变更、成功收据和成功审计共同提交或回滚，拒绝、已确认回滚和未知状态分开记录。匿名私有请求返回 401，权限不足返回 403，分页参数不合法返回 400。
 
 运行的客户端、PVF 和现有游戏服务不受当前隔离构建影响。验证使用临时数据库；本文件的启动示例面向独立部署，验证时须显式传入独立 `Database:Path`。
+
+## 服务信息与物品展示
+
+以下接口只要求已登录（任意权限）：
+
+- `GET /api/gm/v1/server-info` → `{ version, networkEnabled, channelPort, gamePorts, gmPort, pvfSha256 }`。`version` 为程序集版本（去掉 `+提交` 后缀）；端口按 `Networking:*` 配置与网络模块相同的默认值读取，网络关闭时也照配置报告；`pvfSha256` 为服务端实际会打开的 PVF 文件 SHA-256（首次请求时计算并缓存，找不到 PVF 为 null）。
+- `GET /api/gm/v1/items/{itemId}/icon`、`GET /api/gm/v1/items/icon-pack`：物品图标，见 [GM 物品图标包](gm-item-icons.md)；配置 `GmWeb:IconPack`，默认 `Data/gm-icons.zip`。
+- `GET /api/gm/v1/items/{itemId}/tooltip`：游戏风格 tooltip 所需的静态 PVF 资料，未知 ID 返回 404 `{ message }`。字段：`itemId`、`name`、`rarity`、`category`（equipment/stackable）、`typeName`（如 太刀、布甲 上衣、项链、材料）、`minimumLevel`、`maximumLevel`、`jobs`（null = 全职业；职业名取自 `character/*.chr [growtype name]` 首词，同名按性别加（男）/（女））、`attach`（`[attach type]` 原始键，如 sealing、trade delete）、`periodDays`（`[usable period]`）、`dailyDelete`（`[daily delete item]`）、`stats`（按 PVF 声明顺序的 `{label, value}`，值已格式化：品级区间 `186 ~ 201`、四维 `+15`、速度 `+8.0%`）、`explain`、`flavor`、`durability`、`weight`（kg）、`price`（`[value]`，即出售价）、`stackLimit`。只读模板根部段落，不计算品级/强化/增幅/锻造加成，不含技能与套装；未识别的属性标签直接忽略。`[expiration date]` 绝对期限暂不输出。
 
 ## 服务概览与玩家查询
 
