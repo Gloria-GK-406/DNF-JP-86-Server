@@ -27,7 +27,7 @@ dotnet run --project Server/src/Dfo.Server.Host -c Release --no-build -- --GmWeb
 
 | 路径 | 页面 | 权限 |
 |---|---|---|
-| `/gm/` | 服务概览：关键数字、需要处理（未确认发放、拒绝 / 回滚审计，可在本浏览器标记已读）、频道在线、活动排期、最近操作 | QueryPlayers（排期需全部权限，审计部分需 ViewAudit） |
+| `/gm/` | 服务概览：关键数字；频道在线（按人数排序）、活动排期、需要处理（拒绝 / 回滚审计按操作与结果合并成组，可展开明细、单组或全部标为已读，已读只记在本浏览器）、最近操作。每块默认 5 行，可展开 / 收起并记住状态；结果未确认的发放以红色横幅固定在顶部 | QueryPlayers（排期需全部权限，审计部分需 ViewAudit） |
 | `/gm/players` | 账号与角色：列表 + 右侧详情；输入纯数字按 ID 查，否则按姓名 / 登录名字面搜索；可勾选账号批量发点券 | QueryPlayers |
 | `/gm/grants` | 发放：邮件记录、点券记录、邮件模板、草稿，以及待确认发放的「查询原编号 / 按原内容安全重试」 | SendMail 或 GrantCera |
 | `/gm/grants/mail`、`/gm/grants/cera` | 写邮件 / 发点券三步页面；写邮件右侧是仿游戏「查看邮件」窗口的预览，核对步骤以服务端预览为准 | SendMail / GrantCera |

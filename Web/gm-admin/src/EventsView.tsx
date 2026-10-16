@@ -5,7 +5,7 @@ import { api, ApiError } from './api';
 import { activityView } from './events/activityViews';
 import { bjTime } from './format';
 import { useNotiBar } from './NotiBar';
-import { Field, LockBanner, PageHead, Panel, Pill, type PillKind } from './ui';
+import { Field, LockBanner, MoreToggle, PageHead, Panel, Pill, useExpanded, type PillKind } from './ui';
 import { useGmRead } from './useGmRead';
 
 export type EventEntry = { eventId: number; type: string; revision: number; seasonId: string; enabled: boolean;
@@ -22,15 +22,18 @@ const successes = { configure: '活动配置已保存，当前期次进度保留
 function inputTime(value: string | null) { return value ? new Date(new Date(value).getTime() + 8 * 3600000).toISOString().slice(0, 19) : ''; }
 
 /** Schedule lanes over a fixed window around today (Beijing time), 50 days wide. */
-export function EventTimeline({ events }: { events: EventEntry[] }) {
+export function EventTimeline({ events, limit, expandKey = 'timeline' }: { events: EventEntry[]; limit?: number; expandKey?: string }) {
+  const [expanded, toggle] = useExpanded(expandKey);
   const day = 86400000; const today = Date.now();
   const from = today - 25 * day; const to = today + 25 * day;
   const pos = (t: number) => Math.min(100, Math.max(0, (t - from) / (to - from) * 100));
   // Ticks sit at ±10 and ±20 days so the 今天 marker at the centre never collides with one.
   const ticks = [-20, -10, 10, 20].map(offset => today + offset * day);
-  const rows = events.filter(e => e.startsAt && e.endsAt);
-  if (rows.length === 0) return <div className="empty-line">还没有配置了有效期的活动</div>;
-  return <div className="timeline" aria-label="活动排期">
+  const order = { active: 0, scheduled: 1, disabled: 2, unavailable: 3, expired: 4 };
+  const all = events.filter(e => e.startsAt && e.endsAt).sort((a, b) => order[a.status] - order[b.status] || a.startsAt!.localeCompare(b.startsAt!));
+  const rows = limit && !expanded ? all.slice(0, limit) : all;
+  if (all.length === 0) return <div className="empty-line">还没有配置了有效期的活动</div>;
+  return <><div className="timeline" aria-label="活动排期">
     <div className="tl-row"><span className="faint" style={{ fontSize: 11.5 }}>北京时间</span><div className="tl-scale">{ticks.map(t => <span key={t} style={{ left: `${pos(t)}%` }}>{bjTime(t).slice(5, 10)}</span>)}
       <span style={{ left: `${pos(today)}%`, color: 'var(--crit)' }}>今天</span></div></div>
     {rows.map(e => { const start = new Date(e.startsAt!).getTime(); const end = new Date(e.endsAt!).getTime();
@@ -40,7 +43,7 @@ export function EventTimeline({ events }: { events: EventEntry[] }) {
           {end >= from && start <= to && <div className={`tl-bar ${kind}`} style={{ left: `${pos(start)}%`, width: `${Math.max(1, pos(end) - pos(start))}%` }} />}</div></div>; })}
     <div className="legend"><span><i style={{ background: 'var(--accent)' }} />生效中</span><span><i style={{ border: '1.5px dashed var(--accent)' }} />未开始</span>
       <span><i style={{ background: 'var(--ink-3)', opacity: .4 }} />已结束 / 停用</span></div>
-  </div>;
+  </div>{limit ? <MoreToggle hidden={all.length - limit} expanded={expanded} onToggle={toggle} summary={`其余 ${all.length - limit} 个活动`} /> : null}</>;
 }
 
 export function EventsView(access: Access) {

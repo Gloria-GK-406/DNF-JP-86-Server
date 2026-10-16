@@ -1,6 +1,6 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import { Button, Tooltip } from 'antd';
-import { InfoCircleOutlined, LockOutlined } from '@ant-design/icons';
+import { DownOutlined, InfoCircleOutlined, LockOutlined, UpOutlined } from '@ant-design/icons';
 
 /* Shared console building blocks. Class names map to style.css. */
 export function BrandMark({ className }: { className?: string }) {
@@ -20,7 +20,7 @@ export function PageHead({ title, info, children }: { title: string; info?: Reac
 export function Panel({ title, count, tools, flush, children, foot, label }: {
   title: ReactNode; count?: ReactNode; tools?: ReactNode; flush?: boolean; children?: ReactNode; foot?: ReactNode; label?: string;
 }) {
-  return <section className="panel" aria-label={label}><div className="panel-head"><h2>{title}</h2>{count !== undefined && count !== null && <span className="count">{count}</span>}
+  return <section className="panel" aria-label={label ?? (typeof title === 'string' ? title : undefined)}><div className="panel-head"><h2>{title}</h2>{count !== undefined && count !== null && <span className="count">{count}</span>}
     {tools && <div className="tools">{tools}</div>}</div><div className={flush ? '' : 'panel-body'}>{children}</div>{foot && <div className="panel-foot">{foot}</div>}</section>;
 }
 export type PillKind = 'ok' | 'attn' | 'crit' | 'idle';
@@ -48,4 +48,16 @@ export function Denied({ title = '没有访问此页面的权限', children }: {
 }
 export function KV({ rows, flat = true }: { rows: [ReactNode, ReactNode][]; flat?: boolean }) {
   return <dl className={`kv ${flat ? 'flat' : ''}`}>{rows.map(([key, value], index) => <Fragment key={index}><dt>{key}</dt><dd>{value}</dd></Fragment>)}</dl>;
+}
+/** Expanded / collapsed state of a home-page block, remembered in this browser. */
+export function useExpanded(key: string): [boolean, () => void] {
+  const storageKey = `dfo.gm.expand.${key}`;
+  const [expanded, setExpanded] = useState(() => { try { return localStorage.getItem(storageKey) === '1'; } catch { return false; } });
+  return [expanded, () => setExpanded(old => { try { localStorage.setItem(storageKey, old ? '0' : '1'); } catch { /* per-browser convenience */ } return !old; })];
+}
+/** Footer that reveals the rows beyond the first few; renders nothing when everything already fits. */
+export function MoreToggle({ hidden, expanded, onToggle, summary }: { hidden: number; expanded: boolean; onToggle: () => void; summary?: ReactNode }) {
+  if (hidden <= 0) return null;
+  return <button className="more-toggle" aria-expanded={expanded} onClick={onToggle}>
+    {expanded ? <><UpOutlined /> 收起</> : <><DownOutlined /> 展开{summary ? <> · {summary}</> : ` 其余 ${hidden} 项`}</>}</button>;
 }
