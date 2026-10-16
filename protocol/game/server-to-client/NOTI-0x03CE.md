@@ -1,14 +1,23 @@
 # NOTI `0x03CE` `WEDDING_RESPONSE`
 
-## 2026-10-16 普通婚礼预约接入
+## A21 人工字段裁定（2026-10-16）
 
-当前补充：action2答复通知正文12B：i32 status + u32 responderWireId + 02 00 00 + outcome。有效答复成功status0；有效邀请接受重校验失败status-3，关闭申请方等待窗。
+ClientStatic / Confirmed：handler RVA00891960消费 **12B**，没有CMD结果信封。
 
-CurrentImplementation：实现边界、A21证据及双端验收步骤见[本次报告](../../../Document/MarriageReservation-20261016.md)。不是婚礼完成或已婚状态；本节优先于下面的历史阶段说明。
+| Body offset | Size | Enc | 含义 |
+|---:|---:|---|---|
+| 0 | 4 | i32 LE | status；0成功，当前有效邀请答复失败为-3 |
+| 4 | 4 | u32 LE | responder WireUserId |
+| 8 | 1 | u8 | action；1求婚，2婚礼预约 |
+| 9 | 1 | u8 | 当前实现写0 |
+| 10 | 1 | u8 | 当前实现写0 |
+| 11 | 1 | u8 | outcome；0接受、1拒绝、2超时取消 |
 
-## 2026-10-16 A21 action1 接入
+ClientStatic / Confirmed：handler在判断status前先关闭申请者等待窗口。status0且action1/2时，outcome1到dstr0x11C8A普通拒绝提示，outcome2到dstr0x11C37超时取消提示。不能把二者混成同一枚举；当前客户端补丁选择在action2自动超时时发送outcome1，使邀请方与手动点“否”走相同提示分支。
 
-ClientStatic / Confirmed：正文12B，`i32 status=0,u32 responderWireId,u8 action=1,u8 zero,u8 zero,u8 outcome`，没有CMD结果信封。outcome0为成功路径，1对应dstr0x11C8A“对方拒绝求婚”，2对应0x11C37“请求超时自动取消”。CurrentImplementation在答复事务提交及答复者CMD确认之后通知发起者。见[补证](../../../Document/outputs/marriage-proposal-20261016/client-evidence.txt)。尚无本轮双端实帧/ClientVerified。
+证据：[原接收补证](../../../Document/outputs/marriage-proposal-20261016/client-evidence.txt)、[关闭窗口与action1/2文本分支的定向补证](../../../Document/MarriageTimeoutProtocolEvidence-20261016.md)。CurrentImplementation发送status0的真实答复，已匹配有效邀请的重校验失败才发送status=-3收尾通知。
+
+与[C2S03F1](../client-to-server/0x03F1.md)及[CMD03F1](CMD-0x03F1.md)配合；发送顺序及自动超时的待验收范围见[流程](../../patterns/flow-marriage-proposal.md)。
 
 <!-- rks:machine:begin -->
 
@@ -57,16 +66,6 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- rks:machine:end -->
 
-<!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
+## 实帧与实机边界
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
-
-## 待实机补全
-
-- [ ] 字段真实含义（把上表中的 `unknown` 逐个换成有证据的结论）
-- [ ] 用真实样本校验 `BodyLength` 规则是否闭合
-
-## 逆向工作日志
-
-<!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
+手动拒绝与接受的有限范围用户验收见流程矩阵；上一版自动超时的NOTI发送metadata已有记录，不能据此推定客户端显示了普通拒绝文本。当前outcome1自动拒绝的双端提示仍待用户确认，尚未归档其完整正文样本。

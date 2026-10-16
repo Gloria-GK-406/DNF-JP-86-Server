@@ -1,8 +1,10 @@
 # 协议清单
 
-## 2026-10-16 普通婚礼预约（CurrentImplementation，原生验收待用户验证）
+## 2026-10-16 普通婚礼预约与客户端自动拒绝
 
-03F0/03F1 action2接普通档申请、拒绝、超时和接受，03CD第9字节按tier编码。独立持久预约，接受双端03D0 state2且重登恢复，不改变订婚与任务绑定；本步不收费、不发奖、不进教堂。未实现婚姻道具拒绝且不误耗。见[实现和测试流程](../Document/MarriageReservation-20261016.md)。
+CurrentImplementation：03F0/03F1 action2接普通档预约，03CD第9字节为tier；独立持久预约，接受后双端03D0阶段2及重登恢复仍属于实现范围，不代表仪式完成。本步不收费、不发奖、不进教堂，未实现婚姻道具拒绝且不误耗。详见[预约实现边界](../Document/MarriageReservation-20261016.md)。
+
+有限范围ClientVerified：用户报告普通档手动拒绝、接受正常。上一版客户端路由补丁已由日志观察到自动outcome2答复；当前统一补丁将婚礼自动超时改发普通拒绝outcome1，邀请方走与手动点“否”相同的文本分支，接收方保留本地超时提示。ClientStatic / Confirmed、已部署；新版双端文本及等待窗收尾仍待用户反馈，没有扩大到ClientVerified或完整WireCaptured。[流程、协议链接与证据矩阵](patterns/flow-marriage-proposal.md)、[字节和日志补证](../Document/MarriageTimeoutProtocolEvidence-20261016.md)。
 
 ## 2026-10-16 组队申请方向与副本选择主机槽位（CurrentImplementation，待实机）
 
@@ -22,9 +24,9 @@
 
 用户已确认前一步双端求婚、拒绝、接受及订婚成功提示，服务端日志和SQLite吻合；这不覆盖本节新增菜单、任务、重登与对象资料的可见验收，也不等于完整实帧归档。以下同日静态调查段为当时快照，已由上文与对应人工协议区更新实现状态。
 
-## 2026-10-16 原生求婚与答复（CurrentImplementation，待双端实机）
+## 2026-10-16 原生求婚与答复（正常路径有限范围ClientVerified）
 
-仅接 action1 的求婚、接受、拒绝和客户端超时。请求正文21/22B（业务字段从正文+14开始）；CMD结果信封加handler载荷后为12/13B，NOTI为11/12B。outcome0接受、1拒绝、2超时取消已与客户端分支/dstr文本对齐。真实SQLite持久订婚、双方名额唯一、账号锁及完整投递期间会话保护已接入；不授予已婚、不结算婚礼。03D8改为204零空婚房兼容，停止从旧彩票状态构造非空体，旧数据库记录保留。
+action1求婚、接受、拒绝与客户端超时已接入；action2婚礼预约见上节。请求正文21/22B（业务字段从正文+14开始），CMD正文12/13B，NOTI正文11/12B；outcome0接受、1拒绝、2超时取消。用户确认双端求婚、拒绝、接受与订婚成功提示，属于有限范围ClientVerified；不覆盖自动超时、完整正文归档或完整婚姻系统。SQLite订婚、关系唯一性与会话保护为CurrentImplementation；03D8现为204零空婚房兼容，不从旧彩票数据构造非空体。
 
 | 族 | Type | 名称/实现 | 当前证据 | 记录 |
 |---|---|---|---|---|
@@ -35,11 +37,11 @@
 | `0x00` NOTI | `0x03CD` | WEDDING_REQUEST | ClientStatic / CurrentImplementation | [通知](game/server-to-client/NOTI-0x03CD.md) |
 | `0x00` NOTI | `0x03CE` | WEDDING_RESPONSE | ClientStatic / CurrentImplementation | [通知](game/server-to-client/NOTI-0x03CE.md) |
 
-## 2026-10-16 婚姻一期静态探查（ClientStatic，未实现/未实机）
+## 2026-10-16 婚姻后续协议的静态边界
 
-[03F0](game/client-to-server/0x03F0.md)、[03F1](game/client-to-server/0x03F1.md)、[03F7](game/client-to-server/0x03F7.md) 的正文长度为 **21/22/23B**，业务字段位于正文+14；发送函数另写外层14B头，不能从raw结构长度再减14。11:35:24真实03F0因旧7B decoder断线，已据发送链修正；03F1/03F7仍以ClientStatic为据，没有新成功实帧。请求依次为 `u32+action+2B opaque`、`u32+action+2B opaque+outcome`、`u32+u32+u8`；对应 CMD 回包固定消费 11/12/4B。action/outcome 的完整业务映射和原生入口仍未知，没有新增正常婚姻实帧。
+[03F7](game/client-to-server/0x03F7.md)正文23B、业务字段从+14开始；不能从原生结构再减去外层14B头。该进入仪式协议的正常业务流程及双端验收尚未接入；不能以03F0/03F1已能预约推定教堂、来宾或婚礼完成可用。
 
-[NOTI03D8](game/server-to-client/NOTI-0x03D8.md) 的 A21 婚房读取结构为 `u32 count + count×(u16+u32) + 13B tail`，消费 `17+6n`。既有 204 零只证明 count=0 空态兼容，不证明非空旧彩票语义。当前选角仍可能按旧彩票数据编码，风险定位为 CurrentImplementation，尚未修改发送路径或验证其界面后果。不得根据 A12 名称无证据换号。详见[一期调查报告](../Document/MarriagePhase1Research-20261016.md)及其三路证据；婚姻业务、双端仪式及真实关系重登验收均未完成。
+[NOTI03D8](game/server-to-client/NOTI-0x03D8.md)客户端读取 `u32 count + count×(u16+u32) + 13B tail`，消费17+6n；当前204零只用于空态兼容，不证明非空旧彩票语义。早期调查的“尚未修改发送路径”已不代表当前实现，历史推导见[一期调查](../Document/MarriagePhase1Research-20261016.md)。
 
 ## 2026-10-14 角色列表与登录外貌归一（CurrentImplementation，待实机验收）
 
