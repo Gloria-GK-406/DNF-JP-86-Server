@@ -672,7 +672,7 @@ public sealed class EnterSelectDungeonHandler(
                     refreshed.World.PreparedAt),
                 new EnterSelectDungeonAcknowledgement(),
                 new UserStateNotification(member.Session.WireUserId, 0x01),
-                new UdpHostNotification(),
+                new UdpHostNotification(roster.LeaderMember.Slot),
             ];
             if (!visits.DefersSelectionState(refreshed.Character.Progression.Level, refreshed.Character.TutorialCompleted))
             {

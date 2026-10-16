@@ -1,5 +1,11 @@
 # NOTI `0x001A` `UDP_HOST`
 
+## 2026-10-16 A21聊天提示与非零槽位补查
+
+ClientStatic / Confirmed：handler RVA00D65640取1B slot，RVA00D656AF按slot查成员；RVA00D6570D读取本地化key0xBBBD，当前dstr为“玩家[%s]被任命为队长”。名册leader slot与UDP_HOST生产链必须一起核对，不能把这条聊天直接等同于服务端权限已变更。
+
+RuntimeObserved / CurrentImplementation：1123退出后000保留slot1，狂战弑天新入复用slot0；选择界面的旧路径仍发001A[0]，与0009 leader slot1冲突。本轮已改为roster.LeaderMember.Slot；正式进图、手动换队长和塔相关路径经读源使用实际成员slot。修复后原生复测待完成。[闭合调用与字符串证据](../../../Document/outputs/party-state-audit-20261016/client-evidence.txt)、[状态链核对](../../../Document/PartyStateAudit-20261016.md)。自动区及A12区保持原样。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

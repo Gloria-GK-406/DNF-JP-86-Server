@@ -1045,12 +1045,15 @@ public sealed class PartyNotificationDelivery(
         if (plan.Acceptance is { } acceptance
             && (plan.Snapshot is null
                 || settingsChange is not null
+                || (acceptance.JoiningCharacterId is { } joining
+                    && (joining != acceptance.InviterCharacterId && joining != acceptance.InviteeCharacterId
+                        || !plan.Snapshot.Members.Any(member => member.CharacterId == joining)))
                 || (hasClearAudience
                     && (plan.ClearAudience.Length != 1
-                        || plan.ClearAudience[0] != acceptance.InviteeCharacterId))))
+                        || plan.ClearAudience[0] != (acceptance.JoiningCharacterId ?? acceptance.InviteeCharacterId)))))
         {
             throw new InvalidOperationException(
-                "A party acceptance requires its resulting snapshot and may clear only the invitee.");
+                "A party acceptance requires its resulting snapshot and may clear only the joining peer.");
         }
 
         if (settingsChange is not null

@@ -184,11 +184,14 @@ public sealed record PartyInviteNotification(
     ushort InviterWireUserId,
     PartyInviteDisplayState Display);
 
+// Native request sender/recipient are not necessarily the party leader/new member.
+// An application to an existing party names the sender as JoiningCharacterId.
 public sealed record PartyAcceptanceNotification(
     CharacterId InviterCharacterId,
     CharacterId InviteeCharacterId,
     ushort InviterWireUserId,
-    ushort InviteeWireUserId);
+    ushort InviteeWireUserId,
+    CharacterId? JoiningCharacterId = null);
 
 /// <summary>The directory partitions affected by one atomic party mutation.</summary>
 public sealed record PartyDirectoryChange(

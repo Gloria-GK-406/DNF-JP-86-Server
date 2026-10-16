@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-16 组队申请方向与副本选择主机槽位（CurrentImplementation，待实机）
+
+[000A](game/client-to-server/0x000A.md)补无队请求者申请加入现有队长，复用0007通知与000B答复，实际新成员和批准者分离，保留原队伍/队长/槽位。副本选择前奏[001A](game/server-to-client/NOTI-0x001A.md)由固定0改读当前队长slot，修正继任队长在slot1、新成员复用slot0时聊天与名册不一致。既有ClientVerified范围不自动扩大到本轮新方向或跨流程矩阵。[状态链报告](../Document/PartyStateAudit-20261016.md)。
+
 ## 2026-10-16 订婚状态、对象资料与婚前任务（CurrentImplementation，待实机）
 
 12:32原生登录崩溃定位于03F3空外观槽写0；已补正为-1，保持98B正文，见[故障证据](../Document/MarriageEngagementCrashFix-20261016.md)。修复后原生登录待复测。
