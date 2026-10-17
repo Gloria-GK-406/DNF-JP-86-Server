@@ -54,13 +54,14 @@ public sealed class MarriageChurchTests
         }
         return setup;
     }
-    private static async Task<(LearningFixture F, SelectedSessionIdentity Peer, MarriageProposalTests.Clock Clock)> Reserved()
+    private static async Task<(LearningFixture F, SelectedSessionIdentity Peer, MarriageProposalTests.Clock Clock)> Reserved(Action<IServiceCollection>? configure = null)
     {
         var (f, peer, logs, clock) = await Fixture(s =>
         {
             s.AddSingleton<ITownDefinitionSource, ChurchTestTowns>();
             s.AddCommandHandler<PrepareMarriageChurchCommand, MarriageChurchPreparationResult, PrepareMarriageChurchCommandHandler>(
                 CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            configure?.Invoke(s);
         });
         await MarriageCeremonyTests.MakeEligibleAsync(f, peer, logs);
         Assert.True((await MarriageCeremonyTests.RunAsync(f, x => x.RequestAsync(f.Session, peer, 0, 0, default))).Succeeded);
@@ -76,6 +77,24 @@ public sealed class MarriageChurchTests
         return result;
     }
 
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task Native_cinema_names_are_bride_then_groom_for_either_applicant(bool maleApplicant)
+    {
+        var (f, peer, logs, _) = await Fixture(); await using var owned = f;
+        await MarriageCeremonyTests.MakeEligibleAsync(f, peer, logs);
+        f.Sql("UPDATE character_stats SET carried_gold=500000 WHERE character_id=72");
+        var actor = maleApplicant ? peer : f.Session; var other = maleApplicant ? f.Session : peer;
+        Assert.True((await MarriageCeremonyTests.RunAsync(f, x => x.RequestAsync(actor, other, 0, 0, default))).Succeeded);
+        Assert.True((await MarriageCeremonyTests.RunAsync(f, x => x.RespondAsync(other, actor, 0, default))).Succeeded);
+        var female = (await f.Services.GetRequiredService<ICharacterDomainService>().Get(f.Session.CharacterId).IdentityAsync(default))!;
+        var male = (await f.Services.GetRequiredService<ICharacterDomainService>().Get(peer.CharacterId).IdentityAsync(default))!;
+        var church = (await Run(f, x => x.PrepareAsync(actor, default)))!;
+        Assert.Equal(female.Name, church.ApplicantName); Assert.Equal(male.Name, church.PartnerName);
+        var ceremony = (await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().FindLatestReceivedAsync(other.CharacterId, default))!;
+        var entries = await Flow(f, x => x.PrepareAsync(ceremony, default));
+        Assert.All(entries, e => { Assert.Equal(female.Name, e.Church.ApplicantName); Assert.Equal(male.Name, e.Church.PartnerName); });
+    }
     [Fact]
     public async Task Unreserved_characters_cannot_prepare_or_cross_into_any_church_area()
     {
@@ -286,9 +305,28 @@ public sealed class MarriageChurchTests
         Arrive(f, entries[0]); if (both) Arrive(f, entries[1]);
         Assert.Null(await Flow(f, x => x.AdvanceAsync(ceremony.Id, default)));
         clock.Now = entries[0].Church.Room.ReadyUntil;
+        if (both)
+        {
+            var priorX = f.Scalar("SELECT pos_x FROM characters WHERE character_id=71");
+            Assert.NotNull(await Flow(f, x => x.AdvanceAsync(ceremony.Id, default), false));
+            Assert.Equal(0, f.Scalar("SELECT phase FROM marriage_weddings"));
+            Assert.Equal(0, f.Scalar("SELECT completed_at FROM marriage_weddings"));
+            Assert.Equal(priorX, f.Scalar("SELECT pos_x FROM characters WHERE character_id=71"));
+        }
         var result = (await Flow(f, x => x.AdvanceAsync(ceremony.Id, default)))!;
         Assert.Equal(both ? MarriageWeddingPhase.Completed : MarriageWeddingPhase.Cancelled, result.Wedding.Phase);
         Assert.Equal(both, (await f.Services.GetRequiredService<IMarriageEngagementDomainService>().ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).IsMarried);
+        if (both)
+        {
+            Assert.Equal(clock.Now, (await f.Services.GetRequiredService<IMarriageEngagementDomainService>().ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).MarriedAt);
+            Assert.Equal(2, result.Standing.Count);
+            var bride = result.Standing.Single(x => x.Actor.CharacterId == f.Session.CharacterId).Position;
+            var groom = result.Standing.Single(x => x.Actor.CharacterId == peer.CharacterId).Position;
+            Assert.Equal((670, 330), ((int)bride.X, (int)bride.Y)); Assert.Equal((685, 360), ((int)groom.X, (int)groom.Y));
+            Assert.Equal(670, f.Scalar("SELECT pos_x FROM characters WHERE character_id=71"));
+        }
+        else Assert.Empty(result.Standing);
+
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_proposals WHERE state=1"));
         Assert.Equal(both ? 0 : 500000, f.Scalar("SELECT COALESCE(SUM(gold),0) FROM mailbox_messages WHERE title='婚礼退款'"));
         Assert.Equal(both ? 0 : 1, result.Departures.Count);
@@ -313,6 +351,7 @@ public sealed class MarriageChurchTests
         }
         await using var restored = new LearningFixture(existing: f.Path);
         Assert.Equal(both, await restored.Services.GetRequiredService<IMarriageWeddingDomainStore>().IsMarriedAsync(ceremony.RelationId, default));
+        if (both) Assert.Equal(clock.Now.ToUnixTimeMilliseconds(), (await restored.Services.GetRequiredService<IMarriageWeddingDomainStore>().MarriedAsync(ceremony.RelationId, default))!.CompletedAt!.Value.ToUnixTimeMilliseconds());
     }
     [Fact]
     public async Task Preparation_rollback_restores_fee_room_admission_and_positions()
@@ -427,6 +466,49 @@ public sealed class MarriageChurchTests
         Assert.Equal(MarriageWeddingPhase.Cancelled, (await Flow(f, x => x.AdvanceAsync(ceremony.Id, default)))!.Wedding.Phase);
         Assert.Equal(2, f.Scalar("SELECT area_id FROM characters WHERE character_id=72"));
         Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM marriage_wedding_cleanup"));
+    }
+
+    private sealed class LoveRules : IMarriageLovePointRuleService, IItemPlacementDefinitionSource
+    {
+        public ValueTask<MarriageLovePointItemRule?> RuleForAsync(int item, CancellationToken ct) => ValueTask.FromResult<MarriageLovePointItemRule?>(item == 10002901
+            ? new(new(true, 0, 0, 1, ItemJobRestriction.Any, ItemPlaceRestriction.Anywhere, Action: "[love point coupon]"), 1, 999) : null);
+        public ValueTask<ItemPlacement?> GetAsync(int item, CancellationToken ct) => ValueTask.FromResult<ItemPlacement?>(new(2, 100, new(Dfo.Server.Data.Inventory.BusinessInventorySpace.Consumable, 0, 55)));
+    }
+    [Fact]
+    public async Task Love_coupon_requires_marriage_consumes_once_updates_shared_points_and_rolls_back()
+    {
+        var (f, peer, clock) = await Reserved(s => { s.AddSingleton<IMarriageLovePointRuleService, LoveRules>(); s.AddSingleton<IItemPlacementDefinitionSource, LoveRules>(); });
+        await using var owned = f;
+        foreach (var actor in new[] { f.Session, peer })
+            f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(actor.CharacterId, new PersistentItemContainer(
+                ContainerId.ForCharacter(actor.CharacterId, Dfo.Server.Data.Inventory.InventoryContainerType.Main), new(Dfo.Server.Data.Inventory.InventoryContainerType.Main, 0),
+                f.Services.GetRequiredService<IItemDomainStore>(), f.Services.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>(),
+                f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>()));
+        await using (var tx = f.Scope.Begin())
+        { await f.Services.GetRequiredService<IItemDeliveryDomainService>().DeliverAsync(f.Session.AccountId, f.Session.CharacterId, [new(10002901, 3)], "love-test", default, ItemDeliveryMode.InventoryOnly); await tx.CommitAsync(default); }
+        var delivered = (await f.Services.GetRequiredService<ICharacterContainerDomainService>().GetContainer(f.Session.CharacterId, Dfo.Server.Data.Inventory.InventoryContainerType.Main).GetAllAsync(default)).Single(x => x.ItemId == 10002901);
+        var source = new InventorySlotMappingRuleService().ToBusinessSlot(new(Dfo.Server.Data.Inventory.InventoryContainerType.Main, delivered.StorageSlotIndex));
+        var love = f.Services.GetRequiredService<IMarriageLovePointDomainService>();
+        var accounts = await love.AccountsAsync(f.Session, default);
+        async Task<MarriageLovePointResult> Use(bool commit = true, IReadOnlyList<AccountId>? expected = null)
+        {
+            await using var tx = f.Scope.Begin(); var result = await love.UseAsync(f.Session, source, expected ?? accounts, default);
+            if (commit) await tx.CommitAsync(default); return result;
+        }
+        Assert.NotEqual(0, (await Use()).Status);
+        var ceremony = (await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().FindLatestReceivedAsync(peer.CharacterId, default))!;
+        var entries = await Flow(f, x => x.PrepareAsync(ceremony, default)); foreach (var entry in entries) Arrive(f, entry);
+        clock.Now = entries[0].Church.Room.ReadyUntil; await Flow(f, x => x.AdvanceAsync(ceremony.Id, default));
+        Assert.Equal(0, (await Use(false)).Status);
+        Assert.Equal(0, f.Scalar("SELECT love_points FROM marriage_weddings")); Assert.Equal(3, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND list_type=0"));
+        Assert.Equal(0, (await Use()).Status);
+        Assert.Equal(1, (await f.Services.GetRequiredService<IMarriageEngagementDomainService>().ReadAsync(peer.AccountId, peer.CharacterId, default)).LovePoints);
+        Assert.Equal(2, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND list_type=0"));
+        Assert.NotEqual(0, (await Use(expected: [f.Session.AccountId])).Status);
+        f.Sql("UPDATE marriage_weddings SET love_points=999");
+        Assert.NotEqual(0, (await Use()).Status); Assert.Equal(2, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND list_type=0"));
+        await using var restored = new LearningFixture(existing: f.Path);
+        Assert.Equal(999, (await restored.Services.GetRequiredService<IMarriageWeddingDomainStore>().MarriedAsync(ceremony.RelationId, default))!.LovePoints);
     }
 
     [Fact]

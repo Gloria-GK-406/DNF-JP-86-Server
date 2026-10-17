@@ -25,7 +25,7 @@ internal sealed class MarriageChurchRuleService(IMarriageCeremonyContentSource c
         var content = ceremony.Load();
         var rule = content.Tiers.Single(x => x.Tier == tier);
         return new(rule.Gold, rule.OpaqueValue, rule.GiftItemId, content.GiftMinimum, content.GiftMaximum, content.GiftChargePercent)
-        { InvitationCutoffSeconds = content.InvitationCutoffSeconds, GuestRewards = content.GuestRewards.Where(x => x.Tier == tier).ToArray() };
+        { CeremonyPositions = content.CeremonyPositions, InvitationCutoffSeconds = content.InvitationCutoffSeconds, GuestRewards = content.GuestRewards.Where(x => x.Tier == tier).ToArray() };
     }
 
     public async ValueTask<IReadOnlyList<MarriageChurchLocation>> LocationsAsync(byte townId, CancellationToken ct)

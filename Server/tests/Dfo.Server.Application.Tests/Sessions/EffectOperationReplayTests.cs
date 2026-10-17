@@ -1,3 +1,6 @@
+using Dfo.Server.Abstractions.Marriage;
+using Dfo.Server.Data.Marriage;
+using Dfo.Server.Protocol.Game.MarriageProposal;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -25,6 +28,66 @@ namespace Dfo.Server.Application.Tests.Sessions;
 
 public sealed class EffectOperationReplayTests
 {
+    private sealed class LoveContent : IMarriageCeremonyContentSource
+    { public MarriageCeremonyContent Load() => new([], []) { LovePointItems = new Dictionary<int, int> { [1000] = 1 }, MaximumLovePoints = 999 }; }
+    [Fact]
+    public async Task Love_coupon_real_dispatcher_lost_ack_replays_current_inventory_and_points_without_second_deduction()
+    {
+        using var f = new ShopFixture(s => {
+            s.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((1000, ItemUseRules.Potion(0) with { Action = "[love point coupon]" })));
+            s.AddSingleton<IMarriageCeremonyContentSource, LoveContent>();
+        });
+        f.Sql("INSERT INTO accounts(account_id,m_id) VALUES(2,'love-peer'); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(3,2,'peer',0,50,0)");
+        var peer = SelectedSessionIdentity.Create(new(2), new(3), new("offline-peer"), 1, 10011);
+        var at = f.Clock.GetUtcNow();
+        var relation = new MarriageProposal(Guid.NewGuid(), f.Session, peer, MarriageProposalState.Pending, 1, at, at.AddMinutes(1));
+        var ceremony = new MarriageCeremony(Guid.NewGuid(), relation.Id, f.Session, peer, 0, 0, MarriageCeremonyState.Pending, 1, at, at.AddMinutes(1));
+        await using (var tx = ((Dfo.Server.Application.Transactions.DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        {
+            var relations = f.Services.GetRequiredService<IMarriageProposalDomainStore>(); await relations.CreateAsync(relation, default);
+            Assert.True(await relations.TransitionAsync(relation, MarriageProposalState.Engaged, 0, default));
+            await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().CreateAsync(ceremony, default);
+            var weddings = f.Services.GetRequiredService<IMarriageWeddingDomainStore>(); await weddings.CreateAsync(new(ceremony, MarriageWeddingPhase.Preparing, 0), default);
+            Assert.True(await weddings.FinishAsync(ceremony.Id, MarriageWeddingPhase.Completed, at, default)); await tx.CommitAsync(default);
+        }
+        await f.Seed(69, 1000, 3);
+        var counter = new GameInboundFrameCounter();
+        WeddingLovePointRequest Request()
+        {
+            var (ordinal, fresh) = counter.Observe(1); var body = new byte[18]; BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(14), 69);
+            return new((new GameMessageMetadata(1, 0x03F5, 0, 1) { InboundOrdinal = ordinal, SequenceIsFresh = fresh }).WithRawBody(body), 69);
+        }
+        var dispatcher = f.Services.GetRequiredService<INetworkMessageDispatcher>(); f.Sender.FailExplicit = true;
+        await Assert.ThrowsAsync<IOException>(async () => await dispatcher.DispatchAsync(new(f.Connection), Request(), default));
+        Assert.Equal(2, f.Count(1000)); Assert.Equal(1, f.Scalar("SELECT love_points FROM marriage_weddings"));
+        await dispatcher.DispatchAsync(new(f.Connection), Request(), default);
+        Assert.Equal(2, f.Count(1000)); Assert.Equal(1, f.Scalar("SELECT love_points FROM marriage_weddings"));
+        var batch = Assert.Single(f.Sender.Batches);
+        Assert.DoesNotContain(batch.Frames, frame => frame[0] == 1 && BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) == 0x03F5);
+        var points = Assert.Single(batch.Frames, frame => frame[0] == 0 && BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) == 0x03D3);
+        Assert.Equal(Convert.FromHexString("0100000001000000"), points[15..]);
+    }
+
+    [Fact]
+    public async Task Shared_effect_real_dispatcher_commits_once_and_replay_only_refreshes_inventory()
+    {
+        using var f = new ShopFixture(services => services.AddSingleton<IItemUseRuleDefinitionSource>(
+            new FakeItemUseRules((1000, ItemUseRules.Potion(0) with { SharedEffectSelector = 0 }))));
+        await f.Seed(69, 1000, 3);
+        var counter = new GameInboundFrameCounter();
+        SharedEffectRequest Request()
+        {
+            var (ordinal, fresh) = counter.Observe(1); var body = new byte[6];
+            BinaryPrimitives.WriteInt32LittleEndian(body, 1000); BinaryPrimitives.WriteUInt16LittleEndian(body.AsSpan(4), 69);
+            return new((new GameMessageMetadata(1, 0x00FB, 0, 1) { InboundOrdinal = ordinal, SequenceIsFresh = fresh }).WithRawBody(body), 1000, 69);
+        }
+        var dispatcher = f.Services.GetRequiredService<INetworkMessageDispatcher>();
+        await dispatcher.DispatchAsync(new(f.Connection), Request(), default);
+        Assert.Equal(2, f.Count(1000));
+        await dispatcher.DispatchAsync(new(f.Connection), Request(), default);
+        Assert.Equal(2, f.Count(1000)); Assert.Single(f.Sender.Batches);
+    }
+
     [Fact]
     public async Task A_use_already_durable_before_sender_failure_cannot_consume_twice_on_the_same_raw_request()
     {

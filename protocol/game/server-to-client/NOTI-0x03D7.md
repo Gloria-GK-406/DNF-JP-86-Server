@@ -1,5 +1,10 @@
 # NOTI `0x03D7` `WEDDING_CEREMONY_BEGIN`
 
+## 2026-10-17 婚礼角色顺序
+
+CurrentImplementation：两个固定30B姓名统一按新娘、再新郎排序，不依赖预约发起方。ClientStatic / Confirmed：cinema从03D4 context取两人，008884A0(flag1)取第二人，在00888924..00888928回答新郎誓词；flag0为新娘。03D7启动演出前广播双方当前PVF force-move坐标；原版镜头走位顺序仍待历史视频及实机验证。旧Snapshot JSON属性名保留以兼容cleanup队列。
+
+
 ## A21 人工裁定与实现（2026-10-16）
 
 ClientStatic / CurrentImplementation：RVA00897B00固定读取68B：u32上下文key@0、u32教堂area@4、两段30B角色名@8/@38。RVA00897770要求本地在town2且area匹配，保存key后加载原生婚礼动作。key不是时间，按每位新人或宾客的上下文分别编码。服务器在到点、双方确实在场并完成事务结算后发送；实际电影、离场待用户验收。

@@ -17,7 +17,7 @@ namespace Dfo.Server.Application.Marriage;
 
 internal sealed class MarriageWeddingDomainService(IMarriageWeddingDomainStore store,
     IMarriageCeremonyDomainStore ceremonies, IMarriageChurchDomainService churches,
-    IMarriageChurchDomainStore rooms, IMarriageChurchRuleService rules,
+    IMarriageChurchDomainStore rooms, IMarriageChurchRuleService rules, IMarriageProposalRuleService genders,
     ISelectedSessionDomainService sessions, ISelectedSessionSnapshotQuery online, ITownAreaDomainService areas,
     ICharacterDomainService characters, ICharacterPositionDomainService positions,
     ISelectedSessionPositionPersistence persistence, IMailboxDomainService mail,
@@ -99,7 +99,7 @@ internal sealed class MarriageWeddingDomainService(IMarriageWeddingDomainStore s
         var first = await characters.Get(ceremony.Applicant.CharacterId).IdentityAsync(ct).ConfigureAwait(false);
         var second = await characters.Get(ceremony.Partner.CharacterId).IdentityAsync(ct).ConfigureAwait(false);
         if (first is null || second is null) throw new MarriageWeddingUnavailableException();
-        return new(room, new(checked((int)key)), first.Name, second.Name, location);
+        return new(room, new(checked((int)key)), genders.IsFemale(first.Job) ? first.Name : second.Name, genders.IsFemale(first.Job) ? second.Name : first.Name, location);
     }
     private async ValueTask RefundAsync(CharacterId character, int gold, string text, CancellationToken ct)
     {
@@ -121,7 +121,8 @@ internal sealed class MarriageWeddingDomainService(IMarriageWeddingDomainStore s
             && await rooms.IsAdmittedAsync(id, ceremony.Applicant.CharacterId, ct).ConfigureAwait(false)
             && await rooms.IsAdmittedAsync(id, ceremony.Partner.CharacterId, ct).ConfigureAwait(false);
         var phase = both ? MarriageWeddingPhase.Completed : MarriageWeddingPhase.Cancelled;
-        if (!await store.FinishAsync(id, phase, ct).ConfigureAwait(false)) return null;
+        var finishedAt = clock.GetUtcNow();
+        if (!await store.FinishAsync(id, phase, finishedAt, ct).ConfigureAwait(false)) return null;
         var guests = await store.InvitationsAsync(id, ct).ConfigureAwait(false);
         var rule = rules.WeddingRules(ceremony.Tier);
         var participants = new List<MarriageWeddingAdmission>();
@@ -134,11 +135,23 @@ internal sealed class MarriageWeddingDomainService(IMarriageWeddingDomainStore s
                 participants.Add(new(actor, await SnapshotAsync(ceremony, room, checked((uint)peer.Value), ct).ConfigureAwait(false)));
             }
         }
+        var standing = new List<MarriageWeddingStanding>();
         var departures = new List<MarriageWeddingDeparture>();
         if (both)
         {
             foreach (var owner in new[] { ceremony.Applicant, ceremony.Partner })
             {
+                if (rule.CeremonyPositions.Count == 2)
+                {
+                    var identity = await characters.Get(owner.CharacterId).IdentityAsync(ct).ConfigureAwait(false) ?? throw new MarriageWeddingUnavailableException();
+                    // Assign the two PVF ground positions consistently with our bride/groom projection.
+                    var spot = rule.CeremonyPositions[genders.IsFemale(identity.Job) ? 0 : 1];
+                    var actor = sessions.FindByCharacter(owner.CharacterId) ?? throw new MarriageWeddingUnavailableException();
+                    var position = positions.Find(owner.CharacterId) ?? throw new MarriageWeddingUnavailableException();
+                    position = position with { X = spot.X, Y = spot.Y };
+                    await persistence.PersistAsync(actor.AccountId, actor.CharacterId, position, ct).ConfigureAwait(false);
+                    standing.Add(new(actor, position));
+                }
                 if (rule.GiftItemId > 0) await delivery.DeliverAsync(owner.AccountId, owner.CharacterId,
                     [new ItemDeliveryGrant(rule.GiftItemId, 1)], "普通婚礼奖励", ct, ItemDeliveryMode.MailOnly).ConfigureAwait(false);
                 var share = guests.Sum(x => (long)x.Gold) * (100 - rule.GiftChargePercent) / 100 / 2;
@@ -181,7 +194,7 @@ internal sealed class MarriageWeddingDomainService(IMarriageWeddingDomainStore s
             if (actor is null || occupied.Contains(actor)) continue;
             cleanup.Add(new(actor, await SnapshotAsync(ceremony, room, invitation.Key, ct).ConfigureAwait(false)));
         }
-        return new(wedding with { Phase = phase }, participants, guestEntries) { Departures = departures, Cleanup = cleanup };
+        return new(wedding with { Phase = phase, CompletedAt = both ? finishedAt : null }, participants, guestEntries) { Standing = standing, Departures = departures, Cleanup = cleanup };
     }
 
     private async ValueTask PersistExitAsync(MarriageChurchRoom room, IEnumerable<CharacterId> charactersToMove, MarriageChurchLocation exit, CancellationToken ct)

@@ -55,8 +55,10 @@ public sealed class SchemaOwnershipTests
 
         // Counted rather than sampled: naming a handful of tables would stay green while forty of
         // the declarations went missing.
-        Assert.Equal(86, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(92, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.Contains("marriage_ceremonies(", shape, StringComparison.Ordinal);
+        foreach (var weddingTable in new[] { "marriage_weddings", "marriage_wedding_guests", "marriage_guest_comments", "marriage_wedding_cleanup", "marriage_church_rooms", "marriage_church_admissions" })
+            Assert.Contains(weddingTable + "(", shape, StringComparison.Ordinal);
         Assert.Contains("sao_tower_progress(next_floor:INTEGER,revision:INTEGER,round:INTEGER,season:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("sao_first_clears(floor:INTEGER,round:INTEGER,run_id:TEXT,season:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("sao_first_clear_rewards(character_id:INTEGER,item_id:INTEGER,run_id:TEXT)", shape, StringComparison.Ordinal);

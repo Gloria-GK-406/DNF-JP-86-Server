@@ -40,8 +40,16 @@ internal sealed class PvfMarriageCeremonyContentSource(PvfArchiveProvider provid
         }
         var cutoff = document.Read(PvfField.Int32List("[noti end]"));
         if (cutoff.Count != 1 || cutoff[0] < 0) throw new InvalidDataException("Invalid invitation cutoff.");
+        var force = document.Read(PvfField.Int32List("[force move]"));
+        if (force.Count != 6 || force[2] != 0 || force[5] != 0) throw new InvalidDataException("Wedding requires two ground ceremony positions.");
+        var standing = Enumerable.Range(0, 2).Select(i => new MarriageCeremonyPosition(checked((short)force[i * 3]), checked((short)force[i * 3 + 1]), force[i * 3 + 2])).ToArray();
+        var love = document.Read(PvfField.Int32List("[love point item]"));
+        var maximumLove = document.Read(PvfField.Int32("[max love point]", minimum: 1));
+        if (love.Count == 0 || love.Count % 2 != 0) throw new InvalidDataException("Invalid love point item rules.");
+        var loveItems = Enumerable.Range(0, love.Count / 2).ToDictionary(i => love[i * 2], i => love[i * 2 + 1]);
+        if (loveItems.Any(x => x.Key <= 0 || x.Value <= 0)) throw new InvalidDataException("Invalid love point grant.");
         return new MarriageCeremonyContent(tiers, waits)
-        { GiftMinimum = limits[0], GiftMaximum = limits[1], GiftChargePercent = charge[0], GuestRewards = rewards,
+        { CeremonyPositions = standing, MaximumLovePoints = maximumLove, LovePointItems = loveItems, GiftMinimum = limits[0], GiftMaximum = limits[1], GiftChargePercent = charge[0], GuestRewards = rewards,
             InvitationCutoffSeconds = cutoff[0] };
     });
 

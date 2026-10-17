@@ -44,7 +44,7 @@ internal sealed class SharedEffectNotificationEncoder : GameNotiMessageEncoder<S
         return OnePayload(0x00DB, b);
     }
 }
-public sealed record SharedEffectCommand(SelectedSessionIdentity Actor, BusinessSlot Slot, int ItemId) : ICommand<SharedEffectUseResult>, IAccountCommand, ISelectedSessionCommand
+public sealed record SharedEffectCommand(SelectedSessionIdentity Actor, BusinessSlot Slot, int ItemId) : ICommand<SharedEffectUseResult>, IAccountCommand, IRequestSettlementCommand
 { public AccountId AccountId => Actor.AccountId; public SelectedSessionIdentity? Session => Actor; }
 public sealed class SharedEffectCommandHandler(ISharedEffectDomainService effects) : ICommandHandler<SharedEffectCommand, SharedEffectUseResult>
 {

@@ -10,7 +10,9 @@ public interface IMarriageWeddingDomainStore
     ValueTask<MarriageWedding?> ReadAsync(Guid ceremony, CancellationToken ct);
     ValueTask<IReadOnlyList<MarriageWedding>> PendingAsync(CancellationToken ct);
     ValueTask CreateAsync(MarriageWedding wedding, CancellationToken ct);
-    ValueTask<bool> FinishAsync(Guid ceremony, MarriageWeddingPhase phase, CancellationToken ct);
+    ValueTask<bool> FinishAsync(Guid ceremony, MarriageWeddingPhase phase, DateTimeOffset at, CancellationToken ct);
+    ValueTask<MarriageWedding?> MarriedAsync(Guid relation, CancellationToken ct);
+    ValueTask<bool> AddLovePointsAsync(Guid relation, int amount, int maximum, CancellationToken ct);
     ValueTask<bool> IsMarriedAsync(Guid relation, CancellationToken ct);
     ValueTask<IReadOnlyList<MarriageWeddingInvitation>> InvitationsAsync(Guid ceremony, CancellationToken ct);
     ValueTask InviteAsync(MarriageWeddingInvitation invitation, CancellationToken ct);

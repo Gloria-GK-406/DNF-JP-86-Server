@@ -18,6 +18,16 @@ namespace Dfo.Server.Protocol.Tests.Game;
 
 public sealed class ReplayStateProjectionTests
 {
+    [Fact]
+    public void Love_coupon_replay_only_projects_current_points_without_success_ack_or_cinema_reset()
+    {
+        var state = State(ReplayProjectionNeeds.MarriageLovePoints) with { LovePoints = 23 };
+        var messages = ReplayStateProjectionDelivery.Create(state);
+        var message = Assert.IsType<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotification>(Assert.Single(messages));
+        Assert.Equal(state.Session.CharacterId.Value, message.Character); Assert.Equal(23, message.Points);
+        Assert.False(ReplayProjectionNeeds.All.HasFlag(ReplayProjectionNeeds.MarriageLovePoints));
+        Assert.Throws<InvalidDataException>(() => ReplayStateProjectionDelivery.Create(state with { LovePoints = null }));
+    }
     [Theory]
     [InlineData(Dfo.Server.Data.Events.JoustPhase.Betting)]
     [InlineData(Dfo.Server.Data.Events.JoustPhase.Result)]

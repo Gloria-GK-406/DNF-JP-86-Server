@@ -29,6 +29,9 @@ public sealed record MarriageCeremonyContent(
     IReadOnlyList<MarriageCeremonyTier> Tiers,
     IReadOnlyList<int> WaitDurations)
 {
+    public IReadOnlyList<MarriageCeremonyPosition> CeremonyPositions { get; init; } = [];
+    public int MaximumLovePoints { get; init; } = 999;
+    public IReadOnlyDictionary<int, int> LovePointItems { get; init; } = new Dictionary<int, int>();
     public int GiftMinimum { get; init; } = 10000;
     public int GiftMaximum { get; init; } = 400000000;
     public int GiftChargePercent { get; init; } = 50;
@@ -79,9 +82,13 @@ public sealed record MarriageEngagementSnapshot(Guid? RelationId, MarriagePartne
     public bool IsEngaged => RelationId is not null && Partner is not null;
     public bool IsCeremonyReserved { get; init; }
     public bool IsMarried { get; init; }
+    public DateTimeOffset? MarriedAt { get; init; }
+    public int LovePoints { get; init; }
     public static MarriageEngagementSnapshot Empty { get; } = new(null, null);
 }
 
 public sealed record MarriageQuestBinding(Guid RelationId, DateTimeOffset AcceptedAt);
 
 public sealed record MarriageGuestReward(int MaximumGold, int Tier, int ItemId, int Count);
+
+public sealed record MarriageCeremonyPosition(short X, short Y, int Z);

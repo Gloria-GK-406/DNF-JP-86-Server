@@ -26,11 +26,14 @@ internal sealed class MarriageEngagementDomainService(IMarriageProposalDomainSto
         var current = await inventory.ReadCurrentAsync(peer.AccountId, peer.CharacterId, ct).ConfigureAwait(false);
         var worn = current.Containers.SingleOrDefault(x => x.ContainerType == InventoryContainerType.Equipment)?.Items ?? [];
         var equipment = Enumerable.Range(0, 13).Select(slot => worn.SingleOrDefault(x => x.SlotIndex == slot)?.Core.ItemId ?? 0).ToArray();
-        var married = await weddings.IsMarriedAsync(relation.Id, ct).ConfigureAwait(false);
+        var wedding = await weddings.MarriedAsync(relation.Id, ct).ConfigureAwait(false);
+        var married = wedding is not null;
         return new(relation.Id, new(peer.CharacterId.Value, identity.Name, identity.Job, progress.Level, identity.GrowType, equipment))
         {
             IsCeremonyReserved = !married && await ceremonies.IsReservedAsync(relation.Id, ct).ConfigureAwait(false),
             IsMarried = married,
+            MarriedAt = wedding?.CompletedAt,
+            LovePoints = wedding?.LovePoints ?? 0,
         };
     }
 }

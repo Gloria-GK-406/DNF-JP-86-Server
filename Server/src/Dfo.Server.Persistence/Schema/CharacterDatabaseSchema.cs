@@ -266,7 +266,8 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS marriage_weddings (
             ceremony_id TEXT PRIMARY KEY REFERENCES marriage_ceremonies(id),
             relation_id TEXT NOT NULL REFERENCES marriage_proposals(id),payload_json TEXT NOT NULL,
-            phase INTEGER NOT NULL CHECK(phase BETWEEN 0 AND 2),paid_gold INTEGER NOT NULL CHECK(paid_gold>=0)
+            phase INTEGER NOT NULL CHECK(phase BETWEEN 0 AND 2),paid_gold INTEGER NOT NULL CHECK(paid_gold>=0),
+            completed_at INTEGER NOT NULL DEFAULT 0,love_points INTEGER NOT NULL DEFAULT 0 CHECK(love_points>=0)
         );
         CREATE UNIQUE INDEX IF NOT EXISTS ux_marriage_weddings_married ON marriage_weddings(relation_id) WHERE phase=1;
         CREATE TABLE IF NOT EXISTS marriage_wedding_guests (
@@ -432,6 +433,8 @@ internal static class CharacterDatabaseSchema
 
     /// <summary>Table, column and declaration, one per line.</summary>
     private const string ReconcilableColumns = """
+        marriage_weddings|completed_at|INTEGER NOT NULL DEFAULT 0
+        marriage_weddings|love_points|INTEGER NOT NULL DEFAULT 0 CHECK(love_points>=0)
         items|is_mirror|INTEGER NOT NULL DEFAULT 0 CHECK(is_mirror IN (0,1))
         items|mirror_source_uid|INTEGER
         items|appearance_item_id|INTEGER CHECK(appearance_item_id >= 0)

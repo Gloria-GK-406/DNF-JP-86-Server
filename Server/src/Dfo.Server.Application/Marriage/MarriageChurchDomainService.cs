@@ -9,7 +9,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Marriage;
 
 internal sealed class MarriageChurchDomainService(IMarriageProposalDomainStore relations,
-    IMarriageCeremonyDomainStore ceremonies, IMarriageChurchRuleService rules,
+    IMarriageCeremonyDomainStore ceremonies, IMarriageChurchRuleService rules, IMarriageProposalRuleService genders,
     ISelectedSessionDomainService sessions, ITownAreaDomainService areas, ICharacterDomainService characters,
     TimeProvider clock, ICharacterPositionDomainService positions, ISelectedSessionPositionPersistence persistence,
     IMarriageChurchDomainStore? store = null, IMarriageWeddingDomainStore? weddings = null) : IMarriageChurchDomainService
@@ -61,7 +61,8 @@ internal sealed class MarriageChurchDomainService(IMarriageProposalDomainStore r
         var second = await characters.Get(ceremony.Partner.CharacterId).IdentityAsync(ct).ConfigureAwait(false);
         if (location is null || first is null || second is null) return null;
         var peer = actor.CharacterId == ceremony.Applicant.CharacterId ? ceremony.Partner.CharacterId : ceremony.Applicant.CharacterId;
-        return new(room, peer, first.Name, second.Name, location);
+        // A21 cinema 008884A0: first is bride, second is groom, regardless of payer.
+        return new(room, peer, genders.IsFemale(first.Job) ? first.Name : second.Name, genders.IsFemale(first.Job) ? second.Name : first.Name, location);
     }
 
     public async ValueTask<MarriageChurchEntryResult> EnterAsync(SelectedSessionIdentity actor,

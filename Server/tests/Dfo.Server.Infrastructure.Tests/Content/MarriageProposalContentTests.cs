@@ -37,6 +37,8 @@ public sealed class MarriageProposalContentTests
         Assert.Equal(10002629, content.Tiers.Single(x => x.Tier == 0).GiftItemId);
         Assert.Equal(10, content.Tiers.Single(x => x.Tier == 0).OpaqueValue);
         Assert.Equal(60, content.InvitationCutoffSeconds);
+        Assert.Equal(999, content.MaximumLovePoints); Assert.Equal(1, content.LovePointItems[10002901]);
+        Assert.Equal(new[] { (670, 330, 0), (685, 360, 0) }, content.CeremonyPositions.Select(x => ((int)x.X, (int)x.Y, x.Z)));
         Assert.Equal(10000, content.GiftMinimum); Assert.Equal(400000000, content.GiftMaximum);
         Assert.Equal(50, content.GiftChargePercent); Assert.Equal(6, content.GuestRewards.Select(x => x.MaximumGold).Distinct().Count());
         Assert.Contains(content.GuestRewards, x => x.MaximumGold == 99999 && x.Tier == 0 && x.ItemId == 10002623 && x.Count == 2);

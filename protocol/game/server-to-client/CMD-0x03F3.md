@@ -1,5 +1,10 @@
 # CMD `0x03F3` `WEDDING_CHARAC`
 
+## 2026-10-17 等级与职业纠正
+
+ClientStatic / Confirmed：成功正文@43为等级，@44为职业，原先人工语义及实现写反。00892D20将raw42写GameCharacterInfo加密等级+14；00892DCE将raw43写job+4，13A6E31..13A6E3D用+4进行职业换装查询。正文含ok信封，故raw偏移加1。已改编码并加入骑士job12/level85回归；GrowType及13项部件不变。原生模型显示仍待验收。
+
+
 2026-10-16；A21 ClientStatic / Confirmed，CurrentImplementation；无本轮完整正常实帧，原生显示待验收。
 
 handler RVA00892C60在结果信封非零时精确读取97B，线上正文98B：
@@ -11,8 +16,8 @@ handler RVA00892C60在结果信封非零时精确读取97B，线上正文98B：
 | 5 | 4 | u32 | 对象CharacterId，与manager+0x5c比对 |
 | 9 | 4 | i32 | 被读取但未使用，本期0 |
 | 13 | 30 | bytes | 对象名字，零结尾固定C字符串 |
-| 43 | 1 | i8 | Job |
-| 44 | 1 | i8 | Level |
+| 43 | 1 | i8 | Level |
+| 44 | 1 | i8 | Job |
 | 45 | 1 | u8 | 编码GrowType，经RVA015DAFB0（VA019DAFB0）保存 |
 | 46 | 52 | 13×i32 | 外观槽0..12模板ID，空槽必须为-1 |
 

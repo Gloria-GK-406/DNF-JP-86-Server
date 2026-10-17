@@ -45,6 +45,9 @@ internal static class MarriageEngagementPayload
         // Native NPC dispatcher blocks another reservation only at stage 2 (RVA021AB558).
         // Stage 4 is married and must remain unreachable before ceremony completion.
         result[4] = snapshot.IsMarried ? (byte)4 : snapshot.IsCeremonyReserved ? (byte)2 : (byte)1;
+        if (snapshot.MarriedAt is { } marriedAt)
+            BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(6), checked((uint)marriedAt.ToUnixTimeSeconds()));
+        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(10), checked((uint)snapshot.LovePoints));
         return result;
     }
 
@@ -56,7 +59,7 @@ internal static class MarriageEngagementPayload
         var result = new byte[98];
         result[0] = 1;
         // The handler reads 97 bytes after the result envelope: an unused DWORD, id, another unused DWORD,
-        // name[30], job, level, encoded grow type, and 13 equipment template IDs.
+        // name[30], level, job, encoded grow type, and 13 equipment template IDs.
         BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(5), checked((uint)profile.CharacterId));
         var nameBytes = Math.Min(profile.Name.Length, 29);
         // Character names use the existing UTF-8 wire representation; keep a complete prefix
@@ -64,8 +67,9 @@ internal static class MarriageEngagementPayload
         if (nameBytes < profile.Name.Length)
             while (nameBytes > 0 && (profile.Name[nameBytes] & 0xC0) == 0x80) nameBytes--;
         profile.Name.AsSpan(0, nameBytes).CopyTo(result.AsSpan(13, 30));
-        result[43] = profile.Job;
-        result[44] = checked((byte)profile.Level);
+        // 00892D20 stores raw42 in encrypted level (+14); 00892DCE stores raw43 in job (+4).
+        result[43] = checked((byte)profile.Level);
+        result[44] = profile.Job;
         result[45] = profile.GrowType;
         for (var slot = 0; slot < 13; slot++)
         {

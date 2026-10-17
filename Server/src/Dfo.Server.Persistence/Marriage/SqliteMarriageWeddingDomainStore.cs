@@ -12,10 +12,11 @@ internal sealed class SqliteMarriageWeddingDomainStore(SqliteDatabase database) 
         (await ReadCoreAsync("ceremony_id=@id", ceremony.ToString("N"), ct).ConfigureAwait(false)).SingleOrDefault();
     public ValueTask<IReadOnlyList<MarriageWedding>> PendingAsync(CancellationToken ct) => ReadCoreAsync("phase=0 OR EXISTS(SELECT 1 FROM marriage_wedding_cleanup c WHERE c.ceremony_id=marriage_weddings.ceremony_id) OR EXISTS(SELECT 1 FROM marriage_church_rooms r WHERE r.ceremony_id=marriage_weddings.ceremony_id)", "", ct);
     private ValueTask<IReadOnlyList<MarriageWedding>> ReadCoreAsync(string predicate, string id, CancellationToken ct) =>
-        database.ReadAllAsync($"SELECT payload_json,phase,paid_gold FROM marriage_weddings WHERE {predicate}",
+        database.ReadAllAsync($"SELECT payload_json,phase,paid_gold,completed_at,love_points FROM marriage_weddings WHERE {predicate}",
             p => p.AddWithValue("@id", id), r => new MarriageWedding(
                 JsonSerializer.Deserialize<MarriageCeremony>(r.GetString(0)) ?? throw new InvalidDataException("Invalid wedding."),
-                (MarriageWeddingPhase)r.GetInt32(1), r.GetInt32(2)), ct);
+                (MarriageWeddingPhase)r.GetInt32(1), r.GetInt32(2))
+                { CompletedAt = r.GetInt64(3) == 0 ? null : DateTimeOffset.FromUnixTimeMilliseconds(r.GetInt64(3)), LovePoints = r.GetInt32(4) }, ct);
     public async ValueTask CreateAsync(MarriageWedding wedding, CancellationToken ct) =>
         _ = await database.ExecuteAsync("""
             INSERT INTO marriage_weddings(ceremony_id,relation_id,payload_json,phase,paid_gold)
@@ -23,9 +24,14 @@ internal sealed class SqliteMarriageWeddingDomainStore(SqliteDatabase database) 
             """, p => { p.AddWithValue("@id", wedding.Ceremony.Id.ToString("N"));
                 p.AddWithValue("@relation", wedding.Ceremony.RelationId.ToString("N"));
                 p.AddWithValue("@payload", JsonSerializer.Serialize(wedding.Ceremony)); p.AddWithValue("@gold", wedding.PaidGold); }, ct).ConfigureAwait(false);
-    public async ValueTask<bool> FinishAsync(Guid ceremony, MarriageWeddingPhase phase, CancellationToken ct) =>
-        await database.ExecuteAsync("UPDATE marriage_weddings SET phase=@phase WHERE ceremony_id=@id AND phase=0",
-            p => { p.AddWithValue("@id", ceremony.ToString("N")); p.AddWithValue("@phase", (int)phase); }, ct).ConfigureAwait(false) == 1;
+    public async ValueTask<bool> FinishAsync(Guid ceremony, MarriageWeddingPhase phase, DateTimeOffset at, CancellationToken ct) =>
+        await database.ExecuteAsync("UPDATE marriage_weddings SET phase=@phase,completed_at=@at WHERE ceremony_id=@id AND phase=0",
+            p => { p.AddWithValue("@id", ceremony.ToString("N")); p.AddWithValue("@phase", (int)phase); p.AddWithValue("@at", phase == MarriageWeddingPhase.Completed ? at.ToUnixTimeMilliseconds() : 0); }, ct).ConfigureAwait(false) == 1;
+    public async ValueTask<MarriageWedding?> MarriedAsync(Guid relation, CancellationToken ct) =>
+        (await ReadCoreAsync("relation_id=@id AND phase=1", relation.ToString("N"), ct).ConfigureAwait(false)).SingleOrDefault();
+    public async ValueTask<bool> AddLovePointsAsync(Guid relation, int amount, int maximum, CancellationToken ct) =>
+        amount > 0 && amount <= maximum && await database.ExecuteAsync("UPDATE marriage_weddings SET love_points=love_points+@amount WHERE relation_id=@id AND phase=1 AND love_points<=@maximum-@amount",
+            p => { p.AddWithValue("@id", relation.ToString("N")); p.AddWithValue("@amount", amount); p.AddWithValue("@maximum", maximum); }, ct).ConfigureAwait(false) == 1;
     public async ValueTask<bool> IsMarriedAsync(Guid relation, CancellationToken ct) =>
         (await database.ReadAllAsync("SELECT EXISTS(SELECT 1 FROM marriage_weddings WHERE relation_id=@id AND phase=1)",
             p => p.AddWithValue("@id", relation.ToString("N")), r => r.GetInt32(0) != 0, ct).ConfigureAwait(false)).Single();

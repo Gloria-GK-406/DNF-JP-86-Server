@@ -1,5 +1,10 @@
 # NOTI `0x03D3` `CHARAC_LOVE_POINT`
 
+## 2026-10-17 心意点通知
+
+ClientStatic / Confirmed：00892B80读8B=u32当前接收角色CharacterId+u32共享点数；首字段与本机角色ID比较，不能写配偶ID。写manager+6C。CurrentImplementation：成功后分别按双方自己的ID通知；重放只发送请求者当前点数，无ACK、无重扣。
+
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

@@ -1,5 +1,10 @@
 # NOTI `0x03D4` `WEDDING_CEREMONY`
 
+## 2026-10-17 婚礼角色顺序
+
+CurrentImplementation：两个固定30B姓名统一按新娘、再新郎排序，不依赖预约发起方。ClientStatic / Confirmed：cinema从03D4 context取两人，008884A0(flag1)取第二人，在00888924..00888928回答新郎誓词；flag0为新娘。03D7启动演出前广播双方当前PVF force-move坐标；原版镜头走位顺序仍待历史视频及实机验证。旧Snapshot JSON属性名保留以兼容cleanup队列。
+
+
 ## A21 人工读取边界与普通准备投影（2026-10-16）
 
 ClientStatic / Confirmed：handler RVA00895B10固定读取79B，没有CMD结果信封。原先把offset47后的数据笼统记作32B字符串的结论不够精确：本区是30B字符串再加独立u16。人工裁定优先于下方机器区的unknown块。

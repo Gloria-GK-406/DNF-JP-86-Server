@@ -299,6 +299,11 @@ public sealed class ProtocolModule : IServerModule
             Dfo.Server.Protocol.Game.MarriageProposal.PrepareMarriageChurchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.EnterMarriageChurchCommand, Dfo.Server.Data.Marriage.MarriageChurchEntryResult,
             Dfo.Server.Protocol.Game.MarriageProposal.EnterMarriageChurchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointDecoder>(0x03F5, ClientMessageType.GameWeddingLovePoint);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointHandler>(ClientMessageType.GameWeddingLovePoint);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointAckEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotificationEncoder>();
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointCommand, Dfo.Server.Abstractions.Marriage.MarriageLovePointResult, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerDecoder>(GameProtocol.WeddingPartnerType, ClientMessageType.GameWeddingPartnerQuery);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerHandler>(ClientMessageType.GameWeddingPartnerQuery);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerEncoder>();

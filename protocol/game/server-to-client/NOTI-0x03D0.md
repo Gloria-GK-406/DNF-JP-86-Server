@@ -1,5 +1,10 @@
 # NOTI `0x03D0` `WEDDING_INFO`
 
+## 2026-10-17 婚龄与心意点闭合
+
+ClientStatic / Confirmed：@6 u32 为婚礼完成的Unix秒时间，manager+68→getter422D0→UI877DC0，婚龄=floor((now-time)/86400)+1；@10 u32 为双方共享心意点。CurrentImplementation：保存completed_at毫秒与love_points，重登投影真实值，历史行不猜日期；本次已确认旧关系由首次Completed日志回填。下列旧人工区“未闭合/其它字段0”对应此前阶段，不再代表当前实现。见[修复报告](../../../Document/MarriageWeddingSixIssues-20261017.md)。
+
+
 ## 2026-10-16 普通婚礼预约接入
 
 当前补充：独立预约Reserved记录投影state2，接受后双端推送，选角/重登恢复。NPC RVA021AB558在state2阻止重复预约；其它未知字段仍0，仅ClientStatic/High安全性证据，待用户实机验证。

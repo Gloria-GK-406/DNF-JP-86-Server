@@ -144,6 +144,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageChurchRuleService, Dfo.Server.Application.Marriage.MarriageChurchRuleService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageChurchDomainService, Dfo.Server.Application.Marriage.MarriageChurchDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Inventory.ISharedEffectDomainService, Dfo.Server.Application.Inventory.SharedEffectDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageLovePointRuleService, Dfo.Server.Application.Marriage.MarriageLovePointRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageLovePointDomainService, Dfo.Server.Application.Marriage.MarriageLovePointDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageGuestbookRuleService, Dfo.Server.Application.Marriage.MarriageGuestbookRuleService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageGuestbookDomainService, Dfo.Server.Application.Marriage.MarriageGuestbookDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageWeddingDomainService, Dfo.Server.Application.Marriage.MarriageWeddingDomainService>();

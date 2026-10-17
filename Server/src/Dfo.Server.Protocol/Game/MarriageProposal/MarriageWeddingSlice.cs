@@ -174,6 +174,14 @@ public sealed class MarriageWeddingProjection(ISelectedSessionDomainService sess
 {
     public ValueTask AppearanceAsync(SelectedSessionIdentity actor, MarriageChurchSnapshot church, bool restore, CancellationToken ct) =>
         sender.SendExplicitAsync(actor.ConnectionId, new([new WeddingAvatarNotification(church, restore)], []), ct);
+    public async ValueTask PositionAsync(MarriageWeddingStanding standing, CancellationToken ct)
+    {
+        var actor = standing.Actor;
+        if (sessions.Find(actor.AccountId) != actor || areas.Find(actor.CharacterId) is not { } area || !actor.Owns(area)
+            || area.Area.TownId != standing.Position.TownId || area.Area.AreaId != standing.Position.AreaId) return;
+        var moved = positions.StepTo(actor, standing.Position.X, standing.Position.Y, standing.Position.Direction);
+        await projection.MoveAsync(actor.ConnectionId, actor, moved, 0, ct).ConfigureAwait(false);
+    }
     public async ValueTask<bool> MoveAsync(SelectedSessionIdentity actor, int channel, MarriageChurchLocation location, CancellationToken ct)
     {
         if (sessions.Find(actor.AccountId) != actor || areas.Find(actor.CharacterId) is not { } previous || !actor.Owns(previous)
@@ -209,6 +217,9 @@ internal sealed class MarriageWeddingScheduler(IMarriageWeddingDomainService wed
                     if (result is null) continue;
                     logger.LogInformation("Wedding {Ceremony} reached {Phase}", wedding.Ceremony.Id, result.Wedding.Phase);
                     var completed = result.Wedding.Phase == MarriageWeddingPhase.Completed;
+                    // Broadcast both authoritative positions before either endpoint starts the cinema.
+                    foreach (var standing in result.Standing)
+                        await ProjectAsync(() => projection.PositionAsync(standing, ct), ct).ConfigureAwait(false);
                     foreach (var participant in result.Participants)
                     {
                         var messages = new List<IGameServerMessage>();

@@ -10,6 +10,29 @@ namespace Dfo.Server.Protocol.Tests;
 public sealed class MarriageProposalCodecTests
 {
     [Fact]
+    public void Partner_profile_places_level_before_job_to_create_the_native_knight_model()
+    {
+        var body = MarriageEngagementPayload.Partner(new(1, "000"u8.ToArray(), 12, 85, 0, new int[13]));
+        Assert.Equal(85, body[43]); Assert.Equal(12, body[44]); Assert.Equal(0, body[45]);
+    }
+    [Fact]
+    public void Marriage_date_and_love_points_match_native_offsets_and_coupon_uses_main_slot()
+    {
+        var at = DateTimeOffset.FromUnixTimeSeconds(1792206195);
+        var snapshot = new Dfo.Server.Data.Marriage.MarriageEngagementSnapshot(Guid.NewGuid(), new(8, "peer"u8.ToArray(), 0, 70, 0, new int[13])) { IsMarried = true, MarriedAt = at, LovePoints = 17 };
+        var info = MarriageEngagementPayload.Info(snapshot);
+        Assert.Equal(15, info.Length); Assert.Equal(4, info[4]);
+        Assert.Equal(1792206195u, BinaryPrimitives.ReadUInt32LittleEndian(info.AsSpan(6)));
+        Assert.Equal(17u, BinaryPrimitives.ReadUInt32LittleEndian(info.AsSpan(10)));
+        var request = Assert.IsType<WeddingLovePointRequest>(new WeddingLovePointDecoder().Decode(GameMessageMetadata.Empty, Convert.FromHexString("8CF61A00FE70E902FFFFFFFF9CF351000000")));
+        Assert.Equal(81u, request.Slot);
+        foreach (var size in new[] { 0, 4, 17, 19, 32 }) Assert.Throws<InvalidDataException>(() => new WeddingLovePointDecoder().Decode(GameMessageMetadata.Empty, new byte[size]));
+        Assert.Equal(Convert.FromHexString("01FEFFFFFF"), Assert.Single(new WeddingLovePointAckEncoder().Encode(new WeddingLovePointAck(-2)))[15..]);
+        Assert.Equal(Convert.FromHexString("0800000011000000"), Assert.Single(new WeddingLovePointNotificationEncoder().Encode(new WeddingLovePointNotification(8, 17)))[15..]);
+        Assert.IsAssignableFrom<Dfo.Server.Application.Commands.IRequestSettlementCommand>(new WeddingLovePointCommand(SelectedSessionIdentity.Create(new(1), new(8), new("test"), 1, 10011), new(Dfo.Server.Data.Inventory.BusinessInventorySpace.Consumable, 16), [new(1), new(2)]));
+    }
+
+    [Fact]
     public void Reservation_uses_action_two_without_shifting_tier_or_response_and_projects_stage_two()
     {
         Assert.Equal(Convert.FromHexString("0000000048000000020100"), WeddingProposalPayload.Fields(0, 72, 2, tier: 1));
@@ -41,7 +64,7 @@ public sealed class MarriageProposalCodecTests
         Assert.Equal(98, response.Length); Assert.Equal(1, response[0]);
         Assert.Equal(72u, BinaryPrimitives.ReadUInt32LittleEndian(response.AsSpan(5)));
         Assert.Equal("partner"u8.ToArray(), response[13..20]);
-        Assert.Equal(12, response[43]); Assert.Equal(85, response[44]); Assert.Equal(0x11, response[45]);
+        Assert.Equal(85, response[43]); Assert.Equal(12, response[44]); Assert.Equal(0x11, response[45]);
         Assert.Equal(112, BinaryPrimitives.ReadInt32LittleEndian(response.AsSpan(94)));
         Assert.Equal(new byte[] { 0, 1 }, MarriageEngagementPayload.Partner(null));
     }

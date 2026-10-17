@@ -9,6 +9,7 @@ internal sealed class MarriageProposalRuleService(IMarriageProposalContentSource
 {
     // A21 RVA008916B0 / table008916E0, also checked against the same-sex prompt 72807.
     private static ReadOnlySpan<byte> GenderByJob => [0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0];
+    public bool IsFemale(byte job) => job < GenderByJob.Length ? GenderByJob[job] == 1 : throw new ArgumentOutOfRangeException(nameof(job));
     public int MinimumLevel => content.Load().MinimumLevel;
     public TimeSpan Lifetime => options.Lifetime;
     public int TrialQuestId => content.Load().TrialQuestId;

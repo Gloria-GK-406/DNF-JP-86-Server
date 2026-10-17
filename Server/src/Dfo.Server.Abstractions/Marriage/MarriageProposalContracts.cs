@@ -29,6 +29,7 @@ public interface IMarriageProposalRuleService
     int TrialQuestId { get; }
     int MaterialQuestId { get; }
     bool CanPair(byte firstJob, byte secondJob);
+    bool IsFemale(byte job);
 }
 
 public interface IMarriageCeremonyDomainStore

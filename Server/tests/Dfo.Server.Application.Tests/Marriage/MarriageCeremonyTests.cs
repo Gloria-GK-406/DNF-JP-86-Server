@@ -18,7 +18,7 @@ public sealed class MarriageCeremonyTests
     private sealed class Content : IMarriageCeremonyContentSource
     {
         public MarriageCeremonyContent Load() => new(
-            [new MarriageCeremonyTier(0, 500_000, 0, 10)], [300, 600, 900]);
+            [new MarriageCeremonyTier(0, 500_000, 0, 10)], [300, 600, 900]) { CeremonyPositions = [new(670, 330, 0), new(685, 360, 0)] };
     }
 
     internal static async Task<(LearningFixture Fixture, SelectedSessionIdentity Peer,
