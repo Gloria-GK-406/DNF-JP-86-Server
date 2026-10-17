@@ -62,7 +62,7 @@ public sealed class MarriageEngagementTests
     private static async Task Engage(LearningFixture f, Dfo.Server.Data.World.SelectedSessionIdentity peer)
     {
         Assert.True((await MarriageProposalTests.Run(f, x => x.ProposeAsync(f.Session, peer, default))).Succeeded);
-        Assert.True((await MarriageProposalTests.Run(f, x => x.RespondAsync(peer, f.Session, 0, default))).Succeeded);
+        Assert.True((await MarriageProposalTests.Run(f, x => x.RespondProposalAsync(peer, f.Session, 0, default))).Succeeded);
     }
     private static async Task Accept(LearningFixture f, int account, int character)
     {
@@ -75,7 +75,7 @@ public sealed class MarriageEngagementTests
     {
         var (f, peer) = await Fixture(); await using var owned = f;
         await MarriageProposalTests.Run(f, x => x.ProposeAsync(f.Session, peer, default));
-        Assert.False((await f.Services.GetRequiredService<IMarriageEngagementDomainService>().ReadAsync(new(1), new(71), default)).IsEngaged);
+        Assert.False((await f.Services.GetRequiredService<IMarriageQueryDomainService>().SnapshotAsync(new(1), new(71), default)).IsEngaged);
         Assert.False((await f.Services.GetRequiredService<ICommandBus>().SendAsync(new AcceptQuestCommand(new(1), new(71), 20737), default)).Accepted);
         Assert.Empty((await f.Services.GetRequiredService<IQuestQueryDomainService>().ReadAvailableAsync(new(1), new(71), default)).Quests);
     }
@@ -84,15 +84,15 @@ public sealed class MarriageEngagementTests
     {
         var (f, peer) = await Fixture(); await using var owned = f;
         await Engage(f, peer);
-        var state = f.Services.GetRequiredService<IMarriageEngagementDomainService>();
-        var first = await state.ReadAsync(new(1), new(71), default);
-        var second = await state.ReadAsync(new(2), new(72), default);
+        var state = f.Services.GetRequiredService<IMarriageQueryDomainService>();
+        var first = await state.SnapshotAsync(new(1), new(71), default);
+        var second = await state.SnapshotAsync(new(2), new(72), default);
         Assert.Equal(first.RelationId, second.RelationId);
         Assert.Equal(72, first.Partner!.CharacterId); Assert.Equal(71, second.Partner!.CharacterId);
-        Assert.False((await state.ReadAsync(new(2), new(71), default)).IsEngaged);
+        Assert.False((await state.SnapshotAsync(new(2), new(71), default)).IsEngaged);
         Assert.Equal(new[] { 20737 }, (await f.Services.GetRequiredService<IQuestQueryDomainService>().ReadAvailableAsync(new(1), new(71), default)).Quests.Select(x => x.QuestId));
         await using var reopened = new LearningFixture(existing: f.Path);
-        Assert.True((await reopened.Services.GetRequiredService<IMarriageEngagementDomainService>().ReadAsync(new(1), new(71), default)).IsEngaged);
+        Assert.True((await reopened.Services.GetRequiredService<IMarriageQueryDomainService>().SnapshotAsync(new(1), new(71), default)).IsEngaged);
         await Accept(f, 1, 71);
         Assert.Empty((await f.Services.GetRequiredService<IQuestQueryDomainService>().ReadAvailableAsync(new(1), new(71), default)).Quests);
     }
@@ -110,7 +110,7 @@ public sealed class MarriageEngagementTests
             Assert.Equal(5, (await f.Services.GetRequiredService<ICharacterQuestLogDomainService>().LogOf(new(1), new(71)).CarriedAsync(default)).Single().TriggerValue);
             await tx.CommitAsync(default);
         }
-        var subscriber = ActivatorUtilities.CreateInstance<MarriageQuestDomainService>(f.Services);
+        var subscriber = ActivatorUtilities.CreateInstance<MarriageTrialClearSubscriber>(f.Services);
         var invalid = new DungeonMapCleared(DungeonRunId.New(), 999, DungeonDifficulty.Normal, new(0, 0), 100, 1, DateTimeOffset.UtcNow,
             [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)]) { IsBossRoom = true };
         await using (var tx = f.Scope.Begin())
@@ -152,9 +152,9 @@ public sealed class MarriageEngagementTests
             s.AddSingleton<IQuestDefinitionSource, Definitions>();
             s.AddSingleton<IMarriageProposalContentSource, Content>();
         });
-        Assert.True((await reopened.Services.GetRequiredService<IMarriageEngagementDomainService>().ReadAsync(new(1), new(71), default)).IsEngaged);
+        Assert.True((await reopened.Services.GetRequiredService<IMarriageQueryDomainService>().SnapshotAsync(new(1), new(71), default)).IsEngaged);
         Assert.Equal(5, await reopened.Services.GetRequiredService<IMarriageQuestDomainStore>()
-            .CountClearsAsync(new(72), 20737, (await reopened.Services.GetRequiredService<IMarriageEngagementDomainService>().ReadAsync(new(2), new(72), default)).RelationId!.Value, default));
+            .CountClearsAsync(new(72), 20737, (await reopened.Services.GetRequiredService<IMarriageQueryDomainService>().SnapshotAsync(new(2), new(72), default)).RelationId!.Value, default));
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public sealed class MarriageEngagementTests
         var envelope = new DomainEventEnvelope<DungeonMapCleared>(Guid.NewGuid(), Guid.NewGuid(), clear.ClearedAt, Guid.NewGuid(), clear);
         await using (var tx = f.Scope.Begin())
         {
-            await ActivatorUtilities.CreateInstance<MarriageQuestDomainService>(f.Services).HandleAsync(envelope, default);
+            await ActivatorUtilities.CreateInstance<MarriageTrialClearSubscriber>(f.Services).HandleAsync(envelope, default);
             await tx.CommitAsync(default);
         }
         Assert.Equal(4, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));
@@ -190,7 +190,7 @@ public sealed class MarriageEngagementTests
         Assert.Equal(1, reopened.Scalar("SELECT COUNT(*) FROM marriage_trial_clears"));
         await using (var tx = reopened.Scope.Begin())
         {
-            await ActivatorUtilities.CreateInstance<MarriageQuestDomainService>(reopened.Services).HandleAsync(envelope, default);
+            await ActivatorUtilities.CreateInstance<MarriageTrialClearSubscriber>(reopened.Services).HandleAsync(envelope, default);
             await tx.CommitAsync(default);
         }
         Assert.Equal(4, reopened.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));
@@ -208,7 +208,7 @@ public sealed class MarriageEngagementTests
         if (invalid == "different-relation")
         {
             await MarriageProposalTests.Run(f, x => x.ProposeAsync(f.Session, peer, default));
-            oldRelation = (await MarriageProposalTests.Run(f, x => x.RespondAsync(peer, f.Session, 1, default))).Proposal!.Id;
+            oldRelation = (await MarriageProposalTests.Run(f, x => x.RespondProposalAsync(peer, f.Session, 1, default))).Proposal!.Id;
         }
         await Engage(f, peer); await Accept(f, 1, 71);
         var bindings = f.Services.GetRequiredService<IMarriageQuestDomainStore>();
@@ -255,7 +255,7 @@ public sealed class MarriageEngagementTests
                 f.Services.GetRequiredService<IDomainTransactionAccessor>(), f.Services.GetRequiredService<IItemPlacementRuleService>(),
                 f.Services.GetRequiredService<IItemSlotRuleService>()));
         await Engage(f, peer); await Accept(f, 1, 71); await Accept(f, 2, 72);
-        var subscriber = ActivatorUtilities.CreateInstance<MarriageQuestDomainService>(f.Services);
+        var subscriber = ActivatorUtilities.CreateInstance<MarriageTrialClearSubscriber>(f.Services);
         for (var i = 0; i < 5; i++)
         {
             var clear = new DungeonMapCleared(DungeonRunId.New(), 2, DungeonDifficulty.Normal, new(0, 0), 100, 1,

@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Marriage;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Sessions;
@@ -64,16 +65,23 @@ public sealed class MarriageChurchTests
             configure?.Invoke(s);
         });
         await MarriageCeremonyTests.MakeEligibleAsync(f, peer, logs);
-        Assert.True((await MarriageCeremonyTests.RunAsync(f, x => x.RequestAsync(f.Session, peer, 0, 0, default))).Succeeded);
-        Assert.True((await MarriageCeremonyTests.RunAsync(f, x => x.RespondAsync(peer, f.Session, 0, default))).Succeeded);
+        Assert.True((await MarriageCeremonyTests.RunAsync(f, x => x.RequestReservationAsync(f.Session, peer, 0, 0, default))).Succeeded);
+        Assert.True((await MarriageCeremonyTests.RunAsync(f, x => x.RespondReservationAsync(peer, f.Session, 0, default))).Succeeded);
         return (f, peer, clock);
     }
 
-    private static async Task<T> Run<T>(LearningFixture f, Func<IMarriageChurchDomainService, ValueTask<T>> action, bool commit = true)
+    private static async Task<T> Run<T>(LearningFixture f, Func<IMarriageVenueDomainService, ValueTask<T>> action, bool commit = true)
     {
         await using var tx = f.Scope.Begin();
-        var result = await action(f.Services.GetRequiredService<IMarriageChurchDomainService>());
+        var result = await action(f.Services.GetRequiredService<IMarriageVenueDomainService>());
         if (commit) await tx.CommitAsync(default);
+        return result;
+    }
+    private static async Task<T> Ask<T>(LearningFixture f, Func<IMarriageQueryDomainService, ValueTask<T>> action)
+    {
+        await using var tx = f.Scope.Begin();
+        var result = await action(f.Services.GetRequiredService<IMarriageQueryDomainService>());
+        await tx.CommitAsync(default);
         return result;
     }
 
@@ -85,14 +93,14 @@ public sealed class MarriageChurchTests
         await MarriageCeremonyTests.MakeEligibleAsync(f, peer, logs);
         f.Sql("UPDATE character_stats SET carried_gold=500000 WHERE character_id=72");
         var actor = maleApplicant ? peer : f.Session; var other = maleApplicant ? f.Session : peer;
-        Assert.True((await MarriageCeremonyTests.RunAsync(f, x => x.RequestAsync(actor, other, 0, 0, default))).Succeeded);
-        Assert.True((await MarriageCeremonyTests.RunAsync(f, x => x.RespondAsync(other, actor, 0, default))).Succeeded);
+        Assert.True((await MarriageCeremonyTests.RunAsync(f, x => x.RequestReservationAsync(actor, other, 0, 0, default))).Succeeded);
+        Assert.True((await MarriageCeremonyTests.RunAsync(f, x => x.RespondReservationAsync(other, actor, 0, default))).Succeeded);
         var female = (await f.Services.GetRequiredService<ICharacterDomainService>().Get(f.Session.CharacterId).IdentityAsync(default))!;
         var male = (await f.Services.GetRequiredService<ICharacterDomainService>().Get(peer.CharacterId).IdentityAsync(default))!;
-        var church = (await Run(f, x => x.PrepareAsync(actor, default)))!;
+        var church = (await Run(f, x => x.PrepareChurchAsync(actor, default)))!;
         Assert.Equal(female.Name, church.ApplicantName); Assert.Equal(male.Name, church.PartnerName);
         var ceremony = (await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().FindLatestReceivedAsync(other.CharacterId, default))!;
-        var entries = await Flow(f, x => x.PrepareAsync(ceremony, default));
+        var entries = await Pair(f, x => x.OpenWeddingAsync(ceremony, default));
         Assert.All(entries, e => { Assert.Equal(female.Name, e.Church.ApplicantName); Assert.Equal(male.Name, e.Church.PartnerName); });
     }
     [Fact]
@@ -100,9 +108,9 @@ public sealed class MarriageChurchTests
     {
         var (f, peer, _, _) = await Fixture();
         await using var owned = f;
-        Assert.Null(await Run(f, x => x.PrepareAsync(f.Session, default)));
-        Assert.False(await Run(f, x => x.CanCrossAsync(peer, 1, 2, 12, default)));
-        Assert.False(await Run(f, x => x.CanCrossAsync(peer, 1, 2, 63, default)));
+        Assert.Null(await Run(f, x => x.PrepareChurchAsync(f.Session, default)));
+        Assert.False(await Ask(f, x => x.CanCrossAsync(peer, 1, 2, 12, default)));
+        Assert.False(await Ask(f, x => x.CanCrossAsync(peer, 1, 2, 63, default)));
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_church_rooms"));
     }
 
@@ -112,9 +120,9 @@ public sealed class MarriageChurchTests
         var (f, peer, logs, _) = await Fixture();
         await using var owned = f;
         await MarriageCeremonyTests.MakeEligibleAsync(f, peer, logs);
-        await MarriageCeremonyTests.RunAsync(f, x => x.RequestAsync(f.Session, peer, 0, 0, default));
-        await MarriageCeremonyTests.RunAsync(f, x => x.RespondAsync(peer, f.Session, 0, default));
-        var firstRoom = (await Run(f, x => x.PrepareAsync(f.Session, default)))!;
+        await MarriageCeremonyTests.RunAsync(f, x => x.RequestReservationAsync(f.Session, peer, 0, 0, default));
+        await MarriageCeremonyTests.RunAsync(f, x => x.RespondReservationAsync(peer, f.Session, 0, default));
+        var firstRoom = (await Run(f, x => x.PrepareChurchAsync(f.Session, default)))!;
         f.Sql("""
             INSERT INTO accounts(account_id,m_id) VALUES(3,'groom2'),(4,'bride2');
             INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,bonus_sp,bonus_tp,skill_tree_index)
@@ -138,7 +146,7 @@ public sealed class MarriageChurchTests
         }
         var groom = Publish(3, 73); var bride = Publish(4, 74);
         Assert.Equal(MarriageProposalFailure.None, (await MarriageProposalTests.Run(f, x => x.ProposeAsync(groom, bride, default))).Failure);
-        var relation = (await MarriageProposalTests.Run(f, x => x.RespondAsync(bride, groom, 0, default))).Proposal!;
+        var relation = (await MarriageProposalTests.Run(f, x => x.RespondProposalAsync(bride, groom, 0, default))).Proposal!;
         logs.Cleared[73] = [new ClearedQuest(20737, 1), new ClearedQuest(20738, 1)];
         logs.Cleared[74] = [new ClearedQuest(20737, 1), new ClearedQuest(20738, 1)];
         await using (var tx = f.Scope.Begin())
@@ -149,15 +157,15 @@ public sealed class MarriageChurchTests
                     await bindings.BindAsync(character, quest, relation.Id, DateTimeOffset.UtcNow, default);
             await tx.CommitAsync(default);
         }
-        Assert.True((await MarriageCeremonyTests.RunAsync(f, x => x.RequestAsync(groom, bride, 0, 0, default))).Succeeded);
-        Assert.True((await MarriageCeremonyTests.RunAsync(f, x => x.RespondAsync(bride, groom, 0, default))).Succeeded);
-        var secondRoom = (await Run(f, x => x.PrepareAsync(groom, default)))!;
+        Assert.True((await MarriageCeremonyTests.RunAsync(f, x => x.RequestReservationAsync(groom, bride, 0, 0, default))).Succeeded);
+        Assert.True((await MarriageCeremonyTests.RunAsync(f, x => x.RespondReservationAsync(bride, groom, 0, default))).Succeeded);
+        var secondRoom = (await Run(f, x => x.PrepareChurchAsync(groom, default)))!;
         Assert.NotEqual(firstRoom.Room.Token, secondRoom.Room.Token);
         Assert.NotEqual(firstRoom.Room.AreaId, secondRoom.Room.AreaId);
-        Assert.True((await Run(f, x => x.EnterAsync(f.Session, (uint)peer.CharacterId.Value, firstRoom.Room.AreaId, 0, default))).Succeeded);
-        Assert.True((await Run(f, x => x.EnterAsync(groom, (uint)bride.CharacterId.Value, secondRoom.Room.AreaId, 0, default))).Succeeded);
-        Assert.False(await Run(f, x => x.CanCrossAsync(groom, 1, 2, firstRoom.Room.AreaId, default)));
-        Assert.False(await Run(f, x => x.CanCrossAsync(f.Session, 1, 2, secondRoom.Room.AreaId, default)));
+        Assert.True((await Run(f, x => x.EnterChurchAsync(f.Session, (uint)peer.CharacterId.Value, firstRoom.Room.AreaId, 0, default))).Succeeded);
+        Assert.True((await Run(f, x => x.EnterChurchAsync(groom, (uint)bride.CharacterId.Value, secondRoom.Room.AreaId, 0, default))).Succeeded);
+        Assert.False(await Ask(f, x => x.CanCrossAsync(groom, 1, 2, firstRoom.Room.AreaId, default)));
+        Assert.False(await Ask(f, x => x.CanCrossAsync(f.Session, 1, 2, secondRoom.Room.AreaId, default)));
         Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM marriage_church_rooms"));
     }
 
@@ -165,8 +173,8 @@ public sealed class MarriageChurchTests
     public async Task Both_partners_share_one_persistent_room_and_preparation_does_not_charge_or_marry()
     {
         var (f, peer, _) = await Reserved(); await using var owned = f;
-        var first = (await Run(f, x => x.PrepareAsync(f.Session, default)))!;
-        var second = (await Run(f, x => x.PrepareAsync(peer, default)))!;
+        var first = (await Run(f, x => x.PrepareChurchAsync(f.Session, default)))!;
+        var second = (await Run(f, x => x.PrepareChurchAsync(peer, default)))!;
         Assert.Equal(first.Room, second.Room);
         Assert.Equal(peer.CharacterId, first.Peer); Assert.Equal(f.Session.CharacterId, second.Peer);
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_church_rooms"));
@@ -181,27 +189,27 @@ public sealed class MarriageChurchTests
     public async Task Entry_requires_exact_partner_church_area_and_flag_and_admission_is_idempotent()
     {
         var (f, peer, _) = await Reserved(); await using var owned = f;
-        var church = (await Run(f, x => x.PrepareAsync(f.Session, default)))!;
+        var church = (await Run(f, x => x.PrepareChurchAsync(f.Session, default)))!;
         foreach (var (target, area, flag) in new[] {
             ((uint)peer.CharacterId.Value + 100u, (uint)church.Room.AreaId, (byte)0),
             ((uint)peer.CharacterId.Value, 0u, (byte)0),
             ((uint)peer.CharacterId.Value, (uint)church.Room.AreaId + 1, (byte)0),
             ((uint)peer.CharacterId.Value, (uint)church.Room.AreaId, (byte)1) })
-            Assert.False((await Run(f, x => x.EnterAsync(f.Session, target, area, flag, default))).Succeeded);
+            Assert.False((await Run(f, x => x.EnterChurchAsync(f.Session, target, area, flag, default))).Succeeded);
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_church_admissions"));
-        Assert.False(await Run(f, x => x.CanCrossAsync(f.Session, 1, 2, church.Room.AreaId, default)));
+        Assert.False(await Ask(f, x => x.CanCrossAsync(f.Session, 1, 2, church.Room.AreaId, default)));
         for (var replay = 0; replay < 2; replay++)
-            Assert.True((await Run(f, x => x.EnterAsync(f.Session, (uint)peer.CharacterId.Value, church.Room.AreaId, 0, default))).Succeeded);
+            Assert.True((await Run(f, x => x.EnterChurchAsync(f.Session, (uint)peer.CharacterId.Value, church.Room.AreaId, 0, default))).Succeeded);
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_church_admissions"));
         Assert.Equal(2, f.Scalar("SELECT town_id FROM characters WHERE character_id=71"));
         Assert.Equal(church.Room.AreaId, f.Scalar("SELECT area_id FROM characters WHERE character_id=71"));
-        Assert.True(await Run(f, x => x.CanCrossAsync(f.Session, 1, 2, church.Room.AreaId, default)));
-        Assert.False(await Run(f, x => x.CanCrossAsync(peer, 1, 2, church.Room.AreaId, default)));
-        Assert.False(await Run(f, x => x.CanCrossAsync(f.Session, 2, 2, church.Room.AreaId, default)));
-        Assert.False(await Run(f, x => x.CanCrossAsync(f.Session, 1, 2, 13, default)));
-        Assert.True(await Run(f, x => x.CanCrossAsync(f.Session, 1, 2, 1, default)));
-        var peerView = (await Run(f, x => x.PrepareAsync(peer, default)))!;
-        Assert.True((await Run(f, x => x.EnterAsync(peer, (uint)f.Session.CharacterId.Value, church.Room.AreaId, 0, default))).Succeeded);
+        Assert.True(await Ask(f, x => x.CanCrossAsync(f.Session, 1, 2, church.Room.AreaId, default)));
+        Assert.False(await Ask(f, x => x.CanCrossAsync(peer, 1, 2, church.Room.AreaId, default)));
+        Assert.False(await Ask(f, x => x.CanCrossAsync(f.Session, 2, 2, church.Room.AreaId, default)));
+        Assert.False(await Ask(f, x => x.CanCrossAsync(f.Session, 1, 2, 13, default)));
+        Assert.True(await Ask(f, x => x.CanCrossAsync(f.Session, 1, 2, 1, default)));
+        var peerView = (await Run(f, x => x.PrepareChurchAsync(peer, default)))!;
+        Assert.True((await Run(f, x => x.EnterChurchAsync(peer, (uint)f.Session.CharacterId.Value, church.Room.AreaId, 0, default))).Succeeded);
         Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM marriage_church_admissions"));
         Assert.Equal(500000, f.Scalar("SELECT SUM(carried_gold) FROM character_stats"));
     }
@@ -210,26 +218,26 @@ public sealed class MarriageChurchTests
     public async Task Rolled_back_preparation_and_entry_leave_no_room_or_access_grant()
     {
         var (f, peer, _) = await Reserved(); await using var owned = f;
-        Assert.NotNull(await Run(f, x => x.PrepareAsync(f.Session, default), false));
+        Assert.NotNull(await Run(f, x => x.PrepareChurchAsync(f.Session, default), false));
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_church_rooms"));
-        var church = (await Run(f, x => x.PrepareAsync(f.Session, default)))!;
+        var church = (await Run(f, x => x.PrepareChurchAsync(f.Session, default)))!;
         var priorTown = f.Scalar("SELECT town_id FROM characters WHERE character_id=71");
         var priorArea = f.Scalar("SELECT area_id FROM characters WHERE character_id=71");
-        Assert.True((await Run(f, x => x.EnterAsync(f.Session, (uint)peer.CharacterId.Value, church.Room.AreaId, 0, default), false)).Succeeded);
+        Assert.True((await Run(f, x => x.EnterChurchAsync(f.Session, (uint)peer.CharacterId.Value, church.Room.AreaId, 0, default), false)).Succeeded);
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_church_admissions"));
         Assert.Equal(priorTown, f.Scalar("SELECT town_id FROM characters WHERE character_id=71"));
         Assert.Equal(priorArea, f.Scalar("SELECT area_id FROM characters WHERE character_id=71"));
-        Assert.False(await Run(f, x => x.CanCrossAsync(f.Session, 1, 2, church.Room.AreaId, default)));
+        Assert.False(await Ask(f, x => x.CanCrossAsync(f.Session, 1, 2, church.Room.AreaId, default)));
     }
 
     [Fact]
     public async Task Expired_preparation_does_not_extend_when_partner_relogs()
     {
         var (f, peer, clock) = await Reserved(); await using var owned = f;
-        var before = (await Run(f, x => x.PrepareAsync(f.Session, default)))!;
+        var before = (await Run(f, x => x.PrepareChurchAsync(f.Session, default)))!;
         clock.Now = before.Room.ReadyUntil + TimeSpan.FromSeconds(1);
-        Assert.False((await Run(f, x => x.EnterAsync(f.Session, (uint)peer.CharacterId.Value, before.Room.AreaId, 0, default))).Succeeded);
-        Assert.Null(await Run(f, x => x.PrepareAsync(peer, default)));
+        Assert.False((await Run(f, x => x.EnterChurchAsync(f.Session, (uint)peer.CharacterId.Value, before.Room.AreaId, 0, default))).Succeeded);
+        Assert.Null(await Run(f, x => x.PrepareChurchAsync(peer, default)));
         var after = await f.Services.GetRequiredService<IMarriageChurchDomainStore>().ReadAsync(before.Room.CeremonyId, default);
         Assert.Equal(before.Room, after);
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_ceremonies WHERE state=1"));
@@ -239,11 +247,11 @@ public sealed class MarriageChurchTests
     public async Task A_reserved_payload_bound_to_another_pair_cannot_allocate_or_reuse_a_church()
     {
         var (f, peer, _) = await Reserved(); await using var owned = f;
-        var before = (await Run(f, x => x.PrepareAsync(f.Session, default)))!;
+        var before = (await Run(f, x => x.PrepareChurchAsync(f.Session, default)))!;
         f.Sql("UPDATE marriage_ceremonies SET payload_json=json_set(payload_json,'$.Partner.CharacterId.Value',999) WHERE state=1");
-        Assert.Null(await Run(f, x => x.PrepareAsync(f.Session, default)));
-        Assert.False((await Run(f, x => x.EnterAsync(f.Session, (uint)peer.CharacterId.Value, before.Room.AreaId, 0, default))).Succeeded);
-        Assert.False(await Run(f, x => x.CanCrossAsync(f.Session, 1, 2, before.Room.AreaId, default)));
+        Assert.Null(await Run(f, x => x.PrepareChurchAsync(f.Session, default)));
+        Assert.False((await Run(f, x => x.EnterChurchAsync(f.Session, (uint)peer.CharacterId.Value, before.Room.AreaId, 0, default))).Succeeded);
+        Assert.False(await Ask(f, x => x.CanCrossAsync(f.Session, 1, 2, before.Room.AreaId, default)));
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_church_admissions"));
     }
 
@@ -251,12 +259,12 @@ public sealed class MarriageChurchTests
     public async Task Stale_generation_cannot_use_the_room()
     {
         var (f, peer, _) = await Reserved(); await using var owned = f;
-        var church = (await Run(f, x => x.PrepareAsync(f.Session, default)))!;
+        var church = (await Run(f, x => x.PrepareChurchAsync(f.Session, default)))!;
         var stale = SelectedSessionIdentity.Create(f.Session.AccountId, f.Session.CharacterId,
             f.Session.ConnectionId, f.Session.ConnectionGeneration + 1, f.Session.ListenerPort);
-        Assert.Null(await Run(f, x => x.PrepareAsync(stale, default)));
-        Assert.False((await Run(f, x => x.EnterAsync(stale, (uint)peer.CharacterId.Value, church.Room.AreaId, 0, default))).Succeeded);
-        Assert.False(await Run(f, x => x.CanCrossAsync(stale, 1, 2, church.Room.AreaId, default)));
+        Assert.Null(await Run(f, x => x.PrepareChurchAsync(stale, default)));
+        Assert.False((await Run(f, x => x.EnterChurchAsync(stale, (uint)peer.CharacterId.Value, church.Room.AreaId, 0, default))).Succeeded);
+        Assert.False(await Ask(f, x => x.CanCrossAsync(stale, 1, 2, church.Room.AreaId, default)));
     }
     [Fact]
     public async Task Wedding_preparation_charges_once_and_admits_both_in_one_transaction()
@@ -264,10 +272,10 @@ public sealed class MarriageChurchTests
         var (f, peer, _) = await Reserved(); await using var owned = f;
         var ceremony = (await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>()
             .FindLatestReceivedAsync(peer.CharacterId, default))!;
-        var flow = f.Services.GetRequiredService<IMarriageWeddingDomainService>();
+        var flow = f.Services.GetRequiredService<IMarriageCoupleDomainService>();
         await using (var tx = f.Scope.Begin())
         {
-            var entries = await flow.PrepareAsync(ceremony, default);
+            var entries = await flow.OpenWeddingAsync(ceremony, default);
             Assert.Equal(2, entries.Count);
             await tx.CommitAsync(default);
         }
@@ -276,16 +284,23 @@ public sealed class MarriageChurchTests
         Assert.Equal(f.Scalar("SELECT area_id FROM characters WHERE character_id=71"), f.Scalar("SELECT area_id FROM characters WHERE character_id=72"));
         await using (var tx = f.Scope.Begin())
         {
-            Assert.Empty(await flow.PrepareAsync(ceremony, default));
+            Assert.Empty(await flow.OpenWeddingAsync(ceremony, default));
             await tx.CommitAsync(default);
         }
         Assert.Equal(0, f.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=71"));
     }
 
-    private static async Task<T> Flow<T>(LearningFixture f, Func<IMarriageWeddingDomainService, ValueTask<T>> action, bool commit = true)
+    private static async Task<T> Flow<T>(LearningFixture f, Func<IMarriageVenueDomainService, ValueTask<T>> action, bool commit = true)
     {
         await using var tx = f.Scope.Begin();
-        var result = await action(f.Services.GetRequiredService<IMarriageWeddingDomainService>());
+        var result = await action(f.Services.GetRequiredService<IMarriageVenueDomainService>());
+        if (commit) await tx.CommitAsync(default);
+        return result;
+    }
+    private static async Task<T> Pair<T>(LearningFixture f, Func<IMarriageCoupleDomainService, ValueTask<T>> action, bool commit = true)
+    {
+        await using var tx = f.Scope.Begin();
+        var result = await action(f.Services.GetRequiredService<IMarriageCoupleDomainService>());
         if (commit) await tx.CommitAsync(default);
         return result;
     }
@@ -301,7 +316,7 @@ public sealed class MarriageChurchTests
     {
         var (f, peer, clock) = await Reserved(); await using var owned = f;
         var ceremony = (await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().FindLatestReceivedAsync(peer.CharacterId, default))!;
-        var entries = await Flow(f, x => x.PrepareAsync(ceremony, default));
+        var entries = await Pair(f, x => x.OpenWeddingAsync(ceremony, default));
         Arrive(f, entries[0]); if (both) Arrive(f, entries[1]);
         Assert.Null(await Flow(f, x => x.AdvanceAsync(ceremony.Id, default)));
         clock.Now = entries[0].Church.Room.ReadyUntil;
@@ -315,10 +330,10 @@ public sealed class MarriageChurchTests
         }
         var result = (await Flow(f, x => x.AdvanceAsync(ceremony.Id, default)))!;
         Assert.Equal(both ? MarriageWeddingPhase.Completed : MarriageWeddingPhase.Cancelled, result.Wedding.Phase);
-        Assert.Equal(both, (await f.Services.GetRequiredService<IMarriageEngagementDomainService>().ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).IsMarried);
+        Assert.Equal(both, (await f.Services.GetRequiredService<IMarriageQueryDomainService>().SnapshotAsync(f.Session.AccountId, f.Session.CharacterId, default)).IsMarried);
         if (both)
         {
-            Assert.Equal(clock.Now, (await f.Services.GetRequiredService<IMarriageEngagementDomainService>().ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).MarriedAt);
+            Assert.Equal(clock.Now, (await f.Services.GetRequiredService<IMarriageQueryDomainService>().SnapshotAsync(f.Session.AccountId, f.Session.CharacterId, default)).MarriedAt);
             Assert.Equal(2, result.Standing.Count);
             var bride = result.Standing.Single(x => x.Actor.CharacterId == f.Session.CharacterId).Position;
             var groom = result.Standing.Single(x => x.Actor.CharacterId == peer.CharacterId).Position;
@@ -350,8 +365,8 @@ public sealed class MarriageChurchTests
             Assert.Null(await Flow(f, x => x.AdvanceAsync(ceremony.Id, default)));
         }
         await using var restored = new LearningFixture(existing: f.Path);
-        Assert.Equal(both, await restored.Services.GetRequiredService<IMarriageWeddingDomainStore>().IsMarriedAsync(ceremony.RelationId, default));
-        if (both) Assert.Equal(clock.Now.ToUnixTimeMilliseconds(), (await restored.Services.GetRequiredService<IMarriageWeddingDomainStore>().MarriedAsync(ceremony.RelationId, default))!.CompletedAt!.Value.ToUnixTimeMilliseconds());
+        Assert.Equal(both, await restored.Services.GetRequiredService<IMarriageQueryDomainService>().IsMarriedAsync(ceremony.RelationId, default));
+        if (both) Assert.Equal(clock.Now.ToUnixTimeMilliseconds(), (await restored.Services.GetRequiredService<CoupleLedger>().ReadAsync(ceremony.RelationId, default))!.MarriedAt!.Value.ToUnixTimeMilliseconds());
     }
     [Fact]
     public async Task Preparation_rollback_restores_fee_room_admission_and_positions()
@@ -359,7 +374,7 @@ public sealed class MarriageChurchTests
         var (f, peer, _) = await Reserved(); await using var owned = f;
         var ceremony = (await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().FindLatestReceivedAsync(peer.CharacterId, default))!;
         var priorArea = f.Scalar("SELECT area_id FROM characters WHERE character_id=71");
-        Assert.Equal(2, (await Flow(f, x => x.PrepareAsync(ceremony, default), false)).Count);
+        Assert.Equal(2, (await Pair(f, x => x.OpenWeddingAsync(ceremony, default), false)).Count);
         Assert.Equal(500000, f.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=71"));
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_weddings"));
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_church_admissions"));
@@ -371,7 +386,7 @@ public sealed class MarriageChurchTests
     {
         var (f, peer, clock) = await Reserved(); await using var owned = f;
         var ceremony = (await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().FindLatestReceivedAsync(peer.CharacterId, default))!;
-        var entries = await Flow(f, x => x.PrepareAsync(ceremony, default));
+        var entries = await Pair(f, x => x.OpenWeddingAsync(ceremony, default));
         f.Sql("""
             INSERT INTO accounts(account_id,m_id) VALUES(3,'guest');
             INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,bonus_sp,bonus_tp,skill_tree_index)
@@ -386,32 +401,32 @@ public sealed class MarriageChurchTests
         var position = new CharacterPositionState(2, 1, 100, 200, 0);
         f.Services.GetRequiredService<ICharacterPositionDomainService>().Place(guest, position);
         f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(guest.CharacterId, guest.TownAreaLease(), new(1, 2, 1), position, true));
-        Assert.Equal((ushort)10, await f.Services.GetRequiredService<IMarriageWeddingDomainService>().RemainingAsync(ceremony.Id, f.Session.CharacterId, default));
+        Assert.Equal((ushort)10, await f.Services.GetRequiredService<IMarriageQueryDomainService>().RemainingInvitationsAsync(ceremony.Id, f.Session.CharacterId, default));
         var sent = await Flow(f, x => x.InviteAsync(f.Session, 0, 73, default));
         Assert.Equal(0, sent.Status); Assert.Equal((ushort)9, sent.Remaining);
         var key = Assert.Single(sent.Letters).Key;
         Assert.NotEqual(0, (await Flow(f, x => x.InviteAsync(peer, 0, 73, default))).Status);
-        Assert.Equal(-6, (await Flow(f, x => x.EnterGuestAsync(guest, key, entries[0].Church.Room.AreaId, default))).Status);
-        Assert.Equal(0, await Flow(f, x => x.PayAsync(guest, key, 10000, default)));
-        Assert.Equal(0, await Flow(f, x => x.PayAsync(guest, key, 10000, default)));
+        Assert.Equal(-6, (await Flow(f, x => x.EnterChurchAsync(guest, key, entries[0].Church.Room.AreaId, 1, default))).Status);
+        Assert.Equal(0, await Flow(f, x => x.GiftAsync(guest, key, 10000, default)));
+        Assert.Equal(0, await Flow(f, x => x.GiftAsync(guest, key, 10000, default)));
         Assert.Equal(40000, f.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=73"));
-        Assert.True((await Flow(f, x => x.EnterGuestAsync(guest, key, entries[0].Church.Room.AreaId, default))).Succeeded);
-        var comments = f.Services.GetRequiredService<IMarriageGuestbookDomainService>();
-        async Task<T> Comment<T>(Func<IMarriageGuestbookDomainService, ValueTask<T>> action)
+        Assert.True((await Flow(f, x => x.EnterChurchAsync(guest, key, entries[0].Church.Room.AreaId, 1, default))).Succeeded);
+        var comments = f.Services.GetRequiredService<IMarriageVenueDomainService>();
+        async Task<T> Comment<T>(Func<IMarriageVenueDomainService, ValueTask<T>> action)
         { await using var tx = f.Scope.Begin(); var value = await action(comments); await tx.CommitAsync(default); return value; }
-        Assert.NotEqual(0, await Comment(x => x.PostAsync(guest, key, "good"u8.ToArray(), default))); // Not physically inside yet.
+        Assert.NotEqual(0, await Comment(x => x.PostGuestbookAsync(guest, key, "good"u8.ToArray(), default))); // Not physically inside yet.
         Arrive(f, new(guest, entries[0].Church));
-        Assert.Equal(0, await Comment(x => x.PostAsync(guest, key, new byte[] { 0xD0, 0xC2, 0xBB, 0xE9 }, default)));
-        Assert.NotEqual(0, await Comment(x => x.PostAsync(guest, key, new byte[21], default)));
-        Assert.NotEqual(0, await Comment(x => x.PostAsync(peer, checked((uint)f.Session.CharacterId.Value), "good"u8.ToArray(), default)));
-        var written = Assert.Single((await comments.ReadAsync(f.Session, key, default)).Comments);
+        Assert.Equal(0, await Comment(x => x.PostGuestbookAsync(guest, key, new byte[] { 0xD0, 0xC2, 0xBB, 0xE9 }, default)));
+        Assert.NotEqual(0, await Comment(x => x.PostGuestbookAsync(guest, key, new byte[21], default)));
+        Assert.NotEqual(0, await Comment(x => x.PostGuestbookAsync(peer, checked((uint)f.Session.CharacterId.Value), "good"u8.ToArray(), default)));
+        var written = Assert.Single((await comments.ReadGuestbookAsync(f.Session, key, default)).Comments);
         Assert.Equal(guest.CharacterId, written.Author);
-        Assert.NotEqual(0, await Comment(x => x.DeleteAsync(guest, key, written.Id, default)));
-        Assert.NotEqual(0, await Comment(x => x.DeleteAsync(f.Session, 123456, written.Id, default)));
+        Assert.NotEqual(0, await Comment(x => x.DeleteGuestbookAsync(guest, key, written.Id, default)));
+        Assert.NotEqual(0, await Comment(x => x.DeleteGuestbookAsync(f.Session, 123456, written.Id, default)));
         await using (var restored = new LearningFixture(existing: f.Path))
             Assert.Equal(written.Text, Assert.Single(await restored.Services.GetRequiredService<IMarriageGuestbookDomainStore>().ReadAsync(ceremony.RelationId, default)).Text);
-        Assert.Equal(0, await Comment(x => x.DeleteAsync(peer, checked((uint)f.Session.CharacterId.Value), written.Id, default)));
-        Assert.Empty((await comments.ReadAsync(f.Session, key, default)).Comments);
+        Assert.Equal(0, await Comment(x => x.DeleteGuestbookAsync(peer, checked((uint)f.Session.CharacterId.Value), written.Id, default)));
+        Assert.Empty((await comments.ReadGuestbookAsync(f.Session, key, default)).Comments);
         clock.Now = entries[0].Church.Room.ReadyUntil.AddSeconds(-60);
         Assert.NotEqual(0, (await Flow(f, x => x.InviteAsync(f.Session, 1, 0, default))).Status);
         clock.Now = entries[0].Church.Room.ReadyUntil.AddSeconds(-59);
@@ -434,9 +449,9 @@ public sealed class MarriageChurchTests
         });
         await using var owned = f;
         await MarriageCeremonyTests.MakeEligibleAsync(f, peer, logs);
-        await MarriageCeremonyTests.RunAsync(f, x => x.RequestAsync(f.Session, peer, 0, 0, default));
-        var reserved = await MarriageCeremonyTests.RunAsync(f, x => x.RespondAsync(peer, f.Session, 0, default));
-        var entries = await Flow(f, x => x.PrepareAsync(reserved.Ceremony!, default));
+        await MarriageCeremonyTests.RunAsync(f, x => x.RequestReservationAsync(f.Session, peer, 0, 0, default));
+        var reserved = await MarriageCeremonyTests.RunAsync(f, x => x.RespondReservationAsync(peer, f.Session, 0, default));
+        var entries = await Pair(f, x => x.OpenWeddingAsync(reserved.Ceremony!, default));
         foreach (var entry in entries) Arrive(f, entry);
         clock.Now = entries[0].Church.Room.ReadyUntil;
         if (failSecond)
@@ -444,7 +459,7 @@ public sealed class MarriageChurchTests
             await Assert.ThrowsAsync<InvalidOperationException>(() => Flow(f, x => x.AdvanceAsync(reserved.Ceremony!.Id, default)));
             Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM mailbox_attachments WHERE item_template_id=10002629"));
             Assert.Equal(0, f.Scalar("SELECT phase FROM marriage_weddings"));
-            Assert.False(await f.Services.GetRequiredService<IMarriageWeddingDomainService>().IsMarriedAsync(reserved.Ceremony!.RelationId, default));
+            Assert.False(await f.Services.GetRequiredService<IMarriageQueryDomainService>().IsMarriedAsync(reserved.Ceremony!.RelationId, default));
         }
         Assert.Equal(MarriageWeddingPhase.Completed, (await Flow(f, x => x.AdvanceAsync(reserved.Ceremony!.Id, default)))!.Wedding.Phase);
         Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM mailbox_attachments WHERE item_template_id=10002629 AND item_count=1"));
@@ -457,7 +472,7 @@ public sealed class MarriageChurchTests
     {
         var (f, peer, clock) = await Reserved(); await using var owned = f;
         var ceremony = (await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().FindLatestReceivedAsync(peer.CharacterId, default))!;
-        var entries = await Flow(f, x => x.PrepareAsync(ceremony, default));
+        var entries = await Pair(f, x => x.OpenWeddingAsync(ceremony, default));
         foreach (var entry in entries) Arrive(f, entry);
         Assert.Equal(entries[0].Church.Room.AreaId, f.Scalar("SELECT area_id FROM characters WHERE character_id=72"));
         f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(peer);
@@ -488,27 +503,27 @@ public sealed class MarriageChurchTests
         { await f.Services.GetRequiredService<IItemDeliveryDomainService>().DeliverAsync(f.Session.AccountId, f.Session.CharacterId, [new(10002901, 3)], "love-test", default, ItemDeliveryMode.InventoryOnly); await tx.CommitAsync(default); }
         var delivered = (await f.Services.GetRequiredService<ICharacterContainerDomainService>().GetContainer(f.Session.CharacterId, Dfo.Server.Data.Inventory.InventoryContainerType.Main).GetAllAsync(default)).Single(x => x.ItemId == 10002901);
         var source = new InventorySlotMappingRuleService().ToBusinessSlot(new(Dfo.Server.Data.Inventory.InventoryContainerType.Main, delivered.StorageSlotIndex));
-        var love = f.Services.GetRequiredService<IMarriageLovePointDomainService>();
-        var accounts = await love.AccountsAsync(f.Session, default);
+        var love = f.Services.GetRequiredService<IMarriageCoupleDomainService>();
+        var accounts = await f.Services.GetRequiredService<IMarriageQueryDomainService>().CoupleAccountsAsync(f.Session, default);
         async Task<MarriageLovePointResult> Use(bool commit = true, IReadOnlyList<AccountId>? expected = null)
         {
-            await using var tx = f.Scope.Begin(); var result = await love.UseAsync(f.Session, source, expected ?? accounts, default);
+            await using var tx = f.Scope.Begin(); var result = await love.UseLovePointAsync(f.Session, source, expected ?? accounts, default);
             if (commit) await tx.CommitAsync(default); return result;
         }
         Assert.NotEqual(0, (await Use()).Status);
         var ceremony = (await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().FindLatestReceivedAsync(peer.CharacterId, default))!;
-        var entries = await Flow(f, x => x.PrepareAsync(ceremony, default)); foreach (var entry in entries) Arrive(f, entry);
+        var entries = await Pair(f, x => x.OpenWeddingAsync(ceremony, default)); foreach (var entry in entries) Arrive(f, entry);
         clock.Now = entries[0].Church.Room.ReadyUntil; await Flow(f, x => x.AdvanceAsync(ceremony.Id, default));
         Assert.Equal(0, (await Use(false)).Status);
         Assert.Equal(0, f.Scalar("SELECT love_points FROM marriage_weddings")); Assert.Equal(3, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND list_type=0"));
         Assert.Equal(0, (await Use()).Status);
-        Assert.Equal(1, (await f.Services.GetRequiredService<IMarriageEngagementDomainService>().ReadAsync(peer.AccountId, peer.CharacterId, default)).LovePoints);
+        Assert.Equal(1, (await f.Services.GetRequiredService<IMarriageQueryDomainService>().SnapshotAsync(peer.AccountId, peer.CharacterId, default)).LovePoints);
         Assert.Equal(2, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND list_type=0"));
         Assert.NotEqual(0, (await Use(expected: [f.Session.AccountId])).Status);
-        f.Sql("UPDATE marriage_weddings SET love_points=999");
+        f.Sql("UPDATE marriage_weddings SET love_points=999; UPDATE marriage_relations SET love_points=999 WHERE stage=4");
         Assert.NotEqual(0, (await Use()).Status); Assert.Equal(2, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND list_type=0"));
         await using var restored = new LearningFixture(existing: f.Path);
-        Assert.Equal(999, (await restored.Services.GetRequiredService<IMarriageWeddingDomainStore>().MarriedAsync(ceremony.RelationId, default))!.LovePoints);
+        Assert.Equal(999, (await restored.Services.GetRequiredService<CoupleLedger>().ReadAsync(ceremony.RelationId, default))!.LovePoints);
     }
 
     [Fact]
@@ -516,15 +531,15 @@ public sealed class MarriageChurchTests
     {
         var (f, peer, clock) = await Reserved(); await using var owned = f;
         var ceremony = (await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().FindLatestReceivedAsync(peer.CharacterId, default))!;
-        var entries = await Flow(f, x => x.PrepareAsync(ceremony, default));
+        var entries = await Pair(f, x => x.OpenWeddingAsync(ceremony, default));
         foreach (var entry in entries) Arrive(f, entry);
-        var wedding = f.Services.GetRequiredService<IMarriageWeddingDomainService>();
+        var wedding = f.Services.GetRequiredService<IMarriageQueryDomainService>();
         clock.Now = entries[0].Church.Room.ReadyUntil.AddSeconds(-61);
         Assert.True(await wedding.CanLeaveAsync(f.Session, 2, 1, default));
         var outside = f.Services.GetRequiredService<ICharacterPositionDomainService>().CrossInto(f.Session, 2, 1, 100, 200);
         f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(f.Session.CharacterId, f.Session.TownAreaLease(), new(1, 2, 1), outside, true);
         Assert.Equal(entries[0].Church.Room.ReadyUntil, (await wedding.AppearanceAsync(f.Session, default))!.Room.ReadyUntil);
-        Assert.True(await Run(f, x => x.CanCrossAsync(f.Session, 1, 2, entries[0].Church.Room.AreaId, default)));
+        Assert.True(await Ask(f, x => x.CanCrossAsync(f.Session, 1, 2, entries[0].Church.Room.AreaId, default)));
         Arrive(f, entries[0]);
         clock.Now = entries[0].Church.Room.ReadyUntil.AddSeconds(-60);
         Assert.True(await wedding.CanLeaveAsync(f.Session, 2, 1, default));

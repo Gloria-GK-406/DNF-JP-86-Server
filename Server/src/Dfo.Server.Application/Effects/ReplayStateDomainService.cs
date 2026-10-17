@@ -153,7 +153,7 @@ internal sealed class ReplayStateDomainService(IServiceProvider services, IDomai
         return new(session, request, at, inventory, pets, skills, quests, progress, points, fatigue,
             itemUsage, premiums, premiumUsage, appearance)
         { LovePoints = needs.HasFlag(ReplayProjectionNeeds.MarriageLovePoints)
-            ? (await Get<Dfo.Server.Abstractions.Marriage.IMarriageEngagementDomainService>().ReadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false)).LovePoints : null,
+            ? (await Get<Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService>().SnapshotAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false)).LovePoints : null,
           HerasQuota = needs.HasFlag(ReplayProjectionNeeds.HerasQuota)
             ? await Get<IHerasDungeonDomainService>().ReadQuotaAtAsync(session.CharacterId, at, ct).ConfigureAwait(false) : null,
           EpicPieces = needs.HasFlag(ReplayProjectionNeeds.EpicBook)

@@ -50,6 +50,7 @@ public sealed class EffectOperationReplayTests
             var weddings = f.Services.GetRequiredService<IMarriageWeddingDomainStore>(); await weddings.CreateAsync(new(ceremony, MarriageWeddingPhase.Preparing, 0), default);
             Assert.True(await weddings.FinishAsync(ceremony.Id, MarriageWeddingPhase.Completed, at, default)); await tx.CommitAsync(default);
         }
+        f.Sql($"INSERT INTO marriage_relations(id,stage,revision,stage_since,ceremony_id) VALUES('{relation.Id:N}',4,1,{at.ToUnixTimeMilliseconds()},'{ceremony.Id:N}')");
         await f.Seed(69, 1000, 3);
         var counter = new GameInboundFrameCounter();
         WeddingLovePointRequest Request()

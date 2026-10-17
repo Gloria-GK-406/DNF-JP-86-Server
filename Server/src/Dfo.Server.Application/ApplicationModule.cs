@@ -137,20 +137,33 @@ public sealed class ApplicationModule : IServerModule
         if (proposalTimeoutSeconds is < 1 or > 600) throw new InvalidOperationException("Marriage proposal timeout must be 1..600 seconds.");
         services.TryAddSingleton(new Dfo.Server.Application.Marriage.MarriageProposalOptions(TimeSpan.FromSeconds(proposalTimeoutSeconds)));
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageProposalRuleService, Dfo.Server.Application.Marriage.MarriageProposalRuleService>();
-        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageProposalDomainService, Dfo.Server.Application.Marriage.MarriageProposalDomainService>();
-        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageEngagementDomainService, Dfo.Server.Application.Marriage.MarriageEngagementDomainService>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.CoupleLedger>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService, Dfo.Server.Application.Marriage.MarriageRelationAudit>());
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCeremonyRuleService, Dfo.Server.Application.Marriage.MarriageCeremonyRuleService>();
-        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCeremonyDomainService, Dfo.Server.Application.Marriage.MarriageCeremonyDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageChurchRuleService, Dfo.Server.Application.Marriage.MarriageChurchRuleService>();
-        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageChurchDomainService, Dfo.Server.Application.Marriage.MarriageChurchDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Inventory.ISharedEffectDomainService, Dfo.Server.Application.Inventory.SharedEffectDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageLovePointRuleService, Dfo.Server.Application.Marriage.MarriageLovePointRuleService>();
-        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageLovePointDomainService, Dfo.Server.Application.Marriage.MarriageLovePointDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageGuestbookRuleService, Dfo.Server.Application.Marriage.MarriageGuestbookRuleService>();
-        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageGuestbookDomainService, Dfo.Server.Application.Marriage.MarriageGuestbookDomainService>();
-        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageWeddingDomainService, Dfo.Server.Application.Marriage.MarriageWeddingDomainService>();
-        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService, Dfo.Server.Application.Marriage.MarriageQuestDomainService>();
-        services.AddDomainSubscriber<DungeonMapCleared, Dfo.Server.Application.Marriage.MarriageQuestDomainService>(
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.MarriageEligibility>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.ReservationDesk>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.ChurchRooms>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.WeddingSettlement>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.GuestList>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.Guestbook>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.TrialQuests>();
+        services.TryAddSingleton(provider => new Dfo.Server.Application.Marriage.LovePoints(
+            provider.GetRequiredService<Dfo.Server.Abstractions.Marriage.IMarriageLovePointRuleService>(),
+            provider.GetRequiredService<Dfo.Server.Abstractions.Inventory.IBusinessInventorySlotDomainService>(),
+            provider.GetRequiredService<Dfo.Server.Abstractions.Inventory.IItemUseEffectRuleService>(),
+            provider.GetRequiredService<ICharacterDomainService>(),
+            () => provider.GetRequiredService<Dfo.Server.Abstractions.Effects.IApplyEffectsDomainService>(),
+            provider.GetRequiredService<TimeProvider>()));
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.MarriageDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageDomainService>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCoupleDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageDomainService>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageVenueDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageDomainService>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageDomainService>());
+        services.AddDomainSubscriber<DungeonMapCleared, Dfo.Server.Application.Marriage.MarriageTrialClearSubscriber>(
             "quest.wedding-trial", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
         services.TryAddSingleton<IHerasRuleService, HerasRuleService>();
         services.TryAddSingleton<IHerasDungeonDomainService, HerasDungeonDomainService>();

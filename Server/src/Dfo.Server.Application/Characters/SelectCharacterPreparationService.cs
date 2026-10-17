@@ -38,7 +38,7 @@ public sealed class SelectCharacterPreparationService(
     IEpicBookDomainService? epicBook = null,
     Dfo.Server.Abstractions.Achievements.IAchievementDomainService? achievements = null,
     Dfo.Server.Abstractions.Achievements.ITitleBookDomainService? titles = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageEngagementDomainService? marriage = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService? marriage = null,
     Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? weddingQuests = null) : ISelectCharacterPreparationDomainService
 {
     public async ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
@@ -233,7 +233,7 @@ public sealed class SelectCharacterPreparationService(
                 await attendance.StateAsync(accountId,preparedAt,cancellationToken),
                 joust is null ? null : await joust.ReadAsync(character.Identity.CharacterId,preparedAt,cancellationToken))),
             epicBook is null ? [] : await epicBook.GetBalancesAsync(accountId, cancellationToken).ConfigureAwait(false),
-            marriage is null ? null : await marriage.ReadAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false));
+            marriage is null ? null : await marriage.SnapshotAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false));
 
         return result;
     }

@@ -60,9 +60,4 @@ internal sealed class SqliteMarriageCeremonyDomainStore(SqliteDatabase database)
             p.AddWithValue("@state", (int)state);
             p.AddWithValue("@response", response);
         }, ct).ConfigureAwait(false) == 1;
-
-    public async ValueTask<bool> IsReservedAsync(Guid relationId, CancellationToken ct) =>
-        (await database.ReadAllAsync("SELECT EXISTS(SELECT 1 FROM marriage_ceremonies WHERE relation_id=@relation AND state=1)",
-            p => p.AddWithValue("@relation", relationId.ToString("N")), r => r.GetInt32(0) != 0, ct)
-            .ConfigureAwait(false)).Single();
 }

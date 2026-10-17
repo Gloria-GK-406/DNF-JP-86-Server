@@ -92,12 +92,12 @@ public sealed record MarriageProposalCommand(SelectedSessionIdentity Actor, Sele
     public IReadOnlyList<SelectedSessionIdentity> Sessions => [Actor, Peer];
     public IReadOnlyList<AccountId> AccountIds => [Actor.AccountId, Peer.AccountId];
 }
-public sealed class MarriageProposalCommandHandler(IMarriageProposalDomainService marriage)
+public sealed class MarriageProposalCommandHandler(IMarriageCoupleDomainService couple)
     : ICommandHandler<MarriageProposalCommand, MarriageProposalResult>
 {
     public ValueTask<MarriageProposalResult> HandleAsync(CommandExecutionContext context, MarriageProposalCommand command, CancellationToken ct) =>
-        command.Response is { } response ? marriage.RespondAsync(command.Actor, command.Peer, response, ct)
-            : marriage.ProposeAsync(command.Actor, command.Peer, ct);
+        command.Response is { } response ? couple.RespondProposalAsync(command.Actor, command.Peer, response, ct)
+            : couple.ProposeAsync(command.Actor, command.Peer, ct);
 }
 
 internal sealed class WeddingProposalHandler(ISelectedSessionDomainService sessions, ICommandBus commands,
@@ -139,10 +139,9 @@ internal sealed class WeddingProposalHandler(ISelectedSessionDomainService sessi
     }
 }
 
-internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessions, IMarriageProposalDomainService marriage,
+internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessions, IMarriageQueryDomainService marriage,
     ICommandBus commands, IGameMessageSender sender, SelectedSessionTransitionGate lifecycle, ILogger<WeddingResponseHandler> logger,
-    IMarriageEngagementDomainService engagement, IQuestOfferRefreshDomainService offers, ICharacterDomainService characters,
-    IMarriageCeremonyDomainService ceremonies, IMarriageWeddingDomainService weddings, TimeProvider clock, MarriageWeddingProjection? projection = null) : ClientMessageHandler<WeddingResponseRequest>
+    IQuestOfferRefreshDomainService offers, ICharacterDomainService characters, TimeProvider clock, MarriageWeddingProjection? projection = null) : ClientMessageHandler<WeddingResponseRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeddingResponseRequest message, CancellationToken ct)
     {
@@ -152,7 +151,7 @@ internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessi
             await RespondToCeremonyAsync(context, message, actor, ct).ConfigureAwait(false);
             return;
         }
-        var pending = actor is null ? null : await marriage.FindReceivedAsync(actor.CharacterId, ct).ConfigureAwait(false);
+        var pending = actor is null ? null : await marriage.ReceivedProposalAsync(actor.CharacterId, ct).ConfigureAwait(false);
         var peer = pending is null ? null : sessions.FindByCharacter(pending.Proposer.CharacterId);
         await WeddingProposalExecution.RunAsync(lifecycle, actor, peer, async () =>
         {
@@ -185,7 +184,7 @@ internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessi
     private async ValueTask RespondToCeremonyAsync(NetworkDispatchContext context, WeddingResponseRequest message,
         SelectedSessionIdentity? actor, CancellationToken ct)
     {
-        var pending = actor is null ? null : await ceremonies.FindReceivedAsync(actor.CharacterId, ct).ConfigureAwait(false);
+        var pending = actor is null ? null : await marriage.ReceivedReservationAsync(actor.CharacterId, ct).ConfigureAwait(false);
         var peer = pending is null ? null : sessions.FindByCharacter(pending.Applicant.CharacterId);
         await WeddingProposalExecution.RunAsync(lifecycle, actor, peer, async () =>
         {
@@ -212,12 +211,12 @@ internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessi
                 other.Add(new WeddingResponseNotification(actor.WireUserId, message.Outcome, 2));
                 if (result.Ceremony?.State == MarriageCeremonyState.Reserved)
                 {
-                    own.Add(new WeddingInfoMessage(await engagement.ReadAsync(actor.AccountId, actor.CharacterId, ct).ConfigureAwait(false)));
-                    other.Add(new WeddingInfoMessage(await engagement.ReadAsync(peer.AccountId, peer.CharacterId, ct).ConfigureAwait(false)));
+                    own.Add(new WeddingInfoMessage(await marriage.SnapshotAsync(actor.AccountId, actor.CharacterId, ct).ConfigureAwait(false)));
+                    other.Add(new WeddingInfoMessage(await marriage.SnapshotAsync(peer.AccountId, peer.CharacterId, ct).ConfigureAwait(false)));
                     var actorChurch = await commands.SendAsync(new PrepareMarriageChurchCommand(actor), ct).ConfigureAwait(false);
                     var peerChurch = await commands.SendAsync(new PrepareMarriageChurchCommand(peer), ct).ConfigureAwait(false);
-                    if (actorChurch.Snapshot is { } a) own.Add(new WeddingChurchPreparationNotification(a, await weddings.RemainingAsync(a.Room.CeremonyId, actor.CharacterId, ct).ConfigureAwait(false)));
-                    if (peerChurch.Snapshot is { } p) other.Add(new WeddingChurchPreparationNotification(p, await weddings.RemainingAsync(p.Room.CeremonyId, peer.CharacterId, ct).ConfigureAwait(false)));
+                    if (actorChurch.Snapshot is { } a) own.Add(new WeddingChurchPreparationNotification(a, await marriage.RemainingInvitationsAsync(a.Room.CeremonyId, actor.CharacterId, ct).ConfigureAwait(false)));
+                    if (peerChurch.Snapshot is { } p) other.Add(new WeddingChurchPreparationNotification(p, await marriage.RemainingInvitationsAsync(p.Room.CeremonyId, peer.CharacterId, ct).ConfigureAwait(false)));
                     if (result.Admissions.Count > 0 && result.Ceremony is { } accepted)
                     {
                         var billTo = accepted.Applicant.CharacterId == actor.CharacterId ? own : other;
@@ -248,7 +247,7 @@ internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessi
 
     private async ValueTask AppendSnapshotAsync(List<IGameServerMessage> messages, SelectedSessionIdentity session, CancellationToken ct)
     {
-        messages.Add(new WeddingInfoMessage(await engagement.ReadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false)));
+        messages.Add(new WeddingInfoMessage(await marriage.SnapshotAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false)));
         var progress = await characters.Get(session.CharacterId).ProgressAsync(ct).ConfigureAwait(false);
         if (progress is not null)
             messages.Add(new AvailableQuestListMessage(progress.Level,

@@ -1,5 +1,7 @@
 # 普通婚礼流程与实机验收
 
+> 2026-10-17 落地状态：「持久化及边界」里「Completed同时作为当前关系的已婚事实」已不成立。一对角色的阶段（含已婚）现在直接存在 `marriage_relations.stage`，由婚姻实体在到点完成的同一事务里写入；`marriage_weddings` 仍保存本场费用与 Preparing/Completed/Cancelled 明细。心意点以关系行为准，过渡期同时写回旧的 `marriage_weddings.love_points`。结构与偏差见[婚姻聚合设计稿的落地状态](MarriageAggregateDesign-20261017.md)。流程、收费与测试步骤不受影响。
+
 日期：2026-10-16；修改前提交589ace86。A21 EXE SHA256为1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD；当前PVF SHA256为91902D91AA0015024B75F55BE037FE7C2900FD66432459B62578CA0E865DEBF4。
 
 ## 流程

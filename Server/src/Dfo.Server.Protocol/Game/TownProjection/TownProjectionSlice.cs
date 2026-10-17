@@ -230,8 +230,7 @@ public sealed class SetUserAreaHandler(
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<SetUserAreaHandler> logger,
     ISelectedSessionPositionPersistence persistence,
-    Dfo.Server.Abstractions.Marriage.IMarriageChurchDomainService? churches = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageWeddingDomainService? weddings = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService? marriage = null,
     Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingProjection? weddingProjection = null) : ClientMessageHandler<SetUserAreaRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -315,14 +314,14 @@ public sealed class SetUserAreaHandler(
         var sharesTownPresence = await towns
             .SharesTownPresenceAsync(message.TownId, message.AreaId, cancellationToken)
             .ConfigureAwait(false);
-        if (churches is not null && !await churches.CanCrossAsync(session, channel.ChannelId,
+        if (marriage is not null && !await marriage.CanCrossAsync(session, channel.ChannelId,
                 message.TownId, message.AreaId, cancellationToken).ConfigureAwait(false))
         {
             await townAreaProjection.RefuseTownChangeAsync(context.Connection.ConnectionId, session, result, standing,
                 "请通过自己的婚礼预约进入教堂。", cancellationToken).ConfigureAwait(false);
             return;
         }
-        if (weddings is not null && !await weddings.CanLeaveAsync(session, message.TownId, message.AreaId, cancellationToken).ConfigureAwait(false))
+        if (marriage is not null && !await marriage.CanLeaveAsync(session, message.TownId, message.AreaId, cancellationToken).ConfigureAwait(false))
         {
             await townAreaProjection.RefuseTownChangeAsync(context.Connection.ConnectionId, session, result, standing,
                 "婚礼即将开始，请留在礼堂等待仪式。", cancellationToken).ConfigureAwait(false);
@@ -339,7 +338,7 @@ public sealed class SetUserAreaHandler(
             await persistence.PersistAsync(session.AccountId, session.CharacterId, destination, cancellationToken)
                 .ConfigureAwait(false);
         }
-        var weddingAppearance = weddings is null ? null : await weddings.AppearanceAsync(session, cancellationToken).ConfigureAwait(false);
+        var weddingAppearance = marriage is null ? null : await marriage.AppearanceAsync(session, cancellationToken).ConfigureAwait(false);
         var moved = positions.CrossInto(
             session, message.TownId, message.AreaId, message.X, message.Y);
         if (!await townAreaProjection.TransferAsync(
@@ -360,7 +359,7 @@ public sealed class SetUserAreaHandler(
 
         if (weddingAppearance is not null && weddingProjection is not null
             && (message.TownId != weddingAppearance.Room.TownId || message.AreaId != weddingAppearance.Room.AreaId)
-            && await weddings!.PhaseAsync(weddingAppearance.Room.CeremonyId, cancellationToken).ConfigureAwait(false)
+            && await marriage!.WeddingPhaseAsync(weddingAppearance.Room.CeremonyId, cancellationToken).ConfigureAwait(false)
                 != Dfo.Server.Data.Marriage.MarriageWeddingPhase.Preparing)
             await weddingProjection.AppearanceAsync(session, weddingAppearance, true, cancellationToken).ConfigureAwait(false);
 

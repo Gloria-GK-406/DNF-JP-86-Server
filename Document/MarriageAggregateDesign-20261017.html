@@ -1,0 +1,184 @@
+<title>婚姻聚合结构图</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: four horizontal bands read top-down — callers → interfaces → the one entity (4 component groups) → rules. */
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#1b2230; --muted:#5b6474; --line:#d9dde5; --entity:#eef1f6;
+  --q:#2f6f9f; --c:#b04a6a; --v:#b07418; --t:#3d8a5a; --dim:.22;
+  --sans:"IBM Plex Sans","PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+  --mono:"JetBrains Mono","Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161d; --panel:#1a2029; --ink:#e4e8ef; --muted:#9aa3b2; --line:#2d3542; --entity:#161b23;
+  --q:#6aa8d6; --c:#e07c9b; --v:#e0a94f; --t:#72c08f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161d; --panel:#1a2029; --ink:#e4e8ef; --muted:#9aa3b2; --line:#2d3542; --entity:#161b23;
+  --q:#6aa8d6; --c:#e07c9b; --v:#e0a94f; --t:#72c08f; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.55 var(--sans);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:22px}
+h1{font-size:22px;font-weight:600;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0}
+.counts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.counts span{font:500 12px var(--mono);border:1px solid var(--line);background:var(--panel);padding:3px 9px;border-radius:999px}
+.band-label{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.hint{color:var(--muted);font-size:12px}
+/* stage strip */
+.stages{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.stage{font:500 12px var(--mono);padding:4px 9px;border:1px solid var(--line);background:var(--panel);border-radius:6px}
+.stage b{font-weight:600}
+.stage small{color:var(--muted);margin-left:4px}
+.arr{color:var(--muted);font-size:12px}
+/* callers */
+.callers{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:12px var(--mono);padding:4px 9px;border:1px solid var(--line);border-radius:6px;background:var(--panel);display:flex;gap:6px;align-items:center}
+.dots{display:inline-flex;gap:3px}
+.dots i{width:7px;height:7px;border-radius:50%;display:block}
+/* interfaces */
+.ifaces{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.iface{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--k);border-radius:8px;padding:12px 14px;cursor:pointer;text-align:left;color:inherit;font:inherit}
+.iface:focus-visible,.comp:focus-visible{outline:2px solid var(--k,var(--q));outline-offset:2px}
+.iface h3{margin:0;font:600 13px var(--mono);color:var(--k);word-break:break-all}
+.iface p{margin:4px 0 8px;color:var(--muted);font-size:12.5px}
+.iface ul{margin:0;padding:0;list-style:none;font:11.5px/1.7 var(--mono);color:var(--ink)}
+/* entity */
+.entity{background:var(--entity);border:2px solid var(--ink);border-radius:12px;padding:16px}
+.entity-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:12px}
+.entity-head h2{margin:0;font:600 15px var(--mono)}
+.entity-head span{color:var(--muted);font-size:12.5px}
+.groups{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.group h4{margin:0 0 8px;font:500 11px var(--mono);letter-spacing:.08em;color:var(--muted)}
+.group .stack{display:grid;gap:8px}
+.comp{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;text-align:left;color:inherit;font:inherit;width:100%}
+.comp b{font:600 12.5px var(--mono);display:block}
+.comp .role{font-size:12.5px;color:var(--ink);margin:2px 0 6px}
+.comp .tables{font:11px/1.6 var(--mono);color:var(--muted);word-break:break-all}
+.comp.static{border-style:dashed}
+.comp .dots{margin-top:6px}
+/* rules */
+.rules{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 18px}
+.rules ol{margin:0;padding-left:20px;display:grid;gap:4px}
+.rules code{font:12px var(--mono)}
+/* highlight state */
+.sel .is-dim{opacity:var(--dim)}
+.sel .is-on{border-color:var(--k)!important;box-shadow:0 0 0 1px var(--k)}
+.k-q{--k:var(--q)} .k-c{--k:var(--c)} .k-v{--k:var(--v)} .k-t{--k:var(--t)}
+.bg-q{background:var(--q)} .bg-c{background:var(--c)} .bg-v{background:var(--v)} .bg-t{background:var(--t)}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.reset{font:12px var(--mono);border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:4px 10px;cursor:pointer}
+@media (max-width:900px){.ifaces,.groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.ifaces,.groups{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:no-preference){.iface,.comp,.chip{transition:opacity .15s,box-shadow .15s,border-color .15s}}
+</style>
+
+<div class="wrap" id="root">
+  <header>
+    <h1>婚姻聚合：单实体、多接口</h1>
+    <p class="sub">对外 4 个接口由同一个 <code>MarriageDomainService</code> 实例实现；实体内部按职责拆成小组件，组件之间不互相调用，由实体编排。</p>
+    <p class="hint">2026-10-17 已在 <code>task/marriage-domain-aggregate</code> 实现（未合并），接口方法与组件职责按实现更新；与设计稿的偏差见同名 .md 开头的落地状态。</p>
+    <div class="counts"><span>1 个实体</span><span>4 个对外接口</span><span>9 个内部组件</span><span>1 个纯规则类</span><span>12 张表，每张只归一个组件</span></div>
+  </header>
+
+  <section>
+    <p class="band-label">阶段（关系记录上的 stage，直接存储，不再推导）</p>
+    <div class="stages">
+      <span class="stage"><b>0 Proposed</b><small>求婚待答</small></span><span class="arr">→</span>
+      <span class="stage"><b>1 Engaged</b><small>已订婚</small></span><span class="arr">→</span>
+      <span class="stage"><b>2 Requested</b><small>预约待答</small></span><span class="arr">→</span>
+      <span class="stage"><b>3 Preparing</b><small>教堂倒计时</small></span><span class="arr">→</span>
+      <span class="stage"><b>4 Married</b><small>已婚</small></span>
+      <span class="arr">｜</span>
+      <span class="stage"><b>5 Closed</b><small>拒绝 / 过期</small></span>
+    </div>
+    <p class="hint">回退：Requested 被拒或过期 → Engaged；Preparing 到点有人缺席 → Engaged（退款）。03D0 投影：0/5→0，1/2→1，3→2，4→4。</p>
+  </section>
+
+  <section>
+    <div class="toolbar"><p class="band-label" style="margin:0">调用方</p><span class="hint">点一个接口或组件，看它连着谁</span><button class="reset" id="reset" type="button">清除选择</button></div>
+    <div class="callers" id="callers" style="margin-top:8px"></div>
+  </section>
+
+  <section>
+    <p class="band-label">对外接口（按调用方划分）</p>
+    <div class="ifaces" id="ifaces"></div>
+  </section>
+
+  <section class="entity">
+    <div class="entity-head"><h2>MarriageDomainService</h2><span>internal sealed partial · 构造器只接组件 + TimeProvider · 不碰任何 store</span></div>
+    <div class="groups" id="groups"></div>
+  </section>
+
+  <section class="rules">
+    <p class="band-label">组件规则</p>
+    <ol>
+      <li>只有 <code>CoupleLedger</code> 写阶段，每次写都按 revision 做 CAS；关系 store 只注入它。</li>
+      <li>组件之间不互相调用，实体负责编排；组件只接收同一操作内加载的那份 <code>MarriageRelation</code>。由 <code>MarriageArchitectureTests</code> 守着。</li>
+      <li>每个操作只解析一次关系：守卫 → 各组件副作用 → Commit。子记录改动前阶段不符返回 <code>Stale</code>；改动后 CAS 失败则抛异常、整笔回滚。</li>
+      <li>组件是具体的 internal 类型，没有公开接口，以 singleton 注册（无状态）。</li>
+      <li>规则服务（<code>IMarriage*RuleService</code>）保持原样，由组件调用。</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+const IF = {
+  q:{name:"IMarriageQueryDomainService", role:"只读视图，可到处注入，不写库",
+     m:["ViewAsync / SnapshotAsync","ReceivedProposal / ReceivedReservation","IsMarriedAsync / WeddingPhaseAsync","AppearanceAsync","CanCross / CanLeave","RemainingInvitations / Invited","CoupleAccounts / WeddingAccounts","ActiveWeddingsAsync"]},
+  c:{name:"IMarriageCoupleDomainService", role:"新人发起的写：迁移 T1–T7 的唯一入口",
+     m:["ProposeAsync","RespondProposalAsync","RequestReservationAsync","RespondReservationAsync","OpenWeddingAsync（接受预约后同一事务内开婚礼）","UseLovePointAsync"]},
+  v:{name:"IMarriageVenueDomainService", role:"婚礼现场：教堂、宾客、祝词、到点推进（T8/T9）",
+     m:["PrepareChurchAsync（缺房时分配）","EnterChurchAsync（03F7 合一）","InviteAsync / GiftAsync","AdvanceAsync","CompleteCleanupAsync","Read / Post / DeleteGuestbook"]},
+  t:{name:"IMarriageQuestDomainService", role:"婚前任务，给任务领域用，签名不变",
+     m:["EligibleQuestIdsAsync","CanAcceptAsync","BindAsync","CanCompleteAsync"]}
+};
+const GROUPS = [
+  ["核心", [
+    {id:"ledger", n:"CoupleLedger", r:"关系账本：加载、统一身份判定（ForSession / ForParticipant / ForPair）、惰性到期、阶段 CAS 写入、心意点写入", t:"marriage_relations（新）· marriage_proposals · marriage_proposal_participants", i:"qcvt"},
+    {id:"rules", n:"MarriageStageRules", r:"纯规则（static）：迁移表与阶段判定；03D0 投影在 Protocol", t:"无表", i:"qc", s:1},
+    {id:"elig", n:"MarriageEligibility", r:"资格：在线、同城、等级、性别、任务、金币；03F3 对方资料（ProfileAsync）", t:"只读", i:"qc"}]],
+  ["流程", [
+    {id:"resv", n:"ReservationDesk", r:"预约记录：申请、接受、拒绝、过期", t:"marriage_ceremonies", i:"c"},
+    {id:"church", n:"ChurchRooms", r:"教堂房间、入场名单、站位、快照、跨区与离场判定", t:"marriage_church_rooms · marriage_church_admissions", i:"qcv"},
+    {id:"settle", n:"WeddingSettlement", r:"婚礼行、扣费、到点结算、退款、回礼、离场坐标、清理队列", t:"marriage_weddings · marriage_wedding_cleanup", i:"qcv"}]],
+  ["现场", [
+    {id:"guests", n:"GuestList", r:"请柬、礼金、宾客入场资格、剩余请柬", t:"marriage_wedding_guests", i:"qv"},
+    {id:"book", n:"Guestbook", r:"祝词簿：读取、发表、删除", t:"marriage_guest_comments", i:"v"}]],
+  ["附属", [
+    {id:"trial", n:"TrialQuests", r:"婚前任务绑定、试炼计数；DungeonMapCleared 由薄订阅类交给实体，实体判定关系后再交给它", t:"marriage_quest_bindings · marriage_trial_clears", i:"t"},
+    {id:"love", n:"LovePoints", r:"心意点：道具使用与上限；点数由实体经 Ledger 写入。效果服务用 Func 延迟解析，避免 DI 环", t:"无表（marriage_relations.love_points 由 Ledger 写）", i:"c"}]]
+];
+const CALLERS = [
+  ["MarriageProposalSlice","q"],["Proposal / Ceremony 命令处理器","c"],["MarriageEngagementSlice","q"],
+  ["MarriageChurchSlice","v"],["MarriageWeddingSlice","qv"],["MarriageLovePointSlice","qc"],
+  ["MarriageGuestbookSlice","v"],["TownProjectionSlice","q"],["SelectCharacterPreparation","qt"],
+  ["ReplayStateDomainService","q"],["Quest 三服务 + AcceptQuest","t"]
+];
+const dots = s => `<span class="dots">${[...s].map(k=>`<i class="bg-${k}" title="${IF[k].name}"></i>`).join("")}</span>`;
+const $ = id => document.getElementById(id);
+$("callers").innerHTML = CALLERS.map(([n,s]) => `<span class="chip" data-i="${s}">${n}${dots(s)}</span>`).join("");
+$("ifaces").innerHTML = Object.entries(IF).map(([k,v]) =>
+  `<button type="button" class="iface k-${k}" data-k="${k}" data-i="${k}"><h3>${v.name}</h3><p>${v.role}</p><ul>${v.m.map(x=>`<li>${x}</li>`).join("")}</ul></button>`).join("");
+$("groups").innerHTML = GROUPS.map(([g,cs]) => `<div class="group"><h4>${g}</h4><div class="stack">${cs.map(c =>
+  `<button type="button" class="comp${c.s?" static":""}" data-c="${c.id}" data-i="${c.i}"><b>${c.n}</b><div class="role">${c.r}</div><div class="tables">${c.t}</div>${dots(c.i)}</button>`).join("")}</div></div>`).join("");
+
+const root = $("root");
+function clear(){ root.classList.remove("sel"); root.querySelectorAll(".is-on,.is-dim").forEach(e=>e.classList.remove("is-on","is-dim")); root.style.removeProperty("--k"); }
+function pick(keys, colorKey, self){
+  clear(); root.classList.add("sel");
+  root.style.setProperty("--k", `var(--${colorKey})`);
+  root.querySelectorAll(".chip,.iface,.comp").forEach(e => {
+    const hit = e === self || [...e.dataset.i].some(k => keys.includes(k));
+    e.classList.add(hit ? "is-on" : "is-dim");
+  });
+}
+root.addEventListener("click", ev => {
+  const iface = ev.target.closest(".iface"), comp = ev.target.closest(".comp");
+  if (iface) { pick([iface.dataset.k], iface.dataset.k, iface); }
+  else if (comp) { const ks = [...comp.dataset.i]; pick(ks, ks[0], comp);
+    root.querySelectorAll(".comp").forEach(e => { if (e !== comp) { e.classList.remove("is-on"); e.classList.add("is-dim"); } }); }
+});
+$("reset").addEventListener("click", clear);
+</script>

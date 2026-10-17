@@ -21,12 +21,3 @@ public interface IMarriageChurchRuleService
     TimeSpan PreparationTime(int waitIndex);
     MarriageWeddingRules WeddingRules(int tier);
 }
-
-public interface IMarriageChurchDomainService
-{
-    ValueTask<MarriageChurchSnapshot?> PrepareAsync(SelectedSessionIdentity actor, CancellationToken ct);
-    ValueTask<MarriageChurchEntryResult> EnterAsync(SelectedSessionIdentity actor,
-        uint peer, uint churchArea, byte flag, CancellationToken ct);
-    ValueTask<bool> CanCrossAsync(SelectedSessionIdentity actor, int channelId,
-        byte townId, byte areaId, CancellationToken ct);
-}

@@ -38,7 +38,7 @@ ClientStatic / Confirmed：A21未修正的共享窗口超时dispatcher实际匹�
 |---|---|---|
 | action1 / 0 | 持久化订婚关系Engaged，投影状态与可接任务 | 用户已确认双端订婚成功；不是已婚 |
 | action1 / 1、2 | 拒绝或超时，释放Pending占位 | 手动拒绝已确认；自动超时未据本次婚礼测试扩大验收 |
-| action2 / 0 | 独立预约Reserved，投影03D0阶段2 | 用户报告普通档接受正常；本轮后续流程尚待实机 |
+| action2 / 0 | 独立预约Reserved，投影03D0阶段2（2026-10-17 起由关系阶段 Preparing 投影，见 [婚姻聚合设计稿](../../Document/MarriageAggregateDesign-20261017.md) 落地状态） | 用户报告普通档接受正常；本轮后续流程尚待实机 |
 | action2 / 1 | 预约Rejected，结束邀请 | 手动拒绝已确认；用户亦确认兼容补丁自动发送1后普通拒绝文本与等待窗收尾正常 |
 | action2 / 2 | 预约Expired，结束邀请 | 旧版路由补丁已观察到服务端成功处理；当前自动拒绝补丁改发1 |
 

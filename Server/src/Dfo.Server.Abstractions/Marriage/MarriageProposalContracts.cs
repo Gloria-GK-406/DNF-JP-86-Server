@@ -14,13 +14,6 @@ public interface IMarriageProposalDomainStore
     ValueTask<bool> TransitionAsync(MarriageProposal expected, MarriageProposalState state, byte? response, CancellationToken ct);
 }
 
-public interface IMarriageProposalDomainService
-{
-    ValueTask<MarriageProposal?> FindReceivedAsync(CharacterId character, CancellationToken ct);
-    ValueTask<MarriageProposalResult> ProposeAsync(SelectedSessionIdentity proposer, SelectedSessionIdentity recipient, CancellationToken ct);
-    ValueTask<MarriageProposalResult> RespondAsync(SelectedSessionIdentity recipient, SelectedSessionIdentity proposer, byte response, CancellationToken ct);
-}
-
 public interface IMarriageProposalContentSource { MarriageProposalContent Load(); }
 public interface IMarriageProposalRuleService
 {
@@ -39,16 +32,6 @@ public interface IMarriageCeremonyDomainStore
     ValueTask CreateAsync(MarriageCeremony ceremony, CancellationToken ct);
     ValueTask<bool> TransitionAsync(MarriageCeremony expected, MarriageCeremonyState state,
         byte response, CancellationToken ct);
-    ValueTask<bool> IsReservedAsync(Guid relationId, CancellationToken ct);
-}
-
-public interface IMarriageCeremonyDomainService
-{
-    ValueTask<MarriageCeremony?> FindReceivedAsync(CharacterId character, CancellationToken ct);
-    ValueTask<MarriageCeremonyResult> RequestAsync(SelectedSessionIdentity applicant,
-        SelectedSessionIdentity partner, int tier, int waitIndex, CancellationToken ct);
-    ValueTask<MarriageCeremonyResult> RespondAsync(SelectedSessionIdentity partner,
-        SelectedSessionIdentity applicant, byte response, CancellationToken ct);
 }
 
 public interface IMarriageCeremonyContentSource { MarriageCeremonyContent Load(); }
@@ -59,19 +42,6 @@ public interface IMarriageCeremonyRuleService
     int TrialQuestId { get; }
     int MaterialQuestId { get; }
     int? RequiredGold(int tier, int waitIndex);
-}
-
-public interface IMarriageEngagementDomainService
-{
-    ValueTask<MarriageEngagementSnapshot> ReadAsync(AccountId account, CharacterId character, CancellationToken ct);
-}
-
-public interface IMarriageQuestDomainService
-{
-    ValueTask<IReadOnlyCollection<int>> EligibleQuestIdsAsync(AccountId account, CharacterId character, CancellationToken ct);
-    ValueTask<bool> CanAcceptAsync(AccountId account, CharacterId character, int quest, CancellationToken ct);
-    ValueTask BindAsync(AccountId account, CharacterId character, int quest, CancellationToken ct);
-    ValueTask<bool> CanCompleteAsync(AccountId account, CharacterId character, int quest, CancellationToken ct);
 }
 
 public interface IMarriageQuestDomainStore

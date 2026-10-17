@@ -48,10 +48,10 @@ public sealed class MarriageProposalTests
         areas.Enter(new(peer.CharacterId, peer.TownAreaLease(), new(1, 21, 1), new(21, 1, 120, 100, 0), true));
         return (f, peer);
     }
-    internal static async Task<MarriageProposalResult> Run(LearningFixture f, Func<IMarriageProposalDomainService, ValueTask<MarriageProposalResult>> action, bool commit = true)
+    internal static async Task<MarriageProposalResult> Run(LearningFixture f, Func<IMarriageCoupleDomainService, ValueTask<MarriageProposalResult>> action, bool commit = true)
     {
         await using var tx = f.Scope.Begin();
-        var result = await action(f.Services.GetRequiredService<IMarriageProposalDomainService>());
+        var result = await action(f.Services.GetRequiredService<IMarriageCoupleDomainService>());
         if (commit) await tx.CommitAsync(default);
         return result;
     }
@@ -63,9 +63,9 @@ public sealed class MarriageProposalTests
         Assert.True(proposal.Succeeded);
         var duplicate = await Run(f, s => s.ProposeAsync(f.Session, peer, default));
         Assert.Equal(proposal.Proposal!.Id, duplicate.Proposal!.Id); Assert.False(duplicate.Changed);
-        var accept = await Run(f, s => s.RespondAsync(peer, f.Session, 0, default));
+        var accept = await Run(f, s => s.RespondProposalAsync(peer, f.Session, 0, default));
         Assert.Equal(MarriageProposalState.Engaged, accept.Proposal!.State);
-        var replay = await Run(f, s => s.RespondAsync(peer, f.Session, 0, default));
+        var replay = await Run(f, s => s.RespondProposalAsync(peer, f.Session, 0, default));
         Assert.True(replay.Succeeded); Assert.False(replay.Changed);
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_proposals"));
         Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM marriage_proposal_participants WHERE active=1"));
@@ -81,7 +81,7 @@ public sealed class MarriageProposalTests
     {
         var (f, peer) = await Fixture(); await using var fixture = f;
         await Run(f, s => s.ProposeAsync(f.Session, peer, default));
-        var response = await Run(f, s => s.RespondAsync(peer, f.Session, outcome, default));
+        var response = await Run(f, s => s.RespondProposalAsync(peer, f.Session, outcome, default));
         Assert.Equal(state, response.Proposal!.State);
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_proposal_participants WHERE active=1"));
         Assert.True((await Run(f, s => s.ProposeAsync(f.Session, peer, default))).Succeeded);
@@ -100,10 +100,10 @@ public sealed class MarriageProposalTests
         var (f, peer) = await Fixture(); await using var fixture = f;
         await Run(f, s => s.ProposeAsync(f.Session, peer, default));
         Assert.False((await Run(f, s => s.ProposeAsync(peer, f.Session, default))).Succeeded);
-        Assert.False((await Run(f, s => s.RespondAsync(f.Session, peer, 0, default))).Succeeded);
+        Assert.False((await Run(f, s => s.RespondProposalAsync(f.Session, peer, 0, default))).Succeeded);
         var changed = peer with { ConnectionGeneration = peer.ConnectionGeneration + 1 };
         f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(changed);
-        Assert.False((await Run(f, s => s.RespondAsync(changed, f.Session, 0, default))).Succeeded);
+        Assert.False((await Run(f, s => s.RespondProposalAsync(changed, f.Session, 0, default))).Succeeded);
         Assert.Equal(0, f.Scalar("SELECT state FROM marriage_proposals"));
     }
     [Fact]
@@ -112,7 +112,7 @@ public sealed class MarriageProposalTests
         var clock = new Clock(); var (f, peer) = await Fixture(clock); await using var fixture = f;
         await Run(f, s => s.ProposeAsync(f.Session, peer, default));
         clock.Now += TimeSpan.FromMinutes(2);
-        Assert.False((await Run(f, s => s.RespondAsync(peer, f.Session, 0, default))).Succeeded);
+        Assert.False((await Run(f, s => s.RespondProposalAsync(peer, f.Session, 0, default))).Succeeded);
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_proposal_participants WHERE active=1"));
         Assert.True((await Run(f, s => s.ProposeAsync(f.Session, peer, default))).Succeeded);
     }
@@ -134,8 +134,8 @@ public sealed class MarriageProposalTests
         var (f, peer) = await Fixture(); await using var fixture = f;
         await Run(f, s => s.ProposeAsync(f.Session, peer, default));
         f.Services.GetRequiredService<ITownAreaDomainService>().LeaveExact(peer.CharacterId, peer.TownAreaLease(), TownAreaDepartureReason.DungeonEntry);
-        Assert.False((await Run(f, s => s.RespondAsync(peer, f.Session, 0, default))).Succeeded);
-        Assert.True((await Run(f, s => s.RespondAsync(peer, f.Session, 1, default))).Succeeded);
+        Assert.False((await Run(f, s => s.RespondProposalAsync(peer, f.Session, 0, default))).Succeeded);
+        Assert.True((await Run(f, s => s.RespondProposalAsync(peer, f.Session, 1, default))).Succeeded);
     }
     [Fact]
     public async Task Concurrent_cross_proposals_through_real_command_pipeline_commit_only_one_relationship()

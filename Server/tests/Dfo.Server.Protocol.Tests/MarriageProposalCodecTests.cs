@@ -19,7 +19,7 @@ public sealed class MarriageProposalCodecTests
     public void Marriage_date_and_love_points_match_native_offsets_and_coupon_uses_main_slot()
     {
         var at = DateTimeOffset.FromUnixTimeSeconds(1792206195);
-        var snapshot = new Dfo.Server.Data.Marriage.MarriageEngagementSnapshot(Guid.NewGuid(), new(8, "peer"u8.ToArray(), 0, 70, 0, new int[13])) { IsMarried = true, MarriedAt = at, LovePoints = 17 };
+        var snapshot = new Dfo.Server.Data.Marriage.MarriageEngagementSnapshot(Guid.NewGuid(), new(8, "peer"u8.ToArray(), 0, 70, 0, new int[13])) { Stage = MarriageStage.Married, MarriedAt = at, LovePoints = 17 };
         var info = MarriageEngagementPayload.Info(snapshot);
         Assert.Equal(15, info.Length); Assert.Equal(4, info[4]);
         Assert.Equal(1792206195u, BinaryPrimitives.ReadUInt32LittleEndian(info.AsSpan(6)));
@@ -44,8 +44,18 @@ public sealed class MarriageProposalCodecTests
             Assert.Single(new WeddingResponseNotificationEncoder().Encode(new WeddingResponseNotification(72, 0, 2, -3)))[15..]);
         var profile = new MarriagePartnerProfile(72, "partner"u8.ToArray(), 0, 85, 0, new int[13]);
         Assert.Equal(Convert.FromHexString("480000000200000000000000000000"),
-            MarriageEngagementPayload.Info(new(Guid.NewGuid(), profile) { IsCeremonyReserved = true }));
+            MarriageEngagementPayload.Info(new(Guid.NewGuid(), profile) { Stage = MarriageStage.Preparing }));
     }
+    [Theory]
+    [InlineData(null, 0)]
+    [InlineData(MarriageStage.Proposed, 0)]
+    [InlineData(MarriageStage.Engaged, 1)]
+    [InlineData(MarriageStage.Requested, 1)]
+    [InlineData(MarriageStage.Preparing, 2)]
+    [InlineData(MarriageStage.Married, 4)]
+    [InlineData(MarriageStage.Closed, 0)]
+    public void Wire_state_projects_each_stage(MarriageStage? stage, byte expected) =>
+        Assert.Equal(expected, MarriageEngagementPayload.WireState(stage));
     [Fact]
     public void Engagement_snapshot_changes_the_native_menu_stage_and_empty_snapshot_clears_it()
     {

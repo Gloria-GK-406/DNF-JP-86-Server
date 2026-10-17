@@ -35,7 +35,7 @@ public sealed class MarriageCeremonyHandlerTests
                 actor.TownAreaLease(), new(1, 2, 1), moved, true);
         }
         await MarriageProposalTests.Run(f, x => x.ProposeAsync(f.Session, peer, default));
-        var engaged = await MarriageProposalTests.Run(f, x => x.RespondAsync(peer, f.Session, 0, default));
+        var engaged = await MarriageProposalTests.Run(f, x => x.RespondProposalAsync(peer, f.Session, 0, default));
         f.Sql("INSERT INTO character_stats(character_id,carried_gold) VALUES(71,1000000),(72,1000000);");
         await using (var tx = f.Scope.Begin())
         {
@@ -79,8 +79,8 @@ public sealed class MarriageCeremonyHandlerTests
         Assert.Contains(accepted.RequiredDirectMessages, x => x.GetType().Name == "WeddingInfoMessage");
         Assert.Contains(Assert.Single(accepted.BestEffortTargets).OrderedMessages, x => x.GetType().Name == "WeddingInfoMessage");
         Assert.Equal(new WeddingResponseNotification(peer.WireUserId, 0, 2), accepted.BestEffortTargets[0].OrderedMessages[0]);
-        Assert.True((await f.Services.GetRequiredService<IMarriageEngagementDomainService>()
-            .ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).IsCeremonyReserved);
+        Assert.True((await f.Services.GetRequiredService<IMarriageQueryDomainService>()
+            .SnapshotAsync(f.Session.AccountId, f.Session.CharacterId, default)).IsCeremonyReserved);
         Assert.Equal(1500000, f.Scalar("SELECT SUM(carried_gold) FROM character_stats"));
         await response.HandleAsync(peerContext, new WeddingResponseRequest(GameMessageMetadata.Empty, 0, 2, 0, 0, 0), default);
         Assert.Equal(0, Assert.IsType<WeddingResponseAck>(sender.Deliveries[^1].RequiredDirectMessages[0]).Status);

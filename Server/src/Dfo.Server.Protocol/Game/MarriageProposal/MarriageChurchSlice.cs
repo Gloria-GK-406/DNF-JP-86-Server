@@ -81,12 +81,12 @@ public sealed record PrepareMarriageChurchCommand(SelectedSessionIdentity Actor)
     public AccountId AccountId => Actor.AccountId;
     public SelectedSessionIdentity? Session => Actor;
 }
-public sealed class PrepareMarriageChurchCommandHandler(IMarriageChurchDomainService churches)
+public sealed class PrepareMarriageChurchCommandHandler(IMarriageVenueDomainService venue)
     : ICommandHandler<PrepareMarriageChurchCommand, MarriageChurchPreparationResult>
 {
     public async ValueTask<MarriageChurchPreparationResult> HandleAsync(CommandExecutionContext context,
         PrepareMarriageChurchCommand command, CancellationToken ct) =>
-        new(await churches.PrepareAsync(command.Actor, ct).ConfigureAwait(false));
+        new(await venue.PrepareChurchAsync(command.Actor, ct).ConfigureAwait(false));
 }
 public sealed record EnterMarriageChurchCommand(SelectedSessionIdentity Actor, uint Peer, uint ChurchArea, byte Flag)
     : ICommand<MarriageChurchEntryResult>, IAccountCommand, ISelectedSessionCommand
@@ -94,13 +94,12 @@ public sealed record EnterMarriageChurchCommand(SelectedSessionIdentity Actor, u
     public AccountId AccountId => Actor.AccountId;
     public SelectedSessionIdentity? Session => Actor;
 }
-public sealed class EnterMarriageChurchCommandHandler(IMarriageChurchDomainService churches, IMarriageWeddingDomainService weddings)
+public sealed class EnterMarriageChurchCommandHandler(IMarriageVenueDomainService venue)
     : ICommandHandler<EnterMarriageChurchCommand, MarriageChurchEntryResult>
 {
     public ValueTask<MarriageChurchEntryResult> HandleAsync(CommandExecutionContext context,
         EnterMarriageChurchCommand command, CancellationToken ct) =>
-        command.Flag == 1 ? weddings.EnterGuestAsync(command.Actor, command.Peer, command.ChurchArea, ct)
-            : churches.EnterAsync(command.Actor, command.Peer, command.ChurchArea, command.Flag, ct);
+        venue.EnterChurchAsync(command.Actor, command.Peer, command.ChurchArea, command.Flag, ct);
 }
 
 public sealed class WeddingChurchEnterHandler(ISelectedSessionDomainService sessions, ICommandBus commands,

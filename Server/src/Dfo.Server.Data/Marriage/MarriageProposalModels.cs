@@ -80,8 +80,9 @@ public sealed record MarriagePartnerProfile(int CharacterId, byte[] Name, byte J
 public sealed record MarriageEngagementSnapshot(Guid? RelationId, MarriagePartnerProfile? Partner)
 {
     public bool IsEngaged => RelationId is not null && Partner is not null;
-    public bool IsCeremonyReserved { get; init; }
-    public bool IsMarried { get; init; }
+    public MarriageStage Stage { get; init; } = MarriageStage.Engaged;
+    public bool IsCeremonyReserved => Stage == MarriageStage.Preparing;
+    public bool IsMarried => Stage == MarriageStage.Married;
     public DateTimeOffset? MarriedAt { get; init; }
     public int LovePoints { get; init; }
     public static MarriageEngagementSnapshot Empty { get; } = new(null, null);

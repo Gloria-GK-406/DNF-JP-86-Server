@@ -60,13 +60,13 @@ internal sealed class WeddingCommentEncoder : GameCmdMessageEncoder<WeddingComme
 }
 public sealed record WeddingCommentCommand(SelectedSessionIdentity Actor, ushort Type, uint Key, uint Id, byte[] Text) : ICommand<MarriageGuestbookResult>, IAccountCommand, ISelectedSessionCommand
 { public AccountId AccountId => Actor.AccountId; public SelectedSessionIdentity? Session => Actor; }
-public sealed class WeddingCommentCommandHandler(IMarriageGuestbookDomainService comments) : ICommandHandler<WeddingCommentCommand, MarriageGuestbookResult>
+public sealed class WeddingCommentCommandHandler(IMarriageVenueDomainService venue) : ICommandHandler<WeddingCommentCommand, MarriageGuestbookResult>
 {
     public async ValueTask<MarriageGuestbookResult> HandleAsync(CommandExecutionContext c, WeddingCommentCommand q, CancellationToken ct) => q.Type switch
     {
-        0x03FA => await comments.ReadAsync(q.Actor, q.Key, ct).ConfigureAwait(false),
-        0x03F8 => new(await comments.PostAsync(q.Actor, q.Key, q.Text, ct).ConfigureAwait(false), []),
-        0x03F9 => new(await comments.DeleteAsync(q.Actor, q.Key, q.Id, ct).ConfigureAwait(false), []),
+        0x03FA => await venue.ReadGuestbookAsync(q.Actor, q.Key, ct).ConfigureAwait(false),
+        0x03F8 => new(await venue.PostGuestbookAsync(q.Actor, q.Key, q.Text, ct).ConfigureAwait(false), []),
+        0x03F9 => new(await venue.DeleteGuestbookAsync(q.Actor, q.Key, q.Id, ct).ConfigureAwait(false), []),
         _ => new(-1, [])
     };
 }

@@ -1,0 +1,55 @@
+EV-001  TASK-001 婚姻表征测试基线
+日期：2026-10-17    基准提交：5a0cbed0（工作区未提交改动仅为新增测试文件；Server/src 无改动）
+
+构建
+  dotnet build Server/86JP.Server.slnx  ->  0 个警告，0 个错误
+
+过滤集一：Application.Tests
+  dotnet test Server/tests/Dfo.Server.Application.Tests --no-build --filter "FullyQualifiedName~Marriage" --logger "console;verbosity=detailed"
+  测试总数: 77    通过数: 74    跳过数: 3    失败: 0
+  跳过的 3 条均为 SkippableFact/SkippableTheory（本机无 PVF 档案）：
+    MarriageChurchTests.Current_PVF_wedding_completion_delivers_one_real_box_per_spouse_once(failSecond: False)
+    MarriageChurchTests.Current_PVF_wedding_completion_delivers_one_real_box_per_spouse_once(failSecond: True)
+    MarriageEngagementTests.Current_PVF_trial_hand_in_grants_box_then_material_hand_in_consumes_doll_once
+  对照：新增测试前同一过滤集为 总计 53 / 通过 50 / 跳过 3。差值 24 = 本 Task 新增用例数。
+
+过滤集二：Protocol.Tests
+  dotnet test Server/tests/Dfo.Server.Protocol.Tests --no-build --filter "FullyQualifiedName~Marriage" --logger "console;verbosity=detailed"
+  测试总数: 36    通过数: 36    失败: 0
+  （本 Task 未在 Protocol.Tests 新增文件；新增前后均为 36）
+
+新增用例（24 条，均在 Dfo.Server.Application.Tests.Marriage 命名空间，均通过）
+  MarriageRequestCharacterizationTests（9）
+    Proposal_guards_answer_their_own_failure_codes
+    Acceptance_rechecks_town_and_eligibility_without_closing_the_proposal
+    Expired_proposal_answered_with_timeout_is_recorded_once
+    Expired_requests_answered_with_acceptance_are_stale_yet_recorded_expired
+    Pending_proposal_lapses_when_a_participant_session_is_replaced
+    Reservation_guards_answer_their_own_failure_codes_and_failed_rechecks_expire
+    Expired_request_answered_with_timeout_is_recorded_once
+    Wedding_preparation_refuses_pending_unpaid_or_offline_ceremonies_and_leaves_nothing
+    Wedding_preparation_records_paid_fee_and_gives_each_spouse_the_other_as_peer
+  MarriageEngagementCharacterizationTests（4）
+    Wedding_info_state_byte_follows_each_relationship_stage
+    Engagement_snapshot_profiles_the_partner_and_keeps_reserved_false_once_married
+    Quest_eligibility_follows_the_engaged_owner_only
+    Trial_clears_from_an_empty_run_repeated_or_foreign_participants_or_odd_maps_are_not_counted
+  MarriageChurchCharacterizationTests（3）
+    Newlywed_entry_answers_minus_ten_for_mismatches_and_minus_seven_after_opening
+    Crossing_admits_guests_by_admission_and_completed_weddings_only_from_inside
+    Wedding_appearance_depends_on_session_admission_channel_and_phase
+  MarriageWeddingCharacterizationTests（6）
+    Invitation_status_codes_per_inviter_quota_random_dispatch_and_cutoff
+    Gift_payment_bounds_idempotency_and_guest_entry_codes
+    Completion_splits_gifts_returns_bracket_rewards_and_queues_every_cleanup
+    Cancellation_expires_ceremony_refunds_each_payer_and_moves_saved_church_positions_out
+    Cleanup_retry_completes_entries_owned_by_a_newer_wedding_without_projection_and_releases_the_empty_room
+    Cleanup_retry_after_completion_waits_for_an_empty_room_then_moves_saved_positions_out
+  MarriageCoupleCharacterizationTests（2）
+    Love_point_refusals_answer_minus_one_two_or_three_by_cause
+    Guestbook_access_matrix_text_limits_and_capacity
+  合计：9 + 4 + 3 + 6 + 2 = 24（5 个类）
+
+Server/src 未改动证据（变异恢复之后）
+  git diff --stat Server/src      -> 空
+  git status --short Server/src   -> 空

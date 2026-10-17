@@ -9,9 +9,3 @@ public interface IMarriageGuestbookDomainStore
     ValueTask<bool> DeleteAsync(Guid relation, uint id, CancellationToken ct);
 }
 public interface IMarriageGuestbookRuleService { int MaximumBytes { get; } int MaximumComments { get; } }
-public interface IMarriageGuestbookDomainService
-{
-    ValueTask<MarriageGuestbookResult> ReadAsync(SelectedSessionIdentity actor, uint key, CancellationToken ct);
-    ValueTask<int> PostAsync(SelectedSessionIdentity actor, uint key, byte[] text, CancellationToken ct);
-    ValueTask<int> DeleteAsync(SelectedSessionIdentity actor, uint key, uint id, CancellationToken ct);
-}

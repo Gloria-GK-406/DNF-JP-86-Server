@@ -6,7 +6,7 @@ using Dfo.Server.Persistence.Database;
 
 namespace Dfo.Server.Persistence.Marriage;
 
-internal sealed class SqliteMarriageWeddingDomainStore(SqliteDatabase database) : IMarriageWeddingDomainStore
+internal sealed class SqliteMarriageWeddingDomainStore(SqliteDatabase database) : IMarriageWeddingDomainStore, IMarriageWeddingGuestDomainStore
 {
     public async ValueTask<MarriageWedding?> ReadAsync(Guid ceremony, CancellationToken ct) =>
         (await ReadCoreAsync("ceremony_id=@id", ceremony.ToString("N"), ct).ConfigureAwait(false)).SingleOrDefault();
@@ -27,14 +27,6 @@ internal sealed class SqliteMarriageWeddingDomainStore(SqliteDatabase database) 
     public async ValueTask<bool> FinishAsync(Guid ceremony, MarriageWeddingPhase phase, DateTimeOffset at, CancellationToken ct) =>
         await database.ExecuteAsync("UPDATE marriage_weddings SET phase=@phase,completed_at=@at WHERE ceremony_id=@id AND phase=0",
             p => { p.AddWithValue("@id", ceremony.ToString("N")); p.AddWithValue("@phase", (int)phase); p.AddWithValue("@at", phase == MarriageWeddingPhase.Completed ? at.ToUnixTimeMilliseconds() : 0); }, ct).ConfigureAwait(false) == 1;
-    public async ValueTask<MarriageWedding?> MarriedAsync(Guid relation, CancellationToken ct) =>
-        (await ReadCoreAsync("relation_id=@id AND phase=1", relation.ToString("N"), ct).ConfigureAwait(false)).SingleOrDefault();
-    public async ValueTask<bool> AddLovePointsAsync(Guid relation, int amount, int maximum, CancellationToken ct) =>
-        amount > 0 && amount <= maximum && await database.ExecuteAsync("UPDATE marriage_weddings SET love_points=love_points+@amount WHERE relation_id=@id AND phase=1 AND love_points<=@maximum-@amount",
-            p => { p.AddWithValue("@id", relation.ToString("N")); p.AddWithValue("@amount", amount); p.AddWithValue("@maximum", maximum); }, ct).ConfigureAwait(false) == 1;
-    public async ValueTask<bool> IsMarriedAsync(Guid relation, CancellationToken ct) =>
-        (await database.ReadAllAsync("SELECT EXISTS(SELECT 1 FROM marriage_weddings WHERE relation_id=@id AND phase=1)",
-            p => p.AddWithValue("@id", relation.ToString("N")), r => r.GetInt32(0) != 0, ct).ConfigureAwait(false)).Single();
     public ValueTask<IReadOnlyList<MarriageWeddingInvitation>> InvitationsAsync(Guid ceremony, CancellationToken ct) =>
         database.ReadAllAsync("SELECT guest_character_id,inviter_character_id,context_key,gold FROM marriage_wedding_guests WHERE ceremony_id=@id",
             p => p.AddWithValue("@id", ceremony.ToString("N")), r => new MarriageWeddingInvitation(ceremony,

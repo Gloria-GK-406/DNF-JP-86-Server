@@ -47,18 +47,18 @@ internal sealed class WeddingLovePointNotificationEncoder : GameNotiMessageEncod
 public sealed record WeddingLovePointCommand(SelectedSessionIdentity Actor, BusinessSlot Slot, IReadOnlyList<AccountId> AccountIds)
     : ICommand<MarriageLovePointResult>, IMultiAccountCommand, IRequestSettlementCommand
 { public SelectedSessionIdentity? Session => Actor; }
-public sealed class WeddingLovePointCommandHandler(IMarriageLovePointDomainService love) : ICommandHandler<WeddingLovePointCommand, MarriageLovePointResult>
+public sealed class WeddingLovePointCommandHandler(IMarriageCoupleDomainService couple) : ICommandHandler<WeddingLovePointCommand, MarriageLovePointResult>
 {
-    public ValueTask<MarriageLovePointResult> HandleAsync(CommandExecutionContext c, WeddingLovePointCommand q, CancellationToken ct) => love.UseAsync(q.Actor, q.Slot, q.AccountIds, ct);
+    public ValueTask<MarriageLovePointResult> HandleAsync(CommandExecutionContext c, WeddingLovePointCommand q, CancellationToken ct) => couple.UseLovePointAsync(q.Actor, q.Slot, q.AccountIds, ct);
 }
-internal sealed class WeddingLovePointHandler(ISelectedSessionDomainService sessions, IMarriageLovePointDomainService love,
-    IMarriageEngagementDomainService marriage, IInventorySlotMappingRuleService mappings, ICommandBus commands,
+internal sealed class WeddingLovePointHandler(ISelectedSessionDomainService sessions,
+    IMarriageQueryDomainService marriage, IInventorySlotMappingRuleService mappings, ICommandBus commands,
     IGameMessageSender sender, SelectedSessionTransitionGate gate) : ClientMessageHandler<WeddingLovePointRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c, WeddingLovePointRequest m, CancellationToken ct)
     {
         var actor = sessions.FindByConnection(c.Connection.ConnectionId);
-        var profile = actor is null ? null : (await marriage.ReadAsync(actor.AccountId, actor.CharacterId, ct).ConfigureAwait(false)).Partner;
+        var profile = actor is null ? null : (await marriage.SnapshotAsync(actor.AccountId, actor.CharacterId, ct).ConfigureAwait(false)).Partner;
         var peer = profile is null ? null : sessions.FindByCharacter(new(profile.CharacterId));
         await WeddingProposalExecution.RunAsync(gate, actor, peer ?? actor, async () =>
         {
@@ -69,7 +69,7 @@ internal sealed class WeddingLovePointHandler(ISelectedSessionDomainService sess
                 try { slot = mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, checked((int)m.Slot))); }
                 catch (InventorySlotMappingException) { }
                 if (slot is { } source)
-                    result = await commands.SendAsync(new WeddingLovePointCommand(actor, source, await love.AccountsAsync(actor, ct).ConfigureAwait(false)), ct).ConfigureAwait(false);
+                    result = await commands.SendAsync(new WeddingLovePointCommand(actor, source, await marriage.CoupleAccountsAsync(actor, ct).ConfigureAwait(false)), ct).ConfigureAwait(false);
             }
             var own = new List<IGameServerMessage> { new WeddingLovePointAck(result.Status) };
             var targets = new List<GameExplicitMessageTarget>();

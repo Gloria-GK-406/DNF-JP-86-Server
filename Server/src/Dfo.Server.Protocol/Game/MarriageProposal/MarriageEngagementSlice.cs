@@ -42,14 +42,23 @@ internal static class MarriageEngagementPayload
         var result = new byte[15];
         if (!snapshot.IsEngaged) return result;
         BinaryPrimitives.WriteUInt32LittleEndian(result, checked((uint)snapshot.Partner!.CharacterId));
-        // Native NPC dispatcher blocks another reservation only at stage 2 (RVA021AB558).
-        // Stage 4 is married and must remain unreachable before ceremony completion.
-        result[4] = snapshot.IsMarried ? (byte)4 : snapshot.IsCeremonyReserved ? (byte)2 : (byte)1;
+        result[4] = WireState(snapshot.Stage);
         if (snapshot.MarriedAt is { } marriedAt)
             BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(6), checked((uint)marriedAt.ToUnixTimeSeconds()));
         BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(10), checked((uint)snapshot.LovePoints));
         return result;
     }
+
+    /// <summary>The 03D0 state byte for a relation stage; no relation projects as 0, the same as a closed one.</summary>
+    /// <remarks>Native NPC dispatcher blocks another reservation only at state 2 (RVA021AB558); 4 is married.</remarks>
+    public static byte WireState(MarriageStage? stage) => stage switch
+    {
+        null or MarriageStage.Proposed or MarriageStage.Closed => 0,
+        MarriageStage.Engaged or MarriageStage.Requested => 1,
+        MarriageStage.Preparing => 2,
+        MarriageStage.Married => 4,
+        _ => throw new ArgumentOutOfRangeException(nameof(stage), stage, "No 03D0 state is defined for this stage."),
+    };
 
     public static byte[] Partner(MarriagePartnerProfile? profile)
     {
@@ -94,8 +103,8 @@ internal sealed class WeddingPartnerEncoder : GameCmdMessageEncoder<WeddingPartn
         OnePayload(GameProtocol.WeddingPartnerType, MarriageEngagementPayload.Partner(message.Partner));
 }
 
-internal sealed class WeddingPartnerHandler(ISelectedSessionDomainService sessions, IMarriageEngagementDomainService marriage,
-    IGameMessageSender sender, SelectedSessionTransitionGate gate, ICommandBus commands, IMarriageWeddingDomainService weddings) : ClientMessageHandler<WeddingPartnerQuery>
+internal sealed class WeddingPartnerHandler(ISelectedSessionDomainService sessions, IMarriageQueryDomainService marriage,
+    IGameMessageSender sender, SelectedSessionTransitionGate gate, ICommandBus commands) : ClientMessageHandler<WeddingPartnerQuery>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeddingPartnerQuery message, CancellationToken ct)
     {
@@ -103,7 +112,7 @@ internal sealed class WeddingPartnerHandler(ISelectedSessionDomainService sessio
         await WeddingProposalExecution.RunAsync(gate, session, session, async () =>
         {
             var snapshot = session is null || sessions.Find(session.AccountId) != session ? MarriageEngagementSnapshot.Empty
-                : await marriage.ReadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
+                : await marriage.SnapshotAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
             var peer = snapshot.Partner;
             if (peer is not null && message.Target != 0 && message.Target != peer.CharacterId) peer = null;
             var messages = new List<IGameServerMessage> { new WeddingPartnerAck(peer) };
@@ -112,11 +121,11 @@ internal sealed class WeddingPartnerHandler(ISelectedSessionDomainService sessio
                 var prepared = await commands.SendAsync(new PrepareMarriageChurchCommand(session), ct).ConfigureAwait(false);
                 if (prepared.Snapshot is { } church)
                 {
-                    messages.Add(new WeddingChurchPreparationNotification(church, await weddings.RemainingAsync(church.Room.CeremonyId, session.CharacterId, ct).ConfigureAwait(false)));
-                    messages.Add(new WeddingInvitedGuestsNotification(await weddings.InvitedAsync(church.Room.CeremonyId, ct).ConfigureAwait(false)));
+                    messages.Add(new WeddingChurchPreparationNotification(church, await marriage.RemainingInvitationsAsync(church.Room.CeremonyId, session.CharacterId, ct).ConfigureAwait(false)));
+                    messages.Add(new WeddingInvitedGuestsNotification(await marriage.InvitedAsync(church.Room.CeremonyId, ct).ConfigureAwait(false)));
                 }
             }
-            if (session is not null && await weddings.AppearanceAsync(session, ct).ConfigureAwait(false) is { } appearance)
+            if (session is not null && await marriage.AppearanceAsync(session, ct).ConfigureAwait(false) is { } appearance)
                 messages.Add(new WeddingAvatarNotification(appearance));
             await sender.SendExplicitAsync(context.Connection.ConnectionId, new(messages, []), ct).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
