@@ -73,7 +73,7 @@ internal sealed partial class MarriageDomainService
                 && ReservationDesk.Matches(existing, applicant, partner, tier, waitIndex)
                 ? new(MarriageCeremonyFailure.None, existing)
                 : new(MarriageCeremonyFailure.Occupied);
-        if (!await WeddingQuestsReadyAsync(relation.Id, applicant, partner, ct).ConfigureAwait(false))
+        if (!await quests.ReadyForCeremonyAsync(relation.Id, applicant, partner, ct).ConfigureAwait(false))
             return new(MarriageCeremonyFailure.Ineligible);
         if (!await eligibility.CanAffordAsync(applicant.CharacterId, requiredGold.Value, ct).ConfigureAwait(false))
             return new(MarriageCeremonyFailure.InsufficientFunds);
@@ -109,8 +109,8 @@ internal sealed partial class MarriageDomainService
         {
             if (!eligibility.SameTown(applicant, partner))
                 return await FailAndExpireAsync(ceremony, relation, MarriageCeremonyFailure.Unavailable, ct).ConfigureAwait(false);
-            if (!CoupleLedger.IsPair(relation, applicant, partner)
-                || !await WeddingQuestsReadyAsync(ceremony.RelationId, applicant, partner, ct).ConfigureAwait(false))
+            if (!IMarriageRelations.IsPair(relation, applicant, partner)
+                || !await quests.ReadyForCeremonyAsync(ceremony.RelationId, applicant, partner, ct).ConfigureAwait(false))
                 return await FailAndExpireAsync(ceremony, relation, MarriageCeremonyFailure.Ineligible, ct).ConfigureAwait(false);
             var requiredGold = reservations.RequiredGold(ceremony.Tier, ceremony.WaitIndex);
             if (requiredGold is null)
@@ -186,10 +186,4 @@ internal sealed partial class MarriageDomainService
             Response = 2,
         }, true);
     }
-
-    /// <summary>Both have cleared the trial and material quests, and every one of those acceptances is bound to this relation.</summary>
-    private async ValueTask<bool> WeddingQuestsReadyAsync(Guid relation, SelectedSessionIdentity first,
-        SelectedSessionIdentity second, CancellationToken ct) =>
-        await eligibility.WeddingQuestsClearedAsync(first, second, ct).ConfigureAwait(false)
-        && await trials.BoundToAsync(relation, [first.CharacterId, second.CharacterId], ct).ConfigureAwait(false);
 }

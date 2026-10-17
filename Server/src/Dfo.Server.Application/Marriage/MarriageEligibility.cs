@@ -1,7 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Marriage;
-using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
@@ -11,10 +10,9 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Marriage;
 
-/// <summary>Read-only facts about the people in a marriage: sessions, town, level, pairing, quests and gold.</summary>
+/// <summary>Read-only facts about the people in a marriage: sessions, town, level, pairing and gold.</summary>
 internal sealed class MarriageEligibility(ISelectedSessionDomainService sessions, ITownAreaDomainService areas,
-    ICharacterDomainService characters, IMarriageProposalRuleService proposalRules, IMarriageCeremonyRuleService ceremonyRules,
-    ICharacterQuestLogDomainService quests, ICharacterInventoryEntryDomainService inventory)
+    ICharacterDomainService characters, IMarriageProposalRuleService proposalRules, ICharacterInventoryEntryDomainService inventory)
 {
     public bool IsCurrent(SelectedSessionIdentity session) => sessions.Find(session.AccountId) == session;
 
@@ -34,18 +32,6 @@ internal sealed class MarriageEligibility(ISelectedSessionDomainService sessions
         var b = await characters.Get(secondSession.CharacterId).ProgressAsync(ct).ConfigureAwait(false);
         return first is not null && second is not null && a is not null && b is not null
             && a.Level >= proposalRules.MinimumLevel && b.Level >= proposalRules.MinimumLevel && proposalRules.CanPair(first.Job, second.Job);
-    }
-
-    /// <summary>Both have cleared the trial and material quests; whether those are bound to the relation is not asked here.</summary>
-    public async ValueTask<bool> WeddingQuestsClearedAsync(SelectedSessionIdentity first, SelectedSessionIdentity second, CancellationToken ct)
-    {
-        foreach (var participant in new[] { first, second })
-        {
-            var cleared = await quests.LogOf(participant.AccountId, participant.CharacterId).ClearedAsync(ct).ConfigureAwait(false);
-            foreach (var quest in new[] { ceremonyRules.TrialQuestId, ceremonyRules.MaterialQuestId })
-                if (!cleared.Any(x => x.QuestId == quest && x.Mark != 0)) return false;
-        }
-        return true;
     }
 
     public async ValueTask<bool> CanAffordAsync(CharacterId character, int gold, CancellationToken ct) =>

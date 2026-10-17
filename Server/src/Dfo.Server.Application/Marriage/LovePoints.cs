@@ -23,12 +23,8 @@ internal sealed class MarriageLovePointRuleService(IMarriageCeremonyContentSourc
 internal sealed record LovePointSpend(int Amount, int Maximum, BoundInventorySlot Bound, DateTimeOffset At);
 
 /// <summary>Love point coupons: which item counts, the point ceiling, and consuming the coupon.</summary>
-/// <remarks>
-/// Effects are resolved on use: their handlers reach the quest services, which take the marriage entity's quest face,
-/// so a constructor dependency would make the entity depend on itself.
-/// </remarks>
 internal sealed class LovePoints(IMarriageLovePointRuleService rules, IBusinessInventorySlotDomainService inventory,
-    IItemUseEffectRuleService useRules, ICharacterDomainService characters, Func<IApplyEffectsDomainService> effects, TimeProvider clock)
+    IItemUseEffectRuleService useRules, ICharacterDomainService characters, IApplyEffectsDomainService effects, TimeProvider clock)
 {
     public static bool Carries(BusinessSlot slot) => slot.Space.IsCarriedItemSpace();
 
@@ -46,7 +42,7 @@ internal sealed class LovePoints(IMarriageLovePointRuleService rules, IBusinessI
         var at = clock.GetUtcNow();
         var plan = useRules.Build(rule.Use, slot, item, facts, null, at);
         if (plan.Status != ItemUsability.Allowed) return (-1, null);
-        await effects().ApplyAsync(new(actor.AccountId, actor.CharacterId, at, actor), plan.Effects, ct).ConfigureAwait(false);
+        await effects.ApplyAsync(new(actor.AccountId, actor.CharacterId, at, actor), plan.Effects, ct).ConfigureAwait(false);
         return (0, new(rule.Amount, rule.Maximum, bound!, at));
     }
 

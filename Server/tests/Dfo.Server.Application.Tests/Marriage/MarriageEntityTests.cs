@@ -1,4 +1,9 @@
 using Dfo.Server.Abstractions.Marriage;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.MarriageProposal;
 using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Marriage;
@@ -10,13 +15,12 @@ namespace Dfo.Server.Application.Tests.Marriage;
 public sealed class MarriageEntityTests
 {
     [Fact]
-    public async Task The_four_faces_resolve_to_one_instance()
+    public async Task The_three_marriage_faces_resolve_to_one_instance()
     {
         await using var w = await ChurchTownAsync(); var f = w.F;
         var query = f.Services.GetRequiredService<IMarriageQueryDomainService>();
         Assert.Same(query, f.Services.GetRequiredService<IMarriageCoupleDomainService>());
         Assert.Same(query, f.Services.GetRequiredService<IMarriageVenueDomainService>());
-        Assert.Same(query, f.Services.GetRequiredService<IMarriageQuestDomainService>());
     }
 
     [Fact]
@@ -42,6 +46,48 @@ public sealed class MarriageEntityTests
         Assert.Equal(1, f.Scalar("SELECT stage FROM marriage_relations"));
         Assert.Equal(engaged, f.Scalar("SELECT revision FROM marriage_relations"));
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_relations WHERE ceremony_id IS NULL"));
+    }
+
+    /// <summary>
+    /// The same refusal reached through the command bus and the 03F1 handler: the transaction rolls back, the handler lets the
+    /// exception out without replying to either side, and the account leases are released for the next attempt. At the
+    /// socket that exception closes the connection (<c>HandlerFailureConnectionIntegrationTests</c>).
+    /// </summary>
+    [Fact]
+    public async Task A_refused_relation_commit_rolls_the_command_back_and_the_handler_throws_without_replying()
+    {
+        var sender = new RecordingSender();
+        await using var w = await ChurchTownAsync(Tier0(), s => { StaleRelations.Install(s); s.AddSingleton<IGameMessageSender>(sender); s.AddSingleton<Dfo.Server.Abstractions.Content.IQuestDefinitionSource, NoQuests>(); });
+        var f = w.F; var peer = w.Peer;
+        var relations = f.Services.GetRequiredService<StaleRelations>();
+        Assert.True((await InTx(f, () => Couple(f).ProposeAsync(f.Session, peer, default))).Succeeded);
+
+        relations.Armed = true;
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            f.Services.GetRequiredService<ICommandBus>().SendAsync(new MarriageProposalCommand(peer, f.Session, 0), default).AsTask());
+        AssertStored(f, stage: 0, revision: 1);
+        Assert.Equal(0, f.Scalar("SELECT state FROM marriage_proposals"));
+
+        var handler = (IClientMessageHandler)ActivatorUtilities.CreateInstance(f.Services,
+            typeof(WeddingResponseRequest).Assembly.GetType("Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseHandler")!);
+        var context = new NetworkDispatchContext(new(peer.ConnectionId, NetworkEndpointKind.Game, 10011));
+        var accept = new WeddingResponseRequest(GameMessageMetadata.Empty, 0, 1, 0, 0, 0);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => handler.HandleAsync(context, accept, default).AsTask());
+        Assert.Empty(sender.Deliveries);
+        AssertStored(f, stage: 0, revision: 1);
+        Assert.Equal(0, f.Scalar("SELECT state FROM marriage_proposals"));
+
+        relations.Armed = false;
+        await handler.HandleAsync(context, accept, default);
+        Assert.Equal(0, Assert.IsType<WeddingResponseAck>(Assert.Single(sender.Deliveries).RequiredDirectMessages[0]).Status);
+        AssertStored(f, stage: 1, revision: 2);
+    }
+
+    private sealed class NoQuests : Dfo.Server.Abstractions.Content.IQuestDefinitionSource
+    {
+        public ValueTask<IReadOnlyList<Dfo.Server.Abstractions.Content.QuestDefinition>> GetAllAsync(CancellationToken cancellationToken) => ValueTask.FromResult<IReadOnlyList<Dfo.Server.Abstractions.Content.QuestDefinition>>([]);
+        public ValueTask<Dfo.Server.Abstractions.Content.QuestDefinition?> GetAsync(int questId, CancellationToken cancellationToken) => ValueTask.FromResult<Dfo.Server.Abstractions.Content.QuestDefinition?>(null);
+        public ValueTask<IReadOnlyList<Dfo.Server.Abstractions.Content.TrainingQuestAvailability>> GetTrainingAvailabilityAsync(CancellationToken cancellationToken) => ValueTask.FromResult<IReadOnlyList<Dfo.Server.Abstractions.Content.TrainingQuestAvailability>>([]);
     }
 
     [Fact]
@@ -93,6 +139,15 @@ public sealed class MarriageEntityTests
     {
         Assert.Equal(stage, f.Scalar("SELECT stage FROM marriage_relations"));
         Assert.Equal(revision, f.Scalar("SELECT revision FROM marriage_relations"));
+    }
+
+    private sealed class RecordingSender : IGameMessageSender
+    {
+        public List<GameExplicitMessageDelivery> Deliveries { get; } = [];
+        public ValueTask SendCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask SendExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken ct)
+        { Deliveries.Add(delivery); return ValueTask.CompletedTask; }
     }
 
     /// <summary>Hands the store a revision one ahead of the caller's, as if another writer had committed in between.</summary>

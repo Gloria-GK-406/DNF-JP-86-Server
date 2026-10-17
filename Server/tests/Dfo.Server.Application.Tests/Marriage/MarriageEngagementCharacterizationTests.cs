@@ -108,7 +108,7 @@ public sealed class MarriageEngagementCharacterizationTests
         public ValueTask<bool> IsOrdinaryMapAsync(int dungeon, int map, CancellationToken ct) => ValueTask.FromResult(dungeon == 2 && map == 100);
     }
 
-    private static async Task<(LearningFixture F, SelectedSessionIdentity Peer)> QuestWorldAsync()
+    internal static async Task<(LearningFixture F, SelectedSessionIdentity Peer)> QuestWorldAsync()
     {
         var (f, peer) = await MarriageProposalTests.Fixture(configure: s =>
         {
@@ -120,7 +120,7 @@ public sealed class MarriageEngagementCharacterizationTests
         return (f, peer);
     }
 
-    private static async Task AcceptTrialAsync(LearningFixture f, int account, int character) =>
+    internal static async Task AcceptTrialAsync(LearningFixture f, int account, int character) =>
         Assert.True((await f.Services.GetRequiredService<ICommandBus>().SendAsync(new AcceptQuestCommand(new(account), new(character), 20737), default)).Accepted);
 
     [Fact]

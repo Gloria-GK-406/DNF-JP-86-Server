@@ -5,33 +5,53 @@
 - 状态：**设计稿，未实施**
 - 关系图：`MarriageAggregateDesign-20261017.html`（同目录）
 
-> **落地状态（2026-10-17）：已在 `task/marriage-domain-aggregate` 实现，尚未合并。**
+> **落地状态（2026-10-17）：已在 `task/next-round-20261013` 实现，尚未合入 main。**
 > 下面的正文保留为当时的设计推导；与实现不一致的地方以本段为准，正文里对应处标了「见落地状态」。
-> 过程记录在 `.rks-agent/tasks/marriage-domain-aggregate/`（TASK-001～006）。
+> 合并实体的过程记录在 `.rks-agent/tasks/marriage-domain-aggregate/`（TASK-001～006）；单实体结构的审核与去环方案见
+> [MarriageAggregateReview-And-DI-Refactor-20261017.md](MarriageAggregateReview-And-DI-Refactor-20261017.md)，今天的结构按它 §5 落地，差异见下表。
 >
-> **今天的形状**（`Server/src/Dfo.Server.Application/Marriage/`）：实体 `MarriageDomainService` 实现
-> `IMarriageQueryDomainService`、`IMarriageCoupleDomainService`、`IMarriageVenueDomainService`、
-> `IMarriageQuestDomainService` 四个接口，DI 解析出同一个实例。构造器只接 9 个组件和 `TimeProvider`。
-> 阶段存在新表 `marriage_relations`，只由 `CoupleLedger` 经 `IMarriageRelationDomainStore` 写入。
-> 旧库在启动建表时由 `MarriageRelationMigration` 回填；回填表里那类异常（已订婚、仍有 Reserved 预约、但没有进行中或已完成的婚礼行，含婚礼已取消的情况）由 `MarriageRelationAudit` 在启动时计数，大于 0 才写一条 Warning。
+> **今天的形状**（`Server/src/Dfo.Server.Application/Marriage/`，关系图见同名 .html）：三个单元，构造依赖单向、无环。
+>
+> - **M** `MarriageDomainService`：求婚、预约、婚礼、心意券。实现 `IMarriageQueryDomainService`、`IMarriageCoupleDomainService`、
+>   `IMarriageVenueDomainService`，DI 解析出同一个实例。构造器接 R 的读写接口、T、7 个组件（`MarriageEligibility`、`ReservationDesk`、
+>   `ChurchRooms`、`WeddingSettlement`、`GuestList`、`Guestbook`、`LovePoints`）和 `TimeProvider`，不接任何 store。
+>   `LovePoints` 普通注入 `IApplyEffectsDomainService` 扣券。
+> - **T** `MarriageQuestDomainService`：实现 `IMarriageQuestDomainService`（四个签名不变），任务领域只解析到它。
+>   `MarriageTrialClearSubscriber` 直接转交它的 `RecordTrialClearAsync`；M 在申请和接受预约、以及 `ViewAsync.TrialsCleared`
+>   里调它的 `ReadyForCeremonyAsync`（两人都已通关试炼与材料任务、且四条绑定都指向这段关系），这条判断只在 T 里有。
+>   T 只读 R；依赖集合与基线 `5a0cbed0` 的 `MarriageQuestDomainService` 相同，只是求婚 store 换成 R 的只读接口、
+>   `IMarriageDungeonContentSource` 换成规则服务 `IMarriageTrialRuleService`。
+> - **R** `CoupleLedger`：关系真源。一个实例对外两个接口，都是 Application 内部的 `internal` 接口：只读 `IMarriageRelations`
+>   （按会话、按参与者、按一对、按 id 读关系，读求婚记录，以及纯函数 `Belongs`、`IsPair`）、读写 `IMarriageRelationWriter : IMarriageRelations`
+>   （建关系、阶段 CAS、心意点）。不进 `Dfo.Server.Abstractions`，所以 Protocol 的命令处理器拿不到，绕不过婚姻用例写阶段。
+>   R 只依赖关系 store、求婚 store、`IMarriageProposalRuleService`、`TimeProvider`；不读预约 store，只给持久化的原始阶段。
+>
+> 阶段存在 `marriage_relations`，只由 `CoupleLedger` 经 `IMarriageRelationDomainStore` 写入。
+> 旧库在启动建表时由 `MarriageRelationMigration` 回填，回填之后把关系行心意点抬到对应 phase=1 婚礼行旧列的值（两者取大）；
+> 回填表里那类异常（已订婚、仍有 Reserved 预约、但没有进行中或已完成的婚礼行，含婚礼已取消的情况）由 `MarriageRelationAudit` 在启动时计数，大于 0 才写一条 Warning。
 >
 > **与设计稿的偏差**
 >
 > | 设计稿 | 实现 | 原因 |
 > |---|---|---|
+> | 4 个接口由同一实例实现（§4、§5.5） | Query / Couple / Venue 由 M 实现；Quest 由 T 实现 | 任务服务 → T 时若 T 就是 M，M 经心意券 → 通用效果 → 效果处理器 → … → 任务服务回到自身，构成依赖环（审核 F1） |
+> | 9 个组件互不依赖、实体只接组件与时钟（§5.1、§5.3 第 2 条） | M 的 7 个组件互不依赖；M 另接 R 的读写接口和 T；T 接 R 的只读接口 | 关系与婚前任务被两个上层流程共用，改成共享下层而不是平级组件 |
+> | 「是不是一对」由 Ledger 判定（§5.3 的 `Couple`、§5.4 的 `ledger.LoadPair`） | 判定在 R：`ForSessionAsync`、`ForParticipantAsync`、`ForPairAsync`，以及接口上的纯函数 `IMarriageRelations.Belongs`、`IsPair`。每个公开操作只解析一次关系，组件之间传 `MarriageRelation` | — |
+> | 惰性过期由 Ledger 在加载时执行（§3.4） | 写路径的到期结算在 M 的用例里做；读路径的「有效阶段」投影在 M 的 Query（`ViewAsync`）；R 只给原始阶段 | 投影要读预约，预约 store 只归 M 的 `ReservationDesk` |
 > | 接受预约一步完成（§4 `RespondReservationAsync` 注释、§4.1、§5.4） | 仍是两步。`RespondReservationAsync` 只做预约答复和 T6 的阶段迁移；`MarriageCeremonyCommandHandler` 在同一事务里，结果为 Reserved 时再调新增的 `IMarriageCoupleDomainService.OpenWeddingAsync`，由它分配教堂、两人入场、扣费、建婚礼行。任一步失败照旧整笔回滚 | 保留现有命令结构和失败语义，不改协议层 |
 > | Query 上的只读 `ChurchAsync`（§4、§4.1） | Venue 上的 `PrepareChurchAsync`，缺房时会分配教堂，是写操作 | 现有测试在「只接受预约、未开婚礼」时直接调用它并断言分到房间；改成只读就要改这些断言 |
 > | `IsMarried` 与婚礼 phase 改读 `View.Stage`（§4.1） | Query 保留 `IsMarriedAsync(relation)`（读关系阶段）和 `WeddingPhaseAsync(ceremony)`（读单场婚礼的 phase） | `TownProjectionSlice.cs` 要的是外观所在那场婚礼的 phase，宾客没有对应的 View。`IsMarriedAsync` 和 `ViewAsync` 今天都没有生产调用方，只有测试调用 |
-> | 婚礼 store 一个接口（§5.2） | 宾客三方法拆到 `IMarriageWeddingGuestDomainStore`，只注入 `GuestList`；`IMarriageWeddingDomainStore` 只注入 `WeddingSettlement`。Persistence 里仍是 `SqliteMarriageWeddingDomainStore` 一个类实现两个接口 | 让「每个 store 只归一个组件」能由判据检查 |
-> | 试炼订阅转交 `TrialQuests`（§5.1、§5.5） | `MarriageTrialClearSubscriber` 转交实体的 `RecordTrialClearAsync`，实体做过滤和关系判定，`TrialQuests` 只逐人记录 | 计数前要先找到这一对的关系，而组件不能调账本 |
+> | 婚礼 store 一个接口（§5.2） | 宾客三方法拆到 `IMarriageWeddingGuestDomainStore`，只注入 `GuestList`；`IMarriageWeddingDomainStore` 只注入 `WeddingSettlement`。Persistence 里仍是 `SqliteMarriageWeddingDomainStore` 一个类实现两个接口 | 让「每个 store 只归一个类型」能由判据检查 |
+> | 试炼订阅转交 `TrialQuests`（§5.1、§5.5） | `TrialQuests` 并入 T；订阅类转交 T 的 `RecordTrialClearAsync`，T 自己经 R 的只读接口判定这一对 | — |
+> | `TrialQuests` 依赖婚姻地下城内容（§5.2） | T 经规则服务 `IMarriageTrialRuleService.IsTrialMapAsync` 判定地图，内容源只由规则服务注入 | AGENTS「内容源只被规则服务注入」 |
+> | 资格组件检查任务（§5.1、§5.2） | `MarriageEligibility` 不再读任务日志；预约前的任务检查在 T | 规则与绑定判断只留一处 |
 > | 未写 03F3 对方资料归谁 | 由 `MarriageEligibility.ProfileAsync` 构造 | 它只需要角色和入场库存两个只读依赖，归「只读的人物事实」最近 |
-> | 组件由 DI 直接构造（§5.5） | `LovePoints` 接 `Func<IApplyEffectsDomainService>`，在 `ApplicationModule` 用工厂注册 | 合并后出现构造期环：`LovePoints` → `IApplyEffectsDomainService` → `DungeonEntryAllowanceEffectHandler` → … → `QuestFactsDomainService` → `IMarriageQuestDomainService`（实体自身）。旧结构里心意点服务不被任务服务依赖，所以没有这个环 |
-> | 统一判定（§5.3 的 `Couple`、§5.4 的 `ledger.LoadPair`） | 判定放在 `CoupleLedger`：按会话 `ForSessionAsync`、按参与者 `ForParticipantAsync`、按一对 `ForPairAsync`，以及对已按 id 读到的关系用的纯函数 `Belongs`、`IsPair`。组件和实体之间传的是 `MarriageRelation`。每个公开操作只解析一次关系 | — |
-> | CAS 失败返回 `Stale`（§5.3 第 3 条） | 分两种：改子记录之前先检查手上关系的阶段，不接受该触发就返回现有的 `Stale`；子记录改过之后一律经 `MustCommitAsync` 提交，CAS 失败就抛异常、整笔回滚。`MustCommitAsync` 返回提交后的关系，同一操作在惰性到期之后用它继续，不重读。返回 bool 的 `CommitAsync` 只剩测试调用 | 子记录改了而阶段没改，只能回滚，不能当正常拒绝返回 |
+> | CAS 失败返回 `Stale`（§5.3 第 3 条） | 分两种：改子记录之前先检查手上关系的阶段，不接受该触发就返回现有的 `Stale`；子记录改过之后一律经 `MustCommitAsync` 提交，CAS 失败就抛异常、整笔回滚。`MustCommitAsync` 返回提交后的关系，同一操作在惰性到期之后用它继续，不重读。返回 bool 的 `CommitAsync` 只剩测试调用，不在读写接口上 | 子记录改了而阶段没改，只能回滚，不能当正常拒绝返回 |
 > | `ActiveWeddingsAsync` | 返回 ceremony id 列表，与 §4 签名一致；调度器 `MarriageWeddingScheduler` 只用 id | — |
 > | `stage CHECK(stage BETWEEN 0 AND 5)`（§6.1） | `BETWEEN 0 AND 15`，§11 第 1 问按「现在就放宽」处理，离婚阶段不需要重建表 | — |
 > | 03D0 state 由阶段规则类的 `WireState` 投影（§3.1） | 快照带上 `Stage`，由 Protocol 侧的 `MarriageEngagementPayload.WireState` 按 §3.1 的表投影；`MarriageStageRules` 里不再有 `WireState`。`IsMarried`、`IsCeremonyReserved` 改为从 `Stage` 派生的只读属性 | 阶段到线上字节的对应属于协议投影，按 AGENTS 分层归 Protocol |
-> | 4 个 PR，B1 单独提交（§2、§9） | 四步在同一任务分支依次完成，计划合成一个提交；§9 PR3 的「停止心意点旧列的写入」没有做（见下面的已知限制） | 用户选定的流程 |
+> | 心意点双写一个版本后停写旧列（§6.3、§9 PR3） | 仍双写；另在启动迁移里按「两列取大」对账关系行（见已知限制） | 停写需要后续单独改动 |
+> | 4 个 PR，B1 单独提交（§2、§9） | 合并实体四步在同一任务分支依次完成，合成一个提交 | 用户选定的流程 |
 >
 > **修正清单 B1-1～B1-5**（取代 §8 的 B1；逐条的修正前后实测值和对照用例见 `.rks-agent/tasks/marriage-domain-aggregate/tasks/TASK-004-unified-pair.md`「修正清单」）
 >
@@ -47,21 +67,20 @@
 >
 > **已知限制**
 >
-> - **心意点旧列仍在双写。** `SqliteMarriageRelationDomainStore.AddLovePointsAsync` 在关系行条件累加成功后，把同一关系 phase=1 婚礼行的 `love_points` 设成关系行的值。停写需要后续单独改动。
-> - **回退期间推进的阶段不会补进已有的关系行。** 回填只给没有关系行的求婚补行（`INSERT OR IGNORE`），不修正已有行。退回旧二进制期间发生的阶段推进和心意点累加（旧二进制只写旧表、旧列），切回新版本后不会反映到已有的关系行上。双写只保证从新版本退回旧版本时点数不丢。
-> - **回退窗口里由旧二进制开出的婚礼，切回新版本后会卡住。** 这种婚礼的关系行仍停在 Engaged 或 Requested，到点推进时提交 Married / Engaged 被迁移表拒绝，`MustCommitAsync` 抛异常、事务回滚。调度器每秒重试一次，这场婚礼既不完成也不退款。回退期间不要做婚姻操作；已经发生的，需要按婚礼行人工修正关系行。
-> - **`TrialQuests` 直接注入内容源 `IMarriageDungeonContentSource`。** 这是沿用基线 `MarriageQuestDomainService` 的做法，与 AGENTS「内容源只被规则服务注入」不符，本次没有改。
+> - **心意点：单向兼容加启动对账。** `SqliteMarriageRelationDomainStore.AddLovePointsAsync` 在关系行条件累加成功后，把同一关系 phase=1 婚礼行的 `love_points` 设成关系行的值，所以从新版本退回旧版本时旧版本读得到点数。反方向靠启动对账：`MarriageRelationMigration` 每次启动把关系行心意点设为「关系行、该关系 phase=1 婚礼行」两者的较大值。成立的前提是心意点只增不减、新旧版本不同时运行、新版本加点会把两列写成一致——于是只有旧二进制能让旧列领先。判据：`MarriageRelationMigrationTests.Startup_lifts_relation_love_points_to_a_higher_old_wedding_column_and_nothing_else`。
+> - **阶段不对账，不支持「回退旧版本后继续推进婚姻、再升级」。** 回填只给没有关系行的求婚补行（`INSERT OR IGNORE`），已有行的阶段不改；较低的阶段可能是合法的取消结果，不能按「取大」覆盖。退回旧二进制期间的阶段推进切回新版本后不会反映到关系行上；回退窗口里由旧二进制开出的婚礼，切回后关系行仍停在 Engaged 或 Requested，到点推进时提交 Married / Engaged 被迁移表拒绝，`MustCommitAsync` 抛异常、事务回滚，调度器每秒重试一次，这场婚礼既不完成也不退款。回退期间不要做婚姻操作；已经做了的，切回前恢复与新版本配套的数据库备份。
+> - **子记录改动后关系 CAS 失败，对外是断连，不是 `Stale`。** `MustCommitAsync` 抛 `InvalidOperationException`，命令事务整笔回滚（`MarriageEntityTests` 的两条回滚用例，其中一条经命令总线和 03F1 handler）。婚姻 handler 不捕获这个异常（`RespondToCeremonyAsync` 只捕获 `MarriageWeddingUnavailableException`），它经 `GameNetworkPlugin` 记一条 Error「Game handler failed」后重新抛出：发起方收不到这条请求的回包、对方收不到通知，服务端关闭这条连接，其他连接照常（`HandlerFailureConnectionIntegrationTests`）。调度器路径则是记「Wedding advancement failed」、下一秒重试。写关系的命令都在账号 Exclusive 租约和命令事务内执行，按代码推导正常客户端操作造不出这种冲突；未实机复现。
 > - **阶段值 6–15 已预留，但 Protocol 的 `WireState` 遇到它们会抛异常**；加离婚阶段时要同时补上 03D0 投影。快照的 `Stage` 默认为 Engaged，构造快照时必须显式赋值，否则会静默投影成 state 1。
-> - **「组件互不依赖」不是编译期保证**，由架构判据 `MarriageArchitectureTests` 反射遍历构造器的直接参数守着（`Func<>` 这类间接依赖拦不住）：组件互不出现在彼此的构造器里，实体不接任何 store，8 个婚姻 store 接口各自只被一个类型接受，关系 store 只被 `CoupleLedger` 接受。同一文件里另有一条反例用例，证明判据会拒绝违规。
+> - **依赖方向不是编译期保证**，由架构判据 `MarriageArchitectureTests` 守着，每条规则各有一条反例用例：关系 store 只被 `CoupleLedger` 接受、R 的构造器只接关系 store / 求婚 store / 求婚规则 / 时钟；`IMarriageRelationWriter` 只被 M 接受，T 接受 `IMarriageRelations`，没有类型直接接受 `CoupleLedger`；按生产模块的真实注册（工厂注册按解析出的实例类型）递归展开，T 与 R 的传递依赖里没有 M、`IApplyEffectsDomainService`、Query / Couple / Venue 接口，T 也不到 `QuestFactsDomainService`；`Application/Marriage` 下的构造器不接 `Func<>`、`Lazy<>`、`IServiceProvider`；M 不接任何 store，每个婚姻 store 只有一个所有者；M 的 7 个组件互不出现在彼此的构造器里，M 的接口参数只有 `IMarriageRelationWriter`。另有一条用生产模块建容器、逐个解析各婚姻接口、`IApplyEffectsDomainService` 与试炼订阅类的用例。
 >
-> **真实库副本迁移**：两份近期运行库副本（各有 Rejected 求婚 1、Engaged 求婚 1、Reserved 预约 1、phase=1 婚礼 1）迁移后，阶段为 Married 1、Closed 1、其余阶段 0，异常 0；`integrity_check` 为 ok；原有 92 张表的行数、内容和结构都没变；第二次打开无变化。记录见 `.rks-agent/tasks/marriage-domain-aggregate/evidence/TASK-005-db-copy-migration.txt`。
+> **真实库副本迁移**：两份近期运行库副本（各有 Rejected 求婚 1、Engaged 求婚 1、Reserved 预约 1、phase=1 婚礼 1）迁移后，阶段为 Married 1、Closed 1、其余阶段 0，异常 0；`integrity_check` 为 ok；原有 92 张表的行数、内容和结构都没变；第二次打开无变化。记录见 `.rks-agent/tasks/marriage-domain-aggregate/evidence/TASK-005-db-copy-migration.txt`。这次迁移早于心意点启动对账。
 >
 > **实机回归**：清单见 [MarriageAggregateRegression-20261017.md](MarriageAggregateRegression-20261017.md)，由用户执行。
 
 一句话：把现有 8 个婚姻领域服务收进**一个实体** `MarriageDomainService`。
 
 - 实体内部分为 **9 个小组件**和 **1 个纯规则类**；
-- 对外按调用方发布 **4 个窄接口**，由同一个实例实现；
+- 对外按调用方发布 **4 个窄接口**，由同一个实例实现（见落地状态）；
 - 情侣的「当前阶段」改为**一条记录直接存储**，不再从三张表推导。
 
 ---
@@ -184,7 +203,7 @@
 - **写路径**：Ledger 在加载时执行到期迁移（T4、T7），与本次操作同一个事务。
 - **读路径**（Query 接口）**不写库**：它计算「有效阶段」，例如 Requested 已过期就显示为 Engaged，留给下一次写操作真正落库。
 
-## 4. 对外接口（4 个，同一实例实现）
+## 4. 对外接口（4 个，同一实例实现；见落地状态）
 
 按**调用方**划分，不按实现划分。只读接口可以放心到处注入；写接口只给少数命令处理器。
 
@@ -275,7 +294,7 @@ public interface IMarriageQuestDomainService { /* EligibleQuestIds / CanAccept /
 
 ## 5. 实体与内部组件
 
-### 5.1 形状
+### 5.1 形状（见落地状态）
 
 ```
 MarriageDomainService (internal sealed partial)        ← 唯一实体，实现 4 个接口
@@ -311,7 +330,7 @@ MarriageDomainService (internal sealed partial)        ← 唯一实体，实现
 ### 5.3 组件规则
 
 1. **只有 CoupleLedger 写阶段。** 关系 store 只注入 Ledger。LovePoints 加点也走 `ledger.AddLovePointsAsync`，因为它写的是关系行。
-2. **组件之间不互相调用**，由实体编排。组件只接收实体传下来的 `Couple` 值（同一操作内加载的那一份）和必要的参数。
+2. **组件之间不互相调用**，由实体编排（见落地状态）。组件只接收实体传下来的 `Couple` 值（同一操作内加载的那一份）和必要的参数。
 3. **每个操作只加载一次、提交一次**：`Load → 守卫 → 各组件副作用 → ledger.Commit(couple, next)`。CAS 失败时返回 `Stale`。（见落地状态）
 4. **组件是具体的 internal 类型，不提供公开接口**：在 DI 里以具体类型注册为 singleton（它们本身无状态，状态都在 store 和环境事务里）。
 5. **规则服务保持原样**。按 AGENTS 的三层约定，组件是业务层，由它们去问 `IMarriage*RuleService`。
@@ -341,7 +360,7 @@ services.TryAddSingleton<MarriageDomainService>();
 services.TryAddSingleton<IMarriageQueryDomainService>(sp => sp.GetRequiredService<MarriageDomainService>());
 services.TryAddSingleton<IMarriageCoupleDomainService>(sp => sp.GetRequiredService<MarriageDomainService>());
 services.TryAddSingleton<IMarriageVenueDomainService>(sp => sp.GetRequiredService<MarriageDomainService>());
-services.TryAddSingleton<IMarriageQuestDomainService>(sp => sp.GetRequiredService<MarriageDomainService>());
+services.TryAddSingleton<IMarriageQuestDomainService>(sp => sp.GetRequiredService<MarriageDomainService>()); // 见落地状态
 services.AddDomainSubscriber<DungeonMapCleared, MarriageTrialClearSubscriber>("…", Reliable); // 薄订阅类，转交 TrialQuests（见落地状态）
 ```
 
@@ -447,7 +466,7 @@ CREATE TABLE IF NOT EXISTS marriage_relations (
    - 对 I3、I4 做判据：回填后对每条关系核对婚礼行数量。
 5. **架构判据**（反射遍历构造器）：
    - 只有 `CoupleLedger` 能接受关系 store；
-   - 9 个组件互不依赖；
+   - 9 个组件互不依赖（见落地状态）；
    - `MarriageDomainService` 不接受任何 `*DomainStore`；
    - 同时写一条反例用例，证明判据确实会拒绝违规。
 6. **回归**：

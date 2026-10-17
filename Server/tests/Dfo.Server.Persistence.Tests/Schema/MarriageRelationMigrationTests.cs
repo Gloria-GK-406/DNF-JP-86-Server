@@ -82,11 +82,55 @@ public sealed class MarriageRelationMigrationTests
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
-    private static string Seed()
+    /// <summary>
+    /// Points only grow and the new binary writes both columns equal, so an old column ahead of the relation row can only be
+    /// an old binary's coupon: startup lifts the relation to it. Equal or lower old columns, and stages, are left alone.
+    /// </summary>
+    [Fact]
+    public void Startup_lifts_relation_love_points_to_a_higher_old_wedding_column_and_nothing_else()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"relation-love-{Guid.NewGuid():N}.db");
+        try
+        {
+            using var db = new SqliteConnection($"Data Source={path}"); db.Open(); using var q = db.CreateCommand();
+            q.CommandText = OldShape + Seed(
+            [
+                ("q1", 1, [("q1c", 1, 1, 0, 5)]),
+                ("q2", 1, [("q2c", 1, 1, 0, 4)]),
+                ("q3", 1, [("q3c", 1, 1, 0, 3)]),
+                ("q4", 1, [("q4old", 3, 2, 0, 9), ("q4c", 0, -1, 0, 0)]),
+            ]);
+            q.ExecuteNonQuery();
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            Assert.Equal(["q1|4|q1c||5|1", "q2|4|q2c||4|1", "q3|4|q3c||3|1", "q4|2|q4c||0|1"], Relations(q));
+
+            // The old binary spent a coupon on q1; something left q3's relation row ahead of its old column.
+            q.CommandText = """
+                UPDATE marriage_weddings SET love_points=6 WHERE ceremony_id='q1c';
+                UPDATE marriage_relations SET love_points=8 WHERE id='q3';
+                """;
+            q.ExecuteNonQuery();
+            var legacy = Legacy(q);
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            string[] reconciled = ["q1|4|q1c||6|1", "q2|4|q2c||4|1", "q3|4|q3c||8|1", "q4|2|q4c||0|1"];
+            Assert.Equal(reconciled, Relations(q));
+            Assert.Equal(legacy, Legacy(q));
+
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            Assert.Equal(reconciled, Relations(q));
+            Assert.Equal(legacy, Legacy(q));
+            q.CommandText = "PRAGMA integrity_check"; Assert.Equal("ok", q.ExecuteScalar());
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    private static string Seed() => Seed(Proposals);
+
+    private static string Seed(IEnumerable<(string Id, int State, (string Id, int State, int Phase, long CompletedAt, int Love)[] Ceremonies)> proposals)
     {
         var sql = new System.Text.StringBuilder();
         var character = 100;
-        foreach (var (id, state, ceremonies) in Proposals)
+        foreach (var (id, state, ceremonies) in proposals)
         {
             var active = state is 0 or 1 ? 1 : 0;
             sql.Append($"INSERT INTO marriage_proposals VALUES('{id}','{{}}',{state},1,{character},NULL);");

@@ -37,7 +37,7 @@ internal sealed partial class MarriageDomainService
     {
         try
         {
-            return await WeddingQuestsReadyAsync(relation, own, partner, ct).ConfigureAwait(false);
+            return await quests.ReadyForCeremonyAsync(relation, own, partner, ct).ConfigureAwait(false);
         }
         catch (Exception error) when (error is FileNotFoundException or InvalidDataException)
         {

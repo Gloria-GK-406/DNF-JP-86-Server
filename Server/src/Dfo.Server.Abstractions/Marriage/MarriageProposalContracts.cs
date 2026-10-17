@@ -56,3 +56,9 @@ public interface IMarriageDungeonContentSource
 {
     ValueTask<bool> IsOrdinaryMapAsync(int dungeon, int map, CancellationToken ct);
 }
+
+public interface IMarriageTrialRuleService
+{
+    /// <summary>A boss room cleared on this map can count towards the wedding trial.</summary>
+    ValueTask<bool> IsTrialMapAsync(int dungeon, int map, CancellationToken ct);
+}

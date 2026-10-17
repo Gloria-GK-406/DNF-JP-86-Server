@@ -6,15 +6,16 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Marriage;
 
-/// <summary>The marriage entity: every marriage use case, composed from components that never call each other.</summary>
+/// <summary>The marriage use cases: proposal, reservation, wedding and love points, composed from components that never call each other.</summary>
 /// <remarks>
-/// Each public operation resolves its relation through the ledger once and hands that copy down; whether sessions are
-/// a pair is always the ledger's answer.
+/// Each public operation resolves its relation through the relation writer once and hands that copy down; whether sessions
+/// are a pair is always the relations' answer. The pre-wedding quests are a separate service this one asks before a
+/// reservation; it never asks back.
 /// </remarks>
-internal sealed partial class MarriageDomainService(CoupleLedger ledger, MarriageEligibility eligibility, ReservationDesk reservations,
-    ChurchRooms church, WeddingSettlement settlement, GuestList guests, Guestbook guestbook, TrialQuests trials, LovePoints love,
-    TimeProvider clock)
-    : IMarriageQueryDomainService, IMarriageCoupleDomainService, IMarriageVenueDomainService, IMarriageQuestDomainService
+internal sealed partial class MarriageDomainService(IMarriageRelationWriter ledger, MarriageEligibility eligibility,
+    ReservationDesk reservations, ChurchRooms church, WeddingSettlement settlement, GuestList guests, Guestbook guestbook,
+    MarriageQuestDomainService quests, LovePoints love, TimeProvider clock)
+    : IMarriageQueryDomainService, IMarriageCoupleDomainService, IMarriageVenueDomainService
 {
     /// <summary>The actor's preparing relation and its reservation.</summary>
     private async ValueTask<(MarriageRelation Relation, MarriageCeremony Ceremony)?> ReservedAsync(SelectedSessionIdentity actor, CancellationToken ct) =>
@@ -27,7 +28,7 @@ internal sealed partial class MarriageDomainService(CoupleLedger ledger, Marriag
         SelectedSessionIdentity actor, CancellationToken ct)
     {
         if (relation is not { Stage: MarriageStage.Preparing } || !eligibility.IsCurrent(actor)
-            || !CoupleLedger.Belongs(relation, actor)) return null;
+            || !IMarriageRelations.Belongs(relation, actor)) return null;
         var ceremony = await reservations.ActiveAsync(relation.Id, ct).ConfigureAwait(false);
         if (ceremony is not { Tier: 0 } || ceremony.Id != relation.CeremonyId) return null;
         static bool SameCharacter(SelectedSessionIdentity first, SelectedSessionIdentity second) =>
@@ -36,11 +37,6 @@ internal sealed partial class MarriageDomainService(CoupleLedger ledger, Marriag
             || SameCharacter(ceremony.Applicant, relation.Recipient) && SameCharacter(ceremony.Partner, relation.Proposer);
         return samePair ? (relation, ceremony) : null;
     }
-
-    /// <summary>The character's relation when the account owns that participant and the pair is engaged or further.</summary>
-    private async ValueTask<MarriageRelation?> QuestRelationAsync(AccountId account, CharacterId character, CancellationToken ct) =>
-        await ledger.ForParticipantAsync(account, character, ct).ConfigureAwait(false) is { } relation
-        && MarriageStageRules.IsCouple(relation.Stage) ? relation : null;
 
     /// <summary>Both accounts of the actor's couple, or only the actor's own when the actor belongs to no engaged relation.</summary>
     private static IReadOnlyList<AccountId> CoupleAccounts(MarriageRelation? relation, SelectedSessionIdentity actor) =>

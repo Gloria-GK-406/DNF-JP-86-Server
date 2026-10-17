@@ -3,19 +3,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: four horizontal bands read top-down — callers → interfaces → the one entity (4 component groups) → rules. */
+/* Layout: top-down — callers → public interfaces → dependency direction → the three units (M / T / R) → rules. */
 :root{
   --bg:#f6f7f9; --panel:#ffffff; --ink:#1b2230; --muted:#5b6474; --line:#d9dde5; --entity:#eef1f6;
-  --q:#2f6f9f; --c:#b04a6a; --v:#b07418; --t:#3d8a5a; --dim:.22;
+  --q:#2f6f9f; --c:#b04a6a; --v:#b07418; --t:#3d8a5a; --r:#6b5bb5; --dim:.22;
   --sans:"IBM Plex Sans","PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
   --mono:"JetBrains Mono","Cascadia Mono",Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#12161d; --panel:#1a2029; --ink:#e4e8ef; --muted:#9aa3b2; --line:#2d3542; --entity:#161b23;
-  --q:#6aa8d6; --c:#e07c9b; --v:#e0a94f; --t:#72c08f; color-scheme:dark}}
+  --q:#6aa8d6; --c:#e07c9b; --v:#e0a94f; --t:#72c08f; --r:#a698e8; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#12161d; --panel:#1a2029; --ink:#e4e8ef; --muted:#9aa3b2; --line:#2d3542; --entity:#161b23;
-  --q:#6aa8d6; --c:#e07c9b; --v:#e0a94f; --t:#72c08f; color-scheme:dark}
+  --q:#6aa8d6; --c:#e07c9b; --v:#e0a94f; --t:#72c08f; --r:#a698e8; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:14px/1.55 var(--sans);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
@@ -26,60 +26,62 @@ h1{font-size:22px;font-weight:600;margin:0;text-wrap:balance}
 .counts span{font:500 12px var(--mono);border:1px solid var(--line);background:var(--panel);padding:3px 9px;border-radius:999px}
 .band-label{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
 .hint{color:var(--muted);font-size:12px}
-/* stage strip */
 .stages{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .stage{font:500 12px var(--mono);padding:4px 9px;border:1px solid var(--line);background:var(--panel);border-radius:6px}
 .stage b{font-weight:600}
 .stage small{color:var(--muted);margin-left:4px}
 .arr{color:var(--muted);font-size:12px}
-/* callers */
 .callers{display:flex;flex-wrap:wrap;gap:6px}
 .chip{font:12px var(--mono);padding:4px 9px;border:1px solid var(--line);border-radius:6px;background:var(--panel);display:flex;gap:6px;align-items:center}
 .dots{display:inline-flex;gap:3px}
 .dots i{width:7px;height:7px;border-radius:50%;display:block}
-/* interfaces */
 .ifaces{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .iface{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--k);border-radius:8px;padding:12px 14px;cursor:pointer;text-align:left;color:inherit;font:inherit}
 .iface:focus-visible,.comp:focus-visible{outline:2px solid var(--k,var(--q));outline-offset:2px}
 .iface h3{margin:0;font:600 13px var(--mono);color:var(--k);word-break:break-all}
 .iface p{margin:4px 0 8px;color:var(--muted);font-size:12.5px}
 .iface ul{margin:0;padding:0;list-style:none;font:11.5px/1.7 var(--mono);color:var(--ink)}
-/* entity */
-.entity{background:var(--entity);border:2px solid var(--ink);border-radius:12px;padding:16px}
-.entity-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:12px}
-.entity-head h2{margin:0;font:600 15px var(--mono)}
-.entity-head span{color:var(--muted);font-size:12.5px}
-.groups{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-.group h4{margin:0 0 8px;font:500 11px var(--mono);letter-spacing:.08em;color:var(--muted)}
-.group .stack{display:grid;gap:8px}
+.graph{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+.graph svg{width:100%;height:auto;display:block}
+.graph text{font-family:var(--mono);fill:var(--ink)}
+.graph .lbl{fill:var(--muted);font-size:11px}
+.graph .box{fill:var(--entity);stroke:var(--ink);stroke-width:1.5}
+.graph .ext{fill:var(--panel);stroke:var(--line);stroke-width:1.5}
+.graph .edge{stroke:var(--muted);stroke-width:1.5;fill:none;marker-end:url(#head)}
+.graph .head{fill:var(--muted)}
+.units{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
+.unit{background:var(--entity);border:2px solid var(--ink);border-radius:12px;padding:14px}
+.unit-head{margin-bottom:10px}
+.unit-head h2{margin:0;font:600 14px var(--mono)}
+.unit-head span{color:var(--muted);font-size:12.5px}
+.unit .stack{display:grid;gap:8px}
+.unit.m .stack{grid-template-columns:repeat(2,minmax(0,1fr))}
 .comp{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;text-align:left;color:inherit;font:inherit;width:100%}
 .comp b{font:600 12.5px var(--mono);display:block}
 .comp .role{font-size:12.5px;color:var(--ink);margin:2px 0 6px}
 .comp .tables{font:11px/1.6 var(--mono);color:var(--muted);word-break:break-all}
 .comp.static{border-style:dashed}
 .comp .dots{margin-top:6px}
-/* rules */
 .rules{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 18px}
 .rules ol{margin:0;padding-left:20px;display:grid;gap:4px}
 .rules code{font:12px var(--mono)}
-/* highlight state */
 .sel .is-dim{opacity:var(--dim)}
 .sel .is-on{border-color:var(--k)!important;box-shadow:0 0 0 1px var(--k)}
-.k-q{--k:var(--q)} .k-c{--k:var(--c)} .k-v{--k:var(--v)} .k-t{--k:var(--t)}
-.bg-q{background:var(--q)} .bg-c{background:var(--c)} .bg-v{background:var(--v)} .bg-t{background:var(--t)}
+.k-q{--k:var(--q)} .k-c{--k:var(--c)} .k-v{--k:var(--v)} .k-t{--k:var(--t)} .k-r{--k:var(--r)}
+.bg-q{background:var(--q)} .bg-c{background:var(--c)} .bg-v{background:var(--v)} .bg-t{background:var(--t)} .bg-r{background:var(--r)}
 .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .reset{font:12px var(--mono);border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:4px 10px;cursor:pointer}
-@media (max-width:900px){.ifaces,.groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:520px){.ifaces,.groups{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:900px){.ifaces,.units,.unit.m .stack{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.ifaces,.units,.unit.m .stack{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:no-preference){.iface,.comp,.chip{transition:opacity .15s,box-shadow .15s,border-color .15s}}
 </style>
 
 <div class="wrap" id="root">
   <header>
-    <h1>婚姻聚合：单实体、多接口</h1>
-    <p class="sub">对外 4 个接口由同一个 <code>MarriageDomainService</code> 实例实现；实体内部按职责拆成小组件，组件之间不互相调用，由实体编排。</p>
-    <p class="hint">2026-10-17 已在 <code>task/marriage-domain-aggregate</code> 实现（未合并），接口方法与组件职责按实现更新；与设计稿的偏差见同名 .md 开头的落地状态。</p>
-    <div class="counts"><span>1 个实体</span><span>4 个对外接口</span><span>9 个内部组件</span><span>1 个纯规则类</span><span>12 张表，每张只归一个组件</span></div>
+    <h1>婚姻：用例 M、婚前任务 T、关系 R，单向依赖</h1>
+    <p class="sub">M（<code>MarriageDomainService</code>）实现 Query / Couple / Venue 三个对外接口；T（<code>MarriageQuestDomainService</code>）实现给任务领域用的 Quest 接口；R（<code>CoupleLedger</code>）是关系真源，只在 Application 内部发布只读与读写两个接口。</p>
+    <p class="hint">按 2026-10-17 的实现绘制（分支 <code>task/next-round-20261013</code>）；与设计稿正文的偏差见同名 .md 开头的落地状态。</p>
+    <div class="counts"><span>3 个单元</span><span>4 个对外接口（M 3 个、T 1 个）</span><span>R：2 个 internal 接口、1 个实例</span><span>12 张表，每张只归一个类型</span><span>无 Func / Lazy / IServiceProvider 注入</span></div>
   </header>
 
   <section>
@@ -93,7 +95,7 @@ h1{font-size:22px;font-weight:600;margin:0;text-wrap:balance}
       <span class="arr">｜</span>
       <span class="stage"><b>5 Closed</b><small>拒绝 / 过期</small></span>
     </div>
-    <p class="hint">回退：Requested 被拒或过期 → Engaged；Preparing 到点有人缺席 → Engaged（退款）。03D0 投影：0/5→0，1/2→1，3→2，4→4。</p>
+    <p class="hint">回退：Requested 被拒或过期 → Engaged；Preparing 到点有人缺席 → Engaged（退款）。03D0 投影：0/5→0，1/2→1，3→2，4→4。R 只存原始阶段；求婚/预约已到期未落库时的「有效阶段」由 M 的 Query 投影。</p>
   </section>
 
   <section>
@@ -102,66 +104,85 @@ h1{font-size:22px;font-weight:600;margin:0;text-wrap:balance}
   </section>
 
   <section>
-    <p class="band-label">对外接口（按调用方划分）</p>
+    <p class="band-label">对外接口（Abstractions，按调用方划分）</p>
     <div class="ifaces" id="ifaces"></div>
   </section>
 
-  <section class="entity">
-    <div class="entity-head"><h2>MarriageDomainService</h2><span>internal sealed partial · 构造器只接组件 + TimeProvider · 不碰任何 store</span></div>
-    <div class="groups" id="groups"></div>
+  <section class="graph">
+    <p class="band-label">构造依赖方向（箭头 = 注入）</p>
+    <svg viewBox="0 0 760 300" role="img" aria-label="M 注入 R 的读写接口、T 和通用效果；T 注入 R 的只读接口；任务服务和试炼订阅注入 T；效果处理器经副本等业务到任务服务">
+      <defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+      <rect class="box" x="20" y="30" width="200" height="56" rx="8"/><text x="120" y="54" text-anchor="middle" font-size="13">M  MarriageDomainService</text><text class="lbl" x="120" y="74" text-anchor="middle">求婚 · 预约 · 婚礼 · 心意券</text>
+      <rect class="box" x="290" y="200" width="200" height="56" rx="8"/><text x="390" y="224" text-anchor="middle" font-size="13">R  CoupleLedger</text><text class="lbl" x="390" y="244" text-anchor="middle">关系 store · 求婚 store · 规则 · 时钟</text>
+      <rect class="box" x="540" y="110" width="200" height="56" rx="8"/><text x="640" y="134" text-anchor="middle" font-size="13">T  MarriageQuestDomainService</text><text class="lbl" x="640" y="154" text-anchor="middle">绑定 · 试炼 · 任务日志</text>
+      <rect class="ext" x="20" y="200" width="200" height="56" rx="8"/><text x="120" y="224" text-anchor="middle" font-size="12">IApplyEffectsDomainService</text><text class="lbl" x="120" y="244" text-anchor="middle">→ 效果处理器 → 副本等业务</text>
+      <rect class="ext" x="290" y="30" width="200" height="56" rx="8"/><text x="390" y="54" text-anchor="middle" font-size="12">任务服务 · AcceptQuest</text><text class="lbl" x="390" y="74" text-anchor="middle">QuestFacts / Completion / Offer</text>
+      <rect class="ext" x="540" y="30" width="200" height="56" rx="8"/><text x="640" y="62" text-anchor="middle" font-size="12">MarriageTrialClearSubscriber</text>
+      <path class="edge" d="M150,86 L330,200"/><text class="lbl" x="170" y="150">IMarriageRelationWriter</text>
+      <path class="edge" d="M220,58 C400,110 470,130 540,138"/><text class="lbl" x="300" y="112">ReadyForCeremonyAsync</text>
+      <path class="edge" d="M90,86 L90,200"/><text class="lbl" x="30" y="150">LovePoints</text>
+      <path class="edge" d="M220,214 C260,160 300,110 350,86"/>
+      <path class="edge" d="M490,58 L560,110"/>
+      <path class="edge" d="M640,86 L640,110"/>
+      <path class="edge" d="M600,166 L470,200"/><text class="lbl" x="540" y="196">IMarriageRelations</text>
+    </svg>
+    <p class="hint">回路被切在 T：任务服务经 <code>IMarriageQuestDomainService</code> 只到 T，T 只读 R，不回到 M，所以 M 可以普通注入 <code>IApplyEffectsDomainService</code>。</p>
   </section>
 
+  <section class="units" id="units"></section>
+
   <section class="rules">
-    <p class="band-label">组件规则</p>
+    <p class="band-label">规则（由 MarriageArchitectureTests 守着，每条配反例）</p>
     <ol>
-      <li>只有 <code>CoupleLedger</code> 写阶段，每次写都按 revision 做 CAS；关系 store 只注入它。</li>
-      <li>组件之间不互相调用，实体负责编排；组件只接收同一操作内加载的那份 <code>MarriageRelation</code>。由 <code>MarriageArchitectureTests</code> 守着。</li>
-      <li>每个操作只解析一次关系：守卫 → 各组件副作用 → Commit。子记录改动前阶段不符返回 <code>Stale</code>；改动后 CAS 失败则抛异常、整笔回滚。</li>
-      <li>组件是具体的 internal 类型，没有公开接口，以 singleton 注册（无状态）。</li>
-      <li>规则服务（<code>IMarriage*RuleService</code>）保持原样，由组件调用。</li>
+      <li>关系 store 只注入 <code>CoupleLedger</code>；R 的构造器只接关系 store、求婚 store、<code>IMarriageProposalRuleService</code>、<code>TimeProvider</code>。</li>
+      <li><code>IMarriageRelationWriter</code> 只被 M 注入；T 只注入 <code>IMarriageRelations</code>；任何类型都不直接注入 <code>CoupleLedger</code>。两个接口都是 internal，Protocol 的命令处理器拿不到。</li>
+      <li>T 与 R 的传递构造依赖（按生产模块的真实注册展开，工厂注册按实际实例类型展开）里不出现 M、<code>IApplyEffectsDomainService</code>、Query / Couple / Venue 接口；T 也不到 <code>QuestFactsDomainService</code>。</li>
+      <li><code>Application/Marriage</code> 下的构造器不接 <code>Func&lt;&gt;</code>、<code>Lazy&lt;&gt;</code>、<code>IServiceProvider</code>。</li>
+      <li>M 不直接接任何 <code>*DomainStore</code>；每个婚姻 store 只有一个所有者。子记录改动后关系 CAS 失败抛异常、整笔回滚。</li>
     </ol>
   </section>
 </div>
 
 <script>
 const IF = {
-  q:{name:"IMarriageQueryDomainService", role:"只读视图，可到处注入，不写库",
+  q:{name:"IMarriageQueryDomainService", role:"M · 只读视图，含有效阶段投影，不写库",
      m:["ViewAsync / SnapshotAsync","ReceivedProposal / ReceivedReservation","IsMarriedAsync / WeddingPhaseAsync","AppearanceAsync","CanCross / CanLeave","RemainingInvitations / Invited","CoupleAccounts / WeddingAccounts","ActiveWeddingsAsync"]},
-  c:{name:"IMarriageCoupleDomainService", role:"新人发起的写：迁移 T1–T7 的唯一入口",
+  c:{name:"IMarriageCoupleDomainService", role:"M · 新人发起的写：迁移 T1–T7 的唯一入口",
      m:["ProposeAsync","RespondProposalAsync","RequestReservationAsync","RespondReservationAsync","OpenWeddingAsync（接受预约后同一事务内开婚礼）","UseLovePointAsync"]},
-  v:{name:"IMarriageVenueDomainService", role:"婚礼现场：教堂、宾客、祝词、到点推进（T8/T9）",
+  v:{name:"IMarriageVenueDomainService", role:"M · 婚礼现场：教堂、宾客、祝词、到点推进（T8/T9）",
      m:["PrepareChurchAsync（缺房时分配）","EnterChurchAsync（03F7 合一）","InviteAsync / GiftAsync","AdvanceAsync","CompleteCleanupAsync","Read / Post / DeleteGuestbook"]},
-  t:{name:"IMarriageQuestDomainService", role:"婚前任务，给任务领域用，签名不变",
+  t:{name:"IMarriageQuestDomainService", role:"T · 婚前任务，给任务领域用，签名不变",
      m:["EligibleQuestIdsAsync","CanAcceptAsync","BindAsync","CanCompleteAsync"]}
 };
-const GROUPS = [
-  ["核心", [
-    {id:"ledger", n:"CoupleLedger", r:"关系账本：加载、统一身份判定（ForSession / ForParticipant / ForPair）、惰性到期、阶段 CAS 写入、心意点写入", t:"marriage_relations（新）· marriage_proposals · marriage_proposal_participants", i:"qcvt"},
-    {id:"rules", n:"MarriageStageRules", r:"纯规则（static）：迁移表与阶段判定；03D0 投影在 Protocol", t:"无表", i:"qc", s:1},
-    {id:"elig", n:"MarriageEligibility", r:"资格：在线、同城、等级、性别、任务、金币；03F3 对方资料（ProfileAsync）", t:"只读", i:"qc"}]],
-  ["流程", [
-    {id:"resv", n:"ReservationDesk", r:"预约记录：申请、接受、拒绝、过期", t:"marriage_ceremonies", i:"c"},
+const UNITS = [
+  ["m", "M · MarriageDomainService", "实现 Query / Couple / Venue；构造器接 R 的读写接口、T、7 个组件和 TimeProvider，不碰 store", [
+    {id:"rules", n:"MarriageStageRules", r:"纯规则（static）：迁移表与阶段判定；03D0 投影在 Protocol", t:"无表", i:"qcvt", s:1},
+    {id:"elig", n:"MarriageEligibility", r:"资格：在线、同城、等级、性别、金币；03F3 对方资料", t:"只读", i:"qc"},
+    {id:"resv", n:"ReservationDesk", r:"预约记录：申请、接受、拒绝、过期", t:"marriage_ceremonies", i:"qc"},
     {id:"church", n:"ChurchRooms", r:"教堂房间、入场名单、站位、快照、跨区与离场判定", t:"marriage_church_rooms · marriage_church_admissions", i:"qcv"},
-    {id:"settle", n:"WeddingSettlement", r:"婚礼行、扣费、到点结算、退款、回礼、离场坐标、清理队列", t:"marriage_weddings · marriage_wedding_cleanup", i:"qcv"}]],
-  ["现场", [
+    {id:"settle", n:"WeddingSettlement", r:"婚礼行、扣费、到点结算、退款、回礼、离场坐标、清理队列", t:"marriage_weddings · marriage_wedding_cleanup", i:"qcv"},
     {id:"guests", n:"GuestList", r:"请柬、礼金、宾客入场资格、剩余请柬", t:"marriage_wedding_guests", i:"qv"},
-    {id:"book", n:"Guestbook", r:"祝词簿：读取、发表、删除", t:"marriage_guest_comments", i:"v"}]],
-  ["附属", [
-    {id:"trial", n:"TrialQuests", r:"婚前任务绑定、试炼计数；DungeonMapCleared 由薄订阅类交给实体，实体判定关系后再交给它", t:"marriage_quest_bindings · marriage_trial_clears", i:"t"},
-    {id:"love", n:"LovePoints", r:"心意点：道具使用与上限；点数由实体经 Ledger 写入。效果服务用 Func 延迟解析，避免 DI 环", t:"无表（marriage_relations.love_points 由 Ledger 写）", i:"c"}]]
+    {id:"book", n:"Guestbook", r:"祝词簿：读取、发表、删除", t:"marriage_guest_comments", i:"v"},
+    {id:"love", n:"LovePoints", r:"心意券：道具规则与上限、经通用效果扣券（普通构造器依赖）；点数由 M 经 R 写入", t:"无表", i:"c"}]],
+  ["t", "T · MarriageQuestDomainService", "实现 IMarriageQuestDomainService；只读 R", [
+    {id:"quests", n:"MarriageQuestDomainService", r:"任务接取/完成资格、绑定、双人通关计数（订阅类直接转交）、预约前任务检查 ReadyForCeremonyAsync", t:"marriage_quest_bindings · marriage_trial_clears", i:"tqc"},
+    {id:"trialrule", n:"IMarriageTrialRuleService", r:"规则服务：通关地图能否计入试炼；内容源只由它注入", t:"内容源 IMarriageDungeonContentSource", i:"t", s:1}]],
+  ["r", "R · CoupleLedger", "IMarriageRelations（只读）+ IMarriageRelationWriter（读写），同一实例，均为 internal", [
+    {id:"ledger", n:"CoupleLedger", r:"关系与求婚记录；统一身份判定（ForSession / ForParticipant / ForPair / Belongs / IsPair）；阶段 CAS 写入、心意点写入；只存原始阶段", t:"marriage_relations · marriage_proposals · marriage_proposal_participants", i:"qcvtr"}]]
 ];
 const CALLERS = [
   ["MarriageProposalSlice","q"],["Proposal / Ceremony 命令处理器","c"],["MarriageEngagementSlice","q"],
   ["MarriageChurchSlice","v"],["MarriageWeddingSlice","qv"],["MarriageLovePointSlice","qc"],
   ["MarriageGuestbookSlice","v"],["TownProjectionSlice","q"],["SelectCharacterPreparation","qt"],
-  ["ReplayStateDomainService","q"],["Quest 三服务 + AcceptQuest","t"]
+  ["ReplayStateDomainService","q"],["Quest 三服务 + AcceptQuest","t"],["MarriageTrialClearSubscriber","t"]
 ];
-const dots = s => `<span class="dots">${[...s].map(k=>`<i class="bg-${k}" title="${IF[k].name}"></i>`).join("")}</span>`;
+const NAMES = {...Object.fromEntries(Object.entries(IF).map(([k,v]) => [k, v.name])), r:"IMarriageRelations / IMarriageRelationWriter"};
+const dots = s => `<span class="dots">${[...s].map(k=>`<i class="bg-${k}" title="${NAMES[k]}"></i>`).join("")}</span>`;
 const $ = id => document.getElementById(id);
 $("callers").innerHTML = CALLERS.map(([n,s]) => `<span class="chip" data-i="${s}">${n}${dots(s)}</span>`).join("");
 $("ifaces").innerHTML = Object.entries(IF).map(([k,v]) =>
   `<button type="button" class="iface k-${k}" data-k="${k}" data-i="${k}"><h3>${v.name}</h3><p>${v.role}</p><ul>${v.m.map(x=>`<li>${x}</li>`).join("")}</ul></button>`).join("");
-$("groups").innerHTML = GROUPS.map(([g,cs]) => `<div class="group"><h4>${g}</h4><div class="stack">${cs.map(c =>
+$("units").innerHTML = UNITS.map(([u,h,d,cs]) => `<div class="unit ${u}"><div class="unit-head"><h2>${h}</h2><span>${d}</span></div><div class="stack">${cs.map(c =>
   `<button type="button" class="comp${c.s?" static":""}" data-c="${c.id}" data-i="${c.i}"><b>${c.n}</b><div class="role">${c.r}</div><div class="tables">${c.t}</div>${dots(c.i)}</button>`).join("")}</div></div>`).join("");
 
 const root = $("root");

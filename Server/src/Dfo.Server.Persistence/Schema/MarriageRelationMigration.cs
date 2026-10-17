@@ -8,6 +8,12 @@ namespace Dfo.Server.Persistence.Schema;
 /// Nothing in the old rows says when a stage began, so every backfilled row starts at the migration instant.
 /// An Engaged proposal still holding a Reserved ceremony without a live wedding stays Engaged; the relation
 /// store counts those for the startup audit rather than guessing what they should be.
+/// <para>
+/// Love points are then raised to the completed wedding's old column when that is higher. Points only ever grow and the
+/// relation store writes both columns equal, so only a binary that knows nothing of relations can have left the old
+/// column ahead. Stages get no such pass: a lower stage can be a legitimate cancellation, so a rollback that advanced
+/// marriages in the old tables is restored from the matching backup instead.
+/// </para>
 /// </remarks>
 internal static class MarriageRelationMigration
 {
@@ -30,6 +36,13 @@ internal static class MarriageRelationMigration
             LEFT JOIN marriage_ceremonies c ON c.relation_id=p.id AND c.state=0;
             """;
         command.Parameters.AddWithValue("@now", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        command.ExecuteNonQuery();
+        command.CommandText = """
+            UPDATE marriage_relations
+            SET love_points=(SELECT MAX(w.love_points) FROM marriage_weddings w WHERE w.relation_id=marriage_relations.id AND w.phase=1)
+            WHERE love_points<(SELECT MAX(w.love_points) FROM marriage_weddings w WHERE w.relation_id=marriage_relations.id AND w.phase=1);
+            """;
+        command.Parameters.Clear();
         command.ExecuteNonQuery();
     }
 }

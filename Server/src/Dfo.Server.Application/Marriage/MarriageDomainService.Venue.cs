@@ -201,7 +201,7 @@ internal sealed partial class MarriageDomainService
         if (!eligibility.IsCurrent(actor) || key == 0 || key > int.MaxValue) return null;
         var relation = await ledger.FindAsync(new CharacterId((int)key), ct).ConfigureAwait(false);
         if (relation is null || !MarriageStageRules.IsCouple(relation.Stage)) return null;
-        if (CoupleLedger.Belongs(relation, actor))
+        if (IMarriageRelations.Belongs(relation, actor))
             return PartnerOf(relation, actor.CharacterId).CharacterId.Value == key ? (relation.Id, true, false) : null;
         foreach (var wedding in await settlement.PendingAsync(ct).ConfigureAwait(false))
         {
