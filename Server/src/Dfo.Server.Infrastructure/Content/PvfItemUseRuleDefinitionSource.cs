@@ -32,6 +32,7 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             }, optional: true);
         internal static readonly PvfField<IReadOnlyList<PvfToken>> ActionTypeField =
             PvfField.Tokens("[action type]", optional: true);
+        internal static readonly PvfField<int> SharedEffectField = PvfField.Int32("[shared effect]", optional: true);
         internal static readonly PvfField<int> CoolTimeField = PvfField.Int32("[cool time]", optional: true);
         internal static readonly PvfField<int> CooltimeGroupField = PvfField.Int32("[cooltime group]", optional: true);
         internal static readonly PvfField<int> MinimumLevelField = PvfField.Int32("[minimum level]", optional: true);
@@ -95,6 +96,7 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
                 archive, ref reader, Fields.ActionTypeField, out var actionToken, ref unreadable)
             ? archive.ResolveString(actionToken.Value)
             : null;
+        var shared = FirstInt32(archive, ref reader, Fields.SharedEffectField, ref unreadable);
         var cooldown = FirstInt32(archive, ref reader, Fields.CoolTimeField, ref unreadable);
         var cooltimeGroup = FirstInt32(archive,
             ref reader, Fields.CooltimeGroupField, ref unreadable);
@@ -119,7 +121,7 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             HasUnreadableDeclaration: unreadable,
             ExpBonusRate: expBonusRate,
             EffectDurationMilliseconds: Math.Max(0, effectDuration),
-            Action: action);
+            Action: action) { SharedEffectSelector = shared == 1 && stackableType is "[only effect]" or "[random reward item]" ? (byte)0 : null };
     }
 
     /// <summary>

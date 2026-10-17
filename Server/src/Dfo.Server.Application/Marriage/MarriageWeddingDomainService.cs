@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Marriage;
+using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Abstractions.Characters;
@@ -20,8 +21,20 @@ internal sealed class MarriageWeddingDomainService(IMarriageWeddingDomainStore s
     ISelectedSessionDomainService sessions, ISelectedSessionSnapshotQuery online, ITownAreaDomainService areas,
     ICharacterDomainService characters, ICharacterPositionDomainService positions,
     ISelectedSessionPositionPersistence persistence, IMailboxDomainService mail,
-    IItemDeliveryDomainService delivery, ICharacterTable owners, TimeProvider clock) : IMarriageWeddingDomainService
+    IItemDeliveryDomainService delivery, ICharacterTable owners, ICharacterDomainStore characterStore, IDomainTransactionAccessor transactions, TimeProvider clock) : IMarriageWeddingDomainService
 {
+    public async ValueTask<bool> CanLeaveAsync(SelectedSessionIdentity actor, byte town, byte area, CancellationToken ct)
+    {
+        var church = await AppearanceAsync(actor, ct).ConfigureAwait(false);
+        if (church is null || areas.Find(actor.CharacterId)?.Area != new TownAreaKey(church.Room.ChannelId, church.Room.TownId, church.Room.AreaId)
+            || church.Room.TownId == town && church.Room.AreaId == area) return true;
+        // A21 RVA0089464D locks ordinary departure below sixty seconds.
+        return await PhaseAsync(church.Room.CeremonyId, ct).ConfigureAwait(false) != MarriageWeddingPhase.Preparing
+            || church.Room.ReadyUntil - clock.GetUtcNow() >= TimeSpan.FromSeconds(60);
+    }
+    public async ValueTask<MarriageWeddingPhase?> PhaseAsync(Guid ceremony, CancellationToken ct) => (await store.ReadAsync(ceremony, ct).ConfigureAwait(false))?.Phase;
+
+    public ValueTask CompleteCleanupAsync(Guid ceremony, CharacterId character, CancellationToken ct) => store.CompleteCleanupAsync(ceremony, character, ct);
     public ValueTask<bool> IsMarriedAsync(Guid relation, CancellationToken ct) => store.IsMarriedAsync(relation, ct);
     public ValueTask<IReadOnlyList<MarriageWedding>> PendingAsync(CancellationToken ct) => store.PendingAsync(ct);
 
@@ -31,10 +44,12 @@ internal sealed class MarriageWeddingDomainService(IMarriageWeddingDomainStore s
         foreach (var wedding in await store.PendingAsync(ct).ConfigureAwait(false))
         {
             var room = await rooms.ReadAsync(wedding.Ceremony.Id, ct).ConfigureAwait(false);
-            if (room is null || member.Area != new TownAreaKey(room.ChannelId, room.TownId, room.AreaId)
+            if (room is null || member.Area.ChannelId != room.ChannelId
+                || wedding.Phase != MarriageWeddingPhase.Preparing && member.Area != new TownAreaKey(room.ChannelId, room.TownId, room.AreaId)
                 || !await rooms.IsAdmittedAsync(wedding.Ceremony.Id, actor.CharacterId, ct).ConfigureAwait(false)) continue;
             var key = wedding.Ceremony.Applicant.CharacterId == actor.CharacterId ? wedding.Ceremony.Partner.CharacterId.Value : wedding.Ceremony.Applicant.CharacterId.Value;
-            return await SnapshotAsync(wedding.Ceremony, room, checked((uint)key), ct).ConfigureAwait(false);
+            var invitation = (await store.InvitationsAsync(wedding.Ceremony.Id, ct).ConfigureAwait(false)).SingleOrDefault(x => x.Guest == actor.CharacterId);
+            return await SnapshotAsync(wedding.Ceremony, room, invitation?.Key ?? checked((uint)key), ct).ConfigureAwait(false);
         }
         return null;
     }
@@ -94,14 +109,12 @@ internal sealed class MarriageWeddingDomainService(IMarriageWeddingDomainStore s
     {
         var wedding = await store.ReadAsync(id, ct).ConfigureAwait(false);
         var room = await rooms.ReadAsync(id, ct).ConfigureAwait(false);
-        if (wedding is null || room is null) return null;
+        if (wedding is null) return null;
+        if (wedding.Phase != MarriageWeddingPhase.Preparing)
+            return await RetryCleanupAsync(wedding, room, ct).ConfigureAwait(false);
+        if (room is null) return null;
         var occupied = online.Snapshot().Where(x => areas.Find(x.CharacterId) is { } a && x.Owns(a)
             && a.Area == new TownAreaKey(room.ChannelId, room.TownId, room.AreaId)).ToArray();
-        if (wedding.Phase != MarriageWeddingPhase.Preparing)
-        {
-            if (occupied.Length == 0) await rooms.ReleaseAsync(id, ct).ConfigureAwait(false);
-            return null;
-        }
         if (clock.GetUtcNow() < room.ReadyUntil) return null;
         var ceremony = wedding.Ceremony;
         var both = Present(ceremony.Applicant, room) && Present(ceremony.Partner, room)
@@ -144,20 +157,77 @@ internal sealed class MarriageWeddingDomainService(IMarriageWeddingDomainStore s
             await ceremonies.TransitionAsync(ceremony, MarriageCeremonyState.Expired, 2, ct).ConfigureAwait(false);
             await RefundAsync(ceremony.Applicant.CharacterId, wedding.PaidGold, "未能按时开场，退回婚礼费用。", ct).ConfigureAwait(false);
             foreach (var guest in guests) await RefundAsync(guest.Guest, guest.Gold, "婚礼取消，退回礼金。", ct).ConfigureAwait(false);
-            // Native departure builder uses NPC20013's town2 square location +30 Y.
-            foreach (var actor in occupied)
-            {
-                if (positions.Find(actor.CharacterId) is { } standing)
-                    await persistence.PersistAsync(actor.AccountId, actor.CharacterId, standing with { TownId = rule.ExitLocation.TownId, AreaId = rule.ExitLocation.AreaId, X = rule.ExitLocation.X, Y = rule.ExitLocation.Y }, ct).ConfigureAwait(false);
-            }
+            // Include offline admitted characters: persisted church coordinates must not survive cancellation.
+            await PersistExitAsync(room, new[] { ceremony.Applicant.CharacterId, ceremony.Partner.CharacterId }
+                .Concat(guests.Select(x => x.Guest)).Concat(occupied.Select(x => x.CharacterId)).Distinct(),
+                rule.ExitLocation, ct).ConfigureAwait(false);
             departures.AddRange(occupied.Select(x => new MarriageWeddingDeparture(x, room.ChannelId, rule.ExitLocation)));
-            await rooms.ReleaseAsync(id, ct).ConfigureAwait(false);
         }
         var guestEntries = new List<MarriageWeddingAdmission>();
         foreach (var actor in occupied.Where(x => x.CharacterId != ceremony.Applicant.CharacterId && x.CharacterId != ceremony.Partner.CharacterId))
             if (guests.SingleOrDefault(x => x.Guest == actor.CharacterId) is { } invitation)
                 guestEntries.Add(new(actor, await SnapshotAsync(ceremony, room, invitation.Key, ct).ConfigureAwait(false)));
-        return new(wedding with { Phase = phase }, participants, guestEntries) { Departures = departures };
+        foreach (var owner in new[] { ceremony.Applicant, ceremony.Partner })
+        {
+            var key = owner.CharacterId == ceremony.Applicant.CharacterId ? ceremony.Partner.CharacterId : ceremony.Applicant.CharacterId;
+            await store.QueueCleanupAsync(id, new(owner.CharacterId, await SnapshotAsync(ceremony, room, checked((uint)key.Value), ct).ConfigureAwait(false)), ct).ConfigureAwait(false);
+        }
+        var cleanup = new List<MarriageWeddingAdmission>();
+        if (!both) cleanup.AddRange(participants.Where(x => !occupied.Contains(x.Actor)));
+        foreach (var invitation in guests)
+        {
+            await store.QueueCleanupAsync(id, new(invitation.Guest, await SnapshotAsync(ceremony, room, invitation.Key, ct).ConfigureAwait(false)), ct).ConfigureAwait(false);
+            var actor = sessions.FindByCharacter(invitation.Guest);
+            if (actor is null || occupied.Contains(actor)) continue;
+            cleanup.Add(new(actor, await SnapshotAsync(ceremony, room, invitation.Key, ct).ConfigureAwait(false)));
+        }
+        return new(wedding with { Phase = phase }, participants, guestEntries) { Departures = departures, Cleanup = cleanup };
+    }
+
+    private async ValueTask PersistExitAsync(MarriageChurchRoom room, IEnumerable<CharacterId> charactersToMove, MarriageChurchLocation exit, CancellationToken ct)
+    {
+        foreach (var character in charactersToMove)
+            if (await owners.FindOwnerAsync(character, ct).ConfigureAwait(false) is { } account
+                && await characterStore.SessionIn(transactions.Current ?? throw new InvalidOperationException("Wedding advancement requires a transaction.")).ReadPositionAsync(new(account, character), ct).ConfigureAwait(false) is { } saved
+                && saved.TownId == room.TownId && saved.AreaId == room.AreaId)
+                await persistence.PersistAsync(account, character, saved with { TownId = exit.TownId, AreaId = exit.AreaId, X = exit.X, Y = exit.Y }, ct).ConfigureAwait(false);
+    }
+
+    private async ValueTask<MarriageWeddingTransition?> RetryCleanupAsync(MarriageWedding wedding, MarriageChurchRoom? room, CancellationToken ct)
+    {
+        var cleanup = new List<MarriageWeddingAdmission>();
+        var departures = new List<MarriageWeddingDeparture>();
+        foreach (var pending in await store.CleanupAsync(wedding.Ceremony.Id, ct).ConfigureAwait(false))
+        {
+            var actor = sessions.FindByCharacter(pending.Character);
+            if (actor is null) continue;
+            var current = await AppearanceAsync(actor, ct).ConfigureAwait(false);
+            var hasNewInvitation = false;
+            foreach (var newer in await store.PendingAsync(ct).ConfigureAwait(false))
+                if (newer.Ceremony.Id != wedding.Ceremony.Id && newer.Phase == MarriageWeddingPhase.Preparing
+                    && (await store.InvitationsAsync(newer.Ceremony.Id, ct).ConfigureAwait(false)).Any(x => x.Guest == pending.Character))
+                { hasNewInvitation = true; break; }
+            // Never erase a newer wedding's context after an old offline cleanup.
+            if (hasNewInvitation || current is not null && current.Room.CeremonyId != wedding.Ceremony.Id)
+            { await store.CompleteCleanupAsync(wedding.Ceremony.Id, pending.Character, ct).ConfigureAwait(false); continue; }
+            var member = areas.Find(actor.CharacterId);
+            if (member is null || !actor.Owns(member)) continue;
+            if (room is not null && member.Area == new TownAreaKey(room.ChannelId, room.TownId, room.AreaId))
+            {
+                if (wedding.Phase == MarriageWeddingPhase.Cancelled)
+                    departures.Add(new(actor, room.ChannelId, rules.WeddingRules(wedding.Ceremony.Tier).ExitLocation));
+                continue; // Successful native animation owns its exit; op1 would interrupt it.
+            }
+            cleanup.Add(new(actor, pending.Church));
+        }
+        if (room is not null && !online.Snapshot().Any(x => areas.Find(x.CharacterId) is { } a && x.Owns(a)
+            && a.Area == new TownAreaKey(room.ChannelId, room.TownId, room.AreaId)))
+        {
+            await PersistExitAsync(room, (await store.CleanupAsync(wedding.Ceremony.Id, ct).ConfigureAwait(false)).Select(x => x.Character),
+                rules.WeddingRules(wedding.Ceremony.Tier).ExitLocation, ct).ConfigureAwait(false);
+            await rooms.ReleaseAsync(wedding.Ceremony.Id, ct).ConfigureAwait(false);
+        }
+        return cleanup.Count == 0 && departures.Count == 0 ? null : new(wedding, [], []) { Cleanup = cleanup, Departures = departures };
     }
 
     public async ValueTask<IReadOnlyList<uint>> InvitedAsync(Guid ceremony, CancellationToken ct) =>

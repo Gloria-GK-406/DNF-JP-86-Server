@@ -10,7 +10,7 @@ internal sealed class SqliteMarriageWeddingDomainStore(SqliteDatabase database) 
 {
     public async ValueTask<MarriageWedding?> ReadAsync(Guid ceremony, CancellationToken ct) =>
         (await ReadCoreAsync("ceremony_id=@id", ceremony.ToString("N"), ct).ConfigureAwait(false)).SingleOrDefault();
-    public ValueTask<IReadOnlyList<MarriageWedding>> PendingAsync(CancellationToken ct) => ReadCoreAsync("phase=0 OR EXISTS(SELECT 1 FROM marriage_church_rooms r WHERE r.ceremony_id=marriage_weddings.ceremony_id)", "", ct);
+    public ValueTask<IReadOnlyList<MarriageWedding>> PendingAsync(CancellationToken ct) => ReadCoreAsync("phase=0 OR EXISTS(SELECT 1 FROM marriage_wedding_cleanup c WHERE c.ceremony_id=marriage_weddings.ceremony_id) OR EXISTS(SELECT 1 FROM marriage_church_rooms r WHERE r.ceremony_id=marriage_weddings.ceremony_id)", "", ct);
     private ValueTask<IReadOnlyList<MarriageWedding>> ReadCoreAsync(string predicate, string id, CancellationToken ct) =>
         database.ReadAllAsync($"SELECT payload_json,phase,paid_gold FROM marriage_weddings WHERE {predicate}",
             p => p.AddWithValue("@id", id), r => new MarriageWedding(
@@ -39,6 +39,16 @@ internal sealed class SqliteMarriageWeddingDomainStore(SqliteDatabase database) 
             VALUES(@id,@guest,@inviter,@key,0)
             """, p => { p.AddWithValue("@id", invitation.CeremonyId.ToString("N")); p.AddWithValue("@guest", invitation.Guest.Value);
                 p.AddWithValue("@inviter", invitation.Inviter.Value); p.AddWithValue("@key", invitation.Key); }, ct).ConfigureAwait(false);
+    public async ValueTask QueueCleanupAsync(Guid ceremony, MarriageWeddingCleanup cleanup, CancellationToken ct) =>
+        _ = await database.ExecuteAsync("INSERT OR IGNORE INTO marriage_wedding_cleanup VALUES(@id,@character,@payload)",
+            p => { p.AddWithValue("@id", ceremony.ToString("N")); p.AddWithValue("@character", cleanup.Character.Value);
+                p.AddWithValue("@payload", JsonSerializer.Serialize(cleanup)); }, ct).ConfigureAwait(false);
+    public ValueTask<IReadOnlyList<MarriageWeddingCleanup>> CleanupAsync(Guid ceremony, CancellationToken ct) =>
+        database.ReadAllAsync("SELECT payload_json FROM marriage_wedding_cleanup WHERE ceremony_id=@id", p => p.AddWithValue("@id", ceremony.ToString("N")),
+            r => JsonSerializer.Deserialize<MarriageWeddingCleanup>(r.GetString(0)) ?? throw new InvalidDataException("Invalid wedding cleanup."), ct);
+    public async ValueTask CompleteCleanupAsync(Guid ceremony, CharacterId character, CancellationToken ct) =>
+        _ = await database.ExecuteAsync("DELETE FROM marriage_wedding_cleanup WHERE ceremony_id=@id AND character_id=@character",
+            p => { p.AddWithValue("@id", ceremony.ToString("N")); p.AddWithValue("@character", character.Value); }, ct).ConfigureAwait(false);
     public async ValueTask<bool> PayAsync(Guid ceremony, CharacterId guest, int gold, CancellationToken ct) =>
         await database.ExecuteAsync("UPDATE marriage_wedding_guests SET gold=@gold WHERE ceremony_id=@id AND guest_character_id=@guest AND gold=0",
             p => { p.AddWithValue("@id", ceremony.ToString("N")); p.AddWithValue("@guest", guest.Value); p.AddWithValue("@gold", gold); }, ct).ConfigureAwait(false) == 1;

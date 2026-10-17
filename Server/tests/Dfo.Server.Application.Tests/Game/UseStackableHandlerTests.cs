@@ -222,6 +222,32 @@ public sealed class UseStackableHandlerTests
         Assert.Equal(0, setup.Potion.GetBonusRate(new CharacterId(60)));
     }
 
+    [Fact]
+    public async Task Shared_effect_checks_real_item_and_rule_consumes_once_and_rolls_back()
+    {
+        var inventory = new FakeInventory(3, 8474, 2, 2);
+        var setup = BuildDetailed(inventory, (8474, ItemUseRules.Potion(cooldownMilliseconds: 0) with { SharedEffectSelector = 0 }));
+        var slot = new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, 3));
+        await using (var tx = inventory.Scope.Begin())
+        {
+            Assert.False((await setup.Shared.UseAsync(OneSession.Session, slot, 9000, default)).Succeeded);
+            Assert.Equal(2, inventory.Count);
+            var result = await setup.Shared.UseAsync(OneSession.Session, slot, 8474, default);
+            Assert.True(result.Succeeded); Assert.Equal(1, result.State!.Item!.Count);
+        }
+        Assert.Equal(2, inventory.Count);
+        await using (var tx = inventory.Scope.Begin())
+        {
+            Assert.True((await setup.Shared.UseAsync(OneSession.Session, slot, 8474, default)).Succeeded);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(1, inventory.Count);
+        var ordinary = BuildDetailed(inventory, (8474, ItemUseRules.Potion(cooldownMilliseconds: 0)));
+        await using (var tx = inventory.Scope.Begin())
+            Assert.False((await ordinary.Shared.UseAsync(OneSession.Session, slot, 8474, default)).Succeeded);
+        Assert.Equal(1, inventory.Count);
+    }
+
     private static ItemUseRule SpiritRule() => ItemUseRules.Potion(cooldownMilliseconds: 0) with
     {
         ExpBonusRate = 1,
@@ -504,7 +530,7 @@ public sealed class UseStackableHandlerTests
 
     private static (UseStackableHandler Handler, RecordingSender Sender,
         UseStackableCommandHandler Command, SpiritPotionDomainService Potion,
-        OneSession Sessions) BuildDetailed(
+        OneSession Sessions, ISharedEffectDomainService Shared) BuildDetailed(
         FakeInventory inventory, params (int ItemId, ItemUseRule Rule)[] rules)
     {
         var declared = rules.Length == 0
@@ -532,8 +558,12 @@ public sealed class UseStackableHandlerTests
             new Dfo.Server.Application.Effects.StartItemCooldownEffectHandler(cooldowns, sessions, inventory.Scope),
             new Dfo.Server.Application.Effects.StartSpiritPotionEffectHandler(potion, sessions, inventory.Scope)], inventory.Scope,
                 new EffectCharacterStore(new(OneSession.Session.AccountId, OneSession.Session.CharacterId)), sessions, ConsumptionEffectPreflight.For(slots));
-        var commandHandler = new UseStackableCommandHandler(sessions, slots,
-            new ItemUseEffectDomainService(characters, new ItemUseEffectRuleService(judgement), apply, null!, clock), clock);
+        var ruleService = new ItemUseEffectRuleService(judgement);
+        var useEffects = new ItemUseEffectDomainService(characters, ruleService, apply, null!, clock);
+        var commandHandler = new UseStackableCommandHandler(sessions, slots, useEffects, clock);
+        var areas = new Dfo.Server.Application.World.TownAreaDomainService();
+        areas.Enter(new(OneSession.Session.CharacterId, OneSession.Session.TownAreaLease(), new(1, 1, 1), new(1, 1, 0, 0, 0), true));
+        var shared = new SharedEffectDomainService(sessions, areas, slots, ruleService, useEffects, clock);
         return (
             new UseStackableHandler(
                 sessions,
@@ -541,7 +571,7 @@ public sealed class UseStackableHandlerTests
                 new DirectCommandBus(use: commandHandler, scope: inventory.Scope),
                 sender,
                 NullLogger<UseStackableHandler>.Instance),
-            sender, commandHandler, potion, sessions);
+            sender, commandHandler, potion, sessions, shared);
     }
 
 

@@ -274,6 +274,16 @@ internal static class CharacterDatabaseSchema
             inviter_character_id INTEGER NOT NULL,context_key INTEGER NOT NULL,gold INTEGER NOT NULL CHECK(gold>=0),
             PRIMARY KEY(ceremony_id,guest_character_id)
         );
+        CREATE TABLE IF NOT EXISTS marriage_guest_comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,relation_id TEXT NOT NULL REFERENCES marriage_proposals(id),
+            author_id INTEGER NOT NULL,author_name BLOB NOT NULL,sort_key INTEGER NOT NULL,text BLOB NOT NULL CHECK(length(text) BETWEEN 1 AND 20)
+        );
+        CREATE INDEX IF NOT EXISTS ix_marriage_guest_comments_relation ON marriage_guest_comments(relation_id,sort_key);
+        CREATE TABLE IF NOT EXISTS marriage_wedding_cleanup (
+            ceremony_id TEXT NOT NULL REFERENCES marriage_weddings(ceremony_id),
+            character_id INTEGER NOT NULL,payload_json TEXT NOT NULL,
+            PRIMARY KEY(ceremony_id,character_id)
+        );
         CREATE TABLE IF NOT EXISTS marriage_church_rooms (
             token INTEGER PRIMARY KEY AUTOINCREMENT,
             ceremony_id TEXT NOT NULL UNIQUE REFERENCES marriage_ceremonies(id),

@@ -118,6 +118,13 @@ public sealed class AdvanceMarriageWeddingCommandHandler(IMarriageWeddingDomainS
 {
     public async ValueTask<MarriageWeddingAdvanceResult> HandleAsync(CommandExecutionContext c, AdvanceMarriageWeddingCommand q, CancellationToken ct) => new(await weddings.AdvanceAsync(q.Ceremony, ct).ConfigureAwait(false));
 }
+public sealed record CompleteWeddingCleanupCommand(SelectedSessionIdentity Actor, Guid Ceremony) : ICommand<bool>, IAccountCommand, ISelectedSessionCommand
+{ public AccountId AccountId => Actor.AccountId; public SelectedSessionIdentity? Session => Actor; }
+public sealed class CompleteWeddingCleanupCommandHandler(IMarriageWeddingDomainService weddings) : ICommandHandler<CompleteWeddingCleanupCommand, bool>
+{
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext c, CompleteWeddingCleanupCommand q, CancellationToken ct)
+    { await weddings.CompleteCleanupAsync(q.Ceremony, q.Actor.CharacterId, ct).ConfigureAwait(false); return true; }
+}
 public sealed record WeddingLetterCommand(SelectedSessionIdentity Actor, byte Mode, uint Target) : ICommand<MarriageWeddingLetterResult>, IAccountCommand, ISelectedSessionCommand
 { public AccountId AccountId => Actor.AccountId; public SelectedSessionIdentity? Session => Actor; }
 public sealed class WeddingLetterCommandHandler(IMarriageWeddingDomainService weddings) : ICommandHandler<WeddingLetterCommand, MarriageWeddingLetterResult>
@@ -212,15 +219,15 @@ internal sealed class MarriageWeddingScheduler(IMarriageWeddingDomainService wed
                     }
                     foreach (var guest in result.Guests)
                         if (completed) await ProjectAsync(() => sender.SendNotiAsync(guest.Actor.ConnectionId, new WeddingBeginNotification(guest.Church), ct), ct).ConfigureAwait(false);
+                    // Move first: op1 may itself cause a native 0024 if the client is still in church.
                     foreach (var departure in result.Departures)
-                    {
-                        var appearance = result.Participants.Concat(result.Guests).FirstOrDefault(x => x.Actor == departure.Actor);
+                        await ProjectAsync(async () => { await projection.MoveAsync(departure.Actor, departure.Channel, departure.Location, ct).ConfigureAwait(false); }, ct).ConfigureAwait(false);
+                    foreach (var cleanup in result.Cleanup)
                         await ProjectAsync(async () =>
                         {
-                            if (appearance is not null) await projection.AppearanceAsync(departure.Actor, appearance.Church, true, ct).ConfigureAwait(false);
-                            await projection.MoveAsync(departure.Actor, departure.Channel, departure.Location, ct).ConfigureAwait(false);
+                            await projection.AppearanceAsync(cleanup.Actor, cleanup.Church, true, ct).ConfigureAwait(false);
+                            await commands.SendAsync(new CompleteWeddingCleanupCommand(cleanup.Actor, wedding.Ceremony.Id), ct).ConfigureAwait(false);
                         }, ct).ConfigureAwait(false);
-                    }
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
                 catch (Exception e) { logger.LogError(e, "Wedding advancement failed for {Ceremony}", wedding.Ceremony.Id); }

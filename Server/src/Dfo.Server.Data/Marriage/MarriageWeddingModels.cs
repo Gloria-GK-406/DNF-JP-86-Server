@@ -6,9 +6,11 @@ namespace Dfo.Server.Data.Marriage;
 public enum MarriageWeddingPhase { Preparing, Completed, Cancelled }
 public sealed record MarriageWedding(MarriageCeremony Ceremony, MarriageWeddingPhase Phase, int PaidGold);
 public sealed record MarriageWeddingAdmission(SelectedSessionIdentity Actor, MarriageChurchSnapshot Church);
+public sealed record MarriageWeddingCleanup(CharacterId Character, MarriageChurchSnapshot Church);
 public sealed record MarriageWeddingTransition(MarriageWedding Wedding, IReadOnlyList<MarriageWeddingAdmission> Participants,
     IReadOnlyList<MarriageWeddingAdmission> Guests)
 {
+    public IReadOnlyList<MarriageWeddingAdmission> Cleanup { get; init; } = [];
     public IReadOnlyList<MarriageWeddingDeparture> Departures { get; init; } = [];
 }
 public sealed record MarriageWeddingInvitation(Guid CeremonyId, CharacterId Guest, CharacterId Inviter, uint Key, int Gold = 0);

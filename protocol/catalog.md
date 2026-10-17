@@ -1,5 +1,22 @@
 # 协议清单
 
+## 2026-10-17 普通婚礼修复（CurrentImplementation，待A21实机）
+
+准备期保留回场上下文、原生文本保留补丁、持久终态清理队列、NPC商店空格、共享礼炮及祝词簿。关闭派送窗口不改变固定开场时刻。[实现与测试步骤](../Document/MarriageWeddingRepair-20261017.md)。
+
+| cmd | type | 名称 | 证据状态 | 记录 |
+|---|---|---|---|---|
+| `0x01` | `0x03F8` | UPDATE_GUEST_COMMENT C2S | ClientStatic / CurrentImplementation | [请求](game/client-to-server/0x03F8.md) |
+| `0x01` CMD | `0x03F8` | UPDATE_GUEST_COMMENT ACK | ClientStatic / CurrentImplementation | [回包](game/server-to-client/CMD-0x03F8.md) |
+| `0x01` | `0x03F9` | DELETE_GUEST_COMMENT C2S | ClientStatic / CurrentImplementation | [请求](game/client-to-server/0x03F9.md) |
+| `0x01` CMD | `0x03F9` | DELETE_GUEST_COMMENT ACK | ClientStatic / CurrentImplementation | [回包](game/server-to-client/CMD-0x03F9.md) |
+| `0x01` | `0x03FA` | LOAD_GUEST_COMMENT C2S | ClientStatic / CurrentImplementation | [请求](game/client-to-server/0x03FA.md) |
+| `0x01` CMD | `0x03FA` | LOAD_GUEST_COMMENT ACK | ClientStatic / CurrentImplementation | [回包](game/server-to-client/CMD-0x03FA.md) |
+| `0x01` | `0x00FB` | USE_SHARED_EFFECT C2S | ClientStatic / CurrentImplementation | [请求](game/client-to-server/0x00FB.md) |
+| `0x01` CMD | `0x00FB` | USE_SHARED_EFFECT ACK | ClientStatic / CurrentImplementation | [回包](game/server-to-client/CMD-0x00FB.md) |
+| `0x00` NOTI | `0x00DB` | SHARED_EFFECT | ClientStatic / CurrentImplementation | [通知](game/server-to-client/NOTI-0x00DB.md) |
+
+
 ## 2026-10-16 普通婚礼完整流程（待双端实机）
 
 CurrentImplementation：普通预约确认后，同一事务扣申请者50万、保存双方位置及入场许可，提交后双端自动入教堂；03D4为个人请柬额度及固定开场时刻，重登不续时。03F6派送、03F2礼金、03F7宾客入场已接；到点双方在场则幂等结算婚姻、邮件奖励/礼金/宾客回礼，03D7启动原生动画、03D0阶段4恢复已婚；缺席取消退款并移出教堂。协议及自动化通过不能代替ClientVerified。[流程与测试](../Document/MarriageWeddingFlow-20261016.md)、[客户端证据](../Document/MarriageChurchEntryEvidence-20261016.md)。

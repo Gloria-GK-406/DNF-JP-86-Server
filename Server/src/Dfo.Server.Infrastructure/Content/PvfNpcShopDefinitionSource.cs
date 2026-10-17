@@ -123,9 +123,9 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
                     break;
                 case var fieldName when (Fields.ItemListField.Matches(fieldName)) && selling:
                     if (categoryEntry && job is null
-                        || section.Values.Any(value => value.Kind != PvfTokenKind.Int32 || value.Value <= 0))
+                        || section.Values.Any(value => value.Kind != PvfTokenKind.Int32 || value.Value is 0 or < -1))
                         return null;
-                    pages.Add(new(job, section.Values.Select(value => value.Value).Distinct().ToArray()));
+                    pages.Add(new(job, section.Values.Where(value => value.Value > 0).Select(value => value.Value).Distinct().ToArray()));
                     break;
                 case var fieldName when (Fields.TabField.Matches(fieldName) || Fields.CloseTabField.Matches(fieldName) || Fields.CloseItemListField.Matches(fieldName)): break;
                 default:
@@ -181,7 +181,7 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
         foreach (var section in sections.Where(section => section.Name == Fields.NeedMaterialField.Name))
         {
             if (section.Values.Count == 0 || section.Values.Count % 2 != 0
-                || section.Values.Any(value => value.Kind != PvfTokenKind.Int32 || value.Value <= 0))
+                || section.Values.Any(value => value.Kind != PvfTokenKind.Int32 || value.Value is 0 or < -1))
             {
                 readable = false;
                 continue;

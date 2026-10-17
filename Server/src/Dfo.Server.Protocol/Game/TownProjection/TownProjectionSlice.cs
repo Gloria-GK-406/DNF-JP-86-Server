@@ -322,6 +322,12 @@ public sealed class SetUserAreaHandler(
                 "请通过自己的婚礼预约进入教堂。", cancellationToken).ConfigureAwait(false);
             return;
         }
+        if (weddings is not null && !await weddings.CanLeaveAsync(session, message.TownId, message.AreaId, cancellationToken).ConfigureAwait(false))
+        {
+            await townAreaProjection.RefuseTownChangeAsync(context.Connection.ConnectionId, session, result, standing,
+                "婚礼即将开始，请留在礼堂等待仪式。", cancellationToken).ConfigureAwait(false);
+            return;
+        }
         // Persist accepted area crossings before publishing memory state or client projections.
         // A failed write leaves the old town intact; transient channels retain the home position.
         if (!channel.IsTransient && (standing.TownId != message.TownId || standing.AreaId != message.AreaId))
@@ -353,7 +359,9 @@ public sealed class SetUserAreaHandler(
         }
 
         if (weddingAppearance is not null && weddingProjection is not null
-            && (message.TownId != weddingAppearance.Room.TownId || message.AreaId != weddingAppearance.Room.AreaId))
+            && (message.TownId != weddingAppearance.Room.TownId || message.AreaId != weddingAppearance.Room.AreaId)
+            && await weddings!.PhaseAsync(weddingAppearance.Room.CeremonyId, cancellationToken).ConfigureAwait(false)
+                != Dfo.Server.Data.Marriage.MarriageWeddingPhase.Preparing)
             await weddingProjection.AppearanceAsync(session, weddingAppearance, true, cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation(

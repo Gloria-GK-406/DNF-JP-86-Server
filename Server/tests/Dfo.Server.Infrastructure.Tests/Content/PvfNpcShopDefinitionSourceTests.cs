@@ -7,6 +7,20 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 public sealed class PvfNpcShopDefinitionSourceTests
 {
     [SkippableFact]
+    public async Task Wedding_shop_ignores_empty_grid_cells_and_keeps_real_goods_and_prices()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfNpcShopDefinitionSource(provider);
+        var shop = await source.GetShopAsync(20013, default);
+        Assert.NotNull(shop);
+        Assert.Equal(1208, shop.ShopId);
+        Assert.Equal(new[] { 10002610, 10002616, 10002625, 10002626 }, shop.Pages.SelectMany(x => x.ItemIds).Distinct().Order().ToArray());
+        Assert.Equal(1000, (await source.GetItemAsync(10002625, default))!.GoldPrice);
+        Assert.Equal(1000, (await source.GetItemAsync(10002626, default))!.GoldPrice);
+    }
+
+    [SkippableFact]
     public async Task Delilah_simple_shop_is_available_only_after_dungeon_clear()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
