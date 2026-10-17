@@ -30,7 +30,11 @@ public sealed record NpcShopPurchaseReceipt(
     bool GoldSpent,
     IReadOnlyList<NpcShopSlotChange> MaterialChanges,
     IReadOnlyList<NpcShopGrantedSlot> GrantedSlots,
-    DateTimeOffset PreparedAt);
+    DateTimeOffset PreparedAt)
+{
+    /// <summary>The affected limited product's committed cumulative count, captured in the purchase transaction.</summary>
+    public NpcShopPurchaseCount? PurchaseCount { get; init; }
+}
 
 public sealed record NpcShopPurchaseResult(NpcShopRejection Rejection, NpcShopPurchaseReceipt? Receipt)
 {

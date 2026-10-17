@@ -15,5 +15,7 @@ public sealed record BuyItemRequest(
 
 public sealed record BuyItemResponse(NpcShopPurchaseReceipt? Receipt, byte ErrorCode = 0) : IGameCmdMessage
 {
+    /// <summary>The ordered delivery already projected the stack through NOTI 000E; ACK must not grant it again.</summary>
+    public bool InventoryAlreadyProjected { get; init; }
     public ServerMessageType MessageType => ServerMessageType.GameBuyItem;
 }

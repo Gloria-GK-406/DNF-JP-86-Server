@@ -8,6 +8,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.BuyItem;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.ShopPurchaseCount;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using System.Buffers.Binary;
@@ -32,7 +33,8 @@ public sealed class BuyItemCodecTests
                 new QuestProgressSnapshot([new CarriedQuest(0, 2001, 0)])),
             CancellationToken.None);
 
-        Assert.IsType<BuyItemResponse>(messages[0]);
+        Assert.IsType<InventoryDeltaMessage>(messages[0]);
+        Assert.True(Assert.IsType<BuyItemResponse>(messages[1]).InventoryAlreadyProjected);
         var progress = Assert.IsType<AcceptedQuestProgressMessage>(messages[^1]);
         var frame = Assert.Single(
             new SupplementalNotiSynchronizationEncoder<AcceptedQuestProgressMessage>().Encode(progress));
@@ -78,7 +80,7 @@ public sealed class BuyItemCodecTests
         Assert.Throws<InvalidDataException>(() => new ShopPurchaseCountDecoder().Decode(GameMessageMetadata.Empty, new byte[length]));
 
     [Fact]
-    public void A21_ack_reads_four_wallet_fields_then_101_bytes_then_counted_product_pairs()
+    public void A21_ack_reads_four_wallet_fields_then_101_bytes_without_overwriting_the_product_balance()
     {
         // Reader evidence: RVA D357DE..D3581E (4*i32, 0x65 bytes), D359AA..D359E8 (u8, pairs).
         var session = SelectedSessionIdentity.Create(new(1), new(2), new("codec"), 1, 10011);
@@ -87,16 +89,16 @@ public sealed class BuyItemCodecTests
             [new(new(BusinessInventorySpace.QuickSlot, 0), final, 1),
                 new(new(BusinessInventorySpace.QuickSlot, 1), final with { Count = 2 }, 2)], DateTimeOffset.UnixEpoch);
         var body = BuyItemResponseEncoder.EncodeBody(new(receipt));
-        Assert.Equal(127, body.Length);
+        Assert.Equal(119, body.Length);
         Assert.Equal(1, body[0]);
         Assert.Equal(new[] { 99700, 321, 0, 77 }, Enumerable.Range(0, 4)
             .Select(index => BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(1 + index * 4))));
         Assert.Equal(3, BinaryPrimitives.ReadInt16LittleEndian(body.AsSpan(17)));
         Assert.Equal(5000, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(19)));
         Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(23))); // Added, not final pile size.
-        Assert.Equal(1, body[118]);
-        Assert.Equal(5000, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(119)));
-        Assert.Equal(3, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(123)));
+        Assert.Equal(0, body[118]);
+        var projected = BuyItemResponseEncoder.EncodeBody(new(receipt) { InventoryAlreadyProjected = true });
+        Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(projected.AsSpan(23)));
         Assert.Equal(new byte[] { 0, 0x85 }, BuyItemResponseEncoder.EncodeBody(new(null, 0x85)));
     }
 

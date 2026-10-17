@@ -23,13 +23,17 @@ internal sealed class BuyItemResponseEncoder : GameCmdMessageEncoder<BuyItemResp
         writer.Write(receipt.Cera);
         var first = receipt.GrantedSlots[0];
         var wire = new InventorySlotMappingRuleService().ToGameSlot(first.Slot);
-        // BUY_ITEM's value is the added amount; the following inventory delta carries the final core.
+        if (message.InventoryAlreadyProjected && !first.Core.IsPile)
+            throw new InvalidDataException("Only a pre-projected stack may use a zero-increment purchase acknowledgement.");
+        // Native ACK adds Data to an existing pile. Its preceding 000E already applied the real
+        // grant and emitted the native gain text, so this confirmation must add zero.
         GameInventoryItemEntry.Write(writer,
-            new InventoryItemState(null, wire.Index, first.Core.ToCore() with { Value = first.AddedCount }),
+            new InventoryItemState(null, wire.Index, first.Core.ToCore() with
+                { Value = message.InventoryAlreadyProjected ? 0 : first.AddedCount }),
             receipt.PreparedAt, wire.Space);
-        writer.Write((byte)1);
-        writer.Write(receipt.ItemId);
-        writer.Write(receipt.Count);
+        // D35E57..D35E6C treats tail pairs as absolute balances, not purchase quantities.
+        // Material balances are projected separately; never overwrite the purchased pile here.
+        writer.Write((byte)0);
         return stream.ToArray();
     }
 }

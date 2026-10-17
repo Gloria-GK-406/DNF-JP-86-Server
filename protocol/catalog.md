@@ -1,5 +1,12 @@
 # 协议清单
 
+## 2026-10-17 NPC购买获得量补正
+
+ClientStatic / Confirmed：[0015](game/client-to-server/0x0015.md)尾表按绝对库存覆盖，并非本次购买量；
+首记录Data有库存增加及UI限购累计两种副作用。CurrentImplementation：移除错误尾表；堆叠商品先000E库存和获得播报，
+再以Data=0确认，限购商品最后通过[02CC](game/client-to-server/0x02CC.md)恢复事务内累计计数。
+协议与购买/商城/婚姻回归通过，补正后的原生购买提示待实机验收。
+
 ## 2026-10-17 婚礼本人站位补正
 
 ClientStatic / Confirmed：0016对本机ID跳过坐标处理；[NOTI008A TELEPORT](game/server-to-client/NOTI-0x008A.md)

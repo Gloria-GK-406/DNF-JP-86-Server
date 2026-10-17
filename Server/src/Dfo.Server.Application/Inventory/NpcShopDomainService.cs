@@ -68,12 +68,14 @@ internal sealed class NpcShopDomainService(
         if (boundedPlacement is null) return NpcShopPurchaseResult.Refused(NpcShopRejection.NoRoom);
         quote = quote with { Placement = boundedPlacement };
         NpcShopPurchaseKey? purchaseKey = null;
+        NpcShopPurchaseCount? purchaseCount = null;
         if (quote.Definition.Limit is { } limit)
         {
             purchaseKey = Key(session, npcId, itemId, limit, now);
             var bought = await purchases.ReadAsync(purchaseKey, cancellationToken).ConfigureAwait(false);
             if (quote.Count > limit.Count - bought)
                 return NpcShopPurchaseResult.Refused(NpcShopRejection.PurchaseLimitReached);
+            purchaseCount = new(itemId, checked(bought + quote.Count));
         }
 
         var gold = await character.GoldAsync(cancellationToken).ConfigureAwait(false);
@@ -110,7 +112,7 @@ internal sealed class NpcShopDomainService(
             throw new NpcShopPurchaseRejectedException(NpcShopRejection.PurchaseLimitReached);
 
         return new(NpcShopRejection.None, new(session, itemId, quote.Count, gold, skillPoints.Page0Sp,
-            cera, quote.GoldCost > 0, plan.MaterialChanges, plan.GrantedSlots, now));
+            cera, quote.GoldCost > 0, plan.MaterialChanges, plan.GrantedSlots, now) { PurchaseCount = purchaseCount });
     }
 
     public async ValueTask<NpcShopPurchaseCountsResult> PurchaseCountsAsync(
