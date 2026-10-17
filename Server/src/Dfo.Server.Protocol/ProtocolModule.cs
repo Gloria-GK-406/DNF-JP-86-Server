@@ -1281,6 +1281,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<UserAreaNotification, UserAreaEncoder>();
         services.AddGameNotiMessageEncoder<AreaUsersNotification, AreaUsersEncoder>();
         services.AddGameNotiMessageEncoder<UserPositionNotification, UserPositionEncoder>();
+        services.AddGameNotiMessageEncoder<ForcedTownPositionNotification, ForcedTownPositionEncoder>();
         services.AddGameNotiMessageEncoder<UserStateNotification, UserStateEncoder>();
         services.AddGameNotiMessageEncoder<UdpHostNotification, UdpHostEncoder>();
         services.AddGameCmdMessageEncoder<SecurityStatusAcknowledgement, SecurityStatusAcknowledgementEncoder>();

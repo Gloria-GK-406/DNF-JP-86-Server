@@ -27,6 +27,46 @@ namespace Dfo.Server.Protocol.Tests.Game.TownProjection;
 public sealed class TownAreaProjectionDeliveryTests
 {
     [Fact]
+    public async Task Wedding_standing_forces_both_actors_on_each_church_client_including_their_own()
+    {
+        var bride = Session(1, "bride"); var groom = Session(2, "groom");
+        var guest = Session(3, "guest"); var outside = Session(4, "outside");
+        var sessions = new SelectedSessionDomainService();
+        var positions = new CharacterPositionDomainService();
+        var areas = new SessionPresenceDomainService();
+        var views = new FixedCurrentViews();
+        foreach (var actor in new[] { bride, groom, guest, outside })
+        {
+            sessions.Select(actor);
+            var area = actor == outside ? (byte)6 : (byte)12;
+            positions.Place(actor, new(2, area, 100, 200, 5));
+            ((ITownAreaDomainService)areas).Enter(Member(actor, new(11, 2, area), 100));
+        }
+        var sender = new RecordingSender(); var notifications = new RecordingNotificationBus();
+        var delivery = new TownAreaProjectionDelivery(areas, sessions, views, notifications,
+            new NoopPartyProjection(), sender, SharedTownMovementDomainService.Instance);
+        var wedding = new MarriageWeddingProjection(sessions, views, positions, areas, delivery, sender);
+        await wedding.PositionAsync(new(bride, new(2, 12, 670, 330, 5)), default);
+        await wedding.PositionAsync(new(groom, new(2, 12, 685, 360, 5)), default);
+        var received = sender.Deliveries.SelectMany(sent =>
+            sent.Delivery.RequiredDirectMessages.Select(message => (sent.ConnectionId, Message: message))
+                .Concat(sent.Delivery.BestEffortTargets.SelectMany(target => target.OrderedMessages.Select(message => (target.ConnectionId, Message: message)))))
+            .ToArray();
+        foreach (var recipient in new[] { bride, groom, guest })
+        {
+            var messages = received.Where(x => x.ConnectionId == recipient.ConnectionId).Select(x => x.Message).ToArray();
+            Assert.Equal(2, messages.Length);
+            Assert.All(messages, message => Assert.Equal((ServerMessageType)0x008A, message.MessageType));
+            Assert.Equal(new[] { ((ushort)bride.WireUserId, (short)670, (short)330), ((ushort)groom.WireUserId, (short)685, (short)360) },
+                messages.Cast<ForcedTownPositionNotification>().Select(message => (message.UserId, message.X, message.Y)));
+        }
+        Assert.DoesNotContain(received, x => x.ConnectionId == outside.ConnectionId);
+        Assert.Empty(notifications.Publications);
+        Assert.Equal((short)670, ((ITownAreaDomainService)areas).Find(bride.CharacterId)!.Position.X);
+        Assert.Equal((short)685, positions.Find(groom.CharacterId)!.X);
+    }
+
+    [Fact]
     public async Task Wedding_entry_moves_both_partners_to_one_church_and_projects_their_presence()
     {
         var first = Session(1, "groom"); var second = Session(2, "bride");
@@ -57,6 +97,25 @@ public sealed class TownAreaProjectionDeliveryTests
             x => x.Character.Identity.CharacterId == first.CharacterId);
         Assert.Contains(notifications.Publications, x => x.Notification is TownParticipantPublished publication
             && publication.State.Newcomer.Character.Identity.CharacterId == second.CharacterId);
+    }
+
+    [Fact]
+    public async Task Forced_standing_respects_private_presence_and_rejects_a_replaced_owner()
+    {
+        var actor = Session(1, "old"); var peer = Session(2, "peer");
+        var sessions = new SelectedSessionDomainService(); sessions.Select(actor); sessions.Select(peer);
+        var areas = new SessionPresenceDomainService(); var key = new TownAreaKey(11, 2, 12);
+        ((ITownAreaDomainService)areas).Enter(new(actor.CharacterId, actor.TownAreaLease(), key, new(2, 12, 100, 200, 5), false));
+        ((ITownAreaDomainService)areas).Enter(Member(peer, key, 300));
+        var sender = new RecordingSender();
+        var delivery = new TownAreaProjectionDelivery(areas, sessions, new FixedCurrentViews(),
+            new RecordingNotificationBus(), new NoopPartyProjection(), sender, SharedTownMovementDomainService.Instance);
+        Assert.True(await delivery.ForcePositionAsync(actor, new(2, 12, 670, 330, 5), default));
+        Assert.Empty(Assert.Single(sender.Deliveries).Delivery.BestEffortTargets);
+        sessions.Select(Session(1, "replacement"));
+        Assert.False(await delivery.ForcePositionAsync(actor, new(2, 12, 685, 360, 5), default));
+        Assert.Single(sender.Deliveries);
+        Assert.Equal((short)670, ((ITownAreaDomainService)areas).Find(actor.CharacterId)!.Position.X);
     }
 
     private sealed class ChurchCommands(MarriageChurchRoom room) : ICommandBus
@@ -427,7 +486,7 @@ public sealed class TownAreaProjectionDeliveryTests
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId,
             IGameNotiMessage message,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
+            CancellationToken cancellationToken) => SendExplicitAsync(connectionId, new([message], []), cancellationToken);
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,

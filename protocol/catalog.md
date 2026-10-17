@@ -1,8 +1,14 @@
 # 协议清单
 
+## 2026-10-17 婚礼本人站位补正
+
+ClientStatic / Confirmed：0016对本机ID跳过坐标处理；[NOTI008A TELEPORT](game/server-to-client/NOTI-0x008A.md)
+直接定位目标角色且不跳过本人。CurrentImplementation：婚礼开场以008A同步双方站位到本人及同区域观察者，
+之后发送03D7；普通移动保留0016。自动化通过，双端效果待用户重测。
+
 ## 2026-10-17 婚礼六项补正
 
-CurrentImplementation / ClientStatic Confirmed：礼炮00FB主命令结算身份补正；03D4/03CF/03D7姓名按新娘、新郎；开场先0016同步当前PVF坐标；03D0@6真实完成Unix秒/@10心意点持久恢复；03F3正文@43等级/@44职业纠正；新增[03F5请求](game/client-to-server/0x03F5.md)、[CMD03F5](game/server-to-client/CMD-0x03F5.md)、[NOTI03D3](game/server-to-client/NOTI-0x03D3.md)。旧生成NOTI-0x03F5名称不能作为CMD信封依据。自动化和当前PVF检查通过，原生本轮尚未验收。见[修复与验收](../Document/MarriageWeddingSixIssues-20261017.md)。
+CurrentImplementation / ClientStatic Confirmed：礼炮00FB主命令结算身份补正；03D4/03CF/03D7姓名按新娘、新郎；开场先008A强制同步当前PVF坐标（替换实机发现不移动本人的0016）；03D0@6真实完成Unix秒/@10心意点持久恢复；03F3正文@43等级/@44职业纠正；新增[03F5请求](game/client-to-server/0x03F5.md)、[CMD03F5](game/server-to-client/CMD-0x03F5.md)、[NOTI03D3](game/server-to-client/NOTI-0x03D3.md)。旧生成NOTI-0x03F5名称不能作为CMD信封依据。自动化和当前PVF检查通过，原生本轮尚未验收。见[修复与验收](../Document/MarriageWeddingSixIssues-20261017.md)。
 
 
 ## 2026-10-17 普通婚礼修复（CurrentImplementation，待A21实机）

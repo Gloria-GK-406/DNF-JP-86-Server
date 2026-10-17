@@ -208,6 +208,36 @@ public sealed class TownAreaProjectionDelivery
         return true;
     }
 
+    /// <summary>Sets one actor's position on its own client and every current same-area observer.</summary>
+    public async ValueTask<bool> ForcePositionAsync(
+        SelectedSessionIdentity session,
+        Dfo.Server.Data.Characters.CharacterPositionState position,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(position);
+        var previous = townAreas.Find(session.CharacterId);
+        if (selectedSessions.Find(session.AccountId) != session || previous is null || !session.Owns(previous)
+            || previous.Area.TownId != position.TownId || previous.Area.AreaId != position.AreaId)
+            return false;
+        await using var projection = await AcquireAreasAsync([previous.Area], cancellationToken).ConfigureAwait(false);
+        if (selectedSessions.Find(session.AccountId) != session
+            || townAreas.Find(session.CharacterId) is not { } current || !session.Owns(current)
+            || current.Area != previous.Area)
+            return false;
+        var movement = townAreas.MoveExact(session.CharacterId, session.TownAreaLease(), position);
+        if (movement is null) return false;
+        var own = movement.Area.Members.Single(member => session.Owns(member));
+        var message = new ForcedTownPositionNotification(session.WireUserId,
+            own.Position.X, own.Position.Y, own.Position.Direction);
+        var targets = own.SharesTownPresence
+            ? movement.Area.Members.Where(member => member.SharesTownPresence && member.CharacterId != session.CharacterId)
+                .Select(ExactSession).Where(candidate => candidate is not null)
+                .Select(candidate => new GameExplicitMessageTarget(candidate!.ConnectionId, [message])).ToArray()
+            : [];
+        await sender.SendExplicitAsync(session.ConnectionId, new([message], targets), cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
     public async ValueTask<bool> MoveAsync(
         NetworkConnectionId connectionId,
         SelectedSessionIdentity session,

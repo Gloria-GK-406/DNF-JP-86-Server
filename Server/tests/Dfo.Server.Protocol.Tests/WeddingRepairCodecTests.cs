@@ -7,6 +7,18 @@ using Dfo.Server.Protocol.Game.UseStackable;
 namespace Dfo.Server.Protocol.Tests;
 public sealed class WeddingRepairCodecTests
 {
+    [Theory]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void Forced_standing_has_native_teleport_uid_coordinates_and_facing(byte direction)
+    {
+        var frame = Assert.Single(new Dfo.Server.Protocol.Game.TownProjection.ForcedTownPositionEncoder()
+            .Encode(new Dfo.Server.Protocol.Game.TownProjection.ForcedTownPositionNotification(8, 670, 330, direction)));
+        Assert.Equal(0, frame[0]);
+        Assert.Equal(0x008A, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));
+        Assert.Equal(22, frame.Length);
+        Assert.Equal(Convert.FromHexString(direction == 4 ? "08009E024A0104" : "08009E024A0105"), frame[15..]);
+    }
     [Fact]
     public void Guestbook_native_requests_ignore_opaque_prefix_and_keep_raw_codepage_bytes()
     {

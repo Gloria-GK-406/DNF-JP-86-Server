@@ -232,6 +232,7 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameForcedTownPosition = 0x0000_008A,
     GameWeddingCommentPost = 0x0001_03F8,
     GameWeddingCommentDelete = 0x0001_03F9,
     GameWeddingCommentRead = 0x0001_03FA,
