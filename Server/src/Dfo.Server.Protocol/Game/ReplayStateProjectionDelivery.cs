@@ -157,6 +157,7 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
             messages.AddRange(Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Snapshot(state.Joust ?? throw Missing("Joust")));
         if (needs.HasFlag(ReplayProjectionNeeds.EpicBook))
             messages.Add(new EpicBookStateMessage(0, state.EpicPieces.IsDefault ? throw Missing("Epic book") : state.EpicPieces));
+        if (needs.HasFlag(ReplayProjectionNeeds.CoupleCapsules)) messages.Add(new Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateMessage(state.Capsules ?? throw Missing("Couple capsules")));
         if (needs.HasFlag(ReplayProjectionNeeds.MarriageLovePoints))
             messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotification(state.Session.CharacterId.Value, state.LovePoints ?? throw Missing("Love points")));
         if (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing) || needs.HasFlag(ReplayProjectionNeeds.CharacterAppearance))

@@ -299,6 +299,18 @@ public sealed class ProtocolModule : IServerModule
             Dfo.Server.Protocol.Game.MarriageProposal.PrepareMarriageChurchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.EnterMarriageChurchCommand, Dfo.Server.Data.Marriage.MarriageChurchEntryResult,
             Dfo.Server.Protocol.Game.MarriageProposal.EnterMarriageChurchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleMakeDecoder>(0x0404, ClientMessageType.GameMarriageCapsule);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleGiveDecoder>(0x0405, ClientMessageType.GameMarriageCapsule);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleTakeDecoder>(0x0406, ClientMessageType.GameMarriageCapsule);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleHandler>(ClientMessageType.GameMarriageCapsule);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleCommand, Dfo.Server.Data.Marriage.MarriageCapsuleResult, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleAck, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleAckEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateMessage, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyMessage, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyEncoder>();
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleRefresh, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleRefreshHandler>(retryLimit: 0);
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyRefresh, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyRefreshHandler>(retryLimit: 0);
+        services.AddDomainSubscriber<Dfo.Server.Abstractions.Marriage.MarriageCapsuleEnergyChanged, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergySubscriber>("marriage.capsule-notification", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddDomainSubscriber<Dfo.Server.Abstractions.Marriage.MarriageCapsuleGiftChanged, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleGiftSubscriber>("marriage.capsule-gift-notification", DomainEventDeliveryPolicy.LiveOnly);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingStorageDecoder>(0x03FD, ClientMessageType.GameMarriageHousing);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingMoveDecoder>(0x03FE, ClientMessageType.GameMarriageHousing);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingDeleteDecoder>(0x03FF, ClientMessageType.GameMarriageHousing);

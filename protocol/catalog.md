@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-18 成长胶囊与爱之摩伽陀
+
+CurrentImplementation：0404/0405/0406接入统一婚姻系统，03DF/03E0同步持有数、待领数及能量；加入推荐通关去重、离线赠送、重登恢复及重复请求绝对状态重放。CMD包含accepted:u8公共前缀，成功正文分别10/6/6B。3541使用夫妻两人原子准入及当前PVF双人门票/掉落，入口为格兰之森山麓。布局仍为ClientStatic，尚未新增ClientVerified。见[实现与验收](../Document/MarriageCapsules-LoveMagatha-20261018.md)。
+
 ## 2026-10-18 婚戒升级事件与静默恢复分离
 
 CurrentImplementation：03F4 仅回复升级本人，03D1 仅通知在线配偶；选角、跨房、外观重建与重放用03D0恢复，不重发升级事件。ClientStatic / Confirmed：03D0婚戒等级是body[14]→mgr+0x70→人物+0x386，body[5]为另一个未知字段；已修正旧错误编码。用户反馈种树、浇水、升级戒指和婚房铺设正常，本轮提示与光标补丁待实机验收。见 [修复说明](../Document/HousingInteractionFix-20261018.md)。

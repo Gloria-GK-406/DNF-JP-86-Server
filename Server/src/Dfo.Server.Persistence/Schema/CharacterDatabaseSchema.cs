@@ -315,6 +315,13 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS marriage_personal_points(relation_id TEXT NOT NULL REFERENCES marriage_relations(id),character_id INTEGER NOT NULL,points INTEGER NOT NULL CHECK(points BETWEEN 0 AND 999),revision INTEGER NOT NULL DEFAULT 1,PRIMARY KEY(relation_id,character_id));
         CREATE TABLE IF NOT EXISTS marriage_daily_points(character_id INTEGER NOT NULL,period INTEGER NOT NULL,PRIMARY KEY(character_id,period));
         CREATE TABLE IF NOT EXISTS marriage_ring_state(relation_id TEXT PRIMARY KEY REFERENCES marriage_relations(id),level INTEGER NOT NULL CHECK(level BETWEEN 0 AND 5));
+        CREATE TABLE IF NOT EXISTS marriage_capsules(
+            relation_id TEXT NOT NULL REFERENCES marriage_relations(id), character_id INTEGER NOT NULL REFERENCES characters(character_id),
+            energy INTEGER NOT NULL CHECK(energy>=0), owned INTEGER NOT NULL CHECK(owned BETWEEN 0 AND 255),
+            pending INTEGER NOT NULL CHECK(pending BETWEEN 0 AND 255), PRIMARY KEY(relation_id,character_id));
+        CREATE TABLE IF NOT EXISTS marriage_capsule_clears(
+            character_id INTEGER NOT NULL REFERENCES characters(character_id),run_id TEXT NOT NULL,
+            relation_id TEXT NOT NULL REFERENCES marriage_relations(id),PRIMARY KEY(character_id,run_id));
         CREATE TABLE IF NOT EXISTS marriage_housing_rooms(couple_no INTEGER PRIMARY KEY AUTOINCREMENT,relation_id TEXT NOT NULL UNIQUE REFERENCES marriage_relations(id));
         CREATE TABLE IF NOT EXISTS marriage_housing_storage(relation_id TEXT NOT NULL REFERENCES marriage_relations(id),slot INTEGER NOT NULL CHECK(slot BETWEEN 0 AND 39),item_id INTEGER NOT NULL,count INTEGER NOT NULL CHECK(count>0),PRIMARY KEY(relation_id,slot));
         CREATE TABLE IF NOT EXISTS marriage_housing_placements(relation_id TEXT NOT NULL REFERENCES marriage_relations(id),slot INTEGER NOT NULL CHECK(slot BETWEEN 0 AND 27),item_id INTEGER NOT NULL,PRIMARY KEY(relation_id,slot));

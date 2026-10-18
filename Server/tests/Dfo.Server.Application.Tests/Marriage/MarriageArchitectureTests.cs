@@ -224,6 +224,10 @@ public sealed class MarriageArchitectureTests
         Assert.Contains(typeof(CoupleLedger), Reach(production.Services, production.Provider, typeof(IMarriageQuestDomainService)));
         Assert.Empty(ReachViolations(production.Services, production.Provider, typeof(IMarriageHousingQueryDomainService),
             [.. Upward, typeof(IMarriageHousingDomainService), typeof(IMarriageRelationWriter)]));
+        Assert.Empty(ReachViolations(production.Services, production.Provider, typeof(IMarriageCapsuleQueryDomainService),
+            [.. Upward, typeof(IMarriageCapsuleDomainService), typeof(IMarriageRelationWriter)]));
+        Assert.Empty(ReachViolations(production.Services, production.Provider, typeof(CapsuleClearSubscriber),
+            [.. Upward, typeof(IMarriageCapsuleDomainService), typeof(IMarriageRelationWriter)]));
     }
 
     [Fact]

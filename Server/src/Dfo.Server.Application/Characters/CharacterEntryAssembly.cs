@@ -57,7 +57,8 @@ internal sealed class CharacterEntryAssembly(
     ICharacterExpertRecipeTable expertRecipes,
     ICharacterPvpMissionTable pvpMissions,
     IMailboxQueryDomainService mailbox,
-    IGoldLimitRuleService goldLimits, IPremiumServiceUsageDomainService premiumServices, ICharacterSkillBuildTable skillBuilds) : ICharacterEntryStateRepository
+    IGoldLimitRuleService goldLimits, IPremiumServiceUsageDomainService premiumServices, ICharacterSkillBuildTable skillBuilds,
+    Dfo.Server.Application.Marriage.IMarriageRelations? marriageRelations = null) : ICharacterEntryStateRepository
 {
     /// <summary>How many of the inbox a character is shown on entry.</summary>
 
@@ -374,7 +375,11 @@ internal sealed class CharacterEntryAssembly(
 
         var recordedDifficulties = await dungeonPermissions.GetRecordedAsync(characterId, cancellationToken)
             .ConfigureAwait(false);
-        var dungeons = recordedDifficulties.Select((value, index) =>
+        // Couple-map visibility follows this character's relation, never the account-wide permanent unlock ledger.
+        var visibleDifficulties = recordedDifficulties.Where(x => x.DungeonId != 3541).ToList();
+        if (marriageRelations is not null && await marriageRelations.FindAsync(characterId, cancellationToken).ConfigureAwait(false)
+            is { Stage: Dfo.Server.Data.Marriage.MarriageStage.Married }) visibleDifficulties.Add(new(3541, (Dfo.Server.Data.World.DungeonDifficulty)2));
+        var dungeons = visibleDifficulties.Select((value, index) =>
             (index, value.DungeonId, (int)value.Maximum)).ToArray();
 
         var claimedRevive = await CounterAsync(characterId, ReviveCoinCounter, cancellationToken)

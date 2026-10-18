@@ -14,7 +14,7 @@ using HousingWorld = Dfo.Server.Application.Tests.Marriage.MarriageHarness.World
 
 namespace Dfo.Server.Application.Tests.Marriage;
 
-public sealed class MarriageHousingTests
+public sealed partial class MarriageHousingTests
 {
     internal sealed class Content : IMarriageHousingContentSource, IItemPlacementDefinitionSource, INpcShopDefinitionSource
     {
@@ -34,6 +34,7 @@ public sealed class MarriageHousingTests
         var w = await ChurchTownAsync(configure: s =>
         {
             s.AddSingleton<IMarriageHousingContentSource, Content>(); s.AddSingleton<IItemPlacementDefinitionSource, Content>(); s.AddSingleton<INpcShopDefinitionSource, Content>();
+            s.AddSingleton<IMarriageCapsuleContentSource, CapsuleContent>();
         });
         var (ceremony, church) = await PreparedAsync(w);
         Arrive(w.F, w.F.Session, church); Arrive(w.F, w.Peer, church);

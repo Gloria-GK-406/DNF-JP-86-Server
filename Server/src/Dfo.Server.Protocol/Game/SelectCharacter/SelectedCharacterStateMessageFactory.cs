@@ -119,6 +119,7 @@ internal static class SelectedCharacterStateMessageFactory
             messages.Add(new CoupleRoomEmptyCompatibilityMessage());
             if (result.Engagement is { } engagement) messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoMessage(engagement));
         }
+        if (result.Capsules is { } capsules) messages.Add(new Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateMessage(capsules));
         messages.Add(new ChampionBreakStateMessage(result.CharacterEntry.Progression));
         messages.Add(new GoldLimitStateMessage(result.CharacterEntry.Progression.GoldLimitUpgradeLevel));
         messages.Add(new FatigueAccelerationStateMessage(

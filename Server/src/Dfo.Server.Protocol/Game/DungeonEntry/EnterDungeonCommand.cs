@@ -15,10 +15,12 @@ public sealed class EnterDungeonCommandHandler(
     IHellDungeonEntryDomainService? hell = null, ICycleDungeonEntryDomainService? cycles = null,
     IMirrorDungeonEntryDomainService? mirrors = null, IDimensionDungeonDomainService? dimensions = null, IDespairTowerDomainService? despair = null,
     ITournamentDungeonDomainService? tournaments = null, IAltarDungeonDomainService? altars = null, ISaoTowerDomainService? sao = null,
-    ITauKingdomDomainService? tau = null, IHerasDungeonDomainService? heras = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
+    ITauKingdomDomainService? tau = null, IHerasDungeonDomainService? heras = null, ICoupleDungeonDomainService? couples = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
 {
     public ValueTask<DungeonEntryAttempt> HandleAsync(CommandExecutionContext context, EnterDungeonCommand command,
-        CancellationToken cancellationToken) => heras?.Supports(command.Entry.DungeonId) == true
+        CancellationToken cancellationToken) => couples?.Supports(command.Entry.DungeonId) == true
+        ? couples.EnterAsync(command.Entry, cancellationToken)
+        : heras?.Supports(command.Entry.DungeonId) == true
         ? heras.EnterAsync(command.Entry, cancellationToken)
         : tau?.Supports(command.Entry.DungeonId) == true
         ? tau.EnterAsync(command.Entry, cancellationToken)

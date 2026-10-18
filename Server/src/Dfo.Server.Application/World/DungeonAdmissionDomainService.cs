@@ -19,13 +19,15 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
     ICharacterQuestLogDomainService? quests = null, IUsageQuotaDomainService? quotas = null,
     IEventService? events = null, IDomainTransactionAccessor? transactions = null,
     ISelectedSessionDomainService? sessions = null, ICharacterPositionDomainService? positions = null,
-    IDungeonRunDomainService? runs = null) : IDungeonAdmissionDomainService
+    IDungeonRunDomainService? runs = null, CoupleDungeonRule? couples = null) : IDungeonAdmissionDomainService
 {
     public async ValueTask<DungeonAdmissionDecision> PrepareAsync(DungeonEntryContext context, DungeonAdmissionOptions options, CancellationToken ct)
     {
         if (context.Participants.Count == 0 || context.Participants.Select(x => x.CharacterId).Distinct().Count() != context.Participants.Count
             || context.Participants.Select(x => x.AccountId).Distinct().Count() != context.Participants.Count
             || context.Participants.Select(x => x.Slot).Distinct().Count() != context.Participants.Count)
+            return Refuse(DungeonEntryFailure.MissingPrerequisite);
+        if (context.DungeonId == CoupleDungeonRule.DungeonId && (couples is null || !await couples.EligibleAsync(context, ct).ConfigureAwait(false)))
             return Refuse(DungeonEntryFailure.MissingPrerequisite);
         if (options.Quota is { Family: not (UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon or UsageQuotaFamily.DespairTower or UsageQuotaFamily.AltarDungeon or UsageQuotaFamily.TournamentDungeon or UsageQuotaFamily.HerasDungeon) })
             throw new ArgumentException("Unsupported dungeon entry quota family.", nameof(options));
@@ -40,6 +42,11 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             if (tower?.IsInTower(member.CharacterId) == true || options.MirrorCatalog is not null && runs?.Find(member.CharacterId) is not null)
                 return Refuse(DungeonEntryFailure.AlreadyInDungeon, member.Slot);
             SelectedSessionIdentity? selected = null;
+            if (context.DungeonId == CoupleDungeonRule.DungeonId)
+            {
+                selected = sessions?.Find(member.AccountId);
+                if (selected?.CharacterId != member.CharacterId) return Refuse(DungeonEntryFailure.MissingPrerequisite, member.Slot);
+            }
             if (options.MirrorCatalog is { } catalog)
             {
                 selected = sessions?.Find(member.AccountId);

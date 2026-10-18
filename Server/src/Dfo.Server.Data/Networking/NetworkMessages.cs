@@ -2,6 +2,7 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameMarriageCapsule = 0x0001_0404,
     GameMarriageHousing = 0x0001_03FD,
     GameWeddingCommentPost = 0x0001_03F8,
     GameWeddingCommentDelete = 0x0001_03F9,
@@ -233,7 +234,10 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameMarriageCapsule = 0x0001_0404,
     GameMarriageHousing = 0x0001_03FD,
+    GameMarriageCapsuleState = 0x0000_03DF,
+    GameMarriageCapsuleEnergy = 0x0000_03E0,
     GameMarriageHousingState = 0x0000_03D8,
     GameMarriageHousingStorage = 0x0000_03D9,
     GameMarriageHousingMove = 0x0000_03DA,

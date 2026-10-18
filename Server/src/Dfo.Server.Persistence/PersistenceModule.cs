@@ -63,6 +63,7 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Persistence.Marriage.SqliteMarriageWeddingDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageWeddingDomainStore>(sp => sp.GetRequiredService<Dfo.Server.Persistence.Marriage.SqliteMarriageWeddingDomainStore>());
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageWeddingGuestDomainStore>(sp => sp.GetRequiredService<Dfo.Server.Persistence.Marriage.SqliteMarriageWeddingDomainStore>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleDomainStore, Dfo.Server.Persistence.Marriage.SqliteMarriageCapsuleDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageHousingDomainStore, Dfo.Server.Persistence.Marriage.SqliteMarriageHousingDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageRelationDomainStore, Dfo.Server.Persistence.Marriage.SqliteMarriageRelationDomainStore>();
         services.TryAddSingleton<IEpicBookDomainStore, SqliteEpicBookDomainStore>();

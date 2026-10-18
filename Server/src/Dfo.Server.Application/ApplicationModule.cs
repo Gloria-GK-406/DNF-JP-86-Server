@@ -155,6 +155,15 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageTrialRuleService, Dfo.Server.Application.Marriage.MarriageTrialRuleService>();
         services.TryAddSingleton<Dfo.Server.Application.Marriage.MarriageQuestDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageQuestDomainService>());
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.CapsuleState>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.GrowthCapsules>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.CapsuleState>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageDomainService>());
+        services.TryAddSingleton<CoupleDungeonRule>();
+        services.TryAddSingleton<ICoupleDungeonDomainService, CoupleDungeonDomainService>();
+        services.AddDomainEvent<Dfo.Server.Abstractions.Marriage.MarriageCapsuleEnergyChanged>("marriage.capsule-energy", 1);
+        services.AddDomainEvent<Dfo.Server.Abstractions.Marriage.MarriageCapsuleGiftChanged>("marriage.capsule-gift", 1);
+        services.AddDomainSubscriber<DungeonMapCleared, Dfo.Server.Application.Marriage.CapsuleClearSubscriber>("marriage.capsule-clear", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
         services.TryAddSingleton<Dfo.Server.Application.Marriage.HousingState>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.HousingState>());
         services.TryAddSingleton<Dfo.Server.Application.Marriage.HousingReadView>();

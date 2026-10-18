@@ -18,7 +18,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Sessions;
 
-public sealed class HousingNetworkSettlementTests
+public sealed partial class HousingNetworkSettlementTests
 {
     private static async Task<Guid> Marry(ShopFixture f)
     {
@@ -46,6 +46,7 @@ public sealed class HousingNetworkSettlementTests
         s.AddSingleton<IMarriageHousingContentSource, MarriageHousingTests.Content>();
         s.AddSingleton<INpcShopDefinitionSource, MarriageHousingTests.Content>();
         s.AddSingleton<IItemPlacementDefinitionSource, MarriageHousingTests.Content>();
+        s.AddSingleton<IMarriageCapsuleContentSource, MarriageHousingTests.CapsuleContent>();
     });
     [Fact]
     public async Task Full_bag_purchase_rolls_back_gold_and_points_returns_native_failure_and_allows_the_next_request()

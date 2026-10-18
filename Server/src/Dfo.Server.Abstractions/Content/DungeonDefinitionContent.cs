@@ -144,6 +144,7 @@ public sealed record DungeonDefinition(
     IReadOnlyList<byte>? SupportedDifficulties = null,
     DungeonEntryMode EntryMode = DungeonEntryMode.Maze)
 {
+    public IReadOnlyList<int> RecommendedLevels { get; init; } = [];
     public bool HasStoryMode { get; init; }
     public ImmutableHashSet<int> NamedMonsterCodes { get; init; } = [];
     public IReadOnlyList<DungeonRequiredItem> RequiredItems { get; init; } = [];
