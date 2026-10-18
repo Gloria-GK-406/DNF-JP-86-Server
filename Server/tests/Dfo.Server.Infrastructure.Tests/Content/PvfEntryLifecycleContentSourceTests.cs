@@ -10,6 +10,7 @@ public sealed class PvfEntryLifecycleContentSourceTests
     [SkippableTheory]
     [InlineData(2600026)] // Fatigue potion.
     [InlineData(7110)] // Upgradable legacy package.
+    [InlineData(10002915)] // Wedding guardian ticket: corrected PVF must have one unambiguous type.
     public async Task Potions_and_packages_share_the_consumable_admission_category(int itemId)
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
