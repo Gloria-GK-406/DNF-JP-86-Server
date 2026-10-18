@@ -1,0 +1,26 @@
+Marriage housing reference identities, 2026-10-18
+
+Current repository
+  path: E:\Project\DNF\DNF-JP-86-Server
+  branch: task/next-round-20261013
+  HEAD: 61beac4036eaad20a92f7c74483bf097764eb543
+
+70 reference ELF
+  path: E:\Project\DNF\Research\1995chen-dnf\other\等级补丁\70\df_game_r
+  size: 36360954 bytes
+  SHA-256: CF45F4E8514C3BF560DD322C146F8441249F6C28246EC8566DCF9EBC4E1B2EB7
+
+Legacy 86JP
+  path: E:\Project\86JP
+  commit: 25e6f0af600b32e550a9126fff5758b602f42ce4
+
+ServerS4A21
+  path: E:\Project\DNF\ServerS4A21
+  baseline: c20dba5fa52c2faf4b5087a3b477676be8434e8f
+  fixed replay introduction: c10f80c3be66b7c629e907b2c6291ef46bc25681
+  replay-after-reset paths: fdc290754bd194a7bf24e4ecf3f4f75168bd0bdf
+
+A21 client static probe already present
+  executable: E:\Project\DNF\DNFClient-A21-protocol\DNF.unpacked-b1-debug.exe
+  SHA-256: CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14
+  evidence grade: ClientStatic only

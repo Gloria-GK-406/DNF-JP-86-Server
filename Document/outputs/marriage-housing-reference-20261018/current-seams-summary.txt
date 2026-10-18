@@ -1,0 +1,21 @@
+CurrentImplementation seams at 61beac4036eaad20a92f7c74483bf097764eb543
+
+Reusable
+  - CoupleLedger is the single relation/stage/love-point writer.
+  - IMarriageRelations is read-only; IMarriageRelationWriter is the controlled write surface.
+  - MarriageQuestDomainService is separately registered and does not call the main marriage service.
+  - Transactional commands support ordered multi-account exclusive locks and one unit of work.
+  - Request settlement/replay already protects the love coupon against duplicate deduction.
+  - Church rooms demonstrate allocation, admission, exact-session checks, cleanup, and rollback.
+
+Missing or unsafe for housing
+  - TownAreaKey contains only channel/town/area; no relation or room scope.
+  - SharesTownPresence=true exposes all shared members in the same key; false exposes self only.
+  - Church isolation is by distinct area_id, not by a hidden same-area instance key.
+  - Persistent inventory owners are Character or Account only; no Relation/Couple owner.
+  - No single-viewer lease exists for a couple storage UI.
+  - 03D8 is currently a 204-byte zero compatibility body.
+  - No furniture, tree, ring, or couple-capsule domain store exists.
+  - Love points are relation-shared and add-only.
+  - MarriageRelationMigration repeatedly raises the new balance to the legacy maximum,
+    which would resurrect spent points after spending is introduced.

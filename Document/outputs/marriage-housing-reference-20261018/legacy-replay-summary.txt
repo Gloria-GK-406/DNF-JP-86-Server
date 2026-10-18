@@ -1,0 +1,18 @@
+LegacyServerReference summary
+
+E:\Project\86JP at 25e6f0af600b32e550a9126fff5758b602f42ce4
+  Housing, wedding, couple room, couple inventory, couple tree, couple growth capsule,
+  and wedding ring names were found in PacketTypes.cs only.
+  No matching business/store/transaction implementation was found by the bounded git grep.
+
+E:\Project\DNF\ServerS4A21
+  c10f80c3be66b7c629e907b2c6291ef46bc25681 added:
+    03D0: 15-byte constant body
+    03F3: 31 zero bytes
+    03D8: 113-byte constant body
+      shape: u32 count=16 + 16 * (u16 + u32) + 13-byte tail
+  fdc290754bd194a7bf24e4ecf3f4f75168bd0bdf replayed the three bodies after
+  pet switch, dungeon entry, and town return.
+
+These are UI/state compatibility replays. They contain no marriage-relation owner,
+housing inventory store, point spending, placement transaction, or single-viewer lease.

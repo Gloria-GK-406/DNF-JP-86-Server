@@ -1,0 +1,4 @@
+executable=E:\Project\DNF\DNFClient-A21-protocol\DNF.unpacked-b1-debug.exe
+sha256=CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14
+image_base=00400000
+Evidence=ClientStatic only; direct instruction references only.
