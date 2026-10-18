@@ -1,0 +1,34 @@
+=== map/coupleroom/coupleroom.map ===
+[background correction]
+-80
+[player number]
+2 8
+[pvp start area]
+106 172 484 253 106 170 74 256 525 174 57 251
+[pvp practice start area]
+106 170 74 256 525 174 57 251
+[type]
+[normal]
+[tile]
+Tile/chn_coupleroomtile00.til Tile/chn_coupleroomtile01.til Tile/chn_coupleroomtile02.til Tile/chn_coupleroomtile03.til Tile/chn_coupleroomtile04.til
+[/tile]
+[far sight scroll]
+50
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[town movable area]
+1001 194 84 81 -101 0
+[/town movable area]
+[virtual movable area]
+50 287 387 140 434 174 240 132 240 174 221 261 643 174 179 79 632 212 419 106 6 313 300 122 150 234 100 56 429 296 622 59 421 347 315 88 865 341 186 94 701 391 170 44
+[/virtual movable area]
+[sound]
+M_WEDDING_ROOM
+[/sound]
+[NPC]
+20012 [left] 799 382 0 20011 [left] 954 390 0
+[/NPC]
+[map name]
+PVP无名

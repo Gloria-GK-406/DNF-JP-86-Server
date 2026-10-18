@@ -1,0 +1,18 @@
+exe=E:\Project\DNF\DNFClient-A21-protocol\DNF.unpacked-b1-debug.exe
+exe_sha256=CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14
+dump=E:\Project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260906-224825-165-31384\DNF-memory-rva.bin
+dump_sha256=6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507
+image_base=00400000  (VA = RVA + base)
+evidence=ClientStatic; read-only
+
+town getter RVA 02019650 callers=141; followed by cmp eax,0x65 in 11 sites / 10 functions
+fn 0087E840 sites 0087E8A6 callers  makeheader []
+fn 00881210 sites 00881230 callers 0088257A,008825C6 makeheader []
+fn 00881510 sites 0088153E,00881589 callers 0088213C,00882594,008825E0,0088271D makeheader []
+fn 008820F0 sites 00882205 callers  makeheader []
+fn 00882670 sites 008826FB callers  makeheader []
+fn 00893830 sites 00893967 callers  makeheader []
+fn 00F4B0A0 sites 00F4B314 callers 00B06C99,00B06D65,00C7097E,00DEB989,00F5041F makeheader []
+fn 01045220 sites 01045279 callers  makeheader []
+fn 0138CA70 sites 0138CD2F callers  makeheader []
+fn 01F07C90 sites 01F08220 callers 01F1BFAD makeheader []

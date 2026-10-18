@@ -1,0 +1,18 @@
+=== npc/chn_coupleroom_tree.npc ===
+[small face]
+Map/Npc/aradG-ICON.img 1
+[big face]
+Map/Npc/aradG-ICON.img 0
+[popup face]
+Map/Npc/NpcFace_cn.img 11
+[field animation]
+Animation/chn_coupleroom/coupleroomTree.ani
+[look around]
+0
+[role]
+[couple room tree] 0
+[/role]
+[name]
+闲置的花圃
+[field name]
+闲置的花圃

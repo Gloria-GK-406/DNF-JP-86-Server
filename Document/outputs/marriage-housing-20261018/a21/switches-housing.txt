@@ -1,0 +1,118 @@
+exe=E:\Project\DNF\DNFClient-A21-protocol\DNF.unpacked-b1-debug.exe
+exe_sha256=CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14
+dump=E:\Project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260906-224825-165-31384\DNF-memory-rva.bin
+dump_sha256=6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507
+image_base=00400000  (VA = RVA + base)
+evidence=ClientStatic; read-only
+
+===== CMD03FD entry RVA 00880B60 VA 00C80B60 =====
+-- switch at RVA 00880BC0: table 00880CA8 bytetable None bias +4 limit 4
+   case -4: -> RVA 00880C1A  dstr 0x11C5E; call 01F04C70; ret
+   case -3: -> RVA 00880BEB  dstr 0x11C95; call 01F04C70; ret
+   case -2: -> RVA 00880BEB  dstr 0x11C95; call 01F04C70; ret
+   case -1: -> RVA 00880C49  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case +0: -> RVA 00880BC7  call 008806D0; ret
+
+===== CMD03FE entry RVA 0087E3C0 VA 00C7E3C0 =====
+-- switch at RVA 0087E425: table 0087E544 bytetable 0087E55C bias +22 limit 22
+   case -22: -> RVA 0087E4B9  dstr 0x11C5F; call 01F04C70; ret
+   case -21: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case -20: -> RVA 0087E48A  dstr 0x11C5E; call 01F04C70; ret
+   case -19: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case -18: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case -17: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case -16: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case -15: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case -14: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case -13: -> RVA 0087E45B  dstr 0x05598; call 01F04C70; ret
+   case -12: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case -11: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case -10: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case -9: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case -8: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case -7: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case -6: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case -5: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case -4: -> RVA 0087E42C  dstr 0x11C95; call 01F04C70; ret
+   case -3: -> RVA 0087E42C  dstr 0x11C95; call 01F04C70; ret
+   case -2: -> RVA 0087E42C  dstr 0x11C95; call 01F04C70; ret
+   case -1: -> RVA 0087E4E8  dstr 0x11C4E; call 023BDC10; call 00A46B20
+   case +0: -> RVA 0087E535  ret
+
+===== CMD0400 entry RVA 0087E8E0 VA 00C7E8E0 =====
+
+===== CMD0401 entry RVA 0087E950 VA 00C7E950 =====
+-- switch at RVA 0087E997: table 0087E9E8 bytetable None bias +11 limit 9
+   case -11: -> RVA 0087E9C2  dstr 0x11D15; call 01F04C70; ret
+   case -10: -> RVA 0087E9E2  ret
+   case -9: -> RVA 0087E9B9  push 0x11D0D -> jmp 0087E9C9 (likely dstr)
+   case -8: -> RVA 0087E9E2  ret
+   case -7: -> RVA 0087E9E2  ret
+   case -6: -> RVA 0087E9B0  push 0x11C93 -> jmp 0087E9C9 (likely dstr)
+   case -5: -> RVA 0087E99E  push 0x11C95 -> jmp 0087E9C9 (likely dstr)
+   case -4: -> RVA 0087E9A7  push 0x11C94 -> jmp 0087E9C9 (likely dstr)
+   case -3: -> RVA 0087E99E  push 0x11C95 -> jmp 0087E9C9 (likely dstr)
+   case -2: -> RVA 0087E99E  push 0x11C95 -> jmp 0087E9C9 (likely dstr)
+
+===== CMD0402 entry RVA 0087EA10 VA 00C7EA10 =====
+-- switch at RVA 0087EA41: table 0087EA88 bytetable None bias +7 limit 5
+   case -7: -> RVA 0087EA63  dstr 0x11D15; call 01F04C70; ret
+   case -6: -> RVA 0087EA5A  push 0x11CCB -> jmp 0087EA6A (likely dstr)
+   case -5: -> RVA 0087EA48  push 0x11C95 -> jmp 0087EA6A (likely dstr)
+   case -4: -> RVA 0087EA51  push 0x11C94 -> jmp 0087EA6A (likely dstr)
+   case -3: -> RVA 0087EA48  push 0x11C95 -> jmp 0087EA6A (likely dstr)
+   case -2: -> RVA 0087EA48  push 0x11C95 -> jmp 0087EA6A (likely dstr)
+
+===== CMD0403 entry RVA 0087EAA0 VA 00C7EAA0 =====
+
+===== CMD0404 entry RVA 00892670 VA 00C92670 =====
+-- switch at RVA 00892709: table 00892764 bytetable None bias +7 limit 6
+   case -7: -> RVA 00892710  push 0x11CFB -> jmp 00892744 (likely dstr)
+   case -6: -> RVA 00892734  push 0x0B587 -> jmp 00892744 (likely dstr)
+   case -5: -> RVA 0089272B  push 0x11D03 -> jmp 00892744 (likely dstr)
+   case -4: -> RVA 00892722  push 0x11D02 -> jmp 00892744 (likely dstr)
+   case -3: -> RVA 00892710  push 0x11CFB -> jmp 00892744 (likely dstr)
+   case -2: -> RVA 00892719  push 0x11CF7 -> jmp 00892744 (likely dstr)
+   case -1: -> RVA 00892710  push 0x11CFB -> jmp 00892744 (likely dstr)
+
+===== CMD0405 entry RVA 00892780 VA 00C92780 =====
+-- switch at RVA 00892800: table 00892858 bytetable None bias +8 limit 7
+   case -8: -> RVA 00892807  push 0x11CFB -> jmp 0089283B (likely dstr)
+   case -7: -> RVA 0089282B  push 0x0B587 -> jmp 0089283B (likely dstr)
+   case -6: -> RVA 00892822  push 0x11D03 -> jmp 0089283B (likely dstr)
+   case -5: -> RVA 00892807  push 0x11CFB -> jmp 0089283B (likely dstr)
+   case -4: -> RVA 00892819  push 0x11DD8 -> jmp 0089283B (likely dstr)
+   case -3: -> RVA 00892807  push 0x11CFB -> jmp 0089283B (likely dstr)
+   case -2: -> RVA 00892810  push 0x11CF7 -> jmp 0089283B (likely dstr)
+   case -1: -> RVA 00892807  push 0x11CFB -> jmp 0089283B (likely dstr)
+
+===== CMD0406 entry RVA 00892880 VA 00C92880 =====
+-- switch at RVA 008928CE: table 00892930 bytetable None bias +9 limit 8
+   case -9: -> RVA 008928D5  push 0x11CFB -> jmp 00892912 (likely dstr)
+   case -8: -> RVA 00892902  push 0x0B587 -> jmp 00892912 (likely dstr)
+   case -7: -> RVA 008928F9  push 0x11D03 -> jmp 00892912 (likely dstr)
+   case -6: -> RVA 008928F0  push 0x11BB8 -> jmp 00892912 (likely dstr)
+   case -5: -> RVA 008928D5  push 0x11CFB -> jmp 00892912 (likely dstr)
+   case -4: -> RVA 008928E7  push 0x11CF1 -> jmp 00892912 (likely dstr)
+   case -3: -> RVA 008928D5  push 0x11CFB -> jmp 00892912 (likely dstr)
+   case -2: -> RVA 008928DE  push 0x11CF7 -> jmp 00892912 (likely dstr)
+   case -1: -> RVA 008928D5  push 0x11CFB -> jmp 00892912 (likely dstr)
+
+===== CMD03F4 entry RVA 00892FF0 VA 00C92FF0 =====
+
+===== CMD03FB entry RVA 00893830 VA 00C93830 =====
+-- switch at RVA 008939EE: table 00893B44 bytetable 00893B58 bias +0 limit 12
+   case +0: -> RVA 008939F5  call 023BC0F0; jmp 00893A2F
+   case +1: -> RVA 00893A25  call 023BC390; call 000E6900
+   case +2: -> RVA 00893A25  call 023BC390; call 000E6900
+   case +3: -> RVA 00893A25  call 023BC390; call 000E6900
+   case +4: -> RVA 00893A01  call 023BC160; jmp 00893A2F
+   case +5: -> RVA 00893A25  call 023BC390; call 000E6900
+   case +6: -> RVA 00893A25  call 023BC390; call 000E6900
+   case +7: -> RVA 00893A25  call 023BC390; call 000E6900
+   case +8: -> RVA 00893A0D  call 023BC1D0; jmp 00893A2F
+   case +9: -> RVA 00893A25  call 023BC390; call 000E6900
+   case +10: -> RVA 00893A25  call 023BC390; call 000E6900
+   case +11: -> RVA 00893A25  call 023BC390; call 000E6900
+   case +12: -> RVA 00893A19  call 023BC240; jmp 00893A2F
+

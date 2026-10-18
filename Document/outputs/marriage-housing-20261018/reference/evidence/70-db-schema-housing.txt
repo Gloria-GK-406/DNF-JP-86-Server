@@ -1,0 +1,215 @@
+# source: E:/Project/DNF/Research/1995chen-dnf/build/dnf_data/home/template/init/init_sql.tgz
+# sha256 3A3D16C7981D91002835F0BA9BC89E9657B9147C5D2BC1CE347871266130609A
+## taiwan_cain.sql:183 `bak_charac_info_20130219`
+CREATE TABLE `bak_charac_info_20130219` (
+  `m_id` int(11) NOT NULL default '0',
+  `charac_no` int(11) NOT NULL auto_increment,
+  `charac_name` varchar(20) NOT NULL default '',
+  `village` tinyint(4) NOT NULL default '1',
+  `job` tinyint(4) NOT NULL default '0',
+  `lev` tinyint(4) NOT NULL default '1',
+  `exp` int(11) NOT NULL default '0',
+  `grow_type` tinyint(4) NOT NULL default '0',
+  `HP` tinyint(3) unsigned NOT NULL default '0',
+  `maxHP` smallint(6) unsigned NOT NULL default '0',
+  `maxMP` smallint(6) unsigned NOT NULL default '0',
+  `phy_attack` smallint(6) unsigned NOT NULL default '0',
+  `phy_defense` smallint(6) unsigned NOT NULL default '0',
+  `mag_attack` smallint(6) unsigned NOT NULL default '0',
+  `mag_defense` smallint(6) unsigned NOT NULL default '0',
+  `element_resist` tinyblob NOT NULL,
+  `spec_property` tinyblob NOT NULL,
+  `inven_weight` int(6) NOT NULL default '0',
+  `hp_regen` smallint(6) NOT NULL default '0',
+  `mp_regen` smallint(6) NOT NULL default '0',
+  `move_speed` smallint(6) unsigned NOT NULL default '0',
+  `attack_speed` smallint(6) unsigned NOT NULL default '0',
+  `cast_speed` smallint(6) unsigned NOT NULL default '0',
+  `hit_recovery` smallint(6) NOT NULL default '0',
+  `jump` smallint(6) NOT NULL default '0',
+  `charac_weight` int(11) NOT NULL default '0',
+  `fatigue` smallint(6) NOT NULL default '0',
+  `max_fatigue` smallint(6) NOT NULL default '70',
+  `premium_fatigue` smallint(6) NOT NULL default '0',
+  `max_premium_fatigue` smallint(6) NOT NULL default '0',
+  `create_time` datetime NOT NULL default '2021-11-19 00:00:00',
+  `last_play_time` datetime NOT NULL default '2021-11-19 00:00:00',
+  `dungeon_clear_point` int(11) NOT NULL default '0',
+  `delete_time` datetime NOT NULL default '2021-11-19 00:00:00',
+  `delete_flag` tinyint(4) NOT NULL default '0',
+  `guild_id` int(10) unsigned NOT NULL default '0',
+  `guild_right` tinyint(4) NOT NULL default '0',
+  `member_flag` tinyint(4) NOT NULL default '0',
+  `sex` tinyint(4) NOT NULL default '1',
+  `expert_job` tinyint(3) unsigned NOT NULL default '0',
+  `skill_tree_index` tinyint(4) NOT NULL default '-1',
+  `link_charac_no` int(10) unsigned NOT NULL default '0',
+  `event_charac_level` tinyint(4) NOT NULL default '0',
+  `guild_secede` tinyint(2) NOT NULL default '0',
+  `start_time` int(11) NOT NULL default '0',
+  `finish_time` int(11) NOT NULL default '0',
+  `competition_area` tinyint(2) NOT NULL default '-1',
+  `competition_period` tinyint(2) NOT NULL default '-1',
+  `mercenary_start_time` int(11) NOT NULL default '0',
+  `mercenary_finish_time` int(11) NOT NULL default '0',
+  `mercenary_area` tinyint(4) NOT NULL default '-1',
+  `mercenary_period` tinyint(4) NOT NULL default '-1',
+  PRIMARY KEY  (`charac_no`),
+  UNIQUE KEY `charac_name` USING BTREE (`charac_name`),
+  KEY `charac_info_idx1` USING BTREE (`m_id`),
+  KEY `charac_info_idx2` USING BTREE (`exp`),
+  KEY `idx_guild_id` USING BTREE (`guild_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+## taiwan_cain.sql:983 `charac_housing_info`
+CREATE TABLE `charac_housing_info` (
+  `charac_no` int(10) unsigned NOT NULL default '0',
+  `installed` smallint(5) unsigned NOT NULL default '0',
+  `decoration_inven` binary(144) NOT NULL default '<NUL*144>',
+  `version` smallint(5) unsigned NOT NULL default '0',
+  PRIMARY KEY  (`charac_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+## taiwan_cain.sql:1001 `charac_housing_tree_info`
+CREATE TABLE `charac_housing_tree_info` (
+  `charac_no` int(10) unsigned NOT NULL default '0',
+  `tree_id` int(10) unsigned NOT NULL default '0',
+  `expire_date` datetime NOT NULL default '2021-11-19 00:00:00',
+  `current_point` smallint(6) NOT NULL default '0',
+  `leaf_point` smallint(6) NOT NULL default '0',
+  `day_water_count` smallint(6) NOT NULL default '0',
+  PRIMARY KEY  (`charac_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+## taiwan_cain.sql:1021 `charac_housing_water_history`
+CREATE TABLE `charac_housing_water_history` (
+  `charac_no` int(10) unsigned NOT NULL default '0',
+  `give_time` timestamp NOT NULL default CURRENT_TIMESTAMP,
+  `give_charac_name` varchar(20) NOT NULL default '',
+  PRIMARY KEY  (`charac_no`,`give_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+## taiwan_cain.sql:1038 `charac_info`
+CREATE TABLE `charac_info` (
+  `m_id` int(11) NOT NULL default '0',
+  `charac_no` int(11) NOT NULL auto_increment,
+  `charac_name` varchar(20) NOT NULL default '',
+  `village` tinyint(4) NOT NULL default '1',
+  `job` tinyint(4) NOT NULL default '0',
+  `lev` tinyint(4) NOT NULL default '1',
+  `exp` int(11) NOT NULL default '0',
+  `grow_type` tinyint(4) NOT NULL default '0',
+  `HP` tinyint(3) unsigned NOT NULL default '0',
+  `maxHP` smallint(6) unsigned NOT NULL default '0',
+  `maxMP` smallint(6) unsigned NOT NULL default '0',
+  `phy_attack` smallint(6) unsigned NOT NULL default '0',
+  `phy_defense` smallint(6) unsigned NOT NULL default '0',
+  `mag_attack` smallint(6) unsigned NOT NULL default '0',
+  `mag_defense` smallint(6) unsigned NOT NULL default '0',
+  `element_resist` tinyblob NOT NULL,
+  `spec_property` tinyblob NOT NULL,
+  `inven_weight` int(6) NOT NULL default '0',
+  `hp_regen` smallint(6) NOT NULL default '0',
+  `mp_regen` smallint(6) NOT NULL default '0',
+  `move_speed` smallint(6) unsigned NOT NULL default '0',
+  `attack_speed` smallint(6) unsigned NOT NULL default '0',
+  `cast_speed` smallint(6) unsigned NOT NULL default '0',
+  `hit_recovery` smallint(6) NOT NULL default '0',
+  `jump` smallint(6) NOT NULL default '0',
+  `charac_weight` int(11) NOT NULL default '0',
+  `fatigue` smallint(6) NOT NULL default '0',
+  `max_fatigue` smallint(6) NOT NULL default '70',
+  `premium_fatigue` smallint(6) NOT NULL default '0',
+  `max_premium_fatigue` smallint(6) NOT NULL default '0',
+  `create_time` datetime NOT NULL default '2021-11-19 00:00:00',
+  `last_play_time` datetime NOT NULL default '2021-11-19 00:00:00',
+  `dungeon_clear_point` int(11) NOT NULL default '0',
+  `delete_time` datetime NOT NULL default '2021-11-19 00:00:00',
+  `delete_flag` tinyint(4) NOT NULL default '0',
+  `guild_id` int(10) unsigned NOT NULL default '0',
+  `guild_right` tinyint(4) NOT NULL default '0',
+  `member_flag` tinyint(4) NOT NULL default '0',
+  `sex` tinyint(4) NOT NULL default '1',
+  `expert_job` tinyint(3) unsigned NOT NULL default '0',
+  `skill_tree_index` tinyint(4) NOT NULL default '-1',
+  `link_charac_no` int(10) unsigned NOT NULL default '0',
+  `event_charac_level` tinyint(4) NOT NULL default '0',
+  `guild_secede` tinyint(2) NOT NULL default '0',
+  `start_time` int(11) NOT NULL default '0',
+  `finish_time` int(11) NOT NULL default '0',
+  `competition_area` tinyint(2) NOT NULL default '-1',
+  `competition_period` tinyint(2) NOT NULL default '-1',
+  `mercenary_start_time` int(11) NOT NULL default '0',
+  `mercenary_finish_time` int(11) NOT NULL default '0',
+  `mercenary_area` tinyint(4) NOT NULL default '-1',
+  `mercenary_period` tinyint(4) NOT NULL default '-1',
+  `VIP` varchar(255) NOT NULL,
+  PRIMARY KEY  (`charac_no`),
+  UNIQUE KEY `charac_name` USING BTREE (`charac_name`),
+  KEY `charac_info_idx1` USING BTREE (`m_id`),
+  KEY `charac_info_idx2` USING BTREE (`exp`),
+  KEY `idx_guild_id` USING BTREE (`guild_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+## taiwan_main_web.sql:3909 `knowl_class_tree`
+CREATE TABLE `knowl_class_tree` (
+  `kn_id` int(10) unsigned NOT NULL default '0',
+  `up_id` int(10) unsigned NOT NULL default '0',
+  `depth` int(10) unsigned NOT NULL default '0',
+  UNIQUE KEY `uk_tree` USING BTREE (`kn_id`,`up_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+## taiwan_main_web.sql:8330 `wedding_memo`
+CREATE TABLE `wedding_memo` (
+  `no` int(10) unsigned NOT NULL auto_increment,
+  `guild_id` int(10) unsigned NOT NULL default '0',
+  `m_id` int(11) NOT NULL default '0',
+  `charac_no` int(10) unsigned NOT NULL default '0',
+  `charac_name` varchar(20) NOT NULL default '',
+  `nick_name` varchar(12) NOT NULL default '',
+  `memo` varchar(100) NOT NULL default '',
+  `create_time` datetime NOT NULL default '2021-11-19 00:00:00',
+  PRIMARY KEY  (`no`),
+  KEY `idx_guild_id` USING BTREE (`guild_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+## taiwan_mng_manager.sql:170 `charac_housing_mod`
+CREATE TABLE `charac_housing_mod` (
+  `id` int(11) unsigned NOT NULL auto_increment,
+  `server_info` tinyint(4) unsigned NOT NULL default '0',
+  `charac_no` int(11) unsigned NOT NULL default '0',
+  `installed_old` tinyint(4) unsigned NOT NULL default '0',
+  `installed_new` tinyint(4) unsigned NOT NULL default '0',
+  `decoration_inven_old` blob NOT NULL,
+  `decoration_inven_new` blob NOT NULL,
+  `MNG_user_id` varchar(30) NOT NULL default '',
+  `work_time` datetime NOT NULL default '2021-11-19 00:00:00',
+  `work_type` enum('-','add','mod','del') NOT NULL default '-',
+  `memo` varchar(255) NOT NULL default '',
+  PRIMARY KEY  (`id`),
+  KEY `idx_charac_no` USING BTREE (`charac_no`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+## taiwan_mng_manager.sql:196 `charac_housing_tree_mod`
+CREATE TABLE `charac_housing_tree_mod` (
+  `id` int(11) unsigned NOT NULL auto_increment,
+  `server_info` tinyint(4) unsigned NOT NULL default '0',
+  `charac_no` int(10) unsigned NOT NULL default '0',
+  `tree_id_old` int(10) unsigned NOT NULL default '0',
+  `tree_id_new` int(10) unsigned NOT NULL default '0',
+  `expire_date_old` datetime NOT NULL default '2021-11-19 00:00:00',
+  `expire_date_new` datetime NOT NULL default '2021-11-19 00:00:00',
+  `current_point_old` smallint(6) NOT NULL default '0',
+  `current_point_new` smallint(6) NOT NULL default '0',
+  `leaf_point_old` smallint(6) NOT NULL default '0',
+  `leaf_point_new` smallint(6) NOT NULL default '0',
+  `day_water_count_old` smallint(6) NOT NULL default '0',
+  `day_water_count_new` smallint(6) NOT NULL default '0',
+  `MNG_user_id` varchar(30) NOT NULL default '',
+  `work_time` datetime NOT NULL default '2021-11-19 00:00:00',
+  `work_type` enum('-','add','mod','del') NOT NULL default '-',
+  `memo` varchar(255) NOT NULL default '',
+  PRIMARY KEY  (`id`),
+  KEY `idx_charac_no` USING BTREE (`charac_no`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+

@@ -1,0 +1,89 @@
+######## etc/weddingsystem.etc
+=== etc/weddingsystem.etc ===
+[quest]
+20737 20738
+[/quest]
+[ceremony]
+0 500000 0 10 1 2000000 1 20 2 0 2 30
+[/ceremony]
+[wedding gift]
+0 10002629 1 1 10002630 1 2 10002631 1
+[/wedding gift]
+[minute selection]
+300 600 900
+[/minute selection]
+[noti end]
+60
+[/noti end]
+[force move]
+670 330 0 685 360 0
+[/force move]
+[minimum level]
+30
+[/minimum level]
+[money gift limit]
+10000 400000000
+[/money gift limit]
+[money gift charge]
+50
+[/money gift charge]
+[letter]
+1078 1192 1078 1193 1078 1194 1078 1195 1078 1196 1078 1197 1078 1218
+[/letter]
+[invitation gift]
+[/invitation gift]
+[guest gift]
+99999 0 10002623 2 0 10002622 3 1 10002623 2 1 10002622 3 2 10002623 2 2 10002622 3
+[/guest gift]
+[guest gift]
+399999 0 10002623 10 0 10002622 10 0 10002624 5 1 10002623 10 1 10002622 10 1 10002624 5 2 10002623 10 2 10002622 10 2 10002624 5
+[/guest gift]
+[guest gift]
+999999 0 10002623 10 0 10002622 10 0 10002624 5 0 10002916 1 1 10002623 10 1 10002622 10 1 10002624 5 1 10002916 1 2 10002623 10 2 10002622 10 2 10002624 5 2 10002916 1
+[/guest gift]
+[guest gift]
+4999999 0 10002623 10 0 10002622 10 0 10002624 5 0 10002917 1 1 10002623 10 1 10002622 10 1 10002624 5 1 10002917 1 2 10002623 10 2 10002622 10 2 10002624 5 2 10002917 1
+[/guest gift]
+[guest gift]
+19999999 0 10002623 10 0 10002622 10 0 10002624 5 0 10002918 1 1 10002623 10 1 10002622 10 1 10002624 5 1 10002918 1 2 10002623 10 2 10002622 10 2 10002624 5 2 10002918 1
+[/guest gift]
+[guest gift]
+400000000 0 10002623 10 0 10002622 10 0 10002624 5 0 10002919 1 1 10002623 10 1 10002622 10 1 10002624 5 1 10002919 1 2 10002623 10 2 10002622 10 2 10002624 5 2 10002919 1
+[/guest gift]
+[alimony]
+500000 500000
+[/alimony]
+[once how many days]
+1
+[/once how many days]
+[days after divorce]
+1
+[/days after divorce]
+[love point]
+1
+[/love point]
+[max love point]
+999
+[/max love point]
+[charged wedding ticket]
+2 2683401 1
+[/charged wedding ticket]
+[upgrade ring ticket]
+0 0 10002611 1 10002612 1 10002613 1 10002614 1 10002615 1
+[/upgrade ring ticket]
+[love point item]
+10002901 1
+[/love point item]
+[ceremony gift]
+10002627 1 10002628 1
+[/ceremony gift]
+[cerashop restrict item]
+102317 102318 102319 102320 102321 102322 102323 102324 102325 102326 102403 102404 102810 103661
+[/cerashop restrict item]
+[wedding ring nametag action]
+0 `UI\chn_wedding\action\chn_wedding_ring_01.act` 1 `UI\chn_wedding\action\chn_wedding_ring_02.act` 2 `UI\chn_wedding\action\chn_wedding_ring_03.act` 3 `UI\chn_wedding\action\chn_wedding_ring_04.act` 4 `UI\chn_wedding\action\chn_wedding_ring_05.act` 5 `UI\chn_wedding\action\chn_wedding_ring_06.act`
+[/wedding ring nametag action]
+[wedding ring buff]
+0 2 `physical defense` 8 `magical defense` 8 1 4 `physical defense` 10 `magical defense` 10 `physical attack` 15 `magical attack` 15 2 5 `physical defense` 10 `magical defense` 10 `physical attack` 15 `magical attack` 15 `hit recovery` 200 3 6 `physical defense` 10 `magical defense` 10 `physical attack` 15 `magical attack` 15 `hit recovery` 200 `move speed` 20 4 8 `physical defense` 10 `magical defense` 10 `physical attack` 15 `magical attack` 15 `hit recovery` 200 `move speed` 20 `physical critical hit rate` 2 `magical critical hit rate` 2 5 10 `physical defense` 10 `magical defense` 10 `physical attack` 15 `magical attack` 15 `hit recovery` 200 `move speed` 20 `physical critical hit rate` 2 `magical critical hit rate` 2 `attack speed` 20 `cast speed` 20
+[/wedding ring buff]
+

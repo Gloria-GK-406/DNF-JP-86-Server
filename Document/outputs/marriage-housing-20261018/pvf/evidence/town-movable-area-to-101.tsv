@@ -1,0 +1,55 @@
+map/alfhlyra/(r)gate_alfh.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/alfhlyra/gate_alfh.map	-2 -2 46 212 34 52 101 0 [/town movable area] [virtual movable area] 398 165 155
+map/chn_april_fools_day_2015/gate_seria_event(gate_battleship).map	-2 -2 46 212 34 52 101 0 [/town movable area] [virtual movable area] 398 165 155
+map/chn_april_fools_day_2015/gate_seria_event(gate_behemoth).map	-2 -2 46 212 34 52 101 0 [/town movable area] [virtual movable area] 398 165 155
+map/chn_april_fools_day_2015/gate_seria_event(gate_gent).map	-2 -2 46 212 34 52 101 0 [/town movable area] [sound] M_GATE_NEW [/sound] [animation]
+map/chn_april_fools_day_2015/gate_seria_event(gate_lufthafent).map	-2 -2 46 212 34 52 101 0 [/town movable area] [sound] M_GATE_NEW [/sound] [animation]
+map/chn_april_fools_day_2015/gate_seria_event(gate_sainthorn).map	-2 -2 46 212 34 52 101 0 [/town movable area] [sound] M_GATE_NEW [/sound] [animation]
+map/chn_april_fools_day_2015/gate_seria_event(gate_sewer).map	-2 -2 46 212 34 52 101 0 [/town movable area] [sound] M_GATE_NEW [/sound] [animation]
+map/chn_april_fools_day_2015/gate_seria_event(gate_shelterofnorth).map	-2 -2 46 212 34 52 101 0 [/town movable area] [sound] M_GATE_NEW [/sound] [animation]
+map/chn_april_fools_day_2015/gate_seria_event(gate_shonan).map	-2 -2 46 212 34 52 101 0 [/town movable area] [sound] M_GATE_NEW [/sound] [animation]
+map/chn_april_fools_day_2015/gate_seria_event(gate_shonan_holy).map	100 0 46 212 34 52 101 0 [/town movable area] [sound] M_GATE_NEW [/sound] [animation]
+map/chn_april_fools_day_2015/gate_seria_event(gate_slough).map	-2 -2 46 212 34 52 101 0 [/town movable area] [sound] M_GATE_NEW [/sound] [animation]
+map/chn_april_fools_day_2015/gate_seria_event(gate_underfoot).map	-2 -2 46 212 34 52 101 0 [/town movable area] [sound] M_GATE_NEW [/sound] [animation]
+map/chn_april_fools_day_2015/gate_seria_event(silvercrown).map	-2 -2 46 212 34 52 101 0 [/town movable area] [sound] M_GATE_NEW [/sound] [animation]
+map/chn_dragon_shonan_holyland/gate_shonan_holy.map	100 0 46 212 34 52 101 0 [/town movable area] [virtual movable area] 361 177 250
+map/coupleroom/coupleroom.map	110 [town movable area] 1001 194 84 81 -101 0 [/town movable area] [virtual movable area] 50 287 387
+map/dream_stormpass/(r)gate_storm.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/elvengard/(r)gate.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/elvengard/gate.map	-2 -2 46 212 34 52 101 0 [/town movable area] [virtual movable area] 398 165 155
+map/gent/(r)gate_gent.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/gent/gate_gent.map	-2 -2 46 212 34 52 101 0 [/town movable area] [virtual movable area] 398 165 155
+map/hendonmyre/(r)gate_hendon.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/hendonmyre/(r)gate_west.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/hendonmyre/gate_hendon.map	-2 -2 46 212 34 52 101 0 [/town movable area] [virtual movable area] 398 165 155
+map/hendonmyre/gate_west.map	-2 -2 46 212 34 52 101 0 [/town movable area] [virtual movable area] 398 165 155
+map/lufthafen/gate_lufthafent.map	-2 -2 46 212 34 52 101 0 [/town movable area] [virtual movable area] 398 165 155
+map/sainthorn/(r)gate_sainthorn.map	-2 -2 46 212 34 52 101 0 [/town movable area] [animation] ../Common/GateAnimation/GatePillar.ani [close] 0
+map/shonan/(r)gate_shonan.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/shonan/gate_shonan.map	-2 -2 46 212 34 52 101 0 [/town movable area] [virtual movable area] 398 165 155
+map/slough/(r)gate_slough.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/slough/gate_slough.map	-2 -2 46 212 34 52 101 0 [/town movable area] [virtual movable area] 398 165 155
+map/stormpass/(r)gate_storm.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/stormpass/gate_storm.map	-2 -2 46 212 34 52 101 0 [/town movable area] [virtual movable area] 398 165 155
+map/town/alfhlyra/(r)gate_alfh.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/battleship2/(r)gate_battleship.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/behemoth/(r)gate_behemoth.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/chn_dragon_shonan_holyland/gate_shonan_holy.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/gent/(r)gate_gent.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/hendonmyre/(r)gate_hendon.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/hendonmyre/(r)gate_west.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/jelva/(r)gate_jelva.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/kor_dragon_shonan_holyland/(r)gate_shonan_holy01.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/lufthafen/(r)gate_lufthafent.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/mirrorarad/(f)gate_west.map	-2 -2 46 212 34 52 101 0 [/town movable area] [sound] M_GATE_OLD [/sound]
+map/town/mirrorarad/(r)gate_west.map	-2 -2 46 212 34 52 101 0 [/town movable area] [sound] M_GATE_OLD [/sound]
+map/town/sainthorn/(r)gate_sainthorn.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/sewer/(r)gate_sewer.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/shelterofnorth/(r)gate_shelterofnorth.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/shonan/(r)gate_shonan.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/silvercrown/(r)gate_silvercrown.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/slough/(r)gate_slough.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/stormpass/(r)gate_storm.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/underfoot/(r)gate_underfoot.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/underfoot/(r)gate_underfoot2.map	-2 -2 46 212 34 52 101 0 [/town movable area]
+map/town/underfoot/underfoot_gosilvercrown.map	83 50 200 1 1 9 101 30 180 2 2 [/town movable area] [virtual movable area]

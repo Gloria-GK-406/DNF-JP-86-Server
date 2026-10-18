@@ -1,0 +1,1900 @@
+######## id 10002684 -> stackable/event/chn_coupleroom_decoration/chn_window_01.stk
+=== stackable/event/chn_coupleroom_decoration/chn_window_01.stk ===
+[name]
+`白色窗户 - 樱花背景`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_window_icon.img` 0
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 80
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002685 -> stackable/event/chn_coupleroom_decoration/chn_window_02.stk
+=== stackable/event/chn_coupleroom_decoration/chn_window_02.stk ===
+[name]
+`窗户 - 果树背景`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_window_icon.img` 1
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 30
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002686 -> stackable/event/chn_coupleroom_decoration/chn_window_03.stk
+=== stackable/event/chn_coupleroom_decoration/chn_window_03.stk ===
+[name]
+`窗户 - 森林背景`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_window_icon.img` 2
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 50
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002687 -> stackable/event/chn_coupleroom_decoration/chn_window_04.stk
+=== stackable/event/chn_coupleroom_decoration/chn_window_04.stk ===
+[name]
+`窗户 - 晴空背景`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_window_icon.img` 3
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 50
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002688 -> stackable/event/chn_coupleroom_decoration/chn_object_red_goblic.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_red_goblic.stk ===
+[name]
+`红色哥布林雕像`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 0
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 15
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002689 -> stackable/event/chn_coupleroom_decoration/chn_object_yellow_tawtoy.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_yellow_tawtoy.stk ===
+[name]
+`橙色牛头人雕像`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 3
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 15
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002690 -> stackable/event/chn_coupleroom_decoration/chn_object_red_merrygold_flower.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_red_merrygold_flower.stk ===
+[name]
+`红色金盏菊盆栽`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 6
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 15
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002691 -> stackable/event/chn_coupleroom_decoration/chn_object_white_siran_flower.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_white_siran_flower.stk ===
+[name]
+`白色五月花盆栽`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 9
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 15
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002692 -> stackable/event/chn_coupleroom_decoration/chn_object_halloween.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_halloween.stk ===
+[name]
+`万圣节南瓜装饰`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 12
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 50
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002693 -> stackable/event/chn_coupleroom_decoration/chn_object_bed_01.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_bed_01.stk ===
+[name]
+`寝具 - 清风雅韵`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 15
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 200
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002694 -> stackable/event/chn_coupleroom_decoration/chn_object_bed_02.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_bed_02.stk ===
+[name]
+`寝具 - 古色古香`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 14
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 20
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002695 -> stackable/event/chn_coupleroom_decoration/chn_object_table_01.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_table_01.stk ===
+[name]
+`木质餐桌椅 - 简朴`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 16
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 20
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002696 -> stackable/event/chn_coupleroom_decoration/chn_object_table_02.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_table_02.stk ===
+[name]
+`木质餐桌椅 - 奢华`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 17
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 200
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002697 -> stackable/event/chn_coupleroom_decoration/chn_object_ceiling_flower_01.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_ceiling_flower_01.stk ===
+[name]
+`粉色吊篮装饰`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_ceiling_icon.img` 0
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 30
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002698 -> stackable/event/chn_coupleroom_decoration/chn_object_ceiling_basic_light.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_ceiling_basic_light.stk ===
+[name]
+`普通吊灯`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_ceiling_icon.img` 3
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 10
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002699 -> stackable/event/chn_coupleroom_decoration/chn_object_ceiling_mobile.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_ceiling_mobile.stk ===
+[name]
+`迷你多尼尔吊饰`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_ceiling_icon.img` 4
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 50
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002701 -> stackable/event/chn_coupleroom_decoration/chn_object_bronze_dogri.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_bronze_dogri.stk ===
+[name]
+`人偶之王的手工石雕`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_bronze_icon.img` 0
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002702 -> stackable/event/chn_coupleroom_decoration/chn_object_bronze_rakius.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_bronze_rakius.stk ===
+[name]
+`龙人铜像`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_bronze_icon.img` 1
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002703 -> stackable/event/chn_coupleroom_decoration/chn_object_bronze_binoshu.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_bronze_binoshu.stk ===
+[name]
+`烈焰彼诺修的雕像`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_bronze_icon.img` 2
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002704 -> stackable/event/chn_coupleroom_decoration/chn_object_bronze_keraha.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_bronze_keraha.stk ===
+[name]
+`冰霜克拉赫的雕像`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_bronze_icon.img` 3
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002705 -> stackable/event/chn_coupleroom_decoration/chn_object_bronze_rugaru.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_bronze_rugaru.stk ===
+[name]
+`猫妖石像`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_bronze_icon.img` 4
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002706 -> stackable/event/chn_coupleroom_decoration/chn_object_bronze_evileye.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_bronze_evileye.stk ===
+[name]
+`罪恶之眼的石像`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_bronze_icon.img` 5
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002707 -> stackable/event/chn_coupleroom_decoration/chn_object_bronze_kinhol_chair.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_bronze_kinhol_chair.stk ===
+[name]
+`落雷凯诺的审讯椅`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_bronze_icon.img` 6
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002708 -> stackable/event/chn_coupleroom_decoration/chn_object_bronze_taw.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_bronze_taw.stk ===
+[name]
+`牛头人铜像`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_bronze_icon.img` 7
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002709 -> stackable/event/chn_coupleroom_decoration/chn_object_bronze_heaven_expeler.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_bronze_heaven_expeler.stk ===
+[name]
+`天之驱逐者的铠甲装饰`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_bronze_icon.img` 8
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002710 -> stackable/event/chn_coupleroom_decoration/chn_object_curtain_spring_01.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_curtain_spring_01.stk ===
+[name]
+`窗帘 - 淡雅 (蓝色)`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_curtain_icon.img` 3
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002711 -> stackable/event/chn_coupleroom_decoration/chn_object_curtain_red_basic.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_curtain_red_basic.stk ===
+[name]
+`窗帘 - 简易 (红色)`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_curtain_icon.img` 0
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 30
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002712 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_halloween_painting.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_halloween_painting.stk ===
+[name]
+`装饰画 - 幽暗恐惧`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_frame_icon.img` 0
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 25
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002713 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_house_painting.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_house_painting.stk ===
+[name]
+`装饰画 - 田园生活`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_frame_icon.img` 1
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 50
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002714 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_shauta_bone.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_shauta_bone.stk ===
+[name]
+`萨乌塔的牛角装饰 (红色)`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_frame_icon.img` 2
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002715 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_sweet_home_01.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_sweet_home_01.stk ===
+[name]
+`爱恋之心房门吊饰`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_frame_icon.img` 5
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 15
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002716 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_goul_painting.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_goul_painting.stk ===
+[name]
+`骨狱息的迷你画像`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_frame_icon.img` 7
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 30
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002717 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_rorian_painting.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_rorian_painting.stk ===
+[name]
+`罗莉安的装饰画像`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_frame_icon.img` 8
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 50
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002718 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_fishbowl_blue.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_fishbowl_blue.stk ===
+[name]
+`蓝色的水族箱`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_wall_deco_icon.img` 0
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 200
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002719 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_fishbowl_green.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_fishbowl_green.stk ===
+[name]
+`绿色的水族箱`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_wall_deco_icon.img` 1
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 200
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002720 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_heater.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_heater.stk ===
+[name]
+`温暖的壁炉`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_wall_deco_icon.img` 6
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 30
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002721 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_zighardt_fire_blue.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_zighardt_fire_blue.stk ===
+[name]
+`光之城主的蓝灵火挂饰`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_frame_icon.img` 9
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002722 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_kurogaru_mask.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_kurogaru_mask.stk ===
+[name]
+`猫妖的巫师装饰 (简易)`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_frame_icon.img` 12
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002723 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_penril_body.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_penril_body.stk ===
+[name]
+`毒猫王的标本箱`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_wall_deco_icon.img` 7
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002724 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_pratini_golden_deco.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_pratini_golden_deco.stk ===
+[name]
+`普拉塔尼的黄金壁橱`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_wall_deco_icon.img` 8
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 150
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002725 -> stackable/event/chn_coupleroom_decoration/chn_object_bottom_carpet_01.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_bottom_carpet_01.stk ===
+[name]
+`暖冬地毯`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_carpet_icon.img` 1
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 200
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002726 -> stackable/event/chn_coupleroom_decoration/chn_object_bottom_carpet_02.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_bottom_carpet_02.stk ===
+[name]
+`破旧的皮革地毯`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_carpet_icon.img` 0
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 20
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002769 -> stackable/event/chn_coupleroom_decoration/chn_object_long_lamp.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_long_lamp.stk ===
+[name]
+`粉色落地灯`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_wall_deco_icon.img` 5
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 50
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002770 -> stackable/event/chn_coupleroom_decoration/chn_object_green_goblic.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_green_goblic.stk ===
+[name]
+`绿色哥布林雕像`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 1
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 15
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002771 -> stackable/event/chn_coupleroom_decoration/chn_object_yellow_goblic.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_yellow_goblic.stk ===
+[name]
+`黄色哥布林雕像`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 2
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 15
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002772 -> stackable/event/chn_coupleroom_decoration/chn_object_blue_tawtoy.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_blue_tawtoy.stk ===
+[name]
+`黄色牛头人雕像`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 4
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 15
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002773 -> stackable/event/chn_coupleroom_decoration/chn_object_black_tawtoy.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_black_tawtoy.stk ===
+[name]
+`灰色牛头人雕像`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 5
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 15
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002774 -> stackable/event/chn_coupleroom_decoration/chn_object_blue_merrygold_flower.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_blue_merrygold_flower.stk ===
+[name]
+`蓝色金盏菊盆栽`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 7
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 15
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002775 -> stackable/event/chn_coupleroom_decoration/chn_object_purple_merrygold_flower.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_purple_merrygold_flower.stk ===
+[name]
+`紫色金盏菊盆栽`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 8
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 15
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002776 -> stackable/event/chn_coupleroom_decoration/chn_object_yellow_siran_flower.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_yellow_siran_flower.stk ===
+[name]
+`黄色五月花盆栽`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 11
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 15
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002777 -> stackable/event/chn_coupleroom_decoration/chn_object_blue_siran_flower.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_blue_siran_flower.stk ===
+[name]
+`蓝色五月花盆栽`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_object_icon.img` 10
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 15
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002778 -> stackable/event/chn_coupleroom_decoration/chn_object_ceiling_flower_01_red.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_ceiling_flower_01_red.stk ===
+[name]
+`红色吊篮装饰`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_ceiling_icon.img` 1
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 30
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002779 -> stackable/event/chn_coupleroom_decoration/chn_object_ceiling_flower_01_yellow.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_ceiling_flower_01_yellow.stk ===
+[name]
+`黄色吊篮装饰`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_ceiling_icon.img` 2
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 30
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002780 -> stackable/event/chn_coupleroom_decoration/chn_object_curtain_spring_01_pink.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_curtain_spring_01_pink.stk ===
+[name]
+`窗帘 - 淡雅 (粉色)`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_curtain_icon.img` 5
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002781 -> stackable/event/chn_coupleroom_decoration/chn_object_curtain_spring_01_yellow.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_curtain_spring_01_yellow.stk ===
+[name]
+`窗帘 - 淡雅 (橙色)`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_curtain_icon.img` 4
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002782 -> stackable/event/chn_coupleroom_decoration/chn_object_curtain_red_basic_orange.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_curtain_red_basic_orange.stk ===
+[name]
+`窗帘 - 简易 (橙色)`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_curtain_icon.img` 1
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 30
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002783 -> stackable/event/chn_coupleroom_decoration/chn_object_curtain_red_basic_purple.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_curtain_red_basic_purple.stk ===
+[name]
+`窗帘 - 简易 (紫色)`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_curtain_icon.img` 2
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 30
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002784 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_shauta_bone_blue.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_shauta_bone_blue.stk ===
+[name]
+`萨乌塔的牛角装饰 (蓝色)`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_frame_icon.img` 3
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002785 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_shauta_bone_green.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_shauta_bone_green.stk ===
+[name]
+`萨乌塔的牛角装饰 (绿色)`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_frame_icon.img` 4
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002786 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_picture_goul_side.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_picture_goul_side.stk ===
+[name]
+`骨狱息的巨幅画像`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_frame_icon.img` 6
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 30
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002787 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_hang_pink_flower.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_hang_pink_flower.stk ===
+[name]
+`粉色樱花吊饰`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_wall_deco_icon.img` 3
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 50
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002788 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_danjin_flower.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_danjin_flower.stk ===
+[name]
+`土罐盆栽装饰`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_wall_deco_icon.img` 4
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 15
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002789 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_tawdoll_on_the_chair.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_tawdoll_on_the_chair.stk ===
+[name]
+`休闲的牛头人偶`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_wall_deco_icon.img` 2
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 15
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002790 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_zighardt_fire_green.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_zighardt_fire_green.stk ===
+[name]
+`光之城主的绿灵火挂饰`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_frame_icon.img` 10
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002791 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_zighardt_fire_red.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_zighardt_fire_red.stk ===
+[name]
+`赛格哈特的赤灵火挂饰`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_frame_icon.img` 11
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002792 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_kurogaru_mask_red.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_kurogaru_mask_red.stk ===
+[name]
+`猫妖的巫师装饰 (红色)`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_frame_icon.img` 13
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002793 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_kurogaru_mask_purple.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_kurogaru_mask_purple.stk ===
+[name]
+`猫妖的巫师装饰 (紫色)`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_frame_icon.img` 14
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002794 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_pratini_blue_deco.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_pratini_blue_deco.stk ===
+[name]
+`普拉塔尼的青色壁橱`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_wall_deco_icon.img` 10
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 80
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002795 -> stackable/event/chn_coupleroom_decoration/chn_object_wall_pratini_purple_deco.stk
+=== stackable/event/chn_coupleroom_decoration/chn_object_wall_pratini_purple_deco.stk ===
+[name]
+`普拉塔尼的紫色壁橱`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_wall_deco_icon.img` 9
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 80
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002796 -> stackable/event/chn_coupleroom_decoration/chn_bottom_tree.stk
+=== stackable/event/chn_coupleroom_decoration/chn_bottom_tree.stk ===
+[name]
+`普通木质地板`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 0
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002797 -> stackable/event/chn_coupleroom_decoration/chn_bottom_chess.stk
+=== stackable/event/chn_coupleroom_decoration/chn_bottom_chess.stk ===
+[name]
+`黑白方格地板`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_floor_icon.img` 1
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002798 -> stackable/event/chn_coupleroom_decoration/chn_bottom_gold.stk
+=== stackable/event/chn_coupleroom_decoration/chn_bottom_gold.stk ===
+[name]
+`金色雕纹地板`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_floor_icon.img` 0
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002799 -> stackable/event/chn_coupleroom_decoration/chn_wallpaper_white.stk
+=== stackable/event/chn_coupleroom_decoration/chn_wallpaper_white.stk ===
+[name]
+`白色壁纸`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_wallpaper_icon.img` 0
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 30
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002800 -> stackable/event/chn_coupleroom_decoration/chn_wallpaper_bluecloud.stk
+=== stackable/event/chn_coupleroom_decoration/chn_wallpaper_bluecloud.stk ===
+[name]
+`蓝天壁纸`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_wallpaper_icon.img` 2
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002801 -> stackable/event/chn_coupleroom_decoration/chn_wallpaper_gold.stk
+=== stackable/event/chn_coupleroom_decoration/chn_wallpaper_gold.stk ===
+[name]
+`典雅金丝壁纸`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_wallpaper_icon.img` 1
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## id 10002802 -> stackable/event/chn_coupleroom_decoration/chn_window_05.stk
+=== stackable/event/chn_coupleroom_decoration/chn_window_05.stk ===
+[name]
+`金色窗户 - 樱花背景`
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/chn_coupleroom/chn_window_icon.img` 4
+[stackable type]
+`[couple room item]` 0
+[need material]
+10002606 100
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+

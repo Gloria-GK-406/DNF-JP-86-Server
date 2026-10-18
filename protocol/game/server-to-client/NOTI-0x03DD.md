@@ -1,5 +1,13 @@
 # NOTI `0x03DD` `AIM_FOR_THE_LEGENDARY`
 
+## A21 人工裁定：婚房/情侣树/胶囊（2026-10-18 / ClientStatic）
+
+A21 名称 `COUPLE_SIMPLE_INFO`（本页标题为旧版本名）。handler `00893190` 读 **14B**，Confirmed（结构）：
+`u32 目标角色对象 id`、`u32 配偶 id`→角色+0x380、`u8`→+0x384、`u8`→+0x386（经 `02740EF0` 映射显示，戒指级候选）、
+`u32`→+0x388（婚房装饰汇总值，与本人由 03D8 计算的同一字段）。仅作用于**他人**角色，本人跳过；若该角色配偶等于本人则触发 C2S `0x03F3`。字段名为 Hypothesis。
+
+证据与反汇编：[A21 婚房静态调查](../../../Document/outputs/marriage-housing-20261018/a21/a21.md)（`builders-disassembly.txt`、`handlers-disassembly.txt`、`switches-housing.txt`、`dstr-housing.txt`）。客户端 SHA-256 `CA7ECA4E…388D14`，镜像 `6BD2746D…953507`；构包点与机器区所绑 `1F8244D3…` 客户端一致。尚无实帧。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

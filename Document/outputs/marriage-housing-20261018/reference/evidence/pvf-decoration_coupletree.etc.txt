@@ -1,0 +1,64 @@
+=== decoration/coupletree.etc ===
+[seed]
+10002766 1 10002768 2 10002767 3
+[/seed]
+[reward letter]
+1078 1192
+[/reward letter]
+[tree]
+[index]
+1
+[expire day]
+30
+[day water count]
+2
+[name]
+神秘的枫树
+[grow point]
+10002765 10 10002905 20
+[/grow point]
+[step]
+10 decoration/growtree/Animation/tree_2673004_1.ani 20 decoration/growtree/Animation/tree_2673004_2.ani 30 decoration/growtree/Animation/tree_2673004_3.ani
+[/step]
+[reward]
+10002609 40000 2 10002901 40000 2 10002758 10000 1 10002609 5000 3 10002901 4000 5 10002609 1000 5
+[/reward]
+[/tree]
+[tree]
+[index]
+2
+[name]
+粉晶石树
+[expire day]
+30
+[day water count]
+2
+[grow point]
+10002765 10 10002905 20
+[/grow point]
+[step]
+10 decoration/growtree/Animation/tree_2673005_1.ani 20 decoration/growtree/Animation/tree_2673005_2.ani 30 decoration/growtree/Animation/tree_2673005_3.ani
+[/step]
+[reward]
+10002609 40000 2 10002901 40000 2 10002758 10000 1 10002609 5000 3 10002901 4000 5 10002609 1000 5
+[/reward]
+[/tree]
+[tree]
+[index]
+3
+[name]
+黄宝石树
+[expire day]
+30
+[day water count]
+2
+[grow point]
+10002765 10 10002905 20
+[/grow point]
+[step]
+10 decoration/growtree/Animation/tree_2673006_1.ani 20 decoration/growtree/Animation/tree_2673006_2.ani 30 decoration/growtree/Animation/tree_2673006_3.ani
+[/step]
+[reward]
+10002609 40000 2 10002901 40000 2 10002758 10000 1 10002609 5000 3 10002901 4000 5 10002609 1000 5
+[/reward]
+[/tree]

@@ -1,0 +1,56 @@
+exe=E:\Project\DNF\DNFClient-A21-protocol\DNF.unpacked-b1-debug.exe
+exe_sha256=CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14
+dump=E:\Project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260906-224825-165-31384\DNF-memory-rva.bin
+dump_sha256=6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507
+image_base=00400000  (VA = RVA + base)
+evidence=ClientStatic; read-only
+
+NPC menu switch at RVA 021AB244: case = edi, table VA 025AC338, bias 0x3ED
+menu 1005 (0x3ED) -> RVA 021AB27C: call 01F06D00(push 0x14); jmp 021ABFA2
+menu 1006 (0x3EE) -> RVA 021AB28C: call 01F01820(push 0x1AF); call 01F01820(push 0x1F); call 01F06D00(push 0x16); jmp 021ABFA2
+menu 1007 (0x3EF) -> RVA 021ABFA2: call 02193280; call 023BACC0(push 0x3166070); call 01248A20(push 0x3166070); call 02193280(push 0x3166070); call 023BACC0(push 0x3166070)
+menu 1008 (0x3F0) -> RVA 021ABFA2: call 02193280; call 023BACC0(push 0x3166070); call 01248A20(push 0x3166070); call 02193280(push 0x3166070); call 023BACC0(push 0x3166070)
+menu 1009 (0x3F1) -> RVA 021A87FC: call 023BACC0(push 0x35D7168); call 023BACC0(push 0x306E9B8); call 023BACC0(push 0x306E9A4); call 0572184B(push 0x0); call 01F00D60(push 0x0)
+menu 1010 (0x3F2) -> RVA 021ABFA2: call 02193280; call 023BACC0(push 0x3166070); call 01248A20(push 0x3166070); call 02193280(push 0x3166070); call 023BACC0(push 0x3166070)
+menu 1011 (0x3F3) -> RVA 021ABFA2: call 02193280; call 023BACC0(push 0x3166070); call 01248A20(push 0x3166070); call 02193280(push 0x3166070); call 023BACC0(push 0x3166070)
+menu 1012 (0x3F4) -> RVA 021AB3AB: call 02352A80(push 0x1); call 025377E0(push 0x0)
+menu 1013 (0x3F5) -> RVA 021AB42C: call 015E3290; call 023C6F20; call 023BC0F0; jmp 021AB4A5
+menu 1014 (0x3F6) -> RVA 021AB558: ecx, dword ptr [0x39adf68]; call 010317C0; call 024C14C0(push 0x11CCD); jmp 021AB521
+menu 1015 (0x3F7) -> RVA 021AB5B4: jmp 021AB521
+menu 1016 (0x3F8) -> RVA 021AB5B4: jmp 021AB521
+menu 1017 (0x3F9) -> RVA 021ABFA2: call 02193280; call 023BACC0(push 0x3166070); call 01248A20(push 0x3166070); call 02193280(push 0x3166070); call 023BACC0(push 0x3166070)
+menu 1018 (0x3FA) -> RVA 021AB5C2: ecx, dword ptr [0x39adf68]; call 008945F0; ecx, dword ptr [0x39adf68]; call 008955D0(push 0x0); jmp 021AB52C
+menu 1019 (0x3FB) -> RVA 021AB680: call 01F01820(push 0x1CE); call 01F04C70(push 0x1CE); jmp 021ABF7B
+menu 1020 (0x3FC) -> RVA 021AB26C: ecx, dword ptr [0x39adf58]; call 00880700; jmp 021ABF7B
+menu 1021 (0x3FD) -> RVA 021AB673: call 02193080; jmp 021AB52C
+menu 1022 (0x3FE) -> RVA 021AB673: call 02193080; jmp 021AB52C
+menu 1023 (0x3FF) -> RVA 021AB673: call 02193080; jmp 021AB52C
+menu 1024 (0x400) -> RVA 021AB673: call 02193080; jmp 021AB52C
+menu 1025 (0x401) -> RVA 021AB673: call 02193080; jmp 021AB52C
+menu 1026 (0x402) -> RVA 021AB5FF: ecx, dword ptr [0x39adf68]; call 00891880; call 01F01820(push 0x1C6); ecx, dword ptr [0x39adf68]; call 01F00940(push 0x1C6); jmp 021AB521
+menu 1027 (0x403) -> RVA 021AB642: call 023BACC0(push 0x3166070); call 01248A20(push 0x3166070); call 00894B80(push 0x3166070); call 02193280(push 0x3166070); jmp 021ABFA2
+menu 1028 (0x404) -> RVA 021ABFA2: call 02193280; call 023BACC0(push 0x3166070); call 01248A20(push 0x3166070); call 02193280(push 0x3166070); call 023BACC0(push 0x3166070)
+menu 1029 (0x405) -> RVA 021ABFA2: call 02193280; call 023BACC0(push 0x3166070); call 01248A20(push 0x3166070); call 02193280(push 0x3166070); call 023BACC0(push 0x3166070)
+menu 1030 (0x406) -> RVA 021ABFA2: call 02193280; call 023BACC0(push 0x3166070); call 01248A20(push 0x3166070); call 02193280(push 0x3166070); call 023BACC0(push 0x3166070)
+menu 1031 (0x407) -> RVA 021AB6AB: call 00D02C30; call 0123D150; call 024C14C0(push 0x11DEB); jmp 021A9627
+menu 1032 (0x408) -> RVA 021AB75E: call 0101A170(push 0x8C5); call 010172D0(push 0x8C5); call 01F06D00(push 0x1A); jmp 021ABF7B
+menu 1033 (0x409) -> RVA 021AB787: call 01F04C70(push 0x32B); jmp 021ABFA2
+menu 1034 (0x40A) -> RVA 021AB7A0: call 01F04790(push 0x263); call 00023460(push 0x24); call 01FDCF30(push 0x24); jmp 021AB7E2
+menu 1035 (0x40B) -> RVA 021AB950: call 01F04C70(push 0x1DD); jmp 021ABFA2
+menu 1036 (0x40C) -> RVA 021AB969: call 01F04C70(push 0x334); jmp 021ABFA2
+menu 1037 (0x40D) -> RVA 021AB982: call 0101A170(push 0x907); call 010172D0(push 0x907); call 01F04C70(push 0x358); jmp 021ABFA2
+menu 1038 (0x40E) -> RVA 021AB9D3: call 0101A170(push 0x908); call 010172D0(push 0x908); call 01F04C70(push 0x35A); jmp 021ABFA2
+menu 1039 (0x40F) -> RVA 021ABA24: call 0101A170(push 0x925); call 010172D0(push 0x925); call 01F04C70(push 0x1FF); jmp 021ABFA2
+menu 1040 (0x410) -> RVA 021ABA52: call 0101A170(push 0x91E); call 010172D0(push 0x91E); call 0101A170(push 0x42); call 01015180(push 0x42); call 0286386A(push 0x42); call 000D99C0(push 0x42)
+menu 1041 (0x411) -> RVA 021ABABB: call 0101A170(push 0x91E); call 010172D0(push 0x91E); call 015E3DF0(push 0x91E); call 0101A170(push 0x42); call 01015180(push 0x42); call 0286386A(push 0x42)
+menu 1042 (0x412) -> RVA 021ABB90: call 0101A170(push 0x928); call 010172D0(push 0x928); call 01F04C70(push 0x36B); jmp 021ABFA2
+menu 1043 (0x413) -> RVA 021ABBE1: call 0101A170(push 0x922); call 010172D0(push 0x922); call 01F04C70(push 0x36A); jmp 021ABFA2
+menu 1044 (0x414) -> RVA 021ABC13: call 0101A170(push 0x937); call 010172D0(push 0x937); call 01F04C70(push 0x381); jmp 021ABFA2
+menu 1045 (0x415) -> RVA 021ABC45: call 0101A170(push 0x86B); call 010172D0(push 0x86B); call 01F04C70(push 0x352); jmp 021ABFA2
+menu 1046 (0x416) -> RVA 021ABC77: call 0101A170(push 0x934); call 010172D0(push 0x934); call 01F04C70(push 0x1F8); jmp 021ABFA2
+menu 1047 (0x417) -> RVA 021ABCA9: call 0101A170(push 0x93A); call 010172D0(push 0x93A); call 015E3DF0(push 0x93A); call 024C14C0(push 0x3340); call 01F04C70(push 0x209); jmp 021AC012
+menu 1048 (0x418) -> RVA 021ABD90: call 0101A170(push 0x25); call 01015180(push 0x25); call 0286386A(push 0x25); call 0085AA60(push 0x25); jmp 021ABFA2
+menu 1049 (0x419) -> RVA 021ABDC9: call 0101A170(push 0x93D); call 010172D0(push 0x93D); call 01F01820(push 0x1FC); call 01F04C70(push 0x1FC); jmp 021ABFA2
+menu 1050 (0x41A) -> RVA 021ABE34: call 0101A170(push 0x943); call 010172D0(push 0x943); call 015E3DF0(push 0x943); call 012F3380(push 0x1023); call 024C14C0(push 0x12AE4); call 01F04C70(push 0x209)
+menu 1051 (0x41B) -> RVA 021AB2C9: call 02352A80(push 0x1); call 025377E0(push 0x0); jmp 021AB30A
+menu 1052 (0x41C) -> RVA 021ABEE8: call 0101A170(push 0x94C); call 010172D0(push 0x94C); call 01F01820(push 0x38B); call 01F04C70(push 0x38B); jmp 021ABFA2

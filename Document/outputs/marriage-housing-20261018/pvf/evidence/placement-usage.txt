@@ -1,0 +1,27 @@
+pos 0 used by 2 items
+pos 1 used by 3 items
+pos 2 used by 5 items
+pos 3 used by 6 items
+pos 4 used by 5 items
+pos 5 used by 5 items
+pos 6 used by 15 items
+pos 7 used by 15 items
+pos 8 used by 6 items
+pos 9 used by 6 items
+pos 10 used by 13 items
+pos 12 used by 14 items
+pos 13 used by 14 items
+pos 14 used by 6 items
+pos 15 used by 6 items
+pos 16 used by 18 items
+pos 17 used by 18 items
+pos 18 used by 18 items
+pos 19 used by 23 items
+pos 20 used by 23 items
+pos 21 used by 11 items
+pos 22 used by 18 items
+pos 23 used by 18 items
+pos 25 used by 5 items
+pos 26 used by 4 items
+pos 27 used by 4 items
+nonzero4th=0

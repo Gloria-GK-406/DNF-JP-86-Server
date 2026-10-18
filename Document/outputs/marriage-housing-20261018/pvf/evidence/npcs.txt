@@ -1,0 +1,87 @@
+######## npc/chn_mago.npc
+=== npc/chn_mago.npc ===
+[small face]
+`Map/Npc/NpcFace04.img` 16
+[big face]
+`Map/Npc/NpcFace04.img` 16
+[popup face]
+`Map/Npc/NpcFace_cn.img` 9
+[field animation]
+`Animation/chn_Npc_mago.ani`
+[popup wav]
+`NPC_MAGU_TK` `NPC_MAGU_FW`
+[role]
+`[couple room shop]` 1206 `[item shop]` 1207 `[wedding message]` 0 `[receive partner gift]` 0
+[/role]
+[name]
+`云清`
+[field name]
+`云清`
+[look around]
+0
+[balloon message]
+`物品保管箱开启时， 右键单击装饰物， 可进行装饰和收回。` 5000 3000 `请通过我购买婚房装饰物~` 5000 3000
+[/balloon message]
+
+######## npc/chn_coupleroom_Tree.npc
+=== npc/chn_coupleroom_Tree.npc ===
+[small face]
+`Map/Npc/aradG-ICON.img` 1
+[big face]
+`Map/Npc/aradG-ICON.img` 0
+[popup face]
+`Map/Npc/NpcFace_cn.img` 11
+[field animation]
+`Animation/chn_coupleroom/coupleroomTree.ani`
+[look around]
+0
+[role]
+`[couple room tree]` 0
+[/role]
+[name]
+`闲置的花圃`
+[field name]
+`闲置的花圃`
+
+######## npc/chn_father.npc
+=== npc/chn_father.npc ===
+[small face]
+`Map/Npc/NpcFace04.img` 16
+[popup face]
+`Map/Npc/NpcFace_cn.img` 13
+[field animation]
+`Animation/chn_Npc_father.ani`
+[field wav]
+`R_NPC_HIGH_PRIEST_AMB`
+[popup wav]
+`NPC_HIGH_PRIEST_TK` `NPC_HIGH_PRIEST_FW`
+[role]
+`[item shop]` 1208 `[wedding]` 0
+[/role]
+[look around]
+0
+[name]
+`大司祭`
+[field name]
+`大司祭`
+
+######## npc/chn_father_inside.npc
+=== npc/chn_father_inside.npc ===
+[small face]
+`Map/Npc/NpcFace04.img` 16
+[popup face]
+`Map/Npc/NpcFace_cn.img` 13
+[field animation]
+`Animation/chn_Npc_father.ani`
+[popup wav]
+`NPC_HIGH_PRIEST_TK` `NPC_HIGH_PRIEST_FW`
+[role]
+`[item shop]` 1208 `[exit church]` 0
+[/role]
+[look around]
+0
+[name]
+`大司祭`
+[field name]
+`大司祭`
+

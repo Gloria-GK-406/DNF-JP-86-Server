@@ -44,6 +44,15 @@ offset 0 写 `2`，A21 会将其解释为两个婚房条目，再从错误位置
 窄反汇编见
 [focused-excerpts.txt](../../../Document/outputs/marriage-research-20261016/a21/focused-excerpts.txt)。
 
+### 2026-10-18 补充：条目与尾部语义（ClientStatic）
+
+- 尾部 13B 与 NOTI `0x03DC COUPLE_TREE` 的读法、写入字段完全相同（`008821B2..008821EF` 对照 `0087E853..0087E890`），**即爱情树快照**：
+  `u32 树种类(0=无树)`、`u32 枯萎时刻(UTC Unix 秒)`、`u32 成长值`、`i8 未知`（语义 High，见 NOTI 0x03DC 人工区）。
+- 6B 条目的 `u32` 是**家具物品 ID**（High）：进入 slot→itemId map（`00881510`），在 town 101 时生成家具对象（`008802B0`），并由 `00881DF0` 逐件读物品数据汇总后写角色 +0x388。
+- **协议不含坐标**（High）：命中测试 `0087FC90` 用 `0273D000(slot)` 取得婚房布局固定点，再加上物品矩形；slot 是预定义摆放点编号。
+- 113B 参考常量（ReferenceOnly）：16 个值位于 `10002692..10002802`；尾部为 `kind 3 / 2025-10-31T21:58:06Z / 30 / 1`。
+- 详见 [A21 婚房静态调查](../../../Document/outputs/marriage-housing-20261018/a21/a21.md)。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

@@ -1,0 +1,1579 @@
+######## town/SilverCrown.twn
+=== town/SilverCrown.twn ===
+[entering title]
+`Title/SilverCrown.ani`
+[cutscene image]
+`Map/CutScene/SilverCrown.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/SilverCrown/Gate_SilverCrown.map`
+[permission]
+[need level]
+1
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+1 `Town/SilverCrown/SilverCrown_MainStreet.map`
+[permission]
+[need level]
+1
+[/permission]
+`[normal]`
+[/area]
+[area]
+2 `Town/SilverCrown/SilverCrown_WarRoom.map`
+[permission]
+[need level]
+1
+[/permission]
+`[dungeon gate]` 21
+[/area]
+[name]
+`银色村庄`
+
+######## town/Underfoot.twn
+=== town/Underfoot.twn ===
+[entering title]
+`Title/Underfoot.ani`
+[cutscene image]
+`Map/CutScene/Underfoot_Town.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/Underfoot/Gate_Underfoot.map`
+[permission]
+[need level]
+17
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+1 `Town/Underfoot/Underfoot_GoSilverCrown.map`
+[permission]
+[need level]
+17
+[/permission]
+`[normal]`
+[/area]
+[area]
+2 `Town/Underfoot/Underfoot_Event.map`
+[permission]
+[need level]
+17
+[/permission]
+`[dungeon gate]` 101
+[/area]
+[area]
+3 `Town/Underfoot/Underfoot_GoSewer.map`
+[permission]
+[need level]
+17
+[/permission]
+`[dungeon gate]` 101
+[/area]
+[area]
+4 `Town/Underfoot/Underfoot_NPCplaza.map`
+[permission]
+[need level]
+17
+[/permission]
+`[dungeon gate]` 102
+[/area]
+[area]
+5 `Town/Underfoot/Underfoot_DT_Or_Icewall.map`
+[permission]
+[need level]
+17
+[/permission]
+`[dungeon gate]` 38
+[/area]
+[area]
+6 `Town/Underfoot/Underfoot_GroupBattle.map`
+[permission]
+[need level]
+17
+[/permission]
+`[normal]`
+[/area]
+[area]
+7 `Town/Underfoot/Underfoot_WarRoom.map`
+[permission]
+[need level]
+17
+[/permission]
+`[dungeon gate]` 23
+[/area]
+[area]
+8 `Town/Underfoot/Underfoot_Port.map`
+[permission]
+[need level]
+17
+[/permission]
+`[normal]`
+[/area]
+[area]
+9 `Town/Underfoot/Underfoot_DeathTower.map`
+[permission]
+[need level]
+27
+[play movie]
+`Video/movie/cinematic_03.avi`
+[/permission]
+`[dungeon gate]` 100
+[/area]
+[area]
+10 `Town/Underfoot/Underfoot_GoIcewall.map`
+[permission]
+[need level]
+27
+[/permission]
+`[dungeon gate]` 36
+[/area]
+[area]
+11 `Town/Underfoot/Underfoot_GroupDNG.map`
+[permission]
+[need level]
+17
+[/permission]
+`[dungeon gate]` 14
+[/area]
+[area]
+12 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+13 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+14 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+15 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+16 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+17 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+18 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+19 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+20 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+21 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+22 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+23 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+24 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+25 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+26 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+27 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+28 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+29 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+30 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+31 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+32 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+33 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+34 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+35 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+36 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+37 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+38 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+39 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+40 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+41 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+42 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+43 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+44 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+45 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+46 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+47 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+48 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+49 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+50 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+51 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+52 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+53 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+54 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+55 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+56 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+57 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+58 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+59 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+60 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+61 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+62 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+63 `Church/Church.map`
+[permission]
+[need level]
+17
+[/permission]
+`[minimap rect]` 259 234 276 245 `[/minimap rect]` `[use private store]` 0 `[normal]`
+[/area]
+[area]
+64 `circus_tw/circus_tw.map`
+[permission]
+[need level]
+20
+[/permission]
+`[dungeon gate]` 103
+[/area]
+[area]
+65 `Zombi/gothloli.map`
+[permission]
+[need level]
+50
+[/permission]
+`[dungeon gate]` 104
+[/area]
+[area]
+66 `Charon_dimension/Charon_dimension.map`
+[permission]
+[need level]
+1
+[/permission]
+`[dungeon gate]` 104
+[/area]
+[area]
+67 `Town/Underfoot/Underfoot_GroupDNG_2.map`
+[permission]
+[need level]
+17
+[/permission]
+`[dungeon gate]` 14
+[/area]
+[area]
+68 `event_zombie_dungeon/zombie_dungeon.map`
+[permission]
+[need level]
+17
+[/permission]
+`[dungeon gate]` 111
+[/area]
+[name]
+`暗黑城`
+
+######## town/Sewer.twn
+=== town/Sewer.twn ===
+[entering title]
+`Title/Sewer.ani`
+[cutscene image]
+`Map/CutScene/Sewer.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/Sewer/Gate_Sewer.map`
+[permission]
+[need level]
+17
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+1 `Town/Sewer/Sewer_Main.map`
+[permission]
+[need level]
+17
+[/permission]
+`[normal]`
+[/area]
+[area]
+2 `Town/Sewer/Sewer_WarRoom.map`
+[permission]
+[need level]
+17
+[/permission]
+`[dungeon gate]` 22
+[/area]
+[area]
+3 `Town/Sewer/Sewer_Pub.map`
+[permission]
+[need level]
+17
+[/permission]
+`[normal]`
+[/area]
+[area]
+4 `Town/Sewer/Sewer_Pub2.map`
+[permission]
+[need level]
+17
+[/permission]
+`[normal]`
+[/area]
+[name]
+`赫顿玛尔废墟`
+
+######## town/Behemoth.twn
+=== town/Behemoth.twn ===
+[entering title]
+`Title/Behemoth.ani`
+[cutscene image]
+`Map/CutScene/Behemoth.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/Behemoth/Gate_Behemoth.map`
+[permission]
+[need level]
+37
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+1 `Town/Behemoth/Behemoth_Main.map`
+[permission]
+[need level]
+37
+[/permission]
+`[normal]`
+[/area]
+[area]
+2 `Town/Behemoth/Behemoth_WarRoom.map`
+[permission]
+[need level]
+37
+[/permission]
+`[dungeon gate]` 24
+[/area]
+[name]
+`天帷巨兽`
+
+######## town/ShelterOfNorth.twn
+=== town/ShelterOfNorth.twn ===
+[entering title]
+`Title/ShelterOfNorth.ani`
+[cutscene image]
+`Map/CutScene/ShelterOfNorth.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/ShelterOfNorth/Gate_ShelterOfNorth.map`
+[permission]
+[need level]
+46
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+1 `Town/ShelterOfNorth/ShelterOfNorth_MainStreet.map`
+[permission]
+[need level]
+46
+[/permission]
+`[normal]`
+[/area]
+[area]
+2 `Town/ShelterOfNorth/ShelterOfNorth_WarRoom.map`
+[permission]
+[need level]
+46
+[/permission]
+`[dungeon gate]` 25
+[/area]
+[name]
+`北方避难所`
+
+######## town/Gent.twn
+=== town/Gent.twn ===
+[entering title]
+`Title/Gent.ani`
+[cutscene image]
+`Map/CutScene/Gent.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/Gent/Gent_Market.map`
+[permission]
+[need level]
+55
+[need quest]
+2116
+[/need quest]
+[/permission]
+`[normal]`
+[/area]
+[area]
+1 `Town/Gent/Gent_Workshop.map`
+[permission]
+[need level]
+55
+[need quest]
+2116
+[/need quest]
+[/permission]
+`[normal]`
+[/area]
+[area]
+2 `Town/Gent/Gent2Ant1.map`
+[permission]
+[need level]
+55
+[need quest]
+2116
+[/need quest]
+[/permission]
+`[dungeon gate]` 12
+[/area]
+[area]
+3 `Town/Gent/Gent2Ant2.map`
+[permission]
+[need level]
+55
+[need quest]
+2116
+[/need quest]
+[/permission]
+`[dungeon gate]` 12
+[/area]
+[area]
+4 `Town/Gent/Gate_Gent.map`
+[permission]
+[need level]
+55
+[need quest]
+2116
+[/need quest]
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+5 `Town/Gent/Imperial_Palace.map`
+[permission]
+[need level]
+55
+[need quest]
+2116
+[/need quest]
+[/permission]
+`[use private store]` 0 `[normal]`
+[/area]
+[name]
+`根特`
+
+######## town/Warfare.twn
+=== town/Warfare.twn ===
+[entering title]
+`Title/Cantion.ani`
+[cutscene image]
+`Map/CutScene/RVR_gate.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/Warfare/Warfare00.map`
+[permission]
+[need level]
+50
+[/permission]
+`[minimap rect]` 45 188 127 233 `[/minimap rect]` `[safe zone against b]`
+[/area]
+[area]
+1 `Town/Warfare/Warfare01.map`
+[permission]
+[need level]
+50
+[/permission]
+`[minimap rect]` 139 188 220 233 `[/minimap rect]` `[normal]`
+[/area]
+[area]
+2 `Town/Warfare/Warfare02.map`
+[permission]
+[need level]
+50
+[/permission]
+`[minimap rect]` 230 188 311 233 `[/minimap rect]` `[normal]`
+[/area]
+[area]
+3 `Town/Warfare/Warfare03.map`
+[permission]
+[need level]
+50
+[/permission]
+`[minimap rect]` 324 188 405 233 `[/minimap rect]` `[normal]`
+[/area]
+[area]
+4 `Town/Warfare/Warfare05.map`
+[permission]
+[need level]
+50
+[/permission]
+`[minimap rect]` 513 188 594 233 `[/minimap rect]` `[safe zone against a]`
+[/area]
+[area]
+5 `Town/Warfare/Warfare04.map`
+[permission]
+[need level]
+50
+[/permission]
+`[minimap rect]` 420 188 500 233 `[/minimap rect]` `[normal]`
+[/area]
+[name]
+`末日之都坎特温`
+
+######## town/GuildAgit.twn
+=== town/GuildAgit.twn ===
+[entering title]
+`Title/guildagit.ani`
+[cutscene image]
+`Map/CutScene/GuildAgit.img` 1
+[dungeon what must be cleared]
+-1
+[area]
+0 `Guildagit/GuildAgit_S.map`
+[permission]
+[need level]
+1
+[/permission]
+`[normal]`
+[/area]
+[area]
+1 `Guildagit/GuildAgit_B.map`
+[permission]
+[need level]
+1
+[/permission]
+`[dungeon gate]` 37
+[/area]
+[area]
+2 `Guildagit/GuildAgit_H0.map`
+[permission]
+[need level]
+17
+[/permission]
+`[normal]`
+[/area]
+[area]
+3 `Guildagit/GuildAgit_H1.map`
+[permission]
+[need level]
+1
+[/permission]
+`[normal]`
+[/area]
+[area]
+4 `Guildagit/Gate_GuildAgit.map`
+[permission]
+[need level]
+1
+[/permission]
+`[minimap rect]` 258 149 271 157 `[/minimap rect]` `[gate]` 474 234
+[/area]
+[name]
+`公会大厅`
+
+######## town/LuftHafen.twn
+=== town/LuftHafen.twn ===
+[entering title]
+`Title/LuftHarfen.ani`
+[cutscene image]
+`Map/CutScene/LuftHafen.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/LuftHafen/LuftHafent_Market.map`
+[permission]
+[need level]
+64
+[/permission]
+`[normal]`
+[/area]
+[area]
+1 `Town/LuftHafen/LuftHafent_Platform.map`
+[permission]
+[need level]
+64
+[/permission]
+`[dungeon gate]` 15
+[/area]
+[area]
+2 `Town/LuftHafen/Gate_LuftHafent.map`
+[permission]
+[need level]
+64
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+3 `Town/LuftHafen/LuftHafent_street.map`
+[permission]
+[need level]
+64
+[/permission]
+`[normal]`
+[/area]
+[name]
+`鲁夫特悬空海港`
+
+######## town/Fair_PVP.twn
+=== town/Fair_PVP.twn ===
+[entering title]
+`Title/Pvp.ani`
+[dungeon what must be cleared]
+-1
+[only server parsing dungeon what must be cleared]
+2
+[cutscene image]
+`Map/CutScene/PVP_town.img` 0
+[area]
+0 `Fair_PVP/Gate_Hendon.map`
+[permission]
+[need level]
+45
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+1 `Fair_PVP/Hendon_Pub.map`
+[permission]
+[need level]
+45
+[/permission]
+`[normal]`
+[/area]
+[area]
+2 `Fair_PVP/Hendon_Pub_side.map`
+[permission]
+[need level]
+45
+[/permission]
+`[normal]`
+[/area]
+[name]
+`决斗场`
+[area]
+3 `Fair_PVP/Acto_Gate_Hendon.map`
+[permission]
+[need level]
+70
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+4 `Fair_PVP/Acto_Hendon_Pub.map`
+[permission]
+[need level]
+70
+[/permission]
+`[normal]`
+[/area]
+
+######## town/Shonan.twn
+=== town/Shonan.twn ===
+[entering title]
+`Title/Shonan.ani`
+[cutscene image]
+`Map/CutScene/Shonan.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/Shonan/Shonan_Gymnasium.map`
+[permission]
+[need level]
+69
+[/permission]
+`[normal]`
+[/area]
+[area]
+1 `Town/Shonan/Shonan_Workshop.map`
+[permission]
+[need level]
+69
+[/permission]
+`[normal]`
+[/area]
+[area]
+2 `Town/Shonan/Shonan_Tournament.map`
+[permission]
+[need level]
+69
+[/permission]
+`[dungeon gate]` 16
+[/area]
+[area]
+3 `Town/Shonan/Gate_Shonan.map`
+[permission]
+[need level]
+69
+[/permission]
+`[gate]` 474 234
+[/area]
+[name]
+`虚祖首都 素喃`
+
+######## town/TimeGate.twn
+=== town/TimeGate.twn ===
+[entering title]
+`Title/TimeGate.ani`
+[cutscene image]
+`Map/CutScene/TimeGate.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/TimeGateArea/TimeGateAreaWR.map`
+[permission]
+[need quest]
+2350
+[/need quest]
+[need level]
+70
+[/permission]
+`[dungeon gate]` 17
+[/area]
+[name]
+`时空之门`
+
+######## town/TimeGateRequiem.twn
+=== town/TimeGateRequiem.twn ===
+[entering title]
+`Title/TimeGateRequiem.ani`
+[cutscene image]
+`Map/CutScene/TimeGate.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/TimeGateRequiem/TimeGateRequiemWR.map`
+[permission]
+[need quest]
+12855
+[/need quest]
+[need level]
+85
+[/permission]
+`[dungeon gate]` 18
+[/area]
+[name]
+`时空之门 - 镇魂曲`
+
+######## town/Slough.twn
+=== town/Slough.twn ===
+[entering title]
+`Title/Slough.ani`
+[cutscene image]
+`Map/CutScene/Slough.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/Slough/Slough_down_street.map`
+[permission]
+[need level]
+79
+[/permission]
+`[normal]`
+[/area]
+[area]
+1 `Town/Slough/Slough_up_street.map`
+[permission]
+[need level]
+79
+[/permission]
+`[normal]`
+[/area]
+[area]
+2 `Town/Slough/Slough_powerstation.map`
+[permission]
+[need level]
+79
+[/permission]
+`[dungeon gate]` 19
+[/area]
+[area]
+3 `Town/Slough/Gate_Slough.map`
+[permission]
+[need level]
+79
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+4 `Town/Slough/Slough_airfield.map`
+[permission]
+[need quest]
+3002
+[/need quest]
+[need level]
+85
+[/permission]
+`[normal]`
+[/area]
+[name]
+`斯曼工业基地`
+
+######## town/Twin_Raid.twn
+=== town/Twin_Raid.twn ===
+[entering title]
+`Title/Twin_Raid.ani`
+[cutscene image]
+`Map/CutScene/GentEastGate.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Twin_Raid_Ch/Imperial_Palace.map`
+[permission]
+[need level]
+60
+[/permission]
+`[minimap rect]` 258 149 271 157 `[/minimap rect]` `[gate]` 594 234
+[/area]
+[area]
+1 `Twin_Raid_Ch/Gent_ChannelRoom.map`
+[permission]
+[need level]
+60
+[/permission]
+`[minimap rect]` 320 167 358 187 `[/minimap rect]` `[normal]`
+[/area]
+[name]
+`时空之门`
+
+######## town/SaintHorn.twn
+=== town/SaintHorn.twn ===
+[entering title]
+`Title/SaintHorn.ani`
+[cutscene image]
+`Map/CutScene/SaintHorn.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/Sainthorn/Gate_Sainthorn.map`
+[permission]
+[need level]
+1
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+1 `Town/Sainthorn/Sainthorn_Ship_middle.map`
+[permission]
+[need level]
+1
+[/permission]
+`[normal]`
+[/area]
+[area]
+2 `Town/Sainthorn/Sainthorn_Ship_rear.map`
+[permission]
+[need level]
+1
+[/permission]
+`[dungeon gate]` 13
+[/area]
+[area]
+3 `Town/Sainthorn/Sainthorn_Ship_prow.map`
+[permission]
+[need level]
+1
+[/permission]
+`[dungeon gate]` 26
+[/area]
+[area]
+4 `Town/Sainthorn/Sainthorn_Ship_rear_down.map`
+[permission]
+[need level]
+1
+[/permission]
+`[dungeon gate]` 13
+[/area]
+[area]
+5 `Town/Sainthorn/TimeGateRequiemWR.map`
+[permission]
+[need quest]
+12855
+[/need quest]
+[need level]
+85
+[ancient area show gate rate]
+1
+[/permission]
+`[dungeon gate]` 26
+[/area]
+[name]
+`圣者之鸣号`
+
+######## town/Kor_Shonan_Holy.twn
+=== town/Kor_Shonan_Holy.twn ===
+[entering title]
+`Title/Kor_Shonan_holy.ani`
+[dungeon what must be cleared]
+-1
+[cutscene image]
+`Map/CutScene/chn_Shonan.img` 0
+[area]
+0 `Town/kor_Dragon_shonan_holyland/38130_shonan_holy00.map`
+[permission]
+[need level]
+84
+[/permission]
+`[dungeon gate]` 30
+[/area]
+[area]
+1 `Town/kor_Dragon_shonan_holyland/Gate_shonan_holy01.map`
+[permission]
+[need level]
+84
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+2 `Town/kor_Dragon_shonan_holyland/38132_shonan_holy02.map`
+[permission]
+[need level]
+84
+[/permission]
+`[normal]`
+[/area]
+[area]
+3 `Town/kor_Dragon_shonan_holyland/38133_shonan_holy03.map`
+[permission]
+[need level]
+84
+[/permission]
+`[normal]`
+[/area]
+[name]
+`月溪镇`
+
+######## town/BattleShip_Raid.twn
+=== town/BattleShip_Raid.twn ===
+[entering title]
+`Title/NobleSky.ani`
+[cutscene image]
+`Map/CutScene/NobleSky.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/BattleShip/Gate_BattleShip.map`
+[permission]
+[need level]
+85
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+1 `Town/BattleShip/BattleShip_Main.map`
+[permission]
+[need level]
+85
+[/permission]
+`[normal]`
+[/area]
+[area]
+2 `Town/BattleShip/BattleShip_Anton.map`
+[permission]
+[need level]
+85
+[/permission]
+`[dungeon gate]` 27
+[/area]
+[name]
+`苍穹贵族号`
+
+######## town/BattleShip_Normal.twn
+=== town/BattleShip_Normal.twn ===
+[entering title]
+`Title/NobleSky.ani`
+[cutscene image]
+`Map/CutScene/NobleSky.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/BattleShip2/Gate_BattleShip.map`
+[permission]
+[need level]
+85
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+1 `Town/BattleShip2/BattleShip_Main.map`
+[permission]
+[need level]
+85
+[/permission]
+`[normal]`
+[/area]
+[area]
+2 `Town/BattleShip2/BattleShip_Anton.map`
+[permission]
+[need level]
+85
+[/permission]
+`[dungeon gate]` 28
+[/area]
+[name]
+`苍穹贵族号`
+
+######## town/WestCoast.twn
+=== town/WestCoast.twn ===
+[entering title]
+`Title/MirrorArad.ani`
+[cutscene image]
+`Map/CutScene/MirrorArad.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/MirrorArad/Gate_West.map` `[minimap rect]` 562 363 581 377 `[/minimap rect]`
+[permission]
+[need level]
+55
+[need quest]
+14395
+[/need quest]
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+1 `Town/MirrorArad/WestCoast.map` `[minimap rect]` 542 383 617 411 `[/minimap rect]`
+[permission]
+[need level]
+55
+[need quest]
+14395
+[/need quest]
+[/permission]
+`[normal]`
+[/area]
+[area]
+2 `Town/MirrorArad/D_WestCoast.map` `[minimap rect]` 624 383 684 406 `[/minimap rect]`
+[permission]
+[need level]
+55
+[need quest]
+14395
+[/need quest]
+[/permission]
+`[dungeon gate]` 31
+[/area]
+[name]
+`西海岸`
+
+######## town/Jelva.twn
+=== town/Jelva.twn ===
+[entering title]
+`Title/Jelva.ani`
+[dungeon what must be cleared]
+-1
+[cutscene image]
+`Map/CutScene/Jelva.img` 0
+[area]
+0 `Town/Jelva/Gate_Jelva.map`
+[permission]
+[need level]
+85
+[need quest]
+3002
+[/need quest]
+[/permission]
+`[gate]` 474 234
+[/area]
+[area]
+1 `Town/Jelva/1_Jelva_RG.map`
+[permission]
+[need level]
+85
+[need quest]
+3002
+[/need quest]
+[/permission]
+`[normal]`
+[/area]
+[area]
+2 `Town/Jelva/2_Jelva_Waiting.map`
+[permission]
+[need level]
+85
+[need quest]
+3002
+[/need quest]
+[/permission]
+`[dungeon gate]` 32
+[/area]
+[area]
+3 `Town/Jelva/3_Jelva_AG.map`
+[permission]
+[need level]
+85
+[need quest]
+3002
+[/need quest]
+[/permission]
+`[normal]`
+[/area]
+[area]
+4 `Town/Jelva/4_Jelva_G.map`
+[permission]
+[need level]
+85
+[need quest]
+3002
+[/need quest]
+[/permission]
+`[normal]`
+[/area]
+[name]
+`克洛诺斯岛`
+
+######## town/Event_hendon.twn
+=== town/Event_hendon.twn ===
+[entering title]
+`Title/Shonan_Hell.ani`
+[cutscene image]
+`Map/CutScene/Shonan.img` 0
+[dungeon what must be cleared]
+-1
+[invisible map open effect]
+1
+[name]
+`祥瑞溪谷`
+[area]
+0 `Event/16_epicroad_town/16_epicroad_town.map` `[minimap rect]` 175 201 325 230 `[/minimap rect]`
+[permission]
+[need level]
+17
+[need quest]
+8598
+[/need quest]
+[/permission]
+`[dungeon gate]` 35
+[/area]
+[area]
+1 `Event/16_epicroad_town/Gate_16_epicroad_town.map`
+[permission]
+[need level]
+70
+[/permission]
+`[gate]` 474 234
+[/area]
+[visible minimap]
+0
+[visible town minimap]
+0
+
+######## town/Event_AdventurerMaker.twn
+=== town/Event_AdventurerMaker.twn ===
+[entering title]
+`Title/Event_LongevitySymbol.ani`
+[cutscene image]
+`Interface2/event/AdventurerMaker/AdventurerMaker.img` 173
+[dungeon what must be cleared]
+-1
+[area]
+0 `Town/Event/AdventurerMaker/Event_AdventurerMaker.map`
+[permission]
+[need level]
+1
+[/permission]
+`[normal]`
+[/area]
+[area]
+1 `Town/Event/AdventurerMaker/Event_AdventurerMaker_Town.map`
+[permission]
+[need level]
+1
+[/permission]
+`[normal]`
+[/area]
+[name]
+`         美少女养成`
+
+######## town/Chn_Tournament.twn
+=== town/Chn_Tournament.twn ===
+[entering title]
+`Title/Cantion.ani`
+[cutscene image]
+`Map/CutScene/RVR_gate.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `chn_Tournament/Tournament00.map` `[minimap rect]` 45 188 127 233 `[/minimap rect]` `[normal]`
+[/area]
+[area]
+1 `chn_Tournament/Tournament01.map` `[minimap rect]` 139 188 220 233 `[/minimap rect]` `[normal]`
+[/area]
+[area]
+2 `chn_Tournament/Tournament02.map` `[minimap rect]` 513 188 594 233 `[/minimap rect]` `[normal]`
+[/area]
+[area]
+3 `chn_Tournament/Tournament03.map` `[minimap rect]` 513 188 594 233 `[/minimap rect]` `[safe zone]`
+[/area]
+[name]
+`时空之门`
+
+######## town/CoupleRoom.twn
+=== town/CoupleRoom.twn ===
+[dungeon what must be cleared]
+-1
+[area]
+0 `CoupleRoom/CoupleRoom.map`
+[permission]
+[need level]
+1
+[/permission]
+`[couple room]` 474 234
+[/area]
+[name]
+`婚房`
+
+######## town/chn_zombie_dungeon.twn
+=== town/chn_zombie_dungeon.twn ===
+[entering title]
+`Title/chn_zombie_dungeon.ani`
+[cutscene image]
+`Map/event/chn_zombie_dungeon/loading/loadingimage_morolab.img` 0
+[dungeon what must be cleared]
+-1
+[area]
+0 `event_zombie_dungeon/zombie_dungeon.map`
+[permission]
+[need level]
+30
+[/permission]
+`[dungeon gate]` 111
+[/area]
+[name]
+`阿拉德郊外`
+

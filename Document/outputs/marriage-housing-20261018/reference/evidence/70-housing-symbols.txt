@@ -1,0 +1,29 @@
+# python -P scripts/elf_file_locals.py <70/df_game_r> 'Housing|Decoration|GrowthCapsule' '...' ; filtered to FILE markers, local FUNC symbols, and globals naming Housing/Decoration/Couple/Wedding/Marr/GrowthCapsule
+FILE GrowthCapsuleEvent.cpp
+  LOCAL 080f6e6c STT_FUNC       20 _ZL12comp_by_timeRK15STGuildCargoLogS1_
+  LOCAL 080f6e80 STT_FUNC       64 _Z41__static_initialization_and_destruction_0ii
+  LOCAL 080f6ec0 STT_FUNC       28 _GLOBAL__I_GrowthCapsuleEvent.cpp
+FILE Arad_Decoration.cpp
+  LOCAL 0818dc84 STT_FUNC       20 _ZL12comp_by_timeRK15STGuildCargoLogS1_
+  LOCAL 0818dc98 STT_FUNC       64 _Z41__static_initialization_and_destruction_0ii
+  LOCAL 0818dcd8 STT_FUNC       28 _GLOBAL__I_Arad_Decoration.cpp
+FILE Arad_Housing.cpp
+  LOCAL 08198300 STT_FUNC       20 _ZL12comp_by_timeRK15STGuildCargoLogS1_
+  LOCAL 08198314 STT_FUNC       64 _Z41__static_initialization_and_destruction_0ii
+  LOCAL 08198354 STT_FUNC       28 _GLOBAL__I_Arad_Housing.cpp
+FILE Arad_HousingConvertor.cpp
+  LOCAL 08198370 STT_FUNC       20 _ZL12comp_by_timeRK15STGuildCargoLogS1_
+  LOCAL 08198384 STT_FUNC       64 _Z41__static_initialization_and_destruction_0ii
+  LOCAL 081983c4 STT_FUNC       28 _GLOBAL__I_Arad_HousingConvertor.cpp
+FILE Arad_HousingManager.cpp
+  LOCAL 081983e0 STT_FUNC       20 _ZL12comp_by_timeRK15STGuildCargoLogS1_
+  LOCAL 081983f4 STT_FUNC       64 _Z41__static_initialization_and_destruction_0ii
+  LOCAL 08198434 STT_FUNC       28 _GLOBAL__I_Arad_HousingManager.cpp
+FILE Arad_HousingTree.cpp
+  LOCAL 08198450 STT_FUNC       20 _ZL12comp_by_timeRK15STGuildCargoLogS1_
+  LOCAL 08198464 STT_FUNC       64 _Z41__static_initialization_and_destruction_0ii
+  LOCAL 081984a4 STT_FUNC       28 _GLOBAL__I_Arad_HousingTree.cpp
+  G 0837114a STT_FUNC       54 _ZN21stGrowthCapsuleScriptC1Ev
+  G 0837114a STT_FUNC       54 _ZN21stGrowthCapsuleScriptC2Ev
+  G 08690d9a STT_FUNC      156 _ZN5CUser23sendDecorationObjectCntEs
+  G 0891120c STT_FUNC      480 _Z25ImportGrowthCapsuleScriptPKcR21stGrowthCapsuleScript

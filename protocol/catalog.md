@@ -1,5 +1,11 @@
 # 协议清单
 
+## 2026-10-18 婚房、情侣仓库、爱情树与成长胶囊的静态边界
+
+ClientStatic / Confirmed（结构），字段语义多为 High。C2S [03FD](game/client-to-server/0x03FD.md) 15B、[03FE](game/client-to-server/0x03FE.md) 28B、[03FF](game/client-to-server/0x03FF.md) 24B、[0400](game/client-to-server/0x0400.md)/[0401](game/client-to-server/0x0401.md) 20B、[03F4](game/client-to-server/0x03F4.md) 19B，业务字段从正文 +14 开始；[0402](game/client-to-server/0x0402.md)..[0406](game/client-to-server/0x0406.md) 正文为 0，推翻了机器区"0403 不能断言为空"的说法。
+NOTI [03D8](game/server-to-client/NOTI-0x03D8.md) 的 13B 尾部是爱情树快照，与 [03DC](game/server-to-client/NOTI-0x03DC.md) 读法相同；6B 条目是家具槽加家具物品 ID。[03D9](game/server-to-client/NOTI-0x03D9.md) 是 40 格仓库快照，8+10n；[03DA](game/server-to-client/NOTI-0x03DA.md) 23B、[03DB](game/server-to-client/NOTI-0x03DB.md) 4+11n、[03DD](game/server-to-client/NOTI-0x03DD.md) 14B、[03DE](game/server-to-client/NOTI-0x03DE.md) 2+8n、[03DF](game/server-to-client/NOTI-0x03DF.md) 7B、[03E0](game/server-to-client/NOTI-0x03E0.md) 4B、[03D1](game/server-to-client/NOTI-0x03D1.md) 1B。
+进入婚房没有专用 C2S，背包↔情侣仓库的存取协议也未闭合，均需实机抓包。服务端尚未实现这些功能，当前选角仍发 204 个零的 03D8 空态兼容体。调查与实现预设计见 [婚房调查](../Document/MarriageHousingResearch-20261018.md)。
+
 ## 2026-10-17 NPC购买获得量补正
 
 ClientStatic / Confirmed：[0015](game/client-to-server/0x0015.md)尾表按绝对库存覆盖，并非本次购买量；

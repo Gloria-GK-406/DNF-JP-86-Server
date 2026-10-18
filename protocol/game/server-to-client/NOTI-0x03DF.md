@@ -1,5 +1,12 @@
 # NOTI `0x03DF` `COUPLE_GROWTH_CAPSULE`
 
+## A21 人工裁定：婚房/情侣树/胶囊（2026-10-18 / ClientStatic）
+
+A21 `COUPLE_GROWTH_CAPSULE` handler `00892580`，**正文 7B**，Confirmed：`u32 能量`→胶囊 mgr `[0x039ADF6C]+0x110`、
+`u8 我方持有数`→+0x118、`u8 待领取数`→+0x114、`u8 flag`（>0 提示 `0x11D2A` 对方尚未领取）；+0x114>0 时提示 `0x11D29` 伴侣送来礼物。
+
+证据与反汇编：[A21 婚房静态调查](../../../Document/outputs/marriage-housing-20261018/a21/a21.md)（`builders-disassembly.txt`、`handlers-disassembly.txt`、`switches-housing.txt`、`dstr-housing.txt`）。客户端 SHA-256 `CA7ECA4E…388D14`，镜像 `6BD2746D…953507`；构包点与机器区所绑 `1F8244D3…` 客户端一致。尚无实帧。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

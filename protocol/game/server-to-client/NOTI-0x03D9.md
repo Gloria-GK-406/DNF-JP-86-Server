@@ -1,5 +1,13 @@
 # NOTI `0x03D9` `COUPLE_INVEN`
 
+## A21 人工裁定：婚房/情侣树/胶囊（2026-10-18 / ClientStatic）
+
+A21 `COUPLE_INVEN` handler `00882240`，**正文 = 8 + 10n**，Confirmed：先清空情侣仓库 40 格（`012F1300(0..39)`），再读
+`u32 n` + n×(`i16 slot`,`u32 itemId`,`u32 count`)，逐格 `CreateItem(itemId)`、设数量后放入 `[0x03A5C9DC]`（`012F2FB0`），
+最后读一个 `u32`（读后不用）。空仓库 = `00 00 00 00 00 00 00 00`。
+
+证据与反汇编：[A21 婚房静态调查](../../../Document/outputs/marriage-housing-20261018/a21/a21.md)（`builders-disassembly.txt`、`handlers-disassembly.txt`、`switches-housing.txt`、`dstr-housing.txt`）。客户端 SHA-256 `CA7ECA4E…388D14`，镜像 `6BD2746D…953507`；构包点与机器区所绑 `1F8244D3…` 客户端一致。尚无实帧。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

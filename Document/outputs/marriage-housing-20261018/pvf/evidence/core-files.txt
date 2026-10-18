@@ -1,0 +1,362 @@
+######## town/coupleroom.twn
+=== town/coupleroom.twn ===
+[dungeon what must be cleared]
+-1
+[area]
+0 CoupleRoom/CoupleRoom.map
+[permission]
+[need level]
+1
+[/permission]
+[couple room] 474 234
+[/area]
+[name]
+婚房
+######## town/coupleroom1.twn
+=== town/coupleroom1.twn ===
+[dungeon what must be cleared]
+-1
+[area]
+0 CoupleRoom/CoupleRoom.map
+[permission]
+[need level]
+1
+[/permission]
+[couple room] 474 234
+[/area]
+[name]
+婚房
+######## map/coupleroom/coupleroom.map
+=== map/coupleroom/coupleroom.map ===
+[background correction]
+-80
+[player number]
+2 8
+[pvp start area]
+106 172 484 253 106 170 74 256 525 174 57 251
+[pvp practice start area]
+106 170 74 256 525 174 57 251
+[type]
+[normal]
+[tile]
+Tile/chn_coupleroomtile00.til Tile/chn_coupleroomtile01.til Tile/chn_coupleroomtile02.til Tile/chn_coupleroomtile03.til Tile/chn_coupleroomtile04.til
+[/tile]
+[far sight scroll]
+50
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[town movable area]
+1001 194 84 81 -101 0
+[/town movable area]
+[virtual movable area]
+50 287 387 140 434 174 240 132 240 174 221 261 643 174 179 79 632 212 419 106 6 313 300 122 150 234 100 56 429 296 622 59 421 347 315 88 865 341 186 94 701 391 170 44
+[/virtual movable area]
+[sound]
+M_WEDDING_ROOM
+[/sound]
+[NPC]
+20012 [left] 799 382 0 20011 [left] 954 390 0
+[/NPC]
+[map name]
+PVP无名
+######## passiveobject/mapobject/pathgate/coupleroom/couple_room_gate.obj
+=== passiveobject/mapobject/pathgate/coupleroom/couple_room_gate.obj ===
+[layer]
+[bottom]
+[basic motion]
+Animation/couple_room_gate_open.ani
+[string data]
+[/string data]
+[int data]
+[/int data]
+[name]
+洛兰的右侧门
+######## npc/chn_coupleroom_tree.npc
+=== npc/chn_coupleroom_tree.npc ===
+[small face]
+Map/Npc/aradG-ICON.img 1
+[big face]
+Map/Npc/aradG-ICON.img 0
+[popup face]
+Map/Npc/NpcFace_cn.img 11
+[field animation]
+Animation/chn_coupleroom/coupleroomTree.ani
+[look around]
+0
+[role]
+[couple room tree] 0
+[/role]
+[name]
+闲置的花圃
+[field name]
+闲置的花圃
+######## decoration/coupletree.etc
+=== decoration/coupletree.etc ===
+[seed]
+10002766 1 10002768 2 10002767 3
+[/seed]
+[reward letter]
+1078 1192
+[/reward letter]
+[tree]
+[index]
+1
+[expire day]
+30
+[day water count]
+2
+[name]
+神秘的枫树
+[grow point]
+10002765 10 10002905 20
+[/grow point]
+[step]
+10 decoration/growtree/Animation/tree_2673004_1.ani 20 decoration/growtree/Animation/tree_2673004_2.ani 30 decoration/growtree/Animation/tree_2673004_3.ani
+[/step]
+[reward]
+10002609 40000 2 10002901 40000 2 10002758 10000 1 10002609 5000 3 10002901 4000 5 10002609 1000 5
+[/reward]
+[/tree]
+[tree]
+[index]
+2
+[name]
+粉晶石树
+[expire day]
+30
+[day water count]
+2
+[grow point]
+10002765 10 10002905 20
+[/grow point]
+[step]
+10 decoration/growtree/Animation/tree_2673005_1.ani 20 decoration/growtree/Animation/tree_2673005_2.ani 30 decoration/growtree/Animation/tree_2673005_3.ani
+[/step]
+[reward]
+10002609 40000 2 10002901 40000 2 10002758 10000 1 10002609 5000 3 10002901 4000 5 10002609 1000 5
+[/reward]
+[/tree]
+[tree]
+[index]
+3
+[name]
+黄宝石树
+[expire day]
+30
+[day water count]
+2
+[grow point]
+10002765 10 10002905 20
+[/grow point]
+[step]
+10 decoration/growtree/Animation/tree_2673006_1.ani 20 decoration/growtree/Animation/tree_2673006_2.ani 30 decoration/growtree/Animation/tree_2673006_3.ani
+[/step]
+[reward]
+10002609 40000 2 10002901 40000 2 10002758 10000 1 10002609 5000 3 10002901 4000 5 10002609 1000 5
+[/reward]
+[/tree]
+######## decoration/decorationitemetc.etc
+=== decoration/decorationitemetc.etc ===
+[decorate pos list]
+[top pos]
+174 -120 458 -120 713 -120 477 -121 956 -120 776 -120 500 -120 134 -120 453 -75
+[/top pos]
+[mid pos]
+5 75 174 43 565 20 910 135 210 135 201 178 910 220
+[/mid pos]
+[bott pos]
+120 260 180 260 220 260 260 260 300 260
+[/bott pos]
+[/decorate pos list]
+[decorate collision list]
+[collision info]
+2674016
+[area list]
+1 0 82 113
+[/area list]
+[/collision info]
+[collision info]
+2674084
+[area list]
+-15 0 203 251
+[/area list]
+[/collision info]
+[collision info]
+2674086
+[area list]
+220 -65 484 102
+[/area list]
+[/collision info]
+[collision info]
+2674087
+[area list]
+-150 100 283 229
+[/area list]
+[/collision info]
+[collision info]
+2674090
+[area list]
+-128 0 173 338
+[/area list]
+[/collision info]
+[/decorate collision list]
+######## decoration/decorationitemsetbuff.etc
+=== decoration/decorationitemsetbuff.etc ===
+[decorate set list]
+[set info]
+99999000 7 99
+[set enchant]
+[physical attack]
+5
+[physical defense]
+5
+[magical attack]
+5
+[magical defense]
+5
+[move speed]
+30
+[all elemental resistance]
+5
+[/set enchant]
+[/set info]
+[/decorate set list]
+######## decoration/decorationlimitperiod.etc
+=== decoration/decorationlimitperiod.etc ===
+[decorate limit period]
+2674018 2674018 5 2674019 2674018 10 2674020 2674018 15 2674021 2674021 5 2674022 2674021 10 2674023 2674021 15 2674024 2674024 5 2674025 2674024 10 2674026 2674024 15 2674027 2674027 5 2674028 2674027 10 2674029 2674027 15 2674030 2674030 5 2674031 2674030 10 2674032 2674030 15 2674033 2674033 5 2674034 2674033 10 2674035 2674033 15 2674036 2674036 5 2674037 2674036 10 2674038 2674036 15 2674039 2674039 5 2674040 2674039 10 2674041 2674039 15 2674042 2674042 5 2674043 2674042 10 2674044 2674042 15 2674045 2674045 5 2674046 2674045 10 2674047 2674045 15 2674103 2674103 30 2674104 2674104 30 2674105 2674105 30 2674106 2674106 30
+[/decorate limit period]
+######## decoration/growtree/coupletreeiteminfo.etc
+=== decoration/growtree/coupletreeiteminfo.etc ===
+[tree bad grow]
+decoration/growtree/Animation/badgrow.ani
+[/tree bad grow]
+[tree full grow]
+decoration/growtree/Animation/full_grow.ani
+[/tree full grow]
+[tree bad grow state]
+1 decoration/growtree/Animation/bad_1.ani 2 decoration/growtree/Animation/bad_2.ani 3 decoration/growtree/Animation/bad_3.ani
+[/tree bad grow state]
+[tree watering pot]
+10002765 decoration/growtree/Animation/watering_2673000.ani
+[/tree watering pot]
+[tree seeds]
+10002766 decoration/growtree/Animation/seeding_2673004.ani 10002767 decoration/growtree/Animation/seeding_2673004.ani 10002768 decoration/growtree/Animation/seeding_2673004.ani
+[/tree seeds]
+######## decoration/growtree/growingtreeiteminfo.etc
+=== decoration/growtree/growingtreeiteminfo.etc ===
+[tree bad grow]
+0 decoration/growtree/Animation/badgrow.ani
+[/tree bad grow]
+[tree watering pot]
+2673000 1 1 decoration/growtree/Animation/watering_2673000.ani 2673001 2 1 decoration/growtree/Animation/watering_2673000.ani 2673002 0 1 decoration/growtree/Animation/watering_2673000.ani
+[/tree watering pot]
+[tree seeds]
+2673004 decoration/growtree/Animation/seeding_2673004.ani 2673005 decoration/growtree/Animation/seeding_2673004.ani 2673006 decoration/growtree/Animation/seeding_2673004.ani
+[/tree seeds]
+[tree harvest tool]
+2673003 0 100000 decoration/growtree/Animation/harvest_2673003.ani
+[/tree harvest tool]
+######## decoration/growtree/growtree.etc
+=== decoration/growtree/growtree.etc ===
+[tree]
+[index]
+2673004
+[grow point]
+50
+[day grow point]
+50
+[expiration date]
+30
+[growing info]
+0 20 decoration/growtree/Animation/tree_2673004_1.ani 20 40 decoration/growtree/Animation/tree_2673004_2.ani 40 51 decoration/growtree/Animation/tree_2673004_3.ani
+[/growing info]
+[leaf reward]
+2 10000 1 90000
+[/leaf reward]
+[special reward]
+2610001 50000 2 2610002 10000 2 2610003 10000 2 2610008 10000 2 0 20000 2
+[/special reward]
+[harvest reward]
+80
+[normal]
+2610011 50000 5 2610020 50000 5
+[/normal]
+20
+[special]
+2610010 50000 5 2610021 50000 5
+[/special]
+[/harvest reward]
+[/tree]
+[tree]
+[index]
+2673005
+[grow point]
+50
+[day grow point]
+50
+[expiration date]
+15
+[growing info]
+0 20 decoration/growtree/Animation/tree_2673005_1.ani 20 40 decoration/growtree/Animation/tree_2673005_2.ani 40 51 decoration/growtree/Animation/tree_2673005_3.ani
+[/growing info]
+[leaf reward]
+2 10000 1 90000
+[/leaf reward]
+[special reward]
+1107 50000 3 1108 40000 3 0 10000 3
+[/special reward]
+[harvest reward]
+80
+[normal]
+1109 100000 20
+[/normal]
+20
+[special]
+1061 100000 20
+[/special]
+[/harvest reward]
+[/tree]
+[tree]
+[index]
+2673006
+[grow point]
+50
+[day grow point]
+50
+[expiration date]
+15
+[growing info]
+0 20 decoration/growtree/Animation/tree_2673006_1.ani 20 40 decoration/growtree/Animation/tree_2673006_2.ani 40 51 decoration/growtree/Animation/tree_2673006_3.ani
+[/growing info]
+[leaf reward]
+2 10000 1 90000
+[/leaf reward]
+[special reward]
+1113 50000 3 1114 40000 3 0 10000 3
+[/special reward]
+[harvest reward]
+80
+[normal]
+1115 100000 20
+[/normal]
+20
+[special]
+1061 100000 20
+[/special]
+[/harvest reward]
+[/tree]
+######## etc/couplegrowthcapsule.etc
+=== etc/couplegrowthcapsule.etc ===
+[max own count]
+10
+[max taken count]
+10
+[gage]
+2
+[max gage]
+10
+[capsule id]
+10002910
