@@ -87,7 +87,7 @@ public sealed class MarriageRelationMigrationTests
     /// an old binary's coupon: startup lifts the relation to it. Equal or lower old columns, and stages, are left alone.
     /// </summary>
     [Fact]
-    public void Startup_lifts_relation_love_points_to_a_higher_old_wedding_column_and_nothing_else()
+    public void Startup_after_personal_migration_leaves_legacy_columns_as_audit_only()
     {
         var path = Path.Combine(Path.GetTempPath(), $"relation-love-{Guid.NewGuid():N}.db");
         try
@@ -112,7 +112,7 @@ public sealed class MarriageRelationMigrationTests
             q.ExecuteNonQuery();
             var legacy = Legacy(q);
             _ = new SqliteDatabase(path, new DomainTransactionScope());
-            string[] reconciled = ["q1|4|q1c||6|1", "q2|4|q2c||4|1", "q3|4|q3c||8|1", "q4|2|q4c||0|1"];
+            string[] reconciled = ["q1|4|q1c||5|1", "q2|4|q2c||4|1", "q3|4|q3c||8|1", "q4|2|q4c||0|1"];
             Assert.Equal(reconciled, Relations(q));
             Assert.Equal(legacy, Legacy(q));
 
@@ -125,6 +125,34 @@ public sealed class MarriageRelationMigrationTests
     }
 
     private static string Seed() => Seed(Proposals);
+
+    [Fact]
+    public void Shared_points_are_split_once_and_legacy_balance_cannot_resurrect_spent_points()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"personal-love-{Guid.NewGuid():N}.db");
+        try
+        {
+            using var db = new SqliteConnection($"Data Source={path}"); db.Open(); using var q = db.CreateCommand();
+            q.CommandText = OldShape + Seed([("wallet", 1, [("wc", 1, 1, 0, 40)])]); q.ExecuteNonQuery();
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            q.CommandText = "SELECT name FROM sqlite_master WHERE name='marriage_personal_points'";
+            Assert.Equal("marriage_personal_points", q.ExecuteScalar());
+            q.CommandText = "SELECT points FROM marriage_personal_points ORDER BY character_id";
+            using (var reader = q.ExecuteReader())
+            {
+                Assert.True(reader.Read()); Assert.Equal(20, reader.GetInt32(0));
+                Assert.True(reader.Read()); Assert.Equal(20, reader.GetInt32(0)); Assert.False(reader.Read());
+            }
+            q.CommandText = "UPDATE marriage_personal_points SET points=7 WHERE character_id=100; UPDATE marriage_weddings SET love_points=999";
+            q.ExecuteNonQuery();
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            q.CommandText = "SELECT points FROM marriage_personal_points WHERE character_id=100";
+            Assert.Equal(7L, q.ExecuteScalar());
+            q.CommandText = "SELECT love_points FROM marriage_relations WHERE id='wallet'";
+            Assert.Equal(40L, q.ExecuteScalar());
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
 
     private static string Seed(IEnumerable<(string Id, int State, (string Id, int State, int Phase, long CompletedAt, int Love)[] Ceremonies)> proposals)
     {

@@ -12,7 +12,7 @@ internal sealed class BuyItemResponseEncoder : GameCmdMessageEncoder<BuyItemResp
     {
         if (message.Receipt is not { } receipt)
             return [0, message.ErrorCode];
-        if (receipt.GrantedSlots.Count == 0 || receipt.Count <= 0)
+        if (receipt.GrantedSlots.Count == 0 && receipt.HousingItem is null || receipt.Count <= 0)
             throw new InvalidDataException("A purchase acknowledgement needs its granted item and quantity.");
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
@@ -21,6 +21,12 @@ internal sealed class BuyItemResponseEncoder : GameCmdMessageEncoder<BuyItemResp
         writer.Write(receipt.SkillPoints);
         writer.Write(0); // Reference BUY_ITEM wallet field; no gameplay meaning has been established.
         writer.Write(receipt.Cera);
+        if (receipt.Housing is { } room && receipt.HousingItem is { } housingItem)
+        {
+            var item = room.Storage.Single(x => x.ItemId == receipt.ItemId);
+            GameInventoryItemEntry.Write(writer, new(null, item.Slot, housingItem.ToCore() with { Value = message.InventoryAlreadyProjected ? 0 : receipt.Count }), receipt.PreparedAt, InventoryContainerType.Main);
+            writer.Write((byte)0); return stream.ToArray();
+        }
         var first = receipt.GrantedSlots[0];
         var wire = new InventorySlotMappingRuleService().ToGameSlot(first.Slot);
         if (message.InventoryAlreadyProjected && !first.Core.IsPile)

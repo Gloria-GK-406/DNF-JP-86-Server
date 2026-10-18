@@ -17,7 +17,7 @@ public sealed class BuyItemHandler(
     ICommandBus commands,
     IEventService notifications,
     IGameMessageSender sender,
-    ILogger<BuyItemHandler> logger) : ClientMessageHandler<BuyItemRequest>
+    ILogger<BuyItemHandler> logger, Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService marriage) : ClientMessageHandler<BuyItemRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context, BuyItemRequest message, CancellationToken cancellationToken)
@@ -31,9 +31,11 @@ public sealed class BuyItemHandler(
         {
             try
             {
-                result = await commands.SendAsync(new BuyItemCommand(online.OnlineUserId, session,
-                    message.ItemId, message.RawCount, message.ShopId, message.NpcId), cancellationToken)
-                    .ConfigureAwait(false);
+                var command = new BuyItemCommand(online.OnlineUserId, session, message.ItemId, message.RawCount, message.ShopId, message.NpcId)
+                    { AccountIds = message.NpcId == 20011 ? await marriage.CoupleAccountsAsync(session, cancellationToken).ConfigureAwait(false) : [session.AccountId] };
+                result = message is HousingBuyItemRequest
+                    ? await commands.SendAsync(new HousingBuyItemCommand(command), cancellationToken).ConfigureAwait(false)
+                    : await commands.SendAsync(command, cancellationToken).ConfigureAwait(false);
             }
             catch (NpcShopPurchaseRejectedException rejected)
             {
@@ -44,7 +46,7 @@ public sealed class BuyItemHandler(
         {
             logger.LogInformation("NPC purchase character={CharacterId} npc={NpcId} shop={ShopId} item={ItemId} count={Count} gold={Gold}",
                 receipt.Session.CharacterId.Value, message.NpcId, message.ShopId, receipt.ItemId, receipt.Count, receipt.Gold);
-            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters(receipt.HousingAudience.Count > 0 ? receipt.HousingAudience : [receipt.Session.CharacterId]),
                 new NpcShopPurchaseCompleted(receipt, result.QuestProgress), cancellationToken).ConfigureAwait(false);
         }
         else

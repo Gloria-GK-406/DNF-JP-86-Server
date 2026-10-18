@@ -154,6 +154,12 @@ public sealed class MarriageEntityTests
     private sealed class StaleRelations(IMarriageRelationDomainStore inner) : IMarriageRelationDomainStore
     {
         public bool Armed { get; set; }
+        public ValueTask<int> PointsAsync(Guid relation, CharacterId character, CancellationToken ct) => inner.PointsAsync(relation, character, ct);
+        public ValueTask<bool> ChangePointsAsync(Guid relation, CharacterId character, int amount, CancellationToken ct) => inner.ChangePointsAsync(relation, character, amount, ct);
+        public ValueTask<bool> DailyPointAsync(Guid relation, CharacterId character, long period, CancellationToken ct) => inner.DailyPointAsync(relation, character, period, ct);
+        public ValueTask<byte> RingAsync(Guid relation, CancellationToken ct) => inner.RingAsync(relation, ct);
+        public ValueTask<bool> UpgradeRingAsync(Guid relation, byte expected, CancellationToken ct) => inner.UpgradeRingAsync(relation, expected, ct);
+
 
         public static void Install(IServiceCollection services)
         {
@@ -170,8 +176,6 @@ public sealed class MarriageEntityTests
         public ValueTask<bool> TransitionAsync(MarriageRelation expected, MarriageStage stage, Guid? ceremony,
             DateTimeOffset at, DateTimeOffset? marriedAt, CancellationToken ct) =>
             inner.TransitionAsync(Armed ? expected with { Revision = expected.Revision + 1 } : expected, stage, ceremony, at, marriedAt, ct);
-        public ValueTask<bool> AddLovePointsAsync(Guid relation, int amount, int maximum, CancellationToken ct) =>
-            inner.AddLovePointsAsync(relation, amount, maximum, ct);
         public ValueTask<int> CountUnsettledReservationsAsync(CancellationToken ct) => inner.CountUnsettledReservationsAsync(ct);
     }
 }

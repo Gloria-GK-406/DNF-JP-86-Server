@@ -92,6 +92,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 typeof(PrepareSelectedCharacterSessionCommand),
                 typeof(CleanupExpiredCharacterItemsCommand),
                 typeof(EnsureDailyContractPuppetsCommand),
+                typeof(Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommand),
                 typeof(PrepareSelectedCharacterStateCommand),
                 typeof(ApplySelectedCharacterDailyRefillCommand),
                 typeof(PublishSelectedCharacterSessionCommand),
@@ -891,6 +892,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 CleanupExpiredCharacterItemsCommand value =>
                     await RunAsync(cleanupExpired, value, cancellationToken),
                 EnsureDailyContractPuppetsCommand => false,
+                Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommand => false,
                 Dfo.Server.Application.World.RefillOnlineTauTicketCommand => true,
                 PrepareSelectedCharacterStateCommand value =>
                     await RunAsync(prepareState, value, cancellationToken),

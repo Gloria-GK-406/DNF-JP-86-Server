@@ -43,6 +43,7 @@ internal static class MarriageEngagementPayload
         if (!snapshot.IsEngaged) return result;
         BinaryPrimitives.WriteUInt32LittleEndian(result, checked((uint)snapshot.Partner!.CharacterId));
         result[4] = WireState(snapshot.Stage);
+        result[5] = snapshot.RingLevel;
         if (snapshot.MarriedAt is { } marriedAt)
             BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(6), checked((uint)marriedAt.ToUnixTimeSeconds()));
         BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(10), checked((uint)snapshot.LovePoints));

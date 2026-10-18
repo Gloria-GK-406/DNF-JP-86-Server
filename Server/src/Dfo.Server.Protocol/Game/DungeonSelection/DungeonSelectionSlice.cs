@@ -566,7 +566,8 @@ public sealed class EnterSelectDungeonHandler(
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<EnterSelectDungeonHandler> logger,
     IPartyService parties,
-    UsageQuotaProjectionDelivery? quotaProjection = null, IDespairTowerDomainService? despair = null, ISaoTowerDomainService? sao = null)
+    UsageQuotaProjectionDelivery? quotaProjection = null, IDespairTowerDomainService? despair = null, ISaoTowerDomainService? sao = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null)
     : ClientMessageHandler<EnterSelectDungeonRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -674,6 +675,7 @@ public sealed class EnterSelectDungeonHandler(
                 new UserStateNotification(member.Session.WireUserId, 0x01),
                 new UdpHostNotification(roster.LeaderMember.Slot),
             ];
+            notifications.AddRange(await HousingCurrentProjection.ReadAsync(housing, member.Session, cancellationToken).ConfigureAwait(false));
             if (!visits.DefersSelectionState(refreshed.Character.Progression.Level, refreshed.Character.TutorialCompleted))
             {
                 notifications.Add(new DungeonPermissionStateMessage(refreshed.CharacterEntry.Progression.Dungeons));

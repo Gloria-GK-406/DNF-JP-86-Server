@@ -16,6 +16,7 @@ internal sealed class TownAreaDomainService(IPartyDirectoryPresenceSink? parties
     public TownAreaMembershipChange Enter(TownAreaMember member)
     {
         ArgumentNullException.ThrowIfNull(member);
+        if (member.Area.TownId == 101 && member.Area.Instance == 0) throw new InvalidOperationException("A couple room requires a private instance.");
 
         TownAreaMembershipChange change;
         lock (sync)
@@ -114,6 +115,7 @@ internal sealed class TownAreaDomainService(IPartyDirectoryPresenceSink? parties
         bool sharesTownPresence)
     {
         ArgumentNullException.ThrowIfNull(position);
+        if (destination.TownId == 101 && destination.Instance == 0) return null;
         if (position.TownId != destination.TownId || position.AreaId != destination.AreaId)
             throw new ArgumentException("The destination and position do not match.", nameof(position));
 
@@ -260,7 +262,7 @@ internal sealed class TownAreaDomainService(IPartyDirectoryPresenceSink? parties
                 ? new PartyDirectoryScope(
                     member.Area.ChannelId,
                     member.Area.TownId,
-                    member.Area.AreaId)
+                    member.Area.AreaId, member.Area.Instance)
                 : null);
 
     private sealed class TownArea(TownAreaKey key)

@@ -1,0 +1,25 @@
+E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.08]   Discovering: Dfo.Server.Protocol.Tests
+[xUnit.net 00:00:00.21]   Discovered:  Dfo.Server.Protocol.Tests
+[xUnit.net 00:00:00.23]   Starting:    Dfo.Server.Protocol.Tests
+  已通过 Dfo.Server.Protocol.Tests.MarriageHousingCodecTests.Native_acknowledgements_have_exact_cmd_width(opcode: 1027, status: 0, length: 5) [7 ms]
+  已通过 Dfo.Server.Protocol.Tests.MarriageHousingCodecTests.Native_acknowledgements_have_exact_cmd_width(opcode: 1026, status: -7, length: 5) [< 1 ms]
+  已通过 Dfo.Server.Protocol.Tests.MarriageHousingCodecTests.Native_acknowledgements_have_exact_cmd_width(opcode: 1021, status: 0, length: 6) [< 1 ms]
+  已通过 Dfo.Server.Protocol.Tests.MarriageHousingCodecTests.Native_acknowledgements_have_exact_cmd_width(opcode: 1012, status: -7, length: 6) [< 1 ms]
+  已通过 Dfo.Server.Protocol.Tests.MarriageHousingCodecTests.Native_acknowledgements_have_exact_cmd_width(opcode: 1023, status: 0, length: 1) [< 1 ms]
+  已通过 Dfo.Server.Protocol.Tests.MarriageHousingCodecTests.Native_acknowledgements_have_exact_cmd_width(opcode: 1012, status: 0, length: 6) [< 1 ms]
+  已通过 Dfo.Server.Protocol.Tests.MarriageHousingCodecTests.Native_acknowledgements_have_exact_cmd_width(opcode: 1025, status: -6, length: 5) [< 1 ms]
+  已通过 Dfo.Server.Protocol.Tests.MarriageHousingCodecTests.Native_acknowledgements_have_exact_cmd_width(opcode: 1021, status: -4, length: 6) [< 1 ms]
+  已通过 Dfo.Server.Protocol.Tests.MarriageHousingCodecTests.Native_acknowledgements_have_exact_cmd_width(opcode: 1024, status: 0, length: 5) [< 1 ms]
+[xUnit.net 00:00:00.28]   Finished:    Dfo.Server.Protocol.Tests
+  已通过 Dfo.Server.Protocol.Tests.MarriageHousingCodecTests.Native_acknowledgements_have_exact_cmd_width(opcode: 1022, status: -20, length: 5) [< 1 ms]
+  已通过 Dfo.Server.Protocol.Tests.MarriageHousingCodecTests.Requests_decode_only_business_fields_after_native_opaque_prefix [6 ms]
+  已通过 Dfo.Server.Protocol.Tests.MarriageHousingCodecTests.Nonempty_room_storage_and_tree_keep_native_record_width_and_order [4 ms]
+  已通过 Dfo.Server.Protocol.Tests.MarriageHousingCodecTests.Furniture_purchase_ack_names_couple_storage_slot_and_never_needs_personal_inventory_grant [5 ms]
+
+测试运行成功。
+测试总数: 13
+     通过数: 13
+总时间: 0.6251 秒

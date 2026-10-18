@@ -45,7 +45,7 @@ public sealed class FinishQuestHandler(
     ILogger<FinishQuestHandler> logger,
     ITownAreaDomainService townAreas, IDungeonRunDomainService dungeonRuns,
     WeaknessProjectionDelivery weaknessProjection, DungeonRunDeliveryRegistry runGenerations,
-    IIllusionTowerDomainService? towers = null) : ClientMessageHandler<FinishQuestRequest>
+    IIllusionTowerDomainService? towers = null, Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null) : ClientMessageHandler<FinishQuestRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -281,6 +281,7 @@ public sealed class FinishQuestHandler(
             frames.Add(QuestProgressMessage(progress));
         }
 
+        if (outcome.GrowType is not null) frames.AddRange(await HousingCurrentProjection.ReadAsync(housing, session, cancellationToken).ConfigureAwait(false));
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(frames, targets),

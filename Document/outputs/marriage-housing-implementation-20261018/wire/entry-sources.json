@@ -1,0 +1,100 @@
+[
+  {
+    "town": 1,
+    "area": 0,
+    "townPath": "town/SilverCrown.twn",
+    "declaredMap": "map/town/silvercrown/gate_silvercrown.map",
+    "activeMap": "map/town/silvercrown/(r)gate_silvercrown.map"
+  },
+  {
+    "town": 2,
+    "area": 0,
+    "townPath": "town/Underfoot.twn",
+    "declaredMap": "map/town/underfoot/gate_underfoot.map",
+    "activeMap": "map/town/underfoot/(r)gate_underfoot.map"
+  },
+  {
+    "town": 3,
+    "area": 0,
+    "townPath": "town/Sewer.twn",
+    "declaredMap": "map/town/sewer/gate_sewer.map",
+    "activeMap": "map/town/sewer/(r)gate_sewer.map"
+  },
+  {
+    "town": 4,
+    "area": 0,
+    "townPath": "town/Behemoth.twn",
+    "declaredMap": "map/town/behemoth/gate_behemoth.map",
+    "activeMap": "map/town/behemoth/(r)gate_behemoth.map"
+  },
+  {
+    "town": 5,
+    "area": 0,
+    "townPath": "town/ShelterOfNorth.twn",
+    "declaredMap": "map/town/shelterofnorth/gate_shelterofnorth.map",
+    "activeMap": "map/town/shelterofnorth/(r)gate_shelterofnorth.map"
+  },
+  {
+    "town": 6,
+    "area": 4,
+    "townPath": "town/Gent.twn",
+    "declaredMap": "map/town/gent/gate_gent.map",
+    "activeMap": "map/town/gent/(r)gate_gent.map"
+  },
+  {
+    "town": 9,
+    "area": 2,
+    "townPath": "town/LuftHafen.twn",
+    "declaredMap": "map/town/lufthafen/gate_lufthafent.map",
+    "activeMap": "map/town/lufthafen/(r)gate_lufthafent.map"
+  },
+  {
+    "town": 11,
+    "area": 3,
+    "townPath": "town/Shonan.twn",
+    "declaredMap": "map/town/shonan/gate_shonan.map",
+    "activeMap": "map/town/shonan/(r)gate_shonan.map"
+  },
+  {
+    "town": 14,
+    "area": 3,
+    "townPath": "town/Slough.twn",
+    "declaredMap": "map/town/slough/gate_slough.map",
+    "activeMap": "map/town/slough/(r)gate_slough.map"
+  },
+  {
+    "town": 17,
+    "area": 0,
+    "townPath": "town/SaintHorn.twn",
+    "declaredMap": "map/town/sainthorn/gate_sainthorn.map",
+    "activeMap": "map/town/sainthorn/(r)gate_sainthorn.map"
+  },
+  {
+    "town": 18,
+    "area": 1,
+    "townPath": "town/Kor_Shonan_Holy.twn",
+    "declaredMap": "map/town/kor_dragon_shonan_holyland/gate_shonan_holy01.map",
+    "activeMap": "map/town/kor_dragon_shonan_holyland/(r)gate_shonan_holy01.map"
+  },
+  {
+    "town": 20,
+    "area": 0,
+    "townPath": "town/BattleShip_Normal.twn",
+    "declaredMap": "map/town/battleship2/gate_battleship.map",
+    "activeMap": "map/town/battleship2/(r)gate_battleship.map"
+  },
+  {
+    "town": 21,
+    "area": 0,
+    "townPath": "town/WestCoast.twn",
+    "declaredMap": "map/town/mirrorarad/gate_west.map",
+    "activeMap": "map/town/mirrorarad/(r)gate_west.map"
+  },
+  {
+    "town": 22,
+    "area": 0,
+    "townPath": "town/Jelva.twn",
+    "declaredMap": "map/town/jelva/gate_jelva.map",
+    "activeMap": "map/town/jelva/(r)gate_jelva.map"
+  }
+]

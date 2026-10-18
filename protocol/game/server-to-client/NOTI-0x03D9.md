@@ -73,3 +73,12 @@ BodyLength = 未知（字段集合已知不完整）
 ## 逆向工作日志
 
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
+
+
+## 2026-10-18 A21 婚房实现
+
+40 格家具保管箱绝对快照，8+10n 字节；购买家具直接进入此容器。
+
+CurrentImplementation：统一婚姻领域中的 Housing 逻辑；编解码与投影见 `Server/src/Dfo.Server.Protocol/Game/MarriageHousing/HousingSlice.cs`。依当前 A21 ClientStatic 和 PVF 实施，自动化通过，尚待此次实机验收，不提升为 ClientVerified。通用 CMD 接收层先消费 accepted 信封；旧静态字段宽度若从 status 开始，指的是信封之后的业务体。
+
+新增定向证据见 [补查报告](../../../Document/outputs/marriage-housing-implementation-20261018/wire/README.md)，测试及限制见 [实施说明](../../../Document/MarriageHousing-Implementation-20261018.md)。

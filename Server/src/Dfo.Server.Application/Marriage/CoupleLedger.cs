@@ -17,6 +17,8 @@ namespace Dfo.Server.Application.Marriage;
 /// </remarks>
 internal interface IMarriageRelations
 {
+    ValueTask<int> PointsAsync(Guid relation, CharacterId character, CancellationToken ct);
+    ValueTask<byte> RingAsync(Guid relation, CancellationToken ct);
     ValueTask<MarriageRelation?> FindAsync(CharacterId character, CancellationToken ct);
 
     ValueTask<MarriageRelation?> ReadAsync(Guid relation, CancellationToken ct);
@@ -51,6 +53,9 @@ internal interface IMarriageRelations
 /// <remarks>Only the marriage use cases take this; the pre-wedding quests read through <see cref="IMarriageRelations"/>.</remarks>
 internal interface IMarriageRelationWriter : IMarriageRelations
 {
+    ValueTask<bool> ChangePointsAsync(Guid relation, CharacterId character, int amount, CancellationToken ct);
+    ValueTask<bool> DailyPointAsync(Guid relation, CharacterId character, long period, CancellationToken ct);
+    ValueTask<bool> UpgradeRingAsync(Guid relation, byte expected, CancellationToken ct);
     /// <summary>T1: the pending proposal and its relation, created together.</summary>
     ValueTask<MarriageProposal> ProposeAsync(SelectedSessionIdentity proposer, SelectedSessionIdentity recipient, CancellationToken ct);
 
@@ -61,13 +66,17 @@ internal interface IMarriageRelationWriter : IMarriageRelations
     ValueTask<MarriageRelation> MustCommitAsync(MarriageRelation? relation, MarriageTrigger trigger, Guid? ceremony,
         DateTimeOffset? marriedAt, CancellationToken ct);
 
-    ValueTask<bool> AddLovePointsAsync(MarriageRelation relation, int amount, int maximum, CancellationToken ct);
 }
 
 /// <summary>The only writer of a relation's stage and love points, and the owner of the proposal records behind it.</summary>
 internal sealed class CoupleLedger(IMarriageRelationDomainStore store, IMarriageProposalDomainStore proposals,
     IMarriageProposalRuleService rules, TimeProvider clock) : IMarriageRelationWriter
 {
+    public ValueTask<int> PointsAsync(Guid relation, CharacterId character, CancellationToken ct) => store.PointsAsync(relation, character, ct);
+    public ValueTask<byte> RingAsync(Guid relation, CancellationToken ct) => store.RingAsync(relation, ct);
+    public ValueTask<bool> ChangePointsAsync(Guid relation, CharacterId character, int amount, CancellationToken ct) => store.ChangePointsAsync(relation, character, amount, ct);
+    public ValueTask<bool> DailyPointAsync(Guid relation, CharacterId character, long period, CancellationToken ct) => store.DailyPointAsync(relation, character, period, ct);
+    public ValueTask<bool> UpgradeRingAsync(Guid relation, byte expected, CancellationToken ct) => store.UpgradeRingAsync(relation, expected, ct);
     public ValueTask<MarriageRelation?> FindAsync(CharacterId character, CancellationToken ct) => store.FindActiveAsync(character, ct);
 
     public ValueTask<MarriageRelation?> ReadAsync(Guid relation, CancellationToken ct) => store.ReadAsync(relation, ct);
@@ -138,8 +147,6 @@ internal sealed class CoupleLedger(IMarriageRelationDomainStore store, IMarriage
         };
     }
 
-    public ValueTask<bool> AddLovePointsAsync(MarriageRelation relation, int amount, int maximum, CancellationToken ct) =>
-        store.AddLovePointsAsync(relation.Id, amount, maximum, ct);
 
     public ValueTask<int> CountUnsettledReservationsAsync(CancellationToken ct) => store.CountUnsettledReservationsAsync(ct);
 }

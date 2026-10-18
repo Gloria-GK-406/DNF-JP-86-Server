@@ -165,11 +165,12 @@ internal sealed partial class MarriageDomainService
         var found = await ledger.ForSessionAsync(actor, ct).ConfigureAwait(false);
         if (!accounts.SequenceEqual(CoupleAccounts(found, actor))) return new(-1);
         if (found is not { Stage: MarriageStage.Married } relation) return new(-3);
-        var (status, spend) = await love.SpendAsync(actor, slot, relation.LovePoints, ct).ConfigureAwait(false);
+        var points = await ledger.PointsAsync(relation.Id, actor.CharacterId, ct).ConfigureAwait(false);
+        var (status, spend) = await love.SpendAsync(actor, slot, points, ct).ConfigureAwait(false);
         if (spend is null) return new(status);
-        if (!await ledger.AddLovePointsAsync(relation, spend.Amount, spend.Maximum, ct).ConfigureAwait(false))
+        if (!await ledger.ChangePointsAsync(relation.Id, actor.CharacterId, spend.Amount, ct).ConfigureAwait(false))
             throw new InvalidOperationException("Love point settlement changed under the protected account transaction.");
-        return new(0, relation.LovePoints + spend.Amount, PartnerOf(relation, actor.CharacterId).CharacterId)
+        return new(0, points + spend.Amount, PartnerOf(relation, actor.CharacterId).CharacterId)
         { State = await love.RemainingAsync(spend, ct).ConfigureAwait(false) };
     }
 

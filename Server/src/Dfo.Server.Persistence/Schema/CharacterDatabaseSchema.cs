@@ -79,6 +79,7 @@ internal static class CharacterDatabaseSchema
         AvatarAppearanceMigration.Apply(connection);
         MigrateMailboxGold(connection);
         MarriageRelationMigration.Apply(connection);
+        MarriageHousingMigration.Apply(connection);
         Apply(connection, Indexes);
         SharedMaterialMigration.Apply(connection);
         JoustRoundIdentityMigration.Apply(connection);
@@ -309,6 +310,16 @@ internal static class CharacterDatabaseSchema
             love_points INTEGER NOT NULL DEFAULT 0 CHECK(love_points>=0),
             CHECK((stage IN (2,3,4)) = (ceremony_id IS NOT NULL))
         );
+        CREATE TABLE IF NOT EXISTS marriage_housing_migrations(version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS marriage_points_migration_audit(relation_id TEXT PRIMARY KEY,shared_points INTEGER NOT NULL,first_points INTEGER NOT NULL,second_points INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS marriage_personal_points(relation_id TEXT NOT NULL REFERENCES marriage_relations(id),character_id INTEGER NOT NULL,points INTEGER NOT NULL CHECK(points BETWEEN 0 AND 999),revision INTEGER NOT NULL DEFAULT 1,PRIMARY KEY(relation_id,character_id));
+        CREATE TABLE IF NOT EXISTS marriage_daily_points(character_id INTEGER NOT NULL,period INTEGER NOT NULL,PRIMARY KEY(character_id,period));
+        CREATE TABLE IF NOT EXISTS marriage_ring_state(relation_id TEXT PRIMARY KEY REFERENCES marriage_relations(id),level INTEGER NOT NULL CHECK(level BETWEEN 0 AND 5));
+        CREATE TABLE IF NOT EXISTS marriage_housing_rooms(couple_no INTEGER PRIMARY KEY AUTOINCREMENT,relation_id TEXT NOT NULL UNIQUE REFERENCES marriage_relations(id));
+        CREATE TABLE IF NOT EXISTS marriage_housing_storage(relation_id TEXT NOT NULL REFERENCES marriage_relations(id),slot INTEGER NOT NULL CHECK(slot BETWEEN 0 AND 39),item_id INTEGER NOT NULL,count INTEGER NOT NULL CHECK(count>0),PRIMARY KEY(relation_id,slot));
+        CREATE TABLE IF NOT EXISTS marriage_housing_placements(relation_id TEXT NOT NULL REFERENCES marriage_relations(id),slot INTEGER NOT NULL CHECK(slot BETWEEN 0 AND 27),item_id INTEGER NOT NULL,PRIMARY KEY(relation_id,slot));
+        CREATE TABLE IF NOT EXISTS marriage_housing_trees(relation_id TEXT PRIMARY KEY REFERENCES marriage_relations(id),payload_json TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS marriage_housing_harvests(planting_id TEXT NOT NULL,round INTEGER NOT NULL,payload_json TEXT NOT NULL,PRIMARY KEY(planting_id,round));
         CREATE TABLE IF NOT EXISTS sao_tower_progress(season TEXT PRIMARY KEY,round INTEGER NOT NULL CHECK(round>=1),next_floor INTEGER NOT NULL CHECK(next_floor BETWEEN 1 AND 100),revision INTEGER NOT NULL CHECK(revision>=0));
         CREATE TABLE IF NOT EXISTS sao_first_clears(season TEXT NOT NULL,round INTEGER NOT NULL,floor INTEGER NOT NULL,run_id TEXT NOT NULL UNIQUE,PRIMARY KEY(season,round,floor));
         CREATE TABLE IF NOT EXISTS sao_first_clear_rewards(run_id TEXT NOT NULL,character_id INTEGER NOT NULL,item_id INTEGER NOT NULL,PRIMARY KEY(run_id,character_id),FOREIGN KEY(run_id) REFERENCES sao_first_clears(run_id));

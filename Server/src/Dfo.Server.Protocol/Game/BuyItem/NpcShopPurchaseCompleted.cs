@@ -21,6 +21,8 @@ public sealed class NpcShopPurchaseCompletedHandler(ISelectedSessionDomainServic
     {
         var slots = new InventorySlotMappingRuleService();
         var receipt = notification.Receipt;
+        if (recipient.CharacterId != receipt.Session.CharacterId && receipt.Housing is { } shared && receipt.HousingAudience.Contains(recipient.CharacterId))
+            return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([new HousingStorageMessage(shared)]);
         if (recipient.CharacterId != receipt.Session.CharacterId || recipient.ConnectionId != receipt.Session.ConnectionId
             || sessions.Find(receipt.Session.AccountId) != receipt.Session)
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
@@ -37,7 +39,9 @@ public sealed class NpcShopPurchaseCompletedHandler(ISelectedSessionDomainServic
             .Select(group => GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(group.Key,
                 group.Select(grant => new InventoryItemState(null, slots.ToGameSlot(grant.Slot).Index,
                     grant.Core.ToCore())).ToArray(), receipt.PreparedAt))).ToArray();
-        var projectedStack = receipt.GrantedSlots.Count > 0 && receipt.GrantedSlots[0].Core.IsPile;
+        if (receipt.Housing is { } housing) messages.Add(new HousingStorageMessage(housing));
+        if (receipt.LovePoints is { } points) messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotification(receipt.Session.CharacterId.Value, points));
+        var projectedStack = receipt.Housing is not null || receipt.GrantedSlots.Count > 0 && receipt.GrantedSlots[0].Core.IsPile;
         // Apply the absolute stack once while the client still has the pre-purchase count, so
         // 000E reports exactly the gain. The subsequent ACK confirms without incrementing again.
         if (projectedStack) messages.AddRange(inventory);

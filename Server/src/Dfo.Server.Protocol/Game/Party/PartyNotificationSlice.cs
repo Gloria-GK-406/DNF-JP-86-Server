@@ -566,7 +566,7 @@ internal static class PartyNotificationRecipientCapture
                 (townAreas.Find(new TownAreaKey(
                          scope.ChannelId,
                          scope.TownId,
-                         scope.AreaId))?.Members ?? [])
+                         scope.AreaId, scope.Instance))?.Members ?? [])
                     .Where(item => item.SharesTownPresence
                         && sessions.FindByCharacter(item.CharacterId) is { } exact
                         && exact.Owns(item))

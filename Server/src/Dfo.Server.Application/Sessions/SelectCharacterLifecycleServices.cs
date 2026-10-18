@@ -44,7 +44,8 @@ internal sealed class SelectedSessionCleanupService(
     IEnumerable<IDungeonRunParticipantDepartureSink> dungeonDepartures,
     ICreatureRuntimeDomainService? creatures = null,
     IIllusionTowerDomainService? illusionTower = null,
-    IEnumerable<IIllusionTowerDepartureSink>? illusionTowerDepartures = null) : ISelectedSessionCleanupDomainService
+    IEnumerable<IIllusionTowerDepartureSink>? illusionTowerDepartures = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService? housing = null) : ISelectedSessionCleanupDomainService
 {
     public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
         SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
@@ -166,6 +167,7 @@ internal sealed class SelectedSessionCleanupService(
             });
         }
         Run(() => expertStores.CloseExact(session));
+        Run(() => { housing?.CloseExact(session); return true; });
         Run(() => townAreas.LeaveExact(
             session.CharacterId,
             session.TownAreaLease(),
@@ -250,7 +252,7 @@ internal sealed class SelectedSessionCleanupService(
                 (townAreas.Find(new TownAreaKey(
                          scope.ChannelId,
                          scope.TownId,
-                         scope.AreaId))?.Members ?? [])
+                         scope.AreaId, scope.Instance))?.Members ?? [])
                     .Where(item => item.SharesTownPresence
                         && sessions.FindByCharacter(item.CharacterId) is { } exact
                         && exact.Owns(item))

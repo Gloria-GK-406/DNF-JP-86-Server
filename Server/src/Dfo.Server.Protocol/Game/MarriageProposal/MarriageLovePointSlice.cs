@@ -79,8 +79,6 @@ internal sealed class WeddingLovePointHandler(ISelectedSessionDomainService sess
                     ? GameInventoryDelivery.Notification(new(InventoryContainerType.Main, [new(item.ItemUid, checked((int)m.Slot), item.ToCore(), item.AvatarDetail)], state.PreparedAt))
                     : GameInventoryDelivery.ClearedSlotNotification(InventoryContainerType.Main, checked((int)m.Slot), state.PreparedAt));
                 own.Add(new WeddingLovePointNotification(actor.CharacterId.Value, result.Points));
-                if (peer is not null && result.Partner == peer.CharacterId && sessions.Find(peer.AccountId) == peer)
-                    targets.Add(new(peer.ConnectionId, [new WeddingLovePointNotification(peer.CharacterId.Value, result.Points)]));
             }
             await sender.SendExplicitAsync(c.Connection.ConnectionId, new(own, targets), ct).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);

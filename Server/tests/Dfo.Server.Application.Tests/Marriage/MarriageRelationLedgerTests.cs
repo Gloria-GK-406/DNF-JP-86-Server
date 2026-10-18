@@ -155,7 +155,7 @@ public sealed class MarriageRelationLedgerTests
     }
 
     [Fact]
-    public async Task Using_a_love_coupon_writes_the_same_points_to_the_relation_and_the_legacy_wedding_row()
+    public async Task Using_a_love_coupon_updates_only_the_actor_personal_wallet()
     {
         await using var w = await ChurchTownAsync(configure: s =>
         {
@@ -183,9 +183,10 @@ public sealed class MarriageRelationLedgerTests
 
         var used = await InTx(f, () => Couple(f).UseLovePointAsync(f.Session, coupon, [f.Session.AccountId, peer.AccountId], default));
         Assert.Equal(0, used.Status); Assert.Equal(1, used.Points);
-        Assert.Equal(1, (await RelationAsync(f, ceremony.RelationId)).LovePoints);
-        Assert.Equal(1, f.Scalar("SELECT love_points FROM marriage_weddings WHERE phase=1"));
-        Assert.Equal(1, (await Query(f).SnapshotAsync(peer.AccountId, peer.CharacterId, default)).LovePoints);
+        Assert.Equal(0, (await RelationAsync(f, ceremony.RelationId)).LovePoints);
+        Assert.Equal(1, await Ledger(f).PointsAsync(ceremony.RelationId, f.Session.CharacterId, default));
+        Assert.Equal(0, f.Scalar("SELECT love_points FROM marriage_weddings WHERE phase=1"));
+        Assert.Equal(0, (await Query(f).SnapshotAsync(peer.AccountId, peer.CharacterId, default)).LovePoints);
     }
 
     [Fact]

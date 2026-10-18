@@ -231,7 +231,9 @@ public sealed class SetUserAreaHandler(
     ILogger<SetUserAreaHandler> logger,
     ISelectedSessionPositionPersistence persistence,
     Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService? marriage = null,
-    Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingProjection? weddingProjection = null) : ClientMessageHandler<SetUserAreaRequest>
+    Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingProjection? weddingProjection = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService? housingSessions = null) : ClientMessageHandler<SetUserAreaRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -311,7 +313,26 @@ public sealed class SetUserAreaHandler(
             return;
         }
 
-        var sharesTownPresence = await towns
+        if (message.TownId == 101)
+        {
+            if (message.AreaId != 0 || housing is null || housingSessions is null
+                || standing.TownId != 101 && !housing.IsEntrySource(standing.TownId, standing.AreaId)
+                || await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false) is not > 0)
+            {
+                await townAreaProjection.RefuseTownChangeAsync(context.Connection.ConnectionId, session, result, standing,
+                    "请由已婚角色通过赛丽亚房间的婚房入口进入。", cancellationToken).ConfigureAwait(false); return;
+            }
+        }
+        if (standing.TownId == 101 && message.TownId != 101)
+        {
+            var home = housingSessions?.ReturnFor(session);
+            if (home is null || home.TownId != message.TownId || home.AreaId != message.AreaId)
+            {
+                await townAreaProjection.RefuseTownChangeAsync(context.Connection.ConnectionId, session, result, standing,
+                    "请从婚房出口返回原来的城镇。", cancellationToken).ConfigureAwait(false); return;
+            }
+        }
+        var sharesTownPresence = message.TownId == 101 || await towns
             .SharesTownPresenceAsync(message.TownId, message.AreaId, cancellationToken)
             .ConfigureAwait(false);
         if (marriage is not null && !await marriage.CanCrossAsync(session, channel.ChannelId,
@@ -335,6 +356,11 @@ public sealed class SetUserAreaHandler(
             {
                 TownId = message.TownId, AreaId = message.AreaId, X = message.X, Y = message.Y,
             };
+            if (message.TownId == 101)
+            {
+                await persistence.PersistAsync(session.AccountId, session.CharacterId, standing, cancellationToken).ConfigureAwait(false);
+                housingSessions!.RememberReturn(session, standing);
+            }
             await persistence.PersistAsync(session.AccountId, session.CharacterId, destination, cancellationToken)
                 .ConfigureAwait(false);
         }

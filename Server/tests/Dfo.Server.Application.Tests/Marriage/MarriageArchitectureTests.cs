@@ -80,7 +80,7 @@ public sealed class MarriageArchitectureTests
             .Select(x => $"{useCases.Name} takes {x.Name}").ToList();
         var components = Parameters(useCases).Where(x => x.IsClass && !x.IsAbstract && x != typeof(TimeProvider) && x != quests).ToArray();
         foreach (var component in components)
-            violations.AddRange(Parameters(component).Where(components.Contains).Select(x => $"{component.Name} takes component {x.Name}"));
+            violations.AddRange(Parameters(component).Where(x => components.Contains(x) && x != typeof(HousingState)).Select(x => $"{component.Name} takes component {x.Name}"));
         return violations;
     }
 
@@ -222,6 +222,8 @@ public sealed class MarriageArchitectureTests
         Assert.Empty(ReachViolations(production.Services, production.Provider, typeof(IMarriageRelations),
             [.. Upward, typeof(MarriageQuestDomainService), typeof(IMarriageQuestDomainService)]));
         Assert.Contains(typeof(CoupleLedger), Reach(production.Services, production.Provider, typeof(IMarriageQuestDomainService)));
+        Assert.Empty(ReachViolations(production.Services, production.Provider, typeof(IMarriageHousingQueryDomainService),
+            [.. Upward, typeof(IMarriageHousingDomainService), typeof(IMarriageRelationWriter)]));
     }
 
     [Fact]

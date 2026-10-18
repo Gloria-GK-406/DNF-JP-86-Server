@@ -60,9 +60,9 @@ public sealed class EffectOperationReplayTests
         }
         var dispatcher = f.Services.GetRequiredService<INetworkMessageDispatcher>(); f.Sender.FailExplicit = true;
         await Assert.ThrowsAsync<IOException>(async () => await dispatcher.DispatchAsync(new(f.Connection), Request(), default));
-        Assert.Equal(2, f.Count(1000)); Assert.Equal(1, f.Scalar("SELECT love_points FROM marriage_weddings"));
+        Assert.Equal(2, f.Count(1000)); Assert.Equal(1, f.Scalar("SELECT points FROM marriage_personal_points WHERE character_id=1"));
         await dispatcher.DispatchAsync(new(f.Connection), Request(), default);
-        Assert.Equal(2, f.Count(1000)); Assert.Equal(1, f.Scalar("SELECT love_points FROM marriage_weddings"));
+        Assert.Equal(2, f.Count(1000)); Assert.Equal(1, f.Scalar("SELECT points FROM marriage_personal_points WHERE character_id=1"));
         var batch = Assert.Single(f.Sender.Batches);
         Assert.DoesNotContain(batch.Frames, frame => frame[0] == 1 && BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) == 0x03F5);
         var points = Assert.Single(batch.Frames, frame => frame[0] == 0 && BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) == 0x03D3);

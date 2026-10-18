@@ -26,7 +26,7 @@ internal sealed partial class MarriageDomainService
         return new(relation.Id, stage, relation.Revision, own, partner, ceremony)
         {
             MarriedAt = relation.MarriedAt,
-            LovePoints = relation.LovePoints,
+            LovePoints = await ledger.PointsAsync(relation.Id, actor.CharacterId, ct).ConfigureAwait(false),
             TrialsCleared = MarriageStageRules.IsCouple(stage) && await TrialsClearedAsync(relation.Id, own, partner, ct).ConfigureAwait(false),
         };
     }
@@ -55,7 +55,8 @@ internal sealed partial class MarriageDomainService
         {
             Stage = relation.Stage,
             MarriedAt = relation.MarriedAt,
-            LovePoints = relation.LovePoints,
+            LovePoints = await ledger.PointsAsync(relation.Id, character, ct).ConfigureAwait(false),
+            RingLevel = await ledger.RingAsync(relation.Id, ct).ConfigureAwait(false),
         };
     }
 

@@ -45,7 +45,8 @@ public sealed class DungeonEntryProjectionDelivery(
     DungeonProjectionGate projectionGate,
     ILogger<DungeonEntryProjectionDelivery> logger,
     ICommandBus? commands = null,
-    IInventorySlotProjectionDomainService? inventoryProjection = null)
+    IInventorySlotProjectionDomainService? inventoryProjection = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null)
 {
     public async ValueTask EnterAsync(
         NetworkConnectionId requesterConnection,
@@ -214,6 +215,7 @@ public sealed class DungeonEntryProjectionDelivery(
                             : source.Session.WireUserId));
                 }
 
+                frames.AddRange(await HousingCurrentProjection.ReadAsync(housing, receiver.Session, cancellationToken).ConfigureAwait(false));
                 frames.Add(new EnterSelectDungeonAcknowledgement());
                 frames.Add(new UserStateNotification(allWireUserIds, 0x01));
                 frames.Add(new UdpHostNotification(hostSlot));

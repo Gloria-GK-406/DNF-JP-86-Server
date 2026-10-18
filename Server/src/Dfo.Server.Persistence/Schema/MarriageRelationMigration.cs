@@ -40,7 +40,8 @@ internal static class MarriageRelationMigration
         command.CommandText = """
             UPDATE marriage_relations
             SET love_points=(SELECT MAX(w.love_points) FROM marriage_weddings w WHERE w.relation_id=marriage_relations.id AND w.phase=1)
-            WHERE love_points<(SELECT MAX(w.love_points) FROM marriage_weddings w WHERE w.relation_id=marriage_relations.id AND w.phase=1);
+            WHERE NOT EXISTS(SELECT 1 FROM marriage_housing_migrations WHERE version=1)
+              AND love_points<(SELECT MAX(w.love_points) FROM marriage_weddings w WHERE w.relation_id=marriage_relations.id AND w.phase=1);
             """;
         command.Parameters.Clear();
         command.ExecuteNonQuery();

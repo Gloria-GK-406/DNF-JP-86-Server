@@ -34,6 +34,10 @@ public sealed record NpcShopPurchaseReceipt(
 {
     /// <summary>The affected limited product's committed cumulative count, captured in the purchase transaction.</summary>
     public NpcShopPurchaseCount? PurchaseCount { get; init; }
+    public Dfo.Server.Data.Marriage.HousingSnapshot? Housing { get; init; }
+    public IReadOnlyList<Dfo.Server.Data.Characters.CharacterId> HousingAudience { get; init; } = [];
+    public ItemSnapshot? HousingItem { get; init; }
+    public int? LovePoints { get; init; }
 }
 
 public sealed record NpcShopPurchaseResult(NpcShopRejection Rejection, NpcShopPurchaseReceipt? Receipt)

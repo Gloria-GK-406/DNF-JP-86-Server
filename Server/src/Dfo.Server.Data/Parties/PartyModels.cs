@@ -90,7 +90,8 @@ public sealed class PartyTitle : IEquatable<PartyTitle>
 public sealed record PartyDirectoryScope(
     int ChannelId,
     byte TownId,
-    byte AreaId);
+    byte AreaId,
+    int Instance = 0);
 
 /// <summary>Composable filters over the process-local party directory.</summary>
 public sealed record PartyDirectoryQuery(

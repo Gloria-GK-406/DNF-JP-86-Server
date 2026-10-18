@@ -14,8 +14,8 @@ namespace Dfo.Server.Application.Marriage;
 /// </remarks>
 internal sealed partial class MarriageDomainService(IMarriageRelationWriter ledger, MarriageEligibility eligibility,
     ReservationDesk reservations, ChurchRooms church, WeddingSettlement settlement, GuestList guests, Guestbook guestbook,
-    MarriageQuestDomainService quests, LovePoints love, TimeProvider clock)
-    : IMarriageQueryDomainService, IMarriageCoupleDomainService, IMarriageVenueDomainService
+    MarriageQuestDomainService quests, LovePoints love, TimeProvider clock, HousingState housingState, HousingOperations housing)
+    : IMarriageQueryDomainService, IMarriageCoupleDomainService, IMarriageVenueDomainService, IMarriageHousingDomainService
 {
     /// <summary>The actor's preparing relation and its reservation.</summary>
     private async ValueTask<(MarriageRelation Relation, MarriageCeremony Ceremony)?> ReservedAsync(SelectedSessionIdentity actor, CancellationToken ct) =>

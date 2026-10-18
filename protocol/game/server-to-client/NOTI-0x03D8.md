@@ -165,3 +165,12 @@ BodyLength = 未知（字段集合已知不完整）
 2026-10-16 的 A21 handler 复核已确认 parser 只按 `17 + 6n` 消费；对 204 零而言 `n=0`，
 只消费前 17 字节。曾把 identity 改到 `0x0442` 的做法没有线证据，保持回退；正确处置是隔离
 A21 `03D8` 的非空旧彩票发送，而不是猜测另一个 opcode。
+
+
+## 2026-10-18 A21 婚房实现
+
+共享婚房快照，非空状态为 17+6n 字节；每项槽位+模板 ID，尾部为 13B 树。空房选角继续保留 204 个零的历史兼容体。
+
+CurrentImplementation：统一婚姻领域中的 Housing 逻辑；编解码与投影见 `Server/src/Dfo.Server.Protocol/Game/MarriageHousing/HousingSlice.cs`。依当前 A21 ClientStatic 和 PVF 实施，自动化通过，尚待此次实机验收，不提升为 ClientVerified。通用 CMD 接收层先消费 accepted 信封；旧静态字段宽度若从 status 开始，指的是信封之后的业务体。
+
+新增定向证据见 [补查报告](../../../Document/outputs/marriage-housing-implementation-20261018/wire/README.md)，测试及限制见 [实施说明](../../../Document/MarriageHousing-Implementation-20261018.md)。

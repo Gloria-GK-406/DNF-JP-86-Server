@@ -490,7 +490,7 @@ public sealed class MarriageChurchTests
         public ValueTask<ItemPlacement?> GetAsync(int item, CancellationToken ct) => ValueTask.FromResult<ItemPlacement?>(new(2, 100, new(Dfo.Server.Data.Inventory.BusinessInventorySpace.Consumable, 0, 55)));
     }
     [Fact]
-    public async Task Love_coupon_requires_marriage_consumes_once_updates_shared_points_and_rolls_back()
+    public async Task Love_coupon_requires_marriage_consumes_once_updates_personal_points_and_rolls_back()
     {
         var (f, peer, clock) = await Reserved(s => { s.AddSingleton<IMarriageLovePointRuleService, LoveRules>(); s.AddSingleton<IItemPlacementDefinitionSource, LoveRules>(); });
         await using var owned = f;
@@ -517,13 +517,13 @@ public sealed class MarriageChurchTests
         Assert.Equal(0, (await Use(false)).Status);
         Assert.Equal(0, f.Scalar("SELECT love_points FROM marriage_weddings")); Assert.Equal(3, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND list_type=0"));
         Assert.Equal(0, (await Use()).Status);
-        Assert.Equal(1, (await f.Services.GetRequiredService<IMarriageQueryDomainService>().SnapshotAsync(peer.AccountId, peer.CharacterId, default)).LovePoints);
+        Assert.Equal(0, (await f.Services.GetRequiredService<IMarriageQueryDomainService>().SnapshotAsync(peer.AccountId, peer.CharacterId, default)).LovePoints);
         Assert.Equal(2, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND list_type=0"));
         Assert.NotEqual(0, (await Use(expected: [f.Session.AccountId])).Status);
-        f.Sql("UPDATE marriage_weddings SET love_points=999; UPDATE marriage_relations SET love_points=999 WHERE stage=4");
+        f.Sql("UPDATE marriage_personal_points SET points=999 WHERE character_id=71");
         Assert.NotEqual(0, (await Use()).Status); Assert.Equal(2, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND list_type=0"));
         await using var restored = new LearningFixture(existing: f.Path);
-        Assert.Equal(999, (await restored.Services.GetRequiredService<CoupleLedger>().ReadAsync(ceremony.RelationId, default))!.LovePoints);
+        Assert.Equal(999, await restored.Services.GetRequiredService<CoupleLedger>().PointsAsync(ceremony.RelationId, f.Session.CharacterId, default));
     }
 
     [Fact]

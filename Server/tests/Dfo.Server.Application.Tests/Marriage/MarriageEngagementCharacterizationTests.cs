@@ -58,7 +58,7 @@ public sealed class MarriageEngagementCharacterizationTests
         Assert.Equal(4, State(married)); Assert.Equal(0, married[5]);
         Assert.Equal(checked((uint)room.ReadyUntil.ToUnixTimeSeconds()), BinaryPrimitives.ReadUInt32LittleEndian(married.AsSpan(6)));
         Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(married.AsSpan(10)));
-        f.Sql("UPDATE marriage_weddings SET love_points=7 WHERE phase=1; UPDATE marriage_relations SET love_points=7 WHERE stage=4");
+        f.Sql("INSERT INTO marriage_personal_points(relation_id,character_id,points) SELECT id,72,7 FROM marriage_relations WHERE stage=4");
         Assert.Equal(7u, BinaryPrimitives.ReadUInt32LittleEndian((await Groom()).AsSpan(10)));
     }
 

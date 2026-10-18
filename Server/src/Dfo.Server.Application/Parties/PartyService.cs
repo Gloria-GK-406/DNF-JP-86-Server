@@ -493,7 +493,7 @@ public sealed class PartyService(
         if (inviterScope.ChannelId != targetScope.ChannelId)
             return PartyFailureReason.NotInSameGameChannel;
         if (inviterScope.TownId != targetScope.TownId
-            || inviterScope.AreaId != targetScope.AreaId)
+            || inviterScope.AreaId != targetScope.AreaId || inviterScope.Instance != targetScope.Instance)
         {
             return PartyFailureReason.NotInSameTownArea;
         }

@@ -155,6 +155,12 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageTrialRuleService, Dfo.Server.Application.Marriage.MarriageTrialRuleService>();
         services.TryAddSingleton<Dfo.Server.Application.Marriage.MarriageQuestDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageQuestDomainService>());
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.HousingState>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.HousingState>());
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.HousingReadView>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.HousingReadView>());
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.HousingOperations>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageHousingDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageDomainService>());
         services.TryAddSingleton<Dfo.Server.Application.Marriage.LovePoints>();
         services.TryAddSingleton<Dfo.Server.Application.Marriage.MarriageDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageDomainService>());

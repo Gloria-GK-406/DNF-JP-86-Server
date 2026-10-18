@@ -98,6 +98,7 @@ internal sealed partial class MarriageDomainService
         if (!await settlement.FinishAsync(id, phase, finishedAt, ct).ConfigureAwait(false)) return null;
         await ledger.MustCommitAsync(relation, both ? MarriageTrigger.WeddingCompleted : MarriageTrigger.WeddingCancelled,
             null, finishedAt, ct).ConfigureAwait(false);
+        if (both) await housingState.EnsureAsync(ceremony.RelationId, ct).ConfigureAwait(false);
         var invitations = await guests.InvitationsAsync(id, ct).ConfigureAwait(false);
         var rule = settlement.Rules(ceremony.Tier);
         var participants = new List<MarriageWeddingAdmission>();

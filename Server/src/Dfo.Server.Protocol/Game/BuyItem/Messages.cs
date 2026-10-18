@@ -1,9 +1,10 @@
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Protocol.Game.BuyItem;
 
-public sealed record BuyItemRequest(
+public record BuyItemRequest(
     GameMessageMetadata Metadata,
     int ItemId,
     int RawCount,
@@ -11,6 +12,13 @@ public sealed record BuyItemRequest(
     int NpcId) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameBuyItem;
+}
+
+public sealed record HousingBuyItemRequest(GameMessageMetadata Metadata, int ItemId, int RawCount, int ShopId, int NpcId)
+    : BuyItemRequest(Metadata, ItemId, RawCount, ShopId, NpcId), IEffectSettlementRequest
+{
+    public Dfo.Server.Abstractions.Effects.ReplayProjectionNeeds MinimumReplayNeeds =>
+        Dfo.Server.Abstractions.Effects.ReplayProjectionNeeds.Inventory | Dfo.Server.Abstractions.Effects.ReplayProjectionNeeds.MarriageLovePoints | Dfo.Server.Abstractions.Effects.ReplayProjectionNeeds.MarriageHousing;
 }
 
 public sealed record BuyItemResponse(NpcShopPurchaseReceipt? Receipt, byte ErrorCode = 0) : IGameCmdMessage

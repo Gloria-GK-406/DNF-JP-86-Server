@@ -85,6 +85,7 @@ public sealed record MarriageEngagementSnapshot(Guid? RelationId, MarriagePartne
     public bool IsMarried => Stage == MarriageStage.Married;
     public DateTimeOffset? MarriedAt { get; init; }
     public int LovePoints { get; init; }
+    public byte RingLevel { get; init; }
     public static MarriageEngagementSnapshot Empty { get; } = new(null, null);
 }
 

@@ -846,7 +846,8 @@ public sealed class MoveItemSpaceHandler(
     ICharacterInventoryEntryDomainService characterInventories,
     IAccountInventoryEntryDomainService accountInventories,
     TimeProvider time,
-    Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? projectionGate = null) : ClientMessageHandler<MoveItemSpaceRequest>
+    Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? projectionGate = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null) : ClientMessageHandler<MoveItemSpaceRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -890,6 +891,7 @@ public sealed class MoveItemSpaceHandler(
                     is { } appearance)
                 {
                     frames.Add(appearance);
+                    if (identity is not null) frames.AddRange(await HousingCurrentProjection.ReadAsync(housing, identity, cancellationToken).ConfigureAwait(false));
                 }
             }
             catch (Exception failure) when (!cancellationToken.IsCancellationRequested)

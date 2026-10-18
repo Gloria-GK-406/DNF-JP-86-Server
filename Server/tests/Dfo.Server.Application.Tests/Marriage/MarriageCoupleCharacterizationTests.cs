@@ -73,8 +73,9 @@ public sealed class MarriageCoupleCharacterizationTests
         Assert.Equal(3, f.Scalar($"SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND list_type=0 AND slot_index={couponStorage}"));
         var used = await Use(f.Session, coupon, 1, 2);
         Assert.Equal(0, used.Status); Assert.Equal(1, used.Points); Assert.Equal(peer.CharacterId, used.Partner);
-        Assert.Equal(1, (await Query(f).SnapshotAsync(peer.AccountId, peer.CharacterId, default)).LovePoints);
-        f.Sql("UPDATE marriage_weddings SET love_points=998 WHERE phase=1; UPDATE marriage_relations SET love_points=998 WHERE stage=4");
+        Assert.Equal(0, (await Query(f).SnapshotAsync(peer.AccountId, peer.CharacterId, default)).LovePoints);
+        Assert.Equal(1, (await Query(f).SnapshotAsync(f.Session.AccountId, f.Session.CharacterId, default)).LovePoints);
+        f.Sql("UPDATE marriage_personal_points SET points=998 WHERE character_id=71");
         Assert.Equal(999, (await Use(f.Session, coupon, 1, 2)).Points);
         Assert.Equal(-2, (await Use(f.Session, coupon, 1, 2)).Status);
         Assert.Equal(1, f.Scalar($"SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND list_type=0 AND slot_index={couponStorage}"));

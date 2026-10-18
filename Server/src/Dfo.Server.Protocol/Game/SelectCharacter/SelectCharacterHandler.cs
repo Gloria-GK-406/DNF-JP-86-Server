@@ -136,6 +136,7 @@ public sealed class SelectCharacterHandler(
             }
             await commandBus.SendAsync(new EnsureDailyContractPuppetsCommand(session), cancellationToken)
                 .ConfigureAwait(false);
+            await commandBus.SendAsync(new Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommand(session), cancellationToken).ConfigureAwait(false);
             // Hold live achievement/title projections until the complete entry batch has reached the client.
             using var achievementProjection = achievementProjectionGate is null ? null
                 : await achievementProjectionGate.EnterAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);

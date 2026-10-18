@@ -497,7 +497,7 @@ internal static class PartyCharacterProjection
                 ? new PartyDirectoryScope(
                     current.Area.ChannelId,
                     current.Area.TownId,
-                    current.Area.AreaId)
+                    current.Area.AreaId, current.Area.Instance)
                 : null;
         character = new PartyCharacterSnapshot(
             session.AccountId,

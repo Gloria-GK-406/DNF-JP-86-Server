@@ -159,6 +159,16 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
             messages.Add(new EpicBookStateMessage(0, state.EpicPieces.IsDefault ? throw Missing("Epic book") : state.EpicPieces));
         if (needs.HasFlag(ReplayProjectionNeeds.MarriageLovePoints))
             messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotification(state.Session.CharacterId.Value, state.LovePoints ?? throw Missing("Love points")));
+        if (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing) || needs.HasFlag(ReplayProjectionNeeds.CharacterAppearance))
+        {
+            if (state.Housing is { } housing)
+            {
+                messages.Add(new HousingRoomMessage(housing));
+                if (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing)) messages.Add(new HousingStorageMessage(housing));
+                messages.Add(new HousingRingMessage(state.RingLevel));
+            }
+            else if (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing)) messages.Add(new HousingRingMessage(0));
+        }
         return messages.ToImmutable();
     }
     private static InvalidDataException Missing(string name) => new($"Required replay projection '{name}' is unavailable.");

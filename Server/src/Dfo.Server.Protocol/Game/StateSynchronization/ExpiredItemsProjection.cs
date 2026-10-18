@@ -33,7 +33,8 @@ internal sealed class ExpiredItemsNotificationSubscriber(IEventService events,
 
 internal sealed class ExpiredItemsRefreshHandler(ISelectedSessionDomainService sessions,
     ISelectedCharacterCurrentViewDomainService views, ICharacterVisibleSessionDomainService visible,
-    ICharacterInventoryEntryDomainService inventories, IAccountInventoryEntryDomainService accounts)
+    ICharacterInventoryEntryDomainService inventories, IAccountInventoryEntryDomainService accounts,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null)
     : INotificationHandler<ExpiredItemsRefresh>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
@@ -72,6 +73,7 @@ internal sealed class ExpiredItemsRefreshHandler(ISelectedSessionDomainService s
                     current.CharacterEntry.Skills, equipment, current.World.PreparedAt));
             messages.Add(new CurrentUserStateMessage(current.Character, current.CharacterEntry.Public,
                 equipment, current.CharacterEntry.Features.Pets));
+            if (receiver == owner) messages.AddRange(await HousingCurrentProjection.ReadAsync(housing, owner, ct).ConfigureAwait(false));
         }
         return messages;
     }

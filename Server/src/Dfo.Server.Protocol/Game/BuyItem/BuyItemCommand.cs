@@ -10,9 +10,10 @@ namespace Dfo.Server.Protocol.Game.BuyItem;
 
 public sealed record BuyItemCommand(
     OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int ItemId, int RawCount, int ShopId, int NpcId)
-    : ICommand<BuyItemOutcome>, IOnlineUserCommand, IAccountCommand
+    : ICommand<BuyItemOutcome>, IOnlineUserCommand, IAccountCommand, IMultiAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
+    public IReadOnlyList<AccountId> AccountIds { get; init; } = [Session.AccountId];
 }
 
 public sealed record BuyItemOutcome(NpcShopPurchaseResult Purchase, QuestProgressSnapshot? QuestProgress)
@@ -27,13 +28,17 @@ public sealed record BuyItemOutcome(NpcShopPurchaseResult Purchase, QuestProgres
 public sealed class BuyItemCommandHandler(
     INpcShopDomainService shops,
     IQuestProgressDomainService quests,
-    TimeProvider clock)
-    : ICommandHandler<BuyItemCommand, BuyItemOutcome>
+    TimeProvider clock, Dfo.Server.Abstractions.Marriage.IMarriageHousingDomainService housing)
+    : ICommandHandler<BuyItemCommand, BuyItemOutcome>, ICommandHandler<HousingBuyItemCommand, BuyItemOutcome>
 {
+    public ValueTask<BuyItemOutcome> HandleAsync(CommandExecutionContext context, HousingBuyItemCommand command, CancellationToken ct) =>
+        HandleAsync(context, command.Purchase, ct);
     public async ValueTask<BuyItemOutcome> HandleAsync(
         CommandExecutionContext context, BuyItemCommand command, CancellationToken cancellationToken)
     {
-        var purchase = await shops.PurchaseAsync(
+        var purchase = command.NpcId == 20011
+            ? await housing.PurchaseAsync(command.Session, command.ItemId, command.RawCount, command.ShopId, command.AccountIds, cancellationToken).ConfigureAwait(false)
+            : await shops.PurchaseAsync(
             command.Session, command.ItemId, command.RawCount, command.ShopId, command.NpcId,
             clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
         if (purchase.Receipt is null)
@@ -44,4 +49,10 @@ public sealed class BuyItemCommandHandler(
             [new QuestHoldingsChanged()], cancellationToken).ConfigureAwait(false);
         return new BuyItemOutcome(purchase, progress.NotificationSnapshot);
     }
+}
+
+public sealed record HousingBuyItemCommand(BuyItemCommand Purchase) : ICommand<BuyItemOutcome>, IMultiAccountCommand, IRequestSettlementCommand
+{
+    public SelectedSessionIdentity? Session => Purchase.Session;
+    public IReadOnlyList<AccountId> AccountIds => Purchase.AccountIds;
 }

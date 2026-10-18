@@ -21,7 +21,7 @@ internal sealed class NpcShopDomainService(
     ICharacterBusinessInventoryDomainService inventories,
     IItemPlacementRuleService placements,
     INpcShopRuleService rules,
-    INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle, IItemGrantDomainService grants) : INpcShopDomainService
+    INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle, IItemGrantDomainService grants, Dfo.Server.Abstractions.Effects.IRequestReplayProjectionDomainService replay) : INpcShopDomainService
 {
     public async ValueTask<NpcShopPurchaseResult> PurchaseAsync(
         SelectedSessionIdentity session, int itemId, int rawCount, int shopId, int npcId,
@@ -91,6 +91,7 @@ internal sealed class NpcShopDomainService(
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
         var cera = checked((int)wallet.Cera);
 
+        replay.RecordInventorySlots(session, plan.MaterialChanges.Select(x => x.Slot).ToArray());
         if (quote.GoldCost > 0)
             gold = await character.TrySpendGoldAsync(quote.GoldCost, cancellationToken).ConfigureAwait(false)
                 ?? throw new NpcShopPurchaseRejectedException(NpcShopRejection.InsufficientGold);

@@ -299,6 +299,27 @@ public sealed class ProtocolModule : IServerModule
             Dfo.Server.Protocol.Game.MarriageProposal.PrepareMarriageChurchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.EnterMarriageChurchCommand, Dfo.Server.Data.Marriage.MarriageChurchEntryResult,
             Dfo.Server.Protocol.Game.MarriageProposal.EnterMarriageChurchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingStorageDecoder>(0x03FD, ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingMoveDecoder>(0x03FE, ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingDeleteDecoder>(0x03FF, ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingPlantDecoder>(0x0400, ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingWaterDecoder>(0x0401, ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingHarvestDecoder>(0x0402, ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingClearDecoder>(0x0403, ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingRingDecoder>(0x03F4, ClientMessageType.GameMarriageHousing);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.BuyItem.HousingBuyItemCommand, Dfo.Server.Protocol.Game.BuyItem.BuyItemOutcome, Dfo.Server.Protocol.Game.BuyItem.BuyItemCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingHandler>(ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingAck, Dfo.Server.Protocol.Game.MarriageHousing.HousingAckEncoder>();
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingCommand, Dfo.Server.Data.Marriage.HousingResult, Dfo.Server.Protocol.Game.MarriageHousing.HousingCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingChanged, Dfo.Server.Protocol.Game.MarriageHousing.HousingChangedHandler>(retryLimit: 0);
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingRoomMessage, Dfo.Server.Protocol.Game.HousingRoomEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingStorageMessage, Dfo.Server.Protocol.Game.HousingStorageEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingMoveMessage, Dfo.Server.Protocol.Game.HousingMoveEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingDeleteMessage, Dfo.Server.Protocol.Game.HousingDeleteEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingTreeMessage, Dfo.Server.Protocol.Game.HousingTreeEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingRingMessage, Dfo.Server.Protocol.Game.HousingRingEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingRewardsMessage, Dfo.Server.Protocol.Game.HousingRewardsEncoder>();
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommand, bool, Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointDecoder>(0x03F5, ClientMessageType.GameWeddingLovePoint);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointHandler>(ClientMessageType.GameWeddingLovePoint);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointAckEncoder>();
