@@ -825,7 +825,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x001B` | `LotteryOpeningDecoder` | 仅证明 decoder 已注册 | [0x001B](game/client-to-server/0x001B.md) |
 | `0x01` | `0x001C` | `ChangeSkillSlotDecoder` | 仅证明 decoder 已注册 | [0x001C](game/client-to-server/0x001C.md) |
 | `0x01` | `0x001D` | `LearnSkillMessageDecoder` | 仅证明 decoder 已注册 | [0x001D](game/client-to-server/0x001D.md) |
-| `0x01` | `0x001E` | `IncreaseStatusDecoder` | decoder 已注册；实际兵书入口自动验证 | [0x001E](game/client-to-server/0x001E.md) |
+| `0x01` | `0x001E` | `IncreaseStatusDecoder` | 仅证明 decoder 已注册 | [0x001E](game/client-to-server/0x001E.md) |
 | `0x01` | `0x001F` | `AcceptQuestMessageDecoder` | 仅证明 decoder 已注册 | [0x001F](game/client-to-server/0x001F.md) |
 | `0x01` | `0x0020` | `GiveUpQuestMessageDecoder` | 仅证明 decoder 已注册 | [0x0020](game/client-to-server/0x0020.md) |
 | `0x01` | `0x0021` | `SetQuestTriggerMessageDecoder` | 仅证明 decoder 已注册 | [0x0021](game/client-to-server/0x0021.md) |
@@ -874,6 +874,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x00BF` | `StoryPauseDecoder` | 仅证明 decoder 已注册 | [0x00BF](game/client-to-server/0x00BF.md) |
 | `0x01` | `0x00C2` | `ClientSpecProfileMessageDecoder` | 仅证明 decoder 已注册 | [0x00C2](game/client-to-server/0x00C2.md) |
 | `0x01` | `0x00C5` | `SaveGameOption1MessageDecoder` | 仅证明 decoder 已注册 | [0x00C5](game/client-to-server/0x00C5.md) |
+| `0x01` | `0x00C6` | `SaveHotkeysDecoder` | 仅证明 decoder 已注册 | [0x00C6](game/client-to-server/0x00C6.md) |
 | `0x01` | `0x00C9` | `ItemSocketDecoder` | 仅证明 decoder 已注册 | [0x00C9](game/client-to-server/0x00C9.md) |
 | `0x01` | `0x00CC` | `PurifyItemDecoder` | 仅证明 decoder 已注册 | [0x00CC](game/client-to-server/0x00CC.md) |
 | `0x01` | `0x00CD` | `InvestAmplifyOptionDecoder` | 仅证明 decoder 已注册 | [0x00CD](game/client-to-server/0x00CD.md) |
@@ -883,6 +884,9 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x00D9` | `OverflowInfoDecoder` | 仅证明 decoder 已注册 | [0x00D9](game/client-to-server/0x00D9.md) |
 | `0x01` | `0x00ED` | `TeleportDecoder` | 仅证明 decoder 已注册 | [0x00ED](game/client-to-server/0x00ED.md) |
 | `0x01` | `0x00FA` | `SessionMetricsMessageDecoder` | 仅证明 decoder 已注册 | [0x00FA](game/client-to-server/0x00FA.md) |
+| `0x01` | `0x00FB` | `SharedEffectDecoder` | 仅证明 decoder 已注册 | [0x00FB](game/client-to-server/0x00FB.md) |
+| `0x01` | `0x00FF` | `AltarDeathBatchDecoder` | 仅证明 decoder 已注册 | [0x00FF](game/client-to-server/0x00FF.md) |
+| `0x01` | `0x0102` | `AltarPrepareDecoder` | 仅证明 decoder 已注册 | [0x0102](game/client-to-server/0x0102.md) |
 | `0x01` | `0x0104` | `SwitchSkillBuildDecoder` | 仅证明 decoder 已注册 | [0x0104](game/client-to-server/0x0104.md) |
 | `0x01` | `0x0110` | `EnchantByBeadDecoder` | 仅证明 decoder 已注册 | [0x0110](game/client-to-server/0x0110.md) |
 | `0x01` | `0x0117` | `LagStatisticsDecoder` | 仅证明 decoder 已注册 | [0x0117](game/client-to-server/0x0117.md) |
@@ -892,7 +896,9 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x0133` | `WarehouseDecoder` | 仅证明 decoder 已注册 | [0x0133](game/client-to-server/0x0133.md) |
 | `0x01` | `0x0134` | `WarehouseDecoder` | 仅证明 decoder 已注册 | [0x0134](game/client-to-server/0x0134.md) |
 | `0x01` | `0x013B` | `MailboxSendMultiDecoder` | 仅证明 decoder 已注册 | [0x013B](game/client-to-server/0x013B.md) |
+| `0x01` | `0x013D` | `AltarDifficultyDecoder` | 仅证明 decoder 已注册 | [0x013D](game/client-to-server/0x013D.md) |
 | `0x01` | `0x0144` | `MailboxQueryDecoder` | 仅证明 decoder 已注册 | [0x0144](game/client-to-server/0x0144.md) |
+| `0x01` | `0x0170` | `SaveQuickChatDecoder` | 仅证明 decoder 已注册 | [0x0170](game/client-to-server/0x0170.md) |
 | `0x01` | `0x0191` | `UnsealRandomOptionDecoder` | 仅证明 decoder 已注册 | [0x0191](game/client-to-server/0x0191.md) |
 | `0x01` | `0x0198` | `WarehouseDecoder` | 仅证明 decoder 已注册 | [0x0198](game/client-to-server/0x0198.md) |
 | `0x01` | `0x019C` | `StoreTitleDecoder` | 仅证明 decoder 已注册 | [0x019C](game/client-to-server/0x019C.md) |
@@ -935,6 +941,27 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x0379` | `ItemSocketDecoder` | 仅证明 decoder 已注册 | [0x0379](game/client-to-server/0x0379.md) |
 | `0x01` | `0x037A` | `ItemSocketDecoder` | 仅证明 decoder 已注册 | [0x037A](game/client-to-server/0x037A.md) |
 | `0x01` | `0x039D` | `RequestIgaVersionDecoder` | 仅证明 decoder 已注册 | [0x039D](game/client-to-server/0x039D.md) |
+| `0x01` | `0x03F0` | `WeddingProposalDecoder` | 仅证明 decoder 已注册 | [0x03F0](game/client-to-server/0x03F0.md) |
+| `0x01` | `0x03F1` | `WeddingResponseDecoder` | 仅证明 decoder 已注册 | [0x03F1](game/client-to-server/0x03F1.md) |
+| `0x01` | `0x03F2` | `WeddingGiftDecoder` | 仅证明 decoder 已注册 | [0x03F2](game/client-to-server/0x03F2.md) |
+| `0x01` | `0x03F3` | `WeddingPartnerDecoder` | 仅证明 decoder 已注册 | [0x03F3](game/client-to-server/0x03F3.md) |
+| `0x01` | `0x03F4` | `HousingRingDecoder` | 仅证明 decoder 已注册 | [0x03F4](game/client-to-server/0x03F4.md) |
+| `0x01` | `0x03F5` | `WeddingLovePointDecoder` | 仅证明 decoder 已注册 | [0x03F5](game/client-to-server/0x03F5.md) |
+| `0x01` | `0x03F6` | `WeddingLetterDecoder` | 仅证明 decoder 已注册 | [0x03F6](game/client-to-server/0x03F6.md) |
+| `0x01` | `0x03F7` | `WeddingChurchEnterDecoder` | 仅证明 decoder 已注册 | [0x03F7](game/client-to-server/0x03F7.md) |
+| `0x01` | `0x03F8` | `WeddingCommentPostDecoder` | 仅证明 decoder 已注册 | [0x03F8](game/client-to-server/0x03F8.md) |
+| `0x01` | `0x03F9` | `WeddingCommentDeleteDecoder` | 仅证明 decoder 已注册 | [0x03F9](game/client-to-server/0x03F9.md) |
+| `0x01` | `0x03FA` | `WeddingCommentReadDecoder` | 仅证明 decoder 已注册 | [0x03FA](game/client-to-server/0x03FA.md) |
+| `0x01` | `0x03FD` | `HousingStorageDecoder` | 仅证明 decoder 已注册 | [0x03FD](game/client-to-server/0x03FD.md) |
+| `0x01` | `0x03FE` | `HousingMoveDecoder` | 仅证明 decoder 已注册 | [0x03FE](game/client-to-server/0x03FE.md) |
+| `0x01` | `0x03FF` | `HousingDeleteDecoder` | 仅证明 decoder 已注册 | [0x03FF](game/client-to-server/0x03FF.md) |
+| `0x01` | `0x0400` | `HousingPlantDecoder` | 仅证明 decoder 已注册 | [0x0400](game/client-to-server/0x0400.md) |
+| `0x01` | `0x0401` | `HousingWaterDecoder` | 仅证明 decoder 已注册 | [0x0401](game/client-to-server/0x0401.md) |
+| `0x01` | `0x0402` | `HousingHarvestDecoder` | 仅证明 decoder 已注册 | [0x0402](game/client-to-server/0x0402.md) |
+| `0x01` | `0x0403` | `HousingClearDecoder` | 仅证明 decoder 已注册 | [0x0403](game/client-to-server/0x0403.md) |
+| `0x01` | `0x0404` | `CapsuleMakeDecoder` | 仅证明 decoder 已注册 | [0x0404](game/client-to-server/0x0404.md) |
+| `0x01` | `0x0405` | `CapsuleGiveDecoder` | 仅证明 decoder 已注册 | [0x0405](game/client-to-server/0x0405.md) |
+| `0x01` | `0x0406` | `CapsuleTakeDecoder` | 仅证明 decoder 已注册 | [0x0406](game/client-to-server/0x0406.md) |
 | `0x01` | `0x0441` | `WeeklyAttendanceDecoder` | 仅证明 decoder 已注册 | [0x0441](game/client-to-server/0x0441.md) |
 | `0x01` | `0x0450` | `MagicBoxBatchOpeningDecoder` | 仅证明 decoder 已注册 | [0x0450](game/client-to-server/0x0450.md) |
 | `0x01` | `0x045C` | `FrameLagPerDungeonDecoder` | 仅证明 decoder 已注册 | [0x045C](game/client-to-server/0x045C.md) |
@@ -970,7 +997,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x001B` | `LotteryOpeningResponse` | 仅证明 encoder 可产生该 identity | [0x001B](game/client-to-server/0x001B.md) |
 | `0x01` CMD | `0x001C` | `ChangeSkillSlotResponse` | 仅证明 encoder 可产生该 identity | [0x001C](game/client-to-server/0x001C.md) |
 | `0x01` CMD | `0x001D` | `LearnSkillResponse` | 仅证明 encoder 可产生该 identity | [0x001D](game/client-to-server/0x001D.md) |
-| `0x01` CMD | `0x001E` | `IncreaseStatusResponse` | 成功/拒绝布局有ClientStatic证据；实机待验 | [CMD001E](game/server-to-client/CMD-0x001E.md) |
+| `0x01` CMD | `0x001E` | `IncreaseStatusResponse` | 仅证明 encoder 可产生该 identity | [0x001E](game/client-to-server/0x001E.md) |
 | `0x01` CMD | `0x001F` | `AcceptQuestAcknowledgement` | 仅证明 encoder 可产生该 identity | [0x001F](game/client-to-server/0x001F.md) |
 | `0x01` CMD | `0x0020` | `GiveUpQuestAcknowledgement` | 仅证明 encoder 可产生该 identity | [0x0020](game/client-to-server/0x0020.md) |
 | `0x01` CMD | `0x0021` | `SetQuestTriggerAcknowledgement` | 仅证明 encoder 可产生该 identity | [0x0021](game/client-to-server/0x0021.md) |
@@ -1007,6 +1034,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x00D0` | `MagicBoxSingleOpeningResponse` | 仅证明 encoder 可产生该 identity | [0x00D0](game/client-to-server/0x00D0.md) |
 | `0x01` CMD | `0x00D7` | `VendingMachineResponse` | 仅证明 encoder 可产生该 identity | [0x00D7](game/client-to-server/0x00D7.md) |
 | `0x01` CMD | `0x00ED` | `TeleportResponse` | 仅证明 encoder 可产生该 identity | [0x00ED](game/client-to-server/0x00ED.md) |
+| `0x01` CMD | `0x00FB` | `SharedEffectAck` | 仅证明 encoder 可产生该 identity | [0x00FB](game/client-to-server/0x00FB.md) |
 | `0x01` CMD | `0x0104` | `SwitchSkillBuildResponse` | 仅证明 encoder 可产生该 identity | [0x0104](game/client-to-server/0x0104.md) |
 | `0x01` CMD | `0x0110` | `EnchantByBeadResponse` | 仅证明 encoder 可产生该 identity | [0x0110](game/client-to-server/0x0110.md) |
 | `0x01` CMD | `0x0131` | `WarehouseResponse` | 仅证明 encoder 可产生该 identity | [0x0131](game/client-to-server/0x0131.md) |
@@ -1014,6 +1042,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x0133` | `WarehouseResponse` | 仅证明 encoder 可产生该 identity | [0x0133](game/client-to-server/0x0133.md) |
 | `0x01` CMD | `0x0134` | `WarehouseResponse` | 仅证明 encoder 可产生该 identity | [0x0134](game/client-to-server/0x0134.md) |
 | `0x01` CMD | `0x013B` | `MailboxSendResponse` | 仅证明 encoder 可产生该 identity | [0x013B](game/client-to-server/0x013B.md) |
+| `0x01` CMD | `0x013D` | `AltarDifficultyResponse` | 仅证明 encoder 可产生该 identity | [0x013D](game/client-to-server/0x013D.md) |
 | `0x01` CMD | `0x0144` | `MailboxQueryResponse` | 仅证明 encoder 可产生该 identity | [0x0144](game/client-to-server/0x0144.md) |
 | `0x01` CMD | `0x0198` | `CargoCapacityUpgradeMessage`、`WarehouseResponse` | 仅证明 encoder 可产生该 identity | [0x0198](game/client-to-server/0x0198.md) |
 | `0x01` CMD | `0x019C` | `TitleBookMutationResponse` | 仅证明 encoder 可产生该 identity | [0x019C](game/client-to-server/0x019C.md) |
@@ -1045,6 +1074,27 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x036F` | `PremiumServiceStateMessage` | 仅证明 encoder 可产生该 identity | [0x036F](game/client-to-server/0x036F.md) |
 | `0x01` CMD | `0x0379` | `ItemSocketResponse` | 仅证明 encoder 可产生该 identity | [0x0379](game/client-to-server/0x0379.md) |
 | `0x01` CMD | `0x037A` | `ItemSocketResponse` | 仅证明 encoder 可产生该 identity | [0x037A](game/client-to-server/0x037A.md) |
+| `0x01` CMD | `0x03F0` | `WeddingProposalAck` | 仅证明 encoder 可产生该 identity | [0x03F0](game/client-to-server/0x03F0.md) |
+| `0x01` CMD | `0x03F1` | `WeddingResponseAck` | 仅证明 encoder 可产生该 identity | [0x03F1](game/client-to-server/0x03F1.md) |
+| `0x01` CMD | `0x03F2` | `WeddingGiftAck` | 仅证明 encoder 可产生该 identity | [0x03F2](game/client-to-server/0x03F2.md) |
+| `0x01` CMD | `0x03F3` | `WeddingPartnerAck` | 仅证明 encoder 可产生该 identity | [0x03F3](game/client-to-server/0x03F3.md) |
+| `0x01` CMD | `0x03F4` | `HousingAck` | 仅证明 encoder 可产生该 identity | [0x03F4](game/client-to-server/0x03F4.md) |
+| `0x01` CMD | `0x03F5` | `WeddingLovePointAck` | 仅证明 encoder 可产生该 identity | [0x03F5](game/client-to-server/0x03F5.md) |
+| `0x01` CMD | `0x03F6` | `WeddingLetterAck` | 仅证明 encoder 可产生该 identity | [0x03F6](game/client-to-server/0x03F6.md) |
+| `0x01` CMD | `0x03F7` | `WeddingChurchEnterAck` | 仅证明 encoder 可产生该 identity | [0x03F7](game/client-to-server/0x03F7.md) |
+| `0x01` CMD | `0x03F8` | `WeddingCommentAck` | 仅证明 encoder 可产生该 identity | [0x03F8](game/client-to-server/0x03F8.md) |
+| `0x01` CMD | `0x03F9` | `WeddingCommentAck` | 仅证明 encoder 可产生该 identity | [0x03F9](game/client-to-server/0x03F9.md) |
+| `0x01` CMD | `0x03FA` | `WeddingCommentAck` | 仅证明 encoder 可产生该 identity | [0x03FA](game/client-to-server/0x03FA.md) |
+| `0x01` CMD | `0x03FD` | `HousingAck` | 仅证明 encoder 可产生该 identity | [0x03FD](game/client-to-server/0x03FD.md) |
+| `0x01` CMD | `0x03FE` | `HousingAck` | 仅证明 encoder 可产生该 identity | [0x03FE](game/client-to-server/0x03FE.md) |
+| `0x01` CMD | `0x03FF` | `HousingAck` | 仅证明 encoder 可产生该 identity | [0x03FF](game/client-to-server/0x03FF.md) |
+| `0x01` CMD | `0x0400` | `HousingAck` | 仅证明 encoder 可产生该 identity | [0x0400](game/client-to-server/0x0400.md) |
+| `0x01` CMD | `0x0401` | `HousingAck` | 仅证明 encoder 可产生该 identity | [0x0401](game/client-to-server/0x0401.md) |
+| `0x01` CMD | `0x0402` | `HousingAck` | 仅证明 encoder 可产生该 identity | [0x0402](game/client-to-server/0x0402.md) |
+| `0x01` CMD | `0x0403` | `HousingAck` | 仅证明 encoder 可产生该 identity | [0x0403](game/client-to-server/0x0403.md) |
+| `0x01` CMD | `0x0404` | `CapsuleAck` | 仅证明 encoder 可产生该 identity | [0x0404](game/client-to-server/0x0404.md) |
+| `0x01` CMD | `0x0405` | `CapsuleAck` | 仅证明 encoder 可产生该 identity | [0x0405](game/client-to-server/0x0405.md) |
+| `0x01` CMD | `0x0406` | `CapsuleAck` | 仅证明 encoder 可产生该 identity | [0x0406](game/client-to-server/0x0406.md) |
 | `0x01` CMD | `0x0441` | `WeeklyAttendanceResponse` | 仅证明 encoder 可产生该 identity | [0x0441](game/client-to-server/0x0441.md) |
 | `0x01` CMD | `0x0450` | `MagicBoxBatchOpeningResponse` | 仅证明 encoder 可产生该 identity | [0x0450](game/client-to-server/0x0450.md) |
 | `0x01` CMD | `0x04DD` | `ConnectionCheckResponse` | 仅证明 encoder 可产生该 identity | [0x04DD](game/client-to-server/0x04DD.md) |
@@ -1094,9 +1144,10 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x0069` | `CreatureListMessage`、`CreatureListUpdateMessage` | 仅证明 encoder 可产生该 identity | [0x0069](game/server-to-client/NOTI-0x0069.md) |
 | `0x00` NOTI | `0x006A` | `CreatureEvolutionNotification` | 仅证明 encoder 可产生该 identity | [0x006A](game/server-to-client/NOTI-0x006A.md) |
 | `0x00` NOTI | `0x006B` | `CreatureRevivalNotification`、`PetRevivalStateMessage` | 仅证明 encoder 可产生该 identity | [0x006B](game/server-to-client/NOTI-0x006B.md) |
-| `0x00` NOTI | `0x006C` | `EventInformationMessage`、`ServerEventBaselineMessage` | encoder；A21 无详情记录保留活动身份（ClientStatic / High，UI 待验收） | [0x006C](game/server-to-client/NOTI-0x006C.md) |
+| `0x00` NOTI | `0x006C` | `EventInformationMessage`、`ServerEventBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x006C](game/server-to-client/NOTI-0x006C.md) |
 | `0x00` NOTI | `0x0077` | `PetWelcomeStateMessage` | 仅证明 encoder 可产生该 identity | [0x0077](game/server-to-client/NOTI-0x0077.md) |
 | `0x00` NOTI | `0x007C` | `EntryMarkerMessage` | 仅证明 encoder 可产生该 identity | [0x007C](game/server-to-client/NOTI-0x007C.md) |
+| `0x00` NOTI | `0x008A` | `ForcedTownPositionNotification` | 仅证明 encoder 可产生该 identity | [0x008A](game/server-to-client/NOTI-0x008A.md) |
 | `0x00` NOTI | `0x008E` | `IllusionTowerInfoNotification` | 仅证明 encoder 可产生该 identity | [0x008E](game/server-to-client/NOTI-0x008E.md) |
 | `0x00` NOTI | `0x008F` | `IllusionTowerMapNotification` | 仅证明 encoder 可产生该 identity | [0x008F](game/server-to-client/NOTI-0x008F.md) |
 | `0x00` NOTI | `0x0090` | `IllusionTowerRankingNotification` | 仅证明 encoder 可产生该 identity | [0x0090](game/server-to-client/NOTI-0x0090.md) |
@@ -1111,10 +1162,18 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x00B7` | `AuctionServiceStateNotice` | 仅证明 encoder 可产生该 identity | [0x00B7](game/server-to-client/NOTI-0x00B7.md) |
 | `0x00` NOTI | `0x00CA` | `VillageObjectListMessage` | 仅证明 encoder 可产生该 identity | [0x00CA](game/server-to-client/NOTI-0x00CA.md) |
 | `0x00` NOTI | `0x00CD` | `ExpertJobStateMessage` | 仅证明 encoder 可产生该 identity | [0x00CD](game/server-to-client/NOTI-0x00CD.md) |
+| `0x00` NOTI | `0x00D0` | `AltarRankingMessage` | 仅证明 encoder 可产生该 identity | [0x00D0](game/server-to-client/NOTI-0x00D0.md) |
+| `0x00` NOTI | `0x00D1` | `AltarRewardMessage` | 仅证明 encoder 可产生该 identity | [0x00D1](game/server-to-client/NOTI-0x00D1.md) |
+| `0x00` NOTI | `0x00D2` | `AltarWaveMessage` | 仅证明 encoder 可产生该 identity | [0x00D2](game/server-to-client/NOTI-0x00D2.md) |
+| `0x00` NOTI | `0x00D3` | `AltarMapMessage` | 仅证明 encoder 可产生该 identity | [0x00D3](game/server-to-client/NOTI-0x00D3.md) |
+| `0x00` NOTI | `0x00D4` | `AltarInfoMessage` | 仅证明 encoder 可产生该 identity | [0x00D4](game/server-to-client/NOTI-0x00D4.md) |
+| `0x00` NOTI | `0x00D7` | `AltarIntervalMessage` | 仅证明 encoder 可产生该 identity | [0x00D7](game/server-to-client/NOTI-0x00D7.md) |
+| `0x00` NOTI | `0x00DB` | `SharedEffectNotification` | 仅证明 encoder 可产生该 identity | [0x00DB](game/server-to-client/NOTI-0x00DB.md) |
 | `0x00` NOTI | `0x00FB` | `EquipmentLockStateMessage`、`InventoryLocksMessage`、`TrailingEquipmentLockSnapshotMessage` | 仅证明 encoder 可产生该 identity | [0x00FB](game/server-to-client/NOTI-0x00FB.md) |
 | `0x00` NOTI | `0x00FE` | `ElevatorStateMessage` | 仅证明 encoder 可产生该 identity | [0x00FE](game/server-to-client/NOTI-0x00FE.md) |
 | `0x00` NOTI | `0x0111` | `CrossServerFriendBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x0111](game/server-to-client/NOTI-0x0111.md) |
 | `0x00` NOTI | `0x0117` | `SecretShopNpcNotification` | 仅证明 encoder 可产生该 identity | [0x0117](game/server-to-client/NOTI-0x0117.md) |
+| `0x00` NOTI | `0x0129` | `AltarDifficultyPromptMessage`、`AltarDifficultyResolvedMessage` | 仅证明 encoder 可产生该 identity | [0x0129](game/server-to-client/NOTI-0x0129.md) |
 | `0x00` NOTI | `0x0158` | `PvpMissionStateMessage` | 仅证明 encoder 可产生该 identity | [0x0158](game/server-to-client/NOTI-0x0158.md) |
 | `0x00` NOTI | `0x015B` | `DespairApcInfoNotification` | 仅证明 encoder 可产生该 identity | [0x015B](game/server-to-client/NOTI-0x015B.md) |
 | `0x00` NOTI | `0x015C` | `DespairClearRewardNotification` | 仅证明 encoder 可产生该 identity | [0x015C](game/server-to-client/NOTI-0x015C.md) |
@@ -1153,13 +1212,31 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x02D5` | `DailyScheduleStateMessage` | 仅证明 encoder 可产生该 identity | [0x02D5](game/server-to-client/NOTI-0x02D5.md) |
 | `0x00` NOTI | `0x0326` | `DimensionDungeonQuotaMessage` | 仅证明 encoder 可产生该 identity | [0x0326](game/server-to-client/NOTI-0x0326.md) |
 | `0x00` NOTI | `0x0331` | `GoldLimitStateMessage` | 仅证明 encoder 可产生该 identity | [0x0331](game/server-to-client/NOTI-0x0331.md) |
-| `0x00` NOTI | `0x033F` | `ScheduledDungeonStateMessage` | 定时地下城状态 16B；开放状态门为 ClientStatic / High，UI 待验收 | [0x033F](game/server-to-client/NOTI-0x033F.md) |
+| `0x00` NOTI | `0x033F` | `ScheduledDungeonStateMessage` | 仅证明 encoder 可产生该 identity | [0x033F](game/server-to-client/NOTI-0x033F.md) |
 | `0x00` NOTI | `0x0344` | `PurchaseRestrictionCompatibilityMessage` | 仅证明 encoder 可产生该 identity | [0x0344](game/server-to-client/NOTI-0x0344.md) |
 | `0x00` NOTI | `0x0353` | `LotteryCounterStateMessage` | 仅证明 encoder 可产生该 identity | [0x0353](game/server-to-client/NOTI-0x0353.md) |
 | `0x00` NOTI | `0x036A` | `CubeProgressionStateMessage` | 仅证明 encoder 可产生该 identity | [0x036A](game/server-to-client/NOTI-0x036A.md) |
 | `0x00` NOTI | `0x0381` | `CollectionBoxStateMessage` | 仅证明 encoder 可产生该 identity | [0x0381](game/server-to-client/NOTI-0x0381.md) |
 | `0x00` NOTI | `0x03C1` | `RentalStateMessage` | 仅证明 encoder 可产生该 identity | [0x03C1](game/server-to-client/NOTI-0x03C1.md) |
-| `0x00` NOTI | `0x03D8` | `CoupleRoomEmptyCompatibilityMessage` | 仅证明 encoder 可产生该 identity | [0x03D8](game/server-to-client/NOTI-0x03D8.md) |
+| `0x00` NOTI | `0x03CD` | `WeddingProposalNotification` | 仅证明 encoder 可产生该 identity | [0x03CD](game/server-to-client/NOTI-0x03CD.md) |
+| `0x00` NOTI | `0x03CE` | `WeddingResponseNotification` | 仅证明 encoder 可产生该 identity | [0x03CE](game/server-to-client/NOTI-0x03CE.md) |
+| `0x00` NOTI | `0x03CF` | `WeddingAvatarNotification` | 仅证明 encoder 可产生该 identity | [0x03CF](game/server-to-client/NOTI-0x03CF.md) |
+| `0x00` NOTI | `0x03D0` | `WeddingInfoMessage` | 仅证明 encoder 可产生该 identity | [0x03D0](game/server-to-client/NOTI-0x03D0.md) |
+| `0x00` NOTI | `0x03D1` | `HousingRingMessage` | 仅证明 encoder 可产生该 identity | [0x03D1](game/server-to-client/NOTI-0x03D1.md) |
+| `0x00` NOTI | `0x03D3` | `WeddingLovePointNotification` | 仅证明 encoder 可产生该 identity | [0x03D3](game/server-to-client/NOTI-0x03D3.md) |
+| `0x00` NOTI | `0x03D4` | `WeddingChurchPreparationNotification` | 仅证明 encoder 可产生该 identity | [0x03D4](game/server-to-client/NOTI-0x03D4.md) |
+| `0x00` NOTI | `0x03D5` | `WeddingLetterNotification` | 仅证明 encoder 可产生该 identity | [0x03D5](game/server-to-client/NOTI-0x03D5.md) |
+| `0x00` NOTI | `0x03D6` | `WeddingInvitedGuestsNotification` | 仅证明 encoder 可产生该 identity | [0x03D6](game/server-to-client/NOTI-0x03D6.md) |
+| `0x00` NOTI | `0x03D7` | `WeddingBeginNotification` | 仅证明 encoder 可产生该 identity | [0x03D7](game/server-to-client/NOTI-0x03D7.md) |
+| `0x00` NOTI | `0x03D8` | `CoupleRoomEmptyCompatibilityMessage`、`HousingRoomMessage` | 仅证明 encoder 可产生该 identity | [0x03D8](game/server-to-client/NOTI-0x03D8.md) |
+| `0x00` NOTI | `0x03D9` | `HousingStorageMessage` | 仅证明 encoder 可产生该 identity | [0x03D9](game/server-to-client/NOTI-0x03D9.md) |
+| `0x00` NOTI | `0x03DA` | `HousingMoveMessage` | 仅证明 encoder 可产生该 identity | [0x03DA](game/server-to-client/NOTI-0x03DA.md) |
+| `0x00` NOTI | `0x03DB` | `HousingDeleteMessage` | 仅证明 encoder 可产生该 identity | [0x03DB](game/server-to-client/NOTI-0x03DB.md) |
+| `0x00` NOTI | `0x03DC` | `HousingTreeMessage` | 仅证明 encoder 可产生该 identity | [0x03DC](game/server-to-client/NOTI-0x03DC.md) |
+| `0x00` NOTI | `0x03DE` | `HousingRewardsMessage` | 仅证明 encoder 可产生该 identity | [0x03DE](game/server-to-client/NOTI-0x03DE.md) |
+| `0x00` NOTI | `0x03DF` | `CapsuleStateMessage` | 仅证明 encoder 可产生该 identity | [0x03DF](game/server-to-client/NOTI-0x03DF.md) |
+| `0x00` NOTI | `0x03E0` | `CapsuleEnergyMessage` | 仅证明 encoder 可产生该 identity | [0x03E0](game/server-to-client/NOTI-0x03E0.md) |
+| `0x00` NOTI | `0x03E9` | `SaoCurrentFloorNotification` | 仅证明 encoder 可产生该 identity | [0x03E9](game/server-to-client/NOTI-0x03E9.md) |
 | `0x00` NOTI | `0x042D` | `WeeklyAttendanceStateMessage` | 仅证明 encoder 可产生该 identity | [0x042D](game/server-to-client/NOTI-0x042D.md) |
 | `0x00` NOTI | `0x0465` | `EpicBookStateMessage` | 仅证明 encoder 可产生该 identity | [0x0465](game/server-to-client/NOTI-0x0465.md) |
 | `0x00` NOTI | `0x04B8` | `JoustStateMessage` | 仅证明 encoder 可产生该 identity | [0x04B8](game/server-to-client/NOTI-0x04B8.md) |
