@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -13,7 +15,8 @@ internal sealed class CycleDungeonEntryDomainService(ISelectedSessionDomainServi
     IDungeonEntryIntentDomainService intents, ICharacterDomainService characters,
     ICharacterQuestLogDomainService quests, ICycleDungeonRuleService rules,
     IDungeonVisitDomainService visits, ICharacterDungeonDifficultyDomainService difficulties,
-    IDungeonDifficultyRuleService difficultyRules, ILogger<CycleDungeonEntryDomainService> logger) : ICycleDungeonEntryDomainService
+    IDungeonDifficultyRuleService difficultyRules, IQuestDefinitionDomainService definitions,
+    IEventService events, ILogger<CycleDungeonEntryDomainService> logger) : ICycleDungeonEntryDomainService
 {
     public async ValueTask<CycleDungeonPreparation> PrepareAsync(SelectedSessionIdentity session, int dungeonId, int questId,
         CancellationToken cancellationToken)
@@ -61,7 +64,9 @@ internal sealed class CycleDungeonEntryDomainService(ISelectedSessionDomainServi
         var intent = context.Facts.Intent;
         if (intent.Kind != DungeonEntryIntentKind.Cycle || intent.DirectedDungeonId != context.DungeonId
             || intent.CycleQuestId is not > 0
-            || context.RequestMode != 0 || context.PracticeMode != 0 || context.Participants.Count == 0)
+            || context.RequestMode != 0 || context.PracticeMode != 0 || context.Participants.Count == 0
+            || context.Participants.Count(x => x.IsLeader) != 1
+            || context.Participants.Select(x => x.CharacterId).Distinct().Count() != context.Participants.Count)
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite,
                 $"Cycle selection mismatch: intent={intent}, requestedDungeon={context.DungeonId}, "
                 + $"difficulty={context.Facts.Difficulty}, requestMode={context.RequestMode}, "
@@ -69,14 +74,21 @@ internal sealed class CycleDungeonEntryDomainService(ISelectedSessionDomainServi
         if (!Enum.IsDefined(context.Facts.Difficulty))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.DifficultyNotUnlocked);
         var commonMaximum = DungeonDifficulty.Tier4;
+        var pending = new List<(DungeonRunParticipant Member, IQuestLog Log)>();
         foreach (var member in context.Participants)
         {
             var facts = await FactsAsync(member.AccountId, member.CharacterId, cancellationToken).ConfigureAwait(false);
             var region = facts is null ? null : await rules.EligibleAsync(context.DungeonId, intent.CycleQuestId.Value, facts, cancellationToken).ConfigureAwait(false);
-            if (region is null || !facts!.CarriedQuestIds.Contains(intent.CycleQuestId.Value))
+            if (region is null || member.IsLeader && !facts!.CarriedQuestIds.Contains(intent.CycleQuestId.Value))
                 return new(null, DungeonEntryFailure.MissingPrerequisite, member.Slot,
                     $"Cycle member prerequisites: eligible={region is not null}, "
                     + $"questCarried={facts?.CarriedQuestIds.Contains(intent.CycleQuestId.Value) == true}.");
+            if (!facts!.CarriedQuestIds.Contains(intent.CycleQuestId.Value))
+            {
+                if (facts.CarriedQuestIds.Any(x => rules.RewardsForQuest(x).Count > 0))
+                    return new(null, DungeonEntryFailure.MissingPrerequisite, member.Slot, "Member carries another cycle quest.");
+                pending.Add((member, quests.LogOf(member.AccountId, member.CharacterId)));
+            }
             var maximum = await difficulties.GetMaximumAsync(member.CharacterId, context.DungeonId, cancellationToken).ConfigureAwait(false);
             if (!Enum.IsDefined(maximum)) return new(null, DungeonEntryFailure.DifficultyNotUnlocked, member.Slot);
             if (maximum < commonMaximum) commonMaximum = maximum;
@@ -94,10 +106,42 @@ internal sealed class CycleDungeonEntryDomainService(ISelectedSessionDomainServi
         if (difficulty is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DifficultyNotUnlocked);
         logger.LogInformation("Cycle difficulty resolved: dungeon={DungeonId} quest={QuestId} requested={Requested} actual={Actual} commonMaximum={Maximum}",
             context.DungeonId, intent.CycleQuestId, context.Facts.Difficulty, difficulty.Value, commonMaximum);
-        // Resolve against this map's supported/unlocked tiers before choosing a maze or paying.
-        // The resulting run and its entry notifications carry this actual difficulty.
-        return await visits.TryEnterPartyAsync(context.Participants, context.DungeonId,
+        var accepted = new List<IQuestLog>();
+        async ValueTask UndoAcceptancesAsync()
+        {
+            foreach (var log in accepted)
+                if (!await log.GiveUpAsync(intent.CycleQuestId.Value, cancellationToken).ConfigureAwait(false))
+                    throw new InvalidOperationException("Cycle acceptance changed inside the entry transaction.");
+        }
+        if (pending.Count > 0)
+        {
+            var definition = await definitions.FindAsync(intent.CycleQuestId.Value, cancellationToken).ConfigureAwait(false);
+            if (definition is not { Grade: QuestGrade.Circle } || definition.EventItems is { Count: > 0 })
+                return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, "Unsupported party cycle acceptance declaration.");
+            // Only the leader receives CMD0308/001F: its Circle continuation sends 0010.
+            // Members are accepted under this entry's account leases and transaction, then
+            // receive the existing NOTI023F snapshot, whose reader does not initiate entry.
+            foreach (var (member, log) in pending)
+            {
+                var taken = await log.AcceptAsync(definition, cancellationToken).ConfigureAwait(false);
+                if (!taken.Accepted)
+                {
+                    await UndoAcceptancesAsync().ConfigureAwait(false);
+                    return new(null, DungeonEntryFailure.MissingPrerequisite, member.Slot, $"Member cycle acceptance refused: {taken.Refusal}.");
+                }
+                accepted.Add(log);
+            }
+        }
+        var attempt = await visits.TryEnterPartyAsync(context.Participants, context.DungeonId,
             context.Facts with { Difficulty = difficulty.Value }, cancellationToken).ConfigureAwait(false);
+        if (attempt.Entry is null)
+        {
+            await UndoAcceptancesAsync().ConfigureAwait(false);
+            return attempt;
+        }
+        foreach (var (member, _) in pending)
+            await events.EnqueueAsync(new QuestProgressChanged(member.CharacterId), cancellationToken).ConfigureAwait(false);
+        return attempt;
     }
 
     private async ValueTask<WorldContentSubject?> FactsAsync(AccountId accountId, CharacterId characterId, CancellationToken ct)

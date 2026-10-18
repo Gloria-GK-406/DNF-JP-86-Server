@@ -20,6 +20,126 @@ namespace Dfo.Server.Application.Tests.Quests;
 
 public sealed class CycleQuestFlowTests
 {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Party_cycle_accepts_the_missing_member_quest_only_when_common_admission_succeeds(bool admitted)
+    {
+        var visits = new RecordingVisits { Succeeds = admitted };
+        using var fixture = PartyFixture(visits);
+        var commands = fixture.Services.GetRequiredService<ICommandBus>();
+        fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(fixture.Session, DungeonEntryIntent.Interactive);
+        Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
+        Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
+        var entry = new DungeonEntryContext(84, new(DungeonDifficulty.Normal, [2001], [], DungeonEntryIntent.Cycle(84, 2001)),
+            0, 0, [new(new(1), new(1), 0, true), new(new(2), new(3), 1, false)]);
+
+        DungeonEntryAttempt result;
+        await using (var tx = ((DomainTransactionScope)fixture.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        {
+            result = await fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>().EnterAsync(entry, default);
+            await tx.CommitAsync(default);
+        }
+
+        Assert.NotNull(visits.Facts);
+        Assert.Equal(admitted, result.Entry is not null);
+        Assert.Equal(admitted ? 1 : 0, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=3 AND quest_id=2001"));
+        Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=1 AND quest_id=2001"));
+        Assert.Equal(admitted ? 1 : 0, fixture.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='quest.progress-changed'"));
+    }
+
+    [Fact]
+    public async Task A_later_full_member_rolls_back_the_earlier_members_new_acceptance()
+    {
+        var visits = new RecordingVisits { Succeeds = true };
+        using var fixture = PartyFixture(visits);
+        fixture.Sql("INSERT INTO accounts(account_id,m_id) VALUES(3,'cycle-full'); INSERT INTO characters(character_id,account_id,name,job,level) VALUES(4,3,'full',12,2); INSERT INTO character_stats(character_id) VALUES(4);");
+        for (var slot = 0; slot < 30; slot++) fixture.Sql($"INSERT INTO character_active_quests VALUES(4,{slot},{3000+slot},1);");
+        var commands = fixture.Services.GetRequiredService<ICommandBus>();
+        fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(fixture.Session, DungeonEntryIntent.Interactive);
+        Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
+        Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
+        var entry = new DungeonEntryContext(84, new(DungeonDifficulty.Normal, [2001], [], DungeonEntryIntent.Cycle(84, 2001)),
+            0, 0, [new(new(1), new(1), 0, true), new(new(2), new(3), 1, false), new(new(3), new(4), 2, false)]);
+        await using (var tx = ((DomainTransactionScope)fixture.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        {
+            var result = await fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>().EnterAsync(entry, default);
+            Assert.Equal(DungeonEntryFailure.MissingPrerequisite, result.Failure);
+            Assert.Equal((byte)2, result.BlockedSlot);
+            await tx.CommitAsync(default);
+        }
+        Assert.Null(visits.Facts);
+        Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=3"));
+        Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM character_quest_acceptance_times WHERE character_id=3"));
+        Assert.Equal(30, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=4"));
+        Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='quest.progress-changed'"));
+    }
+
+    [Theory]
+    [InlineData("ineligible")]
+    [InlineData("full")]
+    [InlineData("conflicting")]
+    public async Task A_blocked_cycle_member_does_not_get_a_quest_or_lose_an_existing_one(string reason)
+    {
+        var visits = new RecordingVisits { Succeeds = true };
+        using var fixture = PartyFixture(visits);
+        var commands = fixture.Services.GetRequiredService<ICommandBus>();
+        fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(fixture.Session, DungeonEntryIntent.Interactive);
+        Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
+        Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
+        if (reason == "ineligible") fixture.Sql("UPDATE characters SET job=0 WHERE character_id=3;");
+        if (reason == "conflicting") fixture.Sql("INSERT INTO character_active_quests VALUES(3,0,2002,7);");
+        if (reason == "full")
+            for (var i = 0; i < 30; i++) fixture.Sql($"INSERT INTO character_active_quests VALUES(3,{i},{3000+i},1);");
+        var before = fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=3");
+        var entry = new DungeonEntryContext(84, new(DungeonDifficulty.Normal, [2001], [], DungeonEntryIntent.Cycle(84, 2001)),
+            0, 0, [new(new(1), new(1), 0, true), new(new(2), new(3), 1, false)]);
+        DungeonEntryAttempt result;
+        await using (var tx = ((DomainTransactionScope)fixture.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        {
+            result = await fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>().EnterAsync(entry, default);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(DungeonEntryFailure.MissingPrerequisite, result.Failure);
+        Assert.Equal((byte)1, result.BlockedSlot);
+        Assert.Null(visits.Facts);
+        Assert.Equal(before, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=3"));
+        Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=3 AND quest_id=2001"));
+    }
+
+    [Fact]
+    public async Task A_member_already_carrying_the_cycle_keeps_its_progress()
+    {
+        var visits = new RecordingVisits { Succeeds = true };
+        using var fixture = PartyFixture(visits);
+        var commands = fixture.Services.GetRequiredService<ICommandBus>();
+        fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(fixture.Session, DungeonEntryIntent.Interactive);
+        Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
+        Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
+        fixture.Sql("INSERT INTO character_active_quests VALUES(3,0,2001,0);");
+        var entry = new DungeonEntryContext(84, new(DungeonDifficulty.Normal, [2001], [], DungeonEntryIntent.Cycle(84, 2001)),
+            0, 0, [new(new(1), new(1), 0, true), new(new(2), new(3), 1, false)]);
+        await using (var tx = ((DomainTransactionScope)fixture.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        {
+            Assert.NotNull((await fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>().EnterAsync(entry, default)).Entry);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(0, fixture.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=3 AND quest_id=2001"));
+    }
+
+    private static ShopFixture PartyFixture(RecordingVisits visits)
+    {
+        var fixture = new ShopFixture(services =>
+        {
+            services.AddSingleton<IQuestContentRuleService>(new QuestRules());
+            services.AddSingleton<ICycleDungeonRuleService>(new CycleRules { RequiredJob = 12 });
+            services.AddSingleton<IDungeonVisitDomainService>(visits);
+            services.AddSingleton<IDungeonDifficultyRuleService>(new DungeonDifficultyRuleService(new CycleDefinitions()));
+        });
+        fixture.Sql("UPDATE characters SET level=2 WHERE character_id=1; INSERT INTO accounts(account_id,m_id) VALUES(2,'cycle-peer'); INSERT INTO characters(character_id,account_id,name,job,level) VALUES(3,2,'peer',12,2); INSERT INTO character_stats(character_id) VALUES(3);");
+        return fixture;
+    }
+
     [Fact]
     public async Task Preparing_accepting_finishing_and_repeating_are_separate_and_rewards_commit_once()
     {
@@ -210,12 +330,17 @@ public sealed class CycleQuestFlowTests
 
     private sealed class RecordingVisits : IDungeonVisitDomainService
     {
+        public bool Succeeds { get; init; }
         public DungeonEntryFacts? Facts { get; private set; }
         public bool DefersSelectionState(byte level, bool tutorialCompleted = false) => false;
         public ValueTask<DungeonEntryAttempt> TryEnterPartyAsync(IReadOnlyList<DungeonRunParticipant> participants,
             int dungeonId, DungeonEntryFacts facts, CancellationToken token)
         {
             Facts = facts;
+            if (Succeeds)
+                return ValueTask.FromResult(DungeonEntryAttempt.Accepted(new(
+                    new(dungeonId, 0, 1, 1, new(0, 0), new(0, 0), 1, 0,
+                        new Dictionary<MazeCell, DungeonCellDefinition>()), new Dictionary<CharacterId, DungeonRoomVisit>())));
             return ValueTask.FromResult(DungeonEntryAttempt.Refused(DungeonEntryFailure.InsufficientFatigue));
         }
         public ValueTask<DungeonEntry?> EnterAsync(CharacterId characterId, int dungeonId,
@@ -226,9 +351,11 @@ public sealed class CycleQuestFlowTests
 
     private sealed class CycleRules : ICycleDungeonRuleService
     {
+        public int? RequiredJob { get; init; }
         private static readonly CycleDungeonRegion Region = new(12, 101, 3, [new(84, 2001), new(85, 2002)], [new(5000, 1)]);
         public ValueTask<CycleDungeonRegion?> EligibleAsync(int dungeonId, int questId, WorldContentSubject subject, CancellationToken ct) =>
-            ValueTask.FromResult<CycleDungeonRegion?>(Region.Candidates.Contains(new(dungeonId, questId)) ? Region : null);
+            ValueTask.FromResult<CycleDungeonRegion?>(
+                (RequiredJob is null || subject.Job == RequiredJob) && Region.Candidates.Contains(new(dungeonId, questId)) ? Region : null);
         public IReadOnlyList<QuestRewardItemGrant> RewardsForQuest(int questId) => questId is 2001 or 2002 ? Region.Rewards : [];
     }
 

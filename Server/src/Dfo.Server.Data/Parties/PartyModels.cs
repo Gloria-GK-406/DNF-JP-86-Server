@@ -40,6 +40,13 @@ public sealed class PartySettings : IEquatable<PartySettings>
         return new PartySettings(normalized);
     }
 
+    public PartySettings WithModeTarget(ushort target)
+    {
+        var normalized = ToWireBytes();
+        BinaryPrimitives.WriteUInt16LittleEndian(normalized.AsSpan(10), target);
+        return new PartySettings(normalized);
+    }
+
     public bool Equals(PartySettings? other) =>
         other is not null && wireBytes.AsSpan().SequenceEqual(other.wireBytes);
 

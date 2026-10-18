@@ -23,6 +23,40 @@ namespace Dfo.Server.Networking.Tests.Integration;
 public sealed class HandlerFailureConnectionIntegrationTests
 {
     [Fact]
+    public async Task Native_normal_party_edit_with_retained_target_keeps_the_connection_alive()
+    {
+        var channel = Port(); var game = Port(); while (game == channel) game = Port();
+        var builder = Host.CreateApplicationBuilder();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Networking:Enabled"] = "true", ["Networking:ChannelPort"] = channel.ToString(),
+            ["Networking:GamePorts:0"] = game.ToString(), ["Game:EndpointHost"] = "127.0.0.1",
+        });
+        builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+        builder.Services.AddSingleton<IServerConfigService>(new ServerConfigService(builder.Configuration));
+        builder.Services.AddSingleton<IChannelCatalog>(StaticChannelCatalog.ForGamePort(game));
+        builder.Services.AddSingleton<IChannelScriptSource>(new NoChannelScript());
+        builder.Services.AddSingleton(ChannelEntryOptions.Legacy);
+        new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
+        new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
+        new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
+        using var host = TestInfrastructure.Build(builder);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        await host.StartAsync(timeout.Token);
+        try
+        {
+            using var client = new TcpClient();
+            await client.ConnectAsync(IPAddress.Loopback, game, timeout.Token);
+            var stream = client.GetStream(); _ = await Read(stream, timeout.Token);
+            await stream.WriteAsync(Frame(0x000C,
+                Convert.FromHexString("01000C000000E697A0E9989FE4BC8DE5908D04000000000500020100")), timeout.Token);
+            await stream.WriteAsync(Frame(3, []), timeout.Token);
+            Assert.Equal(GameServerFrameEncoder.Encode(1, 3, [1]), await Read(stream, timeout.Token));
+        }
+        finally { await host.StopAsync(CancellationToken.None); }
+    }
+
+    [Fact]
     public async Task A_frame_whose_handler_throws_gets_no_reply_and_its_connection_is_closed_while_others_are_served()
     {
         var channel = Port(); var game = Port(); while (game == channel) game = Port();

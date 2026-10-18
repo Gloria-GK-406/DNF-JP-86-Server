@@ -15,9 +15,14 @@ internal sealed class PartyModeRuleService : IPartyModeRuleService
     public PartySettings Normalize(PartySettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        return settings.IsReturnUserParty
+        var normalized = settings.IsReturnUserParty
             ? settings.WithReturnUserParty(enabled: false)
             : settings;
+        // A21's edit UI serializes its retained selector even after choosing Normal
+        // (VA 009C61B1..009C6226, 009C6507..009C6515). Normal has no mode target.
+        return normalized.Category == PartyCategory.Normal && normalized.ModeTargetRaw != 0
+            ? normalized.WithModeTarget(0)
+            : normalized;
     }
 
     public PartyModeRuleFailure Validate(PartySettings settings, int memberCount)

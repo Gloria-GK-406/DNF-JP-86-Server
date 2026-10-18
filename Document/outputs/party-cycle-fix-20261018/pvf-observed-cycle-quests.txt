@@ -1,0 +1,119 @@
+id 14939 -> CircleOfDungeon/14939_circle_dungeon.qst
+=== n_quest/CircleOfDungeon/14939_circle_dungeon.qst ===
+[grade]
+[circle]
+[difficulty]
+3
+[npc index]
+28
+[complete npc index]
+-1
+[job]
+[all]
+[grow type]
+-1
+[level]
+27 99
+[pre required quest]
+1871
+[/pre required quest]
+[dungeon info]
+151 -1
+[/dungeon info]
+[type]
+[condition under clear]
+[sub type]
+6
+[int data]
+151 -1
+[/int data]
+[reward item trade instance]
+1
+[reward type]
+[circle dungeon]
+[reward int data]
+100310843 1 100320652 1 100310584 1
+[/reward int data]
+[name]
+再次永眠
+[depend message]
+冒险家， 你在冒险途中有没有感受到与此相似的气息？ 请仔细感受一下……混在亡者魔力中的微弱、 阴暗的气息……
+<npc::0>(正如艾丽丝所说， 塞拉的魔力结晶给我一种似曾相识的感觉)
+对了， 很像黑色噩梦！
+<npc::28>是的。 我在旅行时遇到过黑色噩梦的受害者， 所以能分辨出来。 毁灭纪给漂流洞穴造成很大影响， 遮住了黑色噩梦的痕迹， 所以你没能发现。
+我要为你的武器唱一首安息曲。 去战斗吧， 让那些灵魂都得到安眠。
+[condition message]
+    前往漂流洞穴的『英雄冢』， 让所有的英雄永眠。
+[solve message]
+他们为再次走向死亡而感到欣喜……他们即使死亡， 即使曾被黑色噩梦操纵， 也依然是伟大的英雄。
+<npc::304>哼！ 伟大的七位英雄……其中隆美尔是我们暗精灵历史上最伟大的英雄。 他们怎么会被这种微不足道的力量所操纵？ 他们睁开眼， 只是为了保护我们这些后裔不受黑色噩梦的伤害。
+<npc::26>那就算是吧。 好在我们及时解决麻烦， 没有酿成大祸。 冒险家和艾丽丝， 谢谢你们。
+<npc::28>我只是说出了预言， 没帮上什么忙……真正战胜考验的人是这位冒险家。
+[dialog]
+0 0 1 59326 0 0 58015 0 <monster::58015>哈哈哈！ 看到路了！
+[/dialog]
+[dialog]
+0 0 1 59327 0 0 59043 0 <monster::59043>嘿嘿……这次是真的吗……
+[/dialog]
+[dialog]
+0 0 1 59328 0 0 58013 0 <monster::58013>尤克已经回去了！
+[/dialog]
+[dialog]
+0 0 1 59329 0 0 58014 0 <monster::58014>(德莉娜默默的点头行礼后， 渐渐消失了)
+[/dialog]
+[dialog]
+0 0 1 59330 0 0 59501 0 <monster::59501>我在黑暗中徘徊， 但我庆幸曾经与你战斗过……
+[/dialog]
+[dialog]
+0 0 1 59331 0 0 59042 0 <monster::59042>噢噢……噢噢噢噢……
+[/dialog]
+[dialog]
+0 0 0 59332 0 1 64035 0 <monster::64035>……维纳斯女神， 还在诅咒我吗……女人的愤怒……真是比什么都可怕……
+[/dialog]
+[dialog]
+0 0 1 59332 0 1 64035 0 <monster::64035>遥远的后世之人啊， 感谢你再次把我埋入历史的尘埃之中。
+再见了……唤醒我的那个邪恶声音已不再响起……
+[/dialog]
+id 14951 -> CircleOfDungeon/14951_circle_dungeon.qst
+=== n_quest/CircleOfDungeon/14951_circle_dungeon.qst ===
+[grade]
+[circle]
+[difficulty]
+3
+[npc index]
+304
+[complete npc index]
+-1
+[dungeon info]
+154 -1
+[/dungeon info]
+[job]
+[all]
+[grow type]
+-1
+[level]
+27 99
+[pre required quest]
+1894
+[/pre required quest]
+[type]
+[condition under clear]
+[sub type]
+6
+[int data]
+154 -1
+[/int data]
+[reward type]
+[circle dungeon]
+[reward int data]
+0 0
+[/reward int data]
+[name]
+再探黄金矿洞
+[depend message]
+听说无耻的维迪尔又出现在黄金矿洞， 他还胆敢向我们寻求帮助？
+冒险家， 我命令你马上去漂流洞穴最深处了解情况， 然后回来向我汇报。
+[condition message]
+    探索漂流洞穴的『远古墓穴深处』。
+[solve message]
+你说什么？ 远古墓穴的封印被解开了……？

@@ -14,13 +14,26 @@ namespace Dfo.Server.Protocol.Tests.Game.Party;
 
 public sealed class PartyCommandCodecTests
 {
+    [Fact]
+    public void Native_normal_edit_with_a_retained_selector_target_becomes_a_normal_party()
+    {
+        var request = Assert.IsType<SetPartyInfoRequest>(
+            new SetPartyInfoDecoder(new PartyModeRuleService()).Decode(GameMessageMetadata.Empty,
+                Hex("01000C000000E697A0E9989FE4BC8DE5908D04000000000500020100")));
+
+        Assert.Equal(PartyCategory.Normal, request.Settings.Category);
+        Assert.Equal((ushort)0, request.Settings.ModeTargetRaw);
+        Assert.Equal((byte)4, request.Settings.Capacity);
+        Assert.Equal(Hex("E697A0E9989FE4BC8DE5908D"), request.Title.ToBytes());
+    }
+
     [Theory]
     [InlineData("000302000000000500020000", "", "030002000000000500020000")]
     [InlineData("000604000000000500020000", "", "060004000000000500020000")]
     [InlineData(
         "01000C000000E697A0E9989FE4BC8DE5908D04000000000500020000",
         "E697A0E9989FE4BC8DE5908D",
-        "000104000000000500020000")]
+        "000004000000000500020000")]
     public void Current_a21_set_party_info_shapes_project_to_canonical_s2c_order(
         string bodyHex,
         string titleHex,
@@ -72,7 +85,6 @@ public sealed class PartyCommandCodecTests
     [InlineData("000302000000000500030000")]
     [InlineData("000300000000000500020000")]
     [InlineData("000305000000000500020000")]
-    [InlineData("000304000000000500020100")]
     public void Set_party_info_rejects_invalid_edit_gates_or_rule_values(string bodyHex)
     {
         Assert.Throws<InvalidDataException>(() =>

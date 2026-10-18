@@ -429,7 +429,7 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x01` | `0x000A` | `REQUEST_PEER` | Mutation / type 0 组队邀请；type 1/2 范围外 | ClientVerified（A21 type 0） | [0x000A.md](game/client-to-server/0x000A.md) |
 | `0x01` | `0x00A6` | `CALL_PARTY_MEMBER_REALTIME_INFO` | Query / 定向刷新队员实时摘要 | ClientVerified（A21 当前在队查询） | [0x00A6.md](game/client-to-server/0x00A6.md) |
 | `0x01` | `0x000B` | `RESPONSE_PEER` | Mutation / type 0 接受邀请 | ClientVerified（A21 type 0；真实 body 待归档） | [0x000B.md](game/client-to-server/0x000B.md) |
-| `0x01` | `0x000C` | `SET_PARTY_INFO` | Mutation / 无队时创建、在队时更新；当前成功路径无 CMD 回包 | ClientVerified（A21 12B direct 创建/更新；`16+n` inline-title 创建；inline-title 更新/拒绝仍待实帧） | [0x000C.md](game/client-to-server/0x000C.md) |
+| `0x01` | `0x000C` | `SET_PARTY_INFO` | Mutation / 无队时创建、在队时更新；当前成功路径无 CMD 回包 | ClientVerified（既有 A21 12B direct 创建/更新、inline-title 创建）；Normal 编辑残留目标规范化为 CurrentImplementation，新增边界及拒绝仍待实机 | [0x000C.md](game/client-to-server/0x000C.md) |
 | `0x01` | `0x000D` | `LEAVE_PARTY` | Mutation / 离队或解散 | ClientVerified（A21 普通成员、多人队长与单人队主动离队） | [0x000D.md](game/client-to-server/0x000D.md) |
 | `0x01` | `0x000E` | `WALKOUT_PARTY_MEMBER` | Mutation / 队长按稳定槽位踢出成员；成功无 CMD 回包 | ClientVerified（A21 城镇两人队成功路径；拒绝与地下城路径待验证） | [0x000E.md](game/client-to-server/0x000E.md) |
 | `0x01` | `0x000F` | `ENTER_SELECT_DUNGEON` | Query / 推 NOTI | 实现服务端功能 | [0x000F.md](game/client-to-server/0x000F.md) |

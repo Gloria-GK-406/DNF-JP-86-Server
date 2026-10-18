@@ -40,6 +40,12 @@ CMD0010 请求难度是期望值；服务端只从本地图支持且已解锁的
 
 ## 对照记录
 
+### 2026-10-18 组队补接与状态同步（CurrentImplementation）
+
+队长仍沿本页的 `0308 → 001F → 0010` 续接。正式入场时，服务器对同一选图 cohort 的每名成员校验循环资格；合法队员缺少目标任务时，在原有多账号入场事务中通过任务日志补接。满栏、资格不符和其他循环任务冲突仍拒绝；公共准入失败撤销本次补接；原有同任务进度不重置。
+
+成功后沿既有任务事件路径同步 NOTI023F，不向队员广播会触发自动入场的 CMD0308/001F 成功体。通知可异步到达。其客户端读路径与实现边界见 [2026-10-18 证据](/E:/Project/DNF/DNF-JP-86-Server/Document/PartyCycleEntryFix-20261018.md)；本组队行为尚待双端实机验收，不扩大此前单人 ClientVerified 的范围。
+
 [0308请求](../game/client-to-server/0x0308.md)、[0308响应](../game/server-to-client/CMD-0x0308.md)、
 [0010正式入场](../game/client-to-server/0x0010.md)、[实现演化](../../Document/CycleDungeon-20261009.md)、
 [阶段验收与剩余范围](../../Document/CycleDungeonCloseout-20261010.md)。

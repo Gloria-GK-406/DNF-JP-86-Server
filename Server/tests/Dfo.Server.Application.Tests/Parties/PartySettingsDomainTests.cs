@@ -15,6 +15,22 @@ namespace Dfo.Server.Application.Tests.Parties;
 
 public sealed class PartySettingsDomainTests
 {
+    [Theory]
+    [InlineData(PartyCategory.Normal, 0)]
+    [InlineData(PartyCategory.Story, 73)]
+    [InlineData(PartyCategory.Cycle, 73)]
+    public void Normalization_clears_only_the_target_that_has_no_meaning_in_normal_mode(PartyCategory category, ushort expected)
+    {
+        var original = new PartySettings(SettingsBytes(4, category, 73));
+        var rules = new PartyModeRuleService();
+        var normalized = rules.Normalize(original);
+        Assert.Equal(expected, normalized.ModeTargetRaw);
+        Assert.Equal((ushort)73, original.ModeTargetRaw);
+        Assert.Equal(category, normalized.Category);
+        Assert.Equal(PartyModeRuleFailure.None, rules.Validate(normalized, 4));
+        Assert.Equal(PartyModeRuleFailure.CapacityBelowMemberCount, rules.Validate(normalized, 5));
+    }
+
     [Fact]
     public void SettingsAndTitleAreDetachedStructuralValues()
     {
@@ -250,9 +266,9 @@ public sealed class PartySettingsDomainTests
             fixture.Parties.CreateOrUpdateSettingsExact(
                 leader, Settings(4, (PartyCategory)9, 1), PartyTitle.Empty).Failure);
         Assert.Equal(
-            PartyFailureReason.InvalidPartyModeTarget,
+            PartyFailureReason.InvalidPartyCapacity,
             fixture.Parties.CreateOrUpdateSettingsExact(
-                leader, Settings(4, PartyCategory.Normal, 1), PartyTitle.Empty).Failure);
+                leader, Settings(5, PartyCategory.Normal, 1), PartyTitle.Empty).Failure);
 
         AssertSnapshotEqual(before, fixture.Parties.FindParty(member));
         Assert.True(fixture.Parties.AcceptInvite(pending, leader.WireUserId).Succeeded);
