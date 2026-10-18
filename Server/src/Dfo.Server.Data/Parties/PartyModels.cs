@@ -40,6 +40,13 @@ public sealed class PartySettings : IEquatable<PartySettings>
         return new PartySettings(normalized);
     }
 
+    public PartySettings WithModeTarget(ushort target)
+    {
+        var normalized = ToWireBytes();
+        BinaryPrimitives.WriteUInt16LittleEndian(normalized.AsSpan(10), target);
+        return new PartySettings(normalized);
+    }
+
     public bool Equals(PartySettings? other) =>
         other is not null && wireBytes.AsSpan().SequenceEqual(other.wireBytes);
 
@@ -83,7 +90,8 @@ public sealed class PartyTitle : IEquatable<PartyTitle>
 public sealed record PartyDirectoryScope(
     int ChannelId,
     byte TownId,
-    byte AreaId);
+    byte AreaId,
+    int Instance = 0);
 
 /// <summary>Composable filters over the process-local party directory.</summary>
 public sealed record PartyDirectoryQuery(
@@ -184,11 +192,14 @@ public sealed record PartyInviteNotification(
     ushort InviterWireUserId,
     PartyInviteDisplayState Display);
 
+// Native request sender/recipient are not necessarily the party leader/new member.
+// An application to an existing party names the sender as JoiningCharacterId.
 public sealed record PartyAcceptanceNotification(
     CharacterId InviterCharacterId,
     CharacterId InviteeCharacterId,
     ushort InviterWireUserId,
-    ushort InviteeWireUserId);
+    ushort InviteeWireUserId,
+    CharacterId? JoiningCharacterId = null);
 
 /// <summary>The directory partitions affected by one atomic party mutation.</summary>
 public sealed record PartyDirectoryChange(

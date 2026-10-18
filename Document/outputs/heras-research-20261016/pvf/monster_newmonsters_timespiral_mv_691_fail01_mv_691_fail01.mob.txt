@@ -1,0 +1,118 @@
+=== monster/newmonsters/timespiral/mv_691_fail01/mv_691_fail01.mob ===
+[name]
+ML-691 人型机
+[face image]
+Monster/ch_Monsterface.img 30
+[die effect]
+0 24 0
+[category]
+[human] [hybrid]
+[/category]
+[ambient sound]
+
+[attack sound]
+
+[appear sound]
+
+[damage sound]
+
+[die sound]
+
+[ability category]
+[EQUIPMENT_PHYSICAL_ATTACK] * 150 [EQUIPMENT_PHYSICAL_DEFENSE] * 150 [EQUIPMENT_MAGICAL_ATTACK] * 150 [EQUIPMENT_MAGICAL_DEFENSE] * 150 [HP MAX] * 1000
+[/ability category]
+[level]
+85 85
+[slow resistance]
+50 50
+[freeze resistance]
+50 50
+[poison resistance]
+20 20
+[stun resistance]
+50 50
+[curse resistance]
+50 50
+[blind resistance]
+50 50
+[lightning resistance]
+30 30
+[stone resistance]
+50 50
+[sleep resistance]
+50 50
+[bleeding resistance]
+20 20
+[piercing resistance]
+50 50
+[confuse resistance]
+50 50
+[hold resistance]
+50 50
+[move speed]
+1500 1500
+[attack speed]
+1000 1000
+[cast speed]
+1000 1000
+[hit recovery]
+1200 1200
+[weight]
+90000 90000
+[stuckbonus on damage]
+0 0 0 0
+[waiting action]
+Action/stay.act
+[move action]
+Action/move.act
+[sit action]
+
+[damage action 1]
+
+[damage action 2]
+
+[down action]
+
+[overturn action]
+
+[attack action]
+Action/suicide.act
+[/attack action]
+[etc action]
+
+[/etc action]
+[last action]
+
+[proc action]
+
+[attack info]
+
+[/attack info]
+[cooltime]
+100
+[/cooltime]
+[think term]
+300
+[destination change term]
+600
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]
+[vision]
+1000
+[lie frame]
+2 3 2 3 4

@@ -205,6 +205,7 @@ public sealed record InventoryItemCoreState(
     public ItemTraits Traits => ItemTraitClassification.For(ItemKind, ItemId);
 
     public byte ReinforcementLevel => (byte)(Attribute & 0x1F);
+    public byte ResealCount => (byte)(Attribute >> 5);
 }
 
 /// <summary>What one position of a container holds, as the client is shown it.</summary>

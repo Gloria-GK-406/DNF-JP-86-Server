@@ -47,6 +47,8 @@ public sealed class TownAreaProjectionDelivery
     private readonly ISelectedSessionDomainService selectedSessions;
     private readonly ISelectedCharacterCurrentViewDomainService currentViews;
     private readonly ITownMovementDomainService towns;
+    private readonly Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing;
+    private readonly Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService? housingSessions;
     private readonly IEventService notifications;
     private readonly IPartyTownProjectionDelivery partyTownProjection;
     private readonly IGameMessageSender sender;
@@ -62,7 +64,9 @@ public sealed class TownAreaProjectionDelivery
         IGameMessageSender sender,
         ITownMovementDomainService towns,
         TownAreaProjectionGate? projectionGate = null,
-        Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionDelivery? weaknessProjection = null)
+        Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionDelivery? weaknessProjection = null,
+        Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
+        Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService? housingSessions = null)
     {
         this.townAreas = townAreas;
         this.selectedSessions = selectedSessions;
@@ -73,6 +77,8 @@ public sealed class TownAreaProjectionDelivery
         this.sender = sender;
         this.projectionGate = projectionGate ?? new TownAreaProjectionGate();
         this.weaknessProjection = weaknessProjection;
+        this.housing = housing;
+        this.housingSessions = housingSessions;
     }
 
     /// <summary>Restores the accepted location after a refused channel-boundary crossing.</summary>
@@ -104,10 +110,12 @@ public sealed class TownAreaProjectionDelivery
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(moved);
         ArgumentNullException.ThrowIfNull(previousMember);
+        var instance = moved.TownId == 101 && housing is not null ? await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false) : 0;
+        if (moved.TownId == 101 && instance is not > 0) return false;
         var destination = new TownAreaKey(
             channelId,
             moved.TownId,
-            moved.AreaId);
+            moved.AreaId, instance ?? 0);
         var change = townAreas.TransferExact(
             session.CharacterId,
             session.TownAreaLease(),
@@ -131,6 +139,7 @@ public sealed class TownAreaProjectionDelivery
             .ConfigureAwait(false);
 
         var changedArea = previousMember.Area != member.Area;
+        if (changedArea && previousMember.Area.TownId == 101) housingSessions?.CloseExact(session);
         var currentKey = member.Area;
         var current = townAreas.Find(currentKey);
         var own = current?.Members.SingleOrDefault(member => session.Owns(member));
@@ -205,6 +214,38 @@ public sealed class TownAreaProjectionDelivery
             await partyTownProjection.RefreshMovedPartyAsync(
                 session, Scope(previousMember.Area), cancellationToken).ConfigureAwait(false);
         }
+        var marriageFrames = await HousingCurrentProjection.ReadAsync(housing, session, cancellationToken).ConfigureAwait(false);
+        if (marriageFrames.Count > 0) await sender.SendExplicitAsync(connectionId, new(marriageFrames, []), cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
+    /// <summary>Sets one actor's position on its own client and every current same-area observer.</summary>
+    public async ValueTask<bool> ForcePositionAsync(
+        SelectedSessionIdentity session,
+        Dfo.Server.Data.Characters.CharacterPositionState position,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(position);
+        var previous = townAreas.Find(session.CharacterId);
+        if (selectedSessions.Find(session.AccountId) != session || previous is null || !session.Owns(previous)
+            || previous.Area.TownId != position.TownId || previous.Area.AreaId != position.AreaId)
+            return false;
+        await using var projection = await AcquireAreasAsync([previous.Area], cancellationToken).ConfigureAwait(false);
+        if (selectedSessions.Find(session.AccountId) != session
+            || townAreas.Find(session.CharacterId) is not { } current || !session.Owns(current)
+            || current.Area != previous.Area)
+            return false;
+        var movement = townAreas.MoveExact(session.CharacterId, session.TownAreaLease(), position);
+        if (movement is null) return false;
+        var own = movement.Area.Members.Single(member => session.Owns(member));
+        var message = new ForcedTownPositionNotification(session.WireUserId,
+            own.Position.X, own.Position.Y, own.Position.Direction);
+        var targets = own.SharesTownPresence
+            ? movement.Area.Members.Where(member => member.SharesTownPresence && member.CharacterId != session.CharacterId)
+                .Select(ExactSession).Where(candidate => candidate is not null)
+                .Select(candidate => new GameExplicitMessageTarget(candidate!.ConnectionId, [message])).ToArray()
+            : [];
+        await sender.SendExplicitAsync(session.ConnectionId, new([message], targets), cancellationToken).ConfigureAwait(false);
         return true;
     }
 
@@ -361,7 +402,7 @@ public sealed class TownAreaProjectionDelivery
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entries);
-        var candidates = new List<(TownAreaEntry Entry, bool SharesTownPresence)>();
+        var candidates = new List<(TownAreaEntry Entry, bool SharesTownPresence, int Instance)>();
         foreach (var entry in entries)
         {
             ArgumentNullException.ThrowIfNull(entry);
@@ -371,7 +412,9 @@ public sealed class TownAreaProjectionDelivery
                 entry.Position.TownId,
                 entry.Position.AreaId,
                 cancellationToken).ConfigureAwait(false);
-            candidates.Add((entry, sharesTownPresence));
+            var instance = entry.Position.TownId == 101 && housing is not null ? await housing.InstanceAsync(entry.Session, cancellationToken).ConfigureAwait(false) : 0;
+            if (entry.Position.TownId == 101 && instance is not > 0) continue;
+            candidates.Add((entry, entry.Position.TownId == 101 || sharesTownPresence, instance ?? 0));
         }
         if (candidates.Count == 0)
             return 0;
@@ -379,7 +422,7 @@ public sealed class TownAreaProjectionDelivery
         var keys = candidates.Select(candidate => new TownAreaKey(
                 candidate.Entry.Runtime.World.Channel.ChannelId,
                 candidate.Entry.Position.TownId,
-                candidate.Entry.Position.AreaId))
+                candidate.Entry.Position.AreaId, candidate.Instance))
             .Concat(candidates
                 .Select(candidate => townAreas.Find(candidate.Entry.Session.CharacterId))
                 .Where(member => member is not null
@@ -405,7 +448,7 @@ public sealed class TownAreaProjectionDelivery
                 new TownAreaKey(
                     entry.Runtime.World.Channel.ChannelId,
                     entry.Position.TownId,
-                    entry.Position.AreaId),
+                    entry.Position.AreaId, candidate.Instance),
                 entry.Position,
                 candidate.SharesTownPresence);
             admissions.Add(new TownAreaAdmission(
@@ -690,11 +733,11 @@ public sealed class TownAreaProjectionDelivery
         }
     }
 
-    private static long KeyOrder(TownAreaKey key) =>
-        ((long)key.ChannelId << 16) | ((long)key.TownId << 8) | key.AreaId;
+    private static (int, byte, byte, int) KeyOrder(TownAreaKey key) =>
+        (key.ChannelId, key.TownId, key.AreaId, key.Instance);
 
     private static PartyDirectoryScope Scope(TownAreaKey key) =>
-        new(key.ChannelId, key.TownId, key.AreaId);
+        new(key.ChannelId, key.TownId, key.AreaId, key.Instance);
 
     private sealed record ReturnDelivery(
         TownAreaAdmission Admission,

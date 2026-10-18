@@ -27,6 +27,25 @@ public sealed class CharacterIdentityTests
 {
     private static readonly CharacterId Who = new(60);
 
+    [Theory]
+    [InlineData(0, 0, 0)]
+    [InlineData(1, 1, 1)]
+    [InlineData(17, 1, 17)]
+    [InlineData(33, 1, 33)]
+    [InlineData(32, 0, 0)]
+    public async Task Avatar_candidates_adapt_to_current_career_and_automatically_fall_back(
+        byte packed, byte career, byte awakening)
+    {
+        var row = new MovableIdentityRow { Job = 0, GrowType = packed };
+        var character = Character(row);
+        Assert.Equal(new CharacterCareer(0), await character.GetDefaultAvatarAsync(default));
+        Assert.Equal(CharacterCareer.FromPacked(0, career), await character.GetCareerAvatarAsync(default));
+        Assert.Equal(CharacterCareer.FromPacked(0, awakening), await character.GetAwakeningAvatarAsync(default));
+        row.Job = 4; row.GrowType = 34;
+        Assert.Equal(new CharacterCareer(4, 2, 2), await character.GetAwakeningAvatarAsync(default));
+        Assert.Null(await Character(new MovableIdentityRow { Exists = false }).GetAvatarCandidatesAsync(default));
+    }
+
     [Fact]
     public async Task A_characters_identity_is_the_one_its_row_holds()
     {

@@ -8,7 +8,8 @@ internal sealed class EventPlayerProjectionDomainService(IEventManagementDomainS
     public async ValueTask<EventPlayerSnapshot> ReadNowAsync(SelectedSessionIdentity session,CancellationToken ct)
     {
         var now=clock.GetUtcNow();
-        return new(await events.GetEventInfoListAsync(session.AccountId,now,ct),await attendance.StateAsync(session.AccountId,now,ct),
-            await joust.ReadAsync(session.CharacterId,now,ct));
+        var information = await events.GetEventInfoListAsync(session.AccountId,now,ct);
+        return EventPlayerSnapshotProjection.WithScheduledDungeons(new(information,
+            await attendance.StateAsync(session.AccountId,now,ct),await joust.ReadAsync(session.CharacterId,now,ct)));
     }
 }

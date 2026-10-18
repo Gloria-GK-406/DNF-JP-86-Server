@@ -13,7 +13,7 @@ public interface IGmAdministrationPersistence
     ValueTask<GmSession?> FindSessionAsync(string hash, CancellationToken cancellationToken);
     ValueTask DeleteSessionAsync(string hash, CancellationToken cancellationToken);
     ValueTask AppendAuditAsync(GmAuditRecord record, CancellationToken cancellationToken);
-    ValueTask<GmAuditPage> QueryAuditAsync(int page, int pageSize, CancellationToken cancellationToken);
+    ValueTask<GmAuditPage> QueryAuditAsync(int page, int pageSize, GmAuditFilter filter, CancellationToken cancellationToken);
 }
 
 public interface IGmAccessDomainService
@@ -28,5 +28,5 @@ public interface IGmAccessDomainService
 public interface IGmAuditDomainService
 {
     ValueTask AppendAsync(GmAuditRecord record, CancellationToken cancellationToken);
-    ValueTask<GmAuditPage> QueryAsync(int page, int pageSize, CancellationToken cancellationToken);
+    ValueTask<GmAuditPage> QueryAsync(int page, int pageSize, GmAuditFilter filter, CancellationToken cancellationToken);
 }

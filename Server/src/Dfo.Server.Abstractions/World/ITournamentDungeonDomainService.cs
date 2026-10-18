@@ -6,6 +6,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Abstractions.World;
 
 public enum TournamentStatus { Fighting, Champion, Eliminated }
+public sealed record TournamentQuotaSnapshot(int DungeonId, DateOnly Period, int Used, int Remaining, int Maximum);
 public sealed record TournamentDungeonState(DungeonRunId RunId, CharacterId CharacterId, TournamentPlan Plan,
     int CompletedRounds = 0, TournamentStatus Status = TournamentStatus.Fighting)
 {
@@ -27,6 +28,7 @@ public sealed record TournamentActionResult(TournamentDungeonState State)
 }
 public interface ITournamentDungeonDomainService
 {
+    ValueTask<IReadOnlyList<TournamentQuotaSnapshot>> ReadQuotaAsync(CharacterId characterId, CancellationToken ct);
     bool Supports(int dungeonId);
     TournamentDungeonState? Find(CharacterId characterId);
     IReadOnlyList<TournamentDungeonState> PendingRewards(DateTimeOffset now);

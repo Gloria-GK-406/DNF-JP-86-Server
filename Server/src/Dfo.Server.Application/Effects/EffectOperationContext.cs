@@ -162,6 +162,7 @@ internal sealed class EffectOperationContext : IRequestReplayProjectionDomainSer
                     frame.Areas.Add(move.SourceArea);
                     frame.Areas.Add(new(move.ChannelId, move.Destination.TownId, move.Destination.AreaId));
                     break;
+                case (AddDungeonEntryAllowanceEffect, DungeonEntryAllowanceChange): frame.Needs |= ReplayProjectionNeeds.HerasQuota; break;
                 case (SetFatigueStateEffect, FatigueStateChange): frame.Needs |= ReplayProjectionNeeds.Fatigue; break;
                 case (SetItemUsageStateEffect, ItemUsageStateChange): frame.Needs |= ReplayProjectionNeeds.ItemUsage; break;
                 case (SetCarriedQuestEffect or RemoveTrackedQuestEffect or SetClearedQuestEffect, QuestRowChange): frame.Needs |= ReplayProjectionNeeds.Quests; break;
@@ -171,6 +172,7 @@ internal sealed class EffectOperationContext : IRequestReplayProjectionDomainSer
                 case (CharacterExperienceEffect, CharacterExperienceChange): frame.Needs |= ReplayProjectionNeeds.Experience; break;
                 case (SetCharacterLevelEffect, CharacterLevelChange): frame.Needs |= ReplayProjectionNeeds.Experience | ReplayProjectionNeeds.Skills; break;
                 case (SetCharacterGrowTypeEffect, CharacterGrowTypeChange):
+                case (SetCharacterAwakeningEffect, CharacterGrowTypeChange):
                 case (MaterializeSkillBuildsEffect, SkillBuildsMaterializedChange):
                     frame.Needs |= ReplayProjectionNeeds.CharacterAppearance | ReplayProjectionNeeds.Skills; break;
                 case (SetOpeningPremiumEffect, OpeningPremiumChange):

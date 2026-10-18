@@ -40,3 +40,15 @@ CMD	ItemSocketResponse	0x0379	Game/ItemSockets/ItemSocketsSlice.cs	ItemSocketRes
 CMD	ItemSocketResponse	0x037A	Game/ItemSockets/ItemSocketsSlice.cs	ItemSocketResponse.MessageType admits this request type; ItemSocketEncoder echoes message.Type
 CMD	SelectDungeonRefusal	0x0010	Game/DungeonEntry/DungeonEntrySlice.cs	Mirror false emits GameProtocol.SelectDungeonType in SelectDungeonRefusalEncoder
 CMD	SelectDungeonRefusal	0x02B6	Game/DungeonEntry/DungeonEntrySlice.cs	Mirror true emits mirror-entry refusal type in SelectDungeonRefusalEncoder
+CMD	CapsuleAck	0x0404	Game/MarriageHousing/CapsuleSlice.cs	type is 0x0404 plus the MarriageCapsuleAction (Make, Give, Take)
+CMD	CapsuleAck	0x0405	Game/MarriageHousing/CapsuleSlice.cs	type is 0x0404 plus the MarriageCapsuleAction (Make, Give, Take)
+CMD	CapsuleAck	0x0406	Game/MarriageHousing/CapsuleSlice.cs	type is 0x0404 plus the MarriageCapsuleAction (Make, Give, Take)
+CMD	HousingAck	0x03F4	Game/MarriageHousing/HousingSlice.cs	encoder echoes the request opcode registered by the housing decoders
+CMD	HousingAck	0x03FD	Game/MarriageHousing/HousingSlice.cs	encoder echoes the request opcode registered by the housing decoders
+CMD	HousingAck	0x03FE	Game/MarriageHousing/HousingSlice.cs	encoder echoes the request opcode registered by the housing decoders
+CMD	HousingAck	0x03FF	Game/MarriageHousing/HousingSlice.cs	encoder echoes the request opcode registered by the housing decoders
+CMD	HousingAck	0x0400	Game/MarriageHousing/HousingSlice.cs	encoder echoes the request opcode registered by the housing decoders
+CMD	HousingAck	0x0401	Game/MarriageHousing/HousingSlice.cs	encoder echoes the request opcode registered by the housing decoders
+CMD	HousingAck	0x0402	Game/MarriageHousing/HousingSlice.cs	encoder echoes the request opcode registered by the housing decoders
+CMD	HousingAck	0x0403	Game/MarriageHousing/HousingSlice.cs	encoder echoes the request opcode registered by the housing decoders
+CMD	AltarDifficultyResponse	0x013D	Game/Altar/AltarMessages.cs	state synchronization message overrides Type

@@ -20,7 +20,7 @@ internal sealed class CharacterStateProjectionDomainService(
         var ledger = await points.LedgerAsync(character.Id, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidDataException("Character skill ledger is unavailable.");
         var builds = await skills.BuildsAsync(character.Id, cancellationToken).ConfigureAwait(false);
-        return result with
+        var refreshed = result with
         {
             Character = result.Character with { Identity = identity, Progression = progress },
             CharacterEntry = result.CharacterEntry with
@@ -38,5 +38,7 @@ internal sealed class CharacterStateProjectionDomainService(
                 },
             },
         };
+        return refreshed with { CharacterEntry = CharacterStateProjection.CompleteAppearanceProjection(
+            refreshed.Character, refreshed.CharacterEntry, refreshed.CharacterInventory) };
     }
 }

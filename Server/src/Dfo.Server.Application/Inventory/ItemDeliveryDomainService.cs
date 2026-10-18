@@ -57,6 +57,7 @@ internal sealed class ItemDeliveryDomainService(IItemPlacementRuleService placem
                 }
                 var template = grant.Instance?.Snapshot ?? grant.Snapshot
                     ?? await rules.TemplateAsync(grant.ItemId, ct).ConfigureAwait(false);
+                if (grant.Instance is null) template = await lifecycle.PrepareNewAsync(template, ct).ConfigureAwait(false);
                 if (grant.Instance is not null && grant.Durability is { } changed && changed != template.Durability)
                     throw new InvalidDataException("An existing reward instance cannot be rewritten during delivery.");
                 if (grant.Durability is { } durability) template = template with { Durability = durability };

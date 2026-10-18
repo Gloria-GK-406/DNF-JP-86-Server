@@ -1,0 +1,6 @@
+2026-10-16 11:35:24.474 +08:00 fail: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]
+      Game decoder WeddingProposalDecoder threw Game:01-00-00-00: selector=0x01 type=0x03F0 seq=252 body(21B); body withheld
+      System.IO.InvalidDataException: WEDDING_REQUEST requires 7 body bytes.
+         at Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalDecoder.Decode(GameMessageMetadata metadata, ReadOnlySpan`1 body) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Protocol\Game\MarriageProposal\MarriageProposalSlice.cs:line 32
+         at Dfo.Server.Networking.Runtime.GameNetworkPlugin.Decode(GameClientFrameRequestInfo frame, NetworkConnectionId connectionId, Int64 ordinal, Boolean fresh) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Networking\Runtime\NetworkPlugins.cs:line 200
+2026-10-16 11:35:24.495 +08:00 dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]

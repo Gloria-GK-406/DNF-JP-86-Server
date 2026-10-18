@@ -1,0 +1,77 @@
+itemId	name	stackableType	needMaterial(10002606 心意点)	rarity	attach	candidatePosCount	positions(pos(dx,dy,z,flip))	tail	act
+10002684	白色窗户 - 樱花背景	[couple room item] 0	10002606 80	2	[trade]	3	 25(15,0,0,0) 26(15,0,0,0) 27(15,0,0,0)	0	decoration/Action/chn_window_03.act
+10002685	窗户 - 果树背景	[couple room item] 0	10002606 30	2	[trade]	1	 25(10,10,0,0)	0	decoration/Action/chn_window_01.act
+10002686	窗户 - 森林背景	[couple room item] 0	10002606 50	2	[trade]	1	 25(15,70,0,0)	0	decoration/Action/chn_window_02.act
+10002687	窗户 - 晴空背景	[couple room item] 0	10002606 50	2	[trade]	1	 25(15,30,0,0)	0	decoration/Action/chn_window_04.act
+10002688	红色哥布林雕像	[couple room item] 0	10002606 15	2	[trade]	7	 16(0,0,0,0) 17(0,0,0,0) 18(0,0,0,0) 19(0,0,0,0) 20(0,0,0,0) 22(0,0,0,0) 23(0,0,0,0)	0	decoration/Action/chn_bottom_gobrintoy_01.act
+10002689	橙色牛头人雕像	[couple room item] 0	10002606 15	2	[trade]	7	 16(0,0,0,0) 17(0,0,0,0) 18(0,0,0,0) 19(0,0,0,0) 20(0,0,0,0) 22(0,0,0,0) 23(0,0,0,0)	0	decoration/Action/chn_bottom_tawtoy_01.act
+10002690	红色金盏菊盆栽	[couple room item] 0	10002606 15	2	[trade]	7	 16(0,0,0,0) 17(0,0,0,0) 18(0,0,0,0) 19(0,0,0,0) 20(0,0,0,0) 22(0,0,0,0) 23(0,0,0,0)	0	decoration/Action/chn_bottom_flower_01.act
+10002691	白色五月花盆栽	[couple room item] 0	10002606 15	2	[trade]	7	 16(0,0,0,0) 17(0,0,0,0) 18(0,0,0,0) 19(0,0,0,0) 20(0,0,0,0) 22(0,0,0,0) 23(0,0,0,0)	0	decoration/Action/chn_bottom_flower_02.act
+10002692	万圣节南瓜装饰	[couple room item] 0	10002606 50	2	[trade]	3	 19(0,0,0,0) 20(0,0,0,0) 21(0,0,0,0)	0	decoration/Action/chn_bottom_halloween.act
+10002693	寝具 - 清风雅韵	[couple room item] 0	10002606 200	2	[trade]	3	 10(0,70,0,0) 12(0,70,0,0) 13(0,70,0,1)	0	decoration/Action/chn_bottom_bed_02.act
+10002694	寝具 - 古色古香	[couple room item] 0	10002606 20	2	[trade]	3	 10(0,80,0,0) 12(0,80,0,0) 13(0,80,0,1)	0	decoration/Action/chn_bottom_bed_01.act
+10002695	木质餐桌椅 - 简朴	[couple room item] 0	10002606 20	2	[trade]	3	 19(0,0,0,0) 20(30,0,0,0) 21(50,0,0,0)	0	decoration/Action/chn_bottom_table_02.act
+10002696	木质餐桌椅 - 奢华	[couple room item] 0	10002606 200	2	[trade]	3	 19(0,0,0,0) 20(30,0,0,0) 21(50,0,0,0)	0	decoration/Action/chn_bottom_table_01.act
+10002697	粉色吊篮装饰	[couple room item] 0	10002606 30	2	[trade]	3	 2(0,0,0,0) 4(0,0,0,0) 5(0,0,0,0)	0	decoration/Action/chn_ceiling_flower_01.act
+10002698	普通吊灯	[couple room item] 0	10002606 10	2	[trade]	3	 2(0,0,0,0) 4(0,0,0,0) 5(0,0,0,0)	0	decoration/Action/chn_ceiling_basic_light.act
+10002699	迷你多尼尔吊饰	[couple room item] 0	10002606 50	2	[trade]	3	 2(0,0,0,0) 4(0,0,0,0) 5(0,0,0,0)	0	decoration/Action/chn_ceiling_01.act
+10002701	人偶之王的手工石雕	[couple room item] 0	10002606 100	2	[trade]	8	 16(0,0,0,0) 17(0,0,0,0) 18(0,0,0,0) 19(0,0,0,0) 20(0,0,0,0) 21(0,0,0,0) 22(0,0,0,0) 23(0,0,0,0)	0	decoration/Action/chn_bottom_bronze_05.act
+10002702	龙人铜像	[couple room item] 0	10002606 100	2	[trade]	8	 16(0,0,0,0) 17(0,0,0,0) 18(0,0,0,0) 19(0,0,0,0) 20(0,0,0,0) 21(0,0,0,0) 22(0,0,0,0) 23(0,0,0,0)	0	decoration/Action/chn_bottom_bronze_01.act
+10002703	烈焰彼诺修的雕像	[couple room item] 0	10002606 100	2	[trade]	8	 16(0,0,0,0) 17(0,0,0,0) 18(0,0,0,0) 19(0,0,0,0) 20(0,0,0,0) 21(0,0,0,0) 22(0,0,0,0) 23(0,0,0,0)	0	decoration/Action/chn_bottom_bronze_02.act
+10002704	冰霜克拉赫的雕像	[couple room item] 0	10002606 100	2	[trade]	8	 16(0,0,0,0) 17(0,0,0,0) 18(0,0,0,0) 19(0,0,0,0) 20(0,0,0,0) 21(0,0,0,0) 22(0,0,0,0) 23(0,0,0,0)	0	decoration/Action/chn_bottom_bronze_03.act
+10002705	猫妖石像	[couple room item] 0	10002606 100	2	[trade]	3	 10(0,70,0,1) 12(0,70,0,1) 13(0,70,0,0)	0	decoration/Action/chn_bottom_bronze_07.act
+10002706	罪恶之眼的石像	[couple room item] 0	10002606 100	2	[trade]	3	 10(10,70,0,1) 12(10,70,0,1) 13(-10,70,0,0)	0	decoration/Action/chn_bottom_bronze_06.act
+10002707	落雷凯诺的审讯椅	[couple room item] 0	10002606 100	2	[trade]	3	 10(10,70,0,0) 12(10,70,0,0) 13(-10,70,0,1)	0	decoration/Action/chn_bottom_chair_01.act
+10002708	牛头人铜像	[couple room item] 0	10002606 100	2	[trade]	3	 10(20,80,0,1) 12(20,80,0,1) 13(0,100,0,0)	0	decoration/Action/chn_wall_taw_body.act
+10002709	天之驱逐者的铠甲装饰	[couple room item] 0	10002606 100	2	[trade]	8	 16(0,0,0,0) 17(0,0,0,0) 18(0,0,0,0) 19(0,0,0,0) 20(0,0,0,0) 21(0,0,0,0) 22(0,0,0,0) 23(0,0,0,0)	0	decoration/Action/chn_bottom_bronze_04.act
+10002710	窗帘 - 淡雅 (蓝色)	[couple room item] 0	10002606 100	2	[trade]	3	 3(0,-30,0,0) 14(0,-30,0,0) 15(0,-30,0,0)	0	decoration/Action/chn_curtain_02.act
+10002711	窗帘 - 简易 (红色)	[couple room item] 0	10002606 30	2	[trade]	3	 3(0,-100,0,0) 14(0,-100,0,0) 15(0,-100,0,0)	0	decoration/Action/chn_curtain_01.act
+10002712	装饰画 - 幽暗恐惧	[couple room item] 0	10002606 25	2	[trade]	4	 6(0,0,0,0) 7(0,0,0,1) 8(0,0,0,0) 9(0,0,0,1)	0	decoration/Action/chn_wall_picture_dark.act
+10002713	装饰画 - 田园生活	[couple room item] 0	10002606 50	2	[trade]	4	 6(0,0,0,0) 7(0,0,0,1) 8(0,0,0,0) 9(0,0,0,1)	0	decoration/Action/chn_wall_picture_house.act
+10002714	萨乌塔的牛角装饰 (红色)	[couple room item] 0	10002606 100	2	[trade]	2	 6(0,0,0,1) 7(5,0,0,0)	0	decoration/Action/chn_wall_taw_bone_01.act
+10002715	爱恋之心房门吊饰	[couple room item] 0	10002606 15	2	[trade]	4	 6(0,-53,0,1) 7(0,-53,0,0) 8(0,-53,0,1) 9(0,-53,0,0)	0	decoration/Action/chn_wall_sweethome_01.act
+10002716	骨狱息的迷你画像	[couple room item] 0	10002606 30	2	[trade]	2	 26(10,0,0,0) 27(10,0,0,0)	0	decoration/Action/chn_wall_goul_front.act
+10002717	罗莉安的装饰画像	[couple room item] 0	10002606 50	2	[trade]	4	 6(0,-30,0,0) 7(10,-30,0,1) 8(0,-30,0,0) 9(0,-30,0,1)	0	decoration/Action/chn_wall_picture_rorian.act
+10002718	蓝色的水族箱	[couple room item] 0	10002606 200	2	[trade]	3	 10(-20,100,0,0) 12(-20,100,0,0) 13(20,100,0,1)	0	decoration/Action/chn_wall_fishbowl_01.act
+10002719	绿色的水族箱	[couple room item] 0	10002606 200	2	[trade]	3	 10(-20,100,0,0) 12(-20,100,0,0) 13(20,100,0,1)	0	decoration/Action/chn_wall_fishbowl_02.act
+10002720	温暖的壁炉	[couple room item] 0	10002606 30	2	[trade]	2	 12(0,80,0,1) 13(0,80,0,0)	0	decoration/Action/chn_wall_heater_01.act
+10002721	光之城主的蓝灵火挂饰	[couple room item] 0	10002606 100	2	[trade]	2	 6(10,0,0,1) 7(0,0,0,0)	0	decoration/Action/chn_wall_zighardt_fire_01.act
+10002722	猫妖的巫师装饰 (简易)	[couple room item] 0	10002606 100	2	[trade]	2	 6(0,50,0,0) 7(10,50,0,1)	0	decoration/Action/chn_wall_mask_01.act
+10002723	毒猫王的标本箱	[couple room item] 0	10002606 100	2	[trade]	3	 10(20,60,0,1) 12(-10,80,0,1) 13(0,80,0,0)	0	decoration/Action/chn_wall_penril_01.act
+10002724	普拉塔尼的黄金壁橱	[couple room item] 0	10002606 150	2	[trade]	3	 10(20,60,0,0) 12(-20,80,0,0) 13(10,80,0,1)	0	decoration/Action/chn_wall_pratini_01.act
+10002725	暖冬地毯	[couple room item] 0	10002606 200	2	[trade]	3	 19(20,-70,0,0) 20(20,-70,0,0) 21(40,-70,0,0)	0	decoration/Action/chn_bottom_carpet_01.act
+10002726	破旧的皮革地毯	[couple room item] 0	10002606 20	2	[trade]	3	 19(20,-70,0,0) 20(20,-70,0,0) 21(40,-70,0,0)	0	decoration/Action/chn_bottom_carpet_02.act
+10002769	粉色落地灯	[couple room item] 0	10002606 50	2	[trade]	8	 16(0,0,0,0) 17(0,0,0,0) 18(0,0,0,0) 19(0,0,0,0) 20(0,0,0,0) 21(0,0,0,0) 22(0,0,0,0) 23(0,0,0,0)	0	decoration/Action/chn_bottom_long_lamp.act
+10002770	绿色哥布林雕像	[couple room item] 0	10002606 15	2	[trade]	7	 16(0,0,0,0) 17(0,0,0,0) 18(0,0,0,0) 19(0,0,0,0) 20(0,0,0,0) 22(0,0,0,0) 23(0,0,0,0)	0	decoration/Action/chn_bottom_gobrintoy_01_green.act
+10002771	黄色哥布林雕像	[couple room item] 0	10002606 15	2	[trade]	7	 16(0,0,0,0) 17(0,0,0,0) 18(0,0,0,0) 19(0,0,0,0) 20(0,0,0,0) 22(0,0,0,0) 23(0,0,0,0)	0	decoration/Action/chn_bottom_gobrintoy_01_yellow.act
+10002772	黄色牛头人雕像	[couple room item] 0	10002606 15	2	[trade]	7	 16(50,0,0,0) 17(50,0,0,0) 18(50,0,0,0) 19(50,0,0,0) 20(50,0,0,0) 22(50,0,0,0) 23(50,0,0,0)	0	decoration/Action/chn_bottom_tawtoy_01_blue.act
+10002773	灰色牛头人雕像	[couple room item] 0	10002606 15	2	[trade]	7	 16(100,0,0,0) 17(100,0,0,0) 18(100,0,0,0) 19(100,0,0,0) 20(100,0,0,0) 22(100,0,0,0) 23(100,0,0,0)	0	decoration/Action/chn_bottom_tawtoy_01_black.act
+10002774	蓝色金盏菊盆栽	[couple room item] 0	10002606 15	2	[trade]	7	 16(50,0,0,0) 17(50,0,0,0) 18(50,0,0,0) 19(50,0,0,0) 20(50,0,0,0) 22(50,0,0,0) 23(50,0,0,0)	0	decoration/Action/chn_bottom_flower_01_blue.act
+10002775	紫色金盏菊盆栽	[couple room item] 0	10002606 15	2	[trade]	7	 16(100,0,0,0) 17(100,0,0,0) 18(100,0,0,0) 19(100,0,0,0) 20(100,0,0,0) 22(100,0,0,0) 23(100,0,0,0)	0	decoration/Action/chn_bottom_flower_01_purple.act
+10002776	黄色五月花盆栽	[couple room item] 0	10002606 15	2	[trade]	7	 16(0,0,0,0) 17(0,0,0,0) 18(0,0,0,0) 19(0,0,0,0) 20(0,0,0,0) 22(0,0,0,0) 23(0,0,0,0)	0	decoration/Action/chn_bottom_flower_02_yellow.act
+10002777	蓝色五月花盆栽	[couple room item] 0	10002606 15	2	[trade]	7	 16(0,0,0,0) 17(0,0,0,0) 18(0,0,0,0) 19(0,0,0,0) 20(0,0,0,0) 22(0,0,0,0) 23(0,0,0,0)	0	decoration/Action/chn_bottom_flower_02_blue.act
+10002778	红色吊篮装饰	[couple room item] 0	10002606 30	2	[trade]	3	 2(0,0,0,0) 4(0,0,0,0) 5(0,0,0,0)	0	decoration/Action/chn_ceiling_flower_01_red.act
+10002779	黄色吊篮装饰	[couple room item] 0	10002606 30	2	[trade]	3	 2(0,0,0,0) 4(0,0,0,0) 5(0,0,0,0)	0	decoration/Action/chn_ceiling_flower_01_yellow.act
+10002780	窗帘 - 淡雅 (粉色)	[couple room item] 0	10002606 100	2	[trade]	3	 3(0,-30,0,0) 14(0,-30,0,0) 15(0,-30,0,0)	0	decoration/Action/chn_curtain_02_pink.act
+10002781	窗帘 - 淡雅 (橙色)	[couple room item] 0	10002606 100	2	[trade]	3	 3(0,-30,0,0) 14(0,-30,0,0) 15(0,-30,0,0)	0	decoration/Action/chn_curtain_02_yellow.act
+10002782	窗帘 - 简易 (橙色)	[couple room item] 0	10002606 30	2	[trade]	3	 3(0,-100,0,0) 14(0,-100,0,0) 15(0,-100,0,0)	0	decoration/Action/chn_curtain_01_orange.act
+10002783	窗帘 - 简易 (紫色)	[couple room item] 0	10002606 30	2	[trade]	3	 3(0,-100,0,0) 14(0,-100,0,0) 15(0,-100,0,0)	0	decoration/Action/chn_curtain_01_purple.act
+10002784	萨乌塔的牛角装饰 (蓝色)	[couple room item] 0	10002606 100	2	[trade]	2	 6(0,0,0,1) 7(5,0,0,0)	0	decoration/Action/chn_wall_taw_bone_01_blue.act
+10002785	萨乌塔的牛角装饰 (绿色)	[couple room item] 0	10002606 100	2	[trade]	2	 6(0,0,0,1) 7(5,0,0,0)	0	decoration/Action/chn_wall_taw_bone_01_green.act
+10002786	骨狱息的巨幅画像	[couple room item] 0	10002606 30	2	[trade]	4	 6(-15,-20,0,0) 7(15,-10,0,1) 8(0,-10,0,0) 9(0,-10,0,1)	0	decoration/Action/chn_wall_goul_side.act
+10002787	粉色樱花吊饰	[couple room item] 0	10002606 50	2	[trade]	4	 6(0,-50,0,1) 7(0,-50,0,0) 8(0,-50,0,1) 9(0,-50,0,0)	0	decoration/Action/chn_wall_hang_pink_flower.act
+10002788	土罐盆栽装饰	[couple room item] 0	10002606 15	2	[trade]	2	 26(15,-55,0,0) 27(15,-55,0,0)	0	decoration/Action/chn_wall_danjin_flower.act
+10002789	休闲的牛头人偶	[couple room item] 0	10002606 15	2	[trade]	3	 10(40,60,0,1) 12(0,80,0,1) 13(0,80,0,0)	0	decoration/Action/chn_wall_tawdoll_on_the_chair.act
+10002790	光之城主的绿灵火挂饰	[couple room item] 0	10002606 100	2	[trade]	2	 6(10,0,0,1) 7(0,0,0,0)	0	decoration/Action/chn_wall_zighardt_fire_01_green.act
+10002791	赛格哈特的赤灵火挂饰	[couple room item] 0	10002606 100	2	[trade]	2	 6(10,0,0,1) 7(0,0,0,0)	0	decoration/Action/chn_wall_zighardt_fire_01_red.act
+10002792	猫妖的巫师装饰 (红色)	[couple room item] 0	10002606 100	2	[trade]	2	 6(0,50,0,0) 7(10,50,0,1)	0	decoration/Action/chn_wall_mask_01_red.act
+10002793	猫妖的巫师装饰 (紫色)	[couple room item] 0	10002606 100	2	[trade]	2	 6(0,50,0,0) 7(10,50,0,1)	0	decoration/Action/chn_wall_mask_01_purple.act
+10002794	普拉塔尼的青色壁橱	[couple room item] 0	10002606 80	2	[trade]	3	 10(20,60,0,0) 12(-20,80,0,0) 13(10,80,0,1)	0	decoration/Action/chn_wall_pratini_01_blue.act
+10002795	普拉塔尼的紫色壁橱	[couple room item] 0	10002606 80	2	[trade]	3	 10(20,60,0,0) 12(-20,80,0,0) 13(10,80,0,1)	0	decoration/Action/chn_wall_pratini_01_purple.act
+10002796	普通木质地板	[couple room item] 0	10002606 5	2	[trade]
+10002797	黑白方格地板	[couple room item] 0	10002606 100	2	[trade]	1	 0(0,0,0,0)	0	decoration/Action/chn_floor_02.act
+10002798	金色雕纹地板	[couple room item] 0	10002606 100	2	[trade]	1	 0(0,0,0,0)	0	decoration/Action/chn_floor_03.act
+10002799	白色壁纸	[couple room item] 0	10002606 30	2	[trade]	1	 1(0,0,0,0)	0	decoration/Action/chn_wallpaper_white.act
+10002800	蓝天壁纸	[couple room item] 0	10002606 100	2	[trade]	1	 1(0,0,0,0)	0	decoration/Action/chn_wallpaper_bluecloud.act
+10002801	典雅金丝壁纸	[couple room item] 0	10002606 100	2	[trade]	1	 1(0,0,0,0)	0	decoration/Action/chn_wallpaper_gold.act
+10002802	金色窗户 - 樱花背景	[couple room item] 0	10002606 100	2	[trade]	3	 25(15,0,0,0) 26(15,0,0,0) 27(15,0,0,0)	0	decoration/Action/chn_window_05.act

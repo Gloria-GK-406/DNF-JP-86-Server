@@ -140,11 +140,11 @@ internal sealed record AccountGameOptionsMessage(
 
 internal sealed record HotkeyStateMessage(
     AccountSettingsEntryState AccountSettings,
-    CharacterSettingsEntryState CharacterSettings) : GameStateSynchronizationMessage, IGameNotiMessage
+    CharacterSettingsEntryState CharacterSettings, byte KeyType = 0) : GameStateSynchronizationMessage, IGameNotiMessage
 {
     internal override ushort Type => 0x01C7;
     internal override byte[] EncodeBody() =>
-        StateSynchronizationPayloadCodec.EncodeHotkeys(AccountSettings, CharacterSettings);
+        StateSynchronizationPayloadCodec.EncodeHotkeys(AccountSettings, CharacterSettings, KeyType);
 }
 
 /// <summary>0x01C7 as sent at login, before any character exists to contribute slots.</summary>
@@ -407,13 +407,11 @@ internal sealed record PremiumServiceStateMessage(
         StateSynchronizationPayloadCodec.EncodePremiumService(Entitlements, UsageSlots, PreparedAt);
 }
 
-internal sealed record LotteryProgressStateMessage(
-    AccountProgressionEntryState Progression) : GameStateSynchronizationMessage, IGameNotiMessage
+internal sealed record CoupleRoomEmptyCompatibilityMessage : GameStateSynchronizationMessage, IGameNotiMessage
 {
-    // A21 calls 0x03D8 COUPLE_ROOM; the A12 table calls it INCREASE_CHANCE_LOTTERY_ALL. A working A21 session
-    // sends 204 zero bytes here, byte for byte what this encoder produces, so 0x03D8 stays.
+    // Captured A21 empty-room compatibility, not an encoder for A12 lottery records.
     internal override ushort Type => 0x03D8;
-    internal override byte[] EncodeBody() => StateSynchronizationPayloadCodec.EncodeLotteryProgress(Progression);
+    internal override byte[] EncodeBody() => new byte[204];
 }
 
 internal sealed record LuckyStarStateMessage(ushort LuckyStar) : GameStateSynchronizationMessage, IGameNotiMessage
@@ -634,7 +632,7 @@ internal static class StateSynchronizationEncoderRegistration
         AddNoti<CubeProgressionStateMessage>(services);
         AddCmd<PremiumServiceStateMessage>(services);
         AddCmd<MercenarySupportStateMessage>(services);
-        AddNoti<LotteryProgressStateMessage>(services);
+        AddNoti<CoupleRoomEmptyCompatibilityMessage>(services);
         AddNoti<LotteryCounterStateMessage>(services);
         AddNoti<LuckyStarStateMessage>(services);
         AddNoti<ChampionBreakStateMessage>(services);

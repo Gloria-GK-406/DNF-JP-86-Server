@@ -1,0 +1,67 @@
+=== map/town/mirrorarad/westcoast.map ===
+[player number]
+2 8
+[pvp start area]
+915 238 587 318 916 240 83 319 1437 241 89 319
+[type]
+[normal]
+[tile]
+Tile/hm01.til Tile/hm01.til Tile/hm01.til Tile/hm01.til Tile/hm01.til Tile/hm01.til Tile/hm01.til Tile/hm01.til Tile/hm01.til Tile/hm01.til Tile/hm01.til Tile/hm01.til Tile/hm01.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/hmtileex.til
+[/tile files]
+[tile map]
+0 0 0 0 0 0 0 0 0 0 0 0 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+50
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/far00.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/mid00.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[town movable area]
+723 168 99 15 21 0 2893 219 18 237 21 2 2481 176 70 50 2 8
+[/town movable area]
+[virtual movable area]
+8 226 2915 227 722 171 107 65 2479 200 75 55
+[/virtual movable area]
+[pathgate pos]
+0 310 2912 310 1456 140 1456 480
+[sound]
+M_WESTCOAST AMB_TOWN_03
+[/sound]
+[animation]
+Animation/hmstreetlamp01.ani [normal] 228 192 0 Animation/hmstreetlamp02.ani [normal] 2006 192 0 Animation/brpost00.ani [normal] 2648 205 0 Animation/hmstreetlamp01.ani [normal] 1017 200 0 Animation/hendonLtw.ani [normal] 134 203 0 Animation/hmbgflowerpot.ani [normal] 1066 199 0 Animation/hmbggrass02.ani [normal] 2409 207 0 Animation/hmbggrass02.ani [normal] 343 209 0 Animation/hmbggrass02.ani [normal] 1486 206 0 Animation/hmbggrass01.ani [normal] 515 190 0 Animation/hmbggrass01.ani [normal] 2044 210 0 Animation/hmbggrass01.ani [normal] 2698 224 0 Animation/hmbggrass01.ani [normal] 2637 181 0 Animation/hmbggrass02.ani [normal] 107 208 0 Animation/hmbggrass02.ani [normal] 382 172 0 Animation/hmbgbox01.ani [normal] 1505 196 0 Animation/hmbgbox02.ani [normal] 1513 184 0 Animation/hmbgbox04.ani [normal] 1122 197 0 Animation/hmbrRtile01.ani [bottom] 2797 204 0 Animation/hmbrRtile02.ani [bottom] 2797 348 0 Animation/tree01.ani [closeback] 164 171 0 Animation/tree01.ani [closeback] 1450 171 0 Animation/gate02.ani [closeback] 375 165 0 Animation/wall00.ani [closeback] 1483 219 0 Animation/wall00.ani [closeback] 1035 219 0 Animation/wall00.ani [closeback] 139 219 0 Animation/wall00.ani [closeback] 811 219 0 Animation/wall00.ani [closeback] 587 219 0 Animation/wall00.ani [closeback] 1259 219 0 Animation/wall00.ani [closeback] 1707 219 0 Animation/wall00.ani [closeback] 1931 219 0 Animation/wall00.ani [closeback] 2155 219 0 Animation/wall00.ani [closeback] 2379 219 0 Animation/wall00.ani [closeback] 2603 219 0 Animation/str03.ani [closeback] 1256 177 0 Animation/str06.ani [closeback] 1802 192 0 Animation/fpot1.ani [closeback] 1682 146 0 Animation/gate00.ani [closeback] 784 200 0 Animation/hendonsign07.ani [closeback] 470 160 0 ../Elvengard/Animation/SeriaLight01.ani [closeback] 768 187 0 ../Elvengard/Animation/SeriaLight00.ani [closeback] 768 187 0 Animation/SeriaLight00.ani [normal] 769 199 0 Animation/SeriaLight01.ani [normal] 769 199 0 Animation/CrackGate_Open.ani [normal] 2499 163 0 Animation/CrackGate_OpenEffect.ani [normal] 2415 185 0 Animation/CrackGate_OpenEffect01.ani [normal] 2414 141 0 Animation/CrackGate_OpenEffect02.ani [normal] 2413 141 0 Animation/CrackGate_OpenEffect03.ani [normal] 2412 119 0 Animation/CrackGate_OpenEffect04.ani [normal] 2412 120 0 Animation/hmlight02.ani [normal] 324 17 0 Animation/Mintai_Tent.ani [closeback] 2255 213 0
+[/animation]
+[NPC]
+355 [left] 1828 200 0 10 [right] 1206 206 0 356 [left] 2047 201 0 40 [left] 2198 207 0
+[/NPC]
+[attacked monster info]
+64785 250 310 0 300 20012 180 10 0 64803 250 310 0 300 20013 180 10 0 64803 350 310 0 200 20013 180 10 0 64796 450 310 0 200 20014 180 10 0 64796 550 310 0 100 20014 180 10 0 64785 600 432 0 300 20012 180 10 0 64803 600 432 0 300 20013 180 10 0 64803 700 432 0 200 20013 180 10 0 64796 800 432 0 200 20014 180 10 0 64796 900 432 0 100 20014 180 10 0 64785 950 289 0 300 20012 180 10 0 64803 950 289 0 300 20013 180 10 0 64803 1050 289 0 200 20013 180 10 0 64796 1150 289 0 200 20014 180 10 0 64796 1250 289 0 100 20014 180 10 0 64785 1300 347 0 300 20012 180 10 0 64803 1300 347 0 300 20013 180 10 0 64803 1400 347 0 200 20013 180 10 0 64796 1500 347 0 200 20014 180 10 0 64796 1600 347 0 100 20014 180 10 0 64785 1650 441 0 300 20012 180 10 0 64803 1650 441 0 300 20013 180 10 0 64803 1750 441 0 200 20013 180 10 0 64796 1850 441 0 200 20014 180 10 0 64796 1950 441 0 100 20014 180 10 0 64785 2000 363 0 300 20012 180 10 0 64803 2000 363 0 300 20013 180 10 0 64803 2100 363 0 200 20013 180 10 0 64796 2200 363 0 200 20014 180 10 0 64796 2300 363 0 100 20014 180 10 0 64785 2350 272 0 300 20012 180 10 0 64803 2350 272 0 300 20013 180 10 0 64803 2450 272 0 200 20013 180 10 0 64796 2550 272 0 200 20014 180 10 0 64796 2650 272 0 100 20014 180 10 0 64785 2700 348 0 300 20012 180 10 0 64803 2700 348 0 300 20013 180 10 0 64803 2800 348 0 200 20013 180 10 0 64796 2900 348 0 200 20014 180 10 0 64796 3000 348 0 100 20014 180 10 0
+[/attacked monster info]
+[specific attacked monster info]
+1 30 30 0 64816 350 340 0 500 20023 180 0 60 1 30 30 0 64815 850 340 0 500 20049 180 0 60 1 30 30 0 64817 1400 340 0 500 20050 180 0 60 1 30 30 0 64818 2100 340 0 500 20051 180 0 60 10 0 0 1 58138 400 306 0 500 20015 180 30 0 10 0 0 1 58139 850 306 0 500 20036 180 30 0 10 0 0 1 58137 1200 306 0 500 20037 180 30 0 20 0 0 1 62781 250 270 0 500 20028 120 10 0 20 0 0 1 62781 2000 300 0 500 20028 120 10 0
+[/specific attacked monster info]
+[map name]
+PVP无名

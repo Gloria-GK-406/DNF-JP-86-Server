@@ -160,12 +160,25 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
 /// from the moment's own offset rather than from the server's clock is what keeps the answer the
 /// same wherever the host happens to be.
 /// </remarks>
-internal sealed class DailyRefillRuleService : IDailyRefillRuleService
+internal sealed class DailyRefillRuleService(Dfo.Server.Abstractions.Configuration.IDailyResetRuleService? reset = null) : IDailyRefillRuleService
 {
     private static readonly TimeSpan DayBoundaryOffset = TimeSpan.FromHours(8);
 
     public string PeriodOf(DateTimeOffset preparedAt) =>
         preparedAt.ToOffset(DayBoundaryOffset).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    public bool UsesIndependentPeriod(DailyRefillRule rule) => rule.ItemId == 690001556;
+
+    public string PeriodOf(DailyRefillRule rule, DateTimeOffset preparedAt) => UsesIndependentPeriod(rule)
+        ? (reset ?? throw new InvalidOperationException("Game-day refill requires daily-reset rules."))
+            .PeriodStart(preparedAt).ToOffset(DayBoundaryOffset).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+        : PeriodOf(preparedAt);
+
+    // An old midnight claim may be ahead of the new 06:00 period during deployment morning.
+    // Retain it conservatively instead of moving the ledger backwards and granting twice.
+    public bool IsDue(DailyRefillRule rule, string? claimedPeriod, string period) => UsesIndependentPeriod(rule)
+        ? claimedPeriod is null || string.CompareOrdinal(claimedPeriod, period) < 0
+        : IsDue(claimedPeriod, period);
 
     /// <remarks>
     /// The recorded day is compared, not merely looked for. A record that only said "claimed" would

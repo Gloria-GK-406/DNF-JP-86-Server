@@ -78,7 +78,8 @@ public sealed class UseLevelUpTicketCommandHandler(ILevelUpTicketDomainService t
 public sealed class LevelUpTicketHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ICommandBus commands, IEventService notifications, IGameMessageSender sender,
     ISelectedCharacterCurrentViewDomainService views, IQuestOfferRefreshDomainService offers,
-    ICharacterQuestLogDomainService quests, IDungeonRunDomainService runs, ILogger<LevelUpTicketHandler> logger)
+    ICharacterQuestLogDomainService quests, IDungeonRunDomainService runs, ILogger<LevelUpTicketHandler> logger,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null)
     : ClientMessageHandler<LevelUpTicketRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, LevelUpTicketRequest message, CancellationToken ct)
@@ -141,6 +142,7 @@ public sealed class LevelUpTicketHandler(ISelectedSessionDomainService sessions,
                 following.Add(new ExtendedUserStateMessage(current.Character, current.CharacterEntry.Public,
                     current.CharacterEntry.Skills, equipment, result.Inventory.PreparedAt));
                 following.Add(new SkillStateMessage(current.CharacterEntry.Skills));
+                following.AddRange(await HousingCurrentProjection.ReadAsync(housing, session, ct).ConfigureAwait(false));
             }
         }
         catch (Exception failure) when (failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure))

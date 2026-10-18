@@ -9,6 +9,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Application.Creatures;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.Characters;
 
@@ -233,7 +234,9 @@ internal sealed class CharacterEntryStateDomainService(
     ICharacterFeatureEntryProjection features,
     ICharacterDomainService characters, INoticeStateDomainService notices,
     IPremiumServiceDomainService premiums,
-    ICreatureDomainStore? creatureStore = null, AmbientStoreAccess? stores = null) : ICharacterEntryStateDomainService
+    ICreatureDomainStore? creatureStore = null, AmbientStoreAccess? stores = null,
+    IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null,
+    IClientSettingsDomainService? clientSettings = null, IHerasDungeonDomainService? heras = null) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,
@@ -271,6 +274,38 @@ internal sealed class CharacterEntryStateDomainService(
                 SpecialRewardQuestIds = specialRewardQuestIds,
             },
         };
+        if (clientSettings is not null)
+        {
+            var appearance = await clientSettings.ReadAppearanceAsync(accountId, checked((byte)publicState.VisibilityBits), cancellationToken).ConfigureAwait(false);
+            publicState = publicState with { VisibilityBits = appearance.VisibilityBits,
+                Settings = publicState.Settings with { UserStateBits = appearance.VisibilityBits } };
+        }
+        var remainingEntries = new List<(int DungeonId, int Remaining)>();
+        if (altars is not null)
+            remainingEntries.AddRange((await altars.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false))
+                .Select(value => (value.DungeonId, value.Remaining)));
+        if (tournaments is not null)
+            remainingEntries.AddRange((await tournaments.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false))
+                .Select(value => (value.DungeonId, value.Remaining)));
+        if (heras is not null)
+            remainingEntries.Add((3900, (await heras.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)).Remaining));
+        if (remainingEntries.Count > 0)
+        {
+            // A21 subtype1 and NOTI0227 write the same counter cache. Legacy dimensions
+            // must never reset committed dungeon quotas when the full character view refreshes.
+            var dimensions = publicState.Extras.Dimensions
+                .Where(value => remainingEntries.All(current => current.DungeonId != value.Key)).ToList();
+            var nextOrder = publicState.Extras.Dimensions.Count == 0 ? 0
+                : checked(publicState.Extras.Dimensions.Max(value => value.SortOrder) + 1);
+            foreach (var current in remainingEntries)
+            {
+                var previous = publicState.Extras.Dimensions.Where(value => value.Key == current.DungeonId)
+                    .OrderBy(value => value.SortOrder).ToArray();
+                dimensions.Add((previous.Length == 0 ? nextOrder++ : previous[0].SortOrder,
+                    current.DungeonId, previous.FirstOrDefault().Value1, current.Remaining));
+            }
+            publicState = publicState with { Extras = publicState.Extras with { Dimensions = dimensions } };
+        }
         var featureState = features.Build(storage.Features);
         if (creatureStore is not null)
         {
@@ -287,6 +322,7 @@ internal sealed class CharacterEntryStateDomainService(
             publicState,
             profile.Settings with
             {
+                VisibilityBits = publicState.VisibilityBits,
                 SeenNotices = await notices.GetSeenAsync(NoticeOwner.ForCharacter(characterId), NoticeGroup.Secondary, cancellationToken),
             },
             skillQuest.Skills,

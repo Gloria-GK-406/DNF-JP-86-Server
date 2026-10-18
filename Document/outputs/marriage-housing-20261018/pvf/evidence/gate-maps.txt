@@ -1,0 +1,95 @@
+######## map/town/common/(r)gate_seria.map
+=== map/town/common/(r)gate_seria.map ===
+[background pos]
+80
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[type]
+`[normal]`
+[tile]
+`Tile/dummy.til` `Tile/dummy.til` `Tile/dummy.til` `Tile/dummy.til`
+[/tile]
+[virtual movable area]
+398 165 155 170 329 165 73 170 543 165 73 170 152 236 182 99 605 216 200 119 776 232 64 103 45 268 110 67 816 247 77 87
+[/virtual movable area]
+[sound]
+`M_GATE_NEW` `AMB_ROOM`
+[/sound]
+[animation]
+`../Common/GateAnimation/GatePillar.ani` `[close]` 0 0 0 `../Common/GateAnimation/GatePillarLight.ani` `[close]` 0 0 0 `../Common/GateAnimation/GateLight1.ani` `[normal]` 469 -201 0 `../Common/GateAnimation/GateBack.ani` `[closeback]` 0 0 0 `../Common/GateAnimation/GateOutLight.ani` `[closeback]` 0 0 0
+[/animation]
+[passive object]
+690 1633 216 0 54170 64 175 0
+[/passive object]
+[NPC]
+32 `[right]` 691 163 0 22 `[left]` 275 225 0 82 `[right]` 355 159 0 74 `[left]` 124 319 0 165 `[left]` 420 -50 0
+[/NPC]
+[pvp channel limit npc]
+74
+[/pvp channel limit npc]
+[map name]
+`PVP无名`
+[guild agit entrance info]
+847 125 120 120 -2 -2
+[/guild agit entrance info]
+
+######## map/town/common/(f)gate_seria.map
+=== map/town/common/(f)gate_seria.map ===
+[background pos]
+80
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[type]
+`[normal]`
+[tile]
+`Tile/dummy.til` `Tile/dummy.til` `Tile/dummy.til` `Tile/dummy.til`
+[/tile]
+[virtual movable area]
+398 165 155 170 329 165 73 170 543 165 73 170 152 236 182 99 605 216 200 119 776 232 64 103 45 268 110 67 816 247 77 87
+[/virtual movable area]
+[sound]
+`M_GATE_NEW` `AMB_ROOM`
+[/sound]
+[animation]
+`../Common/GateAnimation/GatePillar.ani` `[close]` 0 0 0 `../Common/GateAnimation/GatePillarLight.ani` `[close]` 0 0 0 `../Common/GateAnimation/GateLight1.ani` `[normal]` 469 -201 0 `../Common/GateAnimation/GateBack.ani` `[closeback]` 0 0 0 `../Common/GateAnimation/GateOutLight.ani` `[closeback]` 0 0 0
+[/animation]
+[passive object]
+690 1633 216 0
+[/passive object]
+[NPC]
+2 `[left]` 477 160 0 32 `[right]` 691 163 0 22 `[left]` 269 184 0 74 `[left]` 184 319 0 20091 `[left]` 600 240 0
+[/NPC]
+[pvp channel limit npc]
+74
+[/pvp channel limit npc]
+[map name]
+`PVP无名`
+[guild agit entrance info]
+833 196 78 61 -2 -2
+[/guild agit entrance info]
+
+######## map/town/underfoot/(r)gate_underfoot.map
+=== map/town/underfoot/(r)gate_underfoot.map ===
+[import script]
+`Common/(R)Gate_Seria.map`
+[town movable area]
+330 324 289 24 2 2 833 196 78 61 -2 -2 46 212 34 52 101 0
+[/town movable area]
+
+######## passiveobject/mapobject/pathgate/coupleroom/couple_room_gate.obj
+=== passiveobject/mapobject/pathgate/coupleroom/couple_room_gate.obj ===
+[layer]
+`[bottom]`
+[basic motion]
+`Animation/couple_room_gate_open.ani`
+[string data]
+[/string data]
+[int data]
+[/int data]
+[name]
+`洛兰的右侧门`
+

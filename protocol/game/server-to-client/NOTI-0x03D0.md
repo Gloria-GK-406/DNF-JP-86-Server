@@ -1,5 +1,35 @@
 # NOTI `0x03D0` `WEDDING_INFO`
 
+## 2026-10-17 婚龄与心意点闭合
+
+ClientStatic / Confirmed：@6 u32 为婚礼完成的Unix秒时间，manager+68→getter422D0→UI877DC0，婚龄=floor((now-time)/86400)+1；@10 u32 为双方共享心意点。CurrentImplementation：保存completed_at毫秒与love_points，重登投影真实值，历史行不猜日期（2026-10-17 落地状态：阶段、结婚时刻与心意点改由 `marriage_relations` 关系记录直接保存，03D0 state 由阶段投影；线上字节不变。见 [婚姻聚合设计稿](../../../Document/MarriageAggregateDesign-20261017.md) 落地状态。）；本次已确认旧关系由首次Completed日志回填。下列旧人工区“未闭合/其它字段0”对应此前阶段，不再代表当前实现。见[修复报告](../../../Document/MarriageWeddingSixIssues-20261017.md)。
+
+
+## 2026-10-16 普通婚礼预约接入
+
+当前补充：独立预约Reserved记录投影state2（2026-10-17 落地状态：阶段、结婚时刻与心意点改由 `marriage_relations` 关系记录直接保存，03D0 state 由阶段投影；线上字节不变。见 [婚姻聚合设计稿](../../../Document/MarriageAggregateDesign-20261017.md) 落地状态。），接受后双端推送，选角/重登恢复。NPC RVA021AB558在state2阻止重复预约；其它未知字段仍0，仅ClientStatic/High安全性证据，待用户实机验证。
+
+CurrentImplementation：实现边界、A21证据及双端验收步骤见[本次报告](../../../Document/MarriageReservation-20261016.md)。不是婚礼完成或已婚状态；本节优先于下面的历史阶段说明。
+
+## 2026-10-16 A21 人工裁定
+
+ClientStatic / Confirmed：RVA008959B0 的读取链闭合为15B，无CMD信封：
+
+| Offset | 大小 | 类型 | 已知用途 |
+|---:|---:|---|---|
+| 0 | 4 | u32 | 对象CharacterId，03F3回包与之比对 |
+| 4 | 1 | i8 | 婚姻阶段，写manager+0x60 |
+| 5 | 1 | i8 | 未闭合，写manager+0x64 |
+| 6 | 4 | u32 | 未闭合，写manager+0x68 |
+| 10 | 4 | u32 | 未闭合，写manager+0x6c |
+| 14 | 1 | i8 | 未闭合，写manager+0x70及角色尾字段 |
+
+RVA00895290同步manager与角色字段；阶段1..4调用RVA00893080查询对象。NPC菜单RVA021A68C7..021A6925读取+0x60：0/5/6/7显示1013申请订婚，1/2/3显示1015退婚和1014举办婚礼，4显示1016离婚。阶段1..3细分语义尚未全部确认。
+
+CurrentImplementation：本期Engaged投影阶段1，peer为持久对象ID，其他字段0；未绑定投影15零。接受后双端推送，选角/重登同源恢复并显式清理未绑定角色旧缓存。不凭成功提示升级为已婚。菜单是否实际切换与重登显示仍待客户端验收。
+
+证据：[只读探针与反汇编](../../../Document/outputs/marriage-engagement-20261016/client-evidence.txt)，镜像SHA256 `6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507`。本人工区补全消费链，自动区保留原生成内容。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**
@@ -60,3 +90,8 @@ BodyLength = 未知（字段集合已知不完整）
 ## 逆向工作日志
 
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
+
+
+## 2026-10-18 升级提示与恢复补正
+
+03D1会进入原生升级成功提示，不能用于静默恢复。03D0恢复的戒指等级须放body[14]，而非body[5]；8959E4→8952E8→8952EB→895346→89534A已核对。选角/跨房/换宠/进本/重放用03D0；升级本人只用成功CMD03F4，在线配偶收一次NOTI03D1。[实施说明](../../../Document/HousingInteractionFix-20261018.md)。

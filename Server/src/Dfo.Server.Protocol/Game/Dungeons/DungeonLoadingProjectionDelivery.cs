@@ -135,6 +135,14 @@ public sealed class DungeonLoadingProjectionDelivery(
         if (current!.Layout.Mirror is not null && quotaProjection is not null)
             _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.MirrorDungeon,
                 cancellationToken).ConfigureAwait(false);
+        if (current!.Layout.Altar is not null && quotaProjection is not null)
+            _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.AltarDungeon,
+                cancellationToken).ConfigureAwait(false);
+        if (current!.Layout.Tournament is not null && quotaProjection is not null)
+            _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.TournamentDungeon,
+                cancellationToken).ConfigureAwait(false);
+        if (current!.Layout.DungeonId == 3900 && quotaProjection is not null)
+            _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.HerasDungeon, cancellationToken).ConfigureAwait(false);
         if (restoreEntryWeakness && weaknessProjection is not null)
             await weaknessProjection.SendCurrentAsync(session, cancellationToken).ConfigureAwait(false);
         return true;

@@ -16,6 +16,7 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 
@@ -208,7 +209,7 @@ public sealed class SelectCharacterPayloadCodecTests
     }
 
     [Fact]
-    public void SelectCharacterPayload_LotteryPreservesPopulatedAndLoadedEmptyAccountState()
+    public void SelectCharacterPayload_CoupleRoomEmptyCompatibilityDoesNotProjectLegacyLotteryData()
     {
         var source = SelectCharacterPayloadTestData.CreateComplete();
         source = source with
@@ -237,15 +238,18 @@ public sealed class SelectCharacterPayloadCodecTests
             },
             0x03D8);
 
-        Assert.Equal(204, populated.Length);
-        Assert.Equal(2, BinaryPrimitives.ReadInt32LittleEndian(populated));
-        Assert.Equal(-1, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(4)));
-        Assert.Equal(-1, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(8)));
-        Assert.Equal(7001, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(12)));
-        Assert.Equal([2, 5, 0], populated.AsSpan(16, 3).ToArray());
-        Assert.Equal(7002, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(36)));
-        Assert.Equal(1, populated[40]);
+        Assert.Equal(new byte[204], populated);
         Assert.Equal(new byte[204], empty);
+    }
+
+    [Fact]
+    public void SelectCharacterPayload_restores_engagement_and_explicitly_clears_it_for_another_character()
+    {
+        var source = SelectCharacterPayloadTestData.CreateComplete();
+        var partner = new Dfo.Server.Data.Marriage.MarriagePartnerProfile(72, "partner"u8.ToArray(), 0, 85, 0, new int[13]);
+        var engaged = source with { Engagement = new(Guid.NewGuid(), partner) };
+        Assert.Equal(Convert.FromHexString("480000000100000000000000000000"), EncodeSelectedStateBody(engaged, 0x03D0));
+        Assert.Equal(new byte[15], EncodeSelectedStateBody(source with { Engagement = Dfo.Server.Data.Marriage.MarriageEngagementSnapshot.Empty }, 0x03D0));
     }
 
     [Fact]
@@ -717,6 +721,11 @@ public sealed class SelectCharacterPayloadCodecTests
             services.AddSingleton<IQuestParameterSource>(new NoQuestParameters());
             new ApplicationModule().ConfigureServices(
                 services, new ConfigurationBuilder().Build());
+            // This profile/quest fixture does not register dungeon or account-settings storage.
+            services.RemoveAll<Dfo.Server.Abstractions.World.IHerasDungeonDomainService>();
+            services.RemoveAll<Dfo.Server.Abstractions.World.IAltarDungeonDomainService>();
+            services.RemoveAll<Dfo.Server.Abstractions.World.ITournamentDungeonDomainService>();
+            services.RemoveAll<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>();
             await using var provider = services.BuildServiceProvider();
             var typed = await provider.GetRequiredService<ICharacterEntryStateDomainService>().LoadAsync(
                 new AccountId(12), new CharacterId(22), CancellationToken.None);

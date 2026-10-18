@@ -1,0 +1,25 @@
+id 10092629 -> event/helixlab/10092629.stk
+=== stackable/event/helixlab/10092629.stk ===
+[name]
+MV-002的零件
+[grade]
+5
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[price]
+100
+[icon]
+Item/stackable/material_cn.img 129
+[field image]
+Item/FieldImage.img 30
+[stackable type]
+[material] 2
+[move wav]
+CUBE_TOUCH

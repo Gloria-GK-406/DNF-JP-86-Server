@@ -19,11 +19,6 @@ public sealed record ShopPurchaseCountRequest(GameMessageMetadata Metadata, int 
     public ClientMessageType MessageType => ClientMessageType.GameShopPurchaseCount;
 }
 
-public sealed record ShopPurchaseCountResponse(NpcShopPurchaseCountsResult Result) : IGameCmdMessage
-{
-    public ServerMessageType MessageType => ServerMessageType.GameShopPurchaseCount;
-}
-
 internal sealed class ShopPurchaseCountDecoder : IGameMessageDecoder
 {
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
@@ -31,26 +26,6 @@ internal sealed class ShopPurchaseCountDecoder : IGameMessageDecoder
         if (body.Length != 4)
             throw new InvalidDataException($"SHOP_PURCHASE_COUNT requires 4 body bytes; received {body.Length}.");
         return new ShopPurchaseCountRequest(metadata, BinaryPrimitives.ReadInt32LittleEndian(body));
-    }
-}
-
-internal sealed class ShopPurchaseCountEncoder : GameCmdMessageEncoder<ShopPurchaseCountResponse>
-{
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(ShopPurchaseCountResponse message)
-    {
-        if (message.Result.Rejection != NpcShopRejection.None)
-            return OnePayload(GameProtocol.ShopPurchaseCountType, new byte[] { 0, 0 });
-        using var stream = new MemoryStream();
-        using var writer = new BinaryWriter(stream);
-        writer.Write((byte)1);
-        writer.Write(message.Result.Counts.Count);
-        foreach (var count in message.Result.Counts)
-        {
-            writer.Write(count.ItemId);
-            writer.Write(count.Count);
-        }
-        writer.Write(0); // A21 reads a second counted list; the reference sends this one empty.
-        return OnePayload(GameProtocol.ShopPurchaseCountType, stream.ToArray());
     }
 }
 

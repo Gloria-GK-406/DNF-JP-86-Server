@@ -1,4 +1,10 @@
-# NOTI `0x00DB` `USE_SHARED_EFFECT_ITEM`
+# NOTI `0x00DB` `SHARED_EFFECT`
+
+## 2026-10-17 A21 人工补证
+
+ClientStatic / High：原生读取7B `u16 actorSceneId + u32 itemId + u8 effectSelector`。ACK不会渲染，服务端必须包括施放者自己。CurrentImplementation：事务00FB消费成功后同可见town area广播，拒绝不广播；两个婚礼礼炮selector暂0，原生随机图案分布Unknown，待双端实机。不是CMD00DB的同名含义。
+
+见[共享消费](../client-to-server/0x00FB.md)、[实现与步骤](../../../Document/MarriageWeddingRepair-20261017.md)。
 
 <!-- rks:machine:begin -->
 

@@ -8,7 +8,7 @@ internal sealed class NpcShopRuleService(
     INpcShopDefinitionSource content,
     IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
-    IDailyRefillRuleService days) : INpcShopRuleService
+    IDailyRefillRuleService days, IItemExpirationRuleService expiration, TimeProvider clock) : INpcShopRuleService
 {
     public async ValueTask<NpcShopQuoteResult> QuoteAsync(
         int npcId, int shopId, byte job, int itemId, int rawCount, CancellationToken cancellationToken)
@@ -94,6 +94,9 @@ internal sealed class NpcShopRuleService(
         }
 
         var grants = new List<NpcShopGrantedSlot>();
+        var baseline = expiration.Prepare(new ItemSnapshot { ItemId = quote.Definition.ItemId,
+            Type = quote.Placement.Traits, LegacyKind = quote.Placement.ItemKind,
+            IsPile = quote.Placement.WorldClass == ItemWorldClass.Interchangeable }, quote.Placement.Lifetime, clock.GetUtcNow());
         var outstanding = quote.Count;
         while (outstanding > 0)
         {
@@ -102,7 +105,7 @@ internal sealed class NpcShopRuleService(
             var arrival = arrivals.ForGrant(
                 candidates
                     .Where(slot => standing.TryGetValue(slot, out var item)
-                        && item.ItemId == quote.Definition.ItemId && item.IsPile)
+                        && item.CanStackWith(baseline))
                     .Select(slot => new ItemPile(slot, standing[slot].Count)).ToArray(),
                 outstanding, placement,
                 candidates.Where(standing.ContainsKey).ToHashSet());
@@ -119,8 +122,7 @@ internal sealed class NpcShopRuleService(
                 case ItemArrival.IntoEmptySlot empty:
                     slot = empty.Slot;
                     added = empty.Count;
-                    core = new ItemSnapshot { ItemId = quote.Definition.ItemId, Count = placement.WorldClass == ItemWorldClass.Interchangeable ? added : 1,
-                        Type = placement.Traits, LegacyKind = placement.ItemKind, IsPile = placement.WorldClass == ItemWorldClass.Interchangeable };
+                    core = baseline with { Count = placement.WorldClass == ItemWorldClass.Interchangeable ? added : 1 };
                     if (placement.WorldClass == ItemWorldClass.Equipment)
                         core = core with
                         {

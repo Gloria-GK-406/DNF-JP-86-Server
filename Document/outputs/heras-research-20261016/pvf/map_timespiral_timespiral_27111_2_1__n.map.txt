@@ -1,0 +1,64 @@
+=== map/timespiral/timespiral_27111(2,1)_n.map ===
+[player number]
+1 1
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3900
+[/dungeon]
+[type]
+[normal]
+[greed]
+JJ JJ
+[tile]
+Tile/basic_4.til Tile/basic_4.til Tile/basic_4.til Tile/basic_4.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/basic_ex_1.til
+[/tile files]
+[tile map]
+0 0 0 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+56
+[middle sight scroll]
+80
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/timespiral_far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+1316 731 850 212 1225 734 414 460
+[sound]
+AMB_POWERSTATION_GRANDINE M_HELIX_LAB
+[/sound]
+[animation]
+Animation/timespiral_back_middle_light.ani [middleback] 1160 110 0 Animation/timespiral_back_middle_light.ani [middleback] 931 110 0 Animation/timespiral_back_middle_light.ani [middleback] 702 108 0 Animation/timespiral_back_middle_light.ani [middleback] 473 110 0 Animation/timespiral_mid02.ani [middleback] 131 -156 0 Animation/timespiral_steam01.ani [middleback] 261 -182 0 Animation/timespiral_spark01.ani [middleback] 541 -165 0 Animation/remnant_dark_front04.ani [normal] 599 90 0 Animation/remnant_dark_front01.ani [normal] 565 94 0 ../kronos_dg/Animation/fire/FireCurtain01.ani [middleback] -98 -316 0 ../kronos_dg/Animation/fire/FireCurtain01.ani [middleback] 542 -312 0 Animation/timespiral_spark03.ani [normal] 399 -132 0 Animation/timespiral_spark02.ani [normal] 285 -16 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 140 258 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 77 262 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 21 261 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] -46 270 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 200 269 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 269 275 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 354 236 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 399 201 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 444 261 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 496 260 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 555 277 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 587 287 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 650 288 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 713 291 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 759 282 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 836 241 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 688 277 0 ../kronos_dg/Animation/fire/fire03.ani [middleback] 634 291 0
+[/animation]
+[passive object]
+12901 832 271 0 12917 51 460 0 12917 802 445 0 12918 230 470 0 12918 39 207 0 12912 11 291 0 12912 72 378 0
+[/passive object]
+[monster]
+64909 1 0 239 215 0 1 1 [fixed] [normal] 64909 1 0 317 410 0 1 1 [fixed] [normal] 64912 1 0 487 181 0 1 1 [fixed] [normal] 64912 1 0 481 410 0 1 1 [fixed] [normal] 64911 1 0 363 201 0 1 1 [fixed] [normal] 64911 1 0 360 310 0 1 1 [fixed] [normal] 64908 1 0 632 247 0 1 1 [fixed] [normal] 64908 1 0 626 389 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[special passive object]
+12940 669 195 0 1 [item] 0 1 -1 -1 -1
+[/special passive object]
+[event monster position]
+749 287 0 771 298 0 791 270 0 764 271 0
+[/event monster position]
+[map name]
+PVP无名

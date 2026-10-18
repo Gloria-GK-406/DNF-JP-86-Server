@@ -1,0 +1,36 @@
+70Reference narrow symbol/string scan
+ELF SHA-256: CF45F4E8514C3BF560DD322C146F8441249F6C28246EC8566DCF9EBC4E1B2EB7
+
+ELF symbol table matches:
+  Arad_Housing.cpp
+  _GLOBAL__I_Arad_Housing.cpp
+  Arad_HousingConvertor.cpp
+  _GLOBAL__I_Arad_HousingConvertor.cpp
+  Arad_HousingManager.cpp
+  _GLOBAL__I_Arad_HousingManager.cpp
+  Arad_HousingTree.cpp
+  _GLOBAL__I_Arad_HousingTree.cpp
+
+ASCII string matches:
+  Arad_Housing
+  Arad_HousingConvertor
+  Arad_HousingManager
+  Arad_HousingTree
+  HOUSING_ENTER_ROOM
+  HOUSING_GIVE_WATER
+  HOUSING_HARVEST_TREE
+  HOUSING_INVITE_FRIEND
+  HOUSING_INVITE_TIMEOUT
+  HOUSING_LEAVE_OWNER
+  HOUSING_LEAVE_ROOM
+  HOUSING_LEAVE_USER
+  HOUSING_RESET_TREE
+  HOUSING_ROOM_USERS
+  HOUSING_SEND_MESSAGE
+  HOUSING_SET_NEW_TREE
+  HOUSING_TREE_INFO
+  HOUSING_VISIT_ROOM
+  HOUSING_WATER_HISTORY
+
+Narrow symbol/string searches for wedding, couple, and marriage returned no matches.
+Interpretation: generic 70Reference housing only. This is not a complete reverse engineering pass.

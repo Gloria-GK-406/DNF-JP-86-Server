@@ -23,7 +23,9 @@ internal static class EventPayloadCodec
         writer.Write(checked((ushort)events.Count));
         foreach (var e in events)
         {
-            writer.Write(checked((ushort)e.EventId));writer.Write(0u);Text(e.StartNotice);Text(e.EndNotice);writer.Write((byte)1);
+            writer.Write(checked((ushort)e.EventId));writer.Write(0u);Text(e.StartNotice);Text(e.EndNotice);writer.Write((byte)(e.HasDetail ? 1 : 0));
+            // A21 HasDetail=0 still inserts the identity, then advances directly to the next record.
+            if (!e.HasDetail) continue;
             // A21 reader VA014196B0; flags 0/5 are the upstream seed, with semantics still unclosed.
             writer.Write((byte)0);writer.Write((byte)5);Text(e.Title);Text(e.ShortName);Text("");
             writer.Write(checked((uint)e.StartsAt.ToUnixTimeSeconds()));writer.Write(checked((uint)e.EndsAt.ToUnixTimeSeconds()));
@@ -51,6 +53,18 @@ internal sealed record EventInformationMessage(EventInfo[] Information) : GameSt
 { internal override ushort Type=>0x006C;internal override byte[] EncodeBody()=>EventPayloadCodec.Information(Information); }
 internal sealed record WeeklyAttendanceStateMessage(WeeklyAttendanceState State) : GameStateSynchronizationMessage,IGameNotiMessage
 { internal override ushort Type=>0x042D;internal override byte[] EncodeBody()=>EventPayloadCodec.Attendance(State); }
+internal sealed record ScheduledDungeonStateMessage(ScheduledDungeonState State) : GameStateSynchronizationMessage,IGameNotiMessage
+{
+    internal override ushort Type => 0x033F;
+    internal override byte[] EncodeBody()
+    {
+        // A21 VA01192C10: category, state, content ID, opaque value; four u32.
+        var body = new byte[16];
+        BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(4),State.Open ? 1u : 0u);
+        BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(8),checked((uint)State.DungeonId));
+        return body;
+    }
+}
 public sealed record WeeklyAttendanceRequest(GameMessageMetadata Metadata,byte[] Opaque) : IClientNetworkMessage
 { public ClientMessageType MessageType=>ClientMessageType.GameWeeklyAttendance; }
 internal sealed class WeeklyAttendanceDecoder : IGameMessageDecoder
@@ -90,6 +104,7 @@ public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,
         if (sessions.FindByCharacter(recipient.CharacterId) is not { } session) return [];
         var state=await projection.ReadNowAsync(session,ct);
         return [new EventInformationMessage(state.Information),new WeeklyAttendanceStateMessage(state.Attendance),
+            .. state.ScheduledDungeons.Select(x => new ScheduledDungeonStateMessage(x)),
             .. state.Joust is { } joust ? Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Snapshot(joust) : []];
     }
 }

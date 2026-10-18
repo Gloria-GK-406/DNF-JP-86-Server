@@ -1,0 +1,81 @@
+=== monster/newmonsters/timespiral/river/river.mob ===
+[name]
+召唤之利珀
+[face image]
+Monster/MonsterFace.img 730
+[category]
+[spirit] [devil]
+[/category]
+[ambient sound]
+
+[attack sound]
+
+[appear sound]
+
+[damage sound]
+
+[die sound]
+
+[ability category]
+[EQUIPMENT_PHYSICAL_ATTACK] * 100 [EQUIPMENT_PHYSICAL_DEFENSE] * 100 [EQUIPMENT_MAGICAL_ATTACK] * 100 [EQUIPMENT_MAGICAL_DEFENSE] * 100 [HP MAX] * 80
+[/ability category]
+[level]
+1 1
+[fire resistance]
+10 10
+[light resistance]
+10 10
+[attack speed]
+1000 1000
+[cast speed]
+1000 1000
+[hit recovery]
+1000 1000
+[weight]
+90000 90000
+[stuckbonus on damage]
+0 0 0 0
+[waiting action]
+Action/stay.act
+[move action]
+Action/move.act
+[damage action 1]
+Action/damage1.act
+[damage action 2]
+Action/damage2.act
+[attack action]
+Action/attack_0.act Action/Attack_1.act Action/attack_0_0.act
+[/attack action]
+[last action]
+Action/Last.act
+[attack info]
+attackinfo/attack_0.atk attackinfo/Attack_1.atk
+[/attack info]
+[cooltime]
+10000 0 0
+[/cooltime]
+[think term]
+300
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]
+[keep distance with target]
+0
+[warlike]
+0
+[vision]
+1000

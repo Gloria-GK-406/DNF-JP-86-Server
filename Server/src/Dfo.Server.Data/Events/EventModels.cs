@@ -20,7 +20,10 @@ public sealed record EventChange([property: JsonRequired] int EventId, [property
     [property: JsonRequired] string Action, string? Title = null, string? ShortName = null, string? Description = null,
     string? StartNotice = null, string? EndNotice = null, DateTimeOffset? StartsAt = null, DateTimeOffset? EndsAt = null);
 public sealed record EventInfo(int EventId, string Title, string ShortName, string Description, string StartNotice,
-    string EndNotice, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string LinkKey);
+    string EndNotice, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string LinkKey)
+{
+    public bool HasDetail { get; init; } = true;
+}
 public sealed record AttendanceProgress(int Count, int Clears, bool Claimed, int[] ClaimedAttendance);
 public sealed record WeeklyAttendanceState(bool Active, int AttendanceCount, int RecommendedClears, int CurrentAttendanceNo,
     bool CanClaim, int[] ClaimedAttendance)
@@ -29,6 +32,8 @@ public sealed record WeeklyAttendanceState(bool Active, int AttendanceCount, int
 }
 public sealed record EventPlayerSnapshot(EventInfo[] Information, WeeklyAttendanceState Attendance, JoustState? Joust = null)
 {
+    public ScheduledDungeonState[] ScheduledDungeons { get; init; } = [];
     public static EventPlayerSnapshot Empty { get; } = new([], WeeklyAttendanceState.Empty);
 }
+public sealed record ScheduledDungeonState(int DungeonId, bool Open);
 public sealed record AttendanceClaimResult(bool Succeeded, WeeklyAttendanceState State);

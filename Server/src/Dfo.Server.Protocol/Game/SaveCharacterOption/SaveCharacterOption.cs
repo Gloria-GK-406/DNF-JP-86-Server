@@ -23,7 +23,7 @@ internal sealed class SaveCharacterOptionDecoder : IGameMessageDecoder
             : throw new InvalidDataException("A21 character options require u32(512) and 512 bytes.");
 }
 public sealed record SaveCharacterOptionCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, byte[] Body)
-    : ICommand<bool>, IOnlineUserCommand, IAccountCommand
+    : ICommand<bool>, IOnlineUserCommand, IAccountCommand, ISelectedSessionCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

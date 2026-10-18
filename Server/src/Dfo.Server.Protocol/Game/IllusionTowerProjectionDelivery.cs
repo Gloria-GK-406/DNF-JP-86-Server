@@ -55,7 +55,8 @@ public sealed class IllusionTowerProjectionDelivery(
     IllusionTowerEntryGate entryGate,
     TimeProvider clock,
     INetworkConnectionCloser connections,
-    ILogger<IllusionTowerProjectionDelivery> logger)
+    ILogger<IllusionTowerProjectionDelivery> logger,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null)
 {
     private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
 
@@ -157,6 +158,7 @@ public sealed class IllusionTowerProjectionDelivery(
                             equipment, state.World.PreparedAt,
                             source.Session == receiver.Session ? null : source.Session.WireUserId));
                     }
+                    frames.AddRange(await HousingCurrentProjection.ReadAsync(housing, receiver.Session, token).ConfigureAwait(false));
                     frames.Add(new EnterSelectDungeonAcknowledgement());
                     frames.Add(new UserStateNotification(wireUsers, 0x01));
                     frames.Add(new UdpHostNotification(hostSlot));

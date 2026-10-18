@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Scheduling;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Application.Mail;
@@ -76,12 +77,28 @@ public sealed class ApplicationModule : IServerModule
         return rates.Count == 0 ? ExperienceEntitlementPolicy.None : new(rates);
     }
 
+    private static AltarDungeonPolicy AltarPolicyFrom(IConfiguration configuration)
+    {
+        var windows = configuration.GetSection("AltarDungeons:OpeningWindows").GetChildren().Select(row =>
+        {
+            if (!int.TryParse(row["DungeonId"], out var id) || id is not (11006 or 11007)
+                || !TimeOnly.TryParse(row["Opens"], System.Globalization.CultureInfo.InvariantCulture, out var opens)
+                || !TimeOnly.TryParse(row["Closes"], System.Globalization.CultureInfo.InvariantCulture, out var closes))
+                throw new InvalidDataException("Invalid altar opening window configuration.");
+            return new AltarOpeningWindow(id, opens, closes);
+        }).ToArray();
+        return new() { OpeningWindows = windows };
+    }
+
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton(TimeProvider.System);
+        services.AddTaskScheduling();
+        services.AddOnlineExpiredItemCleanup();
+        services.TryAddSingleton<ICharacterVisibleSessionDomainService, CharacterVisibleSessionDomainService>();
         services.AddEventDispatching();
         services.TryAddSingleton<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
@@ -102,6 +119,75 @@ public sealed class ApplicationModule : IServerModule
             fact => $"{fact.CharacterId.Value}:{(int)fact.Family}");
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.DimensionEntryRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.TryAddSingleton(AltarPolicyFrom(configuration));
+        services.TryAddSingleton<IAltarDungeonRuleService, AltarDungeonRuleService>();
+        services.TryAddSingleton<AltarDungeonEngine>();
+        services.TryAddSingleton<EndlessAltarDomainService>();
+        services.TryAddSingleton<UltimateAltarDomainService>();
+        services.TryAddSingleton<AltarDungeonDomainService>();
+        services.TryAddSingleton<IAltarDungeonDomainService>(sp => sp.GetRequiredService<AltarDungeonDomainService>());
+        services.AddDomainEvent<AltarChallengeCompleted>("altar.challenge-completed", 1);
+        services.AddDomainSubscriber<AltarChallengeCompleted, AltarDungeonQuestSubscriber>("quest.altar-complete", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
+        services.AddDomainSubscriber<DungeonParticipantLeft, AltarDungeonDomainService>("altar.departure", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.TournamentEntryRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.AltarEntryRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        var proposalTimeoutSeconds = configuration.GetValue<int>("Marriage:ProposalTimeoutSeconds", 60);
+        if (proposalTimeoutSeconds is < 1 or > 600) throw new InvalidOperationException("Marriage proposal timeout must be 1..600 seconds.");
+        services.TryAddSingleton(new Dfo.Server.Application.Marriage.MarriageProposalOptions(TimeSpan.FromSeconds(proposalTimeoutSeconds)));
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageProposalRuleService, Dfo.Server.Application.Marriage.MarriageProposalRuleService>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.CoupleLedger>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.IMarriageRelations>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.CoupleLedger>());
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.IMarriageRelationWriter>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.CoupleLedger>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService, Dfo.Server.Application.Marriage.MarriageRelationAudit>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCeremonyRuleService, Dfo.Server.Application.Marriage.MarriageCeremonyRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageChurchRuleService, Dfo.Server.Application.Marriage.MarriageChurchRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Inventory.ISharedEffectDomainService, Dfo.Server.Application.Inventory.SharedEffectDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageLovePointRuleService, Dfo.Server.Application.Marriage.MarriageLovePointRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageGuestbookRuleService, Dfo.Server.Application.Marriage.MarriageGuestbookRuleService>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.MarriageEligibility>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.ReservationDesk>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.ChurchRooms>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.WeddingSettlement>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.GuestList>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.Guestbook>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageTrialRuleService, Dfo.Server.Application.Marriage.MarriageTrialRuleService>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.MarriageQuestDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageQuestDomainService>());
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.CapsuleState>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.GrowthCapsules>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.CapsuleState>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageDomainService>());
+        services.TryAddSingleton<CoupleDungeonRule>();
+        services.TryAddSingleton<ICoupleDungeonDomainService, CoupleDungeonDomainService>();
+        services.AddDomainEvent<Dfo.Server.Abstractions.Marriage.MarriageCapsuleEnergyChanged>("marriage.capsule-energy", 1);
+        services.AddDomainEvent<Dfo.Server.Abstractions.Marriage.MarriageCapsuleGiftChanged>("marriage.capsule-gift", 1);
+        services.AddDomainSubscriber<DungeonMapCleared, Dfo.Server.Application.Marriage.CapsuleClearSubscriber>("marriage.capsule-clear", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.HousingState>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.HousingState>());
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.HousingReadView>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.HousingReadView>());
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.HousingOperations>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageHousingDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageDomainService>());
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.LovePoints>();
+        services.TryAddSingleton<Dfo.Server.Application.Marriage.MarriageDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageDomainService>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCoupleDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageDomainService>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageVenueDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageDomainService>());
+        services.AddDomainSubscriber<DungeonMapCleared, Dfo.Server.Application.Marriage.MarriageTrialClearSubscriber>(
+            "quest.wedding-trial", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
+        services.TryAddSingleton<IHerasRuleService, HerasRuleService>();
+        services.TryAddSingleton<IHerasDungeonDomainService, HerasDungeonDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.HerasQuotaRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.TryAddSingleton<ITauKingdomRuleService, TauKingdomRuleService>();
+        services.TryAddSingleton<ITauKingdomDomainService, TauKingdomDomainService>();
+        services.AddDomainEvent<TauKingdomTicketRefilled>("tau-kingdom.ticket-refilled", 1);
+        services.AddTauKingdomDailyRefill();
+        services.TryAddSingleton<ISaoTowerRuleService, SaoTowerRuleService>();
+        services.TryAddSingleton<ISaoTowerDomainService, SaoTowerDomainService>();
+        services.AddDomainEvent<SaoTowerCleared>("sao-tower.cleared", 1);
         services.TryAddSingleton<IDespairTowerRuleService, DespairTowerRuleService>();
         services.TryAddSingleton<IDespairTowerDomainService, DespairTowerDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.DespairQuotaRecorded,
@@ -257,6 +343,7 @@ public sealed class ApplicationModule : IServerModule
         // Where an arriving item goes, and which day a refill belongs to.
         services.TryAddSingleton<IItemArrivalRuleService, ItemArrivalRuleService>();
         services.TryAddSingleton<IItemLifecycleDomainService, ItemLifecycleDomainService>();
+        services.TryAddSingleton<IItemExpirationRuleService, ItemExpirationRuleService>();
         services.TryAddSingleton<IInventoryContentsEventDomainService, InventoryContentsEventDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IWeeklyAttendanceRuleService, Dfo.Server.Application.Events.WeeklyAttendanceRuleService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustRuleService, Dfo.Server.Application.Events.JoustRuleService>();
@@ -272,6 +359,9 @@ public sealed class ApplicationModule : IServerModule
         services.AddCommandHandler<Dfo.Server.Application.Events.ChangeGmJoustChampionCommand,Dfo.Server.Data.Events.JoustCurrentRound,Dfo.Server.Application.Events.ChangeGmJoustChampionCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Events.AdvanceJoustLifecycleCommand,Dfo.Server.Data.Events.JoustLifecycleResult,Dfo.Server.Application.Events.AdvanceJoustLifecycleCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService,Dfo.Server.Application.Events.JoustMaintenanceService>());
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SaoTowerEntranceEventDomainService>();
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.TauKingdomEntranceEventDomainService>();
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.HerasEntranceEventDomainService>();
         services.TryAddSingleton<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>());
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>());
@@ -297,6 +387,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEquipmentQualityRuleService, EquipmentQualityRuleService>();
         services.TryAddSingleton<IEquipmentMagicSealGradeRuleService, EquipmentMagicSealGradeRuleService>();
         services.TryAddSingleton<IEquipmentQualityDomainService, EquipmentQualityDomainService>();
+        services.TryAddSingleton<IEquipmentResealRuleService, EquipmentResealRuleService>();
+        services.TryAddSingleton<IEquipmentResealDomainService, EquipmentResealDomainService>();
         services.TryAddSingleton<IAvatarCompoundRuleService, AvatarCompoundRuleService>();
         services.TryAddSingleton<IAvatarCompoundDomainService, AvatarCompoundDomainService>();
         // The store is looked up rather than demanded, because a host may be assembled without
@@ -500,6 +592,10 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterSkillStateDomainService, CharacterSkillStateDomainService>();
         services.TryAddSingleton<ICharacterSkillResetRuleService, CharacterSkillResetRuleService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Notices.INoticeStateDomainService, Dfo.Server.Application.Notices.NoticeStateDomainService>();
+        services.TryAddSingleton<IClientSettingsDomainService, ClientSettingsDomainService>();
+        services.TryAddSingleton<ICharacterAppearanceRuleService>(CharacterAppearanceRuleService.Shared);
+        services.TryAddSingleton<ICharacterAppearanceDomainService, CharacterAppearanceDomainService>();
+        services.AddDomainEvent<ClientAppearanceSettingsChanged>("settings.appearance-changed", 1);
         services.TryAddSingleton<ICharacterOptionsDomainService, CharacterOptionsDomainService>();
         services.TryAddSingleton<ICharacterSkillLearningDomainService, CharacterSkillLearningDomainService>();
         services.TryAddSingleton<ICharacterStateProjectionDomainService, CharacterStateProjectionDomainService>();
@@ -576,6 +672,11 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IDailyRefillConfigurationDomainService, DailyRefillConfigurationDomainService>();
         services.TryAddSingleton<IItemUseEffectDomainService, ItemUseEffectDomainService>();
         services.TryAddSingleton<IItemUseEffectRuleService, ItemUseEffectRuleService>();
+        services.TryAddSingleton<IEntryAllowanceItemRuleService, EntryAllowanceItemRuleService>();
+        services.TryAddSingleton<IEntryAllowanceItemDomainService, EntryAllowanceItemDomainService>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, DungeonEntryAllowanceEffectHandler>());
+        services.TryAddSingleton<IExperienceItemRuleService, ExperienceItemRuleService>();
+        services.TryAddSingleton<IExperienceItemDomainService, ExperienceItemDomainService>();
         services.TryAddSingleton<IApplyEffectsDomainService, ApplyEffectsDomainService>();
         services.TryAddSingleton<IInventoryEffectPreflightDomainService, InventoryEffectPreflightDomainService>();
         services.TryAddSingleton<IEquipmentEffectPlanRuleService, EquipmentEffectPlanRuleService>();
@@ -595,6 +696,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetQuestRewardGoldEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, CharacterExperienceEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetCharacterGrowTypeEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetCharacterAwakeningEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, MaterializeSkillBuildsEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetEquipmentUpgradeEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetEquipmentEnchantmentEffectHandler>());

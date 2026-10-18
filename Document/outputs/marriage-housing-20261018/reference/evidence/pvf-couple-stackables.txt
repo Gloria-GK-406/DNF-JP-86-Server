@@ -1,0 +1,281 @@
+id 10002606 -> event/chn_wedding_system_2014/chn_mat_couple_point.stk
+=== stackable/event/chn_wedding_system_2014/chn_mat_couple_point.stk ===
+[name]
+心意点
+[grade]
+1
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[icon]
+Item/stackable/material_cn.img 63
+[field image]
+Item/field_material_cn.img 79
+[stackable type]
+[material] 0
+[move wav]
+FOOD_TOUCH
+[stack limit]
+999
+[impossible contents]
+gift
+[/impossible contents]
+
+id 10002765 -> event/chn_wedding_system_2014/chn_stk_watering_pot.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_watering_pot.stk ===
+[name]
+洒水壶
+[explain]
+可以为婚房内的爱情树浇水； 当爱情树的成长值达到一定程度时， 即可进行收割。 收割后， 夫妻二人皆可获得各种各样的礼物。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[price]
+10000
+[value]
+0
+[stack limit]
+1000
+[icon]
+Item/stackable/consumption_cn.img 734
+[field image]
+Item/field_material_cn.img 138
+[stackable type]
+[material] 0
+[move wav]
+FOOD_TOUCH
+[impossible contents]
+gift
+[/impossible contents]
+
+id 10002905 -> event/chn_wedding_system_2014/chn_stk_strong_watering_pot.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_strong_watering_pot.stk ===
+[name]
+洒水壶
+[explain]
+可以为婚房内的爱情树浇水； 当爱情树的成长值达到一定程度时， 即可进行收割。 收割后， 夫妻二人皆可获得各种各样的礼物。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[stack limit]
+1000
+[icon]
+Item/stackable/consumption_cn.img 734
+[field image]
+Item/field_material_cn.img 79
+[stackable type]
+[waste] 0
+[move wav]
+FOOD_TOUCH
+[impossible contents]
+gift
+[/impossible contents]
+
+id 10002766 -> event/chn_wedding_system_2014/chn_stk_seed_01.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_seed_01.stk ===
+[name]
+神秘的枫树种子
+[explain]
+可以放入婚房内闲置的花圃中进行培植， 据说辛勤栽种的爱情树会为幸福的小夫妻带来好运。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[stack limit]
+1000
+[icon]
+Item/stackable/consumption_cn.img 735
+[field image]
+Item/field_material_cn.img 139
+[stackable type]
+[waste] 0
+[price]
+10000
+[value]
+0
+[move wav]
+FOOD_TOUCH
+[impossible contents]
+gift
+[/impossible contents]
+
+id 10002767 -> event/chn_wedding_system_2014/chn_stk_seed_02.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_seed_02.stk ===
+[name]
+黄宝石树的种子
+[explain]
+可以放入婚房内闲置的花圃中进行培植， 据说盛开后的爱情树会绽放出无与伦比的美丽。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[stack limit]
+1000
+[icon]
+Item/stackable/consumption_cn.img 736
+[field image]
+Item/field_material_cn.img 140
+[stackable type]
+[waste] 0
+[price]
+10000
+[value]
+0
+[move wav]
+FOOD_TOUCH
+[impossible contents]
+gift
+[/impossible contents]
+
+id 10002768 -> event/chn_wedding_system_2014/chn_stk_seed_03.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_seed_03.stk ===
+[name]
+粉晶石树的种子
+[explain]
+可以放入婚房内闲置的花圃中进行培植， 据说盛开后的爱情树会闪烁着甜蜜的粉色光芒， 为辛勤的小夫妻送上最美的祝福。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[stack limit]
+1000
+[icon]
+Item/stackable/consumption_cn.img 737
+[field image]
+Item/field_material_cn.img 141
+[stackable type]
+[waste] 0
+[price]
+10000
+[value]
+0
+[move wav]
+FOOD_TOUCH
+[impossible contents]
+gift
+[/impossible contents]
+
+id 10002910 -> event/chn_wedding_system_2014/chn_stk_couple_growth_capsule.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_couple_growth_capsule.stk ===
+[name]
+爱情成长胶囊
+[explain]
+蕴含夫妻间真爱的成长胶囊。 使用后， 可以获得30000点经验值。
+[flavor text]
+我也想为赛丽亚做个这样的胶囊。  -- 卡坤
+[grade]
+1
+[attach type]
+[account]
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+30
+[stack limit]
+1000
+[icon]
+Item/stackable/consumption_cn.img 581
+[field image]
+Item/field_consumption.img 7
+[icon mark]
+Item/IconMark_cn.img 28
+[stackable type]
+[etc] 0
+[item group name]
+potion
+[increase status type]
+[expUp] 30000
+[/increase status type]
+[move wav]
+POTION_TOUCH
+[maximum level]
+84
+[item category]
+[/item category]
+[impossible contents]
+hardcore mode
+[/impossible contents]
+
+id 10002901 -> event/chn_wedding_system_2014/chn_stk_couple_point_item.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_couple_point_item.stk ===
+[name]
+心意通
+[explain]
+使用后， 可以获得1点心意点。 (只有已婚的角色才能使用)
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[stack limit]
+999
+[icon]
+Item/stackable/consumption_cn.img 724
+[field image]
+Item/field_material_cn.img 134
+[stackable type]
+[waste] 0
+[action usable place]
+[village] [seria room]
+[/action usable place]
+[action type]
+[love point coupon] 1
+[/action type]
+[move wav]
+FOOD_TOUCH
+[impossible contents]
+gift
+[/impossible contents]
+

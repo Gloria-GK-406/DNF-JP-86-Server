@@ -1,0 +1,4 @@
+=== etc/dungeonetc/dungeonincountforaccount.etc ===
+[dungeon incount for account]
+94 8
+[/dungeon incount for account]

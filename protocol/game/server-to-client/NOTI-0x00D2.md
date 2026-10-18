@@ -62,5 +62,11 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
+## 2026-10-13 祭坛A21复核
+
+校正自动区及上游解释：u16数量+n×17B actor+u16尾值。**尾值是房间清理许可，非毫秒**。VA1147299读u16→11472A1 cmp0→11472A5 sete→11472BA setter1AC8210，altar对象+194=(tail==0)，getter26D4120，模式0xA清房1914D84—1914E28受它门控。非房间末波写1，仅本房间末轮末批写0，并仍需所有活怪清零。actor行variant u8,sequence u16,monster u32,type/level各u8,scale/x/y/z各u16。
+
+ClientStatic / CurrentImplementation，尚无本轮WireCaptured或ClientVerified。本人工结论覆盖旧自动区冲突推断。[查证、顺序和边界](../../../Document/tasks/altar-dungeons/research-and-implementation.md)。
+
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。

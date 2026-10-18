@@ -1,0 +1,87 @@
+id 64700 -> NewMonsters/Event/golden_egg/chn_golden_egg.mob
+=== monster/NewMonsters/Event/golden_egg/chn_golden_egg.mob ===
+[floating height]
+0
+[name]
+
+[face image]
+Monster/ch_Monsterface.img 9
+[ability category]
+[HP MAX] * 500 [EQUIPMENT_PHYSICAL_ATTACK] * 10 [EQUIPMENT_PHYSICAL_DEFENSE] * 50 [EQUIPMENT_MAGICAL_ATTACK] * 10 [EQUIPMENT_MAGICAL_DEFENSE] * 50
+[/ability category]
+[change direction by target]
+0
+[category]
+[hybrid] [fixture]
+[/category]
+[HP regen speed]
+0 0
+[MP regen speed]
+0 0
+[level]
+1 60
+[move speed]
+0 0
+[attack speed]
+0 0
+[cast speed]
+0 0
+[hit recovery]
+0 0
+[weight]
+200000 200000
+[stuckbonus on damage]
+0 0 0 0
+[lie frame]
+0 0 0 0 0
+[last action]
+Action/chn_Die.act
+[damage sound]
+R_GOURD_HIT
+[die sound]
+GHOSTRUN_IN
+[common champion drop item]
+[/common champion drop item]
+[waiting action]
+Action/Stay.act
+[move action]
+Action/Move.act
+[damage action 1]
+Action/Stay.act
+[damage action 2]
+Action/Stay.act
+[proc action]
+Action/Proc.act
+[attack action]
+[/attack action]
+[attack info]
+[/attack info]
+[cooltime]
+[/cooltime]
+[vision]
+10
+[think term]
+500
+[destination change term]
+300
+[keep distance with target]
+20
+[keep range distance with target]
+50 0 0 0
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]

@@ -20,6 +20,8 @@ internal sealed class DungeonCellFactory(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
+        if (context.Layout.Altar is not null)
+            return DungeonCellSeed.CompleteEmpty(context.Cell, context.MapId) with { MechanismBlocksClear = true };
         var leader = context.Participants.Single(participant => participant.IsLeader);
         var participants = context.Participants
             .Select(participant => new MonsterDropParticipant(participant.AccountId, participant.CharacterId))

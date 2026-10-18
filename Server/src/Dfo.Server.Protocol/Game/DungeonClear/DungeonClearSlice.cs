@@ -168,7 +168,9 @@ public sealed class GiveUpGameHandler(
     PartyNotificationDelivery? partyNotifications = null,
     DungeonCardPresentationCoordinator? cardPresentation = null,
     IllusionTowerProjectionDelivery? illusionTower = null,
-    IllusionTowerPartyCoordinator? towerParties = null)
+    IllusionTowerPartyCoordinator? towerParties = null,
+    Dfo.Server.Protocol.Game.Altar.AltarProtocolCoordinator? altars = null,
+    DungeonProjectionGate? projectionGate = null)
     : ClientMessageHandler<GiveUpGameRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -224,19 +226,35 @@ public sealed class GiveUpGameHandler(
             var ended = false;
             var reroute = false;
             PartyCommandExecution? partyExecution = null;
-            await using (var transition = await transitionGate.AcquireAsync(
-                session.AccountId, UserAccessMode.Exclusive, cancellationToken)
-                .ConfigureAwait(false))
+            var expectedRun = runs.Find(session.CharacterId);
+            var leases = new List<IAsyncDisposable>();
+            try
             {
+                if (expectedRun?.Layout.Altar is not null)
+                {
+                    leases.Add(await (projectionGate ?? throw new InvalidOperationException("Altar projection gate is unavailable."))
+                        .AcquireAsync(expectedRun.RunId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
+                }
+                var accounts = expectedRun?.Layout.Altar is not null
+                    ? expectedRun.Participants.Select(x => x.AccountId).Append(session.AccountId).Distinct().OrderBy(x => x.Value)
+                    : new[] { session.AccountId }.AsEnumerable();
+                // Install each AsyncLocal lease on this flow. Returning leases from an async
+                // helper hides their frames from the command pipeline and deadlocks its borrow.
+                foreach (var account in accounts)
+                    leases.Add(await transitionGate.AcquireAsync(account, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
                 if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session)
                     return;
-                if (towerParties?.HasInvolvedTower(session) == true)
+                if (towerParties?.HasInvolvedTower(session) == true
+                    || runs.Find(session.CharacterId)?.RunId != expectedRun?.RunId)
                 {
                     reroute = true;
                 }
                 else
                 {
                     var currentRun = runs.Find(session.CharacterId);
+                    if (currentRun?.Layout.Altar is not null)
+                        await (altars ?? throw new InvalidOperationException("Altar coordinator is unavailable."))
+                            .SettleGiveUpUnderGatesAsync(session, currentRun.RunId, cancellationToken).ConfigureAwait(false);
                     if (currentRun is not null)
                         cardPresentation?.Cancel(session.CharacterId, currentRun.RunId);
                     ended = currentRun is not null
@@ -255,6 +273,11 @@ public sealed class GiveUpGameHandler(
                                 partyResult.Notifications, selectedSessions, townAreas));
                     }
                 }
+            }
+            finally
+            {
+                for (var index = leases.Count - 1; index >= 0; index--)
+                    await leases[index].DisposeAsync().ConfigureAwait(false);
             }
 
             if (reroute)
@@ -287,6 +310,7 @@ public sealed class GiveUpGameHandler(
             return;
         }
     }
+
 }
 
 internal static class DungeonClearPayloadCodec

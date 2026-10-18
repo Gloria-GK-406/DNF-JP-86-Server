@@ -103,10 +103,25 @@ public sealed class JoustQueryHandlerTests
             Assert.Equal(4,messages.Count);
         }
     }
-    private sealed class EventProjection(JoustState state):IEventPlayerProjectionDomainService
+    [Theory]
+    [InlineData(true, 1)]
+    [InlineData(false, 0)]
+    public async Task General_event_refresh_sends_scheduled_dungeon_open_and_close(bool open, byte value)
+    {
+        var state = new JoustState(false,DateTimeOffset.UnixEpoch,JoustPhase.Betting,"round",null,null,null,[],[],0,0,0);
+        var session = SelectedSessionIdentity.Create(new(1),new(1),new("schedule-test"),1,10010);
+        var handler = new Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler(new Sessions(session),
+            new EventProjection(state,[new(3700,open)]));
+        var messages = await handler.ComposeAsync(new(new(1),session.ConnectionId),new EventsChanged(),default);
+        var schedule = Assert.Single(messages.OfType<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledDungeonStateMessage>());
+        Assert.Equal((ushort)0x033F,schedule.Type);
+        Assert.Equal(new byte[] { 0,0,0,0,value,0,0,0,0x74,0x0E,0,0,0,0,0,0 },schedule.EncodeBody());
+    }
+    private sealed class EventProjection(JoustState state,Dfo.Server.Data.Events.ScheduledDungeonState[]? scheduled=null):IEventPlayerProjectionDomainService
     {
         public ValueTask<Dfo.Server.Data.Events.EventPlayerSnapshot> ReadNowAsync(SelectedSessionIdentity session,CancellationToken ct)
-            =>ValueTask.FromResult(new Dfo.Server.Data.Events.EventPlayerSnapshot([],Dfo.Server.Data.Events.WeeklyAttendanceState.Empty,state));
+            =>ValueTask.FromResult(new Dfo.Server.Data.Events.EventPlayerSnapshot([],Dfo.Server.Data.Events.WeeklyAttendanceState.Empty,state)
+                { ScheduledDungeons = scheduled ?? [] });
     }
 
     private static async Task<IReadOnlyList<IGameServerMessage>[]> QueryTwice(JoustState state,

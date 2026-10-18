@@ -23,7 +23,7 @@ public sealed class GameLoginHandler(
     IAccountEntryStateDomainService accountEntryState,
     INetworkConnectionCloser closer,
     ILogger<GameLoginHandler> logger,
-    IChannelEntryPolicy? channels = null) : ClientMessageHandler<GameLoginRequest>
+    IChannelEntryPolicy? channels = null, IClientSettingsDomainService? clientSettings = null) : ClientMessageHandler<GameLoginRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -81,6 +81,12 @@ public sealed class GameLoginHandler(
             {
                 await sender.SendNotiAsync(connectionId, notification, cancellationToken)
                     .ConfigureAwait(false);
+                if (clientSettings is not null && notification is LoginHotkeyStateMessage)
+                {
+                    var origin = new Dfo.Server.Data.Accounts.ClientSettingsOrigin(authenticated.SessionIdentity, accountId, authenticated.Generation, null);
+                    if (!await commandBus.SendAsync(new ActivateClientHotkeyProfileCommand(origin, 0), cancellationToken))
+                        throw new InvalidOperationException("Login hotkey profile identity changed during delivery.");
+                }
             }
         }
         catch (OperationCanceledException)

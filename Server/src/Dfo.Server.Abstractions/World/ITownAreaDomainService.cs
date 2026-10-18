@@ -5,18 +5,21 @@ namespace Dfo.Server.Abstractions.World;
 /// <summary>The logical identity of one lazily materialized town area.</summary>
 public readonly record struct TownAreaKey
 {
-    public TownAreaKey(int channelId, byte townId, byte areaId)
+    public TownAreaKey(int channelId, byte townId, byte areaId, int instance = 0)
     {
         if (channelId <= 0)
             throw new ArgumentOutOfRangeException(nameof(channelId));
         ChannelId = channelId;
         TownId = townId;
         AreaId = areaId;
+        if (instance < 0) throw new ArgumentOutOfRangeException(nameof(instance));
+        Instance = instance;
     }
 
     public int ChannelId { get; }
     public byte TownId { get; }
     public byte AreaId { get; }
+    public int Instance { get; }
 }
 
 /// <summary>

@@ -161,29 +161,37 @@ public sealed class FinishQuestHandlerTests
         Assert.Equal(1u, Assert.Single(progress.Quests).TriggerValue);
     }
 
-    [Fact]
-    public async Task Advancement_sends_new_skills_before_ack_and_projects_the_new_identity_afterwards()
+    [Theory]
+    [InlineData((byte)4, null)]
+    [InlineData((byte)17, (byte)1)]
+    [InlineData((byte)33, (byte)2)]
+    public async Task Advancement_sends_new_skills_before_ack_and_projects_the_new_identity_afterwards(byte grow, byte? awakening)
     {
         var ledger = new SkillPointLedger();
         var before = ExperienceFrameEntry.At(StartingLevel, StartingExperience);
         var after = before with
         {
-            Character = before.Character with { Identity = before.Character.Identity with { GrowType = 4 } },
+            Character = before.Character with { Identity = before.Character.Identity with { GrowType = grow } },
             CharacterEntry = before.CharacterEntry with
             {
                 Features = new([], null!, null!, null!, []),
+                Public = Dfo.Server.Protocol.Tests.Game.SelectCharacter.SelectCharacterPayloadTestData.CreateComplete()
+                    .CharacterEntry.Public with { VisibilityBits = 3 },
                 Skills = before.CharacterEntry.Skills with
                 {
                     Pages = [new(0, [new(5, 100, 1, [])]), new(1, [new(5, 100, 1, [])])],
                 },
             },
         };
-        var sent = await Finish(ledger, new FixedCompletion(ledger, 4), views: new ChangedView(before, after));
+        var sent = await Finish(ledger, new FixedCompletion(ledger, grow, awakening), views: new ChangedView(before, after));
         Assert.IsType<SkillStateMessage>(sent[0]);
         Assert.Equal(100u, Assert.Single(Assert.IsType<SkillStateMessage>(sent[0]).Skills.Pages[0].Skills).SkillId);
-        Assert.Equal((byte?)4, Assert.IsType<FinishQuestAcknowledgement>(sent[1]).GrowType);
-        Assert.Equal(4, Assert.Single(sent.OfType<CurrentUserStateMessage>()).Character.Identity.GrowType);
-        Assert.Equal(4, Assert.Single(sent.OfType<ExtendedUserStateMessage>()).Character.Identity.GrowType);
+        Assert.Equal((byte?)grow, Assert.IsType<FinishQuestAcknowledgement>(sent[1]).GrowType);
+        Assert.Equal(awakening, Assert.IsType<FinishQuestAcknowledgement>(sent[1]).Awakening);
+        Assert.Equal(after.CharacterEntry.Skills.Pages, Assert.IsType<FinishQuestAcknowledgement>(sent[1]).SkillPages);
+        Assert.Equal(grow, Assert.Single(sent.OfType<CurrentUserStateMessage>()).Character.Identity.GrowType);
+        Assert.Equal(3, Assert.Single(sent.OfType<CurrentUserStateMessage>()).EncodeBody()[^17]);
+        Assert.Equal(grow, Assert.Single(sent.OfType<ExtendedUserStateMessage>()).Character.Identity.GrowType);
         Assert.Single(sent.OfType<InventorySnapshotMessage>());
         Assert.Equal(28, Assert.IsType<WeaknessProjectionNotification>(sent[^1]).Value);
     }
@@ -379,7 +387,7 @@ public sealed class FinishQuestHandlerTests
     /// walked in with, which is the same wrong answer the session holds and just as invisible on
     /// the frame.
     /// </remarks>
-    private sealed class FixedCompletion(SkillPointLedger ledger, byte? growType = null) : ICommandBus
+    private sealed class FixedCompletion(SkillPointLedger ledger, byte? growType = null, byte? awakening = null) : ICommandBus
     {
         /// <summary>What the ledger's count stood at when the completion was written.</summary>
         public int LedgerAsksWhenTheCompletionRan { get; private set; } = -1;
@@ -399,7 +407,7 @@ public sealed class FinishQuestHandlerTests
                 Experience: FinishedTotal - StartingExperience,
                 Items: [],
                 NewLevel: FinishedLevel,
-                NewExperience: FinishedTotal, GrowType: growType);
+                NewExperience: FinishedTotal, GrowType: growType) { Awakening = awakening };
             return ValueTask.FromResult((TResult)(object)outcome);
         }
     }

@@ -1,0 +1,63 @@
+=== map/timespiral/timespiral_27119(3,4)_trap.map ===
+[player number]
+1 1
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3900
+[/dungeon]
+[type]
+[normal]
+[greed]
+FF FF
+[tile]
+Tile/basic_1.til Tile/basic_3.til Tile/basic_4.til Tile/basic_4.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/basic_ex_1.til
+[/tile files]
+[tile map]
+0 0 0 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+56
+[middle sight scroll]
+80
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/timespiral_far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+46 265 838 445 1139 656 1370 746
+[dungeon start area]
+101 220 100 100
+[sound]
+M_HELIX_LAB_TRAP AMB_POWERSTATION_GRANDINE
+[/sound]
+[animation]
+Animation/timespiral_back_middle_light.ani [middleback] 1160 110 0 Animation/timespiral_back_middle_light.ani [middleback] 931 110 0 Animation/timespiral_back_middle_light.ani [middleback] 702 108 0 Animation/timespiral_back_middle_light.ani [middleback] 473 110 0 Animation/timespiral_mid02.ani [middleback] 361 -227 0 Animation/timespiral_steam01.ani [middleback] 501 -253 0
+[/animation]
+[passive object]
+12916 226 116 0 12912 67 476 0 12911 218 467 0 12905 626 188 0
+[/passive object]
+[monster]
+64922 1 0 604 288 0 1 1 [fixed] [normal] 64922 1 0 301 209 0 1 1 [fixed] [normal] 64912 1 0 737 270 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal]
+[/monster specific AI]
+[special passive object]
+12942 405 465 0 1 [item] 0 1 -1 -1 -1 12577 411 375 0 1 [item] 1 1 -1 -1 -1
+[/special passive object]
+[map name]
+PVP无名

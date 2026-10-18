@@ -164,11 +164,12 @@ public sealed class CleanupExpiredCharacterItemsCommandHandler(
     IExpiredCharacterItemCleanupDomainService expiredItems)
     : ICommandHandler<CleanupExpiredCharacterItemsCommand, bool>
 {
-    public ValueTask<bool> HandleAsync(
+    public async ValueTask<bool> HandleAsync(
         CommandExecutionContext context,
         CleanupExpiredCharacterItemsCommand command,
         CancellationToken cancellationToken) =>
-        expiredItems.CleanupAsync(command.Session.AccountId, command.Session.CharacterId, cancellationToken);
+        (await expiredItems.CleanupAsync(command.Session.AccountId, command.Session.CharacterId, cancellationToken)
+            .ConfigureAwait(false)).Owned;
 }
 
 public sealed record PrepareSelectedCharacterStateCommand(

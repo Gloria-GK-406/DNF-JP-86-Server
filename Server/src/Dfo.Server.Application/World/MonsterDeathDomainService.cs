@@ -15,7 +15,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
     ICharacterDomainService characters, IDungeonRunDomainService runs, IMonsterKillDomainService kills,
     IMonsterKillRewardsDomainService rewards, IQuestOfferRefreshDomainService offers,
     ILogger<MonsterDeathDomainService> logger, ITournamentDungeonDomainService? tournaments = null,
-    IEventService? events = null) : IMonsterDeathDomainService
+    IEventService? events = null, ISaoTowerDomainService? sao = null) : IMonsterDeathDomainService
 {
     public async ValueTask<MonsterDeathSettlementResult> SettleAsync(MonsterDeathSettlementRequest request, CancellationToken ct)
     {
@@ -56,7 +56,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
             var points = pointLedgers[session.CharacterId];
             var applied = await rewards.ApplyAsync(session, session.AccountId, session.CharacterId, kill,
                 run.Layout.DungeonId, run.Difficulty, run.Layout.ExperienceWeight, run.PartyMemberCount,
-                run.PartyKey, !isTournament && run.IsBossRoom && kill.IsMonster && kill.Rank == MonsterRank.Boss,
+                run.PartyKey, !isTournament && run.Layout.Altar is null && run.IsBossRoom && kill.IsMonster && kill.Rank == MonsterRank.Boss,
                 run.RunId, death.Actor, run.Layout.Mirror?.WorldMapId, death.ActorState?.PendingLoot, ct).ConfigureAwait(false);
             pending.Awards[session.CharacterId] = applied.Award;
             var progress = applied.Award is { } award ? new CharacterProgressionState(award.Level, award.Total)
@@ -75,12 +75,15 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
             ? await tournaments!.AdvanceAsync(request.Reporter, run.RunId, request.Actor, ct).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("The accepted tournament death could not advance its round.")
             : null;
+        if (clearsMap && run.Layout.Sao is not null && run.IsBossRoom)
+            await (sao ?? throw new InvalidOperationException("SAO lifecycle is unavailable."))
+                .CompleteClearAsync(death, request.Participants, ct).ConfigureAwait(false);
         if (clearsMap)
             await (events ?? throw new InvalidOperationException("Map-clear events are unavailable."))
                 .EnqueueAsync(new DungeonMapCleared(run.RunId, run.Layout.DungeonId, run.Difficulty,
                     run.CurrentCell, run.CurrentRoomMapId, run.RoomVersion, death.OccurredAt!.Value,
                     [.. request.Participants.DistinctBy(x => x.CharacterId).Select(session =>
-                        run.Participants.Single(x => x.CharacterId == session.CharacterId))]), ct).ConfigureAwait(false);
+                        run.Participants.Single(x => x.CharacterId == session.CharacterId))]) { IsBossRoom = run.IsBossRoom }, ct).ConfigureAwait(false);
         logger.LogInformation("Monster death prepared run={RunId} actor={Actor} participants={Count}; one transaction, no entry inventory query",
             run.RunId, request.Actor, result.Count);
         return new(result, pending) { Tournament = tournament };

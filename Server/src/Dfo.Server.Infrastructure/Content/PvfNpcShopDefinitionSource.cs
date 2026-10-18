@@ -123,9 +123,9 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
                     break;
                 case var fieldName when (Fields.ItemListField.Matches(fieldName)) && selling:
                     if (categoryEntry && job is null
-                        || section.Values.Any(value => value.Kind != PvfTokenKind.Int32 || value.Value <= 0))
+                        || section.Values.Any(value => value.Kind != PvfTokenKind.Int32 || value.Value is 0 or < -1))
                         return null;
-                    pages.Add(new(job, section.Values.Select(value => value.Value).Distinct().ToArray()));
+                    pages.Add(new(job, section.Values.Where(value => value.Value > 0).Select(value => value.Value).Distinct().ToArray()));
                     break;
                 case var fieldName when (Fields.TabField.Matches(fieldName) || Fields.CloseTabField.Matches(fieldName) || Fields.CloseItemListField.Matches(fieldName)): break;
                 default:
@@ -181,7 +181,7 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
         foreach (var section in sections.Where(section => section.Name == Fields.NeedMaterialField.Name))
         {
             if (section.Values.Count == 0 || section.Values.Count % 2 != 0
-                || section.Values.Any(value => value.Kind != PvfTokenKind.Int32 || value.Value <= 0))
+                || section.Values.Any(value => value.Kind != PvfTokenKind.Int32 || value.Value is 0 or < -1))
             {
                 readable = false;
                 continue;
@@ -197,6 +197,8 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
         if (limits.FirstOrDefault() is { } limited)
         {
             var scope = limited.Values.Count > 0 ? Text(archive, limited.Values[0]) : null;
+            // The current Yinha PVF uses this exact misspelling for character limits.
+            if (scope == "chraracter") scope = "character";
             if (limited.Values.Count != 2 || scope is not ("account" or "character")
                 || limited.Values[1].Kind != PvfTokenKind.Int32 || limited.Values[1].Value <= 0)
                 readable = false;

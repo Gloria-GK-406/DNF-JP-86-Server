@@ -1,4 +1,10 @@
-# NOTI `0x03D5` `BURNING_UP_TO_SPECIFIC_LEVEL`
+# NOTI `0x03D5` `WEDDING_LETTER`
+
+## A21 人工裁定与实现（2026-10-16）
+
+ClientStatic / CurrentImplementation：RVA00897230读取78B：key u32@0、area u32@4、开场Unix秒@8、频道@12、tier u8@16、names30@17/@47、已付礼金标记u8@77。原生将这些字段加入受邀婚礼记录，过期记录不加入。服务端只向已持久受邀且当前在线的收件人发送。
+
+证据与边界见[定向补证](../../../Document/MarriageChurchEntryEvidence-20261016.md)及[普通婚礼流程](../../../Document/MarriageWeddingFlow-20261016.md)。未新增WireCaptured或ClientVerified。
 
 <!-- rks:machine:begin -->
 

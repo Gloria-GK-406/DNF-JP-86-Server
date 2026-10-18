@@ -119,6 +119,8 @@ internal sealed class SelectedSessionPositionPersistence(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(position);
+        // A couple room is runtime-only. Every persistence path (including teardown) retains the ordinary return position.
+        if (position.TownId == 101) return;
         if (store is null)
         {
             throw new InvalidOperationException(

@@ -525,6 +525,10 @@ public interface IDungeonRunDomainService
     /// <summary>Finds one active participant view of an exact shared run.</summary>
     DungeonRunState? Find(DungeonRunId runId) => null;
 
+    /// <summary>Stages a versioned dynamic-actor batch and clear gate in the current transaction.</summary>
+    bool StageDynamicCell(DungeonRunId runId, long roomVersion, long cellRevision,
+        IReadOnlyList<DungeonCellActorState> actors, bool mechanismBlocksClear) => false;
+
     /// <summary>
     /// Moves the character into an adjoining cell, or answers null when the maze declares no room
     /// there.

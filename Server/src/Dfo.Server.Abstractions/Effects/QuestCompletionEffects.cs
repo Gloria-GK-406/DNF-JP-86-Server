@@ -18,6 +18,7 @@ public sealed record SetQuestRewardGoldEffect(int Expected, int Value) : Invento
 public sealed record QuestRewardGoldChange(int Before, int After) : EffectChange;
 public sealed record SetCharacterGrowTypeEffect(byte Job, byte Expected, byte Value) : DomainEffect;
 public sealed record CharacterGrowTypeChange(byte GrowType) : EffectChange;
+public sealed record SetCharacterAwakeningEffect(byte Job, byte Expected, byte Value) : DomainEffect;
 public sealed record MaterializeSkillBuildsEffect(SkillBuildId Active, ImmutableArray<CharacterSkillBuild> Expected) : DomainEffect;
 public sealed record SkillBuildsMaterializedChange : EffectChange;
 public sealed record GrantBasicCharacterItemEffect(int ItemId, int Count, ItemPlacement Placement) : InventoryEffect;
@@ -32,6 +33,7 @@ public sealed record QuestCompletionPlan(ushort QuestId, ImmutableArray<DomainEf
     ExperienceAward Award, QuestProgressSnapshot? Projection, byte? GrowType)
 {
     public QuestCompletionRewardPlan? Reward { get; init; }
+    public byte? Awakening { get; init; }
 }
 public sealed record QuestCompletionPreparation(bool Prepared, ushort QuestId, string? Objective,
     QuestCompletionPlan? Plan, QuestProgressSnapshot? Projection);
@@ -39,6 +41,7 @@ public sealed record QuestCompletionReceipt(bool Finished, ushort QuestId, strin
     ExperienceAward? Award, ApplyEffectsResult? Applied, QuestProgressSnapshot? Projection, byte? GrowType)
 {
     public bool MirrorCompletion { get; init; }
+    public byte? Awakening { get; init; }
 }
 public interface IQuestCompletionDomainService
 {

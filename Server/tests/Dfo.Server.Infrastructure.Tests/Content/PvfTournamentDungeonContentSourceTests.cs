@@ -19,6 +19,7 @@ public sealed class PvfTournamentDungeonContentSourceTests
         Assert.Equal(2, definition.Difficulty);
         Assert.Equal(2, definition.RoundFatigue);
         Assert.Equal(3, definition.CoinLimit);
+        Assert.Null(definition.DailyEntries);
         Assert.Equal(16, definition.GoldRate);
         Assert.Equal(new DungeonRequiredItem(4726, 1, true), Assert.Single(definition.RequiredItems));
         Assert.Equal(15, definition.Candidates.Count);
@@ -29,7 +30,7 @@ public sealed class PvfTournamentDungeonContentSourceTests
         Assert.Equal(new TournamentResultCard(5, 0, 100, 0), definition.ResultCards[5]);
         Assert.Equal(new TournamentRewardItem[] { new(3329, 60, 1), new(3329, 35, 2), new(3329, 5, 3) }, definition.RewardItems);
         Assert.Same(definition, await source.GetAsync(120, default));
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => source.GetAsync(122, default).AsTask());
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => source.GetAsync(123, default).AsTask());
     }
 
     [SkippableFact]
@@ -41,6 +42,7 @@ public sealed class PvfTournamentDungeonContentSourceTests
         var yellow = await source.GetAsync(120, default);
         var blue = await source.GetAsync(121, default);
         Assert.Equal(121, blue.DungeonId);
+        Assert.Null(blue.DailyEntries);
         Assert.Equal(17101, blue.MapId);
         Assert.Equal(77, blue.MinimumLevel);
         Assert.Equal(80, blue.BasisLevel);
@@ -52,5 +54,24 @@ public sealed class PvfTournamentDungeonContentSourceTests
         Assert.Equal(new uint[] { 0, 100000, 200000, 300000, 500000 }, blue.ExperienceByRound);
         Assert.All(blue.RewardItems, item => Assert.Equal(3323, item.ItemId));
         Assert.Same(blue, await source.GetAsync(121, default));
+    }
+
+    [SkippableFact]
+    public async Task Black_dragon_reads_its_apc_pool_free_entry_and_black_breath_rewards()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfTournamentDungeonContentSource(provider, new PvfDungeonMapDefinitionSource(provider));
+        var black = await source.GetAsync(122,default);
+        Assert.Equal(17102,black.MapId);
+        Assert.Equal(9, black.DailyEntries);
+        Assert.Equal(75,black.MinimumLevel); Assert.Equal(75,black.BasisLevel);
+        Assert.Equal(0,black.Difficulty); Assert.Equal(0,black.RoundFatigue);
+        Assert.False(black.ConsumesFatigue);
+        Assert.Empty(black.RequiredItems); Assert.Equal(5,black.CoinLimit);
+        Assert.Equal(44,black.Candidates.Count);
+        Assert.All(black.Candidates,x => { Assert.True(x.IsAiCharacter); Assert.InRange(x.Level,(byte)1,byte.MaxValue); });
+        Assert.Equal(new uint[] {0,50000,100000,200000,400000},black.ExperienceByRound);
+        Assert.Equal(new TournamentRewardItem[] {new(4831,60,1),new(4831,35,2),new(4831,5,3)},black.RewardItems);
     }
 }

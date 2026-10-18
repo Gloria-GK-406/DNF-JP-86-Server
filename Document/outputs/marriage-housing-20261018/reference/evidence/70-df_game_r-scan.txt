@@ -1,0 +1,72 @@
+====================================================================================================
+file E:/Project/DNF/Research/1995chen-dnf/other/µÈ¼¶²¹¶¡/70/df_game_r
+sha256 CF45F4E8514C3BF560DD322C146F8441249F6C28246EC8566DCF9EBC4E1B2EB7 size 36360954
+symbol entries 352694 matching unique names 749
+# filtered: SYM lines matching housing|couple|wedding|marri|decoration|capsule|harvest; STR lines matching housing|couple|wedding|marri|spouse|decoration|capsule|furniture|upgrade.?ring|love.?point
+# full SYM count line:
+symbol entries 352694 matching unique names 749
+matching strings 23016
+SYM 00000000 STT_FILE        0 .symtab  Arad_Decoration.cpp
+SYM 00000000 STT_FILE        0 .symtab  Arad_Housing.cpp
+SYM 00000000 STT_FILE        0 .symtab  Arad_HousingConvertor.cpp
+SYM 00000000 STT_FILE        0 .symtab  Arad_HousingManager.cpp
+SYM 00000000 STT_FILE        0 .symtab  Arad_HousingTree.cpp
+SYM 00000000 STT_FILE        0 .symtab  GrowthCapsuleEvent.cpp
+SYM 0818dcd8 STT_FUNC       28 .symtab  _GLOBAL__I_Arad_Decoration.cpp
+SYM 08198354 STT_FUNC       28 .symtab  _GLOBAL__I_Arad_Housing.cpp
+SYM 081983c4 STT_FUNC       28 .symtab  _GLOBAL__I_Arad_HousingConvertor.cpp
+SYM 08198434 STT_FUNC       28 .symtab  _GLOBAL__I_Arad_HousingManager.cpp
+SYM 081984a4 STT_FUNC       28 .symtab  _GLOBAL__I_Arad_HousingTree.cpp
+SYM 080f6ec0 STT_FUNC       28 .symtab  _GLOBAL__I_GrowthCapsuleEvent.cpp
+SYM 0891120c STT_FUNC      480 .symtab  _Z25ImportGrowthCapsuleScriptPKcR21stGrowthCapsuleScript
+SYM 0837114a STT_FUNC       54 .symtab  _ZN21stGrowthCapsuleScriptC1Ev
+SYM 0837114a STT_FUNC       54 .symtab  _ZN21stGrowthCapsuleScriptC2Ev
+SYM 08690d9a STT_FUNC      156 .symtab  _ZN5CUser23sendDecorationObjectCntEs
+STR 00aa3058 ENUM_NOTIPACKET_DECORATION_INVENTORY_INFO
+STR 00aa3084 ENUM_NOTIPACKET_DECORATION_ROOM_INFO
+STR 00aa30ac ENUM_NOTIPACKET_HOUSING_INVITE_FRIEND
+STR 00aa30d4 ENUM_NOTIPACKET_HOUSING_INVITE_TIMEOUT
+STR 00aa30fc ENUM_NOTIPACKET_HOUSING_ROOM_USERS
+STR 00aa3120 ENUM_NOTIPACKET_HOUSING_LEAVE_USER
+STR 00aa3144 ENUM_NOTIPACKET_HOUSING_LEAVE_OWNER
+STR 00aa3168 ENUM_NOTIPACKET_HOUSING_SEND_MESSAGE
+STR 00aa31dc ENUM_NOTIPACKET_HOUSING_TREE_INFO
+STR 00aa3200 ENUM_NOTIPACKET_HOUSING_WATER_HISTORY
+STR 00aa7e3c ENUM_CMDPACKET_GET_GROWTHCAPSULE
+STR 00aa82dc ENUM_CMDPACKET_HOUSING_TREE_INFO
+STR 00aa8300 ENUM_CMDPACKET_HOUSING_SET_NEW_TREE
+STR 00aa8324 ENUM_CMDPACKET_HOUSING_GIVE_WATER
+STR 00aa8348 ENUM_CMDPACKET_HOUSING_HARVEST_TREE
+STR 00aa836c ENUM_CMDPACKET_HOUSING_WATER_HISTORY
+STR 00aa8394 ENUM_CMDPACKET_HOUSING_RESET_TREE
+STR 00aa86f4 ENUM_CMDPACKET_DECORATION_USE_STACKABLE
+STR 00aa871c ENUM_CMDPACKET_DECORATION_SETUP
+STR 00aa873c ENUM_CMDPACKET_DECORATION_MOVE_INVENSLOT
+STR 00aa8768 ENUM_CMDPACKET_HOUSING_INVITE_FRIEND
+STR 00aa8790 ENUM_CMDPACKET_HOUSING_VISIT_ROOM
+STR 00aa87b4 ENUM_CMDPACKET_HOUSING_ENTER_ROOM
+STR 00aa87d8 ENUM_CMDPACKET_HOUSING_LEAVE_ROOM
+STR 00aa87fc ENUM_CMDPACKET_HOUSING_SEND_MESSAGE
+STR 00be8e0a Event/GrowthCapsule.evt
+STR 00be8e24 ImportGrowthCapsuleScript Fail(%d)
+STR 00dc91c0 [capsule id]
+STR 00dc91cd [capsule exp]
+STR 00dc91db [capsule limit lv]
+STR 00dd55ae [housing guild agit]
+STR 01a7106f GrowthCapsuleEvent.cpp
+STR 01a71086 _GLOBAL__I_GrowthCapsuleEvent.cpp
+STR 01a78fd7 Arad_Decoration.cpp
+STR 01a78feb _GLOBAL__I_Arad_Decoration.cpp
+STR 01a79d38 Arad_Housing.cpp
+STR 01a79d49 _GLOBAL__I_Arad_Housing.cpp
+STR 01a79d65 Arad_HousingConvertor.cpp
+STR 01a79d7f _GLOBAL__I_Arad_HousingConvertor.cpp
+STR 01a79da4 Arad_HousingManager.cpp
+STR 01a79dbc _GLOBAL__I_Arad_HousingManager.cpp
+STR 01a79ddf Arad_HousingTree.cpp
+STR 01a79df4 _GLOBAL__I_Arad_HousingTree.cpp
+STR 01d40c2d _ZN21stGrowthCapsuleScriptC1Ev
+STR 01f8b00b _ZN21stGrowthCapsuleScriptC2Ev
+STR 01fab010 _ZN5CUser23sendDecorationObjectCntEs
+STR 0220a90b _Z25ImportGrowthCapsuleScriptPKcR21stGrowthCapsuleScript
+# additional direct byte-search counts (grep -a -c): charac_housing=0 decoration_inven=0 leaf_point=0 day_water_count=0 tree_id=0 water_history=0 wedding=0 couple=0 Couple=0 Wedding=0

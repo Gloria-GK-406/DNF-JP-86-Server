@@ -127,3 +127,11 @@ BodyLength = 未知（字段集合已知不完整）
    两者皆无时都写 0。旧客户端的 `0xFF/0xFF` 哨兵不是 A21 的写法。
 3. **小地图组数之后有一个固定的 `1`。** A21 的构包器把它写在动态组列表之外，
    而且它自己的注释拒绝把这个字节读成某个开关，所以这里照抄不解释。
+
+### 2026-10-13 更正：场景楼层不是固定标记
+
+上述第 3 点的“固定 1”是普通副本样本的历史解释。**ClientStatic / Confirmed**：A21 handler 在 VA `01152BF6` 读取小地图组之后的第一个 `u16`，在 `01152C19` 存入场景资料 `+0x43c`；无图标组时是 body offset 12..13。随后另一个 `u16` 进入 `+0x444`，再读两个 `u8`，既有 u32 哨兵仍位于 offset 18。不能将 `01 00` 拆成固定字节与保留字节。
+
+绝望塔楼层牌物件 10386 的初始化 VA `01BC2F00` 在模式 11 分支读取 `+0x43c`，按个位／十位组合 PVF 的数字动画。因此 **CurrentImplementation** 改为发送 `layout.Despair.Floor`，普通副本保留原来的 u16 1。32 字节体长、地图标识、深渊坐标和其他尾部均保持；不修改 START_MAP 的房间状态值，也不照搬 70 版报文尾部。
+
+证据与哈希见[绝望塔场景楼层牌](../../../Document/outputs/despair-floor-sign-20261013/evidence.md)。本轮仅 ClientStatic／CurrentImplementation，尚未部署或取得新的 WireCaptured／ClientVerified。

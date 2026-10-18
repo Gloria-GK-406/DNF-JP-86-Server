@@ -1,5 +1,13 @@
 # NOTI `0x03DB` `MAHJONG_GAME_COUNT`
 
+## A21 人工裁定：婚房/情侣树/胶囊（2026-10-18 / ClientStatic）
+
+A21 名称 `COUPLE_ROOM_REFRESH`（本页标题为旧版本名）。handler `00882670`，**正文 = 4 + 11n**，Confirmed：`u32 n` + n×
+(`u8 kind`,`u32 itemId`,`u16 slot`,`u32 value`)。kind==1 → 情侣仓库格（value=数量，0 清空）；kind≠1 → 婚房家具：value==0 撤下该槽，
+否则 slot→itemId 摆放；只有当前在 town 101 时才实时生成或移除对象。
+
+证据与反汇编：[A21 婚房静态调查](../../../Document/outputs/marriage-housing-20261018/a21/a21.md)（`builders-disassembly.txt`、`handlers-disassembly.txt`、`switches-housing.txt`、`dstr-housing.txt`）。客户端 SHA-256 `CA7ECA4E…388D14`，镜像 `6BD2746D…953507`；构包点与机器区所绑 `1F8244D3…` 客户端一致。尚无实帧。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**
@@ -52,3 +60,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+
+## 2026-10-18 A21 婚房实现
+
+家具删除投影，4+11n 字节。
+
+CurrentImplementation：统一婚姻领域中的 Housing 逻辑；编解码与投影见 `Server/src/Dfo.Server.Protocol/Game/MarriageHousing/HousingSlice.cs`。依当前 A21 ClientStatic 和 PVF 实施，自动化通过，尚待此次实机验收，不提升为 ClientVerified。通用 CMD 接收层先消费 accepted 信封；旧静态字段宽度若从 status 开始，指的是信封之后的业务体。
+
+新增定向证据见 [补查报告](../../../Document/outputs/marriage-housing-implementation-20261018/wire/README.md)，测试及限制见 [实施说明](../../../Document/MarriageHousing-Implementation-20261018.md)。

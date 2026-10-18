@@ -114,6 +114,12 @@ public sealed record DailyRefillMutationResult(
 
 public interface IDailyRefillDomainService
 {
+    /// <summary>Refresh independent game-day rules without claiming the first-login batch.</summary>
+    ValueTask<DailyRefillMutationResult> ApplyIndependentRefillAsync(
+        AccountId accountId, CharacterId characterId,
+        IReadOnlyList<Dfo.Server.Abstractions.Content.DailyRefillRule> rules,
+        DateTimeOffset at, CancellationToken cancellationToken) => throw new NotSupportedException();
+
     ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
         AccountId accountId,
         CharacterId characterId,

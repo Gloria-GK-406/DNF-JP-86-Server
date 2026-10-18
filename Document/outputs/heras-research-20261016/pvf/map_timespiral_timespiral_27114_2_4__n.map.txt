@@ -1,0 +1,64 @@
+=== map/timespiral/timespiral_27114(2,4)_n.map ===
+[player number]
+1 1
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3900
+[/dungeon]
+[type]
+[normal]
+[greed]
+FF FF
+[tile]
+Tile/basic_4.til Tile/basic_1.til Tile/basic_2.til Tile/basic_3.til Tile/basic_4.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/basic_ex_3.til 1 Tile/basic_ex_4.til 2 Tile/basic_ex_5.til
+[/tile files]
+[tile map]
+0 1 2 2 2
+[/tile map]
+[/extended tile]
+[far sight scroll]
+56
+[middle sight scroll]
+80
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/timespiral_far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+53 243 1067 198 1139 656 1370 746
+[sound]
+AMB_POWERSTATION_GRANDINE M_HELIX_LAB
+[/sound]
+[animation]
+Animation/rail_2.ani [normal] 554 434 0 Animation/rail_3.ani [normal] 325 434 0 Animation/rail_4.ani [normal] 104 376 0 Animation/timespiral_back_middle_light.ani [middleback] 1160 110 0 Animation/timespiral_back_middle_light.ani [middleback] 931 110 0 Animation/timespiral_back_middle_light.ani [middleback] 702 108 0 Animation/timespiral_back_middle_light.ani [middleback] 473 110 0 Animation/timespiral_mid02.ani [middleback] 112 -395 0 Animation/timespiral_mid02.ani [middleback] 391 -355 0 Animation/timespiral_mid02.ani [middleback] 684 -165 0 Animation/timespiral_steam01.ani [middleback] 821 -196 0 Animation/timespiral_spark03.ani [middleback] 288 -155 0 Animation/remnant_dark_front01.ani [normal] 858 93 0 Animation/rail_2.ani [normal] 778 434 0 Animation/rail_2.ani [normal] 1002 434 0 Animation/timespiral_spark04.ani [normal] 397 -175 0 Animation/timespiral_spark02.ani [normal] 842 -36 0 Animation/bottomcable_light.ani [bottom] 1054 310 0 Animation/bottomcable2.ani [bottom] 1048 319 0 Animation/Smoke.ani [normal] 708 162 0 Animation/Smoke.ani [normal] 574 397 0 Animation/CeilingWire.ani [normal] 143 -78 0 Animation/eff/Bic_generator_spark1.ani [normal] 426 356 0 Animation/eff/Bic_generator_spark1.ani [normal] 736 351 0 ../kronos_dg/Animation/fire/FireCurtain01_opacity.ani [middleback] -205 -326 0 ../kronos_dg/Animation/fire/FireCurtain01_opacity.ani [middleback] 435 -322 0 ../kronos_dg/Animation/fire/FireCurtain01_opacity.ani [middleback] 1075 -327 0 ../kronos_dg/new_animation/map_animation/object/magma_01.ani [bottom] 388 372 0 ../kronos_dg/new_animation/map_animation/object/magma_01_dodge.ani [bottom] 388 372 0 ../kronos_dg/new_animation/map_animation/object/magma_01_dodge_small.ani [bottom] 388 372 0 ../kronos_dg/new_animation/map_animation/object/Smoke.ani [bottom] 952 393 0 ../kronos_dg/new_animation/map_animation/object/Smoke.ani [bottom] 322 373 0 Animation/back_spark_1.ani [normal] 555 -34 0 Animation/back_spark_4.ani [normal] 998 -9 0 Animation/eff/Bic_generator_spark3.ani [normal] 1006 250 0 Animation/remnant_dark_front01.ani [close] 641 374 0 Animation/remnant_front01.ani [close] 707 378 0 Animation/remnant_front_back00.ani [close] 728 379 0 Animation/remnant_dark_front04.ani [close] 654 369 0
+[/animation]
+[passive object]
+12916 1098 296 0 12908 553 137 0
+[/passive object]
+[monster]
+64906 1 0 264 244 0 1 1 [fixed] [normal] 64906 1 0 832 252 0 1 1 [fixed] [normal] 64019 1 0 459 263 0 1 1 [fixed] [normal] 64019 1 0 667 267 0 1 1 [fixed] [normal] 64918 1 0 381 201 0 1 1 [fixed] [normal] 64918 1 0 752 191 0 1 1 [fixed] [normal] 64918 1 0 563 344 0 1 1 [fixed] [normal] 64919 1 0 380 352 0 1 1 [fixed] [normal] 64919 1 0 566 207 0 1 1 [fixed] [normal] 64919 1 0 758 348 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[special passive object]
+12942 170 351 0 1 [item] 0 1 -1 -1 -1 12941 948 191 0 1 [item] 0 1 -1 -1 -1
+[/special passive object]
+[event monster position]
+877 358 0 900 355 0 896 373 0 880 369 0
+[/event monster position]
+[map name]
+PVP无名

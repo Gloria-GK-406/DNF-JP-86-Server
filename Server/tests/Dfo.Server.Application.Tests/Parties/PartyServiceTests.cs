@@ -20,6 +20,105 @@ namespace Dfo.Server.Application.Tests.Parties;
 public sealed class PartyServiceTests
 {
     [Fact]
+    public void Applicant_can_join_the_surviving_leader_only_after_that_leader_approves()
+    {
+        var service = new PartyService(new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
+            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+        var scope = new PartyDirectoryScope(11, 1, 1);
+        var oldLeader = Character(2, scope); var survivor = Character(1, scope); var applicant = Character(8, scope);
+        Assert.True(service.RequestInvite(oldLeader, survivor, Profile(1)).Succeeded);
+        Assert.True(service.AcceptInvite(survivor, oldLeader).Succeeded);
+        Assert.True(service.LeaveParty(oldLeader.CharacterId).Succeeded);
+        Assert.True(service.CreateOrUpdateSettings(survivor, DirectorySettings(PartyCategory.Normal, 0),
+            new PartyTitle("kept"u8)).Succeeded);
+        var before = service.FindParty(survivor);
+        var requested = service.RequestInvite(applicant, survivor, Profile(80));
+        Assert.True(requested.Succeeded, requested.Failure.ToString());
+        Assert.Equal(survivor.CharacterId, requested.Notifications.Invitation!.TargetCharacterId);
+        Assert.Equal(applicant.WireUserId, requested.Notifications.Invitation.InviterWireUserId);
+        Assert.True(service.FindParty(applicant).IsVirtual);
+        Assert.Single(service.FindParty(survivor).Members);
+        var accepted = service.AcceptInvite(survivor, applicant);
+        Assert.True(accepted.Succeeded, accepted.Failure.ToString());
+        var after = service.FindParty(survivor);
+        Assert.Equal(before.Key, after.Key); Assert.Equal(before.LeadershipVersion, after.LeadershipVersion);
+        Assert.Equal(before.Settings, after.Settings); Assert.Equal(before.Title, after.Title);
+        Assert.Equal(survivor.WireUserId, after.LeaderWireUserId);
+        Assert.Equal(after.Key, service.FindParty(applicant).Key);
+        Assert.Equal(new[] { survivor.CharacterId, applicant.CharacterId }.OrderBy(x => x.Value),
+            after.Members.Select(x => x.CharacterId).OrderBy(x => x.Value));
+        Assert.Equal(before.LeaderMember.Slot, after.LeaderMember.Slot);
+        Assert.Equal(applicant.CharacterId, Assert.Single(accepted.Notifications.ClearAudience));
+        Assert.Equal(new PartyAcceptanceNotification(applicant.CharacterId, survivor.CharacterId,
+            applicant.WireUserId, survivor.WireUserId, applicant.CharacterId), accepted.Notifications.Acceptance);
+        Assert.Equal(PartyFailureReason.InviteNotFoundOrStale, service.AcceptInvite(survivor, applicant).Failure);
+    }
+
+    [Theory]
+    [InlineData(0, PartyFailureReason.NotPartyLeader)]
+    [InlineData(1, PartyFailureReason.PartyGenerationChanged)]
+    [InlineData(2, PartyFailureReason.TargetAlreadyInParty)]
+    [InlineData(3, PartyFailureReason.InviteExpired)]
+    [InlineData(4, PartyFailureReason.PartyFull)]
+    [InlineData(5, PartyFailureReason.NotInSameTownArea)]
+    [InlineData(6, PartyFailureReason.InviteNotFoundOrStale)]
+    [InlineData(7, PartyFailureReason.InviteNotFoundOrStale)]
+    public void Join_approval_rechecks_current_leader_generation_membership_expiry_capacity_and_town(int change, PartyFailureReason expected)
+    {
+        var clock = new AdvanceablePartyClock(DateTimeOffset.UtcNow);
+        var service = new PartyService(new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
+            clock, EmptyPartyMemberSessionEndpointSource.Instance);
+        var scope = new PartyDirectoryScope(11, 1, 1);
+        var leader = Character(1, scope); var member = Character(2, scope); var applicant = Character(8, scope);
+        void Admit(PartyCharacterSnapshot owner, PartyCharacterSnapshot newcomer)
+        {
+            Assert.True(service.RequestInvite(owner, newcomer, Profile(1)).Succeeded);
+            Assert.True(service.AcceptInvite(newcomer, owner).Succeeded);
+        }
+        Admit(leader, member);
+        Assert.True(service.RequestInvite(applicant, leader, Profile(1)).Succeeded);
+        switch (change)
+        {
+            case 0: Assert.True(service.TransferLeadership(leader.CharacterId, member.CharacterId).Succeeded); break;
+            case 1:
+                Assert.True(service.LeaveParty(leader.CharacterId).Succeeded);
+                Assert.True(service.LeaveParty(member.CharacterId).Succeeded);
+                Assert.True(service.CreateOrUpdateSettings(leader, new PartyModeRuleService().DefaultSettings, PartyTitle.Empty).Succeeded);
+                break;
+            case 2: Admit(Character(9, scope), applicant); break;
+            case 3: clock.Advance(PartyService.InvitationLifetime + TimeSpan.FromTicks(1)); break;
+            case 4: Admit(leader, Character(3, scope)); Admit(leader, Character(4, scope)); break;
+            case 5: applicant = applicant with { DirectoryScope = new(11, 1, 2) }; break;
+            case 6: Assert.True(service.CleanupCharacter(applicant.CharacterId).Succeeded); break;
+            case 7: Assert.True(service.CleanupCharacter(leader.CharacterId).Succeeded); break;
+        }
+        var before = service.FindParty(leader);
+        var applicantBefore = service.FindParty(applicant);
+        Assert.Equal(expected, service.AcceptInvite(leader, applicant).Failure);
+        Assert.Equal(before.Revision, service.FindParty(leader).Revision);
+        Assert.Equal(applicantBefore.Key, service.FindParty(applicant).Key);
+        Assert.Equal(before.Members.Select(x => x.CharacterId), service.FindParty(leader).Members.Select(x => x.CharacterId));
+    }
+
+    [Fact]
+    public void Join_application_targets_only_a_leader_and_checks_admission_before_notifying()
+    {
+        var service = new PartyService(new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
+            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+        var scope = new PartyDirectoryScope(11, 1, 1);
+        var leader = Character(1, scope); var member = Character(2, scope); var applicant = Character(8, scope);
+        Assert.True(service.RequestInvite(leader, member, Profile(1)).Succeeded);
+        Assert.True(service.AcceptInvite(member, leader).Succeeded);
+        var refusal = service.RequestInvite(applicant, member, Profile(1));
+        Assert.Equal(PartyFailureReason.NotPartyLeader, refusal.Failure); Assert.Null(refusal.Notifications.Invitation);
+        var settings = new PartyModeRuleService().DefaultSettings.ToWireBytes(); settings[2] = 2;
+        Assert.True(service.CreateOrUpdateSettings(leader, new(settings), PartyTitle.Empty).Succeeded);
+        refusal = service.RequestInvite(applicant, leader, Profile(1));
+        Assert.Equal(PartyFailureReason.PartyFull, refusal.Failure); Assert.Null(refusal.Notifications.Invitation);
+        Assert.True(service.FindParty(applicant).IsVirtual);
+    }
+
+    [Fact]
     public void Real_and_virtual_party_keys_are_distinct_and_resolve_only_current_members()
     {
         var service = new PartyService(

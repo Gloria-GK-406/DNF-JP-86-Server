@@ -149,7 +149,7 @@ public sealed class PartyTownProjectionDelivery(
     private SelectedSessionIdentity[] SessionsInScope(
         PartyDirectoryScope scope,
         CharacterId excludingCharacterId) =>
-        (townAreas.Find(new TownAreaKey(scope.ChannelId, scope.TownId, scope.AreaId))
+        (townAreas.Find(new TownAreaKey(scope.ChannelId, scope.TownId, scope.AreaId, scope.Instance))
             ?.Members ?? [])
             .Where(value => value.SharesTownPresence
                 && value.CharacterId != excludingCharacterId)
@@ -187,7 +187,7 @@ public sealed class PartyTownProjectionDelivery(
             var query = new PartyDirectoryQuery(new PartyDirectoryScope(
                 currentPresence.Area.ChannelId,
                 currentPresence.Area.TownId,
-                currentPresence.Area.AreaId));
+                currentPresence.Area.AreaId, currentPresence.Area.Instance));
             foreach (var candidate in parties.Query(query))
             {
                 if (candidate.Members.Any(member => member.CharacterId == recipient.CharacterId))

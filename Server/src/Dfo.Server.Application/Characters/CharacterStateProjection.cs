@@ -18,10 +18,13 @@ namespace Dfo.Server.Application.Characters;
 /// <summary>Shared projections of character facts, without login placement or recovery.</summary>
 internal static class CharacterStateProjection
 {
-    internal static CharacterEntryState CompleteTitleAppearanceProjection(CharacterEntryState entry, CharacterInventoryEntryState inventory)
+    internal static CharacterEntryState CompleteAppearanceProjection(ActiveCharacterState character, CharacterEntryState entry, CharacterInventoryEntryState inventory)
     {
-        var title = inventory.Containers.SingleOrDefault(x => x.ContainerType == InventoryContainerType.Equipment)?.Items.SingleOrDefault(x => x.SlotIndex == 13);
-        return entry with { Public = entry.Public with { CloneTitleItemId = checked((uint)(title?.Core.AppearanceItemId ?? 0)) } };
+        var equipment = inventory.Containers.SingleOrDefault(x => x.ContainerType == InventoryContainerType.Equipment)?.Items ?? [];
+        var display = CharacterAppearanceRuleService.Shared.Resolve(
+            new(CharacterCareer.FromPacked(character.Identity.Job, character.Identity.GrowType)), equipment,
+            new(null, checked((byte)entry.Public.VisibilityBits)));
+        return entry with { Public = entry.Public with { Display = display, CloneTitleItemId = display.TitleAppearanceItemId } };
     }
 
     internal static CharacterSkillsEntryState MergePvpProfile(
@@ -54,7 +57,7 @@ internal static class CharacterStateProjection
                 0,
                 summary.Appearances ?? throw new InvalidDataException(
                     "The account roster this frame is drawn from did not work out appearances."),
-                summary.CloneTitleItemId));
+                summary.CloneTitleItemId) { Display = summary.Display });
         }
         return new CharacterRosterEntryState(
             roster.SlotLimit, roster.SlotLimit, checked((byte)selectedEntry.Public.Extras.ManageLevel),
@@ -171,7 +174,7 @@ internal static class CharacterStateProjection
         supportInventory = await SupportCreatureMarkerProjection.CompleteAsync(
             supportInventory, preparationRules, preparedAt, cancellationToken)
             .ConfigureAwait(false);
-        supportEntry = CompleteTitleAppearanceProjection(supportEntry, supportInventory);
+        supportEntry = CompleteAppearanceProjection(support, supportEntry, supportInventory);
         var completed = relation with
         {
             SupportProjection = new AccountSupportCharacterEntryState(

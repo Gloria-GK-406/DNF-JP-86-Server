@@ -1,0 +1,101 @@
+kind: rks-sdd-execution
+controller: sdd-standard
+contract:
+  path: ./TaskContract.md
+  revision: 1
+current_stage: verification
+state: completed
+artifacts:
+  spec: ./spec.md
+  result: ./spec-result.md
+  plan: ./plan.md
+  preflight: ./preflight.md
+  postcheck: ./postcheck.md
+  change_review: ./reviews/change-review.md
+  completion_evidence: ./verification/completion-evidence.md
+stages:
+- id: spec
+  reads:
+  - contract
+  skills:
+  - writing-specs
+  gate: none
+  done_when: the Spec defines the requested result, scope, and evidence-based acceptance
+  writes:
+  - spec
+- id: plan
+  reads:
+  - contract
+  - spec
+  skills:
+  - writing-plans
+  gate: none
+  done_when: the ready Plan selects direct or task-units with complete coverage at
+    the chosen resolution
+  writes:
+  - plan
+- id: preflight
+  reads:
+  - contract
+  - spec
+  - plan
+  skills:
+  - executing-tasks
+  gate: auto
+  done_when: target identity, actual authorization, prerequisites, recovery feasibility,
+    and dry-run evidence (or why unavailable plus sufficient alternative evidence)
+    are recorded; no production mutation occurs; missing required prerequisites pause
+    the action
+  writes:
+  - preflight
+- id: implementation
+  reads:
+  - contract
+  - spec
+  - plan
+  - preflight
+  skills:
+  - executing-tasks
+  gate: auto
+  done_when: the authorized controlled action follows the ready Plan within validated
+    preflight limits, records actual mutations and stop conditions, and resolves any
+    detected goal drift and passes required checks
+- id: postcheck
+  reads:
+  - contract
+  - spec
+  - plan
+  - preflight
+  skills:
+  - executing-tasks
+  gate: auto
+  done_when: actual postconditions are checked; retain, recover, or stop is decided
+    from evidence within existing authorization; required recovery is executed and
+    checked, or its unavailable prerequisite is returned to controller disposition;
+    failed change acceptance is not claimed successful because rollback succeeded
+  writes:
+  - postcheck
+- id: review
+  reads:
+  - contract
+  - spec
+  - plan
+  - preflight
+  - postcheck
+  skills:
+  - reviewing-work
+  gate: auto
+  done_when: the complete code, non-code, or mixed result is independently approved
+    against the governing artifacts and actual output criteria
+  writes:
+  - change_review
+- id: verification
+  reads:
+  - contract
+  - change_review
+  skills:
+  - verification-before-completion
+  gate: auto
+  done_when: fresh evidence proves every TaskContract success condition
+  writes:
+  - completion_evidence

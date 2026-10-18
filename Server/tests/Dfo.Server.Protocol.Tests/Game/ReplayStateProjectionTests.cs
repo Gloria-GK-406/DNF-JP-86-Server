@@ -18,6 +18,33 @@ namespace Dfo.Server.Protocol.Tests.Game;
 
 public sealed class ReplayStateProjectionTests
 {
+    [Fact]
+    public void Housing_recovery_never_reannounces_ring_upgrade()
+    {
+        var state = State(ReplayProjectionNeeds.MarriageHousing) with
+        {
+            Housing = new(Guid.NewGuid(), 1, [], [], null),
+            MarriageInfo = new(8, Dfo.Server.Data.Marriage.MarriageStage.Married, DateTimeOffset.UnixEpoch, 23, 1),
+        };
+        var messages = ReplayStateProjectionDelivery.Create(state);
+        Assert.DoesNotContain(messages, message => message is HousingRingMessage);
+        var info = Assert.Single(messages.OfType<Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoMessage>());
+        var frame = Assert.Single(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoEncoder().Encode(info));
+        Assert.Equal(0x03D0, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));
+        Assert.Equal(8, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(15)));
+        Assert.Equal(1, frame[29]); Assert.Equal(0, frame[20]); Assert.Equal(23, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(25)));
+    }
+
+    [Fact]
+    public void Love_coupon_replay_only_projects_current_points_without_success_ack_or_cinema_reset()
+    {
+        var state = State(ReplayProjectionNeeds.MarriageLovePoints) with { LovePoints = 23 };
+        var messages = ReplayStateProjectionDelivery.Create(state);
+        var message = Assert.IsType<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotification>(Assert.Single(messages));
+        Assert.Equal(state.Session.CharacterId.Value, message.Character); Assert.Equal(23, message.Points);
+        Assert.False(ReplayProjectionNeeds.All.HasFlag(ReplayProjectionNeeds.MarriageLovePoints));
+        Assert.Throws<InvalidDataException>(() => ReplayStateProjectionDelivery.Create(state with { LovePoints = null }));
+    }
     [Theory]
     [InlineData(Dfo.Server.Data.Events.JoustPhase.Betting)]
     [InlineData(Dfo.Server.Data.Events.JoustPhase.Result)]

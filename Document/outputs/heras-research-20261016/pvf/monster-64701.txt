@@ -1,0 +1,92 @@
+id 64701 -> China_Monster/Event/chn_golden_goblin_junior/chn_goldenGoblin_junior.mob
+=== monster/China_Monster/Event/chn_golden_goblin_junior/chn_goldenGoblin_junior.mob ===
+[floating height]
+0
+[name]
+
+[face image]
+Monster/ch_Monsterface.img 10
+[die effect]
+0 21 0
+[damage sound]
+R_GOBLIN_DMG
+[die sound]
+R_GOBLIN_DIE
+[ability table]
+0
+[ability category]
+[HP MAX] * 100 [EQUIPMENT_PHYSICAL_ATTACK] * 100 [EQUIPMENT_PHYSICAL_DEFENSE] * 100 [EQUIPMENT_MAGICAL_ATTACK] * 100 [EQUIPMENT_MAGICAL_DEFENSE] * 100
+[/ability category]
+[category]
+[goblin]
+[/category]
+[HP regen speed]
+0 0
+[MP regen speed]
+0 0
+[level]
+1 60
+[move speed]
+1000 1000
+[attack speed]
+1000 1000
+[cast speed]
+1000 1000
+[hit recovery]
+800 800
+[weight]
+40000 40000
+[lie frame]
+2 3 2 3 4
+[item]
+[/item]
+[waiting action]
+Action/Stay.act
+[move action]
+Action/Move.act
+[sit action]
+Action/Sit.act
+[damage action 1]
+Action/Damage1.act
+[damage action 2]
+Action/Damage2.act
+[down action]
+Action/Down.act
+[overturn action]
+Action/Overturn.act
+[attack action]
+Action/Attack1.act
+[/attack action]
+[attack info]
+AttackInfo/Attack.atk
+[/attack info]
+[cooltime]
+2000
+[/cooltime]
+[vision]
+1000
+[warlike]
+100
+[think term]
+500
+[destination change term]
+1000
+[keep distance with target]
+250
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]

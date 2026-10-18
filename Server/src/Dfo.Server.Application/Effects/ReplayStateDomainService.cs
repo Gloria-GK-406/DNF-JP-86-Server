@@ -143,6 +143,7 @@ internal sealed class ReplayStateDomainService(IServiceProvider services, IDomai
             var character = await Get<ICharacterDomainService>().LoadForSelectionAsync(session.AccountId, identity!.SlotIndex, ct).ConfigureAwait(false);
             if (character.Identity.CharacterId != session.CharacterId)
                 throw new InvalidDataException("Current character selection changed its owner.");
+            entry = CharacterStateProjection.CompleteAppearanceProjection(character with { Identity = identity! }, entry!, characterInventory!);
             appearance = new(character with { Identity = identity, Progression = progress!,
                 Fatigue = new(fatigue!.Value.Total, fatigue.Value.Used) { ConsumedToday = fatigue.Value.ConsumedToday } },
                 entry!.Public with { Extras = entry.Public.Extras with { CharacterExperience = progress!.Experience,
@@ -151,7 +152,16 @@ internal sealed class ReplayStateDomainService(IServiceProvider services, IDomai
         safety.DemandCurrent(recipient);
         return new(session, request, at, inventory, pets, skills, quests, progress, points, fatigue,
             itemUsage, premiums, premiumUsage, appearance)
-        { EpicPieces = needs.HasFlag(ReplayProjectionNeeds.EpicBook)
+        { Capsules = needs.HasFlag(ReplayProjectionNeeds.CoupleCapsules) ? await Get<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService>().ReadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : null,
+          Housing = (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing) || appearanceNeeded)
+            ? await Get<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>().ReadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : null,
+          MarriageInfo = (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing) || appearanceNeeded)
+            ? await Get<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>().InfoAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : null,
+          LovePoints = needs.HasFlag(ReplayProjectionNeeds.MarriageLovePoints)
+            ? (await Get<Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService>().SnapshotAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false)).LovePoints : null,
+          HerasQuota = needs.HasFlag(ReplayProjectionNeeds.HerasQuota)
+            ? await Get<IHerasDungeonDomainService>().ReadQuotaAtAsync(session.CharacterId, at, ct).ConfigureAwait(false) : null,
+          EpicPieces = needs.HasFlag(ReplayProjectionNeeds.EpicBook)
             ? (await Get<IEpicBookDomainService>().GetBalancesAsync(session.AccountId, ct).ConfigureAwait(false)).ToImmutableArray() : default,
           Joust = needs.HasFlag(ReplayProjectionNeeds.Joust)
             ? await Get<Dfo.Server.Abstractions.Events.IJoustProjectionDomainService>().ReadAsync(session.CharacterId,at,ct).ConfigureAwait(false) : null };

@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
@@ -24,10 +25,12 @@ using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Game.Weakness;
+using Dfo.Server.Protocol.Game.Altar;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Dfo.Server.Protocol.Tests.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.Party;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 
@@ -300,6 +303,75 @@ public sealed class LeaveDungeonTests
         Assert.Empty(commands.Commands);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Give_up_completes_through_real_command_locks_and_releases_the_session(bool isAltar)
+    {
+        var runs = new OneRun(isAltar: isAltar);
+        var deliveries = new DungeonRunDeliveryRegistry(); deliveries.Register(runs.RunId, [Identity]);
+        var sessions = new OneSession(Identity);
+        var sender = new RecordingSender(); var transitions = new SelectedSessionTransitionGate();
+        var projections = new DungeonProjectionGate(); var clock = TimeProvider.System;
+        var trace = new ExitCommandTrace();
+        var services = new ServiceCollection().AddLogging();
+        services.AddSingleton<TimeProvider>(clock);
+        services.AddSingleton<ISelectedSessionDomainService>(sessions);
+        services.AddSingleton(transitions);
+        services.AddSingleton(trace);
+        services.AddCommandDispatching();
+        services.AddCommandHandler<AltarActionCommand, AltarCommandResult, ExitAltarCommandHandler>(
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<LeavePartyCommand, PartyOperationResult, ExitPartyCommandHandler>(CommandExecutionKind.Workflow);
+        using var provider = services.BuildServiceProvider();
+        var commands = provider.GetRequiredService<ICommandBus>();
+        var altars = new AltarView(runs.RunId); var wake = new AltarWakeSignal(clock);
+        var projection = new AltarProjectionDelivery(altars, runs, sessions, deliveries, commands,
+            new NoopNotificationBus(), clock, wake, null!, NullLogger<AltarProjectionDelivery>.Instance);
+        var coordinator = new AltarProtocolCoordinator(runs, sessions, projections, transitions,
+            projection, commands, sender, null!);
+        runs.BeforeEnd = () =>
+        {
+            if (isAltar) Assert.Equal(AltarOperation.SettleParticipantBeforeExit,
+                Assert.IsType<AltarActionCommand>(Assert.Single(trace.Commands)).Operation);
+            else Assert.Empty(trace.Commands);
+        };
+        var handler = new GiveUpGameHandler(sessions, new OneRuntimeSession(Entry()), new StandingWhereTheyAre(),
+            runs, deliveries, sender, TownAreaProjectionTestFactory.Create(sessions, new OneRuntimeSession(Entry()), sender),
+            NullLogger<GiveUpGameHandler>.Instance, transitions,
+            townAreas: new SessionPresenceDomainService(), commands: commands, altars: coordinator, projectionGate: projections);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        await handler.HandleAsync(Dispatch(), new GiveUpGameRequest(GameMessageMetadata.Empty), deadline.Token)
+            .AsTask().WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.True(runs.Ended); Assert.Empty(deliveries.Find(runs.RunId));
+        Assert.Single(sender.Sent.OfType<GiveUpGameResponse>());
+        Assert.Single(sender.Sent.OfType<UserAreaNotification>());
+        await handler.HandleAsync(Dispatch(), new GiveUpGameRequest(GameMessageMetadata.Empty), default);
+        Assert.Equal(isAltar ? 2 : 1, trace.Commands.Count);
+        Assert.Single(trace.Commands.OfType<LeavePartyCommand>());
+        await using var available = await transitions.AcquireAsync(Identity.AccountId, UserAccessMode.Exclusive, deadline.Token);
+    }
+
+    private sealed class ExitCommandTrace { public List<ICommand> Commands { get; } = []; }
+    private sealed class ExitAltarCommandHandler(ExitCommandTrace trace, IDomainTransactionAccessor transactions)
+        : ICommandHandler<AltarActionCommand, AltarCommandResult>
+    {
+        public ValueTask<AltarCommandResult> HandleAsync(CommandExecutionContext context, AltarActionCommand command, CancellationToken ct)
+        {
+            Assert.NotNull(transactions.Current);
+            trace.Commands.Add(command);
+            return ValueTask.FromResult(new AltarCommandResult(null));
+        }
+    }
+    private sealed class ExitPartyCommandHandler(ExitCommandTrace trace) : ICommandHandler<LeavePartyCommand, PartyOperationResult>
+    {
+        public ValueTask<PartyOperationResult> HandleAsync(CommandExecutionContext context, LeavePartyCommand command, CancellationToken ct)
+        {
+            trace.Commands.Add(command);
+            return ValueTask.FromResult(PartyOperationResult.Success());
+        }
+    }
+
     [Fact]
     public async Task Stale_give_up_stops_before_any_current_run_or_party_capture()
     {
@@ -563,7 +635,7 @@ public sealed class LeaveDungeonTests
         listenerPort: 10010);
 
     /// <summary>A run that records whether it was ended, and refuses everything else.</summary>
-    private sealed class OneRun(bool hasRun = true) : IDungeonRunDomainService
+    private sealed class OneRun(bool hasRun = true, bool isAltar = false) : IDungeonRunDomainService
     {
         private static readonly DungeonLayout Layout = new(
             144, 0, 1, 1,
@@ -572,6 +644,7 @@ public sealed class LeaveDungeonTests
             5);
 
         public bool Ended { get; private set; }
+        public Action? BeforeEnd { get; set; }
 
         public DungeonRunId RunId { get; } = DungeonRunId.New();
 
@@ -584,18 +657,20 @@ public sealed class LeaveDungeonTests
 
         public bool End(CharacterId characterId)
         {
+            BeforeEnd?.Invoke();
             this.Ended = true;
             return hasRun;
         }
 
         public DungeonRunState? Find(CharacterId characterId) => hasRun && !this.Ended
             ? new DungeonRunState(
-                Layout,
+                isAltar ? Layout with { Altar = new(AltarDungeonKind.Ultimate, new(2026, 10, 13)) } : Layout,
                 Layout.StartCell,
                 Layout.StartRoomMapId,
                 new HashSet<MazeCell> { Layout.StartCell },
                 DateTimeOffset.UnixEpoch,
                 RunId: this.RunId,
+                Participants: isAltar ? [new(Identity.AccountId, Identity.CharacterId, 0, true)] : [],
                 CurrentCellState: DungeonCellSeed.CompleteEmpty(
                     Layout.StartCell, Layout.StartRoomMapId).Snapshot())
             : null;
@@ -803,9 +878,27 @@ public sealed class LeaveDungeonTests
             where TResult : notnull
         {
             Commands.Add(command);
+            if (command is AltarActionCommand) return ValueTask.FromResult((TResult)(object)new AltarCommandResult(null));
             return ValueTask.FromResult(
                 (TResult)(object)PartyOperationResult.Success());
         }
+    }
+
+    private sealed class AltarView(DungeonRunId runId) : IAltarDungeonDomainService
+    {
+        public bool Supports(int id) => true;
+        public AltarDungeonState? Find(DungeonRunId id) => id == runId ? new(runId,
+            new(11007, AltarDungeonKind.Ultimate, 65, 70, 7, 7, [], null!, 3), [], DateTimeOffset.UnixEpoch, 0, 17030) : null;
+        public IReadOnlyList<AltarDeadline> Pending() => [];
+        public ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<AltarActionResult?> ReadyAsync(SelectedSessionIdentity session, DungeonRunId id, long room, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<AltarActionResult?> AdvanceAsync(DungeonRunId id, long room, long generation, DateTimeOffset now, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<AltarActionResult?> SelectDifficultyAsync(SelectedSessionIdentity session, DungeonRunId id, long room, long generation, byte difficulty, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<AltarActionResult?> FailAsync(DungeonRunId id, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<AltarActionResult?> SettleBeforeExitAsync(DungeonRunId id, CancellationToken ct, CharacterId? participant = null) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<AltarQuotaSnapshot>> ReadQuotaAsync(CharacterId id, CancellationToken ct) => throw new NotSupportedException();
+        public bool CanRevive(CharacterId character, DungeonRunId id) => false;
+        public bool StageRevival(CharacterId character, DungeonRunId id) => false;
     }
 
     private sealed class NoopNotificationBus : Dfo.Server.Testing.ProjectionEventService

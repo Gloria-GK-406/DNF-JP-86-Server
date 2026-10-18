@@ -11,7 +11,8 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
     IItemPlacementRuleService placements, IItemArrivalRuleService arrivals, IAccountWalletRuleService wallets,
-    IInventoryExpansionDefinitionSource? expansionContent = null) : ICeraShopRuleService
+    IInventoryExpansionDefinitionSource? expansionContent = null,
+    IItemExpirationRuleService? expirationRules = null) : ICeraShopRuleService
 {
     public async ValueTask<CeraShopQuoteResult> QuoteAsync(CeraShopPurchaseInput input, int characterLevel,
         DateTimeOffset now, CancellationToken cancellationToken)
@@ -63,15 +64,15 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                     else if (product.Category == "[selectable character premium]" && product.ServiceSlot is >= 0 and < 8
                         && product.ServiceDays is 7 or 30 && product.Count == 1)
                     {
-                        var service = product.ServiceSlot.Value switch
-                        {
-                            0 => PremiumServiceType.FreeGoldCard, 1 => PremiumServiceType.DoublePot,
-                            2 => PremiumServiceType.QuestHelper, 3 => PremiumServiceType.DungeonBuff,
-                            4 => PremiumServiceType.AutoHpMpRecovery, 5 => PremiumServiceType.FreeWeaknessRecovery,
-                            6 => PremiumServiceType.AutoRepair, 7 => PremiumServiceType.FastPot,
-                            _ => throw new InvalidOperationException(),
-                        };
-                        subscriptions.Add(new(service, TimeSpan.FromDays(product.ServiceDays)));
+                        subscriptions.Add(new(CharacterService(product.ServiceSlot.Value), TimeSpan.FromDays(product.ServiceDays)));
+                    }
+                    else if (product.Category == "[charac premium package]" && product.Count == 1 && price.Period == 0
+                        && product.ServiceDays is 30 or 60 && !product.ServiceSlots.IsDefaultOrEmpty
+                        && product.ServiceSlots.Length <= 8 && product.ServiceSlots.All(slot => slot is >= 0 and < 8)
+                        && product.ServiceSlots.Distinct().Count() == product.ServiceSlots.Length)
+                    {
+                        foreach (var slot in product.ServiceSlots)
+                            subscriptions.Add(new(CharacterService(slot), TimeSpan.FromDays(product.ServiceDays)));
                     }
                     else throw Refuse(CeraShopRejection.UnsupportedProduct, "Unsupported subscription declaration.");
                     products.Add(product.ProductId);
@@ -250,6 +251,11 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                 throw Refuse(CeraShopRejection.UnsupportedProduct, "Too many expanded rewards.");
             var placement = await placements.PlacementForAsync(item.ItemId, cancellationToken).ConfigureAwait(false)
                 ?? throw Refuse(CeraShopRejection.UnsupportedProduct, $"No placement for item {item.ItemId}.");
+            if (expirationRules is not null)
+            {
+                var declared = expirationRules.Prepare(new ItemSnapshot(), placement.Lifetime, now).ExpireTime;
+                if (declared > 0) expiration = expiration == 0 ? declared : Math.Min(expiration, declared);
+            }
             byte ability = 0;
             if (item.Kind == CeraShopItemKind.Avatar)
             {
@@ -323,6 +329,15 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
         if (days < 0) throw Refuse(CeraShopRejection.UnsupportedProduct, "Negative item duration.");
         return days == 0 ? 0 : checked((int)(now.ToUnixTimeSeconds() + (long)days * 86400));
     }
+
+    private static PremiumServiceType CharacterService(int slot) => slot switch
+    {
+        0 => PremiumServiceType.FreeGoldCard, 1 => PremiumServiceType.DoublePot,
+        2 => PremiumServiceType.QuestHelper, 3 => PremiumServiceType.DungeonBuff,
+        4 => PremiumServiceType.AutoHpMpRecovery, 5 => PremiumServiceType.FreeWeaknessRecovery,
+        6 => PremiumServiceType.AutoRepair, 7 => PremiumServiceType.FastPot,
+        _ => throw new ArgumentOutOfRangeException(nameof(slot)),
+    };
 
     private static string Diagnostics(ImmutableArray<CeraShopDiagnostic> values) =>
         string.Join("; ", values.Select(value => $"{value.Code}: {value.Source}: {value.Detail}"));

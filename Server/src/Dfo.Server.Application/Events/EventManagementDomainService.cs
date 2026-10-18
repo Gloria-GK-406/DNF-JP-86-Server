@@ -21,7 +21,7 @@ internal sealed class EventManagementDomainService(IEnumerable<IManagedEventDoma
     public async ValueTask<EventInfo[]> GetEventInfoListAsync(AccountId account,DateTimeOffset now,CancellationToken ct)
     {
         var entries = new List<EventInfo>();
-        foreach (var e in events) if (await e.GetEventInfoAsync(account,now,ct) is { } info) entries.Add(info);
+        foreach (var e in events) entries.AddRange(await e.GetEventInfoEntriesAsync(account,now,ct));
         return [..entries];
     }
     public async ValueTask<ManagedEventList> ChangeAsync(EventChange change,string actor,DateTimeOffset now,CancellationToken ct)

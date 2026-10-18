@@ -1,0 +1,24 @@
+=== passiveobject/actionobject/map/timespiral/action/timespiral_trap.act ===
+[MOTION]
+[BASE ANI]
+../Animation/Timespiral_Trap.ani
+[/MOTION]
+[TRIGGER]
+[FRAME]
+0 1
+[WHICH]
+[ALL CHARACTER TEAM]
+[CHECKUP]
+[IS OBJECT TYPE]
+[CHARACTER]
+[MONSTER]
+[/IS OBJECT TYPE]
+[/CHECKUP]
+[DO BEHAVIOR]
+[CHECKUP OBJECT]
+0
+[/TRIGGER]
+[BEHAVIOR]
+[PULL APPENDAGE]
+3 2 60000
+[/BEHAVIOR]

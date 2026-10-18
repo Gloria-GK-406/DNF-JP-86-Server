@@ -16,7 +16,8 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
     ICharacterSkillStateDomainService skills, IQuestCompletionEffectRuleService rules,
     IInventoryEffectPreflightDomainService preview,
     ICharacterCarriedGoldTable gold,
-    IMirrorAradQuestDomainService? mirror = null) : IQuestCompletionDomainService
+    IMirrorAradQuestDomainService? mirror = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? marriage = null) : IQuestCompletionDomainService
 {
     public async ValueTask<QuestCompletionPreparation> PrepareAsync(AccountId account, CharacterId id, ushort quest,
         ushort selection, ushort count, DateTimeOffset at, CancellationToken ct, SelectedSessionIdentity? session = null)
@@ -26,6 +27,8 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         if (definition is null || definition.Grade is QuestGrade.Title or QuestGrade.Crack
             || await rows.FindOwnerAsync(id, ct).ConfigureAwait(false) != account) return Refuse();
         var character = characters.Get(id);
+        if (definition.Grade == QuestGrade.Wedding && (marriage is null
+            || !await marriage.CanCompleteAsync(account, id, quest, ct).ConfigureAwait(false))) return Refuse();
         var identity = await character.IdentityAsync(ct).ConfigureAwait(false);
         var progress = await character.ProgressAsync(ct).ConfigureAwait(false);
         var bag = containers.FindContainer(id, InventoryContainerType.Main);
@@ -45,7 +48,7 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         if (effective.FirstOrDefault(x => x.QuestId == quest) is not { TriggerValue: 0 }) return Refuse(projected);
         var reward = rules.Rewards(definition, facts, selection, count);
         if (!reward.IsValid) return Refuse(projected);
-        if (reward.Plan!.GrowType is not null)
+        if (reward.Plan!.GrowType is not null || reward.Plan.Awakening is not null)
             facts = facts with { Skills = await skills.ReadAsync(id, ct).ConfigureAwait(false), Builds = await skills.BuildsAsync(id, ct).ConfigureAwait(false) };
         var rewards = await rules.RewardsAsync(reward.Plan, facts, ct).ConfigureAwait(false);
         var context = new EffectExecutionContext(account, id, at, session);

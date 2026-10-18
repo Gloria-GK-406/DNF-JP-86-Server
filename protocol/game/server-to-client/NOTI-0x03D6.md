@@ -1,4 +1,10 @@
-# NOTI `0x03D6` `EQUIP_AVATAR_CONDITION_DROP_INFO`
+# NOTI `0x03D6` `WEDDING_INVITED_GUESTS`
+
+## A21 人工裁定与实现（2026-10-16）
+
+ClientStatic / CurrentImplementation：RVA008911D0读取u8数量，再逐项读u32并调用RVA00885460标记联系人已受邀。当前发送本婚礼持久受邀角色编号；名单与03F6回包额度一起投影，重登03F3查询也恢复已邀请名单。
+
+证据与边界见[定向补证](../../../Document/MarriageChurchEntryEvidence-20261016.md)及[普通婚礼流程](../../../Document/MarriageWeddingFlow-20261016.md)。未新增WireCaptured或ClientVerified。
 
 <!-- rks:machine:begin -->
 

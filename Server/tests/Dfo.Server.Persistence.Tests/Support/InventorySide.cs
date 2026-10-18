@@ -96,7 +96,18 @@ internal sealed class InventorySide
     public IItemDomainStore Store => new SqliteItemDomainStore(this.databasePath);
 
     public IItemLifecycleDomainService Lifecycle => new ItemLifecycleDomainService(
-        Store, Scope, new ItemPlacementRuleService(this.placements, new NoWearables()));
+        Store, Scope, new ItemPlacementRuleService(this.placements, new NoWearables()), new ItemExpirationRuleService(new TestReset()));
+
+    private sealed class TestReset : Dfo.Server.Abstractions.Configuration.IDailyResetRuleService
+    {
+        public DateTimeOffset PeriodStart(DateTimeOffset now)
+        {
+            var local = now.ToOffset(TimeSpan.FromHours(8));
+            var start = new DateTimeOffset(local.Date.AddHours(6), local.Offset);
+            return start > now ? start.AddDays(-1) : start;
+        }
+        public bool IsCurrentPeriod(DateTimeOffset recordedAt, DateTimeOffset now) => recordedAt <= now && recordedAt >= PeriodStart(now);
+    }
 
     public IDailyRefillDomainService Mutations => new DailyRefillDomainService(
         new SqliteCharacterTable(this.database),

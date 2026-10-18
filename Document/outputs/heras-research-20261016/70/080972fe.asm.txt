@@ -1,0 +1,6 @@
+_ZN6CipheraSERKS_
+080972FE push     ebp
+080972FF mov      ebp, esp
+08097301 mov      eax, dword ptr [ebp + 8]
+08097304 pop      ebp
+08097305 ret

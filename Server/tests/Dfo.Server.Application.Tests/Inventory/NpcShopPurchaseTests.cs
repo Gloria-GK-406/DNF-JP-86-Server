@@ -24,6 +24,7 @@ using Dfo.Server.Persistence;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Protocol;
 using Dfo.Server.Protocol.Game.BuyItem;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.ShopPurchaseCount;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
@@ -109,8 +110,8 @@ public sealed class NpcShopPurchaseTests
             Assert.Equal(100000, shop.Gold);
         };
         await shop.Buy(2000, 1);
-        Assert.Equal(new[] { ServerMessageType.GameStateSynchronization, ServerMessageType.GameBuyItem,
-            ServerMessageType.GameStateSynchronization }, shop.Sender.Messages.Select(message => message.MessageType));
+        Assert.Equal(new[] { ServerMessageType.GameStateSynchronization, ServerMessageType.GameStateSynchronization,
+            ServerMessageType.GameBuyItem }, shop.Sender.Messages.Select(message => message.MessageType));
         var receipt = Assert.Single(shop.Sender.Messages.OfType<BuyItemResponse>()).Receipt!;
         Assert.Equal(321, receipt.SkillPoints);
         Assert.Equal(77, receipt.Cera);
@@ -157,9 +158,11 @@ public sealed class NpcShopPurchaseTests
         using var shop = new ShopFixture();
         await shop.Seed(121, 1000, 100, 3);
         await shop.Buy(4000, 1);
+        Assert.Equal(new NpcShopPurchaseCount(4000, 1), Assert.Single(
+            Assert.Single(shop.Sender.Messages.OfType<ShopPurchaseCountResponse>()).Result.Counts));
         await shop.Query();
         Assert.Equal(new NpcShopPurchaseCount(4000, 1), Assert.Single(
-            shop.Sender.Messages.OfType<ShopPurchaseCountResponse>().Single().Result.Counts));
+            shop.Sender.Messages.OfType<ShopPurchaseCountResponse>().Last().Result.Counts));
         shop.Clock.Advance(TimeSpan.FromDays(1));
         shop.Select(2);
         await shop.Seed(121, 1000, 100, 3);
@@ -169,6 +172,26 @@ public sealed class NpcShopPurchaseTests
         Assert.Equal(100, shop.Count(1000));
         Assert.Equal(0, shop.Count(4000));
         Assert.Equal(1, shop.Scalar("SELECT SUM(count) FROM npc_shop_purchase_counts"));
+    }
+
+    [Fact]
+    public async Task Split_purchases_project_the_committed_cumulative_limit_count_after_each_transaction()
+    {
+        using var shop = new ShopFixture();
+        shop.Content.Items[5000] = shop.Content.Items[5000] with { Limit = new(NpcShopLimitScope.Account, 5, false) };
+        await shop.Seed(121, 1000, 25, 3); await shop.Seed(3, 5000, 9);
+        await shop.Buy(5000, 3);
+        Assert.Equal(new NpcShopPurchaseCount(5000, 3), Assert.Single(shop.Sender.Messages.OfType<BuyItemResponse>()).Receipt!.PurchaseCount);
+        Assert.Equal(new NpcShopPurchaseCount(5000, 3), Assert.Single(Assert.Single(shop.Sender.Messages.OfType<ShopPurchaseCountResponse>()).Result.Counts));
+        shop.Sender.Messages.Clear();
+        await shop.Buy(5000, 2);
+        Assert.Equal(14, shop.Count(5000)); Assert.Equal(0, shop.Count(1000));
+        Assert.Equal(new NpcShopPurchaseCount(5000, 5), Assert.Single(shop.Sender.Messages.OfType<BuyItemResponse>()).Receipt!.PurchaseCount);
+        Assert.Equal(new NpcShopPurchaseCount(5000, 5), Assert.Single(Assert.Single(shop.Sender.Messages.OfType<ShopPurchaseCountResponse>()).Result.Counts));
+        Assert.Equal(5, shop.Scalar("SELECT SUM(count) FROM npc_shop_purchase_counts"));
+        shop.Sender.Messages.Clear();
+        await shop.Buy(5000, 1);
+        Assert.Equal(0x85, Assert.IsType<BuyItemResponse>(Assert.Single(shop.Sender.Messages)).ErrorCode);
     }
 
     [Fact]

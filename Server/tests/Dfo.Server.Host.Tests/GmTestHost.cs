@@ -109,7 +109,7 @@ internal sealed class GmAuditFault { internal bool Throw { get; set; } }
 internal sealed class GmFaultAudit(IGmAdministrationPersistence persistence, GmAuditFault fault) : IGmAuditDomainService
 {
     public async ValueTask AppendAsync(GmAuditRecord record, CancellationToken token) { await persistence.AppendAuditAsync(record, token); if (fault.Throw) throw new InvalidOperationException("Injected audit storage failure"); }
-    public ValueTask<GmAuditPage> QueryAsync(int page, int pageSize, CancellationToken token) => persistence.QueryAuditAsync(page, pageSize, token);
+    public ValueTask<GmAuditPage> QueryAsync(int page, int pageSize, GmAuditFilter filter, CancellationToken token) => persistence.QueryAuditAsync(page, pageSize, filter, token);
 }
 internal sealed class GmLogCapture : ILoggerProvider
 {

@@ -37,7 +37,10 @@ public sealed class SelectCharacterPreparationService(
     Dfo.Server.Abstractions.Events.IJoustProjectionDomainService? joust = null,
     IEpicBookDomainService? epicBook = null,
     Dfo.Server.Abstractions.Achievements.IAchievementDomainService? achievements = null,
-    Dfo.Server.Abstractions.Achievements.ITitleBookDomainService? titles = null) : ISelectCharacterPreparationDomainService
+    Dfo.Server.Abstractions.Achievements.ITitleBookDomainService? titles = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService? marriage = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? weddingQuests = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null, Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService? capsules = null) : ISelectCharacterPreparationDomainService
 {
     public async ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
         SelectedSessionIdentity session,
@@ -158,7 +161,7 @@ public sealed class SelectCharacterPreparationService(
             preparationRules, preparedAt,
             cancellationToken).ConfigureAwait(false);
 
-        characterEntry = CharacterStateProjection.CompleteTitleAppearanceProjection(characterEntry, characterInventory);
+        characterEntry = CharacterStateProjection.CompleteAppearanceProjection(character, characterEntry, characterInventory);
         if (achievements is not null)
             characterEntry = characterEntry with { Features = characterEntry.Features with
             { Collections = characterEntry.Features.Collections with
@@ -168,6 +171,8 @@ public sealed class SelectCharacterPreparationService(
             { Collections = characterEntry.Features.Collections with
             { TitleBooks = await titles.GetAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) } } };
         var contentSubject = CharacterStateProjection.BuildContentSubject(equippedCreature, character, characterEntry, characterInventory);
+        if (weddingQuests is not null)
+            contentSubject = contentSubject with { EligibleWeddingQuestIds = await weddingQuests.EligibleQuestIdsAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) };
         var content = await worldContent.LoadAsync(contentSubject, cancellationToken)
             .ConfigureAwait(false);
         var channelPolicy = await placement.ResolveAsync(
@@ -224,13 +229,14 @@ public sealed class SelectCharacterPreparationService(
                 adjacent),
             roster,
             rosterEntry,
-            events is null || attendance is null ? null : new Dfo.Server.Data.Events.EventPlayerSnapshot(
+            events is null || attendance is null ? null : Dfo.Server.Application.Events.EventPlayerSnapshotProjection.WithScheduledDungeons(new(
                 await events.GetEventInfoListAsync(accountId,preparedAt,cancellationToken),
                 await attendance.StateAsync(accountId,preparedAt,cancellationToken),
-                joust is null ? null : await joust.ReadAsync(character.Identity.CharacterId,preparedAt,cancellationToken)),
-            epicBook is null ? [] : await epicBook.GetBalancesAsync(accountId, cancellationToken).ConfigureAwait(false));
+                joust is null ? null : await joust.ReadAsync(character.Identity.CharacterId,preparedAt,cancellationToken))),
+            epicBook is null ? [] : await epicBook.GetBalancesAsync(accountId, cancellationToken).ConfigureAwait(false),
+            marriage is null ? null : await marriage.SnapshotAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false));
 
-        return result;
+        return result with { Capsules = capsules is null ? null : await capsules.ReadAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false), Housing = housing is null ? null : await housing.ReadAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) };
     }
 
     internal static async ValueTask<CharacterSkillsEntryState> BuildInitialPvpSkillProfileAsync(

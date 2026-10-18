@@ -6,11 +6,13 @@ using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.MonsterDeath;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.UseStackable;
@@ -84,6 +86,8 @@ public sealed record UseStackableResponse(
 
     public CreatureRuntimeChange? CreatureChange { get; init; }
     public ItemUseSlotState? InventoryState { get; init; }
+    public ExperienceAward? ExperienceAward { get; init; }
+    public CharacterSkillProtocolMirrorState? SkillPoints { get; init; }
 
     public ServerMessageType MessageType => ServerMessageType.GameUseStackable;
 
@@ -210,6 +214,8 @@ public sealed record ItemUseResult(ItemUseStatus Status, int ItemId, int Remaini
     CreatureRuntimeChange? CreatureChange = null)
 {
     public ItemUseSlotState? InventoryState { get; init; }
+    public ExperienceAward? ExperienceAward { get; init; }
+    public CharacterSkillProtocolMirrorState? SkillPoints { get; init; }
 
     public static ItemUseResult Refused(ItemUseStatus status, int itemId = 0) =>
         new(status, itemId, 0);
@@ -287,6 +293,8 @@ public sealed class UseStackableCommandHandler(
         return new ItemUseResult(ItemUseStatus.Used, applied.ItemId, applied.RemainingCount, creatureChange)
         {
             InventoryState = new(remaining?.Snapshot, (timeProvider ?? TimeProvider.System).GetUtcNow()),
+            ExperienceAward = applied.ExperienceAward,
+            SkillPoints = applied.SkillPoints,
         };
     }
     /// <summary>
@@ -342,6 +350,19 @@ public sealed class UseStackableHandler(
                     [new(item.ItemUid, response.Slot.Index, item.ToCore(), item.AvatarDetail)], state.PreparedAt))
                 : GameInventoryDelivery.ClearedSlotNotification(response.Slot.Space, response.Slot.Index, state.PreparedAt));
         }
+        if (response.ExperienceAward is { } award && response.SkillPoints is { } points)
+        {
+            messages.Add(new ExperienceNotification(
+                award.Level,
+                award.NotificationTotal,
+                points,
+                AccountHonorLevel.Initial,
+                ExperienceBonusLines.Of(award)));
+        }
+        else if (response.ExperienceAward is not null || response.SkillPoints is not null)
+        {
+            throw new InvalidOperationException("Experience item response requires both experience and skill points.");
+        }
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(messages, []),
@@ -385,7 +406,12 @@ public sealed class UseStackableHandler(
                 result.RemainingCount);
             return UseStackableResponse.Success(
                 responseSlot, message.InstanceValue, result.ItemId) with
-                { CreatureChange = result.CreatureChange, InventoryState = result.InventoryState };
+                {
+                    CreatureChange = result.CreatureChange,
+                    InventoryState = result.InventoryState,
+                    ExperienceAward = result.ExperienceAward,
+                    SkillPoints = result.SkillPoints,
+                };
         }
 
         logger.LogInformation(

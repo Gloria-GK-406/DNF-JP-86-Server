@@ -22,6 +22,7 @@ public sealed record AccountSettingsEntryState(
     ushort? AccountHotkeySlot)
 {
     public IReadOnlyList<byte> SeenNotices { get; init; } = [];
+    public IReadOnlyList<HotkeyProfileState> HotkeyProfiles { get; init; } = [];
 }
 
 public sealed record AccountWalletEntryState(

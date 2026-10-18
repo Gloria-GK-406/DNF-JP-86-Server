@@ -12,6 +12,8 @@ public sealed record TournamentDefinition(
     IReadOnlyList<TournamentRewardItem> RewardItems, double GoldRate)
 {
     public int CoinLimit { get; init; }
+    public bool ConsumesFatigue { get; init; } = true;
+    public int? DailyEntries { get; init; }
 }
 public sealed record TournamentTeam(byte Position, int Code, int Strength);
 public sealed record TournamentBracketRound(byte Number, IReadOnlyList<TournamentTeam> Teams);
@@ -28,8 +30,10 @@ public interface ITournamentDungeonContentSource
 
 public interface ITournamentDungeonRuleService
 {
+    IReadOnlyList<int> DungeonIds { get; }
     TimeSpan RewardSelectionWindow { get; }
     bool IsSupported(int dungeonId);
-    ValueTask<TournamentPlan> PrepareAsync(int dungeonId, uint seed, CancellationToken cancellationToken);
+    ValueTask<TournamentDefinition> GetDefinitionAsync(int dungeonId, CancellationToken cancellationToken);
+    ValueTask<TournamentPlan> PrepareAsync(int dungeonId, uint seed, IReadOnlySet<ushort> reservedActorIds, CancellationToken cancellationToken);
     IReadOnlyList<IReadOnlyList<TournamentRewardCard>> Rewards(TournamentPlan plan, int completedRounds, int characterLevel);
 }

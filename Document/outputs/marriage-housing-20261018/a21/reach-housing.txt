@@ -1,0 +1,17 @@
+exe=E:\Project\DNF\DNFClient-A21-protocol\DNF.unpacked-b1-debug.exe
+exe_sha256=CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14
+dump=E:\Project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260906-224825-165-31384\DNF-memory-rva.bin
+dump_sha256=6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507
+image_base=00400000  (VA = RVA + base)
+evidence=ClientStatic; read-only
+
+===== reach from couple_storage_quickmove_via_inventory RVA 01304E40 depth 3; functions visited 459 =====
+type      ? site 012FB042 path 01304E40 > 012FA5F0
+type 0x0013 site 012FB1A4 path 01304E40 > 012FA5F0
+type 0x03E8 site 00898DA9 path 01304E40 > 008A6580 > 00898D90
+
+===== reach from couple_storage_slot_click RVA 0087C310 depth 3; functions visited 302 =====
+type      ? site 012FB042 path 0087C310 > 01304E40 > 012FA5F0
+type 0x0013 site 012FB1A4 path 0087C310 > 01304E40 > 012FA5F0
+type 0x03E8 site 00898DA9 path 0087C310 > 01304E40 > 008A6580 > 00898D90
+

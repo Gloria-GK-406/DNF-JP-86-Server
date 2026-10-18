@@ -52,6 +52,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
+## 2026-10-18 组队循环任务同步（CurrentImplementation / ClientStatic High）
+
+静态复核 RVA `00D62440..00D6250C` 及其任务入口 VA `00E75F17..00E75F32`：快照可从任务定义建立缺失任务，不进入 CMD0308/001F 的自动入场续接。当前组队循环在公共入场成功后，为本事务新补接任务的队员入队 `QuestProgressChanged`，复用既有通知路径发送完整任务快照；允许异步晚于地图入场，不新增本帧字段。
+
+证据与限制见 [组队循环修复](/E:/Project/DNF/DNF-JP-86-Server/Document/PartyCycleEntryFix-20261018.md)。该新增触发源尚未标记为双端 ClientVerified。
+
 ## 2026-10-11 地图清理异步任务刷新（CurrentImplementation）
 
 普通地下城清房与死亡／迷妄塔清层统一在原业务事务中入队 `DungeonMapCleared`。

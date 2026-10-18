@@ -1,0 +1,27 @@
+etc/techimageindexfile1.etc	54167 sprite/character/mage/equipment/avatar/face/mg_face10705b.img 54168 sprite/character/mage/equipment/avatar/face/mg_face10800c.img 54169 sprite/character/mage/equipment/avatar/face/mg_face10800c_mask1.img 54170 sprite/character/mage/equipment/avatar/face/mg_face10801c.img 54171 sprite/character/mage/equipment/avatar/face/mg_face10802c.img 54172 sprite/character/mage/equipment/avatar/face/mg_face10803c.img 54173
+passiveobject/passiveobject.lst	54155 ActionObject/C_Event/WeddingDungeon/buff_trigger.obj 54156 ActionObject/C_Event/WeddingDungeon/buff_controller.obj 54157 ActionObject/C_Event/WeddingDungeon/mini_zepplin.obj 54170 MapObject/PathGate/CoupleRoom/couple_room_gate.obj 54171 event/wedding/weddingCinema.obj 54172 MapObject/Obstacle/chn_dragondungeon/chn_dark_00_StoneWall.obj 54173
+map/alfhlyra/gate_alfh.map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 [/passive object] [NPC] 2
+map/chn_april_fools_day_2015/gate_seria_event(gate_battleship).map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 54416 -2 -217
+map/chn_april_fools_day_2015/gate_seria_event(gate_battleship2).map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 54416 -2 -217
+map/chn_april_fools_day_2015/gate_seria_event(gate_behemoth).map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 54416 -2 -217
+map/chn_april_fools_day_2015/gate_seria_event(gate_gent).map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 54416 -2 -217
+map/chn_april_fools_day_2015/gate_seria_event(gate_lufthafent).map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 54416 -2 -217
+map/chn_april_fools_day_2015/gate_seria_event(gate_sainthorn).map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 54416 -2 -217
+map/chn_april_fools_day_2015/gate_seria_event(gate_sewer).map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 54416 -2 -217
+map/chn_april_fools_day_2015/gate_seria_event(gate_shelterofnorth).map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 54416 -2 -217
+map/chn_april_fools_day_2015/gate_seria_event(gate_shonan).map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 54416 -2 -217
+map/chn_april_fools_day_2015/gate_seria_event(gate_shonan_holy).map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 54416 -2 -217
+map/chn_april_fools_day_2015/gate_seria_event(gate_slough).map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 54416 -2 -217
+map/chn_april_fools_day_2015/gate_seria_event(gate_underfoot).map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 54416 -2 -217
+map/chn_april_fools_day_2015/gate_seria_event(silvercrown).map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 54416 -2 -217
+map/chn_dragon_shonan_holyland/gate_shonan_holy.map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 [/passive object] [NPC] 2
+map/common/(r)gate_seria.map	[closeback] 0 0 0 [/animation] [passive object] 54170 49 224 0 690 1633 216
+map/elvengard/gate.map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 [/passive object] [NPC] 2
+map/gent/gate_gent.map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 [/passive object] [NPC] 2
+map/hendonmyre/gate_hendon.map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 [/passive object] [NPC] 2
+map/hendonmyre/gate_west.map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 [/passive object] [NPC] 2
+map/lufthafen/gate_lufthafent.map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 [/passive object] [NPC] 2
+map/shonan/gate_shonan.map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 [/passive object] [NPC] 20025
+map/slough/gate_slough.map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 [/passive object] [NPC] 2
+map/stormpass/gate_storm.map	[/animation] [passive object] 690 1633 216 0 54170 48 226 0 [/passive object] [NPC] 2
+map/town/common/(r)gate_seria.map	[/animation] [passive object] 690 1633 216 0 54170 64 175 0 [/passive object] [NPC] 32

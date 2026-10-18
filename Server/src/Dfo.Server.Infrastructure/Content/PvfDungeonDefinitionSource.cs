@@ -315,7 +315,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             dungeonId, archivePath, minimumLevel, consumesFatigue, mazes, basisLevel,
             experienceWeight, offersPaidCard, questConnection,
             designatedDifficulties ?? difficultyLevels ?? (fixedDifficulty is >= 0 ? [(byte)fixedDifficulty.Value] : []), entryMode)
-        { RequiredItems = requiredItems, HasStoryMode = hasStoryMode, NamedMonsterCodes = namedMonsterCodes.ToImmutable() };
+        { RecommendedLevels = document.Read(PvfField.Int32List("[recommended level]", optional: true)) ?? [], RequiredItems = requiredItems, HasStoryMode = hasStoryMode, NamedMonsterCodes = namedMonsterCodes.ToImmutable() };
     }
 
     private static byte CellCoordinate(int value, string path, PvfField field)

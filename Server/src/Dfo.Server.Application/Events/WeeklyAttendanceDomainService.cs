@@ -43,11 +43,11 @@ internal sealed class WeeklyAttendanceDomainService(IEventPersistence store,IWee
         return new(EventId,c.Revision,c.SeasonId,d?.SourcePath ?? "event/chn_event/chn_totalattendance.evt",d is not null,error,
             d?.RequiredClears,d?.TotalWeeks,d is null ? [] : Display(d.WeeklyRewards),d is null ? [] : Display(d.CumulativeRewards));
     }
-    public async ValueTask<EventInfo?> GetEventInfoAsync(AccountId account,DateTimeOffset now,CancellationToken ct)
+    public async ValueTask<EventInfo[]> GetEventInfoEntriesAsync(AccountId account,DateTimeOffset now,CancellationToken ct)
     {
         var c = await Configuration(ct);
-        if (account.Value <= 0 || !Active(c,now) || (await Definition(c,ct)).Definition is null) return null;
-        return new(EventId,c.Title,c.ShortName,c.Description,c.StartNotice,c.EndNotice,c.StartsAt!.Value,c.EndsAt!.Value,"total attendance check event/0/0");
+        if (account.Value <= 0 || !Active(c,now) || (await Definition(c,ct)).Definition is null) return [];
+        return [new(EventId,c.Title,c.ShortName,c.Description,c.StartNotice,c.EndNotice,c.StartsAt!.Value,c.EndsAt!.Value,"total attendance check event/0/0")];
     }
     public async ValueTask ChangeAsync(EventChange change,string actor,DateTimeOffset now,CancellationToken ct)
     {

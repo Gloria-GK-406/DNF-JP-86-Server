@@ -15,6 +15,32 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 /// </remarks>
 public sealed class PvfItemUseRuleDefinitionSourceTests
 {
+    [SkippableTheory]
+    [InlineData(10002625)] [InlineData(10002626)]
+    public async Task Wedding_fireworks_have_shared_consumable_effect_rules(int itemId)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var rule = await new PvfItemUseRuleDefinitionSource(provider).GetAsync(itemId, default);
+        Assert.NotNull(rule); Assert.True(rule.IsReadable); Assert.True(rule.IsConsumedOnUse);
+        Assert.Equal((byte)0, rule.SharedEffectSelector); Assert.Equal(100, rule.CooldownMilliseconds);
+    }
+
+    [SkippableTheory]
+    [InlineData(10002901, "[love point coupon]")]
+    [InlineData(10002611, "[upgrade wedding ring]")]
+    public async Task Real_archive_exposes_marriage_actions_to_the_item_use_guard(int itemId, string action)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfItemUseRuleDefinitionSource(provider);
+
+        var rule = await source.GetAsync(itemId, CancellationToken.None);
+
+        Assert.NotNull(rule);
+        Assert.Equal(action, rule.Action);
+    }
+
     [SkippableFact]
     public async Task Real_archive_reads_spirit_potion_bonus_and_effect_duration()
     {

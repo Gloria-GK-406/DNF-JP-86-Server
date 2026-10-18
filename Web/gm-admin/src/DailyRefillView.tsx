@@ -1,19 +1,31 @@
 import { useEffect, useRef, useState } from 'react';
-import { App, Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography } from 'antd';
+import { Button, Drawer, Input, InputNumber, Popconfirm, Segmented, Table } from 'antd';
+import { InfoCircleOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { api, ApiError } from './api';
-import { useGmRead } from './useGmRead';
-import { useNotiBar } from './NotiBar';
+import { bjTime, nf, numberFormat } from './format';
 import { ItemPicker } from './ItemPicker';
+import { ItemIcon, ItemName } from './itemInfo';
+import { useNotiBar } from './NotiBar';
+import { useConfirmLeave } from './useGmAction';
+import { useGmRead } from './useGmRead';
+import { Banner, Field, LockBanner, PageHead, Pill, type PillKind } from './ui';
+
 export type RefillEntry = { itemId: number; name: string; source: 'pvf' | 'custom'; quantity: number; mode: number;
   expiresAt: string | null; status: string; pvfEnabled: boolean };
 export type RefillList = { revision: number; entries: RefillEntry[]; updatedAt: string | null; updatedBy: string | null };
 type Access = { onExpired: () => void; onDenied: () => void };
 type Change = { action: string; itemId: number; quantity?: number; mode?: number; expiresAt?: string | null; enabled?: boolean };
-const statuses: Record<string, string> = { active: '生效', overridden: '已被自定义覆盖', disabled: '已禁用', expired: '已过期', inactive: '不发放', unsupported: '物品不支持' };
+const statuses: Record<string, [string, PillKind]> = { active: ['生效', 'ok'], overridden: ['已被自定义覆盖', 'idle'], disabled: ['已禁用', 'attn'], expired: ['已过期', 'idle'],
+  inactive: ['不发放', 'idle'], unsupported: ['物品不支持', 'attn'] };
+type Filter = 'all' | 'active' | 'pvf' | 'custom' | 'off';
+/** datetime-local value in Beijing time ↔ ISO instant. */
+function localTime(value?: string | null) { return value ? new Date(new Date(value).getTime() + 8 * 3600000).toISOString().slice(0, 16) : ''; }
+
 export function DailyRefillView(access: Access) {
-  const current = useGmRead<RefillList>('daily-refill', access.onExpired, access.onDenied); const noti = useNotiBar(); const { modal } = App.useApp();
+  const current = useGmRead<RefillList>('daily-refill', access.onExpired, access.onDenied); const noti = useNotiBar();
   const [editor, setEditor] = useState<{ revision: number; entry?: RefillEntry }>();
   const [busy, setBusy] = useState(false); const [uncertain, setUncertain] = useState(false);
+  const [filter, setFilter] = useState<Filter>('all');
   const saving = useRef(false); const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   async function change(input: Change, revision: number) {
@@ -25,74 +37,100 @@ export function DailyRefillView(access: Access) {
       if (!alive.current) return;
       if (failure instanceof ApiError && failure.status === 401) access.onExpired();
       else if (failure instanceof ApiError && failure.status === 403) access.onDenied();
-      else { if (!(failure instanceof ApiError) || failure.status >= 500 || failure.status === 409) setUncertain(true); noti.failure(failure); }
+      else {
+        if (!(failure instanceof ApiError) || failure.status >= 500 || failure.status === 409) { setUncertain(true); setEditor(undefined); }
+        noti.failure(failure);
+      }
     } finally { saving.current = false; if (alive.current) setBusy(false); }
-  }
-  function confirm(row: RefillEntry) {
-    const revision = current.data!.revision;
-    const deleting = row.source === 'custom';
-    modal.confirm({ title: deleting ? `删除 ${row.name} 的自定义补给？` : `${row.pvfEnabled ? '禁用' : '恢复'} ${row.name} 的 PVF 补给？`,
-      content: deleting ? '删除后，如存在已启用且有效的同物品 PVF 规则，将恢复执行该规则。当天已处理记录保留。' : '仅改变服务器补给开关，不修改 PVF 文件，也不重置当天已处理记录。',
-      okText: deleting ? '删除规则' : row.pvfEnabled ? '禁用规则' : '恢复规则', cancelText: '取消',
-      onOk: () => change({ action: deleting ? 'delete' : 'pvf', itemId: row.itemId, ...(deleting ? {} : { enabled: !row.pvfEnabled }) }, revision) });
   }
   function reload() { setEditor(undefined); setUncertain(false); current.refresh(); }
   const locked = busy || uncertain || current.busy || !current.data;
-  return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-    <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>角色每日首次入场时尽可能补给。优先叠堆，再使用空位；放不下的部分直接跳过并计为当天已处理，整理背包或重登不会补发。</Typography.Paragraph>
-    <Card title="每日补给规则" extra={<Space><Button disabled={busy || current.busy} onClick={reload}>{uncertain ? '重新读取生效规则' : '刷新规则'}</Button>
-      <Button type="primary" disabled={locked} onClick={() => setEditor({ revision: current.data!.revision })}>添加补给</Button></Space>}>
-      <Typography.Paragraph type="secondary">PVF 规则自动识别；同一物品自定义规则优先，每日只处理一次。来源和状态可通过表头筛选。
-        {current.data && ` 配置版本 ${current.data.revision}${current.data.updatedBy ? ` · ${current.data.updatedBy}` : ' · 系统默认'}`}</Typography.Paragraph>
-      <Table<RefillEntry> rowKey={row => `${row.source}:${row.itemId}`} dataSource={current.data?.entries ?? []} loading={current.busy} scroll={{ x: 1040 }}
-        pagination={{ pageSize: 20, hideOnSinglePage: true }} columns={[
-          { title: '物品', width: 235, render: (_, row) => <><Typography.Text strong>{row.name}</Typography.Text><div className="mail-item-id">ID {row.itemId}</div></> },
-          { title: '来源', width: 95, dataIndex: 'source', filters: [{ text: 'PVF', value: 'pvf' }, { text: '自定义', value: 'custom' }],
-            onFilter: (v, row) => row.source === v, render: source => <Tag color={source === 'pvf' ? 'blue' : 'purple'}>{source === 'pvf' ? 'PVF' : '自定义'}</Tag> },
-          { title: '补给方式', width: 115, render: (_, row) => row.mode === 0 ? '存量补齐' : '增量发放' },
-          { title: '数量', width: 95, dataIndex: 'quantity' },
-          { title: '有效期', width: 165, render: (_, row) => row.expiresAt ? new Date(row.expiresAt).toLocaleString('zh-CN') : '长期有效' },
-          { title: '状态', width: 150, dataIndex: 'status', filters: Object.entries(statuses).map(([value, text]) => ({ value, text })),
-            onFilter: (v, row) => row.status === v, render: status => <Tag color={status === 'active' ? 'green' : undefined}>{statuses[status] ?? status}</Tag> },
-          { title: '操作', width: 210, render: (_, row) => <Space>
-            <Button size="small" disabled={locked} onClick={() => setEditor({ revision: current.data!.revision, entry: row })}>
-              {row.source === 'custom' ? '编辑' : '自定义覆盖'}</Button>
-            <Button size="small" danger={row.source === 'custom' || row.pvfEnabled} disabled={locked} onClick={() => confirm(row)}>
-              {row.source === 'custom' ? '删除' : row.pvfEnabled ? '禁用' : '恢复'}</Button>
-          </Space> },
+  const entries = current.data?.entries ?? [];
+  const counts: Record<Filter, number> = { all: entries.length, active: entries.filter(e => e.status === 'active').length, pvf: entries.filter(e => e.source === 'pvf').length,
+    custom: entries.filter(e => e.source === 'custom').length, off: entries.filter(e => e.status !== 'active').length };
+  const shown = entries.filter(e => filter === 'all' || (filter === 'active' ? e.status === 'active' : filter === 'off' ? e.status !== 'active' : e.source === filter))
+    .sort((a, b) => (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1));
+  const days = (value: string) => Math.ceil((new Date(value).getTime() - Date.now()) / 86400000);
+  const data = current.data;
+  return <div className="page">
+    <PageHead title="每日补给" info="角色每天首次入场时尽量补给：先叠堆再用空位，放不下的部分跳过并记为当天已处理，整理背包或重登不会补发。">
+      {data && <span className="faint small">版本 {data.revision} · {data.updatedBy ?? '系统默认'}{data.updatedAt && <> · <span className="mono">{bjTime(data.updatedAt)}</span></>}</span>}
+      <Button size="small" icon={<ReloadOutlined />} loading={current.busy} disabled={busy} onClick={reload}>{uncertain ? '重新读取生效规则' : '刷新规则'}</Button>
+      <Button size="small" type="primary" icon={<PlusOutlined />} disabled={locked} onClick={() => setEditor({ revision: data!.revision })}>添加补给</Button>
+    </PageHead>
+    {uncertain && <LockBanner onReload={reload} busy={current.busy} what="规则" label="重新读取生效规则" />}
+    <section className="panel">
+      <div className="toolbar"><Segmented size="small" value={filter} onChange={value => setFilter(value as Filter)}
+        options={([['all', '全部'], ['active', '生效'], ['pvf', 'PVF 原生'], ['custom', '自定义'], ['off', '未生效']] as [Filter, string][]).map(([value, label]) => ({ value, label: `${label} ${counts[value]}` }))} />
+        <span className="faint small" style={{ marginInlineStart: 'auto' }}>PVF 规则自动识别；同一物品自定义规则优先，每天只处理一次</span></div>
+      <Table<RefillEntry> className="ledger" size="small" rowKey={e => `${e.source}:${e.itemId}`} dataSource={shown} loading={current.busy} pagination={false} scroll={{ x: 960 }}
+        rowClassName={e => e.status !== 'active' ? 'row-dim' : ''} locale={{ emptyText: current.error ? '读取失败' : '这一类没有规则' }} columns={[
+          { title: '物品', key: 'i', render: (_, e) => <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}><ItemIcon itemId={e.itemId} brief={{ name: e.name }} size="sm" /><ItemName itemId={e.itemId} brief={{ name: e.name }} /></span> },
+          { title: '来源', dataIndex: 'source', width: 80, render: v => <span className={`chip ${v === 'custom' ? 'accent' : ''}`}>{v === 'pvf' ? 'PVF' : '自定义'}</span> },
+          { title: '方式', dataIndex: 'mode', render: v => v === 0 ? '存量补齐' : '增量发放' },
+          { title: '数量', dataIndex: 'quantity', align: 'end', render: (v, e) => <span className="mono">{e.mode === 0 ? `补到 ${nf(v)}` : `+${nf(v)}`}</span> },
+          { title: '有效期', dataIndex: 'expiresAt', render: v => !v ? <span className="faint">长期</span> : days(v) > 0
+            ? <span><span className="mono small">{bjTime(v)}</span> <span className="faint small">还剩 {days(v)} 天</span></span> : <span className="mono small faint">{bjTime(v)}</span> },
+          { title: '状态', dataIndex: 'status', render: v => <Pill kind={statuses[v]?.[1] ?? 'idle'}>{statuses[v]?.[0] ?? v}</Pill> },
+          { title: '', key: 'op', align: 'end', fixed: 'right', width: 150, render: (_, e) => <span style={{ display: 'inline-flex', gap: 2 }}>
+            {e.source === 'custom' ? <>
+              <Button size="small" type="text" disabled={locked} onClick={() => setEditor({ revision: data!.revision, entry: e })}>编辑</Button>
+              <Popconfirm title={`删除 ${e.name} 的自定义补给？`} description="删除后，如存在已启用且有效的同物品 PVF 规则，将恢复执行该规则。当天已处理记录保留。" okText="删除规则" cancelText="取消"
+                onConfirm={() => change({ action: 'delete', itemId: e.itemId }, data!.revision)} disabled={locked}><Button size="small" type="text" danger disabled={locked}>删除</Button></Popconfirm>
+            </> : <>
+              {e.status !== 'overridden' && <Button size="small" type="text" disabled={locked} onClick={() => setEditor({ revision: data!.revision, entry: e })}>自定义覆盖</Button>}
+              <Popconfirm title={`${e.pvfEnabled ? '禁用' : '恢复'} ${e.name} 的 PVF 补给？`} description="仅改变服务器补给开关，不修改 PVF 文件，也不重置当天已处理记录。"
+                okText={e.pvfEnabled ? '禁用规则' : '恢复规则'} cancelText="取消" onConfirm={() => change({ action: 'pvf', itemId: e.itemId, enabled: !e.pvfEnabled }, data!.revision)} disabled={locked}>
+                <Button size="small" type="text" danger={e.pvfEnabled} disabled={locked}>{e.pvfEnabled ? '禁用' : '恢复'}</Button></Popconfirm>
+            </>}</span> },
         ]} />
-    </Card>
-    {editor && <RefillEditor key={`${editor.revision}:${editor.entry?.itemId ?? 'new'}`} entry={editor.entry} busy={busy} uncertain={uncertain}
-      {...access} onClose={() => setEditor(undefined)} onReload={reload} onSave={input => change(input, editor.revision)} />}
-  </Space>;
+    </section>
+    {editor && <RefillEditor key={`${editor.revision}:${editor.entry?.source ?? ''}:${editor.entry?.itemId ?? 'new'}`} entry={editor.entry} entries={entries} busy={busy} {...access}
+      onClose={() => setEditor(undefined)} onSave={input => change(input, editor.revision)} />}
+  </div>;
 }
-function localTime(value?: string | null) { if (!value) return ''; const date = new Date(value); return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
-function RefillEditor({ entry, busy, uncertain, onSave, onClose, onReload, ...access }: Access & { entry?: RefillEntry; busy: boolean; uncertain: boolean;
-  onSave: (change: Change) => Promise<void>; onClose: () => void; onReload: () => void }) {
-  const [form] = Form.useForm(); const noti = useNotiBar(); const { modal } = App.useApp(); const [dirty, setDirty] = useState(false); const [picker, setPicker] = useState(false);
-  const mode = Form.useWatch('mode', form) ?? entry?.mode ?? 0;
+
+function RefillEditor({ entry, entries, busy, onSave, onClose, onExpired, onDenied }: Access & { entry?: RefillEntry; entries: RefillEntry[]; busy: boolean;
+  onSave: (change: Change) => Promise<void>; onClose: () => void }) {
+  const confirmLeave = useConfirmLeave();
   const [item, setItem] = useState(entry ? { itemId: entry.itemId, name: entry.name } : undefined);
-  function close() { if (busy) return; if (!dirty) onClose(); else modal.confirm({ title: '放弃尚未保存的修改？', okText: '放弃修改', cancelText: '继续编辑', onOk: onClose }); }
-  return <Modal title={entry?.source === 'custom' ? '编辑每日补给' : entry ? '自定义覆盖 PVF 补给' : '添加每日补给'} open width={680} onCancel={close}
-    closable={!busy} keyboard={!busy} mask={{ closable: false }} destroyOnHidden footer={<Space><Button disabled={busy} onClick={close}>取消</Button>
-      {uncertain ? <Button type="primary" onClick={onReload}>重新读取生效规则</Button> : <Button type="primary" loading={busy} onClick={() => form.submit()}>保存并生效</Button>}</Space>}>
-    <Typography.Paragraph type="secondary">当天已处理记录保留；空间不足造成的未发放数量不会补发。自定义规则覆盖同物品的 PVF 规则。</Typography.Paragraph>
-    <Form form={form} layout="vertical" initialValues={{ quantity: entry?.quantity || 1, mode: entry?.mode ?? 0, expiry: localTime(entry?.expiresAt) }}
-      disabled={busy || uncertain} onValuesChange={() => setDirty(true)} onFinishFailed={() => noti.error('请核对补给字段。')}
-      onFinish={async values => {
-        if (!item) { noti.error('请先选择补给物品。'); return; }
-        const expiry = values.expiry ? new Date(values.expiry) : null;
-        if (expiry && (Number.isNaN(expiry.getTime()) || expiry.getTime() <= Date.now())) { noti.error('截止时间须晚于当前时间，或清空以长期生效。'); return; }
-        await onSave({ action: entry?.source === 'custom' ? 'update' : 'add', itemId: item.itemId, quantity: values.quantity, mode: values.mode, expiresAt: expiry?.toISOString() ?? null });
-      }}>
-      <Form.Item label="补给物品"><Space><Typography.Text>{item ? `${item.name}（ID ${item.itemId}）` : '尚未选择物品'}</Typography.Text>
-        {!entry && <Button disabled={busy || uncertain} onClick={() => setPicker(true)}>选择补给物品</Button>}</Space></Form.Item>
-      <Form.Item name="mode" label="补给方式" rules={[{ required: true }]}><Select options={[{ value: 0, label: '存量补齐：只补当前缺口，不扣除超出部分' }, { value: 1, label: '增量发放：额外发放指定数量' }]} /></Form.Item>
-      <Form.Item name="quantity" label={mode === 0 ? '目标数量' : '发放数量'} rules={[{ required: true, type: 'integer', min: 1, max: 2147483647, message: '请输入正整数数量' }]}><InputNumber min={1} max={2147483647} precision={0} style={{ width: '100%' }} /></Form.Item>
-      <Form.Item name="expiry" label="截止时间（留空为长期有效）"><Input type="datetime-local" /></Form.Item>
-    </Form>
-    {picker && <ItemPicker purpose="daily-refill" {...access} onClose={() => setPicker(false)} onChoose={(selected, details) => {
-      setItem({ itemId: selected.itemId, name: details.item.name }); form.setFieldValue('quantity', selected.count); setPicker(false); setDirty(true); return undefined;
+  const [mode, setMode] = useState(entry?.mode ?? 0);
+  const [quantity, setQuantity] = useState<number | null>(entry?.quantity || 1);
+  const [expiry, setExpiry] = useState(entry?.source === 'custom' ? localTime(entry.expiresAt) : '');
+  const [picker, setPicker] = useState(false); const [dirty, setDirty] = useState(false);
+  const touch = () => setDirty(true);
+  const mode_ = entry?.source === 'custom' ? 'edit' : entry ? 'override' : 'add';
+  const exists = mode_ === 'add' && !!item && entries.some(x => x.source === 'custom' && x.itemId === item.itemId);
+  const expiryTime = expiry ? new Date(`${expiry}:00+08:00`) : null;
+  const expiryError = expiryTime && (Number.isNaN(expiryTime.getTime()) || expiryTime.getTime() <= Date.now()) ? '截止时间要晚于现在；留空就是长期有效' : '';
+  const ok = !!item && quantity !== null && Number.isInteger(quantity) && quantity >= 1 && !expiryError && !exists;
+  const close = () => { if (!busy) confirmLeave(dirty, onClose); };
+  const title = mode_ === 'edit' ? '编辑每日补给' : mode_ === 'override' ? '自定义覆盖 PVF 补给' : '添加每日补给';
+  return <Drawer open size={560} title={title} onClose={close} mask={{ closable: false }} closable={!busy} keyboard={!busy}
+    footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}><Button disabled={busy} onClick={close}>取消</Button>
+      <Button type="primary" loading={busy} disabled={!ok} onClick={() => item && void onSave({ action: mode_ === 'edit' ? 'update' : 'add', itemId: item.itemId, quantity: quantity!, mode,
+        expiresAt: expiryTime?.toISOString() ?? null })}>保存并生效</Button></div>}>
+    <div className="form">
+      {mode_ === 'override' && <Banner icon={<InfoCircleOutlined />} title="覆盖之后以这条为准">PVF 原规则保留，删掉自定义规则就会恢复。</Banner>}
+      <Field label="补给物品" err={exists ? '这件已经有自定义规则了，去列表里编辑那一条' : undefined}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>{item ? <><ItemIcon itemId={item.itemId} brief={{ name: item.name }} size="sm" /><ItemName itemId={item.itemId} brief={{ name: item.name }} /></>
+          : <span className="faint">尚未选择物品</span>}
+          {mode_ === 'add' && <Button size="small" disabled={busy} onClick={() => setPicker(true)}>{item ? '换一个' : '选择补给物品'}</Button>}</div>
+      </Field>
+      <Field label="补给方式">
+        <div className="choice" role="radiogroup" aria-label="补给方式">
+          <button role="radio" aria-checked={mode === 0} className={mode === 0 ? 'on' : ''} disabled={busy} onClick={() => { setMode(0); touch(); }}><b>存量补齐</b><span>背包里不够目标数量时补上缺口，多出来的不扣</span></button>
+          <button role="radio" aria-checked={mode === 1} className={mode === 1 ? 'on' : ''} disabled={busy} onClick={() => { setMode(1); touch(); }}><b>增量发放</b><span>每天额外发固定数量，不看现有多少</span></button>
+        </div>
+      </Field>
+      <Field label={mode === 0 ? '目标数量' : '发放数量'} htmlFor="refill-quantity"><InputNumber<number> id="refill-quantity" min={1} max={2147483647} precision={0} style={{ width: 200 }} disabled={busy}
+        value={quantity} onChange={value => { setQuantity(value); touch(); }} {...numberFormat} /></Field>
+      <Field label="截止时间（北京时间，留空为长期有效）" htmlFor="refill-expiry" err={expiryError || undefined}><Input id="refill-expiry" type="datetime-local" value={expiry} disabled={busy}
+        onChange={event => { setExpiry(event.target.value); touch(); }} style={{ width: 240 }} /></Field>
+      <span className="faint small">当天已处理记录保留；空间不足造成的未发放数量不会补发。自定义规则覆盖同物品的 PVF 规则。</span>
+    </div>
+    {picker && <ItemPicker purpose="refill" onExpired={onExpired} onDenied={onDenied} onClose={() => setPicker(false)} onConfirm={(adds, details) => {
+      const chosen = adds[0]; setItem({ itemId: chosen.itemId, name: details[chosen.itemId]?.item.name ?? `物品 ${chosen.itemId}` }); setDirty(true); return undefined;
     }} />}
-  </Modal>;
+  </Drawer>;
 }

@@ -224,14 +224,12 @@ PVF 表索引 84。数据库 `level` 仅为 SQL 兼容投影，启动时归一�
 Visit 在创建出生房时扣除 1 点；入场凭证不含疲劳费用，避免重复扣除。后续首次进入新房间扣 1 点，重访不扣；
 不消耗疲劳的副本跳过这两步。当前实现和自动测试不等同于 A21 实机验收。
 
-**设置与连招今天刻意没有消费方，别当死代码删掉。** 两者都有真实的表、真实的 SQL，判据对着真库
-校验它们答得对；缺的是调用方，而调用方要等改键协议与连招编辑协议做进来。
-证据：`character_hotkey_slots` 在 `Server/src` 里只有 `CREATE TABLE` 与一条 `SELECT`；
-`character_settings` 只有 `CREATE TABLE`、一条 `SELECT` 与建号时的 `INSERT … DO NOTHING`；
-全仓 `UPDATE character_settings` / `UPDATE character_hotkey` 零命中；唯一携带选项位图的入站协议
-`SaveGameOption1Handler` 自己的摘要写着 "Nothing is persisted yet"。连招 store 的写路径
-（`INSERT … ON CONFLICT DO UPDATE`、`DELETE`）已经建好，同样零调用方；入场读走的仍是
-`ICharacterComboPageTable`。**没有任何架构判据会注意到它们长期无人调用**，所以这一段就是那个提醒。
+**客户端设置按blob保存。** C5主设置、170两个快捷聊天bank由`IClientSettingsDomainService`按账号独立更新；
+C6完整文本按账号＋profile存入`account_hotkey_options`。登录使用普通profile，选角职业10使用缔造者profile1，
+其余使用0；精确连接上下文归属上传，未下发／无法归属的profile不猜写。旧`character_hotkey_slots`和账号
+二进制槽列只保留兼容，不用于A21的1C7文本回放。C0由`ICharacterOptionsDomainService`保存角色516B完整包，
+AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他玩家可见性联动未纳入blob能力。
+协议依据和实机边界见`protocol/patterns/game-settings.md`。连招store与入场读取仍保留原有边界，不因本能力移除。
 
 **宿主部署配置不是规则输入。** `IServerConfigService` 与它的三个消费方按下面「接口后缀标明
 类别」那节记的例外办，不受这条约束。同样不算规则输入的还有两类，各自在代码里写明了理由：

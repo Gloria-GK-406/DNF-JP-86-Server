@@ -9,7 +9,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// Reads what the archive declares about using an item.
 /// </summary>
 /// <remarks>
-/// Six tags, all optional, in no fixed order -- the reader is rewound for each because
+/// Use-related tags are optional and appear in no fixed order -- the reader is rewound for each because
 /// <c>[minimum level]</c> sits before <c>[stackable type]</c> in one file and after it in the next.
 ///
 /// Bracketed values such as <c>[all]</c> and <c>[village]</c> arrive as quoted strings, not as
@@ -30,6 +30,9 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
                     throw new InvalidDataException($"PVF '{source}', field '[stackable type]': expected type name and complete nonnegative Int32 operands.");
                 return values;
             }, optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> ActionTypeField =
+            PvfField.Tokens("[action type]", optional: true);
+        internal static readonly PvfField<int> SharedEffectField = PvfField.Int32("[shared effect]", optional: true);
         internal static readonly PvfField<int> CoolTimeField = PvfField.Int32("[cool time]", optional: true);
         internal static readonly PvfField<int> CooltimeGroupField = PvfField.Int32("[cooltime group]", optional: true);
         internal static readonly PvfField<int> MinimumLevelField = PvfField.Int32("[minimum level]", optional: true);
@@ -89,6 +92,11 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
                 archive, ref reader, Fields.StackableTypeField, out var typeToken, ref unreadable)
             ? archive.ResolveString(typeToken.Value)
             : null;
+        var action = TryReadFirstString(
+                archive, ref reader, Fields.ActionTypeField, out var actionToken, ref unreadable)
+            ? archive.ResolveString(actionToken.Value)
+            : null;
+        var shared = FirstInt32(archive, ref reader, Fields.SharedEffectField, ref unreadable);
         var cooldown = FirstInt32(archive, ref reader, Fields.CoolTimeField, ref unreadable);
         var cooltimeGroup = FirstInt32(archive,
             ref reader, Fields.CooltimeGroupField, ref unreadable);
@@ -112,7 +120,8 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             Places: ProjectPlaces(placeText),
             HasUnreadableDeclaration: unreadable,
             ExpBonusRate: expBonusRate,
-            EffectDurationMilliseconds: Math.Max(0, effectDuration));
+            EffectDurationMilliseconds: Math.Max(0, effectDuration),
+            Action: action) { SharedEffectSelector = shared == 1 && stackableType is "[only effect]" or "[random reward item]" ? (byte)0 : null };
     }
 
     /// <summary>

@@ -130,8 +130,22 @@ public sealed class PartyService(
             var domainFailure = ValidateTownPair(inviter, target);
             if (domainFailure != PartyFailureReason.None)
                 return PartyOperationResult.Reject(domainFailure);
-            if (membership.ContainsKey(target.CharacterId))
-                return PartyOperationResult.Reject(PartyFailureReason.TargetAlreadyInParty);
+            if (membership.TryGetValue(target.CharacterId, out var targetParty))
+            {
+                // The same native peer request also lets an unattached character apply to
+                // an existing leader. Keep request sender/recipient separate from party owner.
+                if (membership.ContainsKey(inviter.CharacterId))
+                    return PartyOperationResult.Reject(PartyFailureReason.TargetAlreadyInParty);
+                if (!targetParty.IsLeader(target.CharacterId))
+                    return PartyOperationResult.Reject(PartyFailureReason.NotPartyLeader);
+                var admission = modeRules.ValidateAdmission(targetParty.Settings, targetParty.MemberCount);
+                if (admission != PartyModeRuleFailure.None)
+                    return PartyOperationResult.Reject(MapAdmission(admission));
+                invitations[target.CharacterId] = new PendingInvite(inviter.CharacterId, target.CharacterId,
+                    null, clock.GetUtcNow() + InvitationLifetime, targetParty.Generation, targetParty.LeadershipVersion);
+                return PartyOperationResult.Success(new PartyNotificationPlan([], Invitation:
+                    new PartyInviteNotification(target.CharacterId, inviter.WireUserId, display)));
+            }
 
             long? inviterPartyGeneration = null;
             if (membership.TryGetValue(inviter.CharacterId, out var inviterParty))
@@ -185,6 +199,8 @@ public sealed class PartyService(
             var domainFailure = ValidateTownPair(inviter, invitee);
             if (domainFailure != PartyFailureReason.None)
                 return PartyOperationResult.Reject(domainFailure);
+            if (invitation.JoinPartyGeneration is not null)
+                return AcceptJoinLocked(invitee, inviter, invitation);
             if (membership.ContainsKey(invitee.CharacterId))
                 return PartyOperationResult.Reject(PartyFailureReason.TargetAlreadyInParty);
 
@@ -257,6 +273,35 @@ public sealed class PartyService(
     {
         lock (sync)
             return LeaveLocked(characterId);
+    }
+
+    private PartyOperationResult AcceptJoinLocked(PartyCharacterSnapshot leader,
+        PartyCharacterSnapshot applicant, PendingInvite invitation)
+    {
+        if (membership.ContainsKey(applicant.CharacterId))
+            return PartyOperationResult.Reject(PartyFailureReason.TargetAlreadyInParty);
+        if (!membership.TryGetValue(leader.CharacterId, out var party)
+            || party.Generation != invitation.JoinPartyGeneration
+            || party.LeadershipVersion != invitation.JoinLeadershipVersion)
+            return PartyOperationResult.Reject(PartyFailureReason.PartyGenerationChanged);
+        if (!party.IsLeader(leader.CharacterId))
+            return PartyOperationResult.Reject(PartyFailureReason.NotPartyLeader);
+        var admission = modeRules.ValidateAdmission(party.Settings, party.MemberCount);
+        if (admission != PartyModeRuleFailure.None)
+            return PartyOperationResult.Reject(MapAdmission(admission));
+        var previous = party.DirectoryScope;
+        party.RefreshCharacter(leader);
+        party.Add(applicant);
+        membership.Add(applicant.CharacterId, party);
+        invitations.Remove(leader.CharacterId);
+        Reindex(party, previous, party.DirectoryScope);
+        var snapshot = Snapshot(party);
+        return PartyOperationResult.Success(new PartyNotificationPlan([applicant.CharacterId], snapshot,
+            Acceptance: new PartyAcceptanceNotification(applicant.CharacterId, leader.CharacterId,
+                applicant.WireUserId, leader.WireUserId, JoiningCharacterId: applicant.CharacterId),
+            ClearPartyKey: party.Key, ClearLeadershipVersion: party.LeadershipVersion,
+            ClearPartyGeneration: snapshot.Generation, ClearPartyRevision: snapshot.Revision,
+            DirectoryChange: new PartyDirectoryChange(previous, party.DirectoryScope)));
     }
 
     public PartyOperationResult TransferLeadership(
@@ -448,7 +493,7 @@ public sealed class PartyService(
         if (inviterScope.ChannelId != targetScope.ChannelId)
             return PartyFailureReason.NotInSameGameChannel;
         if (inviterScope.TownId != targetScope.TownId
-            || inviterScope.AreaId != targetScope.AreaId)
+            || inviterScope.AreaId != targetScope.AreaId || inviterScope.Instance != targetScope.Instance)
         {
             return PartyFailureReason.NotInSameTownArea;
         }
@@ -643,5 +688,7 @@ public sealed class PartyService(
         CharacterId InviterCharacterId,
         CharacterId InviteeCharacterId,
         long? InviterPartyGeneration,
-        DateTimeOffset ExpiresAt);
+        DateTimeOffset ExpiresAt,
+        long? JoinPartyGeneration = null,
+        long? JoinLeadershipVersion = null);
 }

@@ -1,0 +1,16 @@
+=== decoration/growtree/coupletreeiteminfo.etc ===
+[tree bad grow]
+decoration/growtree/Animation/badgrow.ani
+[/tree bad grow]
+[tree full grow]
+decoration/growtree/Animation/full_grow.ani
+[/tree full grow]
+[tree bad grow state]
+1 decoration/growtree/Animation/bad_1.ani 2 decoration/growtree/Animation/bad_2.ani 3 decoration/growtree/Animation/bad_3.ani
+[/tree bad grow state]
+[tree watering pot]
+10002765 decoration/growtree/Animation/watering_2673000.ani
+[/tree watering pot]
+[tree seeds]
+10002766 decoration/growtree/Animation/seeding_2673004.ani 10002767 decoration/growtree/Animation/seeding_2673004.ani 10002768 decoration/growtree/Animation/seeding_2673004.ani
+[/tree seeds]

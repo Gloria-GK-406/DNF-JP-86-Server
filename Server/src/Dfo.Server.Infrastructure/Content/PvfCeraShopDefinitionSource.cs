@@ -48,6 +48,8 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         internal static readonly PvfField<IReadOnlyList<int>> UpgradeInfoField = PvfField.Int32List("[upgrade info]", optional: true);
         internal static readonly PvfField<bool> BoosterInfoField = PvfField.Marker("[booster info]", optional: true);
         internal static readonly PvfField<bool> CloseBoosterInfoField = PvfField.Marker("[/booster info]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> CeraField = PvfField.Int32List("[cera]", optional: true);
+        internal static readonly PvfField<bool> CloseCeraField = PvfField.Marker("[/cera]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> PackageDataIncludeUsablePeriodField = PvfField.Int32List("[package data include usable period]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> PackageDataSelectionField = PvfField.Int32List("[package data selection]", optional: true);
         internal static readonly PvfField<IReadOnlyList<PvfToken>> AvatarTypeSelectField = PvfField.Tokens("[avatar type select]", optional: true);
@@ -173,9 +175,27 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         if (purchaseRestrictions.TryGetValue(id, out var restriction) && restriction.InitialFlag != 1)
             diagnostics.Add(new("PurchaseRestriction", CatalogPath, $"Unsupported initial purchase restriction flag {restriction.InitialFlag}."));
         if (item is null) diagnostics.Add(new("MissingItem", CatalogPath, $"Item {itemId} is not readable."));
+        var slots = ImmutableArray.CreateBuilder<int>();
+        if (row.Category == Fields.CharacPremiumPackageField.Name && item is not null)
+        {
+            diagnostics.AddRange(item.Diagnostics);
+            if (item.Components.IsDefaultOrEmpty || !item.SelectionGroups.IsEmpty)
+                diagnostics.Add(new("UnsupportedServicePackage", item.Source, "Expected fixed service components."));
+            foreach (var component in item.Components)
+            {
+                var matches = rows.Values.Where(r => r.Category == Fields.SelectableCharacterPremiumField.Name
+                        && !r.Malformed && r.Values[1].Kind == PvfTokenKind.Int32 && r.Values[1].Value == component.ItemId)
+                    .Select(r => ParseProduct(r.Category, r.Values)).Where(p => p.Diagnostics.IsEmpty)
+                    .Select(p => p.ServiceSlot!.Value).Distinct().ToArray();
+                if (component.Count != 1 || component.UsablePeriod != 0 || matches.Length != 1 || slots.Contains(matches[0]))
+                    diagnostics.Add(new("UnsupportedServicePackage", item.Source, $"Invalid or ambiguous service component {component.ItemId}."));
+                else slots.Add(matches[0]);
+            }
+        }
         return result with
         {
             PurchaseRestriction = restriction,
+            ServiceSlots = slots.ToImmutable(),
             Premium = row.Category == Fields.PremiumField.Name && premiumTerms.TryGetValue(itemId, out var premium)
                 && premium.Type is 22 or 27 or 84 or 97 ? new(premium.Type, premium.Duration) : null,
             IsService = result.IsService || serviceProducts.Contains(id) || item?.Kind == CeraShopItemKind.Service,
@@ -246,9 +266,13 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         if (category == Fields.SelectableCharacterPremiumField.Name &&
             (N(2) is < 0 or > 7 || N(3) is not (7 or 30) || N(4) != 0 || N(7) != 0 || N(8) != -1))
             Error("UnsupportedService", "Unknown service slot, duration or catalog flags.");
+        if (category == Fields.CharacPremiumPackageField.Name &&
+            (N(4) != 0 || N(5) != 0 || N(6) != 1 || N(7) is not (30 or 60) || N(8) <= 0))
+            Error("UnsupportedServicePackage", "Unknown package duration or catalog flags.");
         return new(N(0), N(1), count, category, price, service, false, false, errors.ToImmutable(), CatalogPath + category,
             category == Fields.SelectableCharacterPremiumField.Name ? N(2) : null,
-            category == Fields.SelectableCharacterPremiumField.Name ? N(3) : 0);
+            category == Fields.SelectableCharacterPremiumField.Name ? N(3)
+                : category == Fields.CharacPremiumPackageField.Name ? N(7) : 0);
     }
 
     private CeraShopItemDefinition? ReadItem(int id)
@@ -333,7 +357,7 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
             components.AddRange(parsed.Components);
             kind = CeraShopItemKind.Package;
         }
-        else if (kind == CeraShopItemKind.Package)
+        else if (kind == CeraShopItemKind.Package || kind == CeraShopItemKind.Service && type == "[cera package]")
         {
             foreach (var section in top)
             {
@@ -347,6 +371,23 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
                 else if (section.Name.StartsWith(PackageDataFields.Prefix, StringComparison.Ordinal)) Error("UnknownPackageDeclaration", section.Name);
             }
             if (components.Count == 0 && selections.Count == 0) Error("EmptyPackage", "No declared delivery components.");
+        }
+        else if (kind == CeraShopItemKind.Service && type == "[cera booster]")
+        {
+            // The 30-day devil-contract catalog wrapper declares fixed services under booster/cera.
+            var nested = sections.SkipWhile(s => s.Name != Fields.BoosterInfoField.Name).Skip(1)
+                .TakeWhile(s => s.Name != Fields.CloseBoosterInfoField.Name).ToArray();
+            if (sections.Count(s => s.Name == Fields.BoosterInfoField.Name) != 1
+                || sections.Count(s => s.Name == Fields.CloseBoosterInfoField.Name) != 1
+                || nested.Length != 2 || nested[0].Name != Fields.CeraField.Name
+                || nested[1].Name != Fields.CloseCeraField.Name || nested[1].Values.Count != 0)
+                Error("UnsupportedServicePackage", "Expected one fixed booster/cera component list.");
+            else
+            {
+                var parsed = ParseComponents(nested[0].Values, 2, path);
+                errors.AddRange(parsed.Diagnostics);
+                components.AddRange(parsed.Components);
+            }
         }
         CeraShopAvatarDeclaration? avatar = null;
         if (kind == CeraShopItemKind.Avatar)

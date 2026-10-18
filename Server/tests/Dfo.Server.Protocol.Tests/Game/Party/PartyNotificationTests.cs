@@ -18,6 +18,42 @@ namespace Dfo.Server.Protocol.Tests.Game.Party;
 public sealed class PartyNotificationTests
 {
     [Fact]
+    public async Task Application_to_a_surviving_leader_notifies_the_leader_then_acknowledges_the_applicant()
+    {
+        var parties = new PartyClientProjectionService(new PartyService(new FixedPartyMemberStatus(),
+            new PartyModeRuleService(), TimeProvider.System, NoPartyEndpoints.Instance), new PartyClientIdRegistry());
+        var oldLeader = Character(Inviter); var survivor = Character(Invitee); var applicant = Character(Observer);
+        Assert.True(parties.RequestInvite(oldLeader, survivor, Profile()).Succeeded);
+        Assert.True(parties.AcceptInvite(survivor, oldLeader).Succeeded);
+        Assert.True(parties.LeaveParty(oldLeader.CharacterId).Succeeded);
+        var before = parties.FindParty(survivor);
+        var bus = new RecordingNotificationBus(); var delivery = Delivery(bus);
+        var request = parties.RequestInvite(applicant, survivor, Profile());
+        Assert.True(request.Succeeded);
+        await delivery.DeliverAsync(request.Notifications, CancellationToken.None);
+        var issued = Assert.Single(bus.Publications);
+        AssertPublication<PartyInviteIssued>(issued, Invitee.CharacterId.Value);
+        var sessions = new SessionDirectory(Inviter, Invitee, Observer);
+        var notification = Assert.IsType<PartyInviteIssued>(issued.Notification);
+        var leaderRecipient = new NotificationRecipient(Invitee.CharacterId, Invitee.ConnectionId);
+        var applicantRecipient = new NotificationRecipient(Observer.CharacterId, Observer.ConnectionId);
+        var message = Assert.IsType<PartyInviteRequestMessage>(Assert.Single(await new PartyInviteIssuedHandler(sessions)
+            .ComposeAsync(leaderRecipient, notification, CancellationToken.None)));
+        Assert.Equal(applicant.WireUserId, message.InviterWireUserId);
+        Assert.Empty(await new PartyInviteIssuedHandler(sessions).ComposeAsync(applicantRecipient, notification, CancellationToken.None));
+        bus.Publications.Clear();
+        var accepted = parties.AcceptInvite(survivor, applicant); Assert.True(accepted.Succeeded);
+        await delivery.DeliverAsync(accepted.Notifications, CancellationToken.None);
+        AssertPublication<PartyInviteAccepted>(Assert.Single(bus.Publications, x => x.Notification is PartyInviteAccepted),
+            Observer.CharacterId.Value);
+        var after = parties.FindParty(survivor);
+        Assert.Equal(before.PartyId, after.PartyId); Assert.Equal(Invitee.WireUserId, after.LeaderWireUserId);
+        Assert.Equal(before.LeaderMember.Slot, after.LeaderMember.Slot);
+        Assert.All(bus.Publications.Select(x => x.Notification).OfType<PartyRosterChanged>().Where(x => x.Snapshot is not null),
+            x => Assert.Equal(Invitee.WireUserId, x.Snapshot!.LeaderWireUserId));
+    }
+
+    [Fact]
     public void Invite_and_acceptance_bodies_match_the_party_shapes()
     {
         Assert.Equal(

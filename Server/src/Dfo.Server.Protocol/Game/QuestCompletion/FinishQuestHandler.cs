@@ -45,7 +45,7 @@ public sealed class FinishQuestHandler(
     ILogger<FinishQuestHandler> logger,
     ITownAreaDomainService townAreas, IDungeonRunDomainService dungeonRuns,
     WeaknessProjectionDelivery weaknessProjection, DungeonRunDeliveryRegistry runGenerations,
-    IIllusionTowerDomainService? towers = null) : ClientMessageHandler<FinishQuestRequest>
+    IIllusionTowerDomainService? towers = null, Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null) : ClientMessageHandler<FinishQuestRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -90,7 +90,7 @@ public sealed class FinishQuestHandler(
 
         logger.LogInformation(
             "Finish quest {ConnectionId} account={Account}: quest={Quest} {Verdict} "
-                + "exp={Experience} items={Items} level={Level} total={Total}",
+                + "exp={Experience} items={Items} level={Level} total={Total} grow={GrowType} awakening={Awakening}",
             context.Connection.ConnectionId,
             session.AccountId,
             message.QuestId,
@@ -98,7 +98,7 @@ public sealed class FinishQuestHandler(
             outcome.Experience,
             outcome.Items.Count,
             outcome.NewLevel,
-            outcome.NewExperience);
+            outcome.NewExperience, outcome.GrowType, outcome.Awakening);
 
         if (outcome.Finished && outcome.GrowType is not null)
         {
@@ -118,7 +118,8 @@ public sealed class FinishQuestHandler(
                 outcome.Experience,
                 outcome.Items,
                 checked((uint)clock.GetUtcNow().ToUnixTimeSeconds()),
-                (byte)(outcome.Refusal ?? QuestFinishRefusal.Unusable), outcome.GrowType),
+                (byte)(outcome.Refusal ?? QuestFinishRefusal.Unusable), outcome.GrowType)
+                { Awakening = outcome.Awakening, SkillPages = result.CharacterEntry.Skills.Pages },
             cancellationToken).ConfigureAwait(false);
 
         if (!outcome.Finished)
@@ -280,6 +281,7 @@ public sealed class FinishQuestHandler(
             frames.Add(QuestProgressMessage(progress));
         }
 
+        if (outcome.GrowType is not null) frames.AddRange(await HousingCurrentProjection.ReadAsync(housing, session, cancellationToken).ConfigureAwait(false));
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(frames, targets),

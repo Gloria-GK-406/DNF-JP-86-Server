@@ -1,0 +1,11 @@
+=== etc/couplegrowthcapsule.etc ===
+[max own count]
+10
+[max taken count]
+10
+[gage]
+2
+[max gage]
+10
+[capsule id]
+10002910

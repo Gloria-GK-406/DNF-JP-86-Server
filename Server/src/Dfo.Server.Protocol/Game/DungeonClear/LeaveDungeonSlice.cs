@@ -108,7 +108,9 @@ public sealed class EplpCommandHandler(
     SelectedSessionTransitionGate transitionGate,
     DungeonCardPresentationCoordinator? cardPresentation = null,
     IPartyService? parties = null,
-    IllusionTowerProjectionDelivery? illusionTower = null)
+    IllusionTowerProjectionDelivery? illusionTower = null,
+    Dfo.Server.Protocol.Game.Altar.AltarProtocolCoordinator? altars = null,
+    DungeonProjectionGate? projectionGate = null)
     : ClientMessageHandler<EplpCommandRequest>
 {
     /// <summary>The state that means "take me out of here".</summary>
@@ -190,6 +192,10 @@ public sealed class EplpCommandHandler(
         HashSet<CharacterId> endedCharacters = [];
         if (leaving)
         {
+            await using var altarProjection = currentRun?.Layout.Altar is not null
+                ? await (projectionGate ?? throw new InvalidOperationException("Altar projection gate is unavailable."))
+                    .AcquireAsync(currentRun.RunId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false)
+                : null;
             var leases = new List<IAsyncDisposable>();
             try
             {
@@ -206,6 +212,10 @@ public sealed class EplpCommandHandler(
                 {
                     return;
                 }
+
+                if (currentRun?.Layout.Altar is not null)
+                    await (altars ?? throw new InvalidOperationException("Altar coordinator is unavailable."))
+                        .SettleBeforeExitUnderGatesAsync(session, currentRun.RunId, cancellationToken).ConfigureAwait(false);
 
                 foreach (var participant in participants)
                 {

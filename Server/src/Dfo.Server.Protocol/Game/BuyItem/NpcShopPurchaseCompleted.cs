@@ -21,6 +21,8 @@ public sealed class NpcShopPurchaseCompletedHandler(ISelectedSessionDomainServic
     {
         var slots = new InventorySlotMappingRuleService();
         var receipt = notification.Receipt;
+        if (recipient.CharacterId != receipt.Session.CharacterId && receipt.Housing is { } shared && receipt.HousingAudience.Contains(recipient.CharacterId))
+            return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([new HousingStorageMessage(shared)]);
         if (recipient.CharacterId != receipt.Session.CharacterId || recipient.ConnectionId != receipt.Session.ConnectionId
             || sessions.Find(receipt.Session.AccountId) != receipt.Session)
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
@@ -33,13 +35,24 @@ public sealed class NpcShopPurchaseCompletedHandler(ISelectedSessionDomainServic
                     [new InventoryItemState(null, wire.Index, core.ToCore())], receipt.PreparedAt))
                 : GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, receipt.PreparedAt));
         }
-        messages.Add(new BuyItemResponse(receipt));
+        var inventory = receipt.GrantedSlots.GroupBy(grant => slots.ToGameSlot(grant.Slot).Space)
+            .Select(group => GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(group.Key,
+                group.Select(grant => new InventoryItemState(null, slots.ToGameSlot(grant.Slot).Index,
+                    grant.Core.ToCore())).ToArray(), receipt.PreparedAt))).ToArray();
+        if (receipt.Housing is { } housing) messages.Add(new HousingStorageMessage(housing));
+        if (receipt.LovePoints is { } points) messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotification(receipt.Session.CharacterId.Value, points));
+        var projectedStack = receipt.Housing is not null || receipt.GrantedSlots.Count > 0 && receipt.GrantedSlots[0].Core.IsPile;
+        // Apply the absolute stack once while the client still has the pre-purchase count, so
+        // 000E reports exactly the gain. The subsequent ACK confirms without incrementing again.
+        if (projectedStack) messages.AddRange(inventory);
+        messages.Add(new BuyItemResponse(receipt) { InventoryAlreadyProjected = projectedStack });
         if (receipt.GoldSpent)
             messages.Add(GameInventoryDelivery.CarriedGoldNotification(receipt.Gold, receipt.PreparedAt));
-        foreach (var group in receipt.GrantedSlots.GroupBy(grant => slots.ToGameSlot(grant.Slot).Space))
-            messages.Add(GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(group.Key,
-                group.Select(grant => new InventoryItemState(null, slots.ToGameSlot(grant.Slot).Index,
-                    grant.Core.ToCore())).ToArray(), receipt.PreparedAt)));
+        if (!projectedStack) messages.AddRange(inventory);
+        // Native ACK Data also increments the shop UI's limit counter (A2B9B0). Its zero grant
+        // must therefore be followed by the committed absolute counter via 02CC (D1E0FF).
+        if (receipt.PurchaseCount is { } count)
+            messages.Add(new ShopPurchaseCountResponse(new(NpcShopRejection.None, [count])));
         if (notification.QuestProgress is { } progress)
         {
             messages.Add(new AcceptedQuestProgressMessage(

@@ -139,6 +139,8 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
             messages.Add(new ExperienceNotification(progress.Level, progress.Experience,
                 state.Points ?? throw Missing("Points"), AccountHonorLevel.Initial, ExperienceBonusLines.None));
         }
+        if (needs.HasFlag(ReplayProjectionNeeds.HerasQuota))
+            messages.Add(new DungeonRemainingEntriesMessage(3900, checked((byte)(state.HerasQuota ?? throw Missing("Heras quota")).Remaining)));
         if (needs.HasFlag(ReplayProjectionNeeds.Fatigue))
             messages.Add(new FatigueNotification(state.Fatigue ?? throw Missing("Fatigue")));
         if (needs.HasFlag(ReplayProjectionNeeds.Premium))
@@ -155,6 +157,19 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
             messages.AddRange(Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Snapshot(state.Joust ?? throw Missing("Joust")));
         if (needs.HasFlag(ReplayProjectionNeeds.EpicBook))
             messages.Add(new EpicBookStateMessage(0, state.EpicPieces.IsDefault ? throw Missing("Epic book") : state.EpicPieces));
+        if (needs.HasFlag(ReplayProjectionNeeds.CoupleCapsules)) messages.Add(new Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateMessage(state.Capsules ?? throw Missing("Couple capsules")));
+        if (needs.HasFlag(ReplayProjectionNeeds.MarriageLovePoints))
+            messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotification(state.Session.CharacterId.Value, state.LovePoints ?? throw Missing("Love points")));
+        if (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing) || needs.HasFlag(ReplayProjectionNeeds.CharacterAppearance))
+        {
+            if (state.Housing is { } housing)
+            {
+                messages.Add(new HousingRoomMessage(housing));
+                if (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing)) messages.Add(new HousingStorageMessage(housing));
+                messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoMessage(state.MarriageInfo));
+            }
+            else if (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing)) messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoMessage(state.MarriageInfo));
+        }
         return messages.ToImmutable();
     }
     private static InvalidDataException Missing(string name) => new($"Required replay projection '{name}' is unavailable.");

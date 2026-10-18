@@ -48,6 +48,7 @@ def capture(args, run, root, out):
     database = root / f'{run}.db'
     base = f'http://127.0.0.1:{http}'
     options = {
+        'Channel:UseScriptCatalog': 'false', 'Logging:EventLog:LogLevel:Default': 'None',
         'Database:Path': database, 'Networking:Enabled': 'true',
         'Networking:UdpDiscoveryEnabled': 'false', 'Networking:ChannelPort': channel,
         'Networking:GamePorts:0': game_a, 'Networking:GamePorts:1': game_b,

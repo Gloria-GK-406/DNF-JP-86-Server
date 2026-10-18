@@ -12,7 +12,7 @@ internal sealed class BuyItemResponseEncoder : GameCmdMessageEncoder<BuyItemResp
     {
         if (message.Receipt is not { } receipt)
             return [0, message.ErrorCode];
-        if (receipt.GrantedSlots.Count == 0 || receipt.Count <= 0)
+        if (receipt.GrantedSlots.Count == 0 && receipt.HousingItem is null || receipt.Count <= 0)
             throw new InvalidDataException("A purchase acknowledgement needs its granted item and quantity.");
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
@@ -21,15 +21,25 @@ internal sealed class BuyItemResponseEncoder : GameCmdMessageEncoder<BuyItemResp
         writer.Write(receipt.SkillPoints);
         writer.Write(0); // Reference BUY_ITEM wallet field; no gameplay meaning has been established.
         writer.Write(receipt.Cera);
+        if (receipt.Housing is { } room && receipt.HousingItem is { } housingItem)
+        {
+            var item = room.Storage.Single(x => x.ItemId == receipt.ItemId);
+            GameInventoryItemEntry.Write(writer, new(null, item.Slot, housingItem.ToCore() with { Value = message.InventoryAlreadyProjected ? 0 : receipt.Count }), receipt.PreparedAt, InventoryContainerType.Main);
+            writer.Write((byte)0); return stream.ToArray();
+        }
         var first = receipt.GrantedSlots[0];
         var wire = new InventorySlotMappingRuleService().ToGameSlot(first.Slot);
-        // BUY_ITEM's value is the added amount; the following inventory delta carries the final core.
+        if (message.InventoryAlreadyProjected && !first.Core.IsPile)
+            throw new InvalidDataException("Only a pre-projected stack may use a zero-increment purchase acknowledgement.");
+        // Native ACK adds Data to an existing pile. Its preceding 000E already applied the real
+        // grant and emitted the native gain text, so this confirmation must add zero.
         GameInventoryItemEntry.Write(writer,
-            new InventoryItemState(null, wire.Index, first.Core.ToCore() with { Value = first.AddedCount }),
+            new InventoryItemState(null, wire.Index, first.Core.ToCore() with
+                { Value = message.InventoryAlreadyProjected ? 0 : first.AddedCount }),
             receipt.PreparedAt, wire.Space);
-        writer.Write((byte)1);
-        writer.Write(receipt.ItemId);
-        writer.Write(receipt.Count);
+        // D35E57..D35E6C treats tail pairs as absolute balances, not purchase quantities.
+        // Material balances are projected separately; never overwrite the purchased pile here.
+        writer.Write((byte)0);
         return stream.ToArray();
     }
 }

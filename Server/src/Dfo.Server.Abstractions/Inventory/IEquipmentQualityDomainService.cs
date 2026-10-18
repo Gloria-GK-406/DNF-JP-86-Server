@@ -3,11 +3,13 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
-public enum EquipmentQualityRejection { None, NoSession, InvalidRequest, ItemUnavailable, Locked, MaterialUnavailable, UnsupportedContent, InvalidOption, UnmodifiableOption }
+public enum EquipmentQualityRejection { None, NoSession, InvalidRequest, ItemUnavailable, Locked, MaterialUnavailable, UnsupportedContent, InvalidOption, UnmodifiableOption, AlreadySealed, ResealLimitReached }
 public sealed record EquipmentQualityReceipt(SelectedSessionIdentity Session, BusinessSlot TargetSlot,
     BusinessSlot MaterialSlot, ItemSnapshot Equipment, int MaterialRemaining, DateTimeOffset At)
 {
     public ItemSnapshot? Material { get; init; }
+    /// <summary>CMD0051 operation: 1 resealing, 2 quality reroll.</summary>
+    public ushort Operation { get; init; } = 2;
 }
 public sealed record EquipmentQualityResult(EquipmentQualityRejection Rejection, EquipmentQualityReceipt? Receipt = null);
 public interface IEquipmentQualityDomainService

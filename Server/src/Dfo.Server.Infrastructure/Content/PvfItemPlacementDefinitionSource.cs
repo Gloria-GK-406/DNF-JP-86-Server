@@ -55,6 +55,8 @@ internal sealed class PvfItemPlacementDefinitionSource(
                 {
                     WorldClass = metadata.WorldClass,
                     ItemId = itemId,
+                    Lifetime = PvfItemLifetimeReader.Read(archive, _stackables.TryGetValue(itemId, out var stack)
+                        ? "stackable/" + stack.RelativePath : "equipment/" + _equipment[itemId]),
                 };
             _cache[itemId] = placement;
             return ValueTask.FromResult(placement);

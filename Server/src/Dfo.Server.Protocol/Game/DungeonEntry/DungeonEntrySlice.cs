@@ -174,8 +174,10 @@ internal static class DungeonEntryPayloadCodec
         writer.Write(layout.Hell?.Cell.Y ?? (byte)0);
         writer.Write((byte)0); // practice mode
         writer.Write((byte)0); // no minimap groups
-        writer.Write((byte)1); // the constant after the group list
-        writer.Write(new byte[5]);
+        // A21 DUNGEON_INFO reads this u16 into scene +0x43c. The despair banner
+        // renders that value; the ordinary reference's 01 00 was floor 1, not a fixed flag.
+        writer.Write(checked((ushort)(layout.Despair?.Floor ?? 1)));
+        writer.Write(new byte[4]);
         writer.Write(unchecked((int)0xFFFFFFFF)); // builder default packet seed
         writer.Write(new byte[10]);
         return stream.ToArray();
@@ -442,7 +444,7 @@ public sealed class SelectDungeonHandler(
     DungeonProjectionGate? entryProjectionGate = null,
     ILogger<DungeonEntryProjectionDelivery>? entryProjectionLogger = null,
     IIllusionTowerDomainService? illusionTower = null,
-    IllusionTowerProjectionDelivery? illusionTowerProjection = null)
+    IllusionTowerProjectionDelivery? illusionTowerProjection = null, ISaoTowerDomainService? sao = null)
     : ClientMessageHandler<SelectDungeonRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -473,7 +475,10 @@ public sealed class SelectDungeonHandler(
         var intent = entryIntents.Consume(session);
         if (intent is null
             || (intent.Value.Kind is DungeonEntryIntentKind.Directed or DungeonEntryIntentKind.Cycle
-                && intent.Value.DirectedDungeonId != message.DungeonId && message.MirrorQuestId is null))
+                && intent.Value.DirectedDungeonId != message.DungeonId && message.MirrorQuestId is null
+                && !(intent.Value.Kind == DungeonEntryIntentKind.Directed
+                    && intent.Value.DirectedDungeonId is { } prior && sao?.Supports(prior) == true
+                    && sao.Supports(message.DungeonId))))
         {
             if (intent is { } refusedIntent && selectedSessions.FindByCharacter(session.CharacterId) == session)
                 entryIntents.RestoreIfAbsent(session, refusedIntent);
@@ -775,7 +780,11 @@ public sealed class MoveMapHandler(
             FloorPieceValues.Describe(run, visit.FloorDrops));
 
         IReadOnlyList<IGameServerMessage> FramesFor(DungeonRunState run) =>
-            visit.FirstEntry && HellPartyProjection.For(run) is { } info
+            run.Layout.Altar is not null
+                ? run.IsCleared
+                    ? [new Dfo.Server.Protocol.Game.Altar.AltarMapMessage(run), new Dfo.Server.Protocol.Game.Altar.AltarWaveMessage([], 0)]
+                    : [new Dfo.Server.Protocol.Game.Altar.AltarMapMessage(run)]
+                : visit.FirstEntry && HellPartyProjection.For(run) is { } info
                 ? [RoomFor(run), info] : [RoomFor(run)];
 
         await sender.SendExplicitAsync(

@@ -1,0 +1,63 @@
+=== map/timespiral/timespiral_27102(0,2)_n.map ===
+[player number]
+1 1
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3900
+[/dungeon]
+[type]
+[normal]
+[greed]
+KK KK
+[tile]
+Tile/basic_5.til Tile/basic_point_1.til Tile/basic_point_3.til Tile/basic_3.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/basic_ex_1.til 1 Tile/basic_point_ex_1.til 2 Tile/basic_point_ex_4.til
+[/tile files]
+[tile map]
+0 1 2 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+56
+[middle sight scroll]
+80
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/timespiral_far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+1438 613 1458 652 107 100 95 465
+[dungeon start area]
+34 129 100 100
+[sound]
+AMB_POWERSTATION_GRANDINE M_HELIX_LAB
+[/sound]
+[animation]
+Animation/timespiral_back_middle_light.ani [middleback] 1160 110 0 Animation/timespiral_back_middle_light.ani [middleback] 931 110 0 Animation/timespiral_back_middle_light.ani [middleback] 702 108 0 Animation/timespiral_back_middle_light.ani [middleback] 473 110 0 Animation/timespiral_mid02.ani [middleback] 353 -384 0 Animation/timespiral_spark03.ani [middleback] 527 -157 0 Animation/remnant_dark_front01.ani [normal] 371 33 0 Animation/remnant_dark_front02.ani [normal] 458 30 0
+[/animation]
+[passive object]
+12913 251 472 0 12914 348 484 0 12913 443 479 0 12913 534 474 0 12914 495 466 0 12914 625 505 0 12914 708 475 0 12914 781 507 0 12914 807 445 0 12913 883 484 0 12918 883 295 0 12918 851 359 0 12918 849 213 0
+[/passive object]
+[monster]
+64908 1 0 536 200 0 1 1 [fixed] [normal] 64908 1 0 265 289 0 1 1 [fixed] [normal] 64908 1 0 616 274 0 1 1 [fixed] [normal] 64908 1 0 357 196 0 1 1 [fixed] [normal] 64908 1 0 583 350 0 1 1 [fixed] [normal] 64908 1 0 360 354 0 1 1 [fixed] [normal] 64912 1 0 452 280 0 1 1 [fixed] [normal] 64906 1 0 150 247 0 1 1 [fixed] [normal] 64906 1 0 699 244 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[special passive object]
+12940 665 130 0 1 [item] 0 1 -1 -1 -1
+[/special passive object]
+[map name]
+PVP无名

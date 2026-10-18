@@ -259,7 +259,7 @@ internal sealed class SetPartyInfoDecoder(IPartyModeRuleService rules) : IGameMe
             title = new PartyTitle(titleBytes);
         }
 
-        var settings = new PartySettings(canonical);
+        var settings = rules.Normalize(new PartySettings(canonical));
         var validation = rules.Validate(settings, memberCount: 0);
         if (validation != PartyModeRuleFailure.None)
         {
@@ -497,7 +497,7 @@ internal static class PartyCharacterProjection
                 ? new PartyDirectoryScope(
                     current.Area.ChannelId,
                     current.Area.TownId,
-                    current.Area.AreaId)
+                    current.Area.AreaId, current.Area.Instance)
                 : null;
         character = new PartyCharacterSnapshot(
             session.AccountId,

@@ -1,0 +1,83 @@
+######## ui/chn_wedding/coupleinfowindow.xui
+<?xml version="1.0" encoding="UTF-8" ?>
+<ROOT ScriptVer="1.0">
+    <TOOL ToolVer="1.0.0.1" />
+    <POPUPWINDOW AlignOffset="VECTOR:0, 0" GrayLine="NUM:0" GuideLinkIndex="NUM:0" HAlign="STR:CENTER" IsShowCloseButton="BOOL:false" IsShowTitleBar="BOOL:false" Size="VECTOR:251, 298" TailPos="NUM:0" TileOffset_="VECTOR:11, 11" TileSize="VECTOR:12, 13" TileStartingFrame="NUM:97" TileType="NUM:5" TitleAccessoryType="NUM:15" TitleStrStartPos="NUM:0" TitleString="STR:婚姻信息" UserImagePackName="STR:Interface/WindowCommon.img" VAlign="STR:MIDDLE" />
+    <CONTROL>
+        <CNTabGroup ID="STR:1000" Pos="VECTOR:0, 10" Size="VECTOR:60, 191" TabType="STR:Line" selectTabIndex="NUM:0">
+            <CNTab ButtonName="STR:婚姻信息" ButtonPos="VECTOR:0, 0" ButtonSize="VECTOR:68, 21" Size="VECTOR:0, 0" TabButtonDrawType="STR:PatternDraw">
+                <IControl ID="STR:1001" Size="VECTOR:0, 0" />
+                <IControl ID="STR:1002" Size="VECTOR:0, 0" />
+                <IControl ID="STR:1003" Size="VECTOR:0, 0" />
+            </CNTab>
+            <CNTab ButtonName="STR:结婚特权" ButtonPos="VECTOR:68, 0" ButtonSize="VECTOR:68, 21" Size="VECTOR:0, 0" TabButtonDrawType="STR:PatternDraw" />
+            <CNTab ButtonName="STR:成长胶囊" ButtonPos="VECTOR:136, 0" ButtonSize="VECTOR:68, 21" Size="VECTOR:0, 0" TabButtonDrawType="STR:PatternDraw" />
+            <IControl ID="STR:1420" Pos="VECTOR:7, 22" Size="VECTOR:0, 0" />
+            <CNGauge BaseImgIndex="NUM:-1" GaugeDirection="NUM:1" ID="STR:1600" ImagePack="STR:Interface2/wedding/coupleGrowthCapsule.img" MaxImgIndex="NUM:1" OverImgIndex="NUM:1" Pos="VECTOR:35, 191" Size="VECTOR:105, 14" />
+        </CNTabGroup>
+        <CNButton ButtonDrawType="STR:NORMALIMAGE" ButtonName="STR:&lt;99::11111&gt;" DisableImg="NUM:15" DownImg="NUM:14" FontTypeStr="STR:system font" ID="STR:100" ImagePack="STR:Interface/WindowCommon.img" IsFontShadow="BOOL:true" OverImg="NUM:13" Pos="VECTOR:90, 265" Size="VECTOR:56, 23" UpImg="NUM:12" />
+        <CNUIControlImage ID="STR:1400" ImagePack="STR:Interface2/wedding/coupleInfoPopupUI.img" Pos="VECTOR:7, 32" Size="VECTOR:0, 0" imageIndex="NUM:0" />
+        <CNUIControlImage ID="STR:1401" ImagePack="STR:Interface2/wedding/coupleInfoPopupUI.img" Pos="VECTOR:7, 32" Size="VECTOR:0, 0" imageIndex="NUM:8" />
+        <IControl ID="STR:1100" Pos="VECTOR:5, 90" Size="VECTOR:130, 143" />
+        <IControl ID="STR:1101" Pos="VECTOR:90, 90" Size="VECTOR:130, 143" />
+        <IControl ID="STR:1102" Pos="VECTOR:17, 226" Size="VECTOR:25, 25" />
+        <CNUIControlText ID="STR:1301" Pos="VECTOR:110, 245" Size="VECTOR:100, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:2" string="STR:&lt;99::70989&gt;" stringLenth="NUM:100" />
+        <CNUIControlText ID="STR:1302" Pos="VECTOR:110, 228" Size="VECTOR:100, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:2" string="STR:&lt;99::70989&gt;" stringLenth="NUM:100" />
+        <CNUIControlText ID="STR:1303" Pos="VECTOR:40, 224" Size="VECTOR:100, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:&lt;99::70989&gt;" stringLenth="NUM:100" />
+        <CNUIControlText ID="STR:1310" Pos="VECTOR:25, 200" Size="VECTOR:100, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:1" string="STR:&lt;99::70989&gt;" stringLenth="NUM:100" />
+        <CNUIControlText ID="STR:1311" Pos="VECTOR:110, 200" Size="VECTOR:100, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:1" string="STR:&lt;99::70989&gt;" stringLenth="NUM:100" />
+        <CNUIControlImage ID="STR:1410" ImagePack="STR:Interface2/wedding/coupleInfoPopupUI.img" Pos="VECTOR:7, 35" Size="VECTOR:0, 0" imageIndex="NUM:9" />
+        <CNUIControlText ID="STR:1340" Pos="VECTOR:15, 75" Size="VECTOR:210, 11" TextColor="COLOR:230, 90, 90" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:1. 夫妻专属心情状态" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1341" Pos="VECTOR:15, 90" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:在聊天框中输入心情指令“=恋爱ing”， 可以设置夫妻专属心情状态。" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1342" Pos="VECTOR:15, 125" Size="VECTOR:210, 11" TextColor="COLOR:230, 90, 90" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:2. 夫妻专属聊天表情" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1343" Pos="VECTOR:15, 140" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:在聊天框中输入“/心心相印/”或“/一见钟情/”时， 会出现夫妻专属聊天表情。" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1344" Pos="VECTOR:15, 175" Size="VECTOR:210, 11" TextColor="COLOR:230, 90, 90" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:3. 心意点" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1345" Pos="VECTOR:15, 195" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:已婚角色每日登录游戏时都将获得1点心意点。(每日限1次)" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1346" Pos="VECTOR:15, 220" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:玩家可以通过种植爱情树或者通关爱之摩伽陀地下城获得心意通。点击使用心意" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1347" Pos="VECTOR:15, 245" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:通后， 可以增加心意点。" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1348" Pos="VECTOR:15, 255" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:心意点可用于在NPC云清处兑换婚房装饰物或婚戒升级券。" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1349" Pos="VECTOR:15, 280" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:心意点累积上限 : 999点" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1350" Pos="VECTOR:15, 315" Size="VECTOR:210, 11" TextColor="COLOR:230, 90, 90" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:4. 婚戒" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1351" Pos="VECTOR:15, 335" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:婚戒可以为佩戴者附加提升属性的Buff，" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1352" Pos="VECTOR:15, 350" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:并且该Buff效果会随婚戒Lv的增加而加强。" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1353" Pos="VECTOR:15, 375" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:注意 : 婚戒提供的Buff效果在决斗场中无效。" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1354" Pos="VECTOR:15, 410" Size="VECTOR:210, 11" TextColor="COLOR:230, 90, 90" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:5. 婚房" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1355" Pos="VECTOR:15, 430" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:只有已婚角色才拥有自己的婚房， 并且可以随意装饰。 婚房可以为拥有者附加提" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1356" Pos="VECTOR:15, 455" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:升属性的Buff， 并且该Buff效果会随着婚房的华丽程度而改变。" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1357" Pos="VECTOR:15, 480" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:注意 : 婚房提供的Buff效果在决斗场中无效。" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1358" Pos="VECTOR:15, 515" Size="VECTOR:210, 11" TextColor="COLOR:230, 90, 90" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:6. 培育爱情树" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1359" Pos="VECTOR:15, 535" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:爱情树的种植与培育， 皆只能在婚房中进行。 " stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1360" Pos="VECTOR:15, 560" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:如何获得爱情树的种子？" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1361" Pos="VECTOR:15, 575" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:A. 在NPC云清处购买" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1362" Pos="VECTOR:15, 590" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:B. [爱之摩伽陀]地下城中有一定几率掉落" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1363" Pos="VECTOR:15, 615" Size="VECTOR:210, 11" TextColor="COLOR:230, 90, 90" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:7. 专属地下城 - 爱之摩伽陀" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1364" Pos="VECTOR:15, 635" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:[爱之摩伽陀]地下城位于格兰之森山麓地区， 只有夫妻2人组队时才可进入。" stringLenth="NUM:210" />
+        <CNUIControlText ID="STR:1365" Pos="VECTOR:15, 660" Size="VECTOR:210, 11" isBold="BOOL:true" isOutLine="BOOL:true" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:该地下城内会掉落多种婚姻相关的材料物品， 欢迎夫妻二人携手挑战！" stringLenth="NUM:210" />
+        <CNVScroll ID="STR:1602" Pos="VECTOR:234, 32" Size="VECTOR:0, 0" buttonImagePath="STR:interface/WindowCommon.img" downButtonDisable="NUM:25" downButtonDown="NUM:24" downButtonOver="NUM:23" downButtonUp="NUM:22" scrollMax="NUM:8" thumbImage="NUM:20" thumbImagePath="STR:interface/WindowCommon.img" trackImage="NUM:28" trackSizeY="NUM:220" upButtonDisable="NUM:19" upButtonDown="NUM:18" upButtonOver="NUM:17" upButtonUp="NUM:16" />
+        <IControl ID="STR:1421" Pos="VECTOR:122, 223" Size="VECTOR:0, 0" />
+        <CNVScroll ID="STR:1601" Pos="VECTOR:234, 32" Size="VECTOR:0, 0" buttonImagePath="STR:interface/WindowCommon.img" downButtonDisable="NUM:25" downButtonDown="NUM:24" downButtonOver="NUM:23" downButtonUp="NUM:22" scrollMax="NUM:5" thumbImage="NUM:20" thumbImagePath="STR:interface/WindowCommon.img" trackImage="NUM:28" trackSizeY="NUM:220" upButtonDisable="NUM:19" upButtonDown="NUM:18" upButtonOver="NUM:17" upButtonUp="NUM:16" />
+        <CNButton ButtonDrawType="STR:NORMALIMAGE" DisableImg="NUM:2" DownImg="NUM:5" ID="STR:1200" ImagePack="STR:Interface2/wedding/coupleGrowthCapsule.img" OverImg="NUM:4" Pos="VECTOR:158, 200" Size="VECTOR:0, 0" UpImg="NUM:3" />
+        <CNButton ButtonDrawType="STR:NORMALIMAGE" DisableImg="NUM:6" DownImg="NUM:9" ID="STR:1201" ImagePack="STR:Interface2/wedding/coupleGrowthCapsule.img" OverImg="NUM:8" Pos="VECTOR:158, 229" Size="VECTOR:0, 0" UpImg="NUM:7" />
+    </CONTROL>
+</ROOT>
+
+######## ui/event/growthcapsule/growcapsulewindow.xui
+<?xml version="1.0" encoding="UTF-8" ?>
+<ROOT ScriptVer="1.0">
+    <TOOL ToolVer="1.0.0.1" />
+    <POPUPWINDOW AlignOffset="VECTOR:110, 0" GrayLine="NUM:0" GuideLinkIndex="NUM:0" HAlign="STR:LEFT" IsShowCloseButton="BOOL:false" IsShowTitleBar="BOOL:false" Size="VECTOR:251, 246" TailPos="NUM:0" TileOffset_="VECTOR:11, 11" TileSize="VECTOR:12, 13" TileStartingFrame="NUM:97" TileType="NUM:0" TitleAccessoryType="NUM:-1" TitleStrStartPos="NUM:0" TitleString="STR:Lv80经验槽激活" VAlign="STR:MIDDLE" />
+    <CONTROL>
+        <CNButton ButtonDrawType="STR:NORMALIMAGE" ButtonName="STR:关闭" DisableImg="NUM:15" DownImg="NUM:14" FontTypeStr="STR:system font" ID="STR:2" ImagePack="STR:Interface/WindowCommon.img" IsFontShadow="BOOL:true" OverImg="NUM:13" Pos="VECTOR:96, 214" Size="VECTOR:56, 23" UpImg="NUM:12" />
+        <CNBoardImage BoardDrawType="STR:SCALE" BottomImgIndex="NUM:220" CenterImgIndex="NUM:217" HeightUnit="NUM:210" ID="STR:400" ImagePack="STR:Interface/WindowCommon.img" LeftBottomImgIndex="NUM:219" LeftImgIndex="NUM:216" LeftTopImgIndex="NUM:213" Pos="VECTOR:-1, 3" RightBottomIndex="NUM:221" RightImgIndex="NUM:218" RightTopImgIndex="NUM:215" Size="VECTOR:241, 210" TopImgIndex="NUM:214" WidthUnit="NUM:241">
+            <CNUIControlText ID="STR:1" Pos="VECTOR:6, 6" Size="VECTOR:176, 11" TextColor="COLOR:230, 200, 155" isBold="BOOL:false" isOutLine="BOOL:false" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:1、 为了让勇士们在Lv85开启之后更快成长， 活动期间将激活Lv80的经验槽。\n2、 Lv80以后一部分的经验值将会累积到成长胶囊中。\n3、 当成长胶囊内的经验储满后， 会以邮件形式发放给拥有者。\n4、 Lv80的经验槽达到50%后， 角色经验仍可以继续被储存进成长胶囊中。\n正在进行[成长胶囊轻松领]活动， 活动期间Lv80的角色可以继续提升经验值， 直到经验槽达到50%。" stringLenth="NUM:235" />
+            <CNUIControlText ID="STR:403" Pos="VECTOR:52, 170" Size="VECTOR:176, 11" TextColor="COLOR:230, 200, 155" isBold="BOOL:false" isOutLine="BOOL:false" isSortToEachLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:成长胶囊" stringLenth="NUM:180" />
+            <CNButton ButtonDrawType="STR:NORMALIMAGE" ButtonName="STR:send" DisableImg="NUM:15" DownImg="NUM:14" FontTypeStr="STR:system font" ID="STR:404" ImagePack="STR:Interface/WindowCommon.img" IsFontShadow="BOOL:true" OverImg="NUM:13" Pos="VECTOR:160, 138" Size="VECTOR:56, 23" UpImg="NUM:12" />
+            <CNUIControlImage ID="STR:405" ImagePack="STR:Interface2/event/growcapsule/event_capsule.img" Pos="VECTOR:30, 120" Size="VECTOR:130, 48" imageIndex="NUM:0" />
+            <CNGauge BaseImgIndex="NUM:-1" GaugeDirection="NUM:1" ID="STR:402" ImagePack="STR:Interface2/event/growcapsule/event_capsule.img" MaxImgIndex="NUM:1" OverImgIndex="NUM:1" Pos="VECTOR:41, 139" Size="VECTOR:105, 22" />
+            <CNLabelHyperLink HyperLinkColor="COLOR:230, 200, 155" HyperLinkHeight="NUM:20" HyperLinkWidth="NUM:100" ID="STR:401" IsAutoLastLine="BOOL:false" IsVisibleScrollBar="BOOL:false" Pos="VECTOR:167, 190" Size="VECTOR:161, 11" urlLinkColor="COLOR:255, 240, 0" urlLinkPath="STR:http://df.nexon.com/?GO=pr|juneevent&amp;TO=growingup " urlLinkViewText="STR:进入活动页面" />
+        </CNBoardImage>
+        <CNUIControlImage ID="STR:406" ImagePack="STR:Interface2/UI/EventList/Event_window.img" Pos="VECTOR:151, 192" Size="VECTOR:14, 13" imageIndex="NUM:2" />
+        <CNToolTips CheckTooltipID="STR:404" DefaultText="STR:Lv60及以上的角色可以参与活动。" DrawWidth="NUM:180" ID="STR:408" IsForceDraw="BOOL:false" Pos="VECTOR:-90, 0" ShowState="NUM:0" Size="VECTOR:0, 0" TooltipType="STR:BASEDONCURSOR" />
+    </CONTROL>
+</ROOT>
+

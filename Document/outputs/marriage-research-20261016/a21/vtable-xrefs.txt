@@ -1,0 +1,18 @@
+dump=E:\Project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260906-224825-165-31384\DNF-memory-rva.bin
+dump_sha256=6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507
+image_base=00400000
+Pointer hits are searched as little-endian VAs. RTTI names are reported only when a valid MSVC complete-object-locator precedes a candidate vftable.
+
+===== 03F0-A direct caller/UI callback: target RVA 0088B040 VA 00C8B040; pointer_hits=1 =====
+pointer RVA 02DA61C4 VA 031A61C4; no nearby validated RTTI vftable
+
+===== 03F0-B direct caller/UI callback: target RVA 0088B3F0 VA 00C8B3F0; pointer_hits=1 =====
+pointer RVA 02DA5FD4 VA 031A5FD4; no nearby validated RTTI vftable
+
+===== 03F0-C direct caller/UI callback: target RVA 0088EF30 VA 00C8EF30; pointer_hits=1 =====
+pointer RVA 02DA6514 VA 031A6514; no nearby validated RTTI vftable
+
+===== 03F1 UI dispatcher: target RVA 0088A200 VA 00C8A200; pointer_hits=1 =====
+pointer RVA 02DA5E04 VA 031A5E04; no nearby validated RTTI vftable
+
+===== 03F7 builder: target RVA 008955D0 VA 00C955D0; pointer_hits=0 =====

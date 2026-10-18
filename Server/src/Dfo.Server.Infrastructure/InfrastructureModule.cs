@@ -26,6 +26,15 @@ public sealed class InfrastructureModule : IServerModule
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.IAltarDungeonContentSource, PvfAltarDungeonContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.ISaoTowerContentSource, PvfSaoTowerContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.ITauKingdomContentSource, PvfTauKingdomContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageProposalContentSource, PvfMarriageProposalContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageDungeonContentSource, PvfMarriageDungeonContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleContentSource, PvfMarriageCapsuleContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Content.IMarriageHousingContentSource, PvfMarriageHousingContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCeremonyContentSource, PvfMarriageCeremonyContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.IHerasContentSource, PvfHerasContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDespairTowerContentSource, PvfDespairTowerContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ITournamentDungeonContentSource, PvfTournamentDungeonContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDimensionDungeonContentSource, PvfDimensionDungeonContentSource>();
@@ -60,6 +69,7 @@ public sealed class InfrastructureModule : IServerModule
                 : 0,
         });
         services.TryAddSingleton<PvfArchiveProvider>();
+        services.TryAddSingleton<IContentArchiveIdentity, PvfArchiveIdentity>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.IAchievementDefinitionSource, PvfAchievementDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.ITitleBookDefinitionSource, PvfTitleBookDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IHellDungeonDefinitionSource, PvfHellDungeonDefinitionSource>();
@@ -74,6 +84,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IInventoryExpansionDefinitionSource, PvfInventoryExpansionDefinitionSource>();
         services.TryAddSingleton<ICargoItemDefinitionSource, PvfCargoItemDefinitionSource>();
         services.TryAddSingleton<IItemCatalogSource, PvfItemCatalogSource>();
+        services.TryAddSingleton<IItemTooltipSource, PvfItemTooltipSource>();
         services.TryAddSingleton<IQuestParameterSource, PvfQuestParameterSource>();
         services.TryAddSingleton<IExperienceParameterSource, PvfExperienceParameterSource>();
         services.TryAddSingleton<IDungeonRankGradeSource, PvfDungeonRankGradeSource>();
@@ -136,6 +147,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IEquipmentDefinitionSource, PvfEquipmentDefinitionSource>();
         services.TryAddSingleton<IItemSocketDefinitionSource, PvfItemSocketDefinitionSource>();
         services.TryAddSingleton<IEquipmentQualityDefinitionSource, PvfEquipmentQualityDefinitionSource>();
+        services.TryAddSingleton<IEquipmentResealContentSource, PvfEquipmentResealContentSource>();
         services.TryAddSingleton<IAvatarCompoundDefinitionSource, PvfAvatarCompoundDefinitionSource>();
         services.TryAddSingleton<IAvatarAppearanceDefinitionSource, PvfAvatarAppearanceDefinitionSource>();
         services.TryAddSingleton<IEquipmentMagicSealGradeDefinitionSource, PvfEquipmentMagicSealGradeDefinitionSource>();
@@ -148,6 +160,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IEquipmentDisjointDefinitionSource,
             PvfEquipmentDisjointDefinitionSource>();
         services.TryAddSingleton<IItemUseRuleDefinitionSource, PvfItemUseRuleDefinitionSource>();
+        services.TryAddSingleton<IExperienceItemDefinitionSource, PvfExperienceItemDefinitionSource>();
         services.TryAddSingleton<IStackableActionDefinitionSource, PvfStackableActionDefinitionSource>();
         services.TryAddSingleton<IItemUsageRuleSource, PvfItemUsageRuleSource>();
         services.TryAddSingleton(ReadChannelEntryOptions(configuration));

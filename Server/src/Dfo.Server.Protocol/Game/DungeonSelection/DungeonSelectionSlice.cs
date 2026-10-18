@@ -566,7 +566,8 @@ public sealed class EnterSelectDungeonHandler(
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<EnterSelectDungeonHandler> logger,
     IPartyService parties,
-    UsageQuotaProjectionDelivery? quotaProjection = null, IDespairTowerDomainService? despair = null)
+    UsageQuotaProjectionDelivery? quotaProjection = null, IDespairTowerDomainService? despair = null, ISaoTowerDomainService? sao = null,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null)
     : ClientMessageHandler<EnterSelectDungeonRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -672,8 +673,9 @@ public sealed class EnterSelectDungeonHandler(
                     refreshed.World.PreparedAt),
                 new EnterSelectDungeonAcknowledgement(),
                 new UserStateNotification(member.Session.WireUserId, 0x01),
-                new UdpHostNotification(),
+                new UdpHostNotification(roster.LeaderMember.Slot),
             ];
+            notifications.AddRange(await HousingCurrentProjection.ReadAsync(housing, member.Session, cancellationToken).ConfigureAwait(false));
             if (!visits.DefersSelectionState(refreshed.Character.Progression.Level, refreshed.Character.TutorialCompleted))
             {
                 notifications.Add(new DungeonPermissionStateMessage(refreshed.CharacterEntry.Progression.Dungeons));
@@ -682,6 +684,8 @@ public sealed class EnterSelectDungeonHandler(
                 if (tower is not null)
                     notifications.AddRange(tower.DungeonIds.Select(id =>
                         new DungeonRemainingEntriesMessage(id, tower.FreeEntriesRemaining)));
+                if (sao is not null && await sao.ReadStatusAsync(cancellationToken).ConfigureAwait(false) is { } saoProgress)
+                    notifications.Add(new SaoCurrentFloorNotification(saoProgress));
                 notifications.Add(new EnterSelectDungeonNotification(wireUserIds, checked((ushort)(tower?.NextFloor ?? 1))));
             }
             deliveries.Add((member.Session, notifications));

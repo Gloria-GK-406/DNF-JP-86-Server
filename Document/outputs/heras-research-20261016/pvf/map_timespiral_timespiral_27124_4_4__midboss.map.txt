@@ -1,0 +1,67 @@
+=== map/timespiral/timespiral_27124(4,4)_midboss.map ===
+[player number]
+1 1
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3900
+[/dungeon]
+[type]
+[normal]
+[greed]
+GG GG
+[tile]
+Tile/basic_2.til Tile/basic_2.til Tile/basic_2.til Tile/basic_5.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/basic_ex_1.til 1 Tile/basic_ex_3.til 2 Tile/basic_ex_4.til 3 Tile/basic_ex_5.til
+[/tile files]
+[tile map]
+0 0 0 0 1 2 3 3
+[/tile map]
+[/extended tile]
+[far sight scroll]
+56
+[middle sight scroll]
+80
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/timespiral_far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+49 279 1459 621 780 101 1452 637
+[sound]
+M_HELIX_LAB_TRAP AMB_POWERSTATION_GRANDINE
+[/sound]
+[animation]
+Animation/rail_3.ani [normal] 327 554 0 Animation/rail_4.ani [normal] 105 496 0 Animation/rail_2.ani [normal] 556 554 0 Animation/rail_2.ani [normal] 780 554 0 Animation/timespiral_back_middle_light.ani [middleback] 1160 110 0 Animation/timespiral_back_middle_light.ani [middleback] 931 110 0 Animation/timespiral_back_middle_light.ani [middleback] 702 108 0 Animation/timespiral_back_middle_light.ani [middleback] 473 110 0 Animation/timespiral_mid02.ani [middleback] 431 -403 0 Animation/remnant_dark_front02.ani [normal] 239 29 0 Animation/remnant_dark_front04.ani [normal] 248 32 0 Animation/remnant_dark_front00.ani [normal] 337 30 0 Animation/remnant_dark_back00.ani [normal] 336 32 0 ../kronos_dg/Animation/fire/FireCurtain01.ani [middleback] -135 -345 0 ../kronos_dg/Animation/fire/FireCurtain01.ani [middleback] 505 -345 0 ../kronos_dg/new_animation/map_animation/object/magma_05.ani [bottom] 456 400 0 ../kronos_dg/new_animation/map_animation/object/magma_05_dodge.ani [bottom] 456 400 0 ../kronos_dg/new_animation/map_animation/object/magma_05_dodge_small.ani [bottom] 456 400 0 ../kronos_dg/Animation/fire/fire01_dodge.ani [distantback] 115 133 0 ../kronos_dg/Animation/fire/fire01_dodge.ani [distantback] 256 137 0 ../kronos_dg/Animation/fire/fire01_dodge.ani [distantback] 372 129 0 ../kronos_dg/Animation/fire/fire01_dodge.ani [distantback] 489 119 0 ../kronos_dg/Animation/fire/fire01_dodge.ani [distantback] 616 132 0 ../kronos_dg/Animation/fire/fire01_dodge.ani [distantback] 992 125 0 ../kronos_dg/new_animation/map_animation/object/Smoke.ani [normal] 760 441 0 ../kronos_dg/new_animation/map_animation/object/Tile_Smoke_1_2_s.ani [normal] 797 213 0
+[/animation]
+[passive object]
+12918 51 155 0 12905 952 207 0 12906 816 267 0 12907 874 325 0 12912 909 438 0 12906 832 520 0 12912 -7 441 0
+[/passive object]
+[monster]
+64019 1 0 240 190 0 1 1 [fixed] [normal] 64019 1 0 243 320 0 1 1 [fixed] [normal] 64019 1 0 639 173 0 1 1 [fixed] [normal] 64019 1 0 637 304 0 1 1 [fixed] [normal] 64019 1 0 644 438 0 1 1 [fixed] [normal] 64907 1 0 453 435 0 1 1 [fixed] [normal] 64907 1 0 354 375 0 1 1 [fixed] [normal] 64907 1 0 332 281 0 1 1 [fixed] [normal] 64907 1 0 380 203 0 1 1 [fixed] [normal] 64907 1 0 528 203 0 1 1 [fixed] [normal] 64907 1 0 545 323 0 1 1 [fixed] [normal] 64907 1 0 541 405 0 1 1 [fixed] [normal] 110921 1 0 451 291 0 1 1 [fixed] [champion]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[special passive object]
+12942 235 457 0 1 [item] 0 1 -1 -1 -1 12941 456 120 0 1 [item] 0 1 -1 -1 -1
+[/special passive object]
+[NPC]
+1000 [left] 1200 1200 0
+[/NPC]
+[event monster position]
+121 303 0 139 342 0 148 310 0 121 303 0
+[/event monster position]
+[map name]
+PVP无名

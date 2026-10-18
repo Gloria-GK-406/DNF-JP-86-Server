@@ -78,6 +78,8 @@ internal static class CharacterDatabaseSchema
         Reconcile(connection);
         AvatarAppearanceMigration.Apply(connection);
         MigrateMailboxGold(connection);
+        MarriageRelationMigration.Apply(connection);
+        MarriageHousingMigration.Apply(connection);
         Apply(connection, Indexes);
         SharedMaterialMigration.Apply(connection);
         JoustRoundIdentityMigration.Apply(connection);
@@ -229,6 +231,105 @@ internal static class CharacterDatabaseSchema
     /// allocates it rather than on a caller, because allocation is the only place one is made.
     /// </remarks>
     private const string TableDeclarations = """
+        CREATE TABLE IF NOT EXISTS marriage_quest_bindings (
+            character_id INTEGER NOT NULL, quest_id INTEGER NOT NULL,
+            proposal_id TEXT NOT NULL REFERENCES marriage_proposals(id), accepted_at INTEGER NOT NULL,
+            PRIMARY KEY(character_id,quest_id)
+        );
+        CREATE TABLE IF NOT EXISTS marriage_trial_clears (
+            character_id INTEGER NOT NULL, quest_id INTEGER NOT NULL,
+            proposal_id TEXT NOT NULL REFERENCES marriage_proposals(id), run_id TEXT NOT NULL,
+            PRIMARY KEY(character_id,quest_id,proposal_id,run_id)
+        );
+        CREATE TABLE IF NOT EXISTS marriage_proposals (
+            id TEXT PRIMARY KEY, payload_json TEXT NOT NULL, state INTEGER NOT NULL CHECK(state BETWEEN 0 AND 3),
+            revision INTEGER NOT NULL, created_at INTEGER NOT NULL, response INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS marriage_proposal_participants (
+            proposal_id TEXT NOT NULL REFERENCES marriage_proposals(id), role INTEGER NOT NULL CHECK(role IN(0,1)),
+            character_id INTEGER NOT NULL, active INTEGER NOT NULL CHECK(active IN(0,1)),
+            PRIMARY KEY(proposal_id,role), UNIQUE(proposal_id,character_id)
+        );
+        CREATE TABLE IF NOT EXISTS marriage_ceremonies (
+            id TEXT PRIMARY KEY,
+            relation_id TEXT NOT NULL REFERENCES marriage_proposals(id),
+            partner_character_id INTEGER NOT NULL,
+            payload_json TEXT NOT NULL,
+            tier INTEGER NOT NULL CHECK(tier=0),
+            wait_index INTEGER NOT NULL CHECK(wait_index BETWEEN 0 AND 2),
+            state INTEGER NOT NULL CHECK(state BETWEEN 0 AND 3),
+            revision INTEGER NOT NULL CHECK(revision>=1),
+            created_at INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            response INTEGER CHECK(response BETWEEN 0 AND 2)
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_marriage_ceremonies_active_relation
+            ON marriage_ceremonies(relation_id) WHERE state IN (0,1);
+        CREATE TABLE IF NOT EXISTS marriage_weddings (
+            ceremony_id TEXT PRIMARY KEY REFERENCES marriage_ceremonies(id),
+            relation_id TEXT NOT NULL REFERENCES marriage_proposals(id),payload_json TEXT NOT NULL,
+            phase INTEGER NOT NULL CHECK(phase BETWEEN 0 AND 2),paid_gold INTEGER NOT NULL CHECK(paid_gold>=0),
+            completed_at INTEGER NOT NULL DEFAULT 0,love_points INTEGER NOT NULL DEFAULT 0 CHECK(love_points>=0)
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_marriage_weddings_married ON marriage_weddings(relation_id) WHERE phase=1;
+        CREATE TABLE IF NOT EXISTS marriage_wedding_guests (
+            ceremony_id TEXT NOT NULL REFERENCES marriage_weddings(ceremony_id),guest_character_id INTEGER NOT NULL,
+            inviter_character_id INTEGER NOT NULL,context_key INTEGER NOT NULL,gold INTEGER NOT NULL CHECK(gold>=0),
+            PRIMARY KEY(ceremony_id,guest_character_id)
+        );
+        CREATE TABLE IF NOT EXISTS marriage_guest_comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,relation_id TEXT NOT NULL REFERENCES marriage_proposals(id),
+            author_id INTEGER NOT NULL,author_name BLOB NOT NULL,sort_key INTEGER NOT NULL,text BLOB NOT NULL CHECK(length(text) BETWEEN 1 AND 20)
+        );
+        CREATE INDEX IF NOT EXISTS ix_marriage_guest_comments_relation ON marriage_guest_comments(relation_id,sort_key);
+        CREATE TABLE IF NOT EXISTS marriage_wedding_cleanup (
+            ceremony_id TEXT NOT NULL REFERENCES marriage_weddings(ceremony_id),
+            character_id INTEGER NOT NULL,payload_json TEXT NOT NULL,
+            PRIMARY KEY(ceremony_id,character_id)
+        );
+        CREATE TABLE IF NOT EXISTS marriage_church_rooms (
+            token INTEGER PRIMARY KEY AUTOINCREMENT,
+            ceremony_id TEXT NOT NULL UNIQUE REFERENCES marriage_ceremonies(id),
+            channel_id INTEGER NOT NULL CHECK(channel_id>0),
+            town_id INTEGER NOT NULL CHECK(town_id BETWEEN 0 AND 255),
+            area_id INTEGER NOT NULL CHECK(area_id BETWEEN 12 AND 62),
+            prepared_at INTEGER NOT NULL,ready_until INTEGER NOT NULL,
+            UNIQUE(channel_id,town_id,area_id)
+        );
+        CREATE TABLE IF NOT EXISTS marriage_church_admissions (
+            ceremony_id TEXT NOT NULL REFERENCES marriage_church_rooms(ceremony_id),
+            character_id INTEGER NOT NULL,PRIMARY KEY(ceremony_id,character_id)
+        );
+        CREATE TABLE IF NOT EXISTS marriage_relations (
+            id TEXT PRIMARY KEY REFERENCES marriage_proposals(id),
+            stage INTEGER NOT NULL CHECK(stage BETWEEN 0 AND 15),
+            revision INTEGER NOT NULL CHECK(revision>=1),
+            stage_since INTEGER NOT NULL,
+            ceremony_id TEXT REFERENCES marriage_ceremonies(id),
+            married_at INTEGER,
+            love_points INTEGER NOT NULL DEFAULT 0 CHECK(love_points>=0),
+            CHECK((stage IN (2,3,4)) = (ceremony_id IS NOT NULL))
+        );
+        CREATE TABLE IF NOT EXISTS marriage_housing_migrations(version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS marriage_points_migration_audit(relation_id TEXT PRIMARY KEY,shared_points INTEGER NOT NULL,first_points INTEGER NOT NULL,second_points INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS marriage_personal_points(relation_id TEXT NOT NULL REFERENCES marriage_relations(id),character_id INTEGER NOT NULL,points INTEGER NOT NULL CHECK(points BETWEEN 0 AND 999),revision INTEGER NOT NULL DEFAULT 1,PRIMARY KEY(relation_id,character_id));
+        CREATE TABLE IF NOT EXISTS marriage_daily_points(character_id INTEGER NOT NULL,period INTEGER NOT NULL,PRIMARY KEY(character_id,period));
+        CREATE TABLE IF NOT EXISTS marriage_ring_state(relation_id TEXT PRIMARY KEY REFERENCES marriage_relations(id),level INTEGER NOT NULL CHECK(level BETWEEN 0 AND 5));
+        CREATE TABLE IF NOT EXISTS marriage_capsules(
+            relation_id TEXT NOT NULL REFERENCES marriage_relations(id), character_id INTEGER NOT NULL REFERENCES characters(character_id),
+            energy INTEGER NOT NULL CHECK(energy>=0), owned INTEGER NOT NULL CHECK(owned BETWEEN 0 AND 255),
+            pending INTEGER NOT NULL CHECK(pending BETWEEN 0 AND 255), PRIMARY KEY(relation_id,character_id));
+        CREATE TABLE IF NOT EXISTS marriage_capsule_clears(
+            character_id INTEGER NOT NULL REFERENCES characters(character_id),run_id TEXT NOT NULL,
+            relation_id TEXT NOT NULL REFERENCES marriage_relations(id),PRIMARY KEY(character_id,run_id));
+        CREATE TABLE IF NOT EXISTS marriage_housing_rooms(couple_no INTEGER PRIMARY KEY AUTOINCREMENT,relation_id TEXT NOT NULL UNIQUE REFERENCES marriage_relations(id));
+        CREATE TABLE IF NOT EXISTS marriage_housing_storage(relation_id TEXT NOT NULL REFERENCES marriage_relations(id),slot INTEGER NOT NULL CHECK(slot BETWEEN 0 AND 39),item_id INTEGER NOT NULL,count INTEGER NOT NULL CHECK(count>0),PRIMARY KEY(relation_id,slot));
+        CREATE TABLE IF NOT EXISTS marriage_housing_placements(relation_id TEXT NOT NULL REFERENCES marriage_relations(id),slot INTEGER NOT NULL CHECK(slot BETWEEN 0 AND 27),item_id INTEGER NOT NULL,PRIMARY KEY(relation_id,slot));
+        CREATE TABLE IF NOT EXISTS marriage_housing_trees(relation_id TEXT PRIMARY KEY REFERENCES marriage_relations(id),payload_json TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS marriage_housing_harvests(planting_id TEXT NOT NULL,round INTEGER NOT NULL,payload_json TEXT NOT NULL,PRIMARY KEY(planting_id,round));
+        CREATE TABLE IF NOT EXISTS sao_tower_progress(season TEXT PRIMARY KEY,round INTEGER NOT NULL CHECK(round>=1),next_floor INTEGER NOT NULL CHECK(next_floor BETWEEN 1 AND 100),revision INTEGER NOT NULL CHECK(revision>=0));
+        CREATE TABLE IF NOT EXISTS sao_first_clears(season TEXT NOT NULL,round INTEGER NOT NULL,floor INTEGER NOT NULL,run_id TEXT NOT NULL UNIQUE,PRIMARY KEY(season,round,floor));
+        CREATE TABLE IF NOT EXISTS sao_first_clear_rewards(run_id TEXT NOT NULL,character_id INTEGER NOT NULL,item_id INTEGER NOT NULL,PRIMARY KEY(run_id,character_id),FOREIGN KEY(run_id) REFERENCES sao_first_clears(run_id));
         CREATE TABLE IF NOT EXISTS character_despair_tower (
             character_id INTEGER PRIMARY KEY REFERENCES characters(character_id) ON DELETE CASCADE,
             highest_cleared_floor INTEGER NOT NULL CHECK(highest_cleared_floor BETWEEN 1 AND 100),
@@ -302,6 +403,7 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS account_increase_chance_lottery_progress(account_id INTEGER NOT NULL,item_template_id INTEGER NOT NULL,reward_index INTEGER NOT NULL,PRIMARY KEY(account_id,item_template_id,reward_index));
         CREATE TABLE IF NOT EXISTS account_premiums(account_id INTEGER NOT NULL,premium_type INTEGER NOT NULL,end_time INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(account_id,premium_type));
         CREATE TABLE IF NOT EXISTS account_purchase_restrictions(account_id INTEGER NOT NULL,restriction_id INTEGER NOT NULL CHECK(restriction_id>0),end_time INTEGER NOT NULL CHECK(end_time BETWEEN 1 AND 2147439600),PRIMARY KEY(account_id,restriction_id));
+        CREATE TABLE IF NOT EXISTS account_hotkey_options(account_id INTEGER NOT NULL,key_type INTEGER NOT NULL CHECK(key_type BETWEEN 0 AND 255),payload BLOB NOT NULL CHECK(length(payload)<=65536),PRIMARY KEY(account_id,key_type));
         CREATE TABLE IF NOT EXISTS account_settings(account_id INTEGER PRIMARY KEY,main_game_option BLOB,quickchat_bank0 BLOB,quickchat_bank1 BLOB,hotkey_key_type INTEGER NOT NULL DEFAULT 0,hotkey_slots BLOB);
         CREATE TABLE IF NOT EXISTS accounts ( account_id INTEGER PRIMARY KEY AUTOINCREMENT, m_id TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL DEFAULT '', last_login_ip TEXT NOT NULL DEFAULT '', last_login_at TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP , cera INTEGER NOT NULL DEFAULT 0, token_cera INTEGER NOT NULL DEFAULT 0, happy_token_cera INTEGER NOT NULL DEFAULT 0, lucky_star INTEGER NOT NULL DEFAULT 0, honor_exp INTEGER NOT NULL DEFAULT 0, growth_capsule_exp INTEGER NOT NULL DEFAULT 0, cube_black INTEGER NOT NULL DEFAULT 0, cube_white INTEGER NOT NULL DEFAULT 0, cube_red INTEGER NOT NULL DEFAULT 0, cube_blue INTEGER NOT NULL DEFAULT 0, cube_clear INTEGER NOT NULL DEFAULT 0, cube_gold INTEGER NOT NULL DEFAULT 0, soul_common INTEGER NOT NULL DEFAULT 0, soul_advanced INTEGER NOT NULL DEFAULT 0, soul_rare INTEGER NOT NULL DEFAULT 0, soul_unique INTEGER NOT NULL DEFAULT 0, soul_legendary INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS character_achievement_complete(character_id INTEGER, sort_order INTEGER, achievement_id INTEGER, p1 INTEGER, p2 INTEGER, p3 INTEGER, p4 INTEGER, PRIMARY KEY(character_id,achievement_id));
@@ -344,6 +446,7 @@ internal static class CharacterDatabaseSchema
         """;
 
     private const string IndexDeclarations = """
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_marriage_proposal_character ON marriage_proposal_participants(character_id) WHERE active=1;
         CREATE INDEX IF NOT EXISTS ix_domain_delivery_due ON domain_event_deliveries(subscriber_id,state,next_attempt_at,event_id);
         CREATE INDEX IF NOT EXISTS ix_domain_delivery_coalescing ON domain_event_deliveries(subscriber_id,coalescing_key,state,event_id);
         CREATE INDEX IF NOT EXISTS ix_domain_event_batch ON domain_events(batch_id,event_id);
@@ -359,6 +462,8 @@ internal static class CharacterDatabaseSchema
 
     /// <summary>Table, column and declaration, one per line.</summary>
     private const string ReconcilableColumns = """
+        marriage_weddings|completed_at|INTEGER NOT NULL DEFAULT 0
+        marriage_weddings|love_points|INTEGER NOT NULL DEFAULT 0 CHECK(love_points>=0)
         items|is_mirror|INTEGER NOT NULL DEFAULT 0 CHECK(is_mirror IN (0,1))
         items|mirror_source_uid|INTEGER
         items|appearance_item_id|INTEGER CHECK(appearance_item_id >= 0)

@@ -76,7 +76,8 @@ public sealed record ItemUseRule(
     ItemPlaceRestriction Places,
     bool HasUnreadableDeclaration = false,
     double ExpBonusRate = 0,
-    int EffectDurationMilliseconds = 0)
+    int EffectDurationMilliseconds = 0,
+    string? Action = null)
 {
     /// <summary>
     /// Whether every restriction this item declares could be read.
@@ -91,6 +92,7 @@ public sealed record ItemUseRule(
     /// item this whole outcome exists to stop destroying gets destroyed.
     /// </para>
     /// </remarks>
+    public byte? SharedEffectSelector { get; init; }
     public bool IsReadable => Jobs.IsValid && Places.IsValid && !HasUnreadableDeclaration;
 }
 

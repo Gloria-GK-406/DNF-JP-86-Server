@@ -42,7 +42,10 @@ public sealed record WorldContentSubject(
     IReadOnlyCollection<int> ClaimedDailyChallengeGroupIds,
     IReadOnlyList<CollectionBoxProgressSubject> CollectionBoxes,
     int EquippedCreatureItemId,
-    int EquippedCreatureLevel);
+    int EquippedCreatureLevel)
+{
+    public IReadOnlyCollection<int> EligibleWeddingQuestIds { get; init; } = [];
+}
 
 /// <summary>A quest this character may take right now.</summary>
 /// <remarks>

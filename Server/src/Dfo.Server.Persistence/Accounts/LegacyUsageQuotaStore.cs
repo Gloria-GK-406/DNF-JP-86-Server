@@ -15,6 +15,9 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
     {
         switch (key.Family)
         {
+            case UsageQuotaFamily.TournamentDungeon:
+            case UsageQuotaFamily.HerasDungeon:
+            case UsageQuotaFamily.AltarDungeon:
             case UsageQuotaFamily.DespairTower:
             case UsageQuotaFamily.DimensionDungeon:
                 return (await database.ReadAllAsync("SELECT value FROM character_daily_counters WHERE character_id=@id AND counter_key=@key",
@@ -44,6 +47,9 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
         var (character, key, expected, value, owner) = write;
         switch (key.Family)
         {
+            case UsageQuotaFamily.TournamentDungeon:
+            case UsageQuotaFamily.HerasDungeon:
+            case UsageQuotaFamily.AltarDungeon:
             case UsageQuotaFamily.DespairTower:
             case UsageQuotaFamily.DimensionDungeon:
                 return await database.ExecuteAsync("""
@@ -82,7 +88,16 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
             default: throw new ArgumentOutOfRangeException(nameof(write));
         }
     }
-    private static string DimensionKey(UsageQuotaKey key) => key.Family == UsageQuotaFamily.DespairTower
+    private static string DimensionKey(UsageQuotaKey key) => key.Family == UsageQuotaFamily.HerasDungeon
+        ? key.Name is "entries" or "bonus" ? "heras.3900." + key.Name + ":" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : throw new InvalidDataException("Invalid Heras quota key.")
+        : key.Family == UsageQuotaFamily.TournamentDungeon
+        ? key.Name is "120" or "121" or "122" ? "tournament." + key.Name + ":" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : throw new InvalidDataException("Invalid tournament quota key.")
+        : key.Family == UsageQuotaFamily.AltarDungeon
+        ? key.Name is "11006" or "11007" ? "altar." + key.Name + ":" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : throw new InvalidDataException("Invalid altar quota key.")
+        : key.Family == UsageQuotaFamily.DespairTower
         ? key.Name is "entries" or "clears" ? "despair." + key.Name + ":" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
             : throw new InvalidDataException("Invalid despair quota key.")
         : key.Name == "entries"

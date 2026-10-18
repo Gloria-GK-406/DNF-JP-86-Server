@@ -15,9 +15,47 @@ using Dfo.Server.Protocol.Game.Mailbox;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
-public sealed class ItemDeliveryTests
+public sealed partial class ItemDeliveryTests
 {
-    private static ShopFixture Fixture() => new(s => s.AddSingleton<IItemPlacementDefinitionSource>(new Content()));
+    [SkippableTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task New_quest_equipment_starts_full_in_inventory_or_overflow_mail(bool overflow)
+    {
+        Skip.IfNot(Dfo.Server.Application.Tests.World.ContentArchive.Available,
+            Dfo.Server.Application.Tests.World.ContentArchive.SkipReason);
+        using var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(new Content()));
+        if (overflow) await f.SeedCore(9, StackableItemCore.Create(1, 9002, 123));
+        var receipt = await Grant(f, new ItemDeliveryGrant(28269, 1));
+        Assert.Equal((ushort)48, overflow ? Assert.Single(receipt.MailedItems).Durability
+            : Assert.Single(receipt.Inventory).Snapshot.Durability);
+        if (overflow)
+        {
+            Assert.Empty(receipt.Inventory);
+            await using (var tx = Scope(f).Begin())
+            {
+                var bag = f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
+                    .GetPersistentStore(new(InventoryOwnerType.Character, 1), BusinessInventoryOwnership.StoreOf(BusinessInventorySpace.CarriedEquipment))
+                    .GetContainer(BusinessInventorySpace.CarriedEquipment);
+                await f.Services.GetRequiredService<IItemLifecycleDomainService>().DeleteItemAsync(
+                    await bag.TakeAsync((await bag.GetAsync(0, default))!, null, default), default);
+                await tx.CommitAsync(default);
+            }
+            var attachment = Assert.Single(Assert.Single(await Mail(f).InboxAsync(new(1))).Attachments);
+            await Mail(f).ClaimAsync(new(1), attachment.Id);
+        }
+        await using var read = Scope(f).Begin();
+        var target = f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
+            .GetPersistentStore(new(InventoryOwnerType.Character, 1), BusinessInventoryOwnership.StoreOf(BusinessInventorySpace.CarriedEquipment))
+            .GetContainer(BusinessInventorySpace.CarriedEquipment);
+        Assert.Equal((ushort)48, Assert.Single(await target.GetAllAsync(default)).Snapshot.Durability);
+    }
+
+    private static ShopFixture Fixture() => new(s =>
+    {
+        s.AddSingleton<IItemPlacementDefinitionSource>(new Content());
+        s.AddSingleton<IEquipmentDefinitionSource>(new EquipmentDefinitions());
+    });
     private static IItemDeliveryDomainService Delivery(ShopFixture f) => f.Services.GetRequiredService<IItemDeliveryDomainService>();
     private static IMailboxDomainService Mail(ShopFixture f) => f.Services.GetRequiredService<IMailboxDomainService>();
     private static DomainTransactionScope Scope(ShopFixture f) => (DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
@@ -230,12 +268,19 @@ public sealed class ItemDeliveryTests
         Assert.Single(await Mail(f).InboxAsync(new(1)));
     }
 
+    private sealed class EquipmentDefinitions : IEquipmentDefinitionSource
+    {
+        public ValueTask<int> InitializeAsync(CancellationToken ct) => ValueTask.FromResult(1);
+        public ValueTask<EquipmentDefinition?> GetEquipmentAsync(int itemId, CancellationToken ct) =>
+            ValueTask.FromResult<EquipmentDefinition?>(itemId == 9002 ? new(1, 1, 1, "weapon", 35) : null);
+    }
+
     private sealed class Content : IItemPlacementDefinitionSource
     {
         public ValueTask<ItemPlacement?> GetAsync(int id, CancellationToken ct) => ValueTask.FromResult<ItemPlacement?>(id switch
         {
             9001 => new(3, 10, new(BusinessInventorySpace.Material, 0, 0)),
-            9002 => new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 0)) { WorldClass = ItemWorldClass.Equipment },
+            9002 or 28269 => new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 0)) { WorldClass = ItemWorldClass.Equipment },
             9003 => new(8, 1, new(BusinessInventorySpace.Avatar, 0, 0)) { WorldClass = ItemWorldClass.Avatar },
             9004 => new(5, 1, new(BusinessInventorySpace.CreatureInventory, 0, 0)) { WorldClass = ItemWorldClass.Creature },
             9005 => new(2, 1, new(BusinessInventorySpace.Consumable, 0, 55)),

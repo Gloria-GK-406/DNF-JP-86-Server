@@ -474,6 +474,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             || Math.Abs(target.X - aggregate.CurrentCell.X)
                 + Math.Abs(target.Y - aggregate.CurrentCell.Y) != 1
             || !aggregate.Layout.CanTraverse(aggregate.CurrentCell, target)
+            || aggregate.Cells[aggregate.CurrentCell].MechanismBlocksClear
             || aggregate.Cells[aggregate.CurrentCell].Mechanisms.Any(state =>
                 !this.mechanismRules.AllowsExit(state, aggregate.CurrentCell, target))
             || (preparedCell is not null
@@ -758,7 +759,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     }
 
     private IReadOnlyList<ushort> SuppressedAfterDeath(DungeonRunAggregate aggregate, DungeonCellAggregate cell, DungeonActorDeathClaim claim) =>
-        cell.FindActor(claim.Actor.Sequence) is { BlocksClear: true, Actor.IsBoss: true }
+        !cell.MechanismBlocksClear && aggregate.Layout.Altar is null
+        && cell.FindActor(claim.Actor.Sequence) is { BlocksClear: true, Actor.IsBoss: true }
         && aggregate.Layout.KindOf(claim.Actor.Cell) == DungeonRoomKind.Boss
         && !cell.HasLivingBossExcept(claim.Actor.Sequence)
             ? cell.SuppressibleEnemies(sequence => !this.deathClaims.ContainsKey(new DeathClaimKey(
@@ -1282,7 +1284,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
                 || aggregate.RunId != expectedRunId) return false;
-            failed = !aggregate.Cells[aggregate.CurrentCell].ClearOpen;
+            failed = aggregate.Layout.AppliesFailureWeakness && !aggregate.Cells[aggregate.CurrentCell].ClearOpen;
             departure = new(characterId, aggregate.RunId, aggregate.Layout.DungeonId);
             if (!this.DetachParticipant(characterId)) return false;
         }
@@ -1299,7 +1301,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         if (ended is not null && this.lifecycle is not null)
             foreach (var member in ended.Participants)
                 await this.lifecycle.RecordDepartureAsync(new(member.CharacterId, ended.RunId, ended.Layout.DungeonId)).ConfigureAwait(false);
-        if (ended is not null && this.weakness is not null)
+        if (ended is not null && ended.Layout.AppliesFailureWeakness && this.weakness is not null)
             foreach (var member in ended.Participants)
                 await this.weakness.For(member.CharacterId).SetWeakness().ConfigureAwait(false);
         return ended;
@@ -1797,6 +1799,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     {
         private readonly DungeonCellObjectState[] objects;
         public IReadOnlyList<DungeonRoomMechanismState> Mechanisms { get; set; } = [];
+        public bool MechanismBlocksClear { get; set; }
         public readonly Dictionary<int, long> ObjectReservations = [];
         public readonly Dictionary<int, Queue<int>> ObjectQueues;
         private readonly Dictionary<ushort, DungeonCellActorState> actors;
@@ -1806,6 +1809,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
         public DungeonCellAggregate(DungeonCellSeed seed, Func<int, int> allocateGroundItemNumbers)
         {
+            this.MechanismBlocksClear = seed.MechanismBlocksClear;
             this.Mechanisms = seed.Mechanisms.Select(definition => new DungeonRoomMechanismState(definition)).ToArray();
             this.objects = seed.Objects.Select(obj => obj with { PendingLoot = obj.PendingLoot.ToArray() }).ToArray();
             this.ObjectQueues = this.objects.Select((value, index) => (value, index))
@@ -1840,9 +1844,9 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         public ushort FirstActorSequence { get; }
         public long Revision { get; set; }
         public bool ClearOpen { get; set; }
-        public bool IsCleared => this.actors.Values.Where(x => x.BlocksClear).All(x => x.IsDead);
+        public bool IsCleared => !this.MechanismBlocksClear && this.actors.Values.Where(x => x.BlocksClear).All(x => x.IsDead);
         public bool WillClearAfterDeath(ushort sequence, IReadOnlyList<ushort> suppressed) =>
-            this.actors.Values.All(actor => !actor.BlocksClear || actor.IsDead
+            !this.MechanismBlocksClear && this.actors.Values.All(actor => !actor.BlocksClear || actor.IsDead
                 || actor.Sequence == sequence || suppressed.Contains(actor.Sequence));
         public bool HasLivingBossExcept(ushort sequence) => this.actors.Values.Any(actor =>
             actor.Sequence != sequence && actor.BlocksClear && actor.Actor.IsBoss && !actor.IsDead);
@@ -1852,6 +1856,12 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         public void ConsumeObject(int index)
         {
             this.objects[index] = this.objects[index] with { IsConsumed = true, PendingLoot = [] };
+            this.Revision++;
+        }
+
+        public void AddActors(IReadOnlyList<DungeonCellActorState> additions)
+        {
+            foreach (var actor in additions) this.actors.Add(actor.Sequence, actor);
             this.Revision++;
         }
 
@@ -1960,6 +1970,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             [.. this.groundItems.Values.OrderBy(item => item.Number)],
             this.ClearOpen)
         {
+            MechanismBlocksClear = this.MechanismBlocksClear,
             Mechanisms = this.Mechanisms.ToArray(),
             Objects = this.objects.Select(obj => obj with { PendingLoot = obj.PendingLoot.ToArray() }).ToArray(),
             HellGroups = this.hellGroups.Values.OrderBy(group => group.GroupIndex)

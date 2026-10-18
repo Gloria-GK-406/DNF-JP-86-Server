@@ -1,0 +1,6 @@
+sha256=CF45F4E8514C3BF560DD322C146F8441249F6C28246EC8566DCF9EBC4E1B2EB7
+function_symbol_entries=119333
+unique_function_addresses=97021
+pattern=marri|wedding|spouse|couple|proposal|propose|engage|divorc|ceremon|(?:^|_)lover(?:$|_)|love.?point|magadha
+symbol_matches=0
+ascii_matches=0

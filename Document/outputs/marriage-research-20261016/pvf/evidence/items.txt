@@ -1,0 +1,872 @@
+id 10002609 -> event/chn_wedding_system_2014/chn_invitation_couple_dgn.stk
+=== stackable/event/chn_wedding_system_2014/chn_invitation_couple_dgn.stk ===
+[name]
+爱之摩伽陀邀请函
+[explain]
+相当于进入[爱之摩伽陀]的入场券。
+    [爱之摩伽陀]地下城位于格兰之森山麓地区， 只有夫妻2人组队才可进入。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[stack limit]
+1000
+[icon]
+Item/stackable/consumption_cn.img 711
+[field image]
+Item/field_material_cn.img 130
+[stackable type]
+[quest] 0
+[move wav]
+PAPER_TOUCH
+[price]
+100000
+[value]
+0
+[impossible contents]
+gift
+[/impossible contents]
+id 10002610 -> event/chn_wedding_system_2014/chn_mat_lovely_doll.stk
+=== stackable/event/chn_wedding_system_2014/chn_mat_lovely_doll.stk ===
+[name]
+心意娃娃
+[explain]
+据说拥有此物就可以和心爱之人长相厮守。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[stack limit]
+1000
+[icon]
+Item/stackable/material_cn.img 121
+[field image]
+Item/field_material_cn.img 79
+[stackable type]
+[material] 0
+[need material]
+10002617 5
+[/need material]
+[move wav]
+FOOD_TOUCH
+[impossible contents]
+gift
+[/impossible contents]
+id 10002611 -> event/chn_wedding_system_2014/chn_stk_upgrade_ring_silver.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_upgrade_ring_silver.stk ===
+[name]
+简约的铂金戒指升级券
+[explain]
+使用后， 可将简约的铂金戒指升级为闪亮的白玉戒指。
+    夫妻之中任意一方升级成功， 另一方的戒指也会自动升级。
+[grade]
+1
+[rarity]
+3
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[need material]
+10002606 50
+[/need material]
+[price]
+500000
+[value]
+0
+[icon]
+Item/stackable/consumption_cn.img 752
+[stackable type]
+[etc] 1
+[move wav]
+PAPER_TOUCH
+[stack limit]
+1
+[action usable place]
+[village] [seria room]
+[/action usable place]
+[action type]
+[upgrade wedding ring] 1
+[/action type]
+id 10002612 -> event/chn_wedding_system_2014/chn_stk_upgrade_ring_gold.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_upgrade_ring_gold.stk ===
+[name]
+闪亮的白玉戒指升级券
+[explain]
+使用后， 可将闪亮的白玉戒指升级为耀眼的蓝玉戒指。
+    夫妻之中任意一方升级成功， 另一方的戒指也会自动升级。
+[grade]
+1
+[rarity]
+3
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[need material]
+10002606 300
+[/need material]
+[price]
+1000000
+[value]
+0
+[icon]
+Item/stackable/consumption_cn.img 753
+[stackable type]
+[etc] 1
+[move wav]
+PAPER_TOUCH
+[stack limit]
+1
+[action usable place]
+[village] [seria room]
+[/action usable place]
+[action type]
+[upgrade wedding ring] 2
+[/action type]
+id 10002613 -> event/chn_wedding_system_2014/chn_stk_upgrade_ring_ruby.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_upgrade_ring_ruby.stk ===
+[name]
+耀眼的蓝玉戒指升级券
+[explain]
+使用后， 可将耀眼的蓝玉戒指升级为华丽的紫玉戒指。
+    夫妻之中任意一方升级成功， 另一方的戒指也会自动升级。
+[grade]
+1
+[rarity]
+3
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[need material]
+10002606 500
+[/need material]
+[price]
+3500000
+[value]
+0
+[icon]
+Item/stackable/consumption_cn.img 754
+[stackable type]
+[etc] 1
+[move wav]
+PAPER_TOUCH
+[stack limit]
+1
+[action usable place]
+[village] [seria room]
+[/action usable place]
+[action type]
+[upgrade wedding ring] 3
+[/action type]
+id 10002614 -> event/chn_wedding_system_2014/chn_stk_upgrade_ring_diamond.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_upgrade_ring_diamond.stk ===
+[name]
+华丽的紫玉戒指升级券
+[explain]
+使用后， 可将华丽的紫玉戒指升级为璀璨的粉玉戒指。
+    夫妻之中任意一方升级成功， 另一方的戒指也会自动升级。
+[grade]
+1
+[rarity]
+3
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[need material]
+10002606 800
+[/need material]
+[price]
+8000000
+[value]
+0
+[icon]
+Item/stackable/consumption_cn.img 755
+[stackable type]
+[etc] 1
+[move wav]
+PAPER_TOUCH
+[stack limit]
+1
+[action usable place]
+[village] [seria room]
+[/action usable place]
+[action type]
+[upgrade wedding ring] 4
+[/action type]
+id 10002615 -> event/chn_wedding_system_2014/chn_stk_upgrade_ring_prime_diamond.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_upgrade_ring_prime_diamond.stk ===
+[name]
+璀璨的粉玉戒指升级券
+[explain]
+使用后， 可将璀璨的粉玉戒指升级为神圣的橙玉戒指。
+    夫妻之中任意一方升级成功， 另一方的戒指也会自动升级。
+[grade]
+1
+[rarity]
+3
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[need material]
+10002606 999
+[/need material]
+[price]
+12000000
+[value]
+0
+[icon]
+Item/stackable/consumption_cn.img 756
+[stackable type]
+[etc] 1
+[move wav]
+PAPER_TOUCH
+[stack limit]
+1
+[action usable place]
+[village] [seria room]
+[/action usable place]
+[action type]
+[upgrade wedding ring] 5
+[/action type]
+id 10002616 -> event/chn_wedding_system_2014/chn_box_lovely_doll.stk
+=== stackable/event/chn_wedding_system_2014/chn_box_lovely_doll.stk ===
+[name]
+真爱考验箱
+[explain]
+问世间情为何物， 直教人生死相许？
+[grade]
+50
+[attach type]
+[trade]
+[rarity]
+2
+[weight]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[price]
+10000
+[value]
+0
+[icon]
+Item/stackable/consumption_cn.img 710
+[field image]
+Item/FieldImage.img 30
+[stackable type]
+[booster] 0
+[cool time]
+1000
+[booster info]
+[etc]
+1 10002610 30000 1 10002617 50000 1
+[/etc]
+[/booster info]
+[move wav]
+BONE_TOUCH
+id 10002617 -> event/chn_wedding_system_2014/chn_mat_lacking_lovely_doll.stk
+=== stackable/event/chn_wedding_system_2014/chn_mat_lacking_lovely_doll.stk ===
+[name]
+绝情娃娃
+[explain]
+据说此物身上满是伤心人的怨念， 你最好离它远一点。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[stack limit]
+1000
+[icon]
+Item/stackable/material_cn.img 122
+[field image]
+Item/field_material_cn.img 79
+[stackable type]
+[material] 0
+[move wav]
+FOOD_TOUCH
+[impossible contents]
+gift
+[/impossible contents]
+id 10002627 -> event/chn_wedding_system_2014/chn_stk_fireworks_solomembers.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_fireworks_solomembers.stk ===
+[name]
+光棍们的祝福礼炮
+[explain]
+使用后， 屏幕内会出现光棍们的祝福寄语， 不过是不是真心的就不知道了。    该物品在次日凌晨6点统一删除。
+[grade]
+50
+[attach type]
+[trade]
+[rarity]
+1
+[weight]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[price]
+10000
+[value]
+0
+[icon]
+Item/stackable/consumption_cn.img 704
+[field image]
+Item/field_material_cn.img 124
+[stackable type]
+[random reward item] 0
+[cool time]
+5000
+[move wav]
+TRUNK_TOUCH
+[shared effect]
+1
+[chn random image percent]
+0 100000 10002868 Common/CommonEffect/Animation/chn_solounit_dodge.ani Common/CommonEffect/Animation/chn_solounit_normal.ani
+[/chn random image percent]
+[impossible contents]
+charac cargo
+[/impossible contents]
+[impossible contents]
+gift
+[/impossible contents]
+id 10002628 -> event/chn_wedding_system_2014/chn_stk_fireworks_bridesmaids.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_fireworks_bridesmaids.stk ===
+[name]
+伴郎伴娘的祝福礼花
+[explain]
+使用后， 屏幕内会出现来自伴郎伴娘的祝福寄语。 幸福是需要朋友一起见证的！    该物品在次日凌晨6点统一删除。
+[grade]
+50
+[attach type]
+[trade]
+[rarity]
+1
+[weight]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[price]
+10000
+[value]
+0
+[icon]
+Item/stackable/consumption_cn.img 705
+[field image]
+Item/field_material_cn.img 124
+[stackable type]
+[random reward item] 0
+[cool time]
+5000
+[move wav]
+TRUNK_TOUCH
+[shared effect]
+1
+[chn random image percent]
+0 100000 10002868 Common/CommonEffect/Animation/chn_bridesmaid_dodge.ani Common/CommonEffect/Animation/chn_bridesmaid_normal.ani
+[/chn random image percent]
+[impossible contents]
+charac cargo
+[/impossible contents]
+[impossible contents]
+gift
+[/impossible contents]
+id 10002629 -> event/chn_wedding_system_2014/chn_box_wedding_01.stk
+=== stackable/event/chn_wedding_system_2014/chn_box_wedding_01.stk ===
+[name]
+普通婚礼化妆箱
+[explain]
+祝贺举办普通婚礼的新人！ 希望二位的爱情能够地久天长！
+[grade]
+50
+[attach type]
+[trade]
+[rarity]
+2
+[weight]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[icon]
+Item/stackable/consumption_cn.img 707
+[field image]
+Item/FieldImage.img 30
+[stackable type]
+[booster] 0
+[cool time]
+1000
+[stack limit]
+1000
+[booster info]
+[etc]
+1 10002901 100000 10
+[/etc]
+[/booster info]
+[move wav]
+BONE_TOUCH
+id 10002630 -> event/chn_wedding_system_2014/chn_box_wedding_02.stk
+=== stackable/event/chn_wedding_system_2014/chn_box_wedding_02.stk ===
+[name]
+高级婚礼化妆箱
+[explain]
+祝贺举办高级婚礼的新人！ 希望二位的爱情能够地久天长！
+[grade]
+50
+[attach type]
+[trade]
+[rarity]
+2
+[weight]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[icon]
+Item/stackable/consumption_cn.img 708
+[field image]
+Item/FieldImage.img 30
+[stackable type]
+[booster] 0
+[cool time]
+1000
+[booster info]
+[etc]
+1 10002911 100000 1
+[/etc]
+[etc]
+1 10002901 100000 30
+[/etc]
+[etc]
+1 10002611 100000 1
+[/etc]
+[/booster info]
+[move wav]
+BONE_TOUCH
+id 10002631 -> event/chn_wedding_system_2014/chn_box_wedding_03.stk
+=== stackable/event/chn_wedding_system_2014/chn_box_wedding_03.stk ===
+[name]
+豪华婚礼化妆箱
+[explain]
+祝贺举办豪华婚礼的新人！ 希望二位的爱情能够地久天长、 永不分离！
+[grade]
+50
+[attach type]
+[trade]
+[rarity]
+2
+[weight]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[icon]
+Item/stackable/consumption_cn.img 709
+[field image]
+Item/FieldImage.img 30
+[stackable type]
+[booster] 0
+[cool time]
+1000
+[booster info]
+[charactor]
+[swordman] 1 99 1 2683422 100000 1
+[/charactor]
+[charactor]
+[swordman] 1 99 1 101600020 100000 1
+[/charactor]
+[charactor]
+[swordman] 1 99 1 10002901 100000 100
+[/charactor]
+[charactor]
+[swordman] 1 99 1 10002611 100000 1
+[/charactor]
+[charactor]
+[swordman] 1 99 1 10002612 100000 1
+[/charactor]
+[charactor]
+[demonic swordman] 1 99 1 2683435 100000 1
+[/charactor]
+[charactor]
+[demonic swordman] 1 99 1 101600020 100000 1
+[/charactor]
+[charactor]
+[demonic swordman] 1 99 1 10002901 100000 100
+[/charactor]
+[charactor]
+[demonic swordman] 1 99 1 10002611 100000 1
+[/charactor]
+[charactor]
+[demonic swordman] 1 99 1 10002612 100000 1
+[/charactor]
+[charactor]
+[fighter] 1 99 1 2683423 100000 1
+[/charactor]
+[charactor]
+[fighter] 1 99 1 102600019 100000 1
+[/charactor]
+[charactor]
+[fighter] 1 99 1 10002901 100000 100
+[/charactor]
+[charactor]
+[fighter] 1 99 1 10002611 100000 1
+[/charactor]
+[charactor]
+[fighter] 1 99 1 10002612 100000 1
+[/charactor]
+[charactor]
+[at fighter] 1 99 1 2683429 100000 1
+[/charactor]
+[charactor]
+[at fighter] 1 99 1 103600019 100000 1
+[/charactor]
+[charactor]
+[at fighter] 1 99 1 10002901 100000 100
+[/charactor]
+[charactor]
+[at fighter] 1 99 1 10002611 100000 1
+[/charactor]
+[charactor]
+[at fighter] 1 99 1 10002612 100000 1
+[/charactor]
+[charactor]
+[gunner] 1 99 1 2683424 100000 1
+[/charactor]
+[charactor]
+[gunner] 1 99 1 104600019 100000 1
+[/charactor]
+[charactor]
+[gunner] 1 99 1 10002901 100000 100
+[/charactor]
+[charactor]
+[gunner] 1 99 1 10002611 100000 1
+[/charactor]
+[charactor]
+[gunner] 1 99 1 10002612 100000 1
+[/charactor]
+[charactor]
+[at gunner] 1 99 1 2683427 100000 1
+[/charactor]
+[charactor]
+[at gunner] 1 99 1 105600018 100000 1
+[/charactor]
+[charactor]
+[at gunner] 1 99 1 10002901 100000 100
+[/charactor]
+[charactor]
+[at gunner] 1 99 1 10002611 100000 1
+[/charactor]
+[charactor]
+[at gunner] 1 99 1 10002612 100000 1
+[/charactor]
+[charactor]
+[mage] 1 99 1 2683425 100000 1
+[/charactor]
+[charactor]
+[mage] 1 99 1 106600019 100000 1
+[/charactor]
+[charactor]
+[mage] 1 99 1 10002901 100000 100
+[/charactor]
+[charactor]
+[mage] 1 99 1 10002611 100000 1
+[/charactor]
+[charactor]
+[mage] 1 99 1 10002612 100000 1
+[/charactor]
+[charactor]
+[at mage] 1 99 1 2683430 100000 1
+[/charactor]
+[charactor]
+[at mage] 1 99 1 107600017 100000 1
+[/charactor]
+[charactor]
+[at mage] 1 99 1 10002901 100000 100
+[/charactor]
+[charactor]
+[at mage] 1 99 1 10002611 100000 1
+[/charactor]
+[charactor]
+[at mage] 1 99 1 10002612 100000 1
+[/charactor]
+[charactor]
+[priest] 1 99 1 2683426 100000 1
+[/charactor]
+[charactor]
+[priest] 1 99 1 108600026 100000 1
+[/charactor]
+[charactor]
+[priest] 1 99 1 10002901 100000 100
+[/charactor]
+[charactor]
+[priest] 1 99 1 10002611 100000 1
+[/charactor]
+[charactor]
+[priest] 1 99 1 10002612 100000 1
+[/charactor]
+[charactor]
+[thief] 1 99 1 2683428 100000 1
+[/charactor]
+[charactor]
+[thief] 1 99 1 109600017 100000 1
+[/charactor]
+[charactor]
+[thief] 1 99 1 10002901 100000 100
+[/charactor]
+[charactor]
+[thief] 1 99 1 10002611 100000 1
+[/charactor]
+[charactor]
+[thief] 1 99 1 10002612 100000 1
+[/charactor]
+[charactor]
+[at swordman] 1 99 1 2683431 100000 1
+[/charactor]
+[charactor]
+[at swordman] 1 99 1 112600017 100000 1
+[/charactor]
+[charactor]
+[at swordman] 1 99 1 10002901 100000 100
+[/charactor]
+[charactor]
+[at swordman] 1 99 1 10002611 100000 1
+[/charactor]
+[charactor]
+[at swordman] 1 99 1 10002612 100000 1
+[/charactor]
+[charactor]
+[creator mage] 1 99 1 2683434 100000 1
+[/charactor]
+[charactor]
+[creator mage] 1 99 1 106600019 100000 1
+[/charactor]
+[charactor]
+[creator mage] 1 99 1 10002901 100000 100
+[/charactor]
+[charactor]
+[creator mage] 1 99 1 10002611 100000 1
+[/charactor]
+[charactor]
+[creator mage] 1 99 1 10002612 100000 1
+[/charactor]
+[charactor]
+[knight] 1 99 1 10007239 100000 1
+[/charactor]
+[charactor]
+[knight] 1 99 1 413600001 100000 1
+[/charactor]
+[charactor]
+[knight] 1 99 1 10002901 100000 100
+[/charactor]
+[charactor]
+[knight] 1 99 1 10002611 100000 1
+[/charactor]
+[charactor]
+[knight] 1 99 1 10002612 100000 1
+[/charactor]
+[charactor]
+[demonic lancer] 1 99 1 490700159 100000 1
+[/charactor]
+[charactor]
+[demonic lancer] 1 99 1 414600001 100000 1
+[/charactor]
+[charactor]
+[demonic lancer] 1 99 1 10002901 100000 100
+[/charactor]
+[charactor]
+[demonic lancer] 1 99 1 10002611 100000 1
+[/charactor]
+[charactor]
+[demonic lancer] 1 99 1 10002612 100000 1
+[/charactor]
+[/booster info]
+[move wav]
+BONE_TOUCH
+id 10002901 -> event/chn_wedding_system_2014/chn_stk_couple_point_item.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_couple_point_item.stk ===
+[name]
+心意通
+[explain]
+使用后， 可以获得1点心意点。 (只有已婚的角色才能使用)
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[stack limit]
+999
+[icon]
+Item/stackable/consumption_cn.img 724
+[field image]
+Item/field_material_cn.img 134
+[stackable type]
+[waste] 0
+[action usable place]
+[village] [seria room]
+[/action usable place]
+[action type]
+[love point coupon] 1
+[/action type]
+[move wav]
+FOOD_TOUCH
+[impossible contents]
+gift
+[/impossible contents]
+id 10002910 -> event/chn_wedding_system_2014/chn_stk_couple_growth_capsule.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_couple_growth_capsule.stk ===
+[name]
+爱情成长胶囊
+[explain]
+蕴含夫妻间真爱的成长胶囊。 使用后， 可以获得30000点经验值。
+[flavor text]
+我也想为赛丽亚做个这样的胶囊。  -- 卡坤
+[grade]
+1
+[attach type]
+[account]
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+30
+[stack limit]
+1000
+[icon]
+Item/stackable/consumption_cn.img 581
+[field image]
+Item/field_consumption.img 7
+[icon mark]
+Item/IconMark_cn.img 28
+[stackable type]
+[etc] 0
+[item group name]
+potion
+[increase status type]
+[expUp] 30000
+[/increase status type]
+[move wav]
+POTION_TOUCH
+[maximum level]
+84
+[item category]
+[/item category]
+[impossible contents]
+hardcore mode
+[/impossible contents]
+id 10002911 -> event/chn_wedding_system_2014/chn_stk_wedding_package_discount_10_coupon.stk
+=== stackable/event/chn_wedding_system_2014/chn_stk_wedding_package_discount_10_coupon.stk ===
+[name]
+结婚礼服礼包9折优惠券
+[explain]
+使用后， 直接转到商城页面； 可用于购买结婚礼服礼包， 并且优惠10%%。 (只有已婚的角色才能购买)
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[icon]
+Item/stackable/cash_cn.img 930
+[stackable type]
+[coupon] 25 0
+[move wav]
+SCRAP_TOUCH
+[impossible contents]
+gift
+[/impossible contents]
+id 2683401 -> cash/chn_wedding_system/chn_mat_weddingticket.stk
+=== stackable/cash/chn_wedding_system/chn_mat_weddingticket.stk ===
+[name]
+豪华婚礼订制函
+[explain]
+这是爱与财富的象征； 持有此物者可以为您和您的爱人举办一场特别的豪华婚礼。
+    若想要举办婚礼， 需通过NPC大司祭申请， 且角色必须为Lv30以上。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[stack limit]
+1000
+[icon]
+Item/stackable/cash_cn.img 1065
+[field image]
+Item/field_material_cn.img 79
+[stackable type]
+[material] 0
+[move wav]
+FOOD_TOUCH
+[impossible contents]
+gift
+[/impossible contents]

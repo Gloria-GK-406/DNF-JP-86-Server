@@ -71,7 +71,10 @@ public sealed class SelectCharacterHandler(
     LotteryCounterExperimentOptions? lotteryCounterExperiment = null,
     ItemUsageProjectionDelivery? itemUsageProjection = null,
     Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? achievementProjectionGate = null,
-    UsageQuotaProjectionDelivery? quotaProjection = null) : ClientMessageHandler<SelectCharacterRequest>
+    UsageQuotaProjectionDelivery? quotaProjection = null,
+    Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService? clientSettings = null,
+    Dfo.Server.Abstractions.World.ISaoTowerDomainService? sao = null,
+    Dfo.Server.Abstractions.World.ITauKingdomDomainService? tau = null) : ClientMessageHandler<SelectCharacterRequest>
 {
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -133,6 +136,7 @@ public sealed class SelectCharacterHandler(
             }
             await commandBus.SendAsync(new EnsureDailyContractPuppetsCommand(session), cancellationToken)
                 .ConfigureAwait(false);
+            await commandBus.SendAsync(new Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommand(session), cancellationToken).ConfigureAwait(false);
             // Hold live achievement/title projections until the complete entry batch has reached the client.
             using var achievementProjection = achievementProjectionGate is null ? null
                 : await achievementProjectionGate.EnterAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
@@ -329,6 +333,23 @@ public sealed class SelectCharacterHandler(
             new PublishSelectedCharacterSessionCommand(session, prepared),
             cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
+        // Selection can straddle 06:00 while the scheduled snapshot sees it as unpublished.
+        // Recheck the current period after publication using the same durable ticket claim.
+        if (tau is not null)
+            await commandBus.SendAsync(new Dfo.Server.Application.World.RefillOnlineTauTicketCommand(session), cancellationToken)
+                .ConfigureAwait(false);
+        EnsureCurrent(session);
+        if (clientSettings is not null)
+        {
+            if (!onlineUsers.TryGetByConnection(session.ConnectionId, out var current) || current is null)
+                throw new InvalidOperationException("Selected hotkey profile has no current connection.");
+            var origin = new Dfo.Server.Data.Accounts.ClientSettingsOrigin(current.SessionIdentity, session.AccountId, current.Generation, session);
+            // Job 10 is Creator in the server career catalog (70/upstream reference); A21's
+            // receiver selects its Creator default resource when 1C7.keyType is 1.
+            var keyType = prepared.Character.Identity.Job == 10 ? (byte)1 : (byte)0;
+            if (!await commandBus.SendAsync(new ActivateClientHotkeyProfileCommand(origin, keyType), cancellationToken))
+                throw new InvalidOperationException("Selected hotkey profile identity changed during delivery.");
+        }
         if (SendsFramesAfterTheCompletionMarker && publication.TownPresence is { } town)
         {
             await townAreaProjection.PublishCommittedEntryAsync(
@@ -425,6 +446,21 @@ public sealed class SelectCharacterHandler(
         if (SendsFramesAfterTheCompletionMarker && quotaProjection is not null)
             _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.DespairTower,
                 cancellationToken).ConfigureAwait(false);
+        if (SendsFramesAfterTheCompletionMarker && quotaProjection is not null)
+            _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.AltarDungeon,
+                cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker && quotaProjection is not null)
+            _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.TournamentDungeon,
+                cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker && quotaProjection is not null)
+            _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.HerasDungeon, cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker && sao is not null
+            && await sao.ReadStatusAsync(cancellationToken).ConfigureAwait(false) is { } saoProgress)
+            await sender.SendExplicitAsync(session.ConnectionId,
+                new GameExplicitMessageDelivery([new SaoCurrentFloorNotification(saoProgress)], []), cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && lotteryCounterExperiment is { Enabled: true } experiment)
         {
@@ -446,8 +482,8 @@ public sealed class SelectCharacterHandler(
         {
             new UserVisibilityMessage(
                 session.WireUserId,
-                checked((byte)result.CharacterEntry.Public.VisibilityBits)),
-            new CloneTitleStateMessage(result.CharacterEntry.Public.CloneTitleItemId),
+                result.CharacterEntry.Public.Display?.VisibilityBits ?? checked((byte)result.CharacterEntry.Public.VisibilityBits)),
+            new CloneTitleStateMessage(result.CharacterEntry.Public.Display?.TitleAppearanceItemId ?? result.CharacterEntry.Public.CloneTitleItemId),
             new AccountRosterStateMessage(result.RosterEntry
                 ?? throw new InvalidDataException("Roster state is unavailable.")),
             // The same account-wide standing the roster screen already received, not a character

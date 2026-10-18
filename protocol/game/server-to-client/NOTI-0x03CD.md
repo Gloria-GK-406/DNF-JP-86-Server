@@ -1,5 +1,21 @@
 # NOTI `0x03CD` `WEDDING_REQUEST`
 
+## A21 人工字段裁定（2026-10-16）
+
+ClientStatic / Confirmed：handler RVA00891140消费 **11B**，没有CMD结果信封。下方机器区仍标布局下界，字段含义以此人工裁定为准。
+
+| Body offset | Size | Enc | 含义 |
+|---:|---:|---|---|
+| 0 | 4 | i32 LE | status；当前实现写0 |
+| 4 | 4 | u32 LE | proposer/applicant WireUserId |
+| 8 | 1 | u8 | action；1求婚，2婚礼预约 |
+| 9 | 1 | u8 | action1写0；action2为tier，不能写waitIndex |
+| 10 | 1 | u8 | 当前实现写0 |
+
+证据：[求婚接收与窗口](../../../Document/outputs/marriage-proposal-20261016/client-evidence.txt)、[婚礼字段裁定](../../../Document/MarriageReservation-20261016.md#证据与限制)。CurrentImplementation仅发送普通档tier0婚礼邀请。
+
+与[C2S03F0](../client-to-server/0x03F0.md)及[CMD03F0](CMD-0x03F0.md)配合；窗口触发、发送顺序及验证边界统一见[流程](../../patterns/flow-marriage-proposal.md)。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**
@@ -47,16 +63,6 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- rks:machine:end -->
 
-<!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
+## 实帧边界
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
-
-## 待实机补全
-
-- [ ] 字段真实含义（把上表中的 `unknown` 逐个换成有证据的结论）
-- [ ] 用真实样本校验 `BodyLength` 规则是否闭合
-
-## 逆向工作日志
-
-<!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
+当前交互的有限范围ClientVerified见流程矩阵；尚未归档本次完整11B正文样本。机器区的unknown不代表上面的人工字段仍未调查。

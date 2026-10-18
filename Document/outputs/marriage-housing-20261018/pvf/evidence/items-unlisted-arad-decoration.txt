@@ -1,0 +1,2470 @@
+######## stackable/arad/decoration/deco2674000.stk
+=== stackable/arad/decoration/deco2674000.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 0
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674001.stk
+=== stackable/arad/decoration/deco2674001.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 1
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674002.stk
+=== stackable/arad/decoration/deco2674002.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 2
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674003.stk
+=== stackable/arad/decoration/deco2674003.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 3
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674004.stk
+=== stackable/arad/decoration/deco2674004.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 4
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 7
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[physical attack]
+7
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674005.stk
+=== stackable/arad/decoration/deco2674005.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 5
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674006.stk
+=== stackable/arad/decoration/deco2674006.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/consumption.img` 185
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674007.stk
+=== stackable/arad/decoration/deco2674007.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 0
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674008.stk
+=== stackable/arad/decoration/deco2674008.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 1
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674009.stk
+=== stackable/arad/decoration/deco2674009.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomDown_jp.img` 0
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674010.stk
+=== stackable/arad/decoration/deco2674010.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomDown_jp.img` 1
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674011.stk
+=== stackable/arad/decoration/deco2674011.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/consumption.img` 185
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 1
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674012.stk
+=== stackable/arad/decoration/deco2674012.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/consumption.img` 185
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 1
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674013.stk
+=== stackable/arad/decoration/deco2674013.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/consumption.img` 185
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 1
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674014.stk
+=== stackable/arad/decoration/deco2674014.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 2
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674015.stk
+=== stackable/arad/decoration/deco2674015.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 7
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674016.stk
+=== stackable/arad/decoration/deco2674016.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 3
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674017.stk
+=== stackable/arad/decoration/deco2674017.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 6
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674018.stk
+=== stackable/arad/decoration/deco2674018.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 5
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674019.stk
+=== stackable/arad/decoration/deco2674019.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 5
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 8
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674020.stk
+=== stackable/arad/decoration/deco2674020.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 5
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 13
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674021.stk
+=== stackable/arad/decoration/deco2674021.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 11
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674022.stk
+=== stackable/arad/decoration/deco2674022.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 11
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 8
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674023.stk
+=== stackable/arad/decoration/deco2674023.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 11
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 13
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674024.stk
+=== stackable/arad/decoration/deco2674024.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 9
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674025.stk
+=== stackable/arad/decoration/deco2674025.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 9
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 8
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674026.stk
+=== stackable/arad/decoration/deco2674026.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 9
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 13
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674027.stk
+=== stackable/arad/decoration/deco2674027.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 4
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674028.stk
+=== stackable/arad/decoration/deco2674028.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 4
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 8
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674029.stk
+=== stackable/arad/decoration/deco2674029.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 4
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 13
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674030.stk
+=== stackable/arad/decoration/deco2674030.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomDown_jp.img` 2
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674031.stk
+=== stackable/arad/decoration/deco2674031.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomDown_jp.img` 2
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 8
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674032.stk
+=== stackable/arad/decoration/deco2674032.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomDown_jp.img` 2
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 13
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674033.stk
+=== stackable/arad/decoration/deco2674033.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomDown_jp.img` 3
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674034.stk
+=== stackable/arad/decoration/deco2674034.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomDown_jp.img` 3
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 8
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674035.stk
+=== stackable/arad/decoration/deco2674035.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomDown_jp.img` 3
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 13
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674036.stk
+=== stackable/arad/decoration/deco2674036.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 13
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674037.stk
+=== stackable/arad/decoration/deco2674037.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 13
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 8
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674038.stk
+=== stackable/arad/decoration/deco2674038.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 13
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 13
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674039.stk
+=== stackable/arad/decoration/deco2674039.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 8
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674040.stk
+=== stackable/arad/decoration/deco2674040.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 8
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 8
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674041.stk
+=== stackable/arad/decoration/deco2674041.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 8
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 13
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674042.stk
+=== stackable/arad/decoration/deco2674042.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 10
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674043.stk
+=== stackable/arad/decoration/deco2674043.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 10
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 8
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674044.stk
+=== stackable/arad/decoration/deco2674044.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 10
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 13
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674045.stk
+=== stackable/arad/decoration/deco2674045.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 12
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 5
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674046.stk
+=== stackable/arad/decoration/deco2674046.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 12
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 8
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674047.stk
+=== stackable/arad/decoration/deco2674047.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 12
+[stackable type]
+`[couple room item]` 0
+[need material]
+2670469 13
+[/need material]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674064.stk
+=== stackable/arad/decoration/deco2674064.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+9
+[attach type]
+`[trade]`
+[rarity]
+3
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 18
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[attack speed]
+20
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674065.stk
+=== stackable/arad/decoration/deco2674065.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+9
+[attach type]
+`[trade]`
+[rarity]
+3
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 14
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[physical attack]
+5
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674066.stk
+=== stackable/arad/decoration/deco2674066.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+9
+[attach type]
+`[trade]`
+[rarity]
+3
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 16
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[all elemental resistance]
+2
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674067.stk
+=== stackable/arad/decoration/deco2674067.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+9
+[attach type]
+`[trade]`
+[rarity]
+3
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 7
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[physical defense]
+10
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674068.stk
+=== stackable/arad/decoration/deco2674068.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+9
+[attach type]
+`[trade]`
+[rarity]
+3
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 6
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[magical defense]
+10
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674069.stk
+=== stackable/arad/decoration/deco2674069.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+9
+[attach type]
+`[trade]`
+[rarity]
+3
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomDown_jp.img` 4
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[stuck]
+-2
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674070.stk
+=== stackable/arad/decoration/deco2674070.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+9
+[attach type]
+`[trade]`
+[rarity]
+3
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 15
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[move speed]
+20
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674071.stk
+=== stackable/arad/decoration/deco2674071.stk ===
+[name]
+``
+[grade]
+9
+[attach type]
+`[trade]`
+[rarity]
+3
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 8
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[cast speed]
+20
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674072.stk
+=== stackable/arad/decoration/deco2674072.stk ===
+[name]
+``
+[grade]
+9
+[attach type]
+`[trade]`
+[rarity]
+3
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 17
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[magical attack]
+5
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674073.stk
+=== stackable/arad/decoration/deco2674073.stk ===
+[name]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/cash_japan.img` 272
+[stackable type]
+`[booster]` 0
+[cool time]
+1000
+[booster info]
+[etc]
+1 2674082 3300 1 2674083 3300 1 2674091 3400 1
+[/etc]
+[/booster info]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674074.stk
+=== stackable/arad/decoration/deco2674074.stk ===
+[name]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/cash_japan.img` 272
+[stackable type]
+`[booster]` 0
+[cool time]
+1000
+[booster info]
+[etc]
+1 2674090 10000 1
+[/etc]
+[/booster info]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674075.stk
+=== stackable/arad/decoration/deco2674075.stk ===
+[name]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/cash_japan.img` 272
+[stackable type]
+`[booster]` 0
+[cool time]
+1000
+[booster info]
+[etc]
+1 2674086 10000 1
+[/etc]
+[/booster info]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674076.stk
+=== stackable/arad/decoration/deco2674076.stk ===
+[name]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/cash_japan.img` 272
+[stackable type]
+`[booster]` 0
+[cool time]
+1000
+[booster info]
+[etc]
+1 2674081 5000 1 2674085 5000 1
+[/etc]
+[/booster info]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674077.stk
+=== stackable/arad/decoration/deco2674077.stk ===
+[name]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/cash_japan.img` 272
+[stackable type]
+`[booster]` 0
+[cool time]
+1000
+[booster info]
+[etc]
+1 2674080 5000 1 2674084 5000 1
+[/etc]
+[/booster info]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674078.stk
+=== stackable/arad/decoration/deco2674078.stk ===
+[name]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/cash_japan.img` 272
+[stackable type]
+`[booster]` 0
+[cool time]
+1000
+[booster info]
+[etc]
+1 2674088 5000 1 2674089 5000 1
+[/etc]
+[/booster info]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674079.stk
+=== stackable/arad/decoration/deco2674079.stk ===
+[name]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/cash_japan.img` 272
+[stackable type]
+`[booster]` 0
+[cool time]
+1000
+[booster info]
+[etc]
+1 2674087 10000 1
+[/etc]
+[/booster info]
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674080.stk
+=== stackable/arad/decoration/deco2674080.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 22
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674081.stk
+=== stackable/arad/decoration/deco2674081.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 21
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674082.stk
+=== stackable/arad/decoration/deco2674082.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 19
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674083.stk
+=== stackable/arad/decoration/deco2674083.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 20
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674084.stk
+=== stackable/arad/decoration/deco2674084.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 10
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674085.stk
+=== stackable/arad/decoration/deco2674085.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 9
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674086.stk
+=== stackable/arad/decoration/deco2674086.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 11
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674087.stk
+=== stackable/arad/decoration/deco2674087.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 12
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674088.stk
+=== stackable/arad/decoration/deco2674088.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomDown_jp.img` 5
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674089.stk
+=== stackable/arad/decoration/deco2674089.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomDown_jp.img` 6
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674090.stk
+=== stackable/arad/decoration/deco2674090.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 23
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674091.stk
+=== stackable/arad/decoration/deco2674091.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 24
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674092.stk
+=== stackable/arad/decoration/deco2674092.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 17
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674093.stk
+=== stackable/arad/decoration/deco2674093.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 27
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+
+######## stackable/arad/decoration/deco2674094.stk
+=== stackable/arad/decoration/deco2674094.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+3
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 13
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[all elemental resistance]
+3
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674095.stk
+=== stackable/arad/decoration/deco2674095.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+3
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 14
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[cast speed]
+40
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674096.stk
+=== stackable/arad/decoration/deco2674096.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+3
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomMid_jp.img` 15
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[separate attack]
+3 3
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674097.stk
+=== stackable/arad/decoration/deco2674097.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+3
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomDown_jp.img` 7
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[HP MAX]
+30
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674098.stk
+=== stackable/arad/decoration/deco2674098.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+3
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 25
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[move speed]
+40
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674099.stk
+=== stackable/arad/decoration/deco2674099.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+3
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomDown_jp.img` 8
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[MP MAX]
+30
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674103.stk
+=== stackable/arad/decoration/deco2674103.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomDown_jp.img` 9
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[physical attack]
+5
+[magical attack]
+5
+[physical defense]
+5
+[magical defense]
+5
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674104.stk
+=== stackable/arad/decoration/deco2674104.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 28
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[physical attack]
+7
+[magical attack]
+7
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674105.stk
+=== stackable/arad/decoration/deco2674105.stk ===
+[name]
+``
+[name2]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 33
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[physical attack]
+5
+[magical attack]
+5
+[physical defense]
+5
+[magical defense]
+5
+[HP MAX]
+55
+[MP MAX]
+55
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674106.stk
+=== stackable/arad/decoration/deco2674106.stk ===
+[name]
+``
+[flavor text]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/myroomUp_jp.img` 34
+[field image]
+`Item/FieldImage.img` 30
+[stackable type]
+`[couple room item]` 0
+[move wav]
+`PAPER_TOUCH`
+[decorate enchant]
+[physical attack]
+3
+[magical attack]
+3
+[physical defense]
+3
+[magical defense]
+3
+[water attack]
+3
+[/decorate enchant]
+
+######## stackable/arad/decoration/deco2674999.stk
+=== stackable/arad/decoration/deco2674999.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+2
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[icon]
+`Item/stackable/consumption_jp.img` 69
+[stackable type]
+`[booster]` 0
+[cool time]
+1000
+[booster info]
+[etc]
+1 2674003 1000 1
+[/etc]
+[etc]
+1 2674001 1000 1
+[/etc]
+[etc]
+1 2674008 1000 1
+[/etc]
+[/booster info]
+[move wav]
+`PAPER_TOUCH`
+

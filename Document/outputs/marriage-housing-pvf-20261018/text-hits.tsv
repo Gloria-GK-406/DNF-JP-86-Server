@@ -1,0 +1,516 @@
+path	position	needle	context
+aicharacter/gunner/verrickt_tu/action/proc.act	token-89	传送	<apc::10628>小鬼， 到两侧的传送门那等一会儿就能上来了。
+monster/newmonsters/castleofthedead/kings_library/gps_mosquitoes/action/getbitten.act	token-10	传送	传送目标位置。
+monster/newmonsters/darkelftemple/onduraver/action/attack_6_openportal.act	token-18	传送	传送门开启了！ 啊哈哈哈！
+passiveobject/actionobject/c_event/rhythm/action/start.act	token-334	传送	传送带启动后， 会传送哥布林人偶。
+passiveobject/actionobject/map/anton/phase2/transmission/action/transmission_s_last.act	token-142	传送	破坏小型传送装置X1
+passiveobject/actionobject/map/anton/phase2/transmission/action/transmission_s_last.act	token-147	传送	破坏小型传送装置X2
+passiveobject/actionobject/map/anton/phase2/transmission/action/transmission_s_last.act	token-152	传送	破坏小型传送装置 X3\n破坏全部传送装置后， 即可进入领主房间。
+passiveobject/actionobject/map/anton/phase2/transmission/action/transmission_s_last.act	token-157	传送	破坏小型传送装置X4
+passiveobject/actionobject/map/anton/phase2/transmission/action/transmission_s_last.act	token-162	传送	破坏小型传送装置 X5\n破坏全部传送装置后， 厄伽勒将会被削弱。
+passiveobject/actionobject/map/anton_quest/phase2/transmission/action/transmission_s_last.act	token-142	传送	破坏小型传送装置X1
+passiveobject/actionobject/map/anton_quest/phase2/transmission/action/transmission_s_last.act	token-147	传送	破坏小型传送装置X2
+passiveobject/actionobject/map/anton_quest/phase2/transmission/action/transmission_s_last.act	token-152	传送	破坏小型传送装置 X3\n破坏全部传送装置后， 即可进入领主房间。
+passiveobject/actionobject/map/anton_quest/phase2/transmission/action/transmission_s_last.act	token-157	传送	破坏小型传送装置X4
+passiveobject/actionobject/map/anton_quest/phase2/transmission/action/transmission_s_last.act	token-162	传送	破坏小型传送装置 X5\n破坏全部传送装置后， 厄伽勒将会被削弱。
+passiveobject/actionobject/map/darkelftemple/action/etc_gate_labyrinth2_0.act	token-178	传送	祭司长开启了传送门， 必须要破坏传送门。
+passiveobject/actionobject/map/darkelftemple/action/etc_gate_labyrinth_0.act	token-178	传送	祭司长开启了传送门， 必须要破坏传送门。
+passiveobject/actionobject/map/darkelftemple/action/etc_gate_labyrinth_0.act	token-274	传送	破坏传送门， 阻止祭司长！
+etc/(f)iteminfo.dat	token-153478	扩张	公会仓库扩张
+etc/(f)iteminfo.dat	token-153484	扩张	公会大厅扩张
+etc/(f)iteminfo.dat	token-153496	扩张	公会仓库扩张
+etc/(f)iteminfo.dat	token-154060	扩张	公会成员扩张券
+etc/(f)iteminfo.dat	token-154066	扩张	公会成员扩张券
+etc/(f)iteminfo.dat	token-154072	扩张	公会成员扩张券
+etc/(f)iteminfo.dat	token-154078	传送	公会组队传送
+etc/(f)iteminfo.dat	token-154084	传送	公会组队传送
+etc/(f)iteminfo.dat	token-154090	传送	公会组队传送
+etc/(f)iteminfo.dat	token-154096	传送	公会组队传送
+etc/(r)iteminfo.dat	token-153478	扩张	公会仓库扩张
+etc/(r)iteminfo.dat	token-153484	扩张	公会大厅扩张
+etc/(r)iteminfo.dat	token-153496	扩张	公会仓库扩张
+etc/(r)iteminfo.dat	token-154060	扩张	公会成员扩张券
+etc/(r)iteminfo.dat	token-154066	扩张	公会成员扩张券
+etc/(r)iteminfo.dat	token-154072	扩张	公会成员扩张券
+etc/(r)iteminfo.dat	token-154078	传送	公会组队传送
+etc/(r)iteminfo.dat	token-154084	传送	公会组队传送
+etc/(r)iteminfo.dat	token-154090	传送	公会组队传送
+etc/(r)iteminfo.dat	token-154096	传送	公会组队传送
+etc/iteminfo.dat	token-153478	扩张	公会仓库扩张
+etc/iteminfo.dat	token-153484	扩张	公会大厅扩张
+etc/iteminfo.dat	token-153496	扩张	公会仓库扩张
+etc/iteminfo.dat	token-154060	扩张	公会成员扩张券
+etc/iteminfo.dat	token-154066	扩张	公会成员扩张券
+etc/iteminfo.dat	token-154072	扩张	公会成员扩张券
+etc/iteminfo.dat	token-154078	传送	公会组队传送
+etc/iteminfo.dat	token-154084	传送	公会组队传送
+etc/iteminfo.dat	token-154090	传送	公会组队传送
+etc/iteminfo.dat	token-154096	传送	公会组队传送
+dungeon/quest/trace_the_energy.dgn	token-6	传送	    为了阻止能量向黑色火山输送， 我们必须先找到能量传送体， 根据奈恩的研究， 这些传送体是运输能量核心关节， 一定要先破坏掉！
+equipment/character/common/amulet/neck_2choro1346.equ	token-2	扩张	精 · 加持的神之怒击项链 : [暗域扩张]
+equipment/character/common/amulet/neck_2choro1346.equ	token-4	扩张	[暗域扩张]攻击力 +6%%
+equipment/character/common/amulet/neck_2choro1360.equ	token-2	扩张	精 · 加持的神之怒击项链 : [暗域扩张]
+equipment/character/common/amulet/neck_2choro1360.equ	token-4	扩张	[暗域扩张]攻击力 +6%%
+equipment/character/common/amulet/neck_2choro1374.equ	token-2	扩张	精 · 加持的残忍之弑项链 : [暗域扩张]
+equipment/character/common/amulet/neck_2choro1374.equ	token-4	扩张	[暗域扩张]冷却时间 -6%%\n[暗域扩张]MP消耗量 -6%%
+equipment/character/common/amulet/neck_2choro1388.equ	token-2	扩张	精 · 加持的残忍之弑项链 : [暗域扩张]
+equipment/character/common/amulet/neck_2choro1388.equ	token-4	扩张	[暗域扩张]冷却时间 -6%%\n[暗域扩张]MP消耗量 -6%%
+equipment/character/common/amulet/neck_2choro1402.equ	token-2	扩张	精 · 加持的秘技之境项链 : [暗域扩张]
+equipment/character/common/amulet/neck_2choro1402.equ	token-4	扩张	[暗域扩张]失明持续时间 +5%%
+equipment/character/common/amulet/neck_2choro1416.equ	token-2	扩张	精 · 加持的秘技之境项链 : [暗域扩张]
+equipment/character/common/amulet/neck_2choro1416.equ	token-4	扩张	[暗域扩张]失明持续时间 +5%%
+equipment/character/common/belt/cloth/belt_cl_2choro368.equ	token-2	扩张	精 · 加持的神之怒击蚕丝腰带 : [暗域扩张]
+equipment/character/common/belt/cloth/belt_cl_2choro368.equ	token-4	扩张	[暗域扩张]攻击力 +8%%
+equipment/character/common/belt/cloth/belt_cl_2choro376.equ	token-2	扩张	精 · 加持的神之怒击蚕丝腰带 : [暗域扩张]
+equipment/character/common/belt/cloth/belt_cl_2choro376.equ	token-4	扩张	[暗域扩张]攻击力 +8%%
+equipment/character/common/belt/cloth/belt_cl_2choro384.equ	token-2	扩张	精 · 加持的残忍之弑蚕丝腰带 : [暗域扩张]
+equipment/character/common/belt/cloth/belt_cl_2choro384.equ	token-4	扩张	[暗域扩张]冷却时间 -8%%\n[暗域扩张]MP消耗量 -8%%
+equipment/character/common/belt/cloth/belt_cl_2choro392.equ	token-2	扩张	精 · 加持的残忍之弑蚕丝腰带 : [暗域扩张]
+equipment/character/common/belt/cloth/belt_cl_2choro392.equ	token-4	扩张	[暗域扩张]冷却时间 -8%%\n[暗域扩张]MP消耗量 -8%%
+equipment/character/common/belt/cloth/belt_cl_2choro400.equ	token-2	扩张	精 · 加持的秘技之境蚕丝腰带 : [暗域扩张]
+equipment/character/common/belt/cloth/belt_cl_2choro400.equ	token-4	扩张	[暗域扩张]失明持续时间 +5%%
+equipment/character/common/belt/cloth/belt_cl_2choro408.equ	token-2	扩张	精 · 加持的秘技之境蚕丝腰带 : [暗域扩张]
+equipment/character/common/belt/cloth/belt_cl_2choro408.equ	token-4	扩张	[暗域扩张]失明持续时间 +5%%
+equipment/character/common/jacket/cloth/coat_cl_2choro368.equ	token-2	扩张	精 · 加持的神之怒击蚕丝胸甲 : [暗域扩张]
+equipment/character/common/jacket/cloth/coat_cl_2choro368.equ	token-4	扩张	[暗域扩张]攻击力 +9%%
+equipment/character/common/jacket/cloth/coat_cl_2choro376.equ	token-2	扩张	精 · 加持的神之怒击蚕丝胸甲 : [暗域扩张]
+equipment/character/common/jacket/cloth/coat_cl_2choro376.equ	token-4	扩张	[暗域扩张]攻击力 +9%%
+equipment/character/common/jacket/cloth/coat_cl_2choro384.equ	token-2	扩张	精 · 加持的残忍之弑蚕丝胸甲 : [暗域扩张]
+equipment/character/common/jacket/cloth/coat_cl_2choro384.equ	token-4	扩张	[暗域扩张]冷却时间 -9%%\n[暗域扩张]MP消耗量 -9%%
+equipment/character/common/jacket/cloth/coat_cl_2choro392.equ	token-2	扩张	精 · 加持的残忍之弑蚕丝胸甲 : [暗域扩张]
+equipment/character/common/jacket/cloth/coat_cl_2choro392.equ	token-4	扩张	[暗域扩张]冷却时间 -9%%\n[暗域扩张]MP消耗量 -9%%
+equipment/character/common/jacket/cloth/coat_cl_2choro400.equ	token-2	扩张	精 · 加持的秘技之境蚕丝胸甲 : [暗域扩张]
+equipment/character/common/jacket/cloth/coat_cl_2choro400.equ	token-4	扩张	[暗域扩张]失明持续时间 +6%%
+equipment/character/common/jacket/cloth/coat_cl_2choro408.equ	token-2	扩张	精 · 加持的秘技之境蚕丝胸甲 : [暗域扩张]
+equipment/character/common/jacket/cloth/coat_cl_2choro408.equ	token-4	扩张	[暗域扩张]失明持续时间 +6%%
+equipment/character/common/pants/cloth/pant_cl_2choro368.equ	token-2	扩张	精 · 加持的神之怒击蚕丝护腿 : [暗域扩张]
+equipment/character/common/pants/cloth/pant_cl_2choro368.equ	token-4	扩张	[暗域扩张]攻击力 +9%%
+equipment/character/common/pants/cloth/pant_cl_2choro376.equ	token-2	扩张	精 · 加持的神之怒击蚕丝护腿 : [暗域扩张]
+equipment/character/common/pants/cloth/pant_cl_2choro376.equ	token-4	扩张	[暗域扩张]攻击力 +9%%
+equipment/character/common/pants/cloth/pant_cl_2choro384.equ	token-2	扩张	精 · 加持的残忍之弑蚕丝护腿 : [暗域扩张]
+equipment/character/common/pants/cloth/pant_cl_2choro384.equ	token-4	扩张	[暗域扩张]冷却时间 -9%%\n[暗域扩张]MP消耗量 -9%%
+equipment/character/common/pants/cloth/pant_cl_2choro392.equ	token-2	扩张	精 · 加持的残忍之弑蚕丝护腿 : [暗域扩张]
+equipment/character/common/pants/cloth/pant_cl_2choro392.equ	token-4	扩张	[暗域扩张]冷却时间 -9%%\n[暗域扩张]MP消耗量 -9%%
+equipment/character/common/pants/cloth/pant_cl_2choro400.equ	token-2	扩张	精 · 加持的秘技之境蚕丝护腿 : [暗域扩张]
+equipment/character/common/pants/cloth/pant_cl_2choro400.equ	token-4	扩张	[暗域扩张]失明持续时间 +6%%
+equipment/character/common/pants/cloth/pant_cl_2choro408.equ	token-2	扩张	精 · 加持的秘技之境蚕丝护腿 : [暗域扩张]
+equipment/character/common/pants/cloth/pant_cl_2choro408.equ	token-4	扩张	[暗域扩张]失明持续时间 +6%%
+equipment/character/common/ring/ring_2choro1346.equ	token-2	扩张	精 · 加持的神之怒击戒指 : [暗域扩张]
+equipment/character/common/ring/ring_2choro1346.equ	token-4	扩张	[暗域扩张]攻击力 +5%%
+equipment/character/common/ring/ring_2choro1360.equ	token-2	扩张	精 · 加持的神之怒击戒指 : [暗域扩张]
+equipment/character/common/ring/ring_2choro1360.equ	token-4	扩张	[暗域扩张]攻击力 +5%%
+equipment/character/common/ring/ring_2choro1374.equ	token-2	扩张	精 · 加持的残忍之弑戒指 : [暗域扩张]
+equipment/character/common/ring/ring_2choro1374.equ	token-4	扩张	[暗域扩张]冷却时间 -5%%\n[暗域扩张]MP消耗量 -5%%
+equipment/character/common/ring/ring_2choro1388.equ	token-2	扩张	精 · 加持的残忍之弑戒指 : [暗域扩张]
+equipment/character/common/ring/ring_2choro1388.equ	token-4	扩张	[暗域扩张]冷却时间 -5%%\n[暗域扩张]MP消耗量 -5%%
+equipment/character/common/ring/ring_2choro1402.equ	token-2	扩张	精 · 加持的秘技之境戒指 : [暗域扩张]
+equipment/character/common/ring/ring_2choro1402.equ	token-4	扩张	[暗域扩张]失明持续时间 +4%%
+equipment/character/common/ring/ring_2choro1416.equ	token-2	扩张	精 · 加持的秘技之境戒指 : [暗域扩张]
+equipment/character/common/ring/ring_2choro1416.equ	token-4	扩张	[暗域扩张]失明持续时间 +4%%
+equipment/character/common/shoes/cloth/100250113.equ	token-4	扩张	[虚无之球]大小 +30%%\n[暗域扩张]攻击范围 +30%%
+equipment/character/common/shoes/cloth/chn_circus_400250002.equ	token-4	扩张	[虚无之球]大小 +30%%\n[暗域扩张]攻击范围 +30%%
+equipment/character/common/shoes/cloth/shoes_cl_2choro368.equ	token-2	扩张	精 · 加持的神之怒击蚕丝短靴 : [暗域扩张]
+equipment/character/common/shoes/cloth/shoes_cl_2choro368.equ	token-4	扩张	[暗域扩张]攻击力 +8%%
+equipment/character/common/shoes/cloth/shoes_cl_2choro376.equ	token-2	扩张	精 · 加持的神之怒击蚕丝短靴 : [暗域扩张]
+equipment/character/common/shoes/cloth/shoes_cl_2choro376.equ	token-4	扩张	[暗域扩张]攻击力 +8%%
+equipment/character/common/shoes/cloth/shoes_cl_2choro384.equ	token-2	扩张	精 · 加持的残忍之弑蚕丝短靴 : [暗域扩张]
+equipment/character/common/shoes/cloth/shoes_cl_2choro384.equ	token-4	扩张	[暗域扩张]冷却时间 -8%%\n[暗域扩张]MP消耗量 -8%%
+equipment/character/common/shoes/cloth/shoes_cl_2choro392.equ	token-2	扩张	精 · 加持的残忍之弑蚕丝短靴 : [暗域扩张]
+equipment/character/common/shoes/cloth/shoes_cl_2choro392.equ	token-4	扩张	[暗域扩张]冷却时间 -8%%\n[暗域扩张]MP消耗量 -8%%
+equipment/character/common/shoes/cloth/shoes_cl_2choro400.equ	token-2	扩张	精 · 加持的秘技之境蚕丝短靴 : [暗域扩张]
+equipment/character/common/shoes/cloth/shoes_cl_2choro400.equ	token-4	扩张	[暗域扩张]失明持续时间 +5%%
+equipment/character/common/shoes/cloth/shoes_cl_2choro408.equ	token-2	扩张	精 · 加持的秘技之境蚕丝短靴 : [暗域扩张]
+equipment/character/common/shoes/cloth/shoes_cl_2choro408.equ	token-4	扩张	[暗域扩张]失明持续时间 +5%%
+equipment/character/common/shoulder/cloth/shd_cl_2choro368.equ	token-2	扩张	精 · 加持的神之怒击蚕丝护肩 : [暗域扩张]
+equipment/character/common/shoulder/cloth/shd_cl_2choro368.equ	token-4	扩张	[暗域扩张]攻击力 +8%%
+equipment/character/common/shoulder/cloth/shd_cl_2choro376.equ	token-2	扩张	精 · 加持的神之怒击蚕丝护肩 : [暗域扩张]
+equipment/character/common/shoulder/cloth/shd_cl_2choro376.equ	token-4	扩张	[暗域扩张]攻击力 +8%%
+equipment/character/common/shoulder/cloth/shd_cl_2choro384.equ	token-2	扩张	精 · 加持的残忍之弑蚕丝护肩 : [暗域扩张]
+equipment/character/common/shoulder/cloth/shd_cl_2choro384.equ	token-4	扩张	[暗域扩张]冷却时间 -8%%\n[暗域扩张]MP消耗量 -8%%
+equipment/character/common/shoulder/cloth/shd_cl_2choro392.equ	token-2	扩张	精 · 加持的残忍之弑蚕丝护肩 : [暗域扩张]
+equipment/character/common/shoulder/cloth/shd_cl_2choro392.equ	token-4	扩张	[暗域扩张]冷却时间 -8%%\n[暗域扩张]MP消耗量 -8%%
+equipment/character/common/shoulder/cloth/shd_cl_2choro400.equ	token-2	扩张	精 · 加持的秘技之境蚕丝护肩 : [暗域扩张]
+equipment/character/common/shoulder/cloth/shd_cl_2choro400.equ	token-4	扩张	[暗域扩张]失明持续时间 +5%%
+equipment/character/common/shoulder/cloth/shd_cl_2choro408.equ	token-2	扩张	精 · 加持的秘技之境蚕丝护肩 : [暗域扩张]
+equipment/character/common/shoulder/cloth/shd_cl_2choro408.equ	token-4	扩张	[暗域扩张]失明持续时间 +5%%
+equipment/character/common/wrist/brac_2choro1346.equ	token-2	扩张	精 · 加持的神之怒击手镯 : [暗域扩张]
+equipment/character/common/wrist/brac_2choro1346.equ	token-4	扩张	[暗域扩张]攻击力 +5%%
+equipment/character/common/wrist/brac_2choro1360.equ	token-2	扩张	精 · 加持的神之怒击手镯 : [暗域扩张]
+equipment/character/common/wrist/brac_2choro1360.equ	token-4	扩张	[暗域扩张]攻击力 +5%%
+equipment/character/common/wrist/brac_2choro1374.equ	token-2	扩张	精 · 加持的残忍之弑手镯 : [暗域扩张]
+equipment/character/common/wrist/brac_2choro1374.equ	token-4	扩张	[暗域扩张]冷却时间 -5%%\n[暗域扩张]MP消耗量 -5%%
+equipment/character/common/wrist/brac_2choro1388.equ	token-2	扩张	精 · 加持的残忍之弑手镯 : [暗域扩张]
+equipment/character/common/wrist/brac_2choro1388.equ	token-4	扩张	[暗域扩张]冷却时间 -5%%\n[暗域扩张]MP消耗量 -5%%
+equipment/character/common/wrist/brac_2choro1402.equ	token-2	扩张	精 · 加持的秘技之境手镯 : [暗域扩张]
+equipment/character/common/wrist/brac_2choro1402.equ	token-4	扩张	[暗域扩张]失明持续时间 +4%%
+equipment/character/common/wrist/brac_2choro1416.equ	token-2	扩张	精 · 加持的秘技之境手镯 : [暗域扩张]
+equipment/character/common/wrist/brac_2choro1416.equ	token-4	扩张	[暗域扩张]失明持续时间 +4%%
+equipment/character/gunner/weapon/automatic/104010449.equ	token-4	扩张	[斗志之歌]范围 +20%%\n[G系扩张]效果 +20%%
+equipment/character/gunner/weapon/automatic/chn_150716_12zodiac_upgrade_404010016.equ	token-4	扩张	[斗志之歌]范围 +20%%\n[G系扩张]效果 +20%%
+equipment/character/mage/weapon/rod/rod_2choro133.equ	token-2	扩张	精 · 加持的神之怒击魔杖 : [暗域扩张]
+equipment/character/mage/weapon/rod/rod_2choro133.equ	token-4	扩张	[暗域扩张]攻击力 +18%%
+equipment/character/mage/weapon/rod/rod_2choro147.equ	token-2	扩张	精 · 加持的神之怒击魔杖 : [暗域扩张]
+equipment/character/mage/weapon/rod/rod_2choro147.equ	token-4	扩张	[暗域扩张]攻击力 +18%%
+equipment/character/mage/weapon/rod/rod_2choro161.equ	token-2	扩张	精 · 加持的残忍之弑魔杖 : [暗域扩张]
+equipment/character/mage/weapon/rod/rod_2choro161.equ	token-4	扩张	[暗域扩张]冷却时间 -18%%\n[暗域扩张]MP消耗量 -18%%
+equipment/character/mage/weapon/rod/rod_2choro175.equ	token-2	扩张	精 · 加持的残忍之弑魔杖 : [暗域扩张]
+equipment/character/mage/weapon/rod/rod_2choro175.equ	token-4	扩张	[暗域扩张]冷却时间 -18%%\n[暗域扩张]MP消耗量 -18%%
+equipment/character/mage/weapon/rod/rod_2choro189.equ	token-2	扩张	精 · 加持的秘技之境魔杖 : [暗域扩张]
+equipment/character/mage/weapon/rod/rod_2choro189.equ	token-4	扩张	[暗域扩张]失明持续时间 +12%%
+equipment/character/mage/weapon/rod/rod_2choro203.equ	token-2	扩张	精 · 加持的秘技之境魔杖 : [暗域扩张]
+equipment/character/mage/weapon/rod/rod_2choro203.equ	token-4	扩张	[暗域扩张]失明持续时间 +12%%
+equipment/character/mage/weapon/staff/staff_2choro117.equ	token-2	扩张	精 · 加持的神之怒击法杖 : [暗域扩张]
+equipment/character/mage/weapon/staff/staff_2choro117.equ	token-4	扩张	[暗域扩张]攻击力 +18%%
+equipment/character/mage/weapon/staff/staff_2choro131.equ	token-2	扩张	精 · 加持的神之怒击法杖 : [暗域扩张]
+equipment/character/mage/weapon/staff/staff_2choro131.equ	token-4	扩张	[暗域扩张]攻击力 +18%%
+equipment/character/mage/weapon/staff/staff_2choro145.equ	token-2	扩张	精 · 加持的残忍之弑法杖 : [暗域扩张]
+equipment/character/mage/weapon/staff/staff_2choro145.equ	token-4	扩张	[暗域扩张]冷却时间 -18%%\n[暗域扩张]MP消耗量 -18%%
+equipment/character/mage/weapon/staff/staff_2choro159.equ	token-2	扩张	精 · 加持的残忍之弑法杖 : [暗域扩张]
+equipment/character/mage/weapon/staff/staff_2choro159.equ	token-4	扩张	[暗域扩张]冷却时间 -18%%\n[暗域扩张]MP消耗量 -18%%
+equipment/character/mage/weapon/staff/staff_2choro173.equ	token-2	扩张	精 · 加持的秘技之境法杖 : [暗域扩张]
+equipment/character/mage/weapon/staff/staff_2choro173.equ	token-4	扩张	[暗域扩张]失明持续时间 +12%%
+equipment/character/mage/weapon/staff/staff_2choro187.equ	token-2	扩张	精 · 加持的秘技之境法杖 : [暗域扩张]
+equipment/character/mage/weapon/staff/staff_2choro187.equ	token-4	扩张	[暗域扩张]失明持续时间 +12%%
+equipment/character/partset/2choroset76.equ	token-41	扩张	[暗域扩张]攻击力 +20%%\n[暗域扩张]冷却时间 -20%%\n[雷光屏障]攻击力 +25%%\n[雷光屏障]冷却时间 -15%%
+equipment/character/partset/2choroset77.equ	token-258	扩张	0%%\n[元素轰炸]生成的小魔法球数量 +20个\n[元素轰炸]冷却时间 -8秒\n[元素轰炸]攻击力 +20%%\n[元素轰炸]魔法球爆炸范围 +320%%\n[暗域扩张]范围 +20%%\n[暗域扩张]冷却时间 -30%%
+equipment/character/partset/2choroset78.equ	token-41	扩张	[暗域扩张]冷却时间 -20%%\n[暗域扩张]攻击力 +15%%\n[地炎]攻击力 +20%%\n[地炎]火柱生成数量 +2
+stackable/recipe/nrcp_belt_cl_2choro166.equ	token-2	扩张	精 · 残忍之弑蚕丝腰带 : [暗域扩张]  设计图
+stackable/recipe/nrcp_belt_cl_2choro171.equ	token-2	扩张	精 · 加持的残忍之弑蚕丝腰带 : [暗域扩张]  设计图
+stackable/recipe/nrcp_belt_cl_2choro173.equ	token-2	扩张	精 · 加持的秘技之境蚕丝腰带 : [暗域扩张]  设计图
+stackable/recipe/nrcp_brac_2choro537.equ	token-2	扩张	精 · 加持的残忍之弑手镯 : [暗域扩张]  设计图
+stackable/recipe/nrcp_coat_cl_2choro151.equ	token-2	扩张	精 · 神之怒击蚕丝胸甲 : [暗域扩张]  设计图
+stackable/recipe/nrcp_coat_cl_2choro156.equ	token-2	扩张	精 · 加持的残忍之弑蚕丝胸甲 : [暗域扩张]  设计图
+stackable/recipe/nrcp_pant_cl_2choro153.equ	token-2	扩张	精 · 加持的神之怒击蚕丝护腿 : [暗域扩张]  设计图
+stackable/recipe/nrcp_rod_2choro55.equ	token-2	扩张	精 · 神之怒击魔杖 : [暗域扩张]  设计图
+stackable/recipe/nrcp_shd_cl_2choro171.equ	token-2	扩张	精 · 加持的残忍之弑蚕丝护肩 : [暗域扩张]  设计图
+stackable/recipe/nrcp_staff_2choro60.equ	token-2	扩张	精 · 加持的神之怒击法杖 : [暗域扩张]  设计图
+stackable/recipe/nrcp_staff_2choro64.equ	token-2	扩张	精 · 加持的残忍之弑法杖 : [暗域扩张]  设计图
+etc/itemdictionary/(f)itemdictionary.etc	token-85782	扩张	精 · 加持的神之怒击蚕丝胸甲 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-85906	扩张	精 · 加持的残忍之弑蚕丝胸甲 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-86028	扩张	精 · 加持的秘技之境蚕丝胸甲 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-93982	扩张	精 · 加持的神之怒击蚕丝护腿 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-94105	扩张	精 · 加持的残忍之弑蚕丝护腿 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-94225	扩张	精 · 加持的秘技之境蚕丝护腿 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-102193	扩张	精 · 加持的神之怒击蚕丝护肩 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-102317	扩张	精 · 加持的残忍之弑蚕丝护肩 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-102444	扩张	精 · 加持的秘技之境蚕丝护肩 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-110434	扩张	精 · 加持的神之怒击蚕丝腰带 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-110554	扩张	精 · 加持的残忍之弑蚕丝腰带 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-110677	扩张	精 · 加持的秘技之境蚕丝腰带 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-118637	扩张	精 · 加持的神之怒击蚕丝短靴 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-118757	扩张	精 · 加持的残忍之弑蚕丝短靴 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-118877	扩张	精 · 加持的秘技之境蚕丝短靴 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-131312	扩张	精 · 加持的神之怒击项链 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-131522	扩张	精 · 加持的残忍之弑项链 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-131734	扩张	精 · 加持的秘技之境项链 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-139531	扩张	精 · 加持的神之怒击手镯 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-139747	扩张	精 · 加持的残忍之弑手镯 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-139957	扩张	精 · 加持的秘技之境手镯 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-147551	扩张	精 · 加持的神之怒击戒指 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-147761	扩张	精 · 加持的残忍之弑戒指 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-147971	扩张	精 · 加持的秘技之境戒指 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-161013	扩张	精 · 加持的神之怒击魔杖 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-161234	扩张	精 · 加持的残忍之弑魔杖 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-161455	扩张	精 · 加持的秘技之境魔杖 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-162882	扩张	精 · 加持的神之怒击法杖 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-163102	扩张	精 · 加持的残忍之弑法杖 : [暗域扩张]
+etc/itemdictionary/(f)itemdictionary.etc	token-163325	扩张	精 · 加持的秘技之境法杖 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-80841	扩张	精 · 加持的神之怒击蚕丝胸甲 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-80961	扩张	精 · 加持的残忍之弑蚕丝胸甲 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-81081	扩张	精 · 加持的秘技之境蚕丝胸甲 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-88782	扩张	精 · 加持的神之怒击蚕丝护腿 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-88902	扩张	精 · 加持的残忍之弑蚕丝护腿 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-89022	扩张	精 · 加持的秘技之境蚕丝护腿 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-96723	扩张	精 · 加持的神之怒击蚕丝护肩 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-96843	扩张	精 · 加持的残忍之弑蚕丝护肩 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-96963	扩张	精 · 加持的秘技之境蚕丝护肩 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-104687	扩张	精 · 加持的神之怒击蚕丝腰带 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-104807	扩张	精 · 加持的残忍之弑蚕丝腰带 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-104927	扩张	精 · 加持的秘技之境蚕丝腰带 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-112806	扩张	精 · 加持的神之怒击蚕丝短靴 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-112926	扩张	精 · 加持的残忍之弑蚕丝短靴 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-113046	扩张	精 · 加持的秘技之境蚕丝短靴 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-125357	扩张	精 · 加持的神之怒击项链 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-125567	扩张	精 · 加持的残忍之弑项链 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-125781	扩张	精 · 加持的秘技之境项链 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-133426	扩张	精 · 加持的神之怒击手镯 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-133636	扩张	精 · 加持的残忍之弑手镯 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-133846	扩张	精 · 加持的秘技之境手镯 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-141352	扩张	精 · 加持的神之怒击戒指 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-141562	扩张	精 · 加持的残忍之弑戒指 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-141772	扩张	精 · 加持的秘技之境戒指 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-154040	扩张	精 · 加持的神之怒击魔杖 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-154250	扩张	精 · 加持的残忍之弑魔杖 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-154460	扩张	精 · 加持的秘技之境魔杖 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-155782	扩张	精 · 加持的神之怒击法杖 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-155992	扩张	精 · 加持的残忍之弑法杖 : [暗域扩张]
+etc/itemdictionary/(r)itemdictionary.etc	token-156202	扩张	精 · 加持的秘技之境法杖 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-62598	扩张	精 · 神之怒击蚕丝护肩 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-62703	扩张	精 · 加持的神之怒击蚕丝护肩 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-62808	扩张	精 · 残忍之弑蚕丝护肩 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-62912	扩张	精 · 加持的残忍之弑蚕丝护肩 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-63017	扩张	精 · 秘技之境蚕丝护肩 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-63122	扩张	精 · 加持的秘技之境蚕丝护肩 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-72719	扩张	精 · 神之怒击蚕丝腰带 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-72824	扩张	精 · 加持的神之怒击蚕丝腰带 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-72929	扩张	精 · 残忍之弑蚕丝腰带 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-73033	扩张	精 · 加持的残忍之弑蚕丝腰带 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-73139	扩张	精 · 秘技之境蚕丝腰带 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-73244	扩张	精 · 加持的秘技之境蚕丝腰带 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-82769	扩张	精 · 神之怒击蚕丝短靴 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-82874	扩张	精 · 加持的神之怒击蚕丝短靴 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-82980	扩张	精 · 残忍之弑蚕丝短靴 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-83085	扩张	精 · 加持的残忍之弑蚕丝短靴 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-83190	扩张	精 · 秘技之境蚕丝短靴 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-83295	扩张	精 · 加持的秘技之境蚕丝短靴 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-104448	扩张	精 · 神之怒击蚕丝胸甲 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-104553	扩张	精 · 加持的神之怒击蚕丝胸甲 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-104658	扩张	精 · 残忍之弑蚕丝胸甲 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-104763	扩张	精 · 加持的残忍之弑蚕丝胸甲 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-104868	扩张	精 · 秘技之境蚕丝胸甲 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-104972	扩张	精 · 加持的秘技之境蚕丝胸甲 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-114479	扩张	精 · 神之怒击蚕丝护腿 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-114584	扩张	精 · 加持的神之怒击蚕丝护腿 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-114689	扩张	精 · 残忍之弑蚕丝护腿 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-114795	扩张	精 · 加持的残忍之弑蚕丝护腿 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-114900	扩张	精 · 秘技之境蚕丝护腿 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-115005	扩张	精 · 加持的秘技之境蚕丝护腿 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-143579	扩张	精 · 神之怒击魔杖 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-143762	扩张	精 · 加持的神之怒击魔杖 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-143947	扩张	精 · 残忍之弑魔杖 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-144131	扩张	精 · 加持的残忍之弑魔杖 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-144315	扩张	精 · 秘技之境魔杖 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-144499	扩张	精 · 加持的秘技之境魔杖 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-145854	扩张	精 · 神之怒击法杖 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-146038	扩张	精 · 加持的神之怒击法杖 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-146222	扩张	精 · 残忍之弑法杖 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-146406	扩张	精 · 加持的残忍之弑法杖 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-146589	扩张	精 · 秘技之境法杖 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-146774	扩张	精 · 加持的秘技之境法杖 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-160146	扩张	精 · 神之怒击项链 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-160330	扩张	精 · 加持的神之怒击项链 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-160514	扩张	精 · 残忍之弑项链 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-160700	扩张	精 · 加持的残忍之弑项链 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-160884	扩张	精 · 秘技之境项链 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-161068	扩张	精 · 加持的秘技之境项链 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-166326	扩张	精 · 神之怒击手镯 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-166510	扩张	精 · 加持的神之怒击手镯 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-166694	扩张	精 · 残忍之弑手镯 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-166878	扩张	精 · 加持的残忍之弑手镯 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-167062	扩张	精 · 秘技之境手镯 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-167246	扩张	精 · 加持的秘技之境手镯 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-172584	扩张	精 · 神之怒击戒指 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-172769	扩张	精 · 加持的神之怒击戒指 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-172953	扩张	精 · 残忍之弑戒指 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-173137	扩张	精 · 加持的残忍之弑戒指 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-173321	扩张	精 · 秘技之境戒指 : [暗域扩张]
+etc/itemdictionary/itemdictionary.etc	token-173504	扩张	精 · 加持的秘技之境戒指 : [暗域扩张]
+etc/popupmenu.etc	token-635	婚房	婚房装饰
+etc/popupmenu.etc	token-663	夫妻赠礼	领取夫妻赠礼
+event/adventurermaker.evt	token-763	传送	AMTarget]。 据说莎兰姐姐这儿有好多事可以做！\n <npc::3>[myname]的女儿啊！ 很高兴认识你~\n帮忙吗……可以去找魔法材料， 或给魔法师们传送消息， 你能做到吗？\n <npc::0>可以~我一定会努力！
+event/adventurermaker.evt	token-823	传送	AMTarget]。 据说莎兰姐姐这儿有好多事可以做！\n <npc::3>[myname]的女儿啊！ 很高兴认识你~\n帮忙吗……可以去找魔法材料， 或给魔法师们传送消息， 你能做到吗？\n <npc::0>可以~我一定会努力！
+event/adventurermaker.evt	token-1354	传送	 我得就着鱼丸串喝一杯。\n从暗黑城广场往银色村庄方向走一点就能看到卡妮娜。 她穿得挺花俏， 应该一眼就能认出。\n <npc::0>好的， 那我走了！\n(通过诺羽传送到暗黑城， 找到卡妮娜)\n你好！ 卡妮娜， 我叫[AMTarget]， 是西岚大叔叫我来的。\n <npc::9>你好！ [AMTarget]， 你需要什么呢？\n <npc::0>西岚大叔让我从你这里拿点鱼丸串……\n <npc::9>大白
+event/adventurermaker.evt	token-1414	传送	。\n从暗黑城广场往银色村庄方向走一点就能看到卡妮娜。 她穿得挺花俏， 应该一眼就能认出。\n <npc::0>哇， 鱼丸串很好吃的哦！ 那我这就走了！\n(通过诺羽传送到暗黑城， 找到卡妮娜)\n你好！ 卡妮娜， 我叫[AMTarget]， 是西岚大叔叫我来的。\n <npc::9>你好！ [AMTarget]， 你需要什么呢？\n <npc::0>西岚大叔让我从你这里拿点鱼丸串……\n <npc::9>这是
+event/adventurermaker.evt	token-1474	传送	。\n从暗黑城广场往银色村庄方向走一点就能看到卡妮娜。 她穿得还挺好认的， 你一准能认出。\n <npc::0>哇， 鱼丸串很好吃的哦！ 那我这就走了！\n(通过诺羽传送到暗黑城， 找到卡妮娜)\n你好！ 卡妮娜， 我叫[AMTarget]， 是西岚大叔叫我来的。\n <npc::9>你好！ [AMTarget]， 你需要什么呢？\n <npc::0>西岚大叔让我从你这里拿点鱼丸串……\n <npc::9>这是
+etc/guide/global/1006.gdata	token-34	婚房	2. 心意点\n已婚角色每日登录游戏时都将获得1点心意点。(每日限1次)\n心意点可用于在NPC云清处兑换婚房装饰物或婚戒升级券。
+etc/guide/global/1006.gdata	token-50	婚房	3. 婚房\n只有已婚角色才拥有自己的婚房， 并且可以随意装饰。
+etc/guide/global/1006.gdata	token-66	婚房	3. 婚房\n婚房可以为拥有者附加提升属性的Buff， 并且该Buff效果会随着婚房的华丽程度而改变。
+etc/guide/global/1006.gdata	token-130	婚房	7. 培育爱情树\n爱情树的种植与培育， 皆只能在婚房中进行。
+etc/guide/global/1006.gdata	token-130	爱情树	7. 培育爱情树\n爱情树的种植与培育， 皆只能在婚房中进行。
+etc/guide/global/1006.gdata	token-146	爱情成长胶囊	8. 爱情成长胶囊\n已婚角色可借由通关推荐地下城获取能量值， 当能量槽满后可制作[爱情成长胶囊]。
+region/minimap/shonan.mm	token-488	传送	传送门
+region/minimap/shonan.mm	token-497	传送	传送门
+monster/newmonsters/anton/phase1/strongleg/transferdevice/transferdevice.mob	token-2	传送	能量传送装置
+monster/newmonsters/anton_awakening/phase1/strongleg/transferdevice/transferdevice.mob	token-2	传送	能量传送装置
+monster/newmonsters/anton_normal/phase1/strongleg/transferdevice/transferdevice.mob	token-2	传送	能量传送装置
+monster/newmonsters/anton_quest/phase1/strongleg/transferdevice/transferdevice.mob	token-2	传送	能量传送装置
+npc/348_hunter_pon.npc	token-30	传送	我这里有传送到克洛诺斯岛的方法哦~
+npc/chn_mago.npc	token-32	保管箱	物品保管箱开启时， 右键单击装饰物， 可进行装饰和收回。
+npc/chn_mago.npc	token-35	婚房	请通过我购买婚房装饰物~
+npc/chn_move_area_elventogent.npc	token-18	传送	传送门
+npc/chn_move_area_elventogent.npc	token-23	传送	传送门
+npc/chn_move_area_elventostom.npc	token-18	传送	传送门
+npc/chn_move_area_elventostom.npc	token-23	传送	传送门
+npc/chn_move_area_genttoelven.npc	token-18	传送	传送门
+npc/chn_move_area_genttoelven.npc	token-23	传送	传送门
+npc/chn_move_area_genttostom.npc	token-18	传送	传送门
+npc/chn_move_area_genttostom.npc	token-23	传送	传送门
+npc/chn_move_area_powerstationtoshonan.npc	token-18	传送	传送门
+npc/chn_move_area_powerstationtoshonan.npc	token-23	传送	传送门
+npc/chn_move_area_seatraintoshonan.npc	token-18	传送	传送门
+npc/chn_move_area_seatraintoshonan.npc	token-23	传送	传送门
+npc/chn_move_area_shonantopowerstation.npc	token-18	传送	传送门
+npc/chn_move_area_shonantopowerstation.npc	token-23	传送	传送门
+npc/chn_move_area_shonantoseatrain.npc	token-18	传送	传送门
+npc/chn_move_area_shonantoseatrain.npc	token-23	传送	传送门
+npc/chn_move_area_stomtoelven.npc	token-18	传送	传送门
+npc/chn_move_area_stomtoelven.npc	token-23	传送	传送门
+npc/chn_move_area_stomtogent.npc	token-18	传送	传送门
+npc/chn_move_area_stomtogent.npc	token-23	传送	传送门
+npc/chn_ria_letter.npc	token-10	传送	神秘的传送器
+npc/chn_ria_letter.npc	token-12	传送	神秘的传送器
+npc/ludmila_arad.npc	token-24	传送	确定要传送到圣者之鸣号吗？
+npc/luther.npc	token-28	传送	确定要传送到暗黑城吗？
+npc/officer.npc	token-106	传送	<npc::62>没有人知道你进入异次元裂缝会遇到什么， 也没有人知道你会被传送到哪里。\n总之， 你要多加小心！
+passiveobject/actionobject/map/guildfight/teleport_blue.obj	token-2	传送	传送门_蓝色
+passiveobject/actionobject/map/guildfight/teleport_effect.obj	token-2	传送	传送门_光
+passiveobject/actionobject/map/guildfight/teleport_red.obj	token-2	传送	传送门_红色
+passiveobject/actionobject/map/lostland/movemap/move_gate.obj	token-2	传送	进入最后的传送门
+passiveobject/actionobject/map/powerstation/furz_station/furnace.obj	token-2	传送	能量传送器
+passiveobject/actionobject/map/powerstation/grandine/furnace.obj	token-2	传送	能量传送器
+passiveobject/actionobject/map/timegate/new/gate/gate.obj	token-2	传送	传送门
+passiveobject/actionobject/map/timegate/new/gate/gate_battery.obj	token-2	传送	传送门电池
+passiveobject/actionobject/map/timegate/new/gate/gate_battery_1.obj	token-2	传送	传送门电池
+passiveobject/actionobject/map/timespiral/furnace.obj	token-2	传送	能量传送器
+passiveobject/actionobject/monster/anton/phase3/meltadoroc/energy_tower/furnace/furnace.obj	token-2	传送	能量传送器
+passiveobject/actionobject/monster/anton/phase3/meltadoroc/energy_tower2/furnace/furnace.obj	token-2	传送	能量传送器
+passiveobject/actionobject/monster/anton_awakening/phase3/meltadoroc/energy_tower/furnace/furnace.obj	token-2	传送	能量传送器
+passiveobject/actionobject/monster/anton_awakening/phase3/meltadoroc/energy_tower2/furnace/furnace.obj	token-2	传送	能量传送器
+passiveobject/actionobject/monster/anton_normal/phase3/meltadoroc/energy_tower/furnace/furnace.obj	token-2	传送	能量传送器
+passiveobject/actionobject/monster/anton_normal/phase3/meltadoroc/energy_tower2/furnace/furnace.obj	token-2	传送	能量传送器
+passiveobject/actionobject/monster/anton_quest/phase3/meltadoroc/energy_tower/furnace/furnace.obj	token-2	传送	能量传送器
+passiveobject/actionobject/monster/anton_quest/phase3/meltadoroc/energy_tower2/furnace/furnace.obj	token-2	传送	能量传送器
+passiveobject/cinematicobject/dimensiongatedungeonmovie/activeskycastleroom2_01.obj	token-59	传送	    远古人偶师瞬移会把所有队员传送的指定位置。
+passiveobject/cinematicobject/dimensiongatedungeonmovie/activeskycastleroom2_01.obj	token-74	传送	    他的集体传送会妨碍玩家去攻击其他远古人偶师的过程， 所以建议优先消灭瞬移。
+passiveobject/cinematicobject/dimensiongatedungeonmovie/blackearthroom3.obj	token-122	传送	吞噬之灵HP传送
+passiveobject/cinematicobject/specialdungeonmovie/frostcaveqna_17160.obj	token-22	扩张	<apc::26402>不扩张公会的话， 最多能有多少名公会成员？
+passiveobject/event/bluemarble2/furnace/furnace.obj	token-2	传送	能量传送器
+passiveobject/monster/gatekeeper/gatekeeper2.obj	token-19	传送	传送门守卫
+passiveobject/monster/gatekeeper/gatekeeper3.obj	token-19	传送	传送门守卫
+n_quest/anton/anton_upgrade_01.qst	token-44	传送	黄……黄昏之海上残留的安徒恩能量， 与寂静城的能……能量磁场相互吸引融合。 魔……魔刹石中浓缩了融合的能量……\n并， 并且浓缩的能量在魔刹石中增……增幅， 并且传送给安徒恩。\n与安徒恩共存的塔……塔尔坦星人因为浓缩的能量再次苏醒……\n安……安徒恩吸收能量的速度……因为塔尔坦而得到加速。 只有立刻让能量消失， 才能阻……阻止安徒恩的复活。\n啊， 现在……还， 还不是时候。 得快点去告诉乌……乌恩……
+n_quest/anton/epic_85_anton_strongleg_01.qst	token-53	传送	？ 为了生存而战斗的你们跟我们有什么不一样？\n要是追究起来， 我们也是受害者。 我们在懵懂之间被转移到了这里， 那束奇异的转移之光打开了一道裂缝， 然后我们就被传送到这里了。 \n<npc::0>(奇异的裂缝……难道是异次元裂缝？ 是把安徒恩转移到这里时发生的事吗？) 你是说， 赫尔德？\n<npc::1057>是的， 你好像对赫尔德很了解。 那个鬼鬼祟祟的女人心里有着不可告人的秘密。\n她说要帮助安徒
+n_quest/anton/epic_85_anton_strongleg_01.qst	token-65	传送	？ 为了生存而战斗的你们跟我们有什么不一样？\n要是追究起来， 我们也是受害者。 我们在懵懂之间被转移到了这里， 那束奇异的转移之光打开了一道裂缝， 然后我们就被传送到这里了。 \n<npc::0>(奇异的裂缝……难道是异次元裂缝？ 是把安徒恩转移到这里时发生的事吗？) 你是说， 赫尔德？\n<npc::1057>是的， 你好像对赫尔德很了解。 那个鬼鬼祟祟的女人心里有着不可告人的秘密。\n她说要帮助安徒
+n_quest/anton/epic_85_anton_strongleg_01.qst	token-77	传送	？ 为了生存而战斗的你们跟我们有什么不一样？\n要是追究起来， 我们也是受害者。 我们在懵懂之间被转移到了这里， 那束奇异的转移之光打开了一道裂缝， 然后我们就被传送到这里了。 \n<npc::0>(奇异的裂缝……难道是异次元裂缝？ 是把安徒恩转移到这里时发生的事吗？) 你是说， 赫尔德？\n<npc::1057>是的， 你好像对赫尔德很了解。 那个鬼鬼祟祟的女人心里有着不可告人的秘密。\n她说要帮助安徒
+n_quest/circleofdungeon/14829_circle_dungeon.qst	token-42	扩张	阿登高地……想当年， 我们几个几乎横扫整个无法地带……要不是当初我看不惯兰蒂卢斯的专横， 离开了那里。 现在……唉！\n早知道会演变成这样， 当时我就应该阻止他们扩张势力……\n现在是时候为当年的遗憾做个了断了， 我要亲手为这件事画上句号。 年轻人， 如果你见到阿登高地的哈斯， 记得一定要告诉我。
+n_quest/circleofdungeon/14845_circle_dungeon.qst	token-690	传送	之前你和纳洛克虽然一起破坏了普鲁兹发电站， 但是这并未结束。 有消息称， 安徒恩的手下正通过特殊装置转移熔炉的能量， 并传送给它们的主人。\n所以即使我们破坏了所有的发电机， 只要那个传送器还在， 就无法削弱安徒恩的力量。\n我希望你这次去能将那些能量传送器也一起破坏掉。 那个传送器开启后会向天空发射红色能量波， 很容易找的。
+n_quest/circleofdungeon/14845_circle_dungeon.qst	token-692	传送	    前往能源中心地区的『普鲁兹发电站』， 破坏能量传送器， 然后向尼贝尔回复。
+n_quest/circleofdungeon/14858_circle_dungeon.qst	token-49	传送	能量传送器
+n_quest/circleofdungeon/14925_circle_dungeon.qst	token-48	传送	是在魔界……那里早已被破坏了， 恶劣的生存环境促使他们发现了魔法的力量， 并以此建立了新的能量体系。\n但无法完全掌控魔法的他们在一次实验中无意间打开了地狱次元的传送门， 无数恶魔蜂拥而出。 混沌魔灵就是那些恶魔和魔界人类的后裔， 同时拥有着恶魔的力量以及人类对力量的欲望。\n在长大一些之后， 混沌魔灵发现以自己的力量可以驭使力量强大的恶魔， 于是她们便开始征服恶魔为自己效力， 注意， 是征服， 而不
+n_quest/circleofdungeon/14975_circle_dungeon.qst	token-50	扩张	怎么想都觉得奇怪。 那里怎么会有那么多蝎子？\n我知道科切拉去了那里， 但是它的实力不可能制服腐烂之地的其他怪物并扩张势力……莫非？\n你没有见到巨大的蝎子吗？ 不是一般的大， 而是大得吓人的那种！ 我怀疑黑色巨蝎莫斯躲在那里。\n蝎子的繁殖能力不如纳姆轮， 但是大多有毒， 危险系数比纳姆轮高多了。 你去腐烂之地找找看， 如果发现黑色巨蝎莫斯就立即干掉它。\n它擅长潜伏到地底， 所以要小心脚下。 如果想逼
+n_quest/circleofdungeon/14985_circle_dungeon.qst	token-45	扩张	相信你听说过革命军。\n德洛斯帝国是充满领土欲望， 疯狂进行扩张， 妄图统治一切的国家。 革命军是由反抗这个残暴帝国的一群人组成的。\n你在冒险时一定见过帝国的野蛮行径， 以后肯定还会见到。 想不想跟我们一起来一场波澜壮阔的大冒险？\n<npc::0>要我加入革命军反抗帝国？\n说实话， 我看不惯帝国军的所作所为， 但也不想加入革命军惹一身麻烦。\n<npc::150>年轻人。 像你这样有勇有谋的冒险家怎么
+n_quest/circleofdungeon/14985_circle_dungeon.qst	token-64	扩张	相信你听说过革命军。\n德洛斯帝国是充满领土欲望， 疯狂进行扩张， 妄图统治一切的国家。 革命军是由反抗这个残暴帝国的一群人组成的。\n你在冒险时一定见过帝国的野蛮行径， 以后肯定还会见到。 想不想跟我们一起来一场波澜壮阔的大冒险？\n<npc::0>要我加入革命军反抗帝国？\n我知道有些帝国爪牙假装仇视帝国， 四处招揽反帝国分子后将他们一网打尽。 我凭什么相信你？\n<npc::150>很好， 果然是聪明
+n_quest/circleofdungeon/15063_circle_dungeon.qst	token-40	扩张	疫地区， 应该是想利用瘟疫杀了我这个碍事的追踪者。 还好我提前准备了药物， 没有让它得逞。\n<npc::309>这家伙非常狡猾。 一方面戏耍我们， 一方面又继续扩张自己的领域。\n你们见到阿甘左了吗？\n<npc::0>找到你之前见过他一面， 但是没说几句话就回来了。 他正在跟噩梦里的西岚战斗……\n<npc::309>嗯， 看来他的想法跟我差不多。\n我们就等阿甘左解决疑惑后自己出现吧。 麦瑟， 虽然有
+n_quest/circleofdungeon/15068_circle_dungeon.qst	token-43	扩张	噩梦根源想一边阻止你， 一边扩张自己的领域……\n我会引导你去他现在正在扩张的区域。 但是那个地方非常危险， 你一定要马上出来。
+n_quest/circleofdungeon/15069_circle_dungeon.qst	token-47	扩张	噩梦根源出现了吗？ 这说明冒险家的推理是正确的。\n噩梦之种是用于召唤异次元世界的媒介， 是噩梦最大的力量和弱点……如果调查噩梦之种， 至少能阻止噩梦根源继续扩张领域。
+n_quest/circleofdungeon/15198_circle_dungeon.qst	token-50	传送	， 感觉很无语， 于是检查了第二遍， 实在是太荒唐了， 所以看了第三遍， 得出的结论是， 你带来的这些零件根本没有办法制作大功率的发电机。\n即使制作成功， 电力传送范围也很小， 顶多送到补给基地周边。\n敌人为什么要制作没用的设备呢？ 这太反常了。
+n_quest/circleofdungeon/15251_circle_dungeon.qst	token-42	扩张	与卡勒特的战争一开始只是正规军与游击队的战斗， 但是随着敌人不断扩张势力， 现在已经发展成情报战。\n据说敌人培养一大堆情报员派遣到各个地方。 北门也有他们安插的情报员。\n捷克要来的消息已经搞得人心惶惶， 不能再出现其他的不安因素。\n你能帮忙消灭卡勒特情报员吗？
+n_quest/common/gent/epic_55_gent_gent_6.qst	token-50	扩张	卡勒特的势力不断地在扩张， 我们是越来越力不从心了。\n以冒险家的实力， 要消灭他们的核心领导者， 是轻而易举的事。 因此， 请冒险家帮帮我们……\n如果可以的话， 就找机会瓦解他们的组织。 但这是个很危险的任务， 如果你拒绝， 我们也理解……
+n_quest/event/16_epciroad_2.qst	token-219	传送	<npc::0>传送、 次元裂隙、 地狱石……将这些东西串在一起， 好像你所说的是真的。 还有那个地狱石， 也需要好好调查才行。\n<npc::1125>那么， 你打算帮助我们了？
+n_quest/event/16_epciroad_2.qst	token-289	传送	<npc::0>传送、 次元裂隙、 地狱石……将这些东西串在一起， 好像你所说的是真的。 还有那个地狱石， 也需要好好调查才行。\n<npc::1125>那么， 你打算帮助我们了？
+n_quest/event/16_epciroad_3.qst	token-751	传送	<npc::0>现在要去哪里呢？\n<npc::1125>现在没法靠近前往祥瑞溪谷的道路。 我直接传送你过去吧。 到了那里请去找海流， 他会告诉你接下来需要做什么。
+n_quest/event/16_epciroad_4.qst	token-491	传送	<npc::0>这种传送真奇妙， 那个石头是？\n<npc::1126>那个是地狱石。 它被封印后， 暂时变得稳定了。 不过有很多异界存在通过裂缝进入森林。 希望冒险家可以帮忙消灭那些家伙。
+n_quest/event/16_epciroad_4.qst	token-561	传送	<npc::0>这种传送真奇妙， 那个石头是？\n<npc::1126>那个是地狱石。它被封印后， 暂时变得稳定了。 不过有很多异界存在通过裂缝进入森林。 希望冒险家可以帮忙消灭那些家伙。
+n_quest/event/chn_20161201_upgrading_epic_road/chn_epic_road_quest_2.qst	token-219	传送	<npc::0>传送、 次元裂隙、 地狱石……将这些东西串在一起， 好像你所说的是真的。 还有那个地狱石， 也需要好好调查才行。\n<npc::1125>那么， 你打算帮助我们了？
+n_quest/event/chn_20161201_upgrading_epic_road/chn_epic_road_quest_2.qst	token-289	传送	<npc::0>传送、 次元裂隙、 地狱石……将这些东西串在一起， 好像你所说的是真的。 还有那个地狱石， 也需要好好调查才行。\n<npc::1125>那么， 你打算帮助我们了？
+n_quest/event/chn_20161201_upgrading_epic_road/chn_epic_road_quest_3.qst	token-751	传送	<npc::0>现在要去哪里呢？\n<npc::1125>现在没法靠近前往祥瑞溪谷的道路。 我直接传送你过去吧。 到了那里请去找海流， 他会告诉你接下来需要做什么。
+n_quest/event/chn_20161201_upgrading_epic_road/chn_epic_road_quest_4.qst	token-491	传送	<npc::0>这种传送真奇妙， 那个石头是？\n<npc::1126>那个是地狱石。 它被封印后， 暂时变得稳定了。 不过有很多异界存在通过裂缝进入森林。 希望冒险家可以帮忙消灭那些家伙。
+n_quest/event/chn_20161201_upgrading_epic_road/chn_epic_road_quest_4.qst	token-561	传送	<npc::0>这种传送真奇妙， 那个石头是？\n<npc::1126>那个是地狱石。它被封印后， 暂时变得稳定了。 不过有很多异界存在通过裂缝进入森林。 希望冒险家可以帮忙消灭那些家伙。
+n_quest/gent/counterattack/normal_62_counterattack_4.qst	token-47	扩张	在军队快速扩张的情况下， 他们竟然还能保持这么完整的编制……\n实在是让人想不通啊！ 安祖·赛弗这么出色的人才为什么会有如此荒唐的野心呢……
+n_quest/handonmyre/sunderlanddark/epic_14_sunderlanddark_gul_6.qst	token-75	扩张	明， 暗黑雷鸣废墟的范围正在逐日增加。 照这样下去， 整个格兰之森迟早会被它吞噬。\n虽然现在只是推测， 但是我相信只有除掉那些僵尸的头领， 才能阻止暗黑雷鸣废墟扩张。\n冒险家， 时间紧迫， 你快去暗黑雷鸣废墟除掉那群僵尸的头领吧， 我要立刻把这些研究结果和推论向贝尔玛尔公国汇报！
+n_quest/job/k_chaos_knight_01.qst	token-50	传送	是在魔界……那里早已被破坏了， 恶劣的生存环境促使他们发现了魔法的力量， 并以此建立了新的能量体系。\n但无法完全掌控魔法的他们在一次实验中无意间打开了地狱次元的传送门， 无数恶魔蜂拥而出。 混沌魔灵就是那些恶魔和魔界人类的后裔， 同时拥有着恶魔的力量以及人类对力量的欲望。\n在长大一些之后， 混沌魔灵发现以自己的力量可以驭使力量强大的恶魔， 于是她们便开始征服恶魔为自己效力， 注意， 是征服， 而不
+n_quest/lufthafen/arden/epic_68_arden_03.qst	token-42	扩张	阿登高地……想当年， 我们几个几乎横扫整个无法地带……要不是当初我看不惯兰蒂卢斯的专横， 离开了那里。 现在……唉！\n早知道会演变成这样， 当时我就应该阻止他们扩张势力……\n现在是时候为当年的遗憾做个了断了， 我要亲手为这件事画上句号。 年轻人， 如果你见到阿登高地的哈斯， 记得一定要告诉我。
+n_quest/meltdown/epic_17_meltdown_mushroom_03.qst	token-50	扩张	还真是有几分本事啊！\n头顶蘑菇帽的家伙？ 还在扩张势力？ 原来是那帮家伙……
+n_quest/meltdown/epic_19_meltdown_salif_02.qst	token-47	扩张	厄运之城的蚂蚁原本居住在诺斯玛尔的大沙漠地区。 毁灭纪爆发后， 它们突然拥有了高度的智慧， 把势力扩张到了整个赫顿玛尔的地面上。\n它们的主要食物就是蘑菇。 偏偏这里长满了蘑菇， 结果巨型蚂蚁的数量也就越来越多， 实力也越来越强大。\n后来它们称自己为纳姆轮， 在厄运之城建立了名叫蚁后的巢穴的孢子王国， 开始大规模种植蘑菇， 繁衍后代。 当然， 在这过程中， 蘑菇人也被奴役得很惨。\n 如果不整治一下他
+n_quest/new_quest/gent/northgate/epic_58_northgate_12.qst	token-42	扩张	与卡勒特的战争一开始只是正规军与游击队的战斗， 但是随着敌人不断扩张势力， 现在已经发展成情报战。\n据说敌人培养一大堆情报员派遣到各个地方。 北门也有他们安插的情报员。\n捷克要来的消息已经搞得人心惶惶， 不能再出现其他的不安因素。\n你能帮忙消灭卡勒特情报员吗？
+n_quest/new_quest/gent/supplycut/epic_61_supplycut_7.qst	token-50	传送	， 感觉很无语， 于是检查了第二遍， 实在是太荒唐了， 所以看了第三遍， 得出的结论是， 你带来的这些零件根本没有办法制作大功率的发电机。\n即使制作成功， 电力传送范围也很小， 顶多送到补给基地周边。\n敌人为什么要制作没用的设备呢？ 这太反常了。
+n_quest/new_quest/icewall/nightmare/epic_51_nightmare_1.qst	token-40	扩张	疫地区， 应该是想利用瘟疫杀了我这个碍事的追踪者。 还好我提前准备了药物， 没有让它得逞。\n<npc::309>这家伙非常狡猾。 一方面戏耍我们， 一方面又继续扩张自己的领域。\n你们见到阿甘左了吗？\n<npc::0>找到你之前见过他一面， 但是没说几句话就回来了。 他正在跟噩梦里的西岚战斗……\n<npc::309>嗯， 看来他的想法跟我差不多。\n我们就等阿甘左解决疑惑后自己出现吧。 麦瑟， 虽然有
+n_quest/new_quest/icewall/nightmare/epic_51_nightmare_10.qst	token-43	扩张	噩梦根源想一边阻止你， 一边扩张自己的领域……\n我会引导你去他现在正在扩张的区域。 但是那个地方非常危险， 你一定要马上出来。
+n_quest/new_quest/icewall/nightmare/epic_51_nightmare_11.qst	token-47	扩张	噩梦根源出现了吗？ 这说明冒险家的推理是正确的。\n噩梦之种是用于召唤异次元世界的媒介， 是噩梦最大的力量和弱点……如果调查噩梦之种， 至少能阻止噩梦根源继续扩张领域。
+n_quest/new_quest/lufthafen/arden/epic_67_arden_5.qst	token-42	扩张	阿登高地……想当年， 我们几个几乎横扫整个无法地带……要不是当初我看不惯兰蒂卢斯的专横， 离开了那里。 现在……唉！\n早知道会演变成这样， 当时我就应该阻止他们扩张势力……\n现在是时候为当年的遗憾做个了断了， 我要亲手为这件事画上句号。 年轻人， 如果你见到阿登高地的哈斯， 记得一定要告诉我。
+n_quest/new_quest/meltdown/epic_21_decayarea_4.qst	token-50	扩张	怎么想都觉得奇怪。 那里怎么会有那么多蝎子？\n我知道科切拉去了那里， 但是它的实力不可能制服腐烂之地的其他怪物并扩张势力……莫非？\n你没有见到巨大的蝎子吗？ 不是一般的大， 而是大得吓人的那种！ 我怀疑黑色巨蝎莫斯躲在那里。\n蝎子的繁殖能力不如纳姆轮， 但是大多有毒， 危险系数比纳姆轮高多了。 你去腐烂之地找找看， 如果发现黑色巨蝎莫斯就立即干掉它。\n它擅长潜伏到地底， 所以要小心脚下。 如果想逼
+n_quest/new_quest/meltdown/epic_25_chessboard_2.qst	token-43	扩张	第一次听说过那样的女人。 哦， 对了。 上次送到暗黑城的样本收到回信了。\n信上说， 被黑色噩梦影响越久的家伙腐化速度越快。 黑色巨蝎莫斯去腐烂之地是不是想更快地扩张势力呢？\n<npc::155>势力？ 什么势力？\n<npc::27>哇， 吓我一跳。 别往我头上喷口水！ 好不容易弄好的发型， 真脏……\n<npc::155>你们是不是在谈帝国的事？\n<npc::27>没有！ 啊， 我真的要去洗洗了。
+n_quest/new_quest/meltdown/epic_25_chessboard_2.qst	token-53	扩张	上次送到暗黑城的样本收到回信了。\n信上说， 被黑色噩梦影响越久的家伙老化速度更快。 黑色巨蝎莫斯去腐烂之地是不是想更快地扩张势力呢？\n<npc::155>势力？ 什么势力？\n<npc::27>哇， 吓我一跳。 别在我头上喷口水！ 好不容易弄好的发型， 你真脏……\n<npc::155>你们是不是谈帝国的事情？\n<npc::27>没有！ 啊， 我真的要去洗洗了。 你来应付他。\n<npc::155>真是
+n_quest/new_quest/meltdown/epic_25_chessboard_4.qst	token-45	扩张	相信你听说过革命军。\n德洛斯帝国是充满领土欲望， 疯狂进行扩张， 妄图统治一切的国家。 革命军是由反抗这个残暴帝国的一群人组成的。\n你在冒险时一定见过帝国的野蛮行径， 以后肯定还会见到。 想不想跟我们一起来一场波澜壮阔的大冒险？\n<npc::0>要我加入革命军反抗帝国？\n说实话， 我看不惯帝国军的所作所为， 但也不想加入革命军惹一身麻烦。\n<npc::150>年轻人。 像你这样有勇有谋的冒险家怎么
+n_quest/new_quest/meltdown/epic_25_chessboard_4.qst	token-64	扩张	相信你听说过革命军。\n德洛斯帝国是充满领土欲望， 疯狂进行扩张， 妄图统治一切的国家。 革命军是由反抗这个残暴帝国的一群人组成的。\n你在冒险时一定见过帝国的野蛮行径， 以后肯定还会见到。 想不想跟我们一起来一场波澜壮阔的大冒险？\n<npc::0>要我加入革命军反抗帝国？\n我知道有些帝国爪牙假装仇视帝国， 四处招揽反帝国分子后将他们一网打尽。 我凭什么相信你？\n<npc::150>很好， 果然是聪明
+n_quest/new_quest/meltdown/epic_25_chessboard_4.qst	token-76	扩张	相信你听说过革命军。\n德洛斯帝国是充满领土欲望， 疯狂进行扩张， 妄图统治一切的国家。 革命军是由反抗这个残暴帝国的一群人组成的。\n你在冒险时一定见过帝国的野蛮行径， 以后肯定还会见到。 想不想跟我们一起来一场波澜壮阔的大冒险？\n<npc::0>要我加入革命军反抗帝国？\n我们之间的信赖还没有深到你说什么我都相信、 我都愿意去做的地步吧。\n<npc::150>很好， 你很谨慎。 其实我调查过你， 我
+n_quest/new_quest/slough/fruz/epic_80_fruz_8.qst	token-720	传送	之前你和纳洛克虽然一起破坏了普鲁兹发电站， 但是这并未结束。 有消息称， 安徒恩的手下正通过特殊装置转移熔炉的能量， 并传送给它们的主人。\n所以即使我们破坏了所有的发电机， 只要那个传送器还在， 就无法削弱安徒恩的力量。\n我希望你这次去能将那些能量传送器也一起破坏掉。 那个传送器开启后会向天空发射红色能量波， 很容易找的。
+n_quest/new_quest/slough/fruz/epic_80_fruz_8.qst	token-722	传送	    前往能源中心地区的『普鲁兹发电站』， 破坏能量传送器， 然后向尼贝尔回复。
+n_quest/new_quest/slough/trombe/epic_81_trombe_13.qst	token-49	传送	能量传送器
+n_quest/pvp/epic_35_pvp_02.qst	token-85	传送	    传送至决斗场， 并找爱莎谈谈。 (点击[入场]按钮即可进行传送)
+n_quest/silvercrown/epic_5_silvercrown_frozenluteon_01.qst	token-78	扩张	302>[myname]……你也感受到了吧……\n亚诺法森林西北部的气候一年四季都是严寒如冬， 所以那里也被称作是冰晶森林。\n但现在奇怪的是， 冰晶森林的正在不断扩张。 如果继续下去， 恐怕整个亚诺法森林都会变成冰晶的世界了……\n一定要查明森林扩张的原因……不过当务之急还是要先将攻击居民的冰雪精灵驱逐出去。\n冒险家， 就拜托你了！
+n_quest/silvercrown/epic_5_silvercrown_frozenluteon_02.qst	token-45	扩张	[myname]， 我相信冰晶森林绝对不会无缘无故地扩张， 一定有什么东西在作怪。\n冒险家， 请你去冰晶森林里走一趟， 将那里的所见所闻告诉我吧！
+n_quest/silvercrown/epic_5_silvercrown_frozenluteon_knight01.qst	token-47	扩张	302>[myname]……你也感受到了吧……\n亚诺法森林西北部的气候一年四季都是严寒如冬， 所以那里也被称作是冰晶森林。\n但现在奇怪的是， 冰晶森林的正在不断扩张。 如果继续下去， 恐怕整个亚诺法森林都会变成冰晶的世界了……\n一定要查明森林扩张的原因……不过当务之急还是要先将攻击居民的冰雪精灵驱逐出去。\n冒险家， 就拜托你了！
+n_quest/slough/fruz/fruz_04.qst	token-43	传送	之前你和纳洛克虽然一起破坏了普鲁兹发电站， 但是这并未结束。 有消息称， 安徒恩的手下正通过特殊装置转移熔炉的能量， 并传送给它们的主人。\n所以即使我们破坏了所有的发电机， 只要那个传送器还在， 就无法削弱安徒恩的力量。\n我希望你这次去能将那些能量传送器也一起破坏掉。 那个传送器开启后会向天空发射红色能量波， 很容易找的。
+n_quest/slough/fruz/fruz_04.qst	token-45	传送	    破坏30个[能量传送器]， 然后报告中将尼贝尔。
+n_quest/storybook/story_book26.qst	token-31	扩张	醒要警惕他们。 然而， 这只是少数人的意见， 大多数乐天派认为他们资源不足， 早晚会自取灭亡。\n联想到无法地带恶劣的生活环境， 他们的说法也不无道理。 而且， 扩张后的卡勒特的横行霸道已经遭到了当地居民的强烈反抗。 那么， 我们能够相信并指望无法地带的“自净能力”吗？\n七神之鞘翅的一员、 天界鼎鼎大名的科学家、 为了研究卡拉哈沙漠经常前往无法地带的吉赛尔·罗根博士很有信心地回答了这个问题。\n“卡勒
+n_quest/storybook/story_book35.qst	token-31	扩张	c::1020>他们该不会想对大魔法阵下手吧……\n<npc::1091>环绕格兰之森的大魔法阵是连精灵都非常尊敬的大魔法师玛尔耗尽所有的魔力构建的。\n人类总是想扩张地盘， 被人类蛮横驱逐的精灵之所以能像现在这样无忧无虑地在森林中生活， 都是因为有玛尔的魔法阵在守护格兰之森。\n但是， 格兰之森并不仅仅对精灵而言是重要的地方， 这片历史悠久的广阔森林也是很多动物和植物的家园。 可以毫不夸张地说， 在维
+itemshop/chn_mago.shp	token-152	婚房	婚房装饰店
+skill/atgunner/gextension.skl	token-2	扩张	G系扩张
+skill/atgunner/gextension.skl	token-6	扩张	    改装G-1科罗纳、 G-2旋雷者、 G-3捕食者、 G-4雷行者时， 可以提升其性能。\n    掌握[G系扩张]后， [改装 : G-0战争领主]的冷却时间变为0秒， 发动[G-2旋雷者]电波攻击时， 将根据[G-2旋雷者]的充电冷却时间， 为电波充能。 达到最大充能时， 显示[G-2旋雷者]的Buff图标。\n    每次改装时， 都会增加持续时间和攻击力， 并减少MP消耗量。\n    改
+skill/atmage/darkchange.skl	token-2	扩张	暗域扩张
+skill/atmage/darkchangeex.skl	token-2	扩张	强化 - 暗域扩张
+skill/atmage/darkchangeex.skl	token-8	扩张	    增加[暗域扩张]的攻击力、 失明Lv和失明持续时间。\n技能每增加Lv1时， 攻击力增加率 : 10%%\n技能每增加Lv1时， 失明Lv增加量 : Lv1\n技能每增加Lv1时， 失明持续时间增加量 : 0.1秒
+skill/atmage/darkchangeex.skl	token-10	扩张	    增加[暗域扩张]的攻击力、 失明Lv和失明持续时间。
+skill/atmage/darkeye.skl	token-4	扩张	的技能] -\n[魔球连射]、 [幻魔四重奏]、 [元素禁域]、 [聚能魔炮]、 [末日湮灭]\n\n- [攻击力增加的技能]- \n[冰晶坠]、 [雷光链]、 [暗域扩张]、 [旋炎破]、 [雷光屏障]、 [黑暗禁域]、 [元素轰炸]、 [幻魔四重奏]、 [元素浓缩球]、 [元素幻灭]、 [聚能魔炮]、 [元素禁域]、 [末日湮灭]\n\n- [拥有附加效果技能] -\n[元素炮] - 魔法球体及爆炸大小增加
+skill/atmage/darkeye.skl	token-6	扩张	的技能] -\n[魔球连射]、 [幻魔四重奏]、 [元素禁域]、 [聚能魔炮]、 [末日湮灭]\n\n- [攻击力增加的技能]- \n[冰晶坠]、 [雷光链]、 [暗域扩张]、 [旋炎破]、 [雷光屏障]、 [黑暗禁域]、 [元素轰炸]、 [幻魔四重奏]、 [元素浓缩球]、 [元素幻灭]、 [聚能魔炮]、 [元素禁域]、 [末日湮灭]\n\n- [拥有附加效果技能] -\n[元素炮] - 魔法球体及爆炸大小增加
+skill/atmage/elementalbombing.skl	token-124	扩张	光链]攻击力增加量 : <int>%%\n\n- 可强制中断的技能列表 -\n掌握技能Lv1时 : [元素炮]、 [冰晶坠]、 [地炎]\n掌握技能Lv2时 : [暗域扩张]、 [雷光链]\n掌握技能Lv3时 : [旋炎破]、 [冰晶之浴]\n掌握技能Lv4时 : [黑暗禁域]、 [雷光屏障]、 [元素轰炸]\n掌握技能Lv5时 : [元素浓缩球]、 [元素幻灭]
+skill/atmage/elementalforce.skl	token-4	扩张	   使用下一元素技能成功进行攻击时， [元素之力]将会蓄力。\n\n[技能目录]\n普通攻击第4下、 [魔球连射]、 [冰晶坠]、 [地炎]、 [雷光链]、 [暗域扩张]、 [冰晶之浴]、 [旋炎破]、 [雷光屏障]、 [黑暗禁域]、 [元素轰炸]、 [幻魔四重奏]、 [元素浓缩球]、 [元素幻灭]\n    在[元素之力]蓄好力的状态下使用[元素炮]， 则会消耗蓄好的[元素之力]增加[元素炮]的攻击力
+skill/atmage/iceorbex.skl	token-4	扩张	    向前平抛出带有冰凌的冰球。 冰球在移动一定距离后进行扩张并生成大量冰凌攻击敌人， 同时对目标产生吸附效果， 最后引发爆炸。 可以使用方向键控制冰球的平抛方向。
+skill/atmage/iceorbex.skl	token-6	扩张	    向前平抛出带有冰凌的冰球。 冰球在移动一定距离后进行扩张并生成大量冰凌攻击敌人， 同时对目标产生吸附效果， 最后引发爆炸。 可以使用方向键控制冰球的平抛方向。
+skill/atmage/judekatheeternal.skl	token-465	扩张	冰箭伤害 : <int>%%\n寒冰监狱伤害 : <int>%%\n冰块扩张的伤害 : <int>%%\n爆炸伤害 : <int>%%
+skill/fighter/nenprisonex.skl	token-4	扩张	    把念气聚为小型球状向前抛出， 对敌人造成多段攻击伤害， 并把附近的敌人拉拽到一起。\n    命中敌人后， 念气珠会扩张， 并对附近接近的敌人造成光属性伤害， 并把敌人们聚集到一处。\n    施放技能时按下前方向键， 念气珠会抛向更远处。
+skill/mage/darkmoon.skl	token-666	传送	害上限 : <int>\n爆炸魔法攻击力 : <int>%%\n失明几率 : <int>%%\n失明时间 : <int>秒\n失明Lv : Lv<int>\n[精灵献祭]传送伤害增幅率 : <int>%%
+skill/mage/eclipsehive.skl	token-4	传送	 将蚀附着在召唤兽身上， 提高召唤兽的能力， 同时减少召唤技能的冷却时间和召唤兽的持续时间。\n    学习该技能后， 若再次按下召唤兽的技能键， 可将指定召唤兽传送到召唤师的前方并发动[蚀月附灵]技能。\n\n- [适用召唤兽] -\n[精灵召唤 : 伊伽贝拉] : 发射超高密度镭射光\n[契约召唤 : 路易丝] : 连续发射冰冻针刺\n[精灵召唤 : 冰影阿奎利斯] : 发射冰导弹\n[精灵召唤 : 火焰赫
+skill/mage/massteleport.skl	token-55	传送	召唤兽传送
+skill/mage/massteleport.skl	token-57	传送	    可将地图内自己所有的召唤兽传送到身边。
+skill/mage/massteleport.skl	token-59	传送	    可将地图内自己所有的召唤兽传送到身边。
+skill/mage/massteleport.skl	token-61	传送	    可将地图内自己所有的召唤兽传送到身边。
+skill/mage/thegate.skl	token-4	传送	    在敌人上方生成拥有4种元素属性的传送门攻击敌人。\n    施放后， 元素师可指定传送门的攻击属性， 随后把相应的元素结晶注入“里门”， 并通过在敌人上方生成的“外门”倾泻到敌人身上。\n    传送门开启后可自动跟踪敌人。\n    外门的数量越少则攻击越高。
+skill/mage/thegate.skl	token-6	传送	    在敌人上方生成拥有4种元素属性的传送门攻击敌人。
+stackable/10095335.stk	token-2	扩张	白金徽章 [暗域扩张]
+stackable/10149668.stk	token-2	扩张	公会仓库扩张
+stackable/10149668.stk	token-4	扩张	公会仓库可以扩张16格。
+stackable/10149669.stk	token-2	扩张	公会大厅扩张
+stackable/10149669.stk	token-4	扩张	可以扩张公会大厅。
+stackable/10150915.stk	token-2	扩张	公会仓库扩张
+stackable/10150915.stk	token-4	扩张	公会仓库可以扩张8格。
+stackable/10153531.stk	token-2	扩张	公会成员扩张券
+stackable/10153531.stk	token-4	扩张	购买后， 可以扩张公会成员数量上限。\n只能购买一次。
+stackable/10153532.stk	token-2	扩张	公会成员扩张券
+stackable/10153532.stk	token-4	扩张	购买后， 可以扩张公会成员数量上限。\n只能购买一次。
+stackable/10153533.stk	token-2	扩张	公会成员扩张券
+stackable/10153533.stk	token-4	扩张	购买后， 可以扩张公会成员数量上限。\n只能购买一次。
+stackable/10153534.stk	token-2	传送	公会组队传送
+stackable/10153534.stk	token-4	传送	可以将现在的组队成员全部传送到想要前往的位置。\n    只能在组队状态下使用。
+stackable/10153535.stk	token-2	传送	公会组队传送
+stackable/10153535.stk	token-4	传送	可以将现在的组队成员全部传送到想要前往的位置。\n    只能在组队状态下使用。
+stackable/10153536.stk	token-2	传送	公会组队传送
+stackable/10153536.stk	token-4	传送	可以将现在的组队成员全部传送到想要前往的位置。\n    只能在组队状态下使用。
+stackable/10153537.stk	token-2	传送	公会组队传送
+stackable/10153537.stk	token-4	传送	可以将现在的组队成员全部传送到想要前往的位置。\n    只能在组队状态下使用。
+stackable/chn_490002897.stk	token-4	传送	使用后， 可以移动至其它区域的传送门。
+stackable/event/chn_160126_3kingdoms/chn_stk_movement_490000182.stk	token-4	传送	使用后， 可以移动至其它区域的传送门。
+stackable/event/chn_20150922_kronos_dg/chn_stk_hermes_movement_10006064.stk	token-4	传送	使用后， 可以移动至其它区域的传送门。
+stackable/event/chn_event_20150115_dice/chn_instantmovement_10004630.stk	token-4	传送	使用后， 可以移动至其它地区的传送门。
+stackable/event/chn_event_20150716_midnight_dining/chn_cook_12_10005881.stk	token-4	传送	使用后， 可以移动至其它地区的传送门。
+stackable/event/chn_event_ready_to_lv80ver_2013/chn_mat_ria_letter.stk	token-4	传送	拿到[神秘的传送器]那里看看吧， 说不定会有回复哦~ (该道具将于2013年6月18日凌晨6点全部删除)
+stackable/event/chn_wedding_system_2014/chn_stk_couple_growth_capsule.stk	token-2	爱情成长胶囊	爱情成长胶囊
+stackable/event/chn_wedding_system_2014/chn_stk_couple_surprise_ticket.stk	token-4	传送	使用后， 可以将自身角色传送到另一半身边； 仅限夫妻双方身处同一频道并且在城镇时有效。 (若另一半位于赛丽亚房间、 地下城或不同频道等其它受限制地区时， 将无法使用)
+stackable/event/chn_wedding_system_2014/chn_stk_seed_01.stk	token-4	婚房	可以放入婚房内闲置的花圃中进行培植， 据说辛勤栽种的爱情树会为幸福的小夫妻带来好运。
+stackable/event/chn_wedding_system_2014/chn_stk_seed_01.stk	token-4	爱情树	可以放入婚房内闲置的花圃中进行培植， 据说辛勤栽种的爱情树会为幸福的小夫妻带来好运。
+stackable/event/chn_wedding_system_2014/chn_stk_seed_02.stk	token-4	婚房	可以放入婚房内闲置的花圃中进行培植， 据说盛开后的爱情树会绽放出无与伦比的美丽。
+stackable/event/chn_wedding_system_2014/chn_stk_seed_02.stk	token-4	爱情树	可以放入婚房内闲置的花圃中进行培植， 据说盛开后的爱情树会绽放出无与伦比的美丽。
+stackable/event/chn_wedding_system_2014/chn_stk_seed_03.stk	token-4	婚房	可以放入婚房内闲置的花圃中进行培植， 据说盛开后的爱情树会闪烁着甜蜜的粉色光芒， 为辛勤的小夫妻送上最美的祝福。
+stackable/event/chn_wedding_system_2014/chn_stk_seed_03.stk	token-4	爱情树	可以放入婚房内闲置的花圃中进行培植， 据说盛开后的爱情树会闪烁着甜蜜的粉色光芒， 为辛勤的小夫妻送上最美的祝福。
+stackable/event/chn_wedding_system_2014/chn_stk_strong_watering_pot.stk	token-4	婚房	可以为婚房内的爱情树浇水； 当爱情树的成长值达到一定程度时， 即可进行收割。 收割后， 夫妻二人皆可获得各种各样的礼物。
+stackable/event/chn_wedding_system_2014/chn_stk_strong_watering_pot.stk	token-4	爱情树	可以为婚房内的爱情树浇水； 当爱情树的成长值达到一定程度时， 即可进行收割。 收割后， 夫妻二人皆可获得各种各样的礼物。
+stackable/event/chn_wedding_system_2014/chn_stk_watering_pot.stk	token-4	婚房	可以为婚房内的爱情树浇水； 当爱情树的成长值达到一定程度时， 即可进行收割。 收割后， 夫妻二人皆可获得各种各样的礼物。
+stackable/event/chn_wedding_system_2014/chn_stk_watering_pot.stk	token-4	爱情树	可以为婚房内的爱情树浇水； 当爱情树的成长值达到一定程度时， 即可进行收割。 收割后， 夫妻二人皆可获得各种各样的礼物。
+stackable/material/material_3299.stk	token-4	扩张	使用后， 可以扩张账号金库， 同时是完成天界任务的必备材料。 (可以通过分解勇者装备获得该道具； 在NPC莎兰那里可以用虚空魔石碎片兑换该道具)
+stackable/material/material_3300.stk	token-4	扩张	使用后， 可以扩张账号金库， 同时是完成天界任务的必备材料。 (可以通过杀怪或分解勇者装备获得该道具； 在NPC莎兰那里可以兑换虚空魔石)
+town/coupleroom.twn	token-15	婚房	婚房
+town/coupleroom1.twn	token-15	婚房	婚房
+ui/chn_wedding/coupleinfowindow.xui	6457	婚房	se" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:心意点可用于在NPC云清处兑换婚房装饰物或婚戒升级券。" stringLenth="NUM:210" />\r\r\n        <CNUIControlText ID="STR:1349" Pos="VECTOR:15, 280" Size="VECTOR:210, 1
+ui/chn_wedding/coupleinfowindow.xui	8075	婚房	ne="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:5. 婚房" stringLenth="NUM:210" />\r\r\n        <CNUIControlText ID="STR:1355" Pos="VECTOR:15, 430" Size="VECTOR:210, 11" isBold=
+ui/chn_wedding/coupleinfowindow.xui	8332	婚房	false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:只有已婚角色才拥有自己的婚房， 并且可以随意装饰。 婚房可以为拥有者附加提" stringLenth="NUM:210" />\r\r\n        <CNUIControlText ID="STR:1356" Pos="VECTOR:15, 455" Size="
+ui/chn_wedding/coupleinfowindow.xui	8346	婚房	="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:只有已婚角色才拥有自己的婚房， 并且可以随意装饰。 婚房可以为拥有者附加提" stringLenth="NUM:210" />\r\r\n        <CNUIControlText ID="STR:1356" Pos="VECTOR:15, 455" Size="VECTOR:210, 11
+ui/chn_wedding/coupleinfowindow.xui	8622	婚房	eGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:升属性的Buff， 并且该Buff效果会随着婚房的华丽程度而改变。" stringLenth="NUM:210" />\r\r\n        <CNUIControlText ID="STR:1357" Pos="VECTOR:15, 480" Size="VECTOR:210, 11
+ui/chn_wedding/coupleinfowindow.xui	8881	婚房	="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:注意 : 婚房提供的Buff效果在决斗场中无效。" stringLenth="NUM:210" />\r\r\n        <CNUIControlText ID="STR:1358" Pos="VECTOR:15, 515" Size="VECTOR
+ui/chn_wedding/coupleinfowindow.xui	9439	婚房	se" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:爱情树的种植与培育， 皆只能在婚房中进行。 " stringLenth="NUM:210" />\r\r\n        <CNUIControlText ID="STR:1360" Pos="VECTOR:15, 560" Size="VECTOR:210, 11" is
+ui/chn_wedding/coupleinfowindow.xui	5917	爱情树	OOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:玩家可以通过种植爱情树或者通关爱之摩伽陀地下城获得心意通。点击使用心意" stringLenth="NUM:210" />\r\r\n        <CNUIControlText ID="STR:1347" Pos="VECTOR:15, 245" Size
+ui/chn_wedding/coupleinfowindow.xui	9178	爱情树	="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:6. 培育爱情树" stringLenth="NUM:210" />\r\r\n        <CNUIControlText ID="STR:1359" Pos="VECTOR:15, 535" Size="VECTOR:210, 11" isBold
+ui/chn_wedding/coupleinfowindow.xui	9424	爱情树	hLine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:爱情树的种植与培育， 皆只能在婚房中进行。 " stringLenth="NUM:210" />\r\r\n        <CNUIControlText ID="STR:1360" Pos="VECTOR:15, 560" Size="VEC
+ui/chn_wedding/coupleinfowindow.xui	9693	爱情树	e="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:如何获得爱情树的种子？" stringLenth="NUM:210" />\r\r\n        <CNUIControlText ID="STR:1361" Pos="VECTOR:15, 575" Size="VECTOR:210, 11" is
+ui/partyteleport/partyteleportstatus.xui	470	传送	"NUM:0" TitleAccessoryType="NUM:-1" TitleStrStartPos="NUM:0" TitleString="STR:组队传送" VAlign="STR:MIDDLE" />\r\r\n    <CONTROL>\r\r\n        <CNUIControlText ID="STR:201" Pos="VECTOR:7, 9" Size="VECTOR:57, 11
+ui/soloteleport/soloteleportwindow.xui	468	传送	e="NUM:5" TitleAccessoryType="NUM:15" TitleStrStartPos="NUM:0" TitleString="STR:传送" VAlign="STR:MIDDLE" />\r\r\n    <CONTROL>\r\r\n        <CNBoardImage BoardDrawType="STR:LOOP" BottomImgIndex="NUM:220" Cen
+ui/soloteleport/soloteleportwindow.xui	1173	传送	ine="BOOL:false" lineGap="NUM:0" lineNum="NUM:0" sortType="NUM:0" string="STR:可以传送到指定NPC或玩家所在位置" stringLenth="NUM:180" />\r\r\n        <CNUIControlText ID="STR:11" Pos="VECTOR:31, 63" Size="VECTOR:110, 1

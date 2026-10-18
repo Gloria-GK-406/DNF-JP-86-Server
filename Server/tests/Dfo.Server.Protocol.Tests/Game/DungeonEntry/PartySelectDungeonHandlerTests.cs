@@ -91,13 +91,17 @@ public sealed class PartySelectDungeonHandlerTests
         Assert.Empty(deliveries.Find(runId));
     }
 
-    [Fact]
-    public async Task The_leader_opens_one_selection_context_for_every_party_member()
+    [Theory]
+    [InlineData((byte)0)] [InlineData((byte)1)] [InlineData((byte)5)]
+    public async Task The_leader_opens_one_selection_context_for_every_party_member(byte leaderSlot)
     {
         var sessions = new Sessions(Leader, Member);
         var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
         var intents = new Intents();
         var sender = new Sender();
+        var snapshot = Snapshot();
+        snapshot = snapshot with { Members = [.. snapshot.Members.Select(x => x with
+            { Slot = x.CharacterId == Leader.CharacterId ? leaderSlot : leaderSlot == 0 ? (byte)1 : (byte)0 })] };
         var handler = new EnterSelectDungeonHandler(
             new UnchangedState(),
             sessions,
@@ -107,14 +111,17 @@ public sealed class PartySelectDungeonHandlerTests
             sender,
             TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
             NullLogger<EnterSelectDungeonHandler>.Instance,
-            new Parties(Snapshot()));
+            new Parties(snapshot));
 
         await handler.HandleAsync(
             Dispatch(Leader),
             new EnterSelectDungeonRequest(GameMessageMetadata.Empty, DungeonId),
             CancellationToken.None);
 
-        var expectedUsers = new[] { Leader.WireUserId, Member.WireUserId };
+        var expectedUsers = leaderSlot == 0 ? new[] { Leader.WireUserId, Member.WireUserId }
+            : new[] { Member.WireUserId, Leader.WireUserId };
+        foreach (var recipient in new[] { Leader, Member })
+            Assert.Equal(leaderSlot, Assert.Single(sender.Messages(recipient.ConnectionId).OfType<UdpHostNotification>()).HostSlot);
         Assert.Equal(
             expectedUsers,
             Assert.Single(sender.Messages(Leader.ConnectionId)

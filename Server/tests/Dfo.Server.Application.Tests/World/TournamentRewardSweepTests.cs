@@ -120,6 +120,7 @@ public sealed class TournamentRewardSweepTests
 
     private sealed class TournamentRewards : ITournamentDungeonDomainService
     {
+        public ValueTask<IReadOnlyList<TournamentQuotaSnapshot>> ReadQuotaAsync(Dfo.Server.Data.Characters.CharacterId characterId, CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<TournamentQuotaSnapshot>>([]);
         public TournamentDungeonState State { get; set; } = null!;
         public List<(byte Row, byte Index)> Selections { get; } = [];
         public TournamentDungeonState? Find(CharacterId characterId) => State.CharacterId == characterId ? State : null;

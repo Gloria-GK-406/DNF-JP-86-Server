@@ -53,5 +53,11 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
+## 2026-10-13 祭坛A21复核
+
+校正自动区u16/13B：A21首次地图是15B，x/y各u8、seed u32、0、1、mapId **u32**、三个u8空计数。RVA D59ED0，VA115A1BB读u32。本实现重访也完整地图＋空D2 tail0，重访表现待实机。
+
+ClientStatic / CurrentImplementation，尚无本轮WireCaptured或ClientVerified。本人工结论覆盖旧自动区冲突推断。[查证、顺序和边界](../../../Document/tasks/altar-dungeons/research-and-implementation.md)。
+
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。

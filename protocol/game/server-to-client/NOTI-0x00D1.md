@@ -54,5 +54,11 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
+## 2026-10-13 祭坛A21复核
+
+校正自动区9B重复组：completed/max各u8，之后固定四参与者槽，每槽count u8+n×(itemId i32,count i32)，行宽8B。空槽也写count0，金币ID0、空卡ID-1。A21 RVA D48A60。
+
+ClientStatic / CurrentImplementation，尚无本轮WireCaptured或ClientVerified。本人工结论覆盖旧自动区冲突推断。[查证、顺序和边界](../../../Document/tasks/altar-dungeons/research-and-implementation.md)。
+
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。

@@ -1,0 +1,51 @@
+id 490002847 -> chn_490002847.stk
+=== stackable/chn_490002847.stk ===
+[name]
+华丽的赫拉斯研究所入场券
+[explain]
+使用时， 可以额外挑战一次赫拉斯研究所。
+[grade]
+2
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[price]
+1
+[attach type]
+[trade]
+[minimum level]
+25
+[weight]
+20
+[cool time]
+10000
+[icon]
+Item/stackable/consumption_jp.img 350
+[field image]
+Item/field_consumption.img 15
+[stackable type]
+[waste] 0
+[item group name]
+potion
+[move wav]
+POTION_TOUCH
+[action type]
+[add enter limit dungeonincount] 1 3900
+[/action type]
+[stack limit]
+10
+[use action packet]
+1
+[action usable place]
+[village] [seria room]
+[/action usable place]
+[impossible contents]
+ban redeemitem
+[/impossible contents]
+[daily delete item]
+1
+[daily purchase limit]
+chraracter 2
+[reset daily purchase item]

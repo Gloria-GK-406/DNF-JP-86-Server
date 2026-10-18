@@ -6,12 +6,13 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class ItemLifecycleDomainService(IItemDomainStore store,
-    IDomainTransactionAccessor transactions, IItemPlacementRuleService placements) : IItemLifecycleDomainService
+    IDomainTransactionAccessor transactions, IItemPlacementRuleService placements,
+    IItemExpirationRuleService? expiration = null, TimeProvider? clock = null) : IItemLifecycleDomainService
 {
     private IDomainTransaction Transaction => transactions.Current
         ?? throw new InvalidOperationException("Item lifecycle changes require an open domain transaction.");
 
-    public async ValueTask<ItemRecord> CreateAsync(ItemSnapshot snapshot, CancellationToken ct)
+    public async ValueTask<ItemSnapshot> PrepareNewAsync(ItemSnapshot snapshot, CancellationToken ct, DateTimeOffset? at = null)
     {
         if (snapshot is not { LegacyKind: 0, ItemId: 1, Type: ItemTraits.None, IsPile: true })
         {
@@ -19,7 +20,15 @@ internal sealed class ItemLifecycleDomainService(IItemDomainStore store,
             if (placement is null || snapshot.LegacyKind != placement.ItemKind || snapshot.Type != placement.Traits
                 || snapshot.IsPile != (placement.WorldClass == ItemWorldClass.Interchangeable))
                 throw new InvalidDataException("Item snapshot does not match a known template.");
+            if (expiration is not null) snapshot = expiration.Prepare(snapshot, placement.Lifetime, at ?? (clock ?? TimeProvider.System).GetUtcNow());
+            else if (placement.Lifetime.IsLimited && snapshot.ExpireTime == 0 && (snapshot.AvatarDetail?.ExpireDate ?? 0) == 0)
+                throw new InvalidOperationException("Limited item creation requires expiration rules.");
         }
+        return snapshot;
+    }
+    public async ValueTask<ItemRecord> CreateAsync(ItemSnapshot snapshot, CancellationToken ct)
+    {
+        snapshot = await PrepareNewAsync(snapshot, ct).ConfigureAwait(false);
         return await store.SessionIn(Transaction).CreateAsync(snapshot, ct).ConfigureAwait(false);
     }
     public ValueTask DeleteItemAsync(ItemRecord record, CancellationToken ct) =>

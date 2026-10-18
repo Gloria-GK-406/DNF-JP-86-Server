@@ -44,7 +44,15 @@ public sealed record EquipmentReinforcementProtectionDefinition(
     int RetainedLevel);
 
 public sealed record EquipmentUpgradeTicketDefinition(EquipmentUpgradeKind Kind, byte TargetLevel,
-    int SuccessRatePercent, string ApplyMode, int ApplyValue);
+    int SuccessRatePercent, string ApplyMode, int ApplyValue)
+{
+    public IReadOnlyList<EquipmentUpgradeTicketLevel> RandomLevels { get; init; } = [];
+    public IReadOnlyList<int> AllowedRarities { get; init; } = [];
+    public int SlotRestriction { get; init; }
+    public int SealRestriction { get; init; }
+    public bool RequiresAdditionalMaterials { get; init; }
+}
+public sealed record EquipmentUpgradeTicketLevel(byte Level, int Weight);
 
 public interface IEquipmentReinforcementDefinitionSource
 {

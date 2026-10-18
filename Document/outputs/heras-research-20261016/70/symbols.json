@@ -1,0 +1,17 @@
+{
+  "sha256": "cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7",
+  "function_count": 97021,
+  "pattern": "trap|spiral|laborat|heras|hellas",
+  "matches": [
+    {
+      "va": "0x80972fe",
+      "name": "_ZN6CipheraSERKS_",
+      "size": 8
+    },
+    {
+      "va": "0x81c4b7a",
+      "name": "_ZN18DisPatcher_MoveMap20CheckTrapBitsHackCntEP5CUserR12MSG_MOVE_MAP",
+      "size": 428
+    }
+  ]
+}

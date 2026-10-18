@@ -14,7 +14,7 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
     IItemPlacementRuleService placements, IItemArrivalRuleService arrivals,
     IEnumerable<IInventoryEffectPreviewHandler> extensions, ICharacterContainerDomainService? containers = null,
     IPremiumServiceDomainService? premiums = null, IAccountTable? accountTable = null,
-    IPremiumServiceUsageDomainService? usage = null) : IInventoryEffectPreflightDomainService
+    IPremiumServiceUsageDomainService? usage = null, IItemExpirationRuleService? expiration = null) : IInventoryEffectPreflightDomainService
 {
     private readonly IReadOnlyDictionary<Type, IInventoryEffectPreviewHandler> registered = extensions.ToDictionary(x => x.EffectType);
 
@@ -68,7 +68,7 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
                         await GrantAsync(context, grant, state, ct).ConfigureAwait(false);
                         break;
                     case GrantBasicCharacterItemEffect basic:
-                        await GrantBasicAsync(basic.ItemId, basic.Count, basic.Placement, state, ct).ConfigureAwait(false);
+                        await GrantBasicAsync(basic.ItemId, basic.Count, basic.Placement, state, context.At, ct).ConfigureAwait(false);
                         break;
                     default:
                         if (registered.TryGetValue(effect.GetType(), out var handler))
@@ -90,9 +90,9 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
         if (grant.Count <= 0
             || placement is not { WorldClass: ItemWorldClass.Interchangeable, ItemKind: > 0 })
             Refuse(InventoryEffectRejection.UnsupportedItem);
-        await GrantBasicAsync(grant.ItemId, grant.Count, placement!, state, ct).ConfigureAwait(false);
+        await GrantBasicAsync(grant.ItemId, grant.Count, placement!, state, context.At, ct).ConfigureAwait(false);
     }
-    private async ValueTask GrantBasicAsync(int itemId, int count, ItemPlacement placement, Standing state, CancellationToken ct)
+    private async ValueTask GrantBasicAsync(int itemId, int count, ItemPlacement placement, Standing state, DateTimeOffset at, CancellationToken ct)
     {
         if (count <= 0 || itemId <= 0 || placement.ItemKind == 0)
             Refuse(InventoryEffectRejection.UnsupportedItem);
@@ -104,6 +104,9 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
             return;
         }
         placement = limited;
+        var baseline = new ItemSnapshot { ItemId = itemId, LegacyKind = placement.ItemKind, Type = placement.Traits,
+            IsPile = placement.WorldClass == ItemWorldClass.Interchangeable };
+        if (expiration is not null) baseline = expiration.Prepare(baseline, placement.Lifetime, at);
         var available = Enumerable.Range(placement.Destination.FirstIndex,
             placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
             .Select(index => new BusinessSlot(placement.Destination.Space, index));
@@ -115,7 +118,7 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
         while (remaining > 0)
         {
             var arrival = arrivals.ForGrant(candidates.Select(slot => (Slot: slot, Item: state.At(slot)))
-                .Where(pair => pair.Item is { IsPile: true } && pair.Item.ItemId == itemId)
+                .Where(pair => pair.Item is { } item && item.CanStackWith(baseline))
                 .Select(pair => new ItemPile(pair.Slot, pair.Item!.Count)).ToArray(), remaining, placement,
                 candidates.Where(slot => state.At(slot) is not null).ToHashSet());
             BusinessSlot target;
@@ -126,8 +129,7 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
                 case ItemArrival.OntoExistingPile pile:
                     target = pile.Slot; added = pile.Added; core = state.At(target)! with { Count = pile.Total }; break;
                 case ItemArrival.IntoEmptySlot empty:
-                    target = empty.Slot; added = empty.Count; core = new ItemSnapshot { ItemId = itemId, Count = placement.WorldClass == ItemWorldClass.Interchangeable ? added : 1,
-                        LegacyKind = placement.ItemKind, Type = placement.Traits, IsPile = placement.WorldClass == ItemWorldClass.Interchangeable }; break;
+                    target = empty.Slot; added = empty.Count; core = baseline with { Count = baseline.IsPile ? added : 1 }; break;
                 case ItemArrival.NoRoom:
                     if (placement.Destination.Space == BusinessInventorySpace.VirtualResource) Refuse(InventoryEffectRejection.NoRoom);
                     return;

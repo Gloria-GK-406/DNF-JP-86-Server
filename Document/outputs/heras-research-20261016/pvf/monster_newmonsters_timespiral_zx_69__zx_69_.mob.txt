@@ -1,0 +1,125 @@
+=== monster/newmonsters/timespiral/zx_69/_zx_69_.mob ===
+[floating height]
+0
+[name]
+ZX-69 歼敌者
+[face image]
+Monster/MonsterFace.img 619
+[die effect]
+0 21 1
+[overhead gauge type]
+2
+[overhead gauge pos]
+0 -5
+[damage sound]
+R_GARCHER_DMG
+[die sound]
+R_GARCHER_DIE
+[ability table]
+0
+[ability category]
+[HP MAX] * 450 [EQUIPMENT_PHYSICAL_ATTACK] * 100 [EQUIPMENT_PHYSICAL_DEFENSE] * 80 [EQUIPMENT_MAGICAL_ATTACK] * 100 [EQUIPMENT_MAGICAL_DEFENSE] * 80
+[/ability category]
+[category]
+[machine] [fixture]
+[/category]
+[HP regen speed]
+20 20
+[MP regen speed]
+0 0
+[fire resistance]
+10 10
+[water resistance]
+10 10
+[dark resistance]
+10 10
+[light resistance]
+-30 -30
+[freeze resistance]
+0 0
+[stun resistance]
+180 180
+[blind resistance]
+10 10
+[stone resistance]
+10 10
+[sleep resistance]
+180 180
+[hold resistance]
+1000 1000
+[slow resistance]
+0 0
+[curse resistance]
+180 180
+[confuse resistance]
+0 0
+[lightning resistance]
+-30 -30
+[bleeding resistance]
+180 180
+[poison resistance]
+180 180
+[burn resistance]
+30 30
+[piercing resistance]
+0 0
+[level]
+85 85
+[move speed]
+1000 1000
+[attack speed]
+1000 1000
+[cast speed]
+1000 1000
+[hit recovery]
+1000 1000
+[weight]
+60000 60000
+[lie frame]
+1 2 3 3 4
+[waiting action]
+action/_Stay.act
+[move action]
+action/_Move.act
+[damage action 1]
+action/_Damage1.act
+[damage action 2]
+action/_Damage2.act
+[attack action]
+action/_Attack1.act action/_Attack2.act action/_Attack3.act action/Summon.act action/Stop.act action/Action.act action/P_Stop.act
+[/attack action]
+[attack info]
+
+[/attack info]
+[cooltime]
+12000 12000 12000 1000 1000 1000 30000
+[/cooltime]
+[stuckbonus on damage]
+0 0 0 0
+[vision]
+1000
+[think term]
+200
+[destination change term]
+200
+[keep distance with target]
+400
+[keep range distance with target]
+20 0 30 20
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/_Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/_Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/_Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/_Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/_Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]

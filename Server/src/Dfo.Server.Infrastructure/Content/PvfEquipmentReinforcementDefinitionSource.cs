@@ -37,6 +37,13 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
         internal static readonly PvfField<bool> CloseTableField = PvfField.Marker("[/table]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> DisjointField = PvfField.Int32List("[disjoint]", optional: true);
         internal static readonly PvfField<bool> CloseDisjointField = PvfField.Marker("[/disjoint]", optional: true);
+        internal static readonly PvfField<bool> RandomTicket = PvfField.Marker("[enchant random]", optional: true);
+        internal static readonly PvfField<bool> CloseRandomTicket = PvfField.Marker("[/enchant random]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> RandomRarities = PvfField.Int32List("[er_grade]");
+        internal static readonly PvfField<int> RandomSlot = PvfField.Int32("[er_slot]", minimum: 0, maximum: 3);
+        internal static readonly PvfField<int> RandomSeal = PvfField.Int32("[er_seal]", minimum: 0, maximum: 2);
+        internal static readonly PvfField<IReadOnlyList<int>> RandomLevels = PvfField.Int32List("[er_enchant]");
+        internal static readonly PvfField<bool> CloseRandomLevels = PvfField.Marker("[/er_enchant]");
     }
 
     private static readonly IReadOnlyDictionary<string, int> Rarities = new Dictionary<string, int>(
@@ -72,10 +79,49 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
             var document = PvfDocument.Open(archive, "stackable/" + path).AtRoot();
             var normal = document.TryRead(Fields.ReinforcementTicket, out var reinforcement);
             var amplify = document.TryRead(Fields.AmplificationTicket, out var amplification);
-            if (normal && amplify)
-                throw new InvalidDataException($"PVF 'stackable/{path}': both upgrade ticket kinds are declared.");
-            return ValueTask.FromResult(ticketCache[itemId] = normal ? reinforcement : amplify ? amplification : null);
+            var random = ReadRandomTicket(archive, "stackable/" + path);
+            if ((normal ? 1 : 0) + (amplify ? 1 : 0) + (random is null ? 0 : 1) > 1)
+                throw new InvalidDataException($"PVF 'stackable/{path}': multiple upgrade ticket kinds are declared.");
+            return ValueTask.FromResult(ticketCache[itemId] = normal ? reinforcement : amplify ? amplification : random);
         }
+    }
+
+    private static EquipmentUpgradeTicketDefinition? ReadRandomTicket(PvfArchive archive, string path)
+    {
+        var sections = PvfNpcShopDefinitionSource.Sections(archive, path);
+        var open = sections.Select((section, index) => (section, index))
+            .Where(value => value.section.Name == Fields.RandomTicket.Name).ToArray();
+        if (open.Length == 0) return null;
+        InvalidDataException Invalid() => new($"PVF '{path}': malformed [enchant random] restrictions or weighted levels.");
+        var close = sections.Select((section, index) => (section, index))
+            .Where(value => value.section.Name == Fields.CloseRandomTicket.Name).ToArray();
+        if (open.Length != 1 || close.Length != 1 || close[0].index <= open[0].index
+            || open[0].section.Values.Count != 0 || close[0].section.Values.Count != 0) throw Invalid();
+        var children = sections.Skip(open[0].index + 1).Take(close[0].index - open[0].index - 1).ToArray();
+        var rarities = IntList(One(children, Fields.RandomRarities), 1, true);
+        var slot = OneInt(archive, children, Fields.RandomSlot);
+        var seal = OneInt(archive, children, Fields.RandomSeal);
+        var levels = IntList(One(children, Fields.RandomLevels), 3, true);
+        var levelIndex = Array.FindIndex(children, value => value.Name == Fields.RandomLevels.Name);
+        var levelEndIndex = Array.FindIndex(children, value => value.Name == Fields.CloseRandomLevels.Name);
+        if (rarities is null || rarities.Any(value => value > 6) || rarities.Distinct().Count() != rarities.Length
+            || slot is null || seal is null || levels is null || levels[0] is < 1 or > 32
+            || levels.Length != 1 + levels[0] * 2 || levelEndIndex != levelIndex + 1
+            || One(children, Fields.CloseRandomLevels) is not { Values.Count: 0 }) throw Invalid();
+        var rows = new List<EquipmentUpgradeTicketLevel>();
+        for (var at = 1; at < levels.Length; at += 2)
+        {
+            if (levels[at] > 31) throw Invalid();
+            rows.Add(new((byte)levels[at], levels[at + 1]));
+        }
+        if (rows.Select(value => value.Level).Distinct().Count() != rows.Count
+            || rows.Sum(value => (long)value.Weight) is <= 0 or > int.MaxValue) throw Invalid();
+        return new(EquipmentUpgradeKind.Reinforcement, 0, 100, "random", -1)
+        {
+            RandomLevels = rows.ToArray(), AllowedRarities = rarities,
+            SlotRestriction = slot.Value, SealRestriction = seal.Value,
+            RequiresAdditionalMaterials = sections.Any(value => value.Name == "[need material]" && value.Values.Count != 0),
+        };
     }
 
     private static EquipmentUpgradeTicketDefinition DecodeTicket(PvfArchive archive, IReadOnlyList<PvfToken> values,

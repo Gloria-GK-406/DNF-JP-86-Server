@@ -1,0 +1,174 @@
+######## stackable/arad/growtree/default_harvest.stk
+=== stackable/arad/growtree/default_harvest.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+1
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[stack limit]
+1000
+[icon]
+`Item/stackable/quest_jp.img` 2
+[stackable type]
+`[waste]` 0
+
+######## stackable/arad/growtree/seed2673004.stk
+=== stackable/arad/growtree/seed2673004.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+1
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[stack limit]
+1000
+[icon]
+`Item/stackable/consumption_jp.img` 225
+[stackable type]
+`[etc]` 0
+
+######## stackable/arad/growtree/seed2673005.stk
+=== stackable/arad/growtree/seed2673005.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+1
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[stack limit]
+1000
+[icon]
+`Item/stackable/consumption_jp.img` 224
+[need material]
+2670469 50
+[/need material]
+[stackable type]
+`[etc]` 0
+
+######## stackable/arad/growtree/seed2673006.stk
+=== stackable/arad/growtree/seed2673006.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+1
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[stack limit]
+1000
+[icon]
+`Item/stackable/consumption_jp.img` 223
+[need material]
+2670469 50
+[/need material]
+[stackable type]
+`[etc]` 0
+
+######## stackable/arad/growtree/wateringcan_all.stk
+=== stackable/arad/growtree/wateringcan_all.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+1
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[stack limit]
+1000
+[icon]
+`Item/stackable/consumption_jp.img` 222
+[stackable type]
+`[quest]` 0
+
+######## stackable/arad/growtree/wateringcan_me.stk
+=== stackable/arad/growtree/wateringcan_me.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+1
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[stack limit]
+3
+[icon]
+`Item/stackable/consumption_jp.img` 220
+[stackable type]
+`[quest]` 0
+
+######## stackable/arad/growtree/wateringcan_you.stk
+=== stackable/arad/growtree/wateringcan_you.stk ===
+[name]
+``
+[explain]
+``
+[grade]
+1
+[attach type]
+`[trade]`
+[rarity]
+1
+[usable job]
+`[all]`
+[/usable job]
+[minimum level]
+1
+[stack limit]
+2
+[icon]
+`Item/stackable/consumption_jp.img` 221
+[stackable type]
+`[quest]` 0
+

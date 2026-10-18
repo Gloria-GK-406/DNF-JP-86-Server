@@ -1,0 +1,97 @@
+=== monster/newmonsters/timespiral/paris/paris.mob ===
+[name]
+雷鸣之帕米斯
+[category]
+[devil]
+[/category]
+[damage sound]
+R_PARIS_DMG
+[die sound]
+PARIS_DIE
+[ambient sound]
+
+[attack sound]
+
+[appear sound]
+
+[damage sound]
+
+[die sound]
+
+[ability category]
+[EQUIPMENT_PHYSICAL_ATTACK] * 100 [EQUIPMENT_PHYSICAL_DEFENSE] * 90 [EQUIPMENT_MAGICAL_ATTACK] * 120 [EQUIPMENT_MAGICAL_DEFENSE] * 110 [HP MAX] * 750
+[/ability category]
+[level]
+83 83
+[move speed]
+1350 1350
+[attack speed]
+1000 1000
+[cast speed]
+1000 1000
+[hit recovery]
+1000 1000
+[weight]
+1000000 1000000
+[fire resistance]
+10 10
+[dark resistance]
+-10 -10
+[light resistance]
+30 30
+[come in action]
+Action/InComming.act 100 200
+[stuckbonus on damage]
+0 0 0 0
+[face image]
+Monster/MonsterFace.img 731
+[waiting action]
+Action/stay.act
+[move action]
+Action/move.act
+[damage action 1]
+Action/damage1.act
+[damage action 2]
+Action/damage2.act
+[overturn action]
+Action/overturn.act
+[attack action]
+Action/attack_0.act Action/attack_1.act Action/attack_1_0.act Action/attack_1_0_0.act Action/Attack_4.act Action/attack_1_0_1.act Action/attack_1_0_0_0.act Action/attack_0_0.act
+[/attack action]
+[last action]
+Action/Last.act
+[proc action]
+Action/Proc.act
+[attack info]
+attackinfo/attack_0.atk    attackinfo/Attack_4.atk
+[/attack info]
+[cooltime]
+3000 0 4000 0 0 30000 0 10000
+[/cooltime]
+[think term]
+500
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]
+[keep distance with target]
+300
+[warlike]
+90
+[vision]
+1000
+[lie frame]
+2 3 2 3 4

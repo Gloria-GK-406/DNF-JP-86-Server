@@ -55,7 +55,17 @@ public sealed class SchemaOwnershipTests
 
         // Counted rather than sampled: naming a handful of tables would stay green while forty of
         // the declarations went missing.
-        Assert.Equal(77, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(105, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Contains("marriage_ceremonies(", shape, StringComparison.Ordinal);
+        foreach (var weddingTable in new[] { "marriage_weddings", "marriage_wedding_guests", "marriage_guest_comments", "marriage_wedding_cleanup", "marriage_church_rooms", "marriage_church_admissions" })
+            Assert.Contains(weddingTable + "(", shape, StringComparison.Ordinal);
+        foreach (var housingTable in new[] { "marriage_housing_rooms", "marriage_housing_storage", "marriage_housing_placements", "marriage_housing_trees", "marriage_housing_harvests", "marriage_housing_migrations",
+                     "marriage_ring_state", "marriage_capsules", "marriage_capsule_clears", "marriage_daily_points", "marriage_personal_points", "marriage_points_migration_audit" })
+            Assert.Contains(housingTable + "(", shape, StringComparison.Ordinal);
+        Assert.Contains("sao_tower_progress(next_floor:INTEGER,revision:INTEGER,round:INTEGER,season:TEXT)", shape, StringComparison.Ordinal);
+        Assert.Contains("sao_first_clears(floor:INTEGER,round:INTEGER,run_id:TEXT,season:TEXT)", shape, StringComparison.Ordinal);
+        Assert.Contains("sao_first_clear_rewards(character_id:INTEGER,item_id:INTEGER,run_id:TEXT)", shape, StringComparison.Ordinal);
+        Assert.Contains("account_hotkey_options(account_id:INTEGER,key_type:INTEGER,payload:BLOB)", shape, StringComparison.Ordinal);
         Assert.Contains("character_despair_tower(character_id:INTEGER,highest_cleared_floor:INTEGER,last_clear_run:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("character_mirror_quests(character_id:INTEGER,run_id:TEXT,state_json:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("character_mirror_daily(character_id:INTEGER,clears:INTEGER,daily_reward_claimed:INTEGER,day:TEXT,entries:INTEGER)", shape, StringComparison.Ordinal);

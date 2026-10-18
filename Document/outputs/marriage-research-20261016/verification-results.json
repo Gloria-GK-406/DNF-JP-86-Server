@@ -1,0 +1,38 @@
+{
+  "PythonAST": {
+    "Count": 5,
+    "Result": "pass"
+  },
+  "MarkdownLocalLinks": "pass",
+  "PvfManifest": {
+    "Count": 20,
+    "Result": "pass"
+  },
+  "ProtocolProtectedBlocks": "pass",
+  "ProductionTrackedDiff": "empty",
+  "SourceIdentities": {
+    "Pvf": "91902D91AA0015024B75F55BE037FE7C2900FD66432459B62578CA0E865DEBF4",
+    "A21Dump": "6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507",
+    "70Binary": "CF45F4E8514C3BF560DD322C146F8441249F6C28246EC8566DCF9EBC4E1B2EB7"
+  },
+  "GlobalDocumentationSync": {
+    "ExitCode": 1,
+    "Failures": 14,
+    "BaselineComparison": "identical; production source and wire overrides unchanged",
+    "Logs": [
+      "documentation-sync-current.txt",
+      "documentation-sync-baseline-catalog.txt"
+    ]
+  },
+  "Reproduction": {
+    "A21Disassembly": "same SHA256 after rerun",
+    "A21FocusedExcerpts": "same SHA256 after rerun",
+    "70SymbolASCII": "same output after rerun",
+    "PvfScan": "subagent rebuilt scanner 0 warnings/errors; rerun hash identical; root independently verified manifest"
+  },
+  "WhitespaceCheck": "pass for staged Markdown, scripts, C# project/source, JSON and manifest; raw evidence text/TSV retained",
+  "StagedScope": {
+    "Files": 47,
+    "Result": "only research deliverables and 5 protocol documentation files"
+  }
+}

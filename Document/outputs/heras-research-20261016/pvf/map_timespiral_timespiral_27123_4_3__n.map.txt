@@ -1,0 +1,64 @@
+=== map/timespiral/timespiral_27123(4,3)_n.map ===
+[player number]
+1 1
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3900
+[/dungeon]
+[type]
+[normal]
+[greed]
+KK KK
+[tile]
+Tile/basic_5.til Tile/basic_3.til Tile/basic_4.til Tile/basic_4.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/basic_ex_1.til
+[/tile files]
+[tile map]
+0 0 0 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+56
+[middle sight scroll]
+80
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/timespiral_far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+1438 613 1458 652 107 100 451 460
+[sound]
+AMB_POWERSTATION_GRANDINE M_HELIX_LAB
+[/sound]
+[animation]
+Animation/timespiral_back_middle_light.ani [middleback] 1160 110 0 Animation/timespiral_back_middle_light.ani [middleback] 931 110 0 Animation/timespiral_back_middle_light.ani [middleback] 702 108 0 Animation/timespiral_back_middle_light.ani [middleback] 473 110 0 Animation/timespiral_mid02.ani [middleback] 350 -438 0 Animation/timespiral_mid01.ani [middleback] 215 -292 0 Animation/timespiral_spark02.ani [middleback] 318 -158 0 ../kronos_dg/Animation/chn_kronos_hydra_big_fog.ani [distantback] 329 239 0 ../kronos_dg/Animation/fire/fire02_normal.ani [middleback] 283 101 0 ../kronos_dg/Animation/fire/fire02_normal.ani [middleback] 28 120 0 ../kronos_dg/Animation/fire/FireCurtain01_opacity.ani [middleback] -180 -301 0 ../kronos_dg/Animation/fire/FireCurtain01_opacity.ani [middleback] 460 -298 0
+[/animation]
+[passive object]
+12903 439 461 0 12905 60 450 0 12906 743 464 0 12915 570 466 0 12918 275 184 0 12918 882 228 0 12918 861 284 0 12918 832 431 0 12913 280 239 0 12914 384 224 0 12914 460 193 0 12913 439 237 0 12913 554 214 0 12913 617 188 0 12914 532 253 0 12914 680 231 0
+[/passive object]
+[monster]
+64910 1 0 369 306 0 1 1 [fixed] [normal] 64910 1 0 587 309 0 1 1 [fixed] [normal] 64912 1 0 474 267 0 1 1 [fixed] [normal] 64911 1 0 288 275 0 1 1 [fixed] [normal] 64911 1 0 287 361 0 1 1 [fixed] [normal] 64912 1 0 471 363 0 1 1 [fixed] [normal] 64911 1 0 677 277 0 1 1 [fixed] [normal] 64911 1 0 676 363 0 1 1 [fixed] [normal] 64910 1 0 366 392 0 1 1 [fixed] [normal] 64910 1 0 587 391 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[special passive object]
+12942 91 374 0 1 [item] 0 1 -1 -1 -1 12941 746 188 0 1 [item] 0 1 -1 -1 -1
+[/special passive object]
+[event monster position]
+116 197 0 146 229 0 171 201 0 143 190 0
+[/event monster position]
+[map name]
+PVP无名

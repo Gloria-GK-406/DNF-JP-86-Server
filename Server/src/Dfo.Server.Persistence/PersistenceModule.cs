@@ -55,8 +55,20 @@ public sealed class PersistenceModule : IServerModule
         // puts the file in shape.
         services.TryAddSingleton(provider => new SqliteDatabase(
             databasePath, provider.GetRequiredService<IDomainTransactionAccessor>()));
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageProposalDomainStore, Dfo.Server.Persistence.Marriage.SqliteMarriageProposalDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainStore, Dfo.Server.Persistence.Marriage.SqliteMarriageQuestDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCeremonyDomainStore, Dfo.Server.Persistence.Marriage.SqliteMarriageCeremonyDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageChurchDomainStore, Dfo.Server.Persistence.Marriage.SqliteMarriageChurchDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageGuestbookDomainStore, Dfo.Server.Persistence.Marriage.SqliteMarriageGuestbookDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Persistence.Marriage.SqliteMarriageWeddingDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageWeddingDomainStore>(sp => sp.GetRequiredService<Dfo.Server.Persistence.Marriage.SqliteMarriageWeddingDomainStore>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageWeddingGuestDomainStore>(sp => sp.GetRequiredService<Dfo.Server.Persistence.Marriage.SqliteMarriageWeddingDomainStore>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleDomainStore, Dfo.Server.Persistence.Marriage.SqliteMarriageCapsuleDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageHousingDomainStore, Dfo.Server.Persistence.Marriage.SqliteMarriageHousingDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageRelationDomainStore, Dfo.Server.Persistence.Marriage.SqliteMarriageRelationDomainStore>();
         services.TryAddSingleton<IEpicBookDomainStore, SqliteEpicBookDomainStore>();
         services.TryAddSingleton<IMirrorAradQuestDomainStore, SqliteMirrorAradQuestDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.ISaoTowerDomainStore, Dfo.Server.Persistence.Characters.SqliteSaoTowerDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDespairTowerDomainStore, Dfo.Server.Persistence.Characters.SqliteDespairTowerDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaStore, LegacyUsageQuotaStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.IAchievementPersistence, Dfo.Server.Persistence.Achievements.SqliteAchievementPersistence>();
@@ -73,6 +85,7 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmMailPersistence, Dfo.Server.Persistence.Administration.SqliteGmMailPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Initialization.IInitializationPersistence, Dfo.Server.Persistence.Initialization.SqliteInitializationPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmCeraPersistence, Dfo.Server.Persistence.Administration.SqliteGmCeraPersistence>();
+        services.TryAddSingleton<IClientSettingsTable>(p => new SqliteClientSettingsTable(p.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IAccountSettingsTable>(
             provider => new SqliteAccountSettingsTable(
                 provider.GetRequiredService<SqliteDatabase>()));

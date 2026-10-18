@@ -14,6 +14,7 @@ using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Protocol.Game.InventorySort;
 using Dfo.Server.Protocol.Game.CrystalContract;
 using Dfo.Server.Protocol.Game.Mailbox;
+using Dfo.Server.Protocol.Game.IncreaseStatus;
 using Dfo.Server.Protocol.Game.RecoverStamina;
 using Dfo.Server.Protocol.Game.Weakness;
 using Dfo.Server.Protocol.Game.Fatigue;
@@ -166,6 +167,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceResponse,Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceResponseEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledDungeonStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledDungeonStateMessage>>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.Events.EventsChanged,Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler>(retryLimit:0);
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompleted,Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompletedHandler>(retryLimit:0);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommand,Dfo.Server.Data.Events.AttendanceClaimResult,Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommandHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive);
@@ -224,6 +226,14 @@ public sealed class ProtocolModule : IServerModule
         services.AddHostedService<PremiumDailyRefreshService>();
         services.AddSingleton<UsageQuotaProjectionDelivery>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.UsageQuotas.UsageQuotaViewChanged, UsageQuotaViewChangedHandler>(retryLimit: 0);
+        services.TryAddScoped<ClientAppearanceVisibilityProjection>();
+        services.AddNotificationHandler<ClientAppearanceVisibilityRefresh, ClientAppearanceVisibilityProjection>(retryLimit: 0);
+        services.AddNotificationHandler<ExpiredItemsRefresh, ExpiredItemsRefreshHandler>(retryLimit: 0);
+        services.AddDomainSubscriber<OnlineExpiredItemsRemoved, ExpiredItemsNotificationSubscriber>(
+            "inventory.expiration.notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddDomainSubscriber<Dfo.Server.Abstractions.Accounts.ClientAppearanceSettingsChanged,
+            ClientAppearanceSettingsSubscriber>("settings.appearance-visibility", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
+            fact => $"{fact.AccountId.Value}:{fact.CharacterId.Value}");
         services.AddHostedService<MirrorQuotaDailyRefreshService>();
         services.AddHostedService<DimensionQuotaDailyRefreshService>();
         services.AddSingleton<ItemUsageProjectionDelivery>();
@@ -244,6 +254,125 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton(new RevivalOptions(revivalFlag));
         services.TryAddSingleton<DungeonEntryProjectionDelivery>();
         services.TryAddSingleton<TournamentProjectionDelivery>();
+        services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarWakeSignal>();
+        services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery>();
+        services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarProtocolCoordinator>();
+        services.AddHostedService<Dfo.Server.Protocol.Game.Altar.AltarScheduler>();
+        services.AddHostedService<Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService>();
+        services.AddHostedService<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>();
+        services.AddHostedService<Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService>();
+        services.TryAddSingleton<Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingProjection>();
+        services.AddHostedService<Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingScheduler>();
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectDecoder>(0x00FB, ClientMessageType.GameSharedEffect);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.UseStackable.SharedEffectHandler>(ClientMessageType.GameSharedEffect);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectAck, Dfo.Server.Protocol.Game.UseStackable.SharedEffectAckEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectNotification, Dfo.Server.Protocol.Game.UseStackable.SharedEffectNotificationEncoder>();
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.UseStackable.SharedEffectCommand, Dfo.Server.Abstractions.Inventory.SharedEffectUseResult, Dfo.Server.Protocol.Game.UseStackable.SharedEffectCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentPostDecoder>(0x03F8, ClientMessageType.GameWeddingCommentPost);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentDeleteDecoder>(0x03F9, ClientMessageType.GameWeddingCommentDelete);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentReadDecoder>(0x03FA, ClientMessageType.GameWeddingCommentRead);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentHandler>(ClientMessageType.GameWeddingCommentPost);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentHandler>(ClientMessageType.GameWeddingCommentDelete);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentHandler>(ClientMessageType.GameWeddingCommentRead);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentEncoder>();
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentCommand, Dfo.Server.Data.Marriage.MarriageGuestbookResult, Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingBeginNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingBeginEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingAvatarNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingAvatarEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingInvitedGuestsNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingInvitedGuestsEncoder>();
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterDecoder>(0x03F6, ClientMessageType.GameWeddingSendLetter);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterHandler>(ClientMessageType.GameWeddingSendLetter);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterAckEncoder>();
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftDecoder>(0x03F2, ClientMessageType.GameWeddingMoneyGift);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftHandler>(ClientMessageType.GameWeddingMoneyGift);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftAckEncoder>();
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.AdvanceMarriageWeddingCommand, Dfo.Server.Data.Marriage.MarriageWeddingAdvanceResult, Dfo.Server.Protocol.Game.MarriageProposal.AdvanceMarriageWeddingCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.CompleteWeddingCleanupCommand, bool, Dfo.Server.Protocol.Game.MarriageProposal.CompleteWeddingCleanupCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterCommand, Dfo.Server.Data.Marriage.MarriageWeddingLetterResult, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftCommand, int, Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalDecoder>(GameProtocol.WeddingProposalType, ClientMessageType.GameWeddingProposal);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterDecoder>(GameProtocol.WeddingChurchEntryType, ClientMessageType.GameWeddingChurchEntry);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterHandler>(ClientMessageType.GameWeddingChurchEntry);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchPreparationNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchPreparationEncoder>();
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.PrepareMarriageChurchCommand, Dfo.Server.Protocol.Game.MarriageProposal.MarriageChurchPreparationResult,
+            Dfo.Server.Protocol.Game.MarriageProposal.PrepareMarriageChurchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.EnterMarriageChurchCommand, Dfo.Server.Data.Marriage.MarriageChurchEntryResult,
+            Dfo.Server.Protocol.Game.MarriageProposal.EnterMarriageChurchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleMakeDecoder>(0x0404, ClientMessageType.GameMarriageCapsule);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleGiveDecoder>(0x0405, ClientMessageType.GameMarriageCapsule);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleTakeDecoder>(0x0406, ClientMessageType.GameMarriageCapsule);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleHandler>(ClientMessageType.GameMarriageCapsule);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleCommand, Dfo.Server.Data.Marriage.MarriageCapsuleResult, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleAck, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleAckEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateMessage, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyMessage, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyEncoder>();
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleRefresh, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleRefreshHandler>(retryLimit: 0);
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyRefresh, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyRefreshHandler>(retryLimit: 0);
+        services.AddDomainSubscriber<Dfo.Server.Abstractions.Marriage.MarriageCapsuleEnergyChanged, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergySubscriber>("marriage.capsule-notification", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddDomainSubscriber<Dfo.Server.Abstractions.Marriage.MarriageCapsuleGiftChanged, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleGiftSubscriber>("marriage.capsule-gift-notification", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingStorageDecoder>(0x03FD, ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingMoveDecoder>(0x03FE, ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingDeleteDecoder>(0x03FF, ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingPlantDecoder>(0x0400, ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingWaterDecoder>(0x0401, ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingHarvestDecoder>(0x0402, ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingClearDecoder>(0x0403, ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingRingDecoder>(0x03F4, ClientMessageType.GameMarriageHousing);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.BuyItem.HousingBuyItemCommand, Dfo.Server.Protocol.Game.BuyItem.BuyItemOutcome, Dfo.Server.Protocol.Game.BuyItem.BuyItemCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingHandler>(ClientMessageType.GameMarriageHousing);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingAck, Dfo.Server.Protocol.Game.MarriageHousing.HousingAckEncoder>();
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingCommand, Dfo.Server.Data.Marriage.HousingResult, Dfo.Server.Protocol.Game.MarriageHousing.HousingCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingChanged, Dfo.Server.Protocol.Game.MarriageHousing.HousingChangedHandler>(retryLimit: 0);
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingRoomMessage, Dfo.Server.Protocol.Game.HousingRoomEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingStorageMessage, Dfo.Server.Protocol.Game.HousingStorageEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingMoveMessage, Dfo.Server.Protocol.Game.HousingMoveEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingDeleteMessage, Dfo.Server.Protocol.Game.HousingDeleteEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingTreeMessage, Dfo.Server.Protocol.Game.HousingTreeEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingRingMessage, Dfo.Server.Protocol.Game.HousingRingEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingRewardsMessage, Dfo.Server.Protocol.Game.HousingRewardsEncoder>();
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommand, bool, Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointDecoder>(0x03F5, ClientMessageType.GameWeddingLovePoint);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointHandler>(ClientMessageType.GameWeddingLovePoint);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointAckEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotificationEncoder>();
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointCommand, Dfo.Server.Abstractions.Marriage.MarriageLovePointResult, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerDecoder>(GameProtocol.WeddingPartnerType, ClientMessageType.GameWeddingPartnerQuery);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerHandler>(ClientMessageType.GameWeddingPartnerQuery);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoMessage, Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoEncoder>();
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseDecoder>(GameProtocol.WeddingResponseType, ClientMessageType.GameWeddingResponse);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalHandler>(ClientMessageType.GameWeddingProposal);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseHandler>(ClientMessageType.GameWeddingResponse);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.MarriageProposalCommand, Dfo.Server.Data.Marriage.MarriageProposalResult,
+            Dfo.Server.Protocol.Game.MarriageProposal.MarriageProposalCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.MarriageCeremonyCommand, Dfo.Server.Data.Marriage.MarriageCeremonyResult,
+            Dfo.Server.Protocol.Game.MarriageProposal.MarriageCeremonyCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalAckEncoder>();
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseAckEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalNotificationEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseNotificationEncoder>();
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.Altar.AltarStateChanged,
+            Dfo.Server.Protocol.Game.Altar.AltarStateChangedHandler>(retryLimit: 0);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarPrepareHandler>(ClientMessageType.GameAltarPrepare);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchHandler>(ClientMessageType.GameAltarDeathBatch);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarDifficultyHandler>(ClientMessageType.GameAltarDifficulty);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarPrepareDecoder>(0x0102, ClientMessageType.GameAltarPrepare);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchDecoder>(0x00FF, ClientMessageType.GameAltarDeathBatch);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyDecoder>(0x013D, ClientMessageType.GameAltarDifficulty);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.Altar.AltarActionCommand, Dfo.Server.Protocol.Game.Altar.AltarCommandResult,
+            Dfo.Server.Protocol.Game.Altar.AltarActionCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchCommand, IReadOnlyList<MonsterDeathSettlementResult>,
+            Dfo.Server.Protocol.Game.Altar.AltarDeathBatchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarInfoMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarInfoMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarMapMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarMapMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarWaveMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarWaveMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarIntervalMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarIntervalMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyPromptMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyPromptMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResolvedMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResolvedMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarRankingMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarRankingMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarRewardMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarRewardMessage>>();
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResponse, GameCmdStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResponse>>();
         services.TryAddSingleton<TournamentRewardSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<TournamentRewardSweepService>());
         services.AddCommandHandler<BeginTournamentRewardsCommand, bool, BeginTournamentRewardsCommandHandler>(
@@ -481,6 +610,10 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional, UserAccessMode.Unscoped, UserAccessMode.Exclusive);
         services.AddCommandHandler<UseStackableCommand, ItemUseResult, UseStackableCommandHandler>(
             CommandExecutionKind.Transactional);
+        services.AddCommandHandler<IncreaseStatusCommand, IncreaseStatusResult, IncreaseStatusCommandHandler>(CommandExecutionKind.Transactional);
+        services.RegisterMessageHandler<IncreaseStatusHandler>(ClientMessageType.GameIncreaseStatus);
+        services.AddGameCmdMessageDecoder<IncreaseStatusDecoder>(0x001E, ClientMessageType.GameIncreaseStatus);
+        services.AddGameCmdMessageEncoder<IncreaseStatusResponse, IncreaseStatusEncoder>();
         services.AddCommandHandler<HatchCreatureCommand, HatchCreatureResult, HatchCreatureCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<RenameCreatureCommand, RenameCreatureResult, RenameCreatureCommandHandler>(
@@ -521,6 +654,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<UseFatiguePotionCommand, OpeningInventoryReceipt, UseFatiguePotionCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddSingleton<FatiguePotionHandler>();
+        services.AddCommandHandler<UseEntryAllowanceCommand, OpeningInventoryReceipt, UseEntryAllowanceCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddSingleton<EntryAllowanceHandler>();
         services.AddCommandHandler<ChangeSkillSlotCommand, bool, ChangeSkillSlotCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.RegisterMessageHandler<ChangeSkillSlotHandler>(ClientMessageType.GameChangeSkillSlot);
         services.AddGameCmdMessageDecoder<ChangeSkillSlotDecoder>(0x001C, ClientMessageType.GameChangeSkillSlot);
@@ -686,6 +821,12 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<SaveCharacterOptionCommand, bool, SaveCharacterOptionCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.RegisterMessageHandler<SaveCharacterOptionHandler>(ClientMessageType.GameSaveCharacterOption);
         services.AddGameCmdMessageDecoder<SaveCharacterOptionDecoder>(0x01C0, ClientMessageType.GameSaveCharacterOption);
+        services.AddCommandHandler<SaveClientSettingsCommand, bool, SaveClientSettingsCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<ActivateClientHotkeyProfileCommand, bool, ActivateClientHotkeyProfileCommandHandler>(CommandExecutionKind.Direct, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysHandler>(ClientMessageType.GameSaveHotkeys);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysDecoder>(0x00C6, ClientMessageType.GameSaveHotkeys);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatHandler>(ClientMessageType.GameSaveQuickChat);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatDecoder>(0x0170, ClientMessageType.GameSaveQuickChat);
         services.RegisterMessageHandler<SaveGameOption1Handler>(ClientMessageType.GameSaveGameOption1);
         services.RegisterMessageHandler<ContentsPlayInfoHandler>(ClientMessageType.GameContentsPlayInfo);
         services.RegisterMessageHandler<ConnectionCheckHandler>(ClientMessageType.GameConnectionCheck);
@@ -927,6 +1068,13 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<EnableClearDungeonNotification, EnableClearDungeonEncoder>();
         services.AddGameNotiMessageEncoder<SecretShopNpcNotification, SecretShopNpcEncoder>();
         services.AddGameNotiMessageEncoder<DespairClearRewardNotification, DespairClearRewardEncoder>();
+        services.AddGameNotiMessageEncoder<SaoCurrentFloorNotification, SaoCurrentFloorEncoder>();
+        services.AddDomainSubscriber<SaoTowerCleared, SaoTowerNotificationSubscriber>("sao-tower.notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddDomainSubscriber<TauKingdomTicketRefilled, Dfo.Server.Protocol.Game.TauKingdom.TauTicketNotificationSubscriber>(
+            "tau-kingdom.ticket-notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.TauKingdom.TauTicketRefresh,
+            Dfo.Server.Protocol.Game.TauKingdom.TauTicketRefreshHandler>(retryLimit: 0);
+        services.AddNotificationHandler<SaoTowerRefresh, SaoTowerRefreshHandler>(retryLimit: 0);
         services.AddGameNotiMessageEncoder<DespairApcInfoNotification, DespairApcInfoEncoder>();
         services.AddGameNotiMessageEncoder<PlayResultNotification, PlayResultEncoder>();
         services.AddGameNotiMessageEncoder<ClearDungeonRewardNotification, ClearDungeonRewardEncoder>();
@@ -1166,6 +1314,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<UserAreaNotification, UserAreaEncoder>();
         services.AddGameNotiMessageEncoder<AreaUsersNotification, AreaUsersEncoder>();
         services.AddGameNotiMessageEncoder<UserPositionNotification, UserPositionEncoder>();
+        services.AddGameNotiMessageEncoder<ForcedTownPositionNotification, ForcedTownPositionEncoder>();
         services.AddGameNotiMessageEncoder<UserStateNotification, UserStateEncoder>();
         services.AddGameNotiMessageEncoder<UdpHostNotification, UdpHostEncoder>();
         services.AddGameCmdMessageEncoder<SecurityStatusAcknowledgement, SecurityStatusAcknowledgementEncoder>();

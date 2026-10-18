@@ -8,4 +8,7 @@ namespace Dfo.Server.Abstractions.World;
 /// <summary>A confirmed clear of one map occurrence, independent of the consumer's current location.</summary>
 public sealed record DungeonMapCleared(DungeonRunId RunId, int DungeonId, DungeonDifficulty Difficulty,
     MazeCell Cell, int MapId, long RoomVersion, DateTimeOffset ClearedAt,
-    ImmutableArray<DungeonRunParticipant> Participants) : IDomainEvent;
+    ImmutableArray<DungeonRunParticipant> Participants) : IDomainEvent
+{
+    public bool IsBossRoom { get; init; }
+}

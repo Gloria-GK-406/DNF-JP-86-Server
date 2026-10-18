@@ -1,0 +1,20 @@
+=== npc/chn_father.npc ===
+[small face]
+Map/Npc/NpcFace04.img 16
+[popup face]
+Map/Npc/NpcFace_cn.img 13
+[field animation]
+Animation/chn_Npc_father.ani
+[field wav]
+R_NPC_HIGH_PRIEST_AMB
+[popup wav]
+NPC_HIGH_PRIEST_TK NPC_HIGH_PRIEST_FW
+[role]
+[item shop] 1208 [wedding] 0
+[/role]
+[look around]
+0
+[name]
+大司祭
+[field name]
+大司祭

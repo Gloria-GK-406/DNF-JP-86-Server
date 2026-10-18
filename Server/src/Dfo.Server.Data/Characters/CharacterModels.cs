@@ -29,7 +29,10 @@ public sealed record CharacterSummary(
     byte GrowType,
     byte Level,
     uint CloneTitleItemId,
-    IReadOnlyList<Game.CharacterRosterAppearanceState>? Appearances);
+    IReadOnlyList<Game.CharacterRosterAppearanceState>? Appearances)
+{
+    public CharacterAppearance? Display { get; init; }
+}
 
 public sealed record AccountCharacterRoster(
     AccountId AccountId,
@@ -359,7 +362,10 @@ public sealed record CharacterPublicEntryState(
     long VisibilityBits,
     uint CloneTitleItemId,
     CharacterPublicIdentityEntryState? Identity = null,
-    bool HasBlackDiamond = false);
+    bool HasBlackDiamond = false)
+{
+    public CharacterAppearance? Display { get; init; }
+}
 
 public sealed record CharacterSkillState(
     short Slot,

@@ -1,0 +1,93 @@
+=== monster/newmonsters/timespiral/granite/granite.mob ===
+[name]
+格莱尼
+[face image]
+Monster/monsterFace.img 719
+[die effect]
+0 5 1
+[category]
+[hybrid] [devil]
+[/category]
+[ambient sound]
+
+[attack sound]
+
+[appear sound]
+
+[damage sound]
+R_GRANITE_DMG
+[die sound]
+R_GRANITE_DIE
+[ability category]
+[EQUIPMENT_PHYSICAL_ATTACK] * 100 [EQUIPMENT_PHYSICAL_DEFENSE] * 100 [EQUIPMENT_MAGICAL_ATTACK] * 100 [EQUIPMENT_MAGICAL_DEFENSE] * 100 [HP MAX] * 300
+[/ability category]
+[level]
+70 70
+[fire resistance]
+10 10
+[light resistance]
+10 10
+[move speed]
+450 450
+[attack speed]
+800 800
+[cast speed]
+800 800
+[hit recovery]
+1100 1100
+[weight]
+90000 90000
+[stuckbonus on damage]
+0 0 0 0
+[waiting action]
+Action/stay.act
+[move action]
+Action/move.act
+[sit action]
+Action/sit.act
+[damage action 1]
+Action/damage1.act
+[damage action 2]
+Action/damage2.act
+[down action]
+Action/down.act
+[overturn action]
+Action/overturn.act
+[attack action]
+Action/attack_0.act Action/attack_1.act Action/attack_2.act Action/attack_3.act Action/attack_4.act
+[/attack action]
+[last action]
+Action/Last.act
+[attack info]
+ attackinfo/attack_0.atk
+[/attack info]
+[cooltime]
+2000 8000 2000 2000 2000 12000
+[/cooltime]
+[think term]
+300
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]
+[keep range distance with target]
+0 0 0 0
+[intelligence]
+100 100 300
+[vision]
+1000
+[lie frame]
+1 2 3 3 4

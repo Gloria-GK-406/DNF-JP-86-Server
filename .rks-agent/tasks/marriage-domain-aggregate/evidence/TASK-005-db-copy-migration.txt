@@ -1,0 +1,99 @@
+EV-003 真实运行库副本迁移记录（TASK-005）
+========================================
+
+执行日期：2026-10-17。只动 scratchpad 里的副本；artifacts/ 原件、运行库、Host 都没碰。
+
+1. 输入
+-------
+原件（主 checkout，只读取哈希）
+  artifacts/npc-shop-gain-fix-20261017/current-stopped.db       部署源提交 5a0cbed0，SHA256 9a61a9baa36c07e301ed81e2e8c00ff062c47079b3edeafd1c0e8f0a0a913ea7
+  artifacts/wedding-force-position-20261017/current-stopped.db  部署源提交 89fe1a4d，SHA256 314661c074c21db23d58967625af4ab0bf5e1afeca6428b7bb3806e20d750604
+会话 scratchpad 的副本：
+  mda-dbcopies/npc-shop-stopped.db       SHA256 与原件相同
+  mda-dbcopies/wedding-force-stopped.db  SHA256 与原件相同
+这两份保持原样；迁移在再复制一层的 mda-dbcopies/migrated/<同名>.db 上进行。结束时再算一遍，两份 SHA256 未变。
+
+2. 迁移程序（一次性，只在 scratchpad，不进仓库）
+---------------------------------------------
+  scratchpad/mda-migrate/tool/{MdaMigrate.csproj,Program.cs}
+  - 用的是 worktree 构建产物（`dotnet build Server/86JP.Server.slnx`：0 警告 0 错误，已是最新）：
+    Dfo.Server.Persistence.dll  SHA256 c696ef29491f6e2a4c09ec19c1d306cd01795d7f4bf90d088b5378c63db1892c  MVID d78e138c-6c13-44b8-a12d-b23e686cc07c
+    Dfo.Server.Application.dll  SHA256 6e76ecd4e9193cb849a149ca6bfbbc6caa86368a62ebfd425f93f369634ba8b5  MVID cf9bc1fb-c0ce-4fed-bcd4-911a1e178581
+    （取自 tests/Dfo.Server.Persistence.Tests/bin/Debug/net10.0，与 src/*/bin/Debug/net10.0 下同名文件 SHA256 一致）
+  - 反射构造 `SqliteDatabase(path, new DomainTransactionScope())`，与 `MarriageRelationMigrationTests` 的打开方式相同；
+    构造器内执行 `CharacterDatabaseSchema.Ensure`，其中包括 `MarriageRelationMigration.Apply`。
+  - 然后用同一个 database 构造 `SqliteMarriageRelationDomainStore`，调用：
+    `CountUnsettledReservationsAsync`（启动审计 `MarriageRelationAudit` 用的就是这个计数），
+    以及对两条求婚 id 各调一次 `ReadAsync`。
+  - 没有启动 Host，所以 `MarriageRelationAudit` 本身没有运行；它在计数 > 0 时才写 Warning，这里计数为 0。
+  对比脚本：scratchpad/mda-migrate/snapshot.py（只读打开，逐表行数 + 内容摘要 + DDL 摘要 + integrity_check）、compare.py。
+
+3. 迁移前（两份相同的部分）
+-------------------------
+  journal_mode=delete；表 92 张；无 marriage_relations 表；integrity_check = ok。
+  marriage_proposals 2 行：
+    fac69362ac1f4ee281f0a60342021fff  state=2 (Rejected)  参与者 1、8 均 active=0
+    f7bdd877ba9844f0bba06ce82a415a36  state=1 (Engaged)   参与者 1、8 均 active=1
+  marriage_ceremonies 1 行：state=1 (Reserved)，relation=f7bdd877…
+  marriage_weddings 1 行：phase=1 (Completed)，relation=f7bdd877…，paid_gold=500000
+  两份的差别：
+                         ceremony / wedding id               completed_at     love_points
+    npc-shop-stopped      197a7c63361f4580af655471f463f3b9   1792226736402    0
+    wedding-force-stopped 24dccf81ab5642bdaa7826f160f6db6e   1792211202138    5
+  全部 92 张表的行数合计：npc-shop 36454，wedding-force 36654。
+
+4. 第一次打开（迁移）
+-------------------
+npc-shop-stopped：
+  CountUnsettledReservationsAsync = 0
+  ReadAsync(fac69362…) = Stage Closed,  Revision 1, CeremonyId null, MarriedAt null, LovePoints 0, StageSince 1792248176306, Proposer 1/3, Recipient 8/4
+  ReadAsync(f7bdd877…) = Stage Married, Revision 1, CeremonyId 197a7c63361f4580af655471f463f3b9, MarriedAt 1792226736402, LovePoints 0, StageSince 1792248176306, Proposer 1/3, Recipient 8/4
+  （Proposer/Recipient 写作 角色/账号。打开窗口 1792248176173..1792248176394，stage_since 落在其中）
+  marriage_relations 原始行：
+    ('f7bdd877ba9844f0bba06ce82a415a36', 4, 1, 1792248176306, '197a7c63361f4580af655471f463f3b9', 1792226736402, 0)
+    ('fac69362ac1f4ee281f0a60342021fff', 5, 1, 1792248176306, None, None, 0)
+wedding-force-stopped：
+  CountUnsettledReservationsAsync = 0
+  ReadAsync(fac69362…) = Stage Closed,  Revision 1, CeremonyId null, MarriedAt null, LovePoints 0, StageSince 1792248177421, Proposer 1/3, Recipient 8/4
+  ReadAsync(f7bdd877…) = Stage Married, Revision 1, CeremonyId 24dccf81ab5642bdaa7826f160f6db6e, MarriedAt 1792211202138, LovePoints 5, StageSince 1792248177421, Proposer 1/3, Recipient 8/4
+  （打开窗口 1792248177377..1792248177505）
+  marriage_relations 原始行：
+    ('f7bdd877ba9844f0bba06ce82a415a36', 4, 1, 1792248177421, '24dccf81ab5642bdaa7826f160f6db6e', 1792211202138, 5)
+    ('fac69362ac1f4ee281f0a60342021fff', 5, 1, 1792248177421, None, None, 0)
+
+各阶段计数（两份相同）：Proposed 0，Engaged 0，Requested 0，Preparing 0，Married 1，Closed 1；合计 0+0+0+0+1+1 = 2 = 求婚行数 2。
+异常计数（Reserved 预约但没有进行中或已完成婚礼行的 Engaged 关系）：0。
+与 Detailed Plan 的预期逐项对照：
+  - 一条 Married：是；ceremony_id 指向该婚礼（两份各自的 ceremony/wedding id）；married_at = 婚礼行 completed_at（1792226736402 / 1792211202138）；
+    心意点 = 婚礼行 love_points（0 / 5）。
+  - 一条 Closed：是（Rejected 的那条，ceremony_id、married_at 为空，心意点 0）。
+  - 异常 0：是。
+  - revision 均为 1；同一份库内 stage_since 只有一个值。
+
+5. 迁移前后对比（compare.py，before → 第一次打开后）
+---------------------------------------------------
+两份结果相同：
+  integrity_check：ok → ok
+  表：92 → 93；新增 [marriage_relations]；删除 []
+  原有 92 张表中行数、内容摘要或 DDL 有变化的：[]（无）
+  原有表行数合计：npc-shop 36454 → 36454；wedding-force 36654 → 36654
+  索引、触发器：无新增、无删除
+  婚姻旧表逐张（行数前→后，内容）：
+    marriage_ceremonies 1→1 同；marriage_church_admissions 0→0 同；marriage_church_rooms 0→0 同；
+    marriage_guest_comments 0→0 同；marriage_proposal_participants 4→4 同；marriage_proposals 2→2 同；
+    marriage_quest_bindings 4→4 同；marriage_trial_clears 10→10 同；marriage_wedding_cleanup 0→0 同；
+    marriage_wedding_guests 0→0 同；marriage_weddings 1→1 同。
+  新表 DDL 带 `stage CHECK(stage BETWEEN 0 AND 15)` 与 `CHECK((stage IN (2,3,4)) = (ceremony_id IS NOT NULL))`。
+
+6. 第二次打开（幂等）
+-------------------
+同一程序对同一副本再打开一次：计数仍为 0，两条 ReadAsync 输出与第一次逐字段相同（含 StageSince）。
+compare.py（第一次打开后 → 第二次打开后）：两份均为 integrity_check ok → ok，表 93 → 93，
+任何表（含 marriage_relations）的行数、内容摘要、DDL 都没有变化；索引、触发器无变化。
+
+7. 原始输出位置（会话 scratchpad/mda-migrate/）
+--------------------------------------------
+  <name>.run1.txt / <name>.run2.txt     两次打开的程序输出
+  <name>.rows1.txt                      第一次打开后的 marriage_relations 原始行与 DDL
+  <name>.before.json / .after1.json / .after2.json   快照
+  <name>.compare1.txt / .compare2.txt   对比输出

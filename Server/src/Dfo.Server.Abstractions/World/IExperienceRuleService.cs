@@ -28,6 +28,7 @@ public readonly record struct ClearExperienceWorth(uint Base, uint RankBonus);
 /// </remarks>
 public interface IExperienceRuleService
 {
+    uint MobReward(int level) => MonsterExperienceWorth.For(level, MonsterWorthCurve.Recovered);
     /// <summary>What one kill is worth before anything the character carries.</summary>
     uint WorthOfKill(in KillCircumstances kill);
 

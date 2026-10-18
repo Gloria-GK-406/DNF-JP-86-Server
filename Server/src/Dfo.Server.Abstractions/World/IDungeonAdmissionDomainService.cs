@@ -6,12 +6,14 @@ using Dfo.Server.Data.Characters;
 namespace Dfo.Server.Abstractions.World;
 
 public abstract record DungeonAdmissionCost;
+public sealed record DungeonGoldAdmissionCost(int Amount) : DungeonAdmissionCost;
 public sealed record DungeonMaterialAdmissionCost(int ItemId, int Count, bool AllowSharedMaterial) : DungeonAdmissionCost;
 public sealed record DungeonQuotaAdmissionCost(UsageQuotaKey Key, UsageQuotaValue? Expected, int Used) : DungeonAdmissionCost;
 
 public sealed record DungeonAdmissionOptions
 {
     public bool Mirror { get; init; }
+    public IReadOnlyDictionary<CharacterId, int> GoldCosts { get; init; } = new Dictionary<CharacterId, int>();
     public bool RequireMinimumLevel { get; init; }
     public bool? ConsumesFatigue { get; init; }
     public IReadOnlyList<int> RequiredQuestIds { get; init; } = [];
@@ -20,7 +22,7 @@ public sealed record DungeonAdmissionOptions
     public IReadOnlyList<DungeonRequiredItem>? RequiredItemsOverride { get; init; }
     public DungeonAdmissionQuota? Quota { get; init; }
 }
-public sealed record DungeonAdmissionQuota(UsageQuotaFamily Family, DateOnly Period, int Maximum);
+public sealed record DungeonAdmissionQuota(UsageQuotaFamily Family, DateOnly Period, int Maximum, int? DungeonId = null);
 
 /// <summary>Issued by the admission service for one participant in one entry transaction.</summary>
 public interface IDungeonAdmissionPermit

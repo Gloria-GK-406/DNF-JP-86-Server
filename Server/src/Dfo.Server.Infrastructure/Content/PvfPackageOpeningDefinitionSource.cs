@@ -192,7 +192,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             else if (values[0].IsString && DateTime.TryParseExact(provider.Archive.ResolveString(values[0].Value),
                 "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
             {
-                var seconds = new DateTimeOffset(date, TimeZoneInfo.Local.GetUtcOffset(date)).ToUnixTimeSeconds();
+                var seconds = new DateTimeOffset(DateTime.SpecifyKind(date, DateTimeKind.Unspecified), TimeSpan.FromHours(8)).ToUnixTimeSeconds();
                 expiration = seconds is > 0 and <= int.MaxValue ? (int)seconds : -1;
             }
             else expiration = -1;
@@ -377,9 +377,15 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                 for (var i = start; i < ns.Length; i += stride)
                 {
                     if (ns[i] <= 0 || ns[i + 1] < 0 || ns[i + 2] <= 0) errors.Add("Invalid pool row");
-                    // Avatar row extensions are not yet interpreted; never discard a nondefault one.
-                    if (stride == 5 && (ns[i + 3] != 0 || ns[i + 4] != 0)) errors.Add("Unsupported avatar pool extension");
-                    entries.Add(new(new(ns[i], ns[i + 2]), ns[i + 1]));
+                    var reward = new OpeningReward(ns[i], ns[i + 2]);
+                    // This archive's Dark Repulsor box explicitly promises an untradeable weapon.
+                    // Support its complete observed profile, without assigning an unproven general
+                    // meaning to extension 3. Other nondefault avatar profiles still fail closed.
+                    var darkRepulsor = id == 10007316 && kind == OpeningPackageKind.Package && name == Fields.AvatarField.Name
+                        && stride == 5 && ns.AsSpan().SequenceEqual(new int[] { 1, 101600023, 100000, 1, 3, 0 });
+                    if (darkRepulsor) reward = reward with { TradeRestriction = 1 };
+                    else if (stride == 5 && (id == 10007316 || ns[i + 3] != 0 || ns[i + 4] != 0)) errors.Add("Unsupported avatar pool extension");
+                    entries.Add(new(reward, ns[i + 1]));
                 }
                 if (entries.All(e => e.Weight == 0)) errors.Add("Empty weight pool");
                 pools.Add(new(random ? 1 : ns[0], entries.ToImmutable()));

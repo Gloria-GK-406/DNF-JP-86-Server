@@ -23,17 +23,23 @@ internal static class AccountCharacterRosterPayloadCodec
 
     internal const byte SecondByteAfterLevel = 0x01;
 
-    public static byte[] Encode(AccountCharacterRoster roster)
+    public static byte[] Encode(AccountCharacterRoster roster) => EncodeRosterState(new CharacterRosterEntryState(
+        roster.SlotLimit, roster.SlotLimit, 0, 0, 0, 0,
+        roster.Characters.Select(x => new CharacterRosterMemberState(x.CharacterId, x.SlotIndex, x.Name,
+            x.Job, x.GrowType, x.Level, 0, 0, 0, x.Appearances ?? throw new InvalidDataException("Roster appearance is unavailable."),
+            x.CloneTitleItemId) { Display = x.Display }).ToArray()));
+
+    public static byte[] EncodeRosterState(CharacterRosterEntryState roster)
     {
         ArgumentNullException.ThrowIfNull(roster);
         var body = new List<byte>();
         body.Add(0x02);
         WriteUInt16(body, roster.SlotLimit);
-        WriteUInt16(body, roster.SlotLimit);
-        body.Add(0x00);
-        WriteInt32(body, 0);
-        WriteUInt16(body, 0);
-        WriteInt32(body, 0);
+        WriteUInt16(body, roster.SecondarySlotLimit);
+        body.Add(roster.ManageLevel);
+        WriteInt32(body, roster.AdventurePoint);
+        WriteUInt16(body, roster.Compatibility16);
+        WriteInt32(body, roster.Compatibility32);
         WriteUInt16(body, checked((ushort)roster.Characters.Count));
 
         foreach (var character in roster.Characters)
@@ -53,7 +59,7 @@ internal static class AccountCharacterRosterPayloadCodec
             // from was never asked to work out what anyone is wearing, and the cheap listing is
             // what four other callers use; drawing it here would put every character back on the
             // screen undressed, silently, which is the defect this frame was fixed for.
-            var appearances = character.Appearances
+            var appearances = character.Display?.Parts ?? character.Appearances
                 ?? throw new InvalidDataException(
                     $"Character {character.CharacterId} reached the roster frame from a listing "
                     + "that did not work out what it is wearing.");
@@ -63,7 +69,7 @@ internal static class AccountCharacterRosterPayloadCodec
                 WriteAppearance(body, appearance);
             }
 
-            WriteRosterTail(body, character.CloneTitleItemId);
+            WriteRosterTail(body, character.Display?.TitleAppearanceItemId ?? character.CloneTitleItemId, character.Display?.VisibilityBits ?? 0);
         }
 
         return body.ToArray();
@@ -101,7 +107,7 @@ internal static class AccountCharacterRosterPayloadCodec
     /// this length wrong does not corrupt one field -- it shifts every entry after it, so a
     /// roster with two characters loses the second one rather than drawing it oddly.
     /// </remarks>
-    private static void WriteRosterTail(List<byte> body, uint cloneTitleItemId)
+    private static void WriteRosterTail(List<byte> body, uint cloneTitleItemId, byte visibilityBits)
     {
         WriteUInt32(body, cloneTitleItemId);
         body.AddRange(new byte[4]);
@@ -109,7 +115,9 @@ internal static class AccountCharacterRosterPayloadCodec
         WriteUInt32(body, 0);
         body.Add(0x00);
         WriteUInt32(body, 0);
-        body.AddRange(new byte[6]);
+        body.AddRange(new byte[3]);
+        body.Add(visibilityBits);
+        body.AddRange(new byte[2]);
         body.Add(0xFF);
         body.AddRange(new byte[4]);
         WriteUInt32(body, 0);

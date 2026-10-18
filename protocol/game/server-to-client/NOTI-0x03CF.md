@@ -1,5 +1,20 @@
 # NOTI `0x03CF` `WEDDING_AVATAR`
 
+## 2026-10-17 婚礼角色顺序
+
+CurrentImplementation：两个固定30B姓名统一按新娘、再新郎排序，不依赖预约发起方。ClientStatic / Confirmed：cinema从03D4 context取两人，008884A0(flag1)取第二人，在00888924..00888928回答新郎誓词；flag0为新娘。03D7启动演出前广播双方当前PVF force-move坐标；原版镜头走位顺序仍待历史视频及实机验证。旧Snapshot JSON属性名保留以兼容cleanup队列。
+
+
+## 2026-10-17 修正
+
+ClientStatic / High：operation非零除恢复装扮，还终止本地婚礼上下文、删除 area 对应婚礼项，可能触发0024。准备期普通离场保留op0上下文，03F3重登恢复；成功演出期间不发op1，离场后清理；取消先移出再清理，持久队列失败重试。下方“离场恢复”的历史表述不能套用准备期。见[修复说明](../../../Document/MarriageWeddingRepair-20261017.md)。
+
+## A21 人工裁定与实现（2026-10-16）
+
+ClientStatic / CurrentImplementation：RVA00898220读取67B：u8 operation@0、u8 tier@1、name30@2、name30@32、u32 area@62、未知u8@66。普通档tier0、尾0。operation0应用婚礼临时装扮，非0恢复；不改真实装备。服务端自动入场和重入场后应用，离场/取消恢复，实际外观待用户验收。
+
+证据与边界见[定向补证](../../../Document/MarriageChurchEntryEvidence-20261016.md)及[普通婚礼流程](../../../Document/MarriageWeddingFlow-20261016.md)。未新增WireCaptured或ClientVerified。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

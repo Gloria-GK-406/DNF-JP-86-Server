@@ -94,6 +94,26 @@ public sealed class GmAuthenticationHttpTests
         Assert.Equal(HttpStatusCode.TooManyRequests, (await host.LoginAsync(csrf, loginName: "another-user")).StatusCode);
     }
     [Fact]
+    public async Task AuditFiltersByOutcomeAndActionInsideTheQuery()
+    {
+        await using var host = await GmTestHost.StartAsync(); var csrf = await host.CsrfAsync();
+        for (var i = 0; i < 2; i++) Assert.Equal(HttpStatusCode.Unauthorized, (await host.LoginAsync(csrf, password: "wrong-password")).StatusCode);
+        using var login = await host.LoginAsync(csrf);
+        async Task<JsonElement> Page(string query) => await host.Client.GetFromJsonAsync<JsonElement>("/api/gm/v1/audit?" + query);
+        var attention = await Page("outcome=attention&pageSize=1");
+        Assert.Equal(2, attention.GetProperty("total").GetInt32()); Assert.Equal("Rejected", attention.GetProperty("items")[0].GetProperty("outcome").GetString());
+        Assert.Equal(1, (await Page("outcome=Succeeded")).GetProperty("total").GetInt32());
+        Assert.Equal(2, (await Page("outcome=Rejected&action=Login")).GetProperty("total").GetInt32());
+        Assert.Equal(3, (await Page("action=Login")).GetProperty("total").GetInt32());
+        Assert.Equal(0, (await Page("action=SendOfficialMail&outcome=attention")).GetProperty("total").GetInt32());
+        foreach (var query in new[] { "outcome=Failed", "outcome=succeeded", "action=DropTable", "outcome=Rejected&outcome=Unknown", "action=Login&action=Logout" })
+        {
+            var response = await host.Client.GetAsync("/api/gm/v1/audit?" + query);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.False(string.IsNullOrEmpty((await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("message").GetString()));
+        }
+    }
+    [Fact]
     public async Task AuditPaginationAndStoredRecordsContainNoCredentials()
     {
         await using var host = await GmTestHost.StartAsync(); using var login = await host.LoginAsync(await host.CsrfAsync());

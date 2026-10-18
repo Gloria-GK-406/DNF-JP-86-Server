@@ -125,7 +125,7 @@ public sealed class DungeonEntryCodecTests
         Assert.Equal(3, body[6]);           // boss cell x
         Assert.Equal(0, body[7]);           // boss cell y
         Assert.Equal(0, body[11]);          // minimap group count
-        Assert.Equal(1, body[12]);          // the constant after the group list
+        Assert.Equal(1, body[12]);          // ordinary scene floor u16, low byte
         Assert.Equal(
             unchecked((int)0xFFFFFFFF),
             BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(18)));
@@ -142,6 +142,23 @@ public sealed class DungeonEntryCodecTests
 
         Assert.Equal(0, body[8]);
         Assert.Equal(0, body[9]);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(7)]
+    [InlineData(10)]
+    [InlineData(100)]
+    public void Despair_scene_receives_the_entered_floor_without_changing_other_dungeon_info_fields(int floor)
+    {
+        var ordinary = DungeonEntryPayloadCodec.EncodeDungeonInfo(Tutorial, difficulty: 0);
+        var tower = Tutorial with { Despair = new(floor, new DateOnly(2026, 10, 13)) };
+        var body = DungeonEntryPayloadCodec.EncodeDungeonInfo(tower, difficulty: 0);
+        Assert.Equal(32, body.Length);
+        Assert.Equal((ushort)floor, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(12)));
+        body[12] = ordinary[12];
+        body[13] = ordinary[13];
+        Assert.Equal(ordinary, body);
     }
 
     [Fact]

@@ -1,0 +1,67 @@
+E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.14]   Discovering: Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.43]   Discovered:  Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.45]   Starting:    Dfo.Server.Application.Tests
+  已通过 Dfo.Server.Application.Tests.Commands.CommandHandlerArchitectureTests.ATypeOutsideTheVocabularyIsRefused(type: typeof(Dfo.Server.Application.Commands.ICommandBus)) [3 ms]
+  已通过 Dfo.Server.Application.Tests.Commands.CommandHandlerArchitectureTests.ATypeOutsideTheVocabularyIsRefused(type: typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionRuntimeDirectory)) [< 1 ms]
+  已通过 Dfo.Server.Application.Tests.Commands.CommandHandlerArchitectureTests.ATypeOutsideTheVocabularyIsRefused(type: typeof(Dfo.Server.Abstractions.Persistence.ICharacterTable)) [< 1 ms]
+  已通过 Dfo.Server.Application.Tests.Commands.CommandHandlerArchitectureTests.ATypeOutsideTheVocabularyIsRefused(type: typeof(string)) [< 1 ms]
+  已通过 Dfo.Server.Application.Tests.Commands.CommandHandlerArchitectureTests.ATypeOutsideTheVocabularyIsRefused(type: typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionPositionPersistence)) [< 1 ms]
+  已通过 Dfo.Server.Application.Tests.Commands.CommandHandlerArchitectureTests.ADomainShapeOrANamedExemptionIsPermitted(type: typeof(Dfo.Server.Abstractions.Inventory.IItemDomainStore)) [< 1 ms]
+  已通过 Dfo.Server.Application.Tests.Commands.CommandHandlerArchitectureTests.ADomainShapeOrANamedExemptionIsPermitted(type: typeof(System.TimeProvider)) [< 1 ms]
+  已通过 Dfo.Server.Application.Tests.Commands.CommandHandlerArchitectureTests.ADomainShapeOrANamedExemptionIsPermitted(type: typeof(Dfo.Server.Abstractions.Parties.IPartyService)) [< 1 ms]
+  已通过 Dfo.Server.Application.Tests.Commands.CommandHandlerArchitectureTests.ADomainShapeOrANamedExemptionIsPermitted(type: typeof(Dfo.Server.Abstractions.Characters.ICharacterDomainService)) [< 1 ms]
+  已通过 Dfo.Server.Application.Tests.Commands.CommandHandlerArchitectureTests.TheSweepFindsTheCommandHandlers [19 ms]
+  已通过 Dfo.Server.Application.Tests.Commands.CommandHandlerArchitectureTests.ProductionCommandHandlers_OnlyTakeDomainShapes [26 ms]
+  已通过 Dfo.Server.Application.Tests.Commands.CommandHandlerArchitectureTests.EveryExemptionCarriesItsReason [< 1 ms]
+  已通过 Dfo.Server.Application.Tests.Commands.CommandHandlerArchitectureTests.ProductionCommandHandlers_DoNotDependOnCommandBus [1 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageArchitectureTests.The_production_modules_resolve_every_marriage_face_and_one_relation_instance [253 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageArchitectureTests.The_use_case_components_stand_apart_and_take_only_the_relation_writer [1 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageArchitectureTests.The_reach_rule_finds_edges_behind_an_interface_a_func_and_a_factory [7 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageArchitectureTests.Each_marriage_store_has_one_owner_and_the_use_cases_take_none [34 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageArchitectureTests.The_deferral_rule_refuses_func_lazy_and_the_provider [< 1 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageArchitectureTests.Neither_the_quests_nor_the_relations_reach_the_use_cases_or_the_effects [116 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageArchitectureTests.The_relation_access_rule_refuses_a_second_writer_a_concrete_ledger_and_quests_that_do_not_read [1 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageArchitectureTests.The_store_rule_refuses_a_second_owner_and_a_store_in_the_use_cases [< 1 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageArchitectureTests.No_marriage_constructor_defers_a_dependency [1 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageArchitectureTests.The_use_case_shape_rule_refuses_a_leaning_component_and_another_interface [< 1 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageArchitectureTests.Only_the_use_cases_write_relations_and_the_quests_read_them [2 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageHousingTests.Furniture_purchase_placement_recall_and_editor_generation_are_shared_and_transactional [459 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.HousingNetworkSettlementTests.Lost_furniture_purchase_ack_replays_current_storage_without_a_second_charge [465 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageHousingTests.Ring_consumes_only_actor_coupon_and_cannot_skip_or_consume_twice [132 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.HousingNetworkSettlementTests.Full_bag_purchase_rolls_back_gold_and_points_returns_native_failure_and_allows_the_next_request [157 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageHousingTests.Daily_points_are_personal_capped_and_claimed_once_per_character_period [83 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Window_counts_every_inbound_frame_including_unknown_types(otherFrames: 128, accepted: False) [773 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageHousingTests.Water_limit_harvest_two_mails_and_repeat_cycle_survive_rollback_and_expiry [120 ms]
+  已通过 Dfo.Server.Application.Tests.Marriage.MarriageHousingTests.Aborted_editor_open_does_not_lock_out_the_spouse_and_house_position_never_overwrites_return [89 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Window_counts_every_inbound_frame_including_unknown_types(otherFrames: 127, accepted: True) [451 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Refusal_only_unselected_operation_cannot_pay_after_a_selection_arrives [82 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Second_primary_command_cannot_pay_or_overwrite_the_first_committed_entry [427 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Same_ID_new_physical_context_has_an_independent_ledger_and_does_not_clear_the_old_fence [416 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Full_raw_identity_conflicts_never_pay_or_refresh(conflict: 0) [392 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Full_raw_identity_conflicts_never_pay_or_refresh(conflict: 1) [401 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Full_raw_identity_conflicts_never_pay_or_refresh(conflict: 3) [394 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Full_raw_identity_conflicts_never_pay_or_refresh(conflict: 2) [369 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Later_readonly_transactions_do_not_replace_the_primary_footprint_or_commit_state [413 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Confirmed_SQL_abort_retries_the_exact_same_fingerprint [419 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Metadata_empty_cannot_bypass_real_dispatcher [68 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.An_inherited_readonly_scope_does_not_clear_the_primary_execution_on_the_parent_flow [66 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Unknown_applied_effect_change_is_rejected_before_SQL_commit [67 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Postdurable_operation_record_failure_preserves_typed_cause_and_exact_connection_fence [68 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.A_full_ushort_round_is_a_legal_new_use_and_65535_to_zero_is_fresh [418 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Waiting_on_the_connection_gate_keeps_the_original_selected_session [392 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Identical_parameters_on_the_next_fresh_sequence_are_a_new_use [398 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Invalid_projection_freeze_aborts_real_SQL_before_durability_and_records_confirmed_rollback [66 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Love_coupon_real_dispatcher_lost_ack_replays_current_inventory_and_points_without_second_deduction [80 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Batch_IO_failure_keeps_committed_state_and_uses_later_current_quantity [389 ms]
+[xUnit.net 00:00:08.25]   Finished:    Dfo.Server.Application.Tests
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Shared_effect_real_dispatcher_commits_once_and_replay_only_refreshes_inventory [427 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.An_inherited_closed_operation_cannot_downgrade_to_trusted_direct_bus [405 ms]
+  已通过 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.A_use_already_durable_before_sender_failure_cannot_consume_twice_on_the_same_raw_request [379 ms]
+
+测试运行成功。
+测试总数: 55
+     通过数: 55
+总时间: 8.6015 秒

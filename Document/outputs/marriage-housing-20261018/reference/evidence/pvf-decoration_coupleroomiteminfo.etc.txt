@@ -1,0 +1,234 @@
+=== decoration/coupleroomiteminfo.etc ===
+[position list]
+0 273 -140 -200 1 560 -135 -200 2 380 200 0 3 559 180 0 4 560 200 0 5 736 200 0 6 86 100 0 7 1030 80 0 8 236 80 0 9 888 80 0 10 105 205 0 11 1187 235 0 12 268 110 0 13 855 105 0 14 383 180 0 15 737 180 0 16 330 180 0 17 530 180 0 18 710 180 0 19 280 280 0 20 530 280 0 21 767 280 0 22 180 380 0 23 530 380 0 24 780 380 0 25 544 0 0 26 368 0 0 27 722 0 0
+[/position list]
+[coupleroom item list]
+[coupleroom item]
+10002797 1 0 0 0 0 0 0 decoration/Action/chn_floor_02.act
+[/coupleroom item]
+[coupleroom item]
+10002798 1 0 0 0 0 0 0 decoration/Action/chn_floor_03.act
+[/coupleroom item]
+[coupleroom item]
+10002799 1 1 0 0 0 0 0 decoration/Action/chn_wallpaper_white.act
+[/coupleroom item]
+[coupleroom item]
+10002800 1 1 0 0 0 0 0 decoration/Action/chn_wallpaper_bluecloud.act
+[/coupleroom item]
+[coupleroom item]
+10002801 1 1 0 0 0 0 0 decoration/Action/chn_wallpaper_gold.act
+[/coupleroom item]
+[coupleroom item]
+10002802 3 25 15 0 0 0 26 15 0 0 0 27 15 0 0 0 0 decoration/Action/chn_window_05.act
+[/coupleroom item]
+[coupleroom item]
+10002684 3 25 15 0 0 0 26 15 0 0 0 27 15 0 0 0 0 decoration/Action/chn_window_03.act
+[/coupleroom item]
+[coupleroom item]
+10002685 1 25 10 10 0 0 0 decoration/Action/chn_window_01.act
+[/coupleroom item]
+[coupleroom item]
+10002686 1 25 15 70 0 0 0 decoration/Action/chn_window_02.act
+[/coupleroom item]
+[coupleroom item]
+10002687 1 25 15 30 0 0 0 decoration/Action/chn_window_04.act
+[/coupleroom item]
+[coupleroom item]
+10002711 3 3 0 -100 0 0 14 0 -100 0 0 15 0 -100 0 0 0 decoration/Action/chn_curtain_01.act
+[/coupleroom item]
+[coupleroom item]
+10002782 3 3 0 -100 0 0 14 0 -100 0 0 15 0 -100 0 0 0 decoration/Action/chn_curtain_01_orange.act
+[/coupleroom item]
+[coupleroom item]
+10002783 3 3 0 -100 0 0 14 0 -100 0 0 15 0 -100 0 0 0 decoration/Action/chn_curtain_01_purple.act
+[/coupleroom item]
+[coupleroom item]
+10002710 3 3 0 -30 0 0 14 0 -30 0 0 15 0 -30 0 0 0 decoration/Action/chn_curtain_02.act
+[/coupleroom item]
+[coupleroom item]
+10002780 3 3 0 -30 0 0 14 0 -30 0 0 15 0 -30 0 0 0 decoration/Action/chn_curtain_02_pink.act
+[/coupleroom item]
+[coupleroom item]
+10002781 3 3 0 -30 0 0 14 0 -30 0 0 15 0 -30 0 0 0 decoration/Action/chn_curtain_02_yellow.act
+[/coupleroom item]
+[coupleroom item]
+10002699 3 2 0 0 0 0 4 0 0 0 0 5 0 0 0 0 0 decoration/Action/chn_ceiling_01.act
+[/coupleroom item]
+[coupleroom item]
+10002698 3 2 0 0 0 0 4 0 0 0 0 5 0 0 0 0 0 decoration/Action/chn_ceiling_basic_light.act
+[/coupleroom item]
+[coupleroom item]
+10002697 3 2 0 0 0 0 4 0 0 0 0 5 0 0 0 0 0 decoration/Action/chn_ceiling_flower_01.act
+[/coupleroom item]
+[coupleroom item]
+10002778 3 2 0 0 0 0 4 0 0 0 0 5 0 0 0 0 0 decoration/Action/chn_ceiling_flower_01_red.act
+[/coupleroom item]
+[coupleroom item]
+10002779 3 2 0 0 0 0 4 0 0 0 0 5 0 0 0 0 0 decoration/Action/chn_ceiling_flower_01_yellow.act
+[/coupleroom item]
+[coupleroom item]
+10002714 2 6 0 0 0 1 7 5 0 0 0 0 decoration/Action/chn_wall_taw_bone_01.act
+[/coupleroom item]
+[coupleroom item]
+10002784 2 6 0 0 0 1 7 5 0 0 0 0 decoration/Action/chn_wall_taw_bone_01_blue.act
+[/coupleroom item]
+[coupleroom item]
+10002785 2 6 0 0 0 1 7 5 0 0 0 0 decoration/Action/chn_wall_taw_bone_01_green.act
+[/coupleroom item]
+[coupleroom item]
+10002715 4 6 0 -53 0 1 7 0 -53 0 0 8 0 -53 0 1 9 0 -53 0 0 0 decoration/Action/chn_wall_sweethome_01.act
+[/coupleroom item]
+[coupleroom item]
+10002787 4 6 0 -50 0 1 7 0 -50 0 0 8 0 -50 0 1 9 0 -50 0 0 0 decoration/Action/chn_wall_hang_pink_flower.act
+[/coupleroom item]
+[coupleroom item]
+10002717 4 6 0 -30 0 0 7 10 -30 0 1 8 0 -30 0 0 9 0 -30 0 1 0 decoration/Action/chn_wall_picture_rorian.act
+[/coupleroom item]
+[coupleroom item]
+10002712 4 6 0 0 0 0 7 0 0 0 1 8 0 0 0 0 9 0 0 0 1 0 decoration/Action/chn_wall_picture_dark.act
+[/coupleroom item]
+[coupleroom item]
+10002713 4 6 0 0 0 0 7 0 0 0 1 8 0 0 0 0 9 0 0 0 1 0 decoration/Action/chn_wall_picture_house.act
+[/coupleroom item]
+[coupleroom item]
+10002788 2 26 15 -55 0 0 27 15 -55 0 0 0 decoration/Action/chn_wall_danjin_flower.act
+[/coupleroom item]
+[coupleroom item]
+10002716 2 26 10 0 0 0 27 10 0 0 0 0 decoration/Action/chn_wall_goul_front.act
+[/coupleroom item]
+[coupleroom item]
+10002786 4 6 -15 -20 0 0 7 15 -10 0 1 8 0 -10 0 0 9 0 -10 0 1 0 decoration/Action/chn_wall_goul_side.act
+[/coupleroom item]
+[coupleroom item]
+10002721 2 6 10 0 0 1 7 0 0 0 0 0 decoration/Action/chn_wall_zighardt_fire_01.act
+[/coupleroom item]
+[coupleroom item]
+10002790 2 6 10 0 0 1 7 0 0 0 0 0 decoration/Action/chn_wall_zighardt_fire_01_green.act
+[/coupleroom item]
+[coupleroom item]
+10002791 2 6 10 0 0 1 7 0 0 0 0 0 decoration/Action/chn_wall_zighardt_fire_01_red.act
+[/coupleroom item]
+[coupleroom item]
+10002789 3 10 40 60 0 1 12 0 80 0 1 13 0 80 0 0 0 decoration/Action/chn_wall_tawdoll_on_the_chair.act
+[/coupleroom item]
+[coupleroom item]
+10002722 2 6 0 50 0 0 7 10 50 0 1 0 decoration/Action/chn_wall_mask_01.act
+[/coupleroom item]
+[coupleroom item]
+10002792 2 6 0 50 0 0 7 10 50 0 1 0 decoration/Action/chn_wall_mask_01_red.act
+[/coupleroom item]
+[coupleroom item]
+10002793 2 6 0 50 0 0 7 10 50 0 1 0 decoration/Action/chn_wall_mask_01_purple.act
+[/coupleroom item]
+[coupleroom item]
+10002718 3 10 -20 100 0 0 12 -20 100 0 0 13 20 100 0 1 0 decoration/Action/chn_wall_fishbowl_01.act
+[/coupleroom item]
+[coupleroom item]
+10002719 3 10 -20 100 0 0 12 -20 100 0 0 13 20 100 0 1 0 decoration/Action/chn_wall_fishbowl_02.act
+[/coupleroom item]
+[coupleroom item]
+10002720 2 12 0 80 0 1 13 0 80 0 0 0 decoration/Action/chn_wall_heater_01.act
+[/coupleroom item]
+[coupleroom item]
+10002723 3 10 20 60 0 1 12 -10 80 0 1 13 0 80 0 0 0 decoration/Action/chn_wall_penril_01.act
+[/coupleroom item]
+[coupleroom item]
+10002724 3 10 20 60 0 0 12 -20 80 0 0 13 10 80 0 1 0 decoration/Action/chn_wall_pratini_01.act
+[/coupleroom item]
+[coupleroom item]
+10002794 3 10 20 60 0 0 12 -20 80 0 0 13 10 80 0 1 0 decoration/Action/chn_wall_pratini_01_blue.act
+[/coupleroom item]
+[coupleroom item]
+10002795 3 10 20 60 0 0 12 -20 80 0 0 13 10 80 0 1 0 decoration/Action/chn_wall_pratini_01_purple.act
+[/coupleroom item]
+[coupleroom item]
+10002708 3 10 20 80 0 1 12 20 80 0 1 13 0 100 0 0 0 decoration/Action/chn_wall_taw_body.act
+[/coupleroom item]
+[coupleroom item]
+10002693 3 10 0 70 0 0 12 0 70 0 0 13 0 70 0 1 0 decoration/Action/chn_bottom_bed_02.act
+[/coupleroom item]
+[coupleroom item]
+10002694 3 10 0 80 0 0 12 0 80 0 0 13 0 80 0 1 0 decoration/Action/chn_bottom_bed_01.act
+[/coupleroom item]
+[coupleroom item]
+10002701 8 16 0 0 0 0 17 0 0 0 0 18 0 0 0 0 19 0 0 0 0 20 0 0 0 0 21 0 0 0 0 22 0 0 0 0 23 0 0 0 0 0 decoration/Action/chn_bottom_bronze_05.act
+[/coupleroom item]
+[coupleroom item]
+10002702 8 16 0 0 0 0 17 0 0 0 0 18 0 0 0 0 19 0 0 0 0 20 0 0 0 0 21 0 0 0 0 22 0 0 0 0 23 0 0 0 0 0 decoration/Action/chn_bottom_bronze_01.act
+[/coupleroom item]
+[coupleroom item]
+10002703 8 16 0 0 0 0 17 0 0 0 0 18 0 0 0 0 19 0 0 0 0 20 0 0 0 0 21 0 0 0 0 22 0 0 0 0 23 0 0 0 0 0 decoration/Action/chn_bottom_bronze_02.act
+[/coupleroom item]
+[coupleroom item]
+10002704 8 16 0 0 0 0 17 0 0 0 0 18 0 0 0 0 19 0 0 0 0 20 0 0 0 0 21 0 0 0 0 22 0 0 0 0 23 0 0 0 0 0 decoration/Action/chn_bottom_bronze_03.act
+[/coupleroom item]
+[coupleroom item]
+10002705 3 10 0 70 0 1 12 0 70 0 1 13 0 70 0 0 0 decoration/Action/chn_bottom_bronze_07.act
+[/coupleroom item]
+[coupleroom item]
+10002706 3 10 10 70 0 1 12 10 70 0 1 13 -10 70 0 0 0 decoration/Action/chn_bottom_bronze_06.act
+[/coupleroom item]
+[coupleroom item]
+10002695 3 19 0 0 0 0 20 30 0 0 0 21 50 0 0 0 0 decoration/Action/chn_bottom_table_02.act
+[/coupleroom item]
+[coupleroom item]
+10002696 3 19 0 0 0 0 20 30 0 0 0 21 50 0 0 0 0 decoration/Action/chn_bottom_table_01.act
+[/coupleroom item]
+[coupleroom item]
+10002725 3 19 20 -70 0 0 20 20 -70 0 0 21 40 -70 0 0 0 decoration/Action/chn_bottom_carpet_01.act
+[/coupleroom item]
+[coupleroom item]
+10002726 3 19 20 -70 0 0 20 20 -70 0 0 21 40 -70 0 0 0 decoration/Action/chn_bottom_carpet_02.act
+[/coupleroom item]
+[coupleroom item]
+10002707 3 10 10 70 0 0 12 10 70 0 0 13 -10 70 0 1 0 decoration/Action/chn_bottom_chair_01.act
+[/coupleroom item]
+[coupleroom item]
+10002709 8 16 0 0 0 0 17 0 0 0 0 18 0 0 0 0 19 0 0 0 0 20 0 0 0 0 21 0 0 0 0 22 0 0 0 0 23 0 0 0 0 0 decoration/Action/chn_bottom_bronze_04.act
+[/coupleroom item]
+[coupleroom item]
+10002769 8 16 0 0 0 0 17 0 0 0 0 18 0 0 0 0 19 0 0 0 0 20 0 0 0 0 21 0 0 0 0 22 0 0 0 0 23 0 0 0 0 0 decoration/Action/chn_bottom_long_lamp.act
+[/coupleroom item]
+[coupleroom item]
+10002688 7 16 0 0 0 0 17 0 0 0 0 18 0 0 0 0 19 0 0 0 0 20 0 0 0 0 22 0 0 0 0 23 0 0 0 0 0 decoration/Action/chn_bottom_gobrintoy_01.act
+[/coupleroom item]
+[coupleroom item]
+10002770 7 16 0 0 0 0 17 0 0 0 0 18 0 0 0 0 19 0 0 0 0 20 0 0 0 0 22 0 0 0 0 23 0 0 0 0 0 decoration/Action/chn_bottom_gobrintoy_01_green.act
+[/coupleroom item]
+[coupleroom item]
+10002771 7 16 0 0 0 0 17 0 0 0 0 18 0 0 0 0 19 0 0 0 0 20 0 0 0 0 22 0 0 0 0 23 0 0 0 0 0 decoration/Action/chn_bottom_gobrintoy_01_yellow.act
+[/coupleroom item]
+[coupleroom item]
+10002689 7 16 0 0 0 0 17 0 0 0 0 18 0 0 0 0 19 0 0 0 0 20 0 0 0 0 22 0 0 0 0 23 0 0 0 0 0 decoration/Action/chn_bottom_tawtoy_01.act
+[/coupleroom item]
+[coupleroom item]
+10002772 7 16 50 0 0 0 17 50 0 0 0 18 50 0 0 0 19 50 0 0 0 20 50 0 0 0 22 50 0 0 0 23 50 0 0 0 0 decoration/Action/chn_bottom_tawtoy_01_blue.act
+[/coupleroom item]
+[coupleroom item]
+10002773 7 16 100 0 0 0 17 100 0 0 0 18 100 0 0 0 19 100 0 0 0 20 100 0 0 0 22 100 0 0 0 23 100 0 0 0 0 decoration/Action/chn_bottom_tawtoy_01_black.act
+[/coupleroom item]
+[coupleroom item]
+10002690 7 16 0 0 0 0 17 0 0 0 0 18 0 0 0 0 19 0 0 0 0 20 0 0 0 0 22 0 0 0 0 23 0 0 0 0 0 decoration/Action/chn_bottom_flower_01.act
+[/coupleroom item]
+[coupleroom item]
+10002774 7 16 50 0 0 0 17 50 0 0 0 18 50 0 0 0 19 50 0 0 0 20 50 0 0 0 22 50 0 0 0 23 50 0 0 0 0 decoration/Action/chn_bottom_flower_01_blue.act
+[/coupleroom item]
+[coupleroom item]
+10002775 7 16 100 0 0 0 17 100 0 0 0 18 100 0 0 0 19 100 0 0 0 20 100 0 0 0 22 100 0 0 0 23 100 0 0 0 0 decoration/Action/chn_bottom_flower_01_purple.act
+[/coupleroom item]
+[coupleroom item]
+10002691 7 16 0 0 0 0 17 0 0 0 0 18 0 0 0 0 19 0 0 0 0 20 0 0 0 0 22 0 0 0 0 23 0 0 0 0 0 decoration/Action/chn_bottom_flower_02.act
+[/coupleroom item]
+[coupleroom item]
+10002776 7 16 0 0 0 0 17 0 0 0 0 18 0 0 0 0 19 0 0 0 0 20 0 0 0 0 22 0 0 0 0 23 0 0 0 0 0 decoration/Action/chn_bottom_flower_02_yellow.act
+[/coupleroom item]
+[coupleroom item]
+10002777 7 16 0 0 0 0 17 0 0 0 0 18 0 0 0 0 19 0 0 0 0 20 0 0 0 0 22 0 0 0 0 23 0 0 0 0 0 decoration/Action/chn_bottom_flower_02_blue.act
+[/coupleroom item]
+[coupleroom item]
+10002692 3 19 0 0 0 0 20 0 0 0 0 21 0 0 0 0 0 decoration/Action/chn_bottom_halloween.act
+[/coupleroom item]
+[/coupleroom item list]
+[couple room buff]
+10 1 hp max 100 40 2 hp max 100 mp max 100 100 3 hp max 150 mp max 150 village moving speed 3 200 4 hp max 200 mp max 200 village moving speed 4 all elemental attack 1 500 4 hp max 200 mp max 200 village moving speed 4 all elemental attack 3 800 7 hp max 200 mp max 200 village moving speed 5 all elemental attack 5 equipment physical attack 5 equipment magical attack 5 separate attack 5 1000 7 hp max 200 mp max 200 village moving speed 10 all elemental attack 8 equipment physical attack 10 equipment magical attack 10 separate attack 20
+[/couple room buff]

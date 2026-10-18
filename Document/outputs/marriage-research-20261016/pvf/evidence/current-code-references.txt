@@ -1,0 +1,614 @@
+===== Server/src/Dfo.Server.Infrastructure/Content/PvfQuestDefinitionSource.cs:71-100 =====
+71:    private const string ListPath = "n_quest/quest.lst";
+72:    private const string QuestDirectory = "n_quest";
+73:    private const string TrainingListPath = "n_quest/TrainingQuest.lst";
+74:    private const int MinimumClientQuestId = 1;
+75:    private const int MaximumClientQuestId = 29_999;
+76:
+77:    private static readonly Dictionary<string, QuestGrade> GradeTokens =
+78:        new(StringComparer.OrdinalIgnoreCase)
+79:        {
+80:            ["[normal]"] = QuestGrade.Normal,
+81:            ["[training]"] = QuestGrade.Training,
+82:            ["[epic]"] = QuestGrade.Epic,
+83:            ["[achievement]"] = QuestGrade.Achievement,
+84:            ["[crack]"] = QuestGrade.Crack,
+85:            ["[challenge]"] = QuestGrade.Challenge,
+86:            ["[common unique]"] = QuestGrade.CommonUnique,
+87:            ["[title]"] = QuestGrade.Title,
+88:            ["[side]"] = QuestGrade.Side,
+89:            ["[daily]"] = QuestGrade.Daily,
+90:            ["[daily random]"] = QuestGrade.DailyRandom,
+91:            ["[special daily]"] = QuestGrade.SpecialDaily,
+92:            ["[normaly repeat]"] = QuestGrade.NormallyRepeat,
+93:            ["[circle]"] = QuestGrade.Circle,
+94:            ["[sub]"] = QuestGrade.Sub,
+95:            ["[system]"] = QuestGrade.System,
+96:            ["[schedule]"] = QuestGrade.Schedule,
+97:            ["[urgent]"] = QuestGrade.Urgent,
+98:            ["[wedding]"] = QuestGrade.Wedding,
+99:            ["[village attack revenge]"] = QuestGrade.VillageAttackRevenge,
+100:        };
+===== Server/src/Dfo.Server.Infrastructure/Content/PvfQuestDefinitionSource.cs:160-216 =====
+160:    private static Catalog Build(PvfArchive archive)
+161:    {
+162:        var tags = new QuestTags(archive);
+163:        var rawOrdered = new List<RawQuestDefinition>();
+164:        var knownQuestIds = new HashSet<int>();
+165:        foreach (var (questId, relativePath) in NormalizeListEntries(PvfListFile.Read(archive, ListPath)))
+166:        {
+167:            var fileIndex = archive.FindFile($"{QuestDirectory}/{relativePath}");
+168:            if (fileIndex < 0)
+169:                continue;
+170:            knownQuestIds.Add(questId);
+171:
+172:            try
+173:            {
+174:                var raw = Project(archive, tags, questId, fileIndex);
+175:                var parts = Path.GetFileNameWithoutExtension(relativePath).Split('_', 3);
+176:                var stage = parts.Length == 3 && parts[0].Equals("epic", StringComparison.OrdinalIgnoreCase)
+177:                    && int.TryParse(parts[1], out var value) && value >= 0 ? (int?)value : null;
+178:                rawOrdered.Add(raw with { Definition = raw.Definition with { StoryStageLevel = stage } });
+179:            }
+180:            catch (InvalidDataException)
+181:            {
+182:                // A declared restriction that cannot be interpreted is not unrestricted.
+183:                // Excluding this definition is the conservative catalogue answer.
+184:            }
+185:        }
+186:
+187:        var ordered = new List<QuestDefinition>(rawOrdered.Count);
+188:        var byId = new Dictionary<int, QuestDefinition>();
+189:
+190:        foreach (var raw in rawOrdered)
+191:        {
+192:            var relationships = NormalizeRelationships(
+193:                raw.Definition.QuestId,
+194:                raw.CompletedQuestGroups,
+195:                raw.RequiredAnswerGroups,
+196:                raw.CollisionQuestGroups,
+197:                raw.AccountCollisionQuestGroups,
+198:                knownQuestIds);
+199:            if (relationships is null)
+200:                continue;
+201:
+202:            var definition = raw.Definition with
+203:            {
+204:                CompletedQuestPrerequisiteGroups = relationships.CompletedQuestGroups,
+205:                RequiredQuestAnswers = relationships.RequiredAnswers,
+206:                CollisionQuestIds = relationships.CollisionQuestIds,
+207:                AccountCollisionQuestIds = relationships.AccountCollisionQuestIds,
+208:            };
+209:            ordered.Add(definition);
+210:            byId.Add(definition.QuestId, definition);
+211:        }
+212:
+213:        if (ordered.Count == 0)
+214:            throw new InvalidOperationException($"{ListPath} yielded no valid quest definitions.");
+215:
+216:        return new Catalog(ordered, byId, ReadTrainingAvailability(archive, tags));
+===== Server/src/Dfo.Server.Infrastructure/Content/PvfQuestDefinitionSource.cs:426-523 =====
+426:        var definition = new QuestDefinition(
+427:            questId,
+428:            name,
+429:            grade,
+430:            jobText is null ? null : ProjectJobRestriction(jobText, questId),
+431:            requiredLevel,
+432:            growType,
+433:            OptionalNonNegative(npcValues, questId, "npc index"),
+434:            OptionalNonNegative(completeNpcValues, questId, "complete npc index"),
+435:            rewards,
+436:            objectiveType,
+437:            difficulty,
+438:            OptionalSingle(exposureValues, questId, "exposed by npc") is int exposure
+439:                ? exposure != 0
+440:                : null,
+441:            OptionalSingle(eventValues, questId, "event") is int eventValue
+442:                ? eventValue != 0
+443:                : null,
+444:            creatureKind,
+445:            creatureLevel,
+446:            expertJob,
+447:            ProjectTargetCharacterRestriction(
+448:                targetCharacterDeclared,
+449:                targetCharacterText),
+450:            OptionalSingle(jobChangeValues, questId, "job change quest"),
+451:            [],
+452:            [],
+453:            [],
+454:            [],
+455:            hasSpecialRewardStatus,
+456:            ProjectSeekingItems(objectiveType, objectiveIntData),
+457:            ComputeInitialTrigger(objectiveType, objectiveIntData),
+458:            ProjectEventItems(eventItemValues),
+459:            paysAtCharacterLevel,
+460:            QuestKillObjectiveParser.Parse(objectiveType, objectiveIntData),
+461:            ProjectItemRewards(
+462:                fixedItemRewardOperands,
+463:                selectableItemRewardOperands,
+464:                questId),
+465:            OptionalNonNegative(goldMultiplierValues, questId, "gold multiple") ?? 0,
+466:            enemyRewards,
+467:            ProjectClearedQuestRequirements(objectiveType, objectiveIntData),
+468:            ProjectDungeonClearRequirement(objectiveType, objectiveSubType, objectiveIntData))
+469:        { ObjectiveSubType = objectiveSubType.Count == 1 ? objectiveSubType[0] : null, ObjectiveArguments = objectiveIntData.ToArray() };
+470:
+471:        return new RawQuestDefinition(
+472:            definition,
+473:            completedGroups,
+474:            requiredAnswerGroups,
+475:            collisionGroups,
+476:            accountCollisionGroups);
+477:    }
+478:
+479:    /// <summary>What the acceptance answer reports as this quest's starting progress.</summary>
+480:    /// <remarks>
+481:    /// Non-kill objectives retain their existing projection. Kill counts come exclusively from
+482:    /// QuestDefinition.KillObjectives, shared with progress matching; they must not use a second
+483:    /// stride-based interpretation here. A trigger holds three nine-bit remaining-count channels.
+484:    /// See protocol/game/client-to-server/0x001F.md for the acceptance response.
+485:    /// </remarks>
+486:    private static uint ComputeInitialTrigger(string objectiveType, IReadOnlyList<int> intData) =>
+487:        objectiveType switch
+488:        {
+489:            "condition under clear" or "clear map" => PackChannels(intData, 4),
+490:            "condition under clear2" => PackChannels(intData, 5),
+491:            "clear quest" or "quest clear" when intData.Count is > 0 and <= 3
+492:                && intData.All(id => id > 0)
+493:                && intData.Distinct().Count() == intData.Count => (uint)intData.Count,
+494:            "normal clear" => PackTrigger(1, 1, 0),
+495:            _ => DefaultInitialTrigger,
+496:        };
+497:
+498:    /// <summary>The trigger of a quest whose objective declares no counts.</summary>
+499:    private const uint DefaultInitialTrigger = 1;
+500:
+501:    /// <summary>
+502:    /// Every stride-th value of the objective data, packed into the first three channels.
+503:    /// </summary>
+504:    private static uint PackChannels(IReadOnlyList<int> intData, int stride)
+505:    {
+506:        if (intData.Count == 0)
+507:            return DefaultInitialTrigger;
+508:
+509:        var channels = new List<int>();
+510:        for (var index = 0; index + stride <= intData.Count; index += stride)
+511:            channels.Add(intData[index + stride - 1]);
+512:
+513:        return channels.Count == 0
+514:            ? DefaultInitialTrigger
+515:            : PackTrigger(
+516:                channels[0],
+517:                channels.Count > 1 ? channels[1] : 0,
+518:                channels.Count > 2 ? channels[2] : 0);
+519:    }
+520:
+521:    /// <summary>Three counts in one word, nine bits each, low channel first.</summary>
+522:    private static uint PackTrigger(int first, int second, int third) =>
+523:        (uint)(((third & 0x1FF) << 18) | ((second & 0x1FF) << 9) | (first & 0x1FF));
+===== Server/src/Dfo.Server.Infrastructure/Content/PvfQuestDefinitionSource.cs:546-622 =====
+546:    internal static IReadOnlyList<SeekingItemRequirement> ProjectSeekingItems(
+547:        string objectiveType,
+548:        IReadOnlyList<int> values)
+549:    {
+550:        var normalized = objectiveType.Trim().Trim('[', ']').ToLowerInvariant();
+551:        var result = new List<SeekingItemRequirement>();
+552:        if (normalized == "seek n meet npc")
+553:        {
+554:            if (values.Count >= 2 && values[0] > 0 && values[1] > 0)
+555:                result.Add(new SeekingItemRequirement(values[0], values[1]));
+556:            return result;
+557:        }
+558:        if (normalized != "seeking")
+559:            return result;
+560:
+561:        for (var index = 0; index + 1 < values.Count; index += 2)
+562:        {
+563:            if (values[index] < 0 || values[index + 1] <= 0)
+564:                continue;
+565:            result.Add(new SeekingItemRequirement(values[index], values[index + 1]));
+566:        }
+567:        return result;
+568:    }
+569:
+570:    internal static IReadOnlyList<QuestEnemyRewardItem> ProjectMonsterRewardItems(
+571:        IReadOnlyList<int> values, int questId) => ProjectEnemyRewardItems(values, questId, legacyMonster: true);
+572:
+573:    internal static IReadOnlyList<QuestEnemyRewardItem> ProjectEnemyRewardItems(
+574:        IReadOnlyList<int> values, int questId, bool legacyMonster = false)
+575:    {
+576:        var width = legacyMonster ? 7 : 8;
+577:        if (values.Count % width != 0)
+578:            throw Invalid(questId, $"enemy reward item must contain {width}-field groups");
+579:        var result = new List<QuestEnemyRewardItem>(values.Count / width);
+580:        for (var index = 0; index < values.Count;)
+581:        {
+582:            var enemyCode = values[index++];
+583:            var type = legacyMonster ? QuestEnemyType.Monster : (QuestEnemyType)values[index++];
+584:            var dungeonId = values[index++];
+585:            var difficulty = values[index++];
+586:            var itemId = values[index++];
+587:            var count = values[index++];
+588:            var dropRate = values[index++];
+589:            var maxStack = values[index++];
+590:            if (enemyCode <= 0 || !Enum.IsDefined(type) || dungeonId < -1 || difficulty < -1
+591:                || itemId <= 0 || count <= 0 || dropRate is < 0 or > 100 || maxStack < -1)
+592:                throw Invalid(questId, "enemy reward item contains an invalid field");
+593:            result.Add(new(enemyCode, type, dungeonId, difficulty, itemId, count, dropRate, maxStack));
+594:        }
+595:        return result;
+596:    }
+597:
+598:    internal static IReadOnlyList<int> ProjectClearedQuestRequirements(
+599:        string objectiveType,
+600:        IReadOnlyList<int> values)
+601:    {
+602:        var normalized = objectiveType.Trim().Trim('[', ']').ToLowerInvariant();
+603:        return normalized is "clear quest" or "quest clear"
+604:            && values.Count is > 0 and <= 3 && values.All(id => id > 0)
+605:            && values.Distinct().Count() == values.Count
+606:            ? values.ToArray()
+607:            : [];
+608:    }
+609:
+610:    internal static DungeonClearRequirement? ProjectDungeonClearRequirement(
+611:        string objectiveType,
+612:        IReadOnlyList<int> subType,
+613:        IReadOnlyList<int> values)
+614:    {
+615:        // Other clear objectives have different operand layouts and remain client-counted.
+616:        return string.Equals(objectiveType.Trim().Trim('[', ']'), "condition under clear",
+617:                StringComparison.OrdinalIgnoreCase)
+618:            && subType.Count == 1 && subType[0] == 6
+619:            && values.Count == 2 && values[0] > 0 && values[1] >= -1
+620:            ? new DungeonClearRequirement(values[0], values[1])
+621:            : null;
+622:    }
+===== Server/src/Dfo.Server.Application/Quests/QuestAvailabilityRuleService.cs:29-81 =====
+29:        foreach (var quest in catalog)
+30:        {
+31:            if (quest.QuestId is <= 0 or > 29_999 || !seenQuestIds.Add(quest.QuestId))
+32:                continue;
+33:            if (!await MeetsRequirementsAsync(quest, subject, requirement, trainingAvailability,
+34:                    equippedCreature, cancellationToken).ConfigureAwait(false))
+35:                continue;
+36:            // Being carried is not being offerable. The reference server's own list builder is not
+37:            // given the carried set at all and so cannot make this distinction; its list names a
+38:            // quest the character is already holding, the client believes it and raises its accept
+39:            // prompt again, and the second acceptance is refused. Deviating from its bytes on
+40:            // purpose -- recorded in Docs/ProtocolScaffoldDissonances.md.
+41:            if (subject.CarriedQuestIds.Contains(quest.QuestId))
+42:                continue;
+43:            if (!IsOfferableGrade(quest.Grade))
+44:                continue;
+45:            // A repeatable quest is offered again once cleared; that is what repeatable
+46:            // means. Excluding every cleared quest would retire the dailies permanently
+47:            // after their first completion.
+48:            if (!IsRepeatable(quest.Grade) && subject.ClearedQuestFlags.ContainsKey(quest.QuestId))
+49:                continue;
+50:
+51:            offerable.Add(new OfferableQuestState(
+52:                quest.QuestId,
+53:                quest.Name,
+54:                quest.GrowTypeRequirement ?? QuestDefinition.AnyGrowType));
+55:        }
+56:
+57:        return new AvailableQuestEntryState(offerable);
+58:    }
+59:
+60:    public async ValueTask<bool> MeetsRequirementsAsync(QuestDefinition quest,
+61:        WorldContentSubject subject, CancellationToken cancellationToken)
+62:    {
+63:        var training = await quests.TrainingAvailabilityAsync(cancellationToken).ConfigureAwait(false);
+64:        var creature = subject.EquippedCreatureItemId > 0
+65:            ? await creatures.FindByEquipmentAsync(subject.EquippedCreatureItemId, cancellationToken).ConfigureAwait(false) : null;
+66:        return await MeetsRequirementsAsync(quest, subject, CharacterJobFamilies.Resolve(subject.Job), training,
+67:            creature, cancellationToken).ConfigureAwait(false);
+68:    }
+69:
+70:    private async ValueTask<bool> MeetsRequirementsAsync(QuestDefinition quest, WorldContentSubject subject,
+71:        QuestJobRequirement job, IReadOnlyList<TrainingQuestAvailability> training, CreatureDefinition? creature,
+72:        CancellationToken cancellationToken) => quest.IsExposedByNpc != false && quest.IsEventOnly != true
+73:        && quest.ExpertJobRequirement is null
+74:        && MatchesTargetCharacter(quest.TargetCharacterRestriction, job)
+75:        && MatchesTrainingAvailability(quest, subject.Level, training)
+76:        && MatchesQuestProgress(quest, subject.ClearedQuestFlags)
+77:        && (quest.RequiredLevel is not { } level || level.Includes(subject.Level))
+78:        && (quest.JobRestriction is not { } restriction || restriction.IsValid
+79:            && (restriction.IsExactAll || restriction.JobFamilies.Contains(job)))
+80:        && MatchesGrowType(quest, subject.GrowType)
+81:        && await MatchesCreatureRestrictionAsync(quest, subject, creature, cancellationToken).ConfigureAwait(false);
+===== Server/src/Dfo.Server.Application/Quests/QuestAvailabilityRuleService.cs:155-221 =====
+155:    private static bool MatchesQuestProgress(
+156:        QuestDefinition quest,
+157:        IReadOnlyDictionary<int, int> clearedFlags)
+158:    {
+159:        if (quest.CompletedQuestPrerequisiteGroups.Count > 0
+160:            && !quest.CompletedQuestPrerequisiteGroups.Any(
+161:                group => group.All(clearedFlags.ContainsKey)))
+162:        {
+163:            return false;
+164:        }
+165:
+166:        foreach (var requiredAnswer in quest.RequiredQuestAnswers)
+167:        {
+168:            if (!clearedFlags.TryGetValue(requiredAnswer.QuestId, out var actualFlag)
+169:                || actualFlag != requiredAnswer.AnswerIndex + 1)
+170:            {
+171:                return false;
+172:            }
+173:        }
+174:
+175:        if (quest.CollisionQuestIds.Any(clearedFlags.ContainsKey))
+176:            return false;
+177:
+178:        // This standalone entry composition has no complete account-cleared quest state.
+179:        // A declared account collision therefore cannot be decided and must fail closed.
+180:        return quest.AccountCollisionQuestIds.Count == 0;
+181:    }
+182:
+183:    /// <summary>
+184:    /// Whether the content's classification of a quest makes it offerable at all.
+185:    /// </summary>
+186:    /// <remarks>
+187:    /// Reverse-engineered from the legacy quest index's selectable-grade list. The grades
+188:    /// left out — cracks, challenges, titles, schedules, urgent, wedding and village-attack
+189:    /// revenge — are reached some other way, and offering them in the entry list would put
+190:    /// quests in front of characters the legacy server never shows them to.
+191:    /// <para>
+192:    /// A null grade is the content's explicit optional absence and is offerable. An
+193:    /// <see cref="QuestGrade.Unrecognized"/> value, by contrast, is a declared value the
+194:    /// neutral contract cannot decide and therefore fails closed.
+195:    /// </para>
+196:    /// </remarks>
+197:    private static bool IsOfferableGrade(QuestGrade? grade) => grade is
+198:        null
+199:        or QuestGrade.Normal
+200:        or QuestGrade.Training
+201:        or QuestGrade.Side
+202:        or QuestGrade.Sub
+203:        or QuestGrade.Epic
+204:        or QuestGrade.Achievement
+205:        or QuestGrade.CommonUnique
+206:        or QuestGrade.System
+207:        or QuestGrade.Daily
+208:        or QuestGrade.DailyRandom
+209:        or QuestGrade.NormallyRepeat
+210:        or QuestGrade.SpecialDaily;
+211:
+212:    /// <remarks>
+213:    /// The legacy exemption names three grades. A random daily is <em>not</em> among them,
+214:    /// even though it is offerable, so it is excluded here too rather than grouped with the
+215:    /// other dailies on the strength of its name.
+216:    /// </remarks>
+217:    private static bool IsRepeatable(QuestGrade? grade) => grade is
+218:        QuestGrade.Daily
+219:        or QuestGrade.NormallyRepeat
+220:        or QuestGrade.Circle
+221:        or QuestGrade.SpecialDaily;
+===== Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestHandler.cs:33-80 =====
+33:    protected override async ValueTask HandleMessageAsync(
+34:        NetworkDispatchContext context,
+35:        AcceptQuestRequest message,
+36:        CancellationToken cancellationToken)
+37:    {
+38:        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+39:        if (session is null)
+40:        {
+41:            // No character is selected, so there is nothing to carry the quest. Refused rather
+42:            // than ignored: silence is what made the client repeat itself.
+43:            logger.LogWarning(
+44:                "Accept quest {ConnectionId}: quest {Quest} with no character selected",
+45:                context.Connection.ConnectionId, message.QuestId);
+46:            await AnswerAsync(
+47:                context,
+48:                new AcceptQuestAcknowledgement(
+49:                    false, message.QuestId, 0, [], (byte)QuestAcceptRefusal.Unknown),
+50:                cancellationToken).ConfigureAwait(false);
+51:            return;
+52:        }
+53:
+54:        var outcome = await commandBus.SendAsync(
+55:            new AcceptQuestCommand(session.AccountId, session.CharacterId, message.QuestId),
+56:            cancellationToken).ConfigureAwait(false);
+57:
+58:        logger.LogInformation(
+59:            "Accept quest {ConnectionId} account={Account}: quest={Quest} {Verdict} trigger={Trigger} items={Items}",
+60:            context.Connection.ConnectionId,
+61:            session.AccountId,
+62:            message.QuestId,
+63:            outcome.Accepted ? "accepted" : $"refused({outcome.Refusal})",
+64:            outcome.InitialTrigger,
+65:            outcome.Items.Count);
+66:
+67:        await AnswerAsync(
+68:            context,
+69:            new AcceptQuestAcknowledgement(
+70:                outcome.Accepted,
+71:                outcome.QuestId,
+72:                outcome.InitialTrigger,
+73:                outcome.Items,
+74:                (byte)(outcome.Refusal ?? QuestAcceptRefusal.Unknown)),
+75:            cancellationToken).ConfigureAwait(false);
+76:
+77:        if (!outcome.Accepted)
+78:            return;
+79:
+80:        if (outcome.AccountMaterials is { Count: > 0 } accountMaterials)
+===== Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestCommand.cs:94-140 =====
+94:    public async ValueTask<QuestAcceptOutcome> HandleAsync(
+95:        CommandExecutionContext context,
+96:        AcceptQuestCommand command,
+97:        CancellationToken cancellationToken)
+98:    {
+99:        ArgumentNullException.ThrowIfNull(command);
+100:        ArgumentNullException.ThrowIfNull(context);
+101:
+102:        // Asked of every request, not only of the ones that reach a write. A refusal returns
+103:        // before the log stages anything, so a registration mistake would otherwise show up
+104:        // only when somebody happened to accept a quest they could actually take on.
+105:        if (context.ExecutionKind is not CommandExecutionKind.Transactional)
+106:        {
+107:            throw new InvalidOperationException(
+108:                "Accepting a quest writes rows that outlive the process, so it has to be "
+109:                + $"registered transactional; this execution is {context.ExecutionKind}.");
+110:        }
+111:
+112:        var definition = await quests.FindAsync(command.QuestId, cancellationToken)
+113:            .ConfigureAwait(false);
+114:        if (definition is null)
+115:            return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
+116:
+117:        if (definition.Grade == QuestGrade.Crack)
+118:        {
+119:            if (mirror is null) return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
+120:            var accepted = await mirror.AcceptAsync(command.AccountId, command.CharacterId, command.QuestId, cancellationToken).ConfigureAwait(false);
+121:            return accepted.Accepted
+122:                ? new(true, command.QuestId, unchecked((uint)accepted.TriggerValue), [])
+123:                : QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
+124:        }
+125:        var log = logs.LogOf(command.AccountId, command.CharacterId);
+126:        if (definition.Grade == QuestGrade.Circle)
+127:        {
+128:            if (cycles is null || !await cycles.CanAcceptAsync(command.AccountId, command.CharacterId,
+129:                    command.QuestId, cancellationToken).ConfigureAwait(false))
+130:                return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
+131:            var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
+132:            if (carried.Any(x => x.QuestId == command.QuestId))
+133:                return new(true, command.QuestId, definition.InitialTrigger, [],
+134:                    QuestProgress: mirror is null ? new QuestProgressSnapshot(carried)
+135:                        : await mirror.MergeAsync(command.CharacterId, new(carried), cancellationToken).ConfigureAwait(false));
+136:        }
+137:        var taken = await log.AcceptAsync(definition, cancellationToken).ConfigureAwait(false);
+138:        if (!taken.Accepted)
+139:            return QuestAcceptOutcome.Refuse(command.QuestId, WireCodeFor(taken.Refusal));
+140:
+===== Server/src/Dfo.Server.Application/Quests/QuestLog.cs:85-130 =====
+85:    public async ValueTask<QuestAcceptance> AcceptAsync(
+86:        QuestDefinition definition, CancellationToken cancellationToken)
+87:    {
+88:        ArgumentNullException.ThrowIfNull(definition);
+89:        if (definition.Grade is QuestGrade.Title or QuestGrade.Crack)
+90:            return QuestAcceptance.Refused(QuestRefusal.ManagedByAchievement);
+91:        if (definition.KillObjectives.Status is QuestKillParseStatus.Invalid or QuestKillParseStatus.Unsupported)
+92:            return QuestAcceptance.Refused(QuestRefusal.UnsupportedObjective);
+93:        var carried = await this.CarriedAsync(cancellationToken).ConfigureAwait(false);
+94:        if (carried.Any(quest => quest.QuestId == definition.QuestId))
+95:        {
+96:            return QuestAcceptance.Refused(QuestRefusal.AlreadyCarried);
+97:        }
+98:
+99:        // Asked before the slot is chosen, because a quest that may not be taken on at all should
+100:        // not consume the answer "no room". A repeatable quest is meant to come back -- that is
+101:        // what its grade says -- so only the others are held against their own clear.
+102:        if (!definition.IsRepeatable)
+103:        {
+104:            var cleared = await this.ClearedAsync(cancellationToken).ConfigureAwait(false);
+105:            if (cleared.Any(quest => quest.QuestId == definition.QuestId))
+106:                return QuestAcceptance.Refused(QuestRefusal.AlreadyCleared);
+107:        }
+108:
+109:        if (FirstFreeSlot(carried) is not { } slot)
+110:        {
+111:            return QuestAcceptance.Refused(QuestRefusal.NoFreeSlot);
+112:        }
+113:
+114:        var triggerValue = checked((int)definition.InitialTrigger);
+115:        if (definition.ClearedQuestRequirements.Count > 0)
+116:        {
+117:            var clearedIds = (await this.ClearedAsync(cancellationToken).ConfigureAwait(false))
+118:                .Where(quest => quest.Mark != 0)
+119:                .Select(quest => quest.QuestId)
+120:                .ToHashSet();
+121:            triggerValue = QuestStateRuleService.ApplyClearedRequirements(definition, triggerValue, clearedIds);
+122:        }
+123:        await stores.ChangeAsync(store, session =>
+124:        {
+125:            session.Carried.Write(
+126:                place, new StoredActiveQuest(slot, definition.QuestId, triggerValue) { AcceptedAt = clock.GetUtcNow() });
+127:            return ValueTask.CompletedTask;
+128:        }, cancellationToken).ConfigureAwait(false);
+129:        return QuestAcceptance.Taken(slot, triggerValue);
+130:    }
+===== Server/src/Dfo.Server.Infrastructure/Content/PvfTownDefinitionSource.cs:35-115 =====
+35:        internal static readonly PvfField<string> NameField = PvfField.String("[name]", optional: true);
+36:        internal static readonly PvfField<int> NeedLevelField = PvfField.Int32("[need level]", optional: true);
+37:    }
+38:
+39:    private const string ListPath = "town/town.lst";
+40:    private const string TownDirectory = "town";
+41:    private const string MapDirectory = "map";
+42:    private const int TransitRowLength = 6;
+43:    private const int WalkableRowLength = 4;
+44:
+45:    private readonly PvfArchiveProvider _provider;
+46:    private readonly Lock _gate = new();
+47:    private readonly Dictionary<string, MapGeometry?> _geometry = new(StringComparer.OrdinalIgnoreCase);
+48:    private Catalog? _catalog;
+49:
+50:    public PvfTownDefinitionSource(PvfArchiveProvider provider) => _provider = provider;
+51:
+52:    public ValueTask<IReadOnlyList<TownDefinition>> GetAllAsync(CancellationToken cancellationToken)
+53:    {
+54:        cancellationToken.ThrowIfCancellationRequested();
+55:        return ValueTask.FromResult(Load().Ordered);
+56:    }
+57:
+58:    public ValueTask<TownDefinition?> GetAsync(int townId, CancellationToken cancellationToken)
+59:    {
+60:        cancellationToken.ThrowIfCancellationRequested();
+61:        return ValueTask.FromResult(Load().ById.GetValueOrDefault(townId));
+62:    }
+63:
+64:    public ValueTask<MapGeometry?> GetMapGeometryAsync(string mapPath, CancellationToken cancellationToken)
+65:    {
+66:        cancellationToken.ThrowIfCancellationRequested();
+67:        ArgumentException.ThrowIfNullOrWhiteSpace(mapPath);
+68:
+69:        lock (_gate)
+70:        {
+71:            if (_geometry.TryGetValue(mapPath, out var cached))
+72:                return ValueTask.FromResult(cached);
+73:
+74:            var geometry = ReadGeometry(_provider.Archive, mapPath);
+75:            _geometry[mapPath] = geometry;
+76:            return ValueTask.FromResult(geometry);
+77:        }
+78:    }
+79:
+80:    private Catalog Load()
+81:    {
+82:        if (_catalog is not null)
+83:            return _catalog;
+84:
+85:        lock (_gate)
+86:            return _catalog ??= Build(_provider.Archive);
+87:    }
+88:
+89:    private static Catalog Build(PvfArchive archive)
+90:    {
+91:        var ordered = new List<TownDefinition>();
+92:        var byId = new Dictionary<int, TownDefinition>();
+93:        var tags = new TownTags(archive);
+94:
+95:        foreach (var (townId, relativePath) in PvfListFile.Read(archive, ListPath))
+96:        {
+97:            var fileIndex = archive.FindFile($"{TownDirectory}/{relativePath}");
+98:            if (fileIndex < 0)
+99:                continue;
+100:
+101:            var definition = ReadTown(archive, tags, townId, fileIndex);
+102:            ordered.Add(definition);
+103:            byId.TryAdd(townId, definition);
+104:        }
+105:
+106:        if (ordered.Count == 0)
+107:            throw new InvalidOperationException($"{ListPath} resolved no town files.");
+108:
+109:        return new Catalog(ordered, byId);
+110:    }
+111:
+112:    private static TownDefinition ReadTown(PvfArchive archive, TownTags tags, int townId, int fileIndex)
+113:    {
+114:        var areas = new List<TownAreaDefinition>();
+115:        var scriptEntry = archive.GetEntry(fileIndex);

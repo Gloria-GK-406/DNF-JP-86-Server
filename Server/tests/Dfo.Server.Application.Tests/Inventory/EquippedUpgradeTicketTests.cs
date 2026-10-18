@@ -15,6 +15,52 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class EquippedUpgradeTicketTests
 {
     [PvfTheory]
+    [InlineData(0, 6, InventoryContainerType.Equipment)]
+    [InlineData(15284, 6, InventoryContainerType.Equipment)]
+    [InlineData(15285, 7, InventoryContainerType.Equipment)]
+    [InlineData(99999, 13, InventoryContainerType.Equipment)]
+    [InlineData(0, 6, InventoryContainerType.Main)]
+    public async Task Blessing_ticket_overwrites_the_level_once_without_gold_or_equipment_replacement(
+        int draw, byte level, InventoryContainerType container)
+    {
+        using var archive = new PvfArchiveProvider(new());
+        using var shop = Fixture(archive, draw);
+        await Seed(shop, 0, 2682157, 12);
+        var core = StackableItemCore.Create(1, 3000, 1234) with { Attribute = 0xB4, Durability = 45, EnchantCardId = 42 };
+        await shop.SeedCore(12, core, container);
+        var before = shop.StoredCore(12, container);
+        var uid = shop.Scalar($"SELECT core_uid FROM item_slots WHERE owner_id=1 AND list_type={(int)container} AND slot_index=12");
+        await Send(shop, 0, 2682157, 12, container);
+        var ack = Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
+        Assert.True(ack.Success);
+        Assert.Equal(level, ack.NewLevel);
+        before[9] = (byte)(0xA0 | level);
+        Assert.Equal(before, shop.StoredCore(12, container));
+        Assert.Equal(uid, shop.Scalar($"SELECT core_uid FROM item_slots WHERE owner_id=1 AND list_type={(int)container} AND slot_index=12"));
+        Assert.Equal(1, shop.Count(2682157));
+        Assert.Equal(100000, shop.Gold);
+        await Send(shop, 0, 2682157, 12, container);
+        Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
+        Assert.Equal(1, shop.Count(2682157));
+    }
+
+    [PvfTheory]
+    [InlineData(2682155)]
+    [InlineData(2682156)]
+    public async Task Blessing_ticket_for_another_equipment_family_does_not_consume_assets(int ticket)
+    {
+        using var archive = new PvfArchiveProvider(new());
+        using var shop = Fixture(archive);
+        await Seed(shop, 0, ticket, 12);
+        var before = shop.StoredCore(12, InventoryContainerType.Equipment);
+        await Send(shop, 0, ticket, 12);
+        Assert.False(Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>()).Success);
+        Assert.Equal(before, shop.StoredCore(12, InventoryContainerType.Equipment));
+        Assert.Equal(2, shop.Count(ticket));
+        Assert.Equal(100000, shop.Gold);
+    }
+
+    [PvfTheory]
     [InlineData(0, 7275, 12, 12)]
     [InlineData(0, 7275, 12, 20)]
     [InlineData(1, 10008100, 11, 12)]
@@ -119,16 +165,16 @@ public sealed class EquippedUpgradeTicketTests
         return Assert.Single(((IServerMessageEncoder)shop.Services.GetRequiredService(registration.EncoderType)).Encode(message));
     }
 
-    private static ShopFixture Fixture(PvfArchiveProvider archive) => new(services =>
+    private static ShopFixture Fixture(PvfArchiveProvider archive, int draw = 0) => new(services =>
     {
         services.AddSingleton<IEquipmentReinforcementDefinitionSource>(new PvfEquipmentReinforcementDefinitionSource(archive));
         services.AddSingleton<IEquipmentDefinitionSource>(new Equipment());
-        services.AddSingleton<IEquipmentReinforcementRollSource>(new Roll());
+        services.AddSingleton<IEquipmentReinforcementRollSource>(new Roll(draw));
     });
 
-    private sealed class Roll : IEquipmentReinforcementRollSource
+    private sealed class Roll(int draw) : IEquipmentReinforcementRollSource
     {
-        public int Next(int exclusiveUpperBound) => 0;
+        public int Next(int exclusiveUpperBound) => draw;
     }
 
     private sealed class Equipment : IEquipmentDefinitionSource

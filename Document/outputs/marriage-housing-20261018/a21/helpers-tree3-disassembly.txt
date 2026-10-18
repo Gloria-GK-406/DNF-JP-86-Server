@@ -1,0 +1,257 @@
+exe=E:\Project\DNF\DNFClient-A21-protocol\DNF.unpacked-b1-debug.exe
+exe_sha256=CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14
+dump=E:\Project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260906-224825-165-31384\DNF-memory-rva.bin
+dump_sha256=6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507
+image_base=00400000  (VA = RVA + base)
+evidence=ClientStatic; read-only
+
+===== tree_plant_prepare; entry RVA 01049A80 VA 01449A80 =====
+RVA 01049A80 VA 01449A80 55                     push    ebp
+RVA 01049A81 VA 01449A81 8bec                   mov     ebp, esp
+RVA 01049A83 VA 01449A83 56                     push    esi
+RVA 01049A84 VA 01449A84 8bf1                   mov     esi, ecx
+RVA 01049A86 VA 01449A86 83be9400000000         cmp     dword ptr [esi + 0x94], 0
+RVA 01049A8D VA 01449A8D 0f858a010000           jne     0x1449c1d
+RVA 01049A93 VA 01449A93 57                     push    edi
+RVA 01049A94 VA 01449A94 8d7e6c                 lea     edi, [esi + 0x6c]
+RVA 01049A97 VA 01449A97 8bcf                   mov     ecx, edi
+RVA 01049A99 VA 01449A99 e8825083ff             call    0xc7eb20 ; ->RVA 0087EB20
+RVA 01049A9E VA 01449A9E 8b4508                 mov     eax, dword ptr [ebp + 8]
+RVA 01049AA1 VA 01449AA1 894508                 mov     dword ptr [ebp + 8], eax
+RVA 01049AA4 VA 01449AA4 8bc7                   mov     eax, edi
+RVA 01049AA6 VA 01449AA6 83e00f                 and     eax, 0xf
+RVA 01049AA9 VA 01449AA9 8d4f04                 lea     ecx, [edi + 4]
+RVA 01049AAC VA 01449AAC 83f80c                 cmp     eax, 0xc
+RVA 01049AAF VA 01449AAF 7746                   ja      0x1449af7
+RVA 01049AB1 VA 01449AB1 0fb690389c4401         movzx   edx, byte ptr [eax + 0x1449c38]
+RVA 01049AB8 VA 01449AB8 ff2495249c4401         jmp     dword ptr [edx*4 + 0x1449c24]
+RVA 01049ABF VA 01449ABF 51                     push    ecx
+RVA 01049AC0 VA 01449AC0 8d4508                 lea     eax, [ebp + 8]
+RVA 01049AC3 VA 01449AC3 50                     push    eax
+RVA 01049AC4 VA 01449AC4 8bcf                   mov     ecx, edi
+RVA 01049AC6 VA 01449AC6 e815213701             call    0x27bbbe0 ; ->RVA 023BBBE0 | str@027BBBE0='譕凬坖曆쏨䤖謀쟈ﱅ'
+RVA 01049ACB VA 01449ACB eb36                   jmp     0x1449b03 ; ->RVA 01049B03
+RVA 01049ACD VA 01449ACD 51                     push    ecx
+RVA 01049ACE VA 01449ACE 8d4d08                 lea     ecx, [ebp + 8]
+RVA 01049AD1 VA 01449AD1 51                     push    ecx
+RVA 01049AD2 VA 01449AD2 8bcf                   mov     ecx, edi
+RVA 01049AD4 VA 01449AD4 e8c7213701             call    0x27bbca0 ; ->RVA 023BBCA0 | str@027BBCA0='譕凬坖曆Ϩ䤖謀쟈ﱅ'
+RVA 01049AD9 VA 01449AD9 eb28                   jmp     0x1449b03 ; ->RVA 01049B03
+RVA 01049ADB VA 01449ADB 51                     push    ecx
+RVA 01049ADC VA 01449ADC 8d5508                 lea     edx, [ebp + 8]
+RVA 01049ADF VA 01449ADF 52                     push    edx
+RVA 01049AE0 VA 01449AE0 8bcf                   mov     ecx, edi
+RVA 01049AE2 VA 01449AE2 e869223701             call    0x27bbd50 ; ->RVA 023BBD50 | str@027BBD50='譕凬坖曆叨䤕謀쟈ﱅ'
+RVA 01049AE7 VA 01449AE7 eb1a                   jmp     0x1449b03 ; ->RVA 01049B03
+RVA 01049AE9 VA 01449AE9 51                     push    ecx
+RVA 01049AEA VA 01449AEA 8d4508                 lea     eax, [ebp + 8]
+RVA 01049AED VA 01449AED 50                     push    eax
+RVA 01049AEE VA 01449AEE 8bcf                   mov     ecx, edi
+RVA 01049AF0 VA 01449AF0 e81b233701             call    0x27bbe10 ; ->RVA 023BBE10 | str@027BBE10='譕凬坖曆鏨䤔謀쟈ﱅ'
+RVA 01049AF5 VA 01449AF5 eb0c                   jmp     0x1449b03 ; ->RVA 01049B03
+RVA 01049AF7 VA 01449AF7 51                     push    ecx
+RVA 01049AF8 VA 01449AF8 8d4d08                 lea     ecx, [ebp + 8]
+RVA 01049AFB VA 01449AFB 51                     push    ecx
+RVA 01049AFC VA 01449AFC 8bcf                   mov     ecx, edi
+RVA 01049AFE VA 01449AFE e85d1f3701             call    0x27bba60 ; ->RVA 023BBA60 | str@027BBA60='譕凬坖曆䏨䤘謀쟈ﱅ'
+RVA 01049B03 VA 01449B03 8b550c                 mov     edx, dword ptr [ebp + 0xc]
+RVA 01049B06 VA 01449B06 8d4e74                 lea     ecx, [esi + 0x74]
+RVA 01049B09 VA 01449B09 8bc1                   mov     eax, ecx
+RVA 01049B0B VA 01449B0B 83e00f                 and     eax, 0xf
+RVA 01049B0E VA 01449B0E 895508                 mov     dword ptr [ebp + 8], edx
+RVA 01049B11 VA 01449B11 8d5104                 lea     edx, [ecx + 4]
+RVA 01049B14 VA 01449B14 83f80c                 cmp     eax, 0xc
+RVA 01049B17 VA 01449B17 773e                   ja      0x1449b57
+RVA 01049B19 VA 01449B19 0fb6805c9c4401         movzx   eax, byte ptr [eax + 0x1449c5c]
+RVA 01049B20 VA 01449B20 ff2485489c4401         jmp     dword ptr [eax*4 + 0x1449c48]
+RVA 01049B27 VA 01449B27 52                     push    edx
+RVA 01049B28 VA 01449B28 8d5508                 lea     edx, [ebp + 8]
+RVA 01049B2B VA 01449B2B 52                     push    edx
+RVA 01049B2C VA 01449B2C e8af203701             call    0x27bbbe0 ; ->RVA 023BBBE0 | str@027BBBE0='譕凬坖曆쏨䤖謀쟈ﱅ'
+RVA 01049B31 VA 01449B31 eb2e                   jmp     0x1449b61 ; ->RVA 01049B61
+RVA 01049B33 VA 01449B33 52                     push    edx
+RVA 01049B34 VA 01449B34 8d4508                 lea     eax, [ebp + 8]
+RVA 01049B37 VA 01449B37 50                     push    eax
+RVA 01049B38 VA 01449B38 e863213701             call    0x27bbca0 ; ->RVA 023BBCA0 | str@027BBCA0='譕凬坖曆Ϩ䤖謀쟈ﱅ'
+RVA 01049B3D VA 01449B3D eb22                   jmp     0x1449b61 ; ->RVA 01049B61
+RVA 01049B3F VA 01449B3F 52                     push    edx
+RVA 01049B40 VA 01449B40 8d5508                 lea     edx, [ebp + 8]
+RVA 01049B43 VA 01449B43 52                     push    edx
+RVA 01049B44 VA 01449B44 e807223701             call    0x27bbd50 ; ->RVA 023BBD50 | str@027BBD50='譕凬坖曆叨䤕謀쟈ﱅ'
+RVA 01049B49 VA 01449B49 eb16                   jmp     0x1449b61 ; ->RVA 01049B61
+RVA 01049B4B VA 01449B4B 52                     push    edx
+RVA 01049B4C VA 01449B4C 8d4508                 lea     eax, [ebp + 8]
+RVA 01049B4F VA 01449B4F 50                     push    eax
+RVA 01049B50 VA 01449B50 e8bb223701             call    0x27bbe10 ; ->RVA 023BBE10 | str@027BBE10='譕凬坖曆鏨䤔謀쟈ﱅ'
+RVA 01049B55 VA 01449B55 eb0a                   jmp     0x1449b61 ; ->RVA 01049B61
+RVA 01049B57 VA 01449B57 52                     push    edx
+RVA 01049B58 VA 01449B58 8d5508                 lea     edx, [ebp + 8]
+RVA 01049B5B VA 01449B5B 52                     push    edx
+RVA 01049B5C VA 01449B5C e8ff1e3701             call    0x27bba60 ; ->RVA 023BBA60 | str@027BBA60='譕凬坖曆䏨䤘謀쟈ﱅ'
+RVA 01049B61 VA 01449B61 8d4e7c                 lea     ecx, [esi + 0x7c]
+RVA 01049B64 VA 01449B64 8bc1                   mov     eax, ecx
+RVA 01049B66 VA 01449B66 53                     push    ebx
+RVA 01049B67 VA 01449B67 8b5d10                 mov     ebx, dword ptr [ebp + 0x10]
+RVA 01049B6A VA 01449B6A 83e00f                 and     eax, 0xf
+RVA 01049B6D VA 01449B6D 895d08                 mov     dword ptr [ebp + 8], ebx
+RVA 01049B70 VA 01449B70 8d5104                 lea     edx, [ecx + 4]
+RVA 01049B73 VA 01449B73 83f80c                 cmp     eax, 0xc
+RVA 01049B76 VA 01449B76 773e                   ja      0x1449bb6
+RVA 01049B78 VA 01449B78 0fb680809c4401         movzx   eax, byte ptr [eax + 0x1449c80]
+RVA 01049B7F VA 01449B7F ff24856c9c4401         jmp     dword ptr [eax*4 + 0x1449c6c]
+RVA 01049B86 VA 01449B86 52                     push    edx
+RVA 01049B87 VA 01449B87 8d5508                 lea     edx, [ebp + 8]
+RVA 01049B8A VA 01449B8A 52                     push    edx
+RVA 01049B8B VA 01449B8B e850203701             call    0x27bbbe0 ; ->RVA 023BBBE0 | str@027BBBE0='譕凬坖曆쏨䤖謀쟈ﱅ'
+RVA 01049B90 VA 01449B90 eb2e                   jmp     0x1449bc0 ; ->RVA 01049BC0
+RVA 01049B92 VA 01449B92 52                     push    edx
+RVA 01049B93 VA 01449B93 8d4508                 lea     eax, [ebp + 8]
+RVA 01049B96 VA 01449B96 50                     push    eax
+RVA 01049B97 VA 01449B97 e804213701             call    0x27bbca0 ; ->RVA 023BBCA0 | str@027BBCA0='譕凬坖曆Ϩ䤖謀쟈ﱅ'
+RVA 01049B9C VA 01449B9C eb22                   jmp     0x1449bc0 ; ->RVA 01049BC0
+RVA 01049B9E VA 01449B9E 52                     push    edx
+RVA 01049B9F VA 01449B9F 8d5508                 lea     edx, [ebp + 8]
+RVA 01049BA2 VA 01449BA2 52                     push    edx
+RVA 01049BA3 VA 01449BA3 e8a8213701             call    0x27bbd50 ; ->RVA 023BBD50 | str@027BBD50='譕凬坖曆叨䤕謀쟈ﱅ'
+RVA 01049BA8 VA 01449BA8 eb16                   jmp     0x1449bc0 ; ->RVA 01049BC0
+RVA 01049BAA VA 01449BAA 52                     push    edx
+RVA 01049BAB VA 01449BAB 8d4508                 lea     eax, [ebp + 8]
+RVA 01049BAE VA 01449BAE 50                     push    eax
+RVA 01049BAF VA 01449BAF e85c223701             call    0x27bbe10 ; ->RVA 023BBE10 | str@027BBE10='譕凬坖曆鏨䤔謀쟈ﱅ'
+RVA 01049BB4 VA 01449BB4 eb0a                   jmp     0x1449bc0 ; ->RVA 01049BC0
+RVA 01049BB6 VA 01449BB6 52                     push    edx
+RVA 01049BB7 VA 01449BB7 8d5508                 lea     edx, [ebp + 8]
+RVA 01049BBA VA 01449BBA 52                     push    edx
+RVA 01049BBB VA 01449BBB e8a01e3701             call    0x27bba60 ; ->RVA 023BBA60 | str@027BBA60='譕凬坖曆䏨䤘謀쟈ﱅ'
+RVA 01049BC0 VA 01449BC0 807d1400               cmp     byte ptr [ebp + 0x14], 0
+RVA 01049BC4 VA 01449BC4 7523                   jne     0x1449be9
+RVA 01049BC6 VA 01449BC6 83be9c00000000         cmp     dword ptr [esi + 0x9c], 0
+RVA 01049BCD VA 01449BCD 741a                   je      0x1449be9
+RVA 01049BCF VA 01449BCF 8b0db8c9a503           mov     ecx, dword ptr [0x3a5c9b8]
+RVA 01049BD5 VA 01449BD5 6a00                   push    0
+RVA 01049BD7 VA 01449BD7 57                     push    edi
+RVA 01049BD8 VA 01449BD8 68a4020000             push    0x2a4
+RVA 01049BDD VA 01449BDD e88eb0eb00             call    0x2304c70 ; ->RVA 01F04C70
+RVA 01049BE2 VA 01449BE2 5b                     pop     ebx
+RVA 01049BE3 VA 01449BE3 5f                     pop     edi
+RVA 01049BE4 VA 01449BE4 5e                     pop     esi
+RVA 01049BE5 VA 01449BE5 5d                     pop     ebp
+RVA 01049BE6 VA 01449BE6 c21000                 ret     0x10
+RVA 01049BE9 VA 01449BE9 8b8694000000           mov     eax, dword ptr [esi + 0x94]
+RVA 01049BEF VA 01449BEF 898690000000           mov     dword ptr [esi + 0x90], eax
+RVA 01049BF5 VA 01449BF5 c7869400000001000000   mov     dword ptr [esi + 0x94], 1
+RVA 01049BFF VA 01449BFF 8b0db8c9a503           mov     ecx, dword ptr [0x3a5c9b8]
+RVA 01049C05 VA 01449C05 e8a9762c04             call    0x57112b3 ; ->RVA 053112B3
+RVA 01049C0A VA 01449C0A 6a00                   push    0
+RVA 01049C0C VA 01449C0C 53                     push    ebx
+RVA 01049C0D VA 01449C0D 8bce                   mov     ecx, esi
+RVA 01049C0F VA 01449C0F e83cf6ffff             call    0x1449250 ; ->RVA 01049250 | str@01449250='譕櫬棿䷨˚ꅤ'
+RVA 01049C14 VA 01449C14 8bce                   mov     ecx, esi
+RVA 01049C16 VA 01449C16 e8e5eeffff             call    0x1448b00 ; ->RVA 01048B00 | str@01448B00='譕櫬棿筘˔ꅤ'
+RVA 01049C1B VA 01449C1B 5b                     pop     ebx
+RVA 01049C1C VA 01449C1C 5f                     pop     edi
+RVA 01049C1D VA 01449C1D 5e                     pop     esi
+RVA 01049C1E VA 01449C1E 5d                     pop     ebp
+RVA 01049C1F VA 01449C1F c21000                 ret     0x10
+
+direct callers: 01092693(fn 01092550), 01097546(fn 010972A0)
+
+===== tree_harvest_prepare; entry RVA 01049F30 VA 01449F30 =====
+RVA 01049F30 VA 01449F30 55                     push    ebp
+RVA 01049F31 VA 01449F31 8bec                   mov     ebp, esp
+RVA 01049F33 VA 01449F33 56                     push    esi
+RVA 01049F34 VA 01449F34 57                     push    edi
+RVA 01049F35 VA 01449F35 8bf9                   mov     edi, ecx
+RVA 01049F37 VA 01449F37 8d4f6c                 lea     ecx, [edi + 0x6c]
+RVA 01049F3A VA 01449F3A e8e14b83ff             call    0xc7eb20 ; ->RVA 0087EB20
+RVA 01049F3F VA 01449F3F 8b4508                 mov     eax, dword ptr [ebp + 8]
+RVA 01049F42 VA 01449F42 894508                 mov     dword ptr [ebp + 8], eax
+RVA 01049F45 VA 01449F45 8d476c                 lea     eax, [edi + 0x6c]
+RVA 01049F48 VA 01449F48 83e00f                 and     eax, 0xf
+RVA 01049F4B VA 01449F4B 8d4f70                 lea     ecx, [edi + 0x70]
+RVA 01049F4E VA 01449F4E 83f80c                 cmp     eax, 0xc
+RVA 01049F51 VA 01449F51 774a                   ja      0x1449f9d
+RVA 01049F53 VA 01449F53 0fb69058a04401         movzx   edx, byte ptr [eax + 0x144a058]
+RVA 01049F5A VA 01449F5A ff249544a04401         jmp     dword ptr [edx*4 + 0x144a044]
+RVA 01049F61 VA 01449F61 51                     push    ecx
+RVA 01049F62 VA 01449F62 8d4508                 lea     eax, [ebp + 8]
+RVA 01049F65 VA 01449F65 50                     push    eax
+RVA 01049F66 VA 01449F66 8d4f6c                 lea     ecx, [edi + 0x6c]
+RVA 01049F69 VA 01449F69 e8721c3701             call    0x27bbbe0 ; ->RVA 023BBBE0 | str@027BBBE0='譕凬坖曆쏨䤖謀쟈ﱅ'
+RVA 01049F6E VA 01449F6E eb3a                   jmp     0x1449faa ; ->RVA 01049FAA
+RVA 01049F70 VA 01449F70 51                     push    ecx
+RVA 01049F71 VA 01449F71 8d4d08                 lea     ecx, [ebp + 8]
+RVA 01049F74 VA 01449F74 51                     push    ecx
+RVA 01049F75 VA 01449F75 8d4f6c                 lea     ecx, [edi + 0x6c]
+RVA 01049F78 VA 01449F78 e8231d3701             call    0x27bbca0 ; ->RVA 023BBCA0 | str@027BBCA0='譕凬坖曆Ϩ䤖謀쟈ﱅ'
+RVA 01049F7D VA 01449F7D eb2b                   jmp     0x1449faa ; ->RVA 01049FAA
+RVA 01049F7F VA 01449F7F 51                     push    ecx
+RVA 01049F80 VA 01449F80 8d5508                 lea     edx, [ebp + 8]
+RVA 01049F83 VA 01449F83 52                     push    edx
+RVA 01049F84 VA 01449F84 8d4f6c                 lea     ecx, [edi + 0x6c]
+RVA 01049F87 VA 01449F87 e8c41d3701             call    0x27bbd50 ; ->RVA 023BBD50 | str@027BBD50='譕凬坖曆叨䤕謀쟈ﱅ'
+RVA 01049F8C VA 01449F8C eb1c                   jmp     0x1449faa ; ->RVA 01049FAA
+RVA 01049F8E VA 01449F8E 51                     push    ecx
+RVA 01049F8F VA 01449F8F 8d4508                 lea     eax, [ebp + 8]
+RVA 01049F92 VA 01449F92 50                     push    eax
+RVA 01049F93 VA 01449F93 8d4f6c                 lea     ecx, [edi + 0x6c]
+RVA 01049F96 VA 01449F96 e8751e3701             call    0x27bbe10 ; ->RVA 023BBE10 | str@027BBE10='譕凬坖曆鏨䤔謀쟈ﱅ'
+RVA 01049F9B VA 01449F9B eb0d                   jmp     0x1449faa ; ->RVA 01049FAA
+RVA 01049F9D VA 01449F9D 51                     push    ecx
+RVA 01049F9E VA 01449F9E 8d4d08                 lea     ecx, [ebp + 8]
+RVA 01049FA1 VA 01449FA1 51                     push    ecx
+RVA 01049FA2 VA 01449FA2 8d4f6c                 lea     ecx, [edi + 0x6c]
+RVA 01049FA5 VA 01449FA5 e8b61a3701             call    0x27bba60 ; ->RVA 023BBA60 | str@027BBA60='譕凬坖曆䏨䤘謀쟈ﱅ'
+RVA 01049FAA VA 01449FAA 8b550c                 mov     edx, dword ptr [ebp + 0xc]
+RVA 01049FAD VA 01449FAD 8d4f74                 lea     ecx, [edi + 0x74]
+RVA 01049FB0 VA 01449FB0 8bc1                   mov     eax, ecx
+RVA 01049FB2 VA 01449FB2 83e00f                 and     eax, 0xf
+RVA 01049FB5 VA 01449FB5 895508                 mov     dword ptr [ebp + 8], edx
+RVA 01049FB8 VA 01449FB8 8d5104                 lea     edx, [ecx + 4]
+RVA 01049FBB VA 01449FBB 83f80c                 cmp     eax, 0xc
+RVA 01049FBE VA 01449FBE 773e                   ja      0x1449ffe
+RVA 01049FC0 VA 01449FC0 0fb6807ca04401         movzx   eax, byte ptr [eax + 0x144a07c]
+RVA 01049FC7 VA 01449FC7 ff248568a04401         jmp     dword ptr [eax*4 + 0x144a068]
+RVA 01049FCE VA 01449FCE 52                     push    edx
+RVA 01049FCF VA 01449FCF 8d5508                 lea     edx, [ebp + 8]
+RVA 01049FD2 VA 01449FD2 52                     push    edx
+RVA 01049FD3 VA 01449FD3 e8081c3701             call    0x27bbbe0 ; ->RVA 023BBBE0 | str@027BBBE0='譕凬坖曆쏨䤖謀쟈ﱅ'
+RVA 01049FD8 VA 01449FD8 eb2e                   jmp     0x144a008 ; ->RVA 0104A008
+RVA 01049FDA VA 01449FDA 52                     push    edx
+RVA 01049FDB VA 01449FDB 8d4508                 lea     eax, [ebp + 8]
+RVA 01049FDE VA 01449FDE 50                     push    eax
+RVA 01049FDF VA 01449FDF e8bc1c3701             call    0x27bbca0 ; ->RVA 023BBCA0 | str@027BBCA0='譕凬坖曆Ϩ䤖謀쟈ﱅ'
+RVA 01049FE4 VA 01449FE4 eb22                   jmp     0x144a008 ; ->RVA 0104A008
+RVA 01049FE6 VA 01449FE6 52                     push    edx
+RVA 01049FE7 VA 01449FE7 8d5508                 lea     edx, [ebp + 8]
+RVA 01049FEA VA 01449FEA 52                     push    edx
+RVA 01049FEB VA 01449FEB e8601d3701             call    0x27bbd50 ; ->RVA 023BBD50 | str@027BBD50='譕凬坖曆叨䤕謀쟈ﱅ'
+RVA 01049FF0 VA 01449FF0 eb16                   jmp     0x144a008 ; ->RVA 0104A008
+RVA 01049FF2 VA 01449FF2 52                     push    edx
+RVA 01049FF3 VA 01449FF3 8d4508                 lea     eax, [ebp + 8]
+RVA 01049FF6 VA 01449FF6 50                     push    eax
+RVA 01049FF7 VA 01449FF7 e8141e3701             call    0x27bbe10 ; ->RVA 023BBE10 | str@027BBE10='譕凬坖曆鏨䤔謀쟈ﱅ'
+RVA 01049FFC VA 01449FFC eb0a                   jmp     0x144a008 ; ->RVA 0104A008
+RVA 01049FFE VA 01449FFE 52                     push    edx
+RVA 01049FFF VA 01449FFF 8d5508                 lea     edx, [ebp + 8]
+RVA 0104A002 VA 0144A002 52                     push    edx
+RVA 0104A003 VA 0144A003 e8581a3701             call    0x27bba60 ; ->RVA 023BBA60 | str@027BBA60='譕凬坖曆䏨䤘謀쟈ﱅ'
+RVA 0104A008 VA 0144A008 8b8794000000           mov     eax, dword ptr [edi + 0x94]
+RVA 0104A00E VA 0144A00E 898790000000           mov     dword ptr [edi + 0x90], eax
+RVA 0104A014 VA 0144A014 c7879400000006000000   mov     dword ptr [edi + 0x94], 6
+RVA 0104A01E VA 0144A01E 8b0db8c9a503           mov     ecx, dword ptr [0x3a5c9b8]
+RVA 0104A024 VA 0144A024 e88a722c04             call    0x57112b3 ; ->RVA 053112B3
+RVA 0104A029 VA 0144A029 8b4d10                 mov     ecx, dword ptr [ebp + 0x10]
+RVA 0104A02C VA 0144A02C 6a00                   push    0
+RVA 0104A02E VA 0144A02E 51                     push    ecx
+RVA 0104A02F VA 0144A02F 8bcf                   mov     ecx, edi
+RVA 0104A031 VA 0144A031 e81af2ffff             call    0x1449250 ; ->RVA 01049250 | str@01449250='譕櫬棿䷨˚ꅤ'
+RVA 0104A036 VA 0144A036 8bcf                   mov     ecx, edi
+RVA 0104A038 VA 0144A038 e8c3eaffff             call    0x1448b00 ; ->RVA 01048B00 | str@01448B00='譕櫬棿筘˔ꅤ'
+RVA 0104A03D VA 0144A03D 5f                     pop     edi
+RVA 0104A03E VA 0144A03E 5e                     pop     esi
+RVA 0104A03F VA 0144A03F 5d                     pop     ebp
+RVA 0104A040 VA 0144A040 c20c00                 ret     0xc
+
+direct callers: 01092851(fn 01092710)
+

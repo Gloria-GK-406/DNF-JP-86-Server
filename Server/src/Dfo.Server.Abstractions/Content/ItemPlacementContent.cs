@@ -74,6 +74,8 @@ public sealed record ItemPlacement(
     /// <summary>The queried template, independent of the destination used for this placement.</summary>
     public int ItemId { get; init; }
 
+    public ItemLifetimeDefinition Lifetime { get; init; }
+
     public ItemTraits Traits => ItemTraitClassification.For(ItemKind, ItemId);
 }
 

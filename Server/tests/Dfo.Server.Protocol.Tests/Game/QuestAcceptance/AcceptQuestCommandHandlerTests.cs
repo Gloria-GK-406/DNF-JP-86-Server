@@ -171,6 +171,57 @@ public sealed class AcceptQuestCommandHandlerTests
         Assert.Contains("registered transactional", refusal.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Repeated_acceptance_returns_current_progress_without_granting_items_again()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var handler = fixture.Handler(Quest(QuestId, trigger: 5, items: [new QuestEventItem(8474, 1)]));
+        await using (var tx = fixture.Scope.Begin())
+        {
+            Assert.True((await handler.HandleAsync(Transactional, new(Account, Character, QuestId), default)).Accepted);
+            await tx.CommitAsync(default);
+        }
+        await using (var connection = Fixture.Open(fixture.Path))
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "UPDATE character_active_quests SET trigger_value=4 WHERE character_id=60; "
+                + "UPDATE character_quest_acceptance_times SET accepted_at_ticks=123 WHERE character_id=60";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await using (var tx = fixture.Scope.Begin())
+        {
+            var replay = await handler.HandleAsync(Transactional, new(Account, Character, QuestId), default);
+            Assert.True(replay.Accepted);
+            Assert.Equal(4u, replay.InitialTrigger);
+            Assert.Null(replay.Refusal);
+            Assert.Empty(replay.Items);
+            Assert.Equal(4, Assert.Single(replay.QuestProgress!.Quests).TriggerValue);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal([(0, QuestId, 4)], await fixture.ReadQuestsAsync());
+        Assert.Equal(1L, await fixture.ScalarAsync("SELECT SUM(count) FROM item_slots WHERE owner_scope='character' AND owner_id=60"));
+        Assert.Equal(123L, await fixture.ScalarAsync("SELECT accepted_at_ticks FROM character_quest_acceptance_times WHERE character_id=60"));
+    }
+
+    [Fact]
+    public async Task Cleared_nonrepeatable_quest_is_still_refused()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        await using (var connection = Fixture.Open(fixture.Path))
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(60,1016,1)";
+            await command.ExecuteNonQueryAsync();
+        }
+        await using var tx = fixture.Scope.Begin();
+        var outcome = await fixture.Handler(Quest(QuestId)).HandleAsync(Transactional, new(Account, Character, QuestId), default);
+        Assert.False(outcome.Accepted);
+        Assert.Equal(QuestAcceptRefusal.AlreadyActive, outcome.Refusal);
+        await tx.CommitAsync(default);
+        Assert.Empty(await fixture.ReadQuestsAsync());
+    }
+
     private static CommandExecutionContext Transactional => new(
         Guid.Empty, typeof(AcceptQuestCommand), typeof(AcceptQuestCommandHandler),
         CommandExecutionKind.Transactional);
@@ -268,6 +319,14 @@ public sealed class AcceptQuestCommandHandlerTests
             }
 
             return rows;
+        }
+
+        public async Task<long> ScalarAsync(string sql)
+        {
+            await using var connection = Open(this.Path);
+            await using var command = connection.CreateCommand();
+            command.CommandText = sql;
+            return Convert.ToInt64(await command.ExecuteScalarAsync());
         }
 
         public static SqliteConnection Open(string path)

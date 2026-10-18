@@ -1,0 +1,131 @@
+id 110920 -> NewMonsters/Event/helix/fitz/fitz.mob
+=== monster/NewMonsters/Event/helix/fitz/fitz.mob ===
+[name]
+业火之菲茨
+[face image]
+Monster/MonsterFace.img 729
+[die effect]
+0 24 1
+[floating height]
+30
+[category]
+[hybrid] [devil]
+[/category]
+[ambient sound]
+
+[attack sound]
+
+[appear sound]
+FITZ_MEET
+[damage sound]
+R_FITZ_DMG
+[die sound]
+FITZ_DIE
+[ability category]
+[HP MAX] * 1700 [EQUIPMENT_PHYSICAL_ATTACK] * 90 [EQUIPMENT_PHYSICAL_DEFENSE] * 90 [EQUIPMENT_MAGICAL_ATTACK] * 100 [EQUIPMENT_MAGICAL_DEFENSE] * 90
+[/ability category]
+[level]
+73 73
+[fire resistance]
+30 30
+[water resistance]
+-10 -10
+[light resistance]
+10 10
+[slow resistance]
+50 50
+[freeze resistance]
+180 180
+[poison resistance]
+20 20
+[stun resistance]
+50 50
+[curse resistance]
+50 50
+[blind resistance]
+50 50
+[lightning resistance]
+200 200
+[stone resistance]
+50 50
+[sleep resistance]
+50 50
+[burn resistance]
+200 200
+[bleeding resistance]
+20 20
+[piercing resistance]
+50 50
+[confuse resistance]
+50 50
+[hold resistance]
+50 50
+[move speed]
+1200 1200
+[attack speed]
+1000 1000
+[cast speed]
+1000 1000
+[hit recovery]
+1100 1100
+[weight]
+90000 90000
+[stuckbonus on damage]
+10 10 10 10
+[waiting action]
+Action/stay.act
+[move action]
+Action/move.act
+[sit action]
+Action/sit.act
+[damage action 1]
+Action/damage1.act
+[damage action 2]
+Action/damage2.act
+[down action]
+Action/down.act
+[overturn action]
+Action/overturn.act
+[attack action]
+Action/punch.act Action/fireball01.act Action/fireball02.act Action/guide_fireball.act Action/teleport.act Action/Stand.act Action/fire_hurricane_start.act Action/fire_hurricane_end.act Action/boom.act Action/casting01.act Action/casting02.act Action/boom_end.act Action/Move_fire_hurricane.act
+[/attack action]
+[last action]
+Action/last.act
+[attack info]
+attackInfo/punch.atk attackInfo/punch.atk attackInfo/punch.atk attackInfo/punch.atk  attackInfo/stand.atk attackInfo/fire_hurricane.atk  attackInfo/boom.atk    attackInfo/fire_hurricane.atk
+[/attack info]
+[event super on scr]
+[on hp] 60 5000 1 [unbreakable] -1 -1 -1 -1
+[/event super on scr]
+[cooltime]
+5000 18000 13000 27000 20000 1000 52000 38000 85000 38000 25000 5000 8000
+[/cooltime]
+[think term]
+200
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]
+[keep distance with target]
+250
+[warlike]
+80
+[vision]
+1000
+[lie frame]
+1 2 3 3 4
+[add gravity in aerial]
+1 10 -300
