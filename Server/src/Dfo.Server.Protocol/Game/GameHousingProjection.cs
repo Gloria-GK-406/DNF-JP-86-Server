@@ -70,6 +70,7 @@ internal static class HousingCurrentProjection
         Dfo.Server.Data.World.SelectedSessionIdentity receiver, CancellationToken ct)
     {
         if (query is null || await query.ReadAsync(receiver.AccountId, receiver.CharacterId, ct).ConfigureAwait(false) is not { } room) return [];
-        return [new HousingRoomMessage(room), new HousingRingMessage(await query.RingAsync(receiver.AccountId, receiver.CharacterId, ct).ConfigureAwait(false))];
+        return [new Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoMessage(
+            await query.InfoAsync(receiver.AccountId, receiver.CharacterId, ct).ConfigureAwait(false)), new HousingRoomMessage(room)];
     }
 }

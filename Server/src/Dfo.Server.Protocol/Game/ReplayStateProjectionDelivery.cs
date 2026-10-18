@@ -165,9 +165,9 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
             {
                 messages.Add(new HousingRoomMessage(housing));
                 if (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing)) messages.Add(new HousingStorageMessage(housing));
-                messages.Add(new HousingRingMessage(state.RingLevel));
+                messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoMessage(state.MarriageInfo));
             }
-            else if (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing)) messages.Add(new HousingRingMessage(0));
+            else if (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing)) messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoMessage(state.MarriageInfo));
         }
         return messages.ToImmutable();
     }

@@ -9,6 +9,15 @@ namespace Dfo.Server.Application.Marriage;
 internal sealed class HousingReadView(IMarriageRelations ledger, HousingState state, Dfo.Server.Abstractions.Content.IMarriageHousingContentSource content,
     Dfo.Server.Abstractions.Configuration.IDailyResetRuleService days, TimeProvider clock) : IMarriageHousingQueryDomainService
 {
+    public async ValueTask<MarriageInfoSnapshot?> InfoAsync(AccountId account, CharacterId character, CancellationToken ct)
+    {
+        if (await ledger.ForParticipantAsync(account, character, ct).ConfigureAwait(false) is not { } relation
+            || !MarriageStageRules.IsCouple(relation.Stage)) return null;
+        var partner = relation.Proposer.CharacterId == character ? relation.Recipient : relation.Proposer;
+        return new(partner.CharacterId.Value, relation.Stage, relation.MarriedAt,
+            await ledger.PointsAsync(relation.Id, character, ct).ConfigureAwait(false),
+            await ledger.RingAsync(relation.Id, ct).ConfigureAwait(false));
+    }
     public bool IsEntrySource(byte town, byte area) => content.Load().EntrySources.Contains((town, area));
     public async ValueTask<HousingSnapshot?> ReadAsync(AccountId account, CharacterId character, CancellationToken ct)
     {

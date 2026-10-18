@@ -26,6 +26,7 @@ public interface IMarriageHousingDomainStore
 public interface IMarriageHousingQueryDomainService
 {
     ValueTask<HousingSnapshot?> ReadAsync(AccountId account, CharacterId character, CancellationToken ct);
+    ValueTask<MarriageInfoSnapshot?> InfoAsync(AccountId account, CharacterId character, CancellationToken ct);
     bool IsEntrySource(byte town, byte area);
     ValueTask<int?> InstanceAsync(SelectedSessionIdentity actor, CancellationToken ct);
     ValueTask<int> PointsAsync(AccountId account, CharacterId character, CancellationToken ct);

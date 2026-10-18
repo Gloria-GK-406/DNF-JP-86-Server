@@ -194,7 +194,10 @@ public sealed class MarriageHousingTests
         Assert.Equal(-6, (await Act(w, f.Session, new(HousingAction.UpgradeRing, slot, Count: 2))).Status);
         Assert.Equal(0, (await Act(w, f.Session, new(HousingAction.UpgradeRing, slot, Count: 1), false)).Status);
         Assert.Equal(0, await f.Services.GetRequiredService<IMarriageHousingQueryDomainService>().RingAsync(f.Session.AccountId, f.Session.CharacterId, default));
-        Assert.Equal(0, (await Act(w, f.Session, new(HousingAction.UpgradeRing, slot, Count: 1))).Status);
+        var upgraded = await Act(w, f.Session, new(HousingAction.UpgradeRing, slot, Count: 1));
+        Assert.Equal(0, upgraded.Status);
+        var silent = await f.Services.GetRequiredService<IMarriageHousingQueryDomainService>().InfoAsync(w.Peer.AccountId, w.Peer.CharacterId, default);
+        Assert.Equal(1, silent!.RingLevel); Assert.Equal(f.Session.CharacterId.Value, silent.PartnerId); Assert.Equal(1, silent.LovePoints);
         Assert.Equal(1, await f.Services.GetRequiredService<IMarriageHousingQueryDomainService>().RingAsync(w.Peer.AccountId, w.Peer.CharacterId, default));
         Assert.Equal(-6, (await Act(w, f.Session, new(HousingAction.UpgradeRing, slot, Count: 1))).Status);
         Assert.Equal(1, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND id=10002611"));

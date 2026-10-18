@@ -113,7 +113,6 @@ internal static class SelectedCharacterStateMessageFactory
             messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoMessage(married));
             if (result.Housing is { Placements.Count: > 0 } || result.Housing?.Tree is not null) messages.Add(new HousingRoomMessage(result.Housing!));
             else messages.Add(new CoupleRoomEmptyCompatibilityMessage());
-            messages.Add(new HousingRingMessage(married.RingLevel));
         }
         else
         {

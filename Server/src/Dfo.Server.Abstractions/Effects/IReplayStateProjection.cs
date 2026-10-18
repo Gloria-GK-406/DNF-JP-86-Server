@@ -139,7 +139,7 @@ public sealed record ReplayStateSnapshot(SelectedSessionIdentity Session, Replay
     ImmutableArray<CharacterPremiumUsageSlotState> PremiumUsage, ReplayCharacterState? Appearance)
 {
     public Dfo.Server.Data.Marriage.HousingSnapshot? Housing { get; init; }
-    public byte RingLevel { get; init; }
+    public Dfo.Server.Data.Marriage.MarriageInfoSnapshot? MarriageInfo { get; init; }
     public int? LovePoints { get; init; }
     public HerasQuotaSnapshot? HerasQuota { get; init; }
     public Dfo.Server.Data.Events.JoustState? Joust { get; init; }

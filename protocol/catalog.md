@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-18 婚戒升级事件与静默恢复分离
+
+CurrentImplementation：03F4 仅回复升级本人，03D1 仅通知在线配偶；选角、跨房、外观重建与重放用03D0恢复，不重发升级事件。ClientStatic / Confirmed：03D0婚戒等级是body[14]→mgr+0x70→人物+0x386，body[5]为另一个未知字段；已修正旧错误编码。用户反馈种树、浇水、升级戒指和婚房铺设正常，本轮提示与光标补丁待实机验收。见 [修复说明](../Document/HousingInteractionFix-20261018.md)。
+
 ## 2026-10-18 婚房、情侣仓库、爱情树与成长胶囊的静态边界
 
 ClientStatic / Confirmed（结构），字段语义多为 High。C2S [03FD](game/client-to-server/0x03FD.md) 15B、[03FE](game/client-to-server/0x03FE.md) 28B、[03FF](game/client-to-server/0x03FF.md) 24B、[0400](game/client-to-server/0x0400.md)/[0401](game/client-to-server/0x0401.md) 20B、[03F4](game/client-to-server/0x03F4.md) 19B，业务字段从正文 +14 开始；[0402](game/client-to-server/0x0402.md)..[0406](game/client-to-server/0x0406.md) 正文为 0，推翻了机器区"0403 不能断言为空"的说法。

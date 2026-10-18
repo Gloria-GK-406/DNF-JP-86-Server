@@ -10,10 +10,11 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Game.MarriageProposal;
 
-internal sealed record WeddingInfoMessage(MarriageEngagementSnapshot Snapshot) : GameStateSynchronizationMessage, IGameNotiMessage
+internal sealed record WeddingInfoMessage(MarriageInfoSnapshot? Snapshot) : GameStateSynchronizationMessage, IGameNotiMessage
 {
+    internal WeddingInfoMessage(MarriageEngagementSnapshot snapshot) : this(MarriageInfoSnapshot.From(snapshot)) { }
     internal override ushort Type => GameProtocol.WeddingInfoType;
-    internal override byte[] EncodeBody() => MarriageEngagementPayload.Info(Snapshot);
+    internal override byte[] EncodeBody() => MarriageEngagementPayload.InfoState(Snapshot);
 }
 
 internal sealed record WeddingPartnerQuery(GameMessageMetadata Metadata, uint Target) : IClientNetworkMessage
@@ -38,12 +39,16 @@ internal sealed class WeddingPartnerDecoder : IGameMessageDecoder
 internal static class MarriageEngagementPayload
 {
     public static byte[] Info(MarriageEngagementSnapshot snapshot)
+        => InfoState(MarriageInfoSnapshot.From(snapshot));
+
+    public static byte[] InfoState(MarriageInfoSnapshot? snapshot)
     {
         var result = new byte[15];
-        if (!snapshot.IsEngaged) return result;
-        BinaryPrimitives.WriteUInt32LittleEndian(result, checked((uint)snapshot.Partner!.CharacterId));
+        if (snapshot is null) return result;
+        BinaryPrimitives.WriteUInt32LittleEndian(result, checked((uint)snapshot.PartnerId));
         result[4] = WireState(snapshot.Stage);
-        result[5] = snapshot.RingLevel;
+        // Native raw[14] reaches marriage mgr+0x70 / actor+0x386. raw[5] is a separate unknown byte.
+        result[14] = snapshot.RingLevel;
         if (snapshot.MarriedAt is { } marriedAt)
             BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(6), checked((uint)marriedAt.ToUnixTimeSeconds()));
         BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(10), checked((uint)snapshot.LovePoints));
@@ -95,7 +100,7 @@ internal static class MarriageEngagementPayload
 internal sealed class WeddingInfoEncoder : GameNotiMessageEncoder<WeddingInfoMessage>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeddingInfoMessage message) =>
-        OnePayload(GameProtocol.WeddingInfoType, MarriageEngagementPayload.Info(message.Snapshot));
+        OnePayload(GameProtocol.WeddingInfoType, MarriageEngagementPayload.InfoState(message.Snapshot));
 }
 
 internal sealed class WeddingPartnerEncoder : GameCmdMessageEncoder<WeddingPartnerAck>

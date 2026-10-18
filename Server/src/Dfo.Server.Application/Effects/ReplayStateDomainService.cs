@@ -154,8 +154,8 @@ internal sealed class ReplayStateDomainService(IServiceProvider services, IDomai
             itemUsage, premiums, premiumUsage, appearance)
         { Housing = (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing) || appearanceNeeded)
             ? await Get<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>().ReadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : null,
-          RingLevel = (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing) || appearanceNeeded)
-            ? await Get<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>().RingAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : (byte)0,
+          MarriageInfo = (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing) || appearanceNeeded)
+            ? await Get<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>().InfoAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : null,
           LovePoints = needs.HasFlag(ReplayProjectionNeeds.MarriageLovePoints)
             ? (await Get<Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService>().SnapshotAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false)).LovePoints : null,
           HerasQuota = needs.HasFlag(ReplayProjectionNeeds.HerasQuota)

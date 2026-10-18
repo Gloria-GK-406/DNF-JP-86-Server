@@ -75,3 +75,8 @@ BodyLength = 未知（字段集合已知不完整）
 CurrentImplementation：统一婚姻领域中的 Housing 逻辑；编解码与投影见 `Server/src/Dfo.Server.Protocol/Game/MarriageHousing/HousingSlice.cs`。依当前 A21 ClientStatic 和 PVF 实施，自动化通过，尚待此次实机验收，不提升为 ClientVerified。通用 CMD 接收层先消费 accepted 信封；旧静态字段宽度若从 status 开始，指的是信封之后的业务体。
 
 新增定向证据见 [补查报告](../../../Document/outputs/marriage-housing-implementation-20261018/wire/README.md)，测试及限制见 [实施说明](../../../Document/MarriageHousing-Implementation-20261018.md)。
+
+
+## 2026-10-18 升级提示与恢复补正
+
+03D1会进入原生升级成功提示，不能用于静默恢复。03D0恢复的戒指等级须放body[14]，而非body[5]；8959E4→8952E8→8952EB→895346→89534A已核对。选角/跨房/换宠/进本/重放用03D0；升级本人只用成功CMD03F4，在线配偶收一次NOTI03D1。[实施说明](../../../Document/HousingInteractionFix-20261018.md)。

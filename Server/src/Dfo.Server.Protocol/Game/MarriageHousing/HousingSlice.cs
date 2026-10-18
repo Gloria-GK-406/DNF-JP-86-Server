@@ -114,7 +114,12 @@ internal sealed class HousingChangedHandler(ISelectedSessionDomainService sessio
         var own = recipient.CharacterId == change.Actor.CharacterId;
         if (own && sessions.Find(change.Actor.AccountId) != change.Actor) return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         var messages = new List<IServerNetworkMessage>();
-        if (change.Request.Action == HousingAction.UpgradeRing) messages.Add(new HousingRingMessage(change.Result.RingLevel));
+        if (change.Request.Action == HousingAction.UpgradeRing)
+        {
+            // The purchaser's successful CMD03F4 already updates the ring and announces it.
+            // Only the spouse receives the one-shot NOTI03D1 event.
+            if (!own) messages.Add(new HousingRingMessage(change.Result.RingLevel));
+        }
         else if (change.Result.Snapshot is { } snapshot)
         {
             if (change.Request.Action == HousingAction.Storage)

@@ -94,3 +94,10 @@ public sealed record MarriageQuestBinding(Guid RelationId, DateTimeOffset Accept
 public sealed record MarriageGuestReward(int MaximumGold, int Tier, int ItemId, int Count);
 
 public sealed record MarriageCeremonyPosition(short X, short Y, int Z);
+
+/// <summary>Marriage facts for silent native recovery, without loading partner appearance.</summary>
+public sealed record MarriageInfoSnapshot(int PartnerId, MarriageStage Stage, DateTimeOffset? MarriedAt, int LovePoints, byte RingLevel)
+{
+    public static MarriageInfoSnapshot? From(MarriageEngagementSnapshot snapshot) => snapshot.IsEngaged
+        ? new(snapshot.Partner!.CharacterId, snapshot.Stage, snapshot.MarriedAt, snapshot.LovePoints, snapshot.RingLevel) : null;
+}
