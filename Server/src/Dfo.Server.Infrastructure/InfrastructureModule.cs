@@ -69,6 +69,7 @@ public sealed class InfrastructureModule : IServerModule
                 : 0,
         });
         services.TryAddSingleton<PvfArchiveProvider>();
+        services.TryAddSingleton<IContentArchiveIdentity, PvfArchiveIdentity>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.IAchievementDefinitionSource, PvfAchievementDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.ITitleBookDefinitionSource, PvfTitleBookDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IHellDungeonDefinitionSource, PvfHellDungeonDefinitionSource>();
@@ -83,6 +84,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IInventoryExpansionDefinitionSource, PvfInventoryExpansionDefinitionSource>();
         services.TryAddSingleton<ICargoItemDefinitionSource, PvfCargoItemDefinitionSource>();
         services.TryAddSingleton<IItemCatalogSource, PvfItemCatalogSource>();
+        services.TryAddSingleton<IItemTooltipSource, PvfItemTooltipSource>();
         services.TryAddSingleton<IQuestParameterSource, PvfQuestParameterSource>();
         services.TryAddSingleton<IExperienceParameterSource, PvfExperienceParameterSource>();
         services.TryAddSingleton<IDungeonRankGradeSource, PvfDungeonRankGradeSource>();

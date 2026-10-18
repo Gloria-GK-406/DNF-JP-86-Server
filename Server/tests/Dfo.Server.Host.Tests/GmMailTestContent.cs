@@ -9,7 +9,8 @@ namespace Dfo.Server.Host.Tests;
 // archive opt out explicitly; missing local PVF must not turn rollback checks into 500s.
 internal sealed class GmMailTestContent : IPackageOpeningDefinitionSource, IItemPlacementDefinitionSource,
     IItemCatalogSource, IEquipmentDefinitionSource, IEquipmentReinforcementDefinitionSource,
-    IEquipmentOutworldContentSource, IGoldCarryLimitSource, IInventoryExpansionDefinitionSource, IEntryLifecycleContentSource
+    IEquipmentOutworldContentSource, IGoldCarryLimitSource, IInventoryExpansionDefinitionSource, IEntryLifecycleContentSource,
+    IEquipmentForgingContentSource, IItemSocketDefinitionSource
 {
     private static readonly ItemCatalogEntry[] Items = [
         new(3, "测试消耗品", "consumable", null, 1, 1),
@@ -33,6 +34,8 @@ internal sealed class GmMailTestContent : IPackageOpeningDefinitionSource, IItem
         services.AddSingleton<IGoldCarryLimitSource>(content);
         services.AddSingleton<IInventoryExpansionDefinitionSource>(content);
         services.AddSingleton<IEntryLifecycleContentSource>(content);
+        services.AddSingleton<IEquipmentForgingContentSource>(content);
+        services.AddSingleton<IItemSocketDefinitionSource>(content);
         services.AddSingleton<IDungeonExperienceProgressionPolicySource, Dfo.Server.Application.Tests.Support.TestProgressionSource>();
     }
 
@@ -96,6 +99,15 @@ internal sealed class GmMailTestContent : IPackageOpeningDefinitionSource, IItem
         Enumerable.Repeat(100, 100).ToArray(), [1, 1, 1], Enumerable.Repeat(1d, 12).ToArray(),
         new Dictionary<int, double>(), new Dictionary<int, int>(), new Dictionary<int, int>(),
         new(3037, 40, 10, new Dictionary<int, double>(), new Dictionary<int, int>()), 12);
+
+    ValueTask<EquipmentForgingTable?> IEquipmentForgingContentSource.GetAsync(CancellationToken token) =>
+        ValueTask.FromResult<EquipmentForgingTable?>(new(8, Enumerable.Range(1, 8).Select(level => new EquipmentForgingLevel(level, 5000, 1)).ToArray(),
+            new Dictionary<int, EquipmentForgingMaterial> { [82] = new(3037, 1) }, [1d, 1d, 1d, 1d, 1d]));
+    // A21 wrist layout: two C sockets; weapons declare none.
+    public ValueTask<ItemSocketDefinition?> TargetAsync(int itemId, CancellationToken ct) =>
+        ValueTask.FromResult(itemId == 100310498 ? new ItemSocketDefinition(false, [4, 4], []) : null);
+    public ValueTask<SocketDrillDefinition?> DrillAsync(int itemId, CancellationToken ct) => ValueTask.FromResult<SocketDrillDefinition?>(null);
+    public ValueTask<ushort> EmblemTypesAsync(int itemId, CancellationToken ct) => ValueTask.FromResult<ushort>(0);
 
     ValueTask<EquipmentOutworldTable?> IEquipmentOutworldContentSource.GetAsync(CancellationToken token) =>
         ValueTask.FromResult<EquipmentOutworldTable?>(new(55, new Dictionary<int, int>(), new Dictionary<int, int>(),

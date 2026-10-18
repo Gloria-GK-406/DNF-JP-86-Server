@@ -36,12 +36,18 @@ internal sealed class SqliteGmAdministrationPersistence(SqliteDatabase database)
                 p.AddWithValue("@name", (object?)record.AdministratorName ?? DBNull.Value); p.AddWithValue("@target", record.Target);
                 p.AddWithValue("@outcome", record.Outcome); p.AddWithValue("@reason", record.Reason);
             }, cancellationToken);
-    public ValueTask<GmAuditPage> QueryAuditAsync(int page, int pageSize, CancellationToken cancellationToken) =>
+    public ValueTask<GmAuditPage> QueryAuditAsync(int page, int pageSize, GmAuditFilter filter, CancellationToken cancellationToken) =>
         database.ReadAsync(async (command, token) =>
         {
-            command.CommandText = "SELECT COUNT(*) FROM gm_audit;";
+            // Only fixed SQL fragments are concatenated; filter values always travel as parameters.
+            var where = new List<string>();
+            if (filter.Action is { } action) { where.Add("action=@action"); command.Parameters.AddWithValue("@action", action); }
+            if (filter.Outcome == GmAuditFilter.Attention) where.Add("outcome<>'Succeeded'");
+            else if (filter.Outcome is { } outcome) { where.Add("outcome=@outcome"); command.Parameters.AddWithValue("@outcome", outcome); }
+            var clause = where.Count == 0 ? "" : " WHERE " + string.Join(" AND ", where);
+            command.CommandText = "SELECT COUNT(*) FROM gm_audit" + clause + ";";
             var total = Convert.ToInt64(await command.ExecuteScalarAsync(token));
-            command.CommandText = "SELECT operation_id,occurred_at,action,administrator_id,administrator_name,target,outcome,reason FROM gm_audit ORDER BY occurred_at DESC,operation_id DESC LIMIT @limit OFFSET @offset;";
+            command.CommandText = "SELECT operation_id,occurred_at,action,administrator_id,administrator_name,target,outcome,reason FROM gm_audit" + clause + " ORDER BY occurred_at DESC,operation_id DESC LIMIT @limit OFFSET @offset;";
             command.Parameters.AddWithValue("@limit", pageSize); command.Parameters.AddWithValue("@offset", (long)(page - 1) * pageSize);
             var records = new List<GmAuditRecord>();
             await using var reader = await command.ExecuteReaderAsync(token);

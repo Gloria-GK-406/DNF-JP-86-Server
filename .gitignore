@@ -25,6 +25,9 @@ TestResults/
 
 # Runtime data
 *.pvf
+# GM item icon packs hold Nexon art (Tool/GmIconPack output): deployment directory only, never the repository.
+gm-icons.zip
+*.gm-icons.zip
 # ...but not the project directory. This repo has core.ignorecase=true, so `*.pvf`
 # also matches the folder `Dfo.Pvf`, and everything created inside it becomes
 # invisible to `git add` without a word of warning. Git cannot re-include a file

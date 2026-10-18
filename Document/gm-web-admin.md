@@ -2,7 +2,7 @@
 
 完整功能已包含查询、官方邮件和三币发放。按 [最终验收表](gm-acceptance-list.md) 接手；标准候选构建与发布资源检查见 [server-ci-release.md](server-ci-release.md)。本机已部署邮件附件配置版本，运行与恢复信息见 [部署记录](deployments/gm-mail-attachments-20261002.md)；真实 A21 验收边界仍按验收表保留。
 
-开发分支基于 0.2.0。当前提供独立 HTTP 模块、中文管理员登录、权限菜单、分页审计、服务概览与全服账号/角色查询，并支持官方邮件和按实际账号发放三种点券。模块说明见 [官方邮件](gm-official-mail.md) 与 [点券发放](gm-cera-grants.md)。
+开发分支基于 0.2.0。当前提供独立 HTTP 模块、中文管理员登录、按权限显示的导航、分页审计、服务概览与全服账号/角色查询，并支持官方邮件和按实际账号发放三种点券。模块说明见 [官方邮件](gm-official-mail.md) 与 [点券发放](gm-cera-grants.md)。
 
 ## 构建与启动
 
@@ -21,6 +21,21 @@ dotnet run --project Server/src/Dfo.Server.Host -c Release --no-build -- --GmWeb
 
 前端先构建，再执行 dotnet build/publish；Host 项目把 `Web/gm-admin/dist` 复制到输出/发布目录的 `wwwroot/gm`。服务运行不需要 Node。没有前端资源时，页面返回 503；缺失 assets 返回 404，未知 API 不会返回 SPA。
 
+## 界面
+
+左侧深色导轨按「运营 / 游戏配置 / 审计」分组，只显示当前权限可用的页面，底部显示游戏服务状态、频道与游戏端口、PVF 摘要和版本（取自 `server-info`）。顶栏有全局搜索（Ctrl K，跳到账号与角色）、待确认发放提醒、外观（跟随系统 / 浅色 / 深色，青绿 / 靛蓝 / 琥珀铜 / 樱绯四套色系，只存本浏览器）和会话信息。宽度小于 900px 时导轨收进抽屉。
+
+| 路径 | 页面 | 权限 |
+|---|---|---|
+| `/gm/` | 服务概览：关键数字；频道在线（按人数排序）、活动排期、需要处理（拒绝 / 回滚审计按操作与结果合并成组，可展开明细、单组或全部标为已读，已读只记在本浏览器）、最近操作。每块默认 5 行，可展开 / 收起并记住状态；结果未确认的发放以红色横幅固定在顶部 | QueryPlayers（排期需全部权限，审计部分需 ViewAudit） |
+| `/gm/players` | 账号与角色：列表 + 右侧详情；输入纯数字按 ID 查，否则按姓名 / 登录名字面搜索；可勾选账号批量发点券 | QueryPlayers |
+| `/gm/grants` | 发放：邮件记录、点券记录、邮件模板、草稿，以及待确认发放的「查询原编号 / 按原内容安全重试」 | SendMail 或 GrantCera |
+| `/gm/grants/mail`、`/gm/grants/cera` | 写邮件 / 发点券三步页面；写邮件右侧是仿游戏「查看邮件」窗口的预览，核对步骤以服务端预览为准 | SendMail / GrantCera |
+| `/gm/initialization`、`/gm/daily-refill`、`/gm/events` | 初始化配置、每日补给、活动管理 | 全部权限 |
+| `/gm/operations` | 操作记录，按结果和操作类型筛选 | ViewAudit |
+
+旧地址 `/gm/characters`、`/gm/mail`、`/gm/wallet` 自动跳转到新页面。待确认发放的请求编号与冻结内容仍按管理员保存在 sessionStorage，刷新或换页不丢失、不自动重发；配置类页面遇到版本冲突或结果未确认时锁定写入，重新读取后才能继续。
+
 ## 管理员首次初始化
 
 管理员与玩家账号独立。首次启动从部署环境配置 `GmWeb:Bootstrap:LoginName`、`GmWeb:Bootstrap:Password`，环境变量对应 `GmWeb__Bootstrap__LoginName`、`GmWeb__Bootstrap__Password`。用户名为 1–64 个 ASCII 字母、数字、点、下划线或短横线；密码 12–256 字符。使用部署秘密注入，避免把密码放在命令行、仓库配置文件或终端历史中。
@@ -37,9 +52,17 @@ dotnet run --project Server/src/Dfo.Server.Host -c Release --no-build -- --GmWeb
 
 同来源、同登录名在 15 分钟失败 5 次后限流；同来源累计失败 20 次也限流，防止换登录名绕过。限流窗口与容量有边界，返回 429。登录失败提示不区分账号是否存在。
 
-登录成功、凭据失败、正常退出均写审计，审计页显示时间、操作、管理员、对象、结果和操作编号。官方邮件与点券的资产变更、成功收据和成功审计共同提交或回滚，拒绝、已确认回滚和未知状态分开记录。匿名私有请求返回 401，权限不足返回 403，分页参数不合法返回 400。
+登录成功、凭据失败、正常退出均写审计，审计页显示时间、操作、管理员、对象、结果和操作编号。`GET /api/gm/v1/audit` 除 `page`/`pageSize` 外还接受 `outcome`（`attention` = 除 Succeeded 以外的全部，或 `Succeeded|Rejected|RolledBack|Unknown` 之一）与 `action`（精确操作键：ChangeDailyRefill、ChangeEvent、ChangeJoustParameters、EditMailTemplate、GrantCera、Login、Logout、SaveInitialization、SaveMailDraft、SendOfficialMail、SetJoustChampion）；筛选在 SQLite 查询内完成，`total` 为筛选后的总数。未知取值或重复参数返回 400 `{ message }`。官方邮件与点券的资产变更、成功收据和成功审计共同提交或回滚，拒绝、已确认回滚和未知状态分开记录。匿名私有请求返回 401，权限不足返回 403，分页参数不合法返回 400。
 
 运行的客户端、PVF 和现有游戏服务不受当前隔离构建影响。验证使用临时数据库；本文件的启动示例面向独立部署，验证时须显式传入独立 `Database:Path`。
+
+## 服务信息与物品展示
+
+以下接口只要求已登录（任意权限）：
+
+- `GET /api/gm/v1/server-info` → `{ version, networkEnabled, channelPort, gamePorts, gmPort, pvfSha256 }`。`version` 为程序集版本（去掉 `+提交` 后缀）；端口按 `Networking:*` 配置与网络模块相同的默认值读取，网络关闭时也照配置报告；`pvfSha256` 为服务端实际会打开的 PVF 文件 SHA-256（首次请求时计算并缓存，找不到 PVF 为 null）。
+- `GET /api/gm/v1/items/{itemId}/icon`、`GET /api/gm/v1/items/icon-pack`：物品图标，见 [GM 物品图标包](gm-item-icons.md)；配置 `GmWeb:IconPack`，默认 `Data/gm-icons.zip`。
+- `GET /api/gm/v1/items/{itemId}/tooltip`：游戏风格 tooltip 所需的静态 PVF 资料，未知 ID 返回 404 `{ message }`。字段：`itemId`、`name`、`rarity`、`category`（equipment/stackable）、`typeName`（如 太刀、布甲 上衣、项链、材料）、`minimumLevel`、`maximumLevel`、`jobs`（null = 全职业；职业名取自 `character/*.chr [growtype name]` 首词，同名按性别加（男）/（女））、`attach`（`[attach type]` 原始键，如 sealing、trade delete）、`periodDays`（`[usable period]`）、`dailyDelete`（`[daily delete item]`）、`stats`（按 PVF 声明顺序的 `{label, value}`，值已格式化：品级区间 `186 ~ 201`、四维 `+15`、速度 `+8.0%`）、`explain`、`flavor`、`durability`、`weight`（kg）、`price`（`[value]`，即出售价）、`stackLimit`。只读模板根部段落，不计算品级/强化/增幅/锻造加成，不含技能与套装；未识别的属性标签直接忽略。`[expiration date]` 绝对期限暂不输出。
 
 ## 服务概览与玩家查询
 

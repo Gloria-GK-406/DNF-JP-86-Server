@@ -1,11 +1,10 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { App, ConfigProvider, Modal } from 'antd';
-import { MemoryRouter } from 'react-router-dom';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { Modal } from 'antd';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { AdminApp } from './AdminApp';
 import { api, ApiError } from './api';
 import type { EventEntry, EventList } from './EventsView';
 import type { WeeklyAttendanceSettingsData } from './events/WeeklyAttendanceSettings';
+import { renderApp } from './test-utils';
 
 vi.mock('./api', async original => ({ ...await original<typeof import('./api')>(), api: vi.fn() }));
 const mocked = vi.mocked(api);
@@ -13,7 +12,9 @@ const identity = { id: 1, loginName: '活动管理员', permissions: ['QueryPlay
 let data: EventList;
 let settings: WeeklyAttendanceSettingsData;
 const writes = () => mocked.mock.calls.filter(([path, payload]) => path === 'events' && payload);
-function open() { return render(<ConfigProvider theme={{ token: { motion: false } }}><App><MemoryRouter initialEntries={['/events']}><AdminApp /></MemoryRouter></App></ConfigProvider>); }
+const open = () => renderApp('/events');
+const rail = () => within(screen.getByRole('navigation', { name: '主导航' }));
+const closeDrawer = (dialog: HTMLElement) => fireEvent.click(within(dialog).getAllByRole('button', { name: /关\s*闭/ }).at(-1)!);
 async function edit() { fireEvent.click(await screen.findByRole('button', { name: '通用配置' })); return screen.findByRole('dialog'); }
 const config = { title: '累计周签到', shortName: '周签到', description: '完成推荐地下城后签到', startNotice: '签到开启', endNotice: '签到结束',
   startsAt: '2026-10-01T00:00:00.000Z', endsAt: '2026-12-31T00:00:00.000Z' };
@@ -41,12 +42,13 @@ beforeEach(() => {
       }
       return structuredClone(data);
     }
+    if (path === 'server-info' || path === 'items/icon-pack' || path === 'overview') return undefined;
     throw new Error('Unexpected request: ' + path);
   });
 });
 
 it('活动列表和通用配置仅展示公共信息，不读取或展示专属规则', async () => {
-  open(); expect(await screen.findByRole('menuitem', { name: '活动管理' })).toBeTruthy();
+  open(); expect(await screen.findByRole('button', { name: /活动管理/ })).toBeTruthy();
   expect(await screen.findByText('season-one')).toBeTruthy(); expect(screen.getByText('已停用')).toBeTruthy();
   expect(screen.queryByText(/event\/chn_event\/chn_totalattendance.evt/)).toBeNull();
   expect(screen.queryByText('规则与奖励')).toBeNull(); expect(screen.queryByText('每周奖励')).toBeNull();
@@ -64,7 +66,7 @@ it('设置活动独立读取周签到规则，显示PVF来源、目标和两类�
   expect(within(dialog).getByRole('cell', { name: /累计签到礼盒（\s*90004/ })).toBeTruthy();
   expect(within(dialog).queryByRole('textbox')).toBeNull(); expect(within(dialog).queryByRole('spinbutton')).toBeNull();
   expect(within(dialog).queryByRole('button', { name: /保存/ })).toBeNull();
-  fireEvent.click(within(dialog).getByRole('button', { name: /关\s*闭/ }));
+  closeDrawer(dialog);
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull()); expect(writes()).toHaveLength(0);
 });
 it('缺失名称保留ID并标明未找到，名称作为文本显示且不产生额外查询', async () => {
@@ -73,11 +75,11 @@ it('缺失名称保留ID并标明未找到，名称作为文本显示且不产�
   const dialog = await screen.findByRole('dialog');
   expect(await within(dialog).findByRole('cell', { name: /名称未找到（\s*90001/ })).toBeTruthy();
   expect(within(dialog).getByRole('cell', { name: /<b>签到礼盒<\/b>（\s*90004/ })).toBeTruthy();
-  expect(mocked.mock.calls.some(([path]) => /item|catalog/.test(path))).toBe(false);
+  expect(mocked.mock.calls.some(([path]) => /item|catalog/.test(path) && path !== 'items/icon-pack')).toBe(false);
 });
 it('未知活动类型只显示通用管理，不借用周签到界面', async () => {
   data.entries[0].type = 'future-event';
-  open(); expect(await screen.findByText('future-event')).toBeTruthy(); expect(screen.getByRole('button', { name: '通用配置' })).toBeTruthy();
+  open(); expect(await screen.findByText(/future-event/)).toBeTruthy(); expect(screen.getByRole('button', { name: '通用配置' })).toBeTruthy();
   expect(screen.queryByRole('button', { name: '设置活动' })).toBeNull();
 });
 it('马战设置独立分派，停用明确保留已有投注的结算责任', async () => {
@@ -93,7 +95,7 @@ it('马战设置独立分派，停用明确保留已有投注的结算责任', a
   const dialog = await screen.findByRole('dialog'); await within(dialog).findByText('event/chn_event/chn_joust.evt');
   expect(within(dialog).getByLabelText('强势战斗力倍率')).toBeTruthy();
   expect(mocked.mock.calls.some(([path]) => path === 'events/weekly-attendance/settings')).toBe(false);
-  fireEvent.click(within(dialog).getByRole('button', { name: /关\s*闭/ }));
+  closeDrawer(dialog);
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull()); fireEvent.click(screen.getByRole('button', { name: /停\s*用/ }));
   await screen.findByText('停用后禁止新下注；已有投注的轮次仍会继续结算并发放奖励。'); expect(writes()).toHaveLength(0);
 });
@@ -137,7 +139,7 @@ it('保存全部展示字段和原版本；北京时间转ISO，保存不启用�
   fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
   await waitFor(() => expect(mocked).toHaveBeenCalledWith('events', { eventId: 2208, expectedRevision: 8, action: 'configure', ...config, title: '新标题' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  expect(await screen.findByText('新标题')).toBeTruthy(); expect(screen.getByText('season-one')).toBeTruthy(); expect(screen.getByText('已停用')).toBeTruthy();
+  expect((await screen.findAllByText('新标题')).length).toBeGreaterThan(0); expect(screen.getByText('season-one')).toBeTruthy(); expect(screen.getByText('已停用')).toBeTruthy();
 });
 it('结束早于开始时拒绝提交并使用统一通知', async () => {
   open(); await edit(); fireEvent.change(screen.getByLabelText('结束时间（北京时间 UTC+8）'), { target: { value: '2026-09-01T08:00' } });
@@ -193,13 +195,13 @@ it.each([409, 500, 'network', 'unknown'])('写入失败 %s 后锁写，重读成
     return original(path, payload);
   });
   open(); const editor = await edit(); fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
-  await screen.findByText('请重新读取生效活动后再操作'); expect(screen.queryByRole('button', { name: '保存配置' })).toBeNull();
+  await screen.findByText('请先重新读取生效活动'); expect(screen.queryByRole('button', { name: '保存配置' })).toBeNull();
   expect((screen.getByRole('button', { name: '通用配置' }) as HTMLButtonElement).disabled).toBe(true);
   data.entries[0].revision = 10;
   fireEvent.click(within(editor).getByRole('button', { name: '重新读取生效活动' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   await waitFor(() => expect((screen.getByRole('button', { name: '通用配置' }) as HTMLButtonElement).disabled).toBe(false));
-  expect(screen.getByText('配置版本 10')).toBeTruthy(); expect(writes()).toHaveLength(1);
+  expect(screen.getByText(/v10/)).toBeTruthy(); expect(writes()).toHaveLength(1);
 });
 it('重读失败保持写锁，随后重读成功才恢复', async () => {
   const original = mocked.getMockImplementation()!; let failRead = false;
@@ -208,10 +210,10 @@ it('重读失败保持写锁，随后重读成功才恢复', async () => {
     if (path === 'events' && failRead) throw new ApiError(500, '读取失败');
     return original(path, payload);
   });
-  open(); const editor = await edit(); fireEvent.click(screen.getByRole('button', { name: '保存配置' })); await screen.findByText('请重新读取生效活动后再操作');
+  open(); const editor = await edit(); fireEvent.click(screen.getByRole('button', { name: '保存配置' })); await screen.findByText('请先重新读取生效活动');
   fireEvent.click(within(editor).getByRole('button', { name: '重新读取生效活动' })); await screen.findByText('读取失败');
-  expect(screen.queryByRole('button', { name: '通用配置' })).toBeNull(); expect(screen.getByText('请重新读取生效活动后再操作')).toBeTruthy();
-  failRead = false; fireEvent.click(screen.getByRole('button', { name: '重新读取生效活动' }));
+  expect(screen.queryByRole('button', { name: '通用配置' })).toBeNull(); expect(screen.getByText('请先重新读取生效活动')).toBeTruthy();
+  failRead = false; fireEvent.click(screen.getAllByRole('button', { name: /重新读取生效活动/ }).at(-1)!);
   await waitFor(() => expect((screen.getByRole('button', { name: '通用配置' }) as HTMLButtonElement).disabled).toBe(false));
   expect(writes()).toHaveLength(1);
 });
@@ -230,12 +232,12 @@ it.each([401, 403])('写入权限失败 %i 退出编辑并由AdminApp处理权�
   const original = mocked.getMockImplementation()!;
   mocked.mockImplementation(async (path, payload) => { if (path === 'events' && payload) throw new ApiError(status, '权限已失效'); return original(path, payload); });
   open(); await edit(); fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
-  if (status === 401) await screen.findByLabelText('管理员账号'); else { await screen.findByText('当前页面不可访问'); expect(screen.queryByRole('menuitem', { name: '活动管理' })).toBeNull(); }
+  if (status === 401) await screen.findByLabelText('管理员账号'); else { await screen.findByText('没有访问此页面的权限'); expect(rail().queryByText('活动管理')).toBeNull(); }
   expect(screen.queryByRole('dialog')).toBeNull();
 });
 it('缺少All权限隐藏入口，直接访问不读取活动', async () => {
   const original = mocked.getMockImplementation()!;
   mocked.mockImplementation(async (path, payload) => path === 'auth/session' ? { ...identity, permissions: ['GrantCera'] } : original(path, payload));
-  open(); await screen.findByText('当前页面不可访问'); expect(screen.queryByRole('menuitem', { name: '活动管理' })).toBeNull();
+  open(); await screen.findByText('没有访问此页面的权限'); expect(rail().queryByText('活动管理')).toBeNull();
   expect(mocked.mock.calls.some(([path]) => path === 'events')).toBe(false);
 });

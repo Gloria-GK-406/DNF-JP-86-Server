@@ -60,7 +60,7 @@ it('初始读取中和读取失败不能保存，重新读取后解锁', async (
 });
 it('PVF不可用不能保存玩法参数', async () => {
   settings.available = false; settings.unavailableReason = '马战PVF规则缺失'; await ready();
-  expect(screen.getByText('马战PVF规则缺失')).toBeTruthy(); expect(input('强势战斗力倍率').disabled).toBe(true);
+  expect(screen.getByText(/马战PVF规则缺失/)).toBeTruthy(); expect(input('强势战斗力倍率').disabled).toBe(true);
   expect((screen.getByRole('button', { name: '保存玩法参数' }) as HTMLButtonElement).disabled).toBe(true);
 });
 it.each([409, 500, 'network', 'unknown'])('失败%s保留草稿，重读核对后才按新revision保存', async failure => {

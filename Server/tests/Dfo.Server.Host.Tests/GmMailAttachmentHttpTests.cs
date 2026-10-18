@@ -138,6 +138,57 @@ public sealed partial class GmOfficialMailHttpTests
     }
 
     [Fact]
+    public async Task ForgingSocketsAndQualityTierBecomeTheStoredEquipmentState()
+    {
+        await using var host = await GmTestHost.StartAsync(); await GmPlayerDirectoryHttpTests.SeedAsync(host); var login = await Login(host);
+        var weapon = (await host.Client.GetFromJsonAsync<JsonElement>("/api/gm/v1/mail/items/27312")).GetProperty("equipment");
+        Assert.Equal(8, weapon.GetProperty("maxForgeLevel").GetInt32()); Assert.Equal(0, weapon.GetProperty("socketCount").GetInt32());
+        Assert.Equal(JsonValueKind.Null, weapon.GetProperty("socketClass").ValueKind);
+        var wrist = (await host.Client.GetFromJsonAsync<JsonElement>("/api/gm/v1/mail/items/100310498")).GetProperty("equipment");
+        Assert.Equal(0, wrist.GetProperty("maxForgeLevel").GetInt32()); Assert.Equal(2, wrist.GetProperty("socketCount").GetInt32());
+        Assert.Equal("C", wrist.GetProperty("socketClass").GetString());
+        object[] items = [
+            new { itemId = 27312, count = 1, equipment = new { forge = 5, quality = 2, growth = "reinforcement", level = 7 } },
+            new { itemId = 27312, count = 1 },
+            new { itemId = 100310498, count = 1, equipment = new { socket = true, quality = 0 } }];
+        using var preview = await host.PostAsync("/api/gm/v1/mail/preview", login.Csrf, Payload(Guid.NewGuid(), items: items));
+        Assert.True(preview.IsSuccessStatusCode, await preview.Content.ReadAsStringAsync());
+        var shown = (await preview.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("items");
+        Assert.Equal([5, 0, 0], shown.EnumerateArray().Select(x => x.GetProperty("forgeLevel").GetInt32()));
+        Assert.Equal([0, 0, 2], shown.EnumerateArray().Select(x => x.GetProperty("socketCount").GetInt32()));
+        Assert.Equal([2, 4, 0], shown.EnumerateArray().Select(x => x.GetProperty("quality").GetInt32()));
+        using var sent = await host.PostAsync("/api/gm/v1/mail/send", login.Csrf, Payload(Guid.NewGuid(), items: items));
+        Assert.True(sent.IsSuccessStatusCode, await sent.Content.ReadAsStringAsync());
+        var cores = (await host.ReadAsync("SELECT hex(item_core) FROM items ORDER BY item_uid;")).Select(Convert.FromHexString).ToArray();
+        Assert.Equal(3, cores.Length);
+        Assert.Equal([999999999, 999999998, 999999993], cores.Select(core => BinaryPrimitives.ReadInt32LittleEndian(core.AsSpan(5, 4))));
+        Assert.Equal(new byte[] { 5, 0, 0 }, cores.Select(core => core[71]));
+        Assert.Equal(7, cores[0][9] & 31);
+        Assert.Equal(new byte[] { 0, 0, 2 }, cores.Select(core => core[45]));
+        Assert.Equal(-1, BinaryPrimitives.ReadInt32LittleEndian(cores[2].AsSpan(46, 4))); Assert.Equal(-1, BinaryPrimitives.ReadInt32LittleEndian(cores[2].AsSpan(50, 4)));
+        Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(cores[0].AsSpan(46, 4)));
+    }
+
+    [Fact]
+    public async Task ForgingSocketAndQualityOutsideTheContentRulesAreRejected()
+    {
+        await using var host = await GmTestHost.StartAsync(); await GmPlayerDirectoryHttpTests.SeedAsync(host); var login = await Login(host);
+        (int ItemId, object Equipment)[] invalid = [
+            (100310498, new { forge = 1 }), (27312, new { forge = 9 }), (27312, new { forge = -1 }),
+            (27312, new { socket = true }), (27312, new { quality = 5 }), (27312, new { quality = -1 })];
+        foreach (var (itemId, equipment) in invalid)
+        {
+            using var response = await host.PostAsync("/api/gm/v1/mail/send", login.Csrf, Payload(Guid.NewGuid(), items: [new { itemId, count = 1, equipment }]));
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Matches(@"\p{IsCJKUnifiedIdeographs}", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("message").GetString()!);
+        }
+        // Tier 4 is the default spelled out: same configuration, so it must be merged with the omitted form.
+        Assert.Equal(HttpStatusCode.BadRequest, (await host.PostAsync("/api/gm/v1/mail/send", login.Csrf, Payload(Guid.NewGuid(),
+            items: [new { itemId = 27312, count = 1, equipment = new { quality = 4 } }, new { itemId = 27312, count = 1 }]))).StatusCode);
+        Assert.Equal(new[] { "0" }, await host.ReadAsync("SELECT COUNT(*) FROM items;"));
+    }
+
+    [Fact]
     public async Task InvalidEquipmentCombinationsAndExpandedLimitCannotCreateAssets()
     {
         await using var host = await GmTestHost.StartAsync(); await GmPlayerDirectoryHttpTests.SeedAsync(host); var login = await Login(host);

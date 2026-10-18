@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Descriptions, Empty, Space, Table, Tag, Typography } from 'antd';
+import { Button, Popconfirm, Table, Typography } from 'antd';
+import { Panel } from '../ui';
 import { api, ApiError } from '../api';
 import { NotiHint, useNotiBar } from '../NotiBar';
 
@@ -58,34 +59,46 @@ export function JoustCurrentRound({ onExpired, onDenied, onWriting }: { onExpire
       if (alive.current) { blocked.current = true; setUncertain(true); failure(error); }
     } finally { writing.current = false; if (alive.current) setSaving(false); onWriting(false); }
   }
-  return <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-    <Space wrap><Button loading={reading} disabled={saving} onClick={() => void read(true)}>重新读取当前场次</Button>
-      <Typography.Text type="secondary">每 5 秒刷新；投注与封盘阶段均可指定冠军，第一轮战斗开始后不可修改。</Typography.Text></Space>
-    {readError && <Typography.Text type="secondary">当前场次读取失败，请重新读取后再操作。</Typography.Text>}
+  const forced = data?.knights.find(k => k.index === data.forcedChampionIndex);
+  const pick = selection ? data?.knights.find(k => k.index === selection.knightIndex) : undefined;
+  return <div className="grid">
+    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><Button size="small" loading={reading} disabled={saving} onClick={() => void read(true)}>重新读取当前场次</Button>
+      <span className="faint small">每 5 秒刷新；投注与封盘阶段均可指定冠军，第一轮战斗开始后不可修改。</span></div>
+    {readError && <span className="faint small">当前场次读取失败，请重新读取后再操作。</span>}
     {uncertain && <NotiHint noticeKey="joust-round-reload" title="请重新读取当前场次后再操作" description="场次可能已变化，或保存结果未确认。核对当前内定冠军后再提交。" />}
-    {stale && <Typography.Text type="secondary">场次版本已更新，请重新读取后选择骑士。</Typography.Text>}
+    {stale && <span className="err small">场次版本已更新，请重新读取后选择骑士。</span>}
     {data && (data.roundId ? <>
-      <Descriptions bordered size="small" column={3} items={[
-        { key: 'active', label: '活动状态', children: data.active ? '生效中' : '未生效 · 只读' },
-        { key: 'round', label: '当前期号', children: `第 ${data.roundNo} 期` }, { key: 'phase', label: '当前阶段', children: <Tag color={data.canSetChampion ? 'gold' : 'blue'}>{phaseLabels[data.phase] ?? data.phase}{!data.active && ' · 活动未生效'}</Tag> },
-        { key: 'start', label: '场次开始时间', children: time(data.startsAt) }, { key: 'deadline', label: '冠军设置截止', children: time(data.championDeadline) },
-        { key: 'pool', label: '本场总投注', children: data.knights.reduce((sum, k) => sum + k.bettingAmount, 0).toLocaleString() },
-        { key: 'forced', label: '当前内定冠军', children: data.forcedChampionIndex == null ? '未指定' : data.knights.find(k => k.index === data.forcedChampionIndex)?.name ?? data.forcedChampionIndex },
-      ]} />
-      <Table<CurrentKnight> size="small" rowKey="index" pagination={false} dataSource={data.knights} scroll={{ x: 1000 }}
-        rowSelection={{ type: 'radio', selectedRowKeys: chosen == null ? [] : [chosen], getCheckboxProps: k => ({ disabled: !allowed, 'aria-label': `选择 ${k.name} 作为本场冠军` }),
-          onChange: keys => { if (allowed && data.roundId) setSelection({ roundId: data.roundId, expectedRevision: data.revision, knightIndex: Number(keys[0]) }); } }}
-        columns={[
-          { title: '骑士名称（ID）', render: (_, k) => <span>{k.name}（{k.index}）{data.forcedChampionIndex === k.index && <Tag color="gold">内定冠军</Tag>}</span> },
-          { title: '状态 / 战斗力', render: (_, k) => k.condition == null ? '—' : `${['强势', '常态', '弱势'][k.condition] ?? k.condition} / ${k.combatMultiplier?.toFixed(2)}×` },
-          { title: '攻击类型', dataIndex: 'attackType' }, { title: '预测夺冠率', render: (_, k) => k.championshipProbability == null ? '—' : `${(k.championshipProbability * 100).toFixed(1)}%` },
-          { title: '当前赔率', render: (_, k) => `${k.odds.toFixed(1)}×` }, { title: '总投注量', render: (_, k) => k.bettingAmount.toLocaleString() },
-          { title: '历史胜 / 败', render: (_, k) => `${k.statistics.wins} / ${k.statistics.losses}` }, { title: '历史胜率', render: (_, k) => `${k.statistics.winRate.toFixed(1)}%` },
-        ]} />
-      <Space wrap><Button type="primary" loading={saving} disabled={!allowed || !selection || !!stale || chosen === data.forcedChampionIndex}
-        onClick={() => void save()}>设为本场冠军</Button><Button disabled={!allowed || !!stale || data.forcedChampionIndex == null} onClick={() => void save(true)}>取消内定</Button>
-        <Typography.Text type="secondary">仅影响本场晋级结果；投注中赔率继续变化，封盘后保持不变；下一场重新抽签。</Typography.Text></Space>
-      {data.updatedAt && <Typography.Text type="secondary">最近操作：{data.updatedBy ?? '—'} · {time(data.updatedAt)}</Typography.Text>}
-    </> : <Empty description="当前没有已生成的场次" />)}
-  </Space>;
+      <section className="panel"><div className="stats" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+        <div className="stat"><span className="l">当前阶段</span><span className="v" style={{ fontSize: 17 }}>{phaseLabels[data.phase] ?? data.phase}</span>
+          <span className="s">第 {data.roundNo} 期 · {data.active ? '活动生效中' : '活动未生效 · 只读'}</span></div>
+        <div className="stat"><span className="l">场次开始时间</span><span className="v mono" style={{ fontSize: 17 }}>{time(data.startsAt).slice(-8, -3) || '—'}</span><span className="s">{time(data.startsAt)}</span></div>
+        <div className={`stat ${data.canSetChampion ? 'attn' : ''}`}><span className="l">冠军设置截止</span><span className="v mono" style={{ fontSize: 17 }}>{time(data.championDeadline).slice(-8, -3) || '—'}</span>
+          <span className="s">{data.canSetChampion ? '现在可以指定' : '已不可修改'}</span></div>
+        <div className="stat"><span className="l">本场总投注</span><span className="v" style={{ fontSize: 17 }}>{data.knights.reduce((sum, k) => sum + k.bettingAmount, 0).toLocaleString()}</span>
+          <span className="s">当前内定冠军：{data.forcedChampionIndex == null ? '未指定' : forced?.name ?? data.forcedChampionIndex}</span></div>
+      </div></section>
+      <Panel title="骑士" count={`场次 ${data.roundId} · 版本 ${data.revision}`} flush foot={<><span className="grow">仅影响本场晋级结果；投注中赔率继续变化，封盘后保持不变；下一场重新抽签。</span>
+        <Button size="small" disabled={!allowed || !!stale || data.forcedChampionIndex == null} onClick={() => void save(true)}>取消内定</Button>
+        <Popconfirm title={`把 ${pick?.name ?? ''} 设为本场冠军？`} okText="就它了" cancelText="算了" onConfirm={() => void save()}
+          disabled={!allowed || !selection || !!stale || chosen === data.forcedChampionIndex}>
+          <Button size="small" type="primary" loading={saving} disabled={!allowed || !selection || !!stale || chosen === data.forcedChampionIndex}>设为本场冠军</Button></Popconfirm></>}>
+        <Table<CurrentKnight> className="ledger" size="small" rowKey="index" pagination={false} dataSource={data.knights} scroll={{ x: 900 }}
+          rowSelection={{ type: 'radio', selectedRowKeys: chosen == null ? [] : [chosen], getCheckboxProps: k => ({ disabled: !allowed, 'aria-label': `选择 ${k.name} 作为本场冠军` }),
+            onChange: keys => { if (allowed && data.roundId) setSelection({ roundId: data.roundId, expectedRevision: data.revision, knightIndex: Number(keys[0]) }); } }}
+          columns={[
+            { title: '骑士名称（ID）', render: (_, k) => <span><span className="strong">{k.name}（{k.index}）</span>{data.forcedChampionIndex === k.index && <span className="chip accent" style={{ marginInlineStart: 6 }}>内定冠军</span>}</span> },
+            { title: '状态 / 战斗力', render: (_, k) => k.condition == null ? '—' : <span>{['强势', '常态', '弱势'][k.condition] ?? k.condition} <span className="mono faint small">{k.combatMultiplier?.toFixed(2)}×</span></span> },
+            { title: '攻击类型', dataIndex: 'attackType' },
+            { title: '预测夺冠率', render: (_, k) => k.championshipProbability == null ? '—' : <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+              <span className="meter-track" style={{ width: 56 }}><span className="meter-fill" style={{ width: `${Math.min(100, k.championshipProbability * 200)}%` }} /></span>
+              <span className="mono">{`${(k.championshipProbability * 100).toFixed(1)}%`}</span></span> },
+            { title: '当前赔率', align: 'end', render: (_, k) => <span className="mono">{`${k.odds.toFixed(1)}×`}</span> },
+            { title: '总投注量', align: 'end', render: (_, k) => <span className="mono">{k.bettingAmount.toLocaleString()}</span> },
+            { title: '历史胜 / 败', align: 'end', render: (_, k) => <span className="mono">{`${k.statistics.wins} / ${k.statistics.losses}`}</span> },
+            { title: '历史胜率', align: 'end', render: (_, k) => <span className="mono">{`${k.statistics.winRate.toFixed(1)}%`}</span> },
+          ]} />
+      </Panel>
+      {data.updatedAt && <span className="faint small">最近操作：{data.updatedBy ?? '—'} · {time(data.updatedAt)}</span>}
+    </> : <div className="empty-line">当前没有已生成的场次</div>)}
+  </div>;
 }

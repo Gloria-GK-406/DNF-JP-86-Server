@@ -70,9 +70,10 @@ internal sealed class GmAuditDomainService(IGmAdministrationPersistence persiste
             throw new ArgumentException("Invalid GM audit record.");
         return persistence.AppendAuditAsync(record, cancellationToken);
     }
-    public ValueTask<GmAuditPage> QueryAsync(int page, int pageSize, CancellationToken cancellationToken)
+    public ValueTask<GmAuditPage> QueryAsync(int page, int pageSize, GmAuditFilter filter, CancellationToken cancellationToken)
     {
         if (page < 1 || page > 1000000 || pageSize is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(page));
-        return persistence.QueryAuditAsync(page, pageSize, cancellationToken);
+        if (!filter.IsValid) throw new ArgumentException("Invalid GM audit filter.", nameof(filter));
+        return persistence.QueryAuditAsync(page, pageSize, filter, cancellationToken);
     }
 }

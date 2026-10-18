@@ -291,7 +291,7 @@ public sealed class GmCeraHttpTests
     private sealed class CommitFaultAudit(IGmAdministrationPersistence persistence,IDomainTransactionAccessor transactions,PoisonCommit poison):IGmAuditDomainService
     {
         public async ValueTask AppendAsync(GmAuditRecord r,CancellationToken t){await persistence.AppendAuditAsync(r,t);if(r.Action=="GrantCera"&&r.Outcome=="Succeeded")transactions.Current!.Enlist(poison,()=>poison);}
-        public ValueTask<GmAuditPage> QueryAsync(int p,int s,CancellationToken t)=>persistence.QueryAuditAsync(p,s,t);
+        public ValueTask<GmAuditPage> QueryAsync(int p,int s,GmAuditFilter f,CancellationToken t)=>persistence.QueryAuditAsync(p,s,f,t);
     }
 
     private sealed class FailingReminder : IGmCeraReminderDomainService

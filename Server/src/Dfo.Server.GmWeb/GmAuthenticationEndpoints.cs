@@ -59,11 +59,17 @@ internal static class GmAuthenticationEndpoints
     }
     private static async Task<IResult> QueryAuditAsync(HttpContext context, ICommandBus commands)
     {
-        var page = 1; var pageSize = 20;
-        if ((context.Request.Query.TryGetValue("page", out var p) && !int.TryParse(p, out page))
-            || (context.Request.Query.TryGetValue("pageSize", out var s) && !int.TryParse(s, out pageSize))
+        var query = context.Request.Query; var page = 1; var pageSize = 20;
+        foreach (var name in new[] { "page", "pageSize", "outcome", "action" })
+            if (query.TryGetValue(name, out var values) && values.Count != 1) return Error(400, "查询参数重复。");
+        if ((query.TryGetValue("page", out var p) && !int.TryParse(p, out page))
+            || (query.TryGetValue("pageSize", out var s) && !int.TryParse(s, out pageSize))
             || page is < 1 or > 1000000 || pageSize is < 1 or > 100) return Error(400, "分页参数无效。");
-        return Results.Ok(await commands.SendAsync(new QueryGmAuditCommand(page, pageSize), context.RequestAborted));
+        string? Text(string name) => string.IsNullOrWhiteSpace(query[name]) ? null : query[name].ToString().Trim();
+        var filter = new GmAuditFilter(Text("action"), Text("outcome"));
+        if (filter.Action is { } action && !GmAuditFilter.Actions.Contains(action)) return Error(400, "操作类型筛选无效。");
+        if (filter.Outcome is { } outcome && !GmAuditFilter.Outcomes.Contains(outcome)) return Error(400, "结果筛选无效。");
+        return Results.Ok(await commands.SendAsync(new QueryGmAuditCommand(page, pageSize, filter), context.RequestAborted));
     }
     private static object IdentityResponse(GmIdentity identity) => new { identity.Id, identity.LoginName,
         permissions = Enum.GetValues<GmPermission>().Where(p => p != GmPermission.None && p != GmPermission.All && identity.Permissions.HasFlag(p)).Select(p => p.ToString()), identity.ExpiresAt };

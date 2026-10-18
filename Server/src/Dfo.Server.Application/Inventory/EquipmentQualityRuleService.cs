@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
@@ -13,6 +14,10 @@ internal static class EquipmentQualitySeeds
         do { seed = Random.Shared.Next(1, int.MaxValue); } while (IsFixed(seed));
         return seed;
     }
+    /// <summary>Fixed seed the client renders at the top of quality tier 0..4 (20/40/60/80/100%); index = tier.</summary>
+    private static readonly int[] TierSeeds = [999999993, 999999996, 999999999, 999999995, 999999998];
+    public static int FixedFor(int tier) => tier is >= EquipmentQualityTiers.Lowest and <= EquipmentQualityTiers.Highest
+        ? TierSeeds[tier] : throw new ArgumentOutOfRangeException(nameof(tier));
 }
 
 internal sealed class EquipmentQualitySeedSource : IEquipmentQualitySeedSource

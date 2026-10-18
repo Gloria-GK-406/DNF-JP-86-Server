@@ -1,5 +1,6 @@
 export type Permission = 'QueryPlayers' | 'SendMail' | 'GrantCera' | 'ViewAudit';
 export type Identity = { id: number; loginName: string; permissions: Permission[]; expiresAt: string };
+export type AuditOutcome = 'Succeeded' | 'Rejected' | 'RolledBack' | 'Unknown';
 export type AuditRecord = { operationId: string; occurredAt: string; action: string; administratorName: string | null; target: string; outcome: string; reason: string };
 export type AuditPage = { items: AuditRecord[]; total: number; page: number; pageSize: number };
 export type Balances = { cera: number; tokenCera: number; happyTokenCera: number };
@@ -11,6 +12,7 @@ export type CharacterView = { characterId: number; accountId: number; loginName:
 export type CharacterDetail = CharacterView & { balances: Balances };
 export type Overview = { networkEnabled: boolean; gameReady: boolean; totalAccounts: number; totalCharacters: number; onlineAccounts: number; onlineCharacters: number;
   channels: { channelId: number; name: string; onlineCharacters: number }[]; unmappedOnlineCharacters: number; sampledAt: string };
+export type ServerInfo = { version: string; networkEnabled: boolean; channelPort: number | null; gamePorts: number[]; gmPort: number; pvfSha256: string | null };
 
 export class ApiError extends Error { constructor(public status: number, message: string, public outcome?: string) { super(message); } }
 
@@ -30,3 +32,4 @@ export async function api<T>(path: string, payload?: unknown, method?: 'PUT' | '
   }
   return response.status === 204 ? undefined as T : response.json();
 }
+

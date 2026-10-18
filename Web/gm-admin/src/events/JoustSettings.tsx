@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { App, Button, Card, Descriptions, Form, Input, Modal, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
+import { App, Button, Drawer, Input, Spin, Table, Tabs, Typography } from 'antd';
+import { KV, Panel } from '../ui';
 import { api, ApiError } from '../api';
 import { NotiHint, useNotiBar } from '../NotiBar';
 import type { ActivitySettingsProps } from './WeeklyAttendanceSettings';
+import { bjTime } from '../format';
 import { JoustCurrentRound } from './JoustCurrentRound';
 
 export type JoustSchedule = { dailyStartTime: string; roundsPerDay: number; roundIntervalMinutes: number;
@@ -104,51 +106,49 @@ export function JoustSettings({ title, onClose, onExpired, onDenied }: ActivityS
     const [h, m] = schedule.dailyStartTime.split(':').map(Number); const start = h * 60 + m + index * schedule.roundIntervalMinutes;
     return { index, start: clockText(start), lock: clockText(start + schedule.bettingMinutes), fight: clockText(start + schedule.bettingMinutes + schedule.lockMinutes) };
   }) : [];
-  return <Modal open title={`设置活动 · ${title}`} width={1120} onCancel={close} closable={!saving && !roundWriting} keyboard={!saving && !roundWriting}
-    mask={{ closable: false }} destroyOnHidden styles={{ body: { maxHeight: 'calc(100vh - 240px)', overflowY: 'auto', paddingRight: 8 } }}
-    footer={<Space>{tab !== 'current' && <Button disabled={busy} onClick={() => void read()}>{uncertain || readError ? '重新读取生效参数' : '重新读取设置'}</Button>}
+  return <Drawer open title={`设置活动 · ${title}`} size={920} onClose={close} closable={!saving && !roundWriting} keyboard={!saving && !roundWriting}
+    mask={{ closable: false }} destroyOnHidden
+    footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+      {tab === 'parameters' && data && <span className="faint small" style={{ marginInlineEnd: 'auto' }}>配置版本 {data.revision} · 参数只影响新场次</span>}
+      {tab !== 'current' && <Button disabled={busy} onClick={() => void read()}>{uncertain || readError ? '重新读取生效参数' : '重新读取设置'}</Button>}
       <Button disabled={saving || roundWriting} onClick={close}>关闭</Button>{tab === 'parameters' && <Button type="primary" loading={saving}
-        disabled={busy || readError || uncertain || !data?.available || !draft} onClick={submit}>{reviewRequired ? '核对后保存参数' : '保存玩法参数'}</Button>}</Space>}>
+        disabled={busy || readError || uncertain || !data?.available || !draft} onClick={submit}>{reviewRequired ? '核对后保存参数' : '保存玩法参数'}</Button>}</div>}>
     {reading && !data && <Spin />}
     {readError && <Typography.Paragraph type="secondary">设置读取失败，请重新读取。编辑内容已保留。</Typography.Paragraph>}
     {uncertain && <NotiHint noticeKey="joust-reload-required" title="请重新读取生效参数后再保存" description="配置冲突或保存结果未确认。编辑内容已保留，重读后请核对。" />}
     <Tabs activeKey={tab} onChange={key => { if (!saving && !roundWriting) setTab(key); }} items={[
-      { key: 'parameters', label: '玩法参数', children: data && <Space orientation="vertical" style={{ width: '100%' }} size="middle">
-        <Typography.Paragraph type="secondary">参数只影响新场次。当前场次的状态、预测概率和封盘赔率保持原快照。</Typography.Paragraph>
-        <Descriptions size="small" column={2} items={[{ key: 'revision', label: '配置版本', children: data.revision },
-          { key: 'available', label: '规则状态', children: data.available ? '可用' : data.unavailableReason }]} />
-        {reviewRequired && <Card size="small" title="当前生效参数"><Descriptions size="small" column={2} items={fields.map(f => ({ key: f.key, label: f.label, children: data.parameters[f.key] }))} /></Card>}
-        {draft && <Card size="small" title="战斗与赔率参数"><Form layout="vertical" disabled={busy || !data.available}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 24 }}>
-          {fields.map(f => <Form.Item key={f.key} label={f.label} htmlFor={`joust-${f.key}`}><Input id={`joust-${f.key}`} type="number"
-            min={f.min} max={f.max} step={f.step} value={draft[f.key]} onChange={event => setDraft({ ...draft, [f.key]: event.target.value })} /></Form.Item>)}
-        </Form><Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>倍率 1 为无加成；克制反向使用倒数。预测概率 12.5% 时不修正历史基准。投注衰减基数越大，赔率下降越慢。</Typography.Paragraph></Card>}
-        <Card size="small" title={<><Tag color="blue">PVF · 只读</Tag>竞猜规则与奖励</>}>
-          <Descriptions size="small" column={2} items={[
-            { key: 'source', label: '规则来源', children: <Typography.Text copyable>{data.sourcePath}</Typography.Text> },
-            { key: 'level', label: '最低参与等级', children: data.minimumLevel == null ? '暂不可用' : `${data.minimumLevel} 级` },
-            { key: 'limit', label: '每角色每场投注上限', children: data.maximumBetting },
-            { key: 'currencies', label: '下注材料', children: <Space orientation="vertical">{data.currencies.map(item => <span key={item.itemId}>{itemLabel(item)}</span>)}</Space> },
-            { key: 'reward', label: '中奖奖励', children: itemLabel(data.reward) }, { key: 'participation', label: '参与奖励', children: itemLabel(data.bettingReward) },
-          ]} />
-        </Card>
-        <Card size="small" title="骑士资料（PVF · 只读）"><Table<Knight> size="small" rowKey="index" pagination={false} dataSource={data.knights}
-          columns={[{ title: '骑士名称（ID）', render: (_, k) => `${k.name}（${k.index}）` }, { title: '攻击类型', dataIndex: 'attackType' }]} /></Card>
-      </Space> },
-      { key: 'schedule', label: '每日赛程', children: schedule && <Space orientation="vertical" style={{ width: '100%' }} size="middle">
-        <Typography.Paragraph type="secondary">客户端素材采用固定时间，每日赛程只读。活动有效期与启停仍在通用配置中管理。</Typography.Paragraph>
-        <Descriptions bordered size="small" column={3} items={[
-          { key: 'start', label: '每天开始时间', children: `${schedule.dailyStartTime}（北京时间）` },
-          { key: 'count', label: '每天场次', children: schedule.roundsPerDay }, { key: 'interval', label: '场次间隔', children: `${schedule.roundIntervalMinutes} 分钟` },
-          { key: 'bet', label: '投注时长', children: `${schedule.bettingMinutes} 分钟` }, { key: 'lock', label: '封盘时长', children: `${schedule.lockMinutes} 分钟` },
-          { key: 'stage', label: '每轮比赛时长', children: `${schedule.stageSeconds} 秒` },
-        ]} />
-        <Table size="small" rowKey="index" pagination={false} dataSource={sessions} columns={[
-          { title: '每日场次', render: (_, row) => `第 ${row.index + 1} 场` }, { title: '开始投注', dataIndex: 'start' },
-          { title: '投注封盘', dataIndex: 'lock' }, { title: '战斗开始', dataIndex: 'fight' },
-        ]} />
-      </Space> },
+      { key: 'parameters', label: '玩法参数', children: data && <div className="grid">
+        <span className="faint small">参数只影响新场次。当前场次的状态、预测概率和封盘赔率保持原快照。规则状态：{data.available ? '可用' : data.unavailableReason}</span>
+        {reviewRequired && <Panel title="当前生效参数"><KV rows={fields.map(f => [f.label, <span className="mono" key={f.key}>{data.parameters[f.key]}</span>])} /></Panel>}
+        {draft && <Panel title="战斗与赔率参数" count={data.updatedAt ? `${data.updatedBy ?? '—'} · ${bjTime(data.updatedAt)}` : undefined}>
+          <div className="fgrid">{fields.map(f => <div className="field" key={f.key}><label htmlFor={`joust-${f.key}`}>{f.label}</label>
+            <Input id={`joust-${f.key}`} type="number" min={f.min} max={f.max} step={f.step} value={draft[f.key]} disabled={busy || !data.available}
+              onChange={event => setDraft({ ...draft, [f.key]: event.target.value })} /><span className="hint mono">{f.min}—{f.max.toLocaleString()}</span></div>)}</div>
+          <div className="faint small" style={{ marginTop: 10 }}>倍率 1 为无加成；克制反向使用倒数。预测概率 12.5% 时不修正历史基准。投注衰减基数越大，赔率下降越慢。</div></Panel>}
+        <Panel title="竞猜规则与奖励" tools={<span className="chip">PVF · 只读</span>}><KV rows={[
+          ['规则来源', <Typography.Text copyable key="s" className="mono small">{data.sourcePath}</Typography.Text>],
+          ['最低参与等级', data.minimumLevel == null ? '暂不可用' : `${data.minimumLevel} 级`], ['每角色每场投注上限', data.maximumBetting ?? '暂不可用'],
+          ['下注材料', <div key="c" style={{ display: 'grid' }}>{data.currencies.map(item => <span key={item.itemId}>{itemLabel(item)}</span>)}</div>],
+          ['中奖奖励', itemLabel(data.reward)], ['参与奖励', itemLabel(data.bettingReward)]]} /></Panel>
+        <Panel title="骑士资料" tools={<span className="chip">PVF · 只读</span>} flush><Table<Knight> className="ledger" size="small" rowKey="index" pagination={false} dataSource={data.knights}
+          columns={[{ title: '骑士名称（ID）', render: (_, k) => `${k.name}（${k.index}）` }, { title: '攻击类型', dataIndex: 'attackType' }]} /></Panel>
+      </div> },
       { key: 'current', label: '当前场次', children: tab === 'current' && <JoustCurrentRound onExpired={onExpired} onDenied={onDenied} onWriting={setRoundWriting} /> },
+      { key: 'schedule', label: '每日赛程', children: schedule && <div className="grid">
+        <span className="faint small">客户端素材采用固定时间，每日赛程只读。活动有效期与启停仍在通用配置中管理。</span>
+        <section className="panel"><div className="stats">
+          <div className="stat"><span className="l">每天开始时间</span><span className="v mono" style={{ fontSize: 16 }}>{schedule.dailyStartTime}（北京时间）</span></div>
+          <div className="stat"><span className="l">每天场次</span><span className="v" style={{ fontSize: 18 }}>{schedule.roundsPerDay}</span></div>
+          <div className="stat"><span className="l">场次间隔</span><span className="v" style={{ fontSize: 18 }}>{schedule.roundIntervalMinutes} 分钟</span></div>
+          <div className="stat"><span className="l">投注时长</span><span className="v" style={{ fontSize: 18 }}>{schedule.bettingMinutes} 分钟</span></div>
+          <div className="stat"><span className="l">封盘时长</span><span className="v" style={{ fontSize: 18 }}>{schedule.lockMinutes} 分钟</span></div>
+          <div className="stat"><span className="l">每轮比赛时长</span><span className="v" style={{ fontSize: 18 }}>{schedule.stageSeconds} 秒</span></div>
+        </div></section>
+        <Panel title="每日赛程" flush><Table className="ledger" size="small" rowKey="index" pagination={false} dataSource={sessions} columns={[
+          { title: '每日场次', render: (_, row) => `第 ${row.index + 1} 场` }, { title: '开始投注', dataIndex: 'start', render: v => <span className="mono">{v}</span> },
+          { title: '投注封盘', dataIndex: 'lock', render: v => <span className="mono">{v}</span> }, { title: '战斗开始', dataIndex: 'fight', render: v => <span className="mono">{v}</span> },
+        ]} /></Panel>
+      </div> },
     ]} />
-  </Modal>;
+  </Drawer>;
 }

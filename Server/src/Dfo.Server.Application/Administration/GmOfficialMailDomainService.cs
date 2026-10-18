@@ -115,7 +115,6 @@ internal sealed class GmOfficialMailDomainService(IGmMailPersistence persistence
         var at = clock.GetUtcNow(); var expires = at.AddDays(30);
         var grants = await rules.PrepareItemsAsync(input, at, token);
         var sent = new List<GmMailSentRecipient>();
-        var instanceValues = new HashSet<int>();
         foreach (var target in targets)
         {
             var builder = MailBuilder.FromSystem(new CharacterId(target.CharacterId)).WithText(input.Title, input.Body).ExpiresAt(expires);
@@ -126,9 +125,8 @@ internal sealed class GmOfficialMailDomainService(IGmMailPersistence persistence
                 if (grant.Preview.Kind == "equipment")
                     for (var count = 0; count < grant.Requested.Count; count++)
                     {
-                        int instanceValue;
-                        do { instanceValue = Dfo.Server.Application.Inventory.EquipmentQualitySeeds.NewRandom(); } while (!instanceValues.Add(instanceValue));
-                        var record = await lifecycle.CreateAsync(grant.Snapshot with { InstanceValue = instanceValue }, token);
+                        // The rule service already placed the tier's fixed attribute seed on the snapshot.
+                        var record = await lifecycle.CreateAsync(grant.Snapshot, token);
                         var uid = record.ItemUid!.Value.Value;
                         records.Add(record); uids.Add(uid); builder.AddEquipment(new ItemIdentity(uid));
                     }
