@@ -1,0 +1,64 @@
+=== etc/guide/global/1006.gdata ===
+[index]
+1006
+[new page]
+[image]
+1 7 22 0 0 0 Interface/newstyle/windows/Guide/content_cn.img 13
+[text]
+10 265 310 0 1. 订婚与结婚
+角色达到Lv30后， 可以在赫顿玛尔市区的NPC大司祭处申请订婚或结婚(举办婚礼)。
+[new page]
+[image]
+1 7 22 0 0 0 Interface/newstyle/windows/Guide/content_cn.img 16
+[text]
+10 265 310 0 2. 心意点
+已婚角色每日登录游戏时都将获得1点心意点。(每日限1次)
+心意点可用于在NPC云清处兑换婚房装饰物或婚戒升级券。
+[new page]
+[image]
+1 7 22 0 0 0 Interface/newstyle/windows/Guide/content_cn.img 18
+[text]
+10 265 310 0 3. 婚房
+只有已婚角色才拥有自己的婚房， 并且可以随意装饰。
+[new page]
+[image]
+1 7 22 0 0 0 Interface/newstyle/windows/Guide/content_cn.img 19
+[text]
+10 265 310 0 3. 婚房
+婚房可以为拥有者附加提升属性的Buff， 并且该Buff效果会随着婚房的华丽程度而改变。
+[new page]
+[image]
+1 7 22 0 0 0 Interface/newstyle/windows/Guide/content_cn.img 14
+[text]
+10 265 310 0 4. 夫妻专属心情状态
+在聊天框中输入心情指令“=恋爱ing”， 可以设置夫妻专属心情状态。
+[new page]
+[image]
+1 7 22 0 0 0 Interface/newstyle/windows/Guide/content_cn.img 15
+[text]
+10 265 310 0 5. 夫妻专属聊天表情
+在聊天框中输入“/心心相印/”或“/一见钟情/”时， 会出现夫妻专属聊天表情。
+[new page]
+[image]
+1 7 22 0 0 0 Interface/newstyle/windows/Guide/content_cn.img 17
+[text]
+10 265 310 0 6. 婚戒
+婚戒可以为佩戴者附加提升属性的Buff， 并且该Buff效果会随婚戒Lv的增加而加强。
+[new page]
+[image]
+1 7 22 0 0 0 Interface/newstyle/windows/Guide/content_cn.img 20
+[text]
+10 265 310 0 7. 培育爱情树
+爱情树的种植与培育， 皆只能在婚房中进行。
+[new page]
+[image]
+1 7 22 0 0 0 Interface/newstyle/windows/Guide/content_cn.img 21
+[text]
+10 265 310 0 8. 爱情成长胶囊
+已婚角色可借由通关推荐地下城获取能量值， 当能量槽满后可制作[爱情成长胶囊]。
+[new page]
+[image]
+1 7 22 0 0 0 Interface/newstyle/windows/Guide/content_cn.img 22
+[text]
+10 265 310 0 9. 专属地下城 - 爱之摩伽陀
+[爱之摩伽陀]地下城位于格兰之森山麓地区， 只有夫妻2人组队时才可进入。

@@ -1,0 +1,31 @@
+{
+  "sourceCommit": "f69639855bb0e15112c5d647722f9efa0b769226",
+  "pvfPath": "artifacts/sao-ticket-20261014/Script.server.pvf",
+  "pvfSha256": "91902D91AA0015024B75F55BE037FE7C2900FD66432459B62578CA0E865DEBF4",
+  "guidePathInPvf": "etc/guide/global/1006.gdata",
+  "guideExtractionSha256": "55AA07239C7E6AE84210E2C1FC1CF72FD724B1EE13F4B21B47492F3F8F42F5EE",
+  "evidenceLevel": "ContentStatic; not runtime or client verification",
+  "readOnlyBalanceObservation": {
+    "date": "2026-10-18",
+    "relationStageSummary": [
+      [
+        4,
+        1,
+        40,
+        40
+      ]
+    ],
+    "nonzeroLegacyWeddingRows": 1,
+    "sql": [
+      "SELECT stage,COUNT(*),SUM(love_points),MAX(love_points) FROM marriage_relations GROUP BY stage ORDER BY stage",
+      "SELECT COUNT(*) FROM marriage_weddings WHERE love_points<>0"
+    ],
+    "databaseMutated": false
+  },
+  "migrationInDesign": {
+    "status": "proposal only; not executed",
+    "oldShared": 40,
+    "newEachParticipant": 20,
+    "recheckRequiredBeforeImplementation": true
+  }
+}
