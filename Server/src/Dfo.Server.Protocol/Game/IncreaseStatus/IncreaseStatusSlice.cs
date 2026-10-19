@@ -54,7 +54,7 @@ public sealed record IncreaseStatusCommand(SelectedSessionIdentity Session, Busi
     public CharacterId CharacterId => Session.CharacterId;
 }
 public sealed class IncreaseStatusCommandHandler(ISelectedSessionDomainService sessions,
-    IBusinessInventorySlotDomainService slots, IExperienceItemDomainService experience, TimeProvider clock)
+    IBusinessInventorySlotDomainService slots, IExperienceItemDomainService experience, IReviveCoinDomainService reviveCoins, TimeProvider clock)
     : ICommandHandler<IncreaseStatusCommand, IncreaseStatusResult>
 {
     public async ValueTask<IncreaseStatusResult> HandleAsync(CommandExecutionContext context, IncreaseStatusCommand command, CancellationToken ct)
@@ -67,8 +67,10 @@ public sealed class IncreaseStatusCommandHandler(ISelectedSessionDomainService s
         if (slot is null) return new(ItemUsability.CharacterStateUnavailable);
         var item = await slot.Container.GetAsync(slot.Slot.Index, ct).ConfigureAwait(false);
         if (item is null) return new(ItemUsability.NotAUsableItem, new(null, clock.GetUtcNow()));
-        // This protocol cannot fall through to generic use: unknown stat items must not be consumed.
-        var applied = await experience.TryUseAsync(command.Session, command.Slot, item, ct).ConfigureAwait(false);
+        // Native A21 sends this entry for coin 42 as well as EXP books. Unknown stat items still
+        // cannot fall through to generic consume-only use.
+        var applied = await reviveCoins.TryUseAsync(command.Session, command.Slot, item, ct).ConfigureAwait(false)
+            ?? await experience.TryUseAsync(command.Session, command.Slot, item, ct).ConfigureAwait(false);
         var current = await slot.Container.GetAsync(slot.Slot.Index, ct).ConfigureAwait(false);
         return new(applied?.Status ?? ItemUsability.NotAUsableItem, new(current?.Snapshot, clock.GetUtcNow()), applied);
     }
@@ -111,6 +113,10 @@ public sealed class IncreaseStatusHandler(ISelectedSessionDomainService sessions
                 : GameInventoryDelivery.ClearedSlotNotification(InventoryContainerType.Main, request.SourceSlot, state.At));
         if (result.Application?.ExperienceAward is { } award && result.Application.SkillPoints is { } points)
             messages.Add(GameExperienceDelivery.Notification(award, points));
+        if (result.Application?.OpeningReceipt is { } receipt)
+            foreach (var update in receipt.Updates.Where(x => x.Slot.Space == BusinessInventorySpace.VirtualResource))
+                messages.Add(GameInventoryDelivery.Notification(new(InventoryContainerType.Main,
+                    [new(update.Identity, update.Slot.Index, update.Core.ToCore(), update.Core.AvatarDetail)], receipt.PreparedAt)));
         logger.LogInformation("INCREASE_STATUS character={Character} slot={Slot} status={Status}", session?.CharacterId, request.SourceSlot, result.Status);
         await sender.SendExplicitAsync(context.Connection.ConnectionId, new GameExplicitMessageDelivery(messages, []), ct).ConfigureAwait(false);
     }

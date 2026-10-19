@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -13,6 +14,44 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class IncreaseStatusIntegrationTests
 {
     private const int Book = 690001555;
+
+    [Fact]
+    public async Task Ordinary_revive_coin_uses_001e_and_replay_cannot_spend_or_grant_twice()
+    {
+        using var fixture = new CeraShopFixture(configure: services =>
+        {
+            services.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((42, ItemUseRules.Potion(cooldownMilliseconds: 0))));
+            services.AddSingleton<ICharacterSkillPointDomainService>(new Points());
+        });
+        await fixture.Host.Seed(5, 42, 2);
+        var counter = new GameInboundFrameCounter();
+        await Send(fixture, counter);
+        var frames = fixture.Host.Sender.Messages.Select(fixture.Encode).ToArray();
+        Assert.Equal(Convert.FromHexString("010500FF0000000000000000"), frames[0][15..]);
+        Assert.Equal(1, fixture.Host.Count(42));
+        var wallet = fixture.Host.Services.GetRequiredService<ICharacterContainerDomainService>()
+            .FindContainer(fixture.Host.Session.CharacterId, InventoryContainerType.Main)!;
+        Assert.Equal(1, (await wallet.GetAsync(1, default))!.Count);
+        Assert.Contains(frames, f => Type(f) == 0x000E && BinaryPrimitives.ReadInt16LittleEndian(f.AsSpan(18)) == 1);
+        await Send(fixture, counter);
+        Assert.Equal(1, fixture.Host.Count(42));
+        Assert.Equal(1, (await wallet.GetAsync(1, default))!.Count);
+        Assert.DoesNotContain(Assert.Single(fixture.Host.Sender.Batches).Frames, f => f[0] == 1 && Type(f) == 0x001E);
+    }
+
+    [Dfo.Server.Testing.PvfFact]
+    public async Task Actual_coin_pvf_through_001e_grants_the_wallet_without_mutating_experience()
+    {
+        using var fixture = new CeraShopFixture(useArchive: true);
+        await fixture.Host.Seed(5, 42, 2);
+        var before = fixture.Host.Scalar("SELECT exp FROM characters WHERE character_id=1");
+        await Send(fixture, new());
+        Assert.Equal(Convert.FromHexString("010500FF0000000000000000"), fixture.Encode(fixture.Host.Sender.Messages[0])[15..]);
+        Assert.Equal(1, fixture.Host.Count(42));
+        Assert.Equal(1, (await fixture.Host.Services.GetRequiredService<ICharacterContainerDomainService>()
+            .FindContainer(fixture.Host.Session.CharacterId, InventoryContainerType.Main)!.GetAsync(1, default))!.Count);
+        Assert.Equal(before, fixture.Host.Scalar("SELECT exp FROM characters WHERE character_id=1"));
+    }
 
     [SkippableTheory]
     [InlineData(690001552, 1000)]

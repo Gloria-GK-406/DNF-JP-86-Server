@@ -19,11 +19,7 @@ internal sealed class ItemUseEffectDomainService(ICharacterDomainService charact
         ItemReference item, CancellationToken ct)
     {
         if (reviveCoins is not null && await reviveCoins.TryUseAsync(session, source, item, ct).ConfigureAwait(false) is { } coin)
-        {
-            if (coin.Status == ItemUsability.Allowed && events is not null)
-                await events.EnqueueAsync(new Dfo.Server.Abstractions.Achievements.ItemUsed(session.CharacterId, item.ItemId, 1), ct).ConfigureAwait(false);
             return coin;
-        }
         if (entryItems is not null && await entryItems.TryUseAsync(session, source, item, ct).ConfigureAwait(false) is { } allowance)
             return allowance;
         if (experienceItems is not null

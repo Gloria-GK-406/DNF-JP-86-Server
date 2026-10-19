@@ -42,6 +42,7 @@ internal sealed class ReviveCoinDomainService(IReviveCoinRuleService rules, IIte
         if (plan.Effects.OfType<ConsumeFromContainerEffect>().Count(x => x.Slot == source && x.ExpectedItemId == item.ItemId && x.Count == 1) != 1)
             return new(ItemUsability.NotAUsableItem, item.ItemId, item.Count);
         var settled = await inventory.ApplyAsync(session, plan.Effects.Append(rules.Grant()).ToArray(), at, ct).ConfigureAwait(false);
+        await events.EnqueueAsync(new Dfo.Server.Abstractions.Achievements.ItemUsed(session.CharacterId, item.ItemId, 1), ct).ConfigureAwait(false);
         return new(ItemUsability.Allowed, item.ItemId,
             settled.Applied.Changes<ContainerConsumptionChange>().Single(x => x.Slot == source).RemainingCount, settled.Applied)
             { OpeningReceipt = settled.Inventory };

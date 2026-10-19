@@ -1266,7 +1266,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 
 ## 2026-09-21 复活币实现候选
 
-2026-10-19：普通消耗品42已接002C扣物品与加币事务；每日免费领取CMD00CF已接线，NOTI00B1统一投影当日领取状态。规则为每角色每业务日一次且余额必须为0。来源等级为PVF + ClientStatic + CurrentImplementation；新流程待实机验收。见[实施与边界](../Document/ReviveCoins-20261019.md)。
+2026-10-19：普通消耗品42由001E（本次实机入口）与兼容002C共用扣物品与加币事务；每日免费领取CMD00CF已接线，NOTI00B1统一投影当日领取状态。规则为每角色每业务日一次且余额必须为0。来源等级为PVF + ClientStatic + CurrentImplementation及现场日志；修正后流程待实机验收。见[实施与边界](../Document/ReviveCoins-20261019.md)。
 
 CMD [0029 USE_COIN](game/client-to-server/0x0029.md)：请求 2B，成功 ACK 4B；事务扣付款人一枚币、NOTI 0020 state=1 广播并取消全灭计时。ACK flag 首轮取 1，业务值与实机复活尚待验证，不标记 ClientVerified。
 
