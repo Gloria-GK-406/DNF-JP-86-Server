@@ -185,6 +185,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ISouthernDaleDomainService, SouthernDaleDomainService>();
         services.TryAddSingleton<ISouthernDaleQuestDomainService, SouthernDaleQuestDomainService>();
         services.AddDomainEvent<SouthernDaleInventoryChanged>("southern-dale.inventory-changed", 1);
+        services.AddDomainEvent<SouthernDaleDailyRefillCompleted>("southern-dale.daily-refill-completed", 1);
         services.AddSouthernDaleDailyRefill();
         services.TryAddSingleton<ITauKingdomRuleService, TauKingdomRuleService>();
         services.TryAddSingleton<ITauKingdomDomainService, TauKingdomDomainService>();

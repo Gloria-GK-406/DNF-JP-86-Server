@@ -7,4 +7,7 @@ public interface IGmEventsDomainService
     ValueTask<WeeklyAttendanceSettings> WeeklyAttendanceSettingsAsync(string secret,CancellationToken ct);
     ValueTask<ManagedEventList> ChangeAsync(string secret,EventChange change,CancellationToken ct);
 }
-public sealed record EventsChanged : INotification<EventsChanged>;
+public sealed record EventsChanged : INotification<EventsChanged>
+{
+    public bool RefreshQuestOffers { get; init; }
+}

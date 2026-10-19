@@ -1081,6 +1081,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddDomainSubscriber<SaoTowerCleared, SaoTowerNotificationSubscriber>("sao-tower.notifications", DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainSubscriber<SouthernDaleInventoryChanged, Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryNotificationSubscriber>(
             "southern-dale.inventory-notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddDomainSubscriber<SouthernDaleDailyRefillCompleted, Dfo.Server.Protocol.Game.SouthernDale.SouthernDailyRefillNotificationSubscriber>(
+            "southern-dale.daily-refill-notifications", DomainEventDeliveryPolicy.LiveOnly);
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryRefresh,
             Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryRefreshHandler>(retryLimit: 0);
         services.AddDomainSubscriber<TauKingdomTicketRefilled, Dfo.Server.Protocol.Game.TauKingdom.TauTicketNotificationSubscriber>(

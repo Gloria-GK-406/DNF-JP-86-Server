@@ -44,3 +44,5 @@ public interface ISouthernDaleDomainService
 }
 public sealed record SouthernDaleInventoryChanged(CharacterId CharacterId,
     ImmutableArray<BusinessSlot> Slots) : IDomainEvent;
+public sealed record SouthernDaleDailyRefillCompleted(CharacterId CharacterId,
+    ImmutableArray<BusinessSlot> Slots) : IDomainEvent;

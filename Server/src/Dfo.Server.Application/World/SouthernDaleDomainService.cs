@@ -57,9 +57,9 @@ internal sealed class SouthernDaleDomainService(ISouthernDaleRuleService rules,
         var at = clock.GetUtcNow();
         var configured = (await refills.EffectiveAsync(at, ct).ConfigureAwait(false)).Where(x => x.ItemId == rules.TicketItemId).ToArray();
         var result = await refill.ApplyIndependentRefillAsync(session.AccountId, session.CharacterId, configured, at, ct).ConfigureAwait(false);
-        if (result.Grants.Count > 0)
-            await events.EnqueueAsync(new SouthernDaleInventoryChanged(session.CharacterId,
-                [.. result.Grants.Select(x => x.Slot).Distinct()]), ct).ConfigureAwait(false);
+        // A new game day restores the daily quest even when two tickets are already held.
+        await events.EnqueueAsync(new SouthernDaleDailyRefillCompleted(session.CharacterId,
+            [.. result.Grants.Select(x => x.Slot).Distinct()]), ct).ConfigureAwait(false);
         return true;
     }
 

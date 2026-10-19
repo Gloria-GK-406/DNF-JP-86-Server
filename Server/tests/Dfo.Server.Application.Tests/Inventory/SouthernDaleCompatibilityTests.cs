@@ -192,6 +192,69 @@ public sealed class SouthernDaleCompatibilityTests
         }
     }
 
+    [Dfo.Server.Testing.PvfFact]
+    public async Task Southern_activity_changes_push_the_current_offer_list_to_the_online_client()
+    {
+        using var fixture = new CeraShopFixture(useArchive: true);
+        var services = fixture.Host.Services;
+        services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionRuntimeDirectory>().Publish(fixture.Host.Session, false);
+        var events = services.GetRequiredService<IEventManagementDomainService>();
+        var revision = 0;
+        foreach (var open in new[] { false, true, false })
+        {
+            fixture.Host.Sender.Messages.Clear();
+            await using (var tx = services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin())
+            {
+                await events.ChangeAsync(new(2330, revision, open ? "enable" : "disable"), "test", fixture.Host.Clock.GetUtcNow(), default);
+                await services.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>()
+                    .EnqueueAsync(new ManagedEventConfigurationChanged(2330, ++revision));
+                await tx.CommitAsync(default);
+            }
+            await services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync("activity.refresh");
+            Assert.Equal(open, OffersSouthern(fixture));
+            var state = Assert.Single(fixture.Host.Sender.Messages.Select(fixture.Encode), x =>
+                System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(1)) == 0x033F
+                && System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(x.AsSpan(15)) == 1);
+            Assert.Equal(open ? 1u : 0u, System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(state.AsSpan(19)));
+        }
+    }
+
+    [Dfo.Server.Testing.PvfFact]
+    public async Task Southern_online_day_reset_pushes_the_next_daily_offer_even_with_two_tickets_held()
+    {
+        var clock = new MutableClock();
+        using var fixture = new CeraShopFixture(useArchive: true, configure: s => s.AddSingleton<TimeProvider>(clock));
+        var services = fixture.Host.Services;
+        var session = fixture.Host.Session;
+        services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionRuntimeDirectory>().Publish(session, false);
+        await fixture.Host.Seed(177, 2680739, 2);
+        var commands = services.GetRequiredService<ICommandBus>();
+        Assert.True((await commands.SendAsync(new AcceptQuestCommand(session.AccountId, session.CharacterId, 20549))).Accepted);
+        Assert.True((await commands.SendAsync(new FinishQuestCommand(session.AccountId, session.CharacterId, 20549, ushort.MaxValue, 1,
+            checked((uint)clock.Now.ToUnixTimeSeconds())))).Finished);
+        foreach (var nextDay in new[] { false, true })
+        {
+            if (nextDay) clock.Now = clock.Now.AddMinutes(1);
+            fixture.Host.Sender.Messages.Clear();
+            Assert.True(await commands.SendAsync(new Dfo.Server.Application.World.RefillOnlineSouthernTicketCommand(session)));
+            await services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
+            Assert.Equal(nextDay, OffersSouthern(fixture));
+            Assert.Equal(2, fixture.Host.Count(2680738));
+        }
+    }
+
+    private static bool OffersSouthern(CeraShopFixture fixture)
+    {
+        var frame = Assert.Single(fixture.Host.Sender.Messages.Select(fixture.Encode), x =>
+            System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(1)) == 0x0015);
+        using var reader = new BinaryReader(new MemoryStream(frame[15..]));
+        _ = reader.ReadByte();
+        var count = reader.ReadUInt16();
+        var ids = Enumerable.Range(0, count).Select(_ => reader.ReadUInt16()).ToArray();
+        Assert.Equal(reader.BaseStream.Length, reader.BaseStream.Position);
+        return ids.Contains((ushort)20549);
+    }
+
     private sealed class MutableClock : TimeProvider
     {
         public DateTimeOffset Now { get; set; } = new(2026, 10, 19, 5, 59, 0, TimeSpan.FromHours(8));
