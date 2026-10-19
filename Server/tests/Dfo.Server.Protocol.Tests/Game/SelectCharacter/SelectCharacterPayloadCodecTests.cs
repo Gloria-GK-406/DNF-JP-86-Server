@@ -713,6 +713,7 @@ public sealed class SelectCharacterPayloadCodecTests
             services.RemoveAll<Dfo.Server.Abstractions.World.IHerasDungeonDomainService>();
             services.RemoveAll<Dfo.Server.Abstractions.World.IAltarDungeonDomainService>();
             services.RemoveAll<Dfo.Server.Abstractions.World.ITournamentDungeonDomainService>();
+            services.RemoveAll<Dfo.Server.Abstractions.World.IGoldSilverHornDomainService>();
             services.RemoveAll<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>();
             await using var provider = services.BuildServiceProvider();
             var typed = await provider.GetRequiredService<ICharacterEntryStateDomainService>().LoadAsync(
