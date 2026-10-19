@@ -25,12 +25,28 @@ public sealed class UsageQuotaProjectionTests
     {
         var sessions = new Sessions(); var snapshots = new Snapshots();
         snapshots.Value = snapshots.Value with { GoldSilverHorn = new(new(2026, 10, 19), used, 3) };
-        var message = Assert.IsType<GoldSilverHornQuotaMessage>(Assert.Single(await new UsageQuotaViewChangedHandler(snapshots, sessions)
+        var messages = await new UsageQuotaViewChangedHandler(snapshots, sessions)
             .ComposeAsync(new(sessions.Current!.CharacterId, sessions.Current.ConnectionId),
-                new(sessions.Current.CharacterId, UsageQuotaFamily.GoldSilverHorn), default)));
+                new(sessions.Current.CharacterId, UsageQuotaFamily.GoldSilverHorn), default);
+        var message = Assert.Single(messages.OfType<GoldSilverHornQuotaMessage>());
         Assert.Equal(0x042B, message.Type);
         Assert.Equal(Convert.FromHexString(hex), message.EncodeBody());
         Assert.Throws<OverflowException>(() => new GoldSilverHornQuotaMessage(-1).EncodeBody());
+    }
+
+    [Fact]
+    public async Task Gold_silver_horn_committed_refresh_updates_used_and_absolute_remaining_caches()
+    {
+        var sessions = new Sessions(); var snapshots = new Snapshots();
+        snapshots.Value = snapshots.Value with { GoldSilverHorn = new(new(2026, 10, 19), 1, 3) };
+        var messages = await new UsageQuotaViewChangedHandler(snapshots, sessions).ComposeAsync(
+            new(sessions.Current!.CharacterId, sessions.Current.ConnectionId),
+            new(sessions.Current.CharacterId, UsageQuotaFamily.GoldSilverHorn), default);
+        Assert.Equal(2, messages.Count);
+        Assert.Equal(Convert.FromHexString("00000100"), Assert.Single(messages.OfType<GoldSilverHornQuotaMessage>()).EncodeBody());
+        var remaining = Assert.Single(messages.OfType<DungeonRemainingEntriesMessage>());
+        Assert.Equal(0x0227, remaining.Type);
+        Assert.Equal(Convert.FromHexString("1B10000002"), remaining.EncodeBody());
     }
 
     [Fact]

@@ -57,7 +57,9 @@ ClientStatic / Confirmed：A21 handler RVA `0x00571730`精确读取4字节；off
 
 CurrentImplementation：选角、成功入场提交后和本服统一日切刷新权威已用次数。向量：0次`00000000`，1次`00000100`，3次`00000300`。实现与验收边界见[交付说明](../../../Document/GoldSilverHorn-20261019.md)。未取得本消息真实会话样本，不标记WireCaptured或ClientVerified。
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
+2026-10-19次数显示排查：只读运行中客户端内存确认第二槽已用1，管理器silver槽为4123/最大3。ClientStatic：本handler还经setter VA `01870AD0`写入剩余数；与0227及完整角色状态subtype1共用缓存。CurrentImplementation现同时发0227的4123绝对剩余数，并在完整角色状态中覆盖4123旧默认值，防止后续状态刷新还原3次。本次未保存真实网络帧，不升级为WireCaptured；修复后UI待用户复测。
+
+本协议尚无原始网络样本。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
 
 ## 待实机补全

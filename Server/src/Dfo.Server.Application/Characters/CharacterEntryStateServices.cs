@@ -236,7 +236,8 @@ internal sealed class CharacterEntryStateDomainService(
     IPremiumServiceDomainService premiums,
     ICreatureDomainStore? creatureStore = null, AmbientStoreAccess? stores = null,
     IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null,
-    IClientSettingsDomainService? clientSettings = null, IHerasDungeonDomainService? heras = null) : ICharacterEntryStateDomainService
+    IClientSettingsDomainService? clientSettings = null, IHerasDungeonDomainService? heras = null,
+    IGoldSilverHornDomainService? goldSilverHorn = null) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,
@@ -289,6 +290,8 @@ internal sealed class CharacterEntryStateDomainService(
                 .Select(value => (value.DungeonId, value.Remaining)));
         if (heras is not null)
             remainingEntries.Add((3900, (await heras.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)).Remaining));
+        if (goldSilverHorn is not null)
+            remainingEntries.Add((4123, (await goldSilverHorn.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)).Remaining));
         if (remainingEntries.Count > 0)
         {
             // A21 subtype1 and NOTI0227 write the same counter cache. Legacy dimensions

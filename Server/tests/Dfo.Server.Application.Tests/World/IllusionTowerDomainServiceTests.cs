@@ -1225,6 +1225,7 @@ public sealed class IllusionTowerDomainServiceTests
             // Returning from the tower reads quota projections; the synthetic fixture must not load a real PVF.
             s.AddSingleton<IAltarDungeonContentSource, NoAltarContent>();
             s.AddSingleton<ITournamentDungeonContentSource, NoTournamentContent>();
+            s.AddSingleton<IGoldSilverHornContentSource, SyntheticGoldSilverHornContent>();
             s.AddSingleton<IDungeonCellFactory, OrdinaryCells>();
             s.AddSingleton<IDungeonRunDomainService>(p => new DungeonRunDomainService(p.GetRequiredService<IDomainTransactionAccessor>()));
             configure?.Invoke(s);
@@ -1243,6 +1244,10 @@ public sealed class IllusionTowerDomainServiceTests
     {
         public ValueTask<TournamentDefinition> GetAsync(int dungeonId, CancellationToken cancellationToken) =>
             ValueTask.FromResult(new TournamentDefinition(dungeonId, 1, 1, 1, 0, 0, [], [], [], [], [], 0));
+    }
+    private sealed class SyntheticGoldSilverHornContent : IGoldSilverHornContentSource
+    {
+        public GoldSilverHornContent Load() => new(4123, 3);
     }
     private static DomainTransactionScope Scope(ShopFixture f) => (DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
     private static ValueTask<TowerEntryResult> Enter(ShopFixture f) => Tower(f).EnterAsync([new(f.Session, 2)], f.Session, 42, default);

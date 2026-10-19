@@ -122,6 +122,29 @@ public sealed class GoldSilverHornTests
         Assert.True(Assert.Single(closed.ScheduledDungeons, x => x.DungeonId == 3557).Open);
     }
 
+    [SkippableTheory]
+    [InlineData(0, 3)]
+    [InlineData(1, 2)]
+    [InlineData(3, 0)]
+    public async Task Full_character_refresh_overrides_legacy_4123_defaults_with_authoritative_remaining(int used, int remaining)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        await using var f = await Fixture();
+        f.Sql("INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0); INSERT OR IGNORE INTO character_stats(character_id) VALUES(71); INSERT INTO character_pvp(character_id) VALUES(71); INSERT INTO character_settings(character_id) VALUES(71); INSERT INTO character_expert_job(character_id) VALUES(71)");
+        f.Sql("INSERT INTO character_dimensions(character_id,sort_order,dim_key,val1,val2) VALUES(71,0,4123,7,3),(71,1,4123,9,99)");
+        var period = (await f.Services.GetRequiredService<IGoldSilverHornDomainService>().ReadQuotaAsync(new(71), default)).Period;
+        await using (var tx = f.Scope.Begin())
+        {
+            await f.Services.GetRequiredService<IEventService>().DirectAsync(new GoldSilverHornEntryRecorded(new(71), period, null, used));
+            await tx.CommitAsync(default);
+        }
+        var state = await f.Services.GetRequiredService<ICharacterEntryStateDomainService>().LoadAsync(new(1), new(71), default);
+        var row = Assert.Single(state.Public.Extras.Dimensions, x => x.Key == 4123);
+        Assert.Equal(remaining, row.Value2); Assert.Equal(7, row.Value1);
+        Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM character_dimensions WHERE dim_key=4123"));
+        Assert.Equal(102, f.Scalar("SELECT SUM(val2) FROM character_dimensions WHERE dim_key=4123"));
+    }
+
     [SkippableFact]
     public async Task Factory_failure_after_quota_charge_rolls_back_the_counter_and_run()
     {
