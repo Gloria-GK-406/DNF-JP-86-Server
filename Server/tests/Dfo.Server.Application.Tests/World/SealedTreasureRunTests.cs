@@ -45,12 +45,6 @@ public sealed class SealedTreasureRunTests
         }
         Assert.NotNull(runs.TryMove(Character, run.RunId, run.RoomVersion, Center,
             DungeonCellSeed.CompleteEmpty(Center, 11)));
-        foreach (var other in new[] { new MazeCell(1, 2), new(2, 3), new(3, 2), new(2, 1) }.Where(p => p != road))
-        {
-            var atCenter = runs.Find(Character)!;
-            Assert.Null(runs.TryMove(Character, atCenter.RunId, atCenter.RoomVersion, other,
-                DungeonCellSeed.CompleteEmpty(other, 10)));
-        }
         var back = runs.TryMove(Character, road)!;
         Assert.Single(back.Kills);
         Assert.NotNull(runs.TryMove(Character, Center));
@@ -58,6 +52,26 @@ public sealed class SealedTreasureRunTests
         Assert.Empty(fresh.Kills);
         Assert.Null(runs.TryMove(Character, fresh.RunId, fresh.RoomVersion, Center,
             DungeonCellSeed.CompleteEmpty(Center, 11)));
+    }
+
+    [Theory]
+    [InlineData(1, 2)]
+    [InlineData(2, 3)]
+    [InlineData(3, 2)]
+    [InlineData(2, 1)]
+    public void Center_exit_does_not_require_destination_element_but_inbound_route_stays_sealed(byte x, byte y)
+    {
+        var runs = new DungeonRunDomainService();
+        var run = Start(runs, Layout(3557, Center), DungeonCellSeed.CompleteEmpty(Center, 10));
+        var road = new MazeCell(x, y);
+        var exit = runs.TryMove(Character, run.RunId, run.RoomVersion, road,
+            DungeonCellSeed.CompleteEmpty(road, 10));
+        Assert.NotNull(exit);
+        Assert.Equal(road, exit.CurrentCell);
+        Assert.Empty(exit.Kills);
+        // The stone is in the surrounding room. Leaving the center must not
+        // unlock that stone or permit the opposite, still-sealed inbound move.
+        Assert.Null(runs.TryMove(Character, Center));
     }
 
     [Fact]

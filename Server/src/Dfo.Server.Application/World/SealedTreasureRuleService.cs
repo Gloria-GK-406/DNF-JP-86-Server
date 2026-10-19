@@ -33,9 +33,10 @@ internal sealed class SealedTreasureRuleService(IDungeonDefinitionSource? conten
 
     public bool AllowsTraversal(int dungeonId, IEnumerable<int> killedMonsters, MazeCell from, MazeCell target)
     {
-        if (!Supports(dungeonId)) return true;
-        var road = target == Center ? from : from == Center ? target : (MazeCell?)null;
-        var required = Seals.FirstOrDefault(x => x.Road == road).Monster;
+        // Stones live in the surrounding rooms. A21 allows leaving the center
+        // through any exit; applying the opposite entry check strands its move state.
+        if (!Supports(dungeonId) || target != Center) return true;
+        var required = Seals.FirstOrDefault(x => x.Road == from).Monster;
         return required == 0 || killedMonsters.Contains(required);
     }
 
