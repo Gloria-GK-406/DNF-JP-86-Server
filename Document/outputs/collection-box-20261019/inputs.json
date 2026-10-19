@@ -1,0 +1,62 @@
+{
+  "dump": "E:\\Project\\DNF\\DNFClient-A21-debug\\dumps\\dnf-dump-20260912-222635-726-46724\\DNF-memory-rva.bin",
+  "sha256": "52a9d002eb15ab6301069a954d84b77a122b9b6928f8886a1b0653054428ac72",
+  "image_base": "0x00400000",
+  "address_labels": "RVA",
+  "branch_operands": "VA",
+  "method": "bounded linear disassembly; no runtime capture",
+  "ranges": {
+    "select_request": [
+      "0x8990d0",
+      "0x899127"
+    ],
+    "insert_request": [
+      "0x89e7d0",
+      "0x89e904"
+    ],
+    "remove_request": [
+      "0x89e950",
+      "0x89ea59"
+    ],
+    "extend_request": [
+      "0x898d90",
+      "0x898df0"
+    ],
+    "select_response": [
+      "0x8a6a30",
+      "0x8a6ace"
+    ],
+    "insert_response": [
+      "0x898fc0",
+      "0x89902d"
+    ],
+    "remove_response": [
+      "0x899030",
+      "0x8990c5"
+    ],
+    "extend_response": [
+      "0x89f070",
+      "0x89f14c"
+    ],
+    "box_state": [
+      "0x8a7490",
+      "0x8a7793"
+    ],
+    "box_state_apply": [
+      "0x8a73e0",
+      "0x8a7482"
+    ],
+    "box_items_replace": [
+      "0x8a70a0",
+      "0x8a70ec"
+    ],
+    "box_flag_test": [
+      "0x899290",
+      "0x89931b"
+    ],
+    "box_inactive_test": [
+      "0x899340",
+      "0x8993e4"
+    ]
+  }
+}
