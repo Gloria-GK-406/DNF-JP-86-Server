@@ -55,6 +55,8 @@ internal sealed class UsageQuotaViewChangedHandler(IUsageQuotaSnapshotDomainServ
             || sessions.FindByConnection(session.ConnectionId) != session) return [];
         return notification.Family switch
         {
+            UsageQuotaFamily.ReviveCoin => [new DailyReviveCoinStateMessage(snapshot.ReviveCoinClaimed
+                ?? throw new InvalidDataException("Missing revive coin quota snapshot."))],
             UsageQuotaFamily.GoldSilverHorn => [new GoldSilverHornQuotaMessage((snapshot.GoldSilverHorn
                 ?? throw new InvalidDataException("Missing gold/silver horn quota snapshot.")).Used),
                 new DungeonRemainingEntriesMessage(4123, checked((byte)snapshot.GoldSilverHorn.Remaining))],

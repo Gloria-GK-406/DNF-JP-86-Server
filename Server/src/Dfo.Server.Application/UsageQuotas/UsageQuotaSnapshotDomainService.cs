@@ -12,7 +12,7 @@ namespace Dfo.Server.Application.UsageQuotas;
 internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService quotas,
     IItemUsageDomainService items, IPremiumServiceDomainService premiums,
     IPremiumServiceUsageDomainService premiumUsage, TimeProvider clock, IDimensionDungeonDomainService dimensions,
-    IDespairTowerDomainService despair, IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null, IHerasDungeonDomainService? heras = null, IGoldSilverHornDomainService? goldSilverHorn = null) : IUsageQuotaSnapshotDomainService
+    IDespairTowerDomainService despair, IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null, IHerasDungeonDomainService? heras = null, IGoldSilverHornDomainService? goldSilverHorn = null, IReviveCoinDomainService? reviveCoins = null) : IUsageQuotaSnapshotDomainService
 {
     public async ValueTask<UsageQuotaSnapshot> ReadAsync(AccountId accountId, CharacterId characterId,
         UsageQuotaFamily family, CancellationToken cancellationToken)
@@ -20,6 +20,8 @@ internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService q
         var at = clock.GetUtcNow();
         return family switch
         {
+            UsageQuotaFamily.ReviveCoin => new(at, [], null, [], null, ReviveCoinClaimed:
+                await (reviveCoins ?? throw new InvalidOperationException("Revive coin quotas unavailable.")).ClaimedAsync(characterId, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.GoldSilverHorn => new(at, [], null, [], null, GoldSilverHorn:
                 await (goldSilverHorn ?? throw new InvalidOperationException("Gold/silver horn quotas unavailable.")).ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.HerasDungeon => new(at, [], null, [], null, Heras:

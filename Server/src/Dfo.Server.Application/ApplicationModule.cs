@@ -707,6 +707,11 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, DungeonEntryAllowanceEffectHandler>());
         services.TryAddSingleton<IExperienceItemRuleService, ExperienceItemRuleService>();
         services.TryAddSingleton<IExperienceItemDomainService, ExperienceItemDomainService>();
+        services.TryAddSingleton<IReviveCoinRuleService, ReviveCoinRuleService>();
+        services.TryAddSingleton<IReviveCoinQueryDomainService, ReviveCoinQueryDomainService>();
+        services.TryAddSingleton<IReviveCoinDomainService, ReviveCoinDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.ReviveCoinClaimRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.TryAddSingleton<IApplyEffectsDomainService, ApplyEffectsDomainService>();
         services.TryAddSingleton<IInventoryEffectPreflightDomainService, InventoryEffectPreflightDomainService>();
         services.TryAddSingleton<IEquipmentEffectPlanRuleService, EquipmentEffectPlanRuleService>();

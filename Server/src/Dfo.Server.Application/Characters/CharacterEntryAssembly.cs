@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Data.Mail;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Data.Accounts;
@@ -48,7 +49,7 @@ internal sealed class CharacterEntryAssembly(
     ICharacterDailyChallengeTailTable challengeTails,
     ICharacterDailyScheduleTable dailySchedules,
     ICharacterDungeonDifficultyDomainService dungeonPermissions,
-    ICharacterDailyCounterValueTable dailyCounters,
+    IReviveCoinQueryDomainService reviveCoins,
     ICharacterCreatureTable creatures,
     ICharacterTitleBookTable titleBooks,
     ICharacterAchievementTable achievements,
@@ -63,8 +64,6 @@ internal sealed class CharacterEntryAssembly(
     /// <summary>How many of the inbox a character is shown on entry.</summary>
 
 
-    /// <summary>The counter that says today's revive coin has been taken.</summary>
-    private const string ReviveCoinCounter = "revive_coin_daily_claim";
 
     public async ValueTask<CharacterEntryStorageRecord> LoadAsync(
         AccountId accountId,
@@ -382,8 +381,7 @@ internal sealed class CharacterEntryAssembly(
         var dungeons = visibleDifficulties.Select((value, index) =>
             (index, value.DungeonId, (int)value.Maximum)).ToArray();
 
-        var claimedRevive = await CounterAsync(characterId, ReviveCoinCounter, cancellationToken)
-            .ConfigureAwait(false) > 0;
+        var claimedRevive = await reviveCoins.ClaimedAsync(characterId, cancellationToken).ConfigureAwait(false);
         var premiumUsage = await premiumServices.ReadAsync(characterId, cancellationToken).ConfigureAwait(false);
 
         return new CharacterProgressionStorageRecord(
@@ -500,10 +498,6 @@ internal sealed class CharacterEntryAssembly(
             inbox, missions);
     }
 
-    private async ValueTask<int> CounterAsync(
-        CharacterId characterId, string key, CancellationToken cancellationToken) =>
-        await dailyCounters.FindValueAsync(characterId, key, cancellationToken)
-            .ConfigureAwait(false) ?? 0;
 
     /// <summary>
     /// What a character's stored profile may hold, given the widths the packet gives each field.

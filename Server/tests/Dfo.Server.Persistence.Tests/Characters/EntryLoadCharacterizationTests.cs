@@ -121,7 +121,7 @@ public sealed class EntryLoadCharacterizationTests
             INSERT INTO character_daily_schedule_states
                 VALUES(22,0,1,2,3,4),(22,1,5,6,7,8),(22,2,9,10,11,12);
             INSERT INTO character_dungeon_permissions VALUES(22,0,300,2);
-            INSERT INTO character_daily_counters(character_id,counter_key,period,value) VALUES(22,'revive_coin_daily_claim','day',1);
+            INSERT INTO character_daily_counters(character_id,counter_key,period,value) VALUES(22,'revive_coin_daily_claim',date('now','+2 hours'),1);
             INSERT INTO character_daily_counters(character_id,counter_key,period,value,last_consumed_at) VALUES(22,'lottery_double_reward_used','day',6,unixepoch()*1000);
             INSERT INTO items(item_uid,item_core,
                 creature_field04,creature_mode_flag,creature_progress_value,

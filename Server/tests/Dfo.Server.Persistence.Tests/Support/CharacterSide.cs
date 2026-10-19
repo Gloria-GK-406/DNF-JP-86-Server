@@ -193,7 +193,11 @@ internal sealed class CharacterSide
             new SqliteCharacterDailyChallengeTailTable(this.database),
             new SqliteCharacterDailyScheduleTable(this.database),
             new CharacterDungeonDifficultyDomainService(new SqliteCharacterDungeonPermissionTable(this.database), new Dfo.Server.Application.World.DungeonDifficultyRuleService()),
-            new SqliteCharacterDailyCounterValueTable(this.database),
+            new ReviveCoinQueryDomainService(new ReviveCoinRuleService(new DailyResetRuleService(new ResetSettings())),
+                new Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService(
+                    new LegacyUsageQuotaStore(new SqliteConsumableUsageTable(this.database),
+                        new SqlitePremiumServiceUsageTable(this.database), new Dfo.Server.Persistence.Quests.SqliteMirrorAradQuestDomainStore(this.database), this.database),
+                    this.Scope, null!), TimeProvider.System),
             new SqliteCharacterCreatureTable(this.database),
             new SqliteCharacterTitleBookTable(this.database),
             new SqliteCharacterAchievementTable(this.database),

@@ -243,6 +243,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddHostedService<MirrorQuotaDailyRefreshService>();
         services.AddHostedService<DimensionQuotaDailyRefreshService>();
         services.AddHostedService<GoldSilverHornQuotaDailyRefreshService>();
+        services.AddHostedService<ReviveCoinQuotaDailyRefreshService>();
         services.AddSingleton<ItemUsageProjectionDelivery>();
         services.AddHostedService<ItemUsageDailyRefreshService>();
         services.AddCommandHandler<ReadItemUsageSnapshotCommand, ItemUsageSnapshotResult, ReadItemUsageSnapshotCommandHandler>(CommandExecutionKind.ReadOnly);
@@ -1280,6 +1281,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<ResetRandomOptionDecoder>(0x01C8, ClientMessageType.GameResetRandomOption);
         services.AddGameCmdMessageDecoder<AvatarCompoundDecoder>(0x0063, ClientMessageType.GameAvatarCompound);
         services.AddGameCmdMessageDecoder<PackageOpeningDecoder>(0x00A0, ClientMessageType.GamePackageOpening);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinHandler>(ClientMessageType.GameDailyReviveCoin);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinDecoder>(0x00CF, ClientMessageType.GameDailyReviveCoin);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinResponse, Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinEncoder>();
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.ReviveCoin.ClaimDailyReviveCoinCommand, DailyReviveCoinResult, Dfo.Server.Protocol.Game.ReviveCoin.ClaimDailyReviveCoinCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddGameCmdMessageDecoder<AvatarPackageOpeningDecoder>(0x0207, ClientMessageType.GameAvatarPackageOpening);
         services.AddGameCmdMessageDecoder<GenCeraTicketMessageDecoder>(0x0041, ClientMessageType.GameGenCeraTicket);
         services.AddGameCmdMessageDecoder<ShopPurchaseCountDecoder>(

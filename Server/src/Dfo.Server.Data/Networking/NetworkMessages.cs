@@ -205,6 +205,7 @@ public enum ClientMessageType
     GameBackToVillage = 0x0001_0084,
 
     // Consuming one item off a pile. See Game/UseStackable.
+    GameDailyReviveCoin = 0x0001_00CF,
     GameUseStackable = 0x0001_002C,
     GameRenameCreature = 0x0001_0064,
     GameHatchCreature = 0x0001_0066,
@@ -407,6 +408,7 @@ public enum ServerMessageType
     GameTaggedIdReport = 0x0001_008F,
 
     // Whether the item was consumed. See Game/UseStackable.
+    GameDailyReviveCoin = 0x0001_00CF,
     GameUseStackable = 0x0001_002C,
     GameRenameCreature = 0x0001_0064,
     GameHatchCreature = 0x0001_0066,

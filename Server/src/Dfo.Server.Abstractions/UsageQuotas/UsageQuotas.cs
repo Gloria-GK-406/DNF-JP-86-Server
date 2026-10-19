@@ -7,11 +7,12 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Abstractions.UsageQuotas;
 
-public enum UsageQuotaFamily { Consumable, Premium, MirrorDungeon, DimensionDungeon, DespairTower, AltarDungeon, TournamentDungeon, HerasDungeon, GoldSilverHorn }
+public enum UsageQuotaFamily { Consumable, Premium, MirrorDungeon, DimensionDungeon, DespairTower, AltarDungeon, TournamentDungeon, HerasDungeon, GoldSilverHorn, ReviveCoin }
 
 /// <summary>Storage identity, independent of limits and reset rules owned by each domain.</summary>
 public sealed record UsageQuotaKey(UsageQuotaFamily Family, string Name, DateOnly? Day = null)
 {
+    public static UsageQuotaKey ReviveCoin(DateOnly period) => new(UsageQuotaFamily.ReviveCoin, "claim", period);
     public static UsageQuotaKey GoldSilverHorn(DateOnly period) => new(UsageQuotaFamily.GoldSilverHorn, "entries", period);
     public static UsageQuotaKey Heras(string counter, DateOnly period) => new(UsageQuotaFamily.HerasDungeon, counter, period);
     public static UsageQuotaKey Tournament(int dungeonId, DateOnly period) => new(UsageQuotaFamily.TournamentDungeon, dungeonId.ToString(System.Globalization.CultureInfo.InvariantCulture), period);
@@ -79,3 +80,4 @@ public sealed record TournamentEntryRecorded(CharacterId CharacterId, int Dungeo
 public sealed record HerasQuotaRecorded(CharacterId CharacterId, DateOnly Period, string Counter, UsageQuotaValue? Expected, int Value) : IDomainEvent;
 
 public sealed record GoldSilverHornEntryRecorded(CharacterId CharacterId, DateOnly Period, UsageQuotaValue? Expected, int Used) : IDomainEvent;
+public sealed record ReviveCoinClaimRecorded(CharacterId CharacterId, DateOnly Period, UsageQuotaValue? Expected) : IDomainEvent;
