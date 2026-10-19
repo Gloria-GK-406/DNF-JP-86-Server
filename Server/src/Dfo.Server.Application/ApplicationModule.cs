@@ -182,6 +182,8 @@ public sealed class ApplicationModule : IServerModule
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.HerasQuotaRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.TryAddSingleton<ISouthernDaleRuleService, SouthernDaleRuleService>();
+        services.TryAddSingleton<ISealedTreasureRuleService, SealedTreasureRuleService>();
+        services.TryAddSingleton<ISealedTreasureDomainService, SealedTreasureDomainService>();
         services.TryAddSingleton<ISouthernDaleDomainService, SouthernDaleDomainService>();
         services.TryAddSingleton<ISouthernDaleQuestDomainService, SouthernDaleQuestDomainService>();
         services.AddDomainEvent<SouthernDaleInventoryChanged>("southern-dale.inventory-changed", 1);
@@ -369,6 +371,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService,Dfo.Server.Application.Events.JoustMaintenanceService>());
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SaoTowerEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SouthernDaleEntranceEventDomainService>();
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SealedTreasureEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.TauKingdomEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.HerasEntranceEventDomainService>();
         services.TryAddSingleton<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>();

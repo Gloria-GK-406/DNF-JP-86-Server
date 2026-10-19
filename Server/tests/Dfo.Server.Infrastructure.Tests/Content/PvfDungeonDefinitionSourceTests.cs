@@ -15,6 +15,22 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 public sealed class PvfDungeonDefinitionSourceTests
 {
     [SkippableFact]
+    public async Task Spicies_is_fatigue_free_and_existing_repeated_practice_declarations_remain_loadable()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonDefinitionSource(provider);
+        var treasure = (await source.GetAsync(3557, default))!;
+        Assert.True(treasure.IsSpiciesDungeon);
+        Assert.False(treasure.ConsumesFatigue);
+        Assert.Equal(1, treasure.PartyLimit);
+        Assert.True(treasure.ProhibitsPractice);
+        Assert.Equal(10003235, Assert.Single(treasure.EventRequiredItems).ItemId);
+        Assert.True((await source.GetAsync(3700, default))!.ProhibitsPractice);
+        Assert.True((await source.GetAsync(70, default))!.ConsumesFatigue);
+    }
+
+    [SkippableFact]
     public async Task Dungeon_named_list_is_parsed_without_inventing_Gent_entries()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

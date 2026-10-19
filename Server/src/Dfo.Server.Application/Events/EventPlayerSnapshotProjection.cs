@@ -11,7 +11,8 @@ internal static class EventPlayerSnapshotProjection
             snapshot.Information.Any(e => e.EventId == SouthernDaleRuleService.ActivityId)),
             new(TauKingdomRuleService.DungeonId,
             snapshot.Information.Any(e => e.EventId == TauKingdomRuleService.ActivityId)),
-            new(HerasRuleService.DungeonId, snapshot.Information.Any(e => e.EventId == HerasRuleService.ActivityId))],
+            new(HerasRuleService.DungeonId, snapshot.Information.Any(e => e.EventId == HerasRuleService.ActivityId)),
+            new(SealedTreasureRuleService.DungeonId, snapshot.Information.Any(e => e.EventId == SealedTreasureRuleService.ActivityId))],
         ScheduledQuests = [new(Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService.QuestId,
             snapshot.Information.Any(e => e.EventId == SouthernDaleRuleService.ActivityId))]
     };

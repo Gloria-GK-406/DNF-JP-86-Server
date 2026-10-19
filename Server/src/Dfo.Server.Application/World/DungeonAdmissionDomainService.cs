@@ -89,6 +89,11 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
                 && (await fatigue.BalanceOfAsync(member.CharacterId, ct).ConfigureAwait(false)).Remaining == 0)
                 return Refuse(DungeonEntryFailure.InsufficientFatigue, member.Slot);
             var requirements = (options.RequiredItemsOverride ?? definition?.RequiredItems ?? []).ToImmutableArray();
+            // Each group is AND. Event materials replace the entire regular group when available.
+            // Explicit overrides remain authoritative for existing specialized entry paths.
+            if (options.RequiredItemsOverride is null && definition?.EventRequiredItems is { Count: > 0 } eventItems
+                && (await PrepareMaterialsAsync(member, eventItems, ct).ConfigureAwait(false)).Plan is not null)
+                requirements = eventItems.ToImmutableArray();
             int? hellTicketItemId = null;
             if (options.HellTickets is { } alternatives)
             {

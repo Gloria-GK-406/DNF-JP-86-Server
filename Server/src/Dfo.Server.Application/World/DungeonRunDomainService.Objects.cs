@@ -18,6 +18,8 @@ internal sealed partial class DungeonRunDomainService
                 || !run.IsActiveMember(characterId))
                 return null;
             var cell = run.Cells[run.CurrentCell];
+            if (!this.sealedTreasureRules.AllowsObjectDestruction(run.Layout.DungeonId, run.KilledMonsterCodes, objectCode))
+                return null;
             if (!cell.ObjectQueues.TryGetValue(objectCode, out var queue) || queue.Count == 0
                 || cell.ObjectReservations.ContainsKey(objectCode))
                 return null;

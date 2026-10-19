@@ -22,6 +22,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     private readonly TimeProvider clock = TimeProvider.System;
     private readonly object gate = new();
     private readonly IDungeonRoomMechanismRuleService mechanismRules = new DungeonRoomMechanismRuleService();
+    private readonly ISealedTreasureRuleService sealedTreasureRules = new SealedTreasureRuleService();
     private readonly IDungeonRoomMechanismWakeSignal? mechanismWake;
     private readonly Dictionary<DungeonRunId, DateTimeOffset> wipeDeadlines = [];
     private readonly Dictionary<DungeonRunId, DateTimeOffset> clearReturnDeadlines = [];
@@ -50,7 +51,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         IWeaknessDomainService? weakness = null,
         ICreatureRuntimeDomainService? creatures = null,
         IDungeonLifecycleDomainService? lifecycle = null, TimeProvider? clock = null,
-        IDungeonRoomMechanismRuleService? mechanismRules = null, IDungeonRoomMechanismWakeSignal? mechanismWake = null)
+        IDungeonRoomMechanismRuleService? mechanismRules = null, IDungeonRoomMechanismWakeSignal? mechanismWake = null,
+        ISealedTreasureRuleService? sealedTreasureRules = null)
     {
         this.transactions = transactions;
         this.parties = parties;
@@ -60,6 +62,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         this.clock = clock ?? TimeProvider.System;
         this.mechanismRules = mechanismRules ?? new DungeonRoomMechanismRuleService();
         this.mechanismWake = mechanismWake;
+        this.sealedTreasureRules = sealedTreasureRules ?? new SealedTreasureRuleService();
     }
 
     internal DungeonRunDomainService(IPartyService parties) => this.parties = parties;
@@ -474,6 +477,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             || Math.Abs(target.X - aggregate.CurrentCell.X)
                 + Math.Abs(target.Y - aggregate.CurrentCell.Y) != 1
             || !aggregate.Layout.CanTraverse(aggregate.CurrentCell, target)
+            || !this.sealedTreasureRules.AllowsTraversal(aggregate.Layout.DungeonId,
+                aggregate.KilledMonsterCodes, aggregate.CurrentCell, target)
             || aggregate.Cells[aggregate.CurrentCell].MechanismBlocksClear
             || aggregate.Cells[aggregate.CurrentCell].Mechanisms.Any(state =>
                 !this.mechanismRules.AllowsExit(state, aggregate.CurrentCell, target))
@@ -534,6 +539,11 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             var drop = new GroundDropId(aggregate.CurrentCell, groundDropNumber);
             var cell = aggregate.Cells[aggregate.CurrentCell];
             var item = cell.FindGroundItem(groundDropNumber);
+            // Preserve A21's declared-object association, but never bank its reward before
+            // the owning chest destruction has actually committed (reservation is insufficient).
+            if (item?.Source is { Kind: DungeonGroundItemSourceKind.DeclaredObject, ObjectIndex: { } objectIndex }
+                && cell.HasUnopenedRewardObject(aggregate.Layout.DungeonId, objectIndex, this.sealedTreasureRules))
+                return null;
             var key = new GroundDropClaimKey(aggregate.RunId, drop, characterId);
             if (item is null
                 || this.groundDropClaims.Keys.Any(candidate =>
@@ -1719,6 +1729,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         public Dictionary<CharacterId, DungeonKillExperienceSummary> KillExperiences { get; } = [];
 
         public HashSet<ParticipantEffectKey> CompletedKillEffects { get; } = [];
+        // Derived from committed deaths: no second mutable element-state container to drift.
+        public IEnumerable<int> KilledMonsterCodes => this.kills.Select(x => x.MonsterCode);
         public HashSet<CharacterId> ActiveParticipants { get; }
         public HashSet<CharacterId> BuffParticipants { get; } = [];
         public HashSet<CharacterId> ReadyParticipants { get; } = [];
@@ -1852,6 +1864,11 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             actor.Sequence != sequence && actor.BlocksClear && actor.Actor.IsBoss && !actor.IsDead);
 
         public DungeonCellObjectState ObjectAt(int index) => this.objects[index];
+
+        public bool HasUnopenedRewardObject(int dungeonId, int objectIndex, ISealedTreasureRuleService rules) =>
+            this.objects.Any(x => x.Object.Id.Section == DungeonObjectSection.SpecialPassive
+                && x.Object.Id.Index == objectIndex && !x.IsConsumed
+                && rules.RequiresDestroyedObject(dungeonId, x.Object.Code));
 
         public void ConsumeObject(int index)
         {
