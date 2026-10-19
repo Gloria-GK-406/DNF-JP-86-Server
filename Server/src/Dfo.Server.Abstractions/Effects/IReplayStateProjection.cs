@@ -15,9 +15,9 @@ public enum ReplayProjectionNeeds
 {
     None = 0, Inventory = 1, Pets = 2, Skills = 4, Quests = 8, Experience = 16,
     Fatigue = 32, ItemUsage = 64, Premium = 128, CharacterAppearance = 256,
-    TownLocation = 512, Joust = 1024, EpicBook = 2048, AvatarCompound = 4096, HerasQuota = 8192, MarriageLovePoints = 16384, MarriageHousing = 32768, CoupleCapsules = 65536,
+    TownLocation = 512, Joust = 1024, EpicBook = 2048, AvatarCompound = 4096, HerasQuota = 8192, MarriageLovePoints = 16384, MarriageHousing = 32768, CoupleCapsules = 65536, CollectionBox = 131072,
     // UI recovery is opt-in for an actual compound request, never part of a generic full snapshot.
-    All = Inventory | Pets | Skills | Quests | Experience | Fatigue | ItemUsage | Premium | CharacterAppearance | TownLocation | Joust | EpicBook,
+    All = Inventory | Pets | Skills | Quests | Experience | Fatigue | ItemUsage | Premium | CharacterAppearance | TownLocation | Joust | EpicBook | CollectionBox,
 }
 
 /// <summary>Only projection categories and physical addresses, never old receipts or reward increments.</summary>
@@ -138,6 +138,7 @@ public sealed record ReplayStateSnapshot(SelectedSessionIdentity Session, Replay
     ImmutableArray<ItemUsageState> ItemUsage, ImmutableArray<AccountPremiumEntryState> Premiums,
     ImmutableArray<CharacterPremiumUsageSlotState> PremiumUsage, ReplayCharacterState? Appearance)
 {
+    public CollectionBoxSnapshot? CollectionBoxes { get; init; }
     public Dfo.Server.Data.Marriage.MarriageCapsuleSnapshot? Capsules { get; init; }
     public Dfo.Server.Data.Marriage.HousingSnapshot? Housing { get; init; }
     public Dfo.Server.Data.Marriage.MarriageInfoSnapshot? MarriageInfo { get; init; }

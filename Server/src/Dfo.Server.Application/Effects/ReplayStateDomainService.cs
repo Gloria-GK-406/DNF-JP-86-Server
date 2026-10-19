@@ -152,7 +152,8 @@ internal sealed class ReplayStateDomainService(IServiceProvider services, IDomai
         safety.DemandCurrent(recipient);
         return new(session, request, at, inventory, pets, skills, quests, progress, points, fatigue,
             itemUsage, premiums, premiumUsage, appearance)
-        { Capsules = needs.HasFlag(ReplayProjectionNeeds.CoupleCapsules) ? await Get<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService>().ReadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : null,
+        { CollectionBoxes = needs.HasFlag(ReplayProjectionNeeds.CollectionBox) ? await Get<ICollectionBoxDomainService>().ReadAsync(session.CharacterId, ct).ConfigureAwait(false) : null,
+          Capsules = needs.HasFlag(ReplayProjectionNeeds.CoupleCapsules) ? await Get<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService>().ReadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : null,
           Housing = (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing) || appearanceNeeded)
             ? await Get<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>().ReadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : null,
           MarriageInfo = (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing) || appearanceNeeded)

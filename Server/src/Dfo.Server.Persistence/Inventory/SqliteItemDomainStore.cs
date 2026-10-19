@@ -139,6 +139,7 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
         if (occupied is { } held && !held.Snapshot.CanStackWith(incoming))
             throw new InvalidOperationException("The destination does not accept this item.");
         var total = occupied is { } pile ? checked(pile.Snapshot.Count + incoming.Count) : incoming.Count;
+        ValidatePosition(container, slot, incoming with { Count = total });
         return await Mutate(async () =>
         {
             if (occupied is { } target)
@@ -294,6 +295,9 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
     private static int PhysicalCount(ItemSnapshot value) => IsRevivalCounter(value) ? Math.Max(value.Count, 1) : value.Count;
     private static void ValidatePosition(ContainerId container, int slot, ItemSnapshot value)
     {
+        if (container.TryGetCharacterOwner(out _, out var collectionList) && collectionList == InventoryContainerType.CollectionBox
+            && (slot is < 256 or > 65535 || value.Count != 1))
+            throw new InvalidDataException("A collection position holds exactly one original item.");
         if (value.IsMirror && (value.IsPile || !container.TryGetCharacterOwner(out _, out var mirrorList)
             || mirrorList != InventoryContainerType.Equipment))
             throw new InvalidDataException("A mirror may only occupy a character equipment slot.");
@@ -387,7 +391,8 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
     {
         if (!container.TryGetOwner(out var owner, out var type)
             || type is not (InventoryContainerType.Main or InventoryContainerType.Avatar or InventoryContainerType.PersonalCargo or InventoryContainerType.Equipment or InventoryContainerType.Pet or InventoryContainerType.AccountCargo or InventoryContainerType.SharedMaterial
-                or InventoryContainerType.TitleBookGeneral or InventoryContainerType.TitleBookSpecific or InventoryContainerType.TitleBookPvp or InventoryContainerType.TitleBookDespair or InventoryContainerType.TitleBookEvent)
+                or InventoryContainerType.TitleBookGeneral or InventoryContainerType.TitleBookSpecific or InventoryContainerType.TitleBookPvp or InventoryContainerType.TitleBookDespair or InventoryContainerType.TitleBookEvent or InventoryContainerType.CollectionBox)
+            || type == InventoryContainerType.CollectionBox && owner.Scope != InventoryOwnerType.Character
             || type is >= InventoryContainerType.TitleBookGeneral and <= InventoryContainerType.TitleBookEvent && owner.Scope != InventoryOwnerType.Character
             || type is InventoryContainerType.AccountCargo or InventoryContainerType.SharedMaterial && owner.Scope != InventoryOwnerType.Account)
             throw new InvalidOperationException("The container has no supported persistent owner.");

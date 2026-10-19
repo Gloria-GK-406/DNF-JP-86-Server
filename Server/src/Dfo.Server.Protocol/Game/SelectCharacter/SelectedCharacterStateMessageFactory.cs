@@ -90,10 +90,8 @@ internal static class SelectedCharacterStateMessageFactory
         messages.Add(new ItemEffectStateMessage(result.CharacterInventory.ItemValues.Effects));
         messages.Add(new ClientEffectBaselineMessage());
 
-        var boxes = result.CharacterEntry.Features.Collections.CollectionBoxes
-            .OrderBy(value => value.BoxIndex).ToArray();
-        RequireAtLeast(boxes, 2, "collection boxes");
-        messages.AddRange(boxes.Take(2).Select(value => new CollectionBoxStateMessage(value)));
+        messages.Add(new CollectionBoxCompatibilityMessage(1));
+        messages.Add(new CollectionBoxCompatibilityMessage(2));
         messages.Add(new BossTowerBaselineMessage());
         messages.Add(new RentalStateMessage(
             result.CharacterInventory.Rentals, result.Account.Wallet.LuckyStar, result.World.PreparedAt));
@@ -119,6 +117,7 @@ internal static class SelectedCharacterStateMessageFactory
             messages.Add(new CoupleRoomEmptyCompatibilityMessage());
             if (result.Engagement is { } engagement) messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoMessage(engagement));
         }
+        if (result.CollectionBoxes is { } collections) messages.AddRange(Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxContentsMessage.Full(collections));
         if (result.Capsules is { } capsules) messages.Add(new Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateMessage(capsules));
         messages.Add(new ChampionBreakStateMessage(result.CharacterEntry.Progression));
         messages.Add(new GoldLimitStateMessage(result.CharacterEntry.Progression.GoldLimitUpgradeLevel));

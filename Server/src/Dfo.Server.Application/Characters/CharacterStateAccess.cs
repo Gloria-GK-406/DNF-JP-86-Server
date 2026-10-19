@@ -26,6 +26,18 @@ namespace Dfo.Server.Application.Characters;
 /// </remarks>
 internal sealed class AmbientStoreAccess(IDomainTransactionAccessor transactions)
 {
+    /// <summary>Reads several stores/tables at one moment, including callers outside a command.</summary>
+    public async ValueTask<TResult> ReadSnapshotAsync<TResult>(Func<ValueTask<TResult>> read)
+    {
+        if (transactions.Current is not null) return await read().ConfigureAwait(false);
+        if (transactions is not DomainTransactionScope scope)
+            throw new InvalidOperationException("Snapshot reads require the configured domain transaction scope.");
+        // Item custody sessions enlist lifecycle participants. Like ReadAsync below, this
+        // boundary is never committed; all readers still share one deferred SQLite snapshot.
+        await using var snapshot = scope.Begin();
+        return await read().ConfigureAwait(false);
+    }
+
     public async ValueTask<TResult> ReadAsync<TSession, TResult>(
         IDomainStore<TSession> store, Func<TSession, ValueTask<TResult>> read)
         where TSession : class

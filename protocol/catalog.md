@@ -1,8 +1,12 @@
 # 协议清单
 
+## 2026-10-19 常驻收集箱实现
+
+CurrentImplementation：[03E5](game/client-to-server/0x03E5.md)–[03E8](game/client-to-server/0x03E8.md)已接线，03EB恢复所有系列及持久选择；0381保持独立固定兼容帧。PVF驱动系列，隐藏容器241保存完整原物，延期拒绝且不扣券，已提交重复请求恢复当前状态。实现、兼容边界及实机清单见[交付说明](../Document/CollectionBox-Implementation-20261019.md)。布局依据仍为ClientStatic；没有新增WireCaptured或ClientVerified。
+
 ## 2026-10-19 收集箱 A21 静态补证
 
-ClientStatic / High：[03E5](game/client-to-server/0x03E5.md)选择单箱；[03E6](game/client-to-server/0x03E6.md)放入精确8B；[03E7](game/client-to-server/0x03E7.md)取出精确5B且无目标背包槽；[03E8](game/client-to-server/0x03E8.md)延期8B，成功完整体6B。[03EB](game/server-to-client/NOTI-0x03EB.md)为8+4n完整箱快照，偏移1非零会选择本帧箱并重应用，偏移6非零为永久有效。兼容0381仍独立保留。没有新增服务端实现、抓包或ClientVerified；用户选择常驻的本服设计见[方案](../Document/CollectionBox-Design-20261019.md)。
+ClientStatic / High：[03E5](game/client-to-server/0x03E5.md)选择单箱；[03E6](game/client-to-server/0x03E6.md)放入精确8B；[03E7](game/client-to-server/0x03E7.md)取出精确5B且无目标背包槽；[03E8](game/client-to-server/0x03E8.md)延期8B，成功完整体6B。[03EB](game/server-to-client/NOTI-0x03EB.md)为8+4n完整箱快照，偏移1非零会选择本帧箱并重应用，偏移6非零为永久有效。兼容0381仍独立保留。本节补证不构成抓包或ClientVerified；当前服务端实现见上一节，用户选择常驻的本服设计见[方案](../Document/CollectionBox-Design-20261019.md)。
 
 ## 2026-10-18 成长胶囊与爱之摩伽陀
 

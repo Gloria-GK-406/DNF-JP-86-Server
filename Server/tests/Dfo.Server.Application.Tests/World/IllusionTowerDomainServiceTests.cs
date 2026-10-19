@@ -1122,6 +1122,7 @@ public sealed class IllusionTowerDomainServiceTests
         services.AddSingleton<ICharacterStatDefinitionSource>(content);
         services.AddSingleton<ISkillRuleDefinitionSource>(content);
         services.AddSingleton<IWorldContentEntryRuleService>(new Support.StubWorldContentEntryRuleService());
+        services.AddSingleton<ICollectionBoxDefinitionSource, NoCollectionBoxes>();
         services.AddSingleton<IEntryPlacementRuleService>(new Support.StubEntryPlacementRuleService());
     }
     private sealed class NoQuestDrops : IQuestEnemyDropDomainService
@@ -1129,6 +1130,15 @@ public sealed class IllusionTowerDomainServiceTests
         public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(QuestEnemyDropRequest request,
             MonsterDropParticipant participant, CancellationToken token) =>
             ValueTask.FromResult<IReadOnlyList<RolledDrop>>([]);
+    }
+
+    // Synthetic current-state reads must not acquire the production archive through collection UI.
+    private sealed class NoCollectionBoxes : ICollectionBoxDefinitionSource
+    {
+        public ValueTask<IReadOnlyList<CollectionBoxDefinition>> GetAllAsync(CancellationToken ct) =>
+            ValueTask.FromResult<IReadOnlyList<CollectionBoxDefinition>>([]);
+        public ValueTask<CollectionBoxDefinition?> GetAsync(int id, CancellationToken ct) =>
+            ValueTask.FromResult<CollectionBoxDefinition?>(null);
     }
 
     private sealed class SharedQuestDrop : IQuestEnemyDropDomainService

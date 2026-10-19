@@ -482,22 +482,10 @@ public sealed class SelectCharacterPayloadCodecTests
                 },
             },
             0x0013));
-        Assert.Throws<InvalidDataException>(() => EncodeSelectedStateBody(
-            result with
-            {
-                CharacterEntry = result.CharacterEntry with
-                {
-                    Features = result.CharacterEntry.Features with
-                    {
-                        Collections = result.CharacterEntry.Features.Collections with
-                        {
-                            CollectionBoxes =
-                            [result.CharacterEntry.Features.Collections.CollectionBoxes[0] with { Protocol = null }],
-                        },
-                    },
-                },
-            },
-            0x0381));
+        // 0381 is fixed A21 compatibility, independent of real 03EB collection progress.
+        Assert.Equal(new byte[] { 1, 1, 255, 255, 255, 255, 0, 0 }, EncodeSelectedStateBody(
+            result with { CharacterEntry = result.CharacterEntry with { Features = result.CharacterEntry.Features with
+            { Collections = result.CharacterEntry.Features.Collections with { CollectionBoxes = [] } } } }, 0x0381));
         Assert.Throws<InvalidDataException>(() => EncodeInventory(
             result with
             {

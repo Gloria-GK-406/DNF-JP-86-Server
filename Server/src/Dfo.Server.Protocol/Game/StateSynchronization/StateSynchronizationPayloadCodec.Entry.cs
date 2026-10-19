@@ -442,16 +442,6 @@ internal static partial class StateSynchronizationPayloadCodec
         foreach (var e in entries) { writer.Write(e.EntryId); writer.Write(e.SentinelOrValue); writer.Write(e.Flag); } return stream.ToArray();
     }
 
-    public static byte[] EncodeCollectionBox(CharacterCollectionBoxProgressState box)
-    {
-        var protocol = box.Protocol ?? throw Missing($"CollectionBoxes[{box.BoxIndex}].Protocol");
-        if (box.Slots.Count > byte.MaxValue) throw CountError("collection box", "u8");
-        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        writer.Write(box.BoxIndex); writer.Write((byte)1); writer.Write(protocol.RemainingSeconds); writer.Write(protocol.StatusFlags);
-        writer.Write(checked((byte)box.Slots.Count)); foreach (var slot in box.Slots.OrderBy(value => value.SlotIndex)) writer.Write(checked((uint)slot.ItemId));
-        return stream.ToArray();
-    }
-
     public static byte[] EncodeRentals(
         CharacterRentalEntryState rentals,
         ushort luckyStar,

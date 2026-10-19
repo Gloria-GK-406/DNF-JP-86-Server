@@ -45,6 +45,7 @@ public sealed record SelectCharacterResult(
     IReadOnlyList<EpicPieceBalance>? EpicPieces = null,
     Dfo.Server.Data.Marriage.MarriageEngagementSnapshot? Engagement = null)
 {
+    public CollectionBoxSnapshot? CollectionBoxes { get; init; }
     public Dfo.Server.Data.Marriage.MarriageCapsuleSnapshot? Capsules { get; init; }
     public Dfo.Server.Data.Marriage.HousingSnapshot? Housing { get; init; }
 }

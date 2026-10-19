@@ -170,6 +170,8 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
             }
             else if (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing)) messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoMessage(state.MarriageInfo));
         }
+        if (needs.HasFlag(ReplayProjectionNeeds.CollectionBox))
+            messages.AddRange(Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxContentsMessage.Full(state.CollectionBoxes ?? throw Missing("Collection box")));
         return messages.ToImmutable();
     }
     private static InvalidDataException Missing(string name) => new($"Required replay projection '{name}' is unavailable.");

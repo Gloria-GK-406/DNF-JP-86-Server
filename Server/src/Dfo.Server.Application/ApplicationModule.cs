@@ -241,6 +241,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<SpiritPotionDomainService>();
         services.TryAddSingleton<ISpiritPotionDomainService>(sp => sp.GetRequiredService<SpiritPotionDomainService>());
         services.TryAddSingleton<IExperienceBonusDomainService, ExperienceBonusDomainService>();
+        services.TryAddSingleton<ICollectionBoxRuleService, CollectionBoxRuleService>();
+        services.TryAddSingleton<ICollectionBoxDomainService, CollectionBoxDomainService>();
         services.TryAddSingleton<IExperienceCapsuleDomainService, ExperienceCapsuleDomainService>();
         // One store, three services. The store keeps the collections whose invariant spans them
         // behind a single lock; the services are the three responsibilities read off it.

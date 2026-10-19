@@ -46,7 +46,7 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
             FROM item_slots place
             JOIN items held ON held.item_uid = place.core_uid
             WHERE place.owner_scope = 'character' AND place.owner_id = @characterId
-              AND place.list_type NOT BETWEEN 19 AND 23
+              AND place.list_type IN (0, 1, 2, 3, 7)
             ORDER BY place.list_type, place.slot_index, held.item_uid;
             """,
             parameters => parameters.AddWithValue("@characterId", characterId.Value),

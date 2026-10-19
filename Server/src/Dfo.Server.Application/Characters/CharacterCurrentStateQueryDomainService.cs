@@ -34,7 +34,7 @@ internal sealed class CharacterCurrentStateQueryDomainService(
     IJoustProjectionDomainService? joust = null,
     IEpicBookDomainService? epicBook = null,
     Dfo.Server.Abstractions.Achievements.ITitleBookDomainService? titles = null,
-    Dfo.Server.Abstractions.Achievements.IAchievementDomainService? achievements = null) : ICharacterCurrentStateQueryDomainService
+    Dfo.Server.Abstractions.Achievements.IAchievementDomainService? achievements = null, ICollectionBoxDomainService? collections = null) : ICharacterCurrentStateQueryDomainService
 {
     public async ValueTask<SelectCharacterResult> ReadAsync(
         SelectedSessionIdentity session, CancellationToken cancellationToken)
@@ -120,6 +120,7 @@ internal sealed class CharacterCurrentStateQueryDomainService(
                 await events.GetEventInfoListAsync(session.AccountId, readAt, cancellationToken),
                 await attendance.StateAsync(session.AccountId, readAt, cancellationToken),
                 joust is null ? null : await joust.ReadAsync(session.CharacterId, readAt, cancellationToken))),
-            epicBook is null ? [] : await epicBook.GetBalancesAsync(session.AccountId, cancellationToken).ConfigureAwait(false));
+            epicBook is null ? [] : await epicBook.GetBalancesAsync(session.AccountId, cancellationToken).ConfigureAwait(false))
+        { CollectionBoxes = collections is null ? null : await collections.ReadAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) };
     }
 }
