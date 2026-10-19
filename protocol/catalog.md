@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-19 收集箱 A21 静态补证
+
+ClientStatic / High：[03E5](game/client-to-server/0x03E5.md)选择单箱；[03E6](game/client-to-server/0x03E6.md)放入精确8B；[03E7](game/client-to-server/0x03E7.md)取出精确5B且无目标背包槽；[03E8](game/client-to-server/0x03E8.md)延期8B，成功完整体6B。[03EB](game/server-to-client/NOTI-0x03EB.md)为8+4n完整箱快照，偏移1非零会选择本帧箱并重应用，偏移6非零为永久有效。兼容0381仍独立保留。没有新增服务端实现、抓包或ClientVerified；用户选择常驻的本服设计见[方案](../Document/CollectionBox-Design-20261019.md)。
+
 ## 2026-10-18 成长胶囊与爱之摩伽陀
 
 CurrentImplementation：0404/0405/0406接入统一婚姻系统，03DF/03E0同步持有数、待领数及能量；加入推荐通关去重、离线赠送、重登恢复及重复请求绝对状态重放。CMD包含accepted:u8公共前缀，成功正文分别10/6/6B。3541使用夫妻两人原子准入及当前PVF双人门票/掉落，入口为格兰之森山麓。布局仍为ClientStatic，尚未新增ClientVerified。见[实现与验收](../Document/MarriageCapsules-LoveMagatha-20261018.md)。

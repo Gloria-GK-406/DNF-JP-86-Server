@@ -57,6 +57,34 @@
     "box_inactive_test": [
       "0x899340",
       "0x8993e4"
+    ],
+    "selected_box_apply": [
+      "0x8a6660",
+      "0x8a6710"
+    ],
+    "selected_box_read": [
+      "0x899410",
+      "0x8994c0"
+    ],
+    "insert_arguments": [
+      "0x8a7e81",
+      "0x8a7f40"
+    ],
+    "remove_arguments": [
+      "0x8a80a1",
+      "0x8a80c0"
+    ],
+    "extend_arguments": [
+      "0x8a6610",
+      "0x8a6650"
+    ],
+    "ui_expiry_branches": [
+      "0x8aad10",
+      "0x8aaf00"
+    ],
+    "ui_default_selection": [
+      "0x8ab9e0",
+      "0x8abb00"
     ]
   }
 }

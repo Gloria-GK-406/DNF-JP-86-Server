@@ -28,6 +28,13 @@ RANGES = {
     "box_items_replace": (0x8A70A0, 0x8A70EC),
     "box_flag_test": (0x899290, 0x89931B),
     "box_inactive_test": (0x899340, 0x8993E4),
+    "selected_box_apply": (0x8A6660, 0x8A6710),
+    "selected_box_read": (0x899410, 0x8994C0),
+    "insert_arguments": (0x8A7E81, 0x8A7F40),
+    "remove_arguments": (0x8A80A1, 0x8A80C0),
+    "extend_arguments": (0x8A6610, 0x8A6650),
+    "ui_expiry_branches": (0x8AAD10, 0x8AAF00),
+    "ui_default_selection": (0x8AB9E0, 0x8ABB00),
 }
 
 
