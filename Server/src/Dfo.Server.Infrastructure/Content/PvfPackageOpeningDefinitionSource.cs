@@ -150,6 +150,8 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
 
     public async ValueTask<OpeningRewardItemDefinition?> GetRewardAsync(int itemId, CancellationToken cancellationToken)
     {
+        if (itemId == 0) return new(0, new(0, int.MaxValue,
+            new(BusinessInventorySpace.VirtualResource, 0, 0)), 0, false, [], null, true);
         // The archive's 42 is a revive-coin grant, represented by virtual main slot 1.
         if (itemId is 1 or 42) return new(1, new(0, int.MaxValue,
             new(BusinessInventorySpace.VirtualResource, 1, 1)), 0, false, [], null, true);
@@ -311,7 +313,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                 if (values.Length == 0 || values.Length % 3 != 0) errors.Add("Invalid lottery reward triples");
                 else for (var i = 0; i < values.Length; i += 3)
                 {
-                    if (values[i] <= 0 || values[i + 1] < 0 || values[i + 2] <= 0) errors.Add("Invalid lottery reward");
+                    if ((values[i] <= 0 && !(id == 7615 && values[i] == 0)) || values[i + 1] < 0 || values[i + 2] <= 0) errors.Add("Invalid lottery reward");
                     entries.Add(new(new(values[i], values[i + 2]), values[i + 1]));
                 }
                 pools.Add(new(1, entries.ToImmutable()));

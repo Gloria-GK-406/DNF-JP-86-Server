@@ -284,7 +284,7 @@ public sealed class GmEventsHttpTests
         await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
         sender.Messages.Clear();await Change(host,csrf,new(2208,2,"disable"));
         await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();frames=Frames(host,sender);
-        var calendar=Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x006C);Assert.Equal(new ushort[]{2215,69,2367},ReadEventIds(calendar[15..]));
+        var calendar=Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x006C);Assert.Equal(new ushort[]{2215,69,2330,2367},ReadEventIds(calendar[15..]));
         Assert.Contains(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x033F && BinaryPrimitives.ReadUInt32LittleEndian(f.AsSpan(23))==3900 && BinaryPrimitives.ReadUInt32LittleEndian(f.AsSpan(19))==1);
         var state=Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x042D);Assert.All(state[15..],b=>Assert.Equal(0,b));
         GmPlayerDirectoryHttpTests.Cleanup(host,session);

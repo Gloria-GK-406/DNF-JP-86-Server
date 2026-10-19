@@ -33,7 +33,9 @@ public sealed record WeeklyAttendanceState(bool Active, int AttendanceCount, int
 public sealed record EventPlayerSnapshot(EventInfo[] Information, WeeklyAttendanceState Attendance, JoustState? Joust = null)
 {
     public ScheduledDungeonState[] ScheduledDungeons { get; init; } = [];
+    public ScheduledQuestState[] ScheduledQuests { get; init; } = [];
     public static EventPlayerSnapshot Empty { get; } = new([], WeeklyAttendanceState.Empty);
 }
 public sealed record ScheduledDungeonState(int DungeonId, bool Open);
+public sealed record ScheduledQuestState(int QuestId, bool Open);
 public sealed record AttendanceClaimResult(bool Succeeded, WeeklyAttendanceState State);

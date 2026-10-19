@@ -30,7 +30,8 @@ internal sealed class QuestOfferRefreshDomainService(
     IWorldContentEntryRuleService worldContent,
     ICharacterQuestLogDomainService logs, ICharacterDomainService characters,
     Dfo.Server.Abstractions.Creatures.ICreatureDomainService? creatures = null, IQuestQueryDomainService? query = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? marriage = null) : IQuestOfferRefreshDomainService
+    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? marriage = null,
+    Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService? southern = null) : IQuestOfferRefreshDomainService
 {
     public async ValueTask<AvailableQuestEntryState> ReadAvailableAsync(
         AccountId accountId, CharacterId characterId, int level, CancellationToken ct)
@@ -44,7 +45,8 @@ internal sealed class QuestOfferRefreshDomainService(
         var creature = creatures is null ? null : await creatures.GetStore(characterId).CurrentAsync(ct).ConfigureAwait(false);
         var subject = new WorldContentSubject(level, identity.Job, identity.GrowType,
             cleared.ToDictionary(x => x.QuestId, x => (int)x.Mark), [.. carried.Select(x => x.QuestId)], [], [],
-            creature?.ItemTemplateId ?? 0, creature?.Level ?? 0);
+            creature?.ItemTemplateId ?? 0, creature?.Level ?? 0)
+        { SouthernDaleQuestAvailable = southern is not null && await southern.CanAcceptAsync(characterId, ct).ConfigureAwait(false) };
         return await worldContent.ReadOffersAsync(subject, ct).ConfigureAwait(false);
     }
 
@@ -79,6 +81,7 @@ internal sealed class QuestOfferRefreshDomainService(
 
         var updated = subject with
         {
+            SouthernDaleQuestAvailable = southern is not null && await southern.CanAcceptAsync(characterId, cancellationToken).ConfigureAwait(false),
             EligibleWeddingQuestIds = marriage is null ? [] : await marriage.EligibleQuestIdsAsync(accountId, characterId, cancellationToken).ConfigureAwait(false),
             Level = level,
             Job = identity.Job,

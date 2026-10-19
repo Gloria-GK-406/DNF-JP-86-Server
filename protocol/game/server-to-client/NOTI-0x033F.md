@@ -12,6 +12,14 @@ handler 将字段重排成 `{contentId,state,category,opaque}`，经 `01192D21 -
 
 `CurrentImplementation`：活动投影为牛头怪乐园生成 `ScheduledDungeonState(3700, Open)`，选角和活动刷新发送本通知，关闭时显式发送状态 0。保留现有 `0x02D5` 兼容消息，两条身份不能互换。
 
+## 南部溪谷与任务调度补证（2026-10-19）
+
+`ClientStatic / High`：同版只读 RVA dump（SHA-256 `6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507`）中，`011C2670` 验证类别 0..4 后写入对应容器。`011C2530` 查询类别0；`011C2550` 查询类别1，其调用者 `00E4F660` 在首参数为1时要求指定内容状态等于1。任务相关调用点 `00E58D98`、`02371D6C` 传入记录 `+C0` 标志与 `+0` ID；`+C0` 的PVF字段写入来源仍未完全闭合，不将类别1的任务映射写成Confirmed。
+
+`ClientStatic` 证据文件：`DNFClient-A21-protocol/dumps/dnf-dump-20260906-224825-165-31384/DNF-memory-rva.bin`（工作区只读）；`ClientStatic` 与 `CurrentImplementation` 分开：本服现为南部发送类别0/DGN100、类别1/任务20549，状态随南部受管活动2330启停，在选角与在线活动刷新中共用投影，关闭时显式发送0。PVF的 `etc/chn_schedule.etc` 声明地下城100与任务20549，DGN100与任务定义均带schedule2330。2330仅作为本服配置身份，不据此断言原服EVENT_INFO身份。
+
+本轮没有新增原服抓包或原生UI实测；仍需验证山麓入口、任务显示与关闭后消失，不升级为WireCaptured/ClientVerified。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

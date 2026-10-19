@@ -74,7 +74,8 @@ public sealed class SelectCharacterHandler(
     UsageQuotaProjectionDelivery? quotaProjection = null,
     Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService? clientSettings = null,
     Dfo.Server.Abstractions.World.ISaoTowerDomainService? sao = null,
-    Dfo.Server.Abstractions.World.ITauKingdomDomainService? tau = null) : ClientMessageHandler<SelectCharacterRequest>
+    Dfo.Server.Abstractions.World.ITauKingdomDomainService? tau = null,
+    Dfo.Server.Abstractions.World.ISouthernDaleDomainService? southern = null) : ClientMessageHandler<SelectCharacterRequest>
 {
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -337,6 +338,9 @@ public sealed class SelectCharacterHandler(
         // Recheck the current period after publication using the same durable ticket claim.
         if (tau is not null)
             await commandBus.SendAsync(new Dfo.Server.Application.World.RefillOnlineTauTicketCommand(session), cancellationToken)
+                .ConfigureAwait(false);
+        if (southern is not null)
+            await commandBus.SendAsync(new Dfo.Server.Application.World.RefillOnlineSouthernTicketCommand(session), cancellationToken)
                 .ConfigureAwait(false);
         EnsureCurrent(session);
         if (clientSettings is not null)

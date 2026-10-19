@@ -15,7 +15,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
     ICharacterDomainService characters, IDungeonRunDomainService runs, IMonsterKillDomainService kills,
     IMonsterKillRewardsDomainService rewards, IQuestOfferRefreshDomainService offers,
     ILogger<MonsterDeathDomainService> logger, ITournamentDungeonDomainService? tournaments = null,
-    IEventService? events = null, ISaoTowerDomainService? sao = null) : IMonsterDeathDomainService
+    IEventService? events = null, ISaoTowerDomainService? sao = null, ISouthernDaleDomainService? southern = null) : IMonsterDeathDomainService
 {
     public async ValueTask<MonsterDeathSettlementResult> SettleAsync(MonsterDeathSettlementRequest request, CancellationToken ct)
     {
@@ -75,6 +75,8 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
             ? await tournaments!.AdvanceAsync(request.Reporter, run.RunId, request.Actor, ct).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("The accepted tournament death could not advance its round.")
             : null;
+        if (clearsMap && run.IsBossRoom && southern?.Supports(run.Layout.DungeonId) == true)
+            await southern.CompleteClearAsync(death, request.Participants, ct).ConfigureAwait(false);
         if (clearsMap && run.Layout.Sao is not null && run.IsBossRoom)
             await (sao ?? throw new InvalidOperationException("SAO lifecycle is unavailable."))
                 .CompleteClearAsync(death, request.Participants, ct).ConfigureAwait(false);

@@ -66,11 +66,13 @@ public sealed partial class ItemDeliveryTests
         Assert.Equal(3, f.Count(9001)); // Missed offline periods are not accumulated.
     }
 
-    [Fact]
-    public void Only_tau_ticket_uses_game_day_and_legacy_midnight_claim_does_not_reissue()
+    [Theory]
+    [InlineData(690001556)]
+    [InlineData(2680738)]
+    public void Activity_tickets_use_game_day_and_legacy_midnight_claim_does_not_reissue(int item)
     {
         var rules = new DailyRefillRuleService(new SixOClock());
-        var tau = new DailyRefillRule(690001556, 1, DateTimeOffset.MaxValue, DailyRefillMode.Add, 10, 4, new(BusinessInventorySpace.Quest, 0, 55));
+        var tau = new DailyRefillRule(item, 1, DateTimeOffset.MaxValue, DailyRefillMode.Add, 10, 4, new(BusinessInventorySpace.Quest, 0, 55));
         var at = new DateTimeOffset(2026, 10, 15, 5, 59, 0, TimeSpan.FromHours(8));
         Assert.Equal("2026-10-14", rules.PeriodOf(tau, at));
         Assert.Equal("2026-10-15", rules.PeriodOf(tau, at.AddMinutes(1)));

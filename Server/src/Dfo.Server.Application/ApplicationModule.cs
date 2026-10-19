@@ -181,6 +181,11 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IHerasDungeonDomainService, HerasDungeonDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.HerasQuotaRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.TryAddSingleton<ISouthernDaleRuleService, SouthernDaleRuleService>();
+        services.TryAddSingleton<ISouthernDaleDomainService, SouthernDaleDomainService>();
+        services.TryAddSingleton<ISouthernDaleQuestDomainService, SouthernDaleQuestDomainService>();
+        services.AddDomainEvent<SouthernDaleInventoryChanged>("southern-dale.inventory-changed", 1);
+        services.AddSouthernDaleDailyRefill();
         services.TryAddSingleton<ITauKingdomRuleService, TauKingdomRuleService>();
         services.TryAddSingleton<ITauKingdomDomainService, TauKingdomDomainService>();
         services.AddDomainEvent<TauKingdomTicketRefilled>("tau-kingdom.ticket-refilled", 1);
@@ -362,6 +367,7 @@ public sealed class ApplicationModule : IServerModule
         services.AddCommandHandler<Dfo.Server.Application.Events.AdvanceJoustLifecycleCommand,Dfo.Server.Data.Events.JoustLifecycleResult,Dfo.Server.Application.Events.AdvanceJoustLifecycleCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService,Dfo.Server.Application.Events.JoustMaintenanceService>());
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SaoTowerEntranceEventDomainService>();
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SouthernDaleEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.TauKingdomEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.HerasEntranceEventDomainService>();
         services.TryAddSingleton<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>();
@@ -684,6 +690,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEquipmentEffectPlanRuleService, EquipmentEffectPlanRuleService>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantPreparedItemEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IInventoryEffectPreviewHandler, GrantPreparedItemEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantOpeningGoldEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IInventoryEffectPreviewHandler, GrantOpeningGoldEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantOpeningVirtualEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IInventoryEffectPreviewHandler, GrantOpeningVirtualEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetOpeningPremiumEffectHandler>());

@@ -68,6 +68,7 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageRelationDomainStore, Dfo.Server.Persistence.Marriage.SqliteMarriageRelationDomainStore>();
         services.TryAddSingleton<IEpicBookDomainStore, SqliteEpicBookDomainStore>();
         services.TryAddSingleton<IMirrorAradQuestDomainStore, SqliteMirrorAradQuestDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.ISouthernDaleDomainStore, Dfo.Server.Persistence.Characters.SqliteSouthernDaleDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ISaoTowerDomainStore, Dfo.Server.Persistence.Characters.SqliteSaoTowerDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDespairTowerDomainStore, Dfo.Server.Persistence.Characters.SqliteDespairTowerDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaStore, LegacyUsageQuotaStore>();

@@ -217,7 +217,8 @@ public sealed class PvfQuestDefinitionSourceTests
         // The unified kill-objective parser retains regional/five-field declarations that the
         // former four-field initial-trigger projection excluded. Keep exact catalogue counts
         // alongside the field-level checks so accidental projection changes remain visible.
-        Assert.Equal(3_252, quests.Count);
+        // Southern Dale's scheduled special-daily exchange 20549 is now supported.
+        Assert.Equal(3_253, quests.Count);
         Assert.Equal(quests.Count, questIds.Count);
         Assert.All(quests, quest => Assert.InRange(quest.QuestId, 1, 29_999));
         Assert.Equal(444, quests.Count(quest => quest.IsExposedByNpc.HasValue));

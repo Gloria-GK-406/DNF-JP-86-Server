@@ -146,6 +146,7 @@ public sealed record DungeonDefinition(
 {
     public IReadOnlyList<int> RecommendedLevels { get; init; } = [];
     public bool HasStoryMode { get; init; }
+    public bool NoGiveupPenalty { get; init; }
     public ImmutableHashSet<int> NamedMonsterCodes { get; init; } = [];
     public IReadOnlyList<DungeonRequiredItem> RequiredItems { get; init; } = [];
 }

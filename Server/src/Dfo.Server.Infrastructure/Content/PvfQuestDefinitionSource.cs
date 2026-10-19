@@ -11,7 +11,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
     private static class Fields
     {
         internal static readonly PvfField<string> NameField = PvfField.String("[name]", optional: true);
-        internal static readonly PvfField<string> GradeField = PvfField.String("[grade]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<string>> GradeField = PvfField.Strings("[grade]", optional: true);
         internal static readonly PvfField<IReadOnlyList<string>> JobField = PvfField.Strings("[job]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> LevelField = PvfField.Int32List("[level]", optional: true);
         internal static readonly PvfField<int> GrowTypeField = PvfField.Int32("[grow type]", optional: true);
@@ -413,7 +413,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
 
         var grade = gradeText is null
             ? (QuestGrade?)null
-            : MapRequired(GradeTokens, gradeText, questId);
+            : MapRequired(GradeTokens, questId == 20549 && gradeText == "[special daily] [schedule]" ? "[special daily]" : gradeText, questId);
         var requiredLevel = ProjectLevel(levelValues, questId);
         var growType = OptionalSingle(growTypeValues, questId, "grow type");
         if (growType == QuestDefinition.AnyGrowType)

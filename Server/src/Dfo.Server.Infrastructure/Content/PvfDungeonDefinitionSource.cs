@@ -115,6 +115,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         byte basisLevel = 1;
         var experienceWeight = 1.0;
         var consumesFatigue = true;
+        var noGiveupPenalty = false;
         var offersPaidCard = true;
         DungeonQuestConnection? questConnection = null;
         IReadOnlyList<byte>? difficultyLevels = null;
@@ -230,6 +231,12 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                 Fields.RevengeField.Decode(archive, section.Values, archivePath);
                 entryMode = DungeonEntryMode.VillageRevenge;
             }
+            else if (section.Name == "[no giveup panalty]")
+            {
+                if (noGiveupPenalty || section.Values.Count != 0)
+                    throw new InvalidDataException($"PVF '{archivePath}': invalid [no giveup panalty] marker.");
+                noGiveupPenalty = true;
+            }
             else if (Fields.NoFatigueField.Matches(section.Name))
             {
                 Unique(Fields.NoFatigueField);
@@ -315,7 +322,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             dungeonId, archivePath, minimumLevel, consumesFatigue, mazes, basisLevel,
             experienceWeight, offersPaidCard, questConnection,
             designatedDifficulties ?? difficultyLevels ?? (fixedDifficulty is >= 0 ? [(byte)fixedDifficulty.Value] : []), entryMode)
-        { RecommendedLevels = document.Read(PvfField.Int32List("[recommended level]", optional: true)) ?? [], RequiredItems = requiredItems, HasStoryMode = hasStoryMode, NamedMonsterCodes = namedMonsterCodes.ToImmutable() };
+        { RecommendedLevels = document.Read(PvfField.Int32List("[recommended level]", optional: true)) ?? [], RequiredItems = requiredItems, HasStoryMode = hasStoryMode, NoGiveupPenalty = noGiveupPenalty, NamedMonsterCodes = namedMonsterCodes.ToImmutable() };
     }
 
     private static byte CellCoordinate(int value, string path, PvfField field)

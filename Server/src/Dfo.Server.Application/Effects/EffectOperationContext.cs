@@ -156,6 +156,7 @@ internal sealed class EffectOperationContext : IRequestReplayProjectionDomainSer
                     break;
                 case (SpendGoldEffect, GoldEffectChange):
                 case (SetQuestRewardGoldEffect, QuestRewardGoldChange):
+                case (GrantOpeningGoldEffect, OpeningVirtualChange):
                 case (GrantOpeningVirtualEffect, OpeningVirtualChange): frame.Needs |= ReplayProjectionNeeds.Inventory; break;
                 case (MoveToTownEffect move, TownPositionChange):
                     frame.Needs |= ReplayProjectionNeeds.TownLocation;

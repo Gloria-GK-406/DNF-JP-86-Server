@@ -88,7 +88,8 @@ public sealed class AcceptQuestCommandHandler(
     IQuestProgressDomainService questProgress,
     IItemDeliveryDomainService delivery,
     ICycleDungeonEntryDomainService? cycles = null, IMirrorAradQuestDomainService? mirror = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? marriage = null)
+    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? marriage = null,
+    ISouthernDaleQuestDomainService? southern = null)
     : ICommandHandler<AcceptQuestCommand, QuestAcceptOutcome>
 {
     public async ValueTask<QuestAcceptOutcome> HandleAsync(
@@ -137,6 +138,9 @@ public sealed class AcceptQuestCommandHandler(
                 QuestProgress: mirror is null ? new QuestProgressSnapshot(carried)
                     : await mirror.MergeAsync(command.CharacterId, new(carried), cancellationToken).ConfigureAwait(false));
         }
+        if (command.QuestId == ISouthernDaleQuestDomainService.QuestId && (southern is null
+            || !await southern.CanAcceptAsync(command.CharacterId, cancellationToken).ConfigureAwait(false)))
+            return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
         var taken = await log.AcceptAsync(definition, cancellationToken).ConfigureAwait(false);
         if (!taken.Accepted)
             return QuestAcceptOutcome.Refuse(command.QuestId, WireCodeFor(taken.Refusal));

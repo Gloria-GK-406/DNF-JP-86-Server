@@ -80,7 +80,13 @@ internal sealed class OpeningEffectPlanRuleService(IItemUseJudgementService useR
         var expiries = premiums.ToDictionary(x => x.PremiumType, x => x.ExpiresAtUnixSeconds);
         foreach (var grant in grants)
         {
-            if (grant.Item.PremiumType > 0)
+            if (grant.Reward.ItemId == 0)
+            {
+                if (sourceId != 7615 || grant.Reward.Ability != 0 || grant.Reward.PeriodDays != 0)
+                    throw Reject(OpeningRejection.UnsupportedContent, "Unsupported gold package.");
+                result.Add(new GrantOpeningGoldEffect(grant.Reward.Count));
+            }
+            else if (grant.Item.PremiumType > 0)
             {
                 var type = grant.Item.PremiumType;
                 var old = expiries.GetValueOrDefault(type);

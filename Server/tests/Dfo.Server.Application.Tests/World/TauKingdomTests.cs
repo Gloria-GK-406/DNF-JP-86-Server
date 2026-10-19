@@ -95,7 +95,8 @@ public sealed class TauKingdomTests
             await events.ChangeAsync(new(2215, 0, "disable"), "test", at, default);
             await tx.CommitAsync(default);
         }
-        Assert.DoesNotContain(await events.GetEventInfoListAsync(new(1), at, default), x => x.EventId is 2215 or 69);
+        Assert.DoesNotContain(await events.GetEventInfoListAsync(new(1), at, default), x => x.EventId == 2215);
+        Assert.Single(await events.GetEventInfoListAsync(new(1), at, default), x => x.EventId == 69);
         Assert.False(Assert.Single((await projection.ReadNowAsync(f.Session, default)).ScheduledDungeons, x => x.DungeonId == 3700).Open);
         await using (var tx = f.Scope.Begin())
         {
@@ -120,7 +121,8 @@ public sealed class TauKingdomTests
                 at.AddDays(startOffset), at.AddDays(endOffset)), "test", at, default);
             await tx.CommitAsync(default);
         }
-        Assert.DoesNotContain(await events.GetEventInfoListAsync(new(1), at, default), x => x.EventId is 2215 or 69);
+        Assert.DoesNotContain(await events.GetEventInfoListAsync(new(1), at, default), x => x.EventId == 2215);
+        Assert.Single(await events.GetEventInfoListAsync(new(1), at, default), x => x.EventId == 69);
         var snapshot = await f.Services.GetRequiredService<IEventPlayerProjectionDomainService>().ReadNowAsync(f.Session, default);
         Assert.False(Assert.Single(snapshot.ScheduledDungeons, x => x.DungeonId == 3700).Open);
     }

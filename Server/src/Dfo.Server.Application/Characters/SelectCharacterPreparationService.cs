@@ -40,7 +40,7 @@ public sealed class SelectCharacterPreparationService(
     Dfo.Server.Abstractions.Achievements.ITitleBookDomainService? titles = null,
     Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService? marriage = null,
     Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? weddingQuests = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null, Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService? capsules = null, ICollectionBoxDomainService? collections = null) : ISelectCharacterPreparationDomainService
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null, Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService? capsules = null, ICollectionBoxDomainService? collections = null, ISouthernDaleQuestDomainService? southern = null) : ISelectCharacterPreparationDomainService
 {
     public async ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
         SelectedSessionIdentity session,
@@ -173,6 +173,8 @@ public sealed class SelectCharacterPreparationService(
         var contentSubject = CharacterStateProjection.BuildContentSubject(equippedCreature, character, characterEntry, characterInventory);
         if (weddingQuests is not null)
             contentSubject = contentSubject with { EligibleWeddingQuestIds = await weddingQuests.EligibleQuestIdsAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) };
+        if (southern is not null)
+            contentSubject = contentSubject with { SouthernDaleQuestAvailable = await southern.CanAcceptAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) };
         var content = await worldContent.LoadAsync(contentSubject, cancellationToken)
             .ConfigureAwait(false);
         var channelPolicy = await placement.ResolveAsync(

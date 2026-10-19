@@ -168,6 +168,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledDungeonStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledDungeonStateMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledQuestStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledQuestStateMessage>>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.Events.EventsChanged,Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler>(retryLimit:0);
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompleted,Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompletedHandler>(retryLimit:0);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommand,Dfo.Server.Data.Events.AttendanceClaimResult,Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommandHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive);
@@ -1078,6 +1079,10 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<DespairClearRewardNotification, DespairClearRewardEncoder>();
         services.AddGameNotiMessageEncoder<SaoCurrentFloorNotification, SaoCurrentFloorEncoder>();
         services.AddDomainSubscriber<SaoTowerCleared, SaoTowerNotificationSubscriber>("sao-tower.notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddDomainSubscriber<SouthernDaleInventoryChanged, Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryNotificationSubscriber>(
+            "southern-dale.inventory-notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryRefresh,
+            Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryRefreshHandler>(retryLimit: 0);
         services.AddDomainSubscriber<TauKingdomTicketRefilled, Dfo.Server.Protocol.Game.TauKingdom.TauTicketNotificationSubscriber>(
             "tau-kingdom.ticket-notifications", DomainEventDeliveryPolicy.LiveOnly);
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.TauKingdom.TauTicketRefresh,

@@ -120,7 +120,8 @@ internal sealed class ReplayStateDomainService(IServiceProvider services, IDomai
                 entry.Progression.DailyChallenges.Where(x => x.RewardClaimed).Select(x => checked((int)x.GroupId)).ToImmutableArray(),
                 entry.Features.Collections.CollectionBoxes.Select(x => new CollectionBoxProgressSubject(x.BoxIndex,
                     x.Slots.Select(y => y.ItemId).ToImmutableArray())).ToImmutableArray(),
-                Get<IEquippedCreatureQuery>().GetItemId(characterInventory!), entry.Public.DerivedStats.EquippedCreatureLevel);
+                Get<IEquippedCreatureQuery>().GetItemId(characterInventory!), entry.Public.DerivedStats.EquippedCreatureLevel)
+            { SouthernDaleQuestAvailable = await Get<ISouthernDaleQuestDomainService>().CanAcceptAsync(session.CharacterId, ct).ConfigureAwait(false) };
             var offers = await Get<Dfo.Server.Abstractions.Quests.IQuestAvailabilityRuleService>().ReadAvailableAsync(subject, ct).ConfigureAwait(false);
             quests = new(entry.Quests.ActiveQuests.ToImmutableArray(), entry.Quests.VisibilityFlags.ToImmutableArray(), offers.Quests.ToImmutableArray());
         }

@@ -75,7 +75,7 @@ public sealed class PvfQuestEnemyRewardTests
         var all = await source.GetAllAsync(CancellationToken.None);
         // Same server-PVF snapshot as Projects_every_neutral_eligibility_input_from_the_real_archive.
         // Regional/five-field kill objectives now survive catalogue projection.
-        Assert.Equal(3252, all.Count);
+        Assert.Equal(3253, all.Count); // Adds Southern Dale scheduled exchange 20549.
         Assert.Equal(3827, all.Sum(q => q.EnemyRewardItems.Count(r => r.EnemyType == QuestEnemyType.APC)));
         Assert.Equal(9, all.Sum(q => q.EnemyRewardItems.Count(r => r.EnemyType == QuestEnemyType.PassiveObject)));
     }
