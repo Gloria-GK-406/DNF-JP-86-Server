@@ -166,14 +166,15 @@ internal sealed class BossTowerDomainService(
                 context.Session.CharacterId.Value, context.RunId, context.RoomVersion, targetX, targetY);
             return new BossTowerActionResult(false, null);
         }
-        if (targetY != 0 || targetX != (current.Room.State.Level + 1) % 2 || !current.CanAdvance(context.Session))
+        var targetAccepted = rules.IsNextStageTarget(current.Room.State.Level, targetX, targetY);
+        if (!targetAccepted || !current.CanAdvance(context.Session))
         {
-            var reason = targetY != 0 || targetX != (current.Room.State.Level + 1) % 2 ? "TargetCoordinateMismatch"
+            var reason = !targetAccepted ? "TargetCoordinateMismatch"
                 : current.Completion is not null ? "RunCompleted"
                 : current.Room.State.Phase != TowerRoomPhase.Cleared ? "RoomNotCleared" : "NotLeader";
-            logger?.LogWarning("Boss tower move refused character={CharacterId} run={RunId} roomVersion={RoomVersion} stage={Stage} map={MapId} phase={Phase} target=({X},{Y}) expected=({ExpectedX},0) remainingBlocking={RemainingBlocking} deadActors={DeadActors}/{ActorCount} reason={Reason}",
+            logger?.LogWarning("Boss tower move refused character={CharacterId} run={RunId} roomVersion={RoomVersion} stage={Stage} map={MapId} phase={Phase} target=({X},{Y}) remainingBlocking={RemainingBlocking} deadActors={DeadActors}/{ActorCount} reason={Reason}",
                 context.Session.CharacterId.Value, current.RunId, current.Room.State.Version, current.Room.State.Level,
-                current.Room.State.MapId, current.Room.State.Phase, targetX, targetY, (current.Room.State.Level + 1) % 2,
+                current.Room.State.MapId, current.Room.State.Phase, targetX, targetY,
                 current.Room.State.Actors.Count(x => x.Seed.BlocksClear && !x.Dead),
                 current.Room.State.Actors.Count(x => x.Dead), current.Room.State.Actors.Length, reason);
             return current.Result(false);

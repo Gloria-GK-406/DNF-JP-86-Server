@@ -15,6 +15,10 @@ internal sealed class BossTowerRuleService(IBossTowerContentSource content) : IB
     public TimeSpan LoadingTimeout => TimeSpan.FromSeconds(120);
     public TimeSpan ResultTimeout => TimeSpan.FromSeconds(20);
     public bool CanTrade(int npcId, int shopId) => npcId == 1010 && shopId == 1118;
+    public bool IsNextStageTarget(int currentStage, byte targetX, byte targetY) =>
+        // The A21 tower sends (-1,-1) as a next-stage marker, not a maze cell.
+        targetX == byte.MaxValue && targetY == byte.MaxValue
+        || targetY == 0 && targetX == (currentStage + 1) % 2;
     public EventConfiguration InitialActivity => new(0, "permanent", true, "领主之塔", "领主之塔",
         "60级以上可挑战领主之塔；每次消耗一张入场券，不消耗疲劳。", "", "", DateTimeOffset.UnixEpoch,
         new DateTimeOffset(2037, 12, 31, 23, 59, 59, TimeSpan.FromHours(8)));

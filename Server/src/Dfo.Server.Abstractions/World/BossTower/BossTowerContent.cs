@@ -25,6 +25,7 @@ public interface IBossTowerRuleService
     TimeSpan LoadingTimeout { get; }
     TimeSpan ResultTimeout { get; }
     bool CanTrade(int npcId, int shopId);
+    bool IsNextStageTarget(int currentStage, byte targetX, byte targetY);
     EventConfiguration InitialActivity { get; }
     ValueTask<BossTowerDefinition> DefinitionAsync(CancellationToken ct);
     ValueTask<BossTowerRoomSeed> CreateRoomAsync(int stage, uint seed, CancellationToken ct);

@@ -41,8 +41,10 @@ public sealed class BossTowerDomainServiceTests
         Assert.Equal(1, f.Count(2749094));
     }
 
-    [Fact]
-    public async Task Eight_rooms_wait_for_legal_move_and_settle_once_using_current_stage()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Eight_rooms_wait_for_legal_move_and_settle_once_using_current_stage(bool nativeSentinel)
     {
         using var f = Fixture();
         f.SetLevel(65);
@@ -54,7 +56,9 @@ public sealed class BossTowerDomainServiceTests
         {
             Assert.Equal(stage, run.CurrentStage);
             var ctx = Context(run, f.Session);
-            Assert.False((await tower.NextLevelAsync(ctx, (byte)((stage + 1) % 2), 0, default)).Changed);
+            var targetX = nativeSentinel ? byte.MaxValue : (byte)((stage + 1) % 2);
+            var targetY = nativeSentinel ? byte.MaxValue : (byte)0;
+            Assert.False((await tower.NextLevelAsync(ctx, targetX, targetY, default)).Changed);
             await tower.LoadAsync(ctx, default);
             await tower.StartAsync(ctx, default);
             var killed = await tower.KillAsync(ctx, run.Room.Actors[0].Uid, default);
@@ -66,7 +70,12 @@ public sealed class BossTowerDomainServiceTests
             {
                 Assert.Null(run.Completion);
                 Assert.False((await tower.NextLevelAsync(ctx, (byte)(stage % 2), 0, default)).Changed);
-                run = (await tower.NextLevelAsync(ctx, (byte)((stage + 1) % 2), 0, default)).Run!;
+                Assert.False((await tower.NextLevelAsync(ctx, byte.MaxValue, 0, default)).Changed);
+                Assert.False((await tower.NextLevelAsync(ctx, 0, byte.MaxValue, default)).Changed);
+                var advanced = await tower.NextLevelAsync(ctx, targetX, targetY, default);
+                Assert.True(advanced.Changed);
+                run = advanced.Run!;
+                Assert.False((await tower.NextLevelAsync(ctx, targetX, targetY, default)).Changed);
                 Assert.False((await tower.KillAsync(ctx, run.Room.Actors[0].Uid, default)).Changed);
             }
         }
@@ -164,6 +173,13 @@ public sealed class BossTowerDomainServiceTests
         Assert.Equal(2, entered.InventoryChanges.Count);
         var visibility = f.Services.GetRequiredService<ICharacterVisibleSessionDomainService>().Resolve(f.Session);
         Assert.Contains(peer, visibility);
+        var ctx = Context(run, f.Session);
+        await tower.LoadAsync(ctx, default);
+        await tower.LoadAsync(Context(run, peer), default);
+        await tower.StartAsync(ctx, default);
+        await tower.KillAsync(ctx, run.Room.Actors[0].Uid, default);
+        Assert.False((await tower.NextLevelAsync(Context(run, peer), byte.MaxValue, byte.MaxValue, default)).Changed);
+        Assert.Equal(1, tower.Find(f.Session)!.CurrentStage);
         var left = await tower.LeaveAsync(Context(run, f.Session), false, default);
         Assert.Null(tower.Find(f.Session)); Assert.True(Assert.Single(left.Run!.Members).IsLeader);
         Assert.Equal(peer, Assert.Single(left.Run.Members).Session);
@@ -342,6 +358,8 @@ public sealed class BossTowerDomainServiceTests
         public TimeSpan LoadingTimeout => TimeSpan.FromSeconds(120);
         public TimeSpan ResultTimeout => TimeSpan.FromSeconds(20);
         public bool CanTrade(int npcId, int shopId) => npcId == 1010 && shopId == 1118;
+        public bool IsNextStageTarget(int currentStage, byte targetX, byte targetY) =>
+            new BossTowerRuleService(null!).IsNextStageTarget(currentStage, targetX, targetY);
         public int EventId => 2329; public int TicketItemId => 2749110; public int PartyLimit => 4;
         public Dfo.Server.Data.Events.EventConfiguration InitialActivity => new BossTowerRuleService(null!).InitialActivity;
         public bool Supports(int dgn) => dgn == 3505;

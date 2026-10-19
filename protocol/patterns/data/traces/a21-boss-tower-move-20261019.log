@@ -1,0 +1,15 @@
+# A21 Lord Tower move request - decoded server log excerpt
+# Source: artifacts/lord-tower-move-log-20261019/runtime.stdout.log
+# Source SHA256: 2EA2824E0932056543CEFE105FEA3C9A528F312788B7ABE267E040A90DA80B49
+# Client: E:/Project/DNF/DNFClient-A21-protocol2/DNF.exe
+# Client SHA256: 1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD
+# Runtime: 0.2.7+911b73cf22ae2692d372bd5bda213baf3cf1c44a
+# This is a decoded receive/state log, not a complete raw wire capture.
+# Local time: Asia/Shanghai (UTC+08:00)
+
+2026-10-19 20:44:26.639 +08:00 info: Dfo.Server.Protocol.Game.BossTowerProjectionDelivery[0]
+      Boss tower move requested connection=Game:01-00-00-00 character=8 sequence=83 ordinal=84 run=b64c3b15-2480-4016-9c45-e3c5e790e0c3 roomVersion=1 stage=1 phase=Cleared target=(255,255)
+2026-10-19 20:44:26.641 +08:00 warn: Dfo.Server.Application.World.BossTower.BossTowerDomainService[0]
+      Boss tower move refused character=8 run=b64c3b15-2480-4016-9c45-e3c5e790e0c3 roomVersion=1 stage=1 map=25044 phase=Cleared target=(255,255) expected=(0,0) remainingBlocking=0 deadActors=3/3 reason=TargetCoordinateMismatch
+2026-10-19 20:44:26.641 +08:00 info: Dfo.Server.Protocol.Game.BossTowerProjectionDelivery[0]
+      Boss tower move result character=8 run=b64c3b15-2480-4016-9c45-e3c5e790e0c3 changed=False stage=1 map=25044 phase=Cleared roomVersion=1

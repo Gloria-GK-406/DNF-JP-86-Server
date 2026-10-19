@@ -77,8 +77,9 @@ public sealed class BossTowerFrameIntegrationTests
             host.Services.GetRequiredService<IActiveCharacterDomainService>().Publish(session);
             tower.Seed(session);
 
-            // Legal next-stage request: success is the dedicated map push, with no ordinary CMD ACK.
-            await stream.WriteAsync(ClientFrame(0x002D, new byte[10], 1), timeout.Token);
+            // A21 tower next-stage marker: success is the dedicated map push, with no ordinary CMD ACK.
+            var move = new byte[10]; move[0] = byte.MaxValue; move[1] = byte.MaxValue;
+            await stream.WriteAsync(ClientFrame(0x002D, move, 1), timeout.Token);
             var map = await ReadFrame(stream, timeout.Token);
             Assert.Equal(0, map[0]); Assert.Equal(0x0334, BinaryPrimitives.ReadUInt16LittleEndian(map.AsSpan(1)));
             Assert.Equal(26, map.Length - GameServerFrameEncoder.HeaderLength);
