@@ -89,7 +89,7 @@ public sealed class CharacterDeathHandler(
     ICommandBus commands,
     IGameMessageSender sender,
     ILogger<CharacterDeathHandler> logger,
-    IllusionTowerProjectionDelivery? illusionTower = null) : ClientMessageHandler<CharacterDeathRequest>
+    IllusionTowerProjectionDelivery? illusionTower = null, BossTowerProjectionDelivery? bossTower = null) : ClientMessageHandler<CharacterDeathRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context, CharacterDeathRequest message, CancellationToken cancellationToken)
@@ -97,6 +97,7 @@ public sealed class CharacterDeathHandler(
         var connectionId = context.Connection.ConnectionId;
         var session = selectedSessions.FindByConnection(connectionId);
         if (session is null) return;
+        if (bossTower is not null && await bossTower.DieAsync(connectionId, message.Metadata, cancellationToken).ConfigureAwait(false)) return;
         if (illusionTower is not null
             && await illusionTower.DieAsync(connectionId, message.Metadata, cancellationToken).ConfigureAwait(false))
             return;

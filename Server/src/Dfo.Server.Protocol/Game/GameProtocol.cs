@@ -138,6 +138,11 @@ internal static class GameProtocol
 
     public const ushort FinishLoadingType = 0x0025;
 
+    public const ushort BossTowerInfoType = 0x0333;
+    public const ushort BossTowerMapType = 0x0334;
+    public const ushort BossTowerRewardType = 0x0335;
+    public const ushort BossTowerContinueType = 0x0336;
+
     public const ushort MoveMapType = 0x002D;
 
     /// <summary>The client reporting a room actor dead, and the two frames that answer it.</summary>

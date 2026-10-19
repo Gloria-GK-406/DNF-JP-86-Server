@@ -69,6 +69,7 @@ public sealed partial class ItemDeliveryTests
     [Theory]
     [InlineData(690001556)]
     [InlineData(2680738)]
+    [InlineData(2749110)]
     public void Activity_tickets_use_game_day_and_legacy_midnight_claim_does_not_reissue(int item)
     {
         var rules = new DailyRefillRuleService(new SixOClock());

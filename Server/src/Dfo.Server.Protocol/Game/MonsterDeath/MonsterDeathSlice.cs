@@ -379,7 +379,7 @@ public sealed class MonsterDeathHandler(
     DungeonPartyRecipients? partyRecipients = null, ICreatureRuntimeDomainService? creatures = null,
     SelectedSessionSafety? safety = null, IllusionTowerProjectionDelivery? illusionTower = null,
     Dfo.Server.Protocol.Game.Tournament.TournamentProjectionDelivery? tournamentProjection = null,
-    Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery? altarProjection = null)
+    Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery? altarProjection = null, BossTowerProjectionDelivery? bossTower = null)
     : ClientMessageHandler<MonsterDeathRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
@@ -387,6 +387,12 @@ public sealed class MonsterDeathHandler(
     {
         var reporter = selectedSessions.FindByConnection(context.Connection.ConnectionId);
         if (reporter is null) return;
+        if (bossTower?.HasRun(reporter) == true)
+        {
+            if (message.ObjectCode is null)
+                _ = await bossTower.KillAsync(reporter.ConnectionId, message.Metadata, message.ActorSequence, message.WireUserId, ct).ConfigureAwait(false);
+            return;
+        }
         if (message.ObjectCode is null && illusionTower is not null
             && await illusionTower.KillAsync(reporter.ConnectionId, message.Metadata,
                 message.ActorSequence, message.WireUserId, ct).ConfigureAwait(false)) return;

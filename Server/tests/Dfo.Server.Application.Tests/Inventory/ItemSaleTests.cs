@@ -37,8 +37,8 @@ public sealed class ItemSaleTests
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611) })
             { Despair = tower ? new(1, new(2026, 10, 11)) : null };
         var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
-        var run = runs.PreparePartyEntry([new(shop.Session.AccountId,
-            shop.Session.CharacterId, 0, true)], layout, 0).Run;
+        var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId,
+            shop.Session.CharacterId, 0, true)], layout, 0)).Run;
         if (clear) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);
         await Sell(shop, 65, 1, npc: npc);
         Assert.Equal(1, shop.Count(5000));
@@ -63,8 +63,8 @@ public sealed class ItemSaleTests
             boss ? new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)}
                 : new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611), [other] = DungeonCellDefinition.Fixed(55611)});
         var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
-        var run = runs.PreparePartyEntry([new(shop.Session.AccountId,
-            shop.Session.CharacterId, 0, true)], layout, 0).Run;
+        var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId,
+            shop.Session.CharacterId, 0, true)], layout, 0)).Run;
         if (open) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);
         await Sell(shop, 65, 1, npc: npc);
         Assert.Equal(1, shop.Count(5000));

@@ -12,7 +12,8 @@ internal sealed class ItemUseEffectDomainService(ICharacterDomainService charact
     IItemUseEffectRuleService rules, IApplyEffectsDomainService effects,
     ICreatureInstanceDomainService creatures, TimeProvider clock,
     Dfo.Server.Abstractions.DomainEvents.IEventService? events = null,
-    IExperienceItemDomainService? experienceItems = null, IEntryAllowanceItemDomainService? entryItems = null) : IItemUseEffectDomainService
+    IExperienceItemDomainService? experienceItems = null, IEntryAllowanceItemDomainService? entryItems = null,
+    IDungeonParticipationDomainService? participation = null) : IItemUseEffectDomainService
 {
     public async ValueTask<ItemUseApplication> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
         ItemReference item, CancellationToken ct)
@@ -29,6 +30,8 @@ internal sealed class ItemUseEffectDomainService(ICharacterDomainService charact
         }
 
         var rule = await rules.RuleForAsync(item.ItemId, ct).ConfigureAwait(false);
+        if (rule?.SummonsApc == true && participation?.Find(session.CharacterId)?.Mode == DungeonParticipationMode.BossTower)
+            return new(ItemUsability.PlaceNotAllowed, item.ItemId, item.Count);
         var facts = rule is null || !rule.IsReadable ? null : await characters.Get(session.CharacterId)
             .ItemUseFactsAsync(rules.CooldownKeyFor(item.ItemId, rule), ct).ConfigureAwait(false);
         var pet = item.ItemId == 24 ? await creatures.Of(session.CharacterId).CurrentPetAsync(ct).ConfigureAwait(false) : null;

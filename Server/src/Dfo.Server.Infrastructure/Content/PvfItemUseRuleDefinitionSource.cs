@@ -92,6 +92,7 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
                 archive, ref reader, Fields.StackableTypeField, out var typeToken, ref unreadable)
             ? archive.ResolveString(typeToken.Value)
             : null;
+        var summonsApc = PvfDocument.Open(archive, path).AtRoot().TryRead(PvfField.Tokens("[summon apc]", optional: true), out var summoned) && summoned.Count > 0;
         var action = TryReadFirstString(
                 archive, ref reader, Fields.ActionTypeField, out var actionToken, ref unreadable)
             ? archive.ResolveString(actionToken.Value)
@@ -121,7 +122,7 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             HasUnreadableDeclaration: unreadable,
             ExpBonusRate: expBonusRate,
             EffectDurationMilliseconds: Math.Max(0, effectDuration),
-            Action: action) { SharedEffectSelector = shared == 1 && stackableType is "[only effect]" or "[random reward item]" ? (byte)0 : null };
+            Action: action) { SummonsApc = summonsApc, SharedEffectSelector = shared == 1 && stackableType is "[only effect]" or "[random reward item]" ? (byte)0 : null };
     }
 
     /// <summary>

@@ -75,7 +75,8 @@ public sealed class SelectCharacterHandler(
     Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService? clientSettings = null,
     Dfo.Server.Abstractions.World.ISaoTowerDomainService? sao = null,
     Dfo.Server.Abstractions.World.ITauKingdomDomainService? tau = null,
-    Dfo.Server.Abstractions.World.ISouthernDaleDomainService? southern = null) : ClientMessageHandler<SelectCharacterRequest>
+    Dfo.Server.Abstractions.World.ISouthernDaleDomainService? southern = null,
+    Dfo.Server.Abstractions.World.BossTower.IBossTowerTicketDomainService? bossTickets = null) : ClientMessageHandler<SelectCharacterRequest>
 {
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -342,6 +343,8 @@ public sealed class SelectCharacterHandler(
         if (southern is not null)
             await commandBus.SendAsync(new Dfo.Server.Application.World.RefillOnlineSouthernTicketCommand(session), cancellationToken)
                 .ConfigureAwait(false);
+        if (bossTickets is not null)
+            await commandBus.SendAsync(new Dfo.Server.Application.World.BossTower.RefillOnlineBossTowerTicketCommand(session), cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
         if (clientSettings is not null)
         {

@@ -110,7 +110,7 @@ public sealed class EplpCommandHandler(
     IPartyService? parties = null,
     IllusionTowerProjectionDelivery? illusionTower = null,
     Dfo.Server.Protocol.Game.Altar.AltarProtocolCoordinator? altars = null,
-    DungeonProjectionGate? projectionGate = null)
+    DungeonProjectionGate? projectionGate = null, BossTowerProjectionDelivery? bossTower = null)
     : ClientMessageHandler<EplpCommandRequest>
 {
     /// <summary>The state that means "take me out of here".</summary>
@@ -122,6 +122,9 @@ public sealed class EplpCommandHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        if (session is not null && bossTower is not null
+            && await bossTower.SelectReturnAsync(context.Connection.ConnectionId, message.Metadata,
+                message.State, message.Option, cancellationToken).ConfigureAwait(false)) return;
         if (session is not null && illusionTower is not null
             && await illusionTower.SelectReturnAsync(
                 context.Connection.ConnectionId, message.Metadata,

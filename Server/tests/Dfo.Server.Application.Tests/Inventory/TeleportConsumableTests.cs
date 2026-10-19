@@ -135,9 +135,9 @@ public sealed class TeleportConsumableTests
         Assert.Equal(2, f.Count(2000));
         f.Sql($"UPDATE characters SET level=2,exp={f.ExperienceForLevel(2)} WHERE character_id=1");
         var cell = new MazeCell(0, 0);
-        f.Services.GetRequiredService<IDungeonRunDomainService>().PreparePartyEntry(
+        f.InTransaction(() => f.Services.GetRequiredService<IDungeonRunDomainService>().PreparePartyEntry(
             [new(f.Session.AccountId, f.Session.CharacterId, 0, true)],
-            new(144, 0, 1, 1, cell, cell, 55611, 0, new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)}), 0);
+            new(144, 0, 1, 1, cell, cell, 55611, 0, new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)}), 0));
         await Send(f, sequence: 8); Assert.Equal(2, f.Count(2000));
         Assert.Equal(Start, f.Services.GetRequiredService<ICharacterPositionDomainService>().Find(f.Session.CharacterId));
     }

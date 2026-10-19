@@ -383,6 +383,10 @@ public enum ServerMessageType
 
     // The dungeon-entry answer: the run's shape, the room it opens in, and the support
     // roster. See Game/DungeonEntry.
+    GameBossTowerInfo = 0x0000_0333,
+    GameBossTowerMap = 0x0000_0334,
+    GameBossTowerReward = 0x0000_0335,
+    GameBossTowerContinue = 0x0000_0336,
     GameDungeonInfo = 0x0000_001C,
     GameHellPartyMonsterInfo = 0x0000_02A7,
     GameStartMap = 0x0000_001D,

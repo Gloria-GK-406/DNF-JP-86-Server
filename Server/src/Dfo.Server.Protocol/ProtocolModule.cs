@@ -20,6 +20,11 @@ using Dfo.Server.Protocol.Game.Weakness;
 using Dfo.Server.Protocol.Game.Fatigue;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Protocol.Game.BossTowerInfo;
+using Dfo.Server.Protocol.Game.BossTowerMap;
+using Dfo.Server.Protocol.Game.BossTowerReward;
+using Dfo.Server.Protocol.Game.BossTowerContinue;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Inventory;
@@ -882,6 +887,25 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UseRevivalCoinHandler>(ClientMessageType.GameUseRevivalCoin);
         services.RegisterMessageHandler<CharacterDeathHandler>(ClientMessageType.GameCharacterDeath);
         services.RegisterMessageHandler<MonsterDeathHandler>(ClientMessageType.GameMonsterDeath);
+        services.TryAddSingleton<BossTowerProjectionGate>();
+        services.TryAddSingleton<BossTowerEntryGate>();
+        services.TryAddSingleton<BossTowerProjectionDelivery>();
+        services.TryAddSingleton<BossTowerPartyCoordinator>();
+        services.TryAddSingleton<BossTowerDepartureProjectionQueue>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IBossTowerDepartureSink, BossTowerDepartureProjectionSink>());
+        services.TryAddSingleton<BossTowerReturnSweepService>();
+        services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider => provider.GetRequiredService<BossTowerReturnSweepService>());
+        services.AddCommandHandler<EnterBossTowerCommand, BossTowerEntryResult, EnterBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<LoadBossTowerCommand, BossTowerActionResult, LoadBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<StartBossTowerCommand, BossTowerActionResult, StartBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<KillBossTowerActorCommand, BossTowerActionResult, KillBossTowerActorCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<AdvanceBossTowerCommand, BossTowerActionResult, AdvanceBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<DieInBossTowerCommand, BossTowerActionResult, DieInBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<LeaveBossTowerCommand, BossTowerActionResult, LeaveBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<SynchronizeBossTowerLeaderCommand, BossTowerActionResult, SynchronizeBossTowerLeaderCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<SelectBossTowerResultCommand, BossTowerActionResult, SelectBossTowerResultCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<PickupBossTowerItemCommand, BossTowerPickupResult, PickupBossTowerItemCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<ReleaseBossTowerSelectionCommand, BossTowerActionResult, ReleaseBossTowerSelectionCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.TryAddSingleton<IllusionTowerProjectionGate>();
         services.TryAddSingleton<IllusionTowerEntryGate>();
         services.TryAddSingleton<IllusionTowerProjectionDelivery>();
@@ -1060,6 +1084,10 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<StoryPauseNotification, StoryPauseEncoder>();
         services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();
         services.AddGameNotiMessageEncoder<MonsterDeathNotification, MonsterDeathEncoder>();
+        services.AddGameNotiMessageEncoder<BossTowerInfoNotification, BossTowerInfoEncoder>();
+        services.AddGameNotiMessageEncoder<BossTowerMapNotification, BossTowerMapEncoder>();
+        services.AddGameNotiMessageEncoder<BossTowerRewardNotification, BossTowerRewardEncoder>();
+        services.AddGameNotiMessageEncoder<BossTowerContinueNotification, BossTowerContinueEncoder>();
         services.AddGameNotiMessageEncoder<IllusionTowerInfoNotification, IllusionTowerInfoEncoder>();
         services.AddGameNotiMessageEncoder<IllusionTowerMapNotification, IllusionTowerMapEncoder>();
         services.AddGameNotiMessageEncoder<IllusionTowerRankingNotification, IllusionTowerRankingEncoder>();
@@ -1086,6 +1114,10 @@ public sealed class ProtocolModule : IServerModule
             "southern-dale.daily-refill-notifications", DomainEventDeliveryPolicy.LiveOnly);
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryRefresh,
             Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryRefreshHandler>(retryLimit: 0);
+        services.AddDomainSubscriber<BossTowerTicketRefilled, Dfo.Server.Protocol.Game.BossTowerTicket.BossTowerTicketNotificationSubscriber>(
+            "boss-tower.ticket-notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.BossTowerTicket.BossTowerTicketRefresh,
+            Dfo.Server.Protocol.Game.BossTowerTicket.BossTowerTicketRefreshHandler>(retryLimit: 0);
         services.AddDomainSubscriber<TauKingdomTicketRefilled, Dfo.Server.Protocol.Game.TauKingdom.TauTicketNotificationSubscriber>(
             "tau-kingdom.ticket-notifications", DomainEventDeliveryPolicy.LiveOnly);
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.TauKingdom.TauTicketRefresh,

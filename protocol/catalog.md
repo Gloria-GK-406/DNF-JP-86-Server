@@ -1,8 +1,8 @@
 # 协议清单
 
-## 2026-10-19 领主之塔入口与阶段协议补证（尚未实现）
+## 2026-10-19 领主之塔实现候选（待原生验收）
 
-ClientStatic / High：当前PVF将3505列入调度名单，A21选图须由[033F](game/server-to-client/NOTI-0x033F.md)类别0/content3505的状态1/2开放，该路径绕过69/75隐藏门；本服缺2329受管活动及3505投影，与用户入口不可见吻合，实际激活后UI待验。[0333](game/server-to-client/NOTI-0x0333.md)固定8B；[0334](game/server-to-client/NOTI-0x0334.md)为12+14M+18I，第二数组是地图初始道具；[0335](game/server-to-client/NOTI-0x0335.md)固定八个成员槽奖励组，不是八阶段；[0336](game/server-to-client/NOTI-0x0336.md)为1B重试态。[0048](game/client-to-server/0x0048.md)领主塔快捷重试候选发01 00，不能把event1一律回城。021F是卡片图鉴身份，不能按BossTowerBaselineMessage类名当领主塔初始化。以上仅调查补证，没有新增实现、WireCaptured或ClientVerified；见[设计与证据](../Document/LordTower-Design-20261019.md)。
+CurrentImplementation / ClientStatic / 70Reference：受管2329通过[033F](game/server-to-client/NOTI-0x033F.md)投影content3505开放与关闭，未加69/75。专用[0333](game/server-to-client/NOTI-0x0333.md)8B（offset6练习0）、[0334](game/server-to-client/NOTI-0x0334.md)12+14M+18I、[0335](game/server-to-client/NOTI-0x0335.md)固定八成员组、[0336](game/server-to-client/NOTI-0x0336.md)1B已注册独立BossTowerInfo/Map/Reward/Continue切片；021F仍为卡片图鉴。0010/0025/0027/0028/0029/002B/[002D](game/client-to-server/0x002D.md)/[0048](game/client-to-server/0x0048.md)/000F/002A/0084及队伍/清理分流完成。002D成功仅0334，0025全员完成后001E；0048 btn0/1/2=重试/别图/回城，event2仅ACK，重试000F后0010才扣票。自动codec、handler及真实TouchSocket合成帧通过；它们不代表原生WireCaptured/ClientVerified。[实现与验证边界](../Document/LordTower-Implementation-20261019.md)。
 
 ## 2026-10-19 新·金角银角次数通知
 

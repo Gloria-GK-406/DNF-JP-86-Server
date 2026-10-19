@@ -16,6 +16,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 {
     private readonly IDomainTransactionAccessor? transactions;
     private readonly IPartyService? parties;
+    private readonly IDungeonParticipationDomainService? participation;
     private readonly IWeaknessDomainService? weakness;
     private readonly ICreatureRuntimeDomainService? creatures;
     private readonly IDungeonLifecycleDomainService? lifecycle;
@@ -52,9 +53,10 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         ICreatureRuntimeDomainService? creatures = null,
         IDungeonLifecycleDomainService? lifecycle = null, TimeProvider? clock = null,
         IDungeonRoomMechanismRuleService? mechanismRules = null, IDungeonRoomMechanismWakeSignal? mechanismWake = null,
-        ISealedTreasureRuleService? sealedTreasureRules = null)
+        ISealedTreasureRuleService? sealedTreasureRules = null, IDungeonParticipationDomainService? participation = null)
     {
         this.transactions = transactions;
+        this.participation = participation;
         this.parties = parties;
         this.weakness = weakness;
         this.creatures = creatures;
@@ -122,6 +124,9 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                     .ToHashSet().SetEquals(frozen.Select(participant => participant.CharacterId)))
                 throw new InvalidOperationException("The entry roster no longer matches the party.");
         }
+        if (this.participation is not null && !this.participation.TryClaim(
+            frozen.Select(x => x.CharacterId).ToArray(), new(DungeonParticipationMode.Ordinary, runId.Value)))
+            throw new InvalidOperationException("A dungeon participant is already occupied.");
         var aggregate = new DungeonRunAggregate(
             runId, partyKey, this.parties, frozen, layout, difficulty, startedAt, initialCell);
 
@@ -1349,6 +1354,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         if (!this.runsByCharacter.Remove(characterId, out var aggregate))
             return false;
 
+        this.participation?.ReleaseCommitted(characterId, new(DungeonParticipationMode.Ordinary, aggregate.RunId.Value));
         this.weakness?.For(characterId).ResumeRecovery();
         this.creatures?.ChangeCombat(characterId, false);
         aggregate.ActiveParticipants.Remove(characterId);

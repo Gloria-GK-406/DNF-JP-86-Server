@@ -170,7 +170,7 @@ public sealed class GiveUpGameHandler(
     IllusionTowerProjectionDelivery? illusionTower = null,
     IllusionTowerPartyCoordinator? towerParties = null,
     Dfo.Server.Protocol.Game.Altar.AltarProtocolCoordinator? altars = null,
-    DungeonProjectionGate? projectionGate = null)
+    DungeonProjectionGate? projectionGate = null, BossTowerPartyCoordinator? bossParties = null)
     : ClientMessageHandler<GiveUpGameRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -191,6 +191,12 @@ public sealed class GiveUpGameHandler(
 
         for (var attempt = 0; ; attempt++)
         {
+            if (bossParties is not null)
+            {
+                var bossAttempt = await bossParties.TryLeaveAsync(session, allowVirtual: true,
+                    new GiveUpGameResponse(), cancellationToken).ConfigureAwait(false);
+                if (bossAttempt.Handled) return;
+            }
             if (towerParties is not null)
             {
                 var towerAttempt = await towerParties.TryLeaveAsync(
@@ -244,7 +250,7 @@ public sealed class GiveUpGameHandler(
                     leases.Add(await transitionGate.AcquireAsync(account, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
                 if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session)
                     return;
-                if (towerParties?.HasInvolvedTower(session) == true
+                if (towerParties?.HasInvolvedTower(session) == true || bossParties?.HasInvolvedTower(session) == true
                     || runs.Find(session.CharacterId)?.RunId != expectedRun?.RunId)
                 {
                     reroute = true;

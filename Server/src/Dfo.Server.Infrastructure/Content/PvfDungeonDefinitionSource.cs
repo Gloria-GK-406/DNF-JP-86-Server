@@ -28,7 +28,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// <see cref="DungeonDefinition.OffersPaidCard"/>; nothing is decided here beyond reading it.
 /// </para>
 /// </remarks>
-internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
+internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDungeonAdmissionDefinitionSource
 {
     private static class Fields
     {
@@ -67,6 +67,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
     private readonly PvfArchiveProvider _provider;
     private readonly Lock _gate = new();
     private readonly Dictionary<int, DungeonDefinition?> _cache = [];
+    private readonly Dictionary<int, DungeonAdmissionDefinition?> _admissions = [];
     private IReadOnlyDictionary<int, string>? _paths;
 
     public PvfDungeonDefinitionSource(PvfArchiveProvider provider) => _provider = provider;
@@ -79,9 +80,20 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             if (_cache.TryGetValue(dungeonId, out var cached))
                 return ValueTask.FromResult(cached);
 
-            var definition = Read(_provider.Archive, Paths(), dungeonId);
+            var definition = Read(_provider.Archive, Paths(), dungeonId, out var admission);
+            _admissions[dungeonId] = admission;
             _cache[dungeonId] = definition;
             return ValueTask.FromResult(definition);
+        }
+    }
+
+    public ValueTask<DungeonAdmissionDefinition?> GetAdmissionAsync(int dungeonId, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        lock (_gate)
+        {
+            if (!_admissions.ContainsKey(dungeonId)) _ = GetAsync(dungeonId, ct);
+            return ValueTask.FromResult(_admissions[dungeonId]);
         }
     }
 
@@ -101,8 +113,9 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
     private static DungeonDefinition? Read(
         PvfArchive archive,
         IReadOnlyDictionary<int, string> paths,
-        int dungeonId)
+        int dungeonId, out DungeonAdmissionDefinition? admission)
     {
+        admission = null;
         if (!paths.TryGetValue(dungeonId, out var relativePath))
             return null;
 
@@ -349,6 +362,9 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             }
         }
         Close(mazes, draft, archivePath);
+        admission = new(dungeonId, archivePath, minimumLevel, consumesFatigue,
+            designatedDifficulties ?? difficultyLevels ?? (fixedDifficulty is >= 0 ? [(byte)fixedDifficulty.Value] : []),
+            hasStoryMode, requiredItems, eventRequiredItems, prohibitsPractice, partyLimit);
         return mazes.Count == 0 ? null : new DungeonDefinition(
             dungeonId, archivePath, minimumLevel, consumesFatigue, mazes, basisLevel,
             experienceWeight, offersPaidCard, questConnection,

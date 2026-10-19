@@ -29,8 +29,8 @@ public sealed class DungeonRevivalTests
             Tournament = new(new TournamentDefinition(120, 17100, 69, 72, 2, 2, [], [], [], [], [], 16)
                 { CoinLimit = 1 }, [], [], 1),
         };
-        var run = runs.PreparePartyEntry([new(shop.Session.AccountId, shop.Session.CharacterId, 0, true)],
-            layout, DungeonDifficulty.Normal).Run;
+        var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId, shop.Session.CharacterId, 0, true)],
+            layout, DungeonDifficulty.Normal)).Run;
         runs.TryMarkParticipantReady(shop.Session.CharacterId, run.RunId, run.RoomVersion);
         runs.TryMarkParticipantDead(shop.Session.CharacterId, run.RunId, run.RoomVersion);
         runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch);
@@ -65,9 +65,9 @@ public sealed class DungeonRevivalTests
         var layout = new DungeonLayout(144, 0, 1, 1, new(0, 0), new(0, 0), 61000, 1,
             new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)});
         var target = new Dfo.Server.Data.Characters.CharacterId(2);
-        var run = runs.PreparePartyEntry([
+        var run = shop.InTransaction(() => runs.PreparePartyEntry([
             new(shop.Session.AccountId, shop.Session.CharacterId, 0, true),
-            new(new(2), target, 1, false)], layout, DungeonDifficulty.Normal).Run;
+            new(new(2), target, 1, false)], layout, DungeonDifficulty.Normal)).Run;
         foreach (var id in new[] { shop.Session.CharacterId, target })
         {
             runs.TryMarkParticipantReady(id, run.RunId, run.RoomVersion);

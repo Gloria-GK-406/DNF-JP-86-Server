@@ -66,6 +66,7 @@ public sealed class HellDungeonEntryTests
                 new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
             services.AddSingleton<IItemPlacementDefinitionSource>(new Placements());
             services.AddSingleton<IDungeonStructureRuleService>(new Structures());
+            services.AddSingleton<IDungeonAdmissionRuleService>(new Structures());
             services.AddSingleton<IDungeonDifficultyRuleService>(new Dfo.Server.Application.Tests.Support.TestDungeonDifficultyRules());
             services.AddSingleton<IHellDungeonDefinitionSource>(new Content());
             services.AddSingleton<IDespairTowerContentSource>(new NoDespairFloors());
@@ -464,8 +465,10 @@ public sealed class HellDungeonEntryTests
             boundary == "prepare" ? throw new InvalidDataException("invalid hell plan") : inner.PrepareAsync(rules, layout, seed, token);
         public IReadOnlyList<HellTicketAlternative> TicketAlternatives(HellDungeonDefinition rules, byte level) => inner.TicketAlternatives(rules, level);
     }
-    private sealed class Structures(IReadOnlyList<DungeonRequiredItem>? required = null, string? failureBoundary = null) : IDungeonStructureRuleService
+    private sealed class Structures(IReadOnlyList<DungeonRequiredItem>? required = null, string? failureBoundary = null) : IDungeonStructureRuleService, IDungeonAdmissionRuleService
     {
+        public async ValueTask<DungeonAdmissionDefinition?> GetAsync(int id, CancellationToken ct) =>
+            await GetDefinitionAsync(id, ct) is { } definition ? DungeonAdmissionDefinition.From(definition) : null;
         public ValueTask<DungeonDefinition?> GetDefinitionAsync(int id, CancellationToken token) => failureBoundary == "definition"
             ? throw new InvalidDataException("invalid test maze") : ValueTask.FromResult<DungeonDefinition?>(new(150, "test", 70, true, [], 80) { RequiredItems = required ?? [] });
         public ValueTask<DungeonLayout?> ResolveAsync(int id, DungeonEntryFacts facts, int seed, CancellationToken token) => failureBoundary == "resolve"

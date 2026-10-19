@@ -45,7 +45,9 @@ internal sealed class SelectedSessionCleanupService(
     ICreatureRuntimeDomainService? creatures = null,
     IIllusionTowerDomainService? illusionTower = null,
     IEnumerable<IIllusionTowerDepartureSink>? illusionTowerDepartures = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService? housing = null) : ISelectedSessionCleanupDomainService
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService? housing = null,
+    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null,
+    IEnumerable<Dfo.Server.Abstractions.World.BossTower.IBossTowerDepartureSink>? bossTowerDepartures = null) : ISelectedSessionCleanupDomainService
 {
     public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
         SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
@@ -151,6 +153,16 @@ internal sealed class SelectedSessionCleanupService(
                 foreach (var sink in illusionTowerDepartures ?? [])
                     await RunAsync(() => sink.DepartedAsync(departed, CancellationToken.None));
             }
+        }
+
+        if (bossTower?.Find(session) is { } bossRun)
+        {
+            Dfo.Server.Abstractions.World.BossTower.BossTowerActionResult? bossDeparture = null;
+            await RunAsync(async () => bossDeparture = await bossTower.LeaveAsync(
+                new(session, bossRun.RunId, bossRun.Room.Version), true, CancellationToken.None).ConfigureAwait(false));
+            if (bossDeparture is { Changed: true } departed)
+                foreach (var sink in bossTowerDepartures ?? [])
+                    await RunAsync(() => sink.DepartedAsync(departed, CancellationToken.None));
         }
 
         if (ownsSelectedCharacter)

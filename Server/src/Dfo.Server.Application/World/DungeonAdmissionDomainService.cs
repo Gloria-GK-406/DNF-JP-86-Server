@@ -19,7 +19,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
     ICharacterQuestLogDomainService? quests = null, IUsageQuotaDomainService? quotas = null,
     IEventService? events = null, IDomainTransactionAccessor? transactions = null,
     ISelectedSessionDomainService? sessions = null, ICharacterPositionDomainService? positions = null,
-    IDungeonRunDomainService? runs = null, CoupleDungeonRule? couples = null) : IDungeonAdmissionDomainService
+    IDungeonRunDomainService? runs = null, CoupleDungeonRule? couples = null, IDungeonAdmissionRuleService? admissionRules = null, IDungeonParticipationDomainService? participation = null) : IDungeonAdmissionDomainService
 {
     public async ValueTask<DungeonAdmissionDecision> PrepareAsync(DungeonEntryContext context, DungeonAdmissionOptions options, CancellationToken ct)
     {
@@ -32,14 +32,21 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
         if (options.Quota is { Family: not (UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon or UsageQuotaFamily.DespairTower or UsageQuotaFamily.AltarDungeon or UsageQuotaFamily.TournamentDungeon or UsageQuotaFamily.HerasDungeon or UsageQuotaFamily.GoldSilverHorn) })
             throw new ArgumentException("Unsupported dungeon entry quota family.", nameof(options));
         if (!Enum.IsDefined(context.Facts.Difficulty)) return Refuse(DungeonEntryFailure.DifficultyNotUnlocked);
-        DungeonDefinition? definition;
-        try { definition = await structures.GetDefinitionAsync(context.DungeonId, ct).ConfigureAwait(false); }
+        DungeonAdmissionDefinition? definition;
+        try
+        {
+            definition = admissionRules is not null
+                ? await admissionRules.GetAsync(context.DungeonId, ct).ConfigureAwait(false)
+                : await structures.GetDefinitionAsync(context.DungeonId, ct).ConfigureAwait(false) is { } ordinary
+                    ? DungeonAdmissionDefinition.From(ordinary) : null;
+        }
         catch (InvalidDataException error) { return new(null, DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message)); }
+        if (options.RequireMinimumLevel && definition is null) return Refuse(DungeonEntryFailure.DungeonNotFound);
         var permits = ImmutableArray.CreateBuilder<IDungeonAdmissionPermit>();
         var eligible = new List<(DungeonRunParticipant Member, SelectedSessionIdentity? Selected)>();
         foreach (var member in context.Participants)
         {
-            if (tower?.IsInTower(member.CharacterId) == true || options.MirrorCatalog is not null && runs?.Find(member.CharacterId) is not null)
+            if (participation?.Find(member.CharacterId) is not null || tower?.IsInTower(member.CharacterId) == true || options.MirrorCatalog is not null && runs?.Find(member.CharacterId) is not null)
                 return Refuse(DungeonEntryFailure.AlreadyInDungeon, member.Slot);
             SelectedSessionIdentity? selected = null;
             if (context.DungeonId == CoupleDungeonRule.DungeonId)

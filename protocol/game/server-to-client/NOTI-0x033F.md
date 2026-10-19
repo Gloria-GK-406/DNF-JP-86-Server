@@ -78,7 +78,7 @@ ClientStatic / High：同版20260922 A21 dump SHA-256 `AAAE24216E0E260AFA5284457
 
 选图`0271D854→011C2160→011C3030`识别调度内容，`0271D886→011C2530→011C2190`要求同contentId状态1或2，缺项/0过滤；后置`02736B90`也检查，已开放调度路径绕过69/75隐藏拒绝。建议用类别0、状态1、contentId3505、opaque0；正文`0000000001000000B10D000000000000`。2329仅是本服拟接入的活动配置身份，不能代替3505，也不需机械追加69/75或改PVF入口。
 
-CurrentImplementation：本次只读确认当前未注册2329活动、未投影3505，用户确认入口不可见。缺开放状态为高置信原因，未向现服注包；正常接线后实际显示与点击仍待验证。[完整补证及设计](../../../Document/LordTower-Design-20261019.md)。
+调查基线：当时未注册2329活动、未投影3505，用户确认入口不可见。CurrentImplementation：现已接入BossTowerEntranceEventDomainService受管2329默认常驻、EventPlayerSnapshotProjection输出3505开放/关闭，同一033F路径用于选角和在线更新；关闭服务端准入同步拒绝。实际显示与点击仍待用户验证。[完整补证及设计](../../../Document/LordTower-Design-20261019.md)。
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。

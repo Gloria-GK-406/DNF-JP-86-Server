@@ -103,7 +103,7 @@ public sealed class FinishLoadingHandler(
     IGameMessageSender sender,
     ILogger<FinishLoadingHandler> logger,
     IDungeonLoadingProjectionDelivery entryProjection,
-    IllusionTowerProjectionDelivery? illusionTower = null)
+    IllusionTowerProjectionDelivery? illusionTower = null, BossTowerProjectionDelivery? bossTower = null)
     : ClientMessageHandler<FinishLoadingRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -111,6 +111,8 @@ public sealed class FinishLoadingHandler(
         FinishLoadingRequest message,
         CancellationToken cancellationToken)
     {
+        if (bossTower is not null && await bossTower.CompleteLoadingAsync(context.Connection.ConnectionId, message.Metadata, cancellationToken).ConfigureAwait(false)) return;
+
         if (illusionTower is not null
             && await illusionTower.CompleteLoadingAsync(
                 context.Connection.ConnectionId, message.Metadata, cancellationToken).ConfigureAwait(false))

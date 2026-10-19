@@ -25,6 +25,8 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.World.IllusionTower;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Application.World.BossTower;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Application.Accounts;
 using Dfo.Server.Application.Channel;
@@ -184,6 +186,10 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ISouthernDaleRuleService, SouthernDaleRuleService>();
         services.TryAddSingleton<ISealedTreasureRuleService, SealedTreasureRuleService>();
         services.TryAddSingleton<IGoldSilverHornRuleService, GoldSilverHornRuleService>();
+        services.TryAddSingleton<IBossTowerRuleService, BossTowerRuleService>();
+        services.TryAddSingleton<IBossTowerTicketDomainService, BossTowerTicketDomainService>();
+        services.AddDomainEvent<BossTowerTicketRefilled>("boss-tower.ticket-refilled", 1);
+        services.AddBossTowerDailyRefill();
         services.TryAddSingleton<IGoldSilverHornDomainService, GoldSilverHornDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.GoldSilverHornEntryRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
@@ -322,6 +328,10 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IDungeonRoomMechanismRuleService, DungeonRoomMechanismRuleService>();
         services.TryAddSingleton<IDungeonRoomMechanismWakeSignal, DungeonRoomMechanismWakeSignal>();
         services.AddRuntimeEventSubscriber<DungeonRoomMechanismsChanged, DungeonRoomMechanismNotificationSubscriber>();
+        services.TryAddSingleton<IDungeonParticipationDomainService, DungeonParticipationDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService, Dfo.Server.Application.World.BossTower.BossTowerRewardRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardDomainService, Dfo.Server.Application.World.BossTower.BossTowerRewardDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService, Dfo.Server.Application.World.BossTower.BossTowerDomainService>();
         services.TryAddSingleton<IIllusionTowerRuleService, IllusionTowerRuleService>();
         services.TryAddSingleton<IIllusionTowerRewardRuleService, IllusionTowerRewardRuleService>();
         services.TryAddSingleton<IIllusionTowerRewardDomainService, IllusionTowerRewardDomainService>();
@@ -377,6 +387,7 @@ public sealed class ApplicationModule : IServerModule
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SouthernDaleEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SealedTreasureEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.GoldSilverHornEntranceEventDomainService>();
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.BossTowerEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.TauKingdomEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.HerasEntranceEventDomainService>();
         services.TryAddSingleton<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>();
@@ -505,6 +516,7 @@ public sealed class ApplicationModule : IServerModule
         // Entering a dungeon and walking between its rooms.
         services.TryAddSingleton<IDungeonSelectionRuleService, DungeonSelectionRuleService>();
         services.TryAddSingleton<IDungeonEntryMaterialsDomainService, DungeonEntryMaterialsDomainService>();
+        services.TryAddSingleton<IDungeonAdmissionRuleService, DungeonAdmissionRuleService>();
         services.TryAddSingleton<IDungeonAdmissionDomainService, DungeonAdmissionDomainService>();
         services.TryAddSingleton<DungeonVisitDomainService>();
         services.TryAddSingleton<IDungeonVisitDomainService, TransactionalDungeonVisitDomainService>();
@@ -651,7 +663,8 @@ public sealed class ApplicationModule : IServerModule
                     provider.GetRequiredService<IExperienceCapsuleDomainService>(),
                     provider.GetRequiredService<IDomainTransactionAccessor>(),
                     () => provider.GetRequiredService<IApplyEffectsDomainService>(),
-                    provider.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>()),
+                    provider.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>(),
+                    provider.GetRequiredService<IDungeonParticipationDomainService>()),
                 () => provider.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>()));
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());

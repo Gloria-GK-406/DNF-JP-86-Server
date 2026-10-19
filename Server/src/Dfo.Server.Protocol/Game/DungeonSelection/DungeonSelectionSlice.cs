@@ -199,7 +199,7 @@ public sealed class BackToVillageHandler(
     SelectedSessionTransitionGate transitionGate,
     IPartyService parties,
     IDungeonEntryIntentDomainService? entryIntents = null,
-    IllusionTowerProjectionDelivery? illusionTower = null)
+    IllusionTowerProjectionDelivery? illusionTower = null, BossTowerProjectionDelivery? bossTower = null)
     : ClientMessageHandler<BackToVillageRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -208,6 +208,9 @@ public sealed class BackToVillageHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        if (session is not null && bossTower is not null
+            && await bossTower.LeaveAndReturnAsync(context.Connection.ConnectionId, message.Metadata,
+                new BackToVillageResponse(), cancellationToken).ConfigureAwait(false)) return;
         if (session is not null && illusionTower is not null
             && await illusionTower.LeaveAndReturnAsync(
                 context.Connection.ConnectionId, message.Metadata,
@@ -567,7 +570,8 @@ public sealed class EnterSelectDungeonHandler(
     ILogger<EnterSelectDungeonHandler> logger,
     IPartyService parties,
     UsageQuotaProjectionDelivery? quotaProjection = null, IDespairTowerDomainService? despair = null, ISaoTowerDomainService? sao = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null)
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
+    BossTowerProjectionDelivery? bossTower = null)
     : ClientMessageHandler<EnterSelectDungeonRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -576,6 +580,8 @@ public sealed class EnterSelectDungeonHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        if (bossTower is not null && await bossTower.PrepareSelectionAsync(context.Connection.ConnectionId,
+            message.Metadata, message.Selection, cancellationToken).ConfigureAwait(false)) return;
         var result = session is null ? null
             : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
         if (session is null || result is null)

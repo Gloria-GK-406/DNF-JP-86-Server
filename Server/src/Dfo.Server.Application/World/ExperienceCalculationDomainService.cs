@@ -4,7 +4,8 @@ namespace Dfo.Server.Application.World;
 
 internal sealed class ExperienceCalculationDomainService(
     IExperienceValuationDomainService valuation, IExperienceBonusDomainService bonuses,
-    Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService? tower = null)
+    Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService? tower = null,
+    Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService? bossTower = null)
     : IExperienceCalculationDomainService
 {
     public async ValueTask<ExperienceBreakdown> CalculateAsync(ExperienceCalculationContext context,
@@ -48,6 +49,27 @@ internal sealed class ExperienceCalculationDomainService(
                 }
                 _ = settlement.Total;
                 return settlement;
+            case TowerKillExperienceContext kill when kill.Occasion.DungeonId == 3505:
+                var bossKillBase = await (bossTower ?? throw new InvalidOperationException("Boss tower reward rules unavailable."))
+                    .KillExperienceAsync(characterLevel, kill.ActorType, cancellationToken).ConfigureAwait(false);
+                var bossKill = new ExperienceBreakdown(Base: bossKillBase);
+                if (bossKillBase == 0) return bossKill;
+                foreach (var modifier in await bonuses.CollectAsync(kill.Occasion with { Event = ExperienceEvent.MonsterKill }, cancellationToken).ConfigureAwait(false))
+                    bossKill = bossKill.Add(modifier.Kind, Floor(bossKillBase * modifier.Rate));
+                _ = bossKill.Total;
+                return bossKill;
+            case TowerClearExperienceContext clear when clear.Occasion.DungeonId == 3505:
+                var bossBase = await (bossTower ?? throw new InvalidOperationException("Boss tower reward rules unavailable."))
+                    .ClearExperienceAsync(characterLevel, clear.RewardLevel, cancellationToken).ConfigureAwait(false);
+                var remaining = 1_100_000u - Math.Min(1_100_000u, bossBase);
+                var bossResult = new ExperienceBreakdown(Base: Math.Min(1_100_000u, bossBase));
+                foreach (var modifier in await bonuses.CollectAsync(clear.Occasion with { Event = ExperienceEvent.DungeonClear }, cancellationToken).ConfigureAwait(false))
+                {
+                    var amount = Math.Min(remaining, Floor(bossBase * modifier.Rate));
+                    bossResult = bossResult.Add(modifier.Kind, amount);
+                    remaining -= amount;
+                }
+                return bossResult;
             case TowerKillExperienceContext kill:
                 return new(Base: await (tower ?? throw new InvalidOperationException("Tower reward rules unavailable."))
                     .KillExperienceAsync(characterLevel, kill.ActorType, cancellationToken, kill.Occasion.DungeonId).ConfigureAwait(false));

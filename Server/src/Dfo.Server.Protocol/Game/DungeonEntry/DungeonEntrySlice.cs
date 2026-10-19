@@ -444,7 +444,8 @@ public sealed class SelectDungeonHandler(
     DungeonProjectionGate? entryProjectionGate = null,
     ILogger<DungeonEntryProjectionDelivery>? entryProjectionLogger = null,
     IIllusionTowerDomainService? illusionTower = null,
-    IllusionTowerProjectionDelivery? illusionTowerProjection = null, ISaoTowerDomainService? sao = null)
+    IllusionTowerProjectionDelivery? illusionTowerProjection = null, ISaoTowerDomainService? sao = null,
+    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null, BossTowerProjectionDelivery? bossProjection = null)
     : ClientMessageHandler<SelectDungeonRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -526,6 +527,20 @@ public sealed class SelectDungeonHandler(
                 SelectDungeonRefusal.NotPartyLeader,
                 context: 0,
                 cancellationToken, message.MirrorQuestId is not null).ConfigureAwait(false);
+            return;
+        }
+
+        if (bossTower?.Supports(message.DungeonId) == true && bossProjection is not null)
+        {
+            if (message.MirrorQuestId is not null)
+            {
+                entryIntents.RestoreIfAbsent(session, intent.Value);
+                await RefuseAsync(context.Connection.ConnectionId, SelectDungeonRefusal.InvalidSelectionState, 0, cancellationToken, true).ConfigureAwait(false);
+                return;
+            }
+            _ = await bossProjection.EnterAsync(context.Connection.ConnectionId, session, roster, intent.Value,
+                () => { if (selectedSessions.FindByCharacter(session.CharacterId) == session) entryIntents.RestoreIfAbsent(session, intent.Value); },
+                cancellationToken, message.RequestMode, (byte)message.Difficulty, message.PracticeMode).ConfigureAwait(false);
             return;
         }
 
@@ -656,7 +671,7 @@ public sealed class MoveMapHandler(
     ILogger<MoveMapHandler> logger,
     DungeonPartyRecipients? partyRecipients = null,
     Fatigue.FatigueProjectionDelivery? fatigueProjection = null,
-    IllusionTowerProjectionDelivery? illusionTower = null) : ClientMessageHandler<MoveMapRequest>
+    IllusionTowerProjectionDelivery? illusionTower = null, BossTowerProjectionDelivery? bossTower = null) : ClientMessageHandler<MoveMapRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -671,6 +686,9 @@ public sealed class MoveMapHandler(
                 context.Connection.ConnectionId, message.NextX, message.NextY);
             return;
         }
+
+        if (bossTower is not null && await bossTower.AdvanceAsync(context.Connection.ConnectionId,
+            message.Metadata, message.NextX, message.NextY, cancellationToken).ConfigureAwait(false)) return;
 
         if (illusionTower is not null
             && await illusionTower.AdvanceAsync(

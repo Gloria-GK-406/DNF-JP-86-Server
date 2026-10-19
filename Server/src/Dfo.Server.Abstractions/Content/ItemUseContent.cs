@@ -92,6 +92,7 @@ public sealed record ItemUseRule(
     /// item this whole outcome exists to stop destroying gets destroyed.
     /// </para>
     /// </remarks>
+    public bool SummonsApc { get; init; }
     public byte? SharedEffectSelector { get; init; }
     public bool IsReadable => Jobs.IsValid && Places.IsValid && !HasUnreadableDeclaration;
 }

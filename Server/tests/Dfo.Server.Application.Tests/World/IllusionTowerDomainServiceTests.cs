@@ -1221,6 +1221,7 @@ public sealed class IllusionTowerDomainServiceTests
             else TowerRewardTestContent.Register(s);
             s.AddSingleton<IIllusionTowerRuleService>(rules ?? new Rules());
             s.AddSingleton<IDungeonStructureRuleService>(layouts ?? new OrdinaryLayouts());
+            s.AddSingleton<IDungeonAdmissionRuleService>(p => new OrdinaryAdmission(p.GetRequiredService<IDungeonStructureRuleService>()));
             s.AddSingleton<IDungeonDifficultyRuleService>(new Dfo.Server.Application.Tests.Support.TestDungeonDifficultyRules());
             // Returning from the tower reads quota projections; the synthetic fixture must not load a real PVF.
             s.AddSingleton<IAltarDungeonContentSource, NoAltarContent>();
@@ -1234,6 +1235,11 @@ public sealed class IllusionTowerDomainServiceTests
         return f;
     }
     private static IIllusionTowerDomainService Tower(ShopFixture f) => f.Services.GetRequiredService<IIllusionTowerDomainService>();
+    private sealed class OrdinaryAdmission(IDungeonStructureRuleService layouts) : IDungeonAdmissionRuleService
+    {
+        public async ValueTask<DungeonAdmissionDefinition?> GetAsync(int id, CancellationToken ct) =>
+            await layouts.GetDefinitionAsync(id, ct).ConfigureAwait(false) is { } d ? DungeonAdmissionDefinition.From(d) : null;
+    }
     private sealed class NoAltarContent : IAltarDungeonContentSource
     {
         public ValueTask<AltarDungeonDefinition> GetAsync(int dungeonId, CancellationToken cancellationToken) =>
