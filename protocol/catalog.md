@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-19 领主之塔入口与阶段协议补证（尚未实现）
+
+ClientStatic / High：当前PVF将3505列入调度名单，A21选图须由[033F](game/server-to-client/NOTI-0x033F.md)类别0/content3505的状态1/2开放，该路径绕过69/75隐藏门；本服缺2329受管活动及3505投影，与用户入口不可见吻合，实际激活后UI待验。[0333](game/server-to-client/NOTI-0x0333.md)固定8B；[0334](game/server-to-client/NOTI-0x0334.md)为12+14M+18I，第二数组是地图初始道具；[0335](game/server-to-client/NOTI-0x0335.md)固定八个成员槽奖励组，不是八阶段；[0336](game/server-to-client/NOTI-0x0336.md)为1B重试态。[0048](game/client-to-server/0x0048.md)领主塔快捷重试候选发01 00，不能把event1一律回城。021F是卡片图鉴身份，不能按BossTowerBaselineMessage类名当领主塔初始化。以上仅调查补证，没有新增实现、WireCaptured或ClientVerified；见[设计与证据](../Document/LordTower-Design-20261019.md)。
+
 ## 2026-10-19 新·金角银角次数通知
 
 ClientStatic / Confirmed：[NOTI042B](game/server-to-client/NOTI-0x042B.md)精确4B，`u16 goldUsed + u16 silverUsed`；当前PVF的4123绑定silver第二槽，上限3，客户端显示最大值减已用。CurrentImplementation：独立活动2332投影033F的content4123，入场原子持久扣次，选角/提交后/统一日切投影042B。不复用69/75，不新增真实帧或ClientVerified声明。[实现及验收清单](../Document/GoldSilverHorn-20261019.md)。

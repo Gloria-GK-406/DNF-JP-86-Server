@@ -2,6 +2,8 @@
 
 日期：2026-10-19。代码基线：`f952ade840b4c32d325a41653ac147db715cae86`，分支 `task/next-round-20261019`。对应 [#165](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/165)，顺序见 [#170](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/170)。本文件记录调查结论，不代表已实现、已部署或已实机验收。
 
+后续状态：用户确认当前入口不可见；本轮已闭合调度名单与033F开放门、八组奖励按成员槽映射，并补充塔模式与结算规则。当前结论及设计见[入口核实与可行设计](LordTower-Design-20261019.md)。本页其余未闭合说明保留初轮调查背景，以该补充设计及协议人工记录为准。
+
 ## 结论
 
 当前资源保留 DGN3505 的选图槽和专用塔协议，但真实客户端入口是否可见、可点击尚未确认。应先核定入口，继续遵守“当前客户端有入口的活动地图优先，历史活动另列”的范围。
@@ -62,7 +64,7 @@ ClientStatic：接收器RVA分别为`00D4E590 / 00D5BA20 / 00D47910 / 00D47C00`�
 |---|---|---|
 | NOTI0333 | 固定8B：`u32 dungeonId + u16 maxStages + u8 type + u8 difficulty`。`maxStages`语义得到70的`getRandomTowerMaxStage`交叉支持。 | type具体枚举及实际入场ACK顺序。 |
 | NOTI0334 | `u16 stage + u32 seed + u32 mapId + u8 monsterCount`，每怪物14B，再`u8 itemCount`，每初始地图道具18B；总长`12+14M+18I`。第二组是道具，不是APC。 | 初始道具尾部u16语义、完整运行消费约束。 |
-| NOTI0335 | `u32 exp`，随后固定8个奖励组，每组`u8 count + count×(u32 itemId + u32 addInfo)`；总长`12+8Σcount`。 | 固定8组的具体业务映射；不能据数组数量认定支持8名玩家。 |
+| NOTI0335 | `u32 exp`，随后固定8个成员槽奖励组，每组`u8 count + count×(u32 itemId + u32 addInfo)`；总长`12+8Σcount`。 | 后续ClientStatic/High已闭合为通用成员槽容量，不是8阶段；不能据容量认定本图支持8名玩家。 |
 | NOTI0336 | 固定1B，`isRetriable`，影响结果页重试按钮。 | 哪些结局允许重试及对应资格策略。 |
 
 0334怪物项：`u32 listIndex,u16 uniqueId,u32 monsterId,u8 level,u8 type,u8 isBox,u8 boxIndex`。地图道具项：`u8 scriptLine,u16 uniqueId,u32 itemId,u32 data,u16 durability,u8 amplifyType,u16 amplifyValue,u16 unknown`。
