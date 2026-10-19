@@ -1,8 +1,8 @@
 # 协议清单
 
-## 2026-10-19 领主之塔实现候选（待原生验收）
+## 2026-10-19 领主之塔（happy path已验收）
 
-服务端接收解码日志 / Confirmed：[002D](game/client-to-server/0x002D.md#2026-10-19-原生走门误拒绝修复)原生首层走门为(255,255)，已清空3/3怪物；旧parity唯一目标校验误拒绝。CurrentImplementation现接受该专用标记，保留清层、队长、精确会话及单阶段推进；原生换层成功仍待复测，不升级完整WireCaptured/ClientVerified。
+服务端接收解码日志 / Confirmed：[002D](game/client-to-server/0x002D.md#2026-10-19-原生走门误拒绝修复)原生首层走门为(255,255)，已清空3/3怪物；旧parity唯一目标校验误拒绝。CurrentImplementation现接受该专用标记，保留清层、队长、精确会话及单阶段推进。用户在修复版部署后确认领主塔happy path测试通过，原生换层随核心流程接受；不据此升级完整WireCaptured或全部分支/字段ClientVerified。[收尾与保留边界](../Document/LordTower-Closeout-20261019.md)。
 
 CurrentImplementation / ClientStatic / 70Reference：受管2329通过[033F](game/server-to-client/NOTI-0x033F.md)投影content3505开放与关闭，未加69/75。专用[0333](game/server-to-client/NOTI-0x0333.md)8B（offset6练习0）、[0334](game/server-to-client/NOTI-0x0334.md)12+14M+18I、[0335](game/server-to-client/NOTI-0x0335.md)固定八成员组、[0336](game/server-to-client/NOTI-0x0336.md)1B已注册独立BossTowerInfo/Map/Reward/Continue切片；021F仍为卡片图鉴。0010/0025/0027/0028/0029/002B/[002D](game/client-to-server/0x002D.md)/[0048](game/client-to-server/0x0048.md)/000F/002A/0084及队伍/清理分流完成。002D成功仅0334，0025全员完成后001E；0048 btn0/1/2=重试/别图/回城，event2仅ACK，重试000F后0010才扣票。自动codec、handler及真实TouchSocket合成帧通过；它们不代表原生WireCaptured/ClientVerified。[实现与验证边界](../Document/LordTower-Implementation-20261019.md)。
 

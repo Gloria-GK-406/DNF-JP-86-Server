@@ -1,6 +1,6 @@
 # 领主之塔实机验收清单
 
-日期：2026-10-19。方案基准：`6f19c07b4cd2b5c2656198dbfb725d80544bcf13`。本清单用于部署后的原生客户端测试，尚不表示ClientVerified；规则与实现边界见[实现说明](LordTower-Implementation-20261019.md)。
+日期：2026-10-19。方案基准：`6f19c07b4cd2b5c2656198dbfb725d80544bcf13`。用户已确认“领主塔的happy path测试ok了”，本功能按happy path验收收口。以下保留原始完整清单作为扩展回归参考，不表示每项均已逐项ClientVerified；规则与实现边界见[实现说明](LordTower-Implementation-20261019.md)。
 
 ## 先测单人闭环
 

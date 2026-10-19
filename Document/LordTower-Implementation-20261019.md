@@ -1,6 +1,6 @@
 # 领主之塔实现与验证边界
 
-日期：2026-10-19；分支`task/lord-tower-20261019`；对应[#165](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/165)。完整服务端候选实现已通过独立评审并部署，见[部署记录](LordTower-Deployment-20261019.md)。用户原生客户端验收尚未完成。
+日期：2026-10-19；实现分支`task/lord-tower-20261019`，集成目标`task/next-round-20261019`；对应[#165](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/165)。完整实现已通过独立评审、部署及用户原生happy path验收；用户原话为“领主塔的happy path测试ok了，更新一下issue和合并代码以及清理工作区吧”。见[收尾记录](LordTower-Closeout-20261019.md)。
 
 ## 已实现
 
@@ -44,10 +44,10 @@ BossTowerTicketRefilled经LiveOnly订阅投影到当前精确会话库存；选�
 
 保留的失败记录有明确原因：wire-r2是在测试直接Select但未认证/发布在线角色时被新多会话安全门拒绝，现使用真实注册、登录兑换和角色发布；Networking旧断线夹具直接Begin未开新共享占用要求的事务，现使用测试专用事务命令种入实例。两者均未放宽生产安全检查或增加PVF依赖。
 
-## 原生待验收
+## 原生验收与扩展边界
 
-首层走门的实机接收日志已定位误拒绝：客户端发送双255，旧实现要求parity唯一坐标。修复及回归说明见[换层修复](LordTower-MoveFix-20261019.md)；这不等同于修复后原生已成功加载第二层。
+首层走门的实机接收日志已定位误拒绝：客户端发送双255，旧实现要求parity唯一坐标。修复及回归说明见[换层修复](LordTower-MoveFix-20261019.md)。运行代码`caab34e29478b8cd8b89413231f145b327855834`部署后，用户确认领主塔happy path通过，换层问题随核心流程验收闭合。
 
-亡者峡谷入口可见且可点击、首次扣票与加载、八阶段合法走门、逐怪/终局经验及掉落显示、NPC兑换、结果三按钮及重试恰扣一票、零疲劳/退出/全灭无新增虚弱、多人Ready/队长变化/退出/断线，以及06:00在线和重登补票。0333练习语义、0048三按钮和002D成功无ACK已静态闭合；视觉时序及实际客户端消费仍由用户验证。
+原始完整验收清单仍覆盖NPC兑换、结果三按钮、零疲劳/退出/全灭、多人Ready/队长变化/断线、满包与故障回滚及06:00补票等。用户本次是happy path整体确认，未逐项报告这些扩展边界全部通过；相应用例保留自动证据及后续原生回归边界。0333练习语义、0048三按钮和002D成功无ACK的字段证据继续分级，不将happy path接受扩大为每个字段或全部分支ClientVerified。
 
 新增静态证据为`artifacts/lord-tower-implementation-20261019/protocol/a21-*.asm.txt`，来源A21 RVA dump SHA256 `AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D`。手工结论进入[0333](../protocol/game/server-to-client/NOTI-0x0333.md)、[0334](../protocol/game/server-to-client/NOTI-0x0334.md)、[0335](../protocol/game/server-to-client/NOTI-0x0335.md)、[0336](../protocol/game/server-to-client/NOTI-0x0336.md)、[0048](../protocol/game/client-to-server/0x0048.md)、[002D](../protocol/game/client-to-server/0x002D.md)，机器生成块不修改。
