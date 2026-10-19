@@ -1,6 +1,6 @@
 # 领主之塔实现与验证边界
 
-日期：2026-10-19；分支`task/lord-tower-20261019`；对应[#165](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/165)。这是完整服务端候选实现，部署和独立结果评审由主流程继续，用户原生客户端验收尚未完成。
+日期：2026-10-19；分支`task/lord-tower-20261019`；对应[#165](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/165)。完整服务端候选实现已通过独立评审并部署，见[部署记录](LordTower-Deployment-20261019.md)。用户原生客户端验收尚未完成。
 
 ## 已实现
 
@@ -26,7 +26,7 @@ BossTowerTicketRefilled经LiveOnly订阅投影到当前精确会话库存；选�
 
 ## 自动验证
 
-专项输出与TRX在`artifacts/lord-tower-implementation-20261019/protocol/`。统一Release检查已通过，独立评审与部署由主流程继续。
+专项输出与TRX在`artifacts/lord-tower-implementation-20261019/protocol/`。统一Release检查、独立评审与部署验证均已通过；用户实机验收仍按下方边界执行。
 
 统一记录在`artifacts/lord-tower-implementation-20261019/full-r2/`：Release构建零警告零错误；8个测试项目共7598项，6712通过、886跳过、零失败（无PVF模式）。同一产物的真实PVF领主塔专项17项全部通过。前端158项及构建、WireSmoke 5项、Release guard 11项通过，记录在`full/`；前端构建保留现有大chunk提示。
 
