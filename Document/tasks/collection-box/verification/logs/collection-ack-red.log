@@ -1,0 +1,24 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Application.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:00.91]     Dfo.Server.Application.Tests.Sessions.CollectionBoxNetworkSettlementTests.Ack_cannot_follow_a_reused_connection_id_after_the_inventory_batch [FAIL]
+  失败 Dfo.Server.Application.Tests.Sessions.CollectionBoxNetworkSettlementTests.Ack_cannot_follow_a_reused_connection_id_after_the_inventory_batch [366 ms]
+  错误消息:
+   Assert.Same() Failure: Values are not the same instance
+Expected: NetworkConnectionContext { ConnectionId = shop-test, EndpointKind = Game, ListenerPort = 10011, RemoteAddress =  }
+Actual:   NetworkConnectionContext { ConnectionId = shop-test, EndpointKind = Game, ListenerPort = 10011, RemoteAddress =  }
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Sessions.CollectionBoxNetworkSettlementTests.Ack_cannot_follow_a_reused_connection_id_after_the_inventory_batch() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\tests\Dfo.Server.Application.Tests\Sessions\CollectionBoxNetworkSettlementTests.cs:line 32
+--- End of stack trace from previous location ---
+
+失败!  - 失败:     1，通过:     0，已跳过:     0，总计:     1，持续时间: 375 ms - Dfo.Server.Application.Tests.dll (net10.0)

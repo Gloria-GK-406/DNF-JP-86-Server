@@ -1,0 +1,36 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+
+已通过! - 失败:     0，通过:    80，已跳过:     0，总计:    80，持续时间: 2 s - Dfo.Pvf.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+
+已通过! - 失败:     0，通过:  4154，已跳过:     0，总计:  4154，持续时间: 1 m 53 s - Dfo.Server.Application.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+
+已通过! - 失败:     0，通过:   165，已跳过:     0，总计:   165，持续时间: 3 m - Dfo.Server.Host.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\tests\Dfo.Server.HttpApi.Tests\bin\Debug\net10.0\Dfo.Server.HttpApi.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+
+已通过! - 失败:     0，通过:    50，已跳过:     0，总计:    50，持续时间: 282 ms - Dfo.Server.HttpApi.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Debug\net10.0\Dfo.Server.Infrastructure.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:08.49]     Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message [SKIP]
+  已跳过 Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message [1 ms]
+[xUnit.net 00:00:21.54]     Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog [SKIP]
+  已跳过 Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog [1 ms]
+
+已通过! - 失败:     0，通过:   939，已跳过:     2，总计:   941，持续时间: 27 s - Dfo.Server.Infrastructure.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0\Dfo.Server.Networking.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+
+已通过! - 失败:     0，通过:    94，已跳过:     0，总计:    94，持续时间: 4 s - Dfo.Server.Networking.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\tests\Dfo.Server.Persistence.Tests\bin\Debug\net10.0\Dfo.Server.Persistence.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+
+已通过! - 失败:     0，通过:   475，已跳过:     0，总计:   475，持续时间: 30 s - Dfo.Server.Persistence.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+
+已通过! - 失败:     0，通过:  1624，已跳过:     0，总计:  1624，持续时间: 1 s - Dfo.Server.Protocol.Tests.dll (net10.0)

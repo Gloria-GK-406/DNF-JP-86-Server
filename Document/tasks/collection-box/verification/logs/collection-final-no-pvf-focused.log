@@ -1,0 +1,12 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:00.52]     Dfo.Server.Application.Tests.Characters.CollectionBoxTests.Timed_or_locked_source_and_permanent_extension_never_consume_items [SKIP]
+[xUnit.net 00:00:00.72]     Dfo.Server.Application.Tests.Characters.CollectionBoxTests.Real_catalog_piles_round_trip_without_reconstructing_any_item_fields [SKIP]
+[xUnit.net 00:00:00.81]     Dfo.Server.Application.Tests.Characters.CollectionBoxTests.Full_bag_refuses_withdrawal_and_preserves_the_original_item_without_mail_fallback [SKIP]
+  已跳过 Dfo.Server.Application.Tests.Characters.CollectionBoxTests.Timed_or_locked_source_and_permanent_extension_never_consume_items [1 ms]
+  已跳过 Dfo.Server.Application.Tests.Characters.CollectionBoxTests.Real_catalog_piles_round_trip_without_reconstructing_any_item_fields [1 ms]
+  已跳过 Dfo.Server.Application.Tests.Characters.CollectionBoxTests.Full_bag_refuses_withdrawal_and_preserves_the_original_item_without_mail_fallback [1 ms]
+[xUnit.net 00:00:00.91]     Dfo.Server.Application.Tests.Characters.CollectionBoxTests.Failure_after_transfer_rolls_back_items_and_selection_in_the_same_database_transaction [SKIP]
+  已跳过 Dfo.Server.Application.Tests.Characters.CollectionBoxTests.Failure_after_transfer_rolls_back_items_and_selection_in_the_same_database_transaction [1 ms]
+
+已通过! - 失败:     0，通过:    13，已跳过:     4，总计:    17，持续时间: 1 s - Dfo.Server.Application.Tests.dll (net10.0)
