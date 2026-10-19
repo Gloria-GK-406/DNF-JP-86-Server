@@ -245,10 +245,18 @@ public sealed class BossTowerProjectionDelivery(
     public async ValueTask<bool> AdvanceAsync(NetworkConnectionId connectionId,
         GameMessageMetadata metadata, byte targetX, byte targetY, CancellationToken token)
     {
-        if (Stale(metadata)) return true;
+        if (Stale(metadata))
+        {
+            logger.LogWarning("Move-map ignored connection={ConnectionId} sequence={Sequence} ordinal={Ordinal} target=({X},{Y}) reason=StaleSequence",
+                connectionId, metadata.Sequence, metadata.InboundOrdinal, targetX, targetY);
+            return true;
+        }
         var session = sessions.FindByConnection(connectionId);
         var expected = session is null ? null : towers.Find(session);
         if (session is null || expected is null) return false;
+        logger.LogInformation("Boss tower move requested connection={ConnectionId} character={CharacterId} sequence={Sequence} ordinal={Ordinal} run={RunId} roomVersion={RoomVersion} stage={Stage} phase={Phase} target=({X},{Y})",
+            connectionId, session.CharacterId.Value, metadata.Sequence, metadata.InboundOrdinal, expected.RunId,
+            expected.Room.Version, expected.Room.Level, expected.Room.Phase, targetX, targetY);
         IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures = [];
         await using (await projectionGate.AcquireAsync(
             expected.RunId, UserAccessMode.Exclusive, token).ConfigureAwait(false))
@@ -257,9 +265,17 @@ public sealed class BossTowerProjectionDelivery(
             foreach (var account in (
             expected.Members.Select(member => member.Session)).Select(value => value.AccountId).Distinct().OrderBy(value => value.Value))
                 accountLeases.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, token).ConfigureAwait(false));
-            if (!Exact(session, expected)) return true;
+            if (!Exact(session, expected))
+            {
+                logger.LogWarning("Boss tower move refused character={CharacterId} run={RunId} roomVersion={RoomVersion} reason=SnapshotOrSessionChanged",
+                    session.CharacterId.Value, expected.RunId, expected.Room.Version);
+                return true;
+            }
             var action = await commands.SendAsync(
                 new AdvanceBossTowerCommand(Context(expected, session), targetX, targetY) { Sessions = Members(expected) }, token).ConfigureAwait(false);
+            logger.LogInformation("Boss tower move result character={CharacterId} run={RunId} changed={Changed} stage={Stage} map={MapId} phase={Phase} roomVersion={RoomVersion}",
+                session.CharacterId.Value, expected.RunId, action.Changed, action.Run?.Room.Level,
+                action.Run?.Room.MapId, action.Run?.Room.Phase, action.Run?.Room.Version);
             if (action.Changed && action.Run is { } run)
                 failures = await SendToExactAsync(
                     run, _ => [new BossTowerMapNotification(run.Room)], token).ConfigureAwait(false);

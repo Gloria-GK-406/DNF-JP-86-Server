@@ -15,6 +15,7 @@ using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.World.BossTower;
 
@@ -26,7 +27,8 @@ internal sealed class BossTowerDomainService(
     IIndependentDropRuleService independent, IItemDeliveryDomainService delivery, IQuestProgressDomainService quests,
     IDungeonRunDomainService ordinary, DomainTransactionScope scope, TransactionalExecutionGate executionGate, TimeProvider clock,
     IBossTowerRewardDomainService? rewards = null,
-    IEventService? events = null, IDungeonParticipationDomainService? participation = null)
+    IEventService? events = null, IDungeonParticipationDomainService? participation = null,
+    ILogger<BossTowerDomainService>? logger = null)
     : IBossTowerDomainService
 {
     private readonly object sync = new();
@@ -158,8 +160,24 @@ internal sealed class BossTowerDomainService(
     public ValueTask<BossTowerActionResult> NextLevelAsync(BossTowerActionContext context, byte targetX, byte targetY, CancellationToken token) => Execute(async () =>
     {
         var current = Match(context);
-        if (current is null) return new BossTowerActionResult(false, null);
-        if (targetY != 0 || targetX != (current.Room.State.Level + 1) % 2 || !current.CanAdvance(context.Session)) return current.Result(false);
+        if (current is null)
+        {
+            logger?.LogWarning("Boss tower move refused character={CharacterId} run={RunId} roomVersion={RoomVersion} target=({X},{Y}) reason=SessionOrRunMismatch",
+                context.Session.CharacterId.Value, context.RunId, context.RoomVersion, targetX, targetY);
+            return new BossTowerActionResult(false, null);
+        }
+        if (targetY != 0 || targetX != (current.Room.State.Level + 1) % 2 || !current.CanAdvance(context.Session))
+        {
+            var reason = targetY != 0 || targetX != (current.Room.State.Level + 1) % 2 ? "TargetCoordinateMismatch"
+                : current.Completion is not null ? "RunCompleted"
+                : current.Room.State.Phase != TowerRoomPhase.Cleared ? "RoomNotCleared" : "NotLeader";
+            logger?.LogWarning("Boss tower move refused character={CharacterId} run={RunId} roomVersion={RoomVersion} stage={Stage} map={MapId} phase={Phase} target=({X},{Y}) expected=({ExpectedX},0) remainingBlocking={RemainingBlocking} deadActors={DeadActors}/{ActorCount} reason={Reason}",
+                context.Session.CharacterId.Value, current.RunId, current.Room.State.Version, current.Room.State.Level,
+                current.Room.State.MapId, current.Room.State.Phase, targetX, targetY, (current.Room.State.Level + 1) % 2,
+                current.Room.State.Actors.Count(x => x.Seed.BlocksClear && !x.Dead),
+                current.Room.State.Actors.Count(x => x.Dead), current.Room.State.Actors.Length, reason);
+            return current.Result(false);
+        }
         var level = current.Room.State.Level + 1;
         var prepared = await rules.CreateRoomAsync(level, unchecked(current.Seed + (uint)level - 1), token).ConfigureAwait(false);
         var next = current.Clone();
