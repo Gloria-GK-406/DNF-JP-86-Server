@@ -11,7 +11,7 @@ namespace Dfo.Server.Abstractions.UsageQuotas;
 public sealed record UsageQuotaSnapshot(DateTimeOffset At, IReadOnlyList<ItemUsageState> Items,
     AccountEntitlementEntryState? Entitlements, IReadOnlyList<CharacterPremiumUsageSlotState> PremiumUsage,
     MirrorDailyQuota? Mirror, DimensionQuotaSnapshot? Dimension = null, DespairTowerStatus? Despair = null, IReadOnlyList<AltarQuotaSnapshot>? Altars = null,
-    IReadOnlyList<TournamentQuotaSnapshot>? Tournaments = null, HerasQuotaSnapshot? Heras = null);
+    IReadOnlyList<TournamentQuotaSnapshot>? Tournaments = null, HerasQuotaSnapshot? Heras = null, GoldSilverHornQuotaSnapshot? GoldSilverHorn = null);
 
 public interface IUsageQuotaSnapshotDomainService
 {

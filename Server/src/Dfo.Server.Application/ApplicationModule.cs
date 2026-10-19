@@ -183,6 +183,10 @@ public sealed class ApplicationModule : IServerModule
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.TryAddSingleton<ISouthernDaleRuleService, SouthernDaleRuleService>();
         services.TryAddSingleton<ISealedTreasureRuleService, SealedTreasureRuleService>();
+        services.TryAddSingleton<IGoldSilverHornRuleService, GoldSilverHornRuleService>();
+        services.TryAddSingleton<IGoldSilverHornDomainService, GoldSilverHornDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.GoldSilverHornEntryRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.TryAddSingleton<ISealedTreasureDomainService, SealedTreasureDomainService>();
         services.TryAddSingleton<ISouthernDaleDomainService, SouthernDaleDomainService>();
         services.TryAddSingleton<ISouthernDaleQuestDomainService, SouthernDaleQuestDomainService>();
@@ -372,6 +376,7 @@ public sealed class ApplicationModule : IServerModule
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SaoTowerEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SouthernDaleEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SealedTreasureEntranceEventDomainService>();
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.GoldSilverHornEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.TauKingdomEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.HerasEntranceEventDomainService>();
         services.TryAddSingleton<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>();

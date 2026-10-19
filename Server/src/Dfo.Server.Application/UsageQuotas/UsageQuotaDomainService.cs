@@ -12,7 +12,7 @@ internal sealed class UsageQuotaDomainService(IUsageQuotaStore store, IDomainTra
     IEventService events) : IUsageQuotaDomainService,
     IDomainEventSubscriber<ConsumableUsageRecorded>, IDomainEventSubscriber<PremiumUsageRecorded>,
     IDomainEventSubscriber<MirrorEntryRecorded>, IDomainEventSubscriber<MirrorRewardRecorded>,
-    IDomainEventSubscriber<AltarEntryRecorded>, IDomainEventSubscriber<TournamentEntryRecorded>, IDomainEventSubscriber<DimensionEntryRecorded>, IDomainEventSubscriber<DespairQuotaRecorded>, IDomainEventSubscriber<HerasQuotaRecorded>
+    IDomainEventSubscriber<GoldSilverHornEntryRecorded>, IDomainEventSubscriber<AltarEntryRecorded>, IDomainEventSubscriber<TournamentEntryRecorded>, IDomainEventSubscriber<DimensionEntryRecorded>, IDomainEventSubscriber<DespairQuotaRecorded>, IDomainEventSubscriber<HerasQuotaRecorded>
 {
     public ValueTask<UsageQuotaValue?> ReadAsync(CharacterId character, UsageQuotaKey key, CancellationToken ct) =>
         store.ReadAsync(character, key, ct);
@@ -78,6 +78,12 @@ internal sealed class UsageQuotaDomainService(IUsageQuotaStore store, IDomainTra
         return ApplyAsync([new(p.CharacterId, UsageQuotaKey.Heras(p.Counter, p.Period), p.Expected, new(p.Value, null))], ct);
     }
 
+    public ValueTask HandleAsync(DomainEventEnvelope<GoldSilverHornEntryRecorded> message, CancellationToken ct)
+    {
+        var p = message.Payload;
+        return ApplyAsync([new(p.CharacterId, UsageQuotaKey.GoldSilverHorn(p.Period), p.Expected, new(p.Used, null))], ct);
+    }
+
     private async ValueTask ApplyAsync(IReadOnlyList<UsageQuotaWrite> writes, CancellationToken ct)
     {
         if (transactions.Current is not { IsReadOnly: false })
@@ -91,7 +97,8 @@ internal sealed class UsageQuotaDomainService(IUsageQuotaStore store, IDomainTra
             if (!identities.Add((write.CharacterId, write.Key)) || write.Value.UsedCount < 0
                 || write.Expected?.UsedCount < 0 || string.IsNullOrWhiteSpace(write.Key.Name)
                 || !Enum.IsDefined(write.Key.Family)
-                || write.Key.Family is not (UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon or UsageQuotaFamily.DespairTower or UsageQuotaFamily.AltarDungeon or UsageQuotaFamily.TournamentDungeon or UsageQuotaFamily.HerasDungeon) && (write.Key.Day is not null || write.Value.LastUsedAt is null)
+                || write.Key.Family is not (UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon or UsageQuotaFamily.DespairTower or UsageQuotaFamily.AltarDungeon or UsageQuotaFamily.TournamentDungeon or UsageQuotaFamily.HerasDungeon or UsageQuotaFamily.GoldSilverHorn) && (write.Key.Day is not null || write.Value.LastUsedAt is null)
+                || write.Key.Family == UsageQuotaFamily.GoldSilverHorn && (write.Key.Day is null || write.Value.LastUsedAt is not null || write.Key.Name != "entries")
                 || write.Key.Family == UsageQuotaFamily.HerasDungeon && (write.Key.Day is null || write.Value.LastUsedAt is not null || write.Key.Name is not ("entries" or "bonus"))
                 || write.Key.Family == UsageQuotaFamily.TournamentDungeon && (write.Key.Day is null || write.Value.LastUsedAt is not null
                     || write.Key.Name is not ("120" or "121" or "122"))

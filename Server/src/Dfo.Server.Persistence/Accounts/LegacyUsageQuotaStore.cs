@@ -15,6 +15,7 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
     {
         switch (key.Family)
         {
+            case UsageQuotaFamily.GoldSilverHorn:
             case UsageQuotaFamily.TournamentDungeon:
             case UsageQuotaFamily.HerasDungeon:
             case UsageQuotaFamily.AltarDungeon:
@@ -47,6 +48,7 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
         var (character, key, expected, value, owner) = write;
         switch (key.Family)
         {
+            case UsageQuotaFamily.GoldSilverHorn:
             case UsageQuotaFamily.TournamentDungeon:
             case UsageQuotaFamily.HerasDungeon:
             case UsageQuotaFamily.AltarDungeon:
@@ -88,7 +90,10 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
             default: throw new ArgumentOutOfRangeException(nameof(write));
         }
     }
-    private static string DimensionKey(UsageQuotaKey key) => key.Family == UsageQuotaFamily.HerasDungeon
+    private static string DimensionKey(UsageQuotaKey key) => key.Family == UsageQuotaFamily.GoldSilverHorn
+        ? key.Name == "entries" ? "gold-silver-horn.4123.entries:" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : throw new InvalidDataException("Invalid gold/silver horn quota key.")
+        : key.Family == UsageQuotaFamily.HerasDungeon
         ? key.Name is "entries" or "bonus" ? "heras.3900." + key.Name + ":" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
             : throw new InvalidDataException("Invalid Heras quota key.")
         : key.Family == UsageQuotaFamily.TournamentDungeon

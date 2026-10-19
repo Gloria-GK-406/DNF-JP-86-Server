@@ -339,7 +339,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                 if (ns.Length != 1 || ns[0] < 0) errors.Add("Invalid selection count");
                 else selectionCount = ns[0];
             }
-            if (name == Fields.NeedMaterialField.Name || random && name == Fields.SealingRemovalItemField.Name)
+            if (random && name == Fields.SealingRemovalItemField.Name)
             {
                 var ns = Numbers(section);
                 var start = name == Fields.SealingRemovalItemField.Name ? 1 : 0;

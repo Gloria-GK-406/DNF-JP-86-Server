@@ -55,6 +55,8 @@ internal sealed class UsageQuotaViewChangedHandler(IUsageQuotaSnapshotDomainServ
             || sessions.FindByConnection(session.ConnectionId) != session) return [];
         return notification.Family switch
         {
+            UsageQuotaFamily.GoldSilverHorn => [new GoldSilverHornQuotaMessage((snapshot.GoldSilverHorn
+                ?? throw new InvalidDataException("Missing gold/silver horn quota snapshot.")).Used)],
             UsageQuotaFamily.HerasDungeon => [new DungeonRemainingEntriesMessage(3900, checked((byte)(snapshot.Heras
                 ?? throw new InvalidDataException("Missing Heras quota snapshot.")).Remaining))],
             UsageQuotaFamily.TournamentDungeon => (snapshot.Tournaments

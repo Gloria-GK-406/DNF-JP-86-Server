@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-19 新·金角银角次数通知
+
+ClientStatic / Confirmed：[NOTI042B](game/server-to-client/NOTI-0x042B.md)精确4B，`u16 goldUsed + u16 silverUsed`；当前PVF的4123绑定silver第二槽，上限3，客户端显示最大值减已用。CurrentImplementation：独立活动2332投影033F的content4123，入场原子持久扣次，选角/提交后/统一日切投影042B。不复用69/75，不新增真实帧或ClientVerified声明。[实现及验收清单](../Document/GoldSilverHorn-20261019.md)。
+
 ## 2026-10-19 常驻收集箱实现
 
 CurrentImplementation：[03E5](game/client-to-server/0x03E5.md)–[03E8](game/client-to-server/0x03E8.md)已接线，03EB恢复所有系列及持久选择；0381保持独立固定兼容帧。PVF驱动系列，隐藏容器241保存完整原物，延期拒绝且不扣券，已提交重复请求恢复当前状态。实现、兼容边界及实机清单见[交付说明](../Document/CollectionBox-Implementation-20261019.md)。布局依据仍为ClientStatic；没有新增WireCaptured或ClientVerified。

@@ -12,7 +12,7 @@ namespace Dfo.Server.Application.UsageQuotas;
 internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService quotas,
     IItemUsageDomainService items, IPremiumServiceDomainService premiums,
     IPremiumServiceUsageDomainService premiumUsage, TimeProvider clock, IDimensionDungeonDomainService dimensions,
-    IDespairTowerDomainService despair, IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null, IHerasDungeonDomainService? heras = null) : IUsageQuotaSnapshotDomainService
+    IDespairTowerDomainService despair, IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null, IHerasDungeonDomainService? heras = null, IGoldSilverHornDomainService? goldSilverHorn = null) : IUsageQuotaSnapshotDomainService
 {
     public async ValueTask<UsageQuotaSnapshot> ReadAsync(AccountId accountId, CharacterId characterId,
         UsageQuotaFamily family, CancellationToken cancellationToken)
@@ -20,6 +20,8 @@ internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService q
         var at = clock.GetUtcNow();
         return family switch
         {
+            UsageQuotaFamily.GoldSilverHorn => new(at, [], null, [], null, GoldSilverHorn:
+                await (goldSilverHorn ?? throw new InvalidOperationException("Gold/silver horn quotas unavailable.")).ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.HerasDungeon => new(at, [], null, [], null, Heras:
                 await (heras ?? throw new InvalidOperationException("Heras quotas unavailable.")).ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.TournamentDungeon => new(at, [], null, [], null, Tournaments:

@@ -49,6 +49,14 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
+## 人工复核：2026-10-19
+
+ClientStatic / Confirmed：A21 handler RVA `0x00571730`精确读取4字节；offset0和offset2分别为little-endian `u16 goldUsed`、`u16 silverUsed`。客户端按各槽的最大次数减已用次数显示剩余；计数语义为ClientStatic / High。机器区的“布局部分可得”是旧提取下界，本段人工复核闭合为4B。
+
+当前PVF只有`[silver horn dungeon] [dungeon index]4123 [max enter count]3`。loader将4123写管理器`+0x20`，入口匹配后读取第二槽，因此正文是`00 00 <used4123:u16>`，第一槽保持0，不能将4123计数复制到两槽。完整loader、字符串解密、入口消费地址与复现方法见[静态证据](../../../Document/GoldSilverHorn-Research-20261019/protocol.md)。
+
+CurrentImplementation：选角、成功入场提交后和本服统一日切刷新权威已用次数。向量：0次`00000000`，1次`00000100`，3次`00000300`。实现与验收边界见[交付说明](../../../Document/GoldSilverHorn-20261019.md)。未取得本消息真实会话样本，不标记WireCaptured或ClientVerified。
+
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
 

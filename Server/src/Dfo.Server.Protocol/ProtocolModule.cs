@@ -237,6 +237,7 @@ public sealed class ProtocolModule : IServerModule
             fact => $"{fact.AccountId.Value}:{fact.CharacterId.Value}");
         services.AddHostedService<MirrorQuotaDailyRefreshService>();
         services.AddHostedService<DimensionQuotaDailyRefreshService>();
+        services.AddHostedService<GoldSilverHornQuotaDailyRefreshService>();
         services.AddSingleton<ItemUsageProjectionDelivery>();
         services.AddHostedService<ItemUsageDailyRefreshService>();
         services.AddCommandHandler<ReadItemUsageSnapshotCommand, ItemUsageSnapshotResult, ReadItemUsageSnapshotCommandHandler>(CommandExecutionKind.ReadOnly);

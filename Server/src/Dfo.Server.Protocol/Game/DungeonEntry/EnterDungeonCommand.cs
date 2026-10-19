@@ -16,11 +16,13 @@ public sealed class EnterDungeonCommandHandler(
     IMirrorDungeonEntryDomainService? mirrors = null, IDimensionDungeonDomainService? dimensions = null, IDespairTowerDomainService? despair = null,
     ITournamentDungeonDomainService? tournaments = null, IAltarDungeonDomainService? altars = null, ISaoTowerDomainService? sao = null,
     ITauKingdomDomainService? tau = null, IHerasDungeonDomainService? heras = null, ICoupleDungeonDomainService? couples = null,
-    ISouthernDaleDomainService? southern = null, ISealedTreasureDomainService? sealedTreasure = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
+    ISouthernDaleDomainService? southern = null, ISealedTreasureDomainService? sealedTreasure = null, IGoldSilverHornDomainService? goldSilverHorn = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
 {
     public ValueTask<DungeonEntryAttempt> HandleAsync(CommandExecutionContext context, EnterDungeonCommand command,
         CancellationToken cancellationToken) => couples?.Supports(command.Entry.DungeonId) == true
         ? couples.EnterAsync(command.Entry, cancellationToken)
+        : goldSilverHorn?.Supports(command.Entry.DungeonId) == true
+        ? goldSilverHorn.EnterAsync(command.Entry, cancellationToken)
         : sealedTreasure?.Supports(command.Entry.DungeonId) == true
         ? sealedTreasure.EnterAsync(command.Entry, cancellationToken)
         : southern?.Supports(command.Entry.DungeonId) == true

@@ -71,6 +71,7 @@ public sealed class InfrastructureModule : IServerModule
         });
         services.TryAddSingleton<PvfArchiveProvider>();
         services.TryAddSingleton<IContentArchiveIdentity, PvfArchiveIdentity>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.IGoldSilverHornContentSource, PvfGoldSilverHornContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.IAchievementDefinitionSource, PvfAchievementDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.ITitleBookDefinitionSource, PvfTitleBookDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IHellDungeonDefinitionSource, PvfHellDungeonDefinitionSource>();
