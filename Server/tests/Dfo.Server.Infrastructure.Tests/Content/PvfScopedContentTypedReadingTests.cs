@@ -232,6 +232,16 @@ public sealed class PvfScopedContentTypedReadingTests
         Assert.Equal(2, definition.MaterialCount);
     }
 
+    [Fact]
+    public void Gold_silver_horn_pot_does_not_charge_the_purchase_recipe_again_at_opening()
+    {
+        Section[] sections = [new("[stackable type]", [new(PvfTokenKind.QuotedString, 1), I(0)]),
+            new("[int data]", [I(8), I(1000), I(1)]), new("[need material]", [I(490001570), I(10)])];
+        var definition = PvfPackageOpeningDefinitionSource.Parse(490001561, sections, _ => "[upgradable legacy]");
+        Assert.Empty(definition.Diagnostics);
+        Assert.Equal(0, definition.MaterialCount);
+    }
+
     [Theory]
     [InlineData("missing-count")]
     [InlineData("negative-count")]

@@ -28,4 +28,3 @@
 - Artifact path overrides: none；所有制品以本目录为根
 - Workspace: E:/Project/DNF/DNF-JP-86-Server，current-checkout，task/southern-dale-20261019
 - Baseline evidence: 起始HEAD如上，tracked与staged均干净；原有未跟踪MarriageHousing/Opus/旧outputs/工具cache不在本任务所有权中，保留不提交。
-

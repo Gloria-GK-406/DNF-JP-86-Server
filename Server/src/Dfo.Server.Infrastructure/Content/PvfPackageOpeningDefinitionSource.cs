@@ -307,7 +307,8 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                 errors.Add("Lottery material costs are not supported by this opening entry yet");
                 continue;
             }
-            if (kind == OpeningPackageKind.Lottery && name == Fields.NeedMaterialField.Name)
+            // Other pots use this field for shop recipes, already paid by BuyItem.
+            if (kind == OpeningPackageKind.Lottery && id == 7615 && name == Fields.NeedMaterialField.Name)
             {
                 if (materialSeen) errors.Add("Duplicate lottery material cost");
                 materialSeen = true;
