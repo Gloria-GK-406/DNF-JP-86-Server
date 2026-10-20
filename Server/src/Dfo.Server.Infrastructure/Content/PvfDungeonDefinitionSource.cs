@@ -420,14 +420,12 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
                 cells.Add(cell, new(DungeonPathDirection.All, draft.Maps.GetValueOrDefault(cell) ?? [],
                     draft.BossMaps.GetValueOrDefault(cell) ?? []) { HasDeclaredConnections = false });
         }
+        // A21 haze quest 14825 retains map bindings on two AA cells. Those bindings
+        // are unused candidates, not additional rooms or a malformed route.
         foreach (var cell in draft.Maps.Keys.Concat(draft.BossMaps.Keys).Distinct())
         {
-            if (!cells.ContainsKey(cell) || cell.X >= draft.Width || cell.Y >= draft.Height)
+            if (cell.X >= draft.Width || cell.Y >= draft.Height)
                 configurationErrors.Add($"map ({cell.X},{cell.Y}) declared outside occupied maze cells");
-            // Preserve explicit declarations even when they conflict with the grid. Only
-            // selecting this maze should refuse entry, while diagnostics can still name it.
-            cells.TryAdd(cell, new(DungeonPathDirection.None, draft.Maps.GetValueOrDefault(cell) ?? [],
-                draft.BossMaps.GetValueOrDefault(cell) ?? []));
         }
         if (cells.Count == 0)
             configurationErrors.Add("maze contains no occupied cells");

@@ -213,12 +213,12 @@ public sealed class PvfQuestDefinitionSourceTests
         var training = await source.GetTrainingAvailabilityAsync(CancellationToken.None);
         var questIds = quests.Select(quest => quest.QuestId).ToHashSet();
 
-        // Snapshot: server PVF SHA-256 49D4CAFA402DAA93E9C60EFAC8550C20789BB5BD9F99DD7B9235FD0F20666E7A.
+        // Snapshot: server PVF SHA-256 C5CCE5346F60D21128D756A086EEF96E70F75F2F2FE063B6C61C00506C588F06.
         // The unified kill-objective parser retains regional/five-field declarations that the
         // former four-field initial-trigger projection excluded. Keep exact catalogue counts
         // alongside the field-level checks so accidental projection changes remain visible.
-        // Southern Dale's scheduled special-daily exchange 20549 is now supported.
-        Assert.Equal(3_253, quests.Count);
+        // 3253 existing quests plus 42 Circle quests with job-filtered reward declarations.
+        Assert.Equal(3_295, quests.Count);
         Assert.Equal(quests.Count, questIds.Count);
         Assert.All(quests, quest => Assert.InRange(quest.QuestId, 1, 29_999));
         Assert.Equal(444, quests.Count(quest => quest.IsExposedByNpc.HasValue));
