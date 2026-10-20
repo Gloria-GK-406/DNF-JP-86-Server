@@ -150,8 +150,7 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
             var appearance = state.Appearance ?? throw Missing("Appearance");
             if (inventory is null || skills is null) throw Missing("Appearance inventory/skills");
             var equipment = inventory.Containers.Single(x => x.ContainerType == InventoryContainerType.Equipment).Items;
-            messages.Add(new CurrentUserStateMessage(appearance.Character(), appearance.Public(), equipment, pets));
-            messages.Add(new ExtendedUserStateMessage(appearance.Character(), appearance.Public(), skills, equipment, state.At));
+            messages.AddRange(CharacterUserStateProjection.Compose(appearance.Character(), appearance.Public(), skills, equipment, pets, state.At));
         }
         if (needs.HasFlag(ReplayProjectionNeeds.Joust))
             messages.AddRange(Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Snapshot(state.Joust ?? throw Missing("Joust")));

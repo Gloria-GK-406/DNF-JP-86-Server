@@ -100,6 +100,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton(TimeProvider.System);
         services.AddTaskScheduling();
         services.AddOnlineExpiredItemCleanup();
+        services.AddCharacterNameTags();
         services.TryAddSingleton<ICharacterVisibleSessionDomainService, CharacterVisibleSessionDomainService>();
         services.AddEventDispatching();
         services.TryAddSingleton<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService,

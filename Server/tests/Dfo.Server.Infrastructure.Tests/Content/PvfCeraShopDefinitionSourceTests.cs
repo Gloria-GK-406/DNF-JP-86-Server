@@ -7,6 +7,46 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 public sealed class PvfCeraShopDefinitionSourceTests
 {
     [SkippableFact]
+    public async Task All_catalog_visual_products_have_explicit_name_tag_equipment_price_and_duration()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfCeraShopDefinitionSource(provider);
+        int[] products = [100615,100620,100616,100621,100617,100622,100618,100623,100619,100624,
+            100772,100774,100773,100775,100884,100885,100886,100887,100903,100904,100905,100906,
+            101057,101058,101059,101060,101105,101106,101103,101104,101406,101405,101404,101403,
+            102060,102059,102057,102058,102238,102239,102240,102241];
+        foreach (var id in products)
+        {
+            var product = await source.GetProductAsync(id, default);
+            Assert.NotNull(product);
+            Assert.Empty(product.Diagnostics);
+            Assert.Equal("[visual]", product.Category);
+            Assert.True(product.IsService);
+            Assert.Equal(1, product.Count);
+            Assert.Contains(product.ServiceDays, new[] { 7, 30 });
+            Assert.Equal(product.ServiceDays == 7 ? 300 : 600, product.Price?.Cera);
+            var item = await source.GetItemAsync(product.ItemId, default);
+            Assert.NotNull(item);
+            Assert.True(item.IsNameTag);
+            Assert.Empty(item.Diagnostics);
+        }
+    }
+
+    [Theory]
+    [InlineData(-1, 0, 0, 0)]
+    [InlineData(1, 30, 0, 0)]
+    [InlineData(-1, 30, 1, 0)]
+    [InlineData(-1, 30, 0, 1)]
+    public void Unknown_visual_conditions_are_rejected(int marker, int days, int payment, int tail)
+    {
+        var row = Numbers(102241,100330501,marker,days,payment,600,0,tail);
+        row[6] = new(PvfTokenKind.QuotedString, 1);
+        Assert.Contains(PvfCeraShopDefinitionSource.ParseProduct("[visual]", row).Diagnostics,
+            d => d.Code == "UnsupportedVisual");
+    }
+
+    [SkippableFact]
     public async Task Light_heart_package_retains_purchase_restriction_and_selection_declarations()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

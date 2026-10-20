@@ -235,6 +235,9 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddScoped<ClientAppearanceVisibilityProjection>();
         services.AddNotificationHandler<ClientAppearanceVisibilityRefresh, ClientAppearanceVisibilityProjection>(retryLimit: 0);
         services.AddNotificationHandler<ExpiredItemsRefresh, ExpiredItemsRefreshHandler>(retryLimit: 0);
+        services.AddNotificationHandler<CharacterUserStateRefresh, CharacterUserStateRefreshHandler>(retryLimit: 0);
+        services.AddDomainSubscriber<Dfo.Server.Abstractions.Characters.CharacterNameTagExpired, NameTagExpiredSubscriber>(
+            "character.name-tag.expiration.notifications", DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainSubscriber<OnlineExpiredItemsRemoved, ExpiredItemsNotificationSubscriber>(
             "inventory.expiration.notifications", DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainSubscriber<Dfo.Server.Abstractions.Accounts.ClientAppearanceSettingsChanged,

@@ -221,7 +221,7 @@ internal sealed class TitleBookChangedHandler(ITitleBookDomainService titles, IS
             {
                 var container = current.CharacterInventory.Containers.Single(x => x.ContainerType == containerType);
                 if (containerType == InventoryContainerType.Equipment)
-                    messages.InsertRange(0, TitleBookEquipmentProjection.Compose(current));
+                    messages.InsertRange(0, CharacterUserStateProjection.Compose(current));
                 else
                     messages.Add(new InventoryFullSnapshotMessage(container, current.CharacterInventory, current.AccountInventory, current.World.PreparedAt));
             }
@@ -244,16 +244,5 @@ internal sealed record TitleUnlockedMessage(TitleUnlocked Unlock) : GameStateSyn
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write(Unlock.AchievementId); writer.Write(Unlock.Category); writer.Write(Unlock.Index); writer.Write(Unlock.ItemId); writer.Write(checked((ushort)Unlock.Index));
         return stream.ToArray();
-    }
-}
-
-internal static class TitleBookEquipmentProjection
-{
-    internal static IReadOnlyList<IGameServerMessage> Compose(Dfo.Server.Data.Game.SelectCharacterResult current)
-    {
-        var equipment = current.CharacterInventory.Containers.Single(x => x.ContainerType == InventoryContainerType.Equipment).Items;
-        var state = current.CharacterEntry.Public;
-        return [new ExtendedUserStateMessage(current.Character, state, current.CharacterEntry.Skills, equipment, current.World.PreparedAt),
-            new CurrentUserStateMessage(current.Character, state, equipment, current.CharacterEntry.Features.Pets)];
     }
 }

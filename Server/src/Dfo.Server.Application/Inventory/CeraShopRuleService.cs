@@ -25,6 +25,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
         var grants = ImmutableArray.CreateBuilder<CeraShopGrant>();
         var expansions = ImmutableArray.CreateBuilder<InventoryExpansionGrant>();
         var subscriptions = ImmutableArray.CreateBuilder<CeraShopSubscriptionGrant>();
+        var nameTags = ImmutableArray.CreateBuilder<Dfo.Server.Abstractions.Characters.NameTagPurchase>();
         var restrictions = ImmutableArray.CreateBuilder<CeraShopPurchaseRestrictionDeclaration>();
         try
         {
@@ -56,6 +57,15 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                         product.ProductId, product.ItemId, cancellationToken).ConfigureAwait(false);
                     if (expansion is not null && product.Count == 1 && price.Period == 0)
                         expansions.Add(expansion);
+                    else if (product.Category == "[visual]" && product.Count == 1 && product.ServiceDays > 0)
+                    {
+                        var item = await content.GetItemAsync(product.ItemId, cancellationToken).ConfigureAwait(false);
+                        if (item is not { IsNameTag: true } || !item.Diagnostics.IsEmpty)
+                            throw Refuse(CeraShopRejection.UnsupportedProduct, "Visual product must declare name tag equipment.");
+                        if (item.MinimumPurchaseLevel > characterLevel)
+                            throw Refuse(CeraShopRejection.PurchaseLevel, "Name tag purchase level is not met.");
+                        nameTags.Add(new(product.ItemId, product.ServiceDays));
+                    }
                     else if (product.Category == "[premium]" && product.Count == 1
                         && product.Premium is { PremiumType: 22 or 27 or 84 or 97 } contract && contract.Duration > TimeSpan.Zero)
                     {
@@ -96,7 +106,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                         ? CeraShopPaymentMode.PointsOnly : CeraShopPaymentMode.Ordinary));
             }
             return new(CeraShopRejection.None, new(products.ToImmutable(), charges.ToImmutable(), grants.ToImmutable())
-                { Expansions = expansions.ToImmutable(), Subscriptions = subscriptions.ToImmutable(), Restrictions = restrictions.ToImmutable() }, null);
+                { Expansions = expansions.ToImmutable(), Subscriptions = subscriptions.ToImmutable(), NameTags = nameTags.ToImmutable(), Restrictions = restrictions.ToImmutable() }, null);
         }
         catch (QuoteRefusal failure) { return new(failure.Reason, null, failure.Message); }
         catch (OverflowException) { return new(CeraShopRejection.UnsupportedProduct, null, "Purchase quantity or expiration cannot be represented."); }

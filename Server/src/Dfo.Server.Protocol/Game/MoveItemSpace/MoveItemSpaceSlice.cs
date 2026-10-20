@@ -890,7 +890,7 @@ public sealed class MoveItemSpaceHandler(
                         .ConfigureAwait(false)
                     is { } appearance)
                 {
-                    frames.Add(appearance);
+                    frames.AddRange(appearance);
                     if (identity is not null) frames.AddRange(await HousingCurrentProjection.ReadAsync(housing, identity, cancellationToken).ConfigureAwait(false));
                 }
             }
@@ -936,29 +936,20 @@ public sealed class MoveItemSpaceHandler(
     }
 
     /// <summary>
-    /// Whether this request named a worn slot the character's drawn appearance depends on.
+    /// Whether this request changes the equipment represented by the complete USERINFO pair.
     /// </summary>
     /// <remarks>
     /// Decided from the request's two ends rather than from what the move turned out to do. The
     /// appearance is drawn from the equipment list, so a move that changed it named that list at one
     /// of its ends -- and reversing a request exchanges its two ends without changing either list,
     /// so this holds whichever end the item was actually on.
-    /// <para>
-    /// Which worn slots the frame depends on is
-    /// <see cref="StateSynchronizationPayloadCodec.CurrentUserStateDrawsFrom"/>'s answer, asked
-    /// rather than restated. A slot number belonging to the bag or the avatar page is not put to it.
-    /// </para>
     /// </remarks>
     private static bool ChangesWhatTheCharacterLooksLike(
         GameSlot source, GameSlot destination) =>
-        (source.Space == InventoryContainerType.Equipment
-            && StateSynchronizationPayloadCodec.CurrentUserStateDrawsFrom(source.Index))
-        || (destination.Space == InventoryContainerType.Equipment
-            && StateSynchronizationPayloadCodec.CurrentUserStateDrawsFrom(
-                destination.Index));
+        source.Space == InventoryContainerType.Equipment || destination.Space == InventoryContainerType.Equipment;
 
     /// <summary>Reads the post-move equipment from its owner for the optional appearance frame.</summary>
-    private async ValueTask<IGameServerMessage?> RefreshSessionAsync(
+    private async ValueTask<IReadOnlyList<IGameServerMessage>?> RefreshSessionAsync(
         NetworkDispatchContext context, bool draw, CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
@@ -971,15 +962,7 @@ public sealed class MoveItemSpaceHandler(
         if (state is null)
             return null;
 
-        var equipment = state.CharacterInventory.Containers
-            .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
-            ?.Items ?? [];
-
-        return new CurrentUserStateMessage(
-            state.Character,
-            state.CharacterEntry.Public,
-            equipment,
-            state.CharacterEntry.Features.Pets);
+        return CharacterUserStateProjection.Compose(state);
     }
 
     private async ValueTask<(MoveItemSpaceResponse Response, ItemMoveResult? Result)> ResolveAsync(

@@ -67,12 +67,7 @@ internal sealed class ExpiredItemsRefreshHandler(ISelectedSessionDomainService s
             var current = await views.TryLoadAsync(owner, ct).ConfigureAwait(false);
             if (current is null || sessions.FindByConnection(receiver.ConnectionId) != receiver
                 || !visible.Resolve(owner).Contains(receiver)) return [];
-            var equipment = current.CharacterInventory.Containers.Single(x => x.ContainerType == InventoryContainerType.Equipment).Items;
-            if (receiver == owner)
-                messages.Add(new ExtendedUserStateMessage(current.Character, current.CharacterEntry.Public,
-                    current.CharacterEntry.Skills, equipment, current.World.PreparedAt));
-            messages.Add(new CurrentUserStateMessage(current.Character, current.CharacterEntry.Public,
-                equipment, current.CharacterEntry.Features.Pets));
+            messages.AddRange(CharacterUserStateProjection.Compose(current, receiver == owner));
             if (receiver == owner) messages.AddRange(await HousingCurrentProjection.ReadAsync(housing, owner, ct).ConfigureAwait(false));
         }
         return messages;

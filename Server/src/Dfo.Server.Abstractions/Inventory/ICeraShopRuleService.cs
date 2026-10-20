@@ -17,6 +17,7 @@ public sealed record CeraShopQuote(ImmutableArray<int> ProductIds, ImmutableArra
 {
     public ImmutableArray<InventoryExpansionGrant> Expansions { get; init; } = [];
     public ImmutableArray<CeraShopSubscriptionGrant> Subscriptions { get; init; } = [];
+    public ImmutableArray<Dfo.Server.Abstractions.Characters.NameTagPurchase> NameTags { get; init; } = [];
     public ImmutableArray<CeraShopPurchaseRestrictionDeclaration> Restrictions { get; init; } = [];
 }
 public sealed record CeraShopRestrictionPlanningResult(CeraShopRejection Rejection, IReadOnlyList<DomainEffect>? Effects, string? Detail);

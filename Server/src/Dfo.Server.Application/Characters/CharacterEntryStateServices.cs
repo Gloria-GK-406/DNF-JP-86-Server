@@ -237,7 +237,7 @@ internal sealed class CharacterEntryStateDomainService(
     ICreatureDomainStore? creatureStore = null, AmbientStoreAccess? stores = null,
     IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null,
     IClientSettingsDomainService? clientSettings = null, IHerasDungeonDomainService? heras = null,
-    IGoldSilverHornDomainService? goldSilverHorn = null) : ICharacterEntryStateDomainService
+    IGoldSilverHornDomainService? goldSilverHorn = null, ICharacterNameTagDomainService? nameTags = null) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,
@@ -280,6 +280,12 @@ internal sealed class CharacterEntryStateDomainService(
             var appearance = await clientSettings.ReadAppearanceAsync(accountId, checked((byte)publicState.VisibilityBits), cancellationToken).ConfigureAwait(false);
             publicState = publicState with { VisibilityBits = appearance.VisibilityBits,
                 Settings = publicState.Settings with { UserStateBits = appearance.VisibilityBits } };
+        }
+        if (nameTags is not null)
+        {
+            var tag = await nameTags.ReadEffectiveAsync(accountId, characterId, cancellationToken).ConfigureAwait(false);
+            publicState = publicState with { Extras = publicState.Extras with
+                { NameTagItemId = tag.ItemId, NameTagExpireTime = tag.ExpiresAtUnixSeconds } };
         }
         var remainingEntries = new List<(int DungeonId, int Remaining)>();
         if (altars is not null)

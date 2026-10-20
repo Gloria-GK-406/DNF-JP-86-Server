@@ -50,5 +50,6 @@ internal class LifecycleTestContainer(
         (await GetAsync(slot, ct))?.Snapshot);
     public ValueTask<IReadOnlyList<InventoryItemState>> ReadProjectionAsync(CancellationToken ct) => fixture.RunAsync<IReadOnlyList<InventoryItemState>>(async () =>
         [.. (await GetAllAsync(ct)).Select(item => new InventoryItemState(
-            item.ItemUid ?? new ItemIdentity(0), item.SlotIndex, item.Snapshot.ToCore()))]);
+            item.ItemUid ?? new ItemIdentity(0), item.SlotIndex, item.Snapshot.ToCore(),
+            item.Snapshot.AvatarDetail))]);
 }

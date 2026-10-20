@@ -31,6 +31,7 @@ public sealed record CeraShopPurchaseReceipt(SelectedSessionIdentity Session, Im
     public AccountEntitlementEntryState? PremiumEntitlements { get; init; }
     public IReadOnlyList<CharacterPremiumUsageSlotState> PremiumUsageSlots { get; init; } = [];
     public IReadOnlyList<AccountCompatibilityEntryState>? PurchaseRestrictions { get; init; }
+    public bool NameTagChanged { get; init; }
 }
 
 public sealed record CeraShopPurchaseResult(CeraShopRejection Rejection, CeraShopPurchaseReceipt? Receipt, string? Detail)

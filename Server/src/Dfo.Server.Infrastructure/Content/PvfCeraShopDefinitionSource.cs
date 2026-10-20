@@ -269,9 +269,11 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         if (category == Fields.CharacPremiumPackageField.Name &&
             (N(4) != 0 || N(5) != 0 || N(6) != 1 || N(7) is not (30 or 60) || N(8) <= 0))
             Error("UnsupportedServicePackage", "Unknown package duration or catalog flags.");
+        if (category == Fields.VisualField.Name && (N(2) != -1 || N(3) <= 0 || N(4) != 0 || N(7) != 0))
+            Error("UnsupportedVisual", "Unknown name tag duration or catalog flags.");
         return new(N(0), N(1), count, category, price, service, false, false, errors.ToImmutable(), CatalogPath + category,
             category == Fields.SelectableCharacterPremiumField.Name ? N(2) : null,
-            category == Fields.SelectableCharacterPremiumField.Name ? N(3)
+            category == Fields.SelectableCharacterPremiumField.Name || category == Fields.VisualField.Name ? N(3)
                 : category == Fields.CharacPremiumPackageField.Name ? N(7) : 0);
     }
 
@@ -437,7 +439,8 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
             }
         }
         return new(id, path, kind, (ushort)Math.Clamp(durability, 0, ushort.MaxValue), Text(Fields.AttachTypeField) == "[sealing]",
-            minimum, components.ToImmutable(), selections.ToImmutable(), avatar, creature, errors.ToImmutable());
+            minimum, components.ToImmutable(), selections.ToImmutable(), avatar, creature, errors.ToImmutable())
+            { IsNameTag = isEquipment && type == "[name tag]" };
     }
 
     internal static (ImmutableArray<CeraShopComponent> Components, ImmutableArray<CeraShopDiagnostic> Diagnostics)

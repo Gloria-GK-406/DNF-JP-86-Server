@@ -94,7 +94,8 @@ public sealed class OnlineExpiredItemScheduleTests
                 SouthernAccounts.Enqueue(((IAccountCommand)command).AccountId.Value);
             else if (command is Dfo.Server.Application.World.BossTower.RefillOnlineBossTowerTicketCommand)
                 BossAccounts.Enqueue(((IAccountCommand)command).AccountId.Value);
-            else Accounts.Enqueue(((IAccountCommand)command).AccountId.Value);
+            else if (command is Dfo.Server.Application.Inventory.CleanupOnlineExpiredItemsCommand)
+                Accounts.Enqueue(((IAccountCommand)command).AccountId.Value);
             return ValueTask.FromResult((T)(object)true);
         }
     }
