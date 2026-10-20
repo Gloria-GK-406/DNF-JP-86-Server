@@ -964,6 +964,8 @@ public sealed class ProtocolModule : IServerModule
             ClientMessageType.GameCardSelectRightState);
         services.RegisterMessageHandler<SelectCardHandler>(ClientMessageType.GameSelectCard);
         services.RegisterMessageHandler<EplpCommandHandler>(ClientMessageType.GameEplpCommand);
+        services.AddCommandHandler<LeaveDungeonCommand, LeaveDungeonResult, LeaveDungeonCommandHandler>(
+            CommandExecutionKind.Direct, accountAccessMode: UserAccessMode.Exclusive);
         services.RegisterMessageHandler<GiveUpGameHandler>(ClientMessageType.GameGiveUpGame);
         services.RegisterMessageHandler<BackToVillageHandler>(ClientMessageType.GameBackToVillage);
 

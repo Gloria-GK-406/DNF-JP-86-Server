@@ -91,7 +91,11 @@ public sealed class DungeonEntryProjectionDelivery(
             participant => participant.CharacterId,
             participant => runs.Find(participant.CharacterId));
         var command = new EnterDungeonCommand(new DungeonEntryContext(
-            message.DungeonId, facts, message.RequestMode, message.PracticeMode, participants, message.MirrorQuestId));
+            message.DungeonId, facts, message.RequestMode, message.PracticeMode, participants, message.MirrorQuestId))
+        {
+            Session = requester,
+            Sessions = attachments.Members.Select(x => x.Session).ToArray(),
+        };
         // Directly constructed protocol fixtures may supply their own visit service. They still
         // execute the same CMD routing; the production composition always uses the command bus.
         var attempt = commands is not null
@@ -387,14 +391,16 @@ public sealed class DungeonEntryProjectionDelivery(
 
         logger.LogInformation(
             "Select dungeon {ConnectionId}: projected run={RunId} revision={Revision} "
-                + "participants={ParticipantCount} dungeon={DungeonId} difficulty={Difficulty} intent={Intent}",
+                + "participants={ParticipantCount} dungeon={DungeonId} difficulty={Difficulty} intent={Intent} "
+                + "maze={MazeIndex} size={Width}x{Height} startMap={StartMap} purpose={Purpose} quest={QuestId}",
             requesterConnection,
             runId.Value,
             change.Revision,
             participants.Length,
             layout.DungeonId,
             leaderVisit.Run.Difficulty,
-            intent);
+            intent, layout.MazeIndex, layout.Width, layout.Height, layout.StartRoomMapId,
+            layout.Purpose.Kind, layout.Purpose.QuestId);
     }
 
     private CohortObservation ObserveCurrentCohort(

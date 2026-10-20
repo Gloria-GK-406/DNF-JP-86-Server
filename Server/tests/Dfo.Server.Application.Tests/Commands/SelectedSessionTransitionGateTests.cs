@@ -53,8 +53,10 @@ public sealed class SelectedSessionTransitionGateTests
         Assert.Equal(0, gate.TrackedEntryCount);
     }
 
-    [Fact]
-    public async Task OuterLeaseIsVisibleThroughActualCommandBusAndOutlivesParentWhileCommandBorrows()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OuterLeaseIsVisibleThroughActualCommandBusAndOutlivesParentWhileCommandBorrows(bool group)
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -65,7 +67,9 @@ public sealed class SelectedSessionTransitionGateTests
         services.AddCommandHandler<BorrowCommand, BorrowResult, BorrowHandler>(CommandExecutionKind.Direct);
         await using var provider = services.BuildServiceProvider();
         var gate = provider.GetRequiredService<SelectedSessionTransitionGate>();
-        var parent = await gate.AcquireAsync(Account, UserAccessMode.Exclusive, default);
+        var parent = group
+            ? await gate.AcquireManyExclusiveAsync([new AccountId(8), Account], default)
+            : await gate.AcquireAsync(Account, UserAccessMode.Exclusive, default);
         using var cancellation = new CancellationTokenSource();
         var execution = provider.GetRequiredService<ICommandBus>().SendAsync(new BorrowCommand(), cancellation.Token).AsTask();
         Task<IAsyncDisposable>? writer = null;
@@ -92,6 +96,25 @@ public sealed class SelectedSessionTransitionGateTests
                 catch (OperationCanceledException) { }
             }
         }
+        Assert.Equal(0, gate.TrackedEntryCount);
+    }
+
+    [Fact]
+    public async Task Cancelled_group_releases_earlier_accounts_and_invalidates_pending_frames()
+    {
+        var gate = new SelectedSessionTransitionGate();
+        var second = new AccountId(Account.Value + 1);
+        var blocker = await gate.AcquireAsync(second, UserAccessMode.Exclusive, default);
+        using var cancellation = new CancellationTokenSource();
+        var pending = gate.AcquireManyExclusiveAsync([second, Account], cancellation.Token).AsTask();
+        Assert.False(pending.IsCompleted);
+        var firstWaiter = gate.AcquireAsync(Account, UserAccessMode.Exclusive, default).AsTask();
+        Assert.False(firstWaiter.IsCompleted);
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
+        await (await firstWaiter.WaitAsync(TimeSpan.FromSeconds(5))).DisposeAsync();
+        await blocker.DisposeAsync();
+        await (await gate.BorrowOrAcquireExclusiveAsync(second, default)).DisposeAsync();
         Assert.Equal(0, gate.TrackedEntryCount);
     }
 

@@ -70,6 +70,149 @@ public sealed class LeaveDungeonTests
     private const byte CapturedOption = 0x02;
 
     [Fact]
+    public async Task Next_story_preflight_and_confirmation_project_the_town_only_once()
+    {
+        var runs = new OneRun();
+        var sender = new RecordingSender();
+        var handler = StoryHandler(runs, sender);
+        foreach (var (state, option) in new (byte, byte)[] { (2, 3), (1, 1), (1, 3) })
+            await handler.HandleAsync(Dispatch(), new EplpCommandRequest(
+                GameMessageMetadata.Empty, state, option), CancellationToken.None);
+
+        Assert.True(runs.Ended);
+        Assert.Equal(new byte[] { 2, 1 }, sender.Sent.OfType<EplpCommandResponse>().Select(x => x.State));
+        Assert.Equal(new byte[] { 3, 1 }, sender.Sent.OfType<EplpCommandResponse>().Select(x => x.Option));
+        Assert.Single(sender.Sent.OfType<UserAreaNotification>());
+        Assert.Single(sender.Sent.OfType<AreaUsersNotification>());
+    }
+
+    [Fact]
+    public async Task Next_story_confirmation_with_a_run_only_acknowledges()
+    {
+        var runs = new OneRun();
+        var sender = new RecordingSender();
+        await StoryHandler(runs, sender).HandleAsync(Dispatch(),
+            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 3), CancellationToken.None);
+        Assert.False(runs.Ended);
+        Assert.IsType<EplpCommandResponse>(Assert.Single(sender.Sent));
+    }
+
+    [Fact]
+    public async Task Exit_owns_the_transition_until_its_last_town_frame_is_sent()
+    {
+        var gate = new SelectedSessionTransitionGate();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var sender = new RecordingSender { BeforeSend = async messages =>
+        {
+            if (!messages.Any(x => x is UserAreaNotification)) return;
+            entered.TrySetResult();
+            await release.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }};
+        var exit = StoryHandler(new OneRun(), sender, gate).HandleAsync(Dispatch(),
+            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 1), default).AsTask();
+        Task<IAsyncDisposable>? next = null;
+        try
+        {
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            next = gate.AcquireAsync(Identity.AccountId, UserAccessMode.Exclusive, default).AsTask();
+            Assert.False(next.IsCompleted);
+            release.TrySetResult();
+            await exit.WaitAsync(TimeSpan.FromSeconds(5));
+            await (await next.WaitAsync(TimeSpan.FromSeconds(5))).DisposeAsync();
+            Assert.Single(sender.Sent.OfType<UserAreaNotification>());
+        }
+        finally
+        {
+            release.TrySetResult();
+            await exit.WaitAsync(TimeSpan.FromSeconds(5));
+            if (next is not null) await (await next.WaitAsync(TimeSpan.FromSeconds(5))).DisposeAsync();
+        }
+        Assert.Equal(0, gate.TrackedEntryCount);
+    }
+
+    private static EplpCommandHandler StoryHandler(OneRun runs, RecordingSender sender,
+        SelectedSessionTransitionGate? gate = null, IDungeonEntryIntentDomainService? intents = null) => new(
+        new OneSession(Identity), new OneRuntimeSession(Entry()), new StandingWhereTheyAre(),
+        runs, new DungeonRunDeliveryRegistry(), sender,
+        TownAreaProjectionTestFactory.Create(new OneSession(Identity), new OneRuntimeSession(Entry()), sender),
+        NullLogger<EplpCommandHandler>.Instance, gate ?? new SelectedSessionTransitionGate(), entryIntents: intents);
+
+    [Fact]
+    public async Task Failed_exit_delivery_releases_the_transition_without_repeating_the_exit()
+    {
+        var runs = new OneRun();
+        var gate = new SelectedSessionTransitionGate();
+        var sender = new RecordingSender { BeforeSend = _ => throw new IOException("send failed") };
+        var handler = StoryHandler(runs, sender, gate);
+        await Assert.ThrowsAsync<IOException>(async () => await handler.HandleAsync(Dispatch(),
+            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 1), default));
+        Assert.True(runs.Ended);
+        Assert.Equal(0, gate.TrackedEntryCount);
+        await handler.HandleAsync(Dispatch(), new EplpCommandRequest(GameMessageMetadata.Empty, 1, 3), default);
+        Assert.Empty(sender.Sent);
+    }
+
+    [Fact]
+    public async Task An_exit_queued_for_an_old_run_does_not_end_its_replacement()
+    {
+        var runs = new OneRun();
+        var gate = new SelectedSessionTransitionGate();
+        var sender = new RecordingSender();
+        var blocker = await gate.AcquireAsync(Identity.AccountId, UserAccessMode.Exclusive, default);
+        var pending = StoryHandler(runs, sender, gate).HandleAsync(Dispatch(),
+            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 1), default).AsTask();
+        Assert.False(pending.IsCompleted);
+        runs.Replace();
+        await blocker.DisposeAsync();
+        await pending.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.False(runs.Ended);
+        Assert.Empty(sender.Sent);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_new_selection_intent_prevents_an_old_town_projection(bool hasRun)
+    {
+        var runs = new OneRun(hasRun);
+        var sender = new RecordingSender();
+        await StoryHandler(runs, sender, intents: new SelectedIntent()).HandleAsync(Dispatch(),
+            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 2), default);
+        Assert.False(runs.Ended);
+        Assert.Empty(sender.Sent);
+    }
+
+    private sealed class SelectedIntent : IDungeonEntryIntentDomainService
+    {
+        public DungeonEntryIntent? Find(SelectedSessionIdentity session) => DungeonEntryIntent.Directed(148);
+        public void Record(SelectedSessionIdentity session, DungeonEntryIntent intent) => throw new NotSupportedException();
+        public DungeonEntryIntent? Consume(SelectedSessionIdentity session) => throw new NotSupportedException();
+        public void RestoreIfAbsent(SelectedSessionIdentity session, DungeonEntryIntent intent) => throw new NotSupportedException();
+        public bool ClearExact(SelectedSessionIdentity session) => throw new NotSupportedException();
+    }
+
+    [Fact]
+    public async Task Exit_command_borrows_the_projection_lease_through_the_real_pipeline()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddCommandDispatching();
+        var runs = new OneRun();
+        services.AddSingleton<IDungeonRunDomainService>(runs);
+        services.AddSingleton<ISelectedSessionDomainService>(new OneSession(Identity));
+        services.AddCommandHandler<LeaveDungeonCommand, LeaveDungeonResult, LeaveDungeonCommandHandler>(
+            CommandExecutionKind.Direct, accountAccessMode: UserAccessMode.Exclusive);
+        await using var provider = services.BuildServiceProvider();
+        await using var lease = await provider.GetRequiredService<SelectedSessionTransitionGate>()
+            .AcquireManyExclusiveAsync([Identity.AccountId], default);
+        var result = await provider.GetRequiredService<ICommandBus>().SendAsync(
+            new LeaveDungeonCommand(Identity, [Identity], runs.RunId)).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal([Identity.CharacterId], result.EndedCharacters);
+        Assert.True(runs.Ended);
+    }
+
+    [Fact]
     public void The_captured_request_decodes_to_its_state_and_option()
     {
         var request = (EplpCommandRequest)new EplpCommandDecoder()
@@ -646,7 +789,8 @@ public sealed class LeaveDungeonTests
         public bool Ended { get; private set; }
         public Action? BeforeEnd { get; set; }
 
-        public DungeonRunId RunId { get; } = DungeonRunId.New();
+        public DungeonRunId RunId { get; private set; } = DungeonRunId.New();
+        public void Replace() => RunId = DungeonRunId.New();
 
         /// <summary>Not exercised here: nothing in these tests kills anything.</summary>
         public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
@@ -831,6 +975,7 @@ public sealed class LeaveDungeonTests
     private sealed class RecordingSender : IGameMessageSender
     {
         public List<IGameServerMessage> Sent { get; } = [];
+        public Func<IReadOnlyList<IGameServerMessage>, Task>? BeforeSend { get; init; }
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId, IGameCmdMessage message,
@@ -845,13 +990,13 @@ public sealed class LeaveDungeonTests
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask SendExplicitAsync(
+        public async ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
             CancellationToken cancellationToken)
         {
+            if (BeforeSend is not null) await BeforeSend(delivery.RequiredDirectMessages);
             this.Sent.AddRange(delivery.RequiredDirectMessages);
-            return ValueTask.CompletedTask;
         }
     }
 

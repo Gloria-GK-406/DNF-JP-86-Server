@@ -164,9 +164,13 @@ public sealed class SouthernDaleTests
         var cell = new MazeCell(0, 0);
         var layout = new DungeonLayout(100, 0, 1, 1, cell, cell, 12006, 1,
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(12006) }) { ConsumesFatigue = false };
-        runs.PreparePartyEntry(players.Select((x, i) => new DungeonRunParticipant(x.AccountId, x.CharacterId, (byte)i, i == 0)).ToArray(),
-            layout, DungeonDifficulty.Normal, new(cell, 12006, 1, [new(1, new(61424, 30, 3), false, false, [])], []),
-            DungeonRunId.New(), DateTimeOffset.UtcNow);
+        await using (var setup = f.Scope.Begin())
+        {
+            runs.PreparePartyEntry(players.Select((x, i) => new DungeonRunParticipant(x.AccountId, x.CharacterId, (byte)i, i == 0)).ToArray(),
+                layout, DungeonDifficulty.Normal, new(cell, 12006, 1, [new(1, new(61424, 30, 3), false, false, [])], []),
+                DungeonRunId.New(), DateTimeOffset.UtcNow);
+            await setup.CommitAsync(default);
+        }
         var run = runs.Find(new CharacterId(71))!;
         var deaths = f.Services.GetRequiredService<IMonsterDeathDomainService>();
         var request = new MonsterDeathSettlementRequest(f.Session, players, run.RunId, run.RoomVersion, 1);

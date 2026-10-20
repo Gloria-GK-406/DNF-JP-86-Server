@@ -8,6 +8,45 @@ public sealed class SelectedSessionTransitionGate : UserExecutionGate<AccountId>
 {
     private readonly AsyncLocal<Frame?> current = new();
 
+    /// <summary>Installs all borrowable frames on the caller's flow before sequential acquisition.</summary>
+    public ValueTask<IAsyncDisposable> AcquireManyExclusiveAsync(
+        IEnumerable<AccountId> accounts, CancellationToken cancellationToken)
+    {
+        var frames = new List<Frame>();
+        foreach (var account in accounts.Distinct().OrderBy(x => x.Value))
+        {
+            var frame = new Frame(account, this.LiveParent(), accessMode: UserAccessMode.Exclusive);
+            this.current.Value = frame;
+            frames.Add(frame);
+        }
+        return AcquireGroupAsync(frames, cancellationToken);
+    }
+
+    private async ValueTask<IAsyncDisposable> AcquireGroupAsync(List<Frame> frames, CancellationToken ct)
+    {
+        var group = new FrameGroup(frames);
+        try
+        {
+            foreach (var frame in frames)
+                frame.Acquired(await base.AcquireAsync(frame.AccountId, UserAccessMode.Exclusive, ct).ConfigureAwait(false));
+            return group;
+        }
+        catch
+        {
+            await group.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private sealed class FrameGroup(List<Frame> frames) : IAsyncDisposable
+    {
+        public async ValueTask DisposeAsync()
+        {
+            for (var i = frames.Count - 1; i >= 0; i--)
+                await frames[i].DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
     // This entry point must stay synchronous: installing the frame after an await would only
     // update the callee's ExecutionContext, and the caller would not be able to borrow it.
     public override ValueTask<IAsyncDisposable> AcquireAsync(

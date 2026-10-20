@@ -84,17 +84,11 @@ internal sealed class EplpCommandResponseEncoder : GameCmdMessageEncoder<EplpCom
 /// Answers the button, and when it is the one that leaves, puts the character back in town.
 /// </summary>
 /// <remarks>
-/// <b>Only state 1 leaves.</b> Both sides agree on that and the client is the one that settles it:
-/// its reply handler compares the returned state against 1 and runs the leave path on nothing else.
-/// The reference reads the same byte the same way. Every other state is answered and does nothing,
-/// which is what the capture shows -- the session sent <c>02 02</c> first and <c>01 02</c> second,
-/// and only the second was followed by the town state.
-/// <para>
-/// Answered whether or not there is a run, for the reason <c>BACK_2_VILLAGE</c> is: the client is
-/// waiting on this frame with a button already pressed, and a silence is indistinguishable from
-/// the server not having the type at all -- which is the defect being fixed. A character with no
-/// run gets the acknowledgement and, if they asked to leave, the town they are already standing in.
-/// </para>
+/// Ordinary state 1 options 0/1/2 exit. Option 3 is a separate confirmation: the native story
+/// button first sends an exit option, then this confirmation. Once the source run is gone the
+/// confirmation must not acknowledge another choice or rebuild the town a second time.
+/// Explicit option 2 retains its no-run town-return compatibility. Non-exit states only ACK.
+/// Specialized tower and altar paths retain their own settlement semantics.
 /// </remarks>
 public sealed class EplpCommandHandler(
     ISelectedSessionDomainService selectedSessions,
@@ -110,7 +104,9 @@ public sealed class EplpCommandHandler(
     IPartyService? parties = null,
     IllusionTowerProjectionDelivery? illusionTower = null,
     Dfo.Server.Protocol.Game.Altar.AltarProtocolCoordinator? altars = null,
-    DungeonProjectionGate? projectionGate = null, BossTowerProjectionDelivery? bossTower = null)
+    DungeonProjectionGate? projectionGate = null, BossTowerProjectionDelivery? bossTower = null,
+    IDungeonEntryIntentDomainService? entryIntents = null, ICommandBus? commands = null,
+    ITownAreaDomainService? townAreas = null)
     : ClientMessageHandler<EplpCommandRequest>
 {
     /// <summary>The state that means "take me out of here".</summary>
@@ -130,6 +126,8 @@ public sealed class EplpCommandHandler(
                 context.Connection.ConnectionId, message.Metadata,
                 message.State, message.Option, cancellationToken).ConfigureAwait(false))
             return;
+        // Capture the source before loading any asynchronous character view.
+        var currentRun = session is null ? null : runs.Find(session.CharacterId);
         // Where they are standing is asked of the service that owns it. It is recorded and dropped
         // with the published session, so this conjunct admits exactly the connections the two
         // before it do.
@@ -144,8 +142,14 @@ public sealed class EplpCommandHandler(
             return;
         }
 
-        var leaving = message.State == LeaveState;
-        var currentRun = runs.Find(session.CharacterId);
+        var isAltar = currentRun?.Layout.Altar is not null;
+        var leaving = message.State == LeaveState && (isAltar || message.Option <= 2);
+        if (message.State == LeaveState && currentRun is null && message.Option != 2)
+        {
+            logger.LogDebug("Eplp ignored after exit {ConnectionId}: state={State} option={Option} sequence={Sequence} ordinal={Ordinal}",
+                context.Connection.ConnectionId, message.State, message.Option, message.Metadata.Sequence, message.Metadata.InboundOrdinal);
+            return;
+        }
         var roster = currentRun is not null && parties is not null
             ? parties.FindParty(new PartyCharacterSnapshot(
                 session.AccountId, session.CharacterId, session.WireUserId, null))
@@ -191,52 +195,61 @@ public sealed class EplpCommandHandler(
         if (!returning.Any(value => value.Session == session))
             return;
 
+        await using var altarProjection = leaving && isAltar
+            ? await (projectionGate ?? throw new InvalidOperationException("Altar projection gate is unavailable."))
+                .AcquireAsync(currentRun!.RunId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false)
+            : null;
+        // Keep the same lifecycle boundary through ACK and all town frames. ENTER_SELECT and
+        // the entry command participate in this boundary too.
+        await using var transitions = message.State == LeaveState
+            ? await transitionGate.AcquireManyExclusiveAsync(
+                participants.Select(x => x.AccountId), cancellationToken).ConfigureAwait(false)
+            : null;
+        if (message.State == LeaveState)
+        {
+            if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session
+                || runs.Find(session.CharacterId)?.RunId != currentRun?.RunId
+                || returning.Any(x => selectedSessions.FindByCharacter(x.Session.CharacterId) != x.Session)
+                || (!isAltar && returning.Any(x => entryIntents?.Find(x.Session) is not null)))
+                return;
+            if (roster is not null && parties is not null)
+            {
+                var latest = parties.FindParty(new PartyCharacterSnapshot(
+                    session.AccountId, session.CharacterId, session.WireUserId, null));
+                if (latest.Generation != roster.Generation || latest.Revision != roster.Revision
+                    || returning.Count != roster.Members.Length)
+                    return;
+            }
+            if (currentRun is null && townAreas is not null
+                && (townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member)))
+                return;
+        }
+
         var runEnded = false;
         HashSet<CharacterId> endedCharacters = [];
         if (leaving)
         {
-            await using var altarProjection = currentRun?.Layout.Altar is not null
-                ? await (projectionGate ?? throw new InvalidOperationException("Altar projection gate is unavailable."))
-                    .AcquireAsync(currentRun.RunId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false)
-                : null;
-            var leases = new List<IAsyncDisposable>();
-            try
-            {
-                foreach (var accountId in participants.Select(value => value.AccountId)
-                             .Distinct().OrderBy(value => value.Value))
-                {
-                    leases.Add(await transitionGate.AcquireAsync(
-                        accountId, UserAccessMode.Exclusive, cancellationToken)
-                        .ConfigureAwait(false));
-                }
-                if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session
-                    || (currentRun is not null
-                        && runs.Find(session.CharacterId)?.RunId != currentRun.RunId))
-                {
-                    return;
-                }
+            if (isAltar)
+                await (altars ?? throw new InvalidOperationException("Altar coordinator is unavailable."))
+                    .SettleBeforeExitUnderGatesAsync(session, currentRun!.RunId, cancellationToken).ConfigureAwait(false);
 
-                if (currentRun?.Layout.Altar is not null)
-                    await (altars ?? throw new InvalidOperationException("Altar coordinator is unavailable."))
-                        .SettleBeforeExitUnderGatesAsync(session, currentRun.RunId, cancellationToken).ConfigureAwait(false);
-
-                foreach (var participant in participants)
-                {
-                    if (currentRun is null
-                        || runs.Find(participant.CharacterId)?.RunId != currentRun.RunId)
-                        continue;
-                    cardPresentation?.Cancel(participant.CharacterId, currentRun.RunId);
-                    if (!await runs.EndAsync(participant.CharacterId, currentRun.RunId).ConfigureAwait(false))
-                        continue;
-                    deliveries.RemoveParticipant(currentRun.RunId, participant.CharacterId);
-                    endedCharacters.Add(participant.CharacterId);
-                    runEnded = true;
-                }
-            }
-            finally
+            if (currentRun is not null)
             {
-                for (var index = leases.Count - 1; index >= 0; index--)
-                    await leases[index].DisposeAsync().ConfigureAwait(false);
+                foreach (var member in returning)
+                    cardPresentation?.Cancel(member.Session.CharacterId, currentRun.RunId);
+                var command = new LeaveDungeonCommand(session,
+                    returning.Select(x => x.Session).ToArray(), currentRun.RunId);
+                var ended = commands is not null
+                    ? await commands.SendAsync(command, cancellationToken).ConfigureAwait(false)
+                    : await new LeaveDungeonCommandHandler(runs).HandleAsync(
+                        new(Guid.NewGuid(), typeof(LeaveDungeonCommand), typeof(LeaveDungeonCommandHandler),
+                            CommandExecutionKind.Direct), command, cancellationToken).ConfigureAwait(false);
+                foreach (var character in ended.EndedCharacters)
+                {
+                    deliveries.RemoveParticipant(currentRun.RunId, character);
+                    endedCharacters.Add(character);
+                }
+                runEnded = endedCharacters.Count > 0;
             }
             if (currentRun is not null && !runEnded)
                 return;
@@ -250,13 +263,13 @@ public sealed class EplpCommandHandler(
 
         logger.LogInformation(
             "Eplp command {ConnectionId} character={CharacterId}: state={State} option={Option}; "
-                + "leaving={Leaving} runEnded={RunEnded}",
+                + "leaving={Leaving} runEnded={RunEnded} sourceRun={RunId} sequence={Sequence} ordinal={Ordinal}",
             context.Connection.ConnectionId,
             session.CharacterId.Value,
             message.State,
             message.Option,
             leaving,
-            runEnded);
+            runEnded, currentRun?.RunId, message.Metadata.Sequence, message.Metadata.InboundOrdinal);
 
         // Peers must see the decision before the leader's ACK can open another selection.
         foreach (var member in returning.Where(value => value.Session != session))

@@ -571,9 +571,11 @@ public sealed class EnterSelectDungeonHandler(
     IPartyService parties,
     UsageQuotaProjectionDelivery? quotaProjection = null, IDespairTowerDomainService? despair = null, ISaoTowerDomainService? sao = null,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
-    BossTowerProjectionDelivery? bossTower = null)
+    BossTowerProjectionDelivery? bossTower = null, SelectedSessionTransitionGate? transitionGate = null)
     : ClientMessageHandler<EnterSelectDungeonRequest>
 {
+    private readonly SelectedSessionTransitionGate transitions = transitionGate ?? new();
+
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         EnterSelectDungeonRequest message,
@@ -612,6 +614,14 @@ public sealed class EnterSelectDungeonHandler(
         }
         var attached = await ResolveSelectionMembersAsync(
             session, result, roster, cancellationToken).ConfigureAwait(false);
+        if (attached.Count != roster.Members.Length)
+            return;
+        await using var transition = await transitions.AcquireManyExclusiveAsync(
+            attached.Select(x => x.Session.AccountId), cancellationToken).ConfigureAwait(false);
+        var latestRoster = parties.FindParty(requesterCharacter);
+        if (latestRoster.Generation != roster.Generation || latestRoster.Revision != roster.Revision
+            || attached.Any(x => selectedSessions.FindByCharacter(x.Session.CharacterId) != x.Session))
+            return;
         var wireUserIds = attached
             .Select(value => value.Session.WireUserId)
             .ToImmutableArray();
@@ -760,13 +770,13 @@ public sealed class EnterSelectDungeonHandler(
                 || current.WireUserId != member.WireUserId
                 || runtime is null)
             {
-                continue;
+                return [];
             }
             members.Add((current, runtime));
         }
 
         return members.Any(value => value.Item1 == requester)
             ? members
-            : [(requester, requesterRuntime)];
+            : [];
     }
 }

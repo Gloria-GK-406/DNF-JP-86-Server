@@ -39,6 +39,52 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 public sealed class PartySelectDungeonHandlerTests
 {
     [Fact]
+    public async Task Selection_waits_for_exit_before_recording_intent_or_sending_frames()
+    {
+        var sessions = new Sessions(Leader, Member);
+        var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
+        var intents = new Intents();
+        var sender = new Sender();
+        var gate = new SelectedSessionTransitionGate();
+        var handler = new EnterSelectDungeonHandler(new UnchangedState(), sessions,
+            new RuntimeCurrentView(runtime), new PartyVisits(), intents, sender,
+            TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
+            NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()), transitionGate: gate);
+        var exitLease = await gate.AcquireAsync(Leader.AccountId, UserAccessMode.Exclusive, default);
+        var selection = handler.HandleAsync(Dispatch(Leader),
+            new EnterSelectDungeonRequest(GameMessageMetadata.Empty, DungeonId), default).AsTask();
+        try
+        {
+            Assert.False(selection.IsCompleted);
+            Assert.Null(intents.Consume(Leader));
+            Assert.Empty(sender.Messages(Leader.ConnectionId));
+        }
+        finally { await exitLease.DisposeAsync(); }
+        await selection.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.NotNull(intents.Consume(Leader));
+        Assert.NotNull(intents.Consume(Member));
+        Assert.NotEmpty(sender.Messages(Leader.ConnectionId));
+        Assert.Equal(0, gate.TrackedEntryCount);
+    }
+
+    [Fact]
+    public async Task Missing_party_member_cannot_silently_open_a_partial_selection()
+    {
+        var sessions = new Sessions(Leader);
+        var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader]);
+        var intents = new Intents();
+        var sender = new Sender();
+        var handler = new EnterSelectDungeonHandler(new UnchangedState(), sessions,
+            new RuntimeCurrentView(runtime), new PartyVisits(), intents, sender,
+            TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
+            NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()));
+        await handler.HandleAsync(Dispatch(Leader),
+            new EnterSelectDungeonRequest(GameMessageMetadata.Empty, DungeonId), default);
+        Assert.Null(intents.Consume(Leader));
+        Assert.Empty(sender.Messages(Leader.ConnectionId));
+    }
+
+    [Fact]
     public async Task Only_the_leader_can_return_the_frozen_dungeon_cohort_to_town()
     {
         var participants = new[]
