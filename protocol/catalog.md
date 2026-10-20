@@ -1,8 +1,8 @@
 # 协议清单
 
-## 2026-10-20 循环任务客户端原生提交（待实机）
+## 2026-10-20 循环任务客户端原生提交（核心流程已验收）
 
-ClientStatic / High：已定位 [NOTI0105](game/server-to-client/NOTI-0x0105.md) 驱动循环看板目标检查及 C2S CMD0022 的入口。CurrentImplementation：循环清场发送候选 ready 通知；已达标时先同步完整已接任务进度，异步进度随后达标时按 023F → 0105 再检查。结算仍由客户端提交请求驱动，不恢复服务端代办完成/取消。body 09 为 ReferenceOnly 候选，自动提交与成功图片待 A21 实机确认。[实现与验收](../Document/CycleQuestNativeSubmit-20261020.md)。
+ClientStatic / High：已定位 [NOTI0105](game/server-to-client/NOTI-0x0105.md) 驱动循环看板目标检查及 C2S CMD0022 的入口。CurrentImplementation：循环清场发送 ready 通知；已达标时先同步完整已接任务进度，异步进度随后达标时按 023F → 0105 再检查。结算仍由客户端提交请求驱动，不恢复服务端代办完成/取消。2026-10-20 部署 `70d8ba9f` 后，用户确认结果符合预期，本轮原生自动提交及成功看板记为 ClientVerified / Confirmed；body 09 的来源仍为参照实现，不升级为官方 WireCaptured，也不代表全部边界分支已验收。[实现与验收](../Document/CycleQuestNativeSubmit-20261020.md)。
 
 
 ## 2026-10-20 幸运星与武器租赁
