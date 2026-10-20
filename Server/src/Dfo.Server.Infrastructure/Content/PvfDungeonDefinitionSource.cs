@@ -231,7 +231,6 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
             else if (Fields.RequiredItemsField.Matches(section.Name) || Fields.EventRequiredItemsField.Matches(section.Name))
             {
                 var field = Fields.RequiredItemsField.Matches(section.Name) ? Fields.RequiredItemsField : Fields.EventRequiredItemsField;
-                Unique(field);
                 var values = field.Decode(archive, section.Values, archivePath);
                 Require(values.Count % 3 == 0, archivePath, field, "truncated item/count/consume triple");
                 var items = new List<DungeonRequiredItem>();
@@ -241,6 +240,11 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
                         archivePath, field, "invalid item/count/consume triple");
                     items.Add(new(values[i], values[i + 1], values[i + 2] == 1));
                 }
+                // A21 despair floor 1 repeats the identical event ticket declaration. It is one cost,
+                // not two; conflicting or malformed restatements remain invalid.
+                if (field == Fields.EventRequiredItemsField && (draft?.Seen ?? seen).Contains(field))
+                    Require(eventRequiredItems.SequenceEqual(items), archivePath, field, "conflicting repeated item requirements");
+                else Unique(field);
                 if (field == Fields.RequiredItemsField) requiredItems = items.AsReadOnly();
                 else eventRequiredItems = items.AsReadOnly();
             }

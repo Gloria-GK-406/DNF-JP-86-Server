@@ -150,6 +150,15 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
         if (await owners.FindOwnerAsync(id, ct) is null) throw Error(MailFailure.CharacterNotFound);
         return await characters.Get(id).IdentityAsync(ct) ?? throw Error(MailFailure.CharacterNotFound);
     }
+    public async ValueTask RevokeSystemDeliveryAsync(CharacterId recipient, long mailId, string expectedDeliveryKey, CancellationToken cancellationToken = default) =>
+        _ = await RunAsync(true, async () =>
+        {
+            var mail = await repository.FindAsync(recipient, mailId, cancellationToken);
+            if (mail is null) return true;
+            if (mail.SenderCharacterId != 0 || mail.DeliveryKey != expectedDeliveryKey) throw Error(MailFailure.NotOwned);
+            await repository.MarkDeletedAsync(recipient, mailId, cancellationToken);
+            return true;
+        }, cancellationToken);
     private static bool IsLive(MailView mail, DateTimeOffset now) => mail.ExpiresAt is null || mail.ExpiresAt > now;
     private MailView RequireLive(MailView? mail)
     {

@@ -594,6 +594,7 @@ internal static class CharacterDatabaseSchema
         mailbox_messages|gold|INTEGER NOT NULL DEFAULT 0
         mailbox_messages|mail_type|INTEGER NOT NULL DEFAULT 0
         mailbox_messages|source_protocol|INTEGER NOT NULL DEFAULT 0
+        mailbox_messages|delivery_key|TEXT NOT NULL DEFAULT ''
         mailbox_messages|unlimited_flag|INTEGER NOT NULL DEFAULT 0
         mailbox_messages|expire_at|TEXT NOT NULL DEFAULT '9999-12-31 23:59:59'
         mailbox_messages|deleted_by_sender|INTEGER NOT NULL DEFAULT 0

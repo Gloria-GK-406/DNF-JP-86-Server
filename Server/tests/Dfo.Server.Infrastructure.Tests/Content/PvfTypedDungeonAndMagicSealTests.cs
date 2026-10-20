@@ -8,6 +8,24 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 public sealed class PvfTypedDungeonAndMagicSealTests
 {
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Dungeon_identical_event_ticket_restatement_is_one_requirement_but_conflicts_are_rejected(bool identical)
+    {
+        var builder = DungeonBuilder();
+        var script = builder.AddScript("dungeon", "test.dgn")
+            .Tag("[event required item]").Int(10004955).Int(1).Int(1)
+            .Tag("[event required item]").Int(10004955).Int(identical ? 1 : 2).Int(1);
+        AddMaze(script).End();
+        using var file = new BuiltArchive(builder);
+        var source = new PvfDungeonDefinitionSource(file.Provider);
+        if (!identical)
+            await Assert.ThrowsAsync<InvalidDataException>(() => source.GetAsync(7, default).AsTask());
+        else
+            Assert.Equal(new DungeonRequiredItem(10004955, 1, true), Assert.Single((await source.GetAsync(7, default))!.EventRequiredItems));
+    }
+
+    [Theory]
     [InlineData("type")]
     [InlineData("extra")]
     [InlineData("range")]

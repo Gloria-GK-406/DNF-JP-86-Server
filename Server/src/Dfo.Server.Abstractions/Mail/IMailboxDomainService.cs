@@ -13,6 +13,7 @@ public interface IMailboxDomainService
     ValueTask<MailView> ReadAsync(CharacterId recipient, long mailId, CancellationToken cancellationToken = default);
     ValueTask<MailClaimReceipt> ClaimAsync(CharacterId recipient, long attachmentId, CancellationToken cancellationToken = default);
     ValueTask DeleteAsync(CharacterId recipient, long mailId, CancellationToken cancellationToken = default);
+    ValueTask RevokeSystemDeliveryAsync(CharacterId recipient, long mailId, string expectedDeliveryKey, CancellationToken cancellationToken = default);
 }
 
 public interface IMailboxQueryDomainService

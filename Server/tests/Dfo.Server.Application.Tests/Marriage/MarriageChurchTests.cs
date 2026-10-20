@@ -556,9 +556,9 @@ public sealed class MarriageChurchTests
         private int calls;
         public ValueTask<long> PendingQuantityAsync(CharacterId character, int itemId, CancellationToken ct) => inner.PendingQuantityAsync(character, itemId, ct);
         public async ValueTask<ItemDeliveryReceipt> DeliverAsync(AccountId account, CharacterId character, IReadOnlyList<ItemDeliveryGrant> grants,
-            string source, CancellationToken ct, ItemDeliveryMode mode)
+            string source, CancellationToken ct, ItemDeliveryMode mode, ItemDeliveryOptions? options = null)
         {
-            var receipt = await inner.DeliverAsync(account, character, grants, source, ct, mode);
+            var receipt = await inner.DeliverAsync(account, character, grants, source, ct, mode, options);
             if (++calls == 2) throw new InvalidOperationException("Injected failure after second spouse reward.");
             return receipt;
         }

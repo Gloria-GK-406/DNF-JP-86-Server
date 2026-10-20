@@ -39,6 +39,7 @@ public sealed record Mail
     public CharacterId Recipient { get; }
     public string Title { get; }
     public string Body { get; }
+    public string DeliveryKey { get; init; } = string.Empty;
     public DateTimeOffset? ExpiresAt { get; }
     public ImmutableArray<MailAsset> Attachments { get; }
 }
@@ -51,8 +52,10 @@ public sealed class MailBuilder(MailSource source, CharacterId recipient)
     private string title = string.Empty;
     private string body = string.Empty;
     private DateTimeOffset? expiresAt;
+    private string deliveryKey = string.Empty;
     public MailBuilder WithText(string subject, string content) { title = subject; body = content; return this; }
     public MailBuilder ExpiresAt(DateTimeOffset value) { expiresAt = value; return this; }
+    public MailBuilder WithDeliveryKey(string value) { deliveryKey = value; return this; }
     public MailBuilder AddEquipment(ItemIdentity identity) { attachments.Add(new MailAsset.Equipment(identity)); return this; }
     public MailBuilder AddStackable(int itemId, int count, BusinessSlot? sourceSlot = null) { attachments.Add(new MailAsset.Stackable(itemId, count) { SourceSlot = sourceSlot }); return this; }
     public MailBuilder AddGold(int amount) { attachments.Add(new MailAsset.Gold(amount)); return this; }
@@ -72,14 +75,19 @@ public sealed class MailBuilder(MailSource source, CharacterId recipient)
             throw new MailException(MailFailure.InvalidMail, "An equipment instance cannot occur twice.");
         if (attachments.OfType<MailAsset.Gold>().Sum(x => (long)x.Amount) > int.MaxValue)
             throw new MailException(MailFailure.InvalidMail, "Total attached gold exceeds the supported balance.");
-        return new Mail(source, recipient, title, body, expiresAt, attachments.ToImmutableArray());
+        if (deliveryKey is null || deliveryKey.Length > 128 || deliveryKey.Length > 0 && source.Character is not null)
+            throw new MailException(MailFailure.InvalidMail, "Only system deliveries may carry a delivery key.");
+        return new Mail(source, recipient, title, body, expiresAt, attachments.ToImmutableArray()) { DeliveryKey = deliveryKey };
     }
 }
 
 public sealed record MailAttachment(long Id, MailAsset Asset, bool Claimed, bool LegacyUnsupported = false);
 public sealed record MailView(long Id, CharacterId Recipient, int SenderCharacterId, string SenderName,
     string Title, string Body, DateTimeOffset CreatedAt, DateTimeOffset? ExpiresAt, bool Read,
-    ImmutableArray<MailAttachment> Attachments);
+    ImmutableArray<MailAttachment> Attachments)
+{
+    public string DeliveryKey { get; init; } = string.Empty;
+}
 public sealed record MailAssetChange(CharacterId Character, BusinessSlot? Slot, int ItemId, int Count, int? GoldBalance);
 public sealed record MailSendReceipt(long MailId, ImmutableArray<MailAssetChange> Changes);
 public sealed record MailClaimReceipt(long MailId, long AttachmentId, ImmutableArray<MailAssetChange> Changes);

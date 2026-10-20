@@ -80,7 +80,9 @@ internal sealed class DespairTowerDomainService(IDespairTowerRuleService rules,
         var run = runs.Find(character);
         if (run is null || run.RunId != runId || !run.ClearOpen || run.Layout.Despair is not { } plan
             || run.Participant?.AccountId != account) return null;
-        if (!await progress.TryAdvanceAsync(character, plan.Floor - 1, runId.Value, ct).ConfigureAwait(false)) return null;
+        var current = await progress.ReadAsync(character, ct).ConfigureAwait(false);
+        if (rules.NextFloor(current)?.Floor != plan.Floor
+            || !await progress.TryAdvanceAsync(character, current.HighestClearedFloor, runId.Value, ct).ConfigureAwait(false)) return null;
         var standing = await characters.Get(character).ProgressAsync(ct).ConfigureAwait(false)
             ?? throw new InvalidDataException("Tower recipient has no progression.");
         var rewards = rules.Rewards(plan.Floor, standing.Level, run.Layout.BasisLevel, unchecked((ulong)run.Layout.Seed));
