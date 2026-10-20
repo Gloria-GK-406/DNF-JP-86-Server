@@ -102,6 +102,19 @@ TCP 字节
       → IServerMessageEncoder（Protocol 切片内）产出完整帧 → 出站
 ```
 
+
+### 设计哲学与重构判断
+
+上面是请求的走向；**为什么这样切、什么时候该重构**另有两份，给做设计和改结构的 agent 读：
+
+- [Docs/Agent/ArchitecturePhilosophy.md](Docs/Agent/ArchitecturePhilosophy.md)——总架构
+  `handler → CMD → 领域服务 → 事件服务 → 通知总线` 的意图、领域模块按功能内聚、不变规则的两层、现存偏离。
+  **新建领域模块、决定一段逻辑放在哪一层、评审结构时先读。**
+- [Docs/Agent/RefactorPreferences.md](Docs/Agent/RefactorPreferences.md)——用户的重构触发信号、手法与被推翻过的做法。
+  **修 bug 时犹豫「打补丁还是重构」、发现同一事实或判定出现第二处、准备动结构之前先读。**
+
+两份是归纳而来，与本文冲突时以本文为准，并修正那两份。
+
 ### 1) 领域服务编排业务（Application）
 
 领域按目录组织：`Accounts/`（账号 entry 状态）、`Channel/`（入场策略）、
