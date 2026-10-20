@@ -41,4 +41,41 @@ public sealed class LuckyStarRentalPvfTests
         await tx.CommitAsync(default);
         Assert.Equal(1,f.Count(401000037));
     }
+    [SkippableFact]
+    public async Task Level_70_can_rent_and_renew_level_80_but_wearing_still_requires_the_contract()
+    {
+        Skip.IfNot(World.ContentArchive.Available,World.ContentArchive.SkipReason);
+        using var f=new ShopFixture(s=>s.AddSingleton<IItemPlacementDefinitionSource,PvfItemPlacementDefinitionSource>());
+        f.SetLevel(70);f.Sql("UPDATE characters SET job=0; UPDATE accounts SET lucky_star=100;");
+        var scope=(DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
+        var rentals=f.Services.GetRequiredService<IEquipmentRentalDomainService>();
+        var wear=f.Services.GetRequiredService<IEquipmentWearDomainService>();
+        EquipmentRentalReceipt first;
+        await using(var tx=scope.Begin())
+        {
+            first=await rentals.RentAsync(new(1),new(1),401030031,default);
+            Assert.True(first.Succeeded,first.Rejection.ToString());
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(60,first.Panel.LuckyStar);
+        var weapon=Assert.Single(first.Panel.Items);
+        Assert.Equal(f.Clock.GetUtcNow().AddHours(24).ToUnixTimeSeconds(),weapon.ExpireTime);
+        Assert.False(await wear.CanWearAsync(new(1),401030031,default));
+        f.Clock.Advance(TimeSpan.FromHours(2));
+        await using(var tx=scope.Begin())
+        {
+            var renewed=await rentals.RentAsync(new(1),new(1),401030031,default);
+            Assert.True(renewed.Succeeded,renewed.Rejection.ToString());Assert.True(renewed.Renewed);
+            Assert.Equal(20,renewed.Panel.LuckyStar);
+            var same=Assert.Single(renewed.Panel.Items);Assert.Equal(weapon.Uid,same.Uid);
+            Assert.Equal(f.Clock.GetUtcNow().AddHours(24).ToUnixTimeSeconds(),same.ExpireTime);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(1,f.Count(401030031));
+        f.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,22,4000000000);");
+        Assert.True(await wear.CanWearAsync(new(1),401030031,default));
+        f.Sql("UPDATE account_premiums SET end_time=1 WHERE premium_type=22;");
+        Assert.False(await wear.CanWearAsync(new(1),401030031,default));
+    }
+
 }

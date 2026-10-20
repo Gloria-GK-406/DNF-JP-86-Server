@@ -17,7 +17,8 @@ public sealed class LuckyStarRentalRuleTests
         Assert.Equal(EquipmentRentalRejection.None, quote.Rejection);
         Assert.Equal(10, quote.Price);
         Assert.Equal(now.AddHours(24), quote.ExpiresAt);
-        Assert.Equal(EquipmentRentalRejection.LevelTooLow, (await rules.QuoteAsync(9001, 0, 29, now, default)).Rejection);
+        Assert.Equal(EquipmentRentalRejection.None, (await rules.QuoteAsync(9001, 0, 29, now, default)).Rejection);
+        Assert.Equal(EquipmentRentalRejection.None, (await rules.QuoteAsync(9001, 0, 1, now, default)).Rejection);
         Assert.Equal(EquipmentRentalRejection.WrongJob, (await rules.QuoteAsync(9001, 2, 30, now, default)).Rejection);
         Assert.Equal(EquipmentRentalRejection.InvalidItem, (await rules.QuoteAsync(9002, 0, 85, now, default)).Rejection);
     }
