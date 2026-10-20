@@ -17,7 +17,7 @@
 
 按用户要求统一完整 USERINFO：`CharacterUserStateProjection` 从同一份当前角色视图生成完整 NOTI0002 subtype0、subtype1。名称装饰卡购买/到期、普通换装、称号装备、装备过期、效果重投共用该组包器。自己的刷新为 subtype0→subtype1；可见玩家收到完整公开 subtype0，沿用协议的收件人权限，不发送购买响应、余额和私人扩展状态。
 
-本次使用既有 USERINFO 的装饰 ID/到期字段，不新增名称装饰卡专用协议、部分外观字段包或属性补丁。渲染和物品模板属性的 A21 实机表现仍待用户验收。
+本次使用既有 USERINFO 的装饰 ID/到期字段，不新增名称装饰卡专用协议、部分外观字段包或属性补丁。2026-10-20 用户反馈“看着没问题”并要求合并收尾，本次购买与生效交付通过用户验收；未逐项反馈的边界及双客户端场景仍以自动验证为证据，不扩大 ClientVerified 范围。
 
 ## 自动验证
 
@@ -36,7 +36,7 @@ dotnet test Server/tests/Dfo.Server.Application.Tests/Dfo.Server.Application.Tes
 
 最终无 PVF 整体回归：8 个测试程序集，7628 项，6736 通过、892 因资源条件跳过、0 失败。真实 PVF 相关回归：Application 156、Protocol 117、Infrastructure 33，全部通过。构建 0 警告、0 错误，Git diff 检查通过。日志和 TRX 保留在 `artifacts/name-tag-shop-20261020/`；部署身份与实机待验项见工作区 `Document/NameTagShop-Deployment-20261020.md` 和部署回执。
 
-## 实机验收
+## 验收检查项（本次交付已获用户确认）
 
 1. 购买“我在恋爱”，成功扣除 600 点券，立即显示名称装饰；检查属性与说明。
 2. 再买同款，到期延长；换另一款，立即替换并按新款期限计算。
