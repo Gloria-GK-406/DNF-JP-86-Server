@@ -17,7 +17,7 @@ internal sealed class CycleQuestResolutionViewHandler(ISelectedSessionDomainServ
     ICharacterInventoryEntryDomainService inventories, IAccountInventoryEntryDomainService accountInventories,
     ICharacterDomainService characters,
     IQuestQueryDomainService quests,
-    CycleQuestProjectionFence fence, TimeProvider clock) : INotificationHandler<CycleQuestResolutionView>
+    TimeProvider clock) : INotificationHandler<CycleQuestResolutionView>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
         CycleQuestResolutionView notification, CancellationToken ct)
@@ -28,8 +28,6 @@ internal sealed class CycleQuestResolutionViewHandler(ISelectedSessionDomainServ
             || session.ConnectionId.Value != result.Acceptance.ConnectionKey
             || session.ConnectionGeneration != result.Acceptance.ConnectionGeneration
             || recipient.CharacterId != session.CharacterId || recipient.ConnectionId != session.ConnectionId) return [];
-        await fence.WaitAsync(result.RunId, ct).ConfigureAwait(false);
-        if (sessions.FindByCharacter(session.CharacterId) != session) return [];
         // Do not remove a freshly reaccepted copy when delivery was delayed by another run.
         var accepted = await quests.ReadAcceptedAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
         if (accepted.Any(x => x.Quest.QuestId == result.QuestId)) return [];

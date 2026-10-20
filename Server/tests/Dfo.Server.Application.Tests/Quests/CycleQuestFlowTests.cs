@@ -131,22 +131,6 @@ public sealed class CycleQuestFlowTests
         Assert.Equal(1, f.Count(5000));
     }
 
-    [Fact]
-    public async Task Quest_result_projection_waits_for_all_actor_frames_and_releases_on_failure()
-    {
-        var fence = new CycleQuestProjectionFence();
-        var run = DungeonRunId.New();
-        using var first = fence.Begin(run);
-        var second = fence.Begin(run);
-        var waiting = fence.WaitAsync(run, default);
-        Assert.False(waiting.IsCompleted);
-        first.Dispose();
-        Assert.False(waiting.IsCompleted);
-        second.Dispose();
-        await waiting.WaitAsync(TimeSpan.FromSeconds(2));
-        Assert.True(fence.WaitAsync(run, default).IsCompletedSuccessfully);
-    }
-
     private sealed class RefusingCompletion : IQuestCompletionSettlementDomainService
     {
         public ValueTask<QuestCompletionReceipt> FinishAsync(AccountId a, CharacterId c, ushort q,

@@ -189,7 +189,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<MailboxCommand, MailboxResult, MailboxCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddNotificationHandler<MailboxCompleted, MailboxCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.MirrorQuestViewChanged, Dfo.Server.Protocol.Game.QuestProgress.MirrorQuestViewChangedHandler>(retryLimit: 0);
-        services.AddSingleton<Dfo.Server.Protocol.Game.QuestCompletion.CycleQuestProjectionFence>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.CycleQuestResolutionView,
             Dfo.Server.Protocol.Game.QuestCompletion.CycleQuestResolutionViewHandler>(retryLimit: 0);
         services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.QuestProgressViewChanged, Dfo.Server.Protocol.Game.QuestProgress.QuestProgressViewChangedHandler>(retryLimit: 0);
