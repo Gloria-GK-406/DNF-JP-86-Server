@@ -1121,6 +1121,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<
             GroundGoldPickupNotification, GroundGoldPickupEncoder>();
         services.AddGameNotiMessageEncoder<EnableClearDungeonNotification, EnableClearDungeonEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.EplpRechallenge.EplpRechallengeNotification,
+            Dfo.Server.Protocol.Game.EplpRechallenge.EplpRechallengeEncoder>();
         services.AddGameNotiMessageEncoder<SecretShopNpcNotification, SecretShopNpcEncoder>();
         services.AddGameNotiMessageEncoder<DespairClearRewardNotification, DespairClearRewardEncoder>();
         services.AddGameNotiMessageEncoder<SaoCurrentFloorNotification, SaoCurrentFloorEncoder>();

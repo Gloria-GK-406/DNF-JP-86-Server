@@ -461,6 +461,7 @@ public enum ServerMessageType
 
     // The exit opening, and the result screen behind it. See Game/DungeonClear.
     GameEnableClearDungeon = 0x0000_001F,
+    GameEplpRechallenge = 0x0000_0105,
     GameSecretShopNpc = 0x0000_0117,
     GameDespairApcInfo = 0x0000_015B,
     GameDespairClearReward = 0x0000_015C,
