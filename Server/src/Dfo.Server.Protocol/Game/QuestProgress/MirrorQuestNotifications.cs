@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.StateSynchronization;
@@ -8,7 +9,7 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 namespace Dfo.Server.Protocol.Game.QuestProgress;
 
 internal sealed class QuestProgressViewChangedHandler(IQuestQueryDomainService quests,
-    ISelectedSessionDomainService sessions) : INotificationHandler<QuestProgressViewChanged>
+    ISelectedSessionDomainService sessions, IDungeonRunDomainService? runs = null) : INotificationHandler<QuestProgressViewChanged>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
         QuestProgressViewChanged notification, CancellationToken ct)
@@ -16,9 +17,15 @@ internal sealed class QuestProgressViewChangedHandler(IQuestQueryDomainService q
         if (recipient.CharacterId != notification.CharacterId) return [];
         var session = sessions.FindByCharacter(recipient.CharacterId);
         if (session is null || session.ConnectionId != recipient.ConnectionId) return [];
+        var expectedRunId = runs?.Find(session.CharacterId)?.RunId;
         var accepted = await quests.ReadAcceptedAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
-        return [new AcceptedQuestProgressMessage([.. accepted.Select(x =>
-            new AcceptedQuestProgressState(checked((ushort)x.Quest.QuestId), unchecked((uint)x.Quest.TriggerValue)))])];
+        if (sessions.FindByCharacter(session.CharacterId) != session) return [];
+        var currentRun = runs?.Find(session.CharacterId);
+        if (currentRun?.RunId != expectedRunId) return [];
+        // A clear-map/inventory event can finish after the initial clear was projected.
+        // Offer the native check again only while this run's bound task is still accepted/ready.
+        var ready = CycleQuestRechallengeProjection.ReadyFrames(currentRun, accepted);
+        return ready.Count > 0 ? [.. ready] : [CycleQuestRechallengeProjection.Progress(accepted)];
     }
 }
 

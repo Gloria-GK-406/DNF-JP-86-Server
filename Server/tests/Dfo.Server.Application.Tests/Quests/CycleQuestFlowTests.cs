@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Transactions;
@@ -20,6 +22,73 @@ namespace Dfo.Server.Application.Tests.Quests;
 
 public sealed class CycleQuestFlowTests
 {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task Boss_clear_preserves_cycle_until_explicit_finish_or_give_up(bool hasMaterials, bool clearMap)
+    {
+        using var f = new ShopFixture(s =>
+        {
+            s.AddSingleton<IQuestContentRuleService>(new QuestRules { ClearMap = clearMap });
+            s.AddSingleton<ICycleDungeonRuleService>(new CycleRules());
+        });
+        await AcceptCycle(f);
+        f.Sql("INSERT INTO character_active_quests VALUES(1,5,2002,1);");
+        if (hasMaterials) await f.Seed(121, 1000, 1, 3);
+        var clear = new DungeonMapCleared(new(Guid.NewGuid()), 84, DungeonDifficulty.Normal,
+            new(0, 0), 123, 1, f.Clock.GetUtcNow(), [new(new(1), new(1), 0, true)]) { IsBossRoom = true };
+        for (var replay = 0; replay < 2; replay++)
+        {
+            await PublishClear(f, clear);
+            await f.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync("quest.map-clear");
+            await f.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync("quest.progress-notification");
+            Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE quest_id=2001"));
+            Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE quest_id=2002"));
+            Assert.Equal(hasMaterials ? 1 : 0, f.Count(1000));
+            Assert.Equal(0, f.Count(5000));
+            Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='quest.cycle-resolved'"));
+            Assert.DoesNotContain(f.Sender.Messages, x => x is FinishQuestAcknowledgement or GiveUpQuestAcknowledgement);
+        }
+        if (clearMap)
+            Assert.Equal(0, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=2001"));
+
+        var commands = f.Services.GetRequiredService<ICommandBus>();
+        if (hasMaterials || clearMap)
+        {
+            var finished = await commands.SendAsync(new FinishQuestCommand(new(1), new(1), 2001,
+                ushort.MaxValue, 1, checked((uint)f.Clock.GetUtcNow().ToUnixTimeSeconds())));
+            Assert.True(finished.Finished);
+            Assert.Equal(1, f.Count(5000));
+            Assert.Equal(0, f.Count(1000));
+            Assert.False((await commands.SendAsync(new FinishQuestCommand(new(1), new(1), 2001,
+                ushort.MaxValue, 1, checked((uint)f.Clock.GetUtcNow().ToUnixTimeSeconds())))).Finished);
+            Assert.Equal(1, f.Count(5000));
+        }
+        else
+        {
+            Assert.True((await commands.SendAsync(new GiveUpQuestCommand(new(1), new(1), 2001))).GivenUp);
+            Assert.Equal(0, f.Count(5000));
+        }
+        Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE quest_id=2001"));
+        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE quest_id=2002"));
+    }
+
+    private static async Task AcceptCycle(ShopFixture f)
+    {
+        var commands = f.Services.GetRequiredService<ICommandBus>();
+        f.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(f.Session, DungeonEntryIntent.Interactive);
+        Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(f.Session, 84, 2001))).Accepted);
+        Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
+    }
+
+    private static async Task PublishClear(ShopFixture f, DungeonMapCleared clear)
+    {
+        await using var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+        await f.Services.GetRequiredService<IEventService>().EnqueueAsync(clear);
+        await tx.CommitAsync(default);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -363,11 +432,14 @@ public sealed class CycleQuestFlowTests
 
     private sealed class QuestRules : IQuestContentRuleService
     {
+        public bool ClearMap { get; init; }
+        private QuestDefinition Current => ClearMap ? Definition with
+            { ObjectiveTypeCode = "clear map", ObjectiveArguments = [123], InitialTrigger = 1, SeekingItems = [] } : Definition;
         private static readonly QuestDefinition Definition = new(2001, "cycle seeking", QuestGrade.Circle, null,
             new LevelRange(1, 99), null, null, null, [new(QuestRewardKind.CircleDungeon, [0, 0])], "seeking", "M",
             null, null, null, null, null, null, null, [], [], [], [], SeekingItems: [new(1000, 1)]);
-        public ValueTask<IReadOnlyList<QuestDefinition>> AllAsync(CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<QuestDefinition>>([Definition, Definition with { QuestId = 2002 }]);
-        public ValueTask<QuestDefinition?> FindAsync(int id, CancellationToken ct) => ValueTask.FromResult<QuestDefinition?>(id is 2001 or 2002 ? Definition with { QuestId = id } : null);
+        public ValueTask<IReadOnlyList<QuestDefinition>> AllAsync(CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<QuestDefinition>>([Current, Current with { QuestId = 2002 }]);
+        public ValueTask<QuestDefinition?> FindAsync(int id, CancellationToken ct) => ValueTask.FromResult<QuestDefinition?>(id is 2001 or 2002 ? Current with { QuestId = id } : null);
         public ValueTask<IReadOnlyList<TrainingQuestAvailability>> TrainingAvailabilityAsync(CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
         public QuestParameters Parameters() => new([0, 0], new Dictionary<char, int>(), 100, 100, 100, 100);
     }

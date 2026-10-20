@@ -161,6 +161,7 @@ internal static class GameProtocol
 
     /// <summary>The exit, the merchant behind it, and the two frames of the result screen.</summary>
     public const ushort EnableClearDungeonNotificationType = 0x001F;
+    public const ushort EplpRechallengeNotificationType = 0x0105;
 
     /// <summary>CMD 0x001F <c>ACCEPT_QUEST</c>: the client taking a quest on.</summary>
     /// <remarks>

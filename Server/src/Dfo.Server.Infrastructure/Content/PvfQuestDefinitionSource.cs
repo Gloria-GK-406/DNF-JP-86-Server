@@ -264,6 +264,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         var eventItemValues = new List<int>();
         var fixedItemRewardOperands = new List<ItemRewardOperand>();
         var selectableItemRewardOperands = new List<ItemRewardOperand>();
+        var circleRewardOperands = new Dictionary<int, List<ItemRewardOperand>>();
         var goldMultiplierValues = new List<int>();
         var difficulty = string.Empty;
         var rewards = new List<QuestReward>();
@@ -374,6 +375,13 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
                     rewards.Add(new QuestReward(QuestRewardKind.Item, []));
                 if (rewards[^1].Kind == QuestRewardKind.Item)
                     AddItemRewardOperand(fixedItemRewardOperands, archive, token, questId);
+                else if (rewards[^1].Kind == QuestRewardKind.CircleDungeon)
+                {
+                    var index = rewards.Count - 1;
+                    if (!circleRewardOperands.TryGetValue(index, out var operands))
+                        circleRewardOperands.Add(index, operands = []);
+                    AddItemRewardOperand(operands, archive, token, questId);
+                }
                 else
                     ReadInteger(rewardData: rewards, token, questId);
             }
@@ -410,6 +418,19 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
 
         if (section >= 0 && (section == tags.MonsterRewardItem || section == tags.EnemyRewardItem))
             enemyRewards = ProjectEnemyRewardItems(enemyRewardValues, questId, section == tags.MonsterRewardItem);
+
+        foreach (var (index, operands) in circleRewardOperands)
+        {
+            // Circle rewards also use numeric metadata (e.g. quest 14889: [1]). Only
+            // the [job] form is an item grammar; do not reinterpret metadata as items.
+            if (operands.Any(operand => operand.IsJobMarker))
+            {
+                _ = ParseItemRewardRules(operands, allowGold: true, questId, out _, out _);
+                fixedItemRewardOperands.AddRange(operands);
+            }
+            else
+                rewards[index] = rewards[index] with { Values = operands.Select(operand => operand.Value).ToArray() };
+        }
 
         var grade = gradeText is null
             ? (QuestGrade?)null

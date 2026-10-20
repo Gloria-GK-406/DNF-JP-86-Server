@@ -107,7 +107,8 @@ public sealed class DungeonEntryProjectionDelivery(
             {
                 var error = mirror ? DungeonEntryRefusalCodes.ForMirror(attempt.Failure.Value)
                     : DungeonEntryRefusalCodes.For(attempt.Failure.Value, message.RequestMode == 1);
-                logger.LogInformation("Dungeon {DungeonId} entry refused: {Failure}, code=0x{ErrorCode:X2}, memberSlot={BlockedSlot}, detail={Detail}",
+                logger.Log(attempt.Failure is DungeonEntryFailure.ConfigurationInvalid or DungeonEntryFailure.HellConfigurationInvalid
+                        ? LogLevel.Warning : LogLevel.Debug, "Dungeon {DungeonId} entry refused: {Failure}, code=0x{ErrorCode:X2}, memberSlot={BlockedSlot}, detail={Detail}",
                     message.DungeonId, attempt.Failure, error, attempt.BlockedSlot ?? 0, attempt.Detail);
                 await RefuseAsync(requesterConnection, error, attempt.BlockedSlot ?? 0, cancellationToken).ConfigureAwait(false);
                 return;
