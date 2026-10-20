@@ -2,6 +2,8 @@ using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
@@ -54,6 +56,43 @@ public sealed class OnlineExpiredItemCleanupTests
         Assert.Single(await Pending(f));
         Select(f, 2);
         Assert.Equal(3, f.Count(9001)); // Offline character was not touched.
+    }
+
+    [Fact]
+    public async Task Online_rollover_removes_old_puppet_before_refreshing_new_mailbox()
+    {
+        using var f = new ShopFixture(s => s.AddSingleton<IQuestHelperPuppetRuleService>(new PuppetRules()));
+        f.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,582,4000000000)");
+        var puppets = f.Services.GetRequiredService<IQuestHelperPuppetDomainService>();
+        await using (var tx = Transactions(f).Begin())
+        {
+            Assert.True(await puppets.EnsureDailyAsync(new(1), new(1), default));
+            await tx.CommitAsync(default);
+        }
+        var mailbox = f.Services.GetRequiredService<IMailboxDomainService>();
+        var old = Assert.Single(await mailbox.InboxAsync(new(1)));
+        await mailbox.ClaimAsync(new(1), old.Attachments[0].Id);
+        Assert.Equal(1, f.Count(3257));
+        f.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(f.Session, false);
+        f.Clock.Advance(TimeSpan.FromDays(1));
+        await f.Services.GetRequiredService<ICommandBus>().SendAsync(new CleanupOnlineExpiredItemsCommand(f.Session));
+        Assert.Equal(0, f.Count(3257));
+        var current = Assert.Single(await mailbox.InboxAsync(new(1)));
+        Assert.NotEqual(old.Id, current.Id);
+        Assert.Equal(4, current.Attachments.Length);
+        f.Sender.Messages.Clear();
+        await f.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync(Subscriber);
+        var kinds = f.Sender.Messages.Select(x => x.GetType().Name).ToList();
+        Assert.Contains("InventoryFullSnapshotMessage", kinds);
+        Assert.Contains("MailboxStateMessage", kinds);
+        Assert.True(kinds.IndexOf("InventoryFullSnapshotMessage") < kinds.IndexOf("MailboxStateMessage"));
+        await f.Services.GetRequiredService<ICommandBus>().SendAsync(new CleanupOnlineExpiredItemsCommand(f.Session));
+        Assert.Equal(current.Id, Assert.Single(await mailbox.InboxAsync(new(1))).Id);
+    }
+
+    private sealed class PuppetRules : IQuestHelperPuppetRuleService
+    {
+        public IReadOnlyList<int> PuppetItemIds => [3257, 3258, 3259, 3260];
     }
 
     [Fact]

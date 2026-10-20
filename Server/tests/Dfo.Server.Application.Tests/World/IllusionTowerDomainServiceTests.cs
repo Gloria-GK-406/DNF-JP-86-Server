@@ -1122,6 +1122,7 @@ public sealed class IllusionTowerDomainServiceTests
         services.AddSingleton<ICharacterStatDefinitionSource>(content);
         services.AddSingleton<ISkillRuleDefinitionSource>(content);
         services.AddSingleton<IWorldContentEntryRuleService>(new Support.StubWorldContentEntryRuleService());
+        services.AddSingleton<ICollectionBoxDefinitionSource, NoCollectionBoxes>();
         services.AddSingleton<IEntryPlacementRuleService>(new Support.StubEntryPlacementRuleService());
     }
     private sealed class NoQuestDrops : IQuestEnemyDropDomainService
@@ -1129,6 +1130,15 @@ public sealed class IllusionTowerDomainServiceTests
         public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(QuestEnemyDropRequest request,
             MonsterDropParticipant participant, CancellationToken token) =>
             ValueTask.FromResult<IReadOnlyList<RolledDrop>>([]);
+    }
+
+    // Synthetic current-state reads must not acquire the production archive through collection UI.
+    private sealed class NoCollectionBoxes : ICollectionBoxDefinitionSource
+    {
+        public ValueTask<IReadOnlyList<CollectionBoxDefinition>> GetAllAsync(CancellationToken ct) =>
+            ValueTask.FromResult<IReadOnlyList<CollectionBoxDefinition>>([]);
+        public ValueTask<CollectionBoxDefinition?> GetAsync(int id, CancellationToken ct) =>
+            ValueTask.FromResult<CollectionBoxDefinition?>(null);
     }
 
     private sealed class SharedQuestDrop : IQuestEnemyDropDomainService
@@ -1211,10 +1221,12 @@ public sealed class IllusionTowerDomainServiceTests
             else TowerRewardTestContent.Register(s);
             s.AddSingleton<IIllusionTowerRuleService>(rules ?? new Rules());
             s.AddSingleton<IDungeonStructureRuleService>(layouts ?? new OrdinaryLayouts());
+            s.AddSingleton<IDungeonAdmissionRuleService>(p => new OrdinaryAdmission(p.GetRequiredService<IDungeonStructureRuleService>()));
             s.AddSingleton<IDungeonDifficultyRuleService>(new Dfo.Server.Application.Tests.Support.TestDungeonDifficultyRules());
             // Returning from the tower reads quota projections; the synthetic fixture must not load a real PVF.
             s.AddSingleton<IAltarDungeonContentSource, NoAltarContent>();
             s.AddSingleton<ITournamentDungeonContentSource, NoTournamentContent>();
+            s.AddSingleton<IGoldSilverHornContentSource, SyntheticGoldSilverHornContent>();
             s.AddSingleton<IDungeonCellFactory, OrdinaryCells>();
             s.AddSingleton<IDungeonRunDomainService>(p => new DungeonRunDomainService(p.GetRequiredService<IDomainTransactionAccessor>()));
             configure?.Invoke(s);
@@ -1223,6 +1235,11 @@ public sealed class IllusionTowerDomainServiceTests
         return f;
     }
     private static IIllusionTowerDomainService Tower(ShopFixture f) => f.Services.GetRequiredService<IIllusionTowerDomainService>();
+    private sealed class OrdinaryAdmission(IDungeonStructureRuleService layouts) : IDungeonAdmissionRuleService
+    {
+        public async ValueTask<DungeonAdmissionDefinition?> GetAsync(int id, CancellationToken ct) =>
+            await layouts.GetDefinitionAsync(id, ct).ConfigureAwait(false) is { } d ? DungeonAdmissionDefinition.From(d) : null;
+    }
     private sealed class NoAltarContent : IAltarDungeonContentSource
     {
         public ValueTask<AltarDungeonDefinition> GetAsync(int dungeonId, CancellationToken cancellationToken) =>
@@ -1233,6 +1250,10 @@ public sealed class IllusionTowerDomainServiceTests
     {
         public ValueTask<TournamentDefinition> GetAsync(int dungeonId, CancellationToken cancellationToken) =>
             ValueTask.FromResult(new TournamentDefinition(dungeonId, 1, 1, 1, 0, 0, [], [], [], [], [], 0));
+    }
+    private sealed class SyntheticGoldSilverHornContent : IGoldSilverHornContentSource
+    {
+        public GoldSilverHornContent Load() => new(4123, 3);
     }
     private static DomainTransactionScope Scope(ShopFixture f) => (DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
     private static ValueTask<TowerEntryResult> Enter(ShopFixture f) => Tower(f).EnterAsync([new(f.Session, 2)], f.Session, 42, default);

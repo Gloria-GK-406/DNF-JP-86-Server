@@ -28,6 +28,7 @@ public sealed class InfrastructureModule : IServerModule
 
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IAltarDungeonContentSource, PvfAltarDungeonContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ISaoTowerContentSource, PvfSaoTowerContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.ISouthernDaleContentSource, PvfSouthernDaleContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ITauKingdomContentSource, PvfTauKingdomContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageProposalContentSource, PvfMarriageProposalContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageDungeonContentSource, PvfMarriageDungeonContentSource>();
@@ -70,6 +71,7 @@ public sealed class InfrastructureModule : IServerModule
         });
         services.TryAddSingleton<PvfArchiveProvider>();
         services.TryAddSingleton<IContentArchiveIdentity, PvfArchiveIdentity>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.IGoldSilverHornContentSource, PvfGoldSilverHornContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.IAchievementDefinitionSource, PvfAchievementDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.ITitleBookDefinitionSource, PvfTitleBookDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IHellDungeonDefinitionSource, PvfHellDungeonDefinitionSource>();
@@ -101,6 +103,7 @@ public sealed class InfrastructureModule : IServerModule
             PvfInitialEquipmentDefinitionSource>();
         services.TryAddSingleton<IDungeonRoomActorSource, PvfDungeonRoomActorSource>();
         services.TryAddSingleton<IIllusionTowerContentSource, PvfIllusionTowerContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.BossTower.IBossTowerContentSource, PvfBossTowerContentSource>();
         services.TryAddSingleton<PvfDungeonRoomDropSource>();
         services.TryAddSingleton<IDungeonRoomDropSource>(sp => sp.GetRequiredService<PvfDungeonRoomDropSource>());
         services.TryAddSingleton<IDungeonRoomObjectSource>(sp => sp.GetRequiredService<PvfDungeonRoomDropSource>());
@@ -126,11 +129,14 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IEquipmentRequirementDefinitionSource, PvfEquipmentRequirementDefinitionSource>();
         services.TryAddSingleton<IInventorySortKeySource, PvfInventorySortKeySource>();
         services.TryAddSingleton<IPremiumServiceDefinitionSource, PvfPremiumServiceDefinitionSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Rental.ILuckyStarRentalContentSource, PvfLuckyStarRentalContentSource>();
         services.TryAddSingleton<IQuestHelperPuppetDefinitionSource, PvfPremiumServiceDefinitionSource>();
         services.TryAddSingleton<IExpertSkillContractDefinitionSource,
             PvfExpertSkillContractDefinitionSource>();
         services.TryAddSingleton<ITownDefinitionSource, PvfTownDefinitionSource>();
-        services.TryAddSingleton<IDungeonDefinitionSource, PvfDungeonDefinitionSource>();
+        services.TryAddSingleton<PvfDungeonDefinitionSource>();
+        services.TryAddSingleton<IDungeonDefinitionSource>(p => p.GetRequiredService<PvfDungeonDefinitionSource>());
+        services.TryAddSingleton<IDungeonAdmissionDefinitionSource, PvfDungeonAdmissionDefinitionSource>();
         services.TryAddSingleton<IDungeonMapDefinitionSource, PvfDungeonMapDefinitionSource>();
         services.TryAddSingleton<IInitialSkillDefinitionSource, PvfInitialSkillDefinitionSource>();
         services.TryAddSingleton<ITutorialRewardDefinitionSource, PvfTutorialRewardDefinitionSource>();

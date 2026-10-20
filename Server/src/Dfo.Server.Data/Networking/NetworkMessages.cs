@@ -2,6 +2,9 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameRentEquipment = 0x0001_03CF,
+    GameChargeRentPoint = 0x0001_03D0,
+    GameCollectionBox = 0x0001_03E5,
     GameMarriageCapsule = 0x0001_0404,
     GameMarriageHousing = 0x0001_03FD,
     GameWeddingCommentPost = 0x0001_03F8,
@@ -204,6 +207,7 @@ public enum ClientMessageType
     GameBackToVillage = 0x0001_0084,
 
     // Consuming one item off a pile. See Game/UseStackable.
+    GameDailyReviveCoin = 0x0001_00CF,
     GameUseStackable = 0x0001_002C,
     GameRenameCreature = 0x0001_0064,
     GameHatchCreature = 0x0001_0066,
@@ -234,6 +238,9 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameRentEquipment = 0x0001_03CF,
+    GameChargeRentPoint = 0x0001_03D0,
+    GameCollectionBox = 0x0001_03E5,
     GameMarriageCapsule = 0x0001_0404,
     GameMarriageHousing = 0x0001_03FD,
     GameMarriageCapsuleState = 0x0000_03DF,
@@ -381,6 +388,10 @@ public enum ServerMessageType
 
     // The dungeon-entry answer: the run's shape, the room it opens in, and the support
     // roster. See Game/DungeonEntry.
+    GameBossTowerInfo = 0x0000_0333,
+    GameBossTowerMap = 0x0000_0334,
+    GameBossTowerReward = 0x0000_0335,
+    GameBossTowerContinue = 0x0000_0336,
     GameDungeonInfo = 0x0000_001C,
     GameHellPartyMonsterInfo = 0x0000_02A7,
     GameStartMap = 0x0000_001D,
@@ -401,6 +412,7 @@ public enum ServerMessageType
     GameTaggedIdReport = 0x0001_008F,
 
     // Whether the item was consumed. See Game/UseStackable.
+    GameDailyReviveCoin = 0x0001_00CF,
     GameUseStackable = 0x0001_002C,
     GameRenameCreature = 0x0001_0064,
     GameHatchCreature = 0x0001_0066,
@@ -449,6 +461,7 @@ public enum ServerMessageType
 
     // The exit opening, and the result screen behind it. See Game/DungeonClear.
     GameEnableClearDungeon = 0x0000_001F,
+    GameEplpRechallenge = 0x0000_0105,
     GameSecretShopNpc = 0x0000_0117,
     GameDespairApcInfo = 0x0000_015B,
     GameDespairClearReward = 0x0000_015C,

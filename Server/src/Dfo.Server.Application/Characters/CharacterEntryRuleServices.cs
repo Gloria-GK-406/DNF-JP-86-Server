@@ -108,18 +108,6 @@ internal sealed class DungeonEffectRuleService : IDungeonEffectRuleService
             or DungeonEffectKinds.SettlementScoreExperience;
 
     /// <remarks>
-    /// At the ceiling the star is not granted rather than being granted and discarded, so what the
-    /// player is told matches what they keep.
-    /// </remarks>
-    public LuckyStarGrant GrantLuckyStar(int current)
-    {
-        var granted = current < LuckyStarCeiling;
-        return new LuckyStarGrant(granted, Math.Min(LuckyStarCeiling, current + (granted ? 1 : 0)));
-    }
-
-    private const int LuckyStarCeiling = 999;
-
-    /// <remarks>
     /// The figures come from the settlement rather than from what was last written down. The
     /// written pair is only a stale-write guard; working from it would throw away everything the
     /// character earned inside the run that has just ended.

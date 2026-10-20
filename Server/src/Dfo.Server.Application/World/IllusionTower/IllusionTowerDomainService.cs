@@ -20,7 +20,7 @@ internal sealed class IllusionTowerDomainService(
     IMaterialConsumptionDomainService materials, IMaterialConsumptionRuleService materialRules,
     IDungeonRunDomainService ordinary, DomainTransactionScope scope, TransactionalExecutionGate executionGate, TimeProvider clock,
     IIllusionTowerRewardDomainService? rewards = null, TowerInventoryDomainService? towerInventory = null,
-    IEventService? events = null)
+    IEventService? events = null, IDungeonParticipationDomainService? participation = null)
     : IIllusionTowerDomainService
 {
     private readonly object sync = new();
@@ -54,7 +54,7 @@ internal sealed class IllusionTowerDomainService(
 
     public bool TryReserveOrdinaryEntry(IReadOnlyList<CharacterId> members)
     {
-        if (members.Any(IsInTower)) return false;
+        if (members.Any(x => IsInTower(x) || participation?.Find(x) is { Mode: not DungeonParticipationMode.Ordinary })) return false;
         if (scope.Current is not null) Pending.OrdinaryEntries.UnionWith(members);
         return true;
     }
@@ -74,7 +74,7 @@ internal sealed class IllusionTowerDomainService(
         {
             var member = candidate.Session;
             if (sessions.Find(member.AccountId) != member) return Refuse("NoSession");
-            if (IsInTower(member.CharacterId) || ordinary.Find(member.CharacterId) is not null || Pending.OrdinaryEntries.Contains(member.CharacterId)) return Refuse("AlreadyInDungeon");
+            if (participation?.Find(member.CharacterId) is not null || IsInTower(member.CharacterId) || ordinary.Find(member.CharacterId) is not null || Pending.OrdinaryEntries.Contains(member.CharacterId)) return Refuse("AlreadyInDungeon");
             var progress = await characters.Get(member.CharacterId).ProgressAsync(token).ConfigureAwait(false);
             if (progress is null || progress.Level < definition.MinimumLevel) return Refuse("LevelTooLow", candidate.Slot);
             var costs = new List<MaterialCost>();
@@ -109,6 +109,8 @@ internal sealed class IllusionTowerDomainService(
             Room = null!, ReservedUids = members.Select(x => x.Session.WireUserId).ToImmutableHashSet()
         };
         run.SetRoom(first, 1);
+        if (participation is not null && !participation.TryClaim(members.Select(x => x.Session.CharacterId).ToArray(),
+            new(DungeonParticipationMode.IllusionTower, run.RunId))) return Refuse("AlreadyInDungeon");
         var debits = new List<TowerMemberDebit>();
         foreach (var (session, costs) in plans)
         {
@@ -279,6 +281,8 @@ internal sealed class IllusionTowerDomainService(
             foreach (var departed in current.Members.Where(member => !next.Members.Any(x => x.Session == member.Session)))
                 (towerInventory ?? throw new InvalidOperationException("Tower inventory is not configured."))
                     .Leave(departed.Session.CharacterId, current.RunId);
+        foreach (var departed in current.Members.Where(member => !next.Members.Any(x => x.Session == member.Session)))
+            participation?.Release(departed.Session.CharacterId, new(DungeonParticipationMode.IllusionTower, current.RunId));
         Pending.Put(current, next);
         return next.Result(true, result.KilledActor) with
         {

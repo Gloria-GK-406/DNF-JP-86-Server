@@ -43,7 +43,8 @@ internal sealed class WeightedLotteryResultSelector(ILotteryDefinitionCache cach
 internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService inventory,
     IPackageOpeningRuleService rules, ILotteryResultSelector selector, ILotteryDefinitionCache cache, ICharacterDomainService characters,
     IDomainTransactionAccessor transactions, TimeProvider clock,
-    IPremiumServiceRuleService premiumRules, IPremiumServiceUsageDomainService usage, IOpeningEffectPlanRuleService plans)
+    IPremiumServiceRuleService premiumRules, IPremiumServiceUsageDomainService usage, IOpeningEffectPlanRuleService plans,
+    ICharacterBusinessInventoryDomainService bags)
     : ILotteryOpeningDomainService
 {
     public async ValueTask<LotteryOpeningResult> ExecuteAsync(SelectedSessionIdentity session, BusinessSlot slot,
@@ -56,7 +57,8 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
         var source = await inventory.SourceAsync(session, sourceSlot, now, token).ConfigureAwait(false);
         _ = cache.GetRequired(source.ItemId); // No on-demand PVF fallback for an unknown pot.
         var definition = await rules.DefinitionAsync(source.ItemId, OpeningPackageKind.Lottery, token).ConfigureAwait(false);
-        if (definition.MaterialCount != 0 || definition.Pools.Length != 1 || definition.Pools[0].Draws != 1)
+        var goldPot = source.ItemId == 7615 && mode == 0;
+        if (definition.MaterialCount != 0 && !goldPot || definition.Pools.Length != 1 || definition.Pools[0].Draws != 1)
             throw Reject("Unsupported lottery layout.");
         var useRule = await plans.SourceRuleAsync(source.ItemId, token).ConfigureAwait(false);
         DoublePotUsageDecision? quota = null;
@@ -67,19 +69,30 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
             quota = plans.DoublePot(await usage.DoublePotFactsAsync(session.AccountId, session.CharacterId, now, token).ConfigureAwait(false));
         }
         var reward = selector.Roll(source.ItemId);
-        if (reward.Count != 1) throw Reject("Only one equipment result per pot is supported.");
-        var grants = await rules.PrepareAsync([reward with { Count = mode == 1 ? 2 : 1 }], now, token).ConfigureAwait(false);
-        if (grants[0].Item.Placement.WorldClass != ItemWorldClass.Equipment || grants[0].Item.Placement.ItemKind != 1
-            || grants[0].Item.PremiumType != 0 || grants[0].Item.Placement.Destination.Space != BusinessInventorySpace.CarriedEquipment)
+        var goldReward = source.ItemId == 7615 && reward.ItemId == 0 && mode == 0 && reward.Count > 0;
+        if (!goldReward && reward.Count != 1) throw Reject("Only one equipment result per pot is supported.");
+        var grants = await rules.PrepareAsync([reward with { Count = goldReward ? reward.Count : mode == 1 ? 2 : 1 }], now, token).ConfigureAwait(false);
+        if (!goldReward && (grants[0].Item.Placement.WorldClass != ItemWorldClass.Equipment || grants[0].Item.Placement.ItemKind != 1
+            || grants[0].Item.PremiumType != 0 || grants[0].Item.Placement.Destination.Space != BusinessInventorySpace.CarriedEquipment))
             throw Reject("This lottery result variant is not supported yet.");
-        var plan = plans.Build(source.ItemId, useRule, plans.SourceCosts(sourceSlot, source.ItemId, useRule, definition.SourceCount),
+        var consumed = plans.SourceCosts(sourceSlot, source.ItemId, useRule, definition.SourceCount);
+        if (definition.MaterialCount > 0)
+        {
+            var held = new List<OpeningHeldItem>();
+            foreach (var space in new[] { BusinessInventorySpace.Quest, BusinessInventorySpace.Material,
+                BusinessInventorySpace.Consumable, BusinessInventorySpace.QuickSlot })
+                if (bags.GetStore(session.CharacterId, BusinessInventoryStoreKind.Item).FindContainer(space) is { } bag)
+                    held.AddRange((await bag.GetAllAsync(token).ConfigureAwait(false)).Select(x => new OpeningHeldItem(new(space, x.SlotIndex), x)));
+            consumed = consumed.AddRange(plans.MaterialCosts([new(definition.MaterialItemId, definition.MaterialCount)], 1, held, now).Items);
+        }
+        var plan = plans.Build(source.ItemId, useRule, consumed,
             grants, [], now, gold: definition.GoldCost, quota: quota);
         var applied = await inventory.ApplyAsync(session, plan, now, token).ConfigureAwait(false);
         var receipt = applied.Inventory;
         var gold = applied.Applied.Changes<GoldEffectChange>().LastOrDefault()?.Remaining
             ?? await characters.Get(session.CharacterId).GoldAsync(token).ConfigureAwait(false);
         if (receipt.Rewards.Length != (mode == 1 ? 2 : 1)
-            || receipt.Rewards.Any(x => x.Count != 1 || x.Snapshot is null))
+            || !goldReward && receipt.Rewards.Any(x => x.Count != 1 || x.Snapshot is null))
             throw Reject("Unexpected lottery receipt layout.");
         return new(receipt, slot, gold);
     }

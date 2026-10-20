@@ -9,6 +9,7 @@ namespace Dfo.Server.Abstractions.World;
 public sealed record DespairTowerFloor(int Floor, int DungeonId, int DisplayApcId, IReadOnlyList<DungeonRequiredItem> Tickets);
 public sealed record DespairTowerCatalog(int MinimumLevel, int MaximumDailyClears, IReadOnlyList<DespairTowerFloor> Floors);
 public interface IDespairTowerContentSource { DespairTowerCatalog Load(); }
+/// <summary>Last cleared floor in the current cycle; the legacy name does not mean an all-time maximum.</summary>
 public sealed record DespairTowerProgress(int HighestClearedFloor = 0);
 public sealed record DespairTowerStatus(int NextFloor, byte FreeEntriesRemaining, IReadOnlyList<int> DungeonIds);
 public interface IDespairTowerDomainStore

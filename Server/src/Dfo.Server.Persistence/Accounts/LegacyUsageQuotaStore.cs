@@ -15,6 +15,16 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
     {
         switch (key.Family)
         {
+            case UsageQuotaFamily.ReviveCoin:
+                // Legacy claims used one key with an explicit period; retain only that day's claim.
+                return (await database.ReadAllAsync("""
+                    SELECT value FROM character_daily_counters WHERE character_id=@id
+                    AND (counter_key=@key OR (counter_key='revive_coin_daily_claim' AND period=@period AND value>0))
+                    ORDER BY value DESC LIMIT 1
+                    """, p => { p.AddWithValue("@id", character.Value); p.AddWithValue("@key", DimensionKey(key));
+                        p.AddWithValue("@period", Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)); },
+                    r => new UsageQuotaValue(r.GetInt32(0), null), ct).ConfigureAwait(false)).SingleOrDefault();
+            case UsageQuotaFamily.GoldSilverHorn:
             case UsageQuotaFamily.TournamentDungeon:
             case UsageQuotaFamily.HerasDungeon:
             case UsageQuotaFamily.AltarDungeon:
@@ -47,6 +57,8 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
         var (character, key, expected, value, owner) = write;
         switch (key.Family)
         {
+            case UsageQuotaFamily.ReviveCoin:
+            case UsageQuotaFamily.GoldSilverHorn:
             case UsageQuotaFamily.TournamentDungeon:
             case UsageQuotaFamily.HerasDungeon:
             case UsageQuotaFamily.AltarDungeon:
@@ -88,7 +100,13 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
             default: throw new ArgumentOutOfRangeException(nameof(write));
         }
     }
-    private static string DimensionKey(UsageQuotaKey key) => key.Family == UsageQuotaFamily.HerasDungeon
+    private static string DimensionKey(UsageQuotaKey key) => key.Family == UsageQuotaFamily.ReviveCoin
+        ? key.Name == "claim" ? "revive_coin_daily_claim:" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : throw new InvalidDataException("Invalid revive coin quota key.")
+        : key.Family == UsageQuotaFamily.GoldSilverHorn
+        ? key.Name == "entries" ? "gold-silver-horn.4123.entries:" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : throw new InvalidDataException("Invalid gold/silver horn quota key.")
+        : key.Family == UsageQuotaFamily.HerasDungeon
         ? key.Name is "entries" or "bonus" ? "heras.3900." + key.Name + ":" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
             : throw new InvalidDataException("Invalid Heras quota key.")
         : key.Family == UsageQuotaFamily.TournamentDungeon

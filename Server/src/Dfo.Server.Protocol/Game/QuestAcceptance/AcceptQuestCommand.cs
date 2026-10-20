@@ -45,8 +45,7 @@ public sealed record AcceptedQuestItem(ushort SlotIndex, uint ItemId, uint Count
 
 /// <summary>What became of one attempt to accept a quest.</summary>
 /// <param name="InitialTrigger">
-/// First acceptance uses the archive's initial value, followed by a progress notification when
-/// needed. A retry for an active quest uses its current stored progress instead.
+/// Acceptance uses the archive's initial value, followed by a progress notification when needed.
 /// </param>
 public sealed record QuestAcceptOutcome(
     bool Accepted,
@@ -88,7 +87,8 @@ public sealed class AcceptQuestCommandHandler(
     IQuestProgressDomainService questProgress,
     IItemDeliveryDomainService delivery,
     ICycleDungeonEntryDomainService? cycles = null, IMirrorAradQuestDomainService? mirror = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? marriage = null)
+    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? marriage = null,
+    ISouthernDaleQuestDomainService? southern = null)
     : ICommandHandler<AcceptQuestCommand, QuestAcceptOutcome>
 {
     public async ValueTask<QuestAcceptOutcome> HandleAsync(
@@ -120,7 +120,7 @@ public sealed class AcceptQuestCommandHandler(
             var accepted = await mirror.AcceptAsync(command.AccountId, command.CharacterId, command.QuestId, cancellationToken).ConfigureAwait(false);
             return accepted.Accepted
                 ? new(true, command.QuestId, unchecked((uint)accepted.TriggerValue), [])
-                : QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
+                : QuestAcceptOutcome.Refuse(command.QuestId, WireCodeFor(accepted.Refusal));
         }
         var log = logs.LogOf(command.AccountId, command.CharacterId);
         if (definition.Grade == QuestGrade.Wedding && (marriage is null
@@ -131,12 +131,13 @@ public sealed class AcceptQuestCommandHandler(
                 command.QuestId, cancellationToken).ConfigureAwait(false)))
             return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
         var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
-        if (carried.SingleOrDefault(x => x.QuestId == command.QuestId) is { } active)
-        {
-            return new(true, command.QuestId, unchecked((uint)active.TriggerValue), [],
-                QuestProgress: mirror is null ? new QuestProgressSnapshot(carried)
-                    : await mirror.MergeAsync(command.CharacterId, new(carried), cancellationToken).ConfigureAwait(false));
-        }
+        // A21's successful ACK inserts a new client quest; a duplicate returns null and crashes.
+        // CMD001F refusal 00 12 bypasses that insertion (protocol/game/client-to-server/0x001F.md).
+        if (carried.Any(x => x.QuestId == command.QuestId))
+            return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.AlreadyActive);
+        if (command.QuestId == ISouthernDaleQuestDomainService.QuestId && (southern is null
+            || !await southern.CanAcceptAsync(command.CharacterId, cancellationToken).ConfigureAwait(false)))
+            return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
         var taken = await log.AcceptAsync(definition, cancellationToken).ConfigureAwait(false);
         if (!taken.Accepted)
             return QuestAcceptOutcome.Refuse(command.QuestId, WireCodeFor(taken.Refusal));

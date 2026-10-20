@@ -7,7 +7,7 @@ using Dfo.Server.Data.Characters;
 namespace Dfo.Server.Application.Quests;
 
 /// <summary>
-/// Applies client-counted progress and binds passive-object hunt reports to the exact story run
+/// Applies client-counted progress and binds passive-object hunt reports to the exact quest-bound run
 /// that made them possible.
 /// </summary>
 internal sealed class QuestTriggerDomainService(
@@ -26,7 +26,7 @@ internal sealed class QuestTriggerDomainService(
         var authority = QuestObjectives.AuthorityOver(definition, selector);
         if (authority == QuestObjectiveAuthority.Client
             && IsHuntEnemy(definition)
-            && !MatchesCurrentStoryRun(characterId, definition, selector))
+            && !MatchesCurrentQuestRun(characterId, definition, selector))
         {
             return ValueTask.FromResult(QuestAdvance.Refused);
         }
@@ -35,14 +35,13 @@ internal sealed class QuestTriggerDomainService(
             .AdvanceAsync(definition, selector, increment, cancellationToken);
     }
 
-    private bool MatchesCurrentStoryRun(
+    private bool MatchesCurrentQuestRun(
         CharacterId characterId,
         QuestDefinition definition,
         byte selector)
     {
         var run = runs.Find(characterId);
         if (run is null
-            || run.Layout.Purpose.Kind != DungeonRunPurposeKind.QuestLinked
             || run.Layout.Purpose.QuestId != definition.QuestId
             || run.Layout.Purpose.QuestState != DungeonQuestConnectionState.Active)
         {

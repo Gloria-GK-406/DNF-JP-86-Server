@@ -146,6 +146,7 @@ internal sealed class QuestLog(
             return false;
         }
 
+        var acceptedAt = await this.AcceptedAtAsync(asLastSeen, cancellationToken).ConfigureAwait(false);
         await stores.ChangeAsync(store, session =>
         {
             session.Carried.Write(
@@ -154,7 +155,7 @@ internal sealed class QuestLog(
                     asLastSeen.Slot,
                     asLastSeen.QuestId,
                     triggerValue,
-                    asLastSeen.TriggerValue));
+                    asLastSeen.TriggerValue) { AcceptedAt = acceptedAt });
             return ValueTask.CompletedTask;
         }, cancellationToken).ConfigureAwait(false);
         return true;

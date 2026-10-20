@@ -316,25 +316,13 @@ internal sealed record ClientEffectBaselineMessage : GameStateSynchronizationMes
     internal override byte[] EncodeBody() => [2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0];
 }
 
-internal sealed record CollectionBoxStateMessage(
-    CharacterCollectionBoxProgressState Box) : GameStateSynchronizationMessage, IGameNotiMessage
+// The A21 reference emits these two ignored 0381 frames. Live collection state is 03EB.
+internal sealed record CollectionBoxCompatibilityMessage(byte BoxId) : GameStateSynchronizationMessage, IGameNotiMessage
 {
-    // 0x0381 is COLLECT_BOX on A12 and USER_BUY_RESTRICT_UPDATE_ITEM_LIST on A21; COLLECT_BOX
-    // moved to 0x03EB there. That table difference is real, and it is not what decides this.
-    //
-    // This briefly moved to 0x03EB on the argument that the A21 client registers no receive
-    // handler at 0x0381, so anything sent there is discarded. Both halves of that are true and
-    // the conclusion drawn from them was still backwards. The A21 reference session sends two
-    // eight-byte frames at 0x0381 -- 01 01 FF FF FF FF 00 00 and 02 01 FF FF FF FF 00 00 -- and
-    // those are byte for byte what this record emits, because that is where these bytes were
-    // transcribed from in the first place. The payload is A21's, at A21's number, and the client
-    // ignoring it is what the reference server also gets.
-    //
-    // 0x03EB, by contrast, HAS a receive handler on A21 (RVA 0x008A7490), and the reference never
-    // sends it. Moving here therefore stopped being a no-op and started feeding a live handler a
-    // body in another protocol's format.
     internal override ushort Type => 0x0381;
-    internal override byte[] EncodeBody() => StateSynchronizationPayloadCodec.EncodeCollectionBox(Box);
+    internal override byte[] EncodeBody() => BoxId is 1 or 2
+        ? [BoxId, 1, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0]
+        : throw new InvalidDataException("0381 compatibility has exactly two fixed frames.");
 }
 
 internal sealed record BossTowerBaselineMessage : GameStateSynchronizationMessage, IGameNotiMessage
@@ -607,6 +595,7 @@ internal static class StateSynchronizationEncoderRegistration
         AddNoti<UsableCountBaselineMessage>(services);
         AddNoti<ItemUsageCountMessage>(services);
         AddNoti<MirrorDungeonQuotaMessage>(services);
+        AddNoti<GoldSilverHornQuotaMessage>(services);
         AddNoti<DungeonRemainingEntriesMessage>(services);
         AddNoti<DimensionDungeonQuotaMessage>(services);
         AddNoti<PartyBaselineMessage>(services);
@@ -622,7 +611,7 @@ internal static class StateSynchronizationEncoderRegistration
         AddNoti<ItemEffectStateMessage>(services);
         AddNoti<PurchaseRestrictionCompatibilityMessage>(services);
         AddNoti<ClientEffectBaselineMessage>(services);
-        AddNoti<CollectionBoxStateMessage>(services);
+        AddNoti<CollectionBoxCompatibilityMessage>(services);
         AddNoti<BossTowerBaselineMessage>(services);
         AddNoti<RentalStateMessage>(services);
         AddNoti<EquipmentLockStateMessage>(services);

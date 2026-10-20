@@ -22,7 +22,17 @@ internal sealed class EventManagementDomainService(IEnumerable<IManagedEventDoma
     {
         var entries = new List<EventInfo>();
         foreach (var e in events) entries.AddRange(await e.GetEventInfoEntriesAsync(account,now,ct));
-        return [..entries];
+        var unique = new Dictionary<int, EventInfo>();
+        foreach (var entry in entries)
+        {
+            if (unique.TryAdd(entry.EventId, entry)) continue;
+            var previous = unique[entry.EventId];
+            // Detail-less dependencies do not transmit their owners' date ranges.
+            if (previous == entry || !previous.HasDetail && !entry.HasDetail
+                && previous.StartNotice == entry.StartNotice && previous.EndNotice == entry.EndNotice) continue;
+            throw new InvalidDataException($"Conflicting event information for identity {entry.EventId}.");
+        }
+        return [..unique.Values];
     }
     public async ValueTask<ManagedEventList> ChangeAsync(EventChange change,string actor,DateTimeOffset now,CancellationToken ct)
     {

@@ -134,7 +134,16 @@ internal sealed class CharacterSide
                 null!, null!, null!, null!, null!, new SqliteCharacterTable(database), null!, null!, null!,
                 experienceRules: experienceRules,
                 capsules: new ExperienceCapsuleDomainService(new SqliteAccountTable(database), experienceRules, rules, Scope),
-                transactions: Scope), null!));
+                transactions: Scope), null!),
+            new Dfo.Server.Application.Rental.AccountLuckyStarDomainService(new SqliteLuckyStarDomainStore(database),
+                new Dfo.Server.Application.Rental.LuckyStarRuleService(new LuckyStarContent(),null!),null!,null!,null!,Scope));
+
+    private sealed class LuckyStarContent : Dfo.Server.Abstractions.Rental.ILuckyStarRentalContentSource
+    {
+        public Dfo.Server.Abstractions.Rental.LuckyStarRentalCatalog Load()=>new(400,100000,1,new HashSet<int>(),[]);
+        public ValueTask<int?> RentPointsAsync(int itemId,CancellationToken ct)=>ValueTask.FromResult<int?>(null);
+        public ValueTask<IReadOnlySet<byte>?> UsableJobsAsync(int itemId,CancellationToken ct)=>ValueTask.FromResult<IReadOnlySet<byte>?>(null);
+    }
 
     /// <summary>Runs one call inside a use case and settles it, the way one command would.</summary>
     public async Task<TResult> InUseCaseAsync<TResult>(
@@ -193,7 +202,11 @@ internal sealed class CharacterSide
             new SqliteCharacterDailyChallengeTailTable(this.database),
             new SqliteCharacterDailyScheduleTable(this.database),
             new CharacterDungeonDifficultyDomainService(new SqliteCharacterDungeonPermissionTable(this.database), new Dfo.Server.Application.World.DungeonDifficultyRuleService()),
-            new SqliteCharacterDailyCounterValueTable(this.database),
+            new ReviveCoinQueryDomainService(new ReviveCoinRuleService(new DailyResetRuleService(new ResetSettings())),
+                new Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService(
+                    new LegacyUsageQuotaStore(new SqliteConsumableUsageTable(this.database),
+                        new SqlitePremiumServiceUsageTable(this.database), new Dfo.Server.Persistence.Quests.SqliteMirrorAradQuestDomainStore(this.database), this.database),
+                    this.Scope, null!), TimeProvider.System),
             new SqliteCharacterCreatureTable(this.database),
             new SqliteCharacterTitleBookTable(this.database),
             new SqliteCharacterAchievementTable(this.database),

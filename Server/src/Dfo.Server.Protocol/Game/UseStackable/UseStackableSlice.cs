@@ -86,6 +86,7 @@ public sealed record UseStackableResponse(
 
     public CreatureRuntimeChange? CreatureChange { get; init; }
     public ItemUseSlotState? InventoryState { get; init; }
+    public OpeningInventoryReceipt? OpeningReceipt { get; init; }
     public ExperienceAward? ExperienceAward { get; init; }
     public CharacterSkillProtocolMirrorState? SkillPoints { get; init; }
 
@@ -214,6 +215,7 @@ public sealed record ItemUseResult(ItemUseStatus Status, int ItemId, int Remaini
     CreatureRuntimeChange? CreatureChange = null)
 {
     public ItemUseSlotState? InventoryState { get; init; }
+    public OpeningInventoryReceipt? OpeningReceipt { get; init; }
     public ExperienceAward? ExperienceAward { get; init; }
     public CharacterSkillProtocolMirrorState? SkillPoints { get; init; }
 
@@ -295,6 +297,7 @@ public sealed class UseStackableCommandHandler(
             InventoryState = new(remaining?.Snapshot, (timeProvider ?? TimeProvider.System).GetUtcNow()),
             ExperienceAward = applied.ExperienceAward,
             SkillPoints = applied.SkillPoints,
+            OpeningReceipt = applied.OpeningReceipt,
         };
     }
     /// <summary>
@@ -342,6 +345,10 @@ public sealed class UseStackableHandler(
     {
         var response = await ResolveAsync(context, message, cancellationToken).ConfigureAwait(false);
         List<IGameServerMessage> messages = [response];
+        if (response.OpeningReceipt is { } receipt)
+            foreach (var update in receipt.Updates.Where(x => x.Slot.Space == BusinessInventorySpace.VirtualResource))
+                messages.Add(GameInventoryDelivery.Notification(new(InventoryContainerType.Main,
+                    [new(update.Identity, update.Slot.Index, update.Core.ToCore(), update.Core.AvatarDetail)], receipt.PreparedAt)));
         if (response.InventoryState is { } state)
         {
             // Absolute state follows the ACK so a native client decrement cannot subtract twice.
@@ -411,6 +418,7 @@ public sealed class UseStackableHandler(
                     InventoryState = result.InventoryState,
                     ExperienceAward = result.ExperienceAward,
                     SkillPoints = result.SkillPoints,
+                    OpeningReceipt = result.OpeningReceipt,
                 };
         }
 

@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -13,7 +15,8 @@ namespace Dfo.Server.Protocol.Game.CeraShopPurchase;
 
 public sealed class CeraShopPurchaseHandler(IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions, ICommandBus commands, IEventService notifications,
-    IGameMessageSender sender, ILogger<CeraShopPurchaseHandler> logger) : ClientMessageHandler<CeraShopPurchaseRequest>
+    IGameMessageSender sender, ILogger<CeraShopPurchaseHandler> logger,
+    ICharacterVisibleSessionDomainService visibility) : ClientMessageHandler<CeraShopPurchaseRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
         CeraShopPurchaseRequest message, CancellationToken cancellationToken)
@@ -46,6 +49,9 @@ public sealed class CeraShopPurchaseHandler(IOnlineUserQueryDomainService online
                 receipt.Balances.TokenCera, receipt.Balances.HappyTokenCera, receipt.Gold, receipt.Updates.Sum(update => update.Items.Count));
             await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
                 new CeraShopPurchaseCompleted(receipt), cancellationToken).ConfigureAwait(false);
+            if (receipt.NameTagChanged)
+                await notifications.ProjectAsync(new NotificationAudience.TheseSessions(visibility.Resolve(receipt.Session)),
+                    new CharacterUserStateRefresh(receipt.Session), cancellationToken).ConfigureAwait(false);
         }
         else
         {

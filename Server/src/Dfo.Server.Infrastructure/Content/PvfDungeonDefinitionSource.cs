@@ -28,7 +28,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// <see cref="DungeonDefinition.OffersPaidCard"/>; nothing is decided here beyond reading it.
 /// </para>
 /// </remarks>
-internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
+internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDungeonAdmissionDefinitionSource
 {
     private static class Fields
     {
@@ -50,6 +50,10 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         internal static readonly PvfField<int> DifficultyField = PvfField.Int32("[difficulty]", optional: true);
         internal static readonly PvfField<IReadOnlyList<PvfToken>> StoryModeField = PvfField.Tokens("[story mode]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> RequiredItemsField = PvfField.Int32List("[required item]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> EventRequiredItemsField = PvfField.Int32List("[event required item]", optional: true);
+        internal static readonly PvfField<bool> SpiciesField = PvfField.Marker("[spicies dungeon]", optional: true);
+        internal static readonly PvfField<int> PartyLimitField = PvfField.Int32("[limit party count]", optional: true);
+        internal static readonly PvfField<int> ProhibitPracticeField = PvfField.Int32("[prohibit practice]", optional: true);
         internal static readonly PvfField<int> TournamentField = PvfField.Int32("[tournament dungeon]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> NamedMonsterField = PvfField.Int32List("[named monster]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> RevengeField = PvfField.Int32List("[village attack revenge dungeon]", optional: true);
@@ -63,6 +67,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
     private readonly PvfArchiveProvider _provider;
     private readonly Lock _gate = new();
     private readonly Dictionary<int, DungeonDefinition?> _cache = [];
+    private readonly Dictionary<int, DungeonAdmissionDefinition?> _admissions = [];
     private IReadOnlyDictionary<int, string>? _paths;
 
     public PvfDungeonDefinitionSource(PvfArchiveProvider provider) => _provider = provider;
@@ -75,9 +80,20 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             if (_cache.TryGetValue(dungeonId, out var cached))
                 return ValueTask.FromResult(cached);
 
-            var definition = Read(_provider.Archive, Paths(), dungeonId);
+            var definition = Read(_provider.Archive, Paths(), dungeonId, out var admission);
+            _admissions[dungeonId] = admission;
             _cache[dungeonId] = definition;
             return ValueTask.FromResult(definition);
+        }
+    }
+
+    public ValueTask<DungeonAdmissionDefinition?> GetAdmissionAsync(int dungeonId, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        lock (_gate)
+        {
+            if (!_admissions.ContainsKey(dungeonId)) _ = GetAsync(dungeonId, ct);
+            return ValueTask.FromResult(_admissions[dungeonId]);
         }
     }
 
@@ -97,8 +113,9 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
     private static DungeonDefinition? Read(
         PvfArchive archive,
         IReadOnlyDictionary<int, string> paths,
-        int dungeonId)
+        int dungeonId, out DungeonAdmissionDefinition? admission)
     {
+        admission = null;
         if (!paths.TryGetValue(dungeonId, out var relativePath))
             return null;
 
@@ -115,6 +132,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         byte basisLevel = 1;
         var experienceWeight = 1.0;
         var consumesFatigue = true;
+        var noGiveupPenalty = false;
         var offersPaidCard = true;
         DungeonQuestConnection? questConnection = null;
         IReadOnlyList<byte>? difficultyLevels = null;
@@ -122,6 +140,10 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         int? fixedDifficulty = null;
         var entryMode = DungeonEntryMode.Maze;
         IReadOnlyList<DungeonRequiredItem> requiredItems = [];
+        IReadOnlyList<DungeonRequiredItem> eventRequiredItems = [];
+        var isSpicies = false;
+        int? partyLimit = null;
+        var prohibitsPractice = false;
         var hasStoryMode = false;
         var namedMonsterCodes = ImmutableHashSet.CreateBuilder<int>();
 
@@ -206,19 +228,46 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             {
                 hasStoryMode = true;
             }
-            else if (Fields.RequiredItemsField.Matches(section.Name))
+            else if (Fields.RequiredItemsField.Matches(section.Name) || Fields.EventRequiredItemsField.Matches(section.Name))
             {
-                Unique(Fields.RequiredItemsField);
-                var values = Fields.RequiredItemsField.Decode(archive, section.Values, archivePath);
-                Require(values.Count % 3 == 0, archivePath, Fields.RequiredItemsField, "truncated item/count/consume triple");
+                var field = Fields.RequiredItemsField.Matches(section.Name) ? Fields.RequiredItemsField : Fields.EventRequiredItemsField;
+                var values = field.Decode(archive, section.Values, archivePath);
+                Require(values.Count % 3 == 0, archivePath, field, "truncated item/count/consume triple");
                 var items = new List<DungeonRequiredItem>();
                 for (var i = 0; i < values.Count; i += 3)
                 {
                     Require(values[i] > 0 && values[i + 1] > 0 && values[i + 2] is 0 or 1,
-                        archivePath, Fields.RequiredItemsField, "invalid item/count/consume triple");
+                        archivePath, field, "invalid item/count/consume triple");
                     items.Add(new(values[i], values[i + 1], values[i + 2] == 1));
                 }
-                requiredItems = items.AsReadOnly();
+                // A21 despair floor 1 repeats the identical event ticket declaration. It is one cost,
+                // not two; conflicting or malformed restatements remain invalid.
+                if (field == Fields.EventRequiredItemsField && (draft?.Seen ?? seen).Contains(field))
+                    Require(eventRequiredItems.SequenceEqual(items), archivePath, field, "conflicting repeated item requirements");
+                else Unique(field);
+                if (field == Fields.RequiredItemsField) requiredItems = items.AsReadOnly();
+                else eventRequiredItems = items.AsReadOnly();
+            }
+            else if (Fields.SpiciesField.Matches(section.Name))
+            {
+                Unique(Fields.SpiciesField);
+                isSpicies = Fields.SpiciesField.Decode(archive, section.Values, archivePath);
+                // Explicit server policy: this activity family is exempt even without [no fatigue].
+                consumesFatigue = false;
+            }
+            else if (Fields.PartyLimitField.Matches(section.Name))
+            {
+                Unique(Fields.PartyLimitField);
+                partyLimit = Fields.PartyLimitField.Decode(archive, section.Values, archivePath);
+                Require(partyLimit is >= 1 and <= 4, archivePath, Fields.PartyLimitField, "party limit outside [1,4]");
+            }
+            else if (Fields.ProhibitPracticeField.Matches(section.Name))
+            {
+                // Tau Kingdom declares 0 near the header and 1 later in the same DGN.
+                // Preserve valid existing content; the final declaration is authoritative here.
+                var value = Fields.ProhibitPracticeField.Decode(archive, section.Values, archivePath);
+                Require(value is 0 or 1, archivePath, Fields.ProhibitPracticeField, "expected boolean");
+                prohibitsPractice = value != 0;
             }
             else if (Fields.TournamentField.Matches(section.Name))
             {
@@ -229,6 +278,12 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             {
                 Fields.RevengeField.Decode(archive, section.Values, archivePath);
                 entryMode = DungeonEntryMode.VillageRevenge;
+            }
+            else if (section.Name == "[no giveup panalty]")
+            {
+                if (noGiveupPenalty || section.Values.Count != 0)
+                    throw new InvalidDataException($"PVF '{archivePath}': invalid [no giveup panalty] marker.");
+                noGiveupPenalty = true;
             }
             else if (Fields.NoFatigueField.Matches(section.Name))
             {
@@ -311,11 +366,16 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             }
         }
         Close(mazes, draft, archivePath);
+        admission = new(dungeonId, archivePath, minimumLevel, consumesFatigue,
+            designatedDifficulties ?? difficultyLevels ?? (fixedDifficulty is >= 0 ? [(byte)fixedDifficulty.Value] : []),
+            hasStoryMode, requiredItems, eventRequiredItems, prohibitsPractice, partyLimit);
         return mazes.Count == 0 ? null : new DungeonDefinition(
             dungeonId, archivePath, minimumLevel, consumesFatigue, mazes, basisLevel,
             experienceWeight, offersPaidCard, questConnection,
             designatedDifficulties ?? difficultyLevels ?? (fixedDifficulty is >= 0 ? [(byte)fixedDifficulty.Value] : []), entryMode)
-        { RecommendedLevels = document.Read(PvfField.Int32List("[recommended level]", optional: true)) ?? [], RequiredItems = requiredItems, HasStoryMode = hasStoryMode, NamedMonsterCodes = namedMonsterCodes.ToImmutable() };
+        { RecommendedLevels = document.Read(PvfField.Int32List("[recommended level]", optional: true)) ?? [], RequiredItems = requiredItems,
+            EventRequiredItems = eventRequiredItems, IsSpiciesDungeon = isSpicies, PartyLimit = partyLimit, ProhibitsPractice = prohibitsPractice,
+            HasStoryMode = hasStoryMode, NoGiveupPenalty = noGiveupPenalty, NamedMonsterCodes = namedMonsterCodes.ToImmutable() };
     }
 
     private static byte CellCoordinate(int value, string path, PvfField field)
@@ -360,14 +420,12 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                 cells.Add(cell, new(DungeonPathDirection.All, draft.Maps.GetValueOrDefault(cell) ?? [],
                     draft.BossMaps.GetValueOrDefault(cell) ?? []) { HasDeclaredConnections = false });
         }
+        // A21 haze quest 14825 retains map bindings on two AA cells. Those bindings
+        // are unused candidates, not additional rooms or a malformed route.
         foreach (var cell in draft.Maps.Keys.Concat(draft.BossMaps.Keys).Distinct())
         {
-            if (!cells.ContainsKey(cell) || cell.X >= draft.Width || cell.Y >= draft.Height)
+            if (cell.X >= draft.Width || cell.Y >= draft.Height)
                 configurationErrors.Add($"map ({cell.X},{cell.Y}) declared outside occupied maze cells");
-            // Preserve explicit declarations even when they conflict with the grid. Only
-            // selecting this maze should refuse entry, while diagnostics can still name it.
-            cells.TryAdd(cell, new(DungeonPathDirection.None, draft.Maps.GetValueOrDefault(cell) ?? [],
-                draft.BossMaps.GetValueOrDefault(cell) ?? []));
         }
         if (cells.Count == 0)
             configurationErrors.Add("maze contains no occupied cells");

@@ -146,8 +146,14 @@ public sealed record DungeonDefinition(
 {
     public IReadOnlyList<int> RecommendedLevels { get; init; } = [];
     public bool HasStoryMode { get; init; }
+    public bool NoGiveupPenalty { get; init; }
     public ImmutableHashSet<int> NamedMonsterCodes { get; init; } = [];
     public IReadOnlyList<DungeonRequiredItem> RequiredItems { get; init; } = [];
+    /// <summary>Preferred alternative to the complete regular requirements group; never additive.</summary>
+    public IReadOnlyList<DungeonRequiredItem> EventRequiredItems { get; init; } = [];
+    public bool IsSpiciesDungeon { get; init; }
+    public int? PartyLimit { get; init; }
+    public bool ProhibitsPractice { get; init; }
 }
 
 /// <summary>All requirements must be held; only those marked Consume are debited on admission.</summary>

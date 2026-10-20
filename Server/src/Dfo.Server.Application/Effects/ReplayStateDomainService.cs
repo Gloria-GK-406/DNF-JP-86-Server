@@ -120,7 +120,8 @@ internal sealed class ReplayStateDomainService(IServiceProvider services, IDomai
                 entry.Progression.DailyChallenges.Where(x => x.RewardClaimed).Select(x => checked((int)x.GroupId)).ToImmutableArray(),
                 entry.Features.Collections.CollectionBoxes.Select(x => new CollectionBoxProgressSubject(x.BoxIndex,
                     x.Slots.Select(y => y.ItemId).ToImmutableArray())).ToImmutableArray(),
-                Get<IEquippedCreatureQuery>().GetItemId(characterInventory!), entry.Public.DerivedStats.EquippedCreatureLevel);
+                Get<IEquippedCreatureQuery>().GetItemId(characterInventory!), entry.Public.DerivedStats.EquippedCreatureLevel)
+            { SouthernDaleQuestAvailable = await Get<ISouthernDaleQuestDomainService>().CanAcceptAsync(session.CharacterId, ct).ConfigureAwait(false) };
             var offers = await Get<Dfo.Server.Abstractions.Quests.IQuestAvailabilityRuleService>().ReadAvailableAsync(subject, ct).ConfigureAwait(false);
             quests = new(entry.Quests.ActiveQuests.ToImmutableArray(), entry.Quests.VisibilityFlags.ToImmutableArray(), offers.Quests.ToImmutableArray());
         }
@@ -152,7 +153,9 @@ internal sealed class ReplayStateDomainService(IServiceProvider services, IDomai
         safety.DemandCurrent(recipient);
         return new(session, request, at, inventory, pets, skills, quests, progress, points, fatigue,
             itemUsage, premiums, premiumUsage, appearance)
-        { Capsules = needs.HasFlag(ReplayProjectionNeeds.CoupleCapsules) ? await Get<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService>().ReadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : null,
+        { Rental = needs.HasFlag(ReplayProjectionNeeds.Rental) ? await Get<Dfo.Server.Abstractions.Rental.IEquipmentRentalDomainService>().PanelAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : null,
+          CollectionBoxes = needs.HasFlag(ReplayProjectionNeeds.CollectionBox) ? await Get<ICollectionBoxDomainService>().ReadAsync(session.CharacterId, ct).ConfigureAwait(false) : null,
+          Capsules = needs.HasFlag(ReplayProjectionNeeds.CoupleCapsules) ? await Get<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService>().ReadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : null,
           Housing = (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing) || appearanceNeeded)
             ? await Get<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>().ReadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : null,
           MarriageInfo = (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing) || appearanceNeeded)

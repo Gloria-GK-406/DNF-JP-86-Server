@@ -727,7 +727,7 @@ public sealed class LeavePartyHandler(
     ITownAreaDomainService? townAreas = null,
     IDungeonRunDomainService? runs = null,
     IDungeonRunParticipantDepartureSink? departureSink = null,
-    IllusionTowerPartyCoordinator? towerParties = null)
+    IllusionTowerPartyCoordinator? towerParties = null, BossTowerPartyCoordinator? bossParties = null)
     : ClientMessageHandler<LeavePartyRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -749,6 +749,11 @@ public sealed class LeavePartyHandler(
         DungeonRunState? departingRun;
         for (var attempt = 0; ; attempt++)
         {
+            if (bossParties is not null)
+            {
+                var bossAttempt = await bossParties.TryLeaveAsync(session, allowVirtual: false, departureResponse: null, cancellationToken).ConfigureAwait(false);
+                if (bossAttempt.Handled) return;
+            }
             if (towerParties is not null)
             {
                 var towerAttempt = await towerParties.TryLeaveAsync(
@@ -776,7 +781,7 @@ public sealed class LeavePartyHandler(
                     if (sessions.FindByConnection(context.Connection.ConnectionId) != session)
                         return ValueTask.FromResult(PartyOperationResult.Reject(
                             PartyFailureReason.CallerNotCurrent));
-                    if (towerParties?.HasInvolvedTower(session) == true)
+                    if (towerParties?.HasInvolvedTower(session) == true || bossParties?.HasInvolvedTower(session) == true)
                     {
                         reroute = true;
                         return ValueTask.FromResult(PartyOperationResult.Reject(
@@ -812,7 +817,7 @@ public sealed class ChangePartyLeaderHandler(
     PartyNotificationDelivery notifications,
     ILogger<ChangePartyLeaderHandler> logger,
     ITownAreaDomainService? townAreas = null,
-    IllusionTowerPartyCoordinator? towerParties = null)
+    IllusionTowerPartyCoordinator? towerParties = null, BossTowerPartyCoordinator? bossParties = null)
     : ClientMessageHandler<ChangePartyLeaderRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -829,6 +834,11 @@ public sealed class ChangePartyLeaderHandler(
         SelectedSessionIdentity target;
         for (var attempt = 0; ; attempt++)
         {
+            if (bossParties is not null)
+            {
+                var bossAttempt = await bossParties.TryTransferAsync(leader, message.TargetSlot, cancellationToken).ConfigureAwait(false);
+                if (bossAttempt.Handled) return;
+            }
             if (towerParties is not null)
             {
                 var towerAttempt = await towerParties.TryTransferAsync(
@@ -874,7 +884,7 @@ public sealed class ChangePartyLeaderHandler(
                         return ValueTask.FromResult(PartyOperationResult.Reject(
                             PartyFailureReason.CallerNotCurrent));
                     }
-                    if (towerParties?.HasInvolvedTower(leader, message.TargetSlot) == true)
+                    if (towerParties?.HasInvolvedTower(leader, message.TargetSlot) == true || bossParties?.HasInvolvedTower(leader, message.TargetSlot) == true)
                     {
                         reroute = true;
                         return ValueTask.FromResult(PartyOperationResult.Reject(
@@ -917,7 +927,7 @@ public sealed class RemovePartyMemberHandler(
     ISelectedCharacterCurrentViewDomainService? currentViews = null,
     ICharacterPositionDomainService? positions = null,
     TownAreaProjectionDelivery? townAreaProjection = null,
-    IllusionTowerPartyCoordinator? towerParties = null)
+    IllusionTowerPartyCoordinator? towerParties = null, BossTowerPartyCoordinator? bossParties = null)
     : ClientMessageHandler<RemovePartyMemberRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -937,6 +947,11 @@ public sealed class RemovePartyMemberHandler(
         CharacterPositionState? returnPosition;
         for (var attempt = 0; ; attempt++)
         {
+            if (bossParties is not null)
+            {
+                var bossAttempt = await bossParties.TryRemoveAsync(leader, message.TargetSlot, cancellationToken).ConfigureAwait(false);
+                if (bossAttempt.Handled) return;
+            }
             if (towerParties is not null)
             {
                 var towerAttempt = await towerParties.TryRemoveAsync(
@@ -991,7 +1006,7 @@ public sealed class RemovePartyMemberHandler(
                         return ValueTask.FromResult(PartyOperationResult.Reject(
                             PartyFailureReason.CallerNotCurrent));
                     }
-                    if (towerParties?.HasInvolvedTower(leader, message.TargetSlot) == true)
+                    if (towerParties?.HasInvolvedTower(leader, message.TargetSlot) == true || bossParties?.HasInvolvedTower(leader, message.TargetSlot) == true)
                     {
                         reroute = true;
                         return ValueTask.FromResult(PartyOperationResult.Reject(

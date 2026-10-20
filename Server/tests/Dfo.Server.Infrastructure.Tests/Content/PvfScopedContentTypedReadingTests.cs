@@ -221,6 +221,54 @@ public sealed class PvfScopedContentTypedReadingTests
         Assert.Contains(definition.Diagnostics, message => message.Contains("Duplicate", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Southern_coin_pot_retains_the_declared_key_cost_without_an_archive()
+    {
+        Section[] sections = [new("[stackable type]", [new(PvfTokenKind.QuotedString, 1), I(0)]),
+            new("[int data]", [I(0), I(1000), I(100000)]), new("[need material]", [I(2680739), I(2)])];
+        var definition = PvfPackageOpeningDefinitionSource.Parse(7615, sections, _ => "[upgradable legacy]");
+        Assert.Empty(definition.Diagnostics);
+        Assert.Equal(2680739, definition.MaterialItemId);
+        Assert.Equal(2, definition.MaterialCount);
+    }
+
+    [Fact]
+    public void Gold_silver_horn_pot_does_not_charge_the_purchase_recipe_again_at_opening()
+    {
+        Section[] sections = [new("[stackable type]", [new(PvfTokenKind.QuotedString, 1), I(0)]),
+            new("[int data]", [I(8), I(1000), I(1)]), new("[need material]", [I(490001570), I(10)])];
+        var definition = PvfPackageOpeningDefinitionSource.Parse(490001561, sections, _ => "[upgradable legacy]");
+        Assert.Empty(definition.Diagnostics);
+        Assert.Equal(0, definition.MaterialCount);
+    }
+
+    [Theory]
+    [InlineData("missing-count")]
+    [InlineData("negative-count")]
+    [InlineData("zero-count")]
+    [InlineData("zero-item")]
+    [InlineData("noninteger")]
+    [InlineData("multiple-materials")]
+    [InlineData("duplicate")]
+    public void Lottery_material_declarations_cannot_silently_drop_invalid_costs(string defect)
+    {
+        var values = defect switch
+        {
+            "missing-count" => new[] { I(2680739) },
+            "negative-count" => [I(2680739), I(-2)],
+            "zero-count" => [I(2680739), I(0)],
+            "zero-item" => [I(0), I(2)],
+            "noninteger" => [I(2680739), new(PvfTokenKind.QuotedString, 2)],
+            "multiple-materials" => [I(2680739), I(2), I(201), I(1)],
+            _ => [I(2680739), I(2)],
+        };
+        var sections = new List<Section> { new("[stackable type]", [new(PvfTokenKind.QuotedString, 1), I(0)]),
+            new("[int data]", [I(0), I(1000), I(100000)]), new("[need material]", values.ToList()) };
+        if (defect == "duplicate") sections.Add(new("[need material]", [I(2680739), I(2)]));
+        var definition = PvfPackageOpeningDefinitionSource.Parse(7615, sections, _ => "[upgradable legacy]");
+        Assert.NotEmpty(definition.Diagnostics);
+    }
+
     [Theory]
     [InlineData(10007316, 101600023, 100000, 1, 3, 0, true)]
     [InlineData(10007317, 101600023, 100000, 1, 3, 0, false)]

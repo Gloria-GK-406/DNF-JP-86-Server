@@ -444,7 +444,8 @@ public sealed class SelectDungeonHandler(
     DungeonProjectionGate? entryProjectionGate = null,
     ILogger<DungeonEntryProjectionDelivery>? entryProjectionLogger = null,
     IIllusionTowerDomainService? illusionTower = null,
-    IllusionTowerProjectionDelivery? illusionTowerProjection = null, ISaoTowerDomainService? sao = null)
+    IllusionTowerProjectionDelivery? illusionTowerProjection = null, ISaoTowerDomainService? sao = null,
+    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null, BossTowerProjectionDelivery? bossProjection = null)
     : ClientMessageHandler<SelectDungeonRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -474,7 +475,7 @@ public sealed class SelectDungeonHandler(
 
         var intent = entryIntents.Consume(session);
         if (intent is null
-            || (intent.Value.Kind is DungeonEntryIntentKind.Directed or DungeonEntryIntentKind.Cycle
+            || (intent.Value.Kind is DungeonEntryIntentKind.Directed or DungeonEntryIntentKind.Cycle or DungeonEntryIntentKind.OrdinaryRechallenge
                 && intent.Value.DirectedDungeonId != message.DungeonId && message.MirrorQuestId is null
                 && !(intent.Value.Kind == DungeonEntryIntentKind.Directed
                     && intent.Value.DirectedDungeonId is { } prior && sao?.Supports(prior) == true
@@ -526,6 +527,20 @@ public sealed class SelectDungeonHandler(
                 SelectDungeonRefusal.NotPartyLeader,
                 context: 0,
                 cancellationToken, message.MirrorQuestId is not null).ConfigureAwait(false);
+            return;
+        }
+
+        if (bossTower?.Supports(message.DungeonId) == true && bossProjection is not null)
+        {
+            if (message.MirrorQuestId is not null)
+            {
+                entryIntents.RestoreIfAbsent(session, intent.Value);
+                await RefuseAsync(context.Connection.ConnectionId, SelectDungeonRefusal.InvalidSelectionState, 0, cancellationToken, true).ConfigureAwait(false);
+                return;
+            }
+            _ = await bossProjection.EnterAsync(context.Connection.ConnectionId, session, roster, intent.Value,
+                () => { if (selectedSessions.FindByCharacter(session.CharacterId) == session) entryIntents.RestoreIfAbsent(session, intent.Value); },
+                cancellationToken, message.RequestMode, (byte)message.Difficulty, message.PracticeMode).ConfigureAwait(false);
             return;
         }
 
@@ -656,41 +671,63 @@ public sealed class MoveMapHandler(
     ILogger<MoveMapHandler> logger,
     DungeonPartyRecipients? partyRecipients = null,
     Fatigue.FatigueProjectionDelivery? fatigueProjection = null,
-    IllusionTowerProjectionDelivery? illusionTower = null) : ClientMessageHandler<MoveMapRequest>
+    IllusionTowerProjectionDelivery? illusionTower = null, BossTowerProjectionDelivery? bossTower = null) : ClientMessageHandler<MoveMapRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         MoveMapRequest message,
         CancellationToken cancellationToken)
     {
+        if (logger.IsEnabled(LogLevel.Debug))
+            logger.LogDebug("Move map received connection={ConnectionId} sequence={Sequence} ordinal={Ordinal} target=({X},{Y}) path=({PathX},{PathY})",
+                context.Connection.ConnectionId, message.Metadata.Sequence, message.Metadata.InboundOrdinal,
+                message.NextX, message.NextY, message.PathPositionX, message.PathPositionY);
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null)
         {
-            logger.LogWarning(
+            logger.LogDebug(
                 "Move map {ConnectionId}: no published session, ignoring ({X},{Y})",
                 context.Connection.ConnectionId, message.NextX, message.NextY);
+            return;
+        }
+
+        if (bossTower is not null && await bossTower.AdvanceAsync(context.Connection.ConnectionId,
+            message.Metadata, message.NextX, message.NextY, cancellationToken).ConfigureAwait(false))
+        {
+            logger.LogDebug("Move map routed connection={ConnectionId} sequence={Sequence} route=BossTower", context.Connection.ConnectionId, message.Metadata.Sequence);
             return;
         }
 
         if (illusionTower is not null
             && await illusionTower.AdvanceAsync(
                 context.Connection.ConnectionId, message.Metadata, cancellationToken).ConfigureAwait(false))
+        {
+            logger.LogDebug("Move map routed connection={ConnectionId} sequence={Sequence} route=IllusionTower", context.Connection.ConnectionId, message.Metadata.Sequence);
             return;
+        }
 
         var current = runs.Find(session.CharacterId);
         if (current is null)
         {
-            logger.LogWarning(
+            logger.LogDebug(
                 "Move map {ConnectionId}: no run in progress, ignoring ({X},{Y})",
                 context.Connection.ConnectionId, message.NextX, message.NextY);
             return;
         }
 
+        if (logger.IsEnabled(LogLevel.Debug))
+            logger.LogDebug("Move map state connection={ConnectionId} character={CharacterId} run={RunId} dungeon={DungeonId} maze={MazeIndex} room={RoomId} version={RoomVersion} from=({FromX},{FromY}) kind={Kind} mayLeave={MayLeave} cleared={Cleared} aliveBlockers={AliveBlockers} mechanismBlocks={MechanismBlocks}",
+                context.Connection.ConnectionId, session.CharacterId, current.RunId, current.Layout.DungeonId,
+                current.Layout.MazeIndex, current.CurrentRoomMapId, current.RoomVersion, current.CurrentCell.X,
+                current.CurrentCell.Y, current.CurrentRoomKind, current.MayLeaveCurrentRoom,
+                current.CurrentCellState.IsCleared, current.CurrentCellState.Actors.Count(x => x.BlocksClear && !x.IsDead),
+                current.CurrentCellState.MechanismBlocksClear);
+
         // The room decides, not the run. A boss room has no way back out of it whatever state the
         // run is in; see DungeonRoomKind.
         if (!current.MayLeaveCurrentRoom)
         {
-            logger.LogWarning(
+            logger.LogDebug(
                 "Move map {ConnectionId}: the {Kind} room at ({FromX},{FromY}) may not be left, "
                     + "refusing ({X},{Y})",
                 context.Connection.ConnectionId,
@@ -707,10 +744,18 @@ public sealed class MoveMapHandler(
         // still the character's published generation. Validate at the mutation boundary so a
         // superseded connection cannot advance the shared aggregate.
         if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+        {
+            logger.LogDebug("Move map refused connection={ConnectionId} character={CharacterId} generation={Generation} run={RunId} sequence={Sequence} reason=SupersededSession",
+                context.Connection.ConnectionId, session.CharacterId, session.ConnectionGeneration, current.RunId, message.Metadata.Sequence);
             return;
+        }
         if (partyRecipients is not null
             && !partyRecipients.Find(session, current.RunId).Contains(session))
+        {
+            logger.LogDebug("Move map refused connection={ConnectionId} character={CharacterId} generation={Generation} run={RunId} sequence={Sequence} reason=NotAdmittedParticipant",
+                context.Connection.ConnectionId, session.CharacterId, session.ConnectionGeneration, current.RunId, message.Metadata.Sequence);
             return;
+        }
 
         var attempt = await visits
             .TryMoveAsync(session.CharacterId, current, target, cancellationToken)
@@ -718,7 +763,7 @@ public sealed class MoveMapHandler(
         var visit = attempt.Visit;
         if (visit is null)
         {
-            logger.LogWarning(
+            logger.LogDebug(
                 "Move map {ConnectionId}: maze {MazeIndex} of dungeon {DungeonId} refused {Failure} "
                     + "at ({X},{Y}), staying in ({FromX},{FromY})",
                 context.Connection.ConnectionId,
@@ -732,19 +777,20 @@ public sealed class MoveMapHandler(
             return;
         }
 
-        logger.LogInformation(
-            "Move map {ConnectionId} user={WireUserId}: ({FromX},{FromY}) -> ({ToX},{ToY}) "
-                + "room={RoomId} first={FirstEntry} path=({PathX},{PathY})",
-            context.Connection.ConnectionId,
-            session.WireUserId,
-            current.CurrentCell.X,
-            current.CurrentCell.Y,
-            visit.Run.CurrentCell.X,
-            visit.Run.CurrentCell.Y,
-            visit.Run.CurrentRoomMapId,
-            visit.FirstEntry,
-            message.PathPositionX,
-            message.PathPositionY);
+        if (logger.IsEnabled(LogLevel.Debug))
+            logger.LogDebug(
+                "Move map {ConnectionId} user={WireUserId}: ({FromX},{FromY}) -> ({ToX},{ToY}) "
+                    + "room={RoomId} first={FirstEntry} path=({PathX},{PathY}) run={RunId} version={RoomVersion} sequence={Sequence} stage=Committed",
+                context.Connection.ConnectionId,
+                session.WireUserId,
+                current.CurrentCell.X,
+                current.CurrentCell.Y,
+                visit.Run.CurrentCell.X,
+                visit.Run.CurrentCell.Y,
+                visit.Run.CurrentRoomMapId,
+                visit.FirstEntry,
+                message.PathPositionX,
+                message.PathPositionY, visit.Run.RunId, visit.Run.RoomVersion, message.Metadata.Sequence);
 
         // A room walked into a second time is described as empty. The reference server has a
         // separate revisit builder that writes no actors and no drops at all, and it is right to:
@@ -763,7 +809,11 @@ public sealed class MoveMapHandler(
             .Select(value => (value.Session, Run: value.Run!))
             .ToArray();
         if (currentRecipients.Length == 0)
+        {
+            logger.LogWarning("Move map committed without recipients connection={ConnectionId} run={RunId} room={RoomId} version={RoomVersion} sequence={Sequence}",
+                context.Connection.ConnectionId, visit.Run.RunId, visit.Run.CurrentRoomMapId, visit.Run.RoomVersion, message.Metadata.Sequence);
             return;
+        }
 
         // If the requester was replaced while room projection was awaited, the room has already
         // advanced. Do not send to either requester generation, but do keep the remaining frozen
@@ -787,18 +837,37 @@ public sealed class MoveMapHandler(
                 : visit.FirstEntry && HellPartyProjection.For(run) is { } info
                 ? [RoomFor(run), info] : [RoomFor(run)];
 
-        await sender.SendExplicitAsync(
-            required.Session.ConnectionId,
-            new GameExplicitMessageDelivery(
-                FramesFor(required.Run),
-                [.. currentRecipients
-                    .Where(value => value.Session != required.Session)
-                    .Select(value => new GameExplicitMessageTarget(
-                        value.Session.ConnectionId,
-                        FramesFor(value.Run)))]),
-            cancellationToken).ConfigureAwait(false);
-        if (fatigueProjection is not null)
-            foreach (var receiver in currentRecipients)
-                await fatigueProjection.SendAsync(receiver.Session, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await sender.SendExplicitAsync(
+                required.Session.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    FramesFor(required.Run),
+                    [.. currentRecipients
+                        .Where(value => value.Session != required.Session)
+                        .Select(value => new GameExplicitMessageTarget(
+                            value.Session.ConnectionId,
+                            FramesFor(value.Run)))]),
+                cancellationToken).ConfigureAwait(false);
+            if (fatigueProjection is not null)
+                foreach (var receiver in currentRecipients)
+                    await fatigueProjection.SendAsync(receiver.Session, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            logger.LogDebug("Move map publication cancelled connection={ConnectionId} run={RunId} sequence={Sequence}",
+                context.Connection.ConnectionId, visit.Run.RunId, message.Metadata.Sequence);
+            throw;
+        }
+        catch (Exception error)
+        {
+            logger.LogError(error, "Move map publication failed after commit connection={ConnectionId} run={RunId} room={RoomId} version={RoomVersion} sequence={Sequence}",
+                context.Connection.ConnectionId, visit.Run.RunId, visit.Run.CurrentRoomMapId, visit.Run.RoomVersion, message.Metadata.Sequence);
+            throw;
+        }
+        if (logger.IsEnabled(LogLevel.Debug))
+            logger.LogDebug("Move map delivered connection={ConnectionId} run={RunId} room={RoomId} version={RoomVersion} sequence={Sequence} recipients={RecipientCount} actors={ActorCount} floorDrops={FloorDropCount}",
+                context.Connection.ConnectionId, visit.Run.RunId, visit.Run.CurrentRoomMapId, visit.Run.RoomVersion,
+                message.Metadata.Sequence, currentRecipients.Length, visit.Actors.Count, visit.FloorDrops.Count);
     }
 }

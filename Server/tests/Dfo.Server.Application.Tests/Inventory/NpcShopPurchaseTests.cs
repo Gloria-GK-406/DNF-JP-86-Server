@@ -317,6 +317,22 @@ internal sealed class ShopFixture : IDisposable
     public NetworkConnectionContext Connection => connection;
     public OnlineUserId OnlineUser => onlineUser;
 
+    // Test setup uses the same transaction participant boundary as a registered entry command.
+    public T InTransaction<T>(Func<T> setup)
+    {
+        var scope = (DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>();
+        if (scope.Current is not null) return setup();
+        var transaction = scope.Begin();
+        try
+        {
+            var result = setup();
+            transaction.CommitAsync(default).GetAwaiter().GetResult();
+            return result;
+        }
+        finally { transaction.DisposeAsync().GetAwaiter().GetResult(); }
+    }
+
+
     public ShopFixture(Action<IServiceCollection>? configure = null)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>

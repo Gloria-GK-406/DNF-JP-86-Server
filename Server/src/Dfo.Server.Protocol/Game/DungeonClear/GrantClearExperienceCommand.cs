@@ -36,7 +36,8 @@ public sealed record GrantClearExperienceCommand(
 public sealed class GrantClearExperienceCommandHandler(
     ICharacterDomainService grant, TimeProvider clock, ICharacterDungeonDifficultyDomainService difficulties,
     Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance = null,
-    IQuestProgressDomainService? quests = null, IDungeonRunDomainService? runs = null, IDespairTowerDomainService? despair = null)
+    IQuestProgressDomainService? quests = null, IDungeonRunDomainService? runs = null, IDespairTowerDomainService? despair = null,
+    Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService? luckyStars = null)
     : ICommandHandler<GrantClearExperienceCommand, ClearExperienceResult>
 {
     public async ValueTask<ClearExperienceResult> HandleAsync(CommandExecutionContext context,
@@ -58,6 +59,8 @@ public sealed class GrantClearExperienceCommandHandler(
             && mirror.RunId.Value == command.RunId && mirror.ClearOpen)
             await quests.ReportAsync(command.AccountId, command.CharacterId,
                 [new QuestDungeonCleared(command.DungeonId, mirror.Difficulty, mirror.RunId, mirror.ClearedAt ?? now)], cancellationToken).ConfigureAwait(false);
+        if (luckyStars is not null && command.RunId != Guid.Empty)
+            await luckyStars.GrantForClearAsync(command.AccountId, command.CharacterId, new(command.RunId), cancellationToken).ConfigureAwait(false);
         var award = await grant.Get(command.CharacterId).AddExpAsync(new ClearExperienceContext(
                 new ExperienceOccasion(ExperienceEvent.DungeonClear, command.AccountId,
                     command.CharacterId, command.DungeonId), command.Clear), now, command.Session,

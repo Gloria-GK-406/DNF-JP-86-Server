@@ -33,4 +33,7 @@ public sealed record CeraShopItemDefinition(int ItemId, string Source, CeraShopI
     ushort Durability, bool Sealed, int? MinimumPurchaseLevel,
     ImmutableArray<CeraShopComponent> Components, ImmutableArray<CeraShopSelectionGroup> SelectionGroups,
     CeraShopAvatarDeclaration? Avatar, CeraShopCreatureDeclaration? Creature,
-    ImmutableArray<CeraShopDiagnostic> Diagnostics);
+    ImmutableArray<CeraShopDiagnostic> Diagnostics)
+{
+    public bool IsNameTag { get; init; }
+}

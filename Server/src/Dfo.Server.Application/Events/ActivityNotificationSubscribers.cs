@@ -26,5 +26,6 @@ internal sealed class EventsConfigurationNotificationSubscriber(IEventService ev
     : IDomainEventSubscriber<ManagedEventConfigurationChanged>
 {
     public async ValueTask HandleAsync(DomainEventEnvelope<ManagedEventConfigurationChanged> message, CancellationToken cancellationToken) =>
-        await events.ProjectAsync(new NotificationAudience.TheseSessions(online.Snapshot()), new EventsChanged(), cancellationToken);
+        await events.ProjectAsync(new NotificationAudience.TheseSessions(online.Snapshot()),
+            new EventsChanged { RefreshQuestOffers = message.Payload.EventId == Dfo.Server.Application.World.SouthernDaleRuleService.ActivityId }, cancellationToken);
 }

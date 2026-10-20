@@ -28,6 +28,7 @@ using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Dfo.Server.Protocol.Tests.Game.TownProjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using EnteredDungeon = Dfo.Server.Abstractions.World.DungeonEntry;
 using QuestTaken = Dfo.Server.Abstractions.Quests.QuestAcceptance;
 
@@ -49,6 +50,36 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 /// </remarks>
 public sealed class SelectDungeonHandlerTests
 {
+    [Fact]
+    public async Task Entry_transaction_cannot_reach_the_visit_until_exit_projection_releases_its_lease()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddCommandDispatching();
+        var visits = new RecordingVisits();
+        services.AddSingleton<IDungeonVisitDomainService>(visits);
+        services.AddSingleton<IDungeonEntryDecisionDomainService>(new Dfo.Server.Application.World.DungeonEntryDecisionDomainService());
+        services.AddSingleton<ISelectedSessionDomainService>(new OneSession(Identity));
+        services.AddCommandHandler<EnterDungeonCommand, DungeonEntryAttempt, EnterDungeonCommandHandler>(
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        await using var provider = services.BuildServiceProvider();
+        var gate = provider.GetRequiredService<SelectedSessionTransitionGate>();
+        var exitLease = await gate.AcquireAsync(Identity.AccountId, UserAccessMode.Exclusive, default);
+        var command = new EnterDungeonCommand(new(TutorialDungeonId, DungeonEntryFacts.None, 0, 0,
+            [new(Identity.AccountId, Identity.CharacterId, 0, true)])) { Session = Identity, Sessions = [Identity] };
+        Task<DungeonEntryAttempt> entry;
+        using (ExecutionContext.SuppressFlow())
+            entry = Task.Run(async () => await provider.GetRequiredService<ICommandBus>().SendAsync(command));
+        try
+        {
+            Assert.NotSame(entry, await Task.WhenAny(entry, Task.Delay(100)));
+            Assert.Empty(visits.Facts);
+        }
+        finally { await exitLease.DisposeAsync(); }
+        Assert.NotNull((await entry.WaitAsync(TimeSpan.FromSeconds(5))).Entry);
+        Assert.Single(visits.Facts);
+    }
+
     [Fact]
     public async Task Mirror_load_pushes_mission_before_maps_without_a_second_entry_ack()
     {
@@ -256,6 +287,30 @@ public sealed class SelectDungeonHandlerTests
         Assert.Equal(
             DungeonEntryIntent.Directed(TutorialDungeonId),
             Assert.Single(visits.Facts).Intent);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Ordinary_retry_preserves_requested_difficulty_and_rejects_a_different_target(bool wrongTarget)
+    {
+        var visits = new RecordingVisits();
+        var sender = new RecordingSender();
+        var handler = Handler(visits, sender,
+            intent: DungeonEntryIntent.OrdinaryRechallenge(TutorialDungeonId + (wrongTarget ? 1 : 0)));
+        await handler.HandleAsync(Dispatch(), Request(), default);
+        if (wrongTarget)
+        {
+            Assert.Empty(visits.Facts);
+            var refusal = Assert.IsType<SelectDungeonRefusal>(Assert.Single(sender.Sent));
+            Assert.Equal(SelectDungeonRefusal.InvalidSelectionState, refusal.ErrorCode);
+        }
+        else
+        {
+            var facts = Assert.Single(visits.Facts);
+            Assert.Equal(Difficulty, facts.Difficulty);
+            Assert.Equal(DungeonEntryIntent.OrdinaryRechallenge(TutorialDungeonId), facts.Intent);
+        }
     }
 
     [Fact]

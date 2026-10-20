@@ -63,14 +63,21 @@ public sealed class UseRevivalCoinHandler(ISelectedSessionDomainService sessions
     IOnlineUserQueryDomainService onlineUsers, IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry registry, DungeonProjectionGate projectionGate,
     SelectedSessionTransitionGate transitionGate, ICommandBus commands, IGameMessageSender sender,
-    RevivalOptions options, TimeProvider clock, ILogger<UseRevivalCoinHandler> logger)
+    RevivalOptions options, TimeProvider clock, ILogger<UseRevivalCoinHandler> logger,
+    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null)
     : ClientMessageHandler<UseRevivalCoinRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
         UseRevivalCoinRequest message, CancellationToken cancellationToken)
     {
         var payer = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (payer is null || runs.Find(payer.CharacterId) is not { } expected) return;
+        if (payer is null) return;
+        if (bossTower?.Find(payer) is not null)
+        {
+            await RefuseAsync(payer, message, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+        if (runs.Find(payer.CharacterId) is not { } expected) return;
         await using var projection = await projectionGate.AcquireAsync(expected.RunId,
             UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
         var frozen = registry.Find(expected.RunId);

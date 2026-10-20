@@ -1,11 +1,14 @@
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Protocol.Game.DungeonEntry;
 
-public sealed record EnterDungeonCommand(DungeonEntryContext Entry) : ICommand<DungeonEntryAttempt>, IMultiAccountCommand
+public sealed record EnterDungeonCommand(DungeonEntryContext Entry) : ICommand<DungeonEntryAttempt>, IMultiAccountCommand, IMultiSelectedSessionCommand
 {
+    public SelectedSessionIdentity? Session { get; init; }
+    public IReadOnlyList<SelectedSessionIdentity> Sessions { get; init; } = [];
     public IReadOnlyList<AccountId> AccountIds => Entry.Participants.Select(x => x.AccountId).Distinct().ToArray();
 }
 
@@ -15,11 +18,18 @@ public sealed class EnterDungeonCommandHandler(
     IHellDungeonEntryDomainService? hell = null, ICycleDungeonEntryDomainService? cycles = null,
     IMirrorDungeonEntryDomainService? mirrors = null, IDimensionDungeonDomainService? dimensions = null, IDespairTowerDomainService? despair = null,
     ITournamentDungeonDomainService? tournaments = null, IAltarDungeonDomainService? altars = null, ISaoTowerDomainService? sao = null,
-    ITauKingdomDomainService? tau = null, IHerasDungeonDomainService? heras = null, ICoupleDungeonDomainService? couples = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
+    ITauKingdomDomainService? tau = null, IHerasDungeonDomainService? heras = null, ICoupleDungeonDomainService? couples = null,
+    ISouthernDaleDomainService? southern = null, ISealedTreasureDomainService? sealedTreasure = null, IGoldSilverHornDomainService? goldSilverHorn = null) : ICommandHandler<EnterDungeonCommand, DungeonEntryAttempt>
 {
     public ValueTask<DungeonEntryAttempt> HandleAsync(CommandExecutionContext context, EnterDungeonCommand command,
         CancellationToken cancellationToken) => couples?.Supports(command.Entry.DungeonId) == true
         ? couples.EnterAsync(command.Entry, cancellationToken)
+        : goldSilverHorn?.Supports(command.Entry.DungeonId) == true
+        ? goldSilverHorn.EnterAsync(command.Entry, cancellationToken)
+        : sealedTreasure?.Supports(command.Entry.DungeonId) == true
+        ? sealedTreasure.EnterAsync(command.Entry, cancellationToken)
+        : southern?.Supports(command.Entry.DungeonId) == true
+        ? southern.EnterAsync(command.Entry, cancellationToken)
         : heras?.Supports(command.Entry.DungeonId) == true
         ? heras.EnterAsync(command.Entry, cancellationToken)
         : tau?.Supports(command.Entry.DungeonId) == true

@@ -7,6 +7,7 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Abstractions.Effects;
 
 public sealed record GrantPreparedItemEffect(OpeningPreparedGrant Grant, ItemDeliveryMode DeliveryMode) : InventoryEffect;
+public sealed record GrantOpeningGoldEffect(int Amount) : InventoryEffect;
 public sealed record GrantOpeningVirtualEffect(int Slot, int CoreItemId, byte ItemKind, OpeningReward Reward) : InventoryEffect;
 public sealed record SetOpeningPremiumEffect(PremiumServiceType Type, long ExpectedExpiry, long NextExpiry, OpeningReward Reward) : InventoryEffect;
 public sealed record SetSeriaLuckEffect(int Expected, int Next) : InventoryEffect;

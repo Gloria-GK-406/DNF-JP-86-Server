@@ -505,7 +505,7 @@ public sealed partial class MailboxCoreIntegrationTests
         public MailFixture Reopen() => new(directory, Clock, false, configure);
 
         public async Task SeedStackAsync(CharacterId owner, int slot, int itemId, int count, byte kind,
-            InventoryContainerType container = InventoryContainerType.Main)
+            InventoryContainerType container = InventoryContainerType.Main, int expireTime = 0)
         {
             var scope = (DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>();
             await using var transaction = scope.Begin();
@@ -514,7 +514,7 @@ public sealed partial class MailboxCoreIntegrationTests
             var id = ContainerId.ForCharacter(owner, container);
             if (await session.GetAsync(id, slot, default) is { } old)
                 await session.DeleteItemAsync(await session.TakeAsync(old, null, default), default);
-            await session.PutAsync(id, slot, await session.CreateAsync(ItemSnapshot.FromCore(StackableItemCore.Create(kind, itemId, count), true), default), default);
+            await session.PutAsync(id, slot, await session.CreateAsync(ItemSnapshot.FromCore(StackableItemCore.Create(kind, itemId, count) with { ExpireTime = expireTime }, true), default), default);
             await transaction.CommitAsync(default);
         }
 

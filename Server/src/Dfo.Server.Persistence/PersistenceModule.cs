@@ -68,6 +68,8 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageRelationDomainStore, Dfo.Server.Persistence.Marriage.SqliteMarriageRelationDomainStore>();
         services.TryAddSingleton<IEpicBookDomainStore, SqliteEpicBookDomainStore>();
         services.TryAddSingleton<IMirrorAradQuestDomainStore, SqliteMirrorAradQuestDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.ISouthernDaleDomainStore, Dfo.Server.Persistence.Characters.SqliteSouthernDaleDomainStore>();
+        services.TryAddSingleton<ICharacterNameTagDomainStore, SqliteCharacterNameTagDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ISaoTowerDomainStore, Dfo.Server.Persistence.Characters.SqliteSaoTowerDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDespairTowerDomainStore, Dfo.Server.Persistence.Characters.SqliteDespairTowerDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaStore, LegacyUsageQuotaStore>();
@@ -144,8 +146,10 @@ public sealed class PersistenceModule : IServerModule
             provider => new SqliteCharacterItemEffectTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterItemLockTable>(
             provider => new SqliteCharacterItemLockTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<Dfo.Server.Abstractions.Rental.ILuckyStarDomainStore, Dfo.Server.Persistence.Inventory.SqliteLuckyStarDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Rental.IEquipmentRentalDomainStore, Dfo.Server.Persistence.Inventory.SqliteEquipmentRentalDomainStore>();
         services.TryAddSingleton<ICharacterRentalTable>(
-            provider => new SqliteCharacterRentalTable(provider.GetRequiredService<SqliteDatabase>()));
+            provider => new SqliteCharacterRentalTable(provider.GetRequiredService<SqliteDatabase>(), provider.GetService<TimeProvider>()));
         services.TryAddSingleton<IPremiumServiceUsageTable, SqlitePremiumServiceUsageTable>();
         services.TryAddSingleton<IConsumableUsageTable, SqliteConsumableUsageTable>();
         services.TryAddSingleton<ICharacterFatigueTable, SqliteCharacterFatigueTable>();
@@ -185,6 +189,7 @@ public sealed class PersistenceModule : IServerModule
             provider => new SqliteCharacterTitleBookTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterAchievementTable>(
             provider => new SqliteCharacterAchievementTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICollectionBoxSelectionTable, SqliteCollectionBoxSelectionTable>();
         services.TryAddSingleton<ICharacterCollectionBoxTable>(
             provider => new SqliteCharacterCollectionBoxTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterExpertRecipeTable>(

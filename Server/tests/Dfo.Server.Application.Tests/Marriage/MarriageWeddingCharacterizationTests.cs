@@ -21,7 +21,7 @@ public sealed class MarriageWeddingCharacterizationTests
         public List<(int Character, string Grants, string Source, ItemDeliveryMode Mode)> Calls { get; } = [];
         public ValueTask<long> PendingQuantityAsync(CharacterId character, int itemId, CancellationToken ct) => ValueTask.FromResult(0L);
         public ValueTask<ItemDeliveryReceipt> DeliverAsync(AccountId account, CharacterId character, IReadOnlyList<ItemDeliveryGrant> grants,
-            string source, CancellationToken ct, ItemDeliveryMode mode)
+            string source, CancellationToken ct, ItemDeliveryMode mode, ItemDeliveryOptions? options = null)
         {
             Calls.Add((character.Value, string.Join(",", grants.Select(x => $"{x.ItemId}x{x.Count}")), source, mode));
             return ValueTask.FromResult(new ItemDeliveryReceipt([], [], 0));

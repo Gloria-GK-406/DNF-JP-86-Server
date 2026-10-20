@@ -177,7 +177,46 @@ public sealed class DespairTowerTests
         Assert.Empty(next.Entry.InventoryChanges);
         f.Sql("UPDATE character_despair_tower SET highest_cleared_floor=100 WHERE character_id=71");
         var finished = await tower.ReadStatusAsync(new(71), default);
-        Assert.Equal((100, (byte)0), (finished.NextFloor, finished.FreeEntriesRemaining));
+        Assert.Equal((1, (byte)0), (finished.NextFloor, finished.FreeEntriesRemaining));
+    }
+
+    [SkippableFact]
+    public async Task Final_floor_rewards_once_then_next_day_enters_and_settles_floor_one()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        var clock = new Clock { Now = new(2026, 10, 20, 5, 59, 59, TimeSpan.FromHours(8)) };
+        await using var f = await Fixture(clock);
+        f.Sql("INSERT INTO character_despair_tower(character_id,highest_cleared_floor,last_clear_run) VALUES(71,99,'previous-floor')");
+        var period = DateOnly.FromDateTime(f.Services.GetRequiredService<IDailyResetRuleService>()
+            .PeriodStart(clock.Now).ToOffset(TimeSpan.FromHours(8)).DateTime);
+        await using (var tx = f.Scope.Begin())
+        {
+            await f.Services.GetRequiredService<IEventService>().DirectAsync(new DespairQuotaRecorded(new(71), period, "clears", null, 2), default);
+            await tx.CommitAsync(default);
+        }
+        var tower = f.Services.GetRequiredService<IDespairTowerDomainService>();
+        var store = f.Services.GetRequiredService<IDespairTowerDomainStore>();
+        var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+        var entry = Assert.IsType<DungeonPartyEntry>((await Enter(f)).Entry);
+        Assert.Equal(100, entry.Layout.Despair!.Floor);
+        Assert.NotNull(await Clear(f, commit: false));
+        Assert.Equal(99, (await store.ReadAsync(new(71), default)).HighestClearedFloor);
+        var reward = Assert.IsType<DespairTowerSettlement>(await Clear(f));
+        Assert.Equal(100, reward.Floor);
+        Assert.Equal(1, Assert.Single(reward.Rewards, item => item.ItemId == 3314).Count);
+        Assert.Null(await Clear(f));
+        Assert.Equal(100, (await store.ReadAsync(new(71), default)).HighestClearedFloor);
+        var status = await tower.ReadStatusAsync(new(71), default);
+        Assert.Equal((1, (byte)0), (status.NextFloor, status.FreeEntriesRemaining));
+        await runs.EndAsync(new(71), runs.Find(new CharacterId(71))!.RunId);
+        Assert.Equal(DungeonEntryFailure.DailyEntryLimitReached, (await Enter(f)).Failure);
+        clock.Now = clock.Now.AddSeconds(1);
+        status = await tower.ReadStatusAsync(new(71), default);
+        Assert.Equal((1, (byte)1), (status.NextFloor, status.FreeEntriesRemaining));
+        Assert.Equal(1, (await Enter(f)).Entry!.Layout.Despair!.Floor);
+        Assert.Equal(1, Assert.IsType<DespairTowerSettlement>(await Clear(f)).Floor);
+        await using var reopened = new LearningFixture(existing: f.Path);
+        Assert.Equal(1, (await reopened.Services.GetRequiredService<IDespairTowerDomainStore>().ReadAsync(new(71), default)).HighestClearedFloor);
     }
 
     private sealed class Clock : TimeProvider

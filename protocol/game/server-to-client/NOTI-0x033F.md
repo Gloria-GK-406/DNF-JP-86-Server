@@ -12,6 +12,14 @@ handler 将字段重排成 `{contentId,state,category,opaque}`，经 `01192D21 -
 
 `CurrentImplementation`：活动投影为牛头怪乐园生成 `ScheduledDungeonState(3700, Open)`，选角和活动刷新发送本通知，关闭时显式发送状态 0。保留现有 `0x02D5` 兼容消息，两条身份不能互换。
 
+## 南部溪谷与任务调度补证（2026-10-19）
+
+`ClientStatic / High`：同版只读 RVA dump（SHA-256 `6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507`）中，`011C2670` 验证类别 0..4 后写入对应容器。`011C2530` 查询类别0；`011C2550` 查询类别1，其调用者 `00E4F660` 在首参数为1时要求指定内容状态等于1。任务相关调用点 `00E58D98`、`02371D6C` 传入记录 `+C0` 标志与 `+0` ID；`+C0` 的PVF字段写入来源仍未完全闭合，不将类别1的任务映射写成Confirmed。
+
+`ClientStatic` 证据文件：`DNFClient-A21-protocol/dumps/dnf-dump-20260906-224825-165-31384/DNF-memory-rva.bin`（工作区只读）；`ClientStatic` 与 `CurrentImplementation` 分开：本服现为南部发送类别0/DGN100、类别1/任务20549，状态随南部受管活动2330启停，在选角与在线活动刷新中共用投影，关闭时显式发送0。PVF的 `etc/chn_schedule.etc` 声明地下城100与任务20549，DGN100与任务定义均带schedule2330。2330仅作为本服配置身份，不据此断言原服EVENT_INFO身份。
+
+本轮没有新增原服抓包或原生UI实测；仍需验证山麓入口、任务显示与关闭后消失，不升级为WireCaptured/ClientVerified。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**
@@ -63,6 +71,14 @@ BodyLength = 未知（字段集合已知不完整）
 <!-- rks:machine:end -->
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
+
+## 2026-10-19 领主之塔3505入口
+
+ClientStatic / High：同版20260922 A21 dump SHA-256 `AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D`。`011C4B54`加载etc/chn_schedule.etc，`011C525B/011C52E5`将[dungeon]记录纳入类别0名单。当前PVF SHA-256 `C5CCE5346F60D21128D756A086EEF96E70F75F2F2FE063B6C61C00506C588F06`的同名单明确包含3505。
+
+选图`0271D854→011C2160→011C3030`识别调度内容，`0271D886→011C2530→011C2190`要求同contentId状态1或2，缺项/0过滤；后置`02736B90`也检查，已开放调度路径绕过69/75隐藏拒绝。建议用类别0、状态1、contentId3505、opaque0；正文`0000000001000000B10D000000000000`。2329仅是本服拟接入的活动配置身份，不能代替3505，也不需机械追加69/75或改PVF入口。
+
+调查基线：当时未注册2329活动、未投影3505，用户确认入口不可见。CurrentImplementation：现已接入BossTowerEntranceEventDomainService受管2329默认常驻、EventPlayerSnapshotProjection输出3505开放/关闭，同一033F路径用于选角和在线更新；关闭服务端准入同步拒绝。实际显示与点击仍待用户验证。[完整补证及设计](../../../Document/LordTower-Design-20261019.md)。
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。

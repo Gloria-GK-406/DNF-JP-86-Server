@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -102,6 +103,7 @@ public sealed class CardRewardReconnectIntegrationTests
             new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
             new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
             new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
+            builder.Services.AddCommandHandler<SeedReconnectRunCommand, DungeonRunState, SeedReconnectRunCommandHandler>(CommandExecutionKind.Transactional);
 
             using var host = builder.Build();
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -128,7 +130,8 @@ public sealed class CardRewardReconnectIntegrationTests
                     SelectedSessionIdentity.Create(
                         Account, Character, first, connectionGeneration: 1, gamePort));
 
-                var run = runs.Begin(Character, Layout, difficulty: (DungeonDifficulty)1);
+                var run = await host.Services.GetRequiredService<ICommandBus>()
+                    .SendAsync(new SeedReconnectRunCommand(), timeout.Token);
                 Assert.NotNull(runs.TryOpenClear(Character, run.RunId, run.RoomVersion));
                 Assert.NotNull(
                     runs.FixClearRewardCards(
@@ -254,4 +257,12 @@ public sealed class CardRewardReconnectIntegrationTests
     {
         public override DateTimeOffset GetUtcNow() => value;
     }
+    public sealed record SeedReconnectRunCommand : ICommand<DungeonRunState>;
+    public sealed class SeedReconnectRunCommandHandler(IDungeonRunDomainService runs)
+        : ICommandHandler<SeedReconnectRunCommand, DungeonRunState>
+    {
+        public ValueTask<DungeonRunState> HandleAsync(CommandExecutionContext context, SeedReconnectRunCommand command, CancellationToken cancellationToken)
+            => ValueTask.FromResult(runs.Begin(Character, Layout, difficulty: (DungeonDifficulty)1));
+    }
+
 }

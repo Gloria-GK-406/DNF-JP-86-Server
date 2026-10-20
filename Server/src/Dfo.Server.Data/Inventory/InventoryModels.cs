@@ -23,6 +23,8 @@ public enum InventoryContainerType : byte
     GuildMedal = 38,
     // Server storage only; A21 represents these as Main slots 354..364.
     SharedMaterial = 240,
+    // Server-only custody; never a client inventory list.
+    CollectionBox = 241,
 }
 
 /// <summary>An indivisible slot address as the A21 game protocol expresses it.</summary>

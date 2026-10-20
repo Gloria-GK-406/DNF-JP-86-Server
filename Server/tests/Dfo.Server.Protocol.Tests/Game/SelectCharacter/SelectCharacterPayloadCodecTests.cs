@@ -482,22 +482,10 @@ public sealed class SelectCharacterPayloadCodecTests
                 },
             },
             0x0013));
-        Assert.Throws<InvalidDataException>(() => EncodeSelectedStateBody(
-            result with
-            {
-                CharacterEntry = result.CharacterEntry with
-                {
-                    Features = result.CharacterEntry.Features with
-                    {
-                        Collections = result.CharacterEntry.Features.Collections with
-                        {
-                            CollectionBoxes =
-                            [result.CharacterEntry.Features.Collections.CollectionBoxes[0] with { Protocol = null }],
-                        },
-                    },
-                },
-            },
-            0x0381));
+        // 0381 is fixed A21 compatibility, independent of real 03EB collection progress.
+        Assert.Equal(new byte[] { 1, 1, 255, 255, 255, 255, 0, 0 }, EncodeSelectedStateBody(
+            result with { CharacterEntry = result.CharacterEntry with { Features = result.CharacterEntry.Features with
+            { Collections = result.CharacterEntry.Features.Collections with { CollectionBoxes = [] } } } }, 0x0381));
         Assert.Throws<InvalidDataException>(() => EncodeInventory(
             result with
             {
@@ -725,7 +713,9 @@ public sealed class SelectCharacterPayloadCodecTests
             services.RemoveAll<Dfo.Server.Abstractions.World.IHerasDungeonDomainService>();
             services.RemoveAll<Dfo.Server.Abstractions.World.IAltarDungeonDomainService>();
             services.RemoveAll<Dfo.Server.Abstractions.World.ITournamentDungeonDomainService>();
+            services.RemoveAll<Dfo.Server.Abstractions.World.IGoldSilverHornDomainService>();
             services.RemoveAll<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>();
+            services.RemoveAll<ICharacterNameTagDomainService>();
             await using var provider = services.BuildServiceProvider();
             var typed = await provider.GetRequiredService<ICharacterEntryStateDomainService>().LoadAsync(
                 new AccountId(12), new CharacterId(22), CancellationToken.None);

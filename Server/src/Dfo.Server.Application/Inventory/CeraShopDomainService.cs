@@ -25,7 +25,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
     ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
     ICeraShopPurchaseRestrictionDomainService restrictions, IApplyEffectsDomainService effects,
     ICreatureDomainService? creatureDomains = null, IInventoryExpansionDomainService? expansion = null,
-    IInventoryCapacityRuleService? capacityRules = null) : ICeraShopDomainService
+    IInventoryCapacityRuleService? capacityRules = null, ICharacterNameTagDomainService? nameTags = null) : ICeraShopDomainService
 {
     public async ValueTask<CeraShopPurchaseResult> PurchaseAsync(SelectedSessionIdentity session, CeraShopPurchaseInput input,
         DateTimeOffset now, CancellationToken cancellationToken)
@@ -112,6 +112,9 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
                 cancellationToken).ConfigureAwait(false);
         if (capacityChanges.Count > 0)
             await expansion!.ApplyPurchaseAsync(session, capacityChanges, cancellationToken).ConfigureAwait(false);
+        if (!quote.NameTags.IsEmpty)
+            await (nameTags ?? throw new InvalidOperationException("Name tag domain is unavailable."))
+                .PurchaseAsync(session.AccountId, session.CharacterId, quote.NameTags, now, cancellationToken).ConfigureAwait(false);
         foreach (var subscription in quote.Subscriptions)
             await premiums.For(session.AccountId).ExtendAsync(subscription.Service, subscription.Duration,
                 cancellationToken).ConfigureAwait(false);
@@ -180,7 +183,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
                     Dfo.Server.Abstractions.Content.InventoryExpansionKind.PersonalCargo => InventoryContainerType.PersonalCargo,
                     _ => InventoryContainerType.AccountCargo,
                 }).Distinct().ToArray(),
-                PremiumEntitlements = entitlements, PremiumUsageSlots = usage,
+                PremiumEntitlements = entitlements, PremiumUsageSlots = usage, NameTagChanged = !quote.NameTags.IsEmpty,
                 PurchaseRestrictions = quote.Restrictions.IsEmpty ? null
                     : (await restrictions.ReadAsync(session.AccountId, now, cancellationToken).ConfigureAwait(false)).Entries,
                 GrantedPremiums = entitlements?.Premiums.Where(p => p.PremiumType is 22 or 27 or 84 or 97

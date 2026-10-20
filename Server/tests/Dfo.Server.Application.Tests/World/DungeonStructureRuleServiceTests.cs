@@ -1,6 +1,8 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
+using Dfo.Server.Data.World;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -15,6 +17,92 @@ namespace Dfo.Server.Application.Tests.World;
 /// </remarks>
 public sealed class DungeonStructureRuleServiceTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Ordinary_rechallenge_never_selects_a_story_maze(bool hasActiveQuest)
+    {
+        var service = Service(MixedQuestMazes());
+        var facts = new DungeonEntryFacts(DungeonDifficulty.Adventure,
+            hasActiveQuest ? [1776] : [], [], DungeonEntryIntent.OrdinaryRechallenge(144));
+        for (var seed = 0; seed < 8; seed++)
+        {
+            var layout = await service.ResolveAsync(144, facts, seed, default);
+            Assert.NotNull(layout);
+            Assert.Equal(0, layout.MazeIndex);
+            Assert.Equal(DungeonRunPurpose.Ordinary, layout.Purpose);
+        }
+        Assert.Null(await service.ResolveAsync(144,
+            facts with { Intent = DungeonEntryIntent.OrdinaryRechallenge(145) }, 0, default));
+    }
+
+    [SkippableFact]
+    public async Task Actual_dungeon_92_ordinary_rechallenge_resolves_the_adventure_layout()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateContentProvider();
+        var rules = new DungeonStructureRuleService(provider.GetRequiredService<IDungeonDefinitionSource>(),
+            provider.GetRequiredService<IDungeonMapDefinitionSource>());
+        var facts = new DungeonEntryFacts(DungeonDifficulty.Adventure, [], [], DungeonEntryIntent.Interactive);
+        var original = await rules.ResolveAsync(92, facts, 3, default);
+        var retried = await rules.ResolveAsync(92,
+            facts with { Intent = DungeonEntryIntent.OrdinaryRechallenge(92) }, 3, default);
+        Assert.NotNull(original);
+        Assert.NotNull(retried);
+        Assert.Equal(original.MazeIndex, retried.MazeIndex);
+        Assert.Equal(original.StartRoomMapId, retried.StartRoomMapId);
+        Assert.Equal(DungeonRunPurpose.Ordinary, retried.Purpose);
+        Assert.Null(await rules.ResolveAsync(92,
+            facts with { Intent = DungeonEntryIntent.Directed(92) }, 3, default));
+    }
+
+    [SkippableFact]
+    public async Task Actual_story_1788_replaces_1787_maze_without_changing_dungeon_id()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateContentProvider();
+        var rules = new DungeonStructureRuleService(provider.GetRequiredService<IDungeonDefinitionSource>(),
+            provider.GetRequiredService<IDungeonMapDefinitionSource>());
+        var before = await rules.ResolveAsync(148, new(0, [1787], [], DungeonEntryIntent.Directed(148)), 3, default);
+        var after = await rules.ResolveAsync(148, new(0, [1788], [1787], DungeonEntryIntent.Directed(148)), 3, default);
+        Assert.NotNull(before);
+        Assert.NotNull(after);
+        Assert.Equal(55657, before.StartRoomMapId);
+        Assert.Equal(55664, after.StartRoomMapId);
+        Assert.Equal(5, after.Width);
+        Assert.Equal(3, after.Height);
+        Assert.Equal(1788, after.Purpose.QuestId);
+        Assert.NotEqual(before.MazeIndex, after.MazeIndex);
+    }
+
+    [Fact]
+    public async Task Following_story_quest_uses_a_new_maze_in_the_same_dungeon()
+    {
+        MazeDefinition Maze(int index, byte width, byte height, int firstMap, int bossMap, int quest)
+        {
+            var cells = new Dictionary<MazeCell, DungeonCellDefinition>();
+            for (byte y = 0; y < height; y++)
+                for (byte x = 0; x < width; x++)
+                    cells[new(x, y)] = FixedRoom(firstMap + y * width + x);
+            var boss = new MazeCell((byte)(width - 1), (byte)(height - 1));
+            cells[boss] = FixedRoom(bossMap);
+            return new(index, width, height, cells, [new(0, 0)], [boss],
+                new(DungeonQuestConnectionState.Active, quest, -1));
+        }
+        var rules = Service(new(148, "story.dgn", 1, true,
+            [Maze(0, 6, 2, 55657, 55663, 1787), Maze(1, 5, 3, 55664, 55670, 1788)]));
+        var facts = new DungeonEntryFacts(0, [1788], [1787], DungeonEntryIntent.Directed(148));
+        for (var seed = 0; seed < 8; seed++)
+        {
+            var next = await rules.ResolveAsync(148, facts, seed, default);
+            Assert.NotNull(next);
+            Assert.Equal(5, next.Width);
+            Assert.Equal(3, next.Height);
+            Assert.Equal(55664, next.StartRoomMapId);
+            Assert.Equal(1788, next.Purpose.QuestId);
+        }
+    }
+
     [Fact]
     public async Task Named_monster_declarations_are_frozen_in_the_layout()
     {

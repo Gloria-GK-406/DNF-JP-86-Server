@@ -1,0 +1,24 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Application.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:02.33]     Dfo.Server.Application.Tests.Sessions.CollectionBoxNetworkSettlementTests.Replayed_selection_restores_current_boxes_without_inventory_or_old_ack [FAIL]
+  失败 Dfo.Server.Application.Tests.Sessions.CollectionBoxNetworkSettlementTests.Replayed_selection_restores_current_boxes_without_inventory_or_old_ack [247 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 3
+Actual:   9
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Sessions.CollectionBoxNetworkSettlementTests.Replayed_selection_restores_current_boxes_without_inventory_or_old_ack() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\collection-box\Server\tests\Dfo.Server.Application.Tests\Sessions\CollectionBoxNetworkSettlementTests.cs:line 34
+--- End of stack trace from previous location ---
+
+失败!  - 失败:     1，通过:  4151，已跳过:     0，总计:  4152，持续时间: 2 m 4 s - Dfo.Server.Application.Tests.dll (net10.0)

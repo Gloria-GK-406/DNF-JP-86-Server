@@ -25,6 +25,8 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.World.IllusionTower;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Application.World.BossTower;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Application.Accounts;
 using Dfo.Server.Application.Channel;
@@ -98,6 +100,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton(TimeProvider.System);
         services.AddTaskScheduling();
         services.AddOnlineExpiredItemCleanup();
+        services.AddCharacterNameTags();
         services.TryAddSingleton<ICharacterVisibleSessionDomainService, CharacterVisibleSessionDomainService>();
         services.AddEventDispatching();
         services.TryAddSingleton<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService,
@@ -181,6 +184,22 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IHerasDungeonDomainService, HerasDungeonDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.HerasQuotaRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.TryAddSingleton<ISouthernDaleRuleService, SouthernDaleRuleService>();
+        services.TryAddSingleton<ISealedTreasureRuleService, SealedTreasureRuleService>();
+        services.TryAddSingleton<IGoldSilverHornRuleService, GoldSilverHornRuleService>();
+        services.TryAddSingleton<IBossTowerRuleService, BossTowerRuleService>();
+        services.TryAddSingleton<IBossTowerTicketDomainService, BossTowerTicketDomainService>();
+        services.AddDomainEvent<BossTowerTicketRefilled>("boss-tower.ticket-refilled", 1);
+        services.AddBossTowerDailyRefill();
+        services.TryAddSingleton<IGoldSilverHornDomainService, GoldSilverHornDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.GoldSilverHornEntryRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.TryAddSingleton<ISealedTreasureDomainService, SealedTreasureDomainService>();
+        services.TryAddSingleton<ISouthernDaleDomainService, SouthernDaleDomainService>();
+        services.TryAddSingleton<ISouthernDaleQuestDomainService, SouthernDaleQuestDomainService>();
+        services.AddDomainEvent<SouthernDaleInventoryChanged>("southern-dale.inventory-changed", 1);
+        services.AddDomainEvent<SouthernDaleDailyRefillCompleted>("southern-dale.daily-refill-completed", 1);
+        services.AddSouthernDaleDailyRefill();
         services.TryAddSingleton<ITauKingdomRuleService, TauKingdomRuleService>();
         services.TryAddSingleton<ITauKingdomDomainService, TauKingdomDomainService>();
         services.AddDomainEvent<TauKingdomTicketRefilled>("tau-kingdom.ticket-refilled", 1);
@@ -241,6 +260,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<SpiritPotionDomainService>();
         services.TryAddSingleton<ISpiritPotionDomainService>(sp => sp.GetRequiredService<SpiritPotionDomainService>());
         services.TryAddSingleton<IExperienceBonusDomainService, ExperienceBonusDomainService>();
+        services.TryAddSingleton<ICollectionBoxRuleService, CollectionBoxRuleService>();
+        services.TryAddSingleton<ICollectionBoxDomainService, CollectionBoxDomainService>();
         services.TryAddSingleton<IExperienceCapsuleDomainService, ExperienceCapsuleDomainService>();
         // One store, three services. The store keeps the collections whose invariant spans them
         // behind a single lock; the services are the three responsibilities read off it.
@@ -308,6 +329,10 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IDungeonRoomMechanismRuleService, DungeonRoomMechanismRuleService>();
         services.TryAddSingleton<IDungeonRoomMechanismWakeSignal, DungeonRoomMechanismWakeSignal>();
         services.AddRuntimeEventSubscriber<DungeonRoomMechanismsChanged, DungeonRoomMechanismNotificationSubscriber>();
+        services.TryAddSingleton<IDungeonParticipationDomainService, DungeonParticipationDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService, Dfo.Server.Application.World.BossTower.BossTowerRewardRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardDomainService, Dfo.Server.Application.World.BossTower.BossTowerRewardDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService, Dfo.Server.Application.World.BossTower.BossTowerDomainService>();
         services.TryAddSingleton<IIllusionTowerRuleService, IllusionTowerRuleService>();
         services.TryAddSingleton<IIllusionTowerRewardRuleService, IllusionTowerRewardRuleService>();
         services.TryAddSingleton<IIllusionTowerRewardDomainService, IllusionTowerRewardDomainService>();
@@ -360,6 +385,10 @@ public sealed class ApplicationModule : IServerModule
         services.AddCommandHandler<Dfo.Server.Application.Events.AdvanceJoustLifecycleCommand,Dfo.Server.Data.Events.JoustLifecycleResult,Dfo.Server.Application.Events.AdvanceJoustLifecycleCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService,Dfo.Server.Application.Events.JoustMaintenanceService>());
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SaoTowerEntranceEventDomainService>();
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SouthernDaleEntranceEventDomainService>();
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SealedTreasureEntranceEventDomainService>();
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.GoldSilverHornEntranceEventDomainService>();
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.BossTowerEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.TauKingdomEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.HerasEntranceEventDomainService>();
         services.TryAddSingleton<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>();
@@ -412,6 +441,11 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IPremiumServiceUsageDomainService, PremiumServiceUsageDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService, DailyResetRuleService>();
         services.TryAddSingleton<IPremiumServiceRuleService, PremiumServiceRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Rental.ILuckyStarRuleService, Dfo.Server.Application.Rental.LuckyStarRuleService>();
+        services.AddDomainEvent<Dfo.Server.Abstractions.Rental.LuckyStarChanged>("lucky-star.changed", 1);
+        services.TryAddSingleton<Dfo.Server.Abstractions.Rental.IEquipmentRentalRuleService, Dfo.Server.Application.Rental.EquipmentRentalRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService, Dfo.Server.Application.Rental.AccountLuckyStarDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Rental.IEquipmentRentalDomainService, Dfo.Server.Application.Rental.EquipmentRentalDomainService>();
         services.TryAddSingleton<IQuestHelperPuppetRuleService, QuestHelperPuppetRuleService>();
         services.TryAddSingleton<IQuestHelperPuppetDomainService, QuestHelperPuppetDomainService>();
         services.TryAddSingleton<IExpertSkillContractRuleService, ExpertSkillContractRuleService>();
@@ -488,6 +522,7 @@ public sealed class ApplicationModule : IServerModule
         // Entering a dungeon and walking between its rooms.
         services.TryAddSingleton<IDungeonSelectionRuleService, DungeonSelectionRuleService>();
         services.TryAddSingleton<IDungeonEntryMaterialsDomainService, DungeonEntryMaterialsDomainService>();
+        services.TryAddSingleton<IDungeonAdmissionRuleService, DungeonAdmissionRuleService>();
         services.TryAddSingleton<IDungeonAdmissionDomainService, DungeonAdmissionDomainService>();
         services.TryAddSingleton<DungeonVisitDomainService>();
         services.TryAddSingleton<IDungeonVisitDomainService, TransactionalDungeonVisitDomainService>();
@@ -634,7 +669,8 @@ public sealed class ApplicationModule : IServerModule
                     provider.GetRequiredService<IExperienceCapsuleDomainService>(),
                     provider.GetRequiredService<IDomainTransactionAccessor>(),
                     () => provider.GetRequiredService<IApplyEffectsDomainService>(),
-                    provider.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>()),
+                    provider.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>(),
+                    provider.GetRequiredService<IDungeonParticipationDomainService>()),
                 () => provider.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>()));
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());
@@ -677,11 +713,18 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, DungeonEntryAllowanceEffectHandler>());
         services.TryAddSingleton<IExperienceItemRuleService, ExperienceItemRuleService>();
         services.TryAddSingleton<IExperienceItemDomainService, ExperienceItemDomainService>();
+        services.TryAddSingleton<IReviveCoinRuleService, ReviveCoinRuleService>();
+        services.TryAddSingleton<IReviveCoinQueryDomainService, ReviveCoinQueryDomainService>();
+        services.TryAddSingleton<IReviveCoinDomainService, ReviveCoinDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.ReviveCoinClaimRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.TryAddSingleton<IApplyEffectsDomainService, ApplyEffectsDomainService>();
         services.TryAddSingleton<IInventoryEffectPreflightDomainService, InventoryEffectPreflightDomainService>();
         services.TryAddSingleton<IEquipmentEffectPlanRuleService, EquipmentEffectPlanRuleService>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantPreparedItemEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IInventoryEffectPreviewHandler, GrantPreparedItemEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantOpeningGoldEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IInventoryEffectPreviewHandler, GrantOpeningGoldEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantOpeningVirtualEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IInventoryEffectPreviewHandler, GrantOpeningVirtualEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetOpeningPremiumEffectHandler>());

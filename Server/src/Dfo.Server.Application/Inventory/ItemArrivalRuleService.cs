@@ -167,7 +167,7 @@ internal sealed class DailyRefillRuleService(Dfo.Server.Abstractions.Configurati
     public string PeriodOf(DateTimeOffset preparedAt) =>
         preparedAt.ToOffset(DayBoundaryOffset).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-    public bool UsesIndependentPeriod(DailyRefillRule rule) => rule.ItemId == 690001556;
+    public bool UsesIndependentPeriod(DailyRefillRule rule) => rule.ItemId is 690001556 or 2680738 or 2749110;
 
     public string PeriodOf(DailyRefillRule rule, DateTimeOffset preparedAt) => UsesIndependentPeriod(rule)
         ? (reset ?? throw new InvalidOperationException("Game-day refill requires daily-reset rules."))

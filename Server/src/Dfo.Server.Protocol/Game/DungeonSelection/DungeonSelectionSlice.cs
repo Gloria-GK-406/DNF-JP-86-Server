@@ -199,7 +199,7 @@ public sealed class BackToVillageHandler(
     SelectedSessionTransitionGate transitionGate,
     IPartyService parties,
     IDungeonEntryIntentDomainService? entryIntents = null,
-    IllusionTowerProjectionDelivery? illusionTower = null)
+    IllusionTowerProjectionDelivery? illusionTower = null, BossTowerProjectionDelivery? bossTower = null)
     : ClientMessageHandler<BackToVillageRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -208,6 +208,9 @@ public sealed class BackToVillageHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        if (session is not null && bossTower is not null
+            && await bossTower.LeaveAndReturnAsync(context.Connection.ConnectionId, message.Metadata,
+                new BackToVillageResponse(), cancellationToken).ConfigureAwait(false)) return;
         if (session is not null && illusionTower is not null
             && await illusionTower.LeaveAndReturnAsync(
                 context.Connection.ConnectionId, message.Metadata,
@@ -567,15 +570,20 @@ public sealed class EnterSelectDungeonHandler(
     ILogger<EnterSelectDungeonHandler> logger,
     IPartyService parties,
     UsageQuotaProjectionDelivery? quotaProjection = null, IDespairTowerDomainService? despair = null, ISaoTowerDomainService? sao = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null)
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
+    BossTowerProjectionDelivery? bossTower = null, SelectedSessionTransitionGate? transitionGate = null)
     : ClientMessageHandler<EnterSelectDungeonRequest>
 {
+    private readonly SelectedSessionTransitionGate transitions = transitionGate ?? new();
+
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         EnterSelectDungeonRequest message,
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        if (bossTower is not null && await bossTower.PrepareSelectionAsync(context.Connection.ConnectionId,
+            message.Metadata, message.Selection, cancellationToken).ConfigureAwait(false)) return;
         var result = session is null ? null
             : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
         if (session is null || result is null)
@@ -591,9 +599,6 @@ public sealed class EnterSelectDungeonHandler(
         }
 
         var spawn = result.World.Channel.Spawn;
-        var intent = message.Selection == 0
-            ? DungeonEntryIntent.Interactive
-            : DungeonEntryIntent.Directed(message.Selection);
         var requesterCharacter = new PartyCharacterSnapshot(
             session.AccountId, session.CharacterId, session.WireUserId, null);
         var roster = parties.FindParty(requesterCharacter);
@@ -606,6 +611,20 @@ public sealed class EnterSelectDungeonHandler(
         }
         var attached = await ResolveSelectionMembersAsync(
             session, result, roster, cancellationToken).ConfigureAwait(false);
+        if (attached.Count != roster.Members.Length)
+            return;
+        await using var transition = await transitions.AcquireManyExclusiveAsync(
+            attached.Select(x => x.Session.AccountId), cancellationToken).ConfigureAwait(false);
+        var latestRoster = parties.FindParty(requesterCharacter);
+        if (latestRoster.Generation != roster.Generation || latestRoster.Revision != roster.Revision
+            || attached.Any(x => selectedSessions.FindByCharacter(x.Session.CharacterId) != x.Session))
+            return;
+        var intent = message.Selection == 0
+            ? DungeonEntryIntent.Interactive
+            : entryIntents.Find(session) is { Kind: DungeonEntryIntentKind.OrdinaryRechallenge } retry
+                && retry.DirectedDungeonId == message.Selection
+                ? retry
+                : DungeonEntryIntent.Directed(message.Selection);
         var wireUserIds = attached
             .Select(value => value.Session.WireUserId)
             .ToImmutableArray();
@@ -754,13 +773,13 @@ public sealed class EnterSelectDungeonHandler(
                 || current.WireUserId != member.WireUserId
                 || runtime is null)
             {
-                continue;
+                return [];
             }
             members.Add((current, runtime));
         }
 
         return members.Any(value => value.Item1 == requester)
             ? members
-            : [(requester, requesterRuntime)];
+            : [];
     }
 }

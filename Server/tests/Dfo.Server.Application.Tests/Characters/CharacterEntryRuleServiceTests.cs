@@ -134,19 +134,6 @@ public sealed class CharacterEntryRuleServiceTests
                 1, 3, 3, 7, DungeonEffectKinds.SettlementScoreExperience, 3, 7));
         }
 
-        [Fact]
-        public void ALuckyStarBelowTheCeilingIsGranted() =>
-            Assert.Equal(new LuckyStarGrant(true, 5), new DungeonEffectRuleService().GrantLuckyStar(4));
-
-        /// <remarks>
-        /// At the ceiling it is refused rather than granted and discarded, so what the player is
-        /// told matches what they keep.
-        /// </remarks>
-        [Fact]
-        public void ALuckyStarAtTheCeilingIsRefused() =>
-            Assert.Equal(
-                new LuckyStarGrant(false, 999), new DungeonEffectRuleService().GrantLuckyStar(999));
-
         /// <remarks>
         /// The boundary is at the last level, not past it. This is the case nothing covered before
         /// the rule was moved, and the one that decides whether the whole gain becomes honour.

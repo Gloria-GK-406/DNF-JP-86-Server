@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Configuration;
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
@@ -18,20 +20,23 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class OnlineExpiredItemCleanupDomainService(ISelectedSessionDomainService sessions,
     ISelectedSessionRuntimeDirectory published, IExpiredCharacterItemCleanupDomainService cleanup,
-    IEventService events, ICreatureRuntimeDomainService creatures, IAuthenticatedGamePresenceQuery online) : IOnlineExpiredItemCleanupDomainService
+    IEventService events, ICreatureRuntimeDomainService creatures, IAuthenticatedGamePresenceQuery online,
+    IQuestHelperPuppetDomainService? puppets = null) : IOnlineExpiredItemCleanupDomainService
 {
     public async ValueTask<bool> CleanupAsync(SelectedSessionIdentity session, CancellationToken ct)
     {
         if (sessions.Find(session.AccountId) != session || sessions.FindByConnection(session.ConnectionId) != session
             || !published.IsPublishedExact(session) || !online.IsActiveExact(session)) return false;
+        var puppetChange = puppets is null ? null : await puppets.ReconcileAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
         var result = await cleanup.CleanupAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
         if (!result.Owned) throw new InvalidOperationException("Online character ownership changed during expiry cleanup.");
-        if (result.ChangedContainers.Length == 0) return true;
-        if (result.ChangedContainers.Contains(InventoryContainerType.Equipment)
-            || result.ChangedContainers.Contains(InventoryContainerType.Pet))
+        var containers = result.ChangedContainers.Concat(puppetChange?.ChangedContainers ?? []).Distinct().Order().ToImmutableArray();
+        if (containers.Length == 0 && puppetChange?.MailboxChanged != true) return true;
+        if (containers.Contains(InventoryContainerType.Equipment)
+            || containers.Contains(InventoryContainerType.Pet))
             await creatures.AdvanceAsync(session, ct).ConfigureAwait(false);
         await events.EnqueueAsync(new OnlineExpiredItemsRemoved(session.AccountId, session.CharacterId, session.ConnectionId.Value,
-            session.ConnectionGeneration, result.ChangedContainers), ct).ConfigureAwait(false);
+            session.ConnectionGeneration, containers) { MailboxChanged = puppetChange?.MailboxChanged == true }, ct).ConfigureAwait(false);
         return true;
     }
 }

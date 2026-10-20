@@ -150,6 +150,8 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
 
     public async ValueTask<OpeningRewardItemDefinition?> GetRewardAsync(int itemId, CancellationToken cancellationToken)
     {
+        if (itemId == 0) return new(0, new(0, int.MaxValue,
+            new(BusinessInventorySpace.VirtualResource, 0, 0)), 0, false, [], null, true);
         // The archive's 42 is a revive-coin grant, represented by virtual main slot 1.
         if (itemId is 1 or 42) return new(1, new(0, int.MaxValue,
             new(BusinessInventorySpace.VirtualResource, 1, 1)), 0, false, [], null, true);
@@ -285,6 +287,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         }
         var goldCost = 0;
         var costSeen = false;
+        var materialSeen = false;
         var material = 0; var materialCount = 0; var sourceCount = 1; var selectionCount = 0;
         var random = false; var booster = false; var selection = false;
         foreach (var section in sections)
@@ -304,6 +307,17 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                 errors.Add("Lottery material costs are not supported by this opening entry yet");
                 continue;
             }
+            // Other pots use this field for shop recipes, already paid by BuyItem.
+            if (kind == OpeningPackageKind.Lottery && id == 7615 && name == Fields.NeedMaterialField.Name)
+            {
+                if (materialSeen) errors.Add("Duplicate lottery material cost");
+                materialSeen = true;
+                var values = Numbers(section);
+                if (values.Length != 2 || values[0] <= 0 || values[1] <= 0)
+                    errors.Add("Invalid lottery material cost");
+                else { material = values[0]; materialCount = values[1]; }
+                continue;
+            }
             if (kind == OpeningPackageKind.Lottery && name == Fields.IntDataField.Name)
             {
                 var values = Numbers(section);
@@ -311,7 +325,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                 if (values.Length == 0 || values.Length % 3 != 0) errors.Add("Invalid lottery reward triples");
                 else for (var i = 0; i < values.Length; i += 3)
                 {
-                    if (values[i] <= 0 || values[i + 1] < 0 || values[i + 2] <= 0) errors.Add("Invalid lottery reward");
+                    if ((values[i] <= 0 && !(id == 7615 && values[i] == 0)) || values[i + 1] < 0 || values[i + 2] <= 0) errors.Add("Invalid lottery reward");
                     entries.Add(new(new(values[i], values[i + 2]), values[i + 1]));
                 }
                 pools.Add(new(1, entries.ToImmutable()));
@@ -337,7 +351,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                 if (ns.Length != 1 || ns[0] < 0) errors.Add("Invalid selection count");
                 else selectionCount = ns[0];
             }
-            if (name == Fields.NeedMaterialField.Name || random && name == Fields.SealingRemovalItemField.Name)
+            if (random && name == Fields.SealingRemovalItemField.Name)
             {
                 var ns = Numbers(section);
                 var start = name == Fields.SealingRemovalItemField.Name ? 1 : 0;

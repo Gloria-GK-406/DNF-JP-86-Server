@@ -32,12 +32,10 @@ internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore s
         if (run is null || objective is null) return QuestAcceptance.Refused(QuestRefusal.UnsupportedObjective);
         var state = await store.ReadAsync(character, run.RunId, ct).ConfigureAwait(false);
         if (state is { GivenUp: true } or { RewardClaimed: true }) return QuestAcceptance.Refused(QuestRefusal.AlreadyCleared);
-        if (state is null)
-        {
-            state = new(character, run.RunId, quest, clock.GetUtcNow(), objective.InitialTrigger);
-            await store.WriteAsync(account, state, ct).ConfigureAwait(false);
-            await ChangedAsync(character, ct).ConfigureAwait(false);
-        }
+        if (state is not null) return QuestAcceptance.Refused(QuestRefusal.AlreadyCarried);
+        state = new(character, run.RunId, quest, clock.GetUtcNow(), objective.InitialTrigger);
+        await store.WriteAsync(account, state, ct).ConfigureAwait(false);
+        await ChangedAsync(character, ct).ConfigureAwait(false);
         return QuestAcceptance.Taken(short.MaxValue, unchecked((int)state.TriggerValue));
     }
     public async ValueTask<QuestAdvance> TriggerAsync(AccountId account, CharacterId character, ushort quest, CancellationToken ct)

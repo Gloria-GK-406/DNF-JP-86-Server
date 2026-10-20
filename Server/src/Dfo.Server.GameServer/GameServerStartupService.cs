@@ -56,6 +56,10 @@ internal sealed class GameServerStartupService(IServiceProvider services, IHostE
             var equipmentCount = await services.GetRequiredService<IEquipmentDefinitionSource>()
                 .InitializeAsync(cancellationToken).ConfigureAwait(false);
             logger.LogInformation("Equipment content index initialized: {Count} templates", equipmentCount);
+            var bossTower = await services.GetRequiredService<Dfo.Server.Abstractions.World.BossTower.IBossTowerRuleService>()
+                .DefinitionAsync(cancellationToken).ConfigureAwait(false);
+            logger.LogInformation("Boss tower content initialized: {Stages} stages, {Maps} maps", bossTower.Stages.Count,
+                bossTower.Stages.Sum(stage => stage.Maps.Count));
             var independentCount = services.GetRequiredService<Dfo.Server.Abstractions.Content.IIndependentDropRuleService>().Initialize();
             services.GetRequiredService<ILoggerFactory>().CreateLogger("IndependentDrops").LogInformation("Cached {Count} independent drop rows", independentCount);
             var extraCount = services.GetRequiredService<Dfo.Server.Abstractions.Content.IExtraDropRuleService>().Initialize();

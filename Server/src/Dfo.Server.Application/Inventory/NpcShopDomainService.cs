@@ -21,7 +21,8 @@ internal sealed class NpcShopDomainService(
     ICharacterBusinessInventoryDomainService inventories,
     IItemPlacementRuleService placements,
     INpcShopRuleService rules,
-    INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle, IItemGrantDomainService grants, Dfo.Server.Abstractions.Effects.IRequestReplayProjectionDomainService replay) : INpcShopDomainService
+    INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle, IItemGrantDomainService grants, Dfo.Server.Abstractions.Effects.IRequestReplayProjectionDomainService replay,
+    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null, IDungeonParticipationDomainService? participation = null) : INpcShopDomainService
 {
     public async ValueTask<NpcShopPurchaseResult> PurchaseAsync(
         SelectedSessionIdentity session, int itemId, int rawCount, int shopId, int npcId,
@@ -29,7 +30,10 @@ internal sealed class NpcShopDomainService(
     {
         if (!IsCurrent(session))
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
-        if (townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member))
+        var inBossTower = bossTower?.Find(session) is not null;
+        if (inBossTower ? !bossTower!.CanShop(session, npcId, shopId)
+            : participation?.Find(session.CharacterId) is not null
+                || townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member))
             return NpcShopPurchaseResult.Refused(NpcShopRejection.ShopUnavailable);
         var character = characters.Get(session.CharacterId);
         var identity = await character.IdentityAsync(cancellationToken).ConfigureAwait(false);

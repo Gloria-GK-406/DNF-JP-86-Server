@@ -546,9 +546,9 @@ public sealed class TournamentDungeonTests
         public ValueTask<long> PendingQuantityAsync(CharacterId character, int itemId, CancellationToken ct) =>
             inner.PendingQuantityAsync(character, itemId, ct);
         public async ValueTask<ItemDeliveryReceipt> DeliverAsync(AccountId account, CharacterId character,
-            IReadOnlyList<ItemDeliveryGrant> grants, string source, CancellationToken ct, ItemDeliveryMode mode)
+            IReadOnlyList<ItemDeliveryGrant> grants, string source, CancellationToken ct, ItemDeliveryMode mode, ItemDeliveryOptions? options = null)
         {
-            var result = await inner.DeliverAsync(account, character, grants, source, ct, mode);
+            var result = await inner.DeliverAsync(account, character, grants, source, ct, mode, options);
             if (Fail) throw new InvalidOperationException("Injected failure after staged tournament delivery.");
             return result;
         }

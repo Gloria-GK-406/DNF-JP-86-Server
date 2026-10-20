@@ -16,6 +16,8 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using Dfo.Server.Persistence.Database;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Protocol.Game.QuestAcceptance;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Quests;
@@ -115,7 +117,7 @@ public sealed class MirrorAradQuestTests
     }
 
     [Fact]
-    public async Task Accept_and_finish_are_run_local_idempotent_and_do_not_write_ordinary_quests()
+    public async Task Acceptance_replay_is_refused_and_completion_remains_run_local_idempotent()
     {
         await using var fixture = new LearningFixture();
         await fixture.SeedAsync();
@@ -123,8 +125,18 @@ public sealed class MirrorAradQuestTests
         var (service, store, _, effects, settlement) = Create(fixture, runtime);
         await Write(fixture, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
         var first = await store.ReadAsync(new(71), runtime.Current.RunId, default);
-        await Write(fixture, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
-        Assert.Equal(first!.AcceptedAt, (await store.ReadAsync(new(71), runtime.Current.RunId, default))!.AcceptedAt);
+        var handler = ActivatorUtilities.CreateInstance<AcceptQuestCommandHandler>(fixture.Services, new DefinitionDomain(), service);
+        await Write(fixture, async () =>
+        {
+            var replay = await handler.HandleAsync(new(Guid.NewGuid(), typeof(AcceptQuestCommand), typeof(AcceptQuestCommandHandler),
+                CommandExecutionKind.Transactional), new(new(1), new(71), 14299), default);
+            Assert.False(replay.Accepted);
+            Assert.Equal(QuestAcceptRefusal.AlreadyActive, replay.Refusal);
+            Assert.Null(replay.QuestProgress);
+            Assert.Empty(replay.Items);
+        });
+        Assert.Equal(System.Text.Json.JsonSerializer.Serialize(first),
+            System.Text.Json.JsonSerializer.Serialize(await store.ReadAsync(new(71), runtime.Current.RunId, default)));
         await Write(fixture, async () => Assert.False((await Finish(settlement)).Finished));
         runtime.Current = runtime.Current with { ClearOpen = true, ClearedAt = Now.AddSeconds(10) };
         // No QuestDungeonCleared report is needed before finishing.

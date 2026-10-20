@@ -10,6 +10,12 @@ A21 VA `01419A31` 读取详情开关，零值跳至 `01419CBC`，之后公共路
 
 `CurrentImplementation`：牛头怪乐园 2215 开启时附带无详情 ID 69；启停通知为空，避免附带提示。原有详细活动记录字节布局保持一致。相关字节回归见 `WeeklyAttendanceProtocolTests.Calendar_detail_less_entry_uses_short_record_without_displacing_visible_entries`。
 
+## 共享依赖69的服务端聚合（2026-10-19）
+
+`CurrentImplementation`：牛头2215、南部2330分别声明无详情69，聚合按EventId唯一化。无详情条目的日期不发送，允许各自日期不同；开始/结束通知及其他线上可见内容冲突则拒绝，不静默选一份。关闭或过期任一活动，另一活动仍开放时保留69；全部不活动时移除。
+
+`ClientStatic / High`：`01419CBC..01419D6F` 查询已有身份，仅在缺失时插入。没有进行“双69实帧”的客户端实验；聚合去重是明确的本服发送策略，并非两条69已实机证明无副作用。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

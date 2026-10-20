@@ -16,6 +16,36 @@ namespace Dfo.Server.Persistence.Tests.Inventory;
 /// <summary>Storage, identity, quantity conservation and atomicity through explicit item lifecycle operations.</summary>
 public sealed class SqliteItemDomainStoreTests
 {
+    [Fact]
+    public async Task Collection_custody_is_character_only_and_cannot_merge_two_items_into_one_position()
+    {
+        await using var store = await NewStoreAsync();
+        var box = ContainerId.ForCharacter(new(60), InventoryContainerType.CollectionBox);
+        await InTransactionAsync(store.Value, async s =>
+            await s.PutAsync(box, 256, await s.CreateAsync(Pile(Potion(1)), default), default));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => InTransactionAsync(store.Value, async s =>
+            await s.GetAllAsync(ContainerId.ForAccount(new(6), InventoryContainerType.CollectionBox), default)));
+        await Assert.ThrowsAsync<InvalidDataException>(() => InTransactionAsync(store.Value, async s =>
+            await s.PutAsync(box, 256, await s.CreateAsync(Pile(Potion(1)), default), default)));
+        await InTransactionAsync(store.Value, async s => Assert.Equal(1, (await s.GetAsync(box, 256, default))!.Count));
+    }
+
+    [Fact]
+    public async Task Entry_inventory_excludes_server_collection_storage_without_losing_the_item()
+    {
+        await using var store = await NewStoreAsync((65, Potion(2)));
+        await using (var connection = Open(store.Path))
+            await InsertItemAsync(connection, 256, Stone(1), 241);
+        var table = new SqliteCharacterItemTable(new SqliteDatabase(store.Path, new DomainTransactionScope()));
+        var ordinary = await table.ReadByCharacterAsync(new(60), default);
+        Assert.Single(ordinary);
+        Assert.Equal(65, ordinary[0].SlotIndex);
+        await using var check = Open(store.Path);
+        await using var command = check.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM item_slots WHERE list_type=241";
+        Assert.Equal(1L, await command.ExecuteScalarAsync());
+    }
+
     private static readonly ContainerId Main =
         ContainerId.ForCharacter(new CharacterId(60), InventoryContainerType.Main);
 

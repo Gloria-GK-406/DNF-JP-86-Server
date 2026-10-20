@@ -10,7 +10,10 @@ namespace Dfo.Server.Abstractions.Inventory;
 public sealed record ExpiredItemCleanupResult(bool Owned, ImmutableArray<InventoryContainerType> ChangedContainers);
 
 public sealed record OnlineExpiredItemsRemoved(AccountId AccountId, CharacterId CharacterId,
-    string ConnectionId, long ConnectionGeneration, ImmutableArray<InventoryContainerType> Containers) : IDomainEvent;
+    string ConnectionId, long ConnectionGeneration, ImmutableArray<InventoryContainerType> Containers) : IDomainEvent
+{
+    public bool MailboxChanged { get; init; }
+}
 
 /// <summary>Removes expired items in the caller's transaction, for entry and online cleanup alike.</summary>
 public interface IExpiredCharacterItemCleanupDomainService

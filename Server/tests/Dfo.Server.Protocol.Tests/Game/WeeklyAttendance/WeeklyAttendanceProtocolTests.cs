@@ -10,6 +10,19 @@ public sealed class WeeklyAttendanceProtocolTests
     [Theory]
     [InlineData(true, 1)]
     [InlineData(false, 0)]
+    public void Southern_schedule_projects_dungeon_and_quest_in_separate_native_categories(bool open, byte state)
+    {
+        var snapshot = new EventPlayerSnapshot([],WeeklyAttendanceState.Empty)
+        { ScheduledDungeons = [new(100,open)], ScheduledQuests = [new(20549,open)] };
+        var messages = SelectedCharacterStateMessageFactory.Create(SelectCharacterPayloadTestData.CreateComplete() with { Events = snapshot });
+        var schedule = messages.Where(x => x.Type == 0x033F).ToArray();
+        Assert.Equal(2,schedule.Length);
+        Assert.Equal(new byte[] { 0,0,0,0,state,0,0,0,100,0,0,0,0,0,0,0 },schedule[0].EncodeBody());
+        Assert.Equal(new byte[] { 1,0,0,0,state,0,0,0,0x45,0x50,0,0,0,0,0,0 },schedule[1].EncodeBody());
+    }
+    [Theory]
+    [InlineData(true, 1)]
+    [InlineData(false, 0)]
     public void Scheduled_dungeon_state_is_sent_on_entry_as_A21_033f(bool open, byte state)
     {
         var snapshot = new EventPlayerSnapshot([],WeeklyAttendanceState.Empty) { ScheduledDungeons = [new(3700,open)] };

@@ -328,11 +328,12 @@ internal sealed class SqliteCharacterItemLockTable(SqliteDatabase database)
 /// which the load already read into one list. The order is stated because a single table can no
 /// longer get it from which of the two a row came out of.
 /// </remarks>
-internal sealed class SqliteCharacterRentalTable(SqliteDatabase database) : ICharacterRentalTable
+internal sealed class SqliteCharacterRentalTable(SqliteDatabase database, TimeProvider? clock = null) : ICharacterRentalTable
 {
-    public ValueTask<IReadOnlyList<RentalRow>> ReadByCharacterAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        database.ReadAllAsync(
+    public async ValueTask<IReadOnlyList<RentalRow>> ReadByCharacterAsync(
+        CharacterId characterId, CancellationToken cancellationToken)
+    {
+        var previous = await database.ReadAllAsync(
             """
             SELECT character_id, item_id, inventory_template_id, expire_time
             FROM character_rentals
@@ -342,7 +343,21 @@ internal sealed class SqliteCharacterRentalTable(SqliteDatabase database) : ICha
             parameters => parameters.AddWithValue("@characterId", characterId.Value),
             reader => new RentalRow(
                 reader.GetInt32(0), reader.GetInt64(1), reader.GetInt64(2), reader.GetInt64(3)),
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+        var current = await database.ReadAllAsync(
+            """
+            SELECT r.character_id,r.item_uid,r.template_id,i.item_core
+            FROM equipment_rental_instances r JOIN items i ON i.item_uid=r.item_uid
+            JOIN item_slots s ON s.core_uid=i.item_uid AND s.owner_scope='character' AND s.owner_id=r.character_id
+            WHERE r.character_id=@characterId ORDER BY r.item_uid
+            """,
+            p=>p.AddWithValue("@characterId",characterId.Value),
+            r=>new RentalRow(r.GetInt32(0),r.GetInt64(1),r.GetInt64(2),InventoryItemCore.Decode((byte[])r.GetValue(3)).ExpireTime),
+            cancellationToken).ConfigureAwait(false);
+        var active=current.Where(x=>x.ExpireTime>(clock??TimeProvider.System).GetUtcNow().ToUnixTimeSeconds()).ToArray();
+        return previous.Where(x=>!active.Any(y=>y.ItemId==x.ItemId || y.InventoryTemplateId==x.InventoryTemplateId))
+            .Concat(active).OrderBy(x=>x.ItemId).ToArray();
+    }
 }
 
 /// <summary>The <c>character_daily_counters</c> table.</summary>

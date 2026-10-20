@@ -31,7 +31,7 @@ public sealed class SaoTowerDomainTests
         public CharacterId? Fail { get; set; }
         public ValueTask<long> PendingQuantityAsync(CharacterId character, int itemId, CancellationToken ct) => ValueTask.FromResult(0L);
         public ValueTask<ItemDeliveryReceipt> DeliverAsync(AccountId account, CharacterId character,
-            IReadOnlyList<ItemDeliveryGrant> grants, string source, CancellationToken ct, ItemDeliveryMode mode)
+            IReadOnlyList<ItemDeliveryGrant> grants, string source, CancellationToken ct, ItemDeliveryMode mode, ItemDeliveryOptions? options = null)
         {
             Assert.Equal(ItemDeliveryMode.InventoryThenMail, mode);
             Assert.Equal(10004331, Assert.Single(grants).ItemId);

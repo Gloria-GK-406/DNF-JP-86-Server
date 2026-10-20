@@ -39,7 +39,8 @@ internal sealed partial class PlayingCharacter(
     IExperienceCapsuleDomainService? capsules = null,
     Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor? transactions = null,
     Func<Dfo.Server.Abstractions.Effects.IApplyEffectsDomainService>? experienceEffects = null,
-    Dfo.Server.Abstractions.DomainEvents.IEventService? events = null) : ICharacter
+    Dfo.Server.Abstractions.DomainEvents.IEventService? events = null,
+    IDungeonParticipationDomainService? participation = null) : ICharacter
 {
     public CharacterId Id => characterId;
 
@@ -164,7 +165,7 @@ internal sealed partial class PlayingCharacter(
     public async ValueTask<ItemUseCandidate?> ItemUseFactsAsync(ItemCooldownKey cooldown, CancellationToken cancellationToken)
     {
         if (townAreas.Find(characterId) is null && dungeonRuns?.Find(characterId) is null
-            && towers?.Invoke().IsInTower(characterId) != true
+            && towers?.Invoke().IsInTower(characterId) != true && participation?.Find(characterId) is null
             || await IdentityAsync(cancellationToken).ConfigureAwait(false) is not { } identity
             || await ProgressAsync(cancellationToken).ConfigureAwait(false) is not { } progress)
             return null;
@@ -191,7 +192,7 @@ internal sealed partial class PlayingCharacter(
     /// </para>
     /// </remarks>
     private ItemUsePlace Place() =>
-        dungeonRuns?.Find(characterId) is not null || towers?.Invoke().IsInTower(characterId) == true
+        dungeonRuns?.Find(characterId) is not null || towers?.Invoke().IsInTower(characterId) == true || participation?.Find(characterId) is not null
             ? ItemUsePlace.Dungeon
             : ItemUsePlace.Village;
 }

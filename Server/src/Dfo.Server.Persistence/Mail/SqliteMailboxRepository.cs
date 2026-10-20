@@ -45,14 +45,15 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
         {
             command.CommandText = """
                 INSERT INTO mailbox_messages(sender_character_id,sender_name,receiver_character_id,
-                    title,body,gold,created_at,unlimited_flag,expire_at)
-                VALUES(@sender,@name,@receiver,@title,@body,@gold,@created,@unlimited,@expires)
+                    title,body,gold,created_at,unlimited_flag,expire_at,delivery_key)
+                VALUES(@sender,@name,@receiver,@title,@body,@gold,@created,@unlimited,@expires,@delivery)
                 RETURNING message_id
                 """;
             command.Parameters.AddWithValue("@sender", mail.Source.Character?.Value ?? 0);
             command.Parameters.AddWithValue("@name", senderName);
             command.Parameters.AddWithValue("@receiver", mail.Recipient.Value);
             command.Parameters.AddWithValue("@title", mail.Title);
+            command.Parameters.AddWithValue("@delivery", mail.DeliveryKey);
             command.Parameters.AddWithValue("@body", mail.Body);
             command.Parameters.AddWithValue("@gold", gold);
             command.Parameters.AddWithValue("@created", now.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
@@ -226,7 +227,7 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
     private ValueTask<IReadOnlyList<Header>> ReadHeadersAsync(CharacterId recipient, long? mailId,
         long? attachmentId, CancellationToken cancellationToken) => database.ReadAllAsync("""
             SELECT m.message_id,m.receiver_character_id,m.sender_character_id,m.sender_name,
-                   m.title,m.body,m.created_at,m.unlimited_flag,m.expire_at,r.read_flag
+                   m.title,m.body,m.created_at,m.unlimited_flag,m.expire_at,r.read_flag,m.delivery_key
             FROM mailbox_messages m JOIN mailbox_recipients r ON r.message_id=m.message_id
             WHERE
             """ + " " + Visible + """
@@ -241,7 +242,7 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
             p.AddWithValue("@attachment", (object?)attachmentId ?? DBNull.Value);
         }, r => new Header(r.GetInt64(0), new CharacterId(r.GetInt32(1)), r.GetInt32(2),
             r.GetString(3), r.GetString(4), r.GetString(5), ParseDate(r.GetString(6)),
-            r.GetInt32(7) != 0, r.GetString(8), r.GetInt32(9) != 0), cancellationToken);
+            r.GetInt32(7) != 0, r.GetString(8), r.GetInt32(9) != 0, r.GetString(10)), cancellationToken);
 
     private async ValueTask<MailView> CompleteAsync(Header header, CancellationToken cancellationToken)
     {
@@ -262,7 +263,7 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
         return new MailView(header.Id, header.Recipient, header.SenderId, header.SenderName,
             header.Title, header.Body, header.Created,
             header.Unlimited || IsLegacyUnlimited(header.Expires) ? null : ParseDate(header.Expires),
-            header.Read, attachments.ToImmutableArray());
+            header.Read, attachments.ToImmutableArray()) { DeliveryKey = header.DeliveryKey };
     }
 
     private static bool IsLegacyUnlimited(string value) =>
@@ -272,5 +273,5 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
         CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
 
     private sealed record Header(long Id, CharacterId Recipient, int SenderId, string SenderName,
-        string Title, string Body, DateTimeOffset Created, bool Unlimited, string Expires, bool Read);
+        string Title, string Body, DateTimeOffset Created, bool Unlimited, string Expires, bool Read, string DeliveryKey);
 }

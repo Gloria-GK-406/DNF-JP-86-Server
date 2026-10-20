@@ -379,20 +379,34 @@ public sealed class MonsterDeathHandler(
     DungeonPartyRecipients? partyRecipients = null, ICreatureRuntimeDomainService? creatures = null,
     SelectedSessionSafety? safety = null, IllusionTowerProjectionDelivery? illusionTower = null,
     Dfo.Server.Protocol.Game.Tournament.TournamentProjectionDelivery? tournamentProjection = null,
-    Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery? altarProjection = null)
+    Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery? altarProjection = null, BossTowerProjectionDelivery? bossTower = null)
     : ClientMessageHandler<MonsterDeathRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
         MonsterDeathRequest message, CancellationToken ct)
     {
+        if (logger.IsEnabled(LogLevel.Debug))
+            logger.LogDebug("Monster death received connection={ConnectionId} sequence={Sequence} ordinal={Ordinal} actor={Actor} object={ObjectCode}",
+                context.Connection.ConnectionId, message.Metadata.Sequence, message.Metadata.InboundOrdinal, message.ActorSequence, message.ObjectCode);
         var reporter = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (reporter is null) return;
+        if (reporter is null)
+        {
+            logger.LogDebug("Monster death ignored connection={ConnectionId} reason=NoSession", context.Connection.ConnectionId);
+            return;
+        }
+        if (bossTower?.HasRun(reporter) == true)
+        {
+            if (message.ObjectCode is null)
+                _ = await bossTower.KillAsync(reporter.ConnectionId, message.Metadata, message.ActorSequence, message.WireUserId, ct).ConfigureAwait(false);
+            return;
+        }
         if (message.ObjectCode is null && illusionTower is not null
             && await illusionTower.KillAsync(reporter.ConnectionId, message.Metadata,
                 message.ActorSequence, message.WireUserId, ct).ConfigureAwait(false)) return;
         var run = runs.Find(reporter.CharacterId);
         if (run is null)
         {
+            logger.LogDebug("Monster death ignored connection={ConnectionId} actor={Actor} reason=NoRun", reporter.ConnectionId, message.ActorSequence);
             await sender.SendExplicitAsync(reporter.ConnectionId,
                 new GameExplicitMessageDelivery([MonsterDeathNotification.Empty(message.ActorSequence)], []), ct).ConfigureAwait(false);
             return;
@@ -400,7 +414,12 @@ public sealed class MonsterDeathHandler(
         var participants = (run.PartyMemberCount > 1
                 ? partyRecipients?.Find(reporter, run.RunId) ?? runDeliveries.Find(run.RunId) : [reporter])
             .Where(x => selectedSessions.FindByCharacter(x.CharacterId) == x).DistinctBy(x => x.CharacterId).ToArray();
-        if (!participants.Contains(reporter)) return;
+        if (!participants.Contains(reporter))
+        {
+            logger.LogDebug("Monster death ignored connection={ConnectionId} run={RunId} actor={Actor} reason=NotCurrentParticipant",
+                reporter.ConnectionId, run.RunId, message.ActorSequence);
+            return;
+        }
         var captured = participants.Select(x => safety?.Capture(x) ?? new SelectedSessionRecipient(x, x == reporter ? context.Connection : null)).ToArray();
         if (message.ObjectCode is { } code)
         {
@@ -426,6 +445,9 @@ public sealed class MonsterDeathHandler(
         }
         if (settled.Death?.Change is not { } change)
         {
+            if (logger.IsEnabled(LogLevel.Debug))
+                logger.LogDebug("Monster death not committed connection={ConnectionId} run={RunId} room={RoomId} version={RoomVersion} actor={Actor}; sending empty acknowledgement",
+                    reporter.ConnectionId, run.RunId, run.CurrentRoomMapId, run.RoomVersion, message.ActorSequence);
             await sender.SendExplicitAsync(reporter.ConnectionId,
                 new GameExplicitMessageDelivery([MonsterDeathNotification.Empty(message.ActorSequence)], []), ct).ConfigureAwait(false);
             return;
@@ -448,8 +470,16 @@ public sealed class MonsterDeathHandler(
             await DeliverAsync(reporter, targets, ct).ConfigureAwait(false);
             if (clear is not null) await clearProjection.DeliverAsync(reporter, clear, ct).ConfigureAwait(false);
             if (change.Run.Layout.Altar is not null) altarProjection?.Wake();
-            logger.LogInformation("Monster death committed run={RunId} actor={Actor} participants={Count} drops={Drops}",
-                run.RunId, message.ActorSequence, settled.Participants.Count, drops.Length);
+            if (logger.IsEnabled(LogLevel.Debug))
+                logger.LogDebug("Monster death delivered connection={ConnectionId} sequence={Sequence} run={RunId} dungeon={DungeonId} room={RoomId} version={RoomVersion} actor={Actor} participants={Count} drops={Drops} cellCleared={CellCleared} boss={IsBossRoom} clearProjected={ClearProjected} aliveBlockers={AliveBlockers} mechanismBlocks={MechanismBlocks}",
+                    reporter.ConnectionId, message.Metadata.Sequence, run.RunId, run.Layout.DungeonId, run.CurrentRoomMapId,
+                    run.RoomVersion, message.ActorSequence, settled.Participants.Count, drops.Length, change.IsCellCleared,
+                    change.Run.IsBossRoom, clear is not null,
+                    change.Run.CurrentCellState.Actors.Count(x => x.BlocksClear && !x.IsDead), change.Run.CurrentCellState.MechanismBlocksClear);
+            if (logger.IsEnabled(LogLevel.Trace))
+                logger.LogTrace("Dungeon remaining actors run={RunId} room={RoomId} version={RoomVersion} actors={AliveActors}",
+                    run.RunId, run.CurrentRoomMapId, run.RoomVersion,
+                    string.Join(',', change.Run.CurrentCellState.Actors.Where(x => x.BlocksClear && !x.IsDead).Select(x => x.Sequence)));
         }
         catch (Exception failure)
         {

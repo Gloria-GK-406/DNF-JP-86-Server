@@ -19,6 +19,18 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class ReplayStateProjectionTests
 {
     [Fact]
+    public void Collection_replay_restores_only_current_permanent_contents_and_selection_without_ack()
+    {
+        var state = State(ReplayProjectionNeeds.CollectionBox) with { CollectionBoxes = new(4,[new(1,[10]),new(4,[20])],[]) };
+        var messages = ReplayStateProjectionDelivery.Create(state);
+        Assert.Equal(3,messages.Length);
+        var boxes = messages.Cast<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxContentsMessage>().ToArray();
+        Assert.Equal(new byte[]{1,4,4},boxes.Select(x=>x.Box.BoxId));
+        Assert.Equal(new[]{false,false,true},boxes.Select(x=>x.Selected));
+        Assert.All(boxes,x=>Assert.Equal(1,Encode(x)[21]));
+        Assert.Throws<InvalidDataException>(()=>ReplayStateProjectionDelivery.Create(state with { CollectionBoxes=null }));
+    }
+    [Fact]
     public void Housing_recovery_never_reannounces_ring_upgrade()
     {
         var state = State(ReplayProjectionNeeds.MarriageHousing) with

@@ -1,4 +1,6 @@
 using Dfo.Server.Protocol.Game.ItemSockets;
+using Dfo.Server.Protocol.Game.Rental;
+using Dfo.Server.Abstractions.Rental;
 using Dfo.Server.Protocol.Game.Achievements;
 using Dfo.Server.Protocol.Game.CycleDungeonEntry;
 using Dfo.Server.Protocol.Game.Tournament;
@@ -20,6 +22,11 @@ using Dfo.Server.Protocol.Game.Weakness;
 using Dfo.Server.Protocol.Game.Fatigue;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Protocol.Game.BossTowerInfo;
+using Dfo.Server.Protocol.Game.BossTowerMap;
+using Dfo.Server.Protocol.Game.BossTowerReward;
+using Dfo.Server.Protocol.Game.BossTowerContinue;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Inventory;
@@ -168,6 +175,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledDungeonStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledDungeonStateMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledQuestStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledQuestStateMessage>>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.Events.EventsChanged,Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler>(retryLimit:0);
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompleted,Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompletedHandler>(retryLimit:0);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommand,Dfo.Server.Data.Events.AttendanceClaimResult,Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommandHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive);
@@ -229,6 +237,9 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddScoped<ClientAppearanceVisibilityProjection>();
         services.AddNotificationHandler<ClientAppearanceVisibilityRefresh, ClientAppearanceVisibilityProjection>(retryLimit: 0);
         services.AddNotificationHandler<ExpiredItemsRefresh, ExpiredItemsRefreshHandler>(retryLimit: 0);
+        services.AddNotificationHandler<CharacterUserStateRefresh, CharacterUserStateRefreshHandler>(retryLimit: 0);
+        services.AddDomainSubscriber<Dfo.Server.Abstractions.Characters.CharacterNameTagExpired, NameTagExpiredSubscriber>(
+            "character.name-tag.expiration.notifications", DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainSubscriber<OnlineExpiredItemsRemoved, ExpiredItemsNotificationSubscriber>(
             "inventory.expiration.notifications", DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainSubscriber<Dfo.Server.Abstractions.Accounts.ClientAppearanceSettingsChanged,
@@ -236,6 +247,8 @@ public sealed class ProtocolModule : IServerModule
             fact => $"{fact.AccountId.Value}:{fact.CharacterId.Value}");
         services.AddHostedService<MirrorQuotaDailyRefreshService>();
         services.AddHostedService<DimensionQuotaDailyRefreshService>();
+        services.AddHostedService<GoldSilverHornQuotaDailyRefreshService>();
+        services.AddHostedService<ReviveCoinQuotaDailyRefreshService>();
         services.AddSingleton<ItemUsageProjectionDelivery>();
         services.AddHostedService<ItemUsageDailyRefreshService>();
         services.AddCommandHandler<ReadItemUsageSnapshotCommand, ItemUsageSnapshotResult, ReadItemUsageSnapshotCommandHandler>(CommandExecutionKind.ReadOnly);
@@ -263,6 +276,17 @@ public sealed class ProtocolModule : IServerModule
         services.AddHostedService<Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService>();
         services.TryAddSingleton<Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingProjection>();
         services.AddHostedService<Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingScheduler>();
+        services.AddGameCmdMessageDecoder<RentEquipmentDecoder>(0x03CF, ClientMessageType.GameRentEquipment);
+        services.AddGameCmdMessageDecoder<ChargeRentPointDecoder>(0x03D0, ClientMessageType.GameChargeRentPoint);
+        services.RegisterMessageHandler<RentEquipmentHandler>(ClientMessageType.GameRentEquipment);
+        services.RegisterMessageHandler<ChargeRentPointHandler>(ClientMessageType.GameChargeRentPoint);
+        services.AddGameCmdMessageEncoder<RentEquipmentResponse, RentEquipmentEncoder>();
+        services.AddGameCmdMessageEncoder<ChargeRentPointResponse, ChargeRentPointEncoder>();
+        services.AddCommandHandler<RentEquipmentCommand, EquipmentRentalReceipt, RentEquipmentCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<ChargeRentPointCommand, LuckyStarMutation, ChargeRentPointCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<ReadRentalRefreshCommand, RentalRefreshSnapshot, ReadRentalRefreshCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddDomainSubscriber<LuckyStarChanged, LuckyStarChangedSubscriber>("rental.lucky-star-refresh", DomainEventDeliveryPolicy.LiveOnly, x=>x.AccountId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        services.AddNotificationHandler<LuckyStarPanelRefresh, LuckyStarPanelRefreshHandler>(retryLimit: 0);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectDecoder>(0x00FB, ClientMessageType.GameSharedEffect);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.UseStackable.SharedEffectHandler>(ClientMessageType.GameSharedEffect);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectAck, Dfo.Server.Protocol.Game.UseStackable.SharedEffectAckEncoder>();
@@ -299,6 +323,14 @@ public sealed class ProtocolModule : IServerModule
             Dfo.Server.Protocol.Game.MarriageProposal.PrepareMarriageChurchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.EnterMarriageChurchCommand, Dfo.Server.Data.Marriage.MarriageChurchEntryResult,
             Dfo.Server.Protocol.Game.MarriageProposal.EnterMarriageChurchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxSelectDecoder>(0x03E5, ClientMessageType.GameCollectionBox);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxPutDecoder>(0x03E6, ClientMessageType.GameCollectionBox);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxWithdrawDecoder>(0x03E7, ClientMessageType.GameCollectionBox);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxExtendDecoder>(0x03E8, ClientMessageType.GameCollectionBox);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxHandler>(ClientMessageType.GameCollectionBox);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxCommand, Dfo.Server.Abstractions.Characters.CollectionBoxMutation, Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxAck, Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxAckEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxContentsMessage, Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxContentsEncoder>();
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleMakeDecoder>(0x0404, ClientMessageType.GameMarriageCapsule);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleGiveDecoder>(0x0405, ClientMessageType.GameMarriageCapsule);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleTakeDecoder>(0x0406, ClientMessageType.GameMarriageCapsule);
@@ -872,6 +904,25 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UseRevivalCoinHandler>(ClientMessageType.GameUseRevivalCoin);
         services.RegisterMessageHandler<CharacterDeathHandler>(ClientMessageType.GameCharacterDeath);
         services.RegisterMessageHandler<MonsterDeathHandler>(ClientMessageType.GameMonsterDeath);
+        services.TryAddSingleton<BossTowerProjectionGate>();
+        services.TryAddSingleton<BossTowerEntryGate>();
+        services.TryAddSingleton<BossTowerProjectionDelivery>();
+        services.TryAddSingleton<BossTowerPartyCoordinator>();
+        services.TryAddSingleton<BossTowerDepartureProjectionQueue>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IBossTowerDepartureSink, BossTowerDepartureProjectionSink>());
+        services.TryAddSingleton<BossTowerReturnSweepService>();
+        services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider => provider.GetRequiredService<BossTowerReturnSweepService>());
+        services.AddCommandHandler<EnterBossTowerCommand, BossTowerEntryResult, EnterBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<LoadBossTowerCommand, BossTowerActionResult, LoadBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<StartBossTowerCommand, BossTowerActionResult, StartBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<KillBossTowerActorCommand, BossTowerActionResult, KillBossTowerActorCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<AdvanceBossTowerCommand, BossTowerActionResult, AdvanceBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<DieInBossTowerCommand, BossTowerActionResult, DieInBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<LeaveBossTowerCommand, BossTowerActionResult, LeaveBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<SynchronizeBossTowerLeaderCommand, BossTowerActionResult, SynchronizeBossTowerLeaderCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<SelectBossTowerResultCommand, BossTowerActionResult, SelectBossTowerResultCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<PickupBossTowerItemCommand, BossTowerPickupResult, PickupBossTowerItemCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<ReleaseBossTowerSelectionCommand, BossTowerActionResult, ReleaseBossTowerSelectionCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.TryAddSingleton<IllusionTowerProjectionGate>();
         services.TryAddSingleton<IllusionTowerEntryGate>();
         services.TryAddSingleton<IllusionTowerProjectionDelivery>();
@@ -913,6 +964,8 @@ public sealed class ProtocolModule : IServerModule
             ClientMessageType.GameCardSelectRightState);
         services.RegisterMessageHandler<SelectCardHandler>(ClientMessageType.GameSelectCard);
         services.RegisterMessageHandler<EplpCommandHandler>(ClientMessageType.GameEplpCommand);
+        services.AddCommandHandler<LeaveDungeonCommand, LeaveDungeonResult, LeaveDungeonCommandHandler>(
+            CommandExecutionKind.Direct, accountAccessMode: UserAccessMode.Exclusive);
         services.RegisterMessageHandler<GiveUpGameHandler>(ClientMessageType.GameGiveUpGame);
         services.RegisterMessageHandler<BackToVillageHandler>(ClientMessageType.GameBackToVillage);
 
@@ -1050,6 +1103,10 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<StoryPauseNotification, StoryPauseEncoder>();
         services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();
         services.AddGameNotiMessageEncoder<MonsterDeathNotification, MonsterDeathEncoder>();
+        services.AddGameNotiMessageEncoder<BossTowerInfoNotification, BossTowerInfoEncoder>();
+        services.AddGameNotiMessageEncoder<BossTowerMapNotification, BossTowerMapEncoder>();
+        services.AddGameNotiMessageEncoder<BossTowerRewardNotification, BossTowerRewardEncoder>();
+        services.AddGameNotiMessageEncoder<BossTowerContinueNotification, BossTowerContinueEncoder>();
         services.AddGameNotiMessageEncoder<IllusionTowerInfoNotification, IllusionTowerInfoEncoder>();
         services.AddGameNotiMessageEncoder<IllusionTowerMapNotification, IllusionTowerMapEncoder>();
         services.AddGameNotiMessageEncoder<IllusionTowerRankingNotification, IllusionTowerRankingEncoder>();
@@ -1066,10 +1123,22 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<
             GroundGoldPickupNotification, GroundGoldPickupEncoder>();
         services.AddGameNotiMessageEncoder<EnableClearDungeonNotification, EnableClearDungeonEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.EplpRechallenge.EplpRechallengeNotification,
+            Dfo.Server.Protocol.Game.EplpRechallenge.EplpRechallengeEncoder>();
         services.AddGameNotiMessageEncoder<SecretShopNpcNotification, SecretShopNpcEncoder>();
         services.AddGameNotiMessageEncoder<DespairClearRewardNotification, DespairClearRewardEncoder>();
         services.AddGameNotiMessageEncoder<SaoCurrentFloorNotification, SaoCurrentFloorEncoder>();
         services.AddDomainSubscriber<SaoTowerCleared, SaoTowerNotificationSubscriber>("sao-tower.notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddDomainSubscriber<SouthernDaleInventoryChanged, Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryNotificationSubscriber>(
+            "southern-dale.inventory-notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddDomainSubscriber<SouthernDaleDailyRefillCompleted, Dfo.Server.Protocol.Game.SouthernDale.SouthernDailyRefillNotificationSubscriber>(
+            "southern-dale.daily-refill-notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryRefresh,
+            Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryRefreshHandler>(retryLimit: 0);
+        services.AddDomainSubscriber<BossTowerTicketRefilled, Dfo.Server.Protocol.Game.BossTowerTicket.BossTowerTicketNotificationSubscriber>(
+            "boss-tower.ticket-notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.BossTowerTicket.BossTowerTicketRefresh,
+            Dfo.Server.Protocol.Game.BossTowerTicket.BossTowerTicketRefreshHandler>(retryLimit: 0);
         services.AddDomainSubscriber<TauKingdomTicketRefilled, Dfo.Server.Protocol.Game.TauKingdom.TauTicketNotificationSubscriber>(
             "tau-kingdom.ticket-notifications", DomainEventDeliveryPolicy.LiveOnly);
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.TauKingdom.TauTicketRefresh,
@@ -1232,6 +1301,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<ResetRandomOptionDecoder>(0x01C8, ClientMessageType.GameResetRandomOption);
         services.AddGameCmdMessageDecoder<AvatarCompoundDecoder>(0x0063, ClientMessageType.GameAvatarCompound);
         services.AddGameCmdMessageDecoder<PackageOpeningDecoder>(0x00A0, ClientMessageType.GamePackageOpening);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinHandler>(ClientMessageType.GameDailyReviveCoin);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinDecoder>(0x00CF, ClientMessageType.GameDailyReviveCoin);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinResponse, Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinEncoder>();
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.ReviveCoin.ClaimDailyReviveCoinCommand, DailyReviveCoinResult, Dfo.Server.Protocol.Game.ReviveCoin.ClaimDailyReviveCoinCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddGameCmdMessageDecoder<AvatarPackageOpeningDecoder>(0x0207, ClientMessageType.GameAvatarPackageOpening);
         services.AddGameCmdMessageDecoder<GenCeraTicketMessageDecoder>(0x0041, ClientMessageType.GameGenCeraTicket);
         services.AddGameCmdMessageDecoder<ShopPurchaseCountDecoder>(

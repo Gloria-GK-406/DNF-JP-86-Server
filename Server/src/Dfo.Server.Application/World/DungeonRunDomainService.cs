@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.World;
@@ -14,14 +16,17 @@ namespace Dfo.Server.Application.World;
 /// <summary>Keeps process-local dungeon runs as shared aggregates with participant views.</summary>
 internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 {
+    private readonly ILogger<DungeonRunDomainService> logger = NullLogger<DungeonRunDomainService>.Instance;
     private readonly IDomainTransactionAccessor? transactions;
     private readonly IPartyService? parties;
+    private readonly IDungeonParticipationDomainService? participation;
     private readonly IWeaknessDomainService? weakness;
     private readonly ICreatureRuntimeDomainService? creatures;
     private readonly IDungeonLifecycleDomainService? lifecycle;
     private readonly TimeProvider clock = TimeProvider.System;
     private readonly object gate = new();
     private readonly IDungeonRoomMechanismRuleService mechanismRules = new DungeonRoomMechanismRuleService();
+    private readonly ISealedTreasureRuleService sealedTreasureRules = new SealedTreasureRuleService();
     private readonly IDungeonRoomMechanismWakeSignal? mechanismWake;
     private readonly Dictionary<DungeonRunId, DateTimeOffset> wipeDeadlines = [];
     private readonly Dictionary<DungeonRunId, DateTimeOffset> clearReturnDeadlines = [];
@@ -50,9 +55,13 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         IWeaknessDomainService? weakness = null,
         ICreatureRuntimeDomainService? creatures = null,
         IDungeonLifecycleDomainService? lifecycle = null, TimeProvider? clock = null,
-        IDungeonRoomMechanismRuleService? mechanismRules = null, IDungeonRoomMechanismWakeSignal? mechanismWake = null)
+        IDungeonRoomMechanismRuleService? mechanismRules = null, IDungeonRoomMechanismWakeSignal? mechanismWake = null,
+        ISealedTreasureRuleService? sealedTreasureRules = null, IDungeonParticipationDomainService? participation = null,
+        ILogger<DungeonRunDomainService>? logger = null)
     {
+        this.logger = logger ?? NullLogger<DungeonRunDomainService>.Instance;
         this.transactions = transactions;
+        this.participation = participation;
         this.parties = parties;
         this.weakness = weakness;
         this.creatures = creatures;
@@ -60,6 +69,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         this.clock = clock ?? TimeProvider.System;
         this.mechanismRules = mechanismRules ?? new DungeonRoomMechanismRuleService();
         this.mechanismWake = mechanismWake;
+        this.sealedTreasureRules = sealedTreasureRules ?? new SealedTreasureRuleService();
     }
 
     internal DungeonRunDomainService(IPartyService parties) => this.parties = parties;
@@ -119,6 +129,9 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                     .ToHashSet().SetEquals(frozen.Select(participant => participant.CharacterId)))
                 throw new InvalidOperationException("The entry roster no longer matches the party.");
         }
+        if (this.participation is not null && !this.participation.TryClaim(
+            frozen.Select(x => x.CharacterId).ToArray(), new(DungeonParticipationMode.Ordinary, runId.Value)))
+            throw new InvalidOperationException("A dungeon participant is already occupied.");
         var aggregate = new DungeonRunAggregate(
             runId, partyKey, this.parties, frozen, layout, difficulty, startedAt, initialCell);
 
@@ -461,31 +474,50 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         MazeCell target,
         DungeonCellSeed? preparedCell = null)
     {
-        if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
-            || !this.IsCurrentLeader(aggregate, characterId)
-            || (expectedRunId is { } runId && aggregate.RunId != runId)
-            || (expectedRoomVersion is { } version && aggregate.RoomVersion != version)
-            || this.deathClaims.Keys.Any(key =>
-                key.RunId == aggregate.RunId && key.Actor.Cell == aggregate.CurrentCell)
-            || this.groundDropClaims.Keys.Any(key =>
-                key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell)
-            || this.preparedGroundDropClaims.Any(key =>
-                key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell)
-            || Math.Abs(target.X - aggregate.CurrentCell.X)
-                + Math.Abs(target.Y - aggregate.CurrentCell.Y) != 1
-            || !aggregate.Layout.CanTraverse(aggregate.CurrentCell, target)
-            || aggregate.Cells[aggregate.CurrentCell].MechanismBlocksClear
-            || aggregate.Cells[aggregate.CurrentCell].Mechanisms.Any(state =>
-                !this.mechanismRules.AllowsExit(state, aggregate.CurrentCell, target))
-            || (preparedCell is not null
-                && (preparedCell.Cell != target || preparedCell.MapId <= 0
-                    || (aggregate.Cells.TryGetValue(target, out var retained) && retained.MapId != preparedCell.MapId))))
+        DungeonRunState? Refused(string reason, DungeonRunAggregate? run)
         {
+            if (logger.IsEnabled(LogLevel.Debug))
+                logger.LogDebug("Dungeon move aggregate refused character={CharacterId} run={RunId} expectedRun={ExpectedRunId} version={RoomVersion} expectedVersion={ExpectedVersion} from={FromCell} target={TargetCell} reason={Reason}",
+                    characterId, run?.RunId, expectedRunId, run?.RoomVersion, expectedRoomVersion, run?.CurrentCell, target, reason);
             return null;
         }
 
+        if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
+            return Refused("NoRun", null);
+        if (!this.IsCurrentLeader(aggregate, characterId))
+            return Refused("NotLeader", aggregate);
+        if (expectedRunId is { } runId && aggregate.RunId != runId)
+            return Refused("RunChanged", aggregate);
+        if (expectedRoomVersion is { } version && aggregate.RoomVersion != version)
+            return Refused("RoomVersionChanged", aggregate);
+        if (this.deathClaims.Keys.Any(key =>
+                key.RunId == aggregate.RunId && key.Actor.Cell == aggregate.CurrentCell))
+            return Refused("ActorDeathPending", aggregate);
+        if (this.groundDropClaims.Keys.Any(key =>
+                key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell))
+            return Refused("GroundDropPending", aggregate);
+        if (this.preparedGroundDropClaims.Any(key =>
+                key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell))
+            return Refused("GroundDropPrepared", aggregate);
+        if (Math.Abs(target.X - aggregate.CurrentCell.X)
+                + Math.Abs(target.Y - aggregate.CurrentCell.Y) != 1)
+            return Refused("NotAdjacent", aggregate);
+        if (!aggregate.Layout.CanTraverse(aggregate.CurrentCell, target))
+            return Refused("Disconnected", aggregate);
+        if (!this.sealedTreasureRules.AllowsTraversal(aggregate.Layout.DungeonId,
+                aggregate.KilledMonsterCodes, aggregate.CurrentCell, target))
+            return Refused("SealedTreasureGate", aggregate);
+        if (aggregate.Cells[aggregate.CurrentCell].MechanismBlocksClear)
+            return Refused("MechanismBlocksClear", aggregate);
+        if (aggregate.Cells[aggregate.CurrentCell].Mechanisms.Any(state =>
+                !this.mechanismRules.AllowsExit(state, aggregate.CurrentCell, target)))
+            return Refused("MechanismBlocksExit", aggregate);
+        if (preparedCell is not null
+                && (preparedCell.Cell != target || preparedCell.MapId <= 0
+                    || (aggregate.Cells.TryGetValue(target, out var retained) && retained.MapId != preparedCell.MapId)))
+            return Refused("PreparedCellMismatch", aggregate);
         if (!aggregate.Cells.ContainsKey(target) && (preparedCell is null || !preparedCell.IsComplete))
-            return null;
+            return Refused("IncompleteCell", aggregate);
         if (this.transactions?.Current is { } transaction)
         {
             var cell = aggregate.Cells.GetValueOrDefault(target) ?? aggregate.CreateCell(preparedCell!);
@@ -534,6 +566,11 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             var drop = new GroundDropId(aggregate.CurrentCell, groundDropNumber);
             var cell = aggregate.Cells[aggregate.CurrentCell];
             var item = cell.FindGroundItem(groundDropNumber);
+            // Preserve A21's declared-object association, but never bank its reward before
+            // the owning chest destruction has actually committed (reservation is insufficient).
+            if (item?.Source is { Kind: DungeonGroundItemSourceKind.DeclaredObject, ObjectIndex: { } objectIndex }
+                && cell.HasUnopenedRewardObject(aggregate.Layout.DungeonId, objectIndex, this.sealedTreasureRules))
+                return null;
             var key = new GroundDropClaimKey(aggregate.RunId, drop, characterId);
             if (item is null
                 || this.groundDropClaims.Keys.Any(candidate =>
@@ -1339,6 +1376,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         if (!this.runsByCharacter.Remove(characterId, out var aggregate))
             return false;
 
+        this.participation?.ReleaseCommitted(characterId, new(DungeonParticipationMode.Ordinary, aggregate.RunId.Value));
         this.weakness?.For(characterId).ResumeRecovery();
         this.creatures?.ChangeCombat(characterId, false);
         aggregate.ActiveParticipants.Remove(characterId);
@@ -1719,6 +1757,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         public Dictionary<CharacterId, DungeonKillExperienceSummary> KillExperiences { get; } = [];
 
         public HashSet<ParticipantEffectKey> CompletedKillEffects { get; } = [];
+        // Derived from committed deaths: no second mutable element-state container to drift.
+        public IEnumerable<int> KilledMonsterCodes => this.kills.Select(x => x.MonsterCode);
         public HashSet<CharacterId> ActiveParticipants { get; }
         public HashSet<CharacterId> BuffParticipants { get; } = [];
         public HashSet<CharacterId> ReadyParticipants { get; } = [];
@@ -1852,6 +1892,11 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             actor.Sequence != sequence && actor.BlocksClear && actor.Actor.IsBoss && !actor.IsDead);
 
         public DungeonCellObjectState ObjectAt(int index) => this.objects[index];
+
+        public bool HasUnopenedRewardObject(int dungeonId, int objectIndex, ISealedTreasureRuleService rules) =>
+            this.objects.Any(x => x.Object.Id.Section == DungeonObjectSection.SpecialPassive
+                && x.Object.Id.Index == objectIndex && !x.IsConsumed
+                && rules.RequiresDestroyedObject(dungeonId, x.Object.Code));
 
         public void ConsumeObject(int index)
         {

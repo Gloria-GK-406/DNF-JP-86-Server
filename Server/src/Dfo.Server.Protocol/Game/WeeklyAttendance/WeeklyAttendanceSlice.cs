@@ -65,6 +65,19 @@ internal sealed record ScheduledDungeonStateMessage(ScheduledDungeonState State)
         return body;
     }
 }
+internal sealed record ScheduledQuestStateMessage(ScheduledQuestState State) : GameStateSynchronizationMessage,IGameNotiMessage
+{
+    internal override ushort Type => 0x033F;
+    internal override byte[] EncodeBody()
+    {
+        // A21 VA011C2550 selects schedule category 1, consumed by VA00E4F660.
+        var body = new byte[16];
+        BinaryPrimitives.WriteUInt32LittleEndian(body,1u);
+        BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(4),State.Open ? 1u : 0u);
+        BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(8),checked((uint)State.QuestId));
+        return body;
+    }
+}
 public sealed record WeeklyAttendanceRequest(GameMessageMetadata Metadata,byte[] Opaque) : IClientNetworkMessage
 { public ClientMessageType MessageType=>ClientMessageType.GameWeeklyAttendance; }
 internal sealed class WeeklyAttendanceDecoder : IGameMessageDecoder
@@ -97,14 +110,28 @@ public sealed class WeeklyAttendanceHandler(ISelectedSessionDomainService sessio
         await notices.ProjectAsync(new NotificationAudience.TheseSessions([session]),new EventsChanged(),ct);
     }
 }
-public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,IEventPlayerProjectionDomainService projection) : INotificationHandler<EventsChanged>
+public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,IEventPlayerProjectionDomainService projection,
+    Dfo.Server.Abstractions.Characters.ICharacterDomainService? characters = null,
+    Dfo.Server.Abstractions.Quests.IQuestQueryDomainService? quests = null) : INotificationHandler<EventsChanged>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,EventsChanged notice,CancellationToken ct)
     {
-        if (sessions.FindByCharacter(recipient.CharacterId) is not { } session) return [];
+        if (sessions.FindByCharacter(recipient.CharacterId) is not { } session || session.ConnectionId != recipient.ConnectionId
+            || recipient.ExpectedSession is { } expected && expected != session) return [];
         var state=await projection.ReadNowAsync(session,ct);
-        return [new EventInformationMessage(state.Information),new WeeklyAttendanceStateMessage(state.Attendance),
+        List<IServerNetworkMessage> messages = [new EventInformationMessage(state.Information),new WeeklyAttendanceStateMessage(state.Attendance),
             .. state.ScheduledDungeons.Select(x => new ScheduledDungeonStateMessage(x)),
+            .. state.ScheduledQuests.Select(x => new ScheduledQuestStateMessage(x)),
             .. state.Joust is { } joust ? Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Snapshot(joust) : []];
+        if (notice.RefreshQuestOffers)
+        {
+            var progress = await (characters ?? throw new InvalidOperationException("Character queries are unavailable."))
+                .Get(session.CharacterId).ProgressAsync(ct).ConfigureAwait(false)
+                ?? throw new InvalidDataException("Character progression is unavailable.");
+            var offers = await (quests ?? throw new InvalidOperationException("Quest queries are unavailable."))
+                .ReadAvailableAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
+            messages.Add(new AvailableQuestListMessage(progress.Level, offers));
+        }
+        return sessions.FindByCharacter(recipient.CharacterId) == session ? messages : [];
     }
 }

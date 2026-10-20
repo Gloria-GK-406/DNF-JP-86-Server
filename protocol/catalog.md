@@ -1,5 +1,32 @@
 # 协议清单
 
+## 2026-10-20 循环任务客户端原生提交（核心流程已验收）
+
+ClientStatic / High：已定位 [NOTI0105](game/server-to-client/NOTI-0x0105.md) 驱动循环看板目标检查及 C2S CMD0022 的入口。CurrentImplementation：循环清场发送 ready 通知；已达标时先同步完整已接任务进度，异步进度随后达标时按 023F → 0105 再检查。结算仍由客户端提交请求驱动，不恢复服务端代办完成/取消。2026-10-20 部署 `70d8ba9f` 后，用户确认结果符合预期，本轮原生自动提交及成功看板记为 ClientVerified / Confirmed；body 09 的来源仍为参照实现，不升级为官方 WireCaptured，也不代表全部边界分支已验收。[实现与验收](../Document/CycleQuestNativeSubmit-20261020.md)。
+
+
+## 2026-10-20 幸运星与武器租赁
+
+CurrentImplementation / ClientStatic Confirmed：CMD03CF租赁、CMD03D0金币购星接入原子结算与请求去重，使用22B正文14/18字段；完整NOTI03C1统一恢复账号余额与真实租赁模板/绝对到期时间。幸运星消耗品与适正通关入账共用账号领域服务。当前PVF上限400、10万金币/星、基础租价、24h租期，同模板原UID续租。2026-10-20用户明确确认本轮幸运星功能验收通过；后续租赁/续租等级限制已移除，穿戴仍按等级与霸王契约检查。见[功能规则与验收](../Document/LuckyStarRental.md)、[静态证据](patterns/data/probes/lucky-star-rental-20261020.md)、[03CF](game/client-to-server/0x03CF.md)、[03D0](game/client-to-server/0x03D0.md)。
+
+## 2026-10-19 领主之塔（happy path已验收）
+
+服务端接收解码日志 / Confirmed：[002D](game/client-to-server/0x002D.md#2026-10-19-原生走门误拒绝修复)原生首层走门为(255,255)，已清空3/3怪物；旧parity唯一目标校验误拒绝。CurrentImplementation现接受该专用标记，保留清层、队长、精确会话及单阶段推进。用户在修复版部署后确认领主塔happy path测试通过，原生换层随核心流程接受；不据此升级完整WireCaptured或全部分支/字段ClientVerified。[收尾与保留边界](../Document/LordTower-Closeout-20261019.md)。
+
+CurrentImplementation / ClientStatic / 70Reference：受管2329通过[033F](game/server-to-client/NOTI-0x033F.md)投影content3505开放与关闭，未加69/75。专用[0333](game/server-to-client/NOTI-0x0333.md)8B（offset6练习0）、[0334](game/server-to-client/NOTI-0x0334.md)12+14M+18I、[0335](game/server-to-client/NOTI-0x0335.md)固定八成员组、[0336](game/server-to-client/NOTI-0x0336.md)1B已注册独立BossTowerInfo/Map/Reward/Continue切片；021F仍为卡片图鉴。0010/0025/0027/0028/0029/002B/[002D](game/client-to-server/0x002D.md)/[0048](game/client-to-server/0x0048.md)/000F/002A/0084及队伍/清理分流完成。002D成功仅0334，0025全员完成后001E；0048 btn0/1/2=重试/别图/回城，event2仅ACK，重试000F后0010才扣票。自动codec、handler及真实TouchSocket合成帧通过；它们不代表原生WireCaptured/ClientVerified。[实现与验证边界](../Document/LordTower-Implementation-20261019.md)。
+
+## 2026-10-19 新·金角银角次数通知
+
+ClientStatic / Confirmed：[NOTI042B](game/server-to-client/NOTI-0x042B.md)精确4B，`u16 goldUsed + u16 silverUsed`；当前PVF的4123绑定silver第二槽，上限3，客户端显示最大值减已用。CurrentImplementation：独立活动2332投影033F的content4123，入场原子持久扣次，选角/提交后/统一日切投影042B。不复用69/75，不新增真实帧或ClientVerified声明。[实现及验收清单](../Document/GoldSilverHorn-20261019.md)。
+
+## 2026-10-19 常驻收集箱实现
+
+CurrentImplementation：[03E5](game/client-to-server/0x03E5.md)–[03E8](game/client-to-server/0x03E8.md)已接线，03EB恢复所有系列及持久选择；0381保持独立固定兼容帧。PVF驱动系列，隐藏容器241保存完整原物，延期拒绝且不扣券，已提交重复请求恢复当前状态。实现、兼容边界及实机清单见[交付说明](../Document/CollectionBox-Implementation-20261019.md)。布局依据仍为ClientStatic；没有新增WireCaptured或ClientVerified。
+
+## 2026-10-19 收集箱 A21 静态补证
+
+ClientStatic / High：[03E5](game/client-to-server/0x03E5.md)选择单箱；[03E6](game/client-to-server/0x03E6.md)放入精确8B；[03E7](game/client-to-server/0x03E7.md)取出精确5B且无目标背包槽；[03E8](game/client-to-server/0x03E8.md)延期8B，成功完整体6B。[03EB](game/server-to-client/NOTI-0x03EB.md)为8+4n完整箱快照，偏移1非零会选择本帧箱并重应用，偏移6非零为永久有效。兼容0381仍独立保留。本节补证不构成抓包或ClientVerified；当前服务端实现见上一节，用户选择常驻的本服设计见[方案](../Document/CollectionBox-Design-20261019.md)。
+
 ## 2026-10-18 成长胶囊与爱之摩伽陀
 
 CurrentImplementation：0404/0405/0406接入统一婚姻系统，03DF/03E0同步持有数、待领数及能量；加入推荐通关去重、离线赠送、重登恢复及重复请求绝对状态重放。CMD包含accepted:u8公共前缀，成功正文分别10/6/6B。3541使用夫妻两人原子准入及当前PVF双人门票/掉落，入口为格兰之森山麓。布局仍为ClientStatic，尚未新增ClientVerified。见[实现与验收](../Document/MarriageCapsules-LoveMagatha-20261018.md)。
@@ -455,7 +482,7 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x01` | `0x001A` | `DISJOINT_ITEM` | Mutation / 有响应 | ClientVerified（A21 系统/便携分解成功流程；便携 providerId=0、工具槽分档、批量逐件请求；`0x000E` 修复后当前角色刷新与同账号换角余额一致；成功 S2C body 未归档） | [0x001A.md](game/client-to-server/0x001A.md) |
 | `0x01` | `0x001D` | `BUY_SKILL` | Mutation / 有响应 | 实现服务端功能（A21 普通加点，待实机） | [0x001D.md](game/client-to-server/0x001D.md) |
 | `0x01` | `0x001E` | `INCREASE_STATUS` | Mutation / 有响应 | 已实现经验兵书；C2S有实帧、S2C静态补证；修复后实机待验 | [0x001E.md](game/client-to-server/0x001E.md) |
-| `0x01` | `0x001F` | `ACCEPT_QUEST` | Mutation / 有响应 | 实现服务端功能（A21 受理请求与回包有实帧；重发幂等已实现，投影与新重发行为待实机验证） | [0x001F.md](game/client-to-server/0x001F.md) |
+| `0x01` | `0x001F` | `ACCEPT_QUEST` | Mutation / 有响应 | ClientVerified（protocol3 接取及重复请求改回 00 12 后无崩溃、无弹窗；有服务端日志对照，特殊任务后续行为仍待实机） | [0x001F.md](game/client-to-server/0x001F.md) |
 | `0x01` | `0x0020` | `GIVEUP_QUEST` | Mutation / 有响应 | 实现服务端功能；A21 静态证实 `0x0020+questId` 请求及成功回包读法，实帧/UI 待验证 | [0x0020.md](game/client-to-server/0x0020.md) |
 | `0x01` | `0x0021` | `SET_QUEST_TRIGGER` | Mutation / 有响应 | 实现服务端功能（A21 赛丽亚任务往返有样本；服务端事实推进与背包重算另待验证） | [0x0021.md](game/client-to-server/0x0021.md) |
 | `0x01` | `0x0022` | `FINISH_QUEST` | Mutation / 有响应 | 实现服务端常规结算；A21 另一静态构包路径末字段非恒定哨兵，具体触发与实帧待查 | [0x0022.md](game/client-to-server/0x0022.md) |
@@ -468,7 +495,7 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x01` | `0x0045` | `SCORE_SCROLL_STATE` | Query / 有响应 | 实现服务端功能（与牌面计时共用状态；双客户端重测待归档） | [0x0045.md](game/client-to-server/0x0045.md) |
 | `0x01` | `0x0046` | `CARD_SELECT_RIGHT_STATE` | Query / 首次请求与自动计时争用同一牌面状态 | 实现服务端功能（防重复牌面；双客户端重测待归档） | [0x0046.md](game/client-to-server/0x0046.md) |
 | `0x01` | `0x0047` | `SELECT_CARD` | Mutation / 有响应（认领不到牌位时不答） | 实现服务端功能 | [0x0047.md](game/client-to-server/0x0047.md) |
-| `0x01` | `0x0048` | `EPLP_COMMAND` | Mutation / state 1 离开副本并恢复城镇投影 | 实现服务端功能（A21 静态布局 + 参照帧；当前真客户端待复验） | [0x0048.md](game/client-to-server/0x0048.md) |
+| `0x01` | `0x0048` | `EPLP_COMMAND` | Mutation / 退出、选图与建局提交互斥；普通再次挑战保留普通迷宫分区 | 单人开始下一个任务已确认；普通再次挑战修复版用户测试完成并授权PR，组队等未覆盖组合保留 | [0x0048.md](game/client-to-server/0x0048.md) |
 | `0x01` | `0x0075` | `BOSS_DIE_CHECK` | Report / 无 CMD 应答 | WireCaptured（A21 单次 39B 实帧；当前只核对，不以它触发通关） | [0x0075.md](game/client-to-server/0x0075.md) |
 | `0x01` | `0x0079` | `CHANGE_HOST` | Mutation / 按稳定槽位委任队长；成功无 CMD 回包 | ClientVerified（A21 城镇两人队 slot 1 接任且槽位不重排） | [0x0079.md](game/client-to-server/0x0079.md) |
 | `0x01` | `0x0084` | `BACK_2_VILLAGE` | Mutation / 关闭选图界面并恢复城镇投影 | 实现服务端功能（A21 空请求实帧；实现后的按钮行为待复验） | [0x0084.md](game/client-to-server/0x0084.md) |
@@ -1248,6 +1275,8 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 
 ## 2026-09-21 复活币实现候选
 
+2026-10-19：普通消耗品42由001E（本次实机入口）与兼容002C共用扣物品与加币事务；每日免费领取CMD00CF已接线，NOTI00B1统一投影当日领取状态。规则为每角色每业务日一次且余额必须为0。来源等级为PVF + ClientStatic + CurrentImplementation及现场日志；修正后流程待实机验收。见[实施与边界](../Document/ReviveCoins-20261019.md)。
+
 CMD [0029 USE_COIN](game/client-to-server/0x0029.md)：请求 2B，成功 ACK 4B；事务扣付款人一枚币、NOTI 0020 state=1 广播并取消全灭计时。ACK flag 首轮取 1，业务值与实机复活尚待验证，不标记 ClientVerified。
 
 ## 虚弱投影（2026-09-21）
@@ -1327,6 +1356,8 @@ CMD [0012](game/client-to-server/0x0012.md)增加operation=3特效消费；晶�
 [NOTI0279](game/server-to-client/NOTI-0x0279.md)为两个u32快照，第二字段Confirmed为已入场数，第一字段Unknown且保守写0。补入统一配额投影，保持加载仅NOTI001E；本次实机待验收，未标ClientVerified。[021E](game/server-to-client/NOTI-0x021E.md)和[CMD036F](game/server-to-client/CMD-0x036F.md)复用原编码，由提交后变化投影读取当前次数。消耗品、权益、镜像计数经直接事件进入中央服务，同一业务事务更新，异步订阅不再承担扣次。[职责与验收](../Document/tasks/usage-quota-direct-events-20261010/spec.md)。
 
 ## 2026-10-11 绝望之塔初次实现（待实机）
+
+2026-10-20 `CurrentImplementation`：下一层按1→100→1循环，100层结算仍按冻结的100层实例发奖，每日资格不因循环重置；原有NOTI001B选图状态投影读取循环后的下一层。当前服务PVF的100层→下一业务日第1层入场、结算和幂等自动回归通过。用户同日确认客户端通关100层后循环到1层正常，该正常路径记为有限范围`ClientVerified`，#174已验收关闭；未将奖励重放、回滚等边界升级为实机已验证，也未新增逐字段抓包证据。见[实现规则](../Document/DespairTower.md)。
 
 2026-10-13 `ClientStatic / CurrentImplementation`：修复场景楼层牌一直显示 1。NOTI001C 小地图组后的第一个字段实际为 u16 场景楼层（无图标时 offset 12），客户端物件 10386 由该值组合数字动画；现在写入已冻结的实际入场层数，普通报文保持。见[协议更正](game/server-to-client/NOTI-0x001C.md#2026-10-13-更正场景楼层不是固定标记)及[取证](../Document/outputs/despair-floor-sign-20261013/evidence.md)。未部署，无新增实帧或 ClientVerified。
 

@@ -11,12 +11,64 @@ using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Tests.Game.Party;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using EnteredDungeon = Dfo.Server.Abstractions.World.DungeonEntry;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 
 public sealed class PartyMoveMapHandlerTests
 {
+    [Theory]
+    [InlineData(LogLevel.Debug)]
+    [InlineData(LogLevel.Information)]
+    public async Task Normal_room_diagnostics_are_debug_only_and_do_not_change_delivery(LogLevel minimum)
+    {
+        var logger = new RecordingLogger(minimum);
+        var sender = new Sender();
+        var visits = new Visits();
+        var registry = new DungeonRunDeliveryRegistry();
+        registry.Register(visits.RunId, [Leader, Member]);
+        var handler = new MoveMapHandler(new Sessions(Leader, Member), new Runs(visits.Start), visits,
+            registry, sender, logger);
+
+        await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+
+        Assert.Equal(1, visits.Moves);
+        Assert.Single(sender.Messages(Leader.ConnectionId));
+        Assert.Single(sender.Messages(Member.ConnectionId));
+        Assert.DoesNotContain(logger.Entries, x => x.Level >= LogLevel.Information);
+        if (minimum == LogLevel.Information) Assert.Empty(logger.Entries);
+        else
+        {
+            Assert.Contains(logger.Entries, x => x.Message.Contains("Move map received"));
+            Assert.Contains(logger.Entries, x => x.Message.Contains("stage=Committed"));
+            Assert.Contains(logger.Entries, x => x.Message.Contains("Move map delivered"));
+        }
+    }
+
+    [Fact]
+    public async Task Publication_failure_logs_the_committed_room_and_preserves_the_exception()
+    {
+        var logger = new RecordingLogger(LogLevel.Information);
+        var failure = new IOException("test send failure");
+        var sender = new Sender { Failure = failure };
+        var visits = new Visits();
+        var registry = new DungeonRunDeliveryRegistry();
+        registry.Register(visits.RunId, [Leader, Member]);
+        var handler = new MoveMapHandler(new Sessions(Leader, Member), new Runs(visits.Start), visits,
+            registry, sender, logger);
+
+        var observed = await Assert.ThrowsAsync<IOException>(() =>
+            handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None).AsTask());
+
+        Assert.Same(failure, observed);
+        Assert.Equal(1, visits.Moves);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Error, entry.Level);
+        Assert.Contains("publication failed after commit", entry.Message);
+        Assert.Contains(visits.RunId.ToString(), entry.Message);
+    }
+
     [Fact]
     public async Task The_leaders_room_change_is_sent_to_every_frozen_current_generation()
     {
@@ -106,13 +158,14 @@ public sealed class PartyMoveMapHandlerTests
         var visits = new Visits();
         var registry = new DungeonRunDeliveryRegistry();
         registry.Register(visits.RunId, [Leader, Member]);
+        var logger = new RecordingLogger(LogLevel.Debug);
         var handler = new MoveMapHandler(
             sessions,
             new Runs(visits.Start),
             visits,
             registry,
             sender,
-            NullLogger<MoveMapHandler>.Instance);
+            logger);
 
         await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
@@ -120,6 +173,7 @@ public sealed class PartyMoveMapHandlerTests
         Assert.Empty(sender.Messages(Leader.ConnectionId));
         Assert.Empty(sender.Messages(replacement.ConnectionId));
         Assert.Empty(sender.Messages(Member.ConnectionId));
+        Assert.Contains(logger.Entries, x => x.Message.Contains("reason=SupersededSession"));
     }
 
     [Fact]
@@ -303,12 +357,14 @@ public sealed class PartyMoveMapHandlerTests
 
     private sealed class Sender : IGameMessageSender
     {
+        public Exception? Failure { get; init; }
         private readonly Dictionary<NetworkConnectionId, List<IGameServerMessage>> sent = [];
         public IReadOnlyList<IGameServerMessage> Messages(NetworkConnectionId connectionId) => sent.TryGetValue(connectionId, out var messages) ? messages : [];
         public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken)
         {
+            if (Failure is { } failure) throw failure;
             Add(requiredDirectConnectionId, delivery.RequiredDirectMessages);
             foreach (var target in delivery.BestEffortTargets)
                 Add(target.ConnectionId, target.OrderedMessages);
@@ -322,6 +378,18 @@ public sealed class PartyMoveMapHandlerTests
                 sent.Add(connectionId, destination);
             }
             destination.AddRange(messages);
+        }
+    }
+
+    private sealed class RecordingLogger(LogLevel minimum) : ILogger<MoveMapHandler>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+        public bool IsEnabled(LogLevel logLevel) => logLevel >= minimum;
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            if (IsEnabled(logLevel)) Entries.Add((logLevel, formatter(state, exception)));
         }
     }
 }

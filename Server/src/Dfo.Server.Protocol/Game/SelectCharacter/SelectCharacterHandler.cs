@@ -74,7 +74,9 @@ public sealed class SelectCharacterHandler(
     UsageQuotaProjectionDelivery? quotaProjection = null,
     Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService? clientSettings = null,
     Dfo.Server.Abstractions.World.ISaoTowerDomainService? sao = null,
-    Dfo.Server.Abstractions.World.ITauKingdomDomainService? tau = null) : ClientMessageHandler<SelectCharacterRequest>
+    Dfo.Server.Abstractions.World.ITauKingdomDomainService? tau = null,
+    Dfo.Server.Abstractions.World.ISouthernDaleDomainService? southern = null,
+    Dfo.Server.Abstractions.World.BossTower.IBossTowerTicketDomainService? bossTickets = null) : ClientMessageHandler<SelectCharacterRequest>
 {
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -338,6 +340,11 @@ public sealed class SelectCharacterHandler(
         if (tau is not null)
             await commandBus.SendAsync(new Dfo.Server.Application.World.RefillOnlineTauTicketCommand(session), cancellationToken)
                 .ConfigureAwait(false);
+        if (southern is not null)
+            await commandBus.SendAsync(new Dfo.Server.Application.World.RefillOnlineSouthernTicketCommand(session), cancellationToken)
+                .ConfigureAwait(false);
+        if (bossTickets is not null)
+            await commandBus.SendAsync(new Dfo.Server.Application.World.BossTower.RefillOnlineBossTowerTicketCommand(session), cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
         if (clientSettings is not null)
         {
@@ -456,6 +463,9 @@ public sealed class SelectCharacterHandler(
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && quotaProjection is not null)
             _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.HerasDungeon, cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker && quotaProjection is not null)
+            _ = await quotaProjection.SendAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.GoldSilverHorn, cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && sao is not null
             && await sao.ReadStatusAsync(cancellationToken).ConfigureAwait(false) is { } saoProgress)

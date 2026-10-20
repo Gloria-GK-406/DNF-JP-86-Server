@@ -8,6 +8,24 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 public sealed class PvfTypedDungeonAndMagicSealTests
 {
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Dungeon_identical_event_ticket_restatement_is_one_requirement_but_conflicts_are_rejected(bool identical)
+    {
+        var builder = DungeonBuilder();
+        var script = builder.AddScript("dungeon", "test.dgn")
+            .Tag("[event required item]").Int(10004955).Int(1).Int(1)
+            .Tag("[event required item]").Int(10004955).Int(identical ? 1 : 2).Int(1);
+        AddMaze(script).End();
+        using var file = new BuiltArchive(builder);
+        var source = new PvfDungeonDefinitionSource(file.Provider);
+        if (!identical)
+            await Assert.ThrowsAsync<InvalidDataException>(() => source.GetAsync(7, default).AsTask());
+        else
+            Assert.Equal(new DungeonRequiredItem(10004955, 1, true), Assert.Single((await source.GetAsync(7, default))!.EventRequiredItems));
+    }
+
+    [Theory]
     [InlineData("type")]
     [InlineData("extra")]
     [InlineData("range")]
@@ -188,6 +206,23 @@ public sealed class PvfTypedDungeonAndMagicSealTests
         }, error.Message);
     }
 
+    [Fact]
+    public async Task Unused_map_bindings_on_empty_grid_cells_do_not_create_rooms_or_invalidate_the_maze()
+    {
+        var builder = DungeonBuilder();
+        builder.AddScript("dungeon", "test.dgn").Tag("[maze info]").Tag("[size]").Int(3).Int(1)
+            .Tag("[greed]").Quoted("BBEEAA")
+            .Tag("[map specification]").Quoted("map").Int(0).Int(0).Int(10)
+            .Quoted("boss").Int(1).Int(0).Int(11).Quoted("map").Int(2).Int(0).Int(12)
+            .Tag("[start map]").Int(0).Int(0).Tag("[boss map]").Int(1).Int(0).End();
+        using var file = new BuiltArchive(builder);
+        var maze = Assert.Single((await new PvfDungeonDefinitionSource(file.Provider).GetAsync(7, default))!.Mazes);
+
+        Assert.Null(maze.ConfigurationError);
+        Assert.Equal(2, maze.Cells.Count);
+        Assert.DoesNotContain(new MazeCell(2, 0), maze.Cells.Keys);
+    }
+
     [Theory]
     [InlineData("grid", "connection grid does not match maze size")]
     [InlineData("outside", "outside occupied maze cells")]
@@ -201,8 +236,8 @@ public sealed class PvfTypedDungeonAndMagicSealTests
             .Tag("[quest connection]").Int(0).Int(2389);
         if (defect != "empty")
         {
-            script.Tag("[greed]").Quoted(defect == "outside" ? "AAAA" : "BB")
-                .Tag("[map specification]").Quoted("map").Int(0).Int(0).Int(32984)
+            script.Tag("[greed]").Quoted(defect == "outside" ? "BBAA" : "BB")
+                .Tag("[map specification]").Quoted("map").Int(defect == "outside" ? 2 : 0).Int(0).Int(32984)
                 .Tag("[start map]").Int(0).Int(0).Tag("[boss map]").Int(0).Int(0);
         }
         AddMaze(script).End();
@@ -218,10 +253,11 @@ public sealed class PvfTypedDungeonAndMagicSealTests
         var invalid = dungeon.Mazes[1];
         Assert.Contains(reason, invalid.ConfigurationError!);
         Assert.Equal(2389, invalid.QuestConnection!.QuestId);
-        if (defect != "empty")
+        if (defect is not ("empty" or "zero-width"))
         {
             var cell = Assert.Single(invalid.Cells).Value;
-            Assert.Equal([32984], cell.MapCandidates);
+            if (defect == "outside") Assert.Empty(cell.MapCandidates);
+            else Assert.Equal([32984], cell.MapCandidates);
             Assert.True(cell.HasDeclaredConnections);
         }
         else Assert.Empty(invalid.Cells);

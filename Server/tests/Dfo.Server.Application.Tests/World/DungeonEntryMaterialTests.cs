@@ -350,15 +350,71 @@ public sealed class DungeonEntryMaterialTests
     private static async Task<int> Count(LearningFixture f, CharacterId character, int id) =>
         (await f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>().GetStore(character, BusinessInventoryStoreKind.Item)
             .GetContainer(BusinessInventorySpace.Material).GetAllAsync(default)).Where(x => x.ItemId == id).Sum(x => x.Count);
+
+    [Theory]
+    [InlineData(0, 0, false)]
+    [InlineData(1, 0, true)]
+    [InlineData(0, 1, true)]
+    [InlineData(1, 1, true)]
+    public async Task Event_ticket_replaces_regular_ticket_and_only_selected_group_is_charged(int regular, int free, bool success)
+    {
+        await using var f = Fixture(); await f.SeedAsync();
+        Register(f, new(71));
+        if (regular > 0) await SeedTicket(f, new(71), 10003196, regular, 0);
+        if (free > 0) await SeedTicket(f, new(71), 10003235, free, 1);
+        var structures = new Structures([new(10003196, 1, true)], [new(10003235, 1, true)]);
+        var admission = new DungeonAdmissionDomainService(structures,
+            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
+            f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
+        await using (var tx = f.Scope.Begin())
+        {
+            var result = await admission.PrepareAsync(Context(Party[0]), new(), default);
+            Assert.Equal(success, result.Batch is not null);
+            if (success)
+            {
+                Assert.NotNull((await admission.ConsumeAsync(result.Batch!, default)).Receipt);
+                await Assert.ThrowsAsync<InvalidOperationException>(() => admission.ConsumeAsync(result.Batch!, default).AsTask());
+            }
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(regular - (success && free == 0 ? 1 : 0), await Count(f, new(71), 10003196));
+        Assert.Equal(free - (free > 0 ? 1 : 0), await Count(f, new(71), 10003235));
+    }
+
+    [Fact]
+    public async Task Incomplete_event_group_falls_back_to_regular_and_entry_refusal_rolls_payment_back()
+    {
+        await using var f = Fixture(); await f.SeedAsync();
+        await SeedTicket(f, new(71), 6337, 2, 0); await SeedTicket(f, new(71), 3332, 1, 1);
+        var structures = new Structures([new(6337, 1, true)], [new(3332, 1, true), new(5555, 1, true)]);
+        var admission = new DungeonAdmissionDomainService(structures,
+            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
+            f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
+        await using (var tx = f.Scope.Begin())
+        {
+            Assert.NotNull((await admission.ConsumeAsync((await admission.PrepareAsync(Context(Party[0]), new(), default)).Batch!, default)).Receipt);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(1, await Count(f, new(71), 6337)); Assert.Equal(1, await Count(f, new(71), 3332));
+        await using (var tx = f.Scope.Begin())
+        {
+            Assert.Null((await admission.ExecuteAsync(Context(Party[0]), new(), (_, _) =>
+                ValueTask.FromResult(DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid)), default)).Entry);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(1, await Count(f, new(71), 6337)); Assert.Equal(1, await Count(f, new(71), 3332));
+    }
     private sealed class Placements : IItemPlacementDefinitionSource
     {
         public ValueTask<ItemPlacement?> GetAsync(int id, CancellationToken token) => ValueTask.FromResult<ItemPlacement?>(new(AccountMaterialCatalog.ContainsItem(id) ? (byte)11 : (byte)3, 1000, new(BusinessInventorySpace.Material, 0, 55)) { ItemId = id });
     }
 
-    private sealed class Structures(IReadOnlyList<DungeonRequiredItem>? requirements = null) : IDungeonStructureRuleService
+    private sealed class Structures(IReadOnlyList<DungeonRequiredItem>? requirements = null,
+        IReadOnlyList<DungeonRequiredItem>? eventRequirements = null) : IDungeonStructureRuleService
     {
         public ValueTask<DungeonDefinition?> GetDefinitionAsync(int id, CancellationToken token) =>
-            ValueTask.FromResult<DungeonDefinition?>(new(id, "test", 85, true, []) { RequiredItems = requirements ?? Requirements });
+            ValueTask.FromResult<DungeonDefinition?>(new(id, "test", 85, true, []) {
+                RequiredItems = requirements ?? Requirements, EventRequiredItems = eventRequirements ?? [] });
         public ValueTask<DungeonLayout?> ResolveAsync(int id, DungeonEntryFacts facts, int seed, CancellationToken token) => ValueTask.FromResult<DungeonLayout?>(Layout);
         public ValueTask<DungeonMapSelection> SelectMapAsync(DungeonLayout layout, MazeCell? from, MazeCell target, CancellationToken token) => ValueTask.FromResult(DungeonMapSelection.Selected(800));
     }

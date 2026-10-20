@@ -79,14 +79,16 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         Assert.Collection(world.Sender.Sent,
             first => Assert.Null(Assert.IsType<MoveItemSpaceResponse>(first).ErrorCode),
             second => Assert.Equal(title,
-                Assert.Single(Assert.IsType<CurrentUserStateMessage>(second).Equipment).Core.ItemId));
+                Assert.Single(Assert.IsType<CurrentUserStateMessage>(second).Equipment).Core.ItemId),
+            third => Assert.Equal(title, Assert.Single(Assert.IsType<ExtendedUserStateMessage>(third).Equipment).Core.ItemId));
 
         world.Sender.Sent.Clear();
         await world.MoveAsync(InventoryContainerType.Equipment, titleWornSlot, InventoryContainerType.Main, titleBagSlot);
 
         Assert.Collection(world.Sender.Sent,
             first => Assert.Null(Assert.IsType<MoveItemSpaceResponse>(first).ErrorCode),
-            second => Assert.Empty(Assert.IsType<CurrentUserStateMessage>(second).Equipment));
+            second => Assert.Empty(Assert.IsType<CurrentUserStateMessage>(second).Equipment),
+            third => Assert.Empty(Assert.IsType<ExtendedUserStateMessage>(third).Equipment));
     }
 
     [Dfo.Server.Testing.PvfFact]
@@ -112,7 +114,8 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
             first => Assert.Null(Assert.IsType<MoveItemSpaceResponse>(first).ErrorCode),
             second => Assert.Equal(
                 Costume,
-                Assert.Single(Assert.IsType<CurrentUserStateMessage>(second).Equipment).Core.ItemId));
+                Assert.Single(Assert.IsType<CurrentUserStateMessage>(second).Equipment).Core.ItemId),
+            third => Assert.Equal(Costume, Assert.Single(Assert.IsType<ExtendedUserStateMessage>(third).Equipment).Core.ItemId));
     }
 
     [Dfo.Server.Testing.PvfFact]
@@ -125,7 +128,8 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         Assert.Collection(
             world.Sender.Sent,
             first => Assert.Null(Assert.IsType<MoveItemSpaceResponse>(first).ErrorCode),
-            second => Assert.Empty(Assert.IsType<CurrentUserStateMessage>(second).Equipment));
+            second => Assert.Empty(Assert.IsType<CurrentUserStateMessage>(second).Equipment),
+            third => Assert.Empty(Assert.IsType<ExtendedUserStateMessage>(third).Equipment));
     }
 
     /// <summary>
@@ -537,7 +541,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
                         InventoryContainerType.Equipment,
                         0,
                         [.. items.Select(item => new InventoryItemState(
-                            item.Identity, item.SlotIndex, item.Core))]),
+                            item.Identity, item.SlotIndex, item.Core, item.AvatarDetail, item.Noti2CreatureMarker))]),
                 ],
             };
         }
