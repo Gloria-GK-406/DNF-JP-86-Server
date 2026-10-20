@@ -379,7 +379,8 @@ public sealed class MonsterDeathHandler(
     DungeonPartyRecipients? partyRecipients = null, ICreatureRuntimeDomainService? creatures = null,
     SelectedSessionSafety? safety = null, IllusionTowerProjectionDelivery? illusionTower = null,
     Dfo.Server.Protocol.Game.Tournament.TournamentProjectionDelivery? tournamentProjection = null,
-    Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery? altarProjection = null, BossTowerProjectionDelivery? bossTower = null)
+    Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery? altarProjection = null, BossTowerProjectionDelivery? bossTower = null,
+    Dfo.Server.Protocol.Game.QuestCompletion.CycleQuestProjectionFence? cycleQuestFence = null)
     : ClientMessageHandler<MonsterDeathRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
@@ -418,6 +419,8 @@ public sealed class MonsterDeathHandler(
             await DeliverAsync(reporter, targets, ct).ConfigureAwait(false);
             return;
         }
+        using var cycleProjection = run.Layout.Purpose.Kind == DungeonRunPurposeKind.Cycle
+            ? cycleQuestFence?.Begin(run.RunId) : null;
         MonsterDeathSettlementResult settled;
         try
         {

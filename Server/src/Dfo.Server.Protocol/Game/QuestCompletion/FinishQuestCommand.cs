@@ -168,7 +168,7 @@ public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Settlement
             throw new QuestFinishRejectedException(command.QuestId, "Quest completion settlement was rejected.", exception);
         }
     }
-    private static byte ObjectiveKindOf(string? objectiveTypeCode) =>
+    internal static byte ObjectiveKindOf(string? objectiveTypeCode) =>
         objectiveTypeCode?.Trim().ToLowerInvariant() switch
         {
             "seeking" => 0x00,

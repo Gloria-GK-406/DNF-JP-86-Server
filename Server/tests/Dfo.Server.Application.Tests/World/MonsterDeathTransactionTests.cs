@@ -24,9 +24,10 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed class MonsterDeathTransactionTests
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Party_failure_rolls_back_every_recipient_and_actor_then_retry_commits_once(bool duringFlush)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task Party_failure_rolls_back_every_recipient_and_actor_then_retry_commits_once(bool duringFlush, bool cycle)
     {
         using var fixture = new ShopFixture(s =>
         {
@@ -55,7 +56,8 @@ public sealed class MonsterDeathTransactionTests
         published.Publish(member, false);
         var runs = fixture.Services.GetRequiredService<IDungeonRunDomainService>();
         var layout = new DungeonLayout(10000, 0, 1, 1, new(0, 0), new(0, 0), 61000, 17,
-            new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000) });
+            new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000) },
+            Purpose: cycle ? new(DungeonRunPurposeKind.Cycle, 2001, DungeonQuestConnectionState.Active) : default);
         var run = runs.PreparePartyEntry([new(leader.AccountId, leader.CharacterId, 0, true), new(member.AccountId, member.CharacterId, 1, false)],
             layout, DungeonDifficulty.Normal,
             new(layout.StartCell, layout.StartRoomMapId, 1, [new(1, new(13099, 1, 0), false, false, [])], []),
@@ -93,6 +95,12 @@ public sealed class MonsterDeathTransactionTests
         Assert.True(runs.Find(leader.CharacterId)!.CurrentCellState.FindActor(1)!.IsDead);
         Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='dungeon.map-cleared'"));
         Assert.Equal(2, fixture.Scalar("SELECT SUM(trigger_value) FROM character_active_quests"));
+        var queued = Assert.Single(await fixture.Services.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IDomainEventPersistence>()
+            .ReadDueAsync("quest.map-clear", fixture.Clock.GetUtcNow(), 64, default));
+        var clear = System.Text.Json.JsonSerializer.Deserialize<DungeonMapCleared>(queued.Event.PayloadJson)!;
+        Assert.True(clear.IsBossRoom);
+        Assert.Equal(cycle ? 2001 : (int?)null, clear.CycleQuestId);
+        Assert.Equal(cycle ? 2 : 0, clear.CycleAcceptances.Length);
         await fixture.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync("quest.map-clear");
         Assert.Equal(0, fixture.Scalar("SELECT SUM(trigger_value) FROM character_active_quests"));
         Assert.NotSame(probe.Transactions[0], probe.Transactions[2]);
