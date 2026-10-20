@@ -123,9 +123,6 @@ public interface IDungeonEffectRuleService
         int accountId,
         int characterId);
 
-    /// <summary>What arriving lucky star does to a count that has a ceiling.</summary>
-    LuckyStarGrant GrantLuckyStar(int current);
-
     /// <summary>How a settlement's gain splits between ordinary experience and honour.</summary>
     DungeonExperienceSplit SplitExperience(
         DungeonExperienceSettlement settlement,

@@ -441,6 +441,11 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IPremiumServiceUsageDomainService, PremiumServiceUsageDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService, DailyResetRuleService>();
         services.TryAddSingleton<IPremiumServiceRuleService, PremiumServiceRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Rental.ILuckyStarRuleService, Dfo.Server.Application.Rental.LuckyStarRuleService>();
+        services.AddDomainEvent<Dfo.Server.Abstractions.Rental.LuckyStarChanged>("lucky-star.changed", 1);
+        services.TryAddSingleton<Dfo.Server.Abstractions.Rental.IEquipmentRentalRuleService, Dfo.Server.Application.Rental.EquipmentRentalRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService, Dfo.Server.Application.Rental.AccountLuckyStarDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Rental.IEquipmentRentalDomainService, Dfo.Server.Application.Rental.EquipmentRentalDomainService>();
         services.TryAddSingleton<IQuestHelperPuppetRuleService, QuestHelperPuppetRuleService>();
         services.TryAddSingleton<IQuestHelperPuppetDomainService, QuestHelperPuppetDomainService>();
         services.TryAddSingleton<IExpertSkillContractRuleService, ExpertSkillContractRuleService>();

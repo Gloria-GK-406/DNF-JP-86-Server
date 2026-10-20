@@ -129,6 +129,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IEquipmentRequirementDefinitionSource, PvfEquipmentRequirementDefinitionSource>();
         services.TryAddSingleton<IInventorySortKeySource, PvfInventorySortKeySource>();
         services.TryAddSingleton<IPremiumServiceDefinitionSource, PvfPremiumServiceDefinitionSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Rental.ILuckyStarRentalContentSource, PvfLuckyStarRentalContentSource>();
         services.TryAddSingleton<IQuestHelperPuppetDefinitionSource, PvfPremiumServiceDefinitionSource>();
         services.TryAddSingleton<IExpertSkillContractDefinitionSource,
             PvfExpertSkillContractDefinitionSource>();

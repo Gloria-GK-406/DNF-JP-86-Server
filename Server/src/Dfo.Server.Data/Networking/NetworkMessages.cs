@@ -2,6 +2,8 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameRentEquipment = 0x0001_03CF,
+    GameChargeRentPoint = 0x0001_03D0,
     GameCollectionBox = 0x0001_03E5,
     GameMarriageCapsule = 0x0001_0404,
     GameMarriageHousing = 0x0001_03FD,
@@ -236,6 +238,8 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameRentEquipment = 0x0001_03CF,
+    GameChargeRentPoint = 0x0001_03D0,
     GameCollectionBox = 0x0001_03E5,
     GameMarriageCapsule = 0x0001_0404,
     GameMarriageHousing = 0x0001_03FD,

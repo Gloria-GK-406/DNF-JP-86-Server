@@ -1,5 +1,10 @@
 # 协议清单
 
+
+## 2026-10-20 幸运星与武器租赁
+
+CurrentImplementation / ClientStatic Confirmed：CMD03CF租赁、CMD03D0金币购星接入原子结算与请求去重，使用22B正文14/18字段；完整NOTI03C1统一恢复账号余额与真实租赁模板/绝对到期时间。幸运星消耗品与适正通关入账共用账号领域服务。当前PVF上限400、10万金币/星、基础租价、24h租期，同模板原UID续租。自动验证与客户端静态证据不等同实机验收，界面及使用效果待用户测试。见[功能规则与验收](../Document/LuckyStarRental.md)、[静态证据](patterns/data/probes/lucky-star-rental-20261020.md)、[03CF](game/client-to-server/0x03CF.md)、[03D0](game/client-to-server/0x03D0.md)。
+
 ## 2026-10-19 领主之塔（happy path已验收）
 
 服务端接收解码日志 / Confirmed：[002D](game/client-to-server/0x002D.md#2026-10-19-原生走门误拒绝修复)原生首层走门为(255,255)，已清空3/3怪物；旧parity唯一目标校验误拒绝。CurrentImplementation现接受该专用标记，保留清层、队长、精确会话及单阶段推进。用户在修复版部署后确认领主塔happy path测试通过，原生换层随核心流程接受；不据此升级完整WireCaptured或全部分支/字段ClientVerified。[收尾与保留边界](../Document/LordTower-Closeout-20261019.md)。

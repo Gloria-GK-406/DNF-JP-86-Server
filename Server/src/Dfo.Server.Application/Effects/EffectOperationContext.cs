@@ -112,6 +112,11 @@ internal sealed class EffectOperationContext : IRequestReplayProjectionDomainSer
         frame.Entry.State = uncertain ? EffectOperationState.Blocked
             : frame.RollbackConfirmed ? EffectOperationState.ConfirmedRollback : EffectOperationState.Rejected;
     }
+    public void RecordRentalState(SelectedSessionIdentity session)
+    {
+        RecordInventorySlots(session, []);
+        if (Current is { } frame) frame.Needs |= ReplayProjectionNeeds.Rental;
+    }
     public void RecordInventorySlots(SelectedSessionIdentity session,IReadOnlyList<BusinessSlot> slots)
     {
         var frame=Current;if(frame is null)return;

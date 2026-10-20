@@ -13,7 +13,9 @@ internal sealed class ItemUseEffectDomainService(ICharacterDomainService charact
     ICreatureInstanceDomainService creatures, TimeProvider clock,
     Dfo.Server.Abstractions.DomainEvents.IEventService? events = null,
     IExperienceItemDomainService? experienceItems = null, IEntryAllowanceItemDomainService? entryItems = null,
-    IDungeonParticipationDomainService? participation = null, IReviveCoinDomainService? reviveCoins = null) : IItemUseEffectDomainService
+    IDungeonParticipationDomainService? participation = null, IReviveCoinDomainService? reviveCoins = null,
+    Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService? luckyStars = null,
+    IRequestReplayProjectionDomainService? replay = null) : IItemUseEffectDomainService
 {
     public async ValueTask<ItemUseApplication> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
         ItemReference item, CancellationToken ct)
@@ -40,6 +42,14 @@ internal sealed class ItemUseEffectDomainService(ICharacterDomainService charact
         var at = clock.GetUtcNow();
         var plan = rules.Build(rule, source, item, facts, pet?.ItemUid, at);
         if (plan.Status != ItemUsability.Allowed) return new(plan.Status, item.ItemId, item.Count);
+        if (rule?.Action == "[rent point]")
+        {
+            if (luckyStars is null || plan.Effects.OfType<ConsumeFromContainerEffect>().Count(x => x.Slot == source && x.ExpectedItemId == item.ItemId && x.Count == 1) != 1)
+                return new(ItemUsability.NotAUsableItem, item.ItemId, item.Count);
+            var granted = await luckyStars.GrantFromItemAsync(session.AccountId, item.ItemId, ct).ConfigureAwait(false);
+            if (!granted.Succeeded) return new(ItemUsability.CharacterStateUnavailable, item.ItemId, item.Count);
+            replay?.RecordRentalState(session);
+        }
         var applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, session), plan.Effects, ct)
             .ConfigureAwait(false);
         var remaining = applied.Changes<ContainerConsumptionChange>().LastOrDefault(x => x.Slot == source)?.RemainingCount ?? item.Count;

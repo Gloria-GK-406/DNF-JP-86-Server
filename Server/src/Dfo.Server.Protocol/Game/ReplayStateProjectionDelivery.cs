@@ -171,6 +171,8 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
         }
         if (needs.HasFlag(ReplayProjectionNeeds.CollectionBox))
             messages.AddRange(Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxContentsMessage.Full(state.CollectionBoxes ?? throw Missing("Collection box")));
+        if (needs.HasFlag(ReplayProjectionNeeds.Rental))
+            messages.Add(Dfo.Server.Protocol.Game.Rental.RentalPanelProjection.Full(state.Rental ?? throw Missing("Rental"), state.At));
         return messages.ToImmutable();
     }
     private static InvalidDataException Missing(string name) => new($"Required replay projection '{name}' is unavailable.");

@@ -114,3 +114,8 @@ A21 参照会话，归档于
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
 
 <!-- rks:a12:end -->
+
+
+## 2026-10-20 幸运星租赁完整状态
+
+ClientStatic：u32账号星币、u32条数、n组(u32装备模板ID,u32绝对到期秒)。CurrentImplementation复用登录RentalStateMessage编码，操作及重放读取当前状态；不发送旧019D代替。购星03D0 ACK必须先于03C1，避免客户端按已更新余额误判上限。未新增本轮实机验收。见[静态取证](../../patterns/data/probes/lucky-star-rental-20261020.md)。

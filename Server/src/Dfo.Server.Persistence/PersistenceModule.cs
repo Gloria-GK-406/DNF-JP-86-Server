@@ -146,8 +146,10 @@ public sealed class PersistenceModule : IServerModule
             provider => new SqliteCharacterItemEffectTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterItemLockTable>(
             provider => new SqliteCharacterItemLockTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<Dfo.Server.Abstractions.Rental.ILuckyStarDomainStore, Dfo.Server.Persistence.Inventory.SqliteLuckyStarDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Rental.IEquipmentRentalDomainStore, Dfo.Server.Persistence.Inventory.SqliteEquipmentRentalDomainStore>();
         services.TryAddSingleton<ICharacterRentalTable>(
-            provider => new SqliteCharacterRentalTable(provider.GetRequiredService<SqliteDatabase>()));
+            provider => new SqliteCharacterRentalTable(provider.GetRequiredService<SqliteDatabase>(), provider.GetService<TimeProvider>()));
         services.TryAddSingleton<IPremiumServiceUsageTable, SqlitePremiumServiceUsageTable>();
         services.TryAddSingleton<IConsumableUsageTable, SqliteConsumableUsageTable>();
         services.TryAddSingleton<ICharacterFatigueTable, SqliteCharacterFatigueTable>();

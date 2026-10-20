@@ -28,7 +28,8 @@ internal sealed class DungeonEffectRecoveryService(
     IAccountTable accounts,
     ICharacterTable characters,
     IExperienceRuleService experienceRules,
-    IDungeonEffectRuleService rules, ICharacterDomainService characterInstances) : IDungeonPersistentEffectRecoveryRepository
+    IDungeonEffectRuleService rules, ICharacterDomainService characterInstances,
+    Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService luckyStars) : IDungeonPersistentEffectRecoveryRepository
 {
     /// <summary>How long a claim holds before another recovery may take the effect.</summary>
     private static readonly TimeSpan Lease = TimeSpan.FromMinutes(1);
@@ -111,16 +112,9 @@ internal sealed class DungeonEffectRecoveryService(
             throw new InvalidDataException("Dungeon persistent effect payload identity is invalid.");
         }
 
-        var current = await accounts.FindLuckyStarAsync(accountId, cancellationToken)
-            .ConfigureAwait(false) ?? 0;
-        var (granted, newTotal) = rules.GrantLuckyStar(current);
-        if (granted)
-        {
-            RequireExactOwner(await accounts.SetLuckyStarAsync(accountId, newTotal, cancellationToken)
-                .ConfigureAwait(false));
-        }
-
-        return JsonSerializer.Serialize(new { granted, newTotal });
+        var result = await luckyStars.GrantAsync(accountId,payload.Amount,true,cancellationToken).ConfigureAwait(false);
+        RequireExactOwner(result.Succeeded ? 1 : 0);
+        return JsonSerializer.Serialize(new { granted=result.Added>0, newTotal=result.Balance });
     }
 
     private async ValueTask<string> ApplyExperienceAsync(

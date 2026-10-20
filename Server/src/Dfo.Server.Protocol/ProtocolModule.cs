@@ -1,4 +1,6 @@
 using Dfo.Server.Protocol.Game.ItemSockets;
+using Dfo.Server.Protocol.Game.Rental;
+using Dfo.Server.Abstractions.Rental;
 using Dfo.Server.Protocol.Game.Achievements;
 using Dfo.Server.Protocol.Game.CycleDungeonEntry;
 using Dfo.Server.Protocol.Game.Tournament;
@@ -274,6 +276,17 @@ public sealed class ProtocolModule : IServerModule
         services.AddHostedService<Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService>();
         services.TryAddSingleton<Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingProjection>();
         services.AddHostedService<Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingScheduler>();
+        services.AddGameCmdMessageDecoder<RentEquipmentDecoder>(0x03CF, ClientMessageType.GameRentEquipment);
+        services.AddGameCmdMessageDecoder<ChargeRentPointDecoder>(0x03D0, ClientMessageType.GameChargeRentPoint);
+        services.RegisterMessageHandler<RentEquipmentHandler>(ClientMessageType.GameRentEquipment);
+        services.RegisterMessageHandler<ChargeRentPointHandler>(ClientMessageType.GameChargeRentPoint);
+        services.AddGameCmdMessageEncoder<RentEquipmentResponse, RentEquipmentEncoder>();
+        services.AddGameCmdMessageEncoder<ChargeRentPointResponse, ChargeRentPointEncoder>();
+        services.AddCommandHandler<RentEquipmentCommand, EquipmentRentalReceipt, RentEquipmentCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<ChargeRentPointCommand, LuckyStarMutation, ChargeRentPointCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<ReadRentalRefreshCommand, RentalRefreshSnapshot, ReadRentalRefreshCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddDomainSubscriber<LuckyStarChanged, LuckyStarChangedSubscriber>("rental.lucky-star-refresh", DomainEventDeliveryPolicy.LiveOnly, x=>x.AccountId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        services.AddNotificationHandler<LuckyStarPanelRefresh, LuckyStarPanelRefreshHandler>(retryLimit: 0);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectDecoder>(0x00FB, ClientMessageType.GameSharedEffect);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.UseStackable.SharedEffectHandler>(ClientMessageType.GameSharedEffect);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectAck, Dfo.Server.Protocol.Game.UseStackable.SharedEffectAckEncoder>();
