@@ -22,26 +22,33 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
         var transaction = transactions.Current ?? throw new InvalidOperationException("Monster death requires one use-case transaction.");
         if (transaction.IsReadOnly) throw new InvalidOperationException("Monster death cannot run in a read-only transaction.");
         var run = runs.Find(request.Reporter.CharacterId);
+        MonsterDeathSettlementResult Refused(string reason)
+        {
+            if (logger.IsEnabled(LogLevel.Debug))
+                logger.LogDebug("Monster death settlement ignored character={CharacterId} run={RunId} expectedVersion={ExpectedVersion} actualVersion={ActualVersion} actor={Actor} reason={Reason}",
+                    request.Reporter.CharacterId, request.RunId, request.RoomVersion, run?.RoomVersion, request.Actor, reason);
+            return new([]);
+        }
         if (run is null || run.RunId != request.RunId || run.RoomVersion != request.RoomVersion
-            || !request.Participants.Contains(request.Reporter)) return new([]);
+            || !request.Participants.Contains(request.Reporter)) return Refused("StaleRunOrParticipant");
         var isTournament = run.Layout.Tournament is not null;
         if (isTournament && !(tournaments ?? throw new InvalidOperationException("Tournament lifecycle is unavailable."))
-            .CanKill(run, request.Actor)) return new([]);
+            .CanKill(run, request.Actor)) return Refused("TournamentCannotKill");
         foreach (var session in request.Participants)
             if (sessions.FindByCharacter(session.CharacterId) != session || !published.IsPublishedExact(session)
                 || runs.Find(session.CharacterId)?.RunId != run.RunId)
                 throw new InvalidOperationException("A frozen dungeon participant changed before settlement.");
         var identification = await kills.IdentifyAsync(run, request.Actor, ct).ConfigureAwait(false);
-        if (identification.Kill is not { } kill) return new([]);
+        if (identification.Kill is not { } kill) return Refused("UnidentifiedActor");
         var pointLedgers = new Dictionary<CharacterId, Dfo.Server.Data.Characters.CharacterSkillProtocolMirrorState>();
         foreach (var session in request.Participants.DistinctBy(x => x.CharacterId))
         {
             var points = await characters.Get(session.CharacterId).RemainingSkillPointsAsync(ct).ConfigureAwait(false);
-            if (points is null) return new([]);
+            if (points is null) return Refused("MissingSkillPointLedger");
             pointLedgers.Add(session.CharacterId, points);
         }
         var death = runs.TryClaimActorDeath(request.Reporter.CharacterId, request.Actor);
-        if (death is null) return new([]);
+        if (death is null) return Refused("ActorDeathNotClaimed");
         var clearsMap = runs.WillClearMap(death);
         var pending = new DeathCommit(runs, death, clearsMap);
         try { transaction.Enlist((runs, death.RunId, death.Actor, "death-settlement"), () => pending); }
@@ -99,8 +106,10 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
                     run.CurrentCell, run.CurrentRoomMapId, run.RoomVersion, death.OccurredAt!.Value,
                     [.. request.Participants.DistinctBy(x => x.CharacterId).Select(session =>
                         run.Participants.Single(x => x.CharacterId == session.CharacterId))]) { IsBossRoom = run.IsBossRoom, CycleQuestId = cycleQuest, CycleAcceptances = [.. cycleAcceptances] }, ct).ConfigureAwait(false);
-        logger.LogInformation("Monster death prepared run={RunId} actor={Actor} participants={Count}; one transaction, no entry inventory query",
-            run.RunId, request.Actor, result.Count);
+        if (logger.IsEnabled(LogLevel.Debug))
+            logger.LogDebug("Monster death prepared run={RunId} dungeon={DungeonId} room={RoomId} version={RoomVersion} actor={Actor} participants={Count} clearsMap={ClearsMap} boss={IsBossRoom} cycleQuest={CycleQuestId}",
+                run.RunId, run.Layout.DungeonId, run.CurrentRoomMapId, run.RoomVersion, request.Actor,
+                result.Count, clearsMap, run.IsBossRoom, cycleQuest);
         return new(result, pending) { Tournament = tournament };
     }
 

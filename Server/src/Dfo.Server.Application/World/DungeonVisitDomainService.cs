@@ -5,6 +5,8 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Abstractions.World.IllusionTower;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Application.World;
 
@@ -22,8 +24,10 @@ internal sealed class DungeonVisitDomainService(
     IDungeonSelectionRuleService selection,
     IDungeonCellFactory cells,
     ICharacterFatigueDomainService fatigue, IDungeonAdmissionDomainService admission,
-    IIllusionTowerDomainService? tower = null) : IDungeonVisitDomainService
+    IIllusionTowerDomainService? tower = null,
+    ILogger<DungeonVisitDomainService>? logger = null) : IDungeonVisitDomainService
 {
+    private readonly ILogger<DungeonVisitDomainService> logger = logger ?? NullLogger<DungeonVisitDomainService>.Instance;
     public bool DefersSelectionState(byte characterLevel, bool tutorialCompleted = false) =>
         selection.DefersSelectionState(characterLevel, tutorialCompleted);
 
@@ -132,25 +136,42 @@ internal sealed class DungeonVisitDomainService(
     {
         ArgumentNullException.ThrowIfNull(current);
 
+        DungeonMoveAttempt Refused(DungeonMoveFailure reason)
+        {
+            if (logger.IsEnabled(LogLevel.Debug))
+                logger.LogDebug("Dungeon move refused character={CharacterId} run={RunId} dungeon={DungeonId} room={RoomId} version={RoomVersion} from=({FromX},{FromY}) target=({X},{Y}) reason={Reason}",
+                    characterId, current.RunId, current.Layout.DungeonId, current.CurrentRoomMapId, current.RoomVersion,
+                    current.CurrentCell.X, current.CurrentCell.Y, target.X, target.Y, reason);
+            return new(null, reason);
+        }
+
         // The caller's view can predate a leader departure. Cell preparation reads the current
         // party-backed run view; the existing room version still guards the final move commit.
         var latest = runs.Find(characterId);
         if (latest is null || latest.RunId != current.RunId
             || latest.RoomVersion != current.RoomVersion)
-            return new(null, DungeonMoveFailure.StaleRun);
+        {
+            if (logger.IsEnabled(LogLevel.Debug))
+                logger.LogDebug("Dungeon move stale character={CharacterId} expectedRun={ExpectedRunId} actualRun={ActualRunId} expectedVersion={ExpectedVersion} actualVersion={ActualVersion}",
+                    characterId, current.RunId, latest?.RunId, current.RoomVersion, latest?.RoomVersion);
+            return Refused(DungeonMoveFailure.StaleRun);
+        }
 
         var firstEntry = !latest.VisitedCells.Contains(target);
         if (!latest.Layout.Cells.ContainsKey(target))
-            return new(null, DungeonMoveFailure.CellNotFound);
+            return Refused(DungeonMoveFailure.CellNotFound);
         if (!latest.Layout.CanTraverse(latest.CurrentCell, target))
-            return new(null, DungeonMoveFailure.Disconnected);
+            return Refused(DungeonMoveFailure.Disconnected);
 
         DungeonCellSeed? preparedCell = null;
         if (firstEntry)
         {
             var selected = await layouts.SelectMapAsync(latest.Layout, latest.CurrentCell, target, cancellationToken)
                 .ConfigureAwait(false);
-            if (selected.MapId is not { } mapId) return new(null, DungeonMoveFailure.NoCompatibleMap);
+            if (selected.MapId is not { } mapId) return Refused(DungeonMoveFailure.NoCompatibleMap);
+            if (logger.IsEnabled(LogLevel.Debug))
+                logger.LogDebug("Dungeon move preparing character={CharacterId} run={RunId} version={RoomVersion} target=({X},{Y}) map={MapId} firstEntry={FirstEntry}",
+                    characterId, latest.RunId, latest.RoomVersion, target.X, target.Y, mapId, firstEntry);
             preparedCell = await cells.CreateAsync(
                 new DungeonCellCreationContext(
                     latest.RunId,
@@ -169,7 +190,11 @@ internal sealed class DungeonVisitDomainService(
             latest.RoomVersion,
             target,
             preparedCell);
-        if (entered is null) return new(null, DungeonMoveFailure.StateRejected);
+        if (entered is null) return Refused(DungeonMoveFailure.StateRejected);
+        if (logger.IsEnabled(LogLevel.Debug))
+            logger.LogDebug("Dungeon move accepted character={CharacterId} run={RunId} dungeon={DungeonId} room={RoomId} version={RoomVersion} firstEntry={FirstEntry} actors={ActorCount} objects={ObjectCount}",
+                characterId, entered.RunId, entered.Layout.DungeonId, entered.CurrentRoomMapId, entered.RoomVersion,
+                firstEntry, entered.CurrentCellState.Actors.Count, entered.CurrentCellState.Objects.Count);
         if (firstEntry && entered.Layout.ConsumesFatigue)
             foreach (var participant in entered.Participants)
                 await fatigue.SpendAsync(participant.CharacterId, 1, cancellationToken).ConfigureAwait(false);

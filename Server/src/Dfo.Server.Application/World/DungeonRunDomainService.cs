@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.World;
@@ -14,6 +16,7 @@ namespace Dfo.Server.Application.World;
 /// <summary>Keeps process-local dungeon runs as shared aggregates with participant views.</summary>
 internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 {
+    private readonly ILogger<DungeonRunDomainService> logger = NullLogger<DungeonRunDomainService>.Instance;
     private readonly IDomainTransactionAccessor? transactions;
     private readonly IPartyService? parties;
     private readonly IDungeonParticipationDomainService? participation;
@@ -53,8 +56,10 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         ICreatureRuntimeDomainService? creatures = null,
         IDungeonLifecycleDomainService? lifecycle = null, TimeProvider? clock = null,
         IDungeonRoomMechanismRuleService? mechanismRules = null, IDungeonRoomMechanismWakeSignal? mechanismWake = null,
-        ISealedTreasureRuleService? sealedTreasureRules = null, IDungeonParticipationDomainService? participation = null)
+        ISealedTreasureRuleService? sealedTreasureRules = null, IDungeonParticipationDomainService? participation = null,
+        ILogger<DungeonRunDomainService>? logger = null)
     {
+        this.logger = logger ?? NullLogger<DungeonRunDomainService>.Instance;
         this.transactions = transactions;
         this.participation = participation;
         this.parties = parties;
@@ -469,33 +474,50 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         MazeCell target,
         DungeonCellSeed? preparedCell = null)
     {
-        if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
-            || !this.IsCurrentLeader(aggregate, characterId)
-            || (expectedRunId is { } runId && aggregate.RunId != runId)
-            || (expectedRoomVersion is { } version && aggregate.RoomVersion != version)
-            || this.deathClaims.Keys.Any(key =>
-                key.RunId == aggregate.RunId && key.Actor.Cell == aggregate.CurrentCell)
-            || this.groundDropClaims.Keys.Any(key =>
-                key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell)
-            || this.preparedGroundDropClaims.Any(key =>
-                key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell)
-            || Math.Abs(target.X - aggregate.CurrentCell.X)
-                + Math.Abs(target.Y - aggregate.CurrentCell.Y) != 1
-            || !aggregate.Layout.CanTraverse(aggregate.CurrentCell, target)
-            || !this.sealedTreasureRules.AllowsTraversal(aggregate.Layout.DungeonId,
-                aggregate.KilledMonsterCodes, aggregate.CurrentCell, target)
-            || aggregate.Cells[aggregate.CurrentCell].MechanismBlocksClear
-            || aggregate.Cells[aggregate.CurrentCell].Mechanisms.Any(state =>
-                !this.mechanismRules.AllowsExit(state, aggregate.CurrentCell, target))
-            || (preparedCell is not null
-                && (preparedCell.Cell != target || preparedCell.MapId <= 0
-                    || (aggregate.Cells.TryGetValue(target, out var retained) && retained.MapId != preparedCell.MapId))))
+        DungeonRunState? Refused(string reason, DungeonRunAggregate? run)
         {
+            if (logger.IsEnabled(LogLevel.Debug))
+                logger.LogDebug("Dungeon move aggregate refused character={CharacterId} run={RunId} expectedRun={ExpectedRunId} version={RoomVersion} expectedVersion={ExpectedVersion} from={FromCell} target={TargetCell} reason={Reason}",
+                    characterId, run?.RunId, expectedRunId, run?.RoomVersion, expectedRoomVersion, run?.CurrentCell, target, reason);
             return null;
         }
 
+        if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
+            return Refused("NoRun", null);
+        if (!this.IsCurrentLeader(aggregate, characterId))
+            return Refused("NotLeader", aggregate);
+        if (expectedRunId is { } runId && aggregate.RunId != runId)
+            return Refused("RunChanged", aggregate);
+        if (expectedRoomVersion is { } version && aggregate.RoomVersion != version)
+            return Refused("RoomVersionChanged", aggregate);
+        if (this.deathClaims.Keys.Any(key =>
+                key.RunId == aggregate.RunId && key.Actor.Cell == aggregate.CurrentCell))
+            return Refused("ActorDeathPending", aggregate);
+        if (this.groundDropClaims.Keys.Any(key =>
+                key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell))
+            return Refused("GroundDropPending", aggregate);
+        if (this.preparedGroundDropClaims.Any(key =>
+                key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell))
+            return Refused("GroundDropPrepared", aggregate);
+        if (Math.Abs(target.X - aggregate.CurrentCell.X)
+                + Math.Abs(target.Y - aggregate.CurrentCell.Y) != 1)
+            return Refused("NotAdjacent", aggregate);
+        if (!aggregate.Layout.CanTraverse(aggregate.CurrentCell, target))
+            return Refused("Disconnected", aggregate);
+        if (!this.sealedTreasureRules.AllowsTraversal(aggregate.Layout.DungeonId,
+                aggregate.KilledMonsterCodes, aggregate.CurrentCell, target))
+            return Refused("SealedTreasureGate", aggregate);
+        if (aggregate.Cells[aggregate.CurrentCell].MechanismBlocksClear)
+            return Refused("MechanismBlocksClear", aggregate);
+        if (aggregate.Cells[aggregate.CurrentCell].Mechanisms.Any(state =>
+                !this.mechanismRules.AllowsExit(state, aggregate.CurrentCell, target)))
+            return Refused("MechanismBlocksExit", aggregate);
+        if (preparedCell is not null
+                && (preparedCell.Cell != target || preparedCell.MapId <= 0
+                    || (aggregate.Cells.TryGetValue(target, out var retained) && retained.MapId != preparedCell.MapId)))
+            return Refused("PreparedCellMismatch", aggregate);
         if (!aggregate.Cells.ContainsKey(target) && (preparedCell is null || !preparedCell.IsComplete))
-            return null;
+            return Refused("IncompleteCell", aggregate);
         if (this.transactions?.Current is { } transaction)
         {
             var cell = aggregate.Cells.GetValueOrDefault(target) ?? aggregate.CreateCell(preparedCell!);
