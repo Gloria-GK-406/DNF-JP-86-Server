@@ -183,8 +183,9 @@ public sealed class MarriageEngagementTests
             s.AddCommandHandler<AcceptQuestCommand, QuestAcceptOutcome, AcceptQuestCommandHandler>(CommandExecutionKind.Transactional);
         });
         var replay = await reopened.Services.GetRequiredService<ICommandBus>().SendAsync(new AcceptQuestCommand(new(1), new(71), 20737), default);
-        Assert.True(replay.Accepted);
-        Assert.Equal(4u, replay.InitialTrigger);
+        Assert.False(replay.Accepted);
+        Assert.Equal(QuestAcceptRefusal.AlreadyActive, replay.Refusal);
+        Assert.Null(replay.QuestProgress);
         Assert.Empty(replay.Items);
         Assert.Equal(before, await reopened.Services.GetRequiredService<IMarriageQuestDomainStore>().ReadAsync(new(71), 20737, default));
         Assert.Equal(1, reopened.Scalar("SELECT COUNT(*) FROM marriage_trial_clears"));

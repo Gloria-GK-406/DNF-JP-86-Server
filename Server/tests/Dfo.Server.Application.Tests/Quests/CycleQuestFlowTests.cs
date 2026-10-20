@@ -153,7 +153,7 @@ public sealed class CycleQuestFlowTests
         Assert.True(prepared.Accepted);
         Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests"));
         Assert.True((await commands.SendAsync(accept)).Accepted);
-        Assert.True((await commands.SendAsync(accept)).Accepted);
+        Assert.Equal(QuestAcceptRefusal.AlreadyActive, (await commands.SendAsync(accept)).Refusal);
         Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests"));
         await fixture.Seed(121, 1000, 1, 3);
         var finish = new FinishQuestCommand(new(1), new(1), 2001, ushort.MaxValue, 1, 0);
@@ -222,7 +222,7 @@ public sealed class CycleQuestFlowTests
         Assert.False((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2002))).Accepted);
         Assert.True((await commands.SendAsync(new GiveUpQuestCommand(new(1), new(1), 2001))).GivenUp);
         Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2002))).Accepted);
-        Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2002))).Accepted);
+        Assert.Equal(QuestAcceptRefusal.AlreadyActive, (await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2002))).Refusal);
         Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests"));
 
         // The next retry can select the original pair without restarting the session.
@@ -251,7 +251,7 @@ public sealed class CycleQuestFlowTests
     }
 
     [Fact]
-    public async Task Retry_can_prepare_and_accept_the_same_carried_cycle_without_resetting_it()
+    public async Task Retry_can_prepare_the_same_carried_cycle_but_acceptance_is_refused_without_resetting_it()
     {
         using var fixture = Fixture();
         var commands = fixture.Services.GetRequiredService<ICommandBus>();
@@ -261,7 +261,9 @@ public sealed class CycleQuestFlowTests
         Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
         intents.Record(fixture.Session, DungeonEntryIntent.Directed(84));
         Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
-        Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
+        var replay = await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001));
+        Assert.False(replay.Accepted);
+        Assert.Equal(QuestAcceptRefusal.AlreadyActive, replay.Refusal);
         Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests"));
     }
 
