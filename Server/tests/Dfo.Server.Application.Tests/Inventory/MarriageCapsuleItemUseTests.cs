@@ -17,9 +17,9 @@ public sealed class MarriageCapsuleItemUseTests
         var cell=new Dfo.Server.Abstractions.Content.MazeCell(0,0);
         var layout=new Dfo.Server.Abstractions.World.DungeonLayout(3541,0,1,1,cell,cell,1,1,
             new Dictionary<Dfo.Server.Abstractions.Content.MazeCell,Dfo.Server.Abstractions.Content.DungeonCellDefinition> { [cell]=Dfo.Server.Abstractions.Content.DungeonCellDefinition.Fixed(1) });
-        var run=runs.PreparePartyEntry([new(f.Session.AccountId,f.Session.CharacterId,0,true)],layout,0,
+        var run=f.InTransaction(()=>runs.PreparePartyEntry([new(f.Session.AccountId,f.Session.CharacterId,0,true)],layout,0,
             new(cell,1,1,[],[new(7,10002915,1,0,false,Dfo.Server.Abstractions.World.DungeonGroundItemSource.FromActor(1))]),
-            Dfo.Server.Abstractions.World.DungeonRunId.New(),DateTimeOffset.UtcNow).Run;
+            Dfo.Server.Abstractions.World.DungeonRunId.New(),DateTimeOffset.UtcNow)).Run;
         var commands=f.Services.GetRequiredService<ICommandBus>();
         var number=Assert.Single(run.CurrentCellState.GroundItems).Number;
         var request=new Dfo.Server.Protocol.Game.GroundPickup.PickUpGroundDropCommand(f.Session.AccountId,f.Session.CharacterId,number,run.RunId,run.RoomVersion);

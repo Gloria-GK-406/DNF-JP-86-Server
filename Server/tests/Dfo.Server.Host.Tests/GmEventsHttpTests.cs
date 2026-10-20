@@ -31,6 +31,13 @@ public sealed class GmEventsHttpTests
     }
     private sealed class Dungeons : IDungeonDefinitionSource
     { public ValueTask<DungeonDefinition?> GetAsync(int id,CancellationToken ct)=>ValueTask.FromResult<DungeonDefinition?>(id==1 ? new(1,"fixture",80,true,[],86) : null); }
+    private static void ConfigureDungeons(IServiceCollection services)
+    {
+        // Retain the archive reader for startup's tower prewarm; only attendance uses dungeon 1.
+        var archive = services.Single(s=>s.ServiceType==typeof(IDungeonDefinitionSource)).ImplementationFactory!;
+        services.AddSingleton<IDungeonAdmissionDefinitionSource>(s=>(IDungeonAdmissionDefinitionSource)archive(s));
+        services.AddSingleton<IDungeonDefinitionSource>(new Dungeons());
+    }
     public sealed record Act(AccountId AccountId,bool Claim=false,Guid RunId=default,int Dungeon=1,int Level=86,bool Fail=false) : ICommand<bool>,IAccountCommand;
     public sealed class ActHandler(IWeeklyAttendanceDomainService attendance,TimeProvider clock) : ICommandHandler<Act,bool>
     {
@@ -44,7 +51,7 @@ public sealed class GmEventsHttpTests
     }
     private static void Content(IServiceCollection services,Rules? rules=null)
     {
-        services.AddSingleton<IWeeklyAttendanceDefinitionSource>(rules ?? new Rules());services.AddSingleton<IDungeonDefinitionSource>(new Dungeons());
+        services.AddSingleton<IWeeklyAttendanceDefinitionSource>(rules ?? new Rules());ConfigureDungeons(services);
         services.AddCommandHandler<Act,bool,ActHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive);
     }
     private static EventChange Configure(long rev,string action="configure")=>new(2208,rev,action,"签到","周签到","说明","开始","结束",DateTimeOffset.Parse("2026-01-01T00:00:00Z"),DateTimeOffset.Parse("2028-01-01T00:00:00Z"));
@@ -236,7 +243,7 @@ public sealed class GmEventsHttpTests
     {
         var path=new PvfContentOptions().ResolveArchivePath()!;
         await using var host=await GmTestHost.StartAsync(realContent:true,configuration:new Dictionary<string,string?> { ["Pvf:ArchivePath"]=path },configureServices:s=>
-        { s.AddSingleton<IDungeonDefinitionSource>(new Dungeons());s.AddCommandHandler<Act,bool,ActHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive); });
+        { ConfigureDungeons(s);s.AddCommandHandler<Act,bool,ActHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive); });
         await GmPlayerDirectoryHttpTests.SeedAsync(host);await Enable(host);
         var entry=(await host.Client.GetFromJsonAsync<WeeklyAttendanceSettings>(Url+"/weekly-attendance/settings"))!;
         Assert.True(entry.Available,entry.UnavailableReason);Assert.Equal("event/chn_event/chn_totalattendance.evt",entry.SourcePath);Assert.Equal(4,entry.RequiredClears);
@@ -279,12 +286,14 @@ public sealed class GmEventsHttpTests
         sender.Messages.Clear();await host.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(user.Connection),request,default);
         await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
         var frames=Frames(host,sender);var ack=Assert.Single(frames,f=>f[0]==1 && BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x0441);
+        var beforeIds=ReadEventIds(Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x006C)[15..]);
+        Assert.Contains((ushort)2208,beforeIds);
         Assert.Equal(19,ack.Length);Assert.Equal(0u,BinaryPrimitives.ReadUInt32LittleEndian(ack.AsSpan(15)));Assert.Contains(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x042D && f.Length==465);
         Assert.Single(await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
         await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
         sender.Messages.Clear();await Change(host,csrf,new(2208,2,"disable"));
         await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();frames=Frames(host,sender);
-        var calendar=Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x006C);Assert.Equal(new ushort[]{2215,69,2330,2367},ReadEventIds(calendar[15..]));
+        var calendar=Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x006C);Assert.Equal(beforeIds.Where(id=>id!=2208),ReadEventIds(calendar[15..]));
         Assert.Contains(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x033F && BinaryPrimitives.ReadUInt32LittleEndian(f.AsSpan(23))==3900 && BinaryPrimitives.ReadUInt32LittleEndian(f.AsSpan(19))==1);
         var state=Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x042D);Assert.All(state[15..],b=>Assert.Equal(0,b));
         GmPlayerDirectoryHttpTests.Cleanup(host,session);

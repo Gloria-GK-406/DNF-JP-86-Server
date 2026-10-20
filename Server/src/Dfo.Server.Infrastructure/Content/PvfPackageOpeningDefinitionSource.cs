@@ -287,6 +287,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         }
         var goldCost = 0;
         var costSeen = false;
+        var materialSeen = false;
         var material = 0; var materialCount = 0; var sourceCount = 1; var selectionCount = 0;
         var random = false; var booster = false; var selection = false;
         foreach (var section in sections)
@@ -304,6 +305,16 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             if (kind == OpeningPackageKind.Lottery && name == Fields.LotteryUseNeedItemField.Name)
             {
                 errors.Add("Lottery material costs are not supported by this opening entry yet");
+                continue;
+            }
+            if (kind == OpeningPackageKind.Lottery && name == Fields.NeedMaterialField.Name)
+            {
+                if (materialSeen) errors.Add("Duplicate lottery material cost");
+                materialSeen = true;
+                var values = Numbers(section);
+                if (values.Length != 2 || values[0] <= 0 || values[1] <= 0)
+                    errors.Add("Invalid lottery material cost");
+                else { material = values[0]; materialCount = values[1]; }
                 continue;
             }
             if (kind == OpeningPackageKind.Lottery && name == Fields.IntDataField.Name)
