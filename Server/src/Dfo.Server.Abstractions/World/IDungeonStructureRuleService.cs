@@ -9,6 +9,7 @@ public enum DungeonEntryIntentKind : byte
     Interactive = 0,
     Directed = 1,
     Cycle = 2,
+    OrdinaryRechallenge = 3,
 }
 
 /// <summary>The client-side selection path that immediately precedes dungeon entry.</summary>
@@ -28,6 +29,11 @@ public readonly record struct DungeonEntryIntent(
     public static DungeonEntryIntent Cycle(int dungeonId, int questId) =>
         dungeonId > 0 && questId > 0
             ? new(DungeonEntryIntentKind.Cycle, dungeonId, questId)
+            : throw new ArgumentOutOfRangeException(nameof(dungeonId));
+
+    public static DungeonEntryIntent OrdinaryRechallenge(int dungeonId) =>
+        dungeonId > 0
+            ? new(DungeonEntryIntentKind.OrdinaryRechallenge, dungeonId)
             : throw new ArgumentOutOfRangeException(nameof(dungeonId));
 }
 

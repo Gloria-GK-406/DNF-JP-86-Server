@@ -289,6 +289,30 @@ public sealed class SelectDungeonHandlerTests
             Assert.Single(visits.Facts).Intent);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Ordinary_retry_preserves_requested_difficulty_and_rejects_a_different_target(bool wrongTarget)
+    {
+        var visits = new RecordingVisits();
+        var sender = new RecordingSender();
+        var handler = Handler(visits, sender,
+            intent: DungeonEntryIntent.OrdinaryRechallenge(TutorialDungeonId + (wrongTarget ? 1 : 0)));
+        await handler.HandleAsync(Dispatch(), Request(), default);
+        if (wrongTarget)
+        {
+            Assert.Empty(visits.Facts);
+            var refusal = Assert.IsType<SelectDungeonRefusal>(Assert.Single(sender.Sent));
+            Assert.Equal(SelectDungeonRefusal.InvalidSelectionState, refusal.ErrorCode);
+        }
+        else
+        {
+            var facts = Assert.Single(visits.Facts);
+            Assert.Equal(Difficulty, facts.Difficulty);
+            Assert.Equal(DungeonEntryIntent.OrdinaryRechallenge(TutorialDungeonId), facts.Intent);
+        }
+    }
+
     [Fact]
     public async Task MissingSelectionContextIsRefusedWithoutReadingQuestState()
     {

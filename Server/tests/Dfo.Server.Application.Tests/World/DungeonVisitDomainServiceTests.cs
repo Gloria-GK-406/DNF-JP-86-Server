@@ -17,6 +17,26 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed class DungeonVisitDomainServiceTests
 {
     [Fact]
+    public async Task Ordinary_rechallenge_cannot_bypass_difficulty_or_charge_for_a_refused_entry()
+    {
+        var runs = new DungeonRunDomainService();
+        var cells = new RecordingCellFactory();
+        var fatigue = new TestFatigue();
+        var materials = new UnexpectedMaterials();
+        var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new RecordingLayouts(), runs,
+            new ImmediateSelection(), cells, new MaximumDifficulty(DungeonDifficulty.Normal),
+            new DungeonDifficultyRuleService(), fatigue, materials: materials);
+        var facts = new DungeonEntryFacts(DungeonDifficulty.Tier3, [], [],
+            DungeonEntryIntent.OrdinaryRechallenge(Layout.DungeonId));
+        var result = await visits.TryEnterPartyAsync([new(new(1), new(71), 0, true)], Layout.DungeonId, facts, default);
+        Assert.Equal(DungeonEntryFailure.DifficultyNotUnlocked, result.Failure);
+        Assert.Equal(0, cells.CallCount);
+        Assert.Empty(fatigue.Spent);
+        Assert.Equal(0, materials.Calls);
+        Assert.Null(runs.Find(new CharacterId(71)));
+    }
+
+    [Fact]
     public async Task Prepared_mirror_layout_uses_validated_difficulty_without_reading_historical_unlock_ledger()
     {
         var runs = new DungeonRunDomainService();

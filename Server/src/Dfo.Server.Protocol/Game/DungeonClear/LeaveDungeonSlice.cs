@@ -258,6 +258,15 @@ public sealed class EplpCommandHandler(
                 returning.RemoveAll(value => !endedCharacters.Contains(value.Session.CharacterId));
                 if (!returning.Any(value => value.Session == session))
                     return;
+                // Native retry follows the exit with 000F(dungeonId). Retain the ordinary
+                // maze partition rather than treating that nonzero target as a story request.
+                if (message.Option == 0 && !isAltar
+                    && currentRun.Layout is { Purpose.Kind: DungeonRunPurposeKind.Ordinary,
+                        EntryKind: DungeonEntryKind.Normal, Mirror: null, Sao: null, Despair: null,
+                        Tournament: null })
+                    foreach (var member in returning)
+                        entryIntents?.RestoreIfAbsent(member.Session,
+                            DungeonEntryIntent.OrdinaryRechallenge(currentRun.Layout.DungeonId));
             }
         }
 

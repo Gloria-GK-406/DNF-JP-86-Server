@@ -475,7 +475,7 @@ public sealed class SelectDungeonHandler(
 
         var intent = entryIntents.Consume(session);
         if (intent is null
-            || (intent.Value.Kind is DungeonEntryIntentKind.Directed or DungeonEntryIntentKind.Cycle
+            || (intent.Value.Kind is DungeonEntryIntentKind.Directed or DungeonEntryIntentKind.Cycle or DungeonEntryIntentKind.OrdinaryRechallenge
                 && intent.Value.DirectedDungeonId != message.DungeonId && message.MirrorQuestId is null
                 && !(intent.Value.Kind == DungeonEntryIntentKind.Directed
                     && intent.Value.DirectedDungeonId is { } prior && sao?.Supports(prior) == true

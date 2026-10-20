@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
+using Dfo.Server.Data.World;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.World;
@@ -16,6 +17,45 @@ namespace Dfo.Server.Application.Tests.World;
 /// </remarks>
 public sealed class DungeonStructureRuleServiceTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Ordinary_rechallenge_never_selects_a_story_maze(bool hasActiveQuest)
+    {
+        var service = Service(MixedQuestMazes());
+        var facts = new DungeonEntryFacts(DungeonDifficulty.Adventure,
+            hasActiveQuest ? [1776] : [], [], DungeonEntryIntent.OrdinaryRechallenge(144));
+        for (var seed = 0; seed < 8; seed++)
+        {
+            var layout = await service.ResolveAsync(144, facts, seed, default);
+            Assert.NotNull(layout);
+            Assert.Equal(0, layout.MazeIndex);
+            Assert.Equal(DungeonRunPurpose.Ordinary, layout.Purpose);
+        }
+        Assert.Null(await service.ResolveAsync(144,
+            facts with { Intent = DungeonEntryIntent.OrdinaryRechallenge(145) }, 0, default));
+    }
+
+    [SkippableFact]
+    public async Task Actual_dungeon_92_ordinary_rechallenge_resolves_the_adventure_layout()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateContentProvider();
+        var rules = new DungeonStructureRuleService(provider.GetRequiredService<IDungeonDefinitionSource>(),
+            provider.GetRequiredService<IDungeonMapDefinitionSource>());
+        var facts = new DungeonEntryFacts(DungeonDifficulty.Adventure, [], [], DungeonEntryIntent.Interactive);
+        var original = await rules.ResolveAsync(92, facts, 3, default);
+        var retried = await rules.ResolveAsync(92,
+            facts with { Intent = DungeonEntryIntent.OrdinaryRechallenge(92) }, 3, default);
+        Assert.NotNull(original);
+        Assert.NotNull(retried);
+        Assert.Equal(original.MazeIndex, retried.MazeIndex);
+        Assert.Equal(original.StartRoomMapId, retried.StartRoomMapId);
+        Assert.Equal(DungeonRunPurpose.Ordinary, retried.Purpose);
+        Assert.Null(await rules.ResolveAsync(92,
+            facts with { Intent = DungeonEntryIntent.Directed(92) }, 3, default));
+    }
+
     [SkippableFact]
     public async Task Actual_story_1788_replaces_1787_maze_without_changing_dungeon_id()
     {

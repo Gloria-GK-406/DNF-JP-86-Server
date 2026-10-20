@@ -38,6 +38,30 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 
 public sealed class PartySelectDungeonHandlerTests
 {
+    [Theory]
+    [InlineData(10000)]
+    [InlineData(0)]
+    [InlineData(10001)]
+    public async Task Only_the_matching_retry_selection_keeps_the_ordinary_maze_partition(ushort selection)
+    {
+        var sessions = new Sessions(Leader, Member);
+        var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
+        var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
+        foreach (var member in new[] { Leader, Member })
+            intents.Record(member, DungeonEntryIntent.OrdinaryRechallenge(DungeonId));
+        var sender = new Sender();
+        var handler = new EnterSelectDungeonHandler(new UnchangedState(), sessions,
+            new RuntimeCurrentView(runtime), new PartyVisits(), intents, sender,
+            TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
+            NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()));
+        await handler.HandleAsync(Dispatch(Leader),
+            new EnterSelectDungeonRequest(GameMessageMetadata.Empty, selection), default);
+        var expected = selection == DungeonId ? DungeonEntryIntent.OrdinaryRechallenge(DungeonId)
+            : selection == 0 ? DungeonEntryIntent.Interactive : DungeonEntryIntent.Directed(selection);
+        Assert.Equal(expected, intents.Find(Leader));
+        Assert.Equal(expected, intents.Find(Member));
+    }
+
     [Fact]
     public async Task Selection_waits_for_exit_before_recording_intent_or_sending_frames()
     {

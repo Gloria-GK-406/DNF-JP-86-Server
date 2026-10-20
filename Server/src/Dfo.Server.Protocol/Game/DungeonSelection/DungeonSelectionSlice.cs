@@ -599,9 +599,6 @@ public sealed class EnterSelectDungeonHandler(
         }
 
         var spawn = result.World.Channel.Spawn;
-        var intent = message.Selection == 0
-            ? DungeonEntryIntent.Interactive
-            : DungeonEntryIntent.Directed(message.Selection);
         var requesterCharacter = new PartyCharacterSnapshot(
             session.AccountId, session.CharacterId, session.WireUserId, null);
         var roster = parties.FindParty(requesterCharacter);
@@ -622,6 +619,12 @@ public sealed class EnterSelectDungeonHandler(
         if (latestRoster.Generation != roster.Generation || latestRoster.Revision != roster.Revision
             || attached.Any(x => selectedSessions.FindByCharacter(x.Session.CharacterId) != x.Session))
             return;
+        var intent = message.Selection == 0
+            ? DungeonEntryIntent.Interactive
+            : entryIntents.Find(session) is { Kind: DungeonEntryIntentKind.OrdinaryRechallenge } retry
+                && retry.DirectedDungeonId == message.Selection
+                ? retry
+                : DungeonEntryIntent.Directed(message.Selection);
         var wireUserIds = attached
             .Select(value => value.Session.WireUserId)
             .ToImmutableArray();

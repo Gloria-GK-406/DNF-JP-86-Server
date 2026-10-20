@@ -219,8 +219,9 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
 
     /// <remarks>
     /// Candidate partition precedes random choice. An interactive entry sees only ordinary mazes;
-    /// a directed entry sees only quest connections its active/cleared state and difficulty make
-    /// eligible. The seed therefore varies a layout only inside one semantic candidate set and
+    /// an ordinary rechallenge retains that partition. A directed entry sees only quest
+    /// connections its active/cleared state and difficulty make eligible. The seed therefore
+    /// varies a layout only inside one semantic candidate set and
     /// cannot turn an ordinary entry into a quest run.
     /// </remarks>
     private static (MazeDefinition Maze, DungeonRunPurpose Purpose)? SelectMaze(
@@ -233,7 +234,9 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
             .Where(candidate => candidate.Connection is not null)
             .ToArray();
 
-        if (facts.Intent.Kind == DungeonEntryIntentKind.Interactive)
+        if (facts.Intent.Kind == DungeonEntryIntentKind.Interactive
+            || facts.Intent.Kind == DungeonEntryIntentKind.OrdinaryRechallenge
+                && facts.Intent.DirectedDungeonId == definition.DungeonId)
         {
             var ordinary = definition.Mazes
                 .Where(maze => maze.QuestConnection is null && definition.QuestConnection is null)

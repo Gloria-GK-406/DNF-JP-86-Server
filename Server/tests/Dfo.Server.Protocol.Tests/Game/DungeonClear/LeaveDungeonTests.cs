@@ -45,6 +45,52 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 /// </remarks>
 public sealed class LeaveDungeonTests
 {
+    [Fact]
+    public async Task Ordinary_rechallenge_retains_ordinary_selection_after_the_run_ends()
+    {
+        var runs = new OneRun();
+        var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
+        await StoryHandler(runs, new RecordingSender(), intents: intents).HandleAsync(Dispatch(),
+            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 0), default);
+
+        Assert.True(runs.Ended);
+        var intent = intents.Find(Identity);
+        Assert.NotNull(intent);
+        Assert.Equal(144, intent.Value.DirectedDungeonId);
+        Assert.Equal(DungeonEntryIntentKind.OrdinaryRechallenge, intent.Value.Kind);
+    }
+
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(2, false)]
+    public async Task Only_ordinary_retry_retains_the_rechallenge_intent(byte option, bool story)
+    {
+        var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
+        await StoryHandler(new OneRun(story: story), new RecordingSender(), intents: intents).HandleAsync(Dispatch(),
+            new EplpCommandRequest(GameMessageMetadata.Empty, 1, option), default);
+        Assert.Null(intents.Find(Identity));
+    }
+
+    [Theory]
+    [InlineData("sao")]
+    [InlineData("mirror")]
+    [InlineData("hell")]
+    public async Task Specialized_retries_do_not_gain_the_ordinary_retry_intent(string kind)
+    {
+        var runs = new OneRun(layoutChange: layout => kind switch
+        {
+            "sao" => layout with { Sao = new(new("test")) },
+            "mirror" => layout with { Mirror = new(8000, 31, 14299) },
+            _ => layout with { EntryKind = DungeonEntryKind.ManualHell },
+        });
+        var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
+        await StoryHandler(runs, new RecordingSender(), intents: intents).HandleAsync(Dispatch(),
+            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 0), default);
+        Assert.True(runs.Ended);
+        Assert.Null(intents.Find(Identity));
+    }
+
     /// <summary>
     /// The exchange as captured, transcribed.
     /// </summary>
@@ -778,7 +824,8 @@ public sealed class LeaveDungeonTests
         listenerPort: 10010);
 
     /// <summary>A run that records whether it was ended, and refuses everything else.</summary>
-    private sealed class OneRun(bool hasRun = true, bool isAltar = false) : IDungeonRunDomainService
+    private sealed class OneRun(bool hasRun = true, bool isAltar = false, bool story = false,
+        Func<DungeonLayout, DungeonLayout>? layoutChange = null) : IDungeonRunDomainService
     {
         private static readonly DungeonLayout Layout = new(
             144, 0, 1, 1,
@@ -808,7 +855,9 @@ public sealed class LeaveDungeonTests
 
         public DungeonRunState? Find(CharacterId characterId) => hasRun && !this.Ended
             ? new DungeonRunState(
-                isAltar ? Layout with { Altar = new(AltarDungeonKind.Ultimate, new(2026, 10, 13)) } : Layout,
+                layoutChange is not null ? layoutChange(Layout)
+                    : isAltar ? Layout with { Altar = new(AltarDungeonKind.Ultimate, new(2026, 10, 13)) }
+                    : story ? Layout with { Purpose = DungeonRunPurpose.QuestLinked(1776, DungeonQuestConnectionState.Active) } : Layout,
                 Layout.StartCell,
                 Layout.StartRoomMapId,
                 new HashSet<MazeCell> { Layout.StartCell },
