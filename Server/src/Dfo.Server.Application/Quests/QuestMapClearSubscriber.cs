@@ -19,8 +19,7 @@ internal sealed class QuestMapClearRuleService : IQuestMapClearRuleService
 }
 
 internal sealed class QuestMapClearSubscriber(ICharacterQuestLogDomainService logs,
-    IQuestContentRuleService content, IQuestMapClearRuleService rules, IEventService events,
-    ICycleQuestResolutionDomainService cycles)
+    IQuestContentRuleService content, IQuestMapClearRuleService rules, IEventService events)
     : IDomainEventSubscriber<DungeonMapCleared>
 {
     public async ValueTask HandleAsync(DomainEventEnvelope<DungeonMapCleared> message, CancellationToken ct)
@@ -40,8 +39,6 @@ internal sealed class QuestMapClearSubscriber(ICharacterQuestLogDomainService lo
             }
             if (changed) await events.EnqueueAsync(new QuestProgressChanged(participant.CharacterId), ct).ConfigureAwait(false);
         }
-        // All clear-map objectives are updated before the cycle disposition is evaluated.
-        await cycles.ResolveAsync(clear, ct).ConfigureAwait(false);
     }
 }
 
@@ -57,9 +54,6 @@ internal static class QuestMapClearRegistration
     internal static void AddMapClearQuests(this IServiceCollection services)
     {
         services.TryAddSingleton<IQuestMapClearRuleService, QuestMapClearRuleService>();
-        services.TryAddScoped<ICycleQuestResolutionDomainService, CycleQuestResolutionDomainService>();
-        services.AddDomainEvent<CycleQuestResolved>("quest.cycle-resolved", 1);
-        services.AddDomainSubscriber<CycleQuestResolved, CycleQuestResolutionSubscriber>("quest.cycle-resolution-notification", DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainEvent<DungeonMapCleared>("dungeon.map-cleared", 1);
         services.AddDomainEvent<QuestProgressChanged>("quest.progress-changed", 1);
         services.AddDomainSubscriber<DungeonMapCleared, QuestMapClearSubscriber>("quest.map-clear", DomainEventDeliveryPolicy.Reliable);

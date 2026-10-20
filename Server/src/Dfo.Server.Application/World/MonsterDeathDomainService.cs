@@ -15,7 +15,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
     ICharacterDomainService characters, IDungeonRunDomainService runs, IMonsterKillDomainService kills,
     IMonsterKillRewardsDomainService rewards, IQuestOfferRefreshDomainService offers,
     ILogger<MonsterDeathDomainService> logger, ITournamentDungeonDomainService? tournaments = null,
-    IEventService? events = null, ISaoTowerDomainService? sao = null, ISouthernDaleDomainService? southern = null, ICharacterQuestLogDomainService? questLogs = null) : IMonsterDeathDomainService
+    IEventService? events = null, ISaoTowerDomainService? sao = null, ISouthernDaleDomainService? southern = null) : IMonsterDeathDomainService
 {
     public async ValueTask<MonsterDeathSettlementResult> SettleAsync(MonsterDeathSettlementRequest request, CancellationToken ct)
     {
@@ -87,29 +87,16 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
         if (clearsMap && run.Layout.Sao is not null && run.IsBossRoom)
             await (sao ?? throw new InvalidOperationException("SAO lifecycle is unavailable."))
                 .CompleteClearAsync(death, request.Participants, ct).ConfigureAwait(false);
-        var cycleAcceptances = new List<CycleQuestAcceptance>();
-        var cycleQuest = clearsMap && run.IsBossRoom && run.Layout.Purpose.Kind == DungeonRunPurposeKind.Cycle
-            ? run.Layout.Purpose.QuestId : null;
-        if (cycleQuest is > 0)
-            foreach (var member in request.Participants.DistinctBy(x => x.CharacterId))
-            {
-                var log = (questLogs ?? throw new InvalidOperationException("Cycle quest log is unavailable."))
-                    .LogOf(member.AccountId, member.CharacterId);
-                if (await log.FindCarriedAsync(cycleQuest.Value, ct).ConfigureAwait(false) is not { } carried) continue;
-                var acceptedAt = await log.AcceptedAtAsync(carried, ct).ConfigureAwait(false);
-                if (acceptedAt <= run.StartedAt)
-                    cycleAcceptances.Add(new(member.AccountId, member.CharacterId, member.ConnectionGeneration, carried.Slot, acceptedAt, member.ConnectionId.Value));
-            }
         if (clearsMap)
             await (events ?? throw new InvalidOperationException("Map-clear events are unavailable."))
                 .EnqueueAsync(new DungeonMapCleared(run.RunId, run.Layout.DungeonId, run.Difficulty,
                     run.CurrentCell, run.CurrentRoomMapId, run.RoomVersion, death.OccurredAt!.Value,
                     [.. request.Participants.DistinctBy(x => x.CharacterId).Select(session =>
-                        run.Participants.Single(x => x.CharacterId == session.CharacterId))]) { IsBossRoom = run.IsBossRoom, CycleQuestId = cycleQuest, CycleAcceptances = [.. cycleAcceptances] }, ct).ConfigureAwait(false);
+                        run.Participants.Single(x => x.CharacterId == session.CharacterId))]) { IsBossRoom = run.IsBossRoom }, ct).ConfigureAwait(false);
         if (logger.IsEnabled(LogLevel.Debug))
             logger.LogDebug("Monster death prepared run={RunId} dungeon={DungeonId} room={RoomId} version={RoomVersion} actor={Actor} participants={Count} clearsMap={ClearsMap} boss={IsBossRoom} cycleQuest={CycleQuestId}",
                 run.RunId, run.Layout.DungeonId, run.CurrentRoomMapId, run.RoomVersion, request.Actor,
-                result.Count, clearsMap, run.IsBossRoom, cycleQuest);
+                result.Count, clearsMap, run.IsBossRoom, run.Layout.Purpose.QuestId);
         return new(result, pending) { Tournament = tournament };
     }
 

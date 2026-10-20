@@ -99,8 +99,6 @@ public sealed class MonsterDeathTransactionTests
             .ReadDueAsync("quest.map-clear", fixture.Clock.GetUtcNow(), 64, default));
         var clear = System.Text.Json.JsonSerializer.Deserialize<DungeonMapCleared>(queued.Event.PayloadJson)!;
         Assert.True(clear.IsBossRoom);
-        Assert.Equal(cycle ? 2001 : (int?)null, clear.CycleQuestId);
-        Assert.Equal(cycle ? 2 : 0, clear.CycleAcceptances.Length);
         await fixture.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync("quest.map-clear");
         Assert.Equal(0, fixture.Scalar("SELECT SUM(trigger_value) FROM character_active_quests"));
         Assert.NotSame(probe.Transactions[0], probe.Transactions[2]);

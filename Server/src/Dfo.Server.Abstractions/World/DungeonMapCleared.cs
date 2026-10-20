@@ -11,6 +11,4 @@ public sealed record DungeonMapCleared(DungeonRunId RunId, int DungeonId, Dungeo
     ImmutableArray<DungeonRunParticipant> Participants) : IDomainEvent
 {
     public bool IsBossRoom { get; init; }
-    public int? CycleQuestId { get; init; }
-    public ImmutableArray<Dfo.Server.Abstractions.Quests.CycleQuestAcceptance> CycleAcceptances { get; init; } = [];
 }
