@@ -473,7 +473,7 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x01` | `0x001A` | `DISJOINT_ITEM` | Mutation / 有响应 | ClientVerified（A21 系统/便携分解成功流程；便携 providerId=0、工具槽分档、批量逐件请求；`0x000E` 修复后当前角色刷新与同账号换角余额一致；成功 S2C body 未归档） | [0x001A.md](game/client-to-server/0x001A.md) |
 | `0x01` | `0x001D` | `BUY_SKILL` | Mutation / 有响应 | 实现服务端功能（A21 普通加点，待实机） | [0x001D.md](game/client-to-server/0x001D.md) |
 | `0x01` | `0x001E` | `INCREASE_STATUS` | Mutation / 有响应 | 已实现经验兵书；C2S有实帧、S2C静态补证；修复后实机待验 | [0x001E.md](game/client-to-server/0x001E.md) |
-| `0x01` | `0x001F` | `ACCEPT_QUEST` | Mutation / 有响应 | 实现服务端功能（A21 受理有实帧；重复成功 ACK 崩溃有故障/静态证据，重发改回 00 12，弹窗与修复效果待实机验证） | [0x001F.md](game/client-to-server/0x001F.md) |
+| `0x01` | `0x001F` | `ACCEPT_QUEST` | Mutation / 有响应 | ClientVerified（protocol3 接取及重复请求改回 00 12 后无崩溃、无弹窗；有服务端日志对照，特殊任务后续行为仍待实机） | [0x001F.md](game/client-to-server/0x001F.md) |
 | `0x01` | `0x0020` | `GIVEUP_QUEST` | Mutation / 有响应 | 实现服务端功能；A21 静态证实 `0x0020+questId` 请求及成功回包读法，实帧/UI 待验证 | [0x0020.md](game/client-to-server/0x0020.md) |
 | `0x01` | `0x0021` | `SET_QUEST_TRIGGER` | Mutation / 有响应 | 实现服务端功能（A21 赛丽亚任务往返有样本；服务端事实推进与背包重算另待验证） | [0x0021.md](game/client-to-server/0x0021.md) |
 | `0x01` | `0x0022` | `FINISH_QUEST` | Mutation / 有响应 | 实现服务端常规结算；A21 另一静态构包路径末字段非恒定哨兵，具体触发与实帧待查 | [0x0022.md](game/client-to-server/0x0022.md) |
