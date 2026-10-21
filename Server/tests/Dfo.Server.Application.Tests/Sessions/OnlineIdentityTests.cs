@@ -83,7 +83,6 @@ public sealed class OnlineIdentityTests
         Assert.Equal(Character, after.CurrentCharacterId);
         Assert.Equal(OnlineUserState.CharacterActive, after.State);
         Assert.True(identity.Sessions.IsInWorld(session));
-        Assert.True(identity.Sessions.IsInWorld(session));
     }
 
     [Fact]

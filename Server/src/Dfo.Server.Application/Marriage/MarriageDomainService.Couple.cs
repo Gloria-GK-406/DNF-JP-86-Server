@@ -145,8 +145,8 @@ internal sealed partial class MarriageDomainService
         var result = new List<MarriageWeddingAdmission>();
         foreach (var original in new[] { ceremony.Applicant, ceremony.Partner })
         {
-            var actor = eligibility.SessionOf(original.CharacterId);
-            if (actor != original || await ReservedAsync(relation, actor, ct).ConfigureAwait(false) is not { } reserved
+            var actor = original;
+            if (!eligibility.IsCurrent(actor) || await ReservedAsync(relation, actor, ct).ConfigureAwait(false) is not { } reserved
                 || await church.PrepareAsync(actor, reserved.Ceremony, ct).ConfigureAwait(false) is not { } prepared)
                 throw new MarriageWeddingUnavailableException();
             var admitted = await church.EnterNewlywedAsync(actor, reserved.Ceremony, checked((uint)prepared.Peer.Value),

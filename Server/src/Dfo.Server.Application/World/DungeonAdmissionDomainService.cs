@@ -52,13 +52,13 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             if (context.DungeonId == CoupleDungeonRule.DungeonId)
             {
                 selected = sessions?.Find(member.AccountId);
-                if (selected?.CharacterId != member.CharacterId) return Refuse(DungeonEntryFailure.MissingPrerequisite, member.Slot);
+                if (selected?.CharacterId != member.CharacterId || !sessions!.IsInWorld(selected)) return Refuse(DungeonEntryFailure.MissingPrerequisite, member.Slot);
             }
             if (options.MirrorCatalog is { } catalog)
             {
                 selected = sessions?.Find(member.AccountId);
                 var position = onlineCharacters?.PositionOf(member.CharacterId);
-                if (selected is null || selected.CharacterId != member.CharacterId || position is null
+                if (selected is null || selected.CharacterId != member.CharacterId || !sessions!.IsInWorld(selected) || position is null
                     || position.TownId != catalog.EntryTownId || position.AreaId != catalog.EntryAreaId)
                     return Refuse(DungeonEntryFailure.MissingPrerequisite, member.Slot);
             }

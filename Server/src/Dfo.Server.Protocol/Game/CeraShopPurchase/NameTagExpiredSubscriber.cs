@@ -14,7 +14,7 @@ internal sealed class NameTagExpiredSubscriber(ISelectedSessionDomainService ses
         var change = message.Payload;
         var owner = sessions.Find(change.AccountId);
         if (owner is null || owner.CharacterId != change.CharacterId || owner.ConnectionId.Value != change.ConnectionId
-            || owner.ConnectionGeneration != change.ConnectionGeneration) return;
+            || owner.ConnectionGeneration != change.ConnectionGeneration || !sessions.IsInWorld(owner)) return;
         await notifications.ProjectAsync(new NotificationAudience.TheseSessions(visibility.Resolve(owner)),
             new CharacterUserStateRefresh(owner), ct).ConfigureAwait(false);
     }

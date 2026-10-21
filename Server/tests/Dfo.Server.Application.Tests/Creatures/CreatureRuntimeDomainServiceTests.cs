@@ -93,6 +93,25 @@ public sealed class CreatureRuntimeDomainServiceTests
         Assert.Equal(80, await f.StomachAsync());
     }
 
+    [Fact]
+    public async Task Leaving_after_the_connection_is_revoked_still_settles_the_stomach()
+    {
+        async Task<long> LeaveAfterAnHour(bool revoke)
+        {
+            await using var f = new Fixture();
+            await f.SeedAsync(); f.Enter();
+            await f.Runtime.AdvanceAsync(f.Session, default);
+            f.Clock.Advance(TimeSpan.FromHours(1));
+            if (revoke) f.Sessions.Revoke(f.Session);
+            await f.Runtime.LeaveAsync(f.Session, default);
+            return await f.StomachAsync();
+        }
+
+        var settled = await LeaveAfterAnHour(revoke: false);
+        Assert.NotEqual(50L, settled);
+        Assert.Equal(settled, await LeaveAfterAnHour(revoke: true));
+    }
+
     private sealed class FoodInventory() : FakeMainInventory(7);
 
     [Fact]
@@ -568,8 +587,10 @@ public sealed class CreatureRuntimeDomainServiceTests
 
     private sealed class Sessions : ISelectedSessionDomainService
     {
-        // Test double: the current selection counts as being in the world, and
-        // remembers which sessions were fenced.
+        // Test double: the current selection counts as being in the world until its connection is
+        // revoked, and remembers which sessions were fenced.
+        private readonly HashSet<SelectedSessionIdentity> revoked = [];
+        public void Revoke(SelectedSessionIdentity session) => revoked.Add(session);
         private readonly System.Collections.Concurrent.ConcurrentDictionary<
             Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
         void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
@@ -581,12 +602,12 @@ public sealed class CreatureRuntimeDomainServiceTests
         Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
             Dfo.Server.Data.World.SelectedSessionIdentity session) =>
             ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
-                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), revoked.Contains(session))
                 : null;
         bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
             Dfo.Server.Data.World.SelectedSessionIdentity session) =>
             ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
-                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld, ConnectionRevoked: false };
         bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
             Dfo.Server.Data.World.SelectedSessionIdentity session) =>
             ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };

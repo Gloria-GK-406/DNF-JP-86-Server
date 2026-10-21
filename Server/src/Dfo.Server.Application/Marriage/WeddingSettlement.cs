@@ -57,7 +57,7 @@ internal sealed class WeddingSettlement(IMarriageWeddingDomainStore store, IMarr
                 var identity = await characters.Get(owner.CharacterId).IdentityAsync(ct).ConfigureAwait(false) ?? throw new MarriageWeddingUnavailableException();
                 // Assign the two PVF ground positions consistently with our bride/groom projection.
                 var spot = rule.CeremonyPositions[genders.IsFemale(identity.Job) ? 0 : 1];
-                var actor = sessions.FindByCharacter(owner.CharacterId) ?? throw new MarriageWeddingUnavailableException();
+                if (!sessions.TryGetInWorld(owner.CharacterId, out var actor)) throw new MarriageWeddingUnavailableException();
                 var position = onlineCharacters.PositionOf(owner) ?? throw new MarriageWeddingUnavailableException();
                 position = position with { X = spot.X, Y = spot.Y };
                 await persistence.PersistAsync(actor.AccountId, actor.CharacterId, position, ct).ConfigureAwait(false);

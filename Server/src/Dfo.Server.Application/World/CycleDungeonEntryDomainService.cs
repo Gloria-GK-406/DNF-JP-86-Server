@@ -48,7 +48,7 @@ internal sealed class CycleDungeonEntryDomainService(ISelectedSessionDomainServi
         CancellationToken cancellationToken)
     {
         var session = sessions.Find(accountId);
-        if (session is null || session.CharacterId != characterId || intents.Find(session) is not { } intent
+        if (session is null || session.CharacterId != characterId || !sessions.IsInWorld(session) || intents.Find(session) is not { } intent
             || intent.Kind != DungeonEntryIntentKind.Cycle || intent.CycleQuestId != questId
             || intent.DirectedDungeonId is not > 0) return false;
         var facts = await FactsAsync(accountId, characterId, cancellationToken).ConfigureAwait(false);

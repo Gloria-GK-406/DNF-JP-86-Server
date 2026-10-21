@@ -239,9 +239,8 @@ internal sealed class SelectedSessionCleanupService(
         }
 
         var characterRecipients = characterIds
-            .Select(sessions.FindByCharacter)
-            .Where(candidate => candidate is not null)
-            .Cast<SelectedSessionIdentity>()
+            .Select(id => sessions.TryGetInWorld(id, out var inWorld) ? inWorld : null)
+            .OfType<SelectedSessionIdentity>()
             .Distinct()
             .ToArray();
         var scopes = new[]

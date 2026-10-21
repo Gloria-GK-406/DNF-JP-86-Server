@@ -60,7 +60,8 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
         var player = context.Participants[0];
         if (dungeonRuns.Find(player.CharacterId) is not null)
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
-        var selected = context.Participants.Select(member => sessions.FindByCharacter(member.CharacterId)).ToArray();
+        var selected = context.Participants
+            .Select(member => sessions.TryGetInWorld(member.CharacterId, out var inWorld) ? inWorld : null).ToArray();
         if (selected.Any(value => value is null)) return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
         TournamentPlan plan;
         try { plan = await rules.PrepareAsync(context.DungeonId, unchecked((uint)Random.Shared.Next()),

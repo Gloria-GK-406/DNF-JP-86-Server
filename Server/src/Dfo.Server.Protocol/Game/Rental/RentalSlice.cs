@@ -161,7 +161,7 @@ internal sealed class LuckyStarChangedSubscriber(ISelectedSessionDomainService s
 {
     public async ValueTask HandleAsync(DomainEventEnvelope<LuckyStarChanged> message,CancellationToken ct)
     {
-        if(!message.Payload.NotifyGain||sessions.Find(message.Payload.AccountId) is not { } owner)return;
+        if(!message.Payload.NotifyGain||sessions.Find(message.Payload.AccountId) is not { } owner||!sessions.IsInWorld(owner))return;
         await events.ProjectAsync(new NotificationAudience.TheseSessions([owner]),new LuckyStarPanelRefresh(owner,message.OccurredAt),ct);
     }
 }

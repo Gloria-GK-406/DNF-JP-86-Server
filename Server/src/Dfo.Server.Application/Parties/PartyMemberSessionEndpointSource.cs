@@ -16,9 +16,7 @@ internal sealed class PartyMemberSessionEndpointSource(
     {
         if (!selectedSessions.TryGetInWorld(characterId, out var selected)
             || !onlineUsers.TryGetByConnection(selected.ConnectionId, out var onlineUser)
-            || onlineUser is null
-            || onlineUser.AccountId != selected.AccountId
-            || onlineUser.CurrentCharacterId != characterId)
+            || onlineUser is null)
         {
             return null;
         }

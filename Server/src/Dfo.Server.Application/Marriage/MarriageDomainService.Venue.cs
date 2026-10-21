@@ -104,7 +104,7 @@ internal sealed partial class MarriageDomainService
         var participants = new List<MarriageWeddingAdmission>();
         foreach (var original in new[] { ceremony.Applicant, ceremony.Partner })
         {
-            var actor = eligibility.SessionOf(original.CharacterId);
+            var actor = eligibility.InWorldSessionOf(original.CharacterId);
             if (actor is not null && actor.AccountId == original.AccountId)
                 participants.Add(new(actor, await church.SnapshotAsync(ceremony, room,
                     checked((uint)PeerOf(ceremony, original.CharacterId).Value), ct).ConfigureAwait(false)));
@@ -134,7 +134,7 @@ internal sealed partial class MarriageDomainService
         foreach (var invitation in invitations)
         {
             await settlement.QueueCleanupAsync(id, new(invitation.Guest, await church.SnapshotAsync(ceremony, room, invitation.Key, ct).ConfigureAwait(false)), ct).ConfigureAwait(false);
-            var actor = eligibility.SessionOf(invitation.Guest);
+            var actor = eligibility.InWorldSessionOf(invitation.Guest);
             if (actor is null || occupied.Contains(actor)) continue;
             cleanup.Add(new(actor, await church.SnapshotAsync(ceremony, room, invitation.Key, ct).ConfigureAwait(false)));
         }
@@ -148,7 +148,7 @@ internal sealed partial class MarriageDomainService
         var departures = new List<MarriageWeddingDeparture>();
         foreach (var pending in await settlement.CleanupAsync(wedding.Ceremony.Id, ct).ConfigureAwait(false))
         {
-            var actor = eligibility.SessionOf(pending.Character);
+            var actor = eligibility.InWorldSessionOf(pending.Character);
             if (actor is null) continue;
             var current = await AppearanceAsync(actor, ct).ConfigureAwait(false);
             var hasNewInvitation = false;

@@ -26,7 +26,7 @@ internal sealed class ExpiredItemsNotificationSubscriber(IEventService events,
         await using var lease = await transitions.BorrowOrAcquireExclusiveAsync(change.AccountId, ct).ConfigureAwait(false);
         var owner = sessions.Find(change.AccountId);
         if (owner is null || owner.CharacterId != change.CharacterId || owner.ConnectionId.Value != change.ConnectionId
-            || owner.ConnectionGeneration != change.ConnectionGeneration) return;
+            || owner.ConnectionGeneration != change.ConnectionGeneration || !sessions.IsInWorld(owner)) return;
         var recipients = change.Containers.Contains(InventoryContainerType.Equipment)
             ? visible.Resolve(owner) : [owner];
         await events.ProjectAsync(new NotificationAudience.TheseSessions(recipients), new ExpiredItemsRefresh(owner, change.Containers, message.OccurredAt, change.MailboxChanged), ct)

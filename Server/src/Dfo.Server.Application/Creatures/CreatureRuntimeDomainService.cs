@@ -21,10 +21,10 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
         CreateContext(transactions.Current ?? throw new InvalidOperationException(
             "Creature instances require a use case."), characterId));
 
-    private CreatureInstanceContext CreateContext(IDomainTransaction tx, CharacterId characterId) =>
+    private CreatureInstanceContext CreateContext(IDomainTransaction tx, CharacterId characterId, bool leaving = false) =>
         new(characterId, tx, store.SessionIn(tx),
             inventories?.GetStore(characterId, BusinessInventoryStoreKind.Creature), rules, clock,
-            sessions.FindByCharacter(characterId) is { } session ? new InstanceRuntime(this, sessions, tx, session) : null);
+            sessions.FindByCharacter(characterId) is { } session ? new InstanceRuntime(this, sessions, tx, session, leaving) : null);
 
     private DateTimeOffset Now => clock.GetUtcNow();
     private readonly object gate = new();
@@ -133,9 +133,11 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
             .ConfigureAwait(false);
 
     private async ValueTask<IReadOnlyList<CreatureRuntimeChange>> AdvanceCoreAsync(IDomainTransaction tx,
-        SelectedSessionIdentity session, bool? combat, CancellationToken ct)
+        SelectedSessionIdentity session, bool? combat, CancellationToken ct, bool leaving = false)
     {
-        if (!sessions.IsInWorld(session)) return [];
+        // Leaving settles what the session still holds even after its connection was revoked, as
+        // teardown does; everything else needs the session in the world.
+        if (leaving ? sessions.StandingOf(session) is null : !sessions.IsInWorld(session)) return [];
         var pending = tx.Enlist(this, () => new Pending(this));
         var previous = pending.Read(session.CharacterId);
         if (previous is null || previous.Session != session) return [];
@@ -144,7 +146,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
         var all = await pets.ReadAllAsync(session.CharacterId, ct).ConfigureAwait(false);
         var current = await pets.ReadCurrentAsync(session.CharacterId, ct).ConfigureAwait(false);
         var fighting = combat ?? previous.Combat;
-        var context = CreateContext(tx, session.CharacterId);
+        var context = CreateContext(tx, session.CharacterId, leaving);
         var next = new Dictionary<int, Balance>();
         var changed = new List<CreatureRuntimeChange>();
         var nextDelay = TimeSpan.FromMinutes(6);
@@ -252,7 +254,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
         lock (gate) if (!entries.TryGetValue(session.CharacterId, out var entry) || entry.Session != session) return;
         await WithinAsync(async tx =>
         {
-            await AdvanceCoreAsync(tx, session, null, ct).ConfigureAwait(false);
+            await AdvanceCoreAsync(tx, session, null, ct, leaving: true).ConfigureAwait(false);
             var pending = tx.Enlist(this, () => new Pending(this));
             if (pending.Read(session.CharacterId)?.Session == session) pending.Write(session.CharacterId, null);
             return true;
@@ -280,16 +282,16 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     }
 
     private sealed class InstanceRuntime(CreatureRuntimeDomainService owner, ISelectedSessionDomainService sessions,
-        IDomainTransaction tx, SelectedSessionIdentity session) : ICreatureInstanceRuntime
+        IDomainTransaction tx, SelectedSessionIdentity session, bool leaving) : ICreatureInstanceRuntime
     {
         private Pending Pending => tx.Enlist(owner, () => new Pending(owner));
         public void EnsureActive()
         {
-            if (!sessions.IsInWorld(session))
+            if (leaving ? sessions.StandingOf(session) is null : !sessions.IsInWorld(session))
                 throw new InvalidOperationException("The creature's selected session has changed.");
         }
         public async ValueTask SynchronizeAsync(CancellationToken ct) =>
-            _ = await owner.AdvanceCoreAsync(tx, session, null, ct).ConfigureAwait(false);
+            _ = await owner.AdvanceCoreAsync(tx, session, null, ct, leaving).ConfigureAwait(false);
         public double Stomach(int uid, int baseline)
         {
             var pending = Pending;

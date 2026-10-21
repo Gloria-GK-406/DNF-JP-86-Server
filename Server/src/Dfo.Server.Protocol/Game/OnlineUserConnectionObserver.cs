@@ -106,7 +106,7 @@ public sealed class OnlineUserConnectionObserver(
             var selected = selectedSessions.FindByConnection(connection.ConnectionId);
             if (selectedBefore is null && selected is not null) continue;
             var cleanedSelected = selectedBefore is not null
-                && await CleanupSelectedHeldAsync(connection.ConnectionId, selectedBefore).ConfigureAwait(false);
+                && await CleanupSelectedHeldAsync(selectedBefore).ConfigureAwait(false);
             if (onlineUsers.TryGetByConnection(connection.ConnectionId, out current)
                 && current is not null && current.OnlineUserId == observed.OnlineUserId
                 && (cleanedSelected || current.Generation == observed.Generation))
@@ -127,11 +127,10 @@ public sealed class OnlineUserConnectionObserver(
     {
         await using var lifecycleLease = await lifecycleGate.AcquireAsync(
             selected.AccountId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
-        return await CleanupSelectedHeldAsync(connectionId, selected).ConfigureAwait(false);
+        return await CleanupSelectedHeldAsync(selected).ConfigureAwait(false);
     }
 
-    private async ValueTask<bool> CleanupSelectedHeldAsync(
-        NetworkConnectionId connectionId, SelectedSessionIdentity selected)
+    private async ValueTask<bool> CleanupSelectedHeldAsync(SelectedSessionIdentity selected)
     {
         // A command may have completed exact cleanup while this observer waited. Never clean a
         // replacement selected by the same account or a reused connection identifier.
