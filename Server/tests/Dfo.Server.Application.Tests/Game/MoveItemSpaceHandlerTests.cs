@@ -437,6 +437,26 @@ public sealed class MoveItemSpaceHandlerTests
 
     private sealed class OneSession : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+
         private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
             new AccountId(6), new CharacterId(60), new NetworkConnectionId("game-move"), 1, 10011);
 
@@ -478,23 +498,11 @@ public sealed class MoveItemSpaceHandlerTests
     /// follows a move that changed the character's look. A session that cannot be read is exactly
     /// the case the handler answers by sending the acknowledgement alone.
     /// </remarks>
-    private sealed class NoPublishedRuntime : ISelectedSessionRuntimeDirectory, ISelectedCharacterCurrentViewDomainService
+    private sealed class NoPublishedRuntime : ISelectedCharacterCurrentViewDomainService
     {
         public ValueTask<SelectCharacterResult?> TryLoadAsync(
             SelectedSessionIdentity session, CancellationToken cancellationToken) =>
             ValueTask.FromResult<SelectCharacterResult?>(null);
-        public void Publish(SelectedSessionIdentity session, bool shouldPersistPosition) =>
-            throw new NotSupportedException("Nothing publishes here.");
-
-        public bool IsPublishedExact(SelectedSessionIdentity session) => false;
-
-        public bool TryGetPositionPersistence(
-            SelectedSessionIdentity session, out bool shouldPersistPosition)
-        {
-            shouldPersistPosition = false;
-            return false;
-        }
-
         public void Publish(
             SelectedSessionIdentity session, SelectCharacterResult result, bool shouldPersistPosition) =>
             throw new NotSupportedException("Nothing publishes here.");

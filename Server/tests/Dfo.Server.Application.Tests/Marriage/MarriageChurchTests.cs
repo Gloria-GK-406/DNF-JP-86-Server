@@ -47,7 +47,7 @@ public sealed class MarriageChurchTests
             configure?.Invoke(s);
         });
         var areas = setup.Fixture.Services.GetRequiredService<ITownAreaDomainService>();
-        var positions = setup.Fixture.Services.GetRequiredService<ICharacterPositionDomainService>();
+        var positions = setup.Fixture.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>();
         foreach (var actor in new[] { setup.Fixture.Session, setup.Peer })
         {
             var moved = positions.CrossInto(actor, 2, 1, 100, 200);
@@ -138,9 +138,10 @@ public sealed class MarriageChurchTests
             registry.Authenticate(user, new(account));
             var session = SelectedSessionIdentity.Create(new(account), new(character), connection.ConnectionId,
                 registry.GetRequiredUser(user).Generation, 10011);
-            registry.Publish(session); f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
+            registry.Select(session);
+            registry.EnterWorld(session);
             var position = new CharacterPositionState(2, 1, 100, 200, 0);
-            f.Services.GetRequiredService<ICharacterPositionDomainService>().Place(session, position);
+            f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(session, position, 100);
             f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(session.CharacterId, session.TownAreaLease(), new(1, 2, 1), position, true));
             return session;
         }
@@ -307,7 +308,7 @@ public sealed class MarriageChurchTests
     private static void Arrive(LearningFixture f, MarriageWeddingAdmission entry)
     {
         var actor = entry.Actor; var room = entry.Church.Room;
-        var moved = f.Services.GetRequiredService<ICharacterPositionDomainService>().CrossInto(actor, room.TownId, room.AreaId, 300, 350);
+        var moved = f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().CrossInto(actor, room.TownId, room.AreaId, 300, 350);
         f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(actor.CharacterId, actor.TownAreaLease(), new(room.ChannelId, room.TownId, room.AreaId), moved, true);
     }
     [Theory]
@@ -353,7 +354,7 @@ public sealed class MarriageChurchTests
         if (!both)
         {
             Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_church_rooms"));
-            var moved = f.Services.GetRequiredService<ICharacterPositionDomainService>().CrossInto(f.Session, 2, 1, 100, 200);
+            var moved = f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().CrossInto(f.Session, 2, 1, 100, 200);
             f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(f.Session.CharacterId, f.Session.TownAreaLease(), new(1, 2, 1), moved, true);
             var cleaned = (await Flow(f, x => x.AdvanceAsync(ceremony.Id, default)))!;
             Assert.Empty(cleaned.Departures); Assert.Equal(2, cleaned.Cleanup.Count);
@@ -397,9 +398,10 @@ public sealed class MarriageChurchTests
         var connection = new NetworkConnectionContext(new("wedding-guest"), NetworkEndpointKind.Game, 10011);
         var user = registry.RegisterConnection(connection).OnlineUserId; registry.Authenticate(user, new(3));
         var guest = SelectedSessionIdentity.Create(new(3), new(73), connection.ConnectionId, registry.GetRequiredUser(user).Generation, 10011);
-        registry.Publish(guest); f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(guest);
+        registry.Select(guest);
+        registry.EnterWorld(guest);
         var position = new CharacterPositionState(2, 1, 100, 200, 0);
-        f.Services.GetRequiredService<ICharacterPositionDomainService>().Place(guest, position);
+        f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(guest, position, 100);
         f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(guest.CharacterId, guest.TownAreaLease(), new(1, 2, 1), position, true));
         Assert.Equal((ushort)10, await f.Services.GetRequiredService<IMarriageQueryDomainService>().RemainingInvitationsAsync(ceremony.Id, f.Session.CharacterId, default));
         var sent = await Flow(f, x => x.InviteAsync(f.Session, 0, 73, default));
@@ -536,7 +538,7 @@ public sealed class MarriageChurchTests
         var wedding = f.Services.GetRequiredService<IMarriageQueryDomainService>();
         clock.Now = entries[0].Church.Room.ReadyUntil.AddSeconds(-61);
         Assert.True(await wedding.CanLeaveAsync(f.Session, 2, 1, default));
-        var outside = f.Services.GetRequiredService<ICharacterPositionDomainService>().CrossInto(f.Session, 2, 1, 100, 200);
+        var outside = f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().CrossInto(f.Session, 2, 1, 100, 200);
         f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(f.Session.CharacterId, f.Session.TownAreaLease(), new(1, 2, 1), outside, true);
         Assert.Equal(entries[0].Church.Room.ReadyUntil, (await wedding.AppearanceAsync(f.Session, default))!.Room.ReadyUntil);
         Assert.True(await Ask(f, x => x.CanCrossAsync(f.Session, 1, 2, entries[0].Church.Room.AreaId, default)));

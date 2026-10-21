@@ -10,7 +10,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainService sessions,
-    ITownAreaDomainService townAreas, IDungeonRunDomainService runs, ICharacterPositionDomainService positions,
+    ITownAreaDomainService townAreas, IDungeonRunDomainService runs, IOnlineCharacterRuntimeDomainService onlineCharacters,
     IBusinessInventorySlotDomainService slots, ICharacterDomainService characters,
     ITeleportConsumableRuleService rules, IItemUseJudgementService judgement,
     IApplyEffectsDomainService effects, TimeProvider clock) : ITeleportConsumableDomainService
@@ -20,7 +20,7 @@ internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainServ
     {
         if (sessions.Find(session.AccountId) != session || runs.Find(session.CharacterId) is not null
             || townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member)
-            || positions.Find(session.CharacterId) is not { } standing)
+            || onlineCharacters.PositionOf(session) is not { } standing)
             return new(ItemUsability.CharacterStateUnavailable);
         var bound = slots.Find(session.CharacterId, source);
         var item = bound is null ? null : await bound.Container.GetAsync(bound.Slot.Index, ct).ConfigureAwait(false);

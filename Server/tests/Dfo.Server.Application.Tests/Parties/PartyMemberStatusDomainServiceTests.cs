@@ -45,11 +45,9 @@ public sealed class PartyMemberStatusDomainServiceTests
                 },
             },
         };
-        var runtime = new SelectedSessionRuntimeDirectory();
-        runtime.Publish(session, shouldPersistPosition: false);
-        var vitals = new CharacterVitalRuntimeDomainService();
-        vitals.Publish(session, checked((byte)result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent));
-        var sessions = new SelectedSessionDomainService();
+        var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        vitals.Begin(session, result.Character.Position, checked((byte)result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent));
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         sessions.Select(session);
         var service = new PartyMemberStatusDomainService(
             () => new FixedInventory(inventory),
@@ -87,11 +85,9 @@ public sealed class PartyMemberStatusDomainServiceTests
                 },
             },
         };
-        var runtime = new SelectedSessionRuntimeDirectory();
-        runtime.Publish(session, shouldPersistPosition: false);
-        var vitals = new CharacterVitalRuntimeDomainService();
-        vitals.Publish(session, checked((byte)result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent));
-        var sessions = new SelectedSessionDomainService();
+        var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        vitals.Begin(session, result.Character.Position, checked((byte)result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent));
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         sessions.Select(session);
         var service = new PartyMemberStatusDomainService(
             () => new FixedInventory(result.CharacterInventory with { VirtualResources = [] }),
@@ -101,9 +97,7 @@ public sealed class PartyMemberStatusDomainServiceTests
         Assert.Equal(new PartyInviteDisplayState(0, 0, 0, 0),
             await service.InvitationOfAsync(Character(session), CancellationToken.None));
         Assert.Equal(100, service.CurrentHpPercentOf(session.CharacterId));
-
-        Assert.True(runtime.RemoveExact(session));
-        Assert.True(vitals.RemoveExact(session));
+        Assert.True(vitals.EndExact(session));
         Assert.Equal(0, service.CurrentHpPercentOf(session.CharacterId));
     }
 

@@ -154,7 +154,8 @@ public sealed class IllusionTowerRewardProjectionTests
         registry.Authenticate(user, fixture.Session.AccountId);
         var replacement = SelectedSessionIdentity.Create(fixture.Session.AccountId, fixture.Session.CharacterId,
             connection.ConnectionId, registry.GetRequiredUser(user).Generation, connection.ListenerPort);
-        registry.Publish(replacement);
+        registry.Select(replacement);
+        registry.EnterWorld(replacement);
         fixture.Services.GetRequiredService<ISelectedSessionDomainService>().Select(replacement);
         return replacement;
     }

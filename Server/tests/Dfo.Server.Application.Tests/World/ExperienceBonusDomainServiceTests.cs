@@ -39,8 +39,9 @@ public sealed class ExperienceBonusDomainServiceTests
     [InlineData(ExperienceEvent.QuestCompletion, false, false)]
     public void Growth_and_potion_have_separate_occasion_rules(ExperienceEvent occasion, bool growth, bool potion)
     {
-        var potions = new SpiritPotionDomainService(TimeProvider.System);
-        potions.Apply(new(60), 1, TimeSpan.FromHours(2));
+        var potions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        potions.Begin(OneSession.Identity, new Dfo.Server.Data.Characters.CharacterPositionState(1, 0, 0, 0, 0), 100);
+        potions.ApplySpiritPotion(OneSession.Identity, 1, TimeSpan.FromHours(2));
         var found = Collect(Service(premiums: [new(84, 4_000_000_000)], potions: potions), OtherDungeon, occasion);
         Assert.Equal(growth, found.Any(x => x.Kind == ExperienceBonusKind.GrowthContract && x.Rate == .2));
         Assert.Equal(potion, found.Any(x => x.Kind == ExperienceBonusKind.SpiritPotion && x.Rate == 1));
@@ -192,11 +193,10 @@ public sealed class ExperienceBonusDomainServiceTests
         ChannelExperienceCatalog? channels = null,
         int channelId = Channel,
         IReadOnlyList<AccountPremiumRow>? premiums = null,
-        ISpiritPotionDomainService? potions = null,
+        IOnlineCharacterRuntimeDomainService? potions = null,
         bool blackDiamond = false) =>
         new ExperienceBonusDomainService(
-            new OneSession(),
-            new OneRuntimeSession(published, channelId),
+            new OneSession(published),
             new PremiumServiceDomainService(new NoPremium(premiums ?? []), new DomainTransactionScope(), TimeProvider.System, new Rates(), new Dfo.Server.Infrastructure.Configuration.ServerConfigService(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Premium:BlackDiamondEnabled"] = blackDiamond.ToString() }).Build())),
             new OneChannel(channelId),
             new ExperienceRuleService(
@@ -206,7 +206,7 @@ public sealed class ExperienceBonusDomainServiceTests
                 new FixedChannelExperience(channels ?? TwoChannels),
                 ExperienceTuning.Default,
                 ExperienceEntitlementPolicy.None),
-            TimeProvider.System, potions ?? new SpiritPotionDomainService(TimeProvider.System));
+            TimeProvider.System, potions ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System));
 
     /// <summary>What the other channel declares, which is deliberately not five percent.</summary>
     private const double OtherChannelRate = 0.20;
@@ -259,8 +259,22 @@ public sealed class ExperienceBonusDomainServiceTests
         public ChannelExperienceCatalog Load() => catalog;
     }
 
-    private sealed class OneSession : ISelectedSessionDomainService
+    /// <summary>One selected session, in the world or not as the case says.</summary>
+    private sealed class OneSession(bool published = true) : ISelectedSessionDomainService
     {
+        public void EnterWorld(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture only answers.");
+
+        public bool Fence(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture only answers.");
+
+        public SelectedSessionStanding? StandingOf(SelectedSessionIdentity session) =>
+            session == Identity
+                ? new(published ? SelectedSessionPhase.InWorld : SelectedSessionPhase.Selected, false, false)
+                : null;
+
+        public bool IsInWorld(SelectedSessionIdentity session) => published && session == Identity;
+
         public static readonly SelectedSessionIdentity Identity = SelectedSessionIdentity.Create(
             new AccountId(1),
             new CharacterId(60),
@@ -281,68 +295,6 @@ public sealed class ExperienceBonusDomainServiceTests
             throw new NotSupportedException("This fixture only answers.");
 
         public bool ReleaseExact(SelectedSessionIdentity session) =>
-            throw new NotSupportedException("This fixture only answers.");
-    }
-
-    /// <summary>
-    /// One published entry carrying the two facts this service reads.
-    /// </summary>
-    /// <remarks>
-    /// The rest of the result is left null on purpose. The service reads the account's premium
-    /// terms and the channel it entered on; filling in the other seven members would hide the day
-    /// it starts reading an eighth.
-    /// </remarks>
-    private sealed class OneRuntimeSession(bool published, int channelId)
-        : ISelectedSessionRuntimeDirectory
-    {
-        public void Publish(SelectedSessionIdentity session, bool shouldPersistPosition) =>
-            throw new NotSupportedException("This fixture only answers.");
-        public bool IsPublishedExact(SelectedSessionIdentity session) => published;
-        public bool TryGetPositionPersistence(
-            SelectedSessionIdentity session, out bool shouldPersistPosition)
-        {
-            shouldPersistPosition = false;
-            return published;
-        }
-        private readonly SelectCharacterResult _result = new(
-            null!,
-            null!,
-            null!,
-            null!,
-            new AccountEntryState(
-                new AccountId(1),
-                null!,
-                null!,
-                new AccountEntitlementEntryState([]),
-                null!,
-                null!),
-            new GameWorldEntryState(
-                DateTimeOffset.UnixEpoch,
-                null!,
-                new ChannelEntryPolicyState(channelId, null!, true, false)),
-            null!);
-
-        public bool TryGet(
-            SelectedSessionIdentity session,
-            out SelectCharacterResult? result,
-            out bool shouldPersistPosition)
-        {
-            result = published ? this._result : null;
-            shouldPersistPosition = false;
-            return published;
-        }
-
-        public SelectCharacterResult GetRequired(SelectedSessionIdentity session) =>
-            published ? this._result : throw new KeyNotFoundException("Nothing was published.");
-
-        public void Publish(
-            SelectedSessionIdentity session, SelectCharacterResult result, bool persist) =>
-            throw new NotSupportedException("This fixture only answers.");
-
-        public void ReplaceExact(SelectedSessionIdentity session, SelectCharacterResult result) =>
-            throw new NotSupportedException("This fixture only answers.");
-
-        public bool RemoveExact(SelectedSessionIdentity session) =>
             throw new NotSupportedException("This fixture only answers.");
     }
 

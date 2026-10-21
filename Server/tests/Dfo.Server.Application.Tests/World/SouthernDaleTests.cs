@@ -155,9 +155,11 @@ public sealed class SouthernDaleTests
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         await using var f = await Fixture();
-        var second = SelectedSessionIdentity.Create(new(2), new(72), new("southern-second"), 1, 10011);
-        f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(second);
-        f.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(second, false);
+        // The second player enters the world through a connection of its own.
+        var second = Dfo.Server.Testing.TestSessions.InWorld(
+            f.Services.GetRequiredService<Dfo.Server.Application.Sessions.SelectedSessionDomainService>(),
+            f.Services.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>(),
+            new(2), new(72), "southern-second");
         var players = new[] { f.Session, second };
         MakeParty(f);
         var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();

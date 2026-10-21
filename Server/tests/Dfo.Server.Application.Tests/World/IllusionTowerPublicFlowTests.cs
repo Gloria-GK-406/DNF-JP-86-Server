@@ -253,10 +253,9 @@ public sealed class IllusionTowerPublicFlowTests
             INSERT INTO character_settings(character_id) VALUES(1),(2);
             INSERT INTO character_expert_job(character_id) VALUES(1),(2);
             """);
-        fixture.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>()
-            .Publish(fixture.Session, shouldPersistPosition: false);
-        fixture.Services.GetRequiredService<ICharacterPositionDomainService>()
-            .Place(fixture.Session, new CharacterPositionState(1, 0, 0, 0, 0));
+        fixture.Services.GetRequiredService<ISelectedSessionDomainService>().EnterWorld(fixture.Session);
+        fixture.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
+            .Begin(fixture.Session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
         await fixture.Seed(65, 4183, tickets);
         fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>()
             .Record(fixture.Session, DungeonEntryIntent.Interactive);

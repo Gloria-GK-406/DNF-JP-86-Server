@@ -139,7 +139,7 @@ public sealed class CharacterIdentityTests
         new PlayingCharacter(
             Who,
             new ItemUseJudgementService(new FakeItemUseRules(rules)),
-            new CharacterItemCooldownDomainService(TimeProvider.System),
+            new OnlineCharacterRuntimeDomainService(TimeProvider.System),
             PresentCharacters.StandingInTown(Who),
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),

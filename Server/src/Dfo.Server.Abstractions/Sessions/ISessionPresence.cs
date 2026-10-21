@@ -8,16 +8,38 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Abstractions.Sessions;
 
 /// <summary>Generation-safe answers about which session each account currently has selected.</summary>
+/// <remarks>
+/// One record per account, held with the online users it belongs to: selecting, entering the
+/// world, fencing and releasing are transitions of that record, and every question here is
+/// answered from it in one moment.
+/// </remarks>
 public interface ISelectedSessionDomainService
 {
     SelectedSessionIdentity? Select(SelectedSessionIdentity session);
+
+    /// <summary>
+    /// Publishes exactly this selection into the world, binding its character to the online user
+    /// that selected it.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// The session is not the current selection, or no online user with its account, connection
+    /// and generation is registered.
+    /// </exception>
+    void EnterWorld(SelectedSessionIdentity session);
+
+    /// <summary>
+    /// Marks exactly this session as having an unknown settlement outcome. False when it is not
+    /// the current selection.
+    /// </summary>
+    bool Fence(SelectedSessionIdentity session);
 
     /// <summary>
     /// Releases exactly this session, and answers whether it was still the current one.
     /// </summary>
     /// <remarks>
     /// Exact rather than by account: a session that has already been displaced must not take its
-    /// replacement's registration down with it.
+    /// replacement's registration down with it. A session that had entered the world unbinds its
+    /// online user as it goes.
     /// </remarks>
     bool ReleaseExact(SelectedSessionIdentity session);
 
@@ -25,19 +47,17 @@ public interface ISelectedSessionDomainService
     SelectedSessionIdentity? FindByCharacter(CharacterId characterId);
     SelectedSessionIdentity? FindByWireUserId(ushort wireUserId);
     SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId);
+
+    /// <summary>Where exactly this session stands, or null when it is not the current selection.</summary>
+    SelectedSessionStanding? StandingOf(SelectedSessionIdentity session);
+
+    /// <summary>Whether exactly this session is the current selection and has entered the world.</summary>
+    bool IsInWorld(SelectedSessionIdentity session);
 }
 
 public interface ISelectedSessionSnapshotQuery
 {
     IReadOnlyList<SelectedSessionIdentity> Snapshot();
-}
-
-public interface ISelectedSessionRuntimeDirectory
-{
-    void Publish(SelectedSessionIdentity session, bool shouldPersistPosition);
-    bool IsPublishedExact(SelectedSessionIdentity session);
-    bool TryGetPositionPersistence(SelectedSessionIdentity session, out bool shouldPersistPosition);
-    bool RemoveExact(SelectedSessionIdentity session);
 }
 
 /// <summary>
@@ -46,7 +66,7 @@ public interface ISelectedSessionRuntimeDirectory
 /// </summary>
 /// <remarks>
 /// Entry uses it once placement has resolved a spawn, and only on a channel that keeps a position;
-/// teardown uses it for whatever <see cref="Characters.ICharacterPositionDomainService"/> answers
+/// teardown uses it for whatever <see cref="Characters.IOnlineCharacterRuntimeDomainService"/> answers
 /// for the session being taken down. Neither reads the copy of the position the entry snapshot
 /// carries: nothing has corrected that copy since entry, and nothing reads it (<c>AGENTS.md</c>,
 /// "角色自己的数，问角色").

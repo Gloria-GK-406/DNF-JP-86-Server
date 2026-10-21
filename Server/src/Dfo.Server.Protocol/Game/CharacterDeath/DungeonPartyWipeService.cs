@@ -35,7 +35,7 @@ public sealed class DungeonPartyWipeService(
     IDungeonRunDomainService runs,
     ISelectedSessionDomainService sessions,
     ISelectedCharacterCurrentViewDomainService currentViews,
-    ICharacterPositionDomainService positions,
+    IOnlineCharacterRuntimeDomainService onlineCharacters,
     DungeonRunDeliveryRegistry registry,
     DungeonProjectionGate projectionGate,
     SelectedSessionTransitionGate transitionGate,
@@ -102,7 +102,7 @@ public sealed class DungeonPartyWipeService(
                     || runs.Find(session.CharacterId)?.RunId != runId)
                     continue;
                 var view = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
-                var position = positions.Find(session.CharacterId);
+                var position = onlineCharacters.PositionOf(session);
                 if (view is null || position is null)
                     throw new InvalidOperationException($"Cannot prepare party wipe return for {session.CharacterId}.");
                 entries.Add(new TownAreaEntry(session, view, position));

@@ -366,8 +366,11 @@ internal sealed class ShopFixture : IDisposable
         var registry = provider.GetRequiredService<OnlineStateRegistry>();
         session = SelectedSessionIdentity.Create(new(1), new(character), connection.ConnectionId,
             registry.GetRequiredUser(onlineUser).Generation, 10011);
-        registry.Publish(session);
-        provider.GetRequiredService<ISelectedSessionDomainService>().Select(session);
+        registry.Select(session);
+        registry.EnterWorld(session);
+        // What publication begins for a character entering the world.
+        provider.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(
+            session, new CharacterPositionState(0, 0, 0, 0, 0), 100);
         provider.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(
             session.CharacterId,
             session.TownAreaLease(),

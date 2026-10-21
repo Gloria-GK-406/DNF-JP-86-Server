@@ -55,6 +55,7 @@
 
   <ItemGroup>
     <Compile Include="../Support/PvfAttributes.cs" Link="Support/PvfAttributes.cs" />
+    <Compile Include="../Support/TestSessions.cs" Link="Support/TestSessions.cs" />
     <Compile Include="../Support/ProjectionEventService.cs" Link="Support/ProjectionEventService.cs" />
   </ItemGroup>
 </Project>

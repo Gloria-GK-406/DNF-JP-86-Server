@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
@@ -30,7 +31,7 @@ public sealed class MarriageCeremonyHandlerTests
         await using var owned = f;
         foreach (var actor in new[] { f.Session, peer })
         {
-            var moved = f.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterPositionDomainService>().CrossInto(actor, 2, 1, 100, 200);
+            var moved = f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().CrossInto(actor, 2, 1, 100, 200);
             f.Services.GetRequiredService<Dfo.Server.Abstractions.World.ITownAreaDomainService>().TransferExact(actor.CharacterId,
                 actor.TownAreaLease(), new(1, 2, 1), moved, true);
         }

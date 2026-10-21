@@ -33,7 +33,7 @@ public sealed class UserServiceTests
         var users = CreateService(account);
         var onlineGate = new OnlineUserExecutionGate();
         var lifecycle = new SelectedSessionTransitionGate();
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var cleanup = new ClearingCleanup(users);
         var connection = new NetworkConnectionContext(new("Game:replace-waiting"), NetworkEndpointKind.Game, 10011);
         var online = users.RegisterConnection(connection);
@@ -70,7 +70,7 @@ public sealed class UserServiceTests
         var users = CreateService(accountId);
         var onlineGate = new OnlineUserExecutionGate();
         var lifecycle = new SelectedSessionTransitionGate();
-        var selected = new SelectedSessionDomainService();
+        var selected = Dfo.Server.Testing.TestSessions.Directory();
         var connection = new NetworkConnectionContext(new("Game:lock-order"), NetworkEndpointKind.Game, 10011);
         var online = users.RegisterConnection(connection);
         await users.AuthenticateForTestAsync(online.OnlineUserId);
@@ -147,6 +147,57 @@ public sealed class UserServiceTests
 
         Assert.True(service.ClearExact(selected));
         Assert.Equal(endpoint, service.Find(authenticated.SessionIdentity));
+    }
+
+    /// <remarks>
+    /// Protocol rejection removes the online identity at once and leaves the selection for the
+    /// disconnect to clean up. Between the two the selection reads as revoked; after the cleanup
+    /// nothing of it is left, neither the selection nor the online character's record.
+    /// </remarks>
+    [Fact]
+    public async Task A_rejected_connection_is_cleaned_up_by_its_disconnect_and_leaves_nothing()
+    {
+        var accountId = new AccountId(702);
+        var service = CreateService(accountId);
+        var connection = new NetworkConnectionContext(
+            new NetworkConnectionId("Game:rejected"), NetworkEndpointKind.Game, 10011);
+        var online = service.RegisterConnection(connection);
+        await service.AuthenticateForTestAsync(online.OnlineUserId);
+        var session = SelectedSessionIdentity.Create(
+            accountId, new CharacterId(78), connection.ConnectionId,
+            service.GetRequired(online.OnlineUserId).Generation, connection.ListenerPort);
+        service.Publish(session);
+        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        runtime.Begin(session, new CharacterPositionState(1, 0, 10, 20, 0), 100);
+        var cleanup = new SelectedSessionCleanupService(
+            service.Sessions, new Dfo.Server.Application.Inventory.CharacterContainerDomainService(),
+            new SessionPresenceDomainService(), new ExpertStoreDomainService(), new PvpLobbyDomainService(),
+            [new KeptPositions()], runtime, new StubChannelEntryPolicy(),
+            new Dfo.Server.Application.Parties.PartyService(
+                new StubPartyMemberStatusDomainService(),
+                new Dfo.Server.Application.Parties.PartyModeRuleService(),
+                TimeProvider.System,
+                EmptyPartyMemberSessionEndpointSource.Instance),
+            new Dfo.Server.Application.World.DungeonRunDomainService(), []);
+
+        Assert.True(service.TryDisconnectConnection(connection.ConnectionId));
+
+        Assert.True(service.Sessions.StandingOf(session)!.ConnectionRevoked);
+        Assert.Equal(session, service.Sessions.FindByConnection(connection.ConnectionId));
+
+        var observer = CreateObserver(
+            service, service.Sessions, cleanup, new RecordingInitialSender(), TimeProvider.System);
+        await observer.DisconnectedAsync(connection, CancellationToken.None);
+
+        Assert.Null(service.Sessions.Find(accountId));
+        Assert.Null(service.Sessions.StandingOf(session));
+        Assert.Null(runtime.PositionOf(session.CharacterId));
+    }
+
+    private sealed class KeptPositions : ISelectedSessionPositionPersistence
+    {
+        public ValueTask PersistAsync(AccountId accountId, CharacterId characterId,
+            CharacterPositionState position, CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 
     [Fact]
@@ -392,9 +443,10 @@ public sealed class UserServiceTests
             active.OnlineUserId,
             connection.ConnectionId,
             active.Generation));
-        // The account holds no active entry any more: a clear naming the exact session that was
-        // published is refused, and the online user it was bound to is gone with it.
-        Assert.False(service.ClearExact(session));
+        // The session no longer counts as active: its connection is revoked, and the online user it
+        // was bound to is gone. The selection itself stays until the session's teardown releases it.
+        Assert.False(service.IsActiveExact(session));
+        Assert.True(service.Sessions.StandingOf(session)!.ConnectionRevoked);
         Assert.Throws<KeyNotFoundException>(() => service.GetRequired(active.OnlineUserId));
     }
 
@@ -452,8 +504,7 @@ public sealed class UserServiceTests
             new MissingCharacterDomainService(),
             new NotReachedInventoryEntryService(),
             new NotReachedCharacterEntryStateDomainService(),
-            new NotReachedAccountEntryStateDomainService(),
-            service);
+            new NotReachedAccountEntryStateDomainService());
 
         await Assert.ThrowsAsync<KeyNotFoundException>(async () =>
             await entry.EnterAsync(accountId, 5, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None));
@@ -502,7 +553,7 @@ public sealed class UserServiceTests
         var accountId = new AccountId(104);
         var service = CreateService(accountId);
         var gate = new OnlineUserExecutionGate();
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var cleanup = new ClearingCleanup(service);
         var observer = new OnlineUserConnectionObserver(
             service, gate, new SelectedSessionTransitionGate(), sessions, cleanup,
@@ -529,7 +580,7 @@ public sealed class UserServiceTests
     {
         var accountId = new AccountId(106);
         var service = CreateService(accountId);
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:cleanup-failure"), NetworkEndpointKind.Game, 10011);
         var registered = service.RegisterConnection(connection);
@@ -701,6 +752,26 @@ public sealed class UserServiceTests
 
     private sealed class EmptySelectedSessions : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+
         public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
         public bool ReleaseExact(SelectedSessionIdentity session) => false;
         public SelectedSessionIdentity? Find(AccountId accountId) => null;
@@ -752,7 +823,7 @@ public sealed class UserServiceTests
         }
     }
 
-    private sealed class ClearingCleanup(IActiveCharacterDomainService active) : ISelectedSessionCleanupDomainService
+    private sealed class ClearingCleanup(UserDomainServices active) : ISelectedSessionCleanupDomainService
     {
         public SelectedSessionIdentity? Cleaned { get; private set; }
 

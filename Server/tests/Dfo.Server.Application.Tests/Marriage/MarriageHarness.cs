@@ -84,7 +84,7 @@ internal static class MarriageHarness
     internal static void MoveTo(LearningFixture f, SelectedSessionIdentity actor, byte town, byte area, int channel = 1,
         short x = 100, short y = 200)
     {
-        var moved = f.Services.GetRequiredService<ICharacterPositionDomainService>().CrossInto(actor, town, area, x, y);
+        var moved = f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().CrossInto(actor, town, area, x, y);
         f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(actor.CharacterId, actor.TownAreaLease(),
             new(channel, town, area), moved, true);
     }
@@ -116,10 +116,11 @@ internal static class MarriageHarness
         registry.Authenticate(user, new(account));
         var session = SelectedSessionIdentity.Create(new(account), new(character), connection.ConnectionId,
             registry.GetRequiredUser(user).Generation, 10011);
-        registry.Publish(session);
+        registry.Select(session);
+        registry.EnterWorld(session);
         f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
         var position = new CharacterPositionState(2, 1, 100, 200, 0);
-        f.Services.GetRequiredService<ICharacterPositionDomainService>().Place(session, position);
+        f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(session, position, 100);
         f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(session.CharacterId, session.TownAreaLease(),
             new(channel, 2, 1), position, true));
         return session;

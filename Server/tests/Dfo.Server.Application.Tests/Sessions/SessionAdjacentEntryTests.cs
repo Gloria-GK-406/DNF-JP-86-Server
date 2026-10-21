@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
@@ -106,7 +107,7 @@ public sealed class SessionAdjacentEntryTests
         var registry = new SessionPresenceDomainService();
         var oldPresence = Presence(10, listenerPort: 10011);
         registry.Admit(oldPresence);
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         _ = sessions.Select(oldPresence.Session! with
         {
             ConnectionId = new Dfo.Server.Data.Networking.NetworkConnectionId("Game:replacement"),
@@ -241,7 +242,7 @@ public sealed class SessionAdjacentEntryTests
         IExpertStoreDomainService stores,
         IPvpLobbyDomainService lobby)
     {
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         foreach (var candidate in presence.Query(SessionPresenceScope.Global))
         {
             if (candidate.Session is { } exact)

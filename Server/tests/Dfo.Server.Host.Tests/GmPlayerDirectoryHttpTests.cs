@@ -153,12 +153,11 @@ public sealed class GmPlayerDirectoryHttpTests
         var prepared = SelectedSessionIdentity.Create(new(40), new(40), user40.Connection.ConnectionId, user40.Generation, 21011);
         var selected = host.Services.GetRequiredService<ISelectedSessionDomainService>(); selected.Select(prepared);
         Assert.False((await GetAsync(host, "characters/40")).GetProperty("isOnline").GetBoolean());
-        host.Services.GetRequiredService<IActiveCharacterDomainService>().Publish(prepared);
-        host.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(prepared, true);
+        host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(prepared);
         Assert.True(online.GetRequired(user40.OnlineUserId).Generation > prepared.ConnectionGeneration);
         var unplaced = await GetAsync(host, "characters/40"); Assert.True(unplaced.GetProperty("isOnline").GetBoolean());
         Assert.Equal("unavailable", unplaced.GetProperty("position").GetProperty("source").GetString());
-        var positions = host.Services.GetRequiredService<ICharacterPositionDomainService>(); positions.Place(prepared, new(3, 4, 100, 200, 2));
+        var positions = host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>(); positions.Begin(prepared, new(3, 4, 100, 200, 2), 100);
         positions.StepTo(prepared, 123, 234, 1); positions.CrossInto(prepared, 5, 6, 321, 432);
         var moved = await GetAsync(host, "characters/40");
         Assert.Equal("current", moved.GetProperty("position").GetProperty("source").GetString());
@@ -179,7 +178,7 @@ public sealed class GmPlayerDirectoryHttpTests
         Assert.Equal(41, page2.GetProperty("items")[0].GetProperty("characterId").GetInt32());
         Assert.Equal(1, (await GetAsync(host, "characters?onlineOnly=true&accountId=41&q=角色41")).GetProperty("total").GetInt32());
         var replacementUser = await ConnectAsync(host, 40, 21012);
-        Cleanup(host, prepared); var replacement = Publish(host, replacementUser, 40, 40, 21012); positions.Place(replacement, new(8, 9, 888, 999, 3));
+        Cleanup(host, prepared); var replacement = Publish(host, replacementUser, 40, 40, 21012); positions.Begin(replacement, new(8, 9, 888, 999, 3), 100);
         Cleanup(host, prepared); online.TryDisconnectConnection(user40.Connection.ConnectionId);
         var replaced = await GetAsync(host, "characters/40"); Assert.Equal(12, replaced.GetProperty("channel").GetProperty("channelId").GetInt32());
         Assert.Equal(888, replaced.GetProperty("position").GetProperty("x").GetInt32());
@@ -234,17 +233,14 @@ public sealed class GmPlayerDirectoryHttpTests
     {
         var session = SelectedSessionIdentity.Create(new(account), new(character), user.Connection.ConnectionId, user.Generation, port);
         host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
-        host.Services.GetRequiredService<IActiveCharacterDomainService>().Publish(session);
-        host.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(session, true);
-        host.Services.GetRequiredService<ICharacterPositionDomainService>().Place(session, new(3, 4, 100, 200, 2));
+        host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(session);
+        host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(session, new(3, 4, 100, 200, 2), 100);
         return session;
     }
     internal static void Cleanup(GmTestHost host, SelectedSessionIdentity session)
     {
-        host.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().RemoveExact(session);
-        host.Services.GetRequiredService<IActiveCharacterDomainService>().ClearExact(session);
         host.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(session);
-        host.Services.GetRequiredService<ICharacterPositionDomainService>().ForgetExact(session);
+        host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().EndExact(session);
     }
 
     private sealed class DirectoryReadiness : IGameServerReadiness { public bool NetworkEnabled { get; set; } public bool IsReady { get; set; } }

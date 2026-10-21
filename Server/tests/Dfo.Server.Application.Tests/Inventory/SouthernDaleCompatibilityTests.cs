@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.Inventory;
@@ -159,8 +160,8 @@ public sealed class SouthernDaleCompatibilityTests
     {
         using var fixture = new CeraShopFixture(useArchive: true);
         var services = fixture.Host.Services;
-        services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterPositionDomainService>()
-            .Place(fixture.Host.Session, new(1, 0, 0, 0, 0));
+        services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
+            .Begin(fixture.Host.Session, new(1, 0, 0, 0, 0), 100);
         fixture.Host.Sql("""
             INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0),(2,0);
             INSERT INTO character_pvp(character_id) VALUES(1),(2);
@@ -197,7 +198,7 @@ public sealed class SouthernDaleCompatibilityTests
     {
         using var fixture = new CeraShopFixture(useArchive: true);
         var services = fixture.Host.Services;
-        services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionRuntimeDirectory>().Publish(fixture.Host.Session, false);
+        services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(fixture.Host.Session);
         var events = services.GetRequiredService<IEventManagementDomainService>();
         var revision = 0;
         foreach (var open in new[] { false, true, false })
@@ -226,7 +227,7 @@ public sealed class SouthernDaleCompatibilityTests
         using var fixture = new CeraShopFixture(useArchive: true, configure: s => s.AddSingleton<TimeProvider>(clock));
         var services = fixture.Host.Services;
         var session = fixture.Host.Session;
-        services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionRuntimeDirectory>().Publish(session, false);
+        services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(session);
         await fixture.Host.Seed(177, 2680739, 2);
         var commands = services.GetRequiredService<ICommandBus>();
         Assert.True((await commands.SendAsync(new AcceptQuestCommand(session.AccountId, session.CharacterId, 20549))).Accepted);

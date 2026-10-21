@@ -156,7 +156,7 @@ internal sealed class GiveUpGameResponseEncoder : GameCmdMessageEncoder<GiveUpGa
 public sealed class GiveUpGameHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedCharacterCurrentViewDomainService currentViews,
-    ICharacterPositionDomainService positions,
+    IOnlineCharacterRuntimeDomainService onlineCharacters,
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveries,
     IGameMessageSender sender,
@@ -221,7 +221,7 @@ public sealed class GiveUpGameHandler(
 
             var result = await currentViews.TryLoadAsync(session, cancellationToken)
                 .ConfigureAwait(false);
-            if (result is null || positions.Find(session.CharacterId) is not { } position)
+            if (result is null || onlineCharacters.PositionOf(session) is not { } position)
             {
                 logger.LogWarning(
                     "Give up game {ConnectionId}: no published session, ignoring",

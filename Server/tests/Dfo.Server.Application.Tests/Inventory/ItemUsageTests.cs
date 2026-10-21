@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
@@ -68,7 +69,7 @@ public sealed class ItemUsageTests
         var id = f.Session.CharacterId;
         var until = clock.Now.AddDays(1);
         await Use(f, id, 3);
-        f.Services.GetRequiredService<ICharacterItemCooldownDomainService>().Clear(id);
+        f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().EndExact(f.Session);
         clock.Now = clock.Now.AddMinutes(2); // crosses the 06:00 quota boundary.
         await using var restart = Fixture(clock, f.Path);
         var service = restart.Services.GetRequiredService<IItemUsageDomainService>();

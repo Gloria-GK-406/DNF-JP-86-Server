@@ -52,10 +52,11 @@ public sealed class MarriagePairCorrectionTests
         registry.Authenticate(user, new(account));
         var session = SelectedSessionIdentity.Create(new(account), owner.CharacterId, connection.ConnectionId,
             registry.GetRequiredUser(user).Generation, 10011);
-        registry.Publish(session);
+        registry.Select(session);
+        registry.EnterWorld(session);
         f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
         var position = new CharacterPositionState(2, 1, 100, 200, 0);
-        f.Services.GetRequiredService<ICharacterPositionDomainService>().Place(session, position);
+        f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(session, position, 100);
         f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(session.CharacterId, session.TownAreaLease(),
             new(1, 2, 1), position, true));
         return session;

@@ -222,7 +222,7 @@ internal sealed class SetUserPositionDecoder : IGameMessageDecoder
 public sealed class SetUserAreaHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedCharacterCurrentViewDomainService currentViews,
-    ICharacterPositionDomainService positions,
+    IOnlineCharacterRuntimeDomainService onlineCharacters,
     ITownAreaDomainService townAreas,
     IChannelEntryPolicy channels,
     ITownMovementDomainService towns,
@@ -262,7 +262,7 @@ public sealed class SetUserAreaHandler(
         var result = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
         if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session
             || result is null
-            || positions.Find(session.CharacterId) is not { } standing
+            || onlineCharacters.PositionOf(session) is not { } standing
             || townAreas.Find(session.CharacterId) is not { } standingMember
             || !session.Owns(standingMember))
         {
@@ -365,7 +365,7 @@ public sealed class SetUserAreaHandler(
                 .ConfigureAwait(false);
         }
         var weddingAppearance = marriage is null ? null : await marriage.AppearanceAsync(session, cancellationToken).ConfigureAwait(false);
-        var moved = positions.CrossInto(
+        var moved = onlineCharacters.CrossInto(
             session, message.TownId, message.AreaId, message.X, message.Y);
         if (!await townAreaProjection.TransferAsync(
                 context.Connection.ConnectionId,
@@ -417,8 +417,7 @@ public sealed class SetUserAreaHandler(
 /// </remarks>
 public sealed class SetUserPositionHandler(
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
-    ICharacterPositionDomainService positions,
+    IOnlineCharacterRuntimeDomainService onlineCharacters,
     ITownAreaDomainService townAreas,
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<SetUserPositionHandler> logger) : ClientMessageHandler<SetUserPositionRequest>
@@ -430,7 +429,7 @@ public sealed class SetUserPositionHandler(
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null
-            || !runtimeSessions.IsPublishedExact(session)
+            || !selectedSessions.IsInWorld(session)
             || townAreas.Find(session.CharacterId) is not { } member
             || !session.Owns(member))
         {
@@ -444,7 +443,7 @@ public sealed class SetUserPositionHandler(
 
         // The step is reported and the service keeps the rest of where they were. Nothing here
         // reads the position back: the answer this frame carries is the one the client just sent.
-        var moved = positions.StepTo(session, message.X, message.Y, message.Direction);
+        var moved = onlineCharacters.StepTo(session, message.X, message.Y, message.Direction);
         await townAreaProjection.MoveAsync(
             context.Connection.ConnectionId,
             session,

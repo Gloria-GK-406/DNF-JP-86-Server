@@ -925,7 +925,7 @@ public sealed class RemovePartyMemberHandler(
     IDungeonRunDomainService? runs = null,
     IDungeonRunParticipantDepartureSink? departureSink = null,
     ISelectedCharacterCurrentViewDomainService? currentViews = null,
-    ICharacterPositionDomainService? positions = null,
+    IOnlineCharacterRuntimeDomainService? onlineCharacters = null,
     TownAreaProjectionDelivery? townAreaProjection = null,
     IllusionTowerPartyCoordinator? towerParties = null, BossTowerPartyCoordinator? bossParties = null)
     : ClientMessageHandler<RemovePartyMemberRequest>
@@ -990,7 +990,7 @@ public sealed class RemovePartyMemberHandler(
             returnRuntime = departingRun is not null && currentViews is not null
                 ? await currentViews.TryLoadAsync(target, cancellationToken).ConfigureAwait(false)
                 : null;
-            returnPosition = departingRun is not null ? positions?.Find(target.CharacterId) : null;
+            returnPosition = departingRun is not null ? onlineCharacters?.PositionOf(target) : null;
             var reroute = false;
             execution = await PartyTransitionExecution.RunPartyAsync(
                 transitionGate,

@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Application.World;
 
 public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transactions,
-    ISelectedSessionDomainService sessions, ISelectedSessionRuntimeDirectory published,
+    ISelectedSessionDomainService sessions,
     ICharacterDomainService characters, IDungeonRunDomainService runs, IMonsterKillDomainService kills,
     IMonsterKillRewardsDomainService rewards, IQuestOfferRefreshDomainService offers,
     ILogger<MonsterDeathDomainService> logger, ITournamentDungeonDomainService? tournaments = null,
@@ -35,7 +35,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
         if (isTournament && !(tournaments ?? throw new InvalidOperationException("Tournament lifecycle is unavailable."))
             .CanKill(run, request.Actor)) return Refused("TournamentCannotKill");
         foreach (var session in request.Participants)
-            if (sessions.FindByCharacter(session.CharacterId) != session || !published.IsPublishedExact(session)
+            if (sessions.FindByCharacter(session.CharacterId) != session || !sessions.IsInWorld(session)
                 || runs.Find(session.CharacterId)?.RunId != run.RunId)
                 throw new InvalidOperationException("A frozen dungeon participant changed before settlement.");
         var identification = await kills.IdentifyAsync(run, request.Actor, ct).ConfigureAwait(false);

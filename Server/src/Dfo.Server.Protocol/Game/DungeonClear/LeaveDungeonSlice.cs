@@ -93,7 +93,7 @@ internal sealed class EplpCommandResponseEncoder : GameCmdMessageEncoder<EplpCom
 public sealed class EplpCommandHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedCharacterCurrentViewDomainService currentViews,
-    ICharacterPositionDomainService positions,
+    IOnlineCharacterRuntimeDomainService onlineCharacters,
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveries,
     IGameMessageSender sender,
@@ -134,7 +134,7 @@ public sealed class EplpCommandHandler(
         var result = session is null ? null
             : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
         if (session is null || result is null
-            || positions.Find(session.CharacterId) is not { } position)
+            || onlineCharacters.PositionOf(session) is not { } position)
         {
             logger.LogWarning(
                 "Eplp command {ConnectionId}: no published session, ignoring",
@@ -184,7 +184,7 @@ public sealed class EplpCommandHandler(
             if (memberSession is null
                 || memberSession.AccountId != participant.AccountId
                 || memberRuntime is null
-                || positions.Find(participant.CharacterId) is not { } memberPosition
+                || onlineCharacters.PositionOf(memberSession) is not { } memberPosition
                 || (currentRun is not null
                     && runs.Find(participant.CharacterId)?.RunId != currentRun.RunId))
             {

@@ -185,9 +185,9 @@ public sealed class MirrorDungeonEntryTests
         var sessions = fixture.Services.GetRequiredService<ISelectedSessionDomainService>();
         var other = new SelectedSessionIdentity(new(2), new(72), new("mirror-member"), 1, 72, 10011);
         sessions.Select(other);
-        var positions = new CharacterPositionDomainService();
-        positions.Place(fixture.Session, new(21, 2, 865, 208, 0));
-        positions.Place(other, new(21, boundary == "position" ? (byte)1 : (byte)2, 865, 208, 0));
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        positions.Begin(fixture.Session, new(21, 2, 865, 208, 0), 100);
+        positions.Begin(other, new(21, boundary == "position" ? (byte)1 : (byte)2, 865, 208, 0), 100);
         var visits = new Visits();
         var quota = new Quota(fixture);
         if (boundary == "quota")
@@ -199,7 +199,7 @@ public sealed class MirrorDungeonEntryTests
             quests: fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(),
             quotas: fixture.Services.GetRequiredService<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService>(),
             events: fixture.Services.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>(), transactions: fixture.Scope,
-            sessions: sessions, positions: positions, runs: new DungeonRunDomainService(fixture.Scope));
+            sessions: sessions, onlineCharacters: positions, runs: new DungeonRunDomainService(fixture.Scope));
         visits.Admission = admission;
         return (new(new Rules(), structures, visits, fixture.Services.GetRequiredService<ICharacterDomainService>(), admission, TimeProvider.System), visits, quota);
     }

@@ -244,7 +244,7 @@ public sealed class EffectOperationReplayTests
         Assert.IsType<InvalidOperationException>(error.InnerException);
         Assert.Contains("already closed", error.InnerException!.Message);
         Assert.Equal(100001, f.Gold); Assert.Equal(EffectOperationState.Blocked, entry.State);
-        Assert.True(safety.IsBlocked(f.Connection)); Assert.True(safety.IsBlocked(f.Session));
+        Assert.True(safety.IsBlocked(f.Connection)); Assert.True(f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().StandingOf(f.Session)?.Fenced == true);
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await f.Services.GetRequiredService<ICommandBus>().SendAsync(new SettlementProbe(f.Session)));
         Assert.Equal(100001, f.Gold);
@@ -325,11 +325,14 @@ public sealed class EffectOperationReplayTests
         Assert.True(registry.TryDisconnect(f.OnlineUser, f.Connection.ConnectionId, registry.GetRequiredUser(f.OnlineUser).Generation));
         var replacement = f.Connection with { };
         var user = registry.RegisterConnection(replacement); registry.Authenticate(user.OnlineUserId, new(1));
-        registry.Publish(SelectedSessionIdentity.Create(new(1), new(2), replacement.ConnectionId,
-            registry.GetRequiredUser(user.OnlineUserId).Generation, 10011));
+        var other = SelectedSessionIdentity.Create(new(1), new(2), replacement.ConnectionId,
+            registry.GetRequiredUser(user.OnlineUserId).Generation, 10011);
+        registry.Select(other);
+        registry.EnterWorld(other);
         var session = SelectedSessionIdentity.Create(new(1), new(1), replacement.ConnectionId,
             registry.GetRequiredUser(user.OnlineUserId).Generation, 10011);
-        registry.Publish(session); f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
+        registry.Select(session);
+        registry.EnterWorld(session);
         f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(session.CharacterId, session.TownAreaLease(),
             new TownAreaKey(1, 0, 0), new CharacterPositionState(0, 0, 0, 0, 0), true));
         Assert.True(safety.IsBlocked(f.Connection)); Assert.False(safety.IsBlocked(replacement));

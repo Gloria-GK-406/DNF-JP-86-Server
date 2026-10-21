@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
@@ -159,7 +160,7 @@ public sealed class PvpLobbyEntryTests
     private static SessionAdjacentEntryDomainService Service(IPvpLobbyDomainService lobby) =>
         new(
             new SessionPresenceDomainService(),
-            new SelectedSessionDomainService(),
+            Dfo.Server.Testing.TestSessions.Directory(),
             Stores,
             lobby);
 

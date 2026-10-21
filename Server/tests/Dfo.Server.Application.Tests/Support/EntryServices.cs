@@ -31,7 +31,6 @@ internal static class EntryServices
         ITestInventoryEntryServices inventory,
         ICharacterEntryStateDomainService characterEntries,
         IAccountEntryStateDomainService accountEntries,
-        IActiveCharacterDomainService activeCharacters,
         IWorldContentEntryRuleService? worldContent = null,
         ISkillPointDefinitionSource? skillPoints = null,
         ICharacterPvpSkillProfileRepository? pvpSkills = null,

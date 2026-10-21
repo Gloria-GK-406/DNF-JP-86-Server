@@ -31,15 +31,15 @@ public sealed class TownAreaProjectionDeliveryTests
     {
         var bride = Session(1, "bride"); var groom = Session(2, "groom");
         var guest = Session(3, "guest"); var outside = Session(4, "outside");
-        var sessions = new SelectedSessionDomainService();
-        var positions = new CharacterPositionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var areas = new SessionPresenceDomainService();
         var views = new FixedCurrentViews();
         foreach (var actor in new[] { bride, groom, guest, outside })
         {
             sessions.Select(actor);
             var area = actor == outside ? (byte)6 : (byte)12;
-            positions.Place(actor, new(2, area, 100, 200, 5));
+            positions.Begin(actor, new(2, area, 100, 200, 5), 100);
             ((ITownAreaDomainService)areas).Enter(Member(actor, new(11, 2, area), 100));
         }
         var sender = new RecordingSender(); var notifications = new RecordingNotificationBus();
@@ -63,20 +63,20 @@ public sealed class TownAreaProjectionDeliveryTests
         Assert.DoesNotContain(received, x => x.ConnectionId == outside.ConnectionId);
         Assert.Empty(notifications.Publications);
         Assert.Equal((short)670, ((ITownAreaDomainService)areas).Find(bride.CharacterId)!.Position.X);
-        Assert.Equal((short)685, positions.Find(groom.CharacterId)!.X);
+        Assert.Equal((short)685, positions.PositionOf(groom.CharacterId)!.X);
     }
 
     [Fact]
     public async Task Wedding_entry_moves_both_partners_to_one_church_and_projects_their_presence()
     {
         var first = Session(1, "groom"); var second = Session(2, "bride");
-        var sessions = new SelectedSessionDomainService(); sessions.Select(first); sessions.Select(second);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(); sessions.Select(first); sessions.Select(second);
         var views = new FixedCurrentViews(); views.Publish(first, Entry(first, 100)); views.Publish(second, Entry(second, 300));
-        var positions = new CharacterPositionDomainService();
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var areas = new SessionPresenceDomainService();
         foreach (var session in new[] { first, second })
         {
-            positions.Place(session, new(3, 6, 100, 200, 1));
+            positions.Begin(session, new(3, 6, 100, 200, 1), 100);
             ((ITownAreaDomainService)areas).Enter(Member(session, new(11, 3, 6), 100));
         }
         var notifications = new RecordingNotificationBus(); var sender = new RecordingSender();
@@ -90,7 +90,7 @@ public sealed class TownAreaProjectionDeliveryTests
                 new WeddingChurchEnterRequest(GameMessageMetadata.Empty, (uint)(session == first ? 2 : 1), room.AreaId, 0), default);
         Assert.Equal(new[] { first.CharacterId, second.CharacterId },
             ((ITownAreaDomainService)areas).Find(new TownAreaKey(11, 2, 12))!.Members.Select(x => x.CharacterId));
-        Assert.Equal(12, positions.Find(first.CharacterId)!.AreaId); Assert.Equal(12, positions.Find(second.CharacterId)!.AreaId);
+        Assert.Equal(12, positions.PositionOf(first.CharacterId)!.AreaId); Assert.Equal(12, positions.PositionOf(second.CharacterId)!.AreaId);
         Assert.Equal(2, sender.Deliveries.SelectMany(x => x.Delivery.RequiredDirectMessages).OfType<WeddingChurchEnterAck>().Count(x => x.Status == 0));
         Assert.Contains(sender.Deliveries.Where(x => x.ConnectionId == second.ConnectionId)
             .SelectMany(x => x.Delivery.RequiredDirectMessages).OfType<CurrentUserStateMessage>(),
@@ -103,7 +103,7 @@ public sealed class TownAreaProjectionDeliveryTests
     public async Task Forced_standing_respects_private_presence_and_rejects_a_replaced_owner()
     {
         var actor = Session(1, "old"); var peer = Session(2, "peer");
-        var sessions = new SelectedSessionDomainService(); sessions.Select(actor); sessions.Select(peer);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(); sessions.Select(actor); sessions.Select(peer);
         var areas = new SessionPresenceDomainService(); var key = new TownAreaKey(11, 2, 12);
         ((ITownAreaDomainService)areas).Enter(new(actor.CharacterId, actor.TownAreaLease(), key, new(2, 12, 100, 200, 5), false));
         ((ITownAreaDomainService)areas).Enter(Member(peer, key, 300));
@@ -132,15 +132,12 @@ public sealed class TownAreaProjectionDeliveryTests
     {
         var returning = Session(1, "returning");
         var existing = Session(2, "existing");
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         sessions.Select(returning);
         sessions.Select(existing);
-        var runtimes = new SelectedSessionRuntimeDirectory();
         var currentViews = new FixedCurrentViews();
         var returningResult = Entry(returning, x: 100);
         var existingResult = Entry(existing, x: 300);
-        runtimes.Publish(returning, false);
-        runtimes.Publish(existing, false);
         currentViews.Publish(returning, returningResult);
         currentViews.Publish(existing, existingResult);
         var areas = new SessionPresenceDomainService();
@@ -187,10 +184,9 @@ public sealed class TownAreaProjectionDeliveryTests
     {
         var returning = Session(1, "returning");
         var existing = Session(2, "existing");
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         sessions.Select(returning);
         sessions.Select(existing);
-        var runtimes = new SelectedSessionRuntimeDirectory();
         var currentViews = new FixedCurrentViews();
         var returningBaseline = Entry(returning, x: 100);
         var returningResult = returningBaseline with
@@ -207,8 +203,6 @@ public sealed class TownAreaProjectionDeliveryTests
             },
         };
         var existingResult = Entry(existing, x: 300);
-        runtimes.Publish(returning, false);
-        runtimes.Publish(existing, false);
         currentViews.Publish(returning, returningResult);
         currentViews.Publish(existing, existingResult);
         var areas = new SessionPresenceDomainService();
@@ -245,18 +239,14 @@ public sealed class TownAreaProjectionDeliveryTests
         var first = Session(1, "first");
         var second = Session(2, "second");
         var existing = Session(3, "existing");
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         sessions.Select(first);
         sessions.Select(second);
         sessions.Select(existing);
-        var runtimes = new SelectedSessionRuntimeDirectory();
         var currentViews = new FixedCurrentViews();
         var firstResult = Entry(first, 100);
         var secondResult = Entry(second, 200);
         var existingResult = Entry(existing, 300);
-        runtimes.Publish(first, false);
-        runtimes.Publish(second, false);
-        runtimes.Publish(existing, false);
         currentViews.Publish(first, firstResult);
         currentViews.Publish(second, secondResult);
         currentViews.Publish(existing, existingResult);
@@ -300,13 +290,10 @@ public sealed class TownAreaProjectionDeliveryTests
     {
         var first = Session(1, "first");
         var second = Session(2, "second");
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         sessions.Select(first);
         sessions.Select(second);
-        var runtimes = new SelectedSessionRuntimeDirectory();
         var currentViews = new FixedCurrentViews();
-        runtimes.Publish(first, false);
-        runtimes.Publish(second, false);
         currentViews.Publish(first, Entry(first, 100));
         currentViews.Publish(second, Entry(second, 200));
         var areas = new SessionPresenceDomainService();
@@ -345,13 +332,11 @@ public sealed class TownAreaProjectionDeliveryTests
             new NetworkConnectionId("replacement"),
             2,
             10011);
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         sessions.Select(old);
         sessions.Select(replacement);
-        var runtimes = new SelectedSessionRuntimeDirectory();
         var currentViews = new FixedCurrentViews();
         var replacementResult = Entry(replacement, 300);
-        runtimes.Publish(replacement, false);
         currentViews.Publish(replacement, replacementResult);
         var areas = new SessionPresenceDomainService();
         var store = (ITownAreaDomainService)areas;

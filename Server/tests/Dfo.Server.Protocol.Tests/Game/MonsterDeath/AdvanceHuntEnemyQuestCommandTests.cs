@@ -210,7 +210,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     {
         var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
         var runs = new Dfo.Server.Application.World.DungeonRunDomainService(scope);
-        var sessions = new Dfo.Server.Application.Sessions.SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var session = SelectedSessionIdentity.Create(
             Account, Character, new Dfo.Server.Data.Networking.NetworkConnectionId("object"), 1, 10010);
         sessions.Select(session);
@@ -327,7 +327,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     private sealed class ObjectPartyFixture
     {
         public readonly Dfo.Server.Application.Transactions.DomainTransactionScope Scope = new();
-        public readonly Dfo.Server.Application.Sessions.SelectedSessionDomainService Sessions = new();
+        public readonly Dfo.Server.Application.Sessions.SelectedSessionDomainService Sessions = Dfo.Server.Testing.TestSessions.Directory();
         private readonly Dfo.Server.Application.World.DungeonRunDomainService runs;
         private readonly ApplyObjectDestructionCommandHandler handler;
         public readonly ApplyObjectDestructionCommand Command;

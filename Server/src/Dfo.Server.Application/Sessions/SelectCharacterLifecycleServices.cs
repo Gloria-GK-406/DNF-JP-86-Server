@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Abstractions.Inventory;
@@ -28,17 +29,13 @@ public sealed class SelectedSessionCleanupFailure(
 
 internal sealed class SelectedSessionCleanupService(
     ISelectedSessionDomainService sessions,
-    ISelectedSessionRuntimeDirectory runtimes,
     ICharacterContainerDomainService containers,
-    ICharacterItemCooldownDomainService cooldowns,
-    SpiritPotionDomainService spiritPotion,
-    IActiveCharacterDomainService activeCharacters,
     ITownAreaDomainService townAreas,
     IExpertStoreDomainService expertStores,
     IPvpLobbyDomainService pvp,
     IEnumerable<ISelectedSessionPositionPersistence> positionPersistence,
-    ICharacterPositionDomainService positions,
-    ICharacterVitalRuntimeDomainService vitals,
+    IOnlineCharacterRuntimeDomainService runtime,
+    IChannelEntryPolicy channels,
     IPartyService parties,
     IDungeonRunDomainService dungeonRuns,
     IEnumerable<IDungeonRunParticipantDepartureSink> dungeonDepartures,
@@ -99,20 +96,25 @@ internal sealed class SelectedSessionCleanupService(
 
         // Every mutation is exact and isolated; a stale session can attempt all safely.
         //
-        // The session directory retains only the exact publication/persistence policy. The
-        // position itself comes from its owner; neither may be borrowed from a replaced session.
-        if (runtimes.TryGetPositionPersistence(session, out var shouldPersistPosition)
-            && shouldPersistPosition
-            && positions.Find(session.CharacterId) is { } standing)
+        // Only a session that entered the world has a position of its own to store, and whether
+        // its channel keeps positions is the channel's answer, not something kept beside the
+        // session. Neither may be borrowed from a replaced session.
+        if (runtime.PositionOf(session) is { } standing)
         {
-            var persistence = positionPersistence.SingleOrDefault();
-            if (persistence is null)
-                failures.Add(new InvalidOperationException(
-                    "Selected-session position persistence is unavailable."));
-            else
-                await RunAsync(() => persistence.PersistAsync(
-                    session.AccountId, session.CharacterId, standing,
-                    CancellationToken.None));
+            var persists = false;
+            await RunAsync(async () => persists = !(await channels.ResolveAsync(
+                session.ListenerPort, CancellationToken.None).ConfigureAwait(false)).IsTransient);
+            if (persists)
+            {
+                var persistence = positionPersistence.SingleOrDefault();
+                if (persistence is null)
+                    failures.Add(new InvalidOperationException(
+                        "Selected-session position persistence is unavailable."));
+                else
+                    await RunAsync(() => persistence.PersistAsync(
+                        session.AccountId, session.CharacterId, standing,
+                        CancellationToken.None));
+            }
         }
         if (ownsSelectedCharacter)
         {
@@ -185,26 +187,17 @@ internal sealed class SelectedSessionCleanupService(
             session.TownAreaLease(),
             TownAreaDepartureReason.SessionEnded) is not null);
         Run(() => pvp.ClearReadyExact(session));
-        Run(() => positions.ForgetExact(session));
-        Run(() => vitals.RemoveExact(session));
-        Run(() => runtimes.RemoveExact(session));
-        Run(() => activeCharacters.ClearExact(session));
+        // Position, vitals, cooldowns and the spirit potion go together, and only if this session
+        // still owns them: a successor that has already begun keeps its own.
+        Run(() => runtime.EndExact(session));
         Run(() => sessions.ReleaseExact(session));
 
-        // After the directory entry is gone: a character that already re-entered on another
+        // After the selection is gone: a character that already re-entered on another
         // connection owns the registration now, and dropping it would unbind a live session.
         Run(() =>
         {
             if (sessions.FindByCharacter(session.CharacterId) is null)
-            {
                 containers.Clear(session.CharacterId);
-                cooldowns.Clear(session.CharacterId);
-            }
-            return true;
-        });
-        Run(() =>
-        {
-            spiritPotion.ClearIfUnselected(session.CharacterId, sessions);
             return true;
         });
         var notificationPlan = new SelectedSessionCleanupNotificationPlan(
@@ -278,20 +271,17 @@ internal sealed class SelectedSessionCleanupService(
 
 internal sealed class SelectCharacterSessionEntryService(
     ISelectedSessionDomainService sessions,
-    ISelectedSessionRuntimeDirectory runtimes,
     ISelectedCharacterCurrentViewDomainService currentViews,
     ITownAreaDomainService townAreas,
     IPvpLobbyDomainService pvp,
-    ICharacterPositionDomainService positions,
-    ICharacterVitalRuntimeDomainService vitals,
-    SpiritPotionDomainService spiritPotion,
+    IOnlineCharacterRuntimeDomainService runtime,
     ICreatureRuntimeDomainService? creatures = null) : ISelectCharacterSessionEntryDomainService
 {
     public async ValueTask<TownParticipantPublicationPlan?> PlanTownPublicationAsync(
         SelectedSessionIdentity session, SelectCharacterResult result,
         CancellationToken cancellationToken)
     {
-        var position = positions.Find(session.CharacterId)
+        var position = runtime.PositionOf(session)
             ?? throw new InvalidDataException("The published town position is unavailable.");
         var current = townAreas.Find(session.CharacterId);
         if (current is null || !session.Owns(current) || !current.SharesTownPresence)
@@ -383,18 +373,15 @@ internal sealed class SelectCharacterSessionEntryService(
             CreatePvpParticipant(result));
 
     /// <remarks>
-    /// Publication retains only exact-session policy; position and HP go to their own runtime
-    /// services. The entry result remains a one-shot message-building value.
+    /// The selection has already entered the world; this begins what the character is like while
+    /// it is there. The entry result remains a one-shot message-building value.
     /// </remarks>
     public void Publish(SelectedSessionIdentity session, SelectCharacterResult result)
     {
         if (sessions.FindByCharacter(session.CharacterId) != session)
             throw new InvalidOperationException("Cannot publish a replaced selection.");
-        spiritPotion.Clear(session.CharacterId);
         creatures?.Enter(session);
-        runtimes.Publish(session, result.World.Channel.PersistsPosition);
-        positions.Place(session, result.Character.Position);
-        vitals.Publish(session, checked((byte)Math.Clamp(
+        runtime.Begin(session, result.Character.Position, checked((byte)Math.Clamp(
             result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent, 0, 100)));
         var position = result.Character.Position;
         townAreas.Enter(new TownAreaMember(

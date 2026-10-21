@@ -22,7 +22,7 @@ public sealed class OnlineExpiredItemScheduleTests
         new ApplicationModule().ConfigureServices(services, new ConfigurationBuilder().Build());
         foreach (var hostedRegistration in services.Where(x => x.ServiceType == typeof(IHostedService)
             && x.ImplementationType?.Name != "ScheduledTaskHostedService").ToArray()) services.Remove(hostedRegistration);
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var session = SelectedSessionIdentity.Create(new(41), new(57), new("Game:expiry"), 1, 10011);
         sessions.Select(session);
         var commands = new RecordingCommands();

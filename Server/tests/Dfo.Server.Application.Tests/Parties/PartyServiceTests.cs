@@ -215,8 +215,7 @@ public sealed class PartyServiceTests
         var state = new OnlineStateRegistry(new DomainTransactionScope());
         var onlineUsers = new OnlineUserDomainService(state);
         var sessionEndpoints = new GameSessionEndpointDomainService(state);
-        var selectedSessions = new SelectedSessionDomainService();
-        var activeCharacters = new ActiveCharacterDomainService(state);
+        var selectedSessions = new SelectedSessionDomainService(state);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("party-session-endpoint"),
             NetworkEndpointKind.Game,
@@ -234,7 +233,7 @@ public sealed class PartyServiceTests
             authenticated.Generation,
             connection.ListenerPort);
         selectedSessions.Select(selected);
-        activeCharacters.Publish(selected);
+        selectedSessions.EnterWorld(selected);
         var parties = new PartyService(
             new StubPartyMemberStatusDomainService(),
             new PartyModeRuleService(),
@@ -256,7 +255,6 @@ public sealed class PartyServiceTests
                 selected.AccountId, selected.CharacterId, selected.WireUserId, null)).Members).Endpoint);
 
         Assert.True(selectedSessions.ReleaseExact(selected));
-        Assert.True(activeCharacters.ClearExact(selected));
         Assert.Null(Assert.Single(parties.FindParty(new PartyCharacterSnapshot(
             selected.AccountId, selected.CharacterId, selected.WireUserId, null)).Members).Endpoint);
         Assert.Equal(endpoint, sessionEndpoints.Find(authenticated.SessionIdentity));
@@ -1019,7 +1017,7 @@ public sealed class PartyServiceTests
                 Clock);
         }
 
-        public SelectedSessionDomainService Sessions { get; } = new();
+        public SelectedSessionDomainService Sessions { get; } = Dfo.Server.Testing.TestSessions.Directory();
         public SessionPresenceDomainService Presence { get; } = new();
         public AdvanceablePartyClock Clock { get; } = new(
             new DateTimeOffset(2026, 9, 11, 12, 0, 0, TimeSpan.Zero));

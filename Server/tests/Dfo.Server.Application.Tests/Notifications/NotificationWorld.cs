@@ -43,6 +43,26 @@ internal sealed class TownBellHandler(ComposeRule rule) : INotificationHandler<T
 internal sealed class AwkwardSessions(ISelectedSessionDomainService inner)
     : ISelectedSessionDomainService
 {
+    // Test double: the current selection counts as being in the world, and
+    // remembers which sessions were fenced.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<
+        Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+    void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+        Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+    bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+        Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+        ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+        && testDoubleFences.TryAdd(session, true) | true;
+    Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+        Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+        ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+            : null;
+    bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+        Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+        ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+            is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+
     private readonly HashSet<CharacterId> refusing = [];
 
     public void ThrowFor(CharacterId characterId) => refusing.Add(characterId);
@@ -150,7 +170,7 @@ internal sealed class RecordingLoggerProvider : ILoggerProvider
 /// </remarks>
 internal sealed class NotificationWorld
 {
-    private readonly SelectedSessionDomainService sessions = new();
+    private readonly SelectedSessionDomainService sessions = Dfo.Server.Testing.TestSessions.Directory();
     private readonly Dictionary<CharacterId, SelectedSessionIdentity> playing = [];
     private readonly ServiceProvider provider;
 

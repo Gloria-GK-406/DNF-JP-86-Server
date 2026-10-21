@@ -168,16 +168,22 @@ public sealed class TauKingdomTests
         }
         var items = await containers.GetContainer(new(71), InventoryContainerType.Main).GetAllAsync(default);
         Assert.Equal(1, items.Where(x => x.ItemId == 690001556).Sum(x => x.Count));
-        f.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().RemoveExact(f.Session);
+        var sessions = f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>();
+        sessions.ReleaseExact(f.Session);
+        // Selected again on the same connection and not yet in the world: a new generation.
+        Assert.True(f.Services.GetRequiredService<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService>()
+            .TryGetByConnection(f.Session.ConnectionId, out var online));
+        var reselected = f.Session with { ConnectionGeneration = online!.Generation };
+        sessions.Select(reselected);
         await using (var tx = f.Scope.Begin())
-            Assert.False(await tau.RefillOnlineTicketAsync(f.Session, default));
+            Assert.False(await tau.RefillOnlineTicketAsync(reselected, default));
         // At 06:00 the scheduled callback sees an unpublished selection; publication then rechecks.
         clock.Now = clock.Now.AddMinutes(1);
         await using (var tx = f.Scope.Begin())
-            Assert.False(await tau.RefillOnlineTicketAsync(f.Session, default));
-        f.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(f.Session, false);
+            Assert.False(await tau.RefillOnlineTicketAsync(reselected, default));
+        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(reselected);
         for (var repeat = 0; repeat < 2; repeat++)
-            Assert.True(await f.Services.GetRequiredService<ICommandBus>().SendAsync(new RefillOnlineTauTicketCommand(f.Session)));
+            Assert.True(await f.Services.GetRequiredService<ICommandBus>().SendAsync(new RefillOnlineTauTicketCommand(reselected)));
         items = await containers.GetContainer(new(71), InventoryContainerType.Main).GetAllAsync(default);
         Assert.Equal(2, items.Where(x => x.ItemId == 690001556).Sum(x => x.Count));
         // Books created by the same arrival path carry the next game-day deadline.

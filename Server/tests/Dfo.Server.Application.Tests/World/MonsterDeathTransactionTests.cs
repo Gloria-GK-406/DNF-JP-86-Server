@@ -48,12 +48,11 @@ public sealed class MonsterDeathTransactionTests
         registry.Authenticate(user, new(2));
         var member = SelectedSessionIdentity.Create(new(2), new(3), connection.ConnectionId,
             registry.GetRequiredUser(user).Generation, 10011);
-        registry.Publish(member);
+        registry.Select(member);
+        registry.EnterWorld(member);
         fixture.Services.GetRequiredService<ISelectedSessionDomainService>().Select(member);
         var leader = fixture.Session;
-        var published = fixture.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>();
-        published.Publish(leader, false);
-        published.Publish(member, false);
+        fixture.Services.GetRequiredService<ISelectedSessionDomainService>().EnterWorld(leader);
         var runs = fixture.Services.GetRequiredService<IDungeonRunDomainService>();
         var layout = new DungeonLayout(10000, 0, 1, 1, new(0, 0), new(0, 0), 61000, 17,
             new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000) },

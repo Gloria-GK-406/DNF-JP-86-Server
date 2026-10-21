@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -8,9 +9,12 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Testing;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
@@ -50,16 +54,9 @@ public sealed class SessionGenerationOwnershipTests
     public async Task Cleanup_AttemptsLaterExactActionsWhenOneActionThrows()
     {
         var session = Session("cleanup", 9);
-        var directory = new SelectedSessionDomainService();
+        var directory = Dfo.Server.Testing.TestSessions.Directory();
         directory.Select(session);
-        var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(), new CharacterContainerDomainService(),
-            new CharacterItemCooldownDomainService(TimeProvider.System),
-            new SpiritPotionDomainService(TimeProvider.System),
-            new ThrowingActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
-            new PvpLobbyDomainService(), [], new CharacterPositionDomainService(),
-            new CharacterVitalRuntimeDomainService(),
-            new PassiveParties(), new DungeonRunDomainService(), []);
+        var service = Cleanup(directory, runtime: new ThrowingRuntime());
 
         await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
             await service.CleanupAsync(session, includeOwner: false, CancellationToken.None));
@@ -74,7 +71,7 @@ public sealed class SessionGenerationOwnershipTests
         var peer = SelectedSessionIdentity.Create(
             new AccountId(8), new CharacterId(80), new NetworkConnectionId("cleanup-peer"),
             1, 10011);
-        var directory = new SelectedSessionDomainService();
+        var directory = Dfo.Server.Testing.TestSessions.Directory();
         directory.Select(owner);
         directory.Select(peer);
         var presence = new SessionPresenceDomainService();
@@ -82,13 +79,7 @@ public sealed class SessionGenerationOwnershipTests
         presence.Admit(new SessionPresence(peer.CharacterId, 10011, 1, 2, true, peer));
         var stores = new ExpertStoreDomainService();
         stores.Open(owner);
-        var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(), new CharacterContainerDomainService(),
-            new CharacterItemCooldownDomainService(TimeProvider.System),
-            new SpiritPotionDomainService(TimeProvider.System),
-            new ThrowingActive(), presence, stores, new PvpLobbyDomainService(),
-            [], new CharacterPositionDomainService(), new CharacterVitalRuntimeDomainService(), new PassiveParties(),
-            new DungeonRunDomainService(), []);
+        var service = Cleanup(directory, presence, stores, runtime: new ThrowingRuntime());
 
         var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
             await service.CleanupAsync(owner, includeOwner: true, CancellationToken.None));
@@ -118,7 +109,7 @@ public sealed class SessionGenerationOwnershipTests
             new NetworkConnectionId("peer-2"), 1, 10011);
         var otherListener = SelectedSessionIdentity.Create(new AccountId(10), new CharacterId(100),
             new NetworkConnectionId("peer-other-port"), 1, 10012);
-        var directory = new SelectedSessionDomainService();
+        var directory = Dfo.Server.Testing.TestSessions.Directory();
         directory.Select(owner);
         directory.Select(peer2);
         directory.Select(peer1);
@@ -131,13 +122,7 @@ public sealed class SessionGenerationOwnershipTests
             otherListener.CharacterId, 10012, 1, 2, true, otherListener));
         var stores = new ExpertStoreDomainService();
         stores.Open(owner);
-        var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(), new CharacterContainerDomainService(),
-            new CharacterItemCooldownDomainService(TimeProvider.System),
-            new SpiritPotionDomainService(TimeProvider.System),
-            new PassiveActive(), presence, stores, new PvpLobbyDomainService(),
-            [], new CharacterPositionDomainService(), new CharacterVitalRuntimeDomainService(), new PassiveParties(),
-            new DungeonRunDomainService(), []);
+        var service = Cleanup(directory, presence, stores);
 
         var delivery = await service.CleanupAsync(owner, includeOwner, CancellationToken.None);
 
@@ -157,35 +142,69 @@ public sealed class SessionGenerationOwnershipTests
             delivery.PeerNotices.Select(value => value.Kind));
     }
 
+    /// <remarks>
+    /// Whether a position is kept is the channel's answer, asked when the session ends; what is
+    /// kept is what the online character runtime holds for that exact session.
+    /// </remarks>
     [Theory]
-    [InlineData(true, 1)]
-    [InlineData(false, 0)]
-    public async Task Cleanup_PersistsRuntimePositionOnlyWhenEntryPolicyAllowsIt(
-        bool shouldPersist, int expectedWrites)
+    [InlineData(ChannelEntryKind.General, 1)]
+    [InlineData(ChannelEntryKind.Raid, 0)]
+    public async Task Cleanup_PersistsRuntimePositionOnlyWhenTheChannelKeepsPositions(
+        ChannelEntryKind kind, int expectedWrites)
     {
         var session = Session("position", 9);
         var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(
             session.AccountId, session.CharacterId.Value, 1);
-        var runtimes = new SelectedSessionRuntimeDirectory();
-        runtimes.Publish(session, shouldPersist);
-        // Entry hands both of these over in one run; this stands in for that. What is saved is what
-        // the position service holds, and whether it is saved at all is still the runtime's flag.
-        var positions = new CharacterPositionDomainService();
-        positions.Place(session, result.Character.Position);
-        var directory = new SelectedSessionDomainService();
+        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        runtime.Begin(session, result.Character.Position, 100);
+        var directory = Dfo.Server.Testing.TestSessions.Directory();
         directory.Select(session);
         var persistence = new RecordingPositionPersistence();
-        var service = new SelectedSessionCleanupService(
-            directory, runtimes, new CharacterContainerDomainService(),
-            new CharacterItemCooldownDomainService(TimeProvider.System),
-            new SpiritPotionDomainService(TimeProvider.System),
-            new PassiveActive(),
-            new SessionPresenceDomainService(), new ExpertStoreDomainService(), new PvpLobbyDomainService(),
-            [persistence], positions, new CharacterVitalRuntimeDomainService(), new PassiveParties(), new DungeonRunDomainService(), []);
+        var service = Cleanup(directory, runtime: runtime, channels: new KindChannels(kind),
+            persistence: persistence);
 
         await service.CleanupAsync(session, false, CancellationToken.None);
 
         Assert.Equal(expectedWrites, persistence.Writes);
+        if (expectedWrites == 1)
+            Assert.Equal(result.Character.Position, persistence.Position);
+    }
+
+    [Fact]
+    public async Task Cleanup_DoesNotPersistAPositionForASessionThatNeverEnteredTheWorld()
+    {
+        var session = Session("never-entered", 9);
+        var directory = Dfo.Server.Testing.TestSessions.Directory();
+        directory.Select(session);
+        var persistence = new RecordingPositionPersistence();
+        var channels = new KindChannels(ChannelEntryKind.General);
+        var service = Cleanup(directory, channels: channels, persistence: persistence);
+
+        await service.CleanupAsync(session, false, CancellationToken.None);
+
+        Assert.Equal(0, persistence.Writes);
+        Assert.Equal(0, channels.Resolutions);
+    }
+
+    [Fact]
+    public async Task Cleanup_ReportsAChannelItCannotResolveAndFinishesTheRest()
+    {
+        var session = Session("channel-fails", 9);
+        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        runtime.Begin(session, new CharacterPositionState(1, 0, 10, 10, 0), 100);
+        var directory = Dfo.Server.Testing.TestSessions.Directory();
+        directory.Select(session);
+        var persistence = new RecordingPositionPersistence();
+        var service = Cleanup(directory, runtime: runtime, channels: new FailingChannels(),
+            persistence: persistence);
+
+        var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
+            await service.CleanupAsync(session, false, CancellationToken.None));
+
+        Assert.Contains(failure.InnerExceptions, error => error.Message == "channel unavailable");
+        Assert.Equal(0, persistence.Writes);
+        Assert.Null(runtime.PositionOf(session.CharacterId));
+        Assert.Null(directory.Find(session.AccountId));
     }
 
     [Fact]
@@ -193,7 +212,7 @@ public sealed class SessionGenerationOwnershipTests
     {
         var stale = Session("stale", 1);
         var replacement = Session("replacement", 2);
-        var directory = new SelectedSessionDomainService();
+        var directory = Dfo.Server.Testing.TestSessions.Directory();
         directory.Select(replacement);
         var presence = new SessionPresenceDomainService();
         presence.Admit(new SessionPresence(replacement.CharacterId, 10011, 1, 2, true, replacement));
@@ -207,13 +226,7 @@ public sealed class SessionGenerationOwnershipTests
                 61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)}),
             difficulty: 0);
         var departure = new RecordingDepartureSink();
-        var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(), new CharacterContainerDomainService(),
-            new CharacterItemCooldownDomainService(TimeProvider.System),
-            new SpiritPotionDomainService(TimeProvider.System),
-            new PassiveActive(), presence, stores, new PvpLobbyDomainService(),
-            [], new CharacterPositionDomainService(), new CharacterVitalRuntimeDomainService(), new PassiveParties(),
-            runs, [departure]);
+        var service = Cleanup(directory, presence, stores, runs: runs, departures: [departure]);
 
         var delivery = await service.CleanupAsync(
             stale, includeOwner: true, CancellationToken.None);
@@ -237,26 +250,19 @@ public sealed class SessionGenerationOwnershipTests
     public async Task Cleanup_ClearsTheCharactersCooldowns()
     {
         var session = Session("cleanup-cooldown", 11);
-        var directory = new SelectedSessionDomainService();
+        var directory = Dfo.Server.Testing.TestSessions.Directory();
         directory.Select(session);
-        var cooldowns = new CharacterItemCooldownDomainService(TimeProvider.System);
-        cooldowns.Start(session.CharacterId, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
-        var potion = new SpiritPotionDomainService(TimeProvider.System);
-        potion.Apply(session.CharacterId, 1, TimeSpan.FromHours(2));
-        var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(),
-            new CharacterContainerDomainService(), cooldowns,
-            potion,
-            new PassiveActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
-            new PvpLobbyDomainService(), [], new CharacterPositionDomainService(),
-            new CharacterVitalRuntimeDomainService(),
-            new PassiveParties(), new DungeonRunDomainService(), []);
+        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        runtime.Begin(session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
+        runtime.StartCooldown(session, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
+        runtime.ApplySpiritPotion(session, 1, TimeSpan.FromHours(2));
+        var service = Cleanup(directory, runtime: runtime, channels: new KindChannels(ChannelEntryKind.Raid));
 
         await service.CleanupAsync(session, includeOwner: false, CancellationToken.None);
 
         Assert.False(
-            cooldowns.IsCoolingDown(session.CharacterId, ItemCooldownKey.ForGroup(70)));
-        Assert.Equal(0, potion.GetBonusRate(session.CharacterId));
+            runtime.IsCoolingDown(session.CharacterId, ItemCooldownKey.ForGroup(70)));
+        Assert.Equal(0, runtime.SpiritPotionBonusRateOf(session.CharacterId));
     }
 
     /// <remarks>
@@ -268,26 +274,19 @@ public sealed class SessionGenerationOwnershipTests
     {
         var departing = Session("cooldown-departing", 12);
         var returned = Session("cooldown-returned", 13);
-        var directory = new SelectedSessionDomainService();
+        var directory = Dfo.Server.Testing.TestSessions.Directory();
         directory.Select(returned);
-        var cooldowns = new CharacterItemCooldownDomainService(TimeProvider.System);
-        cooldowns.Start(returned.CharacterId, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
-        var potion = new SpiritPotionDomainService(TimeProvider.System);
-        potion.Apply(returned.CharacterId, 1, TimeSpan.FromHours(2));
-        var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(),
-            new CharacterContainerDomainService(), cooldowns,
-            potion,
-            new PassiveActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
-            new PvpLobbyDomainService(), [], new CharacterPositionDomainService(),
-            new CharacterVitalRuntimeDomainService(),
-            new PassiveParties(), new DungeonRunDomainService(), []);
+        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        runtime.Begin(returned, new CharacterPositionState(1, 0, 0, 0, 0), 100);
+        runtime.StartCooldown(returned, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
+        runtime.ApplySpiritPotion(returned, 1, TimeSpan.FromHours(2));
+        var service = Cleanup(directory, runtime: runtime);
 
         await service.CleanupAsync(departing, includeOwner: false, CancellationToken.None);
 
         Assert.True(
-            cooldowns.IsCoolingDown(returned.CharacterId, ItemCooldownKey.ForGroup(70)));
-        Assert.Equal(1, potion.GetBonusRate(returned.CharacterId));
+            runtime.IsCoolingDown(returned.CharacterId, ItemCooldownKey.ForGroup(70)));
+        Assert.Equal(1, runtime.SpiritPotionBonusRateOf(returned.CharacterId));
     }
 
     private static SelectedSessionIdentity Session(string connection, long generation) =>
@@ -295,16 +294,65 @@ public sealed class SessionGenerationOwnershipTests
             new AccountId(7), new CharacterId(70), new NetworkConnectionId(connection),
             generation, 10011);
 
-    private sealed class ThrowingActive : IActiveCharacterDomainService
+    private static SelectedSessionCleanupService Cleanup(
+        SelectedSessionDomainService directory,
+        SessionPresenceDomainService? presence = null,
+        ExpertStoreDomainService? stores = null,
+        IOnlineCharacterRuntimeDomainService? runtime = null,
+        IChannelEntryPolicy? channels = null,
+        RecordingPositionPersistence? persistence = null,
+        DungeonRunDomainService? runs = null,
+        IEnumerable<IDungeonRunParticipantDepartureSink>? departures = null) =>
+        new(directory, new CharacterContainerDomainService(),
+            presence ?? new SessionPresenceDomainService(), stores ?? new ExpertStoreDomainService(),
+            new PvpLobbyDomainService(), persistence is null ? [] : [persistence],
+            runtime ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System),
+            channels ?? new StubChannelEntryPolicy(),
+            new PassiveParties(), runs ?? new DungeonRunDomainService(), departures ?? []);
+
+    /// <summary>Ending the online character's record fails; everything after it still runs.</summary>
+    private sealed class ThrowingRuntime : IOnlineCharacterRuntimeDomainService
     {
-        public void Publish(SelectedSessionIdentity session) { }
-        public bool ClearExact(SelectedSessionIdentity session) => throw new InvalidOperationException("fault");
+        private readonly OnlineCharacterRuntimeDomainService inner = new(TimeProvider.System);
+
+        public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent) =>
+            inner.Begin(session, position, hpPercent);
+        public bool EndExact(SelectedSessionIdentity session) => throw new InvalidOperationException("fault");
+        public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => inner.PositionOf(session);
+        public CharacterPositionState? PositionOf(CharacterId characterId) => inner.PositionOf(characterId);
+        public CharacterPositionState CrossInto(SelectedSessionIdentity session, byte townId, byte areaId, short x, short y) =>
+            inner.CrossInto(session, townId, areaId, x, y);
+        public CharacterPositionState StepTo(SelectedSessionIdentity session, short x, short y, byte direction) =>
+            inner.StepTo(session, x, y, direction);
+        public byte HpPercentOf(CharacterId characterId) => inner.HpPercentOf(characterId);
+        public bool IsCoolingDown(CharacterId characterId, ItemCooldownKey key) => inner.IsCoolingDown(characterId, key);
+        public void StartCooldown(SelectedSessionIdentity session, ItemCooldownKey key, TimeSpan duration) =>
+            inner.StartCooldown(session, key, duration);
+        public void ApplySpiritPotion(SelectedSessionIdentity session, double bonusRate, TimeSpan duration) =>
+            inner.ApplySpiritPotion(session, bonusRate, duration);
+        public double SpiritPotionBonusRateOf(CharacterId characterId) => inner.SpiritPotionBonusRateOf(characterId);
     }
 
-    private sealed class PassiveActive : IActiveCharacterDomainService
+    /// <summary>Every listener resolves to a channel of one kind.</summary>
+    private sealed class KindChannels(ChannelEntryKind kind) : IChannelEntryPolicy
     {
-        public void Publish(SelectedSessionIdentity session) { }
-        public bool ClearExact(SelectedSessionIdentity session) => false;
+        public int Resolutions { get; private set; }
+
+        public ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken)
+        {
+            Resolutions++;
+            return ValueTask.FromResult(new ChannelEntryIdentity(11, listenerPort, kind));
+        }
+
+        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => null;
+    }
+
+    private sealed class FailingChannels : IChannelEntryPolicy
+    {
+        public ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken) =>
+            ValueTask.FromException<ChannelEntryIdentity>(new InvalidOperationException("channel unavailable"));
+
+        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => null;
     }
 
     private sealed class PassiveParties : IPartyService
@@ -373,11 +421,14 @@ public sealed class SessionGenerationOwnershipTests
     {
         public int Writes { get; private set; }
 
+        public CharacterPositionState? Position { get; private set; }
+
         public ValueTask PersistAsync(AccountId accountId, CharacterId characterId,
             Dfo.Server.Data.Characters.CharacterPositionState position,
             CancellationToken cancellationToken)
         {
             this.Writes++;
+            this.Position = position;
             return ValueTask.CompletedTask;
         }
     }

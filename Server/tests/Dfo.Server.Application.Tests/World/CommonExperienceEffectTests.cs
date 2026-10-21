@@ -182,7 +182,7 @@ public sealed class CommonExperienceEffectTests
         Assert.Single(calculation.Calls);
         Assert.Equal(30, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         var safety = shop.Services.GetRequiredService<SelectedSessionSafety>();
-        Assert.True(safety.IsBlocked(shop.Session));
+        Assert.True(shop.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().StandingOf(shop.Session)?.Fenced == true);
         Assert.True(safety.IsBlocked(shop.Connection));
         Assert.False(safety.IsBlocked(shop.Connection with { }));
     }
@@ -206,7 +206,7 @@ public sealed class CommonExperienceEffectTests
         try
         {
             Assert.False(failure.IsCompleted);
-            Assert.True(safety.IsBlocked(shop.Session));
+            Assert.True(shop.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().StandingOf(shop.Session)?.Fenced == true);
             Assert.True(safety.IsBlocked(shop.Connection));
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
         }

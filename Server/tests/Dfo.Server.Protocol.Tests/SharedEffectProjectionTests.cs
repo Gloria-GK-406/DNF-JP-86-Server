@@ -19,7 +19,7 @@ public sealed class SharedEffectProjectionTests
     [InlineData(true)] [InlineData(false)]
     public async Task Ack_precedes_self_effect_and_only_visible_scene_members_receive_broadcast(bool success)
     {
-        var sessions = new SelectedSessionDomainService(); ITownAreaDomainService areas = new SessionPresenceDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(); ITownAreaDomainService areas = new SessionPresenceDomainService();
         SelectedSessionIdentity Add(int id, byte area, bool visible)
         {
             var s = SelectedSessionIdentity.Create(new AccountId(id), new CharacterId(id), new NetworkConnectionId("shared-" + id), 1, 10011);

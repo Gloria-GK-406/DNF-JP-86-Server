@@ -190,7 +190,7 @@ public sealed class QuestInventoryEventTests
             s.AddSingleton<IMailItemDefinitionSource>(new FreeMailItems());
         });
         f.Sql("INSERT INTO character_active_quests VALUES(1,0,2001,10)");
-        f.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(f.Session, false);
+        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(f.Session);
         var mail = f.Services.GetRequiredService<IMailboxDomainService>();
         var sent = await mail.SendAsync(MailBuilder.FromSystem(new(1)).AddStackable(1000, 10).Build());
         var attachment = Assert.Single((await mail.ReadAsync(new(1), sent.MailId)).Attachments);

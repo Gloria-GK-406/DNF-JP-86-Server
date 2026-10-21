@@ -107,8 +107,7 @@ public sealed class OtherCharacterDetailQueryDomainServiceTests
             Details = new OtherCharacterDetailQueryDomainService(
                 Sessions, Views, TimeProvider.System);
 
-        public SelectedSessionDomainService Sessions { get; } = new();
-        public SelectedSessionRuntimeDirectory Runtime { get; } = new();
+        public SelectedSessionDomainService Sessions { get; } = Dfo.Server.Testing.TestSessions.Directory();
         public FixedCurrentViews Views { get; } = new();
         public OtherCharacterDetailQueryDomainService Details { get; }
 
@@ -128,10 +127,7 @@ public sealed class OtherCharacterDetailQueryDomainServiceTests
                 listenerPort);
             Sessions.Select(identity);
             if (publishRuntime)
-            {
-                Runtime.Publish(identity, shouldPersistPosition: false);
                 Views.Publish(identity, RuntimeState(identity.CharacterId));
-            }
             return identity;
         }
 

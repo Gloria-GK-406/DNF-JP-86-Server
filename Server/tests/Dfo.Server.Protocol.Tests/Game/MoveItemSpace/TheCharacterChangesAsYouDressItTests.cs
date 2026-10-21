@@ -561,7 +561,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     private sealed class RecordingRuntime
         : ILegacySessionSnapshotFixture
     {
-        private readonly SelectedSessionRuntimeDirectory directory = new();
+        private readonly bool persistsPosition;
         private readonly SelectCharacterResult state;
         private readonly bool unavailable;
 
@@ -571,7 +571,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
             state = source with { Character = source.Character with
                 { Identity = source.Character.Identity with { CharacterId = new CharacterId(Character) } } };
             this.unavailable = refusesReplacement;
-            directory.Publish(OneSession.Session, shouldPersistPosition);
+            this.persistsPosition = shouldPersistPosition;
         }
 
         /// <summary>The copy as it was taken at selection.</summary>
@@ -584,10 +584,8 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
             out bool shouldPersistPosition)
         {
             shouldPersistPosition = false;
-            var published = !unavailable
-                && directory.TryGetPositionPersistence(session, out shouldPersistPosition);
-            if (!published)
-                shouldPersistPosition = false;
+            var published = !unavailable && session == OneSession.Session;
+            shouldPersistPosition = published && persistsPosition;
             result = published ? state : null;
             return published;
         }
@@ -668,6 +666,26 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
 
     private sealed class OneSession : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+
         public static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
             new AccountId(6), new CharacterId(Character), Connection, 1, 10011);
 

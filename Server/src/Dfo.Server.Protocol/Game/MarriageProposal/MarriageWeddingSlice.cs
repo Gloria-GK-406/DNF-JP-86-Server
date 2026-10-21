@@ -170,7 +170,7 @@ internal sealed class WeddingGiftHandler(ISelectedSessionDomainService sessions,
     }
 }
 public sealed class MarriageWeddingProjection(ISelectedSessionDomainService sessions, ISelectedCharacterCurrentViewDomainService views,
-    ICharacterPositionDomainService positions, ITownAreaDomainService areas, TownAreaProjectionDelivery projection, IGameMessageSender sender)
+    IOnlineCharacterRuntimeDomainService onlineCharacters, ITownAreaDomainService areas, TownAreaProjectionDelivery projection, IGameMessageSender sender)
 {
     public ValueTask AppearanceAsync(SelectedSessionIdentity actor, MarriageChurchSnapshot church, bool restore, CancellationToken ct) =>
         sender.SendExplicitAsync(actor.ConnectionId, new([new WeddingAvatarNotification(church, restore)], []), ct);
@@ -179,14 +179,14 @@ public sealed class MarriageWeddingProjection(ISelectedSessionDomainService sess
         var actor = standing.Actor;
         if (sessions.Find(actor.AccountId) != actor || areas.Find(actor.CharacterId) is not { } area || !actor.Owns(area)
             || area.Area.TownId != standing.Position.TownId || area.Area.AreaId != standing.Position.AreaId) return;
-        var moved = positions.StepTo(actor, standing.Position.X, standing.Position.Y, standing.Position.Direction);
+        var moved = onlineCharacters.StepTo(actor, standing.Position.X, standing.Position.Y, standing.Position.Direction);
         await projection.ForcePositionAsync(actor, moved, ct).ConfigureAwait(false);
     }
     public async ValueTask<bool> MoveAsync(SelectedSessionIdentity actor, int channel, MarriageChurchLocation location, CancellationToken ct)
     {
         if (sessions.Find(actor.AccountId) != actor || areas.Find(actor.CharacterId) is not { } previous || !actor.Owns(previous)
             || await views.TryLoadAsync(actor, ct).ConfigureAwait(false) is not { } view) return false;
-        var moved = positions.CrossInto(actor, location.TownId, location.AreaId, location.X, location.Y);
+        var moved = onlineCharacters.CrossInto(actor, location.TownId, location.AreaId, location.X, location.Y);
         return await projection.TransferAsync(actor.ConnectionId, actor, view, channel, moved, previous, true, ct).ConfigureAwait(false);
     }
 }

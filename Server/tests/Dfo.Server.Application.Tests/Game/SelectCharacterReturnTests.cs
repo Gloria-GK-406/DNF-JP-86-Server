@@ -36,10 +36,8 @@ public sealed partial class SelectCharacterLifecycleTests
         Assert.Equal(413500016, Assert.Single(prepared.Roster.Characters[0].Appearances!).DisplayItemId);
         Assert.True(prepared.ResetKnightDeck);
 
-        var runtimes = new SelectedSessionRuntimeDirectory();
-        runtimes.Publish(selected, shouldPersistPosition: true);
-        var positions = new CharacterPositionDomainService();
-        positions.Place(selected, f.Result.Character.Position);
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        positions.Begin(selected, f.Result.Character.Position, 100);
         var presence = new SessionPresenceDomainService();
         presence.Admit(new SessionPresence(selected.CharacterId, 10011, 1, 2, true, selected));
         var stores = new ExpertStoreDomainService();
@@ -56,11 +54,10 @@ public sealed partial class SelectCharacterLifecycleTests
             ],
             new(10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
                 61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)}), 0);
-        var cleanup = new SelectedSessionCleanupService(f.Directory, runtimes,
-            new CharacterContainerDomainService(), new CharacterItemCooldownDomainService(TimeProvider.System),
-            new SpiritPotionDomainService(TimeProvider.System),
-            f.Active, presence, stores, new PvpLobbyDomainService(), [f.Mutations], positions,
-            new CharacterVitalRuntimeDomainService(),
+        var cleanup = new SelectedSessionCleanupService(f.Directory,
+            new CharacterContainerDomainService(),
+            presence, stores, new PvpLobbyDomainService(), [f.Mutations], positions,
+            new StubChannelEntryPolicy(),
             new PartyService(
                 new StubPartyMemberStatusDomainService(),
                 new PartyModeRuleService(),
@@ -73,8 +70,8 @@ public sealed partial class SelectCharacterLifecycleTests
         await complete.HandleAsync(ReturnContext(), new(prepared), CancellationToken.None);
 
         Assert.Null(f.Directory.Find(f.AccountId));
-        Assert.False(runtimes.IsPublishedExact(selected));
-        Assert.Null(positions.Find(selected.CharacterId));
+        Assert.False(f.Directory.IsInWorld(selected));
+        Assert.Null(positions.PositionOf(selected.CharacterId));
         Assert.Null(presence.Find(selected.CharacterId));
         Assert.False(stores.HasOpenStore(selected.CharacterId));
         Assert.Null(runs.Find(selected.CharacterId));

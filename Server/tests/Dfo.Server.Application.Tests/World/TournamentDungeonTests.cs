@@ -223,9 +223,10 @@ public sealed class TournamentDungeonTests
         var registry = f.Services.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>();
         Assert.True(registry.TryGetByConnection(f.Session.ConnectionId, out var online));
         var session = f.Session with { WireUserId = wireId, ConnectionGeneration = online!.Generation };
-        registry.Publish(session);
+        registry.Select(session);
+        registry.EnterWorld(session);
         f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().Select(session);
-        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionRuntimeDirectory>().Publish(session, false);
+        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(session);
         var entry = (await Enter(f, Entry() with { DungeonId = 122 })).Entry!;
         Assert.NotNull(entry);
         var state = State(f); var run = Runs(f).Find(new CharacterId(71))!;

@@ -257,14 +257,13 @@ public sealed class ApplicationModule : IServerModule
         // What a kill, a clear and a channel are worth, and how much of it a level costs. The
         // one reader of the four archive declarations and the two operator dials behind them.
         services.TryAddSingleton<IExperienceRuleService, ExperienceRuleService>();
-        services.TryAddSingleton<SpiritPotionDomainService>();
-        services.TryAddSingleton<ISpiritPotionDomainService>(sp => sp.GetRequiredService<SpiritPotionDomainService>());
         services.TryAddSingleton<IExperienceBonusDomainService, ExperienceBonusDomainService>();
         services.TryAddSingleton<ICollectionBoxRuleService, CollectionBoxRuleService>();
         services.TryAddSingleton<ICollectionBoxDomainService, CollectionBoxDomainService>();
         services.TryAddSingleton<IExperienceCapsuleDomainService, ExperienceCapsuleDomainService>();
-        // One store, three services. The store keeps the collections whose invariant spans them
-        // behind a single lock; the services are the three responsibilities read off it.
+        // One store for who each connection is: online users, their accounts, the selected
+        // session and its stage, behind a single lock. The services are responsibilities read off
+        // it; the selected-session one is registered with the session services below.
         services.TryAddSingleton<OnlineStateRegistry>();
         services.TryAddSingleton(
             provider => new OnlineUserDomainService(
@@ -275,9 +274,6 @@ public sealed class ApplicationModule : IServerModule
             provider => provider.GetRequiredService<OnlineUserDomainService>());
         services.TryAddSingleton<IGameSessionEndpointDomainService>(provider =>
             new GameSessionEndpointDomainService(
-                provider.GetRequiredService<OnlineStateRegistry>()));
-        services.TryAddSingleton<IActiveCharacterDomainService>(
-            provider => new ActiveCharacterDomainService(
                 provider.GetRequiredService<OnlineStateRegistry>()));
         // The gate is keyed on the character rather than the account because the operations
         // that need it span accounts: a party pays an entry cost together.
@@ -636,9 +632,10 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterStateProjectionDomainService, CharacterStateProjectionDomainService>();
         services.TryAddSingleton<
             ICharacterSkillPointDomainService, CharacterSkillPointDomainService>();
-        // Where a character being played is standing, asked by identifier rather than by session.
+        // What a character being played is like right now: position, vitals, cooldowns and the
+        // spirit potion, owned by the session generation that began it.
         services.TryAddSingleton<
-            ICharacterPositionDomainService, CharacterPositionDomainService>();
+            IOnlineCharacterRuntimeDomainService, OnlineCharacterRuntimeDomainService>();
         // A character's keys and options, asked by identifier. The entry load is the only other
         // reader of those two tables and it is left alone: it builds its frames from rows it has
         // already read, and this reads the same rows for anyone who is not entry.
@@ -654,7 +651,7 @@ public sealed class ApplicationModule : IServerModule
                 characterId => new PlayingCharacter(
                     characterId,
                     provider.GetRequiredService<IItemUseJudgementService>(),
-                    provider.GetRequiredService<ICharacterItemCooldownDomainService>(),
+                    provider.GetRequiredService<IOnlineCharacterRuntimeDomainService>(),
                     provider.GetRequiredService<ITownAreaDomainService>(),
                     provider.GetRequiredService<ICharacterCarriedGoldTable>(),
                     provider.GetRequiredService<ICarriedGoldRuleService>(),
@@ -697,7 +694,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IQuestProgressDomainService, QuestProgressDomainService>();
         services.TryAddSingleton<
             ICharacterDarkKnightComboDomainService, CharacterDarkKnightComboDomainService>();
-        services.TryAddSingleton<ICharacterItemCooldownDomainService, CharacterItemCooldownDomainService>();
         services.TryAddSingleton<IItemUseJudgementService, ItemUseJudgementService>();
         services.TryAddSingleton<IDailyRefillConfigurationRuleService, DailyRefillConfigurationRuleService>();
         services.TryAddSingleton<IItemCatalogRuleService, ItemCatalogRuleService>();
@@ -789,8 +785,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<SelectedSessionDomainService>();
         services.TryAddSingleton<ISelectedSessionDomainService>(sp => sp.GetRequiredService<SelectedSessionDomainService>());
         services.TryAddSingleton<ISelectedSessionSnapshotQuery>(sp => sp.GetRequiredService<SelectedSessionDomainService>());
-        services.TryAddSingleton<ISelectedSessionRuntimeDirectory, SelectedSessionRuntimeDirectory>();
-        services.TryAddSingleton<ICharacterVitalRuntimeDomainService, CharacterVitalRuntimeDomainService>();
         services.TryAddSingleton<ISelectedCharacterCurrentViewDomainService, SelectedCharacterCurrentViewDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IReplayStateDomainService, Dfo.Server.Application.Effects.ReplayStateDomainService>();
         services.AddCommandHandler<Dfo.Server.Application.Effects.ReadReplayStateCommand,
@@ -805,7 +799,7 @@ public sealed class ApplicationModule : IServerModule
             new PartyMemberStatusDomainService(
                 () => provider.GetRequiredService<ICharacterInventoryEntryDomainService>(),
                 provider.GetRequiredService<ICharacterFatigueDomainService>(),
-                provider.GetRequiredService<ICharacterVitalRuntimeDomainService>()));
+                provider.GetRequiredService<IOnlineCharacterRuntimeDomainService>()));
         services.TryAddSingleton<IPartyModeRuleService, PartyModeRuleService>();
         services.TryAddSingleton<IPartyMemberSessionEndpointSource,
             PartyMemberSessionEndpointSource>();

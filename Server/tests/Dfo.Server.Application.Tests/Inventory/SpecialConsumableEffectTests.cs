@@ -73,7 +73,7 @@ public sealed class SpecialConsumableEffectTests
         var balance=await fatigue.BalanceOfAsync(f.Session.CharacterId,default);
         Assert.Equal(fail?100:70,balance.Used);Assert.Equal(100,balance.ConsumedToday);
         Assert.Equal(fail?0:1,f.Scalar("SELECT COUNT(*) FROM character_daily_counters WHERE counter_key='consumable_used_2000'"));
-        Assert.Equal(!fail,f.Services.GetRequiredService<ICharacterItemCooldownDomainService>().IsCoolingDown(f.Session.CharacterId,ItemCooldownKey.ForItem(2000)));
+        Assert.Equal(!fail,f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().IsCoolingDown(f.Session.CharacterId,ItemCooldownKey.ForItem(2000)));
     }
 
     [Fact]

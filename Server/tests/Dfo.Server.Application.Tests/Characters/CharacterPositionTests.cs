@@ -28,16 +28,16 @@ public sealed class CharacterPositionTests
     /// </remarks>
     [Fact]
     public void A_character_nobody_is_playing_is_standing_nowhere() =>
-        Assert.Null(new CharacterPositionDomainService().Find(Who));
+        Assert.Null(new OnlineCharacterRuntimeDomainService(TimeProvider.System).PositionOf(Who));
 
     [Fact]
     public void A_character_is_standing_where_entry_placed_them()
     {
-        var positions = new CharacterPositionDomainService();
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
 
-        positions.Place(Session(), Gate);
+        positions.Begin(Session(), Gate, 100);
 
-        Assert.Equal(Gate, positions.Find(Who));
+        Assert.Equal(Gate, positions.PositionOf(Who));
     }
 
     /// <summary>
@@ -51,14 +51,14 @@ public sealed class CharacterPositionTests
     [Fact]
     public void A_step_reported_is_what_the_next_question_answers()
     {
-        var positions = new CharacterPositionDomainService();
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var session = Session();
-        positions.Place(session, Gate);
+        positions.Begin(session, Gate, 100);
 
         var moved = positions.StepTo(session, x: 410, y: 275, direction: 5);
 
         Assert.Equal(new CharacterPositionState(3, 6, 410, 275, 5), moved);
-        Assert.Equal(moved, positions.Find(Who));
+        Assert.Equal(moved, positions.PositionOf(Who));
     }
 
     /// <summary>
@@ -72,9 +72,9 @@ public sealed class CharacterPositionTests
     [Fact]
     public void A_step_leaves_the_town_and_the_area_where_they_were()
     {
-        var positions = new CharacterPositionDomainService();
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var session = Session();
-        positions.Place(session, Gate);
+        positions.Begin(session, Gate, 100);
 
         var moved = positions.StepTo(session, x: 1, y: 2, direction: 0);
 
@@ -92,14 +92,14 @@ public sealed class CharacterPositionTests
     [Fact]
     public void A_crossing_reported_is_what_the_next_question_answers()
     {
-        var positions = new CharacterPositionDomainService();
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var session = Session();
-        positions.Place(session, Gate);
+        positions.Begin(session, Gate, 100);
 
         var moved = positions.CrossInto(session, townId: 5, areaId: 2, x: 100, y: 200);
 
         Assert.Equal(new CharacterPositionState(5, 2, 100, 200, Gate.Direction), moved);
-        Assert.Equal(moved, positions.Find(Who));
+        Assert.Equal(moved, positions.PositionOf(Who));
     }
 
     /// <summary>Reports arrive one after another and each one starts from the last.</summary>
@@ -111,9 +111,9 @@ public sealed class CharacterPositionTests
     [Fact]
     public void A_step_after_a_crossing_is_taken_in_the_area_crossed_into()
     {
-        var positions = new CharacterPositionDomainService();
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var session = Session();
-        positions.Place(session, Gate);
+        positions.Begin(session, Gate, 100);
 
         positions.CrossInto(session, townId: 5, areaId: 2, x: 100, y: 200);
         var moved = positions.StepTo(session, x: 150, y: 210, direction: 3);
@@ -130,32 +130,32 @@ public sealed class CharacterPositionTests
     [Fact]
     public void A_displaced_session_cannot_move_the_one_that_replaced_it()
     {
-        var positions = new CharacterPositionDomainService();
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var displaced = Session(generation: 1);
         var replacement = Session(generation: 2);
-        positions.Place(replacement, Gate);
+        positions.Begin(replacement, Gate, 100);
 
         Assert.Throws<InvalidOperationException>(
             () => positions.StepTo(displaced, x: 1, y: 2, direction: 0));
         Assert.Throws<InvalidOperationException>(
             () => positions.CrossInto(displaced, townId: 1, areaId: 1, x: 1, y: 2));
-        Assert.Equal(Gate, positions.Find(Who));
+        Assert.Equal(Gate, positions.PositionOf(Who));
     }
 
     /// <summary>A displaced session's teardown does not forget its replacement.</summary>
     [Fact]
     public void A_displaced_session_forgets_nothing()
     {
-        var positions = new CharacterPositionDomainService();
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var displaced = Session(generation: 1);
         var replacement = Session(generation: 2);
-        positions.Place(replacement, Gate);
+        positions.Begin(replacement, Gate, 100);
 
-        Assert.False(positions.ForgetExact(displaced));
-        Assert.Equal(Gate, positions.Find(Who));
+        Assert.False(positions.EndExact(displaced));
+        Assert.Equal(Gate, positions.PositionOf(Who));
 
-        Assert.True(positions.ForgetExact(replacement));
-        Assert.Null(positions.Find(Who));
+        Assert.True(positions.EndExact(replacement));
+        Assert.Null(positions.PositionOf(Who));
     }
 
     private static readonly CharacterId Who = new(60);

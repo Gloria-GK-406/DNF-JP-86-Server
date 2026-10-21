@@ -1000,7 +1000,8 @@ public sealed class JoustIntegrationTests
             var connection=new NetworkConnectionContext(new("joust-test"),NetworkEndpointKind.Game,10011);Connection=connection;
             var registry=provider.GetRequiredService<OnlineStateRegistry>();var online=registry.RegisterConnection(connection);registry.Authenticate(online.OnlineUserId,new(1));
             Session=SelectedSessionIdentity.Create(new(1),new(1),connection.ConnectionId,registry.GetRequiredUser(online.OnlineUserId).Generation,10011);
-            registry.Publish(Session);provider.GetRequiredService<ISelectedSessionDomainService>().Select(Session);
+            registry.Select(Session);provider.GetRequiredService<ISelectedSessionDomainService>().Select(Session);
+            registry.EnterWorld(Session);provider.GetRequiredService<ISelectedSessionDomainService>().Select(Session);
             var containers=provider.GetRequiredService<ICharacterContainerDomainService>();
             containers.Register(new(1),new PersistentItemContainer(ContainerId.ForCharacter(new(1),InventoryContainerType.Main),new(InventoryContainerType.Main,0),
                 provider.GetRequiredService<IItemDomainStore>(),provider.GetRequiredService<IDomainTransactionAccessor>(),provider.GetRequiredService<IItemPlacementRuleService>(),provider.GetRequiredService<IItemSlotRuleService>()));

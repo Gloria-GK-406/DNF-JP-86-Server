@@ -38,11 +38,12 @@ public sealed class MarriageProposalTests
         var user = registry.RegisterConnection(connection).OnlineUserId;
         registry.Authenticate(user, new(2));
         var peer = SelectedSessionIdentity.Create(new(2), new(72), connection.ConnectionId, registry.GetRequiredUser(user).Generation, 10011);
-        registry.Publish(peer);
+        registry.Select(peer);
+        registry.EnterWorld(peer);
         f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(peer);
-        var positions = f.Services.GetRequiredService<ICharacterPositionDomainService>();
-        positions.Place(f.Session, new(21, 1, 100, 100, 0));
-        positions.Place(peer, new(21, 1, 120, 100, 0));
+        var positions = f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>();
+        positions.Begin(f.Session, new(21, 1, 100, 100, 0), 100);
+        positions.Begin(peer, new(21, 1, 120, 100, 0), 100);
         var areas = f.Services.GetRequiredService<ITownAreaDomainService>();
         areas.Enter(new(f.Session.CharacterId, f.Session.TownAreaLease(), new(1, 21, 1), new(21, 1, 100, 100, 0), true));
         areas.Enter(new(peer.CharacterId, peer.TownAreaLease(), new(1, 21, 1), new(21, 1, 120, 100, 0), true));

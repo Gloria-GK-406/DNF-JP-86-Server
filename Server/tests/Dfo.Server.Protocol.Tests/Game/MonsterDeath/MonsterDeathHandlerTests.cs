@@ -56,7 +56,7 @@ public sealed class MonsterDeathHandlerTests
     {
         _ = unusedView;
         var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
-        var service = new MonsterDeathDomainService(scope, sessions, new PublishedSessions(), characters,
+        var service = new MonsterDeathDomainService(scope, sessions, characters,
             runs, kills, new RewardAdapter(rewards), new OfferAdapter(offers), NullLogger<MonsterDeathDomainService>.Instance,
             events: new DeathEvents(scope));
         return new MonsterDeathHandler(sessions, runs, clear, clearProjection, new DeathBus(scope, service, rewards),
@@ -82,13 +82,6 @@ public sealed class MonsterDeathHandlerTests
         public ValueTask<NotificationDelivery> ProjectAsync<TNotification>(NotificationAudience audience,
             TNotification notification, CancellationToken cancellationToken = default)
             where TNotification : class, INotification<TNotification> => throw new NotSupportedException();
-    }
-    private sealed class PublishedSessions : ISelectedSessionRuntimeDirectory
-    {
-        public bool IsPublishedExact(SelectedSessionIdentity session) => true;
-        public void Publish(SelectedSessionIdentity session, bool persist) => throw new NotSupportedException();
-        public bool TryGetPositionPersistence(SelectedSessionIdentity session, out bool persist) { persist = false; return false; }
-        public bool RemoveExact(SelectedSessionIdentity session) => throw new NotSupportedException();
     }
     private sealed class DeathBus(Dfo.Server.Application.Transactions.DomainTransactionScope scope,
         IMonsterDeathDomainService service, ICommandBus fallback) : ICommandBus
@@ -429,7 +422,7 @@ public sealed class MonsterDeathHandlerTests
     {
         var leader = SelectedSessionIdentity.Create(new(1), new(60), new("leader"), 1, 10010);
         var member = SelectedSessionIdentity.Create(new(2), new(61), new("member"), 1, 10011);
-        var sessions = new Dfo.Server.Application.Sessions.SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         sessions.Select(leader);
         sessions.Select(member);
         var run = new PartyRun([
@@ -953,7 +946,8 @@ public sealed class MonsterDeathHandlerTests
             await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default));
         Assert.True(safety.IsBlocked(users.Connections[member.ConnectionId]));
         Assert.True(safety.IsBlocked(users.Connections[leader.ConnectionId]));
-        Assert.True(safety.IsBlocked(member)); Assert.True(safety.IsBlocked(leader));
+        Assert.True(((ISelectedSessionDomainService)sessions).StandingOf(member)?.Fenced);
+        Assert.True(((ISelectedSessionDomainService)sessions).StandingOf(leader)?.Fenced);
         Assert.Equal(0,run.ReleaseCount);
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default));
@@ -1435,6 +1429,26 @@ public sealed class MonsterDeathHandlerTests
     private sealed class PartySessions(IReadOnlyList<SelectedSessionIdentity> sessions)
         : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+
         public SelectedSessionIdentity? Find(AccountId accountId) =>
             sessions.SingleOrDefault(value => value.AccountId == accountId);
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) =>

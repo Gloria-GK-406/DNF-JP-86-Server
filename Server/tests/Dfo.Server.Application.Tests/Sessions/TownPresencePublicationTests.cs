@@ -1,5 +1,7 @@
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Testing;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Game;
@@ -15,14 +17,12 @@ public sealed class TownPresencePublicationTests
     [Fact]
     public async Task Published_second_character_receives_the_first_and_targets_it_for_arrival()
     {
-        var sessions = new SelectedSessionDomainService();
-        var runtimes = new SelectedSessionRuntimeDirectory();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var presence = new SessionPresenceDomainService();
-        var positions = new CharacterPositionDomainService();
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var currentViews = new FixedCurrentViews();
         var service = new SelectCharacterSessionEntryService(
-            sessions, runtimes, currentViews, presence, new PvpLobbyDomainService(), positions,
-            new CharacterVitalRuntimeDomainService(), new SpiritPotionDomainService(TimeProvider.System));
+            sessions, currentViews, presence, new PvpLobbyDomainService(), positions);
         var first = await EntryAsync(1, 60, "Game:first", x: 100);
         var second = await EntryAsync(2, 61, "Game:second", x: 300);
 
@@ -46,14 +46,12 @@ public sealed class TownPresencePublicationTests
     [Fact]
     public async Task Private_gate_room_never_builds_a_cross_character_publication()
     {
-        var sessions = new SelectedSessionDomainService();
-        var runtimes = new SelectedSessionRuntimeDirectory();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var presence = new SessionPresenceDomainService();
-        var positions = new CharacterPositionDomainService();
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var currentViews = new FixedCurrentViews();
         var service = new SelectCharacterSessionEntryService(
-            sessions, runtimes, currentViews, presence, new PvpLobbyDomainService(), positions,
-            new CharacterVitalRuntimeDomainService(), new SpiritPotionDomainService(TimeProvider.System));
+            sessions, currentViews, presence, new PvpLobbyDomainService(), positions);
         var first = await EntryAsync(1, 60, "Game:first", x: 100, sharesTownPresence: false);
         var second = await EntryAsync(2, 61, "Game:second", x: 300, sharesTownPresence: false);
 
@@ -70,14 +68,12 @@ public sealed class TownPresencePublicationTests
     [Fact]
     public async Task A_character_on_another_listener_but_the_same_logical_channel_is_published()
     {
-        var sessions = new SelectedSessionDomainService();
-        var runtimes = new SelectedSessionRuntimeDirectory();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var presence = new SessionPresenceDomainService();
-        var positions = new CharacterPositionDomainService();
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var currentViews = new FixedCurrentViews();
         var service = new SelectCharacterSessionEntryService(
-            sessions, runtimes, currentViews, presence, new PvpLobbyDomainService(), positions,
-            new CharacterVitalRuntimeDomainService(), new SpiritPotionDomainService(TimeProvider.System));
+            sessions, currentViews, presence, new PvpLobbyDomainService(), positions);
         var first = await EntryAsync(1, 60, "Game:first", x: 100, listenerPort: 10012);
         var second = await EntryAsync(2, 61, "Game:second", x: 300, listenerPort: 10011);
 
@@ -96,14 +92,12 @@ public sealed class TownPresencePublicationTests
     [Fact]
     public async Task A_stale_presence_is_not_redirected_to_its_replacement_on_another_listener()
     {
-        var sessions = new SelectedSessionDomainService();
-        var runtimes = new SelectedSessionRuntimeDirectory();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var presence = new SessionPresenceDomainService();
-        var positions = new CharacterPositionDomainService();
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var currentViews = new FixedCurrentViews();
         var service = new SelectCharacterSessionEntryService(
-            sessions, runtimes, currentViews, presence, new PvpLobbyDomainService(), positions,
-            new CharacterVitalRuntimeDomainService(), new SpiritPotionDomainService(TimeProvider.System));
+            sessions, currentViews, presence, new PvpLobbyDomainService(), positions);
         var old = await EntryAsync(1, 60, "Game:old", x: 100, listenerPort: 10011);
         var newcomer = await EntryAsync(2, 61, "Game:newcomer", x: 300, listenerPort: 10011);
 

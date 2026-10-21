@@ -9,12 +9,12 @@ namespace Dfo.Server.Application.World.BossTower;
 
 internal sealed class BossTowerTicketDomainService(IBossTowerRuleService rules,
     IDailyRefillConfigurationDomainService refills, IDailyRefillDomainService refill,
-    ISelectedSessionDomainService sessions, ISelectedSessionRuntimeDirectory published,
+    ISelectedSessionDomainService sessions,
     IAuthenticatedGamePresenceQuery online, IEventService events, TimeProvider clock) : IBossTowerTicketDomainService
 {
     public async ValueTask<bool> RefillOnlineTicketAsync(SelectedSessionIdentity session, CancellationToken ct)
     {
-        if (sessions.Find(session.AccountId) != session || !published.IsPublishedExact(session) || !online.IsActiveExact(session))
+        if (sessions.Find(session.AccountId) != session || !sessions.IsInWorld(session) || !online.IsActiveExact(session))
             return false;
         var at = clock.GetUtcNow();
         var configured = (await refills.EffectiveAsync(at, ct).ConfigureAwait(false)).Where(x => x.ItemId == rules.TicketItemId).ToArray();

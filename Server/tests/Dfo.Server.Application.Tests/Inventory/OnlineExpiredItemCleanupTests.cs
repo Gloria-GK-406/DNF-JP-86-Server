@@ -34,7 +34,7 @@ public sealed class OnlineExpiredItemCleanupTests
         await f.SeedCore(121, StackableItemCore.Create(2, 9001, 3) with { ExpireTime = 1 });
         await f.SeedCore(122, StackableItemCore.Create(2, 9005, 3) with { ExpireTime = int.MaxValue });
         await f.SeedCore(123, StackableItemCore.Create(2, 9006, 3) with { ExpireTime = int.MaxValue - 1 });
-        f.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(f.Session, false);
+        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(f.Session);
     }
     private static ValueTask<IReadOnlyList<PendingDomainEventDelivery>> Pending(ShopFixture f) =>
         f.Services.GetRequiredService<IDomainEventPersistence>().ReadDueAsync(Subscriber, f.Clock.GetUtcNow(), 100, default);
@@ -73,7 +73,7 @@ public sealed class OnlineExpiredItemCleanupTests
         var old = Assert.Single(await mailbox.InboxAsync(new(1)));
         await mailbox.ClaimAsync(new(1), old.Attachments[0].Id);
         Assert.Equal(1, f.Count(3257));
-        f.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(f.Session, false);
+        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(f.Session);
         f.Clock.Advance(TimeSpan.FromDays(1));
         await f.Services.GetRequiredService<ICommandBus>().SendAsync(new CleanupOnlineExpiredItemsCommand(f.Session));
         Assert.Equal(0, f.Count(3257));
@@ -117,9 +117,12 @@ public sealed class OnlineExpiredItemCleanupTests
         var lease = await gate.AcquireAsync(f.Session.AccountId, UserAccessMode.Exclusive, default);
         var pending = f.Services.GetRequiredService<ICommandBus>().SendAsync(new CleanupOnlineExpiredItemsCommand(f.Session)).AsTask();
         Assert.False(pending.IsCompleted);
-        f.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().RemoveExact(f.Session);
+        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().ReleaseExact(f.Session);
+        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().Select(f.Session);
         await lease.DisposeAsync();
-        Assert.False(await pending.WaitAsync(TimeSpan.FromSeconds(10)));
+        // Out of the world means no longer the active character either, so the queued cleanup is
+        // refused at the account gate rather than skipped inside the service.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => pending.WaitAsync(TimeSpan.FromSeconds(10)));
         Assert.Equal(3, f.Count(9001));
         Assert.Empty(await Pending(f));
     }
@@ -168,7 +171,7 @@ public sealed class OnlineExpiredItemCleanupTests
     [Fact]
     public async Task Failure_does_not_skip_next_character_and_remains_retryable()
     {
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         sessions.Select(SelectedSessionIdentity.Create(new(1), new(1), new("one"), 1, 10011));
         sessions.Select(SelectedSessionIdentity.Create(new(2), new(2), new("two"), 1, 10011));
         var commands = new FailingCommands();

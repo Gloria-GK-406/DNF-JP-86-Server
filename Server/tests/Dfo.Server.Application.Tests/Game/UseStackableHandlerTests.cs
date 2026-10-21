@@ -137,12 +137,12 @@ public sealed class UseStackableHandlerTests
             var result = await setup.Command.HandleAsync(UseContext,
                 SpiritCommand(), CancellationToken.None);
             Assert.Equal(ItemUseStatus.Used, result.Status);
-            Assert.Equal(0, setup.Potion.GetBonusRate(new CharacterId(60)));
+            Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
             await transaction.CommitAsync(CancellationToken.None);
         }
 
         Assert.Equal(1, inventory.Count);
-        Assert.Equal(1, setup.Potion.GetBonusRate(new CharacterId(60)));
+        Assert.Equal(1, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public sealed class UseStackableHandlerTests
         }
 
         Assert.Equal(2, inventory.Count);
-        Assert.Equal(0, setup.Potion.GetBonusRate(new CharacterId(60)));
+        Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
     }
 
     [Fact]
@@ -172,10 +172,11 @@ public sealed class UseStackableHandlerTests
             var result = await setup.Command.HandleAsync(UseContext, SpiritCommand(), CancellationToken.None);
             Assert.Equal(ItemUseStatus.Used, result.Status);
             Assert.True(setup.Sessions.ReleaseExact(OneSession.Session));
+            Assert.True(setup.Potion.EndExact(OneSession.Session));
             await transaction.CommitAsync(CancellationToken.None);
         }
 
-        Assert.Equal(0, setup.Potion.GetBonusRate(new CharacterId(60)));
+        Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
     }
 
     [Fact]
@@ -188,15 +189,17 @@ public sealed class UseStackableHandlerTests
         {
             var result = await setup.Command.HandleAsync(UseContext, SpiritCommand(), CancellationToken.None);
             Assert.Equal(ItemUseStatus.Used, result.Status);
-            setup.Sessions.Select(OneSession.Session with
+            var replacement = OneSession.Session with
             {
                 ConnectionId = new NetworkConnectionId("game-replacement"),
                 ConnectionGeneration = 2,
-            });
+            };
+            setup.Sessions.Select(replacement);
+            setup.Potion.Begin(replacement, new CharacterPositionState(1, 1, 0, 0, 0), 100);
             await transaction.CommitAsync(CancellationToken.None);
         }
 
-        Assert.Equal(0, setup.Potion.GetBonusRate(new CharacterId(60)));
+        Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
     }
 
     [Fact]
@@ -219,7 +222,7 @@ public sealed class UseStackableHandlerTests
         }
 
         Assert.Equal(2, inventory.Count);
-        Assert.Equal(0, setup.Potion.GetBonusRate(new CharacterId(60)));
+        Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
     }
 
     [Fact]
@@ -529,7 +532,7 @@ public sealed class UseStackableHandlerTests
     }
 
     private static (UseStackableHandler Handler, RecordingSender Sender,
-        UseStackableCommandHandler Command, SpiritPotionDomainService Potion,
+        UseStackableCommandHandler Command, OnlineCharacterRuntimeDomainService Potion,
         OneSession Sessions, ISharedEffectDomainService Shared) BuildDetailed(
         FakeInventory inventory, params (int ItemId, ItemUseRule Rule)[] rules)
     {
@@ -539,8 +542,11 @@ public sealed class UseStackableHandlerTests
         var content = new FakeItemUseRules(declared);
         var clock = new AdvanceableTimeProvider(
             new DateTimeOffset(2026, 8, 18, 12, 0, 0, TimeSpan.Zero));
-        var cooldowns = new CharacterItemCooldownDomainService(clock);
-        var potion = new SpiritPotionDomainService(clock);
+        // The online character runtime holds both the cooldowns and the spirit potion, for the
+        // session that entered the world.
+        var cooldowns = new OnlineCharacterRuntimeDomainService(clock);
+        cooldowns.Begin(OneSession.Session, new CharacterPositionState(1, 1, 0, 0, 0), 100);
+        var potion = cooldowns;
         var sessions = new OneSession();
         var sender = new RecordingSender();
 
@@ -555,8 +561,8 @@ public sealed class UseStackableHandlerTests
             new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules()));
         var apply = new Dfo.Server.Application.Effects.ApplyEffectsDomainService([
             new Dfo.Server.Application.Effects.ConsumeFromContainerEffectHandler(slots, inventory.Lifecycle),
-            new Dfo.Server.Application.Effects.StartItemCooldownEffectHandler(cooldowns, sessions, inventory.Scope),
-            new Dfo.Server.Application.Effects.StartSpiritPotionEffectHandler(potion, sessions, inventory.Scope)], inventory.Scope,
+            new Dfo.Server.Application.Effects.StartItemCooldownEffectHandler(cooldowns, inventory.Scope),
+            new Dfo.Server.Application.Effects.StartSpiritPotionEffectHandler(potion, inventory.Scope)], inventory.Scope,
                 new EffectCharacterStore(new(OneSession.Session.AccountId, OneSession.Session.CharacterId)), sessions, ConsumptionEffectPreflight.For(slots));
         var ruleService = new ItemUseEffectRuleService(judgement);
         var useEffects = new ItemUseEffectDomainService(characters, ruleService, apply, null!, clock);
@@ -598,6 +604,26 @@ public sealed class UseStackableHandlerTests
 
     private sealed class OneSession : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+
         internal static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
             new AccountId(6), new CharacterId(60), new NetworkConnectionId("game-use"), 1, 10011);
 

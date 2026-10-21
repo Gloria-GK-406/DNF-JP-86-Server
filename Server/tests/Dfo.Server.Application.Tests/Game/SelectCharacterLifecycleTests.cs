@@ -580,7 +580,7 @@ public sealed partial class SelectCharacterLifecycleTests
             fixture.AccountId, new CharacterId(500), fixture.ConnectionId,
             before!.Generation, StubChannelEntryPolicy.GeneralChannel.ListenerPort);
         fixture.Directory.Select(old);
-        fixture.Active.Publish(old);
+        fixture.Active.EnterWorld(old);
         fixture.Ledger.Clear();
         Assert.True(fixture.Users.TryGetByConnection(fixture.ConnectionId, out var selected));
 
@@ -783,10 +783,10 @@ public sealed partial class SelectCharacterLifecycleTests
                 connectionId, NetworkEndpointKind.Game, StubChannelEntryPolicy.GeneralChannel.ListenerPort));
             await users.AuthenticateForTestAsync(registered.OnlineUserId);
             var authenticated = users.GetRequired(registered.OnlineUserId);
-            var directory = new SelectedSessionDomainService();
-            var active = new RecordingActive(users, ledger);
+            var directory = users.Sessions;
+            var active = new RecordingActive(directory, ledger);
             var closer = new RecordingCloser(ledger);
-            var cleanup = new RecordingCleanup(directory, active, ledger);
+            var cleanup = new RecordingCleanup(directory, ledger);
             var mutations = new CharacterMutations(ledger);
             var inventory = new InventoryPreparation(result, ledger, refillCommits);
             var sender = new RecordingSender(
@@ -1255,20 +1255,30 @@ public sealed partial class SelectCharacterLifecycleTests
         }
     }
 
-    private sealed class RecordingActive(IActiveCharacterDomainService inner, List<string> ledger)
-        : IActiveCharacterDomainService
+    /// <summary>The selected-session directory, recording the moment a session enters the world.</summary>
+    private sealed class RecordingActive(ISelectedSessionDomainService inner, List<string> ledger)
+        : ISelectedSessionDomainService
     {
-        public void Publish(SelectedSessionIdentity session)
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => inner.Select(session);
+
+        public void EnterWorld(SelectedSessionIdentity session)
         {
             ledger.Add("active");
-            inner.Publish(session);
+            inner.EnterWorld(session);
         }
 
-        public bool ClearExact(SelectedSessionIdentity session) => inner.ClearExact(session);
+        public bool Fence(SelectedSessionIdentity session) => inner.Fence(session);
+        public bool ReleaseExact(SelectedSessionIdentity session) => inner.ReleaseExact(session);
+        public SelectedSessionIdentity? Find(AccountId accountId) => inner.Find(accountId);
+        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => inner.FindByCharacter(characterId);
+        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => inner.FindByWireUserId(wireUserId);
+        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => inner.FindByConnection(connectionId);
+        public SelectedSessionStanding? StandingOf(SelectedSessionIdentity session) => inner.StandingOf(session);
+        public bool IsInWorld(SelectedSessionIdentity session) => inner.IsInWorld(session);
     }
 
     private sealed class RecordingCleanup(
-        ISelectedSessionDomainService directory, IActiveCharacterDomainService active, List<string> ledger)
+        ISelectedSessionDomainService directory, List<string> ledger)
         : ISelectedSessionCleanupDomainService
     {
         public List<(SelectedSessionIdentity Session, bool IncludeOwner)> Calls { get; } = [];
@@ -1284,7 +1294,6 @@ public sealed partial class SelectCharacterLifecycleTests
             if (FailureSession == session)
                 return ValueTask.FromException<SelectedSessionCleanupNotificationPlan>(
                     new IOException("cleanup failed"));
-            _ = active.ClearExact(session);
             _ = directory.ReleaseExact(session);
             return ValueTask.FromResult(SelectedSessionCleanupNotificationPlan.Empty(session));
         }

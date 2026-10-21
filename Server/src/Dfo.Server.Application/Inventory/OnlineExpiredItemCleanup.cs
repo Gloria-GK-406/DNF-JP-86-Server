@@ -19,14 +19,14 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class OnlineExpiredItemCleanupDomainService(ISelectedSessionDomainService sessions,
-    ISelectedSessionRuntimeDirectory published, IExpiredCharacterItemCleanupDomainService cleanup,
+    IExpiredCharacterItemCleanupDomainService cleanup,
     IEventService events, ICreatureRuntimeDomainService creatures, IAuthenticatedGamePresenceQuery online,
     IQuestHelperPuppetDomainService? puppets = null) : IOnlineExpiredItemCleanupDomainService
 {
     public async ValueTask<bool> CleanupAsync(SelectedSessionIdentity session, CancellationToken ct)
     {
         if (sessions.Find(session.AccountId) != session || sessions.FindByConnection(session.ConnectionId) != session
-            || !published.IsPublishedExact(session) || !online.IsActiveExact(session)) return false;
+            || !sessions.IsInWorld(session) || !online.IsActiveExact(session)) return false;
         var puppetChange = puppets is null ? null : await puppets.ReconcileAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
         var result = await cleanup.CleanupAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
         if (!result.Owned) throw new InvalidOperationException("Online character ownership changed during expiry cleanup.");

@@ -27,7 +27,7 @@ public sealed class ExpiredItemsProjectionTests
             Containers = [.. source.CharacterInventory.Containers.Where(x => x.ContainerType != InventoryContainerType.Equipment),
                 new(InventoryContainerType.Equipment, 0, [])]
         }};
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var owner = SelectedSessionIdentity.Create(source.AccountInventory.AccountId, source.Character.Identity.CharacterId, new("owner"), 1, 10011);
         var peer = SelectedSessionIdentity.Create(new(90), new(91), new("peer"), 1, 10011);
         sessions.Select(owner); sessions.Select(peer);

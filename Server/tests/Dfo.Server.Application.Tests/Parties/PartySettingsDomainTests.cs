@@ -358,7 +358,7 @@ public sealed class PartySettingsDomainTests
                 TimeProvider.System);
         }
 
-        public SelectedSessionDomainService Sessions { get; } = new();
+        public SelectedSessionDomainService Sessions { get; } = Dfo.Server.Testing.TestSessions.Directory();
         public SessionPresenceDomainService Presence { get; } = new();
         public PartyServiceTestAdapter Parties { get; }
 

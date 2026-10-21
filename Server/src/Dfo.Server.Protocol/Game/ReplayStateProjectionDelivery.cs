@@ -48,11 +48,11 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
         if (request.Needs.HasFlag(ReplayProjectionNeeds.TownLocation))
         {
             // Redraw current location, never the old teleport destination from a receipt.
-            var positions = services.GetRequiredService<ICharacterPositionDomainService>();
+            var onlineCharacters = services.GetRequiredService<IOnlineCharacterRuntimeDomainService>();
             var areas = services.GetRequiredService<ITownAreaDomainService>();
             var views = services.GetRequiredService<ISelectedCharacterCurrentViewDomainService>();
             var member = areas.Find(session.CharacterId);
-            var position = positions.Find(session.CharacterId);
+            var position = onlineCharacters.PositionOf(session);
             var view = await views.TryLoadAsync(session, ct).ConfigureAwait(false);
             safety.DemandCurrent(recipient);
             if (member is not null && session.Owns(member) && position is not null && view is not null)

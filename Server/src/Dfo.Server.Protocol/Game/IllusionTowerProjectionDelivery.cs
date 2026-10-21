@@ -46,7 +46,7 @@ public sealed class IllusionTowerProjectionDelivery(
     ISelectedCharacterCurrentViewDomainService currentViews,
     ICharacterStateProjectionDomainService currentState,
     ICharacterDomainService characters,
-    ICharacterPositionDomainService positions,
+    IOnlineCharacterRuntimeDomainService onlineCharacters,
     IDungeonEntryIntentDomainService entryIntents,
     IGameMessageSender sender,
     TownAreaProjectionDelivery townProjection,
@@ -681,7 +681,7 @@ public sealed class IllusionTowerProjectionDelivery(
             try
             {
                 var runtime = await currentViews.TryLoadAsync(member, token).ConfigureAwait(false);
-                var position = positions.Find(member.CharacterId);
+                var position = onlineCharacters.PositionOf(member);
                 if (runtime is null || position is null) continue;
                 if (response is not null)
                     await sender.SendExplicitAsync(member.ConnectionId,

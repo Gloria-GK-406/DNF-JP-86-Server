@@ -276,7 +276,8 @@ public sealed class BossTowerDomainServiceTests
         var connection = new Dfo.Server.Data.Networking.NetworkConnectionContext(new("boss-peer"), Dfo.Server.Data.Networking.NetworkEndpointKind.Game, 10011);
         var user = registry.RegisterConnection(connection).OnlineUserId; registry.Authenticate(user, new(2));
         var session = SelectedSessionIdentity.Create(new(2), new(3), connection.ConnectionId, registry.GetRequiredUser(user).Generation, 10011);
-        registry.Publish(session); f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().Select(session);
+        registry.Select(session);
+        registry.EnterWorld(session);
         f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId,
             new Dfo.Server.Application.Inventory.PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Main), new(InventoryContainerType.Main,0),
                 f.Services.GetRequiredService<IItemDomainStore>(), f.Services.GetRequiredService<IDomainTransactionAccessor>(),

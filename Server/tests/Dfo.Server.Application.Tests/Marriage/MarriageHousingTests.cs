@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Marriage;
@@ -55,7 +56,7 @@ public sealed partial class MarriageHousingTests
     }
     private static void Enter(HousingWorld w, SelectedSessionIdentity actor, int instance, int channel = 1)
     {
-        var position = w.F.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterPositionDomainService>().CrossInto(actor, 101, 0, 900, 250);
+        var position = w.F.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().CrossInto(actor, 101, 0, 900, 250);
         w.F.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(actor.CharacterId, actor.TownAreaLease(), new(channel, 101, 0, instance), position, true);
     }
     private static async Task<HousingSnapshot> Read(HousingWorld w) => (await w.F.Services.GetRequiredService<IMarriageHousingQueryDomainService>().ReadAsync(w.F.Session.AccountId, w.F.Session.CharacterId, default))!;

@@ -74,7 +74,7 @@ public sealed class BossTowerFrameIntegrationTests
             var authenticated = online.GetRequired(anonymous.OnlineUserId);
             var session = SelectedSessionIdentity.Create(redeemed.AccountId!.Value, new CharacterId(2), connection, authenticated.Generation, gamePort);
             host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
-            host.Services.GetRequiredService<IActiveCharacterDomainService>().Publish(session);
+            host.Services.GetRequiredService<ISelectedSessionDomainService>().EnterWorld(session);
             tower.Seed(session);
 
             // A21 tower next-stage marker: success is the dedicated map push, with no ordinary CMD ACK.

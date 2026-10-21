@@ -105,7 +105,7 @@ public sealed class CommandHandlerArchitectureTests
     [Theory]
     [InlineData(typeof(Dfo.Server.Abstractions.Persistence.ICharacterTable))]
     [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionPositionPersistence))]
-    [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionRuntimeDirectory))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionSnapshotQuery))]
     [InlineData(typeof(ICommandBus))]
     [InlineData(typeof(string))]
     public void ATypeOutsideTheVocabularyIsRefused(Type type) => Assert.False(IsPermitted(type));

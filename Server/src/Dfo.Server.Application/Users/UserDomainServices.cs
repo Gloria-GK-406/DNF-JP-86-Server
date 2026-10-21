@@ -42,12 +42,3 @@ internal sealed class GameSessionEndpointDomainService(OnlineStateRegistry state
 
     public SessionEndpoint? Find(GameSessionIdentity session) => state.FindEndpoint(session);
 }
-
-/// <summary>The character each account currently has in play, and the session that owns it.</summary>
-internal sealed class ActiveCharacterDomainService(OnlineStateRegistry state)
-    : IActiveCharacterDomainService
-{
-    public void Publish(SelectedSessionIdentity session) => state.Publish(session);
-
-    public bool ClearExact(SelectedSessionIdentity session) => state.ClearExact(session);
-}

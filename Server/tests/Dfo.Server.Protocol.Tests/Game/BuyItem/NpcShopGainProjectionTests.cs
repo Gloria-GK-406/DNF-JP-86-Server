@@ -19,7 +19,7 @@ public sealed class NpcShopGainProjectionTests
     public async Task Each_purchase_announces_only_its_added_count_and_keeps_the_final_pile(int initial, int bought, int repeats)
     {
         var session = SelectedSessionIdentity.Create(new(1), new(2), new("gain"), 1, 10011);
-        var sessions = new SelectedSessionDomainService(); sessions.Select(session);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(); sessions.Select(session);
         var handler = new NpcShopPurchaseCompletedHandler(sessions);
         var client = new NativeStackConsumer();
         client.Seed(new(BusinessInventorySpace.QuickSlot, 0), 5000, initial);
@@ -43,7 +43,7 @@ public sealed class NpcShopGainProjectionTests
     public async Task Split_stacks_and_material_payment_keep_gross_purchase_gain_without_regranting_the_first_slot()
     {
         var session = SelectedSessionIdentity.Create(new(1), new(2), new("split"), 1, 10011);
-        var sessions = new SelectedSessionDomainService(); sessions.Select(session);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(); sessions.Select(session);
         var client = new NativeStackConsumer();
         client.Seed(new(BusinessInventorySpace.QuickSlot, 0), 5000, 9);
         client.Seed(new(BusinessInventorySpace.Material, 0), 1000, 5);
@@ -63,7 +63,7 @@ public sealed class NpcShopGainProjectionTests
     public async Task Limited_stack_keeps_the_native_absolute_quota_after_a_zero_increment_ack_and_replay()
     {
         var session = SelectedSessionIdentity.Create(new(1), new(2), new("limited"), 1, 10011);
-        var sessions = new SelectedSessionDomainService(); sessions.Select(session);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(); sessions.Select(session);
         var client = new NativeStackConsumer();
         client.Seed(new(BusinessInventorySpace.QuickSlot, 0), 5000, 2);
         client.Purchased[5000] = 2;

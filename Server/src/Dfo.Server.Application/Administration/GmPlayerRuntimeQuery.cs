@@ -12,7 +12,7 @@ internal sealed record GmRuntimeSample(HashSet<int> Accounts, IReadOnlyDictionar
     IReadOnlyList<GmChannelView> Channels, DateTimeOffset SampledAt);
 
 internal sealed class GmPlayerRuntimeQuery(IAuthenticatedGamePresenceQuery online, ISelectedSessionSnapshotQuery snapshots,
-    ISelectedSessionDomainService selected, ISelectedSessionRuntimeDirectory published, ICharacterPositionDomainService positions,
+    ISelectedSessionDomainService selected, IOnlineCharacterRuntimeDomainService onlineCharacters,
     IChannelDirectoryDomainService channels, IChannelEntryPolicy entry, TimeProvider clock)
 {
     public async ValueTask<GmRuntimeSample> SampleAsync(CancellationToken token)
@@ -25,7 +25,7 @@ internal sealed class GmPlayerRuntimeQuery(IAuthenticatedGamePresenceQuery onlin
         {
             token.ThrowIfCancellationRequested();
             if (!Current(session)) continue;
-            var position = positions.Find(session.CharacterId);
+            var position = onlineCharacters.PositionOf(session);
             var resolved = await entry.ResolveAsync(session.ListenerPort, token);
             if (!Current(session)) continue;
             accounts.Add(session.AccountId.Value);
@@ -37,7 +37,7 @@ internal sealed class GmPlayerRuntimeQuery(IAuthenticatedGamePresenceQuery onlin
     }
 
     private bool Current(SelectedSessionIdentity session) => selected.Find(session.AccountId) == session
-        && published.IsPublishedExact(session) && online.IsActiveExact(session);
+        && selected.IsInWorld(session) && online.IsActiveExact(session);
 
     internal static GmPositionView Position(string source, Dfo.Server.Data.Characters.CharacterPositionState? value) =>
         new(source, value?.TownId, value?.AreaId, value?.X, value?.Y, value?.Direction);

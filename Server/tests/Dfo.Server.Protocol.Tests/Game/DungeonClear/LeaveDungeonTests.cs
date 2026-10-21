@@ -660,9 +660,8 @@ public sealed class LeaveDungeonTests
     [Fact]
     public async Task A_return_waiting_on_the_transition_gate_cannot_overwrite_a_replacement()
     {
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         sessions.Select(Identity);
-        var runtimes = new SelectedSessionRuntimeDirectory();
         var runtime = Entry();
         runtime = runtime with
         {
@@ -674,7 +673,6 @@ public sealed class LeaveDungeonTests
                 },
             },
         };
-        runtimes.Publish(Identity, false);
         var currentViews = new FixedCurrentViews();
         currentViews.Publish(Identity, runtime);
         var areas = new SessionPresenceDomainService();
@@ -897,6 +895,26 @@ public sealed class LeaveDungeonTests
 
     private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => identity;
 
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => identity;
@@ -914,6 +932,26 @@ public sealed class LeaveDungeonTests
 
     private sealed class NoSession : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => null;
 
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => null;
@@ -982,11 +1020,11 @@ public sealed class LeaveDungeonTests
     }
 
     /// <summary>The service that owns where the character is, answering the one place they are.</summary>
-    private sealed class StandingWhereTheyAre : ICharacterPositionDomainService
+    private sealed class StandingWhereTheyAre : IOnlineCharacterRuntimeDomainService
     {
-        public CharacterPositionState? Find(CharacterId characterId) => Standing;
+        public CharacterPositionState? PositionOf(CharacterId characterId) => Standing;
 
-        public void Place(SelectedSessionIdentity session, CharacterPositionState position) =>
+        public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent) =>
             throw new NotSupportedException("Leaving a dungeon does not place anyone.");
 
         public CharacterPositionState CrossInto(
@@ -997,16 +1035,24 @@ public sealed class LeaveDungeonTests
             SelectedSessionIdentity session, short x, short y, byte direction) =>
             throw new NotSupportedException("Leaving a dungeon reports no movement.");
 
-        public bool ForgetExact(SelectedSessionIdentity session) =>
+        public bool EndExact(SelectedSessionIdentity session) =>
             throw new NotSupportedException("Leaving a dungeon does not end the session.");
+
+        // Test double: only the position is modelled; the rest of the runtime is empty.
+        public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => PositionOf(session.CharacterId);
+        public byte HpPercentOf(CharacterId characterId) => 0;
+        public bool IsCoolingDown(CharacterId characterId, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key) => false;
+        public void StartCooldown(SelectedSessionIdentity session, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key, TimeSpan duration) { }
+        public void ApplySpiritPotion(SelectedSessionIdentity session, double bonusRate, TimeSpan duration) { }
+        public double SpiritPotionBonusRateOf(CharacterId characterId) => 0;
     }
 
     /// <summary>Nobody is standing anywhere, which is what no published session looks like.</summary>
-    private sealed class StandingNowhere : ICharacterPositionDomainService
+    private sealed class StandingNowhere : IOnlineCharacterRuntimeDomainService
     {
-        public CharacterPositionState? Find(CharacterId characterId) => null;
+        public CharacterPositionState? PositionOf(CharacterId characterId) => null;
 
-        public void Place(SelectedSessionIdentity session, CharacterPositionState position) =>
+        public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent) =>
             throw new NotSupportedException("This fixture holds nothing.");
 
         public CharacterPositionState CrossInto(
@@ -1017,8 +1063,16 @@ public sealed class LeaveDungeonTests
             SelectedSessionIdentity session, short x, short y, byte direction) =>
             throw new NotSupportedException("This fixture holds nothing.");
 
-        public bool ForgetExact(SelectedSessionIdentity session) =>
+        public bool EndExact(SelectedSessionIdentity session) =>
             throw new NotSupportedException("This fixture holds nothing.");
+
+        // Test double: only the position is modelled; the rest of the runtime is empty.
+        public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => PositionOf(session.CharacterId);
+        public byte HpPercentOf(CharacterId characterId) => 0;
+        public bool IsCoolingDown(CharacterId characterId, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key) => false;
+        public void StartCooldown(SelectedSessionIdentity session, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key, TimeSpan duration) { }
+        public void ApplySpiritPotion(SelectedSessionIdentity session, double bonusRate, TimeSpan duration) { }
+        public double SpiritPotionBonusRateOf(CharacterId characterId) => 0;
     }
 
     private sealed class RecordingSender : IGameMessageSender

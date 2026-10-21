@@ -190,7 +190,7 @@ internal sealed class BackToVillageResponseEncoder : GameCmdMessageEncoder<BackT
 public sealed class BackToVillageHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedCharacterCurrentViewDomainService currentViews,
-    ICharacterPositionDomainService positions,
+    IOnlineCharacterRuntimeDomainService onlineCharacters,
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveries,
     IGameMessageSender sender,
@@ -222,7 +222,7 @@ public sealed class BackToVillageHandler(
         var result = session is null ? null
             : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
         if (session is null || result is null
-            || positions.Find(session.CharacterId) is not { } position)
+            || onlineCharacters.PositionOf(session) is not { } position)
         {
             logger.LogWarning(
                 "Back to village {ConnectionId}: no published session, ignoring",
@@ -364,7 +364,7 @@ public sealed class BackToVillageHandler(
                 || current.AccountId != member.Character.AccountId
                 || current.WireUserId != member.WireUserId
                 || runtime is null
-                || positions.Find(current.CharacterId) is not { } position
+                || onlineCharacters.PositionOf(current) is not { } position
                 || !entryIntents.ClearExact(current))
             {
                 continue;

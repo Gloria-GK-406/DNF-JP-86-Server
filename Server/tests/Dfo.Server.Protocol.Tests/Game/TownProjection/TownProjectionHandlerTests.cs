@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
@@ -37,7 +38,7 @@ namespace Dfo.Server.Protocol.Tests.Game.TownProjection;
 /// field. Reading the wrong one produces a recognisably wrong answer rather than coinciding with
 /// the right one.
 ///
-/// The real <see cref="CharacterPositionDomainService"/> is used rather than a double, because what
+/// The real <see cref="OnlineCharacterRuntimeDomainService"/> is used rather than a double, because what
 /// is under test is these handlers being wired to the thing that actually owns the position.
 /// </remarks>
 public sealed class TownProjectionHandlerTests
@@ -57,7 +58,7 @@ public sealed class TownProjectionHandlerTests
     public async Task A_crossing_moves_the_character_the_service_owns(bool transient, bool refuseWrite)
     {
         var positions = Standing();
-        var before = positions.Find(Identity.CharacterId);
+        var before = positions.PositionOf(Identity.CharacterId);
         var persistence = new RecordingPersistence { Refuse = refuseWrite };
         var presenceRegistry = Presence();
         var previousMember = ((ITownAreaDomainService)presenceRegistry).Find(Identity.CharacterId);
@@ -88,7 +89,7 @@ public sealed class TownProjectionHandlerTests
             await Assert.ThrowsAsync<IOException>(() => handler.HandleAsync(Dispatch(),
                 new SetUserAreaRequest(GameMessageMetadata.Empty, CrossedTownId, CrossedAreaId, CrossedX, CrossedY),
                 CancellationToken.None).AsTask());
-            Assert.Equal(before, positions.Find(Identity.CharacterId));
+            Assert.Equal(before, positions.PositionOf(Identity.CharacterId));
             Assert.Equal(previousMember, ((ITownAreaDomainService)presenceRegistry).Find(Identity.CharacterId));
             Assert.Empty(sender.Sent);
             return;
@@ -99,7 +100,7 @@ public sealed class TownProjectionHandlerTests
                 GameMessageMetadata.Empty, CrossedTownId, CrossedAreaId, CrossedX, CrossedY),
             CancellationToken.None);
 
-        Assert.Equal(transient ? null : positions.Find(Identity.CharacterId), persistence.Saved);
+        Assert.Equal(transient ? null : positions.PositionOf(Identity.CharacterId), persistence.Saved);
         var area = sender.Sent.OfType<UserAreaNotification>().Single();
         Assert.Equal(CrossedAreaId, area.AreaId);
         Assert.Equal(CrossedTownId, area.Spawn.TownId);
@@ -117,7 +118,7 @@ public sealed class TownProjectionHandlerTests
         Assert.Equal(
             new CharacterPositionState(
                 CrossedTownId, CrossedAreaId, CrossedX, CrossedY, WalkedDirection),
-            positions.Find(Identity.CharacterId));
+            positions.PositionOf(Identity.CharacterId));
     }
 
     [Theory]
@@ -126,7 +127,7 @@ public sealed class TownProjectionHandlerTests
     public async Task A_refused_channel_crossing_restores_the_actual_location_without_writing_or_transferring(bool saintHorn)
     {
         var positions = Standing();
-        var before = positions.Find(Identity.CharacterId);
+        var before = positions.PositionOf(Identity.CharacterId);
         var presence = Presence();
         var membership = ((ITownAreaDomainService)presence).Find(Identity.CharacterId);
         var sender = new RecordingSender();
@@ -142,7 +143,7 @@ public sealed class TownProjectionHandlerTests
             NullLogger<SetUserAreaHandler>.Instance, persistence);
         await handler.HandleAsync(Dispatch(), new SetUserAreaRequest(GameMessageMetadata.Empty,
             saintHorn ? (byte)2 : (byte)17, 1, CrossedX, CrossedY), default);
-        Assert.Equal(before, positions.Find(Identity.CharacterId));
+        Assert.Equal(before, positions.PositionOf(Identity.CharacterId));
         Assert.Equal(membership, ((ITownAreaDomainService)presence).Find(Identity.CharacterId));
         Assert.Null(persistence.Saved);
         Assert.Empty(notifications.Published);
@@ -199,11 +200,11 @@ public sealed class TownProjectionHandlerTests
             .AsTask();
 
         Assert.False(pending.IsCompleted);
-        Assert.Equal(WalkedAreaId, positions.Find(Identity.CharacterId)!.AreaId);
+        Assert.Equal(WalkedAreaId, positions.PositionOf(Identity.CharacterId)!.AreaId);
 
         await held.DisposeAsync();
         await pending.WaitAsync(TimeSpan.FromSeconds(2));
-        Assert.Equal(CrossedAreaId, positions.Find(Identity.CharacterId)!.AreaId);
+        Assert.Equal(CrossedAreaId, positions.PositionOf(Identity.CharacterId)!.AreaId);
     }
 
     [Fact]
@@ -214,62 +215,43 @@ public sealed class TownProjectionHandlerTests
         var newPeer = PeerIdentity(62, "new");
         var otherListenerOldPeer = PeerIdentity(63, "old-other-listener", listenerPort: 10011);
         var otherListenerNewPeer = PeerIdentity(64, "new-other-listener", listenerPort: 10011);
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         sessions.Select(Identity);
         sessions.Select(oldPeer);
         sessions.Select(secondOldPeer);
         sessions.Select(newPeer);
         sessions.Select(otherListenerOldPeer);
         sessions.Select(otherListenerNewPeer);
-        var runtimes = new SelectedSessionRuntimeDirectory();
         var currentViews = new FixedCurrentViews();
-        runtimes.Publish(
-            Identity,
-            shouldPersistPosition: false);
         currentViews.Publish(Identity, EntryFor(Identity, WalkedTownId, WalkedAreaId, WalkedX));
-        runtimes.Publish(
-            oldPeer,
-            shouldPersistPosition: false);
         currentViews.Publish(oldPeer, EntryFor(oldPeer, WalkedTownId, WalkedAreaId, x: 700));
-        runtimes.Publish(
-            secondOldPeer,
-            shouldPersistPosition: false);
         currentViews.Publish(secondOldPeer, EntryFor(secondOldPeer, WalkedTownId, WalkedAreaId, x: 750));
-        runtimes.Publish(
-            newPeer,
-            shouldPersistPosition: false);
         currentViews.Publish(newPeer, EntryFor(newPeer, CrossedTownId, CrossedAreaId, x: 800));
-        runtimes.Publish(
-            otherListenerOldPeer,
-            shouldPersistPosition: false);
         currentViews.Publish(otherListenerOldPeer,
             EntryFor(otherListenerOldPeer, WalkedTownId, WalkedAreaId, x: 900));
-        runtimes.Publish(
-            otherListenerNewPeer,
-            shouldPersistPosition: false);
         currentViews.Publish(otherListenerNewPeer,
             EntryFor(otherListenerNewPeer, CrossedTownId, CrossedAreaId, x: 950));
         var positions = Standing();
-        positions.Place(
+        positions.Begin(
             oldPeer,
             new CharacterPositionState(
-                WalkedTownId, WalkedAreaId, 700, 300, WalkedDirection));
-        positions.Place(
+                WalkedTownId, WalkedAreaId, 700, 300, WalkedDirection), 100);
+        positions.Begin(
             secondOldPeer,
             new CharacterPositionState(
-                WalkedTownId, WalkedAreaId, 750, 300, WalkedDirection));
-        positions.Place(
+                WalkedTownId, WalkedAreaId, 750, 300, WalkedDirection), 100);
+        positions.Begin(
             newPeer,
             new CharacterPositionState(
-                CrossedTownId, CrossedAreaId, 800, 300, WalkedDirection));
-        positions.Place(
+                CrossedTownId, CrossedAreaId, 800, 300, WalkedDirection), 100);
+        positions.Begin(
             otherListenerOldPeer,
             new CharacterPositionState(
-                WalkedTownId, WalkedAreaId, 900, 300, WalkedDirection));
-        positions.Place(
+                WalkedTownId, WalkedAreaId, 900, 300, WalkedDirection), 100);
+        positions.Begin(
             otherListenerNewPeer,
             new CharacterPositionState(
-                CrossedTownId, CrossedAreaId, 950, 300, WalkedDirection));
+                CrossedTownId, CrossedAreaId, 950, 300, WalkedDirection), 100);
         var presence = Presence();
         presence.Admit(new SessionPresence(
             oldPeer.CharacterId,
@@ -419,7 +401,6 @@ public sealed class TownProjectionHandlerTests
         var runtimes = new OneRuntimeSession(Entry());
         var handler = new SetUserPositionHandler(
             sessions,
-            runtimes,
             positions,
             presence,
             new TownAreaProjectionDelivery(
@@ -441,7 +422,7 @@ public sealed class TownProjectionHandlerTests
         Assert.Equal(
             new CharacterPositionState(
                 WalkedTownId, WalkedAreaId, SteppedX, SteppedY, SteppedDirection),
-            positions.Find(Identity.CharacterId));
+            positions.PositionOf(Identity.CharacterId));
 
         var answer = Assert.IsType<UserPositionNotification>(Assert.Single(sender.Sent));
         Assert.Equal(SteppedX, answer.X);
@@ -473,8 +454,8 @@ public sealed class TownProjectionHandlerTests
             StandingInTown: true,
             otherListenerPeer,
             ChannelId: 99));
-        var sessions = new SelectedSessionDomainService();
-        sessions.Select(Identity);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var onlineState);
+        sessions.EnterWorldWithConnection(onlineState, Identity);
         sessions.Select(peer);
         sessions.Select(otherListenerPeer);
         var notifications = new RecordingNotifications();
@@ -482,7 +463,6 @@ public sealed class TownProjectionHandlerTests
         var runtimes = new OneRuntimeSession(Entry());
         var handler = new SetUserPositionHandler(
             sessions,
-            runtimes,
             positions,
             presence,
             new TownAreaProjectionDelivery(
@@ -527,8 +507,8 @@ public sealed class TownProjectionHandlerTests
             StandingInTown: true,
             oldPeer,
             ChannelId: 10));
-        var sessions = new SelectedSessionDomainService();
-        sessions.Select(Identity);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var onlineState);
+        sessions.EnterWorldWithConnection(onlineState, Identity);
         sessions.Select(oldPeer);
         _ = sessions.Select(oldPeer with
         {
@@ -541,7 +521,6 @@ public sealed class TownProjectionHandlerTests
         var runtimes = new OneRuntimeSession(Entry());
         var handler = new SetUserPositionHandler(
             sessions,
-            runtimes,
             positions,
             presence,
             new TownAreaProjectionDelivery(
@@ -600,13 +579,13 @@ public sealed class TownProjectionHandlerTests
     /// the position gets there in production: entry places it once and every later frame reports a
     /// move. It is also what leaves the snapshot behind -- the copy entry took is never revisited.
     /// </remarks>
-    private static CharacterPositionDomainService Standing()
+    private static OnlineCharacterRuntimeDomainService Standing()
     {
-        var positions = new CharacterPositionDomainService();
-        positions.Place(
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        positions.Begin(
             Identity,
             new CharacterPositionState(
-                PlacedTownId, PlacedAreaId, PlacedX, PlacedY, PlacedDirection));
+                PlacedTownId, PlacedAreaId, PlacedX, PlacedY, PlacedDirection), 100);
         positions.CrossInto(Identity, WalkedTownId, WalkedAreaId, 500, 400);
         positions.StepTo(Identity, WalkedX, WalkedY, WalkedDirection);
         return positions;
@@ -688,11 +667,13 @@ public sealed class TownProjectionHandlerTests
         new(new NetworkConnectionContext(
             new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010));
 
+    // The generation a connection is at once registered and authenticated, so that the session
+    // can enter the world on it.
     private static SelectedSessionIdentity Identity { get; } = SelectedSessionIdentity.Create(
         new AccountId(1),
         new CharacterId(60),
         new NetworkConnectionId("one"),
-        connectionGeneration: 1,
+        connectionGeneration: 2,
         listenerPort: 10010);
 
     private static SelectedSessionIdentity PeerIdentity(
@@ -708,6 +689,26 @@ public sealed class TownProjectionHandlerTests
 
     private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => identity;
 
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => identity;

@@ -30,7 +30,7 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void An_audience_of_characters_resolves_to_the_connections_they_are_on()
     {
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var standing = Play(sessions, Standing, "conn-standing");
         var watching = Play(sessions, Watching, "conn-watching");
 
@@ -54,7 +54,7 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void A_character_nobody_is_playing_is_not_a_recipient()
     {
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var watching = Play(sessions, Watching, "conn-watching");
 
         var recipients = Resolver(sessions)
@@ -68,7 +68,7 @@ public sealed class NotificationAudienceTests
     /// <summary>Naming nobody who is here reaches nobody, rather than reaching everybody.</summary>
     [Fact]
     public void An_audience_whose_characters_are_all_away_resolves_to_nobody() =>
-        Assert.Empty(Resolver(new SelectedSessionDomainService())
+        Assert.Empty(Resolver(Dfo.Server.Testing.TestSessions.Directory())
             .Resolve(new NotificationAudience.TheseCharacters([Gone])));
 
     /// <summary>The order the caller named them in is the order they come back in.</summary>
@@ -79,7 +79,7 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void Recipients_come_back_in_the_order_the_audience_named_them()
     {
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         Play(sessions, Standing, "conn-standing");
         Play(sessions, Watching, "conn-watching");
 
@@ -92,7 +92,7 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void A_scoped_audience_resolves_only_matching_current_presence_sessions()
     {
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var presence = new SessionPresenceDomainService();
         var standing = Play(sessions, Standing, "conn-standing");
         var watching = Play(sessions, Watching, "conn-watching", listenerPort: 10012);
@@ -111,7 +111,7 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void A_scoped_audience_rejects_a_presence_owned_by_a_replaced_session()
     {
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var presence = new SessionPresenceDomainService();
         var old = Play(sessions, Standing, "conn-old");
         presence.Admit(new SessionPresence(Standing, 10011, 1, 2, true, old));
@@ -130,7 +130,7 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void A_scoped_audience_requires_a_presence_directory()
     {
-        var resolver = new NotificationAudienceResolver(new SelectedSessionDomainService());
+        var resolver = new NotificationAudienceResolver(Dfo.Server.Testing.TestSessions.Directory());
 
         var failure = Assert.Throws<InvalidOperationException>(() =>
             resolver.Resolve(new NotificationAudience.Scoped(new TownAreaFilter())));
@@ -141,7 +141,7 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void An_exact_session_audience_rejects_a_replacement_session()
     {
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var old = Play(sessions, Standing, "conn-old", listenerPort: 10011);
         _ = sessions.Select(old with
         {
@@ -159,7 +159,7 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void An_exact_session_audience_preserves_order_duplicates_and_identity()
     {
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var standing = Play(sessions, Standing, "conn-standing");
         var watching = Play(sessions, Watching, "conn-watching");
 
@@ -178,7 +178,7 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void A_character_audience_preserves_duplicate_entries()
     {
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var standing = Play(sessions, Standing, "conn-standing");
 
         var recipients = Resolver(sessions).Resolve(
@@ -248,7 +248,7 @@ public sealed class NotificationAudienceTests
             new NotificationAudience.TheseCharacters([Standing]), ListenerPort: 10011);
 
         var error = Assert.Throws<InvalidOperationException>(() =>
-            Resolver(new SelectedSessionDomainService()).Resolve(mixed));
+            Resolver(Dfo.Server.Testing.TestSessions.Directory()).Resolve(mixed));
 
         Assert.Contains(nameof(CharactersAndAChannel), error.Message, StringComparison.Ordinal);
     }

@@ -45,10 +45,3 @@ public interface IItemUseEffectDomainService
     ValueTask<ItemUseApplication> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
         ItemReference item, CancellationToken cancellationToken);
 }
-
-public interface ICharacterItemCooldownDomainService
-{
-    bool IsCoolingDown(CharacterId characterId, ItemCooldownKey key);
-    void Start(CharacterId characterId, ItemCooldownKey key, TimeSpan duration);
-    void Clear(CharacterId characterId);
-}

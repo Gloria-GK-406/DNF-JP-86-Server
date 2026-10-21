@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
@@ -202,7 +203,7 @@ public sealed class PackageOpeningTests
         await opening.Host.Seed(80, 1001, 1);
         opening.Host.Sql("CREATE TRIGGER fail_reward BEFORE INSERT ON item_slots BEGIN SELECT RAISE(ABORT,'forced reward failure'); END;");
         await Assert.ThrowsAsync<SqliteException>(() => opening.Package());
-        Assert.False(opening.Host.Services.GetRequiredService<ICharacterItemCooldownDomainService>()
+        Assert.False(opening.Host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
             .IsCoolingDown(opening.Host.Session.CharacterId, ItemCooldownKey.ForItem(1001)));
         Assert.Equal(1, opening.Host.Count(1001));
         opening.Host.Sql("DROP TRIGGER fail_reward");

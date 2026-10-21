@@ -123,7 +123,7 @@ public sealed class NameTagPurchaseTests
     {
         using var shop = Synthetic();
         await shop.Buy(CeraShopTestContent.Entry(First));
-        shop.Host.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(shop.Host.Session, false);
+        shop.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(shop.Host.Session);
         shop.Host.Clock.Advance(TimeSpan.FromDays(30));
         var commands = shop.Host.Services.GetRequiredService<ICommandBus>();
         Assert.True(await commands.SendAsync(new ExpireCharacterNameTagCommand(shop.Host.Session)));
@@ -147,7 +147,8 @@ public sealed class NameTagPurchaseTests
         registry.Authenticate(user.OnlineUserId, new(2));
         var peer = SelectedSessionIdentity.Create(new(2), new(3), connection.ConnectionId,
             registry.GetRequiredUser(user.OnlineUserId).Generation, 10011);
-        registry.Publish(peer);
+        registry.Select(peer);
+        registry.EnterWorld(peer);
         shop.Host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(peer);
         shop.Host.Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(peer.CharacterId,
             peer.TownAreaLease(), new(1, 0, 0), new(0, 0, 0, 0, 0), true));
@@ -164,7 +165,7 @@ public sealed class NameTagPurchaseTests
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
         using var shop = new CeraShopFixture(useArchive: true, configure: services =>
             services.AddSingleton<ISelectedCharacterCurrentViewDomainService, NameTagCurrentView>());
-        shop.Host.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(shop.Host.Session, false);
+        shop.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(shop.Host.Session);
         await shop.Handle(CeraShopTestContent.Input(CeraShopTestContent.Entry(102241)));
         Assert.NotNull(await shop.Host.Services.GetRequiredService<ISelectedCharacterCurrentViewDomainService>().TryLoadAsync(shop.Host.Session, default));
         Assert.IsType<Dfo.Server.Protocol.Game.CeraShopPurchase.CeraShopPurchaseResponse>(shop.Host.Sender.Messages[0]);

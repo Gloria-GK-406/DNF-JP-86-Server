@@ -18,7 +18,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
     ICharacterDomainService? characters = null, IIllusionTowerDomainService? tower = null,
     ICharacterQuestLogDomainService? quests = null, IUsageQuotaDomainService? quotas = null,
     IEventService? events = null, IDomainTransactionAccessor? transactions = null,
-    ISelectedSessionDomainService? sessions = null, ICharacterPositionDomainService? positions = null,
+    ISelectedSessionDomainService? sessions = null, IOnlineCharacterRuntimeDomainService? onlineCharacters = null,
     IDungeonRunDomainService? runs = null, CoupleDungeonRule? couples = null, IDungeonAdmissionRuleService? admissionRules = null, IDungeonParticipationDomainService? participation = null) : IDungeonAdmissionDomainService
 {
     public async ValueTask<DungeonAdmissionDecision> PrepareAsync(DungeonEntryContext context, DungeonAdmissionOptions options, CancellationToken ct)
@@ -57,7 +57,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             if (options.MirrorCatalog is { } catalog)
             {
                 selected = sessions?.Find(member.AccountId);
-                var position = positions?.Find(member.CharacterId);
+                var position = onlineCharacters?.PositionOf(member.CharacterId);
                 if (selected is null || selected.CharacterId != member.CharacterId || position is null
                     || position.TownId != catalog.EntryTownId || position.AreaId != catalog.EntryAreaId)
                     return Refuse(DungeonEntryFailure.MissingPrerequisite, member.Slot);

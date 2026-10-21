@@ -168,10 +168,9 @@ public sealed class CharacterSkillLearningTests
         await using var fixture = new LearningFixture();
         await fixture.SeedAsync();
         var sessions = fixture.Services.GetRequiredService<ISelectedSessionDomainService>();
-        sessions.Select(fixture.Session with { ConnectionGeneration = fixture.Session.ConnectionGeneration + 1 });
-        Assert.Equal(CharacterSkillLearningRejection.NoSession, (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
-        sessions.Select(fixture.Session);
-        var runtime = fixture.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>();
+        // A generation that is not the current selection is refused.
+        Assert.Equal(CharacterSkillLearningRejection.NoSession, (await fixture.LearnAsync([new(1, 0, 1)],
+            session: fixture.Session with { ConnectionGeneration = fixture.Session.ConnectionGeneration + 1 })).Rejection);
         Assert.Equal(CharacterSkillLearningRejection.UnsupportedScenario,
             (await fixture.LearnAsync([new(1, 0, 1)], mode: 1)).Rejection);
         fixture.Services.GetRequiredService<ITownAreaDomainService>().LeaveExact(
@@ -179,7 +178,9 @@ public sealed class CharacterSkillLearningTests
             fixture.Session.TownAreaLease(),
             TownAreaDepartureReason.SessionEnded);
         Assert.Equal(CharacterSkillLearningRejection.UnsupportedScenario, (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
-        runtime.RemoveExact(fixture.Session);
+        // Selected but no longer in the world.
+        sessions.ReleaseExact(fixture.Session);
+        sessions.Select(fixture.Session);
         Assert.Equal(CharacterSkillLearningRejection.NoSession, (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
         AssertBaseline(fixture);
     }
@@ -392,23 +393,23 @@ internal sealed class LearningFixture : IAsyncDisposable
         registry.Authenticate(user, new(1));
         Session = SelectedSessionIdentity.Create(new(1), new(71), connection.ConnectionId,
             registry.GetRequiredUser(user).Generation, 10011);
-        registry.Publish(Session);
-        Services.GetRequiredService<ISelectedSessionDomainService>().Select(Session);
+        var sessions = Services.GetRequiredService<ISelectedSessionDomainService>();
+        sessions.Select(Session);
+        sessions.EnterWorld(Session);
         Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(
             Session.CharacterId,
             Session.TownAreaLease(),
             new TownAreaKey(1, 0, 0),
             new CharacterPositionState(0, 0, 0, 0, 0),
             true));
-        Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(Session, false);
     }
 
-    private sealed class MinimalCurrentView(ISelectedSessionRuntimeDirectory published)
+    private sealed class MinimalCurrentView(ISelectedSessionDomainService sessions)
         : ISelectedCharacterCurrentViewDomainService
     {
         public ValueTask<SelectCharacterResult?> TryLoadAsync(
             SelectedSessionIdentity session, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<SelectCharacterResult?>(published.IsPublishedExact(session)
+            ValueTask.FromResult<SelectCharacterResult?>(sessions.IsInWorld(session)
                 ? new SelectCharacterResult(
                     null!, null!, null!, null!, null!,
                     new GameWorldEntryState(DateTimeOffset.UnixEpoch, null!,

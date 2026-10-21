@@ -11,7 +11,7 @@ namespace Dfo.Server.Application.Marriage;
 /// <summary>Church rooms: allocation, admission, where people stand relative to a room, and the 03D4/03CF snapshot.</summary>
 internal sealed class ChurchRooms(IMarriageChurchDomainStore store, IMarriageChurchRuleService rules, IMarriageProposalRuleService genders,
     ISelectedSessionDomainService sessions, ISelectedSessionSnapshotQuery online, ITownAreaDomainService areas,
-    ICharacterDomainService characters, ICharacterPositionDomainService positions, ISelectedSessionPositionPersistence persistence,
+    ICharacterDomainService characters, IOnlineCharacterRuntimeDomainService onlineCharacters, ISelectedSessionPositionPersistence persistence,
     TimeProvider clock)
 {
     public ValueTask<bool> IsChurchAsync(byte townId, byte areaId, CancellationToken ct) => rules.IsChurchAsync(townId, areaId, ct);
@@ -76,7 +76,7 @@ internal sealed class ChurchRooms(IMarriageChurchDomainStore store, IMarriageChu
         if (room is null || peer != expectedPeer.Value || churchArea != room.AreaId || room.ChannelId != member.Area.ChannelId) return new(-10);
         if (room.ReadyUntil <= clock.GetUtcNow()) return new(-7);
         var snapshot = await SnapshotForAsync(actor, ceremony, room, ct).ConfigureAwait(false);
-        if (snapshot is null || positions.Find(actor.CharacterId) is not { } standing) return new(-10);
+        if (snapshot is null || onlineCharacters.PositionOf(actor) is not { } standing) return new(-10);
         await persistence.PersistAsync(actor.AccountId, actor.CharacterId, standing with
         {
             TownId = room.TownId, AreaId = room.AreaId, X = snapshot.Location.X, Y = snapshot.Location.Y,
@@ -89,7 +89,7 @@ internal sealed class ChurchRooms(IMarriageChurchDomainStore store, IMarriageChu
     public async ValueTask<MarriageChurchEntryResult> EnterGuestAsync(SelectedSessionIdentity actor, MarriageCeremony ceremony,
         MarriageChurchRoom room, uint key, CancellationToken ct)
     {
-        if (positions.Find(actor.CharacterId) is not { } standing) return new(-10);
+        if (onlineCharacters.PositionOf(actor) is not { } standing) return new(-10);
         var church = await SnapshotAsync(ceremony, room, key, ct).ConfigureAwait(false);
         await persistence.PersistAsync(actor.AccountId, actor.CharacterId, standing with
         { TownId = room.TownId, AreaId = room.AreaId, X = church.Location.X, Y = church.Location.Y }, ct).ConfigureAwait(false);

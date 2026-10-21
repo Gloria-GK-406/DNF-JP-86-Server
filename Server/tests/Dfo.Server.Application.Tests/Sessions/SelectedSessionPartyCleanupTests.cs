@@ -5,6 +5,7 @@ using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Parties;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
@@ -138,7 +139,7 @@ public sealed class SelectedSessionPartyCleanupTests
 
     private sealed class Fixture
     {
-        private readonly SelectedSessionDomainService sessions = new();
+        private readonly SelectedSessionDomainService sessions = Dfo.Server.Testing.TestSessions.Directory();
         private readonly SessionPresenceDomainService presence = new();
 
         public Fixture(bool failAfterPartyCleanup = false)
@@ -151,19 +152,15 @@ public sealed class SelectedSessionPartyCleanupTests
                 TimeProvider.System);
             Cleanup = new SelectedSessionCleanupService(
                 sessions,
-                new SelectedSessionRuntimeDirectory(),
                 new CharacterContainerDomainService(),
-                new CharacterItemCooldownDomainService(TimeProvider.System),
-                new SpiritPotionDomainService(TimeProvider.System),
-                failAfterPartyCleanup
-                    ? new ThrowingActiveCharacters()
-                    : new PassiveActiveCharacters(),
                 presence,
                 new ExpertStoreDomainService(),
                 new PvpLobbyDomainService(),
                 [],
-                new CharacterPositionDomainService(),
-                new CharacterVitalRuntimeDomainService(),
+                failAfterPartyCleanup
+                    ? new ThrowingRuntime()
+                    : new OnlineCharacterRuntimeDomainService(TimeProvider.System),
+                new StubChannelEntryPolicy(),
                 Parties.Service,
                 new DungeonRunDomainService(),
                 []);
@@ -202,22 +199,28 @@ public sealed class SelectedSessionPartyCleanupTests
         }
     }
 
-    private sealed class PassiveActiveCharacters : IActiveCharacterDomainService
+    /// <summary>A step after party cleanup that fails: ending the online character's record.</summary>
+    private sealed class ThrowingRuntime : IOnlineCharacterRuntimeDomainService
     {
-        public void Publish(SelectedSessionIdentity session)
-        {
-        }
+        private readonly OnlineCharacterRuntimeDomainService inner = new(TimeProvider.System);
 
-        public bool ClearExact(SelectedSessionIdentity session) => false;
-    }
-
-    private sealed class ThrowingActiveCharacters : IActiveCharacterDomainService
-    {
-        public void Publish(SelectedSessionIdentity session)
-        {
-        }
-
-        public bool ClearExact(SelectedSessionIdentity session) =>
+        public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent) =>
+            inner.Begin(session, position, hpPercent);
+        public bool EndExact(SelectedSessionIdentity session) =>
             throw new InvalidOperationException("fault after party cleanup");
+        public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => inner.PositionOf(session);
+        public CharacterPositionState? PositionOf(CharacterId characterId) => inner.PositionOf(characterId);
+        public CharacterPositionState CrossInto(SelectedSessionIdentity session, byte townId, byte areaId, short x, short y) =>
+            inner.CrossInto(session, townId, areaId, x, y);
+        public CharacterPositionState StepTo(SelectedSessionIdentity session, short x, short y, byte direction) =>
+            inner.StepTo(session, x, y, direction);
+        public byte HpPercentOf(CharacterId characterId) => inner.HpPercentOf(characterId);
+        public bool IsCoolingDown(CharacterId characterId, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key) =>
+            inner.IsCoolingDown(characterId, key);
+        public void StartCooldown(SelectedSessionIdentity session, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key, TimeSpan duration) =>
+            inner.StartCooldown(session, key, duration);
+        public void ApplySpiritPotion(SelectedSessionIdentity session, double bonusRate, TimeSpan duration) =>
+            inner.ApplySpiritPotion(session, bonusRate, duration);
+        public double SpiritPotionBonusRateOf(CharacterId characterId) => inner.SpiritPotionBonusRateOf(characterId);
     }
 }

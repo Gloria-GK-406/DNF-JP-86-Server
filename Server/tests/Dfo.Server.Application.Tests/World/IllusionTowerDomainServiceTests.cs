@@ -489,7 +489,10 @@ public sealed class IllusionTowerDomainServiceTests
         var old = f.Session;
         var context = Context((await Enter(f)).Run!, old);
         var replacement = old with { ConnectionGeneration = old.ConnectionGeneration + 1 };
-        f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(replacement);
+        var sessions = f.Services.GetRequiredService<ISelectedSessionDomainService>();
+        sessions.Select(replacement);
+        // The replacement is selected over the same connection and enters the world through it.
+        sessions.EnterWorld(replacement);
         Assert.False((await tower.LoadAsync(context, default)).Changed);
         Assert.True((await tower.LeaveAsync(context, true, default)).Changed);
         var next = await tower.EnterAsync([new(replacement, 0)], replacement, 2, default);
@@ -974,12 +977,12 @@ public sealed class IllusionTowerDomainServiceTests
         Assert.True(parties.RequestInvite(firstParty, otherParty,
             new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
         Assert.True(parties.AcceptInvite(otherParty, firstParty).Succeeded);
-        var runtimes = f.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>();
-        runtimes.Publish(f.Session, shouldPersistPosition: false);
-        runtimes.Publish(other, shouldPersistPosition: false);
-        var positions = f.Services.GetRequiredService<ICharacterPositionDomainService>();
-        positions.Place(f.Session, new CharacterPositionState(1, 0, 0, 0, 0));
-        positions.Place(other, new CharacterPositionState(1, 0, 0, 0, 0));
+        var sessions = f.Services.GetRequiredService<ISelectedSessionDomainService>();
+        sessions.EnterWorld(f.Session);
+        sessions.EnterWorld(other);
+        var positions = f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>();
+        positions.Begin(f.Session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
+        positions.Begin(other, new CharacterPositionState(1, 0, 0, 0, 0), 100);
         intents.Record(f.Session, DungeonEntryIntent.Interactive);
         intents.Record(other, DungeonEntryIntent.Interactive);
         Assert.NotNull(intents.Consume(f.Session));
@@ -1023,10 +1026,9 @@ public sealed class IllusionTowerDomainServiceTests
             "INSERT INTO character_pvp(character_id) VALUES(1),(2); " +
             "INSERT INTO character_settings(character_id) VALUES(1),(2); " +
             "INSERT INTO character_expert_job(character_id) VALUES(1),(2);");
-        f.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>()
-            .Publish(f.Session, shouldPersistPosition: false);
-        f.Services.GetRequiredService<ICharacterPositionDomainService>()
-            .Place(f.Session, new CharacterPositionState(1, 0, 0, 0, 0));
+        f.Services.GetRequiredService<ISelectedSessionDomainService>().EnterWorld(f.Session);
+        f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
+            .Begin(f.Session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
         var party = f.Services.GetRequiredService<IPartyService>().FindParty(PartyCharacter(f.Session));
         var delivery = f.Services.GetRequiredService<IllusionTowerProjectionDelivery>();
 
@@ -1269,7 +1271,8 @@ public sealed class IllusionTowerDomainServiceTests
         var user = registry.RegisterConnection(connection).OnlineUserId;
         registry.Authenticate(user, new(2));
         var session = SelectedSessionIdentity.Create(new(2), new(3), connection.ConnectionId, registry.GetRequiredUser(user).Generation, 10011);
-        registry.Publish(session);
+        registry.Select(session);
+        registry.EnterWorld(session);
         f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
         f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId,
             new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Main), new(InventoryContainerType.Main, 0),

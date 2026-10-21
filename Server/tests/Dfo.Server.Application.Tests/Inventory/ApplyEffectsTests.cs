@@ -122,15 +122,15 @@ public sealed class ApplyEffectsTests
         var f = new Inventory();
         f.Seed(3, 8474, 5);
         var clock = new AdvanceableTimeProvider(Offline.At);
-        var cooldowns = new CharacterItemCooldownDomainService(clock);
-        var potion = new SpiritPotionDomainService(clock);
+        var cooldowns = new OnlineCharacterRuntimeDomainService(clock);
+        var potion = new OnlineCharacterRuntimeDomainService(clock);
         var sessions = new Sessions();
         var key = ItemCooldownKey.ForItem(8474);
         await using (f.Scope.Begin())
         {
             await Assert.ThrowsAsync<IOException>(async () => await f.Executor(
-                new StartItemCooldownEffectHandler(cooldowns, sessions, f.Scope),
-                new StartSpiritPotionEffectHandler(potion, sessions, f.Scope), new ThrowHandler())
+                new StartItemCooldownEffectHandler(cooldowns, f.Scope),
+                new StartSpiritPotionEffectHandler(potion, f.Scope), new ThrowHandler())
                 .ApplyAsync(Offline with { Session = sessions.Current },
                     [new ConsumeFromContainerEffect(Source, 8474, 1),
                         new StartItemCooldownEffect(key, TimeSpan.FromSeconds(10)),
@@ -138,7 +138,7 @@ public sealed class ApplyEffectsTests
         }
         Assert.Equal(5, f.CountIn(3));
         Assert.False(cooldowns.IsCoolingDown(Offline.CharacterId, key));
-        Assert.Equal(0, potion.GetBonusRate(Offline.CharacterId));
+        Assert.Equal(0, potion.SpiritPotionBonusRateOf(Offline.CharacterId));
     }
 
     [Fact]
@@ -147,14 +147,14 @@ public sealed class ApplyEffectsTests
         var f = new Inventory();
         f.Seed(3, 8474, 5);
         var clock = new AdvanceableTimeProvider(Offline.At);
-        var cooldowns = new CharacterItemCooldownDomainService(clock);
-        var potion = new SpiritPotionDomainService(clock);
+        var cooldowns = new OnlineCharacterRuntimeDomainService(clock);
+        var potion = new OnlineCharacterRuntimeDomainService(clock);
         var sessions = new Sessions();
         var key = ItemCooldownKey.ForItem(8474);
         await using (var tx = f.Scope.Begin())
         {
-            await f.Executor(new StartItemCooldownEffectHandler(cooldowns, sessions, f.Scope),
-                new StartSpiritPotionEffectHandler(potion, sessions, f.Scope))
+            await f.Executor(new StartItemCooldownEffectHandler(cooldowns, f.Scope),
+                new StartSpiritPotionEffectHandler(potion, f.Scope))
                 .ApplyAsync(Offline with { Session = sessions.Current },
                     [new ConsumeFromContainerEffect(Source, 8474, 1),
                         new StartItemCooldownEffect(key, TimeSpan.FromSeconds(10)),
@@ -166,19 +166,19 @@ public sealed class ApplyEffectsTests
         }
         Assert.Equal(5, f.CountIn(3));
         Assert.False(cooldowns.IsCoolingDown(Offline.CharacterId, key));
-        Assert.Equal(0, potion.GetBonusRate(Offline.CharacterId));
+        Assert.Equal(0, potion.SpiritPotionBonusRateOf(Offline.CharacterId));
     }
 
     [Fact]
     public async Task Replaced_session_does_not_receive_an_old_cooldown_commit()
     {
         var f = new Inventory();
-        var cooldowns = new CharacterItemCooldownDomainService(new AdvanceableTimeProvider(Offline.At));
+        var cooldowns = new OnlineCharacterRuntimeDomainService(new AdvanceableTimeProvider(Offline.At));
         var sessions = new Sessions();
         var key = ItemCooldownKey.ForItem(8474);
         await using (var tx = f.Scope.Begin())
         {
-            await f.Executor(new StartItemCooldownEffectHandler(cooldowns, sessions, f.Scope))
+            await f.Executor(new StartItemCooldownEffectHandler(cooldowns, f.Scope))
                 .ApplyAsync(Offline with { Session = sessions.Current }, [new StartItemCooldownEffect(key, TimeSpan.FromSeconds(10))], default);
             sessions.Current = sessions.Current with { ConnectionGeneration = 2 };
             await tx.CommitAsync(default);
@@ -203,6 +203,26 @@ public sealed class ApplyEffectsTests
     }
     private sealed class Sessions : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+
         public SelectedSessionIdentity Current { get; set; } = SelectedSessionIdentity.Create(
             Offline.AccountId, Offline.CharacterId, new NetworkConnectionId("effects"), 1, 10011);
         public SelectedSessionIdentity? FindByCharacter(CharacterId id) => Current;

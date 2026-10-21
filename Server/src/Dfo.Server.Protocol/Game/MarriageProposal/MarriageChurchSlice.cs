@@ -103,7 +103,7 @@ public sealed class EnterMarriageChurchCommandHandler(IMarriageVenueDomainServic
 }
 
 public sealed class WeddingChurchEnterHandler(ISelectedSessionDomainService sessions, ICommandBus commands,
-    IGameMessageSender sender, SelectedSessionTransitionGate gate, ICharacterPositionDomainService positions,
+    IGameMessageSender sender, SelectedSessionTransitionGate gate, IOnlineCharacterRuntimeDomainService onlineCharacters,
     ITownAreaDomainService areas, ISelectedCharacterCurrentViewDomainService views,
     TownAreaProjectionDelivery projection, ILogger<WeddingChurchEnterHandler> logger, MarriageWeddingProjection? weddingProjection = null)
     : ClientMessageHandler<WeddingChurchEnterRequest>
@@ -123,7 +123,7 @@ public sealed class WeddingChurchEnterHandler(ISelectedSessionDomainService sess
             if (result.Succeeded && actor is not null && previous is not null && view is not null)
             {
                 var entry = result.Snapshot!;
-                var moved = positions.CrossInto(actor, entry.Room.TownId, entry.Room.AreaId, entry.Location.X, entry.Location.Y);
+                var moved = onlineCharacters.CrossInto(actor, entry.Room.TownId, entry.Room.AreaId, entry.Location.X, entry.Location.Y);
                 if (!await projection.TransferAsync(actor.ConnectionId, actor, view, entry.Room.ChannelId,
                     moved, previous, true, ct).ConfigureAwait(false)) result = new(-10);
                 if (result.Succeeded && weddingProjection is not null)

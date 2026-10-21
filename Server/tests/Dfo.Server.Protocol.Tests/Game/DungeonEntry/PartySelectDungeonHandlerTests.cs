@@ -240,9 +240,8 @@ public sealed class PartySelectDungeonHandlerTests
         var sender = new Sender();
         using var services = new ServiceCollection()
             .AddSingleton<ISelectedSessionDomainService>(sessions)
-            .AddSingleton<ISelectedSessionRuntimeDirectory>(runtime)
             .AddSingleton<ISelectedCharacterCurrentViewDomainService>(new RuntimeCurrentView(runtime))
-            .AddSingleton<ICharacterPositionDomainService>(new PartyPositions())
+            .AddSingleton<IOnlineCharacterRuntimeDomainService>(new PartyPositions())
             .AddSingleton<IDungeonRunDomainService>(new RollbackRuns())
             .AddSingleton(new DungeonRunDeliveryRegistry())
             .AddSingleton<IDungeonEntryIntentDomainService>(intents)
@@ -796,6 +795,26 @@ public sealed class PartySelectDungeonHandlerTests
 
     private sealed class Sessions : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+
         private readonly List<SelectedSessionIdentity> connections;
         private readonly Dictionary<CharacterId, SelectedSessionIdentity> currentByCharacter;
 
@@ -863,16 +882,16 @@ public sealed class PartySelectDungeonHandlerTests
         public bool RemoveExact(SelectedSessionIdentity session) => throw new NotSupportedException();
     }
 
-    private sealed class PartyPositions : ICharacterPositionDomainService
+    private sealed class PartyPositions : IOnlineCharacterRuntimeDomainService
     {
-        public CharacterPositionState? Find(CharacterId characterId) =>
+        public CharacterPositionState? PositionOf(CharacterId characterId) =>
             characterId == Leader.CharacterId
                 ? new CharacterPositionState(1, 1, 400, 300, 1)
                 : characterId == Member.CharacterId
                     ? new CharacterPositionState(1, 1, 430, 300, 3)
                     : null;
 
-        public void Place(SelectedSessionIdentity session, CharacterPositionState position) =>
+        public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent) =>
             throw new NotSupportedException();
         public CharacterPositionState CrossInto(
             SelectedSessionIdentity session, byte townId, byte areaId, short x, short y) =>
@@ -880,7 +899,15 @@ public sealed class PartySelectDungeonHandlerTests
         public CharacterPositionState StepTo(
             SelectedSessionIdentity session, short x, short y, byte direction) =>
             throw new NotSupportedException();
-        public bool ForgetExact(SelectedSessionIdentity session) => throw new NotSupportedException();
+        public bool EndExact(SelectedSessionIdentity session) => throw new NotSupportedException();
+
+        // Test double: only the position is modelled; the rest of the runtime is empty.
+        public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => PositionOf(session.CharacterId);
+        public byte HpPercentOf(CharacterId characterId) => 0;
+        public bool IsCoolingDown(CharacterId characterId, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key) => false;
+        public void StartCooldown(SelectedSessionIdentity session, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key, TimeSpan duration) { }
+        public void ApplySpiritPotion(SelectedSessionIdentity session, double bonusRate, TimeSpan duration) { }
+        public double SpiritPotionBonusRateOf(CharacterId characterId) => 0;
     }
 
     private sealed class RefusedVisits : IDungeonVisitDomainService

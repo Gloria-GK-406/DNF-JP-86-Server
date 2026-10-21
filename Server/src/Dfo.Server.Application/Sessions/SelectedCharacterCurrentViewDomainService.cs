@@ -7,14 +7,13 @@ namespace Dfo.Server.Application.Sessions;
 
 internal sealed class SelectedCharacterCurrentViewDomainService(
     ISelectedSessionDomainService sessions,
-    ISelectedSessionRuntimeDirectory published,
     ICharacterCurrentStateQueryDomainService currentState) : ISelectedCharacterCurrentViewDomainService
 {
     public async ValueTask<SelectCharacterResult?> TryLoadAsync(
         SelectedSessionIdentity session, CancellationToken cancellationToken)
     {
         if (sessions.FindByConnection(session.ConnectionId) != session
-            || !published.IsPublishedExact(session))
+            || !sessions.IsInWorld(session))
             return null;
 
         var result = await currentState.ReadAsync(session, cancellationToken)
@@ -22,7 +21,7 @@ internal sealed class SelectedCharacterCurrentViewDomainService(
 
         // A replacement can publish while the independently-owned facts are being read.
         return sessions.FindByConnection(session.ConnectionId) == session
-            && published.IsPublishedExact(session)
+            && sessions.IsInWorld(session)
             ? result
             : null;
     }

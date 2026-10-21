@@ -121,9 +121,12 @@ TCP 字节
 `Characters/`（花名册/entry 状态/入场后修正）、`Inventory/`（入场读取、物品生命周期、每日补货）、
 `Quests/`（按角色取得的任务日志：在做的、已通关的、追踪选择）、
 `OnlineUsers/`（在线聚合 + 执行门）、`Sessions/`（在场、选中会话、PvP 大厅、专家商店
-四个领域服务，各自把运行态留在私有容器里）、`World/`（出生点策略、世界内容）、`Users/`
-（`OnlineStateRegistry` 持三张字典与唯一那把锁，`AccountDomainService`、
-`OnlineUserDomainService`、`ActiveCharacterDomainService` 三个门面各取其一）。
+四个领域服务，各自把运行态留在私有容器里；选中会话服务本身不存状态，读写在线身份）、
+`World/`（出生点策略、世界内容）、`Users/`（`OnlineStateRegistry` 是在线身份：在线用户、
+认证账号、选中会话及其阶段同在唯一那把锁后，`OnlineUserDomainService`、
+`GameSessionEndpointDomainService` 与 `Sessions/SelectedSessionDomainService` 是读写它的门面）。
+角色在线时“怎么样”（位置、血蓝百分比、物品冷却、灵药加成）归 `Characters/` 下的
+`IOnlineCharacterRuntimeDomainService`：按会话代数归属、无互斥锁，不并入角色领域服务。
 服务只做业务；`Persistence` 提供仓储与存储实现，`Infrastructure` 提供 PVF 内容源实现。
 
 **三层是上下关系，不是三选一。**
@@ -211,17 +214,18 @@ PVF 表索引 84。数据库 `level` 仅为 SQL 兼容投影，启动时归一�
 | 状态 | 主人 | 入场序列之外今天谁在问它 |
 |---|---|---|
 | 身份（槽位、名字、职业、成长型） | 角色实例 `ICharacter.IdentityAsync` | 道具可用性判定（`PlayingCharacter.CanUseAsync`）。实例从 `characters` 行现读，不再向会话要 |
-| 坐标 | `ICharacterPositionDomainService` | 6 个生产注入点：`TownProjectionSlice.cs:216`/`:335`、`DungeonSelectionSlice.cs:173`、`LeaveDungeonSlice.cs:91`、`SelectCharacterLifecycleServices.cs:33`/`:132` |
+| 坐标 | `IOnlineCharacterRuntimeDomainService`（与血蓝、冷却、灵药同一条运行时记录） | 城镇投影、选图、离开副本、两塔、婚礼、传送道具、GM 运行时查询、拆除时落库；持有自己会话的调用方按会话精确读取 |
 | 任务 | 既有的任务簿实例 `ICharacterQuestLogDomainService` | 进本时收集迷宫筛选用的 facts（`DungeonEntrySlice.cs:477-483`） |
 | 设置（热键、选项位图、可见位） | `ICharacterSettingsDomainService` | **零个。刻意的，见下。** |
 | 暗骑连招页 | `IDarkKnightComboDomainStore` + `IDarkKnightComboBook` | **零个。刻意的，见下。** |
 | 疲劳 | `ICharacterFatigueDomainService` | 进本处报告消耗（`DungeonEntrySlice.cs:509-511`）。**接缝不记账，见下。** |
 
-`ISelectedSessionRuntimeDirectory` 只保留精确连接身份的发布标记和位置持久化策略；
+会话是否已发布（进入世界）是在线身份上选中会话记录的阶段，用 `ISelectedSessionDomainService.IsInWorld`
+/ `StandingOf` 精确查询；是否落库位置不存储，拆除时由会话频道（`!IsTransient`）推导。
 `SelectCharacterResult` DTO 本身仍完整，作为一次性组包结果使用，不是运行期角色聚合。
 入场后的当前视图走只读重建，不重复执行选角恢复、技能和解锁等写入。
 
-坐标运行期由 `ICharacterPositionDomainService` 持有；当前视图通过独立的
+坐标运行期由 `IOnlineCharacterRuntimeDomainService` 持有；当前视图通过独立的
 `ICharacterCurrentStateQueryDomainService` 读取当前位置并组装投影，不调用登录准备或出生点计算。
 登录落点只在选角准备中计算，普通频道缺少到达门时回退到配置的初始城镇到达门。
 选角入口结果中的坐标只用于当次入场，不得在之后作为真源复用。
@@ -248,10 +252,11 @@ AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他
 类别」那节记的例外办，不受这条约束。同样不算规则输入的还有两类，各自在代码里写明了理由：
 纯测量开关（`ExperienceDiagnostics`）与协议投递行为（`SelectCharacterDeliveryOptions`）。
 
-**在线状态那把锁不能拆成三把。** 三张字典是同一个不变量的三种读法——一个账号至多一个活跃
-角色，且该角色的 session 属于活着的连接。断线要同时删连接和该账号的活跃角色，发布要先读在线
-用户再写活跃角色表；各自一把锁会开出"账号绑在一个已经没了的连接上"的窗口。所以责任拆成三个
-服务类型，它们共享的状态留在 `OnlineStateRegistry` 的单锁后面。
+**在线身份只有一条记录、一把锁。** “这个账号/角色/连接现在是哪个会话、走到哪一阶段”只在
+`OnlineStateRegistry` 回答：每个账号至多一条选中会话记录（`Selected` → `InWorld`，可带隔离标记），
+在线用户上的当前角色由这条记录投影出来，不另存。连接被撤销（协议拒绝、被顶替）时在线用户立即删除、
+选中会话记录保留，`StandingOf` 报告 `ConnectionRevoked`，直到拆除流程 `ReleaseExact`。不要再在旁边
+加平行的会话目录、活跃角色表或隔离集合（#186）。
 
 ### 2) 命令执行总线（Application/Commands）
 

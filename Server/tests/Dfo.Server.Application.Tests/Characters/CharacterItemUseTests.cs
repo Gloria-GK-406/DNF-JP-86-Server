@@ -169,7 +169,7 @@ public sealed class CharacterItemUseTests
     public async Task An_item_used_moments_ago_is_still_cooling_down()
     {
         var usability = Build(out var fixture, (8474, ItemUseRules.Potion()));
-        fixture.Cooldowns.Start(Character, ItemCooldownKey.ForItem(8474), TimeSpan.FromSeconds(10));
+        fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForItem(8474), TimeSpan.FromSeconds(10));
 
         fixture.Clock.Advance(TimeSpan.FromSeconds(9));
 
@@ -182,7 +182,7 @@ public sealed class CharacterItemUseTests
     public async Task A_cooldown_that_has_elapsed_no_longer_refuses()
     {
         var usability = Build(out var fixture, (8474, ItemUseRules.Potion()));
-        fixture.Cooldowns.Start(Character, ItemCooldownKey.ForItem(8474), TimeSpan.FromSeconds(10));
+        fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForItem(8474), TimeSpan.FromSeconds(10));
 
         fixture.Clock.Advance(TimeSpan.FromSeconds(10));
 
@@ -202,7 +202,7 @@ public sealed class CharacterItemUseTests
             out var fixture,
             (8474, ItemUseRules.Potion(3_000, cooltimeGroup: 70)),
             (9000, ItemUseRules.Potion(3_000, cooltimeGroup: 70)));
-        fixture.Cooldowns.Start(Character, ItemCooldownKey.ForGroup(70), TimeSpan.FromSeconds(3));
+        fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForGroup(70), TimeSpan.FromSeconds(3));
 
         Assert.Equal(
             ItemUsability.OnCooldown,
@@ -220,7 +220,7 @@ public sealed class CharacterItemUseTests
             out var fixture,
             (8474, ItemUseRules.Potion(cooltimeGroup: 0)),
             (9000, ItemUseRules.Potion(cooltimeGroup: 0)));
-        fixture.Cooldowns.Start(Character, ItemCooldownKey.ForItem(8474), TimeSpan.FromSeconds(10));
+        fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForItem(8474), TimeSpan.FromSeconds(10));
 
         Assert.Equal(
             ItemUsability.Allowed,
@@ -238,7 +238,7 @@ public sealed class CharacterItemUseTests
             out var fixture,
             (70, ItemUseRules.Potion(cooltimeGroup: 0)),
             (9000, ItemUseRules.Potion(3_000, cooltimeGroup: 70)));
-        fixture.Cooldowns.Start(Character, ItemCooldownKey.ForItem(70), TimeSpan.FromSeconds(10));
+        fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForItem(70), TimeSpan.FromSeconds(10));
 
         Assert.Equal(
             ItemUsability.Allowed,
@@ -273,9 +273,9 @@ public sealed class CharacterItemUseTests
     public void Leaving_clears_the_characters_cooldowns()
     {
         Build(out var fixture, (8474, ItemUseRules.Potion()));
-        fixture.Cooldowns.Start(Character, ItemCooldownKey.ForItem(8474), TimeSpan.FromMinutes(30));
+        fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForItem(8474), TimeSpan.FromMinutes(30));
 
-        fixture.Cooldowns.Clear(Character);
+        fixture.Cooldowns.EndExact(fixture.Session);
 
         Assert.False(fixture.Cooldowns.IsCoolingDown(Character, ItemCooldownKey.ForItem(8474)));
     }
@@ -308,7 +308,7 @@ public sealed class CharacterItemUseTests
         var usability = new PlayingCharacter(
             Character,
             new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
-            new CharacterItemCooldownDomainService(clock),
+            new OnlineCharacterRuntimeDomainService(clock),
             new SessionPresenceDomainService(),
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),
@@ -337,7 +337,7 @@ public sealed class CharacterItemUseTests
         var usability = new PlayingCharacter(
             Character,
             new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
-            new CharacterItemCooldownDomainService(clock),
+            new OnlineCharacterRuntimeDomainService(clock),
             PresentCharacters.StandingInTown(Character),
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),
@@ -393,7 +393,7 @@ public sealed class CharacterItemUseTests
             var usability = new PlayingCharacter(
                 Character,
                 new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
-                new CharacterItemCooldownDomainService(
+                new OnlineCharacterRuntimeDomainService(
                     new AdvanceableTimeProvider(
                         new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero))),
                 PresentCharacters.StandingInTown(Character),
@@ -448,7 +448,7 @@ public sealed class CharacterItemUseTests
             job: 0,
             (8474, ItemUseRules.Potion(3_000, cooltimeGroup: 70)),
             (9000, ItemUseRules.RequiringLevel(50) with { CooltimeGroup = 70, CooldownMilliseconds = 3_000 }));
-        fixture.Cooldowns.Start(Character, ItemCooldownKey.ForGroup(70), TimeSpan.FromSeconds(3));
+        fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForGroup(70), TimeSpan.FromSeconds(3));
 
         Assert.Equal(
             ItemUsability.LevelTooLow,
@@ -457,7 +457,8 @@ public sealed class CharacterItemUseTests
 
     private sealed record Fixture(
         AdvanceableTimeProvider Clock,
-        ICharacterItemCooldownDomainService Cooldowns);
+        OnlineCharacterRuntimeDomainService Cooldowns,
+        Dfo.Server.Data.World.SelectedSessionIdentity Session);
 
     private static ICharacter Build(
         out Fixture fixture,
@@ -481,8 +482,12 @@ public sealed class CharacterItemUseTests
         params (int ItemId, ItemUseRule Rule)[] rules)
     {
         var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 18, 12, 0, 0, TimeSpan.Zero));
-        var cooldowns = new CharacterItemCooldownDomainService(clock);
-        fixture = new Fixture(clock, cooldowns);
+        var cooldowns = new OnlineCharacterRuntimeDomainService(clock);
+        var session = Dfo.Server.Data.World.SelectedSessionIdentity.Create(
+            new Dfo.Server.Data.Accounts.AccountId(1), Character,
+            new Dfo.Server.Data.Networking.NetworkConnectionId("Game:item-use"), 2, 10011);
+        cooldowns.Begin(session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
+        fixture = new Fixture(clock, cooldowns, session);
         var tower = TowerPresenceProxy.Create(out var presence);
         if (inTower) presence.Members.Add(Character);
         return new PlayingCharacter(

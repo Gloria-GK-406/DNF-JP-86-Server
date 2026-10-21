@@ -232,7 +232,7 @@ public sealed record PublishedSelectedCharacterSession(
     PvpLobbySynchronizationState? PvpLobby);
 
 public sealed class PublishSelectedCharacterSessionCommandHandler(
-    IActiveCharacterDomainService activeCharacters,
+    ISelectedSessionDomainService sessions,
     ISelectCharacterSessionEntryDomainService sessionEntry)
     : ICommandHandler<PublishSelectedCharacterSessionCommand, PublishedSelectedCharacterSession>
 {
@@ -241,7 +241,7 @@ public sealed class PublishSelectedCharacterSessionCommandHandler(
         PublishSelectedCharacterSessionCommand command,
         CancellationToken cancellationToken)
     {
-        activeCharacters.Publish(command.Session);
+        sessions.EnterWorld(command.Session);
         sessionEntry.Publish(command.Session, command.State);
         return new PublishedSelectedCharacterSession(
             await sessionEntry.PlanTownPublicationAsync(

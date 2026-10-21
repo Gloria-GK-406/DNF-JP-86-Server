@@ -18,14 +18,14 @@ public sealed record SelectedSessionRecipient(SelectedSessionIdentity Session, N
 public sealed class SelectedSessionSafety(IServiceProvider services, SelectedSessionTransitionGate lifecycle,
     ILogger<SelectedSessionSafety> logger)
 {
+    // The connection fence outlives the online user: dispatch consults it before any session is
+    // resolved, and the connection is only asked to close after it is raised. Whether a session
+    // is fenced is part of the session's own record.
     private readonly object gate = new();
-    private readonly HashSet<SelectedSessionIdentity> blocked = [];
     private readonly ConditionalWeakTable<NetworkConnectionContext, Fence> connections = new();
     private sealed class Fence;
     public bool IsBlocked(NetworkConnectionContext connection)
     { lock (gate) return connections.TryGetValue(connection, out _); }
-    public bool IsBlocked(SelectedSessionIdentity session)
-    { lock (gate) return blocked.Contains(session); }
 
     public SelectedSessionRecipient Capture(SelectedSessionIdentity session)
     {
@@ -43,7 +43,7 @@ public sealed class SelectedSessionSafety(IServiceProvider services, SelectedSes
     }
     public void DemandCurrent(SelectedSessionIdentity session)
     {
-        if (IsBlocked(session) || services.GetService<ISelectedSessionDomainService>()?.FindByCharacter(session.CharacterId) != session)
+        if (services.GetService<ISelectedSessionDomainService>()?.StandingOf(session) is not { Fenced: false })
             throw new InvalidOperationException("The selected session is stale or has an unknown settlement outcome.");
     }
     public void DemandCurrent(SelectedSessionRecipient recipient)
@@ -58,11 +58,9 @@ public sealed class SelectedSessionSafety(IServiceProvider services, SelectedSes
     }
     public async ValueTask BlockAsync(SelectedSessionRecipient recipient, Exception error, string operation)
     {
-        lock (gate)
-        {
-            blocked.Add(recipient.Session);
-            if (recipient.Connection is { } connection) connections.GetValue(connection, _ => new());
-        }
+        services.GetService<ISelectedSessionDomainService>()?.Fence(recipient.Session);
+        if (recipient.Connection is { } connection)
+            lock (gate) connections.GetValue(connection, _ => new());
         await using var lease = await lifecycle.BorrowOrAcquireSharedAsync(recipient.Session.AccountId, CancellationToken.None).ConfigureAwait(false);
         try { services.GetService<ICreatureRuntimeDomainService>()?.DiscardExact(recipient.Session); }
         catch (Exception cleanup) { TryLog(() => logger.LogError(cleanup, "Discard of uncertain creature runtime failed")); }

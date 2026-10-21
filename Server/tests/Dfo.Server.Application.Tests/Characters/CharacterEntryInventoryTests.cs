@@ -26,8 +26,7 @@ public sealed class CharacterEntryInventoryTests
                 new StubCharacterDomainService(selected),
                 new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
                 new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
-                new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
-                new StatefulActiveCharacterDomainService())
+                new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)))
             .EnterAsync(accountId, slotIndex, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None);
     }
 
@@ -192,8 +191,7 @@ public sealed class CharacterEntryInventoryTests
             new StubCharacterDomainService(selected),
             new FailingInventoryEntryService(),
             new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
-            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
-            active);
+            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)));
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await entry.EnterAsync(accountId, 2, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None));
@@ -219,7 +217,6 @@ public sealed class CharacterEntryInventoryTests
             new NotReachedInventoryEntryService(),
             new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
             new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
-            active,
             channels: new StubChannelEntryPolicy(refusal));
 
         var error = await Assert.ThrowsAsync<ChannelAdmissionRefusedException>(async () =>
@@ -258,8 +255,7 @@ public sealed class CharacterEntryInventoryTests
         var entry = EntryServices.Create(
             new StubCharacterDomainService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
-            new StubCharacterEntryStateDomainService(normal), new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
-            new StatefulActiveCharacterDomainService(), skillPoints: new NormalSkillSource(),
+            new StubCharacterEntryStateDomainService(normal), new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)), skillPoints: new NormalSkillSource(),
             pvpSkills: new FixedPvpSkills(pvp), placement: new DuelAwarePlacement());
 
         var ordinary = await entry.EnterAsync(
@@ -300,8 +296,7 @@ public sealed class CharacterEntryInventoryTests
             new StubCharacterDomainService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
             new ReloadingCharacterEntryStateDomainService(before, after),
-            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
-            new StatefulActiveCharacterDomainService(), skillPoints: new NormalSkillSource(),
+            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)), skillPoints: new NormalSkillSource(),
             expertContracts: new FixedExpertContracts(), expertSkillReconciliation: reconciliation);
 
         var result = await entry.EnterAsync(
@@ -344,8 +339,7 @@ public sealed class CharacterEntryInventoryTests
             new StubCharacterDomainService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
             new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
-            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
-            active);
+            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)));
 
         var result = await entry.EnterAsync(
             accountId,
@@ -371,7 +365,6 @@ public sealed class CharacterEntryInventoryTests
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
             new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
             new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
-            active,
             timeProvider: new FailingTimeProvider());
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -406,7 +399,6 @@ public sealed class CharacterEntryInventoryTests
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
             new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
             new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
-            active,
             worldContent: failingSource is "content" ? new FailingWorldContentEntryRuleService() : null,
             placement: failingSource is "placement" ? new FailingEntryPlacementRuleService() : null,
             sessionAdjacent: failingSource is "session" ? new FailingSessionAdjacentEntryDomainService() : null);
@@ -433,8 +425,7 @@ public sealed class CharacterEntryInventoryTests
             new StubCharacterDomainService(selected),
             new StubInventoryEntryService(inventory),
             new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
-            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
-            active);
+            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)));
 
         var result = await entry.EnterAsync(accountId, 3, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None);
 
@@ -465,7 +456,6 @@ public sealed class CharacterEntryInventoryTests
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
             new StubCharacterEntryStateDomainService(characterEntry),
             new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
-            new StatefulActiveCharacterDomainService(),
             skillPoints: new PopulatedSkillPointDefinitionSource());
 
         var result = await entry.EnterAsync(
@@ -486,8 +476,7 @@ public sealed class CharacterEntryInventoryTests
             new StubCharacterDomainService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
             new FailingCharacterEntryStateDomainService(),
-            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
-            active);
+            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)));
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await entry.EnterAsync(accountId, 5, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None));
@@ -507,8 +496,7 @@ public sealed class CharacterEntryInventoryTests
             new StubCharacterDomainService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
             new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
-            new FailingAccountEntryStateDomainService(),
-            active);
+            new FailingAccountEntryStateDomainService());
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await entry.EnterAsync(accountId, 6, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None));
@@ -590,7 +578,6 @@ public sealed class CharacterEntryInventoryTests
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
             new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
             new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
-            new StatefulActiveCharacterDomainService(),
             positions: positions);
         var prepared = await entry.EnterAsync(
             accountId, 1, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None);
@@ -1008,7 +995,7 @@ public sealed class CharacterEntryInventoryTests
     /// displaced by a publication happening at all. Every assertion that the seed survived is
     /// therefore paired with <see cref="PublishCount"/>, which is what the displacement would be.
     /// </remarks>
-    private sealed class StatefulActiveCharacterDomainService : IActiveCharacterDomainService
+    private sealed class StatefulActiveCharacterDomainService
     {
         private readonly Dictionary<AccountId, ActiveCharacterState> states = [];
 

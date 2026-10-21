@@ -38,8 +38,8 @@ public sealed class SelectCharacterProductionStateTests
         {
             var session = SelectedSessionIdentity.Create(seed.Account.AccountId, seed.Character.Identity.CharacterId,
                 new Dfo.Server.Data.Networking.NetworkConnectionId("achievement-read"), 1, 10011);
-            var positions = new CharacterPositionDomainService();
-            positions.Place(session, seed.Character.Position);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            positions.Begin(session, seed.Character.Position, 100);
             result = await Query(sources, seed, positions, achievements).ReadAsync(session, default);
         }
         Assert.Equal(6501, Assert.Single(result.CharacterEntry.Features.Collections.Achievements).AchievementId);
@@ -95,8 +95,8 @@ public sealed class SelectCharacterProductionStateTests
         var session = SelectedSessionIdentity.Create(
             seed.Account.AccountId, seed.Character.Identity.CharacterId,
             new Dfo.Server.Data.Networking.NetworkConnectionId("current-view"), 1, 10011);
-        var positions = new CharacterPositionDomainService();
-        positions.Place(session, seed.Character.Position);
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        positions.Begin(session, seed.Character.Position, 100);
         var service = Query(sources, seed, positions);
         var equipment = seed.CharacterInventory.Containers.Single(container =>
             container.ContainerType == InventoryContainerType.Equipment);
@@ -132,9 +132,9 @@ public sealed class SelectCharacterProductionStateTests
         var session = SelectedSessionIdentity.Create(
             seed.Account.AccountId, seed.Character.Identity.CharacterId,
             new Dfo.Server.Data.Networking.NetworkConnectionId("time-gate"), 1, 10011);
-        var positions = new CharacterPositionDomainService();
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var standing = new CharacterPositionState(town, area, 185, 215, 2);
-        positions.Place(session, standing);
+        positions.Begin(session, standing, 100);
 
         var current = await Query(sources, seed, positions).ReadAsync(session, CancellationToken.None);
 
@@ -144,7 +144,7 @@ public sealed class SelectCharacterProductionStateTests
         Assert.Equal(185, current.World.Channel.Spawn.X);
         Assert.Equal(215, current.World.Channel.Spawn.Y);
         Assert.Equal(2, current.World.Channel.Spawn.Direction);
-        Assert.Equal(standing, positions.Find(session.CharacterId));
+        Assert.Equal(standing, positions.PositionOf(session.CharacterId));
         Assert.Equal(0, sources.PlacementCalls);
         Assert.Equal(0, sources.InventoryMaintenanceCalls);
         Assert.Equal(0, sources.RecoveryCalls);
@@ -161,12 +161,12 @@ public sealed class SelectCharacterProductionStateTests
             seed.Account.AccountId, seed.Character.Identity.CharacterId,
             new Dfo.Server.Data.Networking.NetworkConnectionId("missing-position"), 1, 10011);
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
-            await Query(sources, seed, new CharacterPositionDomainService()).ReadAsync(session, CancellationToken.None));
+            await Query(sources, seed, new OnlineCharacterRuntimeDomainService(TimeProvider.System)).ReadAsync(session, CancellationToken.None));
         Assert.Equal(0, sources.PlacementCalls);
     }
 
     private static CharacterCurrentStateQueryDomainService Query(
-        Sources sources, SelectCharacterResult seed, ICharacterPositionDomainService positions, IAchievementDomainService? achievements = null) =>
+        Sources sources, SelectCharacterResult seed, IOnlineCharacterRuntimeDomainService positions, IAchievementDomainService? achievements = null) =>
         new(sources, sources, sources, sources, sources, sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources),
             sources, sources, sources, sources, positions, new FixedTimeProvider(seed.World.PreparedAt), achievements: achievements);
@@ -395,7 +395,7 @@ public sealed class SelectCharacterProductionStateTests
         ICharacterPvpSkillProfileRepository, IDungeonPersistentEffectRecoveryRepository,
         IExpertSkillContractDefinitionSource, IExpertSkillContractReconciliationRepository,
         ICreatureEquipmentLifetimeSource, IEntryPlacementRuleService,
-        ISessionAdjacentEntryDomainService, IActiveCharacterDomainService,
+        ISessionAdjacentEntryDomainService,
         ISelectedSessionPositionPersistence, ITownMovementDomainService
     {
         public bool Published { get; private set; }

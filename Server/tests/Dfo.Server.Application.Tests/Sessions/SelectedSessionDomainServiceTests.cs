@@ -1,4 +1,6 @@
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Testing;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -20,7 +22,7 @@ public sealed class SelectedSessionDomainServiceTests
     [Fact]
     public void ReplacementAndStaleRemovalPreserveTheNewExactGeneration()
     {
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var first = Session(1, 101, "Game:first", 2);
         var replacement = Session(1, 102, "Game:replacement", 7);
 
@@ -35,7 +37,7 @@ public sealed class SelectedSessionDomainServiceTests
     [Fact]
     public void WireIdAndCharacterLookupsEachFindTheirOwnSession()
     {
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var third = Session(3, 303, "Game:c", 1);
         var first = Session(1, 101, "Game:a", 1);
         var second = Session(2, 202, "Game:b", 1);
@@ -50,7 +52,7 @@ public sealed class SelectedSessionDomainServiceTests
     [Fact]
     public void RegistrationRejectsCharacterAndWireIdentityCollisionAcrossAccounts()
     {
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         sessions.Select(Session(1, 101, "Game:first", 1));
 
         Assert.Throws<InvalidOperationException>(() =>
