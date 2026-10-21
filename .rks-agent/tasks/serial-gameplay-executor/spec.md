@@ -115,11 +115,11 @@ state: ready
 
 | ID | Requirement |
 |---|---|
-| RQ-050 | 每条 CMD 带调用链：根 ID、父 ID、深度、来源种类，以及来源连接（若有）。由 CMD 引起的 CMD 深度为父深度加 1，根 ID 继承父 CMD，包括：事件 CMD、关连接引起的生命周期 CMD、同一 delivery 的失败重试（继承首次消费时的链）。定时、入站、GM、HTTP、启动恢复的 CMD 是新根，深度为 0。 |
+| RQ-050 | 每条 CMD 带调用链：根 ID、父 ID、深度、来源种类，以及来源连接（若有）。由 CMD 引起的 CMD 深度为父深度加 1，根 ID 继承父 CMD，包括：事件 CMD、关连接引起的生命周期 CMD、同一 delivery 的失败重试（继承首次消费时的链）。定时、入站、GM、HTTP、启动恢复的 CMD 是新根，深度为 0。「关连接引起的生命周期 CMD」只指 CMD 登记进发件箱的关连接请求；传输层自发的关闭（交付失败、交付超时、队列超限，RQ-036；客户端断开）引起的生命周期 CMD 也是新根，来源种类为「生命周期」。 |
 | RQ-051 | 跨持久化边界的传递：事件 delivery 的调用链只保存在进程内存中，按 delivery 记录，表结构不变。进程重启后，遗留 delivery 的消费作为新根，来源种类为「启动恢复」。 |
 | RQ-052 | 深度上限是一个具名常量，取值至少为最长合法链长度的 2 倍，且不小于 8。最长合法链的统计方法：用订阅注册（事件 → 订阅）与各订阅处理中 `EnqueueAsync` 的事件类型（订阅 → 事件）构成事件图，再加上「入站或定时 → 首个事件」与「关连接 → 生命周期」两类边，取最长路径。统计结果作为表格写入附录 A；一条判据测试钉住常量不小于这个长度的 2 倍。 |
 | RQ-053 | **超限**：不入队这条 CMD，记一条 `Error` 日志，内容包含完整调用链（根到当前的来源种类与 CMD 类型序列）。此外： |
-|  | (a) 根来源是客户端连接的，关闭该连接； |
+|  | (a) 根来源是客户端连接的，关闭该连接。这次关闭由深度检查发起，不是由 CMD 登记，所以它引起的生命周期 CMD 是新根（RQ-050），不会因为继承超限的链而被拒绝执行； |
 |  | (b) 超限的 CMD 对应一行事件 delivery 的，**必须落定这一行**：Reliable 写为终态（`DomainEventDeliveryState.Terminal`），LiveOnly 以「深度超限」为理由写为完成。这次落定在执行器上的一个工作单元里进行，是一条不继承调用链、豁免深度检查的系统 CMD，它只做落定，不执行订阅处理。这样不会反复读到同一行到期的 delivery； |
 |  | (c) 其余情况只记日志。 |
 | RQ-054 | CMD 执行的开始、结束、失败日志都带根 ID、父 ID、深度与 CMD 类型。 |
@@ -243,6 +243,26 @@ state: ready
 
 最长合法链按 RQ-052 的方法在实施初期统计，表格补在这里，用于确定深度常量。
 
+**统计结果**（TASK-02；方法、52 个订阅的逐项证据与加法见 `verification/event-chain.md`）：
+
+- 类型图上有一个环：成就完成 → 称号解锁 → 称号簿物品写入 → 物品成就 → 成就完成。数据层面，物品成就的容器过滤切断了这个环，但没有测试守着这一点。所以计长度时取类型图上的最长**简单路径**，不使用数据层面的切断。
+- 「关连接 → 生命周期」这条边的口径写在 RQ-050 里：只有 CMD 登记的关连接请求，才继承登记它的那条 CMD 的链；传输层自发的关闭是新根。这样一来，「交付失败 → 关同伴 → 同伴的清理通告再失败」这种级联，就不会让链越过深度上限，进而误关根连接。
+
+| 跳 | CMD | 来源种类 | 位置 |
+|---|---|---|---|
+| 1 | 入站怪物死亡 → MonsterDefeated | 入站 | `MonsterKillRewardsDomainService.cs:44` |
+| 2 | achievement.monster → AchievementCompleted | 事件 | `AchievementDomainService.cs:204` |
+| 3 | title.unlock → 称号簿写入 → InventoryContentsChanged | 事件 | `TitleBookDomainService.cs:123` |
+| 4 | achievement.inventory（不考虑过滤）→ AchievementProgressChanged | 事件 | `AchievementDomainService.cs:171` |
+| 5 | achievement.noti | 事件 | `ProtocolModule.cs:661` |
+| 6 | CMD 登记的关连接 → 生命周期 CMD：两塔断线离开，剩余成员全灭 → 结算升级（CharacterLevelChanged）并放入物品 | 生命周期 | `SelectCharacterLifecycleServices.cs:149-163`；`BossTowerDomainService.cs:349-351`；`BossTowerRewardDomainService.cs:127` |
+| 7 | achievement.level → AchievementCompleted | 事件 | `AchievementRegistration.cs:39` |
+| 8 | title.unlock → InventoryContentsChanged | 事件 | `AchievementRegistration.cs:40` |
+| 9 | achievement.inventory（不考虑过滤） | 事件 | `AchievementRegistration.cs:36` |
+| 10 | achievement.noti | 事件 | `ProtocolModule.cs:661` |
+
+生命周期 CMD 能发出的事件种类和入站 CMD 一样，所以以它为起点的尾巴最长也是 5 跳（第 6～10 跳）。L ＝ 5 ＋ 5 ＝ 10，深度常量下限为 max(2 × 10, 8) ＝ 20。常量取 **32**，判据钉住「常量 ≥ 2 × 10」。这样，日后增加订阅时有余量；同时，真正的无限链在 32 层内仍会被截断。
+
 ## Appendix B：留在执行器外的部分
 
 | 部分 | 为什么安全 |
@@ -267,10 +287,19 @@ state: ready
 
 | ID | 要求 | 今天的位置 |
 |---|---|---|
-| XO-1 | 组队进本：跟随者的进入消息先于请求者 | `DungeonEntryProjectionDelivery.cs:356-376` |
-| XO-2 | 离开副本：同伴看到决定先于领队的 ACK | `LeaveDungeonSlice.cs:283` |
+| XO-1 | 组队进本：跟随者的进入消息先于请求者 | `DungeonEntryProjectionDelivery.cs:353-376` |
+| XO-2 | 离开副本：同伴看到决定先于领队的 ACK | `LeaveDungeonSlice.cs:283-309` |
+| XO-3 | 领主之塔进入：各成员批次先于请求者 | `BossTowerProjectionDelivery.cs:175` |
+| XO-4 | 幻影塔进入：各成员批次先于请求者 | `IllusionTowerProjectionDelivery.cs:171` |
+| XO-5 | 清理通告：所有者 → 城镇同伴 → 队伍投影（与 DR-10 互引） | `SupplementalSynchronizationMessages.cs:222-276` |
+| XO-6 | 队伍状态按阶段跨收件人推进，每一阶段全员交付后才进入下一阶段 | `PartyNotificationSlice.cs:798-842` |
+| XO-7 | 婚礼：先向双方广播两人位置，再让任何一端开始过场 | `MarriageWeddingSlice.cs:220-222` |
 
-实施时检索其余「Peers / before the leader / must precede」类要求；新发现的项补入本表并配测试。
+检索方法、命中清单、加法，以及今天各项由哪些测试守着，见 `verification/cross-connection-order.md` 与 `verification/xo-dispositions.md`。XO-6、XO-7 的源码没有说清楚为什么需要跨连接等待，按「行为不变」的原则保守列入；实施时只有拿到证据才能移出。
+
+**改造后允许乱序的写法**：「先发给操作者本人、再发给其他人」（约 5 处，见 `xo-dispositions.md` 第 1 节）；城镇到达时「先向同伴发到达、再向本人发同伴」（`TownAreaProjectionDelivery.cs:204-210`、`:575-588`）；请求者 Required 先发、其余 BestEffort 后发（`DeliverExplicitAsync` 的实现顺序）。这三种写法都没有注释或测试要求先后，所以不列入本表。T-006 可以不保持它们的跨连接先后，单连接顺序仍按 RQ-032 保持。
+
+**口径**：顺序指「交付」的先后，即交给传输层的先后（Definitions）。TASK-01 实测，在基线上，两个连接在客户端一侧的到达先后并不确定（`verification/logs/xo-arrival-measurement.txt`），所以 AC-012 的测试在发送端这一层断言交付顺序，不在线上的到达层断言。
 
 ## Appendix E：依赖投递结果或同步发送异常的行为
 
