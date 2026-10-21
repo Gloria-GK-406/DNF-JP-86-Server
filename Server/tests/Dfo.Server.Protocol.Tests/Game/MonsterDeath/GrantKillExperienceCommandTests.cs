@@ -8,6 +8,7 @@ using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.MonsterDeath;
 
@@ -83,31 +84,34 @@ public sealed class GrantKillExperienceCommandTests
     private static async Task<ExperienceAward?> Award(
         int monsterLevel, MonsterRank rank, double channelRate, bool named = false)
     {
-        var handler = new GrantKillExperienceCommandHandler(new PricingGrant(new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
-                new CapturedParameters(),
-                new UngradedRanks(),
-                new NoProgression(),
-                new NoChannelExperience(),
-                ExperienceTuning.Default,
-                ExperienceEntitlementPolicy.None)),
-            new FixedChannelBonus(channelRate)), characterLevel: 3), TimeProvider.System);
+        return await TestGameplay.RunAsync(async () =>
+        {
+            var handler = new GrantKillExperienceCommandHandler(new PricingGrant(new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
+                    new CapturedParameters(),
+                    new UngradedRanks(),
+                    new NoProgression(),
+                    new NoChannelExperience(),
+                    ExperienceTuning.Default,
+                    ExperienceEntitlementPolicy.None)),
+                new FixedChannelBonus(channelRate)), characterLevel: 3), TimeProvider.System);
 
-        var result = await handler.HandleAsync(
-            new CommandExecutionContext(
-                Guid.Empty,
-                typeof(GrantKillExperienceCommand),
-                typeof(GrantKillExperienceCommandHandler),
-                CommandExecutionKind.Transactional),
-            new GrantKillExperienceCommand(
-                new AccountId(1),
-                new CharacterId(60),
-                new KilledMonster(Code: 63751, monsterLevel, rank, named),
-                CapturedDungeon,
-                Difficulty: 0,
-                CapturedDungeonWeight),
-            CancellationToken.None);
+            var result = await handler.HandleAsync(
+                new CommandExecutionContext(
+                    Guid.Empty,
+                    typeof(GrantKillExperienceCommand),
+                    typeof(GrantKillExperienceCommandHandler),
+                    CommandExecutionKind.Transactional),
+                new GrantKillExperienceCommand(
+                    new AccountId(1),
+                    new CharacterId(60),
+                    new KilledMonster(Code: 63751, monsterLevel, rank, named),
+                    CapturedDungeon,
+                    Difficulty: 0,
+                    CapturedDungeonWeight),
+                CancellationToken.None);
 
-        return result.Award;
+            return result.Award;
+        });
     }
 
     /// <summary>The archive's rates as they stood for the captured run.</summary>

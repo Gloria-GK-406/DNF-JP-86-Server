@@ -7,6 +7,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Weakness;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.Weakness;
 
@@ -27,19 +28,22 @@ public sealed class WeaknessProjectionTests
     [Fact]
     public async Task Projection_uses_current_value_and_refuses_replaced_session()
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(1), new("old"), 1, 10011);
-        var sessions = new Sessions(session);
-        var state = new State { Value = 10 };
-        var sender = new Sender();
-        var delivery = new WeaknessProjectionDelivery(state, sessions, sender);
-        await delivery.SendCurrentAsync(session, default);
-        state.Value = 19;
-        await delivery.SendCurrentAsync(session, default);
-        sessions.Current = session with { ConnectionId = new("new"), ConnectionGeneration = 2 };
-        await delivery.SendCurrentAsync(session, default);
-        state.Value = 28;
-        await delivery.SendCurrentAsync(sessions.Current, default);
-        Assert.Equal(new byte[] { 10, 19, 28 }, sender.Sent.Select(item => item.Value));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = SelectedSessionIdentity.Create(new(1), new(1), new("old"), 1, 10011);
+            var sessions = new Sessions(session);
+            var state = new State { Value = 10 };
+            var sender = new Sender();
+            var delivery = new WeaknessProjectionDelivery(state, sessions, sender);
+            await delivery.SendCurrentAsync(session, default);
+            state.Value = 19;
+            await delivery.SendCurrentAsync(session, default);
+            sessions.Current = session with { ConnectionId = new("new"), ConnectionGeneration = 2 };
+            await delivery.SendCurrentAsync(session, default);
+            state.Value = 28;
+            await delivery.SendCurrentAsync(sessions.Current, default);
+            Assert.Equal(new byte[] { 10, 19, 28 }, sender.Sent.Select(item => item.Value));
+        });
     }
 
     private sealed class State : IWeaknessDomainService, IWeakness

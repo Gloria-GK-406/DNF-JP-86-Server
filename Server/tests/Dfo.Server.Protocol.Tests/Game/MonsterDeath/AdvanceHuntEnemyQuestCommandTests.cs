@@ -14,6 +14,7 @@ using Dfo.Server.Data.Parties;
 using Dfo.Server.Protocol.Tests.Game.Party;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 using QuestTaken = Dfo.Server.Abstractions.Quests.QuestAcceptance;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.MonsterDeath;
 
@@ -25,50 +26,56 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     [Fact]
     public async Task AServerVerifiedMonsterTargetAdvancesFromOneToZero()
     {
-        var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = Handler(log);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var log = new OneLog(new CarriedQuest(0, 1776, 1));
+            var handler = Handler(log);
 
-        var result = await handler.HandleAsync(
-            Context(),
-            Command(
-                dungeonId: 144,
-                difficulty: 0,
-                enemyCode: 13099,
-                enemyType: HuntEnemyTargetTypes.Monster),
-            CancellationToken.None);
+            var result = await handler.HandleAsync(
+                Context(),
+                Command(
+                    dungeonId: 144,
+                    difficulty: 0,
+                    enemyCode: 13099,
+                    enemyType: HuntEnemyTargetTypes.Monster),
+                CancellationToken.None);
 
-        Assert.Equal(new CarriedQuest(0, 1776, 0), log.Carried);
-        Assert.Equal(
-            [new HuntEnemyQuestAdvance(1776, 1, 0)],
-            result.Advances);
+            Assert.Equal(new CarriedQuest(0, 1776, 0), log.Carried);
+            Assert.Equal(
+                [new HuntEnemyQuestAdvance(1776, 1, 0)],
+                result.Advances);
+        });
     }
 
     [Fact]
     public async Task TheAtomicKillUsesMonsterFamilyRatherThanMonsterRankForQuestMatching()
     {
-        var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
-            new OneCharacterLog(log),
-            new CharacterContainerDomainService(),
-            Progress(log),
-            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var log = new OneLog(new CarriedQuest(0, 1776, 1));
+            var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
+                new OneCharacterLog(log),
+                new CharacterContainerDomainService(),
+                Progress(log),
+                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
 
-        var result = await handler.HandleAsync(
-            new CommandExecutionContext(
-                Guid.Empty,
-                typeof(ApplyMonsterKillCommand),
-                typeof(ApplyMonsterKillCommandHandler),
-                CommandExecutionKind.Transactional),
-            new ApplyMonsterKillCommand(
-                Account,
-                Character,
-                new KilledMonster(13099, 5, MonsterRank.Boss),
-                144,
-                0,
-                1),
-            CancellationToken.None);
+            var result = await handler.HandleAsync(
+                new CommandExecutionContext(
+                    Guid.Empty,
+                    typeof(ApplyMonsterKillCommand),
+                    typeof(ApplyMonsterKillCommandHandler),
+                    CommandExecutionKind.Transactional),
+                new ApplyMonsterKillCommand(
+                    Account,
+                    Character,
+                    new KilledMonster(13099, 5, MonsterRank.Boss),
+                    144,
+                    0,
+                    1),
+                CancellationToken.None);
 
-        Assert.Equal([new HuntEnemyQuestAdvance(1776, 1, 0)], result.QuestAdvances);
+            Assert.Equal([new HuntEnemyQuestAdvance(1776, 1, 0)], result.QuestAdvances);
+        });
     }
 
     [Theory]
@@ -78,184 +85,199 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         bool finalBoss,
         int expectedTrigger)
     {
-        var log = new OneLog(new CarriedQuest(0, 1781, 1));
-        var definition = new QuestDefinition(
-            1781, "", null, null, null, null, null, null, [],
-            "condition under clear", "", null, null, null, null, null, null,
-            null, [], [], [], [],
-            DungeonClearRequirement: new DungeonClearRequirement(146, -1));
-        var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
-            new OneCharacterLog(log),
-            new CharacterContainerDomainService(),
-            Progress(log, definition),
-            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var log = new OneLog(new CarriedQuest(0, 1781, 1));
+            var definition = new QuestDefinition(
+                1781, "", null, null, null, null, null, null, [],
+                "condition under clear", "", null, null, null, null, null, null,
+                null, [], [], [], [],
+                DungeonClearRequirement: new DungeonClearRequirement(146, -1));
+            var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
+                new OneCharacterLog(log),
+                new CharacterContainerDomainService(),
+                Progress(log, definition),
+                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
 
-        var result = await handler.HandleAsync(
-            new CommandExecutionContext(Guid.Empty, typeof(ApplyMonsterKillCommand),
-                typeof(ApplyMonsterKillCommandHandler), CommandExecutionKind.Transactional),
-            new ApplyMonsterKillCommand(
-                Account, Character, new KilledMonster(3001, 5, MonsterRank.Boss),
-                146, 0, 1, IsFinalBossDeath: finalBoss),
-            CancellationToken.None);
+            var result = await handler.HandleAsync(
+                new CommandExecutionContext(Guid.Empty, typeof(ApplyMonsterKillCommand),
+                    typeof(ApplyMonsterKillCommandHandler), CommandExecutionKind.Transactional),
+                new ApplyMonsterKillCommand(
+                    Account, Character, new KilledMonster(3001, 5, MonsterRank.Boss),
+                    146, 0, 1, IsFinalBossDeath: finalBoss),
+                CancellationToken.None);
 
-        Assert.Equal(expectedTrigger, log.Carried.TriggerValue);
-        Assert.Equal(finalBoss, result.QuestProgress is not null);
+            Assert.Equal(expectedTrigger, log.Carried.TriggerValue);
+            Assert.Equal(finalBoss, result.QuestProgress is not null);
+        });
     }
 
     [Fact]
     public async Task AnAiCharacterDeathAdvancesItsTargetWithoutAwardingExperience()
     {
-        var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new ExperienceMustNotBeAwarded(),
-            new OneCharacterLog(log),
-            new CharacterContainerDomainService(),
-            Progress(log, Quest1776(HuntEnemyTargetTypes.AiCharacter)),
-            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var log = new OneLog(new CarriedQuest(0, 1776, 1));
+            var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new ExperienceMustNotBeAwarded(),
+                new OneCharacterLog(log),
+                new CharacterContainerDomainService(),
+                Progress(log, Quest1776(HuntEnemyTargetTypes.AiCharacter)),
+                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
 
-        var result = await handler.HandleAsync(
-            new CommandExecutionContext(
-                Guid.Empty,
-                typeof(ApplyMonsterKillCommand),
-                typeof(ApplyMonsterKillCommandHandler),
-                CommandExecutionKind.Transactional),
-            new ApplyMonsterKillCommand(
-                Account,
-                Character,
-                new KilledMonster(13099, 5, MonsterRank.Ordinary),
-                144,
-                0,
-                1,
-                HuntEnemyTargetTypes.AiCharacter),
-            CancellationToken.None);
+            var result = await handler.HandleAsync(
+                new CommandExecutionContext(
+                    Guid.Empty,
+                    typeof(ApplyMonsterKillCommand),
+                    typeof(ApplyMonsterKillCommandHandler),
+                    CommandExecutionKind.Transactional),
+                new ApplyMonsterKillCommand(
+                    Account,
+                    Character,
+                    new KilledMonster(13099, 5, MonsterRank.Ordinary),
+                    144,
+                    0,
+                    1,
+                    HuntEnemyTargetTypes.AiCharacter),
+                CancellationToken.None);
 
-        Assert.Null(result.Award);
-        Assert.Equal([new HuntEnemyQuestAdvance(1776, 1, 0)], result.QuestAdvances);
+            Assert.Null(result.Award);
+            Assert.Equal([new HuntEnemyQuestAdvance(1776, 1, 0)], result.QuestAdvances);
+        });
     }
 
     [Fact]
     public async Task TheAtomicKillCarriesTheFrozenPartySizeIntoExperienceValuation()
     {
-        var valuation = new RecordingValuation();
-        var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new PricingOnlyExperience(new Dfo.Server.Application.World.ExperienceCalculationDomainService(valuation, new UnusedBonuses())),
-            new OneCharacterLog(log),
-            new CharacterContainerDomainService(),
-            Progress(log),
-            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var valuation = new RecordingValuation();
+            var log = new OneLog(new CarriedQuest(0, 1776, 1));
+            var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new PricingOnlyExperience(new Dfo.Server.Application.World.ExperienceCalculationDomainService(valuation, new UnusedBonuses())),
+                new OneCharacterLog(log),
+                new CharacterContainerDomainService(),
+                Progress(log),
+                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
 
-        await handler.HandleAsync(
-            new CommandExecutionContext(
-                Guid.Empty,
-                typeof(ApplyMonsterKillCommand),
-                typeof(ApplyMonsterKillCommandHandler),
-                CommandExecutionKind.Transactional),
-            new ApplyMonsterKillCommand(
-                Account,
-                Character,
-                new KilledMonster(Code: 13098, Level: 5, Rank: MonsterRank.Ordinary),
-                DungeonId: 144,
-                Difficulty: 0,
-                DungeonWeight: 1,
-                PartyMemberCount: 2),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                new CommandExecutionContext(
+                    Guid.Empty,
+                    typeof(ApplyMonsterKillCommand),
+                    typeof(ApplyMonsterKillCommandHandler),
+                    CommandExecutionKind.Transactional),
+                new ApplyMonsterKillCommand(
+                    Account,
+                    Character,
+                    new KilledMonster(Code: 13098, Level: 5, Rank: MonsterRank.Ordinary),
+                    DungeonId: 144,
+                    Difficulty: 0,
+                    DungeonWeight: 1,
+                    PartyMemberCount: 2),
+                CancellationToken.None);
 
-        Assert.Equal(2, valuation.Kill?.PartyMemberCount);
+            Assert.Equal(2, valuation.Kill?.PartyMemberCount);
+        });
     }
 
     [Fact]
     public async Task A_direct_quest_item_is_banked_for_its_owner_and_capped_again_at_kill_time()
     {
-        var bag = new DirectGrantBag(14);
-        var containers = new CharacterContainerDomainService();
-        containers.Register(Character, bag);
-        var seeking = new RecordingSeekingProgress();
-        var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
-            new OneCharacterLog(log),
-            containers,
-            Progress(log, seeking: seeking),
-            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bag = new DirectGrantBag(14);
+            var containers = new CharacterContainerDomainService();
+            containers.Register(Character, bag);
+            var seeking = new RecordingSeekingProgress();
+            var log = new OneLog(new CarriedQuest(0, 1776, 1));
+            var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
+                new OneCharacterLog(log),
+                containers,
+                Progress(log, seeking: seeking),
+                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers)));
 
-        var result = await handler.HandleAsync(
-            new CommandExecutionContext(
-                Guid.Empty,
-                typeof(ApplyMonsterKillCommand),
-                typeof(ApplyMonsterKillCommandHandler),
-                CommandExecutionKind.Transactional),
-            new ApplyMonsterKillCommand(
-                Account, Character,
-                new KilledMonster(13098, 5, MonsterRank.Ordinary),
-                144, 0, 1,
-                EnemyType: HuntEnemyTargetTypes.AiCharacter,
-                PendingLoot:
-                [
-                    new RolledDrop(10149163, 3, DropRarity.Common, DropItemKind.Stackable,
-                        OwnerCharacterId: Character,
-                        Delivery: RolledDropDelivery.DirectQuestItem,
-                        QuestId: 1776, GrantLimit: 15),
-                    new RolledDrop(10149163, 1, DropRarity.Common, DropItemKind.Stackable,
-                        OwnerCharacterId: new CharacterId(61),
-                        Delivery: RolledDropDelivery.DirectQuestItem,
-                        QuestId: 1776, GrantLimit: 15),
-                ]),
-            CancellationToken.None);
+            var result = await handler.HandleAsync(
+                new CommandExecutionContext(
+                    Guid.Empty,
+                    typeof(ApplyMonsterKillCommand),
+                    typeof(ApplyMonsterKillCommandHandler),
+                    CommandExecutionKind.Transactional),
+                new ApplyMonsterKillCommand(
+                    Account, Character,
+                    new KilledMonster(13098, 5, MonsterRank.Ordinary),
+                    144, 0, 1,
+                    EnemyType: HuntEnemyTargetTypes.AiCharacter,
+                    PendingLoot:
+                    [
+                        new RolledDrop(10149163, 3, DropRarity.Common, DropItemKind.Stackable,
+                            OwnerCharacterId: Character,
+                            Delivery: RolledDropDelivery.DirectQuestItem,
+                            QuestId: 1776, GrantLimit: 15),
+                        new RolledDrop(10149163, 1, DropRarity.Common, DropItemKind.Stackable,
+                            OwnerCharacterId: new CharacterId(61),
+                            Delivery: RolledDropDelivery.DirectQuestItem,
+                            QuestId: 1776, GrantLimit: 15),
+                    ]),
+                CancellationToken.None);
 
-        Assert.Equal(15, bag.Count);
-        Assert.Single(result.QuestItems!.Items);
-        Assert.Equal(1, seeking.TimesAsked);
+            Assert.Equal(15, bag.Count);
+            Assert.Single(result.QuestItems!.Items);
+            Assert.Equal(1, seeking.TimesAsked);
+        });
     }
 
     [Fact]
     public async Task Object_claim_grants_only_its_owners_active_quest_item_and_commits_without_experience()
     {
-        var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
-        var runs = new Dfo.Server.Application.World.DungeonRunDomainService(scope);
-        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
-        var session = Dfo.Server.Testing.TestSessions.InWorld(sessions, state, Account, Character, "object", 10010);
-        var layout = new DungeonLayout(84, 0, 1, 1, new(0, 0), new(0, 0), 10, 0,
-            new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(10)});
-        var seed = DungeonCellSeed.CompleteEmpty(new(0, 0), 10) with
+        await TestGameplay.RunAsync(async () =>
         {
-            Objects = [new(new(new(DungeonObjectSection.SpecialPassive, 0), 8961, 10, 10, 0),
-                [new(10149163, 3, DropRarity.Common, DropItemKind.Stackable,
-                    OwnerCharacterId: Character, Delivery: RolledDropDelivery.DirectQuestItem,
-                    QuestId: 1776, GrantLimit: 15)])],
-        };
-        var run = runs.PreparePartyEntry([new(Account, Character, 0, true)], layout,
-            DungeonDifficulty.Normal, seed, DungeonRunId.New(), DateTimeOffset.UtcNow).Run;
-        var bag = new DirectGrantBag(14);
-        var containers = new CharacterContainerDomainService();
-        var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var seeking = new RecordingSeekingProgress();
-        var handler = new ApplyObjectDestructionCommandHandler(runs, sessions, new OneCharacterLog(log),
-            containers, new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers),
-            Progress(log, seeking: seeking));
-        var context = new CommandExecutionContext(Guid.Empty, typeof(ApplyObjectDestructionCommand),
-            typeof(ApplyObjectDestructionCommandHandler), CommandExecutionKind.Transactional);
-        var command = new ApplyObjectDestructionCommand(session, run.RunId, run.RoomVersion, 8961);
+            var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
+            var runs = new Dfo.Server.Application.World.DungeonRunDomainService(scope);
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+            var session = Dfo.Server.Testing.TestSessions.InWorld(sessions, state, Account, Character, "object", 10010);
+            var layout = new DungeonLayout(84, 0, 1, 1, new(0, 0), new(0, 0), 10, 0,
+                new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(10)});
+            var seed = DungeonCellSeed.CompleteEmpty(new(0, 0), 10) with
+            {
+                Objects = [new(new(new(DungeonObjectSection.SpecialPassive, 0), 8961, 10, 10, 0),
+                    [new(10149163, 3, DropRarity.Common, DropItemKind.Stackable,
+                        OwnerCharacterId: Character, Delivery: RolledDropDelivery.DirectQuestItem,
+                        QuestId: 1776, GrantLimit: 15)])],
+            };
+            var run = runs.PreparePartyEntry([new(Account, Character, 0, true)], layout,
+                DungeonDifficulty.Normal, seed, DungeonRunId.New(), DateTimeOffset.UtcNow).Run;
+            var bag = new DirectGrantBag(14);
+            var containers = new CharacterContainerDomainService();
+            var log = new OneLog(new CarriedQuest(0, 1776, 1));
+            var seeking = new RecordingSeekingProgress();
+            var handler = new ApplyObjectDestructionCommandHandler(runs, sessions, new OneCharacterLog(log),
+                containers, new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers),
+                Progress(log, seeking: seeking));
+            var context = new CommandExecutionContext(Guid.Empty, typeof(ApplyObjectDestructionCommand),
+                typeof(ApplyObjectDestructionCommandHandler), CommandExecutionKind.Transactional);
+            var command = new ApplyObjectDestructionCommand(session, run.RunId, run.RoomVersion, 8961);
 
-        // An unavailable inventory must not eat the queued reward.
-        await using (var failed = scope.Begin())
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => await handler.HandleAsync(context, command, default));
-        Assert.False(runs.Find(Character)!.CurrentCellState.Objects[0].IsConsumed);
-        containers.Register(Character, bag);
-        await using (var tx = scope.Begin())
-        {
-            var result = await handler.HandleAsync(context, command, default);
-            var effects = Assert.Single(result.Rewards!).Effects;
-            Assert.Null(effects.Award);
-            Assert.Empty(effects.QuestAdvances);
-            Assert.Single(effects.QuestItems!.Items);
-            Assert.Equal(15, bag.Count);
+            // An unavailable inventory must not eat the queued reward.
+            await using (var failed = scope.Begin())
+                await Assert.ThrowsAsync<InvalidOperationException>(async () => await handler.HandleAsync(context, command, default));
             Assert.False(runs.Find(Character)!.CurrentCellState.Objects[0].IsConsumed);
-            await tx.CommitAsync(default);
-        }
-        Assert.True(runs.Find(Character)!.CurrentCellState.Objects[0].IsConsumed);
-        Assert.Empty(runs.Find(Character)!.Kills);
-        Assert.Equal(1, seeking.TimesAsked);
-        await using var replay = scope.Begin();
-        Assert.Null((await handler.HandleAsync(context, command, default)).Rewards);
-        Assert.Equal(15, bag.Count);
+            containers.Register(Character, bag);
+            await using (var tx = scope.Begin())
+            {
+                var result = await handler.HandleAsync(context, command, default);
+                var effects = Assert.Single(result.Rewards!).Effects;
+                Assert.Null(effects.Award);
+                Assert.Empty(effects.QuestAdvances);
+                Assert.Single(effects.QuestItems!.Items);
+                Assert.Equal(15, bag.Count);
+                Assert.False(runs.Find(Character)!.CurrentCellState.Objects[0].IsConsumed);
+                await tx.CommitAsync(default);
+            }
+            Assert.True(runs.Find(Character)!.CurrentCellState.Objects[0].IsConsumed);
+            Assert.Empty(runs.Find(Character)!.Kills);
+            Assert.Equal(1, seeking.TimesAsked);
+            await using var replay = scope.Begin();
+            Assert.Null((await handler.HandleAsync(context, command, default)).Rewards);
+            Assert.Equal(15, bag.Count);
+        });
     }
 
     [Theory]
@@ -265,61 +287,70 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     public async Task One_object_pays_each_active_quest_owner_with_independent_holding_caps(
         int memberQuest, int before, int expected)
     {
-        var fixture = new ObjectPartyFixture(memberQuest, before);
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await fixture.Apply();
-            Assert.Equal(2, result.Rewards!.Count);
-            Assert.Equal(15, fixture.FirstBag.Count);
+            var fixture = new ObjectPartyFixture(memberQuest, before);
+            await using (var tx = fixture.Scope.Begin())
+            {
+                var result = await fixture.Apply();
+                Assert.Equal(2, result.Rewards!.Count);
+                Assert.Equal(15, fixture.FirstBag.Count);
+                Assert.Equal(expected, fixture.SecondBag.Count);
+                Assert.Equal(fixture.Command.Recipients, result.Rewards.Select(value => value.Session));
+                Assert.All(result.Rewards, value => Assert.Null(value.Effects.Award));
+                Assert.NotNull(result.Rewards[0].Effects.QuestItems);
+                Assert.Equal(expected != before, result.Rewards[1].Effects.QuestItems is not null);
+                await tx.CommitAsync(default);
+            }
+            Assert.True(fixture.Run.CurrentCellState.Objects[0].IsConsumed);
+            Assert.Empty(fixture.Run.Kills);
+            await using var again = fixture.Scope.Begin();
+            Assert.Null((await fixture.Apply()).Rewards);
             Assert.Equal(expected, fixture.SecondBag.Count);
-            Assert.Equal(fixture.Command.Recipients, result.Rewards.Select(value => value.Session));
-            Assert.All(result.Rewards, value => Assert.Null(value.Effects.Award));
-            Assert.NotNull(result.Rewards[0].Effects.QuestItems);
-            Assert.Equal(expected != before, result.Rewards[1].Effects.QuestItems is not null);
-            await tx.CommitAsync(default);
-        }
-        Assert.True(fixture.Run.CurrentCellState.Objects[0].IsConsumed);
-        Assert.Empty(fixture.Run.Kills);
-        await using var again = fixture.Scope.Begin();
-        Assert.Null((await fixture.Apply()).Rewards);
-        Assert.Equal(expected, fixture.SecondBag.Count);
+        });
     }
 
     [Fact]
     public async Task Failure_in_second_inventory_rolls_back_both_owners_and_releases_object()
     {
-        var fixture = new ObjectPartyFixture(1776, 5);
-        fixture.SecondBag.FailAdd = true;
-        await using (var tx = fixture.Scope.Begin())
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => await fixture.Apply());
-        Assert.Equal(14, fixture.FirstBag.Count);
-        Assert.Equal(5, fixture.SecondBag.Count);
-        Assert.False(fixture.Run.CurrentCellState.Objects[0].IsConsumed);
-        fixture.SecondBag.FailAdd = false;
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.Equal(2, (await fixture.Apply()).Rewards!.Count);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(15, fixture.FirstBag.Count);
-        Assert.Equal(8, fixture.SecondBag.Count);
-        Assert.True(fixture.Run.CurrentCellState.Objects[0].IsConsumed);
+            var fixture = new ObjectPartyFixture(1776, 5);
+            fixture.SecondBag.FailAdd = true;
+            await using (var tx = fixture.Scope.Begin())
+                await Assert.ThrowsAsync<InvalidOperationException>(async () => await fixture.Apply());
+            Assert.Equal(14, fixture.FirstBag.Count);
+            Assert.Equal(5, fixture.SecondBag.Count);
+            Assert.False(fixture.Run.CurrentCellState.Objects[0].IsConsumed);
+            fixture.SecondBag.FailAdd = false;
+            await using (var tx = fixture.Scope.Begin())
+            {
+                Assert.Equal(2, (await fixture.Apply()).Rewards!.Count);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(15, fixture.FirstBag.Count);
+            Assert.Equal(8, fixture.SecondBag.Count);
+            Assert.True(fixture.Run.CurrentCellState.Objects[0].IsConsumed);
+        });
     }
 
     [Fact]
     public async Task Replacement_session_or_incomplete_recipient_set_cannot_spend_object()
     {
-        var fixture = new ObjectPartyFixture(1776, 5);
-        await using (var tx = fixture.Scope.Begin())
-            Assert.Null((await fixture.Apply(fixture.Command with
-                { Recipients = [fixture.Command.Session] })).Rewards);
-        var member = fixture.Command.Recipients[1];
-        _ = Dfo.Server.Testing.TestSessions.InWorld(
-            fixture.Sessions, fixture.State, member.AccountId, member.CharacterId, "replacement", member.ListenerPort);
-        await using var stale = fixture.Scope.Begin();
-        Assert.Null((await fixture.Apply()).Rewards);
-        Assert.Equal(14, fixture.FirstBag.Count);
-        Assert.False(fixture.Run.CurrentCellState.Objects[0].IsConsumed);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new ObjectPartyFixture(1776, 5);
+            await using (var tx = fixture.Scope.Begin())
+                Assert.Null((await fixture.Apply(fixture.Command with
+                    { Recipients = [fixture.Command.Session] })).Rewards);
+            var member = fixture.Command.Recipients[1];
+            _ = Dfo.Server.Testing.TestSessions.InWorld(
+                fixture.Sessions, fixture.State, member.AccountId, member.CharacterId, "replacement", member.ListenerPort);
+            await using var stale = fixture.Scope.Begin();
+            Assert.Null((await fixture.Apply()).Rewards);
+            Assert.Equal(14, fixture.FirstBag.Count);
+            Assert.False(fixture.Run.CurrentCellState.Objects[0].IsConsumed);
+        });
     }
 
     private sealed class ObjectPartyFixture
@@ -391,35 +422,38 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     [Fact]
     public async Task A_departed_owner_does_not_receive_an_ungranted_direct_quest_item()
     {
-        var bag = new DirectGrantBag(14);
-        var containers = new CharacterContainerDomainService();
-        containers.Register(Character, bag);
-        var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
-            new OneCharacterLog(log),
-            containers,
-            Progress(log),
-            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers),
-            new VirtualOnlyPartyService()));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bag = new DirectGrantBag(14);
+            var containers = new CharacterContainerDomainService();
+            containers.Register(Character, bag);
+            var log = new OneLog(new CarriedQuest(0, 1776, 1));
+            var handler = new ApplyMonsterKillCommandHandler(new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
+                new OneCharacterLog(log),
+                containers,
+                Progress(log),
+                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers),
+                new VirtualOnlyPartyService()));
 
-        var result = await handler.HandleAsync(
-            new CommandExecutionContext(Guid.Empty, typeof(ApplyMonsterKillCommand),
-                typeof(ApplyMonsterKillCommandHandler), CommandExecutionKind.Transactional),
-            new ApplyMonsterKillCommand(
-                Account, Character, new KilledMonster(13098, 5, MonsterRank.Ordinary),
-                144, 0, 1, EnemyType: HuntEnemyTargetTypes.AiCharacter,
-                PendingLoot:
-                [
-                    new RolledDrop(10149163, 1, DropRarity.Common, DropItemKind.Stackable,
-                        OwnerCharacterId: Character,
-                        Delivery: RolledDropDelivery.DirectQuestItem,
-                        QuestId: 1776, GrantLimit: 15),
-                ],
-                PartyKey: PartyKey.Virtual(Character)),
-            CancellationToken.None);
+            var result = await handler.HandleAsync(
+                new CommandExecutionContext(Guid.Empty, typeof(ApplyMonsterKillCommand),
+                    typeof(ApplyMonsterKillCommandHandler), CommandExecutionKind.Transactional),
+                new ApplyMonsterKillCommand(
+                    Account, Character, new KilledMonster(13098, 5, MonsterRank.Ordinary),
+                    144, 0, 1, EnemyType: HuntEnemyTargetTypes.AiCharacter,
+                    PendingLoot:
+                    [
+                        new RolledDrop(10149163, 1, DropRarity.Common, DropItemKind.Stackable,
+                            OwnerCharacterId: Character,
+                            Delivery: RolledDropDelivery.DirectQuestItem,
+                            QuestId: 1776, GrantLimit: 15),
+                    ],
+                    PartyKey: PartyKey.Virtual(Character)),
+                CancellationToken.None);
 
-        Assert.Equal(14, bag.Count);
-        Assert.Null(result.QuestItems);
+            Assert.Equal(14, bag.Count);
+            Assert.Null(result.QuestItems);
+        });
     }
 
     [Theory]
@@ -432,15 +466,18 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         int enemyCode,
         int enemyType)
     {
-        var log = new OneLog(new CarriedQuest(0, 1776, 1));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var log = new OneLog(new CarriedQuest(0, 1776, 1));
 
-        var result = await Handler(log).HandleAsync(
-            Context(),
-            Command(dungeonId, difficulty, enemyCode, enemyType),
-            CancellationToken.None);
+            var result = await Handler(log).HandleAsync(
+                Context(),
+                Command(dungeonId, difficulty, enemyCode, enemyType),
+                CancellationToken.None);
 
-        Assert.Equal(1, log.Carried.TriggerValue);
-        Assert.Empty(result.Advances);
+            Assert.Equal(1, log.Carried.TriggerValue);
+            Assert.Empty(result.Advances);
+        });
     }
 
     private static AdvanceHuntEnemyQuestCommandHandler Handler(OneLog log) =>

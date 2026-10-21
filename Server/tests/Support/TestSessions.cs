@@ -34,9 +34,12 @@ internal static class TestSessions
         string connectionId,
         int listenerPort = 10011)
     {
-        var session = Selected(sessions, state, accountId, characterId, connectionId, listenerPort);
-        sessions.EnterWorld(session);
-        return session;
+        return TestGameplay.Run(() =>
+        {
+            var session = Selected(sessions, state, accountId, characterId, connectionId, listenerPort);
+            sessions.EnterWorld(session);
+            return session;
+        });
     }
 
     /// <summary>Registers, authenticates and selects one game connection, without entering it.</summary>
@@ -48,14 +51,17 @@ internal static class TestSessions
         string connectionId,
         int listenerPort = 10011)
     {
-        var online = state.RegisterConnection(new NetworkConnectionContext(
-            new NetworkConnectionId(connectionId), NetworkEndpointKind.Game, listenerPort));
-        state.Authenticate(online.OnlineUserId, accountId);
-        var session = SelectedSessionIdentity.Create(
-            accountId, characterId, online.Connection.ConnectionId,
-            state.GetRequiredUser(online.OnlineUserId).Generation, listenerPort);
-        sessions.Select(session);
-        return session;
+        return TestGameplay.Run(() =>
+        {
+            var online = state.RegisterConnection(new NetworkConnectionContext(
+                new NetworkConnectionId(connectionId), NetworkEndpointKind.Game, listenerPort));
+            state.Authenticate(online.OnlineUserId, accountId);
+            var session = SelectedSessionIdentity.Create(
+                accountId, characterId, online.Connection.ConnectionId,
+                state.GetRequiredUser(online.OnlineUserId).Generation, listenerPort);
+            sessions.Select(session);
+            return session;
+        });
     }
 
     /// <summary>
@@ -66,8 +72,11 @@ internal static class TestSessions
         this Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService sessions,
         SelectedSessionIdentity session)
     {
-        if (!sessions.IsInWorld(session))
-            sessions.EnterWorld(session);
+        TestGameplay.Run(() =>
+        {
+            if (!sessions.IsInWorld(session))
+                sessions.EnterWorld(session);
+        });
     }
 
     /// <summary>
@@ -79,15 +88,18 @@ internal static class TestSessions
         OnlineStateRegistry state,
         SelectedSessionIdentity session)
     {
-        if (!state.TryGetByConnection(session.ConnectionId, out _))
+        TestGameplay.Run(() =>
         {
-            var online = state.RegisterConnection(new NetworkConnectionContext(
-                session.ConnectionId, NetworkEndpointKind.Game, session.ListenerPort));
-            state.Authenticate(online.OnlineUserId, session.AccountId);
-        }
-        if (sessions.Find(session.AccountId) != session)
-            sessions.Select(session);
-        sessions.EnterWorld(session);
+            if (!state.TryGetByConnection(session.ConnectionId, out _))
+            {
+                var online = state.RegisterConnection(new NetworkConnectionContext(
+                    session.ConnectionId, NetworkEndpointKind.Game, session.ListenerPort));
+                state.Authenticate(online.OnlineUserId, session.AccountId);
+            }
+            if (sessions.Find(session.AccountId) != session)
+                sessions.Select(session);
+            sessions.EnterWorld(session);
+        });
     }
 
     /// <summary>
@@ -99,12 +111,15 @@ internal static class TestSessions
         OnlineStateRegistry state,
         SelectedSessionIdentity previous)
     {
-        sessions.ReleaseExact(previous);
-        if (!state.TryGetByConnection(previous.ConnectionId, out var owner) || owner is null)
-            throw new InvalidOperationException("The connection is no longer registered.");
-        var session = previous with { ConnectionGeneration = owner.Generation };
-        sessions.Select(session);
-        sessions.EnterWorld(session);
-        return session;
+        return TestGameplay.Run(() =>
+        {
+            sessions.ReleaseExact(previous);
+            if (!state.TryGetByConnection(previous.ConnectionId, out var owner) || owner is null)
+                throw new InvalidOperationException("The connection is no longer registered.");
+            var session = previous with { ConnectionGeneration = owner.Generation };
+            sessions.Select(session);
+            sessions.EnterWorld(session);
+            return session;
+        });
     }
 }

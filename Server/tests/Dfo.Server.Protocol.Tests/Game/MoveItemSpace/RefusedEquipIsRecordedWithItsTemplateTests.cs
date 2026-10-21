@@ -17,6 +17,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
 
@@ -146,20 +147,23 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     [Dfo.Server.Testing.PvfFact]
     public async Task An_avatar_aimed_at_the_wrong_costume_slot_is_recorded_with_its_template_and_that_slot()
     {
-        var (handler, sender, logger) = this.Build(CoatAvatarTemplate);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, sender, logger) = this.Build(CoatAvatarTemplate);
 
-        await handler.HandleAsync(
-            Context, Request(CoatAvatarTemplate, NamedAvatarSlot), CancellationToken.None);
+            await handler.HandleAsync(
+                Context, Request(CoatAvatarTemplate, NamedAvatarSlot), CancellationToken.None);
 
-        Assert.Equal(
-            $"Move item space game-avatar-refusal character=60: item {CoatAvatarTemplate} "
-                + $"from list {(byte)InventoryContainerType.Main} slot {BagSlot} "
-                + $"to list {(byte)InventoryContainerType.Equipment} slot {NamedAvatarSlot} "
-                + "refused as ItemCannotOccupySlot",
-            Assert.Single(logger.Entries).Message);
-        Assert.Equal(
-            MoveItemSpaceResponse.NotMovable,
-            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal(
+                $"Move item space game-avatar-refusal character=60: item {CoatAvatarTemplate} "
+                    + $"from list {(byte)InventoryContainerType.Main} slot {BagSlot} "
+                    + $"to list {(byte)InventoryContainerType.Equipment} slot {NamedAvatarSlot} "
+                    + "refused as ItemCannotOccupySlot",
+                Assert.Single(logger.Entries).Message);
+            Assert.Equal(
+                MoveItemSpaceResponse.NotMovable,
+                ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <summary>
@@ -175,31 +179,37 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     [Dfo.Server.Testing.PvfFact]
     public async Task A_piece_aimed_at_the_wrong_slot_is_recorded_with_its_template_and_that_slot()
     {
-        var (handler, _, logger) = this.Build(OrdinaryCoatTemplate);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, _, logger) = this.Build(OrdinaryCoatTemplate);
 
-        await handler.HandleAsync(
-            Context, Request(OrdinaryCoatTemplate, WrongSlotForACoat), CancellationToken.None);
+            await handler.HandleAsync(
+                Context, Request(OrdinaryCoatTemplate, WrongSlotForACoat), CancellationToken.None);
 
-        Assert.Equal(
-            $"Move item space game-avatar-refusal character=60: item {OrdinaryCoatTemplate} "
-                + $"from list {(byte)InventoryContainerType.Main} slot {BagSlot} "
-                + $"to list {(byte)InventoryContainerType.Equipment} slot {WrongSlotForACoat} "
-                + "refused as ItemCannotOccupySlot",
-            Assert.Single(logger.Entries).Message);
+            Assert.Equal(
+                $"Move item space game-avatar-refusal character=60: item {OrdinaryCoatTemplate} "
+                    + $"from list {(byte)InventoryContainerType.Main} slot {BagSlot} "
+                    + $"to list {(byte)InventoryContainerType.Equipment} slot {WrongSlotForACoat} "
+                    + "refused as ItemCannotOccupySlot",
+                Assert.Single(logger.Entries).Message);
+        });
     }
 
     [Dfo.Server.Testing.PvfFact]
     public async Task Putting_on_a_piece_refuses_a_displaced_item_that_cannot_return_to_the_source_band()
     {
-        var (handler, sender, _) = this.Build(OrdinaryCoatTemplate, CoatAvatarTemplate,
-            out var bag, out var worn);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, sender, _) = this.Build(OrdinaryCoatTemplate, CoatAvatarTemplate,
+                out var bag, out var worn);
 
-        await handler.HandleAsync(Context, Request(OrdinaryCoatTemplate, 14), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(OrdinaryCoatTemplate, 14), CancellationToken.None);
 
-        Assert.Equal(MoveItemSpaceResponse.NotMovable,
-            Assert.IsType<MoveItemSpaceResponse>(Assert.Single(sender.Sent)).ErrorCode);
-        Assert.Equal(OrdinaryCoatTemplate, (await bag.ReadSnapshotAsync(BagSlot, default))!.ItemId);
-        Assert.Equal(CoatAvatarTemplate, (await worn.ReadSnapshotAsync(14, default))!.ItemId);
+            Assert.Equal(MoveItemSpaceResponse.NotMovable,
+                Assert.IsType<MoveItemSpaceResponse>(Assert.Single(sender.Sent)).ErrorCode);
+            Assert.Equal(OrdinaryCoatTemplate, (await bag.ReadSnapshotAsync(BagSlot, default))!.ItemId);
+            Assert.Equal(CoatAvatarTemplate, (await worn.ReadSnapshotAsync(14, default))!.ItemId);
+        });
     }
 
     /// <summary>The drag: out of the bag, onto the worn list, at the slot the client named.</summary>

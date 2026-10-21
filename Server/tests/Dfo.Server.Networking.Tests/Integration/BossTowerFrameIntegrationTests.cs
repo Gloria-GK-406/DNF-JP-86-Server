@@ -25,6 +25,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TouchSocketSessionClient = TouchSocket.Sockets.ITcpSessionClient;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Networking.Tests.Integration;
 
@@ -68,13 +69,22 @@ public sealed class BossTowerFrameIntegrationTests
             var commands = host.Services.GetRequiredService<ICommandBus>();
             await commands.SendAsync(new RegisterAccountCommand("bosswire", "test password"), timeout.Token);
             var issued = await commands.SendAsync(new AuthenticateAndIssueTicketCommand("bosswire", "test password"), timeout.Token);
-            Assert.True(online.TryGetByConnection(connection, out var anonymous));
+            var anonymous = TestGameplay.Run(host.Services, () =>
+            {
+                Assert.True(online.TryGetByConnection(connection, out var anonymous));
+                return anonymous;
+            });
             var redeemed = await commands.SendAsync(new RedeemGameLoginCommand(anonymous!.OnlineUserId, issued.MId!, issued.Ticket!), timeout.Token);
             Assert.True(redeemed.Succeeded);
-            var authenticated = online.GetRequired(anonymous.OnlineUserId);
+            var authenticated = TestGameplay.Run(host.Services, () =>
+                online.GetRequired(anonymous.OnlineUserId)
+            );
             var session = SelectedSessionIdentity.Create(redeemed.AccountId!.Value, new CharacterId(2), connection, authenticated.Generation, gamePort);
-            host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
-            host.Services.GetRequiredService<ISelectedSessionDomainService>().EnterWorld(session);
+            TestGameplay.Run(host.Services, () =>
+            {
+                host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
+                host.Services.GetRequiredService<ISelectedSessionDomainService>().EnterWorld(session);
+            });
             tower.Seed(session);
 
             // A21 tower next-stage marker: success is the dedicated map push, with no ordinary CMD ACK.

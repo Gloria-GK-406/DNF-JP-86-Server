@@ -145,28 +145,43 @@ public sealed class GmPlayerDirectoryHttpTests
             });
         await SeedAsync(host); Assert.Equal(HttpStatusCode.OK, (await host.LoginAsync(await host.CsrfAsync())).StatusCode);
         var online = host.Services.GetRequiredService<IOnlineUserDomainService>();
-        var anonymous = online.RegisterConnection(new(new("anonymous-secret"), NetworkEndpointKind.Game, 21011, IPAddress.Parse("192.0.2.22")));
+        var anonymous = TestGameplay.Run(host.Services, () =>
+            online.RegisterConnection(new(new("anonymous-secret"), NetworkEndpointKind.Game, 21011, IPAddress.Parse("192.0.2.22")))
+        );
         Assert.Equal(0, (await GetAsync(host, "overview")).GetProperty("onlineAccounts").GetInt32());
         var user40 = await ConnectAsync(host, 40, 21011);
         Assert.Equal(1, (await GetAsync(host, "accounts?onlineOnly=true&pageSize=1")).GetProperty("total").GetInt32());
         Assert.True((await GetAsync(host, "accounts/40")).GetProperty("isOnline").GetBoolean());
         Assert.Equal(0, (await GetAsync(host, "overview")).GetProperty("onlineCharacters").GetInt32());
         var prepared = SelectedSessionIdentity.Create(new(40), new(40), user40.Connection.ConnectionId, user40.Generation, 21011);
-        var selected = host.Services.GetRequiredService<ISelectedSessionDomainService>(); selected.Select(prepared);
+        TestGameplay.Run(host.Services, () =>
+        {
+            var selected = host.Services.GetRequiredService<ISelectedSessionDomainService>(); selected.Select(prepared);
+        });
         Assert.False((await GetAsync(host, "characters/40")).GetProperty("isOnline").GetBoolean());
         host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(prepared);
-        Assert.True(online.GetRequired(user40.OnlineUserId).Generation > prepared.ConnectionGeneration);
+        TestGameplay.Run(host.Services, () =>
+        {
+            Assert.True(online.GetRequired(user40.OnlineUserId).Generation > prepared.ConnectionGeneration);
+        });
         var unplaced = await GetAsync(host, "characters/40"); Assert.True(unplaced.GetProperty("isOnline").GetBoolean());
         Assert.Equal("unavailable", unplaced.GetProperty("position").GetProperty("source").GetString());
-        var positions = host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>(); positions.Begin(prepared, new(3, 4, 100, 200, 2), 100);
-        positions.StepTo(prepared, 123, 234, 1); positions.CrossInto(prepared, 5, 6, 321, 432);
+        var positions = host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>();
+        TestGameplay.Run(host.Services, () =>
+        {
+            positions.Begin(prepared, new(3, 4, 100, 200, 2), 100);
+            positions.StepTo(prepared, 123, 234, 1); positions.CrossInto(prepared, 5, 6, 321, 432);
+        });
         var moved = await GetAsync(host, "characters/40");
         Assert.Equal("current", moved.GetProperty("position").GetProperty("source").GetString());
         Assert.Equal(321, moved.GetProperty("position").GetProperty("x").GetInt32()); Assert.Equal(6, moved.GetProperty("position").GetProperty("areaId").GetInt32());
         Assert.Equal(11, moved.GetProperty("channel").GetProperty("channelId").GetInt32());
         var duplicate = await ConnectAsync(host, 40, 21011);
-        Assert.True(online.TryGetByConnection(user40.Connection.ConnectionId, out _));
-        Assert.True(online.TryGetByConnection(duplicate.Connection.ConnectionId, out _));
+        TestGameplay.Run(host.Services, () =>
+        {
+            Assert.True(online.TryGetByConnection(user40.Connection.ConnectionId, out _));
+            Assert.True(online.TryGetByConnection(duplicate.Connection.ConnectionId, out _));
+        });
         var user41 = await ConnectAsync(host, 41, 21012); var session41 = Publish(host, user41, 41, 41, 21012);
         var user42 = await ConnectAsync(host, 42, 21999); var unknown = Publish(host, user42, 42, 42, 21999);
         var overview = await GetAsync(host, "overview");
@@ -179,23 +194,45 @@ public sealed class GmPlayerDirectoryHttpTests
         Assert.Equal(41, page2.GetProperty("items")[0].GetProperty("characterId").GetInt32());
         Assert.Equal(1, (await GetAsync(host, "characters?onlineOnly=true&accountId=41&q=角色41")).GetProperty("total").GetInt32());
         var replacementUser = await ConnectAsync(host, 40, 21012);
-        Cleanup(host, prepared); var replacement = Publish(host, replacementUser, 40, 40, 21012); positions.Begin(replacement, new(8, 9, 888, 999, 3), 100);
-        Cleanup(host, prepared); online.TryDisconnectConnection(user40.Connection.ConnectionId);
+        Cleanup(host, prepared); var replacement = Publish(host, replacementUser, 40, 40, 21012);
+        TestGameplay.Run(host.Services, () =>
+        {
+            positions.Begin(replacement, new(8, 9, 888, 999, 3), 100);
+        });
+        Cleanup(host, prepared);
+        TestGameplay.Run(host.Services, () =>
+        {
+            online.TryDisconnectConnection(user40.Connection.ConnectionId);
+        });
         var replaced = await GetAsync(host, "characters/40"); Assert.Equal(12, replaced.GetProperty("channel").GetProperty("channelId").GetInt32());
         Assert.Equal(888, replaced.GetProperty("position").GetProperty("x").GetInt32());
-        Cleanup(host, replacement); online.TryDisconnectConnection(replacementUser.Connection.ConnectionId); online.TryDisconnectConnection(duplicate.Connection.ConnectionId);
+        Cleanup(host, replacement);
+        TestGameplay.Run(host.Services, () =>
+        {
+            online.TryDisconnectConnection(replacementUser.Connection.ConnectionId); online.TryDisconnectConnection(duplicate.Connection.ConnectionId);
+        });
         var exited = await GetAsync(host, "characters/40"); Assert.False(exited.GetProperty("isOnline").GetBoolean());
         Assert.Equal("saved", exited.GetProperty("position").GetProperty("source").GetString());
         Assert.Equal(10, exited.GetProperty("position").GetProperty("x").GetInt32());
         Assert.False((await GetAsync(host, "accounts/40")).GetProperty("isOnline").GetBoolean());
-        var before = await PlayerFactsAsync(host); var snapshotBefore = online.GetRequired(user41.OnlineUserId);
+        var before = await PlayerFactsAsync(host);
+        var snapshotBefore = TestGameplay.Run(host.Services, () =>
+            online.GetRequired(user41.OnlineUserId)
+        );
         await GetAsync(host, "overview"); await GetAsync(host, "characters"); await GetAsync(host, "accounts/41");
-        Assert.Equal(before, await PlayerFactsAsync(host)); Assert.Equal(snapshotBefore, online.GetRequired(user41.OnlineUserId));
+        await TestGameplay.RunAsync(host.Services, async () =>
+        {
+            Assert.Equal(before, await PlayerFactsAsync(host)); Assert.Equal(snapshotBefore, online.GetRequired(user41.OnlineUserId));
+        });
         readiness.NetworkEnabled = true; readiness.IsReady = false; overview = await GetAsync(host, "overview");
         Assert.True(overview.GetProperty("networkEnabled").GetBoolean()); Assert.False(overview.GetProperty("gameReady").GetBoolean());
         readiness.IsReady = true; Assert.True((await GetAsync(host, "overview")).GetProperty("gameReady").GetBoolean());
-        Cleanup(host, session41); Cleanup(host, unknown); online.TryDisconnectConnection(user41.Connection.ConnectionId);
-        online.TryDisconnectConnection(user42.Connection.ConnectionId); online.TryDisconnectConnection(anonymous.Connection.ConnectionId);
+        Cleanup(host, session41); Cleanup(host, unknown);
+        TestGameplay.Run(host.Services, () =>
+        {
+            online.TryDisconnectConnection(user41.Connection.ConnectionId);
+            online.TryDisconnectConnection(user42.Connection.ConnectionId); online.TryDisconnectConnection(anonymous.Connection.ConnectionId);
+        });
         Assert.Equal(0, (await GetAsync(host, "overview")).GetProperty("onlineAccounts").GetInt32());
     }
 
@@ -222,26 +259,36 @@ public sealed class GmPlayerDirectoryHttpTests
         var credentials = host.Services.GetRequiredService<IPasswordCredentialRuleService>();
         await host.ExecuteAsync($"UPDATE accounts SET password_hash='{credentials.Hash(password)}' WHERE account_id={accountId};");
         var online = host.Services.GetRequiredService<IOnlineUserDomainService>();
-        var user = online.RegisterConnection(new(new("fixture-connection-" + Guid.NewGuid().ToString("N")), NetworkEndpointKind.Game, port));
+        var user = TestGameplay.Run(host.Services, () =>
+            online.RegisterConnection(new(new("fixture-connection-" + Guid.NewGuid().ToString("N")), NetworkEndpointKind.Game, port))
+        );
         using var scope = host.Services.CreateScope(); var commands = scope.ServiceProvider.GetRequiredService<ICommandBus>();
         var ticket = await commands.SendAsync(new AuthenticateAndIssueTicketCommand($"player{accountId:D2}", password), default);
         Assert.NotNull(ticket.Ticket);
         var result = await commands.SendAsync(new RedeemGameLoginCommand(user.OnlineUserId, ticket.MId!, ticket.Ticket!), default);
         Assert.Equal(new AccountId(accountId), result.AccountId);
-        return online.GetRequired(user.OnlineUserId);
+        return TestGameplay.Run(host.Services, () =>
+            online.GetRequired(user.OnlineUserId)
+        );
     }
     internal static SelectedSessionIdentity Publish(GmTestHost host, OnlineUserSnapshot user, int account, int character, int port)
     {
-        var session = SelectedSessionIdentity.Create(new(account), new(character), user.Connection.ConnectionId, user.Generation, port);
-        host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
-        host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(session);
-        host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(session, new(3, 4, 100, 200, 2), 100);
-        return session;
+        return TestGameplay.Run(host.Services, () =>
+        {
+            var session = SelectedSessionIdentity.Create(new(account), new(character), user.Connection.ConnectionId, user.Generation, port);
+            host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
+            host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(session);
+            host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(session, new(3, 4, 100, 200, 2), 100);
+            return session;
+        });
     }
     internal static void Cleanup(GmTestHost host, SelectedSessionIdentity session)
     {
-        host.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(session);
-        host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().EndExact(session);
+        TestGameplay.Run(host.Services, () =>
+        {
+            host.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(session);
+            host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().EndExact(session);
+        });
     }
 
     private sealed class DirectoryReadiness : IGameServerReadiness { public bool NetworkEnabled { get; set; } public bool IsReady { get; set; } }

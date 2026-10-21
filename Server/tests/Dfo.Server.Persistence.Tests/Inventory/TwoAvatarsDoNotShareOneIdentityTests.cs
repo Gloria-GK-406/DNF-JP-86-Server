@@ -9,6 +9,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Inventory;
 
@@ -169,10 +170,13 @@ public sealed class TwoAvatarsDoNotShareOneIdentityTests
 
     private static async Task SettleAsync(string path, Func<IItemDomainStoreSession, ValueTask> work)
     {
-        var scope = new DomainTransactionScope();
-        await using var transaction = scope.Begin();
-        await work(new SqliteItemDomainStore(path).SessionIn(scope.Current!));
-        await transaction.CommitAsync(CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var scope = new DomainTransactionScope();
+            await using var transaction = scope.Begin();
+            await work(new SqliteItemDomainStore(path).SessionIn(scope.Current!));
+            await transaction.CommitAsync(CancellationToken.None);
+        });
     }
 
     /// <summary>The six facts of the nth avatar, every one of them distinct and none defaulted.</summary>

@@ -25,6 +25,7 @@ using Dfo.Server.Protocol.Game.IllusionTowerReward;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.IllusionTower;
 
@@ -35,256 +36,274 @@ public sealed class IllusionTowerProjectionConcurrencyTests
     [Fact]
     public async Task Cancellation_after_tower_commit_cannot_skip_the_direct_party_departure()
     {
-        var first = Session(1);
-        var second = Session(2);
-        var sessions = new Sessions(first, second);
-        var parties = new PartyService(
-            new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-            new NoPartyEndpoints());
-        var firstParty = PartyCharacter(first);
-        var secondParty = PartyCharacter(second);
-        Assert.True(parties.RequestInvite(firstParty, secondParty,
-            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
-        Assert.True(parties.AcceptInvite(secondParty, firstParty).Succeeded);
-        var tower = new TowerDomain(PartyRun(Guid.NewGuid(), first, second));
-        using var request = new CancellationTokenSource();
-        var commands = new CoordinatorCommands(tower, parties, request);
-        var sender = new Sender();
-        var closer = new Closer();
-        var town = new NoTown();
-        var delivery = Delivery(tower, sessions, commands, sender, closer);
-        var coordinator = new IllusionTowerPartyCoordinator(
-            tower,
-            parties,
-            sessions,
-            new SelectedSessionTransitionGate(),
-            new IllusionTowerProjectionGate(),
-            commands,
-            Notifications(parties, sessions, town),
-            delivery,
-            closer,
-            town,
-            NullLogger<IllusionTowerPartyCoordinator>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var first = Session(1);
+            var second = Session(2);
+            var sessions = new Sessions(first, second);
+            var parties = new PartyService(
+                new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
+                new NoPartyEndpoints());
+            var firstParty = PartyCharacter(first);
+            var secondParty = PartyCharacter(second);
+            Assert.True(parties.RequestInvite(firstParty, secondParty,
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(parties.AcceptInvite(secondParty, firstParty).Succeeded);
+            var tower = new TowerDomain(PartyRun(Guid.NewGuid(), first, second));
+            using var request = new CancellationTokenSource();
+            var commands = new CoordinatorCommands(tower, parties, request);
+            var sender = new Sender();
+            var closer = new Closer();
+            var town = new NoTown();
+            var delivery = Delivery(tower, sessions, commands, sender, closer);
+            var coordinator = new IllusionTowerPartyCoordinator(
+                tower,
+                parties,
+                sessions,
+                new SelectedSessionTransitionGate(),
+                new IllusionTowerProjectionGate(),
+                commands,
+                Notifications(parties, sessions, town),
+                delivery,
+                closer,
+                town,
+                NullLogger<IllusionTowerPartyCoordinator>.Instance);
 
-        var result = await coordinator.TryLeaveAsync(
-            first, allowVirtual: false, departureResponse: null, request.Token);
+            var result = await coordinator.TryLeaveAsync(
+                first, allowVirtual: false, departureResponse: null, request.Token);
 
-        Assert.True(request.IsCancellationRequested);
-        Assert.True(result.Handled);
-        Assert.True(result.Result.Succeeded);
-        Assert.False(commands.PartyToken.CanBeCanceled);
-        var remainingParty = parties.FindParty(secondParty);
-        Assert.Equal(second.WireUserId, remainingParty.LeaderWireUserId);
-        Assert.Equal(second.CharacterId, Assert.Single(remainingParty.Members).CharacterId);
-        var remainingTower = Assert.IsType<IllusionTowerSnapshot>(tower.Find(second));
-        Assert.Null(tower.Find(first));
-        Assert.Equal(second, Assert.Single(remainingTower.Members).Session);
-        Assert.True(remainingTower.Members[0].IsLeader);
+            Assert.True(request.IsCancellationRequested);
+            Assert.True(result.Handled);
+            Assert.True(result.Result.Succeeded);
+            Assert.False(commands.PartyToken.CanBeCanceled);
+            var remainingParty = parties.FindParty(secondParty);
+            Assert.Equal(second.WireUserId, remainingParty.LeaderWireUserId);
+            Assert.Equal(second.CharacterId, Assert.Single(remainingParty.Members).CharacterId);
+            var remainingTower = Assert.IsType<IllusionTowerSnapshot>(tower.Find(second));
+            Assert.Null(tower.Find(first));
+            Assert.Equal(second, Assert.Single(remainingTower.Members).Session);
+            Assert.True(remainingTower.Members[0].IsLeader);
+        });
     }
 
     [Fact]
     public async Task Virtual_give_up_leaves_only_the_tower_without_dispatching_a_party_write()
     {
-        var session = Session(1);
-        var sessions = new Sessions(session);
-        var parties = new PartyService(
-            new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-            new NoPartyEndpoints());
-        var tower = new TowerDomain(PartyRun(Guid.NewGuid(), session));
-        using var request = new CancellationTokenSource();
-        var commands = new CoordinatorCommands(tower, parties, request);
-        var closer = new Closer();
-        var town = new NoTown();
-        var coordinator = new IllusionTowerPartyCoordinator(
-            tower, parties, sessions, new SelectedSessionTransitionGate(),
-            new IllusionTowerProjectionGate(), commands,
-            Notifications(parties, sessions, town),
-            Delivery(tower, sessions, commands, new Sender(), closer),
-            closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = Session(1);
+            var sessions = new Sessions(session);
+            var parties = new PartyService(
+                new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
+                new NoPartyEndpoints());
+            var tower = new TowerDomain(PartyRun(Guid.NewGuid(), session));
+            using var request = new CancellationTokenSource();
+            var commands = new CoordinatorCommands(tower, parties, request);
+            var closer = new Closer();
+            var town = new NoTown();
+            var coordinator = new IllusionTowerPartyCoordinator(
+                tower, parties, sessions, new SelectedSessionTransitionGate(),
+                new IllusionTowerProjectionGate(), commands,
+                Notifications(parties, sessions, town),
+                Delivery(tower, sessions, commands, new Sender(), closer),
+                closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
 
-        var result = await coordinator.TryLeaveAsync(
-            session, allowVirtual: true, new GiveUpGameResponse(), request.Token);
+            var result = await coordinator.TryLeaveAsync(
+                session, allowVirtual: true, new GiveUpGameResponse(), request.Token);
 
-        Assert.True(result.Handled);
-        Assert.True(result.Result.Succeeded);
-        Assert.Equal(0, commands.PartyCalls);
-        Assert.Null(tower.Find(session));
-        Assert.True(parties.FindParty(PartyCharacter(session)).IsVirtual);
+            Assert.True(result.Handled);
+            Assert.True(result.Result.Succeeded);
+            Assert.Equal(0, commands.PartyCalls);
+            Assert.Null(tower.Find(session));
+            Assert.True(parties.FindParty(PartyCharacter(session)).IsVirtual);
+        });
     }
 
     [Fact]
     public async Task External_party_leader_departure_synchronizes_the_partial_tower_cohort()
     {
-        var external = Session(1);
-        var successor = Session(2);
-        var towerLeader = Session(3);
-        var sessions = new Sessions(external, successor, towerLeader);
-        var parties = new PartyService(
-            new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-            new NoPartyEndpoints());
-        Assert.True(parties.RequestInvite(PartyCharacter(external), PartyCharacter(successor),
-            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
-        Assert.True(parties.AcceptInvite(PartyCharacter(successor), PartyCharacter(external)).Succeeded);
-        Assert.True(parties.RequestInvite(PartyCharacter(external), PartyCharacter(towerLeader),
-            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
-        Assert.True(parties.AcceptInvite(PartyCharacter(towerLeader), PartyCharacter(external)).Succeeded);
-        var initial = PartyRun(Guid.NewGuid(), successor, towerLeader) with
+        await TestGameplay.RunAsync(async () =>
         {
-            Members =
-            [
-                new TowerMember(successor, 0, false, false),
-                new TowerMember(towerLeader, 1, true, false),
-            ],
-        };
-        var tower = new TowerDomain(initial);
-        using var request = new CancellationTokenSource();
-        var commands = new CoordinatorCommands(tower, parties, request);
-        var closer = new Closer();
-        var town = new NoTown();
-        var coordinator = new IllusionTowerPartyCoordinator(
-            tower, parties, sessions, new SelectedSessionTransitionGate(),
-            new IllusionTowerProjectionGate(), commands,
-            Notifications(parties, sessions, town),
-            Delivery(tower, sessions, commands, new Sender(), closer),
-            closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
+            var external = Session(1);
+            var successor = Session(2);
+            var towerLeader = Session(3);
+            var sessions = new Sessions(external, successor, towerLeader);
+            var parties = new PartyService(
+                new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
+                new NoPartyEndpoints());
+            Assert.True(parties.RequestInvite(PartyCharacter(external), PartyCharacter(successor),
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(parties.AcceptInvite(PartyCharacter(successor), PartyCharacter(external)).Succeeded);
+            Assert.True(parties.RequestInvite(PartyCharacter(external), PartyCharacter(towerLeader),
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(parties.AcceptInvite(PartyCharacter(towerLeader), PartyCharacter(external)).Succeeded);
+            var initial = PartyRun(Guid.NewGuid(), successor, towerLeader) with
+            {
+                Members =
+                [
+                    new TowerMember(successor, 0, false, false),
+                    new TowerMember(towerLeader, 1, true, false),
+                ],
+            };
+            var tower = new TowerDomain(initial);
+            using var request = new CancellationTokenSource();
+            var commands = new CoordinatorCommands(tower, parties, request);
+            var closer = new Closer();
+            var town = new NoTown();
+            var coordinator = new IllusionTowerPartyCoordinator(
+                tower, parties, sessions, new SelectedSessionTransitionGate(),
+                new IllusionTowerProjectionGate(), commands,
+                Notifications(parties, sessions, town),
+                Delivery(tower, sessions, commands, new Sender(), closer),
+                closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
 
-        var result = await coordinator.TryLeaveAsync(
-            external, allowVirtual: false, departureResponse: null, CancellationToken.None);
+            var result = await coordinator.TryLeaveAsync(
+                external, allowVirtual: false, departureResponse: null, CancellationToken.None);
 
-        Assert.True(result.Result.Succeeded);
-        Assert.Equal(1, commands.SynchronizeCalls);
-        Assert.Null(tower.Find(external));
-        var current = Assert.IsType<IllusionTowerSnapshot>(tower.Find(successor));
-        Assert.Equal(2, current.Members.Length);
-        Assert.Equal(successor, current.Members.Single(member => member.IsLeader).Session);
-        var currentParty = parties.FindParty(PartyCharacter(successor));
-        Assert.Equal(successor.WireUserId, currentParty.LeaderWireUserId);
-        Assert.DoesNotContain(currentParty.Members,
-            member => member.CharacterId == external.CharacterId);
+            Assert.True(result.Result.Succeeded);
+            Assert.Equal(1, commands.SynchronizeCalls);
+            Assert.Null(tower.Find(external));
+            var current = Assert.IsType<IllusionTowerSnapshot>(tower.Find(successor));
+            Assert.Equal(2, current.Members.Length);
+            Assert.Equal(successor, current.Members.Single(member => member.IsLeader).Session);
+            var currentParty = parties.FindParty(PartyCharacter(successor));
+            Assert.Equal(successor.WireUserId, currentParty.LeaderWireUserId);
+            Assert.DoesNotContain(currentParty.Members,
+                member => member.CharacterId == external.CharacterId);
+        });
     }
 
     [Fact]
     public async Task Party_wrapper_failure_after_its_inner_write_isolated_sessions_after_gates_release()
     {
-        var first = Session(1);
-        var second = Session(2);
-        var sessions = new Sessions(first, second);
-        var parties = new PartyService(
-            new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-            new NoPartyEndpoints());
-        Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
-            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
-        Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
-        var tower = new TowerDomain(PartyRun(Guid.NewGuid(), first, second));
-        using var request = new CancellationTokenSource();
-        var commands = new CoordinatorCommands(
-            tower, parties, request, throwAfterParty: true);
-        var gate = new SelectedSessionTransitionGate();
-        var closer = new ReentrantCloser(gate, first.AccountId);
-        var town = new NoTown();
-        var coordinator = new IllusionTowerPartyCoordinator(
-            tower, parties, sessions, gate, new IllusionTowerProjectionGate(), commands,
-            Notifications(parties, sessions, town),
-            Delivery(tower, sessions, commands, new Sender(), closer),
-            closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var first = Session(1);
+            var second = Session(2);
+            var sessions = new Sessions(first, second);
+            var parties = new PartyService(
+                new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
+                new NoPartyEndpoints());
+            Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
+            var tower = new TowerDomain(PartyRun(Guid.NewGuid(), first, second));
+            using var request = new CancellationTokenSource();
+            var commands = new CoordinatorCommands(
+                tower, parties, request, throwAfterParty: true);
+            var gate = new SelectedSessionTransitionGate();
+            var closer = new ReentrantCloser(gate, first.AccountId);
+            var town = new NoTown();
+            var coordinator = new IllusionTowerPartyCoordinator(
+                tower, parties, sessions, gate, new IllusionTowerProjectionGate(), commands,
+                Notifications(parties, sessions, town),
+                Delivery(tower, sessions, commands, new Sender(), closer),
+                closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
 
-        var result = await coordinator.TryLeaveAsync(
-                first, allowVirtual: false, departureResponse: null, CancellationToken.None)
-            .AsTask().WaitAsync(TimeSpan.FromSeconds(2));
+            var result = await coordinator.TryLeaveAsync(
+                    first, allowVirtual: false, departureResponse: null, CancellationToken.None)
+                .AsTask().WaitAsync(TimeSpan.FromSeconds(2));
 
-        Assert.True(result.Handled);
-        Assert.False(result.Result.Succeeded);
-        Assert.Null(tower.Find(first));
-        Assert.DoesNotContain(parties.FindParty(PartyCharacter(second)).Members,
-            member => member.CharacterId == first.CharacterId);
-        Assert.Equal([first.ConnectionId, second.ConnectionId],
-            closer.Closed.OrderBy(value => value.Value));
+            Assert.True(result.Handled);
+            Assert.False(result.Result.Succeeded);
+            Assert.Null(tower.Find(first));
+            Assert.DoesNotContain(parties.FindParty(PartyCharacter(second)).Members,
+                member => member.CharacterId == first.CharacterId);
+            Assert.Equal([first.ConnectionId, second.ConnectionId],
+                closer.Closed.OrderBy(value => value.Value));
+        });
     }
 
     [Fact]
     public async Task Leadership_transfer_to_a_returned_member_keeps_the_real_tower_host_then_can_resynchronize()
     {
-        var first = Session(1);
-        var second = Session(2);
-        var returned = Session(3);
-        var sessions = new Sessions(first, second, returned);
-        var parties = new PartyService(
-            new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-            new NoPartyEndpoints());
-        Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
-            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
-        Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
-        Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(returned),
-            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
-        Assert.True(parties.AcceptInvite(PartyCharacter(returned), PartyCharacter(first)).Succeeded);
-        var tower = new TowerDomain(PartyRun(Guid.NewGuid(), first, second));
-        using var request = new CancellationTokenSource();
-        var commands = new CoordinatorCommands(tower, parties, request);
-        var closer = new Closer();
-        var town = new NoTown();
-        var coordinator = new IllusionTowerPartyCoordinator(
-            tower, parties, sessions, new SelectedSessionTransitionGate(),
-            new IllusionTowerProjectionGate(), commands,
-            Notifications(parties, sessions, town),
-            Delivery(tower, sessions, commands, new Sender(), closer),
-            closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var first = Session(1);
+            var second = Session(2);
+            var returned = Session(3);
+            var sessions = new Sessions(first, second, returned);
+            var parties = new PartyService(
+                new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
+                new NoPartyEndpoints());
+            Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
+            Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(returned),
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(parties.AcceptInvite(PartyCharacter(returned), PartyCharacter(first)).Succeeded);
+            var tower = new TowerDomain(PartyRun(Guid.NewGuid(), first, second));
+            using var request = new CancellationTokenSource();
+            var commands = new CoordinatorCommands(tower, parties, request);
+            var closer = new Closer();
+            var town = new NoTown();
+            var coordinator = new IllusionTowerPartyCoordinator(
+                tower, parties, sessions, new SelectedSessionTransitionGate(),
+                new IllusionTowerProjectionGate(), commands,
+                Notifications(parties, sessions, town),
+                Delivery(tower, sessions, commands, new Sender(), closer),
+                closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
 
-        var toReturned = await coordinator.TryTransferAsync(
-            first, targetSlot: 2, CancellationToken.None);
+            var toReturned = await coordinator.TryTransferAsync(
+                first, targetSlot: 2, CancellationToken.None);
 
-        Assert.True(toReturned.Result.Succeeded);
-        Assert.Equal(returned.WireUserId,
-            parties.FindParty(PartyCharacter(returned)).LeaderWireUserId);
-        Assert.Equal(first,
-            tower.Find(first)!.Members.Single(member => member.IsLeader).Session);
-        Assert.Equal(0, commands.SynchronizeCalls);
+            Assert.True(toReturned.Result.Succeeded);
+            Assert.Equal(returned.WireUserId,
+                parties.FindParty(PartyCharacter(returned)).LeaderWireUserId);
+            Assert.Equal(first,
+                tower.Find(first)!.Members.Single(member => member.IsLeader).Session);
+            Assert.Equal(0, commands.SynchronizeCalls);
 
-        var backInside = await coordinator.TryTransferAsync(
-            returned, targetSlot: 1, CancellationToken.None);
+            var backInside = await coordinator.TryTransferAsync(
+                returned, targetSlot: 1, CancellationToken.None);
 
-        Assert.True(backInside.Result.Succeeded);
-        Assert.Equal(second.WireUserId,
-            parties.FindParty(PartyCharacter(second)).LeaderWireUserId);
-        Assert.Equal(second,
-            tower.Find(second)!.Members.Single(member => member.IsLeader).Session);
-        Assert.Equal(1, commands.SynchronizeCalls);
+            Assert.True(backInside.Result.Succeeded);
+            Assert.Equal(second.WireUserId,
+                parties.FindParty(PartyCharacter(second)).LeaderWireUserId);
+            Assert.Equal(second,
+                tower.Find(second)!.Members.Single(member => member.IsLeader).Session);
+            Assert.Equal(1, commands.SynchronizeCalls);
+        });
     }
 
     [Fact]
     public async Task Predictable_party_refusals_do_not_mutate_the_tower()
     {
-        var leader = Session(1);
-        var member = Session(2);
-        var sessions = new Sessions(leader, member);
-        var parties = new PartyService(
-            new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-            new NoPartyEndpoints());
-        Assert.True(parties.RequestInvite(PartyCharacter(leader), PartyCharacter(member),
-            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
-        Assert.True(parties.AcceptInvite(PartyCharacter(member), PartyCharacter(leader)).Succeeded);
-        var original = PartyRun(Guid.NewGuid(), leader, member);
-        var tower = new TowerDomain(original);
-        using var request = new CancellationTokenSource();
-        var commands = new CoordinatorCommands(tower, parties, request);
-        var closer = new Closer();
-        var town = new NoTown();
-        var coordinator = new IllusionTowerPartyCoordinator(
-            tower, parties, sessions, new SelectedSessionTransitionGate(),
-            new IllusionTowerProjectionGate(), commands,
-            Notifications(parties, sessions, town),
-            Delivery(tower, sessions, commands, new Sender(), closer),
-            closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var leader = Session(1);
+            var member = Session(2);
+            var sessions = new Sessions(leader, member);
+            var parties = new PartyService(
+                new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
+                new NoPartyEndpoints());
+            Assert.True(parties.RequestInvite(PartyCharacter(leader), PartyCharacter(member),
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(parties.AcceptInvite(PartyCharacter(member), PartyCharacter(leader)).Succeeded);
+            var original = PartyRun(Guid.NewGuid(), leader, member);
+            var tower = new TowerDomain(original);
+            using var request = new CancellationTokenSource();
+            var commands = new CoordinatorCommands(tower, parties, request);
+            var closer = new Closer();
+            var town = new NoTown();
+            var coordinator = new IllusionTowerPartyCoordinator(
+                tower, parties, sessions, new SelectedSessionTransitionGate(),
+                new IllusionTowerProjectionGate(), commands,
+                Notifications(parties, sessions, town),
+                Delivery(tower, sessions, commands, new Sender(), closer),
+                closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
 
-        var unauthorized = await coordinator.TryRemoveAsync(
-            member, targetSlot: 0, CancellationToken.None);
-        var missing = await coordinator.TryRemoveAsync(
-            leader, targetSlot: 7, CancellationToken.None);
+            var unauthorized = await coordinator.TryRemoveAsync(
+                member, targetSlot: 0, CancellationToken.None);
+            var missing = await coordinator.TryRemoveAsync(
+                leader, targetSlot: 7, CancellationToken.None);
 
-        Assert.Equal(PartyFailureReason.NotPartyLeader, unauthorized.Result.Failure);
-        Assert.Equal(PartyFailureReason.TargetNotFound, missing.Result.Failure);
-        Assert.Equal(original, tower.Find(leader));
-        Assert.Equal(0, commands.PartyCalls);
-        Assert.Equal(0, commands.SynchronizeCalls);
+            Assert.Equal(PartyFailureReason.NotPartyLeader, unauthorized.Result.Failure);
+            Assert.Equal(PartyFailureReason.TargetNotFound, missing.Result.Failure);
+            Assert.Equal(original, tower.Find(leader));
+            Assert.Equal(0, commands.PartyCalls);
+            Assert.Equal(0, commands.SynchronizeCalls);
+        });
     }
 
     [Fact]
@@ -345,75 +364,84 @@ public sealed class IllusionTowerProjectionConcurrencyTests
     [Fact]
     public async Task Projection_failure_does_not_close_a_replacement_selected_session()
     {
-        var first = Session(1);
-        var second = Session(2);
-        var replacement = second with
+        await TestGameplay.RunAsync(async () =>
         {
-            ConnectionId = new NetworkConnectionId("tower-2-replacement"),
-            ConnectionGeneration = 2,
-        };
-        var sessions = new Sessions(first, second);
-        var tower = new TowerDomain(PartyRun(Guid.NewGuid(), first, second));
-        var closer = new Closer();
-        var sender = new Sender(connection =>
-        {
-            if (connection != second.ConnectionId)
-                return null;
-            sessions.Replace(replacement);
-            return new IOException("projection failed after replacement");
+            var first = Session(1);
+            var second = Session(2);
+            var replacement = second with
+            {
+                ConnectionId = new NetworkConnectionId("tower-2-replacement"),
+                ConnectionGeneration = 2,
+            };
+            var sessions = new Sessions(first, second);
+            var tower = new TowerDomain(PartyRun(Guid.NewGuid(), first, second));
+            var closer = new Closer();
+            var sender = new Sender(connection =>
+            {
+                if (connection != second.ConnectionId)
+                    return null;
+                sessions.Replace(replacement);
+                return new IOException("projection failed after replacement");
+            });
+            var delivery = Delivery(tower, sessions, new Commands(), sender, closer);
+            var departure = tower.Leave(first);
+
+            await delivery.ProjectCommittedDepartureAsync(
+                departure, first, response: null, CancellationToken.None);
+
+            Assert.Contains(second.ConnectionId, sender.Attempts);
+            Assert.Equal(replacement, sessions.FindByCharacter(second.CharacterId));
+            Assert.DoesNotContain(second.ConnectionId, closer.Closed);
+            Assert.DoesNotContain(replacement.ConnectionId, closer.Closed);
         });
-        var delivery = Delivery(tower, sessions, new Commands(), sender, closer);
-        var departure = tower.Leave(first);
-
-        await delivery.ProjectCommittedDepartureAsync(
-            departure, first, response: null, CancellationToken.None);
-
-        Assert.Contains(second.ConnectionId, sender.Attempts);
-        Assert.Equal(replacement, sessions.FindByCharacter(second.CharacterId));
-        Assert.DoesNotContain(second.ConnectionId, closer.Closed);
-        Assert.DoesNotContain(replacement.ConnectionId, closer.Closed);
     }
 
     [Fact]
     public async Task Delayed_disconnect_projection_does_not_publish_an_old_room_into_the_next_room()
     {
-        var session = Session(1);
-        var captured = Run(Guid.NewGuid(), session, roomVersion: 4, TowerRoomPhase.Ready);
-        var current = captured with
+        await TestGameplay.RunAsync(async () =>
         {
-            Room = captured.Room with { Version = 5, Phase = TowerRoomPhase.Loading },
-        };
-        var towers = new TowerDomain(current);
-        var sessions = new Sessions(session);
-        var sender = new Sender();
-        var delivery = Delivery(towers, sessions, new Commands(), sender);
+            var session = Session(1);
+            var captured = Run(Guid.NewGuid(), session, roomVersion: 4, TowerRoomPhase.Ready);
+            var current = captured with
+            {
+                Room = captured.Room with { Version = 5, Phase = TowerRoomPhase.Loading },
+            };
+            var towers = new TowerDomain(current);
+            var sessions = new Sessions(session);
+            var sender = new Sender();
+            var delivery = Delivery(towers, sessions, new Commands(), sender);
 
-        await delivery.ProjectDisconnectedActionAsync(
-            new TowerActionResult(true, captured), CancellationToken.None);
+            await delivery.ProjectDisconnectedActionAsync(
+                new TowerActionResult(true, captured), CancellationToken.None);
 
-        Assert.Empty(sender.Deliveries);
+            Assert.Empty(sender.Deliveries);
+        });
     }
 
     [Fact]
     public async Task Failed_due_run_does_not_prevent_a_later_due_run_from_being_processed()
     {
-        var first = Session(1);
-        var second = Session(2);
-        var firstRun = Run(Guid.NewGuid(), first, roomVersion: 7, TowerRoomPhase.Cleared) with
+        await TestGameplay.RunAsync(async () =>
         {
-            ReturnDueAt = Now.AddSeconds(-1),
-        };
-        var secondRun = Run(Guid.NewGuid(), second, roomVersion: 11, TowerRoomPhase.Cleared) with
-        {
-            ReturnDueAt = Now.AddSeconds(-1),
-        };
-        var towers = new TowerDomain(firstRun, secondRun);
-        var commands = new Commands(firstRun.RunId);
-        var delivery = Delivery(towers, new Sessions(first, second), commands, new Sender());
+            var first = Session(1);
+            var second = Session(2);
+            var firstRun = Run(Guid.NewGuid(), first, roomVersion: 7, TowerRoomPhase.Cleared) with
+            {
+                ReturnDueAt = Now.AddSeconds(-1),
+            };
+            var secondRun = Run(Guid.NewGuid(), second, roomVersion: 11, TowerRoomPhase.Cleared) with
+            {
+                ReturnDueAt = Now.AddSeconds(-1),
+            };
+            var towers = new TowerDomain(firstRun, secondRun);
+            var commands = new Commands(firstRun.RunId);
+            var delivery = Delivery(towers, new Sessions(first, second), commands, new Sender());
 
-        await delivery.SweepAsync(Now, CancellationToken.None);
+            await delivery.SweepAsync(Now, CancellationToken.None);
 
-        Assert.Equal([firstRun.RunId, secondRun.RunId], commands.Attempts);
+            Assert.Equal([firstRun.RunId, secondRun.RunId], commands.Attempts);
+        });
     }
 
     [Theory]
@@ -422,34 +450,37 @@ public sealed class IllusionTowerProjectionConcurrencyTests
     public async Task A_settled_receipt_is_projected_only_by_the_action_that_created_it(
         bool settlementCreated, bool expectsSettlementFrames)
     {
-        var session = Session(1);
-        var receipt = new TowerSettlementReceipt(
-            [new TowerMemberSettlementReceipt(session.CharacterId, 12, 0, [])
-            {
-                Session = session,
-                Slot = 0,
-                Candidates = [],
-            }]);
-        var run = Run(Guid.NewGuid(), session, roomVersion: 3, TowerRoomPhase.Fighting) with
+        await TestGameplay.RunAsync(async () =>
         {
-            Completion = new TowerCompletion(TowerEndReason.Defeated, 0, 1, true, Now, receipt),
-        };
-        var action = new TowerActionResult(true, run) { SettlementCreated = settlementCreated };
-        var towers = new TowerDomain(run);
-        var sessions = new Sessions(session);
-        var sender = new Sender();
-        var delivery = Delivery(towers, sessions, new ResultCommands(action), sender);
+            var session = Session(1);
+            var receipt = new TowerSettlementReceipt(
+                [new TowerMemberSettlementReceipt(session.CharacterId, 12, 0, [])
+                {
+                    Session = session,
+                    Slot = 0,
+                    Candidates = [],
+                }]);
+            var run = Run(Guid.NewGuid(), session, roomVersion: 3, TowerRoomPhase.Fighting) with
+            {
+                Completion = new TowerCompletion(TowerEndReason.Defeated, 0, 1, true, Now, receipt),
+            };
+            var action = new TowerActionResult(true, run) { SettlementCreated = settlementCreated };
+            var towers = new TowerDomain(run);
+            var sessions = new Sessions(session);
+            var sender = new Sender();
+            var delivery = Delivery(towers, sessions, new ResultCommands(action), sender);
 
-        Assert.True(await delivery.DieAsync(
-            session.ConnectionId, GameMessageMetadata.Empty, CancellationToken.None));
+            Assert.True(await delivery.DieAsync(
+                session.ConnectionId, GameMessageMetadata.Empty, CancellationToken.None));
 
-        var frames = Assert.Single(sender.Deliveries).Delivery.RequiredDirectMessages;
-        Assert.Equal(expectsSettlementFrames,
-            frames.Any(frame => frame is IllusionTowerRankingNotification));
-        Assert.Equal(expectsSettlementFrames,
-            frames.Any(frame => frame is IllusionTowerRewardNotification));
-        Assert.Equal(expectsSettlementFrames,
-            frames.Any(frame => frame is IllusionTowerContinueNotification));
+            var frames = Assert.Single(sender.Deliveries).Delivery.RequiredDirectMessages;
+            Assert.Equal(expectsSettlementFrames,
+                frames.Any(frame => frame is IllusionTowerRankingNotification));
+            Assert.Equal(expectsSettlementFrames,
+                frames.Any(frame => frame is IllusionTowerRewardNotification));
+            Assert.Equal(expectsSettlementFrames,
+                frames.Any(frame => frame is IllusionTowerContinueNotification));
+        });
     }
 
     private static IllusionTowerProjectionDelivery Delivery(

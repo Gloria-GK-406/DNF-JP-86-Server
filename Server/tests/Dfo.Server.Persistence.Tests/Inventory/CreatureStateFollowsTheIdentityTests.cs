@@ -12,6 +12,7 @@ using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Inventory;
 
@@ -342,18 +343,24 @@ public sealed class CreatureStateFollowsTheIdentityTests
 
     private static async Task SettleItemsAsync(string path, Func<IItemDomainStoreSession, ValueTask> work)
     {
-        var scope = new DomainTransactionScope();
-        await using var transaction = scope.Begin();
-        await work(new SqliteItemDomainStore(path).SessionIn(scope.Current!));
-        await transaction.CommitAsync(CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var scope = new DomainTransactionScope();
+            await using var transaction = scope.Begin();
+            await work(new SqliteItemDomainStore(path).SessionIn(scope.Current!));
+            await transaction.CommitAsync(CancellationToken.None);
+        });
     }
 
     private static async Task SettleCreaturesAsync(string path, Action<ICharacterDomainStoreSession> work)
     {
-        var scope = new DomainTransactionScope();
-        await using var transaction = scope.Begin();
-        work(new SqliteCharacterDomainStore(path).SessionIn(scope.Current!));
-        await transaction.CommitAsync(CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var scope = new DomainTransactionScope();
+            await using var transaction = scope.Begin();
+            work(new SqliteCharacterDomainStore(path).SessionIn(scope.Current!));
+            await transaction.CommitAsync(CancellationToken.None);
+        });
     }
 
     private static async Task InsertCreatureAsync(

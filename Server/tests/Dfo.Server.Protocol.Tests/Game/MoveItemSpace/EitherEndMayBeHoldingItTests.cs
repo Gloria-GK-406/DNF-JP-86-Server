@@ -14,6 +14,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Microsoft.Extensions.Logging;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
 
@@ -616,21 +617,24 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     [Dfo.Server.Testing.PvfFact]
     public async Task The_acknowledgement_for_a_reversed_move_names_the_two_cells_the_request_did()
     {
-        var (handler, sender, _, side) = this.BuildHandler();
-        side.Seed(InventoryContainerType.Equipment, WornCostumeSlot, Costume);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, sender, _, side) = this.BuildHandler();
+            side.Seed(InventoryContainerType.Equipment, WornCostumeSlot, Costume);
 
-        await handler.HandleAsync(Dispatch, TakeOffRequest(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch, TakeOffRequest(), CancellationToken.None);
 
-        var acknowledgement = (MoveItemSpaceResponse)Assert.Single(sender.Sent);
-        Assert.Null(acknowledgement.ErrorCode);
-        Assert.Equal(InventoryContainerType.Avatar, acknowledgement.SourceSlot.Space);
-        Assert.Equal(AvatarSlot, acknowledgement.SourceSlot.Index);
-        Assert.Equal(InventoryContainerType.Equipment, acknowledgement.DestinationSlot.Space);
-        Assert.Equal(WornCostumeSlot, acknowledgement.DestinationSlot.Index);
-        Assert.Equal(1, acknowledgement.MoveValue);
+            var acknowledgement = (MoveItemSpaceResponse)Assert.Single(sender.Sent);
+            Assert.Null(acknowledgement.ErrorCode);
+            Assert.Equal(InventoryContainerType.Avatar, acknowledgement.SourceSlot.Space);
+            Assert.Equal(AvatarSlot, acknowledgement.SourceSlot.Index);
+            Assert.Equal(InventoryContainerType.Equipment, acknowledgement.DestinationSlot.Space);
+            Assert.Equal(WornCostumeSlot, acknowledgement.DestinationSlot.Index);
+            Assert.Equal(1, acknowledgement.MoveValue);
 
-        Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Avatar, AvatarSlot))!.ItemId);
-        Assert.Null(await side.ReadAsync(InventoryContainerType.Equipment, WornCostumeSlot));
+            Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Avatar, AvatarSlot))!.ItemId);
+            Assert.Null(await side.ReadAsync(InventoryContainerType.Equipment, WornCostumeSlot));
+        });
     }
 
     /// <summary>The line a move leaves says which lists it was between.</summary>
@@ -642,17 +646,20 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     [Dfo.Server.Testing.PvfFact]
     public async Task The_line_a_move_leaves_names_the_list_at_both_ends()
     {
-        var (handler, _, logger, side) = this.BuildHandler();
-        side.Seed(InventoryContainerType.Equipment, WornCostumeSlot, Costume);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, _, logger, side) = this.BuildHandler();
+            side.Seed(InventoryContainerType.Equipment, WornCostumeSlot, Costume);
 
-        await handler.HandleAsync(Dispatch, TakeOffRequest(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch, TakeOffRequest(), CancellationToken.None);
 
-        Assert.Equal(
-            $"Move item space either-end character={Character}: item {Costume} "
-                + $"from list {(byte)InventoryContainerType.Avatar} slot {AvatarSlot} "
-                + $"to list {(byte)InventoryContainerType.Equipment} slot {WornCostumeSlot} "
-                + "count=1",
-            Assert.Single(logger.Entries).Message);
+            Assert.Equal(
+                $"Move item space either-end character={Character}: item {Costume} "
+                    + $"from list {(byte)InventoryContainerType.Avatar} slot {AvatarSlot} "
+                    + $"to list {(byte)InventoryContainerType.Equipment} slot {WornCostumeSlot} "
+                    + "count=1",
+                Assert.Single(logger.Entries).Message);
+        });
     }
 
     /// <summary>The drag that started all of this: a costume off the character, into the bag.</summary>

@@ -21,6 +21,7 @@ using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 
@@ -571,48 +572,51 @@ public sealed class SetPlayResultHandlerTests
         bool includeOnlyLeader = false,
         bool continueAfterFailure = false, OneRun? run = null, List<Exception>? failures = null)
     {
-        var session = SelectedSessionIdentity.Create(
-            new AccountId(1),
-            new CharacterId(60),
-            new NetworkConnectionId("one"),
-            connectionGeneration: 1,
-            listenerPort: 10010);
-        var entry = Entry();
-        var runtime = new OneRuntimeSession(entry);
-        var sender = new RecordingSender();
-
-        var handler = new SetPlayResultHandler(
-            new OneSession(session),
-            runtime,
-            new OnePlayingCharacter(ledger ?? new SkillPointLedger(withLedger)),
-            run ?? new OneRun(purpose, leader, includeOnlyLeader),
-            rules ?? new PurposeSettlementRules(canComplete),
-            cards ?? new RecordingCards(),
-            bus ?? new FixedAward(leveledUp, awarded),
-            new QuestOfferRefreshDomainService(
-                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
-            sender,
-            NullLogger<SetPlayResultHandler>.Instance);
-
-        for (var report = 0; report < reports; report++)
+        return await TestGameplay.RunAsync(async () =>
         {
-            try
-            {
-                await handler.HandleAsync(
-                    new NetworkDispatchContext(
-                        new NetworkConnectionContext(
-                            new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010)),
-                    new SetPlayResultRequest(default!, ClientRankPoint: 80),
-                    CancellationToken.None);
-            }
-            catch (Exception failure) when (continueAfterFailure && report + 1 < reports)
-            {
-                failures?.Add(failure);
-                // The next report exercises whether the claim is still payable.
-            }
-        }
+            var session = SelectedSessionIdentity.Create(
+                new AccountId(1),
+                new CharacterId(60),
+                new NetworkConnectionId("one"),
+                connectionGeneration: 1,
+                listenerPort: 10010);
+            var entry = Entry();
+            var runtime = new OneRuntimeSession(entry);
+            var sender = new RecordingSender();
 
-        return sender.Sent;
+            var handler = new SetPlayResultHandler(
+                new OneSession(session),
+                runtime,
+                new OnePlayingCharacter(ledger ?? new SkillPointLedger(withLedger)),
+                run ?? new OneRun(purpose, leader, includeOnlyLeader),
+                rules ?? new PurposeSettlementRules(canComplete),
+                cards ?? new RecordingCards(),
+                bus ?? new FixedAward(leveledUp, awarded),
+                new QuestOfferRefreshDomainService(
+                    content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                sender,
+                NullLogger<SetPlayResultHandler>.Instance);
+
+            for (var report = 0; report < reports; report++)
+            {
+                try
+                {
+                    await handler.HandleAsync(
+                        new NetworkDispatchContext(
+                            new NetworkConnectionContext(
+                                new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010)),
+                        new SetPlayResultRequest(default!, ClientRankPoint: 80),
+                        CancellationToken.None);
+                }
+                catch (Exception failure) when (continueAfterFailure && report + 1 < reports)
+                {
+                    failures?.Add(failure);
+                    // The next report exercises whether the claim is still payable.
+                }
+            }
+
+            return sender.Sent;
+        });
     }
     /// <summary>The published session this settlement starts from, at level three.</summary>
     /// <remarks>

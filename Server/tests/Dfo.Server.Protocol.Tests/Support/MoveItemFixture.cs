@@ -3,6 +3,7 @@ using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Tests.Support;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Support;
 
@@ -16,10 +17,13 @@ internal sealed class MoveItemFixture
 
     public async ValueTask<T> RunAsync<T>(Func<ValueTask<T>> action)
     {
-        await using var transaction = scope.Begin();
-        var result = await action();
-        await transaction.CommitAsync(CancellationToken.None);
-        return result;
+        return await TestGameplay.RunAsync(async () =>
+        {
+            await using var transaction = scope.Begin();
+            var result = await action();
+            await transaction.CommitAsync(CancellationToken.None);
+            return result;
+        });
     }
 }
 

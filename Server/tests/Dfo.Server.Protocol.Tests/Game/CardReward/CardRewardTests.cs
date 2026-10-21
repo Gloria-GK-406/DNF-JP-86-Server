@@ -27,6 +27,7 @@ using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.CardReward;
 
@@ -73,29 +74,32 @@ public sealed class CardRewardTests
     [Fact]
     public async Task Second_reward_failure_rolls_back_assets_and_releases_the_claim_for_retry()
     {
-        var scope = new DomainTransactionScope();
-        var world = new World(blackDiamond: BonusFace, transactions: scope);
-        world.Bag.RefuseAtCall = 2;
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        await TestGameplay.RunAsync(async () =>
         {
-            await using var lease = scope.Begin();
-            scope.Current!.Enlist(world, () => new AwardParticipant(world));
-            await world.Flip(ClearRewardCardKind.Free, 0);
-            await lease.CommitAsync(default);
+            var scope = new DomainTransactionScope();
+            var world = new World(blackDiamond: BonusFace, transactions: scope);
+            world.Bag.RefuseAtCall = 2;
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            {
+                await using var lease = scope.Begin();
+                scope.Current!.Enlist(world, () => new AwardParticipant(world));
+                await world.Flip(ClearRewardCardKind.Free, 0);
+                await lease.CommitAsync(default);
+            });
+            Assert.Empty(world.Bag.Slots);
+            Assert.Equal(StartingGold, world.Gold.Total);
+            await using (var lease = scope.Begin())
+            {
+                scope.Current!.Enlist(world, () => new AwardParticipant(world));
+                var retry = await world.Flip(ClearRewardCardKind.Free, 0);
+                Assert.Null(retry.Change);
+                await lease.CommitAsync(default);
+                Assert.NotNull(retry.Change);
+            }
+            Assert.Equal(2, world.Bag.Slots.Count);
+            Assert.Equal(StartingGold + FaceGold, world.Gold.Total);
+            Assert.Equal(SelectCardStatus.AlreadyFlipped, (await world.Flip(ClearRewardCardKind.Free, 0)).Status);
         });
-        Assert.Empty(world.Bag.Slots);
-        Assert.Equal(StartingGold, world.Gold.Total);
-        await using (var lease = scope.Begin())
-        {
-            scope.Current!.Enlist(world, () => new AwardParticipant(world));
-            var retry = await world.Flip(ClearRewardCardKind.Free, 0);
-            Assert.Null(retry.Change);
-            await lease.CommitAsync(default);
-            Assert.NotNull(retry.Change);
-        }
-        Assert.Equal(2, world.Bag.Slots.Count);
-        Assert.Equal(StartingGold + FaceGold, world.Gold.Total);
-        Assert.Equal(SelectCardStatus.AlreadyFlipped, (await world.Flip(ClearRewardCardKind.Free, 0)).Status);
     }
 
     // Transactional asset stand-in; persistence's SQLite atomicity is covered separately.
@@ -248,33 +252,39 @@ public sealed class CardRewardTests
     [Fact]
     public async Task The_scroll_acknowledgement_is_followed_by_the_layout()
     {
-        var sender = new RecordingSender();
-        var handler = new ScoreScrollStateHandler(
-            new OneSession(Identity), sender, NullLogger<ScoreScrollStateHandler>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new RecordingSender();
+            var handler = new ScoreScrollStateHandler(
+                new OneSession(Identity), sender, NullLogger<ScoreScrollStateHandler>.Instance);
 
-        await handler.HandleAsync(
-            Dispatch(), new ScoreScrollStateRequest(GameMessageMetadata.Empty), CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(), new ScoreScrollStateRequest(GameMessageMetadata.Empty), CancellationToken.None);
 
-        Assert.Collection(
-            sender.Sent,
-            first => Assert.IsType<ScoreScrollStateResponse>(first),
-            second => Assert.IsType<CardSelectRightStateResponse>(second));
+            Assert.Collection(
+                sender.Sent,
+                first => Assert.IsType<ScoreScrollStateResponse>(first),
+                second => Assert.IsType<CardSelectRightStateResponse>(second));
+        });
     }
 
     /// <summary>The layout request is answered with the layout on its own.</summary>
     [Fact]
     public async Task The_layout_request_is_answered_with_the_layout()
     {
-        var sender = new RecordingSender();
-        var handler = new CardSelectRightStateHandler(
-            new OneSession(Identity), sender, NullLogger<CardSelectRightStateHandler>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new RecordingSender();
+            var handler = new CardSelectRightStateHandler(
+                new OneSession(Identity), sender, NullLogger<CardSelectRightStateHandler>.Instance);
 
-        await handler.HandleAsync(
-            Dispatch(),
-            new CardSelectRightStateRequest(GameMessageMetadata.Empty),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(),
+                new CardSelectRightStateRequest(GameMessageMetadata.Empty),
+                CancellationToken.None);
 
-        Assert.IsType<CardSelectRightStateResponse>(Assert.Single(sender.Sent));
+            Assert.IsType<CardSelectRightStateResponse>(Assert.Single(sender.Sent));
+        });
     }
 
     // ---- the flip's answer -----------------------------------------------------------------
@@ -1044,18 +1054,21 @@ public sealed class CardRewardTests
     [Fact]
     public async Task A_paid_flip_losing_the_reservation_moves_no_money()
     {
-        var world = new World();
-        var reservation = world.Reserve(ClearRewardCardKind.Paid, 0);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = new World();
+            var reservation = world.Reserve(ClearRewardCardKind.Paid, 0);
 
-        var result = await world.Flip(ClearRewardCardKind.Paid, 0);
+            var result = await world.Flip(ClearRewardCardKind.Paid, 0);
 
-        Assert.Equal(SelectCardStatus.AlreadyFlipped, result.Status);
-        Assert.Equal(0, world.Gold.Charges);
-        Assert.Equal(StartingGold, world.Gold.Total);
-        world.Release(reservation);
-        Assert.Equal(
-            SelectCardStatus.Flipped,
-            (await world.Flip(ClearRewardCardKind.Paid, 0)).Status);
+            Assert.Equal(SelectCardStatus.AlreadyFlipped, result.Status);
+            Assert.Equal(0, world.Gold.Charges);
+            Assert.Equal(StartingGold, world.Gold.Total);
+            world.Release(reservation);
+            Assert.Equal(
+                SelectCardStatus.Flipped,
+                (await world.Flip(ClearRewardCardKind.Paid, 0)).Status);
+        });
     }
 
     [Fact]
@@ -1272,33 +1285,36 @@ public sealed class CardRewardTests
                 new FixedClock(Flipped),
                 new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new StubContainers(bagBound ? this.Bag : null)), new BaseCost());
 
-            if (!inARun)
-                return;
-
-            var run = this._runs.Begin(Identity.CharacterId, Layout, difficulty: Dfo.Server.Data.World.DungeonDifficulty.Adventure);
-            if (cardsFixed)
+            TestGameplay.Run(() =>
             {
-                // The price goes down with the faces, which is where a clear fixes it. Handing it
-                // to the run rather than to the rule service is not a shortcut: after settlement
-                // there is nothing left for the rules to be asked, which is what the fixture's
-                // rule service refusing every member now says.
-                this._runs.FixClearRewardCards(
-                    Identity.CharacterId, run.RunId,
-                    Face(ClearRewardCardKind.Free),
-                    Face(ClearRewardCardKind.Paid),
-                    paidFlipPrice, blackDiamond);
-            }
+                if (!inARun)
+                    return;
 
-            Assert.NotNull(this._runs.TryOpenClear(
-                Identity.CharacterId, run.RunId, run.RoomVersion));
-            var settlement = Assert.IsType<DungeonSettlementClaim>(
-                this._runs.TryClaimSettlement(Identity.CharacterId, run.RunId));
-            Assert.NotNull(this._runs.CommitSettlement(settlement));
-            if (cardsFixed)
-            {
-                Assert.NotNull(this._runs.TryOpenCardLayout(
-                    Identity.CharacterId, run.RunId));
-            }
+                var run = this._runs.Begin(Identity.CharacterId, Layout, difficulty: Dfo.Server.Data.World.DungeonDifficulty.Adventure);
+                if (cardsFixed)
+                {
+                    // The price goes down with the faces, which is where a clear fixes it. Handing it
+                    // to the run rather than to the rule service is not a shortcut: after settlement
+                    // there is nothing left for the rules to be asked, which is what the fixture's
+                    // rule service refusing every member now says.
+                    this._runs.FixClearRewardCards(
+                        Identity.CharacterId, run.RunId,
+                        Face(ClearRewardCardKind.Free),
+                        Face(ClearRewardCardKind.Paid),
+                        paidFlipPrice, blackDiamond);
+                }
+
+                Assert.NotNull(this._runs.TryOpenClear(
+                    Identity.CharacterId, run.RunId, run.RoomVersion));
+                var settlement = Assert.IsType<DungeonSettlementClaim>(
+                    this._runs.TryClaimSettlement(Identity.CharacterId, run.RunId));
+                Assert.NotNull(this._runs.CommitSettlement(settlement));
+                if (cardsFixed)
+                {
+                    Assert.NotNull(this._runs.TryOpenCardLayout(
+                        Identity.CharacterId, run.RunId));
+                }
+            });
         }
 
         /// <summary>The character's own bag, which is where a flipped piece has to end up.</summary>
@@ -1333,16 +1349,19 @@ public sealed class CardRewardTests
 
         public async ValueTask<SelectCardResult> Send(SelectCardCommand command)
         {
-            this.Flips++;
-            this.LastCommand = command;
-            return await this._handler.HandleAsync(
-                new CommandExecutionContext(
-                    Guid.NewGuid(),
-                    typeof(SelectCardCommand),
-                    typeof(SelectCardCommandHandler),
-                    CommandExecutionKind.Workflow),
-                command,
-                CancellationToken.None);
+            return await TestGameplay.RunAsync(async () =>
+            {
+                this.Flips++;
+                this.LastCommand = command;
+                return await this._handler.HandleAsync(
+                    new CommandExecutionContext(
+                        Guid.NewGuid(),
+                        typeof(SelectCardCommand),
+                        typeof(SelectCardCommandHandler),
+                        CommandExecutionKind.Workflow),
+                    command,
+                    CancellationToken.None);
+            });
         }
 
         public async ValueTask Handle(
@@ -1352,18 +1371,21 @@ public sealed class CardRewardTests
             ISelectedSessionDomainService? sessions = null,
             ISelectedCharacterCurrentViewDomainService? runtimeSessions = null)
         {
-            var handler = new SelectCardHandler(
-                sessions ?? new OneSession(Identity),
-                runtimeSessions ?? new OneRuntimeSession(PublishedEntry()),
-                this._runs,
-                new OneCommandBus(this),
-                sender,
-                NullLogger<SelectCardHandler>.Instance);
+            await TestGameplay.RunAsync(async () =>
+            {
+                var handler = new SelectCardHandler(
+                    sessions ?? new OneSession(Identity),
+                    runtimeSessions ?? new OneRuntimeSession(PublishedEntry()),
+                    this._runs,
+                    new OneCommandBus(this),
+                    sender,
+                    NullLogger<SelectCardHandler>.Instance);
 
-            await handler.HandleAsync(
-                Dispatch(),
-                new SelectCardRequest(GameMessageMetadata.Empty, kind, index),
-                CancellationToken.None);
+                await handler.HandleAsync(
+                    Dispatch(),
+                    new SelectCardRequest(GameMessageMetadata.Empty, kind, index),
+                    CancellationToken.None);
+            });
         }
 
         /// <summary>

@@ -28,6 +28,7 @@ using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.GroundPickup;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.GroundPickup;
 
@@ -107,48 +108,52 @@ public sealed class QuestClearVerticalTests
             await using var provider = services.BuildServiceProvider();
 
             var runs = provider.GetRequiredService<IDungeonRunDomainService>();
-            DungeonRunParticipant[] participants =
-            [
-                new DungeonRunParticipant(LeaderAccount, Leader, 0, IsLeader: true),
-                new DungeonRunParticipant(HelperAccount, Helper, 1, IsLeader: false),
-            ];
-            var layout = QuestLayout();
-            var run = runs.PreparePartyEntry(
-                participants,
-                layout,
-                difficulty: 0,
-                new DungeonCellSeed(
-                    layout.StartCell,
-                    layout.StartRoomMapId,
-                    FirstActorSequence: 30001,
-                    Actors:
-                    [
-                        new DungeonCellActorState(
-                            Sequence: 30001,
-                            new DungeonRoomActor(1, 4, 0),
-                            IsAiCharacter: false,
-                            IsDead: false,
-                            PendingLoot:
-                            [
-                                new RolledDrop(
-                                    10149163,
-                                    1,
-                                    DropRarity.Common,
-                                    DropItemKind.Stackable,
-                                    OwnerCharacterId: Leader),
-                            ]),
-                    ],
-                    GroundItems: []),
-                DungeonRunId.New(),
-                DateTimeOffset.UnixEpoch).Run;
-            var death = Assert.IsType<DungeonActorDeathClaim>(
-                runs.TryClaimActorDeath(Leader, 30001));
-            var afterDeath = Assert.IsType<DungeonRunState>(runs.CommitActorDeath(death));
-            var clear = new DungeonClearDomainService(
-                runs,
-                new ClearedBossRoom());
-            var bossClear = Assert.IsType<DungeonClearChange>(await clear.EvaluateAsync(
-                LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+            var (run, afterDeath, clear, bossClear) = await TestGameplay.RunAsync(provider, async () =>
+            {
+                DungeonRunParticipant[] participants =
+                [
+                    new DungeonRunParticipant(LeaderAccount, Leader, 0, IsLeader: true),
+                    new DungeonRunParticipant(HelperAccount, Helper, 1, IsLeader: false),
+                ];
+                var layout = QuestLayout();
+                var run = runs.PreparePartyEntry(
+                    participants,
+                    layout,
+                    difficulty: 0,
+                    new DungeonCellSeed(
+                        layout.StartCell,
+                        layout.StartRoomMapId,
+                        FirstActorSequence: 30001,
+                        Actors:
+                        [
+                            new DungeonCellActorState(
+                                Sequence: 30001,
+                                new DungeonRoomActor(1, 4, 0),
+                                IsAiCharacter: false,
+                                IsDead: false,
+                                PendingLoot:
+                                [
+                                    new RolledDrop(
+                                        10149163,
+                                        1,
+                                        DropRarity.Common,
+                                        DropItemKind.Stackable,
+                                        OwnerCharacterId: Leader),
+                                ]),
+                        ],
+                        GroundItems: []),
+                    DungeonRunId.New(),
+                    DateTimeOffset.UnixEpoch).Run;
+                var death = Assert.IsType<DungeonActorDeathClaim>(
+                    runs.TryClaimActorDeath(Leader, 30001));
+                var afterDeath = Assert.IsType<DungeonRunState>(runs.CommitActorDeath(death));
+                var clear = new DungeonClearDomainService(
+                    runs,
+                    new ClearedBossRoom());
+                var bossClear = Assert.IsType<DungeonClearChange>(await clear.EvaluateAsync(
+                    LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+                return (run, afterDeath, clear, bossClear);
+            });
 
             var drop = Assert.Single(afterDeath.CurrentCellState.GroundItems);
             var pickup = await provider.GetRequiredService<ICommandBus>().SendAsync(
@@ -160,48 +165,51 @@ public sealed class QuestClearVerticalTests
                     run.RoomVersion),
                 CancellationToken.None);
 
-            var replacement = Session(LeaderAccount, Leader, "replacement", 2);
-            IReadOnlyList<SelectedSessionIdentity> current = transition switch
+            await TestGameplay.RunAsync(provider, async () =>
             {
-                PostCommitTransition.PickerReplaced => [replacement, HelperSession],
-                PostCommitTransition.PickerDeparted => [HelperSession],
-                _ => [LeaderSession, HelperSession],
-            };
-            if (transition is PostCommitTransition.PickerDeparted)
-                Assert.True(runs.End(Leader, run.RunId));
+                var replacement = Session(LeaderAccount, Leader, "replacement", 2);
+                IReadOnlyList<SelectedSessionIdentity> current = transition switch
+                {
+                    PostCommitTransition.PickerReplaced => [replacement, HelperSession],
+                    PostCommitTransition.PickerDeparted => [HelperSession],
+                    _ => [LeaderSession, HelperSession],
+                };
+                if (transition is PostCommitTransition.PickerDeparted)
+                    Assert.True(runs.End(Leader, run.RunId));
 
-            var sessions = new Sessions(current);
-            var registry = new DungeonRunDeliveryRegistry();
-            registry.Register(run.RunId, [LeaderSession, HelperSession]);
-            var sender = new RecordingSender();
-            var projection = new DungeonPickupProjectionDelivery(
-                sessions, registry, sender, TimeProvider.System);
-            var postCommit = new DungeonPickupPostCommitCoordinator(
-                clear,
-                new DungeonClearProjectionDelivery(sessions, runs, registry, sender));
-            Assert.Null(await postCommit.EvaluateAsync(LeaderSession, pickup));
-            var pickupDelivered = await projection.DeliverAsync(
-                LeaderSession, pickup, default);
-            _ = await postCommit.ProjectAsync(LeaderSession, bossClear, default);
+                var sessions = new Sessions(current);
+                var registry = new DungeonRunDeliveryRegistry();
+                registry.Register(run.RunId, [LeaderSession, HelperSession]);
+                var sender = new RecordingSender();
+                var projection = new DungeonPickupProjectionDelivery(
+                    sessions, registry, sender, TimeProvider.System);
+                var postCommit = new DungeonPickupPostCommitCoordinator(
+                    clear,
+                    new DungeonClearProjectionDelivery(sessions, runs, registry, sender));
+                Assert.Null(await postCommit.EvaluateAsync(LeaderSession, pickup));
+                var pickupDelivered = await projection.DeliverAsync(
+                    LeaderSession, pickup, default);
+                _ = await postCommit.ProjectAsync(LeaderSession, bossClear, default);
 
-            Assert.Equal(GroundPickupStatus.PickedUp, pickup.Status);
-            Assert.Equal(0, Assert.Single(pickup.QuestProgress!.Quests).TriggerValue);
-            Assert.NotNull(pickup.CommittedChange);
-            Assert.Equal(15, await StoredQuantityAsync(itemStore));
-            Assert.Equal(0, await TriggerAsync(path));
-            Assert.Equal(transition is PostCommitTransition.None, pickupDelivered);
-            Assert.True(runs.Find(run.RunId)!.ClearOpen);
-            Assert.Null(await clear.EvaluateAsync(
-                LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
-            Assert.Equal(
-                transition is PostCommitTransition.None ? 1 : 0,
-                sender.For(LeaderSession.ConnectionId)
-                    .OfType<EnableClearDungeonNotification>().Count());
-            if (transition is not PostCommitTransition.None)
-                Assert.Empty(sender.For(LeaderSession.ConnectionId));
-            Assert.Empty(sender.For(replacement.ConnectionId));
-            Assert.Single(sender.For(HelperSession.ConnectionId)
-                .OfType<EnableClearDungeonNotification>());
+                Assert.Equal(GroundPickupStatus.PickedUp, pickup.Status);
+                Assert.Equal(0, Assert.Single(pickup.QuestProgress!.Quests).TriggerValue);
+                Assert.NotNull(pickup.CommittedChange);
+                Assert.Equal(15, await StoredQuantityAsync(itemStore));
+                Assert.Equal(0, await TriggerAsync(path));
+                Assert.Equal(transition is PostCommitTransition.None, pickupDelivered);
+                Assert.True(runs.Find(run.RunId)!.ClearOpen);
+                Assert.Null(await clear.EvaluateAsync(
+                    LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+                Assert.Equal(
+                    transition is PostCommitTransition.None ? 1 : 0,
+                    sender.For(LeaderSession.ConnectionId)
+                        .OfType<EnableClearDungeonNotification>().Count());
+                if (transition is not PostCommitTransition.None)
+                    Assert.Empty(sender.For(LeaderSession.ConnectionId));
+                Assert.Empty(sender.For(replacement.ConnectionId));
+                Assert.Single(sender.For(HelperSession.ConnectionId)
+                    .OfType<EnableClearDungeonNotification>());
+            });
         }
         finally
         {

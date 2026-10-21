@@ -24,6 +24,7 @@ using Dfo.Server.Protocol.Tests.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.Party;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
 
@@ -69,67 +70,79 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     [Dfo.Server.Testing.PvfFact]
     public async Task Putting_on_and_taking_off_a_title_refreshes_the_overhead_appearance_after_acknowledgement()
     {
-        const int title = 26628;
-        const short titleBagSlot = 9;
-        const short titleWornSlot = 13;
-        var world = Build(inBagAt: titleBagSlot, itemId: title, itemKind: 1);
+        await TestGameplay.RunAsync(async () =>
+        {
+            const int title = 26628;
+            const short titleBagSlot = 9;
+            const short titleWornSlot = 13;
+            var world = Build(inBagAt: titleBagSlot, itemId: title, itemKind: 1);
 
-        await world.MoveAsync(InventoryContainerType.Main, titleBagSlot, InventoryContainerType.Equipment, titleWornSlot);
+            await world.MoveAsync(InventoryContainerType.Main, titleBagSlot, InventoryContainerType.Equipment, titleWornSlot);
 
-        Assert.Collection(world.Sender.Sent,
-            first => Assert.Null(Assert.IsType<MoveItemSpaceResponse>(first).ErrorCode),
-            second => Assert.Equal(title,
-                Assert.Single(Assert.IsType<CurrentUserStateMessage>(second).Equipment).Core.ItemId),
-            third => Assert.Equal(title, Assert.Single(Assert.IsType<ExtendedUserStateMessage>(third).Equipment).Core.ItemId));
+            Assert.Collection(world.Sender.Sent,
+                first => Assert.Null(Assert.IsType<MoveItemSpaceResponse>(first).ErrorCode),
+                second => Assert.Equal(title,
+                    Assert.Single(Assert.IsType<CurrentUserStateMessage>(second).Equipment).Core.ItemId),
+                third => Assert.Equal(title, Assert.Single(Assert.IsType<ExtendedUserStateMessage>(third).Equipment).Core.ItemId));
 
-        world.Sender.Sent.Clear();
-        await world.MoveAsync(InventoryContainerType.Equipment, titleWornSlot, InventoryContainerType.Main, titleBagSlot);
+            world.Sender.Sent.Clear();
+            await world.MoveAsync(InventoryContainerType.Equipment, titleWornSlot, InventoryContainerType.Main, titleBagSlot);
 
-        Assert.Collection(world.Sender.Sent,
-            first => Assert.Null(Assert.IsType<MoveItemSpaceResponse>(first).ErrorCode),
-            second => Assert.Empty(Assert.IsType<CurrentUserStateMessage>(second).Equipment),
-            third => Assert.Empty(Assert.IsType<ExtendedUserStateMessage>(third).Equipment));
+            Assert.Collection(world.Sender.Sent,
+                first => Assert.Null(Assert.IsType<MoveItemSpaceResponse>(first).ErrorCode),
+                second => Assert.Empty(Assert.IsType<CurrentUserStateMessage>(second).Equipment),
+                third => Assert.Empty(Assert.IsType<ExtendedUserStateMessage>(third).Equipment));
+        });
     }
 
     [Dfo.Server.Testing.PvfFact]
     public async Task Expired_wear_qualification_refuses_equipping_but_allows_taking_off()
     {
-        var equip = Build(inAvatarAt: AvatarSlot, canWear: false);
-        await equip.MoveAsync(InventoryContainerType.Avatar, AvatarSlot, InventoryContainerType.Equipment, WornCostumeSlot);
-        Assert.NotNull(Assert.IsType<MoveItemSpaceResponse>(Assert.Single(equip.Sender.Sent)).ErrorCode);
-        var remove = Build(wornAt: WornCostumeSlot, canWear: false);
-        await remove.MoveAsync(InventoryContainerType.Equipment, WornCostumeSlot, InventoryContainerType.Avatar, AvatarSlot);
-        Assert.Null(Assert.IsType<MoveItemSpaceResponse>(remove.Sender.Sent[0]).ErrorCode);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var equip = Build(inAvatarAt: AvatarSlot, canWear: false);
+            await equip.MoveAsync(InventoryContainerType.Avatar, AvatarSlot, InventoryContainerType.Equipment, WornCostumeSlot);
+            Assert.NotNull(Assert.IsType<MoveItemSpaceResponse>(Assert.Single(equip.Sender.Sent)).ErrorCode);
+            var remove = Build(wornAt: WornCostumeSlot, canWear: false);
+            await remove.MoveAsync(InventoryContainerType.Equipment, WornCostumeSlot, InventoryContainerType.Avatar, AvatarSlot);
+            Assert.Null(Assert.IsType<MoveItemSpaceResponse>(remove.Sender.Sent[0]).ErrorCode);
+        });
     }
 
     [Dfo.Server.Testing.PvfFact]
     public async Task Putting_a_costume_on_tells_the_client_what_the_character_now_wears()
     {
-        var world = Build(inBagAt: BagSlot);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build(inBagAt: BagSlot);
 
-        await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
+            await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
 
-        Assert.Collection(
-            world.Sender.Sent,
-            first => Assert.Null(Assert.IsType<MoveItemSpaceResponse>(first).ErrorCode),
-            second => Assert.Equal(
-                Costume,
-                Assert.Single(Assert.IsType<CurrentUserStateMessage>(second).Equipment).Core.ItemId),
-            third => Assert.Equal(Costume, Assert.Single(Assert.IsType<ExtendedUserStateMessage>(third).Equipment).Core.ItemId));
+            Assert.Collection(
+                world.Sender.Sent,
+                first => Assert.Null(Assert.IsType<MoveItemSpaceResponse>(first).ErrorCode),
+                second => Assert.Equal(
+                    Costume,
+                    Assert.Single(Assert.IsType<CurrentUserStateMessage>(second).Equipment).Core.ItemId),
+                third => Assert.Equal(Costume, Assert.Single(Assert.IsType<ExtendedUserStateMessage>(third).Equipment).Core.ItemId));
+        });
     }
 
     [Dfo.Server.Testing.PvfFact]
     public async Task Taking_a_costume_off_tells_the_client_the_character_is_no_longer_wearing_it()
     {
-        var world = Build(wornAt: WornCostumeSlot);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build(wornAt: WornCostumeSlot);
 
-        await world.MoveAsync(InventoryContainerType.Equipment, WornCostumeSlot, InventoryContainerType.Avatar, AvatarSlot);
+            await world.MoveAsync(InventoryContainerType.Equipment, WornCostumeSlot, InventoryContainerType.Avatar, AvatarSlot);
 
-        Assert.Collection(
-            world.Sender.Sent,
-            first => Assert.Null(Assert.IsType<MoveItemSpaceResponse>(first).ErrorCode),
-            second => Assert.Empty(Assert.IsType<CurrentUserStateMessage>(second).Equipment),
-            third => Assert.Empty(Assert.IsType<ExtendedUserStateMessage>(third).Equipment));
+            Assert.Collection(
+                world.Sender.Sent,
+                first => Assert.Null(Assert.IsType<MoveItemSpaceResponse>(first).ErrorCode),
+                second => Assert.Empty(Assert.IsType<CurrentUserStateMessage>(second).Equipment),
+                third => Assert.Empty(Assert.IsType<ExtendedUserStateMessage>(third).Equipment));
+        });
     }
 
     /// <summary>
@@ -143,28 +156,34 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     [Dfo.Server.Testing.PvfFact]
     public async Task The_frame_follows_the_store_and_not_the_session_copy()
     {
-        var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
 
-        await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
+            await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
 
-        var frame = Assert.IsType<CurrentUserStateMessage>(world.Sender.Sent[1]);
-        Assert.Equal(Costume, Assert.Single(frame.Equipment).Core.ItemId);
-        Assert.DoesNotContain(frame.Equipment, item => item.Core.ItemId == OtherCostume);
+            var frame = Assert.IsType<CurrentUserStateMessage>(world.Sender.Sent[1]);
+            Assert.Equal(Costume, Assert.Single(frame.Equipment).Core.ItemId);
+            Assert.DoesNotContain(frame.Equipment, item => item.Core.ItemId == OtherCostume);
+        });
     }
 
     /// <summary>Subsequent projections read the store without replacing a session copy.</summary>
     [Dfo.Server.Testing.PvfFact]
     public async Task The_current_view_follows_the_move_without_session_copy_replacement()
     {
-        var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
 
-        await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
+            await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
 
-        Assert.Equal(Costume, Assert.Single(
-            (await world.OpenDungeonSelectionAsync()).Equipment).Core.ItemId);
-        Assert.Equal(OtherCostume, Assert.Single(
-            world.Runtime.Original.CharacterInventory.Containers.Single(
-                value => value.ContainerType == InventoryContainerType.Equipment).Items).Core.ItemId);
+            Assert.Equal(Costume, Assert.Single(
+                (await world.OpenDungeonSelectionAsync()).Equipment).Core.ItemId);
+            Assert.Equal(OtherCostume, Assert.Single(
+                world.Runtime.Original.CharacterInventory.Containers.Single(
+                    value => value.ContainerType == InventoryContainerType.Equipment).Items).Core.ItemId);
+        });
     }
 
     /// <summary>
@@ -177,22 +196,25 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     [Dfo.Server.Testing.PvfFact]
     public async Task Current_view_reads_inventory_without_modifying_entry_data()
     {
-        var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
-        var before = world.Runtime.Original;
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
+            var before = world.Runtime.Original;
 
-        await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
+            await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
 
-        var after = Assert.IsType<SelectCharacterResult>(
-            await world.CurrentViews.TryLoadAsync(OneSession.Session, CancellationToken.None));
-        Assert.NotSame(before.CharacterInventory, after.CharacterInventory);
-        Assert.Same(before.Character, after.Character);
-        Assert.Same(before.CharacterEntry, after.CharacterEntry);
-        Assert.Same(before.AccountInventory, after.AccountInventory);
-        Assert.Same(before.Account, after.Account);
-        Assert.Same(before.World, after.World);
-        Assert.Same(before.Session, after.Session);
-        Assert.Same(before.Roster, after.Roster);
-        Assert.Same(before.RosterEntry, after.RosterEntry);
+            var after = Assert.IsType<SelectCharacterResult>(
+                await world.CurrentViews.TryLoadAsync(OneSession.Session, CancellationToken.None));
+            Assert.NotSame(before.CharacterInventory, after.CharacterInventory);
+            Assert.Same(before.Character, after.Character);
+            Assert.Same(before.CharacterEntry, after.CharacterEntry);
+            Assert.Same(before.AccountInventory, after.AccountInventory);
+            Assert.Same(before.Account, after.Account);
+            Assert.Same(before.World, after.World);
+            Assert.Same(before.Session, after.Session);
+            Assert.Same(before.Roster, after.Roster);
+            Assert.Same(before.RosterEntry, after.RosterEntry);
+        });
     }
 
     /// <summary>
@@ -207,24 +229,30 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     [Dfo.Server.Testing.PvfFact]
     public async Task A_move_that_changes_nothing_drawn_needs_no_appearance_projection()
     {
-        var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
 
-        await world.MoveAsync(
-            InventoryContainerType.Main, BagSlot, InventoryContainerType.Main, OtherBagSlot);
+            await world.MoveAsync(
+                InventoryContainerType.Main, BagSlot, InventoryContainerType.Main, OtherBagSlot);
 
-        Assert.Equal(0, world.Inventory.Loads);
-        Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
+            Assert.Equal(0, world.Inventory.Loads);
+            Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
+        });
     }
 
     /// <summary>A refused move needs no current appearance projection.</summary>
     [Dfo.Server.Testing.PvfFact]
     public async Task A_refused_move_needs_no_appearance_projection()
     {
-        var world = Build(sessionCopyWears: OtherCostume);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build(sessionCopyWears: OtherCostume);
 
-        await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
+            await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
 
-        Assert.Equal(0, world.Inventory.Loads);
+            Assert.Equal(0, world.Inventory.Loads);
+        });
     }
 
     /// <summary>
@@ -236,35 +264,44 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     [Dfo.Server.Testing.PvfFact]
     public async Task A_displaced_session_view_still_gets_its_acknowledgement()
     {
-        var world = Build(
-            inBagAt: BagSlot, sessionCopyWears: OtherCostume, sessionRefusesReplacement: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build(
+                inBagAt: BagSlot, sessionCopyWears: OtherCostume, sessionRefusesReplacement: true);
 
-        await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
+            await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
 
-        var answer = Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
-        Assert.Null(answer.ErrorCode);
-        Assert.Equal(1, answer.MoveValue);
-        Assert.Empty(world.Logger.Errors);
+            var answer = Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
+            Assert.Null(answer.ErrorCode);
+            Assert.Equal(1, answer.MoveValue);
+            Assert.Empty(world.Logger.Errors);
+        });
     }
 
     [Dfo.Server.Testing.PvfFact]
     public async Task A_move_inside_the_bag_sends_the_acknowledgement_alone()
     {
-        var world = Build(inBagAt: BagSlot);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build(inBagAt: BagSlot);
 
-        await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Main, OtherBagSlot);
+            await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Main, OtherBagSlot);
 
-        Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
+            Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
+        });
     }
 
     [Dfo.Server.Testing.PvfFact]
     public async Task A_move_between_the_bag_and_the_avatar_page_sends_the_acknowledgement_alone()
     {
-        var world = Build(inBagAt: BagSlot);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build(inBagAt: BagSlot);
 
-        await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Avatar, AvatarSlot);
+            await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Avatar, AvatarSlot);
 
-        Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
+            Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
+        });
     }
 
     /// <summary>A worn slot the frame does not draw from does not make it worth sending.</summary>
@@ -276,11 +313,14 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     [Dfo.Server.Testing.PvfFact]
     public async Task A_move_onto_a_worn_slot_the_frame_ignores_sends_the_acknowledgement_alone()
     {
-        var world = Build(wornAt: 22);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build(wornAt: 22);
 
-        await world.MoveAsync(InventoryContainerType.Equipment, 22, InventoryContainerType.Main, BagSlot);
+            await world.MoveAsync(InventoryContainerType.Equipment, 22, InventoryContainerType.Main, BagSlot);
 
-        Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
+            Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
+        });
     }
 
     /// <summary>
@@ -295,56 +335,68 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     [Dfo.Server.Testing.PvfFact]
     public async Task A_move_is_still_acknowledged_when_the_appearance_cannot_be_built()
     {
-        var world = Build(inBagAt: BagSlot, storeRefusesToLoad: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build(inBagAt: BagSlot, storeRefusesToLoad: true);
 
-        await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
+            await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
 
-        var acknowledgement = Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
-        Assert.Null(acknowledgement.ErrorCode);
-        Assert.Equal(1, acknowledgement.MoveValue);
+            var acknowledgement = Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
+            Assert.Null(acknowledgement.ErrorCode);
+            Assert.Equal(1, acknowledgement.MoveValue);
+        });
     }
 
     [Dfo.Server.Testing.PvfFact]
     public async Task A_refused_move_sends_the_refusal_alone()
     {
-        var world = Build();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build();
 
-        await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
+            await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
 
-        var refusal = Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
-        Assert.NotNull(refusal.ErrorCode);
+            var refusal = Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
+            Assert.NotNull(refusal.ErrorCode);
+        });
     }
 
     [Dfo.Server.Testing.PvfFact]
     public async Task Opening_dungeon_selection_after_dressing_reads_the_current_equipment()
     {
-        var world = Build(inAvatarAt: AvatarSlot, sessionCopyWears: OtherCostume);
-        var before = await world.OpenDungeonSelectionAsync();
-        Assert.Empty(before.Equipment);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build(inAvatarAt: AvatarSlot, sessionCopyWears: OtherCostume);
+            var before = await world.OpenDungeonSelectionAsync();
+            Assert.Empty(before.Equipment);
 
-        await world.MoveAsync(InventoryContainerType.Avatar, AvatarSlot,
-            InventoryContainerType.Equipment, WornCostumeSlot);
+            await world.MoveAsync(InventoryContainerType.Avatar, AvatarSlot,
+                InventoryContainerType.Equipment, WornCostumeSlot);
 
-        var after = await world.OpenDungeonSelectionAsync();
-        Assert.Equal(Costume, Assert.Single(after.Equipment).Core.ItemId);
-        Assert.Same(before.Character, after.Character);
+            var after = await world.OpenDungeonSelectionAsync();
+            Assert.Equal(Costume, Assert.Single(after.Equipment).Core.ItemId);
+            Assert.Same(before.Character, after.Character);
 
-        await world.MoveAsync(InventoryContainerType.Equipment, WornCostumeSlot,
-            InventoryContainerType.Avatar, AvatarSlot);
-        Assert.Empty((await world.OpenDungeonSelectionAsync()).Equipment);
+            await world.MoveAsync(InventoryContainerType.Equipment, WornCostumeSlot,
+                InventoryContainerType.Avatar, AvatarSlot);
+            Assert.Empty((await world.OpenDungeonSelectionAsync()).Equipment);
+        });
     }
 
     [Dfo.Server.Testing.PvfFact]
     public async Task Dressing_reads_the_inventory_once_for_both_frames_and_copy()
     {
-        var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
-        await world.MoveAsync(InventoryContainerType.Main, BagSlot,
-            InventoryContainerType.Equipment, WornCostumeSlot);
-        Assert.Equal(1, world.Inventory.Loads);
-        Assert.Equal(Costume, Assert.Single(
-            Assert.Single(world.Sender.Sent.OfType<CurrentUserStateMessage>()).Equipment).Core.ItemId);
-        Assert.Equal(Costume, Assert.Single(
-            (await world.OpenDungeonSelectionAsync()).Equipment).Core.ItemId);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
+            await world.MoveAsync(InventoryContainerType.Main, BagSlot,
+                InventoryContainerType.Equipment, WornCostumeSlot);
+            Assert.Equal(1, world.Inventory.Loads);
+            Assert.Equal(Costume, Assert.Single(
+                Assert.Single(world.Sender.Sent.OfType<CurrentUserStateMessage>()).Equipment).Core.ItemId);
+            Assert.Equal(Costume, Assert.Single(
+                (await world.OpenDungeonSelectionAsync()).Equipment).Core.ItemId);
+        });
     }
 
     [Dfo.Server.Testing.PvfTheory]
@@ -352,11 +404,14 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     [InlineData(true)]
     public async Task Refresh_preserves_the_real_directorys_position_persistence_flag(bool persists)
     {
-        var world = Build(inBagAt: BagSlot, shouldPersistPosition: persists);
-        await world.MoveAsync(InventoryContainerType.Main, BagSlot,
-            InventoryContainerType.Equipment, WornCostumeSlot);
-        Assert.True(world.Runtime.TryGet(OneSession.Session, out _, out var after));
-        Assert.Equal(persists, after);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build(inBagAt: BagSlot, shouldPersistPosition: persists);
+            await world.MoveAsync(InventoryContainerType.Main, BagSlot,
+                InventoryContainerType.Equipment, WornCostumeSlot);
+            Assert.True(world.Runtime.TryGet(OneSession.Session, out _, out var after));
+            Assert.Equal(persists, after);
+        });
     }
 
     [Dfo.Server.Testing.PvfTheory]
@@ -364,39 +419,42 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     [InlineData((byte)5)]
     public async Task Dungeon_selection_reports_refreshed_character_values_in_the_existing_frame_order(byte level)
     {
-        var world = Build(sessionCopyWears: OtherCostume);
-        var current = world.Runtime.Original with
+        await TestGameplay.RunAsync(async () =>
         {
-            Character = world.Runtime.Original.Character with { Progression = new(level, 9000) },
-            CharacterEntry = world.Runtime.Original.CharacterEntry with
+            var world = Build(sessionCopyWears: OtherCostume);
+            var current = world.Runtime.Original with
             {
-                Public = world.Runtime.Original.CharacterEntry.Public with
+                Character = world.Runtime.Original.Character with { Progression = new(level, 9000) },
+                CharacterEntry = world.Runtime.Original.CharacterEntry with
                 {
-                    DerivedStats = world.Runtime.Original.CharacterEntry.Public.DerivedStats with { HpMaximum = 9876 },
+                    Public = world.Runtime.Original.CharacterEntry.Public with
+                    {
+                        DerivedStats = world.Runtime.Original.CharacterEntry.Public.DerivedStats with { HpMaximum = 9876 },
+                    },
+                    Skills = world.Runtime.Original.CharacterEntry.Skills with
+                    {
+                        Pages = [new CharacterSkillPageState(0, [new CharacterSkillState(7, 1, 4, [8, 9])])],
+                        ProtocolMirror = new(11, 12, 13, 14),
+                    },
                 },
-                Skills = world.Runtime.Original.CharacterEntry.Skills with
-                {
-                    Pages = [new CharacterSkillPageState(0, [new CharacterSkillState(7, 1, 4, [8, 9])])],
-                    ProtocolMirror = new(11, 12, 13, 14),
-                },
-            },
-        };
-        var frame = await world.OpenDungeonSelectionAsync(new FixedCurrentState(current));
-        Assert.Equal(level, frame.Character.Progression.Level);
-        Assert.Equal(9876, frame.Public.DerivedStats.HpMaximum);
-        Assert.Equal(new CharacterSkillProtocolMirrorState(11, 12, 13, 14), frame.Skills.ProtocolMirror);
-        Assert.Equal(4, Assert.Single(Assert.Single(frame.Skills.Pages).Skills).Level);
-        Assert.Equal(OtherCostume, Assert.Single(frame.Equipment).Core.ItemId);
-        var expected = new List<Type> { typeof(ExtendedUserStateMessage), typeof(EnterSelectDungeonAcknowledgement),
-            typeof(UserStateNotification), typeof(UdpHostNotification) };
-        if (level > 1)
-        {
-            expected.Add(typeof(DungeonPermissionStateMessage));
-            expected.Add(typeof(EnterSelectDungeonNotification));
-            Assert.Equal(current.CharacterEntry.Progression.Dungeons,
-                Assert.Single(world.Sender.Sent.OfType<DungeonPermissionStateMessage>()).Dungeons);
-        }
-        Assert.Equal(expected, world.Sender.Sent.Select(message => message.GetType()));
+            };
+            var frame = await world.OpenDungeonSelectionAsync(new FixedCurrentState(current));
+            Assert.Equal(level, frame.Character.Progression.Level);
+            Assert.Equal(9876, frame.Public.DerivedStats.HpMaximum);
+            Assert.Equal(new CharacterSkillProtocolMirrorState(11, 12, 13, 14), frame.Skills.ProtocolMirror);
+            Assert.Equal(4, Assert.Single(Assert.Single(frame.Skills.Pages).Skills).Level);
+            Assert.Equal(OtherCostume, Assert.Single(frame.Equipment).Core.ItemId);
+            var expected = new List<Type> { typeof(ExtendedUserStateMessage), typeof(EnterSelectDungeonAcknowledgement),
+                typeof(UserStateNotification), typeof(UdpHostNotification) };
+            if (level > 1)
+            {
+                expected.Add(typeof(DungeonPermissionStateMessage));
+                expected.Add(typeof(EnterSelectDungeonNotification));
+                Assert.Equal(current.CharacterEntry.Progression.Dungeons,
+                    Assert.Single(world.Sender.Sent.OfType<DungeonPermissionStateMessage>()).Dungeons);
+            }
+            Assert.Equal(expected, world.Sender.Sent.Select(message => message.GetType()));
+        });
     }
 
     private sealed class FixedCurrentState(SelectCharacterResult result) : ICharacterStateProjectionDomainService

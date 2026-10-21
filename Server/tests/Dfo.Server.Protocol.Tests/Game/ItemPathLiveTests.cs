@@ -25,6 +25,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TouchSocketSessionClient = TouchSocket.Sockets.ITcpSessionClient;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game;
 
@@ -160,19 +161,22 @@ public sealed class ItemPathLiveTests
     /// </remarks>
     private static void Bind(IServiceProvider services, NetworkConnectionId connectionId)
     {
-        var character = new CharacterId(60);
-        services.GetRequiredService<ICharacterContainerDomainService>().Register(
-            character,
-            new PersistentItemContainer(
-                ContainerId.ForCharacter(character, InventoryContainerType.Main),
-                new ContainerShape(InventoryContainerType.Main, 0),
-                services.GetRequiredService<IItemDomainStore>(),
-                services.GetRequiredService<IDomainTransactionAccessor>(),
-                services.GetRequiredService<IItemPlacementRuleService>(),
-                services.GetRequiredService<IItemSlotRuleService>()));
-        services.GetRequiredService<ISelectedSessionDomainService>().Select(
-            new SelectedSessionIdentity(
-                new AccountId(6), character, connectionId, 0, WireUserId: 60, ListenerPort: 0));
+        TestGameplay.Run(services, () =>
+        {
+            var character = new CharacterId(60);
+            services.GetRequiredService<ICharacterContainerDomainService>().Register(
+                character,
+                new PersistentItemContainer(
+                    ContainerId.ForCharacter(character, InventoryContainerType.Main),
+                    new ContainerShape(InventoryContainerType.Main, 0),
+                    services.GetRequiredService<IItemDomainStore>(),
+                    services.GetRequiredService<IDomainTransactionAccessor>(),
+                    services.GetRequiredService<IItemPlacementRuleService>(),
+                    services.GetRequiredService<IItemSlotRuleService>()));
+            services.GetRequiredService<ISelectedSessionDomainService>().Select(
+                new SelectedSessionIdentity(
+                    new AccountId(6), character, connectionId, 0, WireUserId: 60, ListenerPort: 0));
+        });
     }
 
     private static byte[] Frame(ushort type, byte[] body)

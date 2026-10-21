@@ -15,6 +15,7 @@ using Dfo.Server.Persistence.Accounts;
 using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Support;
 
@@ -149,10 +150,13 @@ internal sealed class CharacterSide
     public async Task<TResult> InUseCaseAsync<TResult>(
         Func<CancellationToken, ValueTask<TResult>> work)
     {
-        await using var lease = this.Scope.Begin();
-        var result = await work(CancellationToken.None).ConfigureAwait(false);
-        await lease.CommitAsync(CancellationToken.None).ConfigureAwait(false);
-        return result;
+        return await TestGameplay.RunAsync(async () =>
+        {
+            await using var lease = this.Scope.Begin();
+            var result = await work(CancellationToken.None).ConfigureAwait(false);
+            await lease.CommitAsync(CancellationToken.None).ConfigureAwait(false);
+            return result;
+        });
     }
 
     private sealed class ResetSettings : Dfo.Server.Abstractions.Configuration.IServerConfigService
@@ -268,10 +272,13 @@ internal sealed class CharacterSide
         private async ValueTask<TResult> Settled<TResult>(
             Func<ValueTask<TResult>> work, CancellationToken cancellationToken)
         {
-            await using var lease = scope.Begin();
-            var result = await work();
-            await lease.CommitAsync(cancellationToken);
-            return result;
+            return await TestGameplay.RunAsync(async () =>
+            {
+                await using var lease = scope.Begin();
+                var result = await work();
+                await lease.CommitAsync(cancellationToken);
+                return result;
+            });
         }
     }
 }

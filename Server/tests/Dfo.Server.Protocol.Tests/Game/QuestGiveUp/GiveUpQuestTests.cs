@@ -15,6 +15,7 @@ using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.QuestGiveUp;
 
@@ -55,44 +56,47 @@ public sealed class GiveUpQuestTests
     [Fact]
     public async Task A_successful_give_up_refreshes_the_carried_and_offer_lists()
     {
-        var session = SelectedSessionIdentity.Create(new AccountId(1), new CharacterId(60),
-            new NetworkConnectionId("quest-give-up"), 1, 10011);
-        var currentViews = new FixedCurrentViews();
-        var entry = SelectCharacterPayloadTestData.Create();
-        currentViews.Publish(session, entry with
+        await TestGameplay.RunAsync(async () =>
         {
-            World = entry.World with
+            var session = SelectedSessionIdentity.Create(new AccountId(1), new CharacterId(60),
+                new NetworkConnectionId("quest-give-up"), 1, 10011);
+            var currentViews = new FixedCurrentViews();
+            var entry = SelectCharacterPayloadTestData.Create();
+            currentViews.Publish(session, entry with
             {
-                Subject = new WorldContentSubject(
-                    2, 0, 0, new Dictionary<int, int>(), [1016], [], [], 0, 0)
-            }
+                World = entry.World with
+                {
+                    Subject = new WorldContentSubject(
+                        2, 0, 0, new Dictionary<int, int>(), [1016], [], [], 0, 0)
+                }
+            });
+            var character = new CurrentCharacterStub
+            {
+                Id = session.CharacterId,
+                Progress = new CharacterProgressionState(2, 0),
+                Identity = new CharacterIdentityState(session.CharacterId, 0, [65], 0, 0)
+            };
+            var characters = CurrentCharacterStub.Domain(character);
+            var content = new StubWorldContentEntryRuleService();
+            var sender = new RecordingSender();
+            var handler = new GiveUpQuestHandler(
+                new OneSession(session), currentViews, characters,
+                new SuccessfulGiveUp(), sender,
+                new QuestOfferRefreshDomainService(content, new RecordingQuestLogs(), characters),
+                NullLogger<GiveUpQuestHandler>.Instance);
+
+            await handler.HandleAsync(
+                new NetworkDispatchContext(new NetworkConnectionContext(session.ConnectionId,
+                    NetworkEndpointKind.Game, 10011)),
+                new GiveUpQuestRequest(GameMessageMetadata.Empty, 1016), CancellationToken.None);
+
+            Assert.Equal([
+                typeof(GiveUpQuestAcknowledgement), typeof(AcceptedQuestProgressMessage),
+                typeof(AvailableQuestListMessage)
+            ], sender.Sent.Select(message => message.GetType()));
+            Assert.Empty(Assert.IsType<AcceptedQuestProgressMessage>(sender.Sent[1]).Quests);
+            Assert.Empty(Assert.IsType<WorldContentSubject>(content.LastSubject).CarriedQuestIds);
         });
-        var character = new CurrentCharacterStub
-        {
-            Id = session.CharacterId,
-            Progress = new CharacterProgressionState(2, 0),
-            Identity = new CharacterIdentityState(session.CharacterId, 0, [65], 0, 0)
-        };
-        var characters = CurrentCharacterStub.Domain(character);
-        var content = new StubWorldContentEntryRuleService();
-        var sender = new RecordingSender();
-        var handler = new GiveUpQuestHandler(
-            new OneSession(session), currentViews, characters,
-            new SuccessfulGiveUp(), sender,
-            new QuestOfferRefreshDomainService(content, new RecordingQuestLogs(), characters),
-            NullLogger<GiveUpQuestHandler>.Instance);
-
-        await handler.HandleAsync(
-            new NetworkDispatchContext(new NetworkConnectionContext(session.ConnectionId,
-                NetworkEndpointKind.Game, 10011)),
-            new GiveUpQuestRequest(GameMessageMetadata.Empty, 1016), CancellationToken.None);
-
-        Assert.Equal([
-            typeof(GiveUpQuestAcknowledgement), typeof(AcceptedQuestProgressMessage),
-            typeof(AvailableQuestListMessage)
-        ], sender.Sent.Select(message => message.GetType()));
-        Assert.Empty(Assert.IsType<AcceptedQuestProgressMessage>(sender.Sent[1]).Quests);
-        Assert.Empty(Assert.IsType<WorldContentSubject>(content.LastSubject).CarriedQuestIds);
     }
 
     private sealed class SuccessfulGiveUp : ICommandBus

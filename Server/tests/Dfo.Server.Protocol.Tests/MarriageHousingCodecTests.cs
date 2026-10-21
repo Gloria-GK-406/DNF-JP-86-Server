@@ -9,6 +9,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.BuyItem;
 using Dfo.Server.Protocol.Game.MarriageHousing;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests;
 
@@ -23,7 +24,10 @@ public sealed class MarriageHousingCodecTests
         var sessions = provider.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>();
         var actor = SelectedSessionIdentity.Create(new(1), new(71), new("ring-actor"), 1, 10011);
         var peer = SelectedSessionIdentity.Create(new(2), new(72), new("ring-peer"), 1, 10011);
-        sessions.Select(actor);
+        TestGameplay.Run(provider, () =>
+        {
+            sessions.Select(actor);
+        });
         var handler = new HousingChangedHandler(sessions);
         var change = new HousingChanged(actor, new(HousingAction.UpgradeRing), new(0) { RingLevel = 1 });
         Assert.Empty(await handler.ComposeAsync(new(actor.CharacterId, actor.ConnectionId, actor), change, default));

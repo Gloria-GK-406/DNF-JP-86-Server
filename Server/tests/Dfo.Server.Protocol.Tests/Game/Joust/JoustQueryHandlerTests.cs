@@ -16,6 +16,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Joust;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.Joust;
 
@@ -143,14 +144,18 @@ public sealed class JoustQueryHandlerTests
             .AddSingleton(transitions)
             .AddSingleton(sp => new SelectedSessionSafety(sp, transitions, NullLogger<SelectedSessionSafety>.Instance))
             .BuildServiceProvider();
-        var handler = ActivatorUtilities.CreateInstance<JoustQueryHandler>(services);
-        var replies = new List<IReadOnlyList<IGameServerMessage>>();
-        for (var i = 0; i < 2; i++)
+        var replies = await TestGameplay.RunAsync(services, async () =>
         {
-            sender.Sent.Clear();
-            await handler.HandleAsync(new(connection), new JoustQueryRequest(new(1, type, 0, 1)), default);
-            replies.Add(sender.Sent.ToArray());
-        }
+            var handler = ActivatorUtilities.CreateInstance<JoustQueryHandler>(services);
+            var replies = new List<IReadOnlyList<IGameServerMessage>>();
+            for (var i = 0; i < 2; i++)
+            {
+                sender.Sent.Clear();
+                await handler.HandleAsync(new(connection), new JoustQueryRequest(new(1, type, 0, 1)), default);
+                replies.Add(sender.Sent.ToArray());
+            }
+            return replies;
+        });
         return [.. replies];
     }
 

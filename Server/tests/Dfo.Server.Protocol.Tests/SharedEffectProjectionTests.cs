@@ -12,6 +12,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.UseStackable;
+using Dfo.Server.Testing;
 namespace Dfo.Server.Protocol.Tests;
 public sealed class SharedEffectProjectionTests
 {
@@ -19,26 +20,29 @@ public sealed class SharedEffectProjectionTests
     [InlineData(true)] [InlineData(false)]
     public async Task Ack_precedes_self_effect_and_only_visible_scene_members_receive_broadcast(bool success)
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state); ITownAreaDomainService areas = new SessionPresenceDomainService();
-        SelectedSessionIdentity Add(int id, byte area, bool visible)
+        await TestGameplay.RunAsync(async () =>
         {
-            var s = SelectedSessionIdentity.Create(new AccountId(id), new CharacterId(id), new NetworkConnectionId("shared-" + id), 2, 10011);
-            Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, s); areas.Enter(new(s.CharacterId, s.TownAreaLease(), new(1, 2, area), new(2, area, 0, 0, 0), visible)); return s;
-        }
-        var actor = Add(1, 12, true); var peer = Add(2, 12, true); Add(3, 13, true); Add(4, 12, false);
-        var sender = new Sender(); var commands = new Commands(success);
-        var request = new SharedEffectRequest(GameMessageMetadata.Empty, 10002625, 65);
-        Assert.Equal(ReplayProjectionNeeds.Inventory, ((IEffectSettlementRequest)request).MinimumReplayNeeds);
-        await new SharedEffectHandler(sessions, new InventorySlotMappingRuleService(), areas, commands, sender, new SelectedSessionTransitionGate())
-            .HandleAsync(new NetworkDispatchContext(new(actor.ConnectionId, NetworkEndpointKind.Game, 10011)), request, default);
-        var delivery = Assert.Single(sender.Items); Assert.Equal(success, Assert.IsType<SharedEffectAck>(delivery.RequiredDirectMessages[0]).Success);
-        Assert.Equal(1, commands.Count);
-        if (success)
-        {
-            var self = Assert.IsType<SharedEffectNotification>(delivery.RequiredDirectMessages[1]); Assert.Equal(actor.WireUserId, self.Actor);
-            var target = Assert.Single(delivery.BestEffortTargets); Assert.Equal(peer.ConnectionId, target.ConnectionId);
-        }
-        else { Assert.Single(delivery.RequiredDirectMessages); Assert.Empty(delivery.BestEffortTargets); }
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state); ITownAreaDomainService areas = new SessionPresenceDomainService();
+            SelectedSessionIdentity Add(int id, byte area, bool visible)
+            {
+                var s = SelectedSessionIdentity.Create(new AccountId(id), new CharacterId(id), new NetworkConnectionId("shared-" + id), 2, 10011);
+                Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, s); areas.Enter(new(s.CharacterId, s.TownAreaLease(), new(1, 2, area), new(2, area, 0, 0, 0), visible)); return s;
+            }
+            var actor = Add(1, 12, true); var peer = Add(2, 12, true); Add(3, 13, true); Add(4, 12, false);
+            var sender = new Sender(); var commands = new Commands(success);
+            var request = new SharedEffectRequest(GameMessageMetadata.Empty, 10002625, 65);
+            Assert.Equal(ReplayProjectionNeeds.Inventory, ((IEffectSettlementRequest)request).MinimumReplayNeeds);
+            await new SharedEffectHandler(sessions, new InventorySlotMappingRuleService(), areas, commands, sender, new SelectedSessionTransitionGate())
+                .HandleAsync(new NetworkDispatchContext(new(actor.ConnectionId, NetworkEndpointKind.Game, 10011)), request, default);
+            var delivery = Assert.Single(sender.Items); Assert.Equal(success, Assert.IsType<SharedEffectAck>(delivery.RequiredDirectMessages[0]).Success);
+            Assert.Equal(1, commands.Count);
+            if (success)
+            {
+                var self = Assert.IsType<SharedEffectNotification>(delivery.RequiredDirectMessages[1]); Assert.Equal(actor.WireUserId, self.Actor);
+                var target = Assert.Single(delivery.BestEffortTargets); Assert.Equal(peer.ConnectionId, target.ConnectionId);
+            }
+            else { Assert.Single(delivery.RequiredDirectMessages); Assert.Empty(delivery.BestEffortTargets); }
+        });
     }
     private sealed class Commands(bool success) : ICommandBus
     {

@@ -1,4 +1,5 @@
 using Dfo.Server.Application.Authentication;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Accounts;
 
@@ -37,8 +38,11 @@ public sealed class AuthenticationConsumptionTests
         Assert.NotNull(login.Ticket);
         var service = fixture.Services.GetService(typeof(Dfo.Server.Abstractions.Authentication.IAuthenticationDomainService)) as Dfo.Server.Abstractions.Authentication.IAuthenticationDomainService;
         Assert.NotNull(service);
-        await using (fixture.Scope.Begin())
-            Assert.NotNull(await service.BindSessionAsync(new Dfo.Server.Data.Networking.NetworkConnectionId("test-binding"), login.MId!, login.Ticket, default));
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            await using (fixture.Scope.Begin())
+                Assert.NotNull(await service.BindSessionAsync(new Dfo.Server.Data.Networking.NetworkConnectionId("test-binding"), login.MId!, login.Ticket, default));
+        });
         fixture.Clock.Now = login.ExpiresAtUtc!.Value.AddTicks(-1);
         Assert.NotNull(await fixture.Consume(login.MId!, login.Ticket));
         var expiring = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "test password"));

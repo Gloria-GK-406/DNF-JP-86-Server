@@ -13,6 +13,7 @@ using Dfo.Server.Protocol.Game.CardReward;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.CardReward;
 
@@ -21,24 +22,33 @@ public sealed class DungeonCardPresentationCoordinatorTests
     [Fact]
     public async Task Settlement_opens_layout_then_auto_flips_one_free_card()
     {
-        using var world = Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4));
+        using var world = TestGameplay.Run(() => Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4)));
 
-        world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
-        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
+        await TestGameplay.RunAsync(async () =>
+        {
+            world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
+            await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
+        });
         await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
-        await WaitUntilAsync(() => world.Sender.For(world.Session.ConnectionId)
-            .Any(message => message is CardSelectRightStateResponse));
-        Assert.Collection(
-            world.Sender.For(world.Session.ConnectionId),
-            first => Assert.IsType<ScoreScrollStateResponse>(first),
-            second => Assert.IsType<CardSelectRightStateResponse>(second));
-        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 1);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await WaitUntilAsync(() => world.Sender.For(world.Session.ConnectionId)
+                .Any(message => message is CardSelectRightStateResponse));
+            Assert.Collection(
+                world.Sender.For(world.Session.ConnectionId),
+                first => Assert.IsType<ScoreScrollStateResponse>(first),
+                second => Assert.IsType<CardSelectRightStateResponse>(second));
+            await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 1);
+        });
         await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(4));
-        await WaitUntilAsync(() => world.Sender.For(world.Session.ConnectionId)
-            .Any(message => message is SelectCardResponse));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await WaitUntilAsync(() => world.Sender.For(world.Session.ConnectionId)
+                .Any(message => message is SelectCardResponse));
 
-        Assert.Equal(1, world.Bus.Selections);
-        Assert.Single(world.Runs.Find(world.Session.CharacterId)!.CardSelections);
+            Assert.Equal(1, world.Bus.Selections);
+            Assert.Single(world.Runs.Find(world.Session.CharacterId)!.CardSelections);
+        });
     }
 
     [Fact]
@@ -53,56 +63,71 @@ public sealed class DungeonCardPresentationCoordinatorTests
     [Fact]
     public async Task Manual_free_flip_cancels_the_pending_auto_flip()
     {
-        using var world = Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4));
-        world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
-        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
+        using var world = TestGameplay.Run(() => Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
+            await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
+        });
         await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
-        await WaitUntilAsync(() => world.Runs.Find(world.Session.CharacterId)!.CardLayoutOpen);
-        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 1);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await WaitUntilAsync(() => world.Runs.Find(world.Session.CharacterId)!.CardLayoutOpen);
+            await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 1);
 
-        var result = await world.Bus.SendAsync(
-            new SelectCardCommand(
-                world.Session.AccountId,
-                world.Session.CharacterId,
-                ClearRewardCardKind.Free,
-                0,
-                world.Run.RunId));
-        world.Coordinator.Cancel(world.Session.CharacterId, world.Run.RunId);
-        await world.Projection.DeliverAsync(
-            world.Session, result, DateTimeOffset.UnixEpoch, default);
-        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 0);
+            var result = await world.Bus.SendAsync(
+                new SelectCardCommand(
+                    world.Session.AccountId,
+                    world.Session.CharacterId,
+                    ClearRewardCardKind.Free,
+                    0,
+                    world.Run.RunId));
+            world.Coordinator.Cancel(world.Session.CharacterId, world.Run.RunId);
+            await world.Projection.DeliverAsync(
+                world.Session, result, DateTimeOffset.UnixEpoch, default);
+            await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 0);
 
-        Assert.Equal(1, world.Bus.Selections);
-        Assert.Equal(0, Assert.Single(
-            world.Runs.Find(world.Session.CharacterId)!.CardSelections).Index);
+            Assert.Equal(1, world.Bus.Selections);
+            Assert.Equal(0, Assert.Single(
+                world.Runs.Find(world.Session.CharacterId)!.CardSelections).Index);
+        });
     }
 
     [Fact]
     public async Task Leaving_or_replacing_the_session_invalidates_old_layout_timer()
     {
-        using var departed = Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4));
-        departed.Coordinator.ScheduleAfterSettlement(departed.Session, departed.Run.RunId);
-        await WaitUntilAsync(() => departed.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
-        Assert.True(departed.Runs.End(departed.Session.CharacterId, departed.Run.RunId));
+        using var departed = TestGameplay.Run(() => Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            departed.Coordinator.ScheduleAfterSettlement(departed.Session, departed.Run.RunId);
+            await WaitUntilAsync(() => departed.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
+            Assert.True(departed.Runs.End(departed.Session.CharacterId, departed.Run.RunId));
+        });
         await departed.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
 
-        using var replaced = Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4));
-        replaced.Coordinator.ScheduleAfterSettlement(replaced.Session, replaced.Run.RunId);
-        await WaitUntilAsync(() => replaced.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
-        replaced.Sessions.Current = replaced.Session with
+        using var replaced = TestGameplay.Run(() => Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4)));
+        await TestGameplay.RunAsync(async () =>
         {
-            ConnectionId = new NetworkConnectionId("replacement"),
-            ConnectionGeneration = 2,
-        };
+            replaced.Coordinator.ScheduleAfterSettlement(replaced.Session, replaced.Run.RunId);
+            await WaitUntilAsync(() => replaced.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
+            replaced.Sessions.Current = replaced.Session with
+            {
+                ConnectionId = new NetworkConnectionId("replacement"),
+                ConnectionGeneration = 2,
+            };
+        });
         await replaced.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
+await TestGameplay.RunAsync(async () =>
+{
 
-        await WaitUntilAsync(() =>
-            departed.Delay.Pending(TimeSpan.FromSeconds(2)) == 0
-            && replaced.Delay.Pending(TimeSpan.FromSeconds(2)) == 0);
-        Assert.Empty(departed.Sender.For(departed.Session.ConnectionId));
-        Assert.Empty(replaced.Sender.For(replaced.Session.ConnectionId));
-        Assert.Equal(0, departed.Bus.Selections);
-        Assert.Equal(0, replaced.Bus.Selections);
+            await WaitUntilAsync(() =>
+                departed.Delay.Pending(TimeSpan.FromSeconds(2)) == 0
+                && replaced.Delay.Pending(TimeSpan.FromSeconds(2)) == 0);
+            Assert.Empty(departed.Sender.For(departed.Session.ConnectionId));
+            Assert.Empty(replaced.Sender.For(replaced.Session.ConnectionId));
+            Assert.Equal(0, departed.Bus.Selections);
+            Assert.Equal(0, replaced.Bus.Selections);
+});
     }
 
     [Fact]
@@ -129,106 +154,130 @@ public sealed class DungeonCardPresentationCoordinatorTests
     [Fact]
     public async Task Late_party_layout_requests_do_not_repeat_the_panel_or_cancel_auto_flip()
     {
-        using var world = BuildParty();
-        foreach (var session in world.Sessions.All)
-            world.Coordinator.ScheduleAfterSettlement(session, world.Run.RunId);
+        using var world = TestGameplay.Run(() => BuildParty());
+        await TestGameplay.RunAsync(async () =>
+        {
+            foreach (var session in world.Sessions.All)
+                world.Coordinator.ScheduleAfterSettlement(session, world.Run.RunId);
 
-        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 2);
+            await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 2);
+        });
         await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
-        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 2);
-
-        foreach (var session in world.Sessions.All)
+        await TestGameplay.RunAsync(async () =>
         {
-            await world.Coordinator.OpenOnRequestAsync(session, world.Run.RunId, default);
-            await world.Coordinator.OpenOnRequestAsync(session, world.Run.RunId, default);
-        }
+            await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 2);
 
-        foreach (var session in world.Sessions.All)
-        {
-            var layout = Assert.Single(world.Sender.For(session.ConnectionId)
-                .OfType<CardSelectRightStateResponse>());
-            Assert.Equal([0, 1], layout.EligibleSeats);
-        }
-        Assert.Equal(2, world.Delay.Pending(TimeSpan.FromSeconds(4)));
+            foreach (var session in world.Sessions.All)
+            {
+                await world.Coordinator.OpenOnRequestAsync(session, world.Run.RunId, default);
+                await world.Coordinator.OpenOnRequestAsync(session, world.Run.RunId, default);
+            }
 
+            foreach (var session in world.Sessions.All)
+            {
+                var layout = Assert.Single(world.Sender.For(session.ConnectionId)
+                    .OfType<CardSelectRightStateResponse>());
+                Assert.Equal([0, 1], layout.EligibleSeats);
+            }
+            Assert.Equal(2, world.Delay.Pending(TimeSpan.FromSeconds(4)));
+
+        });
         await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(4));
-        await WaitUntilAsync(() => world.Bus.Selections == 2);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await WaitUntilAsync(() => world.Bus.Selections == 2);
+        });
     }
 
     [Fact]
     public async Task Late_scroll_request_does_not_send_a_second_acknowledgement()
     {
-        using var world = Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4));
-        world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
-        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
+        using var world = TestGameplay.Run(() => Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
+            await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
+        });
         await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
-        await WaitUntilAsync(() => world.Sender.For(world.Session.ConnectionId)
-            .Any(message => message is CardSelectRightStateResponse));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await WaitUntilAsync(() => world.Sender.For(world.Session.ConnectionId)
+                .Any(message => message is CardSelectRightStateResponse));
 
-        var handler = new ScoreScrollStateHandler(
-            world.Sessions,
-            world.Sender,
-            NullLogger<ScoreScrollStateHandler>.Instance,
-            world.Coordinator,
-            world.Runs);
-        await handler.HandleAsync(
-            new NetworkDispatchContext(new NetworkConnectionContext(
-                world.Session.ConnectionId, NetworkEndpointKind.Game, 10010)),
-            new ScoreScrollStateRequest(GameMessageMetadata.Empty),
-            CancellationToken.None);
+            var handler = new ScoreScrollStateHandler(
+                world.Sessions,
+                world.Sender,
+                NullLogger<ScoreScrollStateHandler>.Instance,
+                world.Coordinator,
+                world.Runs);
+            await handler.HandleAsync(
+                new NetworkDispatchContext(new NetworkConnectionContext(
+                    world.Session.ConnectionId, NetworkEndpointKind.Game, 10010)),
+                new ScoreScrollStateRequest(GameMessageMetadata.Empty),
+                CancellationToken.None);
 
-        Assert.Collection(
-            world.Sender.For(world.Session.ConnectionId),
-            first => Assert.IsType<ScoreScrollStateResponse>(first),
-            second => Assert.IsType<CardSelectRightStateResponse>(second));
+            Assert.Collection(
+                world.Sender.For(world.Session.ConnectionId),
+                first => Assert.IsType<ScoreScrollStateResponse>(first),
+                second => Assert.IsType<CardSelectRightStateResponse>(second));
+        });
     }
 
     [Fact]
     public async Task Early_scroll_request_sends_the_ordered_pair_once_and_retires_layout_timer()
     {
-        using var world = Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4));
-        world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
-        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
+        using var world = TestGameplay.Run(() => Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
+            await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
 
-        var handler = new ScoreScrollStateHandler(
-            world.Sessions,
-            world.Sender,
-            NullLogger<ScoreScrollStateHandler>.Instance,
-            world.Coordinator,
-            world.Runs);
-        await handler.HandleAsync(
-            new NetworkDispatchContext(new NetworkConnectionContext(
-                world.Session.ConnectionId, NetworkEndpointKind.Game, 10010)),
-            new ScoreScrollStateRequest(GameMessageMetadata.Empty),
-            CancellationToken.None);
+            var handler = new ScoreScrollStateHandler(
+                world.Sessions,
+                world.Sender,
+                NullLogger<ScoreScrollStateHandler>.Instance,
+                world.Coordinator,
+                world.Runs);
+            await handler.HandleAsync(
+                new NetworkDispatchContext(new NetworkConnectionContext(
+                    world.Session.ConnectionId, NetworkEndpointKind.Game, 10010)),
+                new ScoreScrollStateRequest(GameMessageMetadata.Empty),
+                CancellationToken.None);
 
-        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 0);
-        Assert.Equal(1, world.Delay.Pending(TimeSpan.FromSeconds(4)));
-        Assert.Collection(
-            world.Sender.For(world.Session.ConnectionId),
-            first => Assert.IsType<ScoreScrollStateResponse>(first),
-            second => Assert.IsType<CardSelectRightStateResponse>(second));
+            await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 0);
+            Assert.Equal(1, world.Delay.Pending(TimeSpan.FromSeconds(4)));
+            Assert.Collection(
+                world.Sender.For(world.Session.ConnectionId),
+                first => Assert.IsType<ScoreScrollStateResponse>(first),
+                second => Assert.IsType<CardSelectRightStateResponse>(second));
+        });
     }
 
     [Fact]
     public async Task Early_party_layout_requests_open_once_and_retire_the_layout_timers()
     {
-        using var world = BuildParty();
-        foreach (var session in world.Sessions.All)
-            world.Coordinator.ScheduleAfterSettlement(session, world.Run.RunId);
+        using var world = TestGameplay.Run(() => BuildParty());
+        await TestGameplay.RunAsync(async () =>
+        {
+            foreach (var session in world.Sessions.All)
+                world.Coordinator.ScheduleAfterSettlement(session, world.Run.RunId);
 
-        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 2);
-        foreach (var session in world.Sessions.All)
-            await world.Coordinator.OpenOnRequestAsync(session, world.Run.RunId, default);
+            await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 2);
+            foreach (var session in world.Sessions.All)
+                await world.Coordinator.OpenOnRequestAsync(session, world.Run.RunId, default);
 
-        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 0);
-        Assert.Equal(2, world.Delay.Pending(TimeSpan.FromSeconds(4)));
-        foreach (var session in world.Sessions.All)
-            Assert.Single(world.Sender.For(session.ConnectionId)
-                .OfType<CardSelectRightStateResponse>());
+            await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 0);
+            Assert.Equal(2, world.Delay.Pending(TimeSpan.FromSeconds(4)));
+            foreach (var session in world.Sessions.All)
+                Assert.Single(world.Sender.For(session.ConnectionId)
+                    .OfType<CardSelectRightStateResponse>());
 
+        });
         await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(4));
-        await WaitUntilAsync(() => world.Bus.Selections == 2);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await WaitUntilAsync(() => world.Bus.Selections == 2);
+        });
     }
 
     [Fact]

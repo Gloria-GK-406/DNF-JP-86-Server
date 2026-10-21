@@ -28,6 +28,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TouchSocketSessionClient = TouchSocket.Sockets.ITcpSessionClient;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Networking.Tests.Integration;
 
@@ -86,15 +87,21 @@ public sealed class IllusionTowerStageFrameIntegrationTests
             var issued = await commands.SendAsync(
                 new Dfo.Server.Application.Authentication.AuthenticateAndIssueTicketCommand("towerwire", "test password"),
                 timeout.Token);
-            Assert.True(online.TryGetByConnection(connectionId, out var anonymous));
+            var anonymous = TestGameplay.Run(host.Services, () =>
+            {
+                Assert.True(online.TryGetByConnection(connectionId, out var anonymous));
+                return anonymous;
+            });
             var redeemed = await commands.SendAsync(
                 new Dfo.Server.Protocol.Game.Login.RedeemGameLoginCommand(
                     anonymous!.OnlineUserId, issued.MId!, issued.Ticket!),
                 timeout.Token);
             Assert.True(redeemed.Succeeded);
-            var selected = SelectedSessionIdentity.Create(
+            var selected = TestGameplay.Run(host.Services, () =>
+                SelectedSessionIdentity.Create(
                 redeemed.AccountId!.Value, new CharacterId(1), connectionId,
-                online.GetRequired(anonymous.OnlineUserId).Generation, gamePort);
+                online.GetRequired(anonymous.OnlineUserId).Generation, gamePort)
+            );
             // The real grant service verifies ownership even for temporary tower containers.
             await using (var seed = new SqliteConnection($"Data Source={host.DatabasePath}"))
             {
@@ -103,8 +110,11 @@ public sealed class IllusionTowerStageFrameIntegrationTests
                 insert.CommandText = $"INSERT INTO characters(character_id, account_id, name, level) VALUES(1, {selected.AccountId.Value}, 'tower-test', 60)";
                 Assert.Equal(1, await insert.ExecuteNonQueryAsync(timeout.Token));
             }
-            host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(selected);
-            host.Services.GetRequiredService<ISelectedSessionDomainService>().EnterWorld(selected);
+            TestGameplay.Run(host.Services, () =>
+            {
+                host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(selected);
+                host.Services.GetRequiredService<ISelectedSessionDomainService>().EnterWorld(selected);
+            });
 
             var containers = host.Services.GetRequiredService<ICharacterContainerDomainService>();
             if (dungeonId == 11000)
@@ -129,7 +139,10 @@ public sealed class IllusionTowerStageFrameIntegrationTests
             await WaitUntilAsync(
                 () => towers.Find(selected)?.Room.Phase == TowerRoomPhase.Fighting,
                 timeout.Token);
-            Assert.Equal(run.RunId, towers.Find(selected)?.RunId);
+            TestGameplay.Run(host.Services, () =>
+            {
+                Assert.Equal(run.RunId, towers.Find(selected)?.RunId);
+            });
             if (dungeonId == 11000)
             {
                 var killed = await bus.SendAsync(new KillIllusionTowerActorCommand(

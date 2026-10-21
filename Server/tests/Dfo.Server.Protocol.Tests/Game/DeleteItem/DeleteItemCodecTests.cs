@@ -13,6 +13,7 @@ using Dfo.Server.Protocol.Game.DeleteItem;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.DeleteItem;
 
@@ -24,14 +25,17 @@ public sealed class DeleteItemCodecTests
     [InlineData(65535)]
     public async Task Unmapped_slot_is_rejected_without_throwing_or_touching_business_state(int slot)
     {
-        var sender = new CmdSender();
-        var handler = new DeleteItemHandler(null!, null!, new InventorySlotMappingRuleService(), null!, null!, sender,
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<DeleteItemHandler>.Instance);
-        await handler.HandleAsync(new NetworkDispatchContext(new NetworkConnectionContext(new("invalid-slot"),NetworkEndpointKind.Game,10011)),
-            new DeleteItemRequest(GameMessageMetadata.Empty,new(InventoryContainerType.Main,slot),1,1,3037,1,0,1),default);
-        var rejected=Assert.IsType<DeleteItemResponse>(Assert.Single(sender.Sent));
-        Assert.False(rejected.Success);
-        Assert.Equal(DeleteItemResponse.CannotDelete,rejected.ErrorCode);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new CmdSender();
+            var handler = new DeleteItemHandler(null!, null!, new InventorySlotMappingRuleService(), null!, null!, sender,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<DeleteItemHandler>.Instance);
+            await handler.HandleAsync(new NetworkDispatchContext(new NetworkConnectionContext(new("invalid-slot"),NetworkEndpointKind.Game,10011)),
+                new DeleteItemRequest(GameMessageMetadata.Empty,new(InventoryContainerType.Main,slot),1,1,3037,1,0,1),default);
+            var rejected=Assert.IsType<DeleteItemResponse>(Assert.Single(sender.Sent));
+            Assert.False(rejected.Success);
+            Assert.Equal(DeleteItemResponse.CannotDelete,rejected.ErrorCode);
+        });
     }
 
     [Fact]

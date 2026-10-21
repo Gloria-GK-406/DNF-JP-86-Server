@@ -10,6 +10,7 @@ using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 
@@ -36,13 +37,16 @@ public sealed class GrantClearExperienceCommandTests
     [Fact]
     public async Task AClearPaysItsWorthAndItsRank()
     {
-        var result = await Settle(clientRankPoint: 80);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var result = await Settle(clientRankPoint: 80);
 
-        Assert.Equal(659u, result.ClearBase);
-        Assert.Equal(79u, result.RankBonus);
-        Assert.NotNull(result.Award);
-        Assert.Equal(659u, result.Award.Base);
-        Assert.Equal(738u, result.Award.Gained);
+            Assert.Equal(659u, result.ClearBase);
+            Assert.Equal(79u, result.RankBonus);
+            Assert.NotNull(result.Award);
+            Assert.Equal(659u, result.Award.Base);
+            Assert.Equal(738u, result.Award.Gained);
+        });
     }
 
     /// <summary>
@@ -62,10 +66,13 @@ public sealed class GrantClearExperienceCommandTests
     [InlineData(0)]
     public async Task NothingIsPaidThatTheResultScreenCannotAccountFor(int clientRankPoint)
     {
-        var result = await Settle(clientRankPoint);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var result = await Settle(clientRankPoint);
 
-        Assert.NotNull(result.Award);
-        Assert.Equal(result.ClearBase + result.RankBonus, result.Award.Gained);
+            Assert.NotNull(result.Award);
+            Assert.Equal(result.ClearBase + result.RankBonus, result.Award.Gained);
+        });
     }
 
     /// <summary>The rank's share is reported as its own line rather than folded into the worth.</summary>
@@ -77,42 +84,54 @@ public sealed class GrantClearExperienceCommandTests
     [Fact]
     public async Task TheRanksShareIsNamedInTheAward()
     {
-        var result = await Settle(clientRankPoint: 80);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var result = await Settle(clientRankPoint: 80);
 
-        Assert.Equal(result.RankBonus, result.Award!.Breakdown.ClearRank);
+            Assert.Equal(result.RankBonus, result.Award!.Breakdown.ClearRank);
+        });
     }
 
     /// <summary>A run below every paying rank is paid its worth and nothing more.</summary>
     [Fact]
     public async Task ARunBelowEveryPayingRankIsPaidItsWorthAlone()
     {
-        var result = await Settle(clientRankPoint: 49);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var result = await Settle(clientRankPoint: 49);
 
-        Assert.Equal(659u, result.ClearBase);
-        Assert.Equal(0u, result.RankBonus);
-        Assert.Equal(0u, result.Award!.Breakdown.ClearRank);
+            Assert.Equal(659u, result.ClearBase);
+            Assert.Equal(0u, result.RankBonus);
+            Assert.Equal(0u, result.Award!.Breakdown.ClearRank);
+        });
     }
 
     /// <summary>A dungeon the reward table cannot price pays nothing at all.</summary>
     [Fact]
     public async Task ADungeonTheTableCannotPricePaysNothing()
     {
-        var result = await Settle(clientRankPoint: 100, basisLevel: 0);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var result = await Settle(clientRankPoint: 100, basisLevel: 0);
 
-        Assert.Equal(0u, result.ClearBase);
-        Assert.Equal(0u, result.RankBonus);
-        Assert.Equal(0u, result.Award!.Gained);
+            Assert.Equal(0u, result.ClearBase);
+            Assert.Equal(0u, result.RankBonus);
+            Assert.Equal(0u, result.Award!.Gained);
+        });
     }
 
     /// <summary>An award outside a transaction is refused rather than half-written.</summary>
     [Fact]
     public async Task AnAwardOutsideATransactionIsRefused()
     {
-        var handler = Handler();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var handler = Handler();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await handler.HandleAsync(
-                Context(CommandExecutionKind.Direct), Command(80, 5), CancellationToken.None));
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await handler.HandleAsync(
+                    Context(CommandExecutionKind.Direct), Command(80, 5), CancellationToken.None));
+        });
     }
 
     private static async Task<ClearExperienceResult> Settle(
@@ -127,11 +146,14 @@ public sealed class GrantClearExperienceCommandTests
     [InlineData(100)]
     public async Task Difficulty_progression_is_part_of_settlement_regardless_of_score(int score)
     {
-        var difficulties = new RecordingDifficulty();
-        var result = await Handler(difficulties).HandleAsync(Context(CommandExecutionKind.Transactional), Command(score,5), default);
-        Assert.Equal(new CharacterDungeonDifficulty(CapturedDungeon, DungeonDifficulty.Adventure), result.DifficultyUnlocked);
-        Assert.Equal(new CharacterId(60), difficulties.Character);
-        Assert.Equal(DungeonDifficulty.Normal, difficulties.Cleared);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var difficulties = new RecordingDifficulty();
+            var result = await Handler(difficulties).HandleAsync(Context(CommandExecutionKind.Transactional), Command(score,5), default);
+            Assert.Equal(new CharacterDungeonDifficulty(CapturedDungeon, DungeonDifficulty.Adventure), result.DifficultyUnlocked);
+            Assert.Equal(new CharacterId(60), difficulties.Character);
+            Assert.Equal(DungeonDifficulty.Normal, difficulties.Cleared);
+        });
     }
 
     private static GrantClearExperienceCommandHandler Handler(ICharacterDungeonDifficultyDomainService? difficulties = null) =>

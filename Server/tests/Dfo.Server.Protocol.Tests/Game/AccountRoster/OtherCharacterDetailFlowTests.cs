@@ -13,6 +13,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Networking.Framing;
 using Dfo.Server.Protocol.Game.AccountRoster;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.AccountRoster;
 
@@ -21,63 +22,69 @@ public sealed class OtherCharacterDetailFlowTests
     [Fact]
     public async Task ProtocolHandlerDispatchesTheQueryCommandAndPublishesItsExactPlan()
     {
-        var state = SelectCharacter.SelectCharacterPayloadTestData.CreateComplete();
-        var target = TargetFor(state, "target", 1, 10011);
-        var requester = Identity(101, 50000, "requester", 1, 10011);
-        var sessions = new SessionDirectory(requester, target);
-        var projection = new OtherCharacterDetailProjection(
-            requester, target, state, DateTimeOffset.UnixEpoch);
-        var commands = new DetailCommandBus(CharacterDetailQueryResult.Success(projection));
-        var notifications = new RecordingNotificationBus();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var state = SelectCharacter.SelectCharacterPayloadTestData.CreateComplete();
+            var target = TargetFor(state, "target", 1, 10011);
+            var requester = Identity(101, 50000, "requester", 1, 10011);
+            var sessions = new SessionDirectory(requester, target);
+            var projection = new OtherCharacterDetailProjection(
+                requester, target, state, DateTimeOffset.UnixEpoch);
+            var commands = new DetailCommandBus(CharacterDetailQueryResult.Success(projection));
+            var notifications = new RecordingNotificationBus();
 
-        await new GetOtherCharacterDetailHandler(
-                sessions,
-                new SelectedSessionTransitionGate(),
-                commands,
-                notifications,
-                NullLogger<GetOtherCharacterDetailHandler>.Instance)
-            .HandleAsync(
-                Dispatch(requester),
-                new GetOtherCharacterDetailRequest(
-                    GameMessageMetadata.Empty, target.WireUserId),
-                CancellationToken.None);
+            await new GetOtherCharacterDetailHandler(
+                    sessions,
+                    new SelectedSessionTransitionGate(),
+                    commands,
+                    notifications,
+                    NullLogger<GetOtherCharacterDetailHandler>.Instance)
+                .HandleAsync(
+                    Dispatch(requester),
+                    new GetOtherCharacterDetailRequest(
+                        GameMessageMetadata.Empty, target.WireUserId),
+                    CancellationToken.None);
 
-        var command = Assert.IsType<QueryOtherCharacterDetailCommand>(
-            Assert.Single(commands.Commands));
-        Assert.Equal(requester, command.Requester);
-        Assert.Equal(target.WireUserId, command.TargetWireUserId);
-        var publication = Assert.Single(notifications.Publications);
-        Assert.Equal(
-            [requester.CharacterId],
-            Assert.IsType<NotificationAudience.TheseCharacters>(
-                publication.Audience).CharacterIds);
-        Assert.Equal(
-            projection,
-            Assert.IsType<OtherCharacterDetailRequested>(publication.Notification).Projection);
+            var command = Assert.IsType<QueryOtherCharacterDetailCommand>(
+                Assert.Single(commands.Commands));
+            Assert.Equal(requester, command.Requester);
+            Assert.Equal(target.WireUserId, command.TargetWireUserId);
+            var publication = Assert.Single(notifications.Publications);
+            Assert.Equal(
+                [requester.CharacterId],
+                Assert.IsType<NotificationAudience.TheseCharacters>(
+                    publication.Audience).CharacterIds);
+            Assert.Equal(
+                projection,
+                Assert.IsType<OtherCharacterDetailRequested>(publication.Notification).Projection);
+        });
     }
 
     [Fact]
     public async Task RejectedQueryDoesNotPublishACharacterDetailNotification()
     {
-        var state = SelectCharacter.SelectCharacterPayloadTestData.CreateComplete();
-        var target = TargetFor(state, "target", 1, 10011);
-        var requester = Identity(101, 50000, "requester", 1, 10011);
-        var notifications = new RecordingNotificationBus();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var state = SelectCharacter.SelectCharacterPayloadTestData.CreateComplete();
+            var target = TargetFor(state, "target", 1, 10011);
+            var requester = Identity(101, 50000, "requester", 1, 10011);
+            var notifications = new RecordingNotificationBus();
 
-        await new GetOtherCharacterDetailHandler(
-                new SessionDirectory(requester, target),
-                new SelectedSessionTransitionGate(),
-                new DetailCommandBus(CharacterDetailQueryResult.Reject(
-                    CharacterDetailQueryFailure.TargetRuntimeUnavailable)),
-                notifications,
-                NullLogger<GetOtherCharacterDetailHandler>.Instance)
-            .HandleAsync(
-                Dispatch(requester),
-                new GetOtherCharacterDetailRequest(
-                    GameMessageMetadata.Empty, target.WireUserId),
-                CancellationToken.None);
+            await new GetOtherCharacterDetailHandler(
+                    new SessionDirectory(requester, target),
+                    new SelectedSessionTransitionGate(),
+                    new DetailCommandBus(CharacterDetailQueryResult.Reject(
+                        CharacterDetailQueryFailure.TargetRuntimeUnavailable)),
+                    notifications,
+                    NullLogger<GetOtherCharacterDetailHandler>.Instance)
+                .HandleAsync(
+                    Dispatch(requester),
+                    new GetOtherCharacterDetailRequest(
+                        GameMessageMetadata.Empty, target.WireUserId),
+                    CancellationToken.None);
 
-        Assert.Empty(notifications.Publications);
+            Assert.Empty(notifications.Publications);
+        });
     }
 
     [Fact]

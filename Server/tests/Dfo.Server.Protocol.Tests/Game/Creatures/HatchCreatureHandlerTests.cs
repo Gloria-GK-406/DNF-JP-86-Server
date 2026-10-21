@@ -13,6 +13,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Creatures;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.Creatures;
 
@@ -24,32 +25,35 @@ public sealed class HatchCreatureHandlerTests
     [Fact]
     public async Task Captured_request_dispatches_then_delivers_ack_same_slot_and_same_uid_detail()
     {
-        var before = new CreatureState(959, 63022, 100, 0, 1, [], 0, 0, 0, 0);
-        var after = before with { ItemTemplateId = 63023 };
-        var core = ItemSnapshot.FromCore(StackableItemCore.Create(5, 63023, 959), false, new ItemIdentity(959),
-            creature: new InventoryCreatureDetailState(100, 0, 0, 1, 0, 0, [], 0));
-        var bus = new Bus(new(before, after, new(BusinessInventorySpace.CreatureInventory, 0), core));
-        var sender = new Sender(bus);
-        var handler = Create(bus, sender);
-        await handler.HandleAsync(Context(), CreaturePayloadCodec.DecodeHatchRequest([7, 0, 0]), default);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var before = new CreatureState(959, 63022, 100, 0, 1, [], 0, 0, 0, 0);
+            var after = before with { ItemTemplateId = 63023 };
+            var core = ItemSnapshot.FromCore(StackableItemCore.Create(5, 63023, 959), false, new ItemIdentity(959),
+                creature: new InventoryCreatureDetailState(100, 0, 0, 1, 0, 0, [], 0));
+            var bus = new Bus(new(before, after, new(BusinessInventorySpace.CreatureInventory, 0), core));
+            var sender = new Sender(bus);
+            var handler = Create(bus, sender);
+            await handler.HandleAsync(Context(), CreaturePayloadCodec.DecodeHatchRequest([7, 0, 0]), default);
 
-        Assert.Equal(1, bus.Calls);
-        Assert.Equal(new BusinessSlot(BusinessInventorySpace.CreatureInventory, 0), bus.Command!.EggSlot);
-        Assert.Equal(Owner, bus.Command.Session);
-        Assert.Collection(sender.Messages,
-            message => Assert.True(Assert.IsType<HatchCreatureResponse>(message).Success),
-            message =>
-            {
-                var body = Assert.IsType<InventoryDeltaMessage>(message).EncodeBody();
-                Assert.Equal((byte)7, body[0]);
-                Assert.Equal(63023, System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(5)));
-                Assert.Equal(959, System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(9)));
-            },
-            message =>
-            {
-                var pet = Assert.Single(Assert.IsType<CreatureListMessage>(message).Pets);
-                Assert.Equal(959, pet.PetKey);
-            });
+            Assert.Equal(1, bus.Calls);
+            Assert.Equal(new BusinessSlot(BusinessInventorySpace.CreatureInventory, 0), bus.Command!.EggSlot);
+            Assert.Equal(Owner, bus.Command.Session);
+            Assert.Collection(sender.Messages,
+                message => Assert.True(Assert.IsType<HatchCreatureResponse>(message).Success),
+                message =>
+                {
+                    var body = Assert.IsType<InventoryDeltaMessage>(message).EncodeBody();
+                    Assert.Equal((byte)7, body[0]);
+                    Assert.Equal(63023, System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(5)));
+                    Assert.Equal(959, System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(9)));
+                },
+                message =>
+                {
+                    var pet = Assert.Single(Assert.IsType<CreatureListMessage>(message).Pets);
+                    Assert.Equal(959, pet.PetKey);
+                });
+        });
     }
 
     [Theory]
@@ -59,28 +63,37 @@ public sealed class HatchCreatureHandlerTests
     [InlineData(7, 189)]
     public async Task Wrong_list_or_non_creature_slot_is_refused_without_dispatch(byte list, short slot)
     {
-        var bus = new Bus(null); var sender = new Sender(bus);
-        await Create(bus, sender).HandleAsync(Context(), new HatchCreatureRequest(list, slot), default);
-        Assert.Equal(0, bus.Calls);
-        Assert.False(Assert.IsType<HatchCreatureResponse>(Assert.Single(sender.Messages)).Success);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new Bus(null); var sender = new Sender(bus);
+            await Create(bus, sender).HandleAsync(Context(), new HatchCreatureRequest(list, slot), default);
+            Assert.Equal(0, bus.Calls);
+            Assert.False(Assert.IsType<HatchCreatureResponse>(Assert.Single(sender.Messages)).Success);
+        });
     }
 
     [Fact]
     public async Task Domain_refusal_delivers_only_failure_without_inventory_refresh()
     {
-        var bus = new Bus(null); var sender = new Sender(bus);
-        await Create(bus, sender).HandleAsync(Context(), new HatchCreatureRequest(7, 0), default);
-        Assert.Equal(1, bus.Calls);
-        Assert.False(Assert.IsType<HatchCreatureResponse>(Assert.Single(sender.Messages)).Success);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new Bus(null); var sender = new Sender(bus);
+            await Create(bus, sender).HandleAsync(Context(), new HatchCreatureRequest(7, 0), default);
+            Assert.Equal(1, bus.Calls);
+            Assert.False(Assert.IsType<HatchCreatureResponse>(Assert.Single(sender.Messages)).Success);
+        });
     }
 
     [Fact]
     public async Task Commit_failure_never_sends_success_or_inventory_projection()
     {
-        var bus = new Bus(null) { Fail = true }; var sender = new Sender(bus);
-        await Assert.ThrowsAsync<IOException>(() => Create(bus, sender)
-            .HandleAsync(Context(), new HatchCreatureRequest(7, 0), default).AsTask());
-        Assert.Empty(sender.Messages);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new Bus(null) { Fail = true }; var sender = new Sender(bus);
+            await Assert.ThrowsAsync<IOException>(() => Create(bus, sender)
+                .HandleAsync(Context(), new HatchCreatureRequest(7, 0), default).AsTask());
+            Assert.Empty(sender.Messages);
+        });
     }
 
     private static HatchCreatureHandler Create(Bus bus, Sender sender) => new(

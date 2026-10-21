@@ -7,6 +7,7 @@ using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Inventory;
 
@@ -15,71 +16,77 @@ public sealed class ExpiredCharacterItemCleanupTests
     [Fact]
     public async Task NextEntryRemovesOnlyExpiredOwnedItemsAndIsIdempotent()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"dfo-expired-entry-{Guid.NewGuid():N}.db");
-        try
+        await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
-            var database = new SqliteDatabase(path, scope);
-            var cleanup = new ExpiredCharacterItemCleanupDomainService(
-                new SqliteCharacterTable(database), new SqliteCharacterItemTable(database),
-                scope, TimeProvider.System, new SqliteItemDomainStore(path));
-            await SeedAsync(path);
-
-            await using (var transaction = scope.Begin())
+            var path = Path.Combine(Path.GetTempPath(), $"dfo-expired-entry-{Guid.NewGuid():N}.db");
+            try
             {
-                Assert.True((await cleanup.CleanupAsync(
-                    new AccountId(41), new CharacterId(57), CancellationToken.None)).Owned);
-                await transaction.CommitAsync(CancellationToken.None);
+                var scope = new DomainTransactionScope();
+                var database = new SqliteDatabase(path, scope);
+                var cleanup = new ExpiredCharacterItemCleanupDomainService(
+                    new SqliteCharacterTable(database), new SqliteCharacterItemTable(database),
+                    scope, TimeProvider.System, new SqliteItemDomainStore(path));
+                await SeedAsync(path);
+
+                await using (var transaction = scope.Begin())
+                {
+                    Assert.True((await cleanup.CleanupAsync(
+                        new AccountId(41), new CharacterId(57), CancellationToken.None)).Owned);
+                    await transaction.CommitAsync(CancellationToken.None);
+                }
+
+                Assert.Equal(new long[] { 2L, 4L }, await ReadItemUidsAsync(path));
+                Assert.Equal(new long[] { 2L, 4L }, await ReadSlotUidsAsync(path));
+
+                await using (var transaction = scope.Begin())
+                {
+                    Assert.True((await cleanup.CleanupAsync(
+                        new AccountId(41), new CharacterId(57), CancellationToken.None)).Owned);
+                    await transaction.CommitAsync(CancellationToken.None);
+                }
+                Assert.Equal(new long[] { 2L, 4L }, await ReadItemUidsAsync(path));
+                Assert.Equal(new long[] { 2L, 4L }, await ReadSlotUidsAsync(path));
             }
-
-            Assert.Equal(new long[] { 2L, 4L }, await ReadItemUidsAsync(path));
-            Assert.Equal(new long[] { 2L, 4L }, await ReadSlotUidsAsync(path));
-
-            await using (var transaction = scope.Begin())
+            finally
             {
-                Assert.True((await cleanup.CleanupAsync(
-                    new AccountId(41), new CharacterId(57), CancellationToken.None)).Owned);
-                await transaction.CommitAsync(CancellationToken.None);
+                SqliteConnection.ClearAllPools();
+                try { File.Delete(path); }
+                catch (IOException) { /* A remaining SQLite handle belongs to test cleanup. */ }
             }
-            Assert.Equal(new long[] { 2L, 4L }, await ReadItemUidsAsync(path));
-            Assert.Equal(new long[] { 2L, 4L }, await ReadSlotUidsAsync(path));
-        }
-        finally
-        {
-            SqliteConnection.ClearAllPools();
-            try { File.Delete(path); }
-            catch (IOException) { /* A remaining SQLite handle belongs to test cleanup. */ }
-        }
+        });
     }
 
     [Fact]
     public async Task WrongAccountCannotDeleteAnyItem()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"dfo-expired-owner-{Guid.NewGuid():N}.db");
-        try
+        await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
-            var database = new SqliteDatabase(path, scope);
-            var cleanup = new ExpiredCharacterItemCleanupDomainService(
-                new SqliteCharacterTable(database), new SqliteCharacterItemTable(database),
-                scope, TimeProvider.System, new SqliteItemDomainStore(path));
-            await SeedAsync(path);
-
-            await using (var transaction = scope.Begin())
+            var path = Path.Combine(Path.GetTempPath(), $"dfo-expired-owner-{Guid.NewGuid():N}.db");
+            try
             {
-                Assert.False((await cleanup.CleanupAsync(
-                    new AccountId(42), new CharacterId(57), CancellationToken.None)).Owned);
-                await transaction.CommitAsync(CancellationToken.None);
+                var scope = new DomainTransactionScope();
+                var database = new SqliteDatabase(path, scope);
+                var cleanup = new ExpiredCharacterItemCleanupDomainService(
+                    new SqliteCharacterTable(database), new SqliteCharacterItemTable(database),
+                    scope, TimeProvider.System, new SqliteItemDomainStore(path));
+                await SeedAsync(path);
+
+                await using (var transaction = scope.Begin())
+                {
+                    Assert.False((await cleanup.CleanupAsync(
+                        new AccountId(42), new CharacterId(57), CancellationToken.None)).Owned);
+                    await transaction.CommitAsync(CancellationToken.None);
+                }
+                Assert.Equal(new long[] { 1L, 2L, 3L, 4L }, await ReadItemUidsAsync(path));
+                Assert.Equal(new long[] { 1L, 2L, 3L, 4L }, await ReadSlotUidsAsync(path));
             }
-            Assert.Equal(new long[] { 1L, 2L, 3L, 4L }, await ReadItemUidsAsync(path));
-            Assert.Equal(new long[] { 1L, 2L, 3L, 4L }, await ReadSlotUidsAsync(path));
-        }
-        finally
-        {
-            SqliteConnection.ClearAllPools();
-            try { File.Delete(path); }
-            catch (IOException) { /* A remaining SQLite handle belongs to test cleanup. */ }
-        }
+            finally
+            {
+                SqliteConnection.ClearAllPools();
+                try { File.Delete(path); }
+                catch (IOException) { /* A remaining SQLite handle belongs to test cleanup. */ }
+            }
+        });
     }
 
     private static async Task SeedAsync(string path)

@@ -13,6 +13,7 @@ using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TutorialLevelUp;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.TutorialLevelUp;
 
@@ -141,33 +142,36 @@ public sealed class TutorialLevelUpHandlerTests
         FixedGrant bus,
         StubWorldContentEntryRuleService? content = null)
     {
-        var session = SelectedSessionIdentity.Create(
-            new AccountId(1),
-            new CharacterId(60),
-            new NetworkConnectionId("one"),
-            connectionGeneration: 1,
-            listenerPort: 10010);
-        var sender = new RecordingSender();
+        return await TestGameplay.RunAsync(async () =>
+        {
+            var session = SelectedSessionIdentity.Create(
+                new AccountId(1),
+                new CharacterId(60),
+                new NetworkConnectionId("one"),
+                connectionGeneration: 1,
+                listenerPort: 10010);
+            var sender = new RecordingSender();
 
-        var handler = new TutorialLevelUpHandler(
-            new OneSession(session),
-            new OneRuntimeSession(ExperienceFrameEntry.At(StartingLevel, StartingExperience)),
-            new OnePlayingCharacter(ledger),
-            new InARun(),
-            bus,
-            sender,
-            new QuestOfferRefreshDomainService(
-                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
-            NullLogger<TutorialLevelUpHandler>.Instance);
+            var handler = new TutorialLevelUpHandler(
+                new OneSession(session),
+                new OneRuntimeSession(ExperienceFrameEntry.At(StartingLevel, StartingExperience)),
+                new OnePlayingCharacter(ledger),
+                new InARun(),
+                bus,
+                sender,
+                new QuestOfferRefreshDomainService(
+                    content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                NullLogger<TutorialLevelUpHandler>.Instance);
 
-        await handler.HandleAsync(
-            new NetworkDispatchContext(
-                new NetworkConnectionContext(
-                    new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010)),
-            new TutorialLevelUpRequest(GameMessageMetadata.Empty),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                new NetworkDispatchContext(
+                    new NetworkConnectionContext(
+                        new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010)),
+                new TutorialLevelUpRequest(GameMessageMetadata.Empty),
+                CancellationToken.None);
 
-        return sender.Sent;
+            return sender.Sent;
+        });
     }
 
     /// <summary>

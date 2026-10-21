@@ -14,6 +14,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Creatures;
 using Dfo.Server.Protocol.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.Creatures;
 
@@ -22,20 +23,23 @@ public sealed class CreatureProjectionDeliveryTests
     [Fact]
     public async Task Unequipped_evolution_updates_the_pet_key_without_overwriting_the_worn_slot()
     {
-        var owner = Session(1, "owner");
-        var sender = new Sender();
-        var delivery = Create(new Sessions(owner), new Towns(Member(owner, Area, true)), sender, new Closer());
-        var before = new CreatureState(500, 63000, 90, 2150, 19, [], 0, 0, 0, 0);
-        var after = before with { ItemTemplateId = 63001, Experience = 2151, Level = 20 };
-        var transformation = new CreatureTransformationReceipt(before, after,
-            new BusinessSlot(BusinessInventorySpace.WornCreature, 0), ItemSnapshot.FromCore(StackableItemCore.Create(5, 63001, 500), false, new ItemIdentity(500),
-                creature: new InventoryCreatureDetailState(90, 0, 2151, 20, 0, 0, [], 0)))
-            { CreatureId = 2 };
-        await delivery.SendAsync(owner, [new(before, after, true) { Transformation = transformation }], default);
-        Assert.Equal(500, Assert.Single(Assert.Single(sender.Notifications.OfType<CreatureListMessage>()).Pets).PetKey);
-        Assert.Single(sender.Notifications.OfType<CreatureStateNotification>());
-        Assert.DoesNotContain(sender.Notifications, x => x is CreatureExperienceNotification or CreatureEvolutionNotification);
-        // Sender.SendExplicitAsync throws: a stale inventory projection would fail this test.
+        await TestGameplay.RunAsync(async () =>
+        {
+            var owner = Session(1, "owner");
+            var sender = new Sender();
+            var delivery = Create(new Sessions(owner), new Towns(Member(owner, Area, true)), sender, new Closer());
+            var before = new CreatureState(500, 63000, 90, 2150, 19, [], 0, 0, 0, 0);
+            var after = before with { ItemTemplateId = 63001, Experience = 2151, Level = 20 };
+            var transformation = new CreatureTransformationReceipt(before, after,
+                new BusinessSlot(BusinessInventorySpace.WornCreature, 0), ItemSnapshot.FromCore(StackableItemCore.Create(5, 63001, 500), false, new ItemIdentity(500),
+                    creature: new InventoryCreatureDetailState(90, 0, 2151, 20, 0, 0, [], 0)))
+                { CreatureId = 2 };
+            await delivery.SendAsync(owner, [new(before, after, true) { Transformation = transformation }], default);
+            Assert.Equal(500, Assert.Single(Assert.Single(sender.Notifications.OfType<CreatureListMessage>()).Pets).PetKey);
+            Assert.Single(sender.Notifications.OfType<CreatureStateNotification>());
+            Assert.DoesNotContain(sender.Notifications, x => x is CreatureExperienceNotification or CreatureEvolutionNotification);
+            // Sender.SendExplicitAsync throws: a stale inventory projection would fail this test.
+        });
     }
     private static readonly TownAreaKey Area = new(11, 3, 6);
     private static readonly TownAreaKey OtherArea = new(11, 3, 7);
@@ -46,103 +50,118 @@ public sealed class CreatureProjectionDeliveryTests
     public async Task Town_rename_reaches_only_visible_sessions_once(bool ownerShares,
         params string[] expected)
     {
-        var owner = Session(1, "owner");
-        var peer = Session(2, "peer");
-        var hidden = Session(3, "hidden");
-        var elsewhere = Session(4, "elsewhere");
-        var sessions = new Sessions(owner, peer, hidden, elsewhere);
-        var towns = new Towns(Member(owner, Area, ownerShares), Member(peer, Area, true),
-            Member(hidden, Area, false), Member(elsewhere, OtherArea, true));
-        var sender = new Sender();
-        var delivery = Create(sessions, towns, sender, new Closer());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var owner = Session(1, "owner");
+            var peer = Session(2, "peer");
+            var hidden = Session(3, "hidden");
+            var elsewhere = Session(4, "elsewhere");
+            var sessions = new Sessions(owner, peer, hidden, elsewhere);
+            var towns = new Towns(Member(owner, Area, ownerShares), Member(peer, Area, true),
+                Member(hidden, Area, false), Member(elsewhere, OtherArea, true));
+            var sender = new Sender();
+            var delivery = Create(sessions, towns, sender, new Closer());
 
-        var success = await delivery.SendVisibleAsync(owner,
-            new CreatureRenameNotification(owner.WireUserId, [0x41]), default);
+            var success = await delivery.SendVisibleAsync(owner,
+                new CreatureRenameNotification(owner.WireUserId, [0x41]), default);
 
-        Assert.True(success);
-        Assert.Equal(expected, sender.Sent.Select(x => x.Value));
+            Assert.True(success);
+            Assert.Equal(expected, sender.Sent.Select(x => x.Value));
+        });
     }
 
     [Fact]
     public async Task Peer_send_failure_closes_peer_and_continues_without_closing_owner()
     {
-        var owner = Session(1, "owner");
-        var failed = Session(2, "failed");
-        var next = Session(3, "next");
-        var sender = new Sender { Failing = failed.ConnectionId };
-        var closer = new Closer();
-        var delivery = Create(new Sessions(owner, failed, next),
-            new Towns(Member(owner, Area, true), Member(failed, Area, true),
-                Member(next, Area, true)), sender, closer);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var owner = Session(1, "owner");
+            var failed = Session(2, "failed");
+            var next = Session(3, "next");
+            var sender = new Sender { Failing = failed.ConnectionId };
+            var closer = new Closer();
+            var delivery = Create(new Sessions(owner, failed, next),
+                new Towns(Member(owner, Area, true), Member(failed, Area, true),
+                    Member(next, Area, true)), sender, closer);
 
-        var success = await delivery.SendVisibleAsync(owner,
-            new CreatureRenameNotification(owner.WireUserId, [0x41]), default);
+            var success = await delivery.SendVisibleAsync(owner,
+                new CreatureRenameNotification(owner.WireUserId, [0x41]), default);
 
-        Assert.True(success);
-        Assert.Equal(["owner", "failed", "next"], sender.Sent.Select(x => x.Value));
-        Assert.Equal(["failed"], closer.Closed.Select(x => x.Value));
+            Assert.True(success);
+            Assert.Equal(["owner", "failed", "next"], sender.Sent.Select(x => x.Value));
+            Assert.Equal(["failed"], closer.Closed.Select(x => x.Value));
+        });
     }
 
     [Fact]
     public async Task Owner_send_failure_closes_owner_and_reports_failure()
     {
-        var owner = Session(1, "owner");
-        var sender = new Sender { Failing = owner.ConnectionId };
-        var closer = new Closer();
-        var delivery = Create(new Sessions(owner), new Towns(Member(owner, Area, true)), sender, closer);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var owner = Session(1, "owner");
+            var sender = new Sender { Failing = owner.ConnectionId };
+            var closer = new Closer();
+            var delivery = Create(new Sessions(owner), new Towns(Member(owner, Area, true)), sender, closer);
 
-        var success = await delivery.SendVisibleAsync(owner,
-            new CreatureRenameNotification(owner.WireUserId, [0x41]), default);
+            var success = await delivery.SendVisibleAsync(owner,
+                new CreatureRenameNotification(owner.WireUserId, [0x41]), default);
 
-        Assert.False(success);
-        Assert.Equal(["owner"], closer.Closed.Select(x => x.Value));
+            Assert.False(success);
+            Assert.Equal(["owner"], closer.Closed.Select(x => x.Value));
+        });
     }
 
     [Fact]
     public async Task Tower_visibility_reaches_only_current_exact_run_members()
     {
-        var owner = Session(1, "owner");
-        var peer = Session(2, "peer");
-        var stale = Session(3, "stale-old");
-        var replacement = stale with { ConnectionGeneration = 2, ConnectionId = new("stale-new") };
-        var townPeer = Session(4, "town-peer");
-        var sessions = new Sessions(owner, peer, replacement, townPeer);
-        var tower = new TowerDomainStub(owner, peer, stale);
-        var sender = new Sender();
-        var delivery = Create(sessions,
-            new Towns(Member(owner, Area, true), Member(townPeer, Area, true)),
-            sender, new Closer(), tower);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var owner = Session(1, "owner");
+            var peer = Session(2, "peer");
+            var stale = Session(3, "stale-old");
+            var replacement = stale with { ConnectionGeneration = 2, ConnectionId = new("stale-new") };
+            var townPeer = Session(4, "town-peer");
+            var sessions = new Sessions(owner, peer, replacement, townPeer);
+            var tower = new TowerDomainStub(owner, peer, stale);
+            var sender = new Sender();
+            var delivery = Create(sessions,
+                new Towns(Member(owner, Area, true), Member(townPeer, Area, true)),
+                sender, new Closer(), tower);
 
-        var success = await delivery.SendVisibleAsync(owner,
-            new CreatureRenameNotification(owner.WireUserId, [0x41]), default);
+            var success = await delivery.SendVisibleAsync(owner,
+                new CreatureRenameNotification(owner.WireUserId, [0x41]), default);
 
-        Assert.True(success);
-        Assert.Equal(["owner", "peer"], sender.Sent.Select(value => value.Value));
+            Assert.True(success);
+            Assert.Equal(["owner", "peer"], sender.Sent.Select(value => value.Value));
+        });
     }
 
     [Fact]
     public async Task Tower_visibility_does_not_rebind_a_peer_replaced_after_owner_delivery()
     {
-        var owner = Session(1, "owner");
-        var peer = Session(2, "peer-old");
-        var replacement = peer with { ConnectionGeneration = 2, ConnectionId = new("peer-new") };
-        var identities = new[] { owner, peer };
-        var sessions = new Sessions(identities);
-        var sender = new Sender
+        await TestGameplay.RunAsync(async () =>
         {
-            AfterSend = connection =>
+            var owner = Session(1, "owner");
+            var peer = Session(2, "peer-old");
+            var replacement = peer with { ConnectionGeneration = 2, ConnectionId = new("peer-new") };
+            var identities = new[] { owner, peer };
+            var sessions = new Sessions(identities);
+            var sender = new Sender
             {
-                if (connection == owner.ConnectionId) identities[1] = replacement;
-            },
-        };
-        var delivery = Create(sessions, new Towns(), sender, new Closer(),
-            new TowerDomainStub(owner, peer));
+                AfterSend = connection =>
+                {
+                    if (connection == owner.ConnectionId) identities[1] = replacement;
+                },
+            };
+            var delivery = Create(sessions, new Towns(), sender, new Closer(),
+                new TowerDomainStub(owner, peer));
 
-        var success = await delivery.SendVisibleAsync(owner,
-            new CreatureRenameNotification(owner.WireUserId, [0x41]), default);
+            var success = await delivery.SendVisibleAsync(owner,
+                new CreatureRenameNotification(owner.WireUserId, [0x41]), default);
 
-        Assert.True(success);
-        Assert.Equal(["owner"], sender.Sent.Select(value => value.Value));
+            Assert.True(success);
+            Assert.Equal(["owner"], sender.Sent.Select(value => value.Value));
+        });
     }
 
     private static CreatureProjectionDelivery Create(Sessions sessions, Towns towns, Sender sender,

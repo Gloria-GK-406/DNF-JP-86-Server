@@ -14,6 +14,7 @@ using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Persistence.Quests;
 using Dfo.Server.Protocol.Game.QuestAcceptance;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.QuestAcceptance;
 
@@ -41,72 +42,81 @@ public sealed class AcceptQuestCommandHandlerTests
     [Fact]
     public async Task AQuestTakenOnLandsInTheLogAndTheAnswerNamesTheArchivesProgress()
     {
-        await using var fixture = await Fixture.CreateAsync();
-        var handler = fixture.Handler(Quest(QuestId, trigger: 5));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = await Fixture.CreateAsync();
+            var handler = fixture.Handler(Quest(QuestId, trigger: 5));
 
-        await using var boundary = fixture.Scope.Begin();
-        var outcome = await handler.HandleAsync(
-            Transactional, new AcceptQuestCommand(Account, Character, QuestId),
-            CancellationToken.None);
-        await boundary.CommitAsync(CancellationToken.None);
+            await using var boundary = fixture.Scope.Begin();
+            var outcome = await handler.HandleAsync(
+                Transactional, new AcceptQuestCommand(Account, Character, QuestId),
+                CancellationToken.None);
+            await boundary.CommitAsync(CancellationToken.None);
 
-        // Field by field: the record's Items is compared by reference, so an equal-looking
-        // outcome built here would fail against the list the handler returns.
-        Assert.True(outcome.Accepted);
-        Assert.Equal(QuestId, outcome.QuestId);
-        Assert.Equal(5u, outcome.InitialTrigger);
-        Assert.Empty(outcome.Items);
-        Assert.Null(outcome.Refusal);
-        Assert.Equal([(0, QuestId, 5)], await fixture.ReadQuestsAsync());
+            // Field by field: the record's Items is compared by reference, so an equal-looking
+            // outcome built here would fail against the list the handler returns.
+            Assert.True(outcome.Accepted);
+            Assert.Equal(QuestId, outcome.QuestId);
+            Assert.Equal(5u, outcome.InitialTrigger);
+            Assert.Empty(outcome.Items);
+            Assert.Null(outcome.Refusal);
+            Assert.Equal([(0, QuestId, 5)], await fixture.ReadQuestsAsync());
+        });
     }
 
     [Fact]
     public async Task Already_cleared_dependency_keeps_archive_CMD_value_but_projects_current_progress()
     {
-        await using var fixture = await Fixture.CreateAsync();
-        await using (var connection = Fixture.Open(fixture.Path))
-        await using (var command = connection.CreateCommand())
+        await TestGameplay.RunAsync(async () =>
         {
-            command.CommandText =
-                "INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) "
-                + "VALUES(60,1016,1)";
-            await command.ExecuteNonQueryAsync();
-        }
+            await using var fixture = await Fixture.CreateAsync();
+            await using (var connection = Fixture.Open(fixture.Path))
+            await using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) "
+                    + "VALUES(60,1016,1)";
+                await command.ExecuteNonQueryAsync();
+            }
 
-        var definition = Quest(2002, trigger: 1) with
-        {
-            ObjectiveTypeCode = "clear quest",
-            ClearedQuestRequirements = [1016],
-        };
-        var handler = fixture.Handler(definition);
-        await using var boundary = fixture.Scope.Begin();
-        var outcome = await handler.HandleAsync(
-            Transactional, new AcceptQuestCommand(Account, Character, 2002),
-            CancellationToken.None);
-        await boundary.CommitAsync(CancellationToken.None);
+            var definition = Quest(2002, trigger: 1) with
+            {
+                ObjectiveTypeCode = "clear quest",
+                ClearedQuestRequirements = [1016],
+            };
+            var handler = fixture.Handler(definition);
+            await using var boundary = fixture.Scope.Begin();
+            var outcome = await handler.HandleAsync(
+                Transactional, new AcceptQuestCommand(Account, Character, 2002),
+                CancellationToken.None);
+            await boundary.CommitAsync(CancellationToken.None);
 
-        Assert.True(outcome.Accepted);
-        Assert.Equal(1u, outcome.InitialTrigger);
-        Assert.Equal(0, Assert.Single(outcome.QuestProgress!.Quests).TriggerValue);
-        Assert.Equal([(0, 2002, 0)], await fixture.ReadQuestsAsync());
+            Assert.True(outcome.Accepted);
+            Assert.Equal(1u, outcome.InitialTrigger);
+            Assert.Equal(0, Assert.Single(outcome.QuestProgress!.Quests).TriggerValue);
+            Assert.Equal([(0, 2002, 0)], await fixture.ReadQuestsAsync());
+        });
     }
 
     [Fact]
     public async Task Acceptance_items_report_holdings_change_and_project_result_once()
     {
-        await using var fixture = await Fixture.CreateAsync();
-        fixture.Progress.Snapshot = new QuestProgressSnapshot([new CarriedQuest(0, QuestId, 0)]);
-        var handler = fixture.Handler(Quest(QuestId, items: [new QuestEventItem(8474, 1)]));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = await Fixture.CreateAsync();
+            fixture.Progress.Snapshot = new QuestProgressSnapshot([new CarriedQuest(0, QuestId, 0)]);
+            var handler = fixture.Handler(Quest(QuestId, items: [new QuestEventItem(8474, 1)]));
 
-        await using var boundary = fixture.Scope.Begin();
-        var outcome = await handler.HandleAsync(
-            Transactional, new AcceptQuestCommand(Account, Character, QuestId),
-            CancellationToken.None);
-        await boundary.CommitAsync(CancellationToken.None);
+            await using var boundary = fixture.Scope.Begin();
+            var outcome = await handler.HandleAsync(
+                Transactional, new AcceptQuestCommand(Account, Character, QuestId),
+                CancellationToken.None);
+            await boundary.CommitAsync(CancellationToken.None);
 
-        Assert.True(outcome.Accepted);
-        Assert.Contains(fixture.Progress.Facts, fact => fact is QuestHoldingsChanged);
-        Assert.Same(fixture.Progress.Snapshot, outcome.QuestProgress);
+            Assert.True(outcome.Accepted);
+            Assert.Contains(fixture.Progress.Facts, fact => fact is QuestHoldingsChanged);
+            Assert.Same(fixture.Progress.Snapshot, outcome.QuestProgress);
+        });
     }
 
     /// <remarks>
@@ -117,15 +127,18 @@ public sealed class AcceptQuestCommandHandlerTests
     [Fact]
     public async Task Unknown_quest_reward_aborts_acceptance_and_leaves_no_row()
     {
-        await using var fixture = await Fixture.CreateAsync(placementIsKnown: false);
-        var handler = fixture.Handler(Quest(QuestId, items: [new QuestEventItem(8474, 1)]));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = await Fixture.CreateAsync(placementIsKnown: false);
+            var handler = fixture.Handler(Quest(QuestId, items: [new QuestEventItem(8474, 1)]));
 
-        await using var boundary = fixture.Scope.Begin();
-        await Assert.ThrowsAsync<InvalidDataException>(async () => await handler.HandleAsync(
-            Transactional, new AcceptQuestCommand(Account, Character, QuestId), CancellationToken.None));
-        await boundary.DisposeAsync();
-        Assert.Empty(await fixture.ReadQuestsAsync());
-        Assert.Empty(await fixture.ReadItemsAsync());
+            await using var boundary = fixture.Scope.Begin();
+            await Assert.ThrowsAsync<InvalidDataException>(async () => await handler.HandleAsync(
+                Transactional, new AcceptQuestCommand(Account, Character, QuestId), CancellationToken.None));
+            await boundary.DisposeAsync();
+            Assert.Empty(await fixture.ReadQuestsAsync());
+            Assert.Empty(await fixture.ReadItemsAsync());
+        });
     }
 
     /// <remarks>
@@ -135,17 +148,20 @@ public sealed class AcceptQuestCommandHandlerTests
     [Fact]
     public async Task AQuestTheArchiveDoesNotDeclareIsRefusedAndLeavesNoRow()
     {
-        await using var fixture = await Fixture.CreateAsync();
-        var handler = fixture.Handler(definition: null);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = await Fixture.CreateAsync();
+            var handler = fixture.Handler(definition: null);
 
-        await using var boundary = fixture.Scope.Begin();
-        var outcome = await handler.HandleAsync(
-            Transactional, new AcceptQuestCommand(Account, Character, QuestId),
-            CancellationToken.None);
-        await boundary.CommitAsync(CancellationToken.None);
+            await using var boundary = fixture.Scope.Begin();
+            var outcome = await handler.HandleAsync(
+                Transactional, new AcceptQuestCommand(Account, Character, QuestId),
+                CancellationToken.None);
+            await boundary.CommitAsync(CancellationToken.None);
 
-        Assert.Equal(QuestAcceptOutcome.Refuse(QuestId, QuestAcceptRefusal.Unknown), outcome);
-        Assert.Empty(await fixture.ReadQuestsAsync());
+            Assert.Equal(QuestAcceptOutcome.Refuse(QuestId, QuestAcceptRefusal.Unknown), outcome);
+            Assert.Empty(await fixture.ReadQuestsAsync());
+        });
     }
 
     /// <summary>
@@ -159,95 +175,107 @@ public sealed class AcceptQuestCommandHandlerTests
     [Fact]
     public async Task AnExecutionThatIsNotTransactionalIsRefusedBeforeAnythingIsAsked()
     {
-        await using var fixture = await Fixture.CreateAsync();
-        var handler = fixture.Handler(definition: null);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = await Fixture.CreateAsync();
+            var handler = fixture.Handler(definition: null);
 
-        var refusal = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await handler.HandleAsync(
-                Transactional with { ExecutionKind = CommandExecutionKind.Direct },
-                new AcceptQuestCommand(Account, Character, QuestId),
-                CancellationToken.None));
+            var refusal = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await handler.HandleAsync(
+                    Transactional with { ExecutionKind = CommandExecutionKind.Direct },
+                    new AcceptQuestCommand(Account, Character, QuestId),
+                    CancellationToken.None));
 
-        Assert.Contains("registered transactional", refusal.Message, StringComparison.Ordinal);
+            Assert.Contains("registered transactional", refusal.Message, StringComparison.Ordinal);
+        });
     }
 
     [Fact]
     public async Task Repeated_acceptance_answers_0012_without_changing_progress_items_or_acceptance_time()
     {
-        await using var fixture = await Fixture.CreateAsync();
-        var handler = fixture.Handler(Quest(QuestId, trigger: 5, items: [new QuestEventItem(8474, 1)]));
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.True((await handler.HandleAsync(Transactional, new(Account, Character, QuestId), default)).Accepted);
-            await tx.CommitAsync(default);
-        }
-        await using (var connection = Fixture.Open(fixture.Path))
-        await using (var command = connection.CreateCommand())
-        {
-            command.CommandText = "UPDATE character_active_quests SET trigger_value=4 WHERE character_id=60; "
-                + "UPDATE character_quest_acceptance_times SET accepted_at_ticks=123 WHERE character_id=60";
-            await command.ExecuteNonQueryAsync();
-        }
+            await using var fixture = await Fixture.CreateAsync();
+            var handler = fixture.Handler(Quest(QuestId, trigger: 5, items: [new QuestEventItem(8474, 1)]));
+            await using (var tx = fixture.Scope.Begin())
+            {
+                Assert.True((await handler.HandleAsync(Transactional, new(Account, Character, QuestId), default)).Accepted);
+                await tx.CommitAsync(default);
+            }
+            await using (var connection = Fixture.Open(fixture.Path))
+            await using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "UPDATE character_active_quests SET trigger_value=4 WHERE character_id=60; "
+                    + "UPDATE character_quest_acceptance_times SET accepted_at_ticks=123 WHERE character_id=60";
+                await command.ExecuteNonQueryAsync();
+            }
 
-        await using (var tx = fixture.Scope.Begin())
-        {
-            var replay = await handler.HandleAsync(Transactional, new(Account, Character, QuestId), default);
-            Assert.False(replay.Accepted);
-            Assert.Equal(QuestAcceptRefusal.AlreadyActive, replay.Refusal);
-            Assert.Empty(replay.Items);
-            Assert.Null(replay.QuestProgress);
-            Assert.Equal(new byte[] { 0x00, 0x12 }, AcceptQuestPayloadCodec.Encode(
-                new(replay.Accepted, replay.QuestId, replay.InitialTrigger, replay.Items, (byte)replay.Refusal.GetValueOrDefault())));
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal([(0, QuestId, 4)], await fixture.ReadQuestsAsync());
-        Assert.Equal(1L, await fixture.ScalarAsync("SELECT SUM(count) FROM item_slots WHERE owner_scope='character' AND owner_id=60"));
-        Assert.Equal(123L, await fixture.ScalarAsync("SELECT accepted_at_ticks FROM character_quest_acceptance_times WHERE character_id=60"));
+            await using (var tx = fixture.Scope.Begin())
+            {
+                var replay = await handler.HandleAsync(Transactional, new(Account, Character, QuestId), default);
+                Assert.False(replay.Accepted);
+                Assert.Equal(QuestAcceptRefusal.AlreadyActive, replay.Refusal);
+                Assert.Empty(replay.Items);
+                Assert.Null(replay.QuestProgress);
+                Assert.Equal(new byte[] { 0x00, 0x12 }, AcceptQuestPayloadCodec.Encode(
+                    new(replay.Accepted, replay.QuestId, replay.InitialTrigger, replay.Items, (byte)replay.Refusal.GetValueOrDefault())));
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal([(0, QuestId, 4)], await fixture.ReadQuestsAsync());
+            Assert.Equal(1L, await fixture.ScalarAsync("SELECT SUM(count) FROM item_slots WHERE owner_scope='character' AND owner_id=60"));
+            Assert.Equal(123L, await fixture.ScalarAsync("SELECT accepted_at_ticks FROM character_quest_acceptance_times WHERE character_id=60"));
+        });
     }
 
     [Fact]
     public async Task Given_up_quest_can_be_accepted_again()
     {
-        await using var fixture = await Fixture.CreateAsync();
-        var handler = fixture.Handler(Quest(QuestId, trigger: 5));
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.True((await handler.HandleAsync(Transactional, new(Account, Character, QuestId), default)).Accepted);
-            await tx.CommitAsync(default);
-        }
-        await using (var tx = fixture.Scope.Begin())
-        {
-            var logs = new CharacterQuestLogDomainService(
-                new SqliteQuestDomainStore(fixture.Path), new AmbientStoreAccess(fixture.Scope));
-            Assert.True(await logs.LogOf(Account, Character).GiveUpAsync(QuestId, default));
-            await tx.CommitAsync(default);
-        }
-        await using (var tx = fixture.Scope.Begin())
-        {
-            var accepted = await handler.HandleAsync(Transactional, new(Account, Character, QuestId), default);
-            Assert.True(accepted.Accepted);
-            Assert.Equal(5u, accepted.InitialTrigger);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal([(0, QuestId, 5)], await fixture.ReadQuestsAsync());
+            await using var fixture = await Fixture.CreateAsync();
+            var handler = fixture.Handler(Quest(QuestId, trigger: 5));
+            await using (var tx = fixture.Scope.Begin())
+            {
+                Assert.True((await handler.HandleAsync(Transactional, new(Account, Character, QuestId), default)).Accepted);
+                await tx.CommitAsync(default);
+            }
+            await using (var tx = fixture.Scope.Begin())
+            {
+                var logs = new CharacterQuestLogDomainService(
+                    new SqliteQuestDomainStore(fixture.Path), new AmbientStoreAccess(fixture.Scope));
+                Assert.True(await logs.LogOf(Account, Character).GiveUpAsync(QuestId, default));
+                await tx.CommitAsync(default);
+            }
+            await using (var tx = fixture.Scope.Begin())
+            {
+                var accepted = await handler.HandleAsync(Transactional, new(Account, Character, QuestId), default);
+                Assert.True(accepted.Accepted);
+                Assert.Equal(5u, accepted.InitialTrigger);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal([(0, QuestId, 5)], await fixture.ReadQuestsAsync());
+        });
     }
 
     [Fact]
     public async Task Cleared_nonrepeatable_quest_is_still_refused()
     {
-        await using var fixture = await Fixture.CreateAsync();
-        await using (var connection = Fixture.Open(fixture.Path))
-        await using (var command = connection.CreateCommand())
+        await TestGameplay.RunAsync(async () =>
         {
-            command.CommandText = "INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(60,1016,1)";
-            await command.ExecuteNonQueryAsync();
-        }
-        await using var tx = fixture.Scope.Begin();
-        var outcome = await fixture.Handler(Quest(QuestId)).HandleAsync(Transactional, new(Account, Character, QuestId), default);
-        Assert.False(outcome.Accepted);
-        Assert.Equal(QuestAcceptRefusal.AlreadyActive, outcome.Refusal);
-        await tx.CommitAsync(default);
-        Assert.Empty(await fixture.ReadQuestsAsync());
+            await using var fixture = await Fixture.CreateAsync();
+            await using (var connection = Fixture.Open(fixture.Path))
+            await using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(60,1016,1)";
+                await command.ExecuteNonQueryAsync();
+            }
+            await using var tx = fixture.Scope.Begin();
+            var outcome = await fixture.Handler(Quest(QuestId)).HandleAsync(Transactional, new(Account, Character, QuestId), default);
+            Assert.False(outcome.Accepted);
+            Assert.Equal(QuestAcceptRefusal.AlreadyActive, outcome.Refusal);
+            await tx.CommitAsync(default);
+            Assert.Empty(await fixture.ReadQuestsAsync());
+        });
     }
 
     private static CommandExecutionContext Transactional => new(

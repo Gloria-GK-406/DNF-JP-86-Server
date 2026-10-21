@@ -13,6 +13,7 @@ using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.FinishLoading;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.BossTower;
 
@@ -21,97 +22,109 @@ public sealed partial class BossTowerProjectionConcurrencyTests
     [Fact]
     public async Task Finish_loading_handler_waits_for_all_members_then_starts_once_and_opens_each_gate()
     {
-        var first = Session(1); var second = Session(2);
-        var initial = PartyRun(Guid.NewGuid(), first, second) with
+        await TestGameplay.RunAsync(async () =>
         {
-            Room = PartyRun(Guid.NewGuid(), first, second).Room with
-            { Phase = TowerRoomPhase.Loading, LoadedMembers = ImmutableHashSet<Dfo.Server.Data.Characters.CharacterId>.Empty },
-        };
-        var towers = new TowerDomain(initial); var sender = new Sender();
-        var commands = new FlowCommands(towers);
-        var projection = Delivery(towers, new Sessions(first, second), commands, sender);
-        var handler = new FinishLoadingHandler(sender, NullLogger<FinishLoadingHandler>.Instance, null!, bossTower: projection);
+            var first = Session(1); var second = Session(2);
+            var initial = PartyRun(Guid.NewGuid(), first, second) with
+            {
+                Room = PartyRun(Guid.NewGuid(), first, second).Room with
+                { Phase = TowerRoomPhase.Loading, LoadedMembers = ImmutableHashSet<Dfo.Server.Data.Characters.CharacterId>.Empty },
+            };
+            var towers = new TowerDomain(initial); var sender = new Sender();
+            var commands = new FlowCommands(towers);
+            var projection = Delivery(towers, new Sessions(first, second), commands, sender);
+            var handler = new FinishLoadingHandler(sender, NullLogger<FinishLoadingHandler>.Instance, null!, bossTower: projection);
 
-        await handler.HandleAsync(Dispatch(first), new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0), default);
-        Assert.Empty(sender.Deliveries);
-        await handler.HandleAsync(Dispatch(second), new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0), default);
-        Assert.Equal(1, commands.Starts);
-        Assert.Equal(TowerRoomPhase.Fighting, towers.Find(first)!.Room.Phase);
-        Assert.Equal(2, sender.Deliveries.Count);
-        Assert.All(sender.Deliveries, value => Assert.IsType<LoadingCompleteNotification>(Assert.Single(value.Delivery.RequiredDirectMessages)));
-        await handler.HandleAsync(Dispatch(first), new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0), default);
-        Assert.Equal(1, commands.Starts);
-        Assert.Equal(2, sender.Deliveries.Count);
+            await handler.HandleAsync(Dispatch(first), new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0), default);
+            Assert.Empty(sender.Deliveries);
+            await handler.HandleAsync(Dispatch(second), new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0), default);
+            Assert.Equal(1, commands.Starts);
+            Assert.Equal(TowerRoomPhase.Fighting, towers.Find(first)!.Room.Phase);
+            Assert.Equal(2, sender.Deliveries.Count);
+            Assert.All(sender.Deliveries, value => Assert.IsType<LoadingCompleteNotification>(Assert.Single(value.Delivery.RequiredDirectMessages)));
+            await handler.HandleAsync(Dispatch(first), new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0), default);
+            Assert.Equal(1, commands.Starts);
+            Assert.Equal(2, sender.Deliveries.Count);
+        });
     }
 
     [Fact]
     public async Task Result_hover_only_acknowledges_and_retry_waits_for_000F_before_a_new_0010_admission()
     {
-        var session = Session(1); var towers = new TowerDomain(Run(Guid.NewGuid(), session, 3, TowerRoomPhase.Cleared));
-        var sender = new Sender(); var commands = new FlowCommands(towers);
-        var sessions = new Sessions(session); var projection = Delivery(towers, sessions, commands, sender);
-        var handler = new EplpCommandHandler(sessions, new NoViews(), null!, null!, null!, sender, null!,
-            NullLogger<EplpCommandHandler>.Instance, new Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate(), bossTower: projection);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = Session(1); var towers = new TowerDomain(Run(Guid.NewGuid(), session, 3, TowerRoomPhase.Cleared));
+            var sender = new Sender(); var commands = new FlowCommands(towers);
+            var sessions = new Sessions(session); var projection = Delivery(towers, sessions, commands, sender);
+            var handler = new EplpCommandHandler(sessions, new NoViews(), null!, null!, null!, sender, null!,
+                NullLogger<EplpCommandHandler>.Instance, new Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate(), bossTower: projection);
 
-        await handler.HandleAsync(Dispatch(session), new EplpCommandRequest(GameMessageMetadata.Empty, 2, 0), default);
-        Assert.Equal(0, commands.ResultChoices);
-        Assert.Equal(3, commands.Tickets);
-        Assert.Equal(new EplpCommandResponse(2, 0), Assert.Single(sender.Deliveries).Delivery.RequiredDirectMessages.Single());
-        sender.Deliveries.Clear();
-        await handler.HandleAsync(Dispatch(session), new EplpCommandRequest(GameMessageMetadata.Empty, 1, 0), default);
-        Assert.Equal(1, commands.ResultChoices);
-        Assert.Equal(3, commands.Tickets);
-        Assert.NotNull(towers.Find(session));
-        Assert.IsType<EplpCommandResponse>(Assert.Single(sender.Deliveries).Delivery.RequiredDirectMessages.Single());
+            await handler.HandleAsync(Dispatch(session), new EplpCommandRequest(GameMessageMetadata.Empty, 2, 0), default);
+            Assert.Equal(0, commands.ResultChoices);
+            Assert.Equal(3, commands.Tickets);
+            Assert.Equal(new EplpCommandResponse(2, 0), Assert.Single(sender.Deliveries).Delivery.RequiredDirectMessages.Single());
+            sender.Deliveries.Clear();
+            await handler.HandleAsync(Dispatch(session), new EplpCommandRequest(GameMessageMetadata.Empty, 1, 0), default);
+            Assert.Equal(1, commands.ResultChoices);
+            Assert.Equal(3, commands.Tickets);
+            Assert.NotNull(towers.Find(session));
+            Assert.IsType<EplpCommandResponse>(Assert.Single(sender.Deliveries).Delivery.RequiredDirectMessages.Single());
 
-        var select = new EnterSelectDungeonHandler(null!, sessions, new NoViews(), null!, new Intents(), sender,
-            null!, NullLogger<EnterSelectDungeonHandler>.Instance, null!, bossTower: projection);
-        await select.HandleAsync(Dispatch(session), new EnterSelectDungeonRequest(GameMessageMetadata.Empty, 3505), default);
-        Assert.Null(towers.Find(session));
-        Assert.Equal(3, commands.Tickets);
-        // The only new charge is the later admission, rather than the button or old-run release.
-        await commands.SendAsync(new EnterBossTowerCommand([new(session, 0)], session, 17, 0, 0, 0));
-        Assert.Equal(2, commands.Tickets);
+            var select = new EnterSelectDungeonHandler(null!, sessions, new NoViews(), null!, new Intents(), sender,
+                null!, NullLogger<EnterSelectDungeonHandler>.Instance, null!, bossTower: projection);
+            await select.HandleAsync(Dispatch(session), new EnterSelectDungeonRequest(GameMessageMetadata.Empty, 3505), default);
+            Assert.Null(towers.Find(session));
+            Assert.Equal(3, commands.Tickets);
+            // The only new charge is the later admission, rather than the button or old-run release.
+            await commands.SendAsync(new EnterBossTowerCommand([new(session, 0)], session, 17, 0, 0, 0));
+            Assert.Equal(2, commands.Tickets);
+        });
     }
 
     [Fact]
     public async Task Invalid_move_is_handled_without_ordinary_fallback_and_older_selected_session_cannot_start()
     {
-        var session = Session(1); var current = PartyRun(Guid.NewGuid(), session);
-        var towers = new TowerDomain(current); var sessions = new Sessions(session); var sender = new Sender();
-        var commands = new FlowCommands(towers); var projection = Delivery(towers, sessions, commands, sender);
-        var move = new MoveMapHandler(sessions, null!, null!, null!, sender,
-            NullLogger<MoveMapHandler>.Instance, bossTower: projection);
-        await move.HandleAsync(Dispatch(session), new MoveMapRequest(GameMessageMetadata.Empty, 9, 9, 0, 0), default);
-        Assert.Empty(sender.Deliveries);
-        Assert.Equal(1, towers.Find(session)!.CurrentStage);
-        var replacement = session with { ConnectionId = new("replacement"), ConnectionGeneration = 2 };
-        sessions.Replace(replacement);
-        Assert.False(await projection.CompleteLoadingAsync(replacement.ConnectionId, GameMessageMetadata.Empty, default));
-        Assert.Equal(0, commands.Starts);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = Session(1); var current = PartyRun(Guid.NewGuid(), session);
+            var towers = new TowerDomain(current); var sessions = new Sessions(session); var sender = new Sender();
+            var commands = new FlowCommands(towers); var projection = Delivery(towers, sessions, commands, sender);
+            var move = new MoveMapHandler(sessions, null!, null!, null!, sender,
+                NullLogger<MoveMapHandler>.Instance, bossTower: projection);
+            await move.HandleAsync(Dispatch(session), new MoveMapRequest(GameMessageMetadata.Empty, 9, 9, 0, 0), default);
+            Assert.Empty(sender.Deliveries);
+            Assert.Equal(1, towers.Find(session)!.CurrentStage);
+            var replacement = session with { ConnectionId = new("replacement"), ConnectionGeneration = 2 };
+            sessions.Replace(replacement);
+            Assert.False(await projection.CompleteLoadingAsync(replacement.ConnectionId, GameMessageMetadata.Empty, default));
+            Assert.Equal(0, commands.Starts);
+        });
     }
 
     [Fact]
     public async Task Settlement_rows_use_each_receivers_own_experience_and_never_repeat_on_a_second_death()
     {
-        var first = Session(1); var second = Session(2);
-        var receipt = new TowerSettlementReceipt([
-            new(first.CharacterId, 11, 0, []) { Session = first, Slot = 0, Candidates = [new(0, 7)] },
-            new(second.CharacterId, 22, 0, []) { Session = second, Slot = 1, Candidates = [new(-1, 0)] },
-        ]);
-        var run = PartyRun(Guid.NewGuid(), first, second) with
-        { Completion = new(TowerEndReason.Defeated, 0, 1, true, Now, receipt) };
-        var towers = new TowerDomain(run); var sender = new Sender();
-        var projection = Delivery(towers, new Sessions(first, second), new ResultCommands(new(true, run) { SettlementCreated = true }), sender);
-        await projection.DieAsync(first.ConnectionId, GameMessageMetadata.Empty, default);
-        Assert.Equal(2, sender.Deliveries.Count);
-        foreach (var delivery in sender.Deliveries)
+        await TestGameplay.RunAsync(async () =>
         {
-            var reward = Assert.Single(delivery.Delivery.RequiredDirectMessages.OfType<BossTowerRewardNotification>());
-            Assert.Equal(delivery.Connection == first.ConnectionId ? 11u : 22u, reward.Experience);
-            Assert.Equal(2, reward.Slots.Count);
-            Assert.IsType<BossTowerContinueNotification>(delivery.Delivery.RequiredDirectMessages.Last());
-        }
+            var first = Session(1); var second = Session(2);
+            var receipt = new TowerSettlementReceipt([
+                new(first.CharacterId, 11, 0, []) { Session = first, Slot = 0, Candidates = [new(0, 7)] },
+                new(second.CharacterId, 22, 0, []) { Session = second, Slot = 1, Candidates = [new(-1, 0)] },
+            ]);
+            var run = PartyRun(Guid.NewGuid(), first, second) with
+            { Completion = new(TowerEndReason.Defeated, 0, 1, true, Now, receipt) };
+            var towers = new TowerDomain(run); var sender = new Sender();
+            var projection = Delivery(towers, new Sessions(first, second), new ResultCommands(new(true, run) { SettlementCreated = true }), sender);
+            await projection.DieAsync(first.ConnectionId, GameMessageMetadata.Empty, default);
+            Assert.Equal(2, sender.Deliveries.Count);
+            foreach (var delivery in sender.Deliveries)
+            {
+                var reward = Assert.Single(delivery.Delivery.RequiredDirectMessages.OfType<BossTowerRewardNotification>());
+                Assert.Equal(delivery.Connection == first.ConnectionId ? 11u : 22u, reward.Experience);
+                Assert.Equal(2, reward.Slots.Count);
+                Assert.IsType<BossTowerContinueNotification>(delivery.Delivery.RequiredDirectMessages.Last());
+            }
+        });
     }
 
     private static NetworkDispatchContext Dispatch(SelectedSessionIdentity session) =>

@@ -29,6 +29,7 @@
     <Compile Include="..\Dfo.Server.Application.Tests\Support\DungeonRunTestEntryExtensions.cs"
              Link="Support\DungeonRunTestEntryExtensions.cs" />
     <Compile Include="..\Support\PvfAttributes.cs" Link="Support\PvfAttributes.cs" />
+    <Compile Include="..\Support\TestGameplay.cs" Link="Support\TestGameplay.cs" />
   </ItemGroup>
 
   <ItemGroup>

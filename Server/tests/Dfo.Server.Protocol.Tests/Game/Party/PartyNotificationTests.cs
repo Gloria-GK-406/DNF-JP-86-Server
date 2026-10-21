@@ -12,6 +12,7 @@ using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Party;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.Party;
 
@@ -20,37 +21,40 @@ public sealed class PartyNotificationTests
     [Fact]
     public async Task Application_to_a_surviving_leader_notifies_the_leader_then_acknowledges_the_applicant()
     {
-        var parties = new PartyClientProjectionService(new PartyService(new FixedPartyMemberStatus(),
-            new PartyModeRuleService(), TimeProvider.System, NoPartyEndpoints.Instance), new PartyClientIdRegistry());
-        var oldLeader = Character(Inviter); var survivor = Character(Invitee); var applicant = Character(Observer);
-        Assert.True(parties.RequestInvite(oldLeader, survivor, Profile()).Succeeded);
-        Assert.True(parties.AcceptInvite(survivor, oldLeader).Succeeded);
-        Assert.True(parties.LeaveParty(oldLeader.CharacterId).Succeeded);
-        var before = parties.FindParty(survivor);
-        var bus = new RecordingNotificationBus(); var delivery = Delivery(bus);
-        var request = parties.RequestInvite(applicant, survivor, Profile());
-        Assert.True(request.Succeeded);
-        await delivery.DeliverAsync(request.Notifications, CancellationToken.None);
-        var issued = Assert.Single(bus.Publications);
-        AssertPublication<PartyInviteIssued>(issued, Invitee.CharacterId.Value);
-        var sessions = new SessionDirectory(Inviter, Invitee, Observer);
-        var notification = Assert.IsType<PartyInviteIssued>(issued.Notification);
-        var leaderRecipient = new NotificationRecipient(Invitee.CharacterId, Invitee.ConnectionId);
-        var applicantRecipient = new NotificationRecipient(Observer.CharacterId, Observer.ConnectionId);
-        var message = Assert.IsType<PartyInviteRequestMessage>(Assert.Single(await new PartyInviteIssuedHandler(sessions)
-            .ComposeAsync(leaderRecipient, notification, CancellationToken.None)));
-        Assert.Equal(applicant.WireUserId, message.InviterWireUserId);
-        Assert.Empty(await new PartyInviteIssuedHandler(sessions).ComposeAsync(applicantRecipient, notification, CancellationToken.None));
-        bus.Publications.Clear();
-        var accepted = parties.AcceptInvite(survivor, applicant); Assert.True(accepted.Succeeded);
-        await delivery.DeliverAsync(accepted.Notifications, CancellationToken.None);
-        AssertPublication<PartyInviteAccepted>(Assert.Single(bus.Publications, x => x.Notification is PartyInviteAccepted),
-            Observer.CharacterId.Value);
-        var after = parties.FindParty(survivor);
-        Assert.Equal(before.PartyId, after.PartyId); Assert.Equal(Invitee.WireUserId, after.LeaderWireUserId);
-        Assert.Equal(before.LeaderMember.Slot, after.LeaderMember.Slot);
-        Assert.All(bus.Publications.Select(x => x.Notification).OfType<PartyRosterChanged>().Where(x => x.Snapshot is not null),
-            x => Assert.Equal(Invitee.WireUserId, x.Snapshot!.LeaderWireUserId));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var parties = new PartyClientProjectionService(new PartyService(new FixedPartyMemberStatus(),
+                new PartyModeRuleService(), TimeProvider.System, NoPartyEndpoints.Instance), new PartyClientIdRegistry());
+            var oldLeader = Character(Inviter); var survivor = Character(Invitee); var applicant = Character(Observer);
+            Assert.True(parties.RequestInvite(oldLeader, survivor, Profile()).Succeeded);
+            Assert.True(parties.AcceptInvite(survivor, oldLeader).Succeeded);
+            Assert.True(parties.LeaveParty(oldLeader.CharacterId).Succeeded);
+            var before = parties.FindParty(survivor);
+            var bus = new RecordingNotificationBus(); var delivery = Delivery(bus);
+            var request = parties.RequestInvite(applicant, survivor, Profile());
+            Assert.True(request.Succeeded);
+            await delivery.DeliverAsync(request.Notifications, CancellationToken.None);
+            var issued = Assert.Single(bus.Publications);
+            AssertPublication<PartyInviteIssued>(issued, Invitee.CharacterId.Value);
+            var sessions = new SessionDirectory(Inviter, Invitee, Observer);
+            var notification = Assert.IsType<PartyInviteIssued>(issued.Notification);
+            var leaderRecipient = new NotificationRecipient(Invitee.CharacterId, Invitee.ConnectionId);
+            var applicantRecipient = new NotificationRecipient(Observer.CharacterId, Observer.ConnectionId);
+            var message = Assert.IsType<PartyInviteRequestMessage>(Assert.Single(await new PartyInviteIssuedHandler(sessions)
+                .ComposeAsync(leaderRecipient, notification, CancellationToken.None)));
+            Assert.Equal(applicant.WireUserId, message.InviterWireUserId);
+            Assert.Empty(await new PartyInviteIssuedHandler(sessions).ComposeAsync(applicantRecipient, notification, CancellationToken.None));
+            bus.Publications.Clear();
+            var accepted = parties.AcceptInvite(survivor, applicant); Assert.True(accepted.Succeeded);
+            await delivery.DeliverAsync(accepted.Notifications, CancellationToken.None);
+            AssertPublication<PartyInviteAccepted>(Assert.Single(bus.Publications, x => x.Notification is PartyInviteAccepted),
+                Observer.CharacterId.Value);
+            var after = parties.FindParty(survivor);
+            Assert.Equal(before.PartyId, after.PartyId); Assert.Equal(Invitee.WireUserId, after.LeaderWireUserId);
+            Assert.Equal(before.LeaderMember.Slot, after.LeaderMember.Slot);
+            Assert.All(bus.Publications.Select(x => x.Notification).OfType<PartyRosterChanged>().Where(x => x.Snapshot is not null),
+                x => Assert.Equal(Invitee.WireUserId, x.Snapshot!.LeaderWireUserId));
+        });
     }
 
     [Fact]
@@ -185,606 +189,666 @@ public sealed class PartyNotificationTests
     [Fact]
     public async Task Formation_is_published_in_cross_recipient_phases()
     {
-        var bus = new RecordingNotificationBus();
-        var delivery = Delivery(bus);
-        var snapshot = Snapshot();
-        var plan = new PartyNotificationPlan(
-            [Invitee.CharacterId],
-            snapshot,
-            Acceptance: Acceptance(),
-            ClearPartyId: snapshot.PartyId,
-            ClearPartyGeneration: snapshot.Generation,
-            ClearPartyRevision: snapshot.Revision);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new RecordingNotificationBus();
+            var delivery = Delivery(bus);
+            var snapshot = Snapshot();
+            var plan = new PartyNotificationPlan(
+                [Invitee.CharacterId],
+                snapshot,
+                Acceptance: Acceptance(),
+                ClearPartyId: snapshot.PartyId,
+                ClearPartyGeneration: snapshot.Generation,
+                ClearPartyRevision: snapshot.Revision);
 
-        await delivery.DeliverAsync(plan, CancellationToken.None);
+            await delivery.DeliverAsync(plan, CancellationToken.None);
 
-        Assert.Collection(
-            bus.Publications,
-            value =>
-            {
-                AssertPublication<PartyRosterChanged>(value, 2);
-                Assert.True(Assert.IsType<PartyRosterChanged>(value.Notification).ClearsParty);
-            },
-            value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
-            value => AssertPublication<PartyInviteAccepted>(value, 1),
-            value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
-            value => AssertPublication<PartyRosterChanged>(value, 1, 2),
-            value => AssertPublication<PartyRealtimeChanged>(value, 1, 2));
-        Assert.Same(
-            snapshot,
-            Assert.IsType<PartyRealtimeChanged>(bus.Publications[1].Notification).Snapshot);
-        Assert.Same(
-            snapshot,
-            Assert.IsType<PartyEndpointsChanged>(bus.Publications[3].Notification).Snapshot);
-        Assert.Same(
-            snapshot,
-            Assert.IsType<PartyRosterChanged>(bus.Publications[4].Notification).Snapshot);
-        Assert.Same(
-            snapshot,
-            Assert.IsType<PartyRealtimeChanged>(bus.Publications[5].Notification).Snapshot);
+            Assert.Collection(
+                bus.Publications,
+                value =>
+                {
+                    AssertPublication<PartyRosterChanged>(value, 2);
+                    Assert.True(Assert.IsType<PartyRosterChanged>(value.Notification).ClearsParty);
+                },
+                value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
+                value => AssertPublication<PartyInviteAccepted>(value, 1),
+                value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
+                value => AssertPublication<PartyRosterChanged>(value, 1, 2),
+                value => AssertPublication<PartyRealtimeChanged>(value, 1, 2));
+            Assert.Same(
+                snapshot,
+                Assert.IsType<PartyRealtimeChanged>(bus.Publications[1].Notification).Snapshot);
+            Assert.Same(
+                snapshot,
+                Assert.IsType<PartyEndpointsChanged>(bus.Publications[3].Notification).Snapshot);
+            Assert.Same(
+                snapshot,
+                Assert.IsType<PartyRosterChanged>(bus.Publications[4].Notification).Snapshot);
+            Assert.Same(
+                snapshot,
+                Assert.IsType<PartyRealtimeChanged>(bus.Publications[5].Notification).Snapshot);
+        });
     }
 
     [Fact]
     public async Task TownObserversReceiveOneRosterRefreshAfterTheMemberProjection()
     {
-        var bus = new RecordingNotificationBus();
-        var delivery = Delivery(bus);
-        var snapshot = Snapshot();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new RecordingNotificationBus();
+            var delivery = Delivery(bus);
+            var snapshot = Snapshot();
 
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [],
-            snapshot,
-            Acceptance: Acceptance(),
-            DirectoryChange: ScopeChange()), CancellationToken.None);
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [],
+                snapshot,
+                Acceptance: Acceptance(),
+                DirectoryChange: ScopeChange()), CancellationToken.None);
 
-        Assert.Equal(6, bus.Publications.Count);
-        Assert.Collection(
-            bus.Publications.Take(5),
-            value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
-            value => AssertPublication<PartyInviteAccepted>(value, 1),
-            value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
-            value => AssertPublication<PartyRosterChanged>(value, 1, 2),
-            value => AssertPublication<PartyRealtimeChanged>(value, 1, 2));
-        var observerProjection = bus.Publications[5];
-        Assert.IsType<PartyRosterChanged>(observerProjection.Notification);
-        Assert.Equal(
-            new[] { Observer },
-            Assert.IsType<NotificationAudience.TheseSessions>(observerProjection.Audience).Sessions);
+            Assert.Equal(6, bus.Publications.Count);
+            Assert.Collection(
+                bus.Publications.Take(5),
+                value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
+                value => AssertPublication<PartyInviteAccepted>(value, 1),
+                value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
+                value => AssertPublication<PartyRosterChanged>(value, 1, 2),
+                value => AssertPublication<PartyRealtimeChanged>(value, 1, 2));
+            var observerProjection = bus.Publications[5];
+            Assert.IsType<PartyRosterChanged>(observerProjection.Notification);
+            Assert.Equal(
+                new[] { Observer },
+                Assert.IsType<NotificationAudience.TheseSessions>(observerProjection.Audience).Sessions);
+        });
     }
 
     [Fact]
     public async Task ATransientObserverFailureRetriesWithinOneMutationDelivery()
     {
-        var bus = new FailingObserverNotificationBus(failureCount: 1);
-        var delivery = Delivery(bus);
-        var plan = new PartyNotificationPlan(
-            [],
-            Snapshot(),
-            DirectoryChange: ScopeChange());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new FailingObserverNotificationBus(failureCount: 1);
+            var delivery = Delivery(bus);
+            var plan = new PartyNotificationPlan(
+                [],
+                Snapshot(),
+                DirectoryChange: ScopeChange());
 
-        await delivery.DeliverAsync(plan, CancellationToken.None);
+            await delivery.DeliverAsync(plan, CancellationToken.None);
 
-        Assert.Equal(2, bus.ObserverAttempts);
-        Assert.Equal(1, bus.SuccessfulObserverAttempts);
+            Assert.Equal(2, bus.ObserverAttempts);
+            Assert.Equal(1, bus.SuccessfulObserverAttempts);
+        });
     }
 
     [Fact]
     public async Task APersistentlyFailedObserverLeavesTheSameRevisionRetryableLater()
     {
-        var bus = new FailingObserverNotificationBus(failureCount: 2);
-        var delivery = Delivery(bus);
-        var plan = new PartyNotificationPlan(
-            [],
-            Snapshot(),
-            DirectoryChange: ScopeChange());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new FailingObserverNotificationBus(failureCount: 2);
+            var delivery = Delivery(bus);
+            var plan = new PartyNotificationPlan(
+                [],
+                Snapshot(),
+                DirectoryChange: ScopeChange());
 
-        await delivery.DeliverAsync(plan, CancellationToken.None);
-        Assert.Equal(2, bus.ObserverAttempts);
-        Assert.Equal(0, bus.SuccessfulObserverAttempts);
+            await delivery.DeliverAsync(plan, CancellationToken.None);
+            Assert.Equal(2, bus.ObserverAttempts);
+            Assert.Equal(0, bus.SuccessfulObserverAttempts);
 
-        await delivery.DeliverAsync(plan, CancellationToken.None);
+            await delivery.DeliverAsync(plan, CancellationToken.None);
 
-        Assert.Equal(3, bus.ObserverAttempts);
-        Assert.Equal(1, bus.SuccessfulObserverAttempts);
+            Assert.Equal(3, bus.ObserverAttempts);
+            Assert.Equal(1, bus.SuccessfulObserverAttempts);
+        });
     }
 
     [Fact]
     public async Task RequesterOnlyRealtimeDoesNotCommitTheFullMutationRevision()
     {
-        var bus = new RecordingNotificationBus();
-        var streams = new PartyProjectionStreamRegistry();
-        var delivery = Delivery(bus, streams);
-        var snapshot = Snapshot() with { Revision = 4 };
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new RecordingNotificationBus();
+            var streams = new PartyProjectionStreamRegistry();
+            var delivery = Delivery(bus, streams);
+            var snapshot = Snapshot() with { Revision = 4 };
 
-        await delivery.DeliverRealtimeAsync(Inviter, snapshot, CancellationToken.None);
-        bus.Publications.Clear();
-        await delivery.DeliverAsync(
-            new PartyNotificationPlan([], snapshot, DirectoryChange: ScopeChange()),
-            CancellationToken.None);
+            await delivery.DeliverRealtimeAsync(Inviter, snapshot, CancellationToken.None);
+            bus.Publications.Clear();
+            await delivery.DeliverAsync(
+                new PartyNotificationPlan([], snapshot, DirectoryChange: ScopeChange()),
+                CancellationToken.None);
 
-        Assert.Collection(
-            bus.Publications,
-            value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
-            value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
-            value => AssertPublication<PartyRosterChanged>(value, 1, 2),
-            value => AssertPublication<PartyRosterChanged>(value, 3));
+            Assert.Collection(
+                bus.Publications,
+                value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
+                value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
+                value => AssertPublication<PartyRosterChanged>(value, 1, 2),
+                value => AssertPublication<PartyRosterChanged>(value, 3));
+        });
     }
 
     [Fact]
     public async Task Direct_creation_projects_the_complete_state_while_update_projects_only_settings()
     {
-        var bus = new RecordingNotificationBus();
-        var delivery = Delivery(bus);
-        var template = Snapshot();
-        var created = template with { Revision = 1, Members = [template.Members[0]] };
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new RecordingNotificationBus();
+            var delivery = Delivery(bus);
+            var template = Snapshot();
+            var created = template with { Revision = 1, Members = [template.Members[0]] };
 
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [],
-            created,
-            SettingsChange: PartySettingsChangeKind.Created), CancellationToken.None);
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [],
+                created,
+                SettingsChange: PartySettingsChangeKind.Created), CancellationToken.None);
 
-        Assert.Collection(
-            bus.Publications,
-            value => AssertPublication<PartyRealtimeChanged>(value, 1),
-            value => AssertPublication<PartyEndpointsChanged>(value, 1),
-            value => AssertPublication<PartyRosterChanged>(value, 1));
+            Assert.Collection(
+                bus.Publications,
+                value => AssertPublication<PartyRealtimeChanged>(value, 1),
+                value => AssertPublication<PartyEndpointsChanged>(value, 1),
+                value => AssertPublication<PartyRosterChanged>(value, 1));
 
-        var updated = created with { Revision = 2 };
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [],
-            updated,
-            SettingsChange: PartySettingsChangeKind.Updated,
-            DirectoryChange: ScopeChange()), CancellationToken.None);
+            var updated = created with { Revision = 2 };
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [],
+                updated,
+                SettingsChange: PartySettingsChangeKind.Updated,
+                DirectoryChange: ScopeChange()), CancellationToken.None);
 
-        Assert.Collection(
-            bus.Publications.Skip(3),
-            settings => AssertPublication<PartySettingsChanged>(settings, 1),
-            observer => AssertPublication<PartyRosterChanged>(observer, 2, 3));
-        Assert.Same(
-            updated,
-            Assert.IsType<PartySettingsChanged>(bus.Publications[3].Notification).Snapshot);
+            Assert.Collection(
+                bus.Publications.Skip(3),
+                settings => AssertPublication<PartySettingsChanged>(settings, 1),
+                observer => AssertPublication<PartyRosterChanged>(observer, 2, 3));
+            Assert.Same(
+                updated,
+                Assert.IsType<PartySettingsChanged>(bus.Publications[3].Notification).Snapshot);
+        });
     }
 
     [Fact]
     public async Task Invalid_plan_shapes_are_rejected_before_any_publication()
     {
-        var snapshot = Snapshot();
-        PartyNotificationPlan[] invalidPlans =
-        [
-            new(
-                [],
-                snapshot,
-                Invitation: Invitation(),
-                SettingsChange: PartySettingsChangeKind.Created),
-            new([], SettingsChange: PartySettingsChangeKind.Created),
-            new([], snapshot, ClearPartyId: 0x1234, SettingsChange: PartySettingsChangeKind.Updated),
-            new([], snapshot, SettingsChange: (PartySettingsChangeKind)99),
-            new([], Acceptance: Acceptance()),
-            new([], DirectoryChange: ScopeChange()),
-            new(
-                [Inviter.CharacterId],
-                snapshot,
-                Acceptance: Acceptance(),
-                ClearPartyId: snapshot.PartyId,
-                ClearPartyGeneration: snapshot.Generation,
-                ClearPartyRevision: snapshot.Revision),
-            new(
-                [Invitee.CharacterId],
-                ClearPartyId: 0x1234,
-                ClearPartyGeneration: snapshot.Generation),
-        ];
-
-        foreach (var plan in invalidPlans)
+        await TestGameplay.RunAsync(async () =>
         {
-            var bus = new RecordingNotificationBus();
-            var delivery = Delivery(bus);
-            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-                await delivery.DeliverAsync(plan, CancellationToken.None));
-            Assert.Empty(bus.Publications);
-        }
+            var snapshot = Snapshot();
+            PartyNotificationPlan[] invalidPlans =
+            [
+                new(
+                    [],
+                    snapshot,
+                    Invitation: Invitation(),
+                    SettingsChange: PartySettingsChangeKind.Created),
+                new([], SettingsChange: PartySettingsChangeKind.Created),
+                new([], snapshot, ClearPartyId: 0x1234, SettingsChange: PartySettingsChangeKind.Updated),
+                new([], snapshot, SettingsChange: (PartySettingsChangeKind)99),
+                new([], Acceptance: Acceptance()),
+                new([], DirectoryChange: ScopeChange()),
+                new(
+                    [Inviter.CharacterId],
+                    snapshot,
+                    Acceptance: Acceptance(),
+                    ClearPartyId: snapshot.PartyId,
+                    ClearPartyGeneration: snapshot.Generation,
+                    ClearPartyRevision: snapshot.Revision),
+                new(
+                    [Invitee.CharacterId],
+                    ClearPartyId: 0x1234,
+                    ClearPartyGeneration: snapshot.Generation),
+            ];
+
+            foreach (var plan in invalidPlans)
+            {
+                var bus = new RecordingNotificationBus();
+                var delivery = Delivery(bus);
+                await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                    await delivery.DeliverAsync(plan, CancellationToken.None));
+                Assert.Empty(bus.Publications);
+            }
+        });
     }
 
     [Fact]
     public async Task Settings_update_arriving_before_creation_promotes_latest_snapshot_to_full_state()
     {
-        var bus = new RecordingNotificationBus();
-        var delivery = Delivery(bus);
-        var template = Snapshot();
-        var created = template with { Revision = 1, Members = [template.Members[0]] };
-        var updated = template with { Revision = 2 };
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new RecordingNotificationBus();
+            var delivery = Delivery(bus);
+            var template = Snapshot();
+            var created = template with { Revision = 1, Members = [template.Members[0]] };
+            var updated = template with { Revision = 2 };
 
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [], updated, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [], created, SettingsChange: PartySettingsChangeKind.Created), CancellationToken.None);
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [], updated, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [], created, SettingsChange: PartySettingsChangeKind.Created), CancellationToken.None);
 
-        Assert.Collection(
-            bus.Publications,
-            value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
-            value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
-            value => AssertPublication<PartyRosterChanged>(value, 1, 2));
-        Assert.All(
-            bus.Publications,
-            value => Assert.Equal(2, SnapshotRevision(value.Notification)));
+            Assert.Collection(
+                bus.Publications,
+                value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
+                value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
+                value => AssertPublication<PartyRosterChanged>(value, 1, 2));
+            Assert.All(
+                bus.Publications,
+                value => Assert.Equal(2, SnapshotRevision(value.Notification)));
+        });
     }
 
     [Fact]
     public async Task Settings_update_overtaking_acceptance_gives_the_new_member_full_state_and_keeps_the_ack()
     {
-        var bus = new RecordingNotificationBus();
-        var delivery = Delivery(bus);
-        var template = Snapshot();
-        var created = template with { Revision = 1, Members = [template.Members[0]] };
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [], created, SettingsChange: PartySettingsChangeKind.Created), CancellationToken.None);
-        bus.Publications.Clear();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new RecordingNotificationBus();
+            var delivery = Delivery(bus);
+            var template = Snapshot();
+            var created = template with { Revision = 1, Members = [template.Members[0]] };
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [], created, SettingsChange: PartySettingsChangeKind.Created), CancellationToken.None);
+            bus.Publications.Clear();
 
-        var accepted = template with { Revision = 2 };
-        var updated = template with { Revision = 3 };
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [], updated, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [], accepted, Acceptance: Acceptance()),
-            CancellationToken.None);
+            var accepted = template with { Revision = 2 };
+            var updated = template with { Revision = 3 };
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [], updated, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [], accepted, Acceptance: Acceptance()),
+                CancellationToken.None);
 
-        Assert.Collection(
-            bus.Publications,
-            value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
-            value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
-            value => AssertPublication<PartyRosterChanged>(value, 1, 2),
-            value => AssertPublication<PartyInviteAccepted>(value, 1));
-        Assert.All(
-            bus.Publications.Take(3),
-            value => Assert.Equal(3, SnapshotRevision(value.Notification)));
+            Assert.Collection(
+                bus.Publications,
+                value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
+                value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
+                value => AssertPublication<PartyRosterChanged>(value, 1, 2),
+                value => AssertPublication<PartyInviteAccepted>(value, 1));
+            Assert.All(
+                bus.Publications.Take(3),
+                value => Assert.Equal(3, SnapshotRevision(value.Notification)));
+        });
     }
 
     [Fact]
     public async Task Settings_update_overtaking_leave_still_clears_the_leaver_and_rejoin_gets_full_state()
     {
-        var bus = new RecordingNotificationBus();
-        var delivery = Delivery(bus);
-        var template = Snapshot();
-        await delivery.DeliverAsync(new PartyNotificationPlan([], template), CancellationToken.None);
-        bus.Publications.Clear();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new RecordingNotificationBus();
+            var delivery = Delivery(bus);
+            var template = Snapshot();
+            await delivery.DeliverAsync(new PartyNotificationPlan([], template), CancellationToken.None);
+            bus.Publications.Clear();
 
-        var survivor = template with { Revision = 4, Members = [template.Members[0]] };
-        var updated = survivor with { Revision = 5 };
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [], updated, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [Invitee.CharacterId],
-            survivor,
-            ClearPartyId: survivor.PartyId,
-            ClearPartyGeneration: survivor.Generation,
-            ClearPartyRevision: survivor.Revision), CancellationToken.None);
+            var survivor = template with { Revision = 4, Members = [template.Members[0]] };
+            var updated = survivor with { Revision = 5 };
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [], updated, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [Invitee.CharacterId],
+                survivor,
+                ClearPartyId: survivor.PartyId,
+                ClearPartyGeneration: survivor.Generation,
+                ClearPartyRevision: survivor.Revision), CancellationToken.None);
 
-        Assert.Collection(
-            bus.Publications,
-            value => AssertPublication<PartySettingsChanged>(value, 1),
-            value =>
-            {
-                AssertPublication<PartyRosterChanged>(value, 2);
-                Assert.True(Assert.IsType<PartyRosterChanged>(value.Notification).ClearsParty);
-            });
+            Assert.Collection(
+                bus.Publications,
+                value => AssertPublication<PartySettingsChanged>(value, 1),
+                value =>
+                {
+                    AssertPublication<PartyRosterChanged>(value, 2);
+                    Assert.True(Assert.IsType<PartyRosterChanged>(value.Notification).ClearsParty);
+                });
 
-        bus.Publications.Clear();
-        var rejoined = template with { Revision = 6 };
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [], rejoined, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
+            bus.Publications.Clear();
+            var rejoined = template with { Revision = 6 };
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [], rejoined, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
 
-        Assert.Collection(
-            bus.Publications,
-            value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
-            value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
-            value => AssertPublication<PartyRosterChanged>(value, 1, 2));
+            Assert.Collection(
+                bus.Publications,
+                value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
+                value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
+                value => AssertPublication<PartyRosterChanged>(value, 1, 2));
+        });
     }
 
     [Fact]
     public async Task Newer_rejoin_suppresses_a_stale_clear_for_the_exact_current_member()
     {
-        var bus = new RecordingNotificationBus();
-        var delivery = Delivery(bus);
-        var template = Snapshot();
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [], template with { Revision = 1 }), CancellationToken.None);
-
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [],
-            template with { Revision = 3 },
-            Acceptance: Acceptance()),
-            CancellationToken.None);
-        bus.Publications.Clear();
-
-        var staleSurvivor = template with
+        await TestGameplay.RunAsync(async () =>
         {
-            Revision = 2,
-            Members = [template.Members[0]],
-        };
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [Invitee.CharacterId],
-            staleSurvivor,
-            ClearPartyId: staleSurvivor.PartyId,
-            ClearPartyGeneration: staleSurvivor.Generation,
-            ClearPartyRevision: staleSurvivor.Revision), CancellationToken.None);
+            var bus = new RecordingNotificationBus();
+            var delivery = Delivery(bus);
+            var template = Snapshot();
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [], template with { Revision = 1 }), CancellationToken.None);
 
-        Assert.Empty(bus.Publications);
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [],
+                template with { Revision = 3 },
+                Acceptance: Acceptance()),
+                CancellationToken.None);
+            bus.Publications.Clear();
+
+            var staleSurvivor = template with
+            {
+                Revision = 2,
+                Members = [template.Members[0]],
+            };
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [Invitee.CharacterId],
+                staleSurvivor,
+                ClearPartyId: staleSurvivor.PartyId,
+                ClearPartyGeneration: staleSurvivor.Generation,
+                ClearPartyRevision: staleSurvivor.Revision), CancellationToken.None);
+
+            Assert.Empty(bus.Publications);
+        });
     }
 
     [Fact]
     public async Task Newer_leave_suppresses_a_stale_acceptance_ack_for_the_missing_invitee()
     {
-        var bus = new RecordingNotificationBus();
-        var delivery = Delivery(bus);
-        var template = Snapshot();
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [], template with { Revision = 1 }), CancellationToken.None);
-
-        var survivor = template with
+        await TestGameplay.RunAsync(async () =>
         {
-            Revision = 3,
-            Members = [template.Members[0]],
-        };
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [Invitee.CharacterId],
-            survivor,
-            ClearPartyId: survivor.PartyId,
-            ClearPartyGeneration: survivor.Generation,
-            ClearPartyRevision: survivor.Revision), CancellationToken.None);
-        bus.Publications.Clear();
+            var bus = new RecordingNotificationBus();
+            var delivery = Delivery(bus);
+            var template = Snapshot();
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [], template with { Revision = 1 }), CancellationToken.None);
 
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [],
-            template with { Revision = 2 },
-            Acceptance: Acceptance()),
-            CancellationToken.None);
+            var survivor = template with
+            {
+                Revision = 3,
+                Members = [template.Members[0]],
+            };
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [Invitee.CharacterId],
+                survivor,
+                ClearPartyId: survivor.PartyId,
+                ClearPartyGeneration: survivor.Generation,
+                ClearPartyRevision: survivor.Revision), CancellationToken.None);
+            bus.Publications.Clear();
 
-        Assert.Empty(bus.Publications);
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [],
+                template with { Revision = 2 },
+                Acceptance: Acceptance()),
+                CancellationToken.None);
+
+            Assert.Empty(bus.Publications);
+        });
     }
 
     [Fact]
     public async Task Older_settings_revision_arriving_after_newer_is_suppressed()
     {
-        var bus = new RecordingNotificationBus();
-        var delivery = Delivery(bus);
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [], Snapshot() with { Revision = 1 },
-            SettingsChange: PartySettingsChangeKind.Created), CancellationToken.None);
-        bus.Publications.Clear();
-        var older = Snapshot() with { Revision = 3 };
-        var newer = Snapshot() with { Revision = 4 };
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new RecordingNotificationBus();
+            var delivery = Delivery(bus);
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [], Snapshot() with { Revision = 1 },
+                SettingsChange: PartySettingsChangeKind.Created), CancellationToken.None);
+            bus.Publications.Clear();
+            var older = Snapshot() with { Revision = 3 };
+            var newer = Snapshot() with { Revision = 4 };
 
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [], newer, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [], older, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [], newer, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [], older, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
 
-        var publication = Assert.Single(bus.Publications);
-        Assert.Equal(4, Assert.IsType<PartySettingsChanged>(publication.Notification).Snapshot.Revision);
+            var publication = Assert.Single(bus.Publications);
+            Assert.Equal(4, Assert.IsType<PartySettingsChanged>(publication.Notification).Snapshot.Revision);
+        });
     }
 
     [Fact]
     public async Task Invite_is_published_only_to_its_exact_target()
     {
-        var bus = new RecordingNotificationBus();
-        var delivery = Delivery(bus);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new RecordingNotificationBus();
+            var delivery = Delivery(bus);
 
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [],
-            Invitation: Invitation()),
-            CancellationToken.None);
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [],
+                Invitation: Invitation()),
+                CancellationToken.None);
 
-        var publication = Assert.Single(bus.Publications);
-        AssertPublication<PartyInviteIssued>(publication, 2);
+            var publication = Assert.Single(bus.Publications);
+            AssertPublication<PartyInviteIssued>(publication, 2);
+        });
     }
 
     [Fact]
     public async Task CapturedInviteAudienceNeverRetargetsToAReplacementConnection()
     {
-        var bus = new RecordingNotificationBus();
-        var sessions = new SessionDirectory(Inviter, Invitee, Observer);
-        var presence = new FixedPresence(Inviter, Invitee, Observer);
-        var delivery = new PartyNotificationDelivery(
-            bus,
-            new PartyProjectionStreamRegistry(),
-            sessions,
-            presence);
-        var plan = new PartyNotificationPlan([], Invitation: Invitation());
-        var captured = PartyNotificationRecipientCapture.Capture(plan, sessions, presence);
-        var replacement = Invitee with
+        await TestGameplay.RunAsync(async () =>
         {
-            ConnectionId = new NetworkConnectionId("replacement-invitee"),
-            ConnectionGeneration = 2,
-        };
-        sessions.Select(replacement);
+            var bus = new RecordingNotificationBus();
+            var sessions = new SessionDirectory(Inviter, Invitee, Observer);
+            var presence = new FixedPresence(Inviter, Invitee, Observer);
+            var delivery = new PartyNotificationDelivery(
+                bus,
+                new PartyProjectionStreamRegistry(),
+                sessions,
+                presence);
+            var plan = new PartyNotificationPlan([], Invitation: Invitation());
+            var captured = PartyNotificationRecipientCapture.Capture(plan, sessions, presence);
+            var replacement = Invitee with
+            {
+                ConnectionId = new NetworkConnectionId("replacement-invitee"),
+                ConnectionGeneration = 2,
+            };
+            sessions.Select(replacement);
 
-        await delivery.DeliverAsync(plan, captured, CancellationToken.None);
+            await delivery.DeliverAsync(plan, captured, CancellationToken.None);
 
-        var publication = Assert.Single(bus.Publications);
-        Assert.Equal(
-            [Invitee],
-            Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
-        Assert.DoesNotContain(replacement,
-            Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+            var publication = Assert.Single(bus.Publications);
+            Assert.Equal(
+                [Invitee],
+                Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+            Assert.DoesNotContain(replacement,
+                Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+        });
     }
 
     [Fact]
     public async Task DelayedPreMovePlanCannotRepublishItsOldDirectoryScope()
     {
-        var parties = new PartyService(
-            new FixedPartyMemberStatus(),
-            new PartyModeRuleService(),
-            TimeProvider.System,
-            NoPartyEndpoints.Instance);
-        var created = parties.CreateOrUpdateSettings(
-            Character(Inviter),
-            DefaultSettings(),
-            PartyTitle.Empty);
-        Assert.True(created.Succeeded);
-        var plan = created.Notifications;
-        var sessions = new SessionDirectory(Inviter, Invitee, Observer);
-        var presence = new FixedPresence(Inviter, Invitee, Observer);
-        var captured = PartyNotificationRecipientCapture.Capture(plan, sessions, presence);
-        parties.UpdateDirectoryPresence(
-            Inviter.CharacterId,
-            new PartyDirectoryScope(11, 1, 2));
-        var bus = new RecordingNotificationBus();
-        var delivery = new PartyNotificationDelivery(
-            bus,
-            new PartyProjectionStreamRegistry(),
-            sessions,
-            presence,
-            parties);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var parties = new PartyService(
+                new FixedPartyMemberStatus(),
+                new PartyModeRuleService(),
+                TimeProvider.System,
+                NoPartyEndpoints.Instance);
+            var created = parties.CreateOrUpdateSettings(
+                Character(Inviter),
+                DefaultSettings(),
+                PartyTitle.Empty);
+            Assert.True(created.Succeeded);
+            var plan = created.Notifications;
+            var sessions = new SessionDirectory(Inviter, Invitee, Observer);
+            var presence = new FixedPresence(Inviter, Invitee, Observer);
+            var captured = PartyNotificationRecipientCapture.Capture(plan, sessions, presence);
+            parties.UpdateDirectoryPresence(
+                Inviter.CharacterId,
+                new PartyDirectoryScope(11, 1, 2));
+            var bus = new RecordingNotificationBus();
+            var delivery = new PartyNotificationDelivery(
+                bus,
+                new PartyProjectionStreamRegistry(),
+                sessions,
+                presence,
+                parties);
 
-        await delivery.DeliverAsync(plan, captured, CancellationToken.None);
+            await delivery.DeliverAsync(plan, captured, CancellationToken.None);
 
-        Assert.DoesNotContain(bus.Publications, publication =>
-            publication.Notification is PartyRosterChanged
-            && Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience)
-                .Sessions.Any(session => session == Invitee || session == Observer));
+            Assert.DoesNotContain(bus.Publications, publication =>
+                publication.Notification is PartyRosterChanged
+                && Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience)
+                    .Sessions.Any(session => session == Invitee || session == Observer));
+        });
     }
 
     [Fact]
     public async Task Leaving_member_clear_and_survivor_refresh_use_disjoint_audiences()
     {
-        var bus = new RecordingNotificationBus();
-        var delivery = Delivery(bus);
-        var survivor = new PartySnapshot(
-            0x1234,
-            7,
-            4,
-            1,
-            DefaultSettings(),
-            PartyTitle.Empty,
-            [new(Character(Inviter), 0, Endpoint(), 73)]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new RecordingNotificationBus();
+            var delivery = Delivery(bus);
+            var survivor = new PartySnapshot(
+                0x1234,
+                7,
+                4,
+                1,
+                DefaultSettings(),
+                PartyTitle.Empty,
+                [new(Character(Inviter), 0, Endpoint(), 73)]);
 
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [Invitee.CharacterId],
-            survivor,
-            ClearPartyId: 0x1234,
-            ClearPartyGeneration: survivor.Generation,
-            ClearPartyRevision: survivor.Revision,
-            DirectoryChange: ScopeChange()), CancellationToken.None);
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [Invitee.CharacterId],
+                survivor,
+                ClearPartyId: 0x1234,
+                ClearPartyGeneration: survivor.Generation,
+                ClearPartyRevision: survivor.Revision,
+                DirectoryChange: ScopeChange()), CancellationToken.None);
 
-        Assert.Collection(
-            bus.Publications,
-            value =>
-            {
-                AssertPublication<PartyRosterChanged>(value, 2);
-                Assert.True(Assert.IsType<PartyRosterChanged>(value.Notification).ClearsParty);
-            },
-            value => AssertPublication<PartyRealtimeChanged>(value, 1),
-            value => AssertPublication<PartyEndpointsChanged>(value, 1),
-            value => AssertPublication<PartyRosterChanged>(value, 1),
-            value =>
-            {
-                AssertPublication<PartyRosterChanged>(value, 2, 3);
-                Assert.False(Assert.IsType<PartyRosterChanged>(value.Notification).ClearsParty);
-            });
+            Assert.Collection(
+                bus.Publications,
+                value =>
+                {
+                    AssertPublication<PartyRosterChanged>(value, 2);
+                    Assert.True(Assert.IsType<PartyRosterChanged>(value.Notification).ClearsParty);
+                },
+                value => AssertPublication<PartyRealtimeChanged>(value, 1),
+                value => AssertPublication<PartyEndpointsChanged>(value, 1),
+                value => AssertPublication<PartyRosterChanged>(value, 1),
+                value =>
+                {
+                    AssertPublication<PartyRosterChanged>(value, 2, 3);
+                    Assert.False(Assert.IsType<PartyRosterChanged>(value.Notification).ClearsParty);
+                });
+        });
     }
 
     [Fact]
     public async Task Manual_leadership_transfer_projects_only_the_native_host_change()
     {
-        var bus = new RecordingNotificationBus();
-        var transfer = new PartySnapshot(
-            0x1234, 7, 4, Invitee.WireUserId, DefaultSettings(), PartyTitle.Empty,
-            [new(Character(Inviter), 0, Endpoint(), 73),
-             new(Character(Invitee), 1, null, 45)]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new RecordingNotificationBus();
+            var transfer = new PartySnapshot(
+                0x1234, 7, 4, Invitee.WireUserId, DefaultSettings(), PartyTitle.Empty,
+                [new(Character(Inviter), 0, Endpoint(), 73),
+                 new(Character(Invitee), 1, null, 45)]);
 
-        await Delivery(bus).DeliverAsync(new PartyNotificationPlan(
-            [], transfer,
-            DirectoryChange: ScopeChange(),
-            LeadershipTransfer: transfer), CancellationToken.None);
+            await Delivery(bus).DeliverAsync(new PartyNotificationPlan(
+                [], transfer,
+                DirectoryChange: ScopeChange(),
+                LeadershipTransfer: transfer), CancellationToken.None);
 
-        Assert.Collection(bus.Publications,
-            publication => AssertPublication<PartyLeadershipChanged>(publication, 1, 2),
-            publication => AssertPublication<PartyRosterChanged>(publication, 3));
-        var hostChange = Assert.IsType<PartyLeadershipChanged>(bus.Publications[0].Notification);
+            Assert.Collection(bus.Publications,
+                publication => AssertPublication<PartyLeadershipChanged>(publication, 1, 2),
+                publication => AssertPublication<PartyRosterChanged>(publication, 3));
+            var hostChange = Assert.IsType<PartyLeadershipChanged>(bus.Publications[0].Notification);
 
-        var messages = await new PartyLeadershipChangedHandler(
-                new SessionDirectory(Inviter, Invitee))
-            .ComposeAsync(
-                new NotificationRecipient(Inviter.CharacterId, Inviter.ConnectionId),
-                hostChange,
-                CancellationToken.None);
-        Assert.Collection(messages,
-            value => Assert.Equal((byte)1, Assert.IsType<UdpHostNotification>(value).HostSlot),
-            value => Assert.True(Assert.IsType<PartyRosterMessage>(value).HostChanged));
+            var messages = await new PartyLeadershipChangedHandler(
+                    new SessionDirectory(Inviter, Invitee))
+                .ComposeAsync(
+                    new NotificationRecipient(Inviter.CharacterId, Inviter.ConnectionId),
+                    hostChange,
+                    CancellationToken.None);
+            Assert.Collection(messages,
+                value => Assert.Equal((byte)1, Assert.IsType<UdpHostNotification>(value).HostSlot),
+                value => Assert.True(Assert.IsType<PartyRosterMessage>(value).HostChanged));
+        });
     }
 
     [Fact]
     public async Task Leader_leave_rekeys_client_party_by_clearing_old_id_before_new_full_roster()
     {
-        var bus = new RecordingNotificationBus();
-        var survivor = Snapshot() with
+        await TestGameplay.RunAsync(async () =>
         {
-            PartyId = 0x5678,
-            Revision = 5,
-            LeaderWireUserId = Invitee.WireUserId,
-            Members = [new(Character(Invitee), 0, null, 45)],
-        };
-        await Delivery(bus).DeliverAsync(new PartyNotificationPlan(
-            [Inviter.CharacterId, Invitee.CharacterId], survivor,
-            ClearPartyId: 0x1234,
-            ClearPartyGeneration: survivor.Generation,
-            ClearPartyRevision: survivor.Revision,
-            DirectoryChange: ScopeChange()), CancellationToken.None);
+            var bus = new RecordingNotificationBus();
+            var survivor = Snapshot() with
+            {
+                PartyId = 0x5678,
+                Revision = 5,
+                LeaderWireUserId = Invitee.WireUserId,
+                Members = [new(Character(Invitee), 0, null, 45)],
+            };
+            await Delivery(bus).DeliverAsync(new PartyNotificationPlan(
+                [Inviter.CharacterId, Invitee.CharacterId], survivor,
+                ClearPartyId: 0x1234,
+                ClearPartyGeneration: survivor.Generation,
+                ClearPartyRevision: survivor.Revision,
+                DirectoryChange: ScopeChange()), CancellationToken.None);
 
-        Assert.Collection(bus.Publications,
-            value =>
-            {
-                AssertPublication<PartyRosterChanged>(value, 1, 2);
-                Assert.Equal((ushort)0x1234,
-                    Assert.IsType<PartyRosterChanged>(value.Notification).ClearPartyId);
-            },
-            value => AssertPublication<PartyRealtimeChanged>(value, 2),
-            value => AssertPublication<PartyEndpointsChanged>(value, 2),
-            value =>
-            {
-                AssertPublication<PartyRosterChanged>(value, 2);
-                Assert.Equal((ushort)0x5678,
-                    Assert.IsType<PartyRosterChanged>(value.Notification).Snapshot!.PartyId);
-            },
-            value =>
-            {
-                AssertPublication<PartyRosterChanged>(value, 3);
-                Assert.Equal((ushort)0x1234,
-                    Assert.IsType<PartyRosterChanged>(value.Notification).ClearPartyId);
-            },
-            value =>
-            {
-                AssertPublication<PartyRosterChanged>(value, 3);
-                Assert.Equal((ushort)0x5678,
-                    Assert.IsType<PartyRosterChanged>(value.Notification).Snapshot!.PartyId);
-            });
+            Assert.Collection(bus.Publications,
+                value =>
+                {
+                    AssertPublication<PartyRosterChanged>(value, 1, 2);
+                    Assert.Equal((ushort)0x1234,
+                        Assert.IsType<PartyRosterChanged>(value.Notification).ClearPartyId);
+                },
+                value => AssertPublication<PartyRealtimeChanged>(value, 2),
+                value => AssertPublication<PartyEndpointsChanged>(value, 2),
+                value =>
+                {
+                    AssertPublication<PartyRosterChanged>(value, 2);
+                    Assert.Equal((ushort)0x5678,
+                        Assert.IsType<PartyRosterChanged>(value.Notification).Snapshot!.PartyId);
+                },
+                value =>
+                {
+                    AssertPublication<PartyRosterChanged>(value, 3);
+                    Assert.Equal((ushort)0x1234,
+                        Assert.IsType<PartyRosterChanged>(value.Notification).ClearPartyId);
+                },
+                value =>
+                {
+                    AssertPublication<PartyRosterChanged>(value, 3);
+                    Assert.Equal((ushort)0x5678,
+                        Assert.IsType<PartyRosterChanged>(value.Notification).Snapshot!.PartyId);
+                });
+        });
     }
 
     [Fact]
     public async Task DisbandClearsMembersBeforeUnrelatedObserversWithoutDuplicateRecipients()
     {
-        var bus = new RecordingNotificationBus();
-        var delivery = Delivery(bus);
-        var snapshot = Snapshot();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new RecordingNotificationBus();
+            var delivery = Delivery(bus);
+            var snapshot = Snapshot();
 
-        await delivery.DeliverAsync(new PartyNotificationPlan(
-            [Inviter.CharacterId, Invitee.CharacterId],
-            ClearPartyId: snapshot.PartyId,
-            ClearPartyGeneration: snapshot.Generation,
-            ClearPartyRevision: snapshot.Revision,
-            DirectoryChange: new PartyDirectoryChange(Scope(), null)), CancellationToken.None);
+            await delivery.DeliverAsync(new PartyNotificationPlan(
+                [Inviter.CharacterId, Invitee.CharacterId],
+                ClearPartyId: snapshot.PartyId,
+                ClearPartyGeneration: snapshot.Generation,
+                ClearPartyRevision: snapshot.Revision,
+                DirectoryChange: new PartyDirectoryChange(Scope(), null)), CancellationToken.None);
 
-        Assert.Collection(
-            bus.Publications,
-            members =>
-            {
-                AssertPublication<PartyRosterChanged>(members, 1, 2);
-                Assert.True(Assert.IsType<PartyRosterChanged>(members.Notification).ClearsParty);
-            },
-            observer =>
-            {
-                AssertPublication<PartyRosterChanged>(observer, 3);
-                Assert.True(Assert.IsType<PartyRosterChanged>(observer.Notification).ClearsParty);
-            });
+            Assert.Collection(
+                bus.Publications,
+                members =>
+                {
+                    AssertPublication<PartyRosterChanged>(members, 1, 2);
+                    Assert.True(Assert.IsType<PartyRosterChanged>(members.Notification).ClearsParty);
+                },
+                observer =>
+                {
+                    AssertPublication<PartyRosterChanged>(observer, 3);
+                    Assert.True(Assert.IsType<PartyRosterChanged>(observer.Notification).ClearsParty);
+                });
+        });
     }
 
     [Fact]
@@ -816,18 +880,21 @@ public sealed class PartyNotificationTests
     [Fact]
     public async Task An_older_revision_arriving_after_a_newer_one_is_suppressed()
     {
-        var bus = new RecordingNotificationBus();
-        var delivery = Delivery(bus);
-        var older = Snapshot() with { Revision = 3 };
-        var newer = Snapshot() with { Revision = 4 };
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new RecordingNotificationBus();
+            var delivery = Delivery(bus);
+            var older = Snapshot() with { Revision = 3 };
+            var newer = Snapshot() with { Revision = 4 };
 
-        await delivery.DeliverAsync(new PartyNotificationPlan([], newer), CancellationToken.None);
-        await delivery.DeliverAsync(new PartyNotificationPlan([], older), CancellationToken.None);
+            await delivery.DeliverAsync(new PartyNotificationPlan([], newer), CancellationToken.None);
+            await delivery.DeliverAsync(new PartyNotificationPlan([], older), CancellationToken.None);
 
-        Assert.Equal(3, bus.Publications.Count);
-        Assert.All(
-            bus.Publications,
-            value => Assert.Equal(4, SnapshotRevision(value.Notification)));
+            Assert.Equal(3, bus.Publications.Count);
+            Assert.All(
+                bus.Publications,
+                value => Assert.Equal(4, SnapshotRevision(value.Notification)));
+        });
     }
 
     [Fact]

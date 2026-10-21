@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Data.Authentication;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Accounts;
 
@@ -36,19 +37,25 @@ public sealed class AuthenticationFailureTests
         var account = (await fixture.Store.FindAsync("player", default))!;
         var login = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "test password"));
         var service = fixture.Services.GetRequiredService<IAuthenticationDomainService>();
-        await using (var lease = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            Assert.NotNull(await service.BindSessionAsync(new Dfo.Server.Data.Networking.NetworkConnectionId("test-binding"), login.MId!, login.Ticket!, default));
-            using var canceled = new CancellationTokenSource();
-            canceled.Cancel();
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await lease.CommitAsync(canceled.Token));
-        }
+            await using (var lease = fixture.Scope.Begin())
+            {
+                Assert.NotNull(await service.BindSessionAsync(new Dfo.Server.Data.Networking.NetworkConnectionId("test-binding"), login.MId!, login.Ticket!, default));
+                using var canceled = new CancellationTokenSource();
+                canceled.Cancel();
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await lease.CommitAsync(canceled.Token));
+            }
+        });
         Assert.NotNull(await fixture.Consume(login.MId!, login.Ticket!));
-        await using (var lease = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            Assert.False(await fixture.Store.TryReplaceCredentialAsync(account.AccountId, "stale", "replacement", default));
-            await lease.CommitAsync(default);
-        }
+            await using (var lease = fixture.Scope.Begin())
+            {
+                Assert.False(await fixture.Store.TryReplaceCredentialAsync(account.AccountId, "stale", "replacement", default));
+                await lease.CommitAsync(default);
+            }
+        });
         Assert.Equal(account.PasswordHash, (await fixture.Store.FindAsync("player", default))!.PasswordHash);
     }
 

@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Data.Authentication;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Accounts;
 
@@ -37,10 +38,13 @@ public sealed class AuthenticationTicketTests
         var login = await fixture.Bus.SendAsync(
             new AuthenticateAndIssueTicketCommand("player", "test password"));
 
-        var afterRestart = new LoginSessionRegistry(fixture.Scope, fixture.Clock, new LoginSessionOptions());
-        await using var transaction = fixture.Scope.Begin();
-        Assert.Null(afterRestart.TryBind(new Dfo.Server.Data.Networking.NetworkConnectionId("restart"), login.MId!, login.Ticket!));
-        await transaction.CommitAsync(default);
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            var afterRestart = new LoginSessionRegistry(fixture.Scope, fixture.Clock, new LoginSessionOptions());
+            await using var transaction = fixture.Scope.Begin();
+            Assert.Null(afterRestart.TryBind(new Dfo.Server.Data.Networking.NetworkConnectionId("restart"), login.MId!, login.Ticket!));
+            await transaction.CommitAsync(default);
+        });
 
         Assert.NotNull(await fixture.Store.FindAsync("player", default));
         Assert.Equal(

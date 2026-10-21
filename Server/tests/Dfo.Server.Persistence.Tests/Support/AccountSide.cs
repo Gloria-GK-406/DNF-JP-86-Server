@@ -5,6 +5,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Persistence.Accounts;
 using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Database;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Support;
 
@@ -34,14 +35,17 @@ internal sealed class AccountSide
     /// <summary>Seeds a fixture account in a transaction; this is not the login path.</summary>
     public async Task<AccountRecord> GetOrCreateAsync(string loginId, string passwordHash)
     {
-        await using var lease = this.Scope.Begin();
-        await this.database.ExecuteAsync(
-            "INSERT INTO accounts(m_id,password_hash) VALUES(@login,@hash) ON CONFLICT(m_id) DO NOTHING;",
-            parameters => { parameters.AddWithValue("@login", loginId); parameters.AddWithValue("@hash", passwordHash); },
-            CancellationToken.None);
-        var account = await new SqliteAccountTable(this.database).FindByLoginIdAsync(loginId, CancellationToken.None)
-            ?? throw new InvalidOperationException("Fixture account was not seeded.");
-        await lease.CommitAsync(CancellationToken.None);
-        return account;
+        return await TestGameplay.RunAsync(async () =>
+        {
+            await using var lease = this.Scope.Begin();
+            await this.database.ExecuteAsync(
+                "INSERT INTO accounts(m_id,password_hash) VALUES(@login,@hash) ON CONFLICT(m_id) DO NOTHING;",
+                parameters => { parameters.AddWithValue("@login", loginId); parameters.AddWithValue("@hash", passwordHash); },
+                CancellationToken.None);
+            var account = await new SqliteAccountTable(this.database).FindByLoginIdAsync(loginId, CancellationToken.None)
+                ?? throw new InvalidOperationException("Fixture account was not seeded.");
+            await lease.CommitAsync(CancellationToken.None);
+            return account;
+        });
     }
 }

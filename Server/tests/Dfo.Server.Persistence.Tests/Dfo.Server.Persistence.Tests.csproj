@@ -18,4 +18,8 @@
     <!-- The rules the repository now asks instead of deciding. -->
     <ProjectReference Include="..\..\src\Dfo.Server.Application\Dfo.Server.Application.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../Support/TestGameplay.cs" Link="Support/TestGameplay.cs" />
+  </ItemGroup>
 </Project>

@@ -20,6 +20,7 @@ using Dfo.Server.Protocol.Game.QuestCompletion;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.QuestCompletion;
 
@@ -206,47 +207,50 @@ public sealed class FinishQuestHandlerTests
     [InlineData(true, false, false, true)]
     public async Task Career_publication_only_reaches_current_visible_or_admitted_generations(bool dungeon, bool replaced, bool privateRoom, bool sourceReplaced)
     {
-        var actor = SelectedSessionIdentity.Create(new(1), new(60), new("one"), 1, 10010);
-        var peer = SelectedSessionIdentity.Create(new(2), new(61), new("peer-old"), 1, 10010);
-        var selectedPeer = replaced ? peer with { ConnectionGeneration = 2, ConnectionId = new("peer-new") } : peer;
-        var identities = new List<SelectedSessionIdentity> { actor, selectedPeer };
-        var sessions = new PeerSessions(identities);
-        ITownAreaDomainService areas = new Dfo.Server.Application.Sessions.SessionPresenceDomainService();
-        var runs = new Dfo.Server.Application.World.DungeonRunDomainService();
-        var generations = new DungeonRunDeliveryRegistry();
-        if (dungeon)
+        await TestGameplay.RunAsync(async () =>
         {
-            var cell = new MazeCell(0, 0);
-            var layout = new DungeonLayout(10000, 0, 1, 1, cell, cell, 61000, 1,
-                new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(61000)});
-            var id = DungeonRunId.New();
-            runs.PreparePartyEntry([new(actor.AccountId, actor.CharacterId, 0, true), new(peer.AccountId, peer.CharacterId, 1, false)],
-                layout, DungeonDifficulty.Normal, DungeonCellSeed.CompleteEmpty(cell, 61000), id, DateTimeOffset.UnixEpoch);
-            generations.Register(id, [actor, peer]);
-        }
-        else
-        {
-            var area = new TownAreaKey(1, 0, 0);
-            var position = new CharacterPositionState(0, 0, 0, 0, 0);
-            areas.Enter(new(actor.CharacterId, actor.TownAreaLease(), area, position, !privateRoom));
-            areas.Enter(new(peer.CharacterId, peer.TownAreaLease(), area, position, true));
-        }
-        var entry = ExperienceFrameEntry.At(StartingLevel, StartingExperience);
-        entry = entry with { CharacterEntry = entry.CharacterEntry with { Features = new([], null!, null!, null!, []) } };
-        var ledger = new SkillPointLedger();
-        var sender = new RecordingSender();
-        await Finish(ledger, new FixedCompletion(ledger, 4), views: new ChangedView(entry, entry, () =>
+            var actor = SelectedSessionIdentity.Create(new(1), new(60), new("one"), 1, 10010);
+            var peer = SelectedSessionIdentity.Create(new(2), new(61), new("peer-old"), 1, 10010);
+            var selectedPeer = replaced ? peer with { ConnectionGeneration = 2, ConnectionId = new("peer-new") } : peer;
+            var identities = new List<SelectedSessionIdentity> { actor, selectedPeer };
+            var sessions = new PeerSessions(identities);
+            ITownAreaDomainService areas = new Dfo.Server.Application.Sessions.SessionPresenceDomainService();
+            var runs = new Dfo.Server.Application.World.DungeonRunDomainService();
+            var generations = new DungeonRunDeliveryRegistry();
+            if (dungeon)
             {
-                if (sourceReplaced) identities[0] = actor with { ConnectionGeneration = 2, ConnectionId = new("one-new") };
-            }),
-            sessions: sessions, areas: areas, runs: runs, generations: generations, recording: sender);
-        if (replaced || privateRoom || sourceReplaced) Assert.Empty(sender.Targets);
-        else
-        {
-            var target = Assert.Single(sender.Targets);
-            Assert.Equal(peer.ConnectionId, target.ConnectionId);
-            Assert.IsType<CurrentUserStateMessage>(Assert.Single(target.OrderedMessages));
-        }
+                var cell = new MazeCell(0, 0);
+                var layout = new DungeonLayout(10000, 0, 1, 1, cell, cell, 61000, 1,
+                    new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(61000)});
+                var id = DungeonRunId.New();
+                runs.PreparePartyEntry([new(actor.AccountId, actor.CharacterId, 0, true), new(peer.AccountId, peer.CharacterId, 1, false)],
+                    layout, DungeonDifficulty.Normal, DungeonCellSeed.CompleteEmpty(cell, 61000), id, DateTimeOffset.UnixEpoch);
+                generations.Register(id, [actor, peer]);
+            }
+            else
+            {
+                var area = new TownAreaKey(1, 0, 0);
+                var position = new CharacterPositionState(0, 0, 0, 0, 0);
+                areas.Enter(new(actor.CharacterId, actor.TownAreaLease(), area, position, !privateRoom));
+                areas.Enter(new(peer.CharacterId, peer.TownAreaLease(), area, position, true));
+            }
+            var entry = ExperienceFrameEntry.At(StartingLevel, StartingExperience);
+            entry = entry with { CharacterEntry = entry.CharacterEntry with { Features = new([], null!, null!, null!, []) } };
+            var ledger = new SkillPointLedger();
+            var sender = new RecordingSender();
+            await Finish(ledger, new FixedCompletion(ledger, 4), views: new ChangedView(entry, entry, () =>
+                {
+                    if (sourceReplaced) identities[0] = actor with { ConnectionGeneration = 2, ConnectionId = new("one-new") };
+                }),
+                sessions: sessions, areas: areas, runs: runs, generations: generations, recording: sender);
+            if (replaced || privateRoom || sourceReplaced) Assert.Empty(sender.Targets);
+            else
+            {
+                var target = Assert.Single(sender.Targets);
+                Assert.Equal(peer.ConnectionId, target.ConnectionId);
+                Assert.IsType<CurrentUserStateMessage>(Assert.Single(target.OrderedMessages));
+            }
+        });
     }
 
     [Theory]
@@ -254,40 +258,43 @@ public sealed class FinishQuestHandlerTests
     [InlineData(true)]
     public async Task Tower_career_publication_reaches_only_current_exact_run_members(bool sourceReplaced)
     {
-        var actor = SelectedSessionIdentity.Create(new(1), new(60), new("one"), 1, 10010);
-        var peer = SelectedSessionIdentity.Create(new(2), new(61), new("peer"), 1, 10010);
-        var stale = SelectedSessionIdentity.Create(new(3), new(62), new("stale-old"), 1, 10010);
-        var replacement = stale with { ConnectionGeneration = 2, ConnectionId = new("stale-new") };
-        var townPeer = SelectedSessionIdentity.Create(new(4), new(63), new("town-peer"), 1, 10010);
-        var identities = new List<SelectedSessionIdentity> { actor, peer, replacement, townPeer };
-        var sessions = new PeerSessions(identities);
-        var tower = new TowerDomainStub(actor, peer, stale);
-        ITownAreaDomainService areas = new Dfo.Server.Application.Sessions.SessionPresenceDomainService();
-        var area = new TownAreaKey(1, 0, 0);
-        var position = new CharacterPositionState(0, 0, 0, 0, 0);
-        areas.Enter(new(actor.CharacterId, actor.TownAreaLease(), area, position, true));
-        areas.Enter(new(townPeer.CharacterId, townPeer.TownAreaLease(), area, position, true));
-        var entry = ExperienceFrameEntry.At(StartingLevel, StartingExperience);
-        entry = entry with { CharacterEntry = entry.CharacterEntry with { Features = new([], null!, null!, null!, []) } };
-        var ledger = new SkillPointLedger();
-        var sender = new RecordingSender();
-
-        await Finish(ledger, new FixedCompletion(ledger, 4),
-            views: new ChangedView(entry, entry, () =>
-            {
-                if (sourceReplaced)
-                    identities[0] = actor with { ConnectionGeneration = 2, ConnectionId = new("one-new") };
-            }),
-            sessions: sessions, areas: areas, recording: sender, towers: tower);
-
-        if (sourceReplaced)
-            Assert.Empty(sender.Targets);
-        else
+        await TestGameplay.RunAsync(async () =>
         {
-            var target = Assert.Single(sender.Targets);
-            Assert.Equal(peer.ConnectionId, target.ConnectionId);
-            Assert.IsType<CurrentUserStateMessage>(Assert.Single(target.OrderedMessages));
-        }
+            var actor = SelectedSessionIdentity.Create(new(1), new(60), new("one"), 1, 10010);
+            var peer = SelectedSessionIdentity.Create(new(2), new(61), new("peer"), 1, 10010);
+            var stale = SelectedSessionIdentity.Create(new(3), new(62), new("stale-old"), 1, 10010);
+            var replacement = stale with { ConnectionGeneration = 2, ConnectionId = new("stale-new") };
+            var townPeer = SelectedSessionIdentity.Create(new(4), new(63), new("town-peer"), 1, 10010);
+            var identities = new List<SelectedSessionIdentity> { actor, peer, replacement, townPeer };
+            var sessions = new PeerSessions(identities);
+            var tower = new TowerDomainStub(actor, peer, stale);
+            ITownAreaDomainService areas = new Dfo.Server.Application.Sessions.SessionPresenceDomainService();
+            var area = new TownAreaKey(1, 0, 0);
+            var position = new CharacterPositionState(0, 0, 0, 0, 0);
+            areas.Enter(new(actor.CharacterId, actor.TownAreaLease(), area, position, true));
+            areas.Enter(new(townPeer.CharacterId, townPeer.TownAreaLease(), area, position, true));
+            var entry = ExperienceFrameEntry.At(StartingLevel, StartingExperience);
+            entry = entry with { CharacterEntry = entry.CharacterEntry with { Features = new([], null!, null!, null!, []) } };
+            var ledger = new SkillPointLedger();
+            var sender = new RecordingSender();
+
+            await Finish(ledger, new FixedCompletion(ledger, 4),
+                views: new ChangedView(entry, entry, () =>
+                {
+                    if (sourceReplaced)
+                        identities[0] = actor with { ConnectionGeneration = 2, ConnectionId = new("one-new") };
+                }),
+                sessions: sessions, areas: areas, recording: sender, towers: tower);
+
+            if (sourceReplaced)
+                Assert.Empty(sender.Targets);
+            else
+            {
+                var target = Assert.Single(sender.Targets);
+                Assert.Equal(peer.ConnectionId, target.ConnectionId);
+                Assert.IsType<CurrentUserStateMessage>(Assert.Single(target.OrderedMessages));
+            }
+        });
     }
 
     private sealed class PeerSessions(IReadOnlyList<SelectedSessionIdentity> values) : ISelectedSessionDomainService
@@ -386,43 +393,46 @@ public sealed class FinishQuestHandlerTests
         RecordingSender? recording = null,
         TowerDomainStub? towers = null)
     {
-        var session = SelectedSessionIdentity.Create(
-            new AccountId(1),
-            new CharacterId(60),
-            new NetworkConnectionId("one"),
-            connectionGeneration: 1,
-            listenerPort: 10010);
-        var sender = recording ?? new RecordingSender();
-        sessions ??= new OneSession(session);
+        return await TestGameplay.RunAsync(async () =>
+        {
+            var session = SelectedSessionIdentity.Create(
+                new AccountId(1),
+                new CharacterId(60),
+                new NetworkConnectionId("one"),
+                connectionGeneration: 1,
+                listenerPort: 10010);
+            var sender = recording ?? new RecordingSender();
+            sessions ??= new OneSession(session);
 
-        var handler = new FinishQuestHandler(
-            sessions,
-            views ?? new OneRuntimeSession(ExperienceFrameEntry.At(StartingLevel, StartingExperience)),
-            new OnePlayingCharacter(ledger),
-            bus,
-            sender,
-            new QuestOfferRefreshDomainService(
-                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
-            new FixedClock(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000)),
-            NullLogger<FinishQuestHandler>.Instance,
-            areas ?? new Dfo.Server.Application.Sessions.SessionPresenceDomainService(),
-            runs ?? new Dfo.Server.Application.World.DungeonRunDomainService(),
-            new WeaknessProjectionDelivery(new WeaknessState(), sessions, sender),
-            generations ?? new DungeonRunDeliveryRegistry(),
-            towers);
+            var handler = new FinishQuestHandler(
+                sessions,
+                views ?? new OneRuntimeSession(ExperienceFrameEntry.At(StartingLevel, StartingExperience)),
+                new OnePlayingCharacter(ledger),
+                bus,
+                sender,
+                new QuestOfferRefreshDomainService(
+                    content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                new FixedClock(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000)),
+                NullLogger<FinishQuestHandler>.Instance,
+                areas ?? new Dfo.Server.Application.Sessions.SessionPresenceDomainService(),
+                runs ?? new Dfo.Server.Application.World.DungeonRunDomainService(),
+                new WeaknessProjectionDelivery(new WeaknessState(), sessions, sender),
+                generations ?? new DungeonRunDeliveryRegistry(),
+                towers);
 
-        await handler.HandleAsync(
-            new NetworkDispatchContext(
-                new NetworkConnectionContext(
-                    new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010)),
-            new FinishQuestRequest(
-                GameMessageMetadata.Empty,
-                QuestId,
-                rewardSelection,
-                completionCount),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                new NetworkDispatchContext(
+                    new NetworkConnectionContext(
+                        new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010)),
+                new FinishQuestRequest(
+                    GameMessageMetadata.Empty,
+                    QuestId,
+                    rewardSelection,
+                    completionCount),
+                CancellationToken.None);
 
-        return sender.Sent;
+            return sender.Sent;
+        });
     }
 
     /// <summary>

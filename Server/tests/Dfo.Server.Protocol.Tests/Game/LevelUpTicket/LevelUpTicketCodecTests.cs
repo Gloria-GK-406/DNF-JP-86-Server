@@ -14,6 +14,7 @@ using Dfo.Server.Protocol.Game.MonsterDeath;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.LevelUpTicket;
 
@@ -80,12 +81,15 @@ public sealed class LevelUpTicketCodecTests
     [InlineData("050001")]
     public async Task Invalid_request_gets_a_refusal_without_entering_the_domain(string body)
     {
-        var sender = new Sender();
-        var handler = new LevelUpTicketHandler(null!, null!, null!, null!, sender,
-            null!, null!, null!, null!, NullLogger<LevelUpTicketHandler>.Instance);
-        var request = (LevelUpTicketRequest)new LevelUpTicketDecoder().Decode(GameMessageMetadata.Empty, Convert.FromHexString(body));
-        await handler.HandleAsync(NetworkDispatchContext.Unknown, request, default);
-        Assert.Equal(new LevelUpTicketResponse(request.SourceSlot, 1), Assert.Single(sender.Sent));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new Sender();
+            var handler = new LevelUpTicketHandler(null!, null!, null!, null!, sender,
+                null!, null!, null!, null!, NullLogger<LevelUpTicketHandler>.Instance);
+            var request = (LevelUpTicketRequest)new LevelUpTicketDecoder().Decode(GameMessageMetadata.Empty, Convert.FromHexString(body));
+            await handler.HandleAsync(NetworkDispatchContext.Unknown, request, default);
+            Assert.Equal(new LevelUpTicketResponse(request.SourceSlot, 1), Assert.Single(sender.Sent));
+        });
     }
 
     private sealed class Sender : IGameMessageSender

@@ -11,6 +11,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.GroundPickup;
 using Dfo.Server.Protocol.Game;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.GroundPickup;
 
@@ -135,73 +136,85 @@ public sealed class GroundPickupTests
     [Fact]
     public async Task A_piece_a_monster_dropped_can_be_taken_by_its_number()
     {
-        var (handler, runs, bag, carried) = Build();
-        var dropped = MonsterItem(1, 30001, TheWeapon());
-        _ = BeginWithItems(runs, [dropped]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, runs, bag, carried) = Build();
+            var dropped = MonsterItem(1, 30001, TheWeapon());
+            _ = BeginWithItems(runs, [dropped]);
 
-        var result = await PickUp(handler, dropped.Number);
+            var result = await PickUp(handler, dropped.Number);
 
-        Assert.Equal(GroundPickupStatus.PickedUp, result.Status);
-        Assert.Equal(Weapon, result.ItemId);
-        Assert.Equal(Weapon, bag.Slots[result.SlotIndex].ItemId);
+            Assert.Equal(GroundPickupStatus.PickedUp, result.Status);
+            Assert.Equal(Weapon, result.ItemId);
+            Assert.Equal(Weapon, bag.Slots[result.SlotIndex].ItemId);
 
-        // Not broken. A piece banked at zero durability is a broken one, and nothing on the wire
-        // would have said so -- the kill's frame carries no durability field at all.
-        Assert.Equal(WeaponDurability, bag.Slots[result.SlotIndex].Durability);
+            // Not broken. A piece banked at zero durability is a broken one, and nothing on the wire
+            // would have said so -- the kill's frame carries no durability field at all.
+            Assert.Equal(WeaponDurability, bag.Slots[result.SlotIndex].Durability);
+        });
     }
 
     [Fact]
     public async Task A_quest_owned_piece_refuses_another_member_without_consuming_the_floor()
     {
-        var (handler, runs, bag, _) = Build();
-        DungeonRunParticipant[] party =
-        [
-            new DungeonRunParticipant(Account, Character, 0, IsLeader: true),
-            new DungeonRunParticipant(HelperAccount, Helper, 1, IsLeader: false),
-        ];
-        var dropped = MonsterItem(
-            1, 30001, TheWeapon() with { OwnerCharacterId = Character });
-        _ = BeginWithItems(runs, [dropped], party);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, runs, bag, _) = Build();
+            DungeonRunParticipant[] party =
+            [
+                new DungeonRunParticipant(Account, Character, 0, IsLeader: true),
+                new DungeonRunParticipant(HelperAccount, Helper, 1, IsLeader: false),
+            ];
+            var dropped = MonsterItem(
+                1, 30001, TheWeapon() with { OwnerCharacterId = Character });
+            _ = BeginWithItems(runs, [dropped], party);
 
-        var refused = await handler.HandleAsync(
-            default!,
-            new PickUpGroundDropCommand(HelperAccount, Helper, dropped.Number),
-            CancellationToken.None);
+            var refused = await handler.HandleAsync(
+                default!,
+                new PickUpGroundDropCommand(HelperAccount, Helper, dropped.Number),
+                CancellationToken.None);
 
-        Assert.Equal(GroundPickupStatus.NotOwner, refused.Status);
-        Assert.Empty(bag.Slots);
-        Assert.NotNull(runs.Find(Character)!.CurrentCellState.FindGroundItem(dropped.Number));
-        Assert.Equal(GroundPickupStatus.PickedUp, (await PickUp(handler, dropped.Number)).Status);
+            Assert.Equal(GroundPickupStatus.NotOwner, refused.Status);
+            Assert.Empty(bag.Slots);
+            Assert.NotNull(runs.Find(Character)!.CurrentCellState.FindGroundItem(dropped.Number));
+            Assert.Equal(GroundPickupStatus.PickedUp, (await PickUp(handler, dropped.Number)).Status);
+        });
     }
 
     [Fact]
     public async Task Item_pickup_derives_quest_progress_before_committing_the_floor_change()
     {
-        var progress = new SeekingQuestProgressSynchronization(
-            [new CarriedQuest(0, 1779, 14)]);
-        var seeking = new RecordingSeekingProgress(progress);
-        var (handler, runs, _, _) = Build(seeking);
-        var dropped = MonsterItem(1, 30001, TheWeapon());
-        _ = BeginWithItems(runs, [dropped]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var progress = new SeekingQuestProgressSynchronization(
+                [new CarriedQuest(0, 1779, 14)]);
+            var seeking = new RecordingSeekingProgress(progress);
+            var (handler, runs, _, _) = Build(seeking);
+            var dropped = MonsterItem(1, 30001, TheWeapon());
+            _ = BeginWithItems(runs, [dropped]);
 
-        var result = await PickUp(handler, dropped.Number);
+            var result = await PickUp(handler, dropped.Number);
 
-        Assert.Equal(progress.Quests, result.QuestProgress?.Quests);
-        Assert.Equal(1, seeking.Calls);
-        Assert.NotNull(result.Change);
+            Assert.Equal(progress.Quests, result.QuestProgress?.Quests);
+            Assert.Equal(1, seeking.Calls);
+            Assert.NotNull(result.Change);
+        });
     }
 
     [Fact]
     public async Task Failed_quest_progress_does_not_commit_the_shared_floor_change()
     {
-        var (handler, runs, _, _) = Build(new ThrowingSeekingProgress());
-        var dropped = MonsterItem(1, 30001, TheWeapon());
-        _ = BeginWithItems(runs, [dropped]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, runs, _, _) = Build(new ThrowingSeekingProgress());
+            var dropped = MonsterItem(1, 30001, TheWeapon());
+            _ = BeginWithItems(runs, [dropped]);
 
-        await Assert.ThrowsAsync<InvalidDataException>(async () =>
-            await PickUp(handler, dropped.Number));
+            await Assert.ThrowsAsync<InvalidDataException>(async () =>
+                await PickUp(handler, dropped.Number));
 
-        Assert.NotNull(runs.Find(Character)!.CurrentCellState.FindGroundItem(dropped.Number));
+            Assert.NotNull(runs.Find(Character)!.CurrentCellState.FindGroundItem(dropped.Number));
+        });
     }
 
     /// <summary>And only once.</summary>
@@ -213,32 +226,38 @@ public sealed class GroundPickupTests
     [Fact]
     public async Task The_same_number_is_not_given_twice()
     {
-        var (handler, runs, _, carried) = Build();
-        var dropped = MonsterItem(1, 30001, TheWeapon());
-        _ = BeginWithItems(runs, [dropped]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, runs, _, carried) = Build();
+            var dropped = MonsterItem(1, 30001, TheWeapon());
+            _ = BeginWithItems(runs, [dropped]);
 
-        Assert.Equal(GroundPickupStatus.PickedUp, (await PickUp(handler, dropped.Number)).Status);
+            Assert.Equal(GroundPickupStatus.PickedUp, (await PickUp(handler, dropped.Number)).Status);
 
-        var second = await PickUp(handler, dropped.Number);
+            var second = await PickUp(handler, dropped.Number);
 
-        Assert.Equal(GroundPickupStatus.NothingThere, second.Status);
+            Assert.Equal(GroundPickupStatus.NothingThere, second.Status);
+        });
     }
 
     [Fact]
     public async Task A_failed_persistent_insert_releases_the_floor_reservation_for_one_retry()
     {
-        var (handler, runs, bag, _) = Build();
-        var dropped = MonsterItem(1, 30001, TheWeapon());
-        _ = BeginWithItems(runs, [dropped]);
-        bag.FailNextAdd = true;
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, runs, bag, _) = Build();
+            var dropped = MonsterItem(1, 30001, TheWeapon());
+            _ = BeginWithItems(runs, [dropped]);
+            bag.FailNextAdd = true;
 
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await PickUp(handler, dropped.Number));
-        Assert.NotNull(runs.Find(Character)!.CurrentCellState.FindGroundItem(dropped.Number));
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await PickUp(handler, dropped.Number));
+            Assert.NotNull(runs.Find(Character)!.CurrentCellState.FindGroundItem(dropped.Number));
 
-        Assert.Equal(GroundPickupStatus.PickedUp, (await PickUp(handler, dropped.Number)).Status);
-        Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, dropped.Number)).Status);
-        Assert.Single(bag.Slots);
+            Assert.Equal(GroundPickupStatus.PickedUp, (await PickUp(handler, dropped.Number)).Status);
+            Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, dropped.Number)).Status);
+            Assert.Single(bag.Slots);
+        });
     }
 
     /// <summary>
@@ -252,14 +271,17 @@ public sealed class GroundPickupTests
     [Fact]
     public async Task A_declared_piece_and_a_dropped_one_do_not_answer_to_one_number()
     {
-        var (handler, runs, _, carried) = Build();
-        var declared = DeclaredItem(1, new DungeonRoomDrop(0, Shoulder, 25));
-        var dropped = MonsterItem(2, 30001, TheWeapon());
-        _ = BeginWithItems(runs, [declared, dropped]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, runs, _, carried) = Build();
+            var declared = DeclaredItem(1, new DungeonRoomDrop(0, Shoulder, 25));
+            var dropped = MonsterItem(2, 30001, TheWeapon());
+            _ = BeginWithItems(runs, [declared, dropped]);
 
-        Assert.Equal(2, dropped.Number);
-        Assert.Equal(Shoulder, (await PickUp(handler, 1)).ItemId);
-        Assert.Equal(Weapon, (await PickUp(handler, 2)).ItemId);
+            Assert.Equal(2, dropped.Number);
+            Assert.Equal(Shoulder, (await PickUp(handler, 1)).ItemId);
+            Assert.Equal(Weapon, (await PickUp(handler, 2)).ItemId);
+        });
     }
 
     /// <summary>
@@ -273,50 +295,59 @@ public sealed class GroundPickupTests
     [Fact]
     public async Task Gold_goes_onto_the_character()
     {
-        var (handler, runs, bag, carried) = Build();
-        var gold = MonsterItem(
-            1,
-            30001,
-            new RolledDrop(0, 1357, DropRarity.Common, DropItemKind.Gold));
-        _ = BeginWithItems(runs, [gold]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, runs, bag, carried) = Build();
+            var gold = MonsterItem(
+                1,
+                30001,
+                new RolledDrop(0, 1357, DropRarity.Common, DropItemKind.Gold));
+            _ = BeginWithItems(runs, [gold]);
 
-        var result = await PickUp(handler, gold.Number);
+            var result = await PickUp(handler, gold.Number);
 
-        Assert.Equal(GroundPickupStatus.Banked, result.Status);
-        Assert.Equal(1357, result.Amount);
-        Assert.Equal(1357, result.Total);
-        Assert.Equal(1357, carried.Total);
+            Assert.Equal(GroundPickupStatus.Banked, result.Status);
+            Assert.Equal(1357, result.Amount);
+            Assert.Equal(1357, result.Total);
+            Assert.Equal(1357, carried.Total);
 
-        // And it never touched the bag.
-        Assert.Empty(bag.Slots);
+            // And it never touched the bag.
+            Assert.Empty(bag.Slots);
+        });
     }
 
     /// <summary>The same coins are not paid twice.</summary>
     [Fact]
     public async Task Gold_is_paid_once()
     {
-        var (handler, runs, _, carried) = Build();
-        var gold = MonsterItem(
-            1,
-            30001,
-            new RolledDrop(0, 44, DropRarity.Common, DropItemKind.Gold));
-        _ = BeginWithItems(runs, [gold]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, runs, _, carried) = Build();
+            var gold = MonsterItem(
+                1,
+                30001,
+                new RolledDrop(0, 44, DropRarity.Common, DropItemKind.Gold));
+            _ = BeginWithItems(runs, [gold]);
 
-        Assert.Equal(GroundPickupStatus.Banked, (await PickUp(handler, gold.Number)).Status);
-        var second = await PickUp(handler, gold.Number);
+            Assert.Equal(GroundPickupStatus.Banked, (await PickUp(handler, gold.Number)).Status);
+            var second = await PickUp(handler, gold.Number);
 
-        Assert.Equal(GroundPickupStatus.NothingThere, second.Status);
-        Assert.Equal(44, carried.Total);
+            Assert.Equal(GroundPickupStatus.NothingThere, second.Status);
+            Assert.Equal(44, carried.Total);
+        });
     }
 
     /// <summary>A number nothing was ever given is refused.</summary>
     [Fact]
     public async Task A_number_nothing_holds_is_refused()
     {
-        var (handler, runs, _, carried) = Build();
-        _ = BeginWithItems(runs, []);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, runs, _, carried) = Build();
+            _ = BeginWithItems(runs, []);
 
-        Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, 9)).Status);
+            Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, 9)).Status);
+        });
     }
 
     /// <summary>
@@ -329,19 +360,22 @@ public sealed class GroundPickupTests
     [Fact]
     public async Task A_dropped_piece_stays_in_the_room_it_fell_in()
     {
-        var (handler, runs, _, carried) = Build();
-        var dropped = MonsterItem(1, 30001, TheWeapon());
-        var run = BeginWithItems(runs, [dropped]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, runs, _, carried) = Build();
+            var dropped = MonsterItem(1, 30001, TheWeapon());
+            var run = BeginWithItems(runs, [dropped]);
 
-        var target = new MazeCell(1, 0);
-        _ = runs.TryMove(
-            Character,
-            run.RunId,
-            run.RoomVersion,
-            target,
-            new DungeonCellSeed(target, Layout.Cells[target].MapCandidates[0], 1, [], []));
+            var target = new MazeCell(1, 0);
+            _ = runs.TryMove(
+                Character,
+                run.RunId,
+                run.RoomVersion,
+                target,
+                new DungeonCellSeed(target, Layout.Cells[target].MapCandidates[0], 1, [], []));
 
-        Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, dropped.Number)).Status);
+            Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, dropped.Number)).Status);
+        });
     }
 
 
@@ -362,40 +396,46 @@ public sealed class GroundPickupTests
     [Fact]
     public async Task The_banked_piece_carries_the_value_its_kill_announced()
     {
-        const ushort Actor = 30007;
-        var (handler, runs, bag, carried) = Build();
-        var dropped = MonsterItem(1, Actor, TheWeapon());
-        var run = BeginWithItems(runs, [dropped]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            const ushort Actor = 30007;
+            var (handler, runs, bag, carried) = Build();
+            var dropped = MonsterItem(1, Actor, TheWeapon());
+            var run = BeginWithItems(runs, [dropped]);
 
-        var result = await PickUp(handler, dropped.Number);
+            var result = await PickUp(handler, dropped.Number);
 
-        Assert.Equal(GroundPickupStatus.PickedUp, result.Status);
-        Assert.Equal(
-            (int)GameDropIdentity.ForKill(run, Actor),
-            bag.Slots[result.SlotIndex].Value);
+            Assert.Equal(GroundPickupStatus.PickedUp, result.Status);
+            Assert.Equal(
+                (int)GameDropIdentity.ForKill(run, Actor),
+                bag.Slots[result.SlotIndex].Value);
+        });
     }
 
     /// <summary>Two pieces of one kill carry one value; two kills carry two.</summary>
     [Fact]
     public async Task Every_piece_of_one_kill_carries_one_value()
     {
-        var (handler, runs, bag, carried) = Build();
-        DungeonGroundItem[] pair =
-        [
-            MonsterItem(1, 30007, TheWeapon()),
-            MonsterItem(2, 30007, TheWeapon()),
-        ];
-        var other = MonsterItem(3, 30008, TheWeapon());
-        _ = BeginWithItems(runs, [.. pair, other]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, runs, bag, carried) = Build();
+            DungeonGroundItem[] pair =
+            [
+                MonsterItem(1, 30007, TheWeapon()),
+                MonsterItem(2, 30007, TheWeapon()),
+            ];
+            var other = MonsterItem(3, 30008, TheWeapon());
+            _ = BeginWithItems(runs, [.. pair, other]);
 
-        foreach (var piece in pair)
-            await PickUp(handler, piece.Number);
-        await PickUp(handler, other.Number);
+            foreach (var piece in pair)
+                await PickUp(handler, piece.Number);
+            await PickUp(handler, other.Number);
 
-        var values = bag.Slots.Values.Select(core => core.Value).ToList();
-        Assert.Equal(3, values.Count);
-        Assert.Equal(values[0], values[1]);
-        Assert.NotEqual(values[0], values[2]);
+            var values = bag.Slots.Values.Select(core => core.Value).ToList();
+            Assert.Equal(3, values.Count);
+            Assert.Equal(values[0], values[1]);
+            Assert.NotEqual(values[0], values[2]);
+        });
     }
 
     /// <summary>
@@ -410,44 +450,50 @@ public sealed class GroundPickupTests
     [Fact]
     public async Task A_declared_stack_is_banked_at_the_count_the_room_declares()
     {
-        var (handler, runs, bag, carried) = Build();
-        _ = BeginWithItems(
-            runs,
-            [DeclaredItem(1, new DungeonRoomDrop(0, 10088621, 0, Count: 3))]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, runs, bag, carried) = Build();
+            _ = BeginWithItems(
+                runs,
+                [DeclaredItem(1, new DungeonRoomDrop(0, 10088621, 0, Count: 3))]);
 
-        var result = await PickUp(handler, 1);
+            var result = await PickUp(handler, 1);
 
-        Assert.Equal(GroundPickupStatus.PickedUp, result.Status);
-        Assert.Equal(3, bag.Counts[result.SlotIndex]);
+            Assert.Equal(GroundPickupStatus.PickedUp, result.Status);
+            Assert.Equal(3, bag.Counts[result.SlotIndex]);
+        });
     }
 
 
     [Fact]
     public async Task PickingUpACreaturePreservesItsAllocatedIdentityAndCompleteDetail()
     {
-        var fixture = new Dfo.Server.Protocol.Tests.Support.MoveItemFixture();
-        var physical = new Dfo.Server.Protocol.Tests.Support.LifecycleTestContainer(InventoryContainerType.Pet, Character, fixture);
-        var bag = new BusinessItemContainer(BusinessInventorySpace.CreatureInventory, physical);
-        var runs = new DungeonRunDomainService();
-        var handler = new PickUpGroundDropCommandHandler(runs, new GroundPickupDomainService(),
-            new StubContainers(physical), new OnePlayingCharacter(new CarriedGold(0)),
-            new QuestProgressFromSeeking(new NoSeekingProgress()), new CreatureDropGrant(fixture, bag));
-        const ushort actor = 30001;
-        var run = BeginWithItems(runs, [MonsterItem(1, actor, new RolledDrop(600, 1,
-            DropRarity.Common, DropItemKind.Equipment, 17))]);
-        var item = await fixture.RunAsync(async () =>
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.Equal(GroundPickupStatus.PickedUp, (await PickUp(handler, 1)).Status);
-            return (await bag.GetAsync(0, default))!.Snapshot;
+            var fixture = new Dfo.Server.Protocol.Tests.Support.MoveItemFixture();
+            var physical = new Dfo.Server.Protocol.Tests.Support.LifecycleTestContainer(InventoryContainerType.Pet, Character, fixture);
+            var bag = new BusinessItemContainer(BusinessInventorySpace.CreatureInventory, physical);
+            var runs = new DungeonRunDomainService();
+            var handler = new PickUpGroundDropCommandHandler(runs, new GroundPickupDomainService(),
+                new StubContainers(physical), new OnePlayingCharacter(new CarriedGold(0)),
+                new QuestProgressFromSeeking(new NoSeekingProgress()), new CreatureDropGrant(fixture, bag));
+            const ushort actor = 30001;
+            var run = BeginWithItems(runs, [MonsterItem(1, actor, new RolledDrop(600, 1,
+                DropRarity.Common, DropItemKind.Equipment, 17))]);
+            var item = await fixture.RunAsync(async () =>
+            {
+                Assert.Equal(GroundPickupStatus.PickedUp, (await PickUp(handler, 1)).Status);
+                return (await bag.GetAsync(0, default))!.Snapshot;
+            });
+            Assert.NotNull(item.ItemUid);
+            Assert.Equal(item.ItemUid.Value.Value, item.InstanceValue);
+            Assert.NotEqual(checked((int)GameDropIdentity.ForKill(run, actor)), item.InstanceValue);
+            Assert.Equal(17, item.Durability);
+            Assert.Equal(27, item.CreatureDetail!.ProgressValue);
+            Assert.Equal(3, item.CreatureDetail.FieldAfterValue);
+            Assert.Equal(new byte[] { 65, 66 }, item.CreatureDetail.CreatureText);
+            Assert.Equal(9, item.CreatureDetail.TailFlag);
         });
-        Assert.NotNull(item.ItemUid);
-        Assert.Equal(item.ItemUid.Value.Value, item.InstanceValue);
-        Assert.NotEqual(checked((int)GameDropIdentity.ForKill(run, actor)), item.InstanceValue);
-        Assert.Equal(17, item.Durability);
-        Assert.Equal(27, item.CreatureDetail!.ProgressValue);
-        Assert.Equal(3, item.CreatureDetail.FieldAfterValue);
-        Assert.Equal(new byte[] { 65, 66 }, item.CreatureDetail.CreatureText);
-        Assert.Equal(9, item.CreatureDetail.TailFlag);
     }
 
     [Theory]
@@ -456,57 +502,60 @@ public sealed class GroundPickupTests
     [InlineData(2147483647, 0)]
     public async Task Epic_pickup_bypasses_full_bag_and_rolls_back_with_the_floor(int initial, int expectedAdded)
     {
-        const int piece = 10300000;
-        var path = Path.Combine(Path.GetTempPath(), $"epic-pickup-{Guid.NewGuid():N}.db");
-        try
+        await TestGameplay.RunAsync(async () =>
         {
-            var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
-            var database = new Dfo.Server.Persistence.Database.SqliteDatabase(path, scope);
-            await using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path}"))
+            const int piece = 10300000;
+            var path = Path.Combine(Path.GetTempPath(), $"epic-pickup-{Guid.NewGuid():N}.db");
+            try
             {
-                await connection.OpenAsync();
-                await using var command = connection.CreateCommand();
-                command.CommandText = "INSERT INTO accounts(account_id,m_id) VALUES(1,'epic-pickup')";
-                await command.ExecuteNonQueryAsync();
+                var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
+                var database = new Dfo.Server.Persistence.Database.SqliteDatabase(path, scope);
+                await using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path}"))
+                {
+                    await connection.OpenAsync();
+                    await using var command = connection.CreateCommand();
+                    command.CommandText = "INSERT INTO accounts(account_id,m_id) VALUES(1,'epic-pickup')";
+                    await command.ExecuteNonQueryAsync();
+                }
+                var book = new EpicBookDomainService(new EpicBookRuleService(new EpicCatalog()),
+                    new Dfo.Server.Persistence.Inventory.SqliteEpicBookDomainStore(database), scope);
+                if (initial > 0)
+                {
+                    await using var seed = scope.Begin();
+                    await book.AddPiecesAsync(Account, piece, initial, default);
+                    await seed.CommitAsync(default);
+                }
+                var runs = new DungeonRunDomainService(scope);
+                var bag = new FakeContainer { IsFull = true };
+                var handler = new PickUpGroundDropCommandHandler(runs, new GroundPickupDomainService(), new StubContainers(bag),
+                    new OnePlayingCharacter(new CarriedGold(0)), new QuestProgressFromSeeking(new NoSeekingProgress()),
+                    new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), book);
+                BeginWithItems(runs, [MonsterItem(1, 30001, new(piece, 3, DropRarity.Epic, DropItemKind.Stackable, 0)),
+                    MonsterItem(2, 30001, TheWeapon())]);
+                await using (scope.Begin())
+                {
+                    Assert.Equal(GroundPickupStatus.InventoryFull, (await PickUp(handler, 2)).Status);
+                    var result = await PickUp(handler, 1);
+                    Assert.Equal(GroundPickupStatus.EpicPieceCollected, result.Status);
+                    Assert.Equal(expectedAdded, result.EpicPiece!.Added);
+                    Assert.Null(result.CommittedChange);
+                }
+                Assert.NotNull(runs.Find(Character)!.CurrentCellState.FindGroundItem(1));
+                Assert.Equal(initial, (await book.GetBalancesAsync(Account, default)).SingleOrDefault()?.Count ?? 0);
+                await using (var tx = scope.Begin())
+                {
+                    var result = await PickUp(handler, 1);
+                    await tx.CommitAsync(default);
+                    Assert.Equal(DungeonPickupKind.EpicPiece, result.CommittedChange!.Kind);
+                }
+                Assert.Null(runs.Find(Character)!.CurrentCellState.FindGroundItem(1));
+                Assert.Equal(initial + expectedAdded, Assert.Single(await book.GetBalancesAsync(Account, default)).Count);
+                Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, 1)).Status);
+                Assert.Equal(initial + expectedAdded, Assert.Single(await book.GetBalancesAsync(Account, default)).Count);
+                Assert.Empty(bag.Slots);
             }
-            var book = new EpicBookDomainService(new EpicBookRuleService(new EpicCatalog()),
-                new Dfo.Server.Persistence.Inventory.SqliteEpicBookDomainStore(database), scope);
-            if (initial > 0)
-            {
-                await using var seed = scope.Begin();
-                await book.AddPiecesAsync(Account, piece, initial, default);
-                await seed.CommitAsync(default);
-            }
-            var runs = new DungeonRunDomainService(scope);
-            var bag = new FakeContainer { IsFull = true };
-            var handler = new PickUpGroundDropCommandHandler(runs, new GroundPickupDomainService(), new StubContainers(bag),
-                new OnePlayingCharacter(new CarriedGold(0)), new QuestProgressFromSeeking(new NoSeekingProgress()),
-                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), book);
-            BeginWithItems(runs, [MonsterItem(1, 30001, new(piece, 3, DropRarity.Epic, DropItemKind.Stackable, 0)),
-                MonsterItem(2, 30001, TheWeapon())]);
-            await using (scope.Begin())
-            {
-                Assert.Equal(GroundPickupStatus.InventoryFull, (await PickUp(handler, 2)).Status);
-                var result = await PickUp(handler, 1);
-                Assert.Equal(GroundPickupStatus.EpicPieceCollected, result.Status);
-                Assert.Equal(expectedAdded, result.EpicPiece!.Added);
-                Assert.Null(result.CommittedChange);
-            }
-            Assert.NotNull(runs.Find(Character)!.CurrentCellState.FindGroundItem(1));
-            Assert.Equal(initial, (await book.GetBalancesAsync(Account, default)).SingleOrDefault()?.Count ?? 0);
-            await using (var tx = scope.Begin())
-            {
-                var result = await PickUp(handler, 1);
-                await tx.CommitAsync(default);
-                Assert.Equal(DungeonPickupKind.EpicPiece, result.CommittedChange!.Kind);
-            }
-            Assert.Null(runs.Find(Character)!.CurrentCellState.FindGroundItem(1));
-            Assert.Equal(initial + expectedAdded, Assert.Single(await book.GetBalancesAsync(Account, default)).Count);
-            Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, 1)).Status);
-            Assert.Equal(initial + expectedAdded, Assert.Single(await book.GetBalancesAsync(Account, default)).Count);
-            Assert.Empty(bag.Slots);
-        }
-        finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); File.Delete(path); }
+            finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); File.Delete(path); }
+        });
     }
     private sealed class EpicCatalog : IEpicBookDefinitionSource
     {

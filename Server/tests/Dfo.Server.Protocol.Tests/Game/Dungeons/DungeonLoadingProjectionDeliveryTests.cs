@@ -15,6 +15,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Weakness;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.Dungeons;
 
@@ -26,52 +27,64 @@ public sealed class DungeonLoadingProjectionDeliveryTests
     [InlineData(100)]
     public async Task Entry_restores_retained_weakness_after_loading_without_reapplying_on_duplicate(byte value)
     {
-        var world = World(weaknessValue: value);
-        var released = false;
-        world.Sender.BeforeSend = () => Assert.True(released);
-        Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId,
-            _ => { released = true; return ValueTask.CompletedTask; }, default));
-        Assert.Equal(value, Assert.Single(world.Sender.Values));
-        Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId,
-            _ => ValueTask.CompletedTask, default));
-        Assert.Single(world.Sender.Values);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = World(weaknessValue: value);
+            var released = false;
+            world.Sender.BeforeSend = () => Assert.True(released);
+            Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId,
+                _ => { released = true; return ValueTask.CompletedTask; }, default));
+            Assert.Equal(value, Assert.Single(world.Sender.Values));
+            Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId,
+                _ => ValueTask.CompletedTask, default));
+            Assert.Single(world.Sender.Values);
+        });
     }
 
     [Fact]
     public async Task Later_room_loading_does_not_reapply_weakness_and_reset_combat_vitals()
     {
-        var world = World(roomVersion: 1);
-        Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId,
-            _ => ValueTask.CompletedTask, default));
-        Assert.Empty(world.Sender.Values);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = World(roomVersion: 1);
+            Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId,
+                _ => ValueTask.CompletedTask, default));
+            Assert.Empty(world.Sender.Values);
+        });
     }
 
     [Fact]
     public async Task The_exact_frozen_generation_submits_ready_for_its_current_room()
     {
-        var world = World();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = World();
 
-        var accepted = await world.Delivery.CompleteLoadingAsync(
-            Current.ConnectionId, _ => ValueTask.CompletedTask, CancellationToken.None);
+            var accepted = await world.Delivery.CompleteLoadingAsync(
+                Current.ConnectionId, _ => ValueTask.CompletedTask, CancellationToken.None);
 
-        Assert.True(accepted);
-        Assert.Equal(1, world.Commands.Submissions);
-        Assert.Contains(Current.CharacterId, world.Runs.Find(Current.CharacterId)!.ReadyParticipants);
+            Assert.True(accepted);
+            Assert.Equal(1, world.Commands.Submissions);
+            Assert.Contains(Current.CharacterId, world.Runs.Find(Current.CharacterId)!.ReadyParticipants);
+        });
     }
 
     [Fact]
     public async Task A_replacement_generation_cannot_inherit_the_frozen_runs_loading_submission()
     {
-        var world = World();
-        world.Sessions.Replace(Replacement);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = World();
+            world.Sessions.Replace(Replacement);
 
-        var accepted = await world.Delivery.CompleteLoadingAsync(
-            Current.ConnectionId, _ => ValueTask.CompletedTask, CancellationToken.None);
+            var accepted = await world.Delivery.CompleteLoadingAsync(
+                Current.ConnectionId, _ => ValueTask.CompletedTask, CancellationToken.None);
 
-        Assert.False(accepted);
-        Assert.Equal(0, world.Commands.Submissions);
-        Assert.Empty(world.Runs.Find(Current.CharacterId)!.ReadyParticipants);
-        Assert.Empty(world.Sender.Values);
+            Assert.False(accepted);
+            Assert.Equal(0, world.Commands.Submissions);
+            Assert.Empty(world.Runs.Find(Current.CharacterId)!.ReadyParticipants);
+            Assert.Empty(world.Sender.Values);
+        });
     }
 
     [Fact]
@@ -137,19 +150,22 @@ public sealed class DungeonLoadingProjectionDeliveryTests
     [Fact]
     public async Task Mirror_authority_is_projected_only_after_loading_release_without_adding_a_CMD_ACK_or_deducting_again()
     {
-        var events = new QuotaEvents();
-        var world = World(mirror: true, quotaProjection: new(events));
-        var released = false;
-        events.BeforeProjection = () => Assert.True(released);
-        Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId,
-            _ => { released = true; return ValueTask.CompletedTask; }, default));
-        Assert.Equal(Current, Assert.Single(Assert.IsType<NotificationAudience.TheseSessions>(events.Audiences.Single()).Sessions));
-        Assert.Equal(1, world.Commands.Submissions);
-        Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId, _ => ValueTask.CompletedTask, default));
-        Assert.Equal(2, events.Audiences.Count); // A repeated load may reconcile; it never records another entry.
-        var ordinary = World(quotaProjection: new(events));
-        Assert.True(await ordinary.Delivery.CompleteLoadingAsync(Current.ConnectionId, _ => ValueTask.CompletedTask, default));
-        Assert.Equal(2, events.Audiences.Count);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var events = new QuotaEvents();
+            var world = World(mirror: true, quotaProjection: new(events));
+            var released = false;
+            events.BeforeProjection = () => Assert.True(released);
+            Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId,
+                _ => { released = true; return ValueTask.CompletedTask; }, default));
+            Assert.Equal(Current, Assert.Single(Assert.IsType<NotificationAudience.TheseSessions>(events.Audiences.Single()).Sessions));
+            Assert.Equal(1, world.Commands.Submissions);
+            Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId, _ => ValueTask.CompletedTask, default));
+            Assert.Equal(2, events.Audiences.Count); // A repeated load may reconcile; it never records another entry.
+            var ordinary = World(quotaProjection: new(events));
+            Assert.True(await ordinary.Delivery.CompleteLoadingAsync(Current.ConnectionId, _ => ValueTask.CompletedTask, default));
+            Assert.Equal(2, events.Audiences.Count);
+        });
     }
 
     private static TestWorld World(

@@ -10,6 +10,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.CardReward;
 using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.CardReward;
 
@@ -21,117 +22,129 @@ public sealed class DungeonCardSelectionProjectionDeliveryTests
     [Fact]
     public async Task Bonus_inventory_projection_is_private_even_when_the_card_board_is_shared()
     {
-        var world = Build([Leader, Helper]);
-        var change = new DungeonCardSelectionChange(world.Run.RunId, 8, Leader.CharacterId,
-            [new(ClearRewardCardKind.Free, 0, Leader.CharacterId, 0)],
-            [Leader.CharacterId, Helper.CharacterId]);
-        var result = new SelectCardResult(SelectCardStatus.Flipped, ClearRewardCardKind.Free,
-            0, [], StaticChange: change)
+        await TestGameplay.RunAsync(async () =>
         {
-            BlackDiamondDelivered = new(Dfo.Server.Data.Inventory.InventoryContainerType.Main,
-                [], DateTimeOffset.UnixEpoch),
-        };
-        await world.Projection.DeliverAsync(Leader, result, DateTimeOffset.UnixEpoch, default);
-        Assert.Single(world.Sender.For(Leader.ConnectionId).OfType<InventoryDeltaMessage>());
-        Assert.Empty(world.Sender.For(Helper.ConnectionId).OfType<InventoryDeltaMessage>());
-        Assert.Single(world.Sender.For(Helper.ConnectionId).OfType<SelectCardResponse>());
+            var world = Build([Leader, Helper]);
+            var change = new DungeonCardSelectionChange(world.Run.RunId, 8, Leader.CharacterId,
+                [new(ClearRewardCardKind.Free, 0, Leader.CharacterId, 0)],
+                [Leader.CharacterId, Helper.CharacterId]);
+            var result = new SelectCardResult(SelectCardStatus.Flipped, ClearRewardCardKind.Free,
+                0, [], StaticChange: change)
+            {
+                BlackDiamondDelivered = new(Dfo.Server.Data.Inventory.InventoryContainerType.Main,
+                    [], DateTimeOffset.UnixEpoch),
+            };
+            await world.Projection.DeliverAsync(Leader, result, DateTimeOffset.UnixEpoch, default);
+            Assert.Single(world.Sender.For(Leader.ConnectionId).OfType<InventoryDeltaMessage>());
+            Assert.Empty(world.Sender.For(Helper.ConnectionId).OfType<InventoryDeltaMessage>());
+            Assert.Single(world.Sender.For(Helper.ConnectionId).OfType<SelectCardResponse>());
+        });
     }
 
     [Fact]
     public async Task First_party_confirmation_does_not_reveal_a_partial_board()
     {
-        var world = Build([Leader, Helper]);
-        var change = new DungeonCardSelectionChange(
-            world.Run.RunId,
-            Revision: 7,
-            Leader.CharacterId,
-            [],
-            [Leader.CharacterId, Helper.CharacterId]);
-
-        await world.Projection.DeliverAsync(
-            Leader,
-            new SelectCardResult(
-                SelectCardStatus.Flipped,
-                ClearRewardCardKind.Free,
-                0,
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build([Leader, Helper]);
+            var change = new DungeonCardSelectionChange(
+                world.Run.RunId,
+                Revision: 7,
+                Leader.CharacterId,
                 [],
-                StaticChange: change),
-            DateTimeOffset.UnixEpoch,
-            default);
+                [Leader.CharacterId, Helper.CharacterId]);
 
-        Assert.IsType<Dfo.Server.Protocol.Game.StateSynchronization.PremiumServiceStateMessage>(Assert.Single(world.Sender.For(Leader.ConnectionId)));
-        Assert.Empty(world.Sender.For(Helper.ConnectionId));
+            await world.Projection.DeliverAsync(
+                Leader,
+                new SelectCardResult(
+                    SelectCardStatus.Flipped,
+                    ClearRewardCardKind.Free,
+                    0,
+                    [],
+                    StaticChange: change),
+                DateTimeOffset.UnixEpoch,
+                default);
+
+            Assert.IsType<Dfo.Server.Protocol.Game.StateSynchronization.PremiumServiceStateMessage>(Assert.Single(world.Sender.For(Leader.ConnectionId)));
+            Assert.Empty(world.Sender.For(Helper.ConnectionId));
+        });
     }
 
     [Fact]
     public async Task Shared_snapshot_reaches_both_current_generations()
     {
-        var world = Build([Leader, Helper]);
-        var change = new DungeonCardSelectionChange(
-            world.Run.RunId,
-            Revision: 8,
-            Leader.CharacterId,
-            [
-                new DungeonCardSelection(
-                    ClearRewardCardKind.Free, 0, Leader.CharacterId, Seat: 0),
-                new DungeonCardSelection(
-                    ClearRewardCardKind.Free, 1, Helper.CharacterId, Seat: 1),
-            ],
-            [Leader.CharacterId, Helper.CharacterId]);
-        var result = new SelectCardResult(
-            SelectCardStatus.Flipped,
-            ClearRewardCardKind.Free,
-            0,
-            [],
-            StaticChange: change);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build([Leader, Helper]);
+            var change = new DungeonCardSelectionChange(
+                world.Run.RunId,
+                Revision: 8,
+                Leader.CharacterId,
+                [
+                    new DungeonCardSelection(
+                        ClearRewardCardKind.Free, 0, Leader.CharacterId, Seat: 0),
+                    new DungeonCardSelection(
+                        ClearRewardCardKind.Free, 1, Helper.CharacterId, Seat: 1),
+                ],
+                [Leader.CharacterId, Helper.CharacterId]);
+            var result = new SelectCardResult(
+                SelectCardStatus.Flipped,
+                ClearRewardCardKind.Free,
+                0,
+                [],
+                StaticChange: change);
 
-        var delivered = await world.Projection.DeliverAsync(
-            Leader, result, DateTimeOffset.UnixEpoch, default);
+            var delivered = await world.Projection.DeliverAsync(
+                Leader, result, DateTimeOffset.UnixEpoch, default);
 
-        Assert.Equal(2, delivered);
-        Assert.Equal(
-            change.Selections,
-            Assert.IsType<SelectCardResponse>(Assert.Single(
-                world.Sender.For(Leader.ConnectionId).OfType<SelectCardResponse>())).Selections);
-        Assert.IsType<Dfo.Server.Protocol.Game.StateSynchronization.PremiumServiceStateMessage>(world.Sender.For(Leader.ConnectionId).Last());
-        Assert.Equal(
-            change.Selections,
-            Assert.IsType<SelectCardResponse>(Assert.Single(
-                world.Sender.For(Helper.ConnectionId))).Selections);
+            Assert.Equal(2, delivered);
+            Assert.Equal(
+                change.Selections,
+                Assert.IsType<SelectCardResponse>(Assert.Single(
+                    world.Sender.For(Leader.ConnectionId).OfType<SelectCardResponse>())).Selections);
+            Assert.IsType<Dfo.Server.Protocol.Game.StateSynchronization.PremiumServiceStateMessage>(world.Sender.For(Leader.ConnectionId).Last());
+            Assert.Equal(
+                change.Selections,
+                Assert.IsType<SelectCardResponse>(Assert.Single(
+                    world.Sender.For(Helper.ConnectionId))).Selections);
+        });
     }
 
     [Fact]
     public async Task Departed_and_replacement_generations_receive_no_old_card_snapshot()
     {
-        var replacement = Helper with
+        await TestGameplay.RunAsync(async () =>
         {
-            ConnectionId = new NetworkConnectionId("replacement"),
-            ConnectionGeneration = 2,
-        };
-        var world = Build([Leader, replacement]);
-        Assert.True(world.Runs.End(Helper.CharacterId, world.Run.RunId));
-        var change = new DungeonCardSelectionChange(
-            world.Run.RunId,
-            Revision: 9,
-            Leader.CharacterId,
-            [new DungeonCardSelection(
-                ClearRewardCardKind.Free, 0, Leader.CharacterId, Seat: 0)],
-            [Leader.CharacterId, Helper.CharacterId]);
+            var replacement = Helper with
+            {
+                ConnectionId = new NetworkConnectionId("replacement"),
+                ConnectionGeneration = 2,
+            };
+            var world = Build([Leader, replacement]);
+            Assert.True(world.Runs.End(Helper.CharacterId, world.Run.RunId));
+            var change = new DungeonCardSelectionChange(
+                world.Run.RunId,
+                Revision: 9,
+                Leader.CharacterId,
+                [new DungeonCardSelection(
+                    ClearRewardCardKind.Free, 0, Leader.CharacterId, Seat: 0)],
+                [Leader.CharacterId, Helper.CharacterId]);
 
-        await world.Projection.DeliverAsync(
-            Leader,
-            new SelectCardResult(
-                SelectCardStatus.Flipped,
-                ClearRewardCardKind.Free,
-                0,
-                [],
-                StaticChange: change),
-            DateTimeOffset.UnixEpoch,
-            default);
+            await world.Projection.DeliverAsync(
+                Leader,
+                new SelectCardResult(
+                    SelectCardStatus.Flipped,
+                    ClearRewardCardKind.Free,
+                    0,
+                    [],
+                    StaticChange: change),
+                DateTimeOffset.UnixEpoch,
+                default);
 
-        Assert.Equal(2, world.Sender.For(Leader.ConnectionId).Count);
-        Assert.Empty(world.Sender.For(Helper.ConnectionId));
-        Assert.Empty(world.Sender.For(replacement.ConnectionId));
+            Assert.Equal(2, world.Sender.For(Leader.ConnectionId).Count);
+            Assert.Empty(world.Sender.For(Helper.ConnectionId));
+            Assert.Empty(world.Sender.For(replacement.ConnectionId));
+        });
     }
 
     private static World Build(IReadOnlyList<SelectedSessionIdentity> current)

@@ -10,6 +10,7 @@ using Dfo.Server.Persistence.Creatures;
 using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Persistence.Schema;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Creatures;
 
@@ -191,10 +192,13 @@ public sealed class CreatureDomainStoreTests
 
     private static async Task InTransactionAsync(Func<IDomainTransaction, ValueTask> action)
     {
-        var scope = new DomainTransactionScope();
-        await using var transaction = scope.Begin();
-        await action(scope.Current!);
-        await transaction.CommitAsync(default);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var scope = new DomainTransactionScope();
+            await using var transaction = scope.Begin();
+            await action(scope.Current!);
+            await transaction.CommitAsync(default);
+        });
     }
 
     private sealed class Fixture : IAsyncDisposable

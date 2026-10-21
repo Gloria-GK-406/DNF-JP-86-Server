@@ -18,6 +18,7 @@
     <Compile Include="../Dfo.Server.Application.Tests/Support/TestExperienceRules.cs" Link="Support/TestExperienceRules.cs" />
     <Compile Include="../Support/PvfAttributes.cs" Link="Support/PvfAttributes.cs" />
     <Compile Include="../Support/TestSessions.cs" Link="Support/TestSessions.cs" />
+    <Compile Include="../Support/TestGameplay.cs" Link="Support/TestGameplay.cs" />
     <ProjectReference Include="..\..\src\Dfo.Server.Host\Dfo.Server.Host.csproj" />
   </ItemGroup>
 </Project>

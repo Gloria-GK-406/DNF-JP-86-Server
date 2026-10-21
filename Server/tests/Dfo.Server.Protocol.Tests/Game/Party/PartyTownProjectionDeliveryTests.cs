@@ -9,6 +9,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Party;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.Party;
 
@@ -17,117 +18,126 @@ public sealed class PartyTownProjectionDeliveryTests
     [Fact]
     public async Task A_leader_area_change_refreshes_members_and_clears_the_old_directory_observers()
     {
-        var previousScope = new PartyDirectoryScope(11, 1, 1);
-        var currentScope = new PartyDirectoryScope(11, 1, 2);
-        var snapshot = new PartySnapshot(
-            0x1234,
-            7,
-            4,
-            Leader.WireUserId,
-            new PartySettings([0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0, 0]),
-            PartyTitle.Empty,
-            ImmutableArray.Create(
-                new PartyMemberSnapshot(
-                    new PartyCharacterSnapshot(
-                        Leader.AccountId, Leader.CharacterId, Leader.WireUserId, currentScope),
-                    1, null, 100),
-                new PartyMemberSnapshot(Character(Member), 0, null, 100)));
-        var bus = new RecordingNotificationBus();
-        var delivery = new PartyTownProjectionDelivery(
-            new StubParties((Leader, snapshot), (Member, snapshot)),
-            MovedPresence(),
-            new FixedSelectedSessions(),
-            bus,
-            new PartyProjectionStreamRegistry());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var previousScope = new PartyDirectoryScope(11, 1, 1);
+            var currentScope = new PartyDirectoryScope(11, 1, 2);
+            var snapshot = new PartySnapshot(
+                0x1234,
+                7,
+                4,
+                Leader.WireUserId,
+                new PartySettings([0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0, 0]),
+                PartyTitle.Empty,
+                ImmutableArray.Create(
+                    new PartyMemberSnapshot(
+                        new PartyCharacterSnapshot(
+                            Leader.AccountId, Leader.CharacterId, Leader.WireUserId, currentScope),
+                        1, null, 100),
+                    new PartyMemberSnapshot(Character(Member), 0, null, 100)));
+            var bus = new RecordingNotificationBus();
+            var delivery = new PartyTownProjectionDelivery(
+                new StubParties((Leader, snapshot), (Member, snapshot)),
+                MovedPresence(),
+                new FixedSelectedSessions(),
+                bus,
+                new PartyProjectionStreamRegistry());
 
-        await delivery.RefreshMovedPartyAsync(
-            Leader, previousScope, CancellationToken.None);
+            await delivery.RefreshMovedPartyAsync(
+                Leader, previousScope, CancellationToken.None);
 
-        Assert.Collection(
-            bus.Publications,
-            publication =>
-            {
-                Assert.Equal(
-                    [Leader, Member],
-                    Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
-                Assert.False(Assert.IsType<PartyRosterChanged>(publication.Notification).ClearsParty);
-            },
-            publication =>
-            {
-                Assert.Equal(
-                    [Observer],
-                    Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
-                Assert.True(Assert.IsType<PartyRosterChanged>(publication.Notification).ClearsParty);
-            },
-            publication =>
-            {
-                Assert.Equal(
-                    [NoParty],
-                    Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
-                Assert.False(Assert.IsType<PartyRosterChanged>(publication.Notification).ClearsParty);
-            });
+            Assert.Collection(
+                bus.Publications,
+                publication =>
+                {
+                    Assert.Equal(
+                        [Leader, Member],
+                        Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+                    Assert.False(Assert.IsType<PartyRosterChanged>(publication.Notification).ClearsParty);
+                },
+                publication =>
+                {
+                    Assert.Equal(
+                        [Observer],
+                        Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+                    Assert.True(Assert.IsType<PartyRosterChanged>(publication.Notification).ClearsParty);
+                },
+                publication =>
+                {
+                    Assert.Equal(
+                        [NoParty],
+                        Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+                    Assert.False(Assert.IsType<PartyRosterChanged>(publication.Notification).ClearsParty);
+                });
+        });
     }
 
     [Fact]
     public async Task RepresentedMembersOfOnePartyProduceOneRefreshForExactObservers()
     {
-        var snapshot = Snapshot(revision: 3);
-        var parties = new StubParties(
-            (Leader, snapshot),
-            (Member, snapshot));
-        var bus = new RecordingNotificationBus();
-        var delivery = new PartyTownProjectionDelivery(
-            parties,
-            Presence(),
-            new FixedSelectedSessions(),
-            bus,
-            new PartyProjectionStreamRegistry());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var snapshot = Snapshot(revision: 3);
+            var parties = new StubParties(
+                (Leader, snapshot),
+                (Member, snapshot));
+            var bus = new RecordingNotificationBus();
+            var delivery = new PartyTownProjectionDelivery(
+                parties,
+                Presence(),
+                new FixedSelectedSessions(),
+                bus,
+                new PartyProjectionStreamRegistry());
 
-        await delivery.RefreshObservedPartiesAsync(
-            [Observer, Leader, Observer],
-            [Member, NoParty, Leader, Member],
-            CancellationToken.None);
+            await delivery.RefreshObservedPartiesAsync(
+                [Observer, Leader, Observer],
+                [Member, NoParty, Leader, Member],
+                CancellationToken.None);
 
-        var publication = Assert.Single(bus.Publications);
-        Assert.Equal(
-            new[] { Observer },
-            Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
-        var roster = Assert.IsType<PartyRosterChanged>(publication.Notification);
-        Assert.Same(snapshot, roster.Snapshot);
-        Assert.False(roster.ClearsParty);
+            var publication = Assert.Single(bus.Publications);
+            Assert.Equal(
+                new[] { Observer },
+                Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+            var roster = Assert.IsType<PartyRosterChanged>(publication.Notification);
+            Assert.Same(snapshot, roster.Snapshot);
+            Assert.False(roster.ClearsParty);
+        });
     }
 
     [Fact]
     public async Task ACommittedRevisionStillRefreshesANewObserverButAnOlderSnapshotDoesNot()
     {
-        var streams = new PartyProjectionStreamRegistry();
-        streams.GetOrAdd(7).LatestRevision = 3;
-        var currentBus = new RecordingNotificationBus();
-        var current = new PartyTownProjectionDelivery(
-            new StubParties((Leader, Snapshot(revision: 3))),
-            Presence(),
-            new FixedSelectedSessions(),
-            currentBus,
-            streams);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var streams = new PartyProjectionStreamRegistry();
+            streams.GetOrAdd(7).LatestRevision = 3;
+            var currentBus = new RecordingNotificationBus();
+            var current = new PartyTownProjectionDelivery(
+                new StubParties((Leader, Snapshot(revision: 3))),
+                Presence(),
+                new FixedSelectedSessions(),
+                currentBus,
+                streams);
 
-        await current.RefreshObservedPartiesAsync(
-            [Observer], [Leader], CancellationToken.None);
+            await current.RefreshObservedPartiesAsync(
+                [Observer], [Leader], CancellationToken.None);
 
-        Assert.Single(currentBus.Publications);
+            Assert.Single(currentBus.Publications);
 
-        streams.GetOrAdd(7).LatestRevision = 4;
-        var staleBus = new RecordingNotificationBus();
-        var stale = new PartyTownProjectionDelivery(
-            new StubParties((Leader, Snapshot(revision: 3))),
-            Presence(),
-            new FixedSelectedSessions(),
-            staleBus,
-            streams);
+            streams.GetOrAdd(7).LatestRevision = 4;
+            var staleBus = new RecordingNotificationBus();
+            var stale = new PartyTownProjectionDelivery(
+                new StubParties((Leader, Snapshot(revision: 3))),
+                Presence(),
+                new FixedSelectedSessions(),
+                staleBus,
+                streams);
 
-        await stale.RefreshObservedPartiesAsync(
-            [Observer], [Leader], CancellationToken.None);
+            await stale.RefreshObservedPartiesAsync(
+                [Observer], [Leader], CancellationToken.None);
 
-        Assert.Empty(staleBus.Publications);
+            Assert.Empty(staleBus.Publications);
+        });
     }
 
     [Fact]
@@ -168,20 +178,23 @@ public sealed class PartyTownProjectionDeliveryTests
     [Fact]
     public async Task ReadRepairRetriesATransientRosterFailureFromOneTopLevelCall()
     {
-        var snapshot = Snapshot(revision: 3);
-        var bus = new FailFirstRosterNotificationBus();
-        var delivery = new PartyTownProjectionDelivery(
-            new StubParties((Leader, snapshot)),
-            Presence(),
-            new FixedSelectedSessions(),
-            bus,
-            new PartyProjectionStreamRegistry());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var snapshot = Snapshot(revision: 3);
+            var bus = new FailFirstRosterNotificationBus();
+            var delivery = new PartyTownProjectionDelivery(
+                new StubParties((Leader, snapshot)),
+                Presence(),
+                new FixedSelectedSessions(),
+                bus,
+                new PartyProjectionStreamRegistry());
 
-        await delivery.RefreshObservedPartiesAsync(
-            [Observer], [Leader], CancellationToken.None);
+            await delivery.RefreshObservedPartiesAsync(
+                [Observer], [Leader], CancellationToken.None);
 
-        Assert.Equal(2, bus.Attempts);
-        Assert.Equal(1, bus.Successes);
+            Assert.Equal(2, bus.Attempts);
+            Assert.Equal(1, bus.Successes);
+        });
     }
 
     [Fact]
@@ -225,48 +238,51 @@ public sealed class PartyTownProjectionDeliveryTests
     [Fact]
     public async Task TownReadRepairCannotSupersedePendingLeaderRekeyClearForSurvivor()
     {
-        var oldSnapshot = Snapshot(revision: 3);
-        var newSnapshot = Snapshot(revision: 4) with
+        await TestGameplay.RunAsync(async () =>
         {
-            PartyId = 0x5678,
-            LeaderWireUserId = Member.WireUserId,
-            Members = ImmutableArray.Create(
-                new PartyMemberSnapshot(Character(Member), 0, null, 100)),
-        };
-        var streams = new PartyProjectionStreamRegistry();
-        var bus = new RecordingNotificationBus();
-        var sessions = new FixedSelectedSessions();
-        var presence = Presence();
-        var mutation = new PartyNotificationDelivery(bus, streams, sessions, presence);
-        await mutation.DeliverAsync(
-            new PartyNotificationPlan([], oldSnapshot), CancellationToken.None);
-        bus.Publications.Clear();
+            var oldSnapshot = Snapshot(revision: 3);
+            var newSnapshot = Snapshot(revision: 4) with
+            {
+                PartyId = 0x5678,
+                LeaderWireUserId = Member.WireUserId,
+                Members = ImmutableArray.Create(
+                    new PartyMemberSnapshot(Character(Member), 0, null, 100)),
+            };
+            var streams = new PartyProjectionStreamRegistry();
+            var bus = new RecordingNotificationBus();
+            var sessions = new FixedSelectedSessions();
+            var presence = Presence();
+            var mutation = new PartyNotificationDelivery(bus, streams, sessions, presence);
+            await mutation.DeliverAsync(
+                new PartyNotificationPlan([], oldSnapshot), CancellationToken.None);
+            bus.Publications.Clear();
 
-        var town = new PartyTownProjectionDelivery(
-            new MutableParties(Member, newSnapshot), presence, sessions, bus, streams);
-        await town.RefreshMovedPartyAsync(Member, Character(Member).DirectoryScope,
-            CancellationToken.None);
-        await mutation.DeliverAsync(
-            new PartyNotificationPlan(
-                [Leader.CharacterId, Member.CharacterId], newSnapshot,
-                ClearPartyId: oldSnapshot.PartyId,
-                ClearPartyGeneration: oldSnapshot.Generation,
-                ClearPartyRevision: newSnapshot.Revision),
-            CancellationToken.None);
+            var town = new PartyTownProjectionDelivery(
+                new MutableParties(Member, newSnapshot), presence, sessions, bus, streams);
+            await town.RefreshMovedPartyAsync(Member, Character(Member).DirectoryScope,
+                CancellationToken.None);
+            await mutation.DeliverAsync(
+                new PartyNotificationPlan(
+                    [Leader.CharacterId, Member.CharacterId], newSnapshot,
+                    ClearPartyId: oldSnapshot.PartyId,
+                    ClearPartyGeneration: oldSnapshot.Generation,
+                    ClearPartyRevision: newSnapshot.Revision),
+                CancellationToken.None);
 
-        var survivorRosters = bus.Publications
-            .Where(value => value.Notification is PartyRosterChanged
-                && Assert.IsType<NotificationAudience.TheseSessions>(value.Audience)
-                    .Sessions.Contains(Member))
-            .Select(value => Assert.IsType<PartyRosterChanged>(value.Notification))
-            .ToArray();
-        Assert.Contains(survivorRosters, value => value.ClearsParty
-            && value.ClearPartyId == oldSnapshot.PartyId);
-        Assert.Contains(survivorRosters, value => !value.ClearsParty
-            && value.Snapshot?.PartyId == newSnapshot.PartyId);
-        Assert.True(Array.FindIndex(survivorRosters, value => value.ClearsParty)
-            < Array.FindIndex(survivorRosters, value => !value.ClearsParty
-                && value.Snapshot?.PartyId == newSnapshot.PartyId));
+            var survivorRosters = bus.Publications
+                .Where(value => value.Notification is PartyRosterChanged
+                    && Assert.IsType<NotificationAudience.TheseSessions>(value.Audience)
+                        .Sessions.Contains(Member))
+                .Select(value => Assert.IsType<PartyRosterChanged>(value.Notification))
+                .ToArray();
+            Assert.Contains(survivorRosters, value => value.ClearsParty
+                && value.ClearPartyId == oldSnapshot.PartyId);
+            Assert.Contains(survivorRosters, value => !value.ClearsParty
+                && value.Snapshot?.PartyId == newSnapshot.PartyId);
+            Assert.True(Array.FindIndex(survivorRosters, value => value.ClearsParty)
+                < Array.FindIndex(survivorRosters, value => !value.ClearsParty
+                    && value.Snapshot?.PartyId == newSnapshot.PartyId));
+        });
     }
 
     private static PartySnapshot Snapshot(long revision, long generation = 7) => new(

@@ -10,6 +10,7 @@ using Dfo.Server.Protocol.Game.Achievements;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.TitleBook;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.StateSynchronization;
 
@@ -116,20 +117,23 @@ public sealed class TitleBookProtocolTests
     [InlineData(true)]
     public async Task Title_mutations_use_silent_canonical_lists_without_gain_or_unlock_messages(bool fullBook)
     {
-        var titles = new CurrentTitles();
-        var handler = new TitleBookChangedHandler(titles, null!, null!, null!);
-        var recipient = new NotificationRecipient(new(1), new("Game:1"));
-        var messages = await handler.ComposeAsync(recipient, new(new(1), 4, ChangedIndex: 10, RefreshBook: fullBook), default);
-        Assert.Equal(fullBook ? 5 : 1, messages.Count);
-        Assert.All(messages, x => Assert.IsType<TitleBookStateMessage>(x));
-        var book = ((TitleBookStateMessage)messages.Last()).Category;
-        Assert.Equal(4, book.Category); Assert.Equal(2, book.Entries.Count);
-        Assert.Equal(new(4, 10, 26596), book.WearSource);
-        Assert.All(messages, x => Assert.Equal(0x0166, ((GameStateSynchronizationMessage)x).Type));
-        Assert.Equal(1, titles.Reads);
-        Assert.Empty(await handler.ComposeAsync(recipient, new(new(1)), default));
-        Assert.Empty(await handler.ComposeAsync(new(new(2), new("Game:1")), new(new(1), 4), default));
-        Assert.Equal(1, titles.Reads);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var titles = new CurrentTitles();
+            var handler = new TitleBookChangedHandler(titles, null!, null!, null!);
+            var recipient = new NotificationRecipient(new(1), new("Game:1"));
+            var messages = await handler.ComposeAsync(recipient, new(new(1), 4, ChangedIndex: 10, RefreshBook: fullBook), default);
+            Assert.Equal(fullBook ? 5 : 1, messages.Count);
+            Assert.All(messages, x => Assert.IsType<TitleBookStateMessage>(x));
+            var book = ((TitleBookStateMessage)messages.Last()).Category;
+            Assert.Equal(4, book.Category); Assert.Equal(2, book.Entries.Count);
+            Assert.Equal(new(4, 10, 26596), book.WearSource);
+            Assert.All(messages, x => Assert.Equal(0x0166, ((GameStateSynchronizationMessage)x).Type));
+            Assert.Equal(1, titles.Reads);
+            Assert.Empty(await handler.ComposeAsync(recipient, new(new(1)), default));
+            Assert.Empty(await handler.ComposeAsync(new(new(2), new("Game:1")), new(new(1), 4), default));
+            Assert.Equal(1, titles.Reads);
+        });
     }
     private sealed class CurrentTitles : ITitleBookDomainService
     {

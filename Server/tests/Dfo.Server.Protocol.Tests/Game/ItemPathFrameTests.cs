@@ -9,6 +9,7 @@ using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game;
 
@@ -39,39 +40,42 @@ public sealed class ItemPathFrameTests
     [Fact]
     public async Task AMoveOfARealRowAcknowledgesTheSameBytesAsBefore()
     {
-        await using var storage = await Storage.CreateAsync((65, PotionId, 1));
-        var mappings = new InventorySlotMappingRuleService();
-        var containers = storage.Containers();
-        var handler = new MoveItemSpaceCommandHandler(
-            new BusinessInventorySlotDomainService(containers, mappings),
-            new ItemMovementDomainService(
-                new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
-                new ItemSlotRuleService(), new ItemPathFrameTestsWearEligibility()));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var storage = await Storage.CreateAsync((65, PotionId, 1));
+            var mappings = new InventorySlotMappingRuleService();
+            var containers = storage.Containers();
+            var handler = new MoveItemSpaceCommandHandler(
+                new BusinessInventorySlotDomainService(containers, mappings),
+                new ItemMovementDomainService(
+                    new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
+                    new ItemSlotRuleService(), new ItemPathFrameTestsWearEligibility()));
 
-        // The boundary the pipeline would have opened for a Transactional command. Without it the
-        // container refuses the write outright, which is the guarantee working rather than a
-        // failure -- but it also means a test that skips the boundary is not testing the real path.
-        await using var boundary = storage.Scope.Begin();
-        var result = await handler.HandleAsync(
-            Context,
-            new MoveItemSpaceCommand(
-                Character,
-                new BusinessSlot(BusinessInventorySpace.QuickSlot, 0), 0,
-                new BusinessSlot(BusinessInventorySpace.Consumable, 0)),
-            CancellationToken.None);
-        await boundary.CommitAsync(CancellationToken.None);
+            // The boundary the pipeline would have opened for a Transactional command. Without it the
+            // container refuses the write outright, which is the guarantee working rather than a
+            // failure -- but it also means a test that skips the boundary is not testing the real path.
+            await using var boundary = storage.Scope.Begin();
+            var result = await handler.HandleAsync(
+                Context,
+                new MoveItemSpaceCommand(
+                    Character,
+                    new BusinessSlot(BusinessInventorySpace.QuickSlot, 0), 0,
+                    new BusinessSlot(BusinessInventorySpace.Consumable, 0)),
+                CancellationToken.None);
+            await boundary.CommitAsync(CancellationToken.None);
 
-        Assert.Equal(ItemMoveStatus.Moved, result.Status);
-        Assert.Equal(1, result.MoveValue);
-        Assert.Equal(
-            [0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x41, 0x00],
-            MoveItemSpacePayloadCodec.Encode(
-                new MoveItemSpaceResponse(
-                    null,
-                    new GameSlot(InventoryContainerType.Main, 3),
-                    result.MoveValue,
-                    new GameSlot(InventoryContainerType.Main, 65))));
-        Assert.Equal([(3, PotionId, 1)], await storage.ReadAsync());
+            Assert.Equal(ItemMoveStatus.Moved, result.Status);
+            Assert.Equal(1, result.MoveValue);
+            Assert.Equal(
+                [0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x41, 0x00],
+                MoveItemSpacePayloadCodec.Encode(
+                    new MoveItemSpaceResponse(
+                        null,
+                        new GameSlot(InventoryContainerType.Main, 3),
+                        result.MoveValue,
+                        new GameSlot(InventoryContainerType.Main, 65))));
+            Assert.Equal([(3, PotionId, 1)], await storage.ReadAsync());
+        });
     }
 
     /// <remarks>
@@ -81,27 +85,30 @@ public sealed class ItemPathFrameTests
     [Fact]
     public async Task ARefusedMoveOfARealRowAcknowledgesTheSameBytesAsBefore()
     {
-        await using var storage = await Storage.CreateAsync();
-        var mappings = new InventorySlotMappingRuleService();
-        var containers = storage.Containers();
-        var handler = new MoveItemSpaceCommandHandler(
-            new BusinessInventorySlotDomainService(containers, mappings),
-            new ItemMovementDomainService(
-                new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
-                new ItemSlotRuleService(), new ItemPathFrameTestsWearEligibility()));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var storage = await Storage.CreateAsync();
+            var mappings = new InventorySlotMappingRuleService();
+            var containers = storage.Containers();
+            var handler = new MoveItemSpaceCommandHandler(
+                new BusinessInventorySlotDomainService(containers, mappings),
+                new ItemMovementDomainService(
+                    new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
+                    new ItemSlotRuleService(), new ItemPathFrameTestsWearEligibility()));
 
-        await using var boundary = storage.Scope.Begin();
-        var result = await handler.HandleAsync(
-            Context,
-            new MoveItemSpaceCommand(
-                Character,
-                new BusinessSlot(BusinessInventorySpace.QuickSlot, 0), 0,
-                new BusinessSlot(BusinessInventorySpace.Consumable, 0)),
-            CancellationToken.None);
-        await boundary.CommitAsync(CancellationToken.None);
+            await using var boundary = storage.Scope.Begin();
+            var result = await handler.HandleAsync(
+                Context,
+                new MoveItemSpaceCommand(
+                    Character,
+                    new BusinessSlot(BusinessInventorySpace.QuickSlot, 0), 0,
+                    new BusinessSlot(BusinessInventorySpace.Consumable, 0)),
+                CancellationToken.None);
+            await boundary.CommitAsync(CancellationToken.None);
 
-        Assert.Equal(ItemMoveStatus.BothSlotsEmpty, result.Status);
-        Assert.Empty(await storage.ReadAsync());
+            Assert.Equal(ItemMoveStatus.BothSlotsEmpty, result.Status);
+            Assert.Empty(await storage.ReadAsync());
+        });
     }
 
     private static CommandExecutionContext Context => new(

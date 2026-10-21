@@ -31,6 +31,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using EnteredDungeon = Dfo.Server.Abstractions.World.DungeonEntry;
 using QuestTaken = Dfo.Server.Abstractions.Quests.QuestAcceptance;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 
@@ -83,29 +84,35 @@ public sealed class SelectDungeonHandlerTests
     [Fact]
     public async Task Mirror_load_pushes_mission_before_maps_without_a_second_entry_ack()
     {
-        var sender = new RecordingSender();
-        var handler = Handler(new RecordingVisits(), sender, commands: new MirrorCommands());
-        await handler.HandleAsync(Dispatch(), Request() with { MirrorQuestId = 14299 }, default);
-        var messages = sender.Sent.Select(x => ((IGameServerMessage)x).MessageType).ToList();
-        var mission = messages.IndexOf(ServerMessageType.GameMirrorDungeonMission);
-        Assert.True(mission >= 0);
-        Assert.True(mission < messages.IndexOf(ServerMessageType.GameDungeonInfo));
-        Assert.DoesNotContain(ServerMessageType.GameMirrorDungeonEntry, messages);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new RecordingSender();
+            var handler = Handler(new RecordingVisits(), sender, commands: new MirrorCommands());
+            await handler.HandleAsync(Dispatch(), Request() with { MirrorQuestId = 14299 }, default);
+            var messages = sender.Sent.Select(x => ((IGameServerMessage)x).MessageType).ToList();
+            var mission = messages.IndexOf(ServerMessageType.GameMirrorDungeonMission);
+            Assert.True(mission >= 0);
+            Assert.True(mission < messages.IndexOf(ServerMessageType.GameDungeonInfo));
+            Assert.DoesNotContain(ServerMessageType.GameMirrorDungeonEntry, messages);
+        });
     }
 
     [Fact]
     public async Task Mirror_fatigue_refusal_uses_02B6_generic_error_and_selection_can_retry()
     {
-        var sender = new RecordingSender();
-        var handler = Handler(new RecordingVisits(), sender, commands: new RefusalCommands(DungeonEntryFailure.InsufficientFatigue));
-        for (var i = 0; i < 2; i++)
-            await handler.HandleAsync(Dispatch(), Request() with { MirrorQuestId = 14299 }, default);
-        Assert.Equal(2, sender.Sent.Count);
-        Assert.All(sender.Sent, x =>
+        await TestGameplay.RunAsync(async () =>
         {
-            var refused = Assert.IsType<SelectDungeonRefusal>(x);
-            Assert.True(refused.Mirror);
-            Assert.Equal(1, refused.ErrorCode);
+            var sender = new RecordingSender();
+            var handler = Handler(new RecordingVisits(), sender, commands: new RefusalCommands(DungeonEntryFailure.InsufficientFatigue));
+            for (var i = 0; i < 2; i++)
+                await handler.HandleAsync(Dispatch(), Request() with { MirrorQuestId = 14299 }, default);
+            Assert.Equal(2, sender.Sent.Count);
+            Assert.All(sender.Sent, x =>
+            {
+                var refused = Assert.IsType<SelectDungeonRefusal>(x);
+                Assert.True(refused.Mirror);
+                Assert.Equal(1, refused.ErrorCode);
+            });
         });
     }
 
@@ -125,26 +132,29 @@ public sealed class SelectDungeonHandlerTests
     [Fact]
     public async Task Missing_hell_tickets_send_the_native_refusal_and_preserve_selection_for_retry()
     {
-        var commands = new MissingHellTicketCommands();
-        var visits = new RecordingVisits();
-        var sender = new RecordingSender();
-        var fatigue = new RecordingFatigue();
-        var handler = Handler(visits, sender, fatigue: fatigue, commands: commands);
-        var request = Request() with { RequestMode = 1 };
-
-        await handler.HandleAsync(Dispatch(), request, default);
-        await handler.HandleAsync(Dispatch(), request, default);
-
-        Assert.Equal(2, commands.Calls);
-        Assert.Equal(2, sender.Sent.Count);
-        foreach (var message in sender.Sent)
+        await TestGameplay.RunAsync(async () =>
         {
-            var refusal = Assert.IsType<SelectDungeonRefusal>(message);
-            var frame = new SelectDungeonRefusalEncoder().Encode(refusal).Single().ToArray();
-            Assert.Equal(Convert.FromHexString("001B00"), frame[15..]);
-        }
-        Assert.Empty(visits.Facts);
-        Assert.Empty(fatigue.Spent);
+            var commands = new MissingHellTicketCommands();
+            var visits = new RecordingVisits();
+            var sender = new RecordingSender();
+            var fatigue = new RecordingFatigue();
+            var handler = Handler(visits, sender, fatigue: fatigue, commands: commands);
+            var request = Request() with { RequestMode = 1 };
+
+            await handler.HandleAsync(Dispatch(), request, default);
+            await handler.HandleAsync(Dispatch(), request, default);
+
+            Assert.Equal(2, commands.Calls);
+            Assert.Equal(2, sender.Sent.Count);
+            foreach (var message in sender.Sent)
+            {
+                var refusal = Assert.IsType<SelectDungeonRefusal>(message);
+                var frame = new SelectDungeonRefusalEncoder().Encode(refusal).Single().ToArray();
+                Assert.Equal(Convert.FromHexString("001B00"), frame[15..]);
+            }
+            Assert.Empty(visits.Facts);
+            Assert.Empty(fatigue.Spent);
+        });
     }
 
     [Theory]
@@ -207,22 +217,28 @@ public sealed class SelectDungeonHandlerTests
     [InlineData(11001, 1)]
     public async Task Manual_hell_cannot_bypass_CMD_routing_through_the_tower_shortcut(int dungeon, byte practice)
     {
-        var visits = new RecordingVisits();
-        var tower = System.Reflection.DispatchProxy.Create<IIllusionTowerDomainService, TowerProbe>();
-        var handler = Handler(visits, tower: tower);
-        await handler.HandleAsync(Dispatch(), Request() with { DungeonId = dungeon, RequestMode = 1, PracticeMode = practice }, default);
-        Assert.Empty(visits.Facts);
-        Assert.Equal(0, ((TowerProbe)(object)tower).Calls);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var visits = new RecordingVisits();
+            var tower = System.Reflection.DispatchProxy.Create<IIllusionTowerDomainService, TowerProbe>();
+            var handler = Handler(visits, tower: tower);
+            await handler.HandleAsync(Dispatch(), Request() with { DungeonId = dungeon, RequestMode = 1, PracticeMode = practice }, default);
+            Assert.Empty(visits.Facts);
+            Assert.Equal(0, ((TowerProbe)(object)tower).Calls);
+        });
     }
 
     [Fact]
     public async Task Ordinary_request_still_consults_the_existing_tower_shortcut()
     {
-        var tower = System.Reflection.DispatchProxy.Create<IIllusionTowerDomainService, TowerProbe>();
-        var handler = Handler(new RecordingVisits(), tower: tower);
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await handler.HandleAsync(Dispatch(), Request() with { DungeonId = 11001 }, default));
-        Assert.Equal(1, ((TowerProbe)(object)tower).Calls);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var tower = System.Reflection.DispatchProxy.Create<IIllusionTowerDomainService, TowerProbe>();
+            var handler = Handler(new RecordingVisits(), tower: tower);
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await handler.HandleAsync(Dispatch(), Request() with { DungeonId = 11001 }, default));
+            Assert.Equal(1, ((TowerProbe)(object)tower).Calls);
+        });
     }
 
     public class TowerProbe : System.Reflection.DispatchProxy
@@ -237,10 +253,13 @@ public sealed class SelectDungeonHandlerTests
     [Fact]
     public async Task Manual_hell_request_is_never_silently_entered_as_an_ordinary_dungeon()
     {
-        var visits = new RecordingVisits();
-        var handler = Handler(visits);
-        await handler.HandleAsync(Dispatch(), Request() with { RequestMode = 1 }, default);
-        Assert.Empty(visits.Facts);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var visits = new RecordingVisits();
+            var handler = Handler(visits);
+            await handler.HandleAsync(Dispatch(), Request() with { RequestMode = 1 }, default);
+            Assert.Empty(visits.Facts);
+        });
     }
 
     /// <summary>
@@ -249,13 +268,16 @@ public sealed class SelectDungeonHandlerTests
     [Fact]
     public async Task Entry_asks_the_quest_log_which_quests_are_carried()
     {
-        var visits = new RecordingVisits();
-        var handler = Handler(visits);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var visits = new RecordingVisits();
+            var handler = Handler(visits);
 
-        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
-        var facts = Assert.Single(visits.Facts);
-        Assert.Equal([CarriedInLog, AlsoCarriedInLog], facts.ActiveQuestIds);
+            var facts = Assert.Single(visits.Facts);
+            Assert.Equal([CarriedInLog, AlsoCarriedInLog], facts.ActiveQuestIds);
+        });
     }
 
     /// <summary>
@@ -265,28 +287,34 @@ public sealed class SelectDungeonHandlerTests
     [Fact]
     public async Task Entry_asks_the_quest_log_which_quests_are_cleared()
     {
-        var visits = new RecordingVisits();
-        var handler = Handler(visits);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var visits = new RecordingVisits();
+            var handler = Handler(visits);
 
-        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
-        var facts = Assert.Single(visits.Facts);
-        Assert.Equal([ClearedInLog], facts.ClearedQuestIds);
+            var facts = Assert.Single(visits.Facts);
+            Assert.Equal([ClearedInLog], facts.ClearedQuestIds);
+        });
     }
 
     [Fact]
     public async Task DirectedSelectionContextIsPassedToTheEntryRule()
     {
-        var visits = new RecordingVisits();
-        var handler = Handler(
-            visits,
-            intent: DungeonEntryIntent.Directed(TutorialDungeonId));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var visits = new RecordingVisits();
+            var handler = Handler(
+                visits,
+                intent: DungeonEntryIntent.Directed(TutorialDungeonId));
 
-        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
-        Assert.Equal(
-            DungeonEntryIntent.Directed(TutorialDungeonId),
-            Assert.Single(visits.Facts).Intent);
+            Assert.Equal(
+                DungeonEntryIntent.Directed(TutorialDungeonId),
+                Assert.Single(visits.Facts).Intent);
+        });
     }
 
     [Theory]
@@ -294,113 +322,125 @@ public sealed class SelectDungeonHandlerTests
     [InlineData(true)]
     public async Task Ordinary_retry_preserves_requested_difficulty_and_rejects_a_different_target(bool wrongTarget)
     {
-        var visits = new RecordingVisits();
-        var sender = new RecordingSender();
-        var handler = Handler(visits, sender,
-            intent: DungeonEntryIntent.OrdinaryRechallenge(TutorialDungeonId + (wrongTarget ? 1 : 0)));
-        await handler.HandleAsync(Dispatch(), Request(), default);
-        if (wrongTarget)
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.Empty(visits.Facts);
-            var refusal = Assert.IsType<SelectDungeonRefusal>(Assert.Single(sender.Sent));
-            Assert.Equal(SelectDungeonRefusal.InvalidSelectionState, refusal.ErrorCode);
-        }
-        else
-        {
-            var facts = Assert.Single(visits.Facts);
-            Assert.Equal(Difficulty, facts.Difficulty);
-            Assert.Equal(DungeonEntryIntent.OrdinaryRechallenge(TutorialDungeonId), facts.Intent);
-        }
+            var visits = new RecordingVisits();
+            var sender = new RecordingSender();
+            var handler = Handler(visits, sender,
+                intent: DungeonEntryIntent.OrdinaryRechallenge(TutorialDungeonId + (wrongTarget ? 1 : 0)));
+            await handler.HandleAsync(Dispatch(), Request(), default);
+            if (wrongTarget)
+            {
+                Assert.Empty(visits.Facts);
+                var refusal = Assert.IsType<SelectDungeonRefusal>(Assert.Single(sender.Sent));
+                Assert.Equal(SelectDungeonRefusal.InvalidSelectionState, refusal.ErrorCode);
+            }
+            else
+            {
+                var facts = Assert.Single(visits.Facts);
+                Assert.Equal(Difficulty, facts.Difficulty);
+                Assert.Equal(DungeonEntryIntent.OrdinaryRechallenge(TutorialDungeonId), facts.Intent);
+            }
+        });
     }
 
     [Fact]
     public async Task MissingSelectionContextIsRefusedWithoutReadingQuestState()
     {
-        var visits = new RecordingVisits();
-        var sender = new RecordingSender();
-        var handler = new SelectDungeonHandler(
-            Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
-            new UnchangedState(),
-            new OneSession(Identity),
-            new RuntimeCurrentView(new OneRuntimeSession(Entry())),
-            new NoPartyService(),
-            new NoopRuns(),
-            new DungeonRunDeliveryRegistry(),
-            new IntentStore(null),
-            visits,
-            new OneLog(new UnaskedLog()),
-            new RecordingFatigue(),
-            sender,
-            new NoopConnectionCloser(),
-            TownAreaProjectionTestFactory.Create(
+        await TestGameplay.RunAsync(async () =>
+        {
+            var visits = new RecordingVisits();
+            var sender = new RecordingSender();
+            var handler = new SelectDungeonHandler(
+                Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+                new UnchangedState(),
                 new OneSession(Identity),
-                new OneRuntimeSession(Entry()),
-                sender),
-            NullLogger<SelectDungeonHandler>.Instance,
-            new SelectedSessionTransitionGate());
+                new RuntimeCurrentView(new OneRuntimeSession(Entry())),
+                new NoPartyService(),
+                new NoopRuns(),
+                new DungeonRunDeliveryRegistry(),
+                new IntentStore(null),
+                visits,
+                new OneLog(new UnaskedLog()),
+                new RecordingFatigue(),
+                sender,
+                new NoopConnectionCloser(),
+                TownAreaProjectionTestFactory.Create(
+                    new OneSession(Identity),
+                    new OneRuntimeSession(Entry()),
+                    sender),
+                NullLogger<SelectDungeonHandler>.Instance,
+                new SelectedSessionTransitionGate());
 
-        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
-        Assert.Empty(visits.Facts);
-        var refusal = Assert.IsType<SelectDungeonRefusal>(Assert.Single(sender.Sent));
-        Assert.Equal(SelectDungeonRefusal.InvalidSelectionState, refusal.ErrorCode);
+            Assert.Empty(visits.Facts);
+            var refusal = Assert.IsType<SelectDungeonRefusal>(Assert.Single(sender.Sent));
+            Assert.Equal(SelectDungeonRefusal.InvalidSelectionState, refusal.ErrorCode);
+        });
     }
 
     [Fact]
     public async Task Stale_frame_is_ignored_before_the_entry_intent_is_consumed()
     {
-        var visits = new RecordingVisits();
-        var sender = new RecordingSender();
-        var intents = new IntentStore(DungeonEntryIntent.Interactive);
-        var sessions = new OneSession(Identity);
-        var runtimes = new OneRuntimeSession(Entry());
-        var handler = new SelectDungeonHandler(
-            Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
-            new UnchangedState(),
-            sessions,
-            new RuntimeCurrentView(runtimes),
-            new NoPartyService(),
-            new NoopRuns(),
-            new DungeonRunDeliveryRegistry(),
-            intents,
-            visits,
-            new OneLog(new UnaskedLog()),
-            new RecordingFatigue(),
-            sender,
-            new NoopConnectionCloser(),
-            TownAreaProjectionTestFactory.Create(sessions, runtimes, sender),
-            NullLogger<SelectDungeonHandler>.Instance,
-            new SelectedSessionTransitionGate());
-        var stale = new GameMessageMetadata(1, 0x0010, 0, 9)
+        await TestGameplay.RunAsync(async () =>
         {
-            InboundOrdinal = 2,
-            SequenceIsFresh = false,
-        };
+            var visits = new RecordingVisits();
+            var sender = new RecordingSender();
+            var intents = new IntentStore(DungeonEntryIntent.Interactive);
+            var sessions = new OneSession(Identity);
+            var runtimes = new OneRuntimeSession(Entry());
+            var handler = new SelectDungeonHandler(
+                Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+                new UnchangedState(),
+                sessions,
+                new RuntimeCurrentView(runtimes),
+                new NoPartyService(),
+                new NoopRuns(),
+                new DungeonRunDeliveryRegistry(),
+                intents,
+                visits,
+                new OneLog(new UnaskedLog()),
+                new RecordingFatigue(),
+                sender,
+                new NoopConnectionCloser(),
+                TownAreaProjectionTestFactory.Create(sessions, runtimes, sender),
+                NullLogger<SelectDungeonHandler>.Instance,
+                new SelectedSessionTransitionGate());
+            var stale = new GameMessageMetadata(1, 0x0010, 0, 9)
+            {
+                InboundOrdinal = 2,
+                SequenceIsFresh = false,
+            };
 
-        await handler.HandleAsync(
-            Dispatch(), new SelectDungeonRequest(stale, TutorialDungeonId, Difficulty, 0, 0),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(), new SelectDungeonRequest(stale, TutorialDungeonId, Difficulty, 0, 0),
+                CancellationToken.None);
 
-        Assert.True(intents.HasValue);
-        Assert.Empty(visits.Facts);
-        Assert.Empty(sender.Sent);
+            Assert.True(intents.HasValue);
+            Assert.Empty(visits.Facts);
+            Assert.Empty(sender.Sent);
+        });
     }
 
     [Fact]
     public async Task DirectedSelectionForAnotherDungeonIsRefused()
     {
-        var visits = new RecordingVisits();
-        var sender = new RecordingSender();
-        var handler = Handler(
-            visits,
-            sender,
-            intent: DungeonEntryIntent.Directed(TutorialDungeonId + 1));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var visits = new RecordingVisits();
+            var sender = new RecordingSender();
+            var handler = Handler(
+                visits,
+                sender,
+                intent: DungeonEntryIntent.Directed(TutorialDungeonId + 1));
 
-        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
-        Assert.Empty(visits.Facts);
-        var refusal = Assert.IsType<SelectDungeonRefusal>(Assert.Single(sender.Sent));
-        Assert.Equal(SelectDungeonRefusal.InvalidSelectionState, refusal.ErrorCode);
+            Assert.Empty(visits.Facts);
+            var refusal = Assert.IsType<SelectDungeonRefusal>(Assert.Single(sender.Sent));
+            Assert.Equal(SelectDungeonRefusal.InvalidSelectionState, refusal.ErrorCode);
+        });
     }
 
     /// <summary>
@@ -413,24 +453,27 @@ public sealed class SelectDungeonHandlerTests
     [Fact]
     public async Task The_answer_to_an_entry_is_what_it_was()
     {
-        var visits = new RecordingVisits();
-        var sender = new RecordingSender();
-        var handler = Handler(visits, sender);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var visits = new RecordingVisits();
+            var sender = new RecordingSender();
+            var handler = Handler(visits, sender);
 
-        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
-        Assert.Equal(Difficulty, Assert.Single(visits.Facts).Difficulty);
-        Assert.Equal(TutorialDungeonId, Assert.Single(visits.Dungeons));
-        Assert.Collection(
-            sender.Sent,
-            frame => Assert.IsType<ExtendedUserStateMessage>(frame),
-            frame => Assert.IsType<EnterSelectDungeonAcknowledgement>(frame),
-            frame => Assert.IsType<UserStateNotification>(frame),
-            frame => Assert.IsType<UdpHostNotification>(frame),
-            frame => Assert.IsType<SupportTagNotification>(frame),
-            frame => Assert.IsType<DungeonInfoNotification>(frame),
-            frame => Assert.Null(Assert.IsType<StartMapNotification>(frame).Run.Participant),
-            frame => Assert.Equal((ushort)1, Assert.IsType<FatigueNotification>(frame).Balance.Used));
+            Assert.Equal(Difficulty, Assert.Single(visits.Facts).Difficulty);
+            Assert.Equal(TutorialDungeonId, Assert.Single(visits.Dungeons));
+            Assert.Collection(
+                sender.Sent,
+                frame => Assert.IsType<ExtendedUserStateMessage>(frame),
+                frame => Assert.IsType<EnterSelectDungeonAcknowledgement>(frame),
+                frame => Assert.IsType<UserStateNotification>(frame),
+                frame => Assert.IsType<UdpHostNotification>(frame),
+                frame => Assert.IsType<SupportTagNotification>(frame),
+                frame => Assert.IsType<DungeonInfoNotification>(frame),
+                frame => Assert.Null(Assert.IsType<StartMapNotification>(frame).Run.Participant),
+                frame => Assert.Equal((ushort)1, Assert.IsType<FatigueNotification>(frame).Balance.Used));
+        });
     }
 
     /// <summary>
@@ -444,27 +487,33 @@ public sealed class SelectDungeonHandlerTests
     [Fact]
     public async Task An_empty_log_enters_with_no_quests_rather_than_the_sessions_copy()
     {
-        var visits = new RecordingVisits();
-        var handler = Handler(visits, new RecordingSender(), new OneLog(new StandInLog([], [])));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var visits = new RecordingVisits();
+            var handler = Handler(visits, new RecordingSender(), new OneLog(new StandInLog([], [])));
 
-        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
-        var facts = Assert.Single(visits.Facts);
-        Assert.Empty(facts.ActiveQuestIds);
-        Assert.Empty(facts.ClearedQuestIds);
+            var facts = Assert.Single(visits.Facts);
+            Assert.Empty(facts.ActiveQuestIds);
+            Assert.Empty(facts.ClearedQuestIds);
+        });
     }
 
     /// <summary>Projection must not charge an entry already committed by the visit domain.</summary>
     [Fact]
     public async Task Entry_projection_does_not_charge_again()
     {
-        var fatigue = new RecordingFatigue();
-        var handler = Handler(new RecordingVisits(), fatigue: fatigue);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fatigue = new RecordingFatigue();
+            var handler = Handler(new RecordingVisits(), fatigue: fatigue);
 
-        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
-        // The visit domain owns charging; projection must never charge it again.
-        Assert.Empty(fatigue.Spent);
+            // The visit domain owns charging; projection must never charge it again.
+            Assert.Empty(fatigue.Spent);
+        });
     }
 
     /// <summary>A refused selection reports nothing to the fatigue seam.</summary>
@@ -483,105 +532,111 @@ public sealed class SelectDungeonHandlerTests
     [Fact]
     public async Task A_refused_selection_reports_nothing_to_the_fatigue_seam()
     {
-        var fatigue = new RecordingFatigue();
-        var sender = new RecordingSender();
-        var sessions = new OneSession(Identity);
-        var runtime = new OneRuntimeSession(Entry());
-        var areas = new SessionPresenceDomainService();
-        areas.Admit(new SessionPresence(
-            Identity.CharacterId,
-            Identity.ListenerPort,
-            3,
-            6,
-            true,
-            Identity,
-            true,
-            11));
-        var townProjection = new TownAreaProjectionDelivery(
-            areas,
-            sessions,
-            runtime,
-            new NoopNotifications(),
-            new NoopPartyTownProjection(),
-            sender,
-            SharedTownMovementDomainService.Instance);
-        var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
-            new UnchangedState(),
-            sessions,
-            new RuntimeCurrentView(runtime),
-            new NoPartyService(),
-            new NoopRuns(),
-            new DungeonRunDeliveryRegistry(),
-            new IntentStore(DungeonEntryIntent.Interactive),
-            new RefusingVisits(),
-            new OneLog(new StandInLog([], [])),
-            fatigue,
-            sender,
-            new NoopConnectionCloser(),
-            townProjection,
-            NullLogger<SelectDungeonHandler>.Instance,
-            new SelectedSessionTransitionGate());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fatigue = new RecordingFatigue();
+            var sender = new RecordingSender();
+            var sessions = new OneSession(Identity);
+            var runtime = new OneRuntimeSession(Entry());
+            var areas = new SessionPresenceDomainService();
+            areas.Admit(new SessionPresence(
+                Identity.CharacterId,
+                Identity.ListenerPort,
+                3,
+                6,
+                true,
+                Identity,
+                true,
+                11));
+            var townProjection = new TownAreaProjectionDelivery(
+                areas,
+                sessions,
+                runtime,
+                new NoopNotifications(),
+                new NoopPartyTownProjection(),
+                sender,
+                SharedTownMovementDomainService.Instance);
+            var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+                new UnchangedState(),
+                sessions,
+                new RuntimeCurrentView(runtime),
+                new NoPartyService(),
+                new NoopRuns(),
+                new DungeonRunDeliveryRegistry(),
+                new IntentStore(DungeonEntryIntent.Interactive),
+                new RefusingVisits(),
+                new OneLog(new StandInLog([], [])),
+                fatigue,
+                sender,
+                new NoopConnectionCloser(),
+                townProjection,
+                NullLogger<SelectDungeonHandler>.Instance,
+                new SelectedSessionTransitionGate());
 
-        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
-        var refusal = Assert.IsType<SelectDungeonRefusal>(Assert.Single(sender.Sent));
-        Assert.Equal(SelectDungeonRefusal.DungeonNotFound, refusal.ErrorCode);
-        Assert.Empty(fatigue.Spent);
-        Assert.True(Identity.Owns(
-            ((ITownAreaDomainService)areas).Find(Identity.CharacterId)!));
+            var refusal = Assert.IsType<SelectDungeonRefusal>(Assert.Single(sender.Sent));
+            Assert.Equal(SelectDungeonRefusal.DungeonNotFound, refusal.ErrorCode);
+            Assert.Empty(fatigue.Spent);
+            Assert.True(Identity.Owns(
+                ((ITownAreaDomainService)areas).Find(Identity.CharacterId)!));
+        });
     }
 
     [Fact]
     public async Task Missing_progress_rolls_back_before_leaving_the_town_area()
     {
-        var sessions = new OneSession(Identity);
-        var runtime = new OneRuntimeSession(Entry());
-        var areas = new SessionPresenceDomainService();
-        areas.Admit(new SessionPresence(
-            Identity.CharacterId,
-            Identity.ListenerPort,
-            3,
-            6,
-            true,
-            Identity,
-            true,
-            11));
-        var sender = new RecordingSender();
-        var townProjection = new TownAreaProjectionDelivery(
-            areas,
-            sessions,
-            runtime,
-            new NoopNotifications(),
-            new NoopPartyTownProjection(),
-            sender,
-            SharedTownMovementDomainService.Instance);
-        var character = new Dfo.Server.Application.Tests.Support.CurrentCharacterStub
+        await TestGameplay.RunAsync(async () =>
         {
-            Id = Identity.CharacterId,
-            Progress = null,
-        };
-        var handler = new SelectDungeonHandler(
-            Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(character),
-            new UnchangedState(),
-            sessions,
-            new RuntimeCurrentView(runtime),
-            new NoPartyService(),
-            new NoopRuns(),
-            new DungeonRunDeliveryRegistry(),
-            new IntentStore(DungeonEntryIntent.Interactive),
-            new RecordingVisits(),
-            new OneLog(new StandInLog([], [])),
-            new RecordingFatigue(),
-            sender,
-            new NoopConnectionCloser(),
-            townProjection,
-            NullLogger<SelectDungeonHandler>.Instance,
-            new SelectedSessionTransitionGate());
+            var sessions = new OneSession(Identity);
+            var runtime = new OneRuntimeSession(Entry());
+            var areas = new SessionPresenceDomainService();
+            areas.Admit(new SessionPresence(
+                Identity.CharacterId,
+                Identity.ListenerPort,
+                3,
+                6,
+                true,
+                Identity,
+                true,
+                11));
+            var sender = new RecordingSender();
+            var townProjection = new TownAreaProjectionDelivery(
+                areas,
+                sessions,
+                runtime,
+                new NoopNotifications(),
+                new NoopPartyTownProjection(),
+                sender,
+                SharedTownMovementDomainService.Instance);
+            var character = new Dfo.Server.Application.Tests.Support.CurrentCharacterStub
+            {
+                Id = Identity.CharacterId,
+                Progress = null,
+            };
+            var handler = new SelectDungeonHandler(
+                Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(character),
+                new UnchangedState(),
+                sessions,
+                new RuntimeCurrentView(runtime),
+                new NoPartyService(),
+                new NoopRuns(),
+                new DungeonRunDeliveryRegistry(),
+                new IntentStore(DungeonEntryIntent.Interactive),
+                new RecordingVisits(),
+                new OneLog(new StandInLog([], [])),
+                new RecordingFatigue(),
+                sender,
+                new NoopConnectionCloser(),
+                townProjection,
+                NullLogger<SelectDungeonHandler>.Instance,
+                new SelectedSessionTransitionGate());
 
-        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
-        Assert.True(Identity.Owns(
-            ((ITownAreaDomainService)areas).Find(Identity.CharacterId)!));
+            Assert.True(Identity.Owns(
+                ((ITownAreaDomainService)areas).Find(Identity.CharacterId)!));
+        });
     }
 
     /// <summary>The guard in front of the read reports nothing to the fatigue seam either.</summary>
@@ -598,32 +653,35 @@ public sealed class SelectDungeonHandlerTests
     [Fact]
     public async Task Without_a_published_session_nothing_is_reported_to_the_fatigue_seam()
     {
-        var visits = new RecordingVisits();
-        var fatigue = new RecordingFatigue();
-        var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
-            new UnchangedState(),
-            new NoSession(),
-            new RuntimeCurrentView(new OneRuntimeSession(Entry())),
-            new NoPartyService(),
-            new NoopRuns(),
-            new DungeonRunDeliveryRegistry(),
-            new IntentStore(DungeonEntryIntent.Interactive),
-            visits,
-            new OneLog(new UnaskedLog()),
-            fatigue,
-            new RecordingSender(),
-            new NoopConnectionCloser(),
-            TownAreaProjectionTestFactory.Create(
+        await TestGameplay.RunAsync(async () =>
+        {
+            var visits = new RecordingVisits();
+            var fatigue = new RecordingFatigue();
+            var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+                new UnchangedState(),
                 new NoSession(),
-                new OneRuntimeSession(Entry()),
-                new RecordingSender()),
-            NullLogger<SelectDungeonHandler>.Instance,
-            new SelectedSessionTransitionGate());
+                new RuntimeCurrentView(new OneRuntimeSession(Entry())),
+                new NoPartyService(),
+                new NoopRuns(),
+                new DungeonRunDeliveryRegistry(),
+                new IntentStore(DungeonEntryIntent.Interactive),
+                visits,
+                new OneLog(new UnaskedLog()),
+                fatigue,
+                new RecordingSender(),
+                new NoopConnectionCloser(),
+                TownAreaProjectionTestFactory.Create(
+                    new NoSession(),
+                    new OneRuntimeSession(Entry()),
+                    new RecordingSender()),
+                NullLogger<SelectDungeonHandler>.Instance,
+                new SelectedSessionTransitionGate());
 
-        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
-        Assert.Empty(visits.Facts);
-        Assert.Empty(fatigue.Spent);
+            Assert.Empty(visits.Facts);
+            Assert.Empty(fatigue.Spent);
+        });
     }
 
     /// <summary>Without a published session nothing is entered and nothing is sent.</summary>
@@ -634,32 +692,35 @@ public sealed class SelectDungeonHandlerTests
     [Fact]
     public async Task Without_a_published_session_nothing_is_entered()
     {
-        var visits = new RecordingVisits();
-        var sender = new RecordingSender();
-        var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
-            new UnchangedState(),
-            new NoSession(),
-            new RuntimeCurrentView(new OneRuntimeSession(Entry())),
-            new NoPartyService(),
-            new NoopRuns(),
-            new DungeonRunDeliveryRegistry(),
-            new IntentStore(DungeonEntryIntent.Interactive),
-            visits,
-            new OneLog(new UnaskedLog()),
-            new RecordingFatigue(),
-            sender,
-            new NoopConnectionCloser(),
-            TownAreaProjectionTestFactory.Create(
+        await TestGameplay.RunAsync(async () =>
+        {
+            var visits = new RecordingVisits();
+            var sender = new RecordingSender();
+            var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+                new UnchangedState(),
                 new NoSession(),
-                new OneRuntimeSession(Entry()),
-                sender),
-            NullLogger<SelectDungeonHandler>.Instance,
-            new SelectedSessionTransitionGate());
+                new RuntimeCurrentView(new OneRuntimeSession(Entry())),
+                new NoPartyService(),
+                new NoopRuns(),
+                new DungeonRunDeliveryRegistry(),
+                new IntentStore(DungeonEntryIntent.Interactive),
+                visits,
+                new OneLog(new UnaskedLog()),
+                new RecordingFatigue(),
+                sender,
+                new NoopConnectionCloser(),
+                TownAreaProjectionTestFactory.Create(
+                    new NoSession(),
+                    new OneRuntimeSession(Entry()),
+                    sender),
+                NullLogger<SelectDungeonHandler>.Instance,
+                new SelectedSessionTransitionGate());
 
-        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
-        Assert.Empty(visits.Facts);
-        Assert.Empty(sender.Sent);
+            Assert.Empty(visits.Facts);
+            Assert.Empty(sender.Sent);
+        });
     }
 
     /// <summary>The quests the log says the character is carrying, in slot order.</summary>

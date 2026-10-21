@@ -12,6 +12,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class ItemUsageProjectionTests
@@ -30,19 +31,22 @@ public sealed class ItemUsageProjectionTests
     [Fact]
     public async Task Login_delivery_restores_unlimited_cooldown_in_seconds_without_creating_a_daily_quota()
     {
-        var sessions = new Sessions(); var bus = new Bus(); var sender = new Sender();
-        bus.Items = [new(7518, 1, null, bus.At.AddMinutes(-2), bus.At.AddSeconds(86280)),
-            new(2600026, 1, 1, null, null)];
-        await new ItemUsageProjectionDelivery(bus, sessions, sender).SendAsync(sessions.Current!, default);
-        Assert.Equal(new ushort[] { 0x021E, 0x021E, 0x00AC }, sender.Types);
-        Assert.Equal(2600026, BinaryPrimitives.ReadInt32LittleEndian(sender.Bodies[1].AsSpan(1)));
-        Assert.Equal(Convert.FromHexString("015E1D000008510100"), sender.Bodies[2]);
-        Assert.Empty(ItemUsageCooldownProjection.Snapshot([new(7518, 1, null, null, bus.At)], bus.At));
-        var chunks = ItemUsageCooldownProjection.Snapshot(Enumerable.Range(1, 256)
-            .Select(id => new ItemUsageState(id, 1, null, null, bus.At.AddMilliseconds(1))).ToArray(), bus.At);
-        Assert.Equal(2, chunks.Count);
-        Assert.Equal(255, chunks[0].EncodeBody()[0]);
-        Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(chunks[1].EncodeBody().AsSpan(5)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = new Sessions(); var bus = new Bus(); var sender = new Sender();
+            bus.Items = [new(7518, 1, null, bus.At.AddMinutes(-2), bus.At.AddSeconds(86280)),
+                new(2600026, 1, 1, null, null)];
+            await new ItemUsageProjectionDelivery(bus, sessions, sender).SendAsync(sessions.Current!, default);
+            Assert.Equal(new ushort[] { 0x021E, 0x021E, 0x00AC }, sender.Types);
+            Assert.Equal(2600026, BinaryPrimitives.ReadInt32LittleEndian(sender.Bodies[1].AsSpan(1)));
+            Assert.Equal(Convert.FromHexString("015E1D000008510100"), sender.Bodies[2]);
+            Assert.Empty(ItemUsageCooldownProjection.Snapshot([new(7518, 1, null, null, bus.At)], bus.At));
+            var chunks = ItemUsageCooldownProjection.Snapshot(Enumerable.Range(1, 256)
+                .Select(id => new ItemUsageState(id, 1, null, null, bus.At.AddMilliseconds(1))).ToArray(), bus.At);
+            Assert.Equal(2, chunks.Count);
+            Assert.Equal(255, chunks[0].EncodeBody()[0]);
+            Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(chunks[1].EncodeBody().AsSpan(5)));
+        });
     }
 
     [Fact]
@@ -59,7 +63,10 @@ public sealed class ItemUsageProjectionTests
         Assert.Equal(0, sender.Bodies[^1][5]);
         var old = sessions.Current!;
         bus.BeforeReturn = () => sessions.Current = old with { ConnectionId = new("replacement") };
-        await delivery.SendAsync(old, default); Assert.Equal(4, sender.Bodies.Count);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await delivery.SendAsync(old, default); Assert.Equal(4, sender.Bodies.Count);
+        });
     }
     private sealed class Clock : TimeProvider
     {

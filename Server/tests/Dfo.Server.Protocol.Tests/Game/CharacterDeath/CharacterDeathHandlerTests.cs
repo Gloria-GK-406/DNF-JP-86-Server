@@ -12,6 +12,7 @@ using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.CharacterDeath;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.CharacterDeath;
 
@@ -29,50 +30,53 @@ public sealed class CharacterDeathHandlerTests
     public async Task Death_targets_exact_admitted_sessions_and_duplicate_reports_do_not_restart_the_ui(
         bool replaceActor, bool replaceMember, int directCount, int secondaryCount)
     {
-        var participant = new DungeonRunParticipant(Current.AccountId, Current.CharacterId, 0, true);
-        var run = new DungeonRunState(
-            new DungeonLayout(
-                10000,
-                0,
-                1,
-                1,
-                new MazeCell(0, 0),
+        await TestGameplay.RunAsync(async () =>
+        {
+            var participant = new DungeonRunParticipant(Current.AccountId, Current.CharacterId, 0, true);
+            var run = new DungeonRunState(
+                new DungeonLayout(
+                    10000,
+                    0,
+                    1,
+                    1,
+                    new MazeCell(0, 0),
+                    new MazeCell(0, 0),
+                    61000,
+                    1,
+                    new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)}),
                 new MazeCell(0, 0),
                 61000,
-                1,
-                new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)}),
-            new MazeCell(0, 0),
-            61000,
-            new HashSet<MazeCell> { new(0, 0) },
-            DateTimeOffset.UnixEpoch,
-            RunId: DungeonRunId.New(),
-            Participant: participant,
-            Participants: [participant, new DungeonRunParticipant(Other.AccountId, Other.CharacterId, 1, false)],
-            EntryRevision: 1,
-            CurrentCellState: DungeonCellSeed.CompleteEmpty(
-                new MazeCell(0, 0), 61000).Snapshot());
-        var runs = new Runs(run);
-        var sessions = new Sessions();
-        if (replaceActor) sessions.Values[Current.CharacterId] = Current with { ConnectionGeneration = 2 };
-        if (replaceMember) sessions.Values[Other.CharacterId] = Other with { ConnectionGeneration = Other.ConnectionGeneration + 1 };
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(run.RunId, [Current, Other]);
-        var sender = new Sender();
-        var handler = new CharacterDeathHandler(sessions, runs, registry,
-            new SelectedSessionTransitionGate(), new DungeonProjectionGate(), new Commands(runs),
-            sender, NullLogger<CharacterDeathHandler>.Instance);
-        var context = new NetworkDispatchContext(new NetworkConnectionContext(Current.ConnectionId, NetworkEndpointKind.Game, 10011));
-        var request = new CharacterDeathRequest(GameMessageMetadata.Empty, 612, 294, 0);
-        await handler.HandleAsync(context, request, CancellationToken.None);
-        await handler.HandleAsync(context, request, CancellationToken.None);
-        Assert.Equal(directCount, sender.Deliveries.Count);
-        if (directCount == 0) { Assert.Empty(runs.Find(Current.CharacterId)!.DeadParticipants); return; }
-        var delivery = Assert.Single(sender.Deliveries);
-        Assert.Equal(2, delivery.RequiredDirectMessages.Count);
-        Assert.IsType<CharacterDeathResponse>(delivery.RequiredDirectMessages[0]);
-        var noti = Assert.IsType<CharacterLifeStateNotification>(delivery.RequiredDirectMessages[1]);
-        Assert.Equal(Current.WireUserId, noti.ActorId);
-        Assert.Equal(secondaryCount, delivery.BestEffortTargets.Count);
+                new HashSet<MazeCell> { new(0, 0) },
+                DateTimeOffset.UnixEpoch,
+                RunId: DungeonRunId.New(),
+                Participant: participant,
+                Participants: [participant, new DungeonRunParticipant(Other.AccountId, Other.CharacterId, 1, false)],
+                EntryRevision: 1,
+                CurrentCellState: DungeonCellSeed.CompleteEmpty(
+                    new MazeCell(0, 0), 61000).Snapshot());
+            var runs = new Runs(run);
+            var sessions = new Sessions();
+            if (replaceActor) sessions.Values[Current.CharacterId] = Current with { ConnectionGeneration = 2 };
+            if (replaceMember) sessions.Values[Other.CharacterId] = Other with { ConnectionGeneration = Other.ConnectionGeneration + 1 };
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(run.RunId, [Current, Other]);
+            var sender = new Sender();
+            var handler = new CharacterDeathHandler(sessions, runs, registry,
+                new SelectedSessionTransitionGate(), new DungeonProjectionGate(), new Commands(runs),
+                sender, NullLogger<CharacterDeathHandler>.Instance);
+            var context = new NetworkDispatchContext(new NetworkConnectionContext(Current.ConnectionId, NetworkEndpointKind.Game, 10011));
+            var request = new CharacterDeathRequest(GameMessageMetadata.Empty, 612, 294, 0);
+            await handler.HandleAsync(context, request, CancellationToken.None);
+            await handler.HandleAsync(context, request, CancellationToken.None);
+            Assert.Equal(directCount, sender.Deliveries.Count);
+            if (directCount == 0) { Assert.Empty(runs.Find(Current.CharacterId)!.DeadParticipants); return; }
+            var delivery = Assert.Single(sender.Deliveries);
+            Assert.Equal(2, delivery.RequiredDirectMessages.Count);
+            Assert.IsType<CharacterDeathResponse>(delivery.RequiredDirectMessages[0]);
+            var noti = Assert.IsType<CharacterLifeStateNotification>(delivery.RequiredDirectMessages[1]);
+            Assert.Equal(Current.WireUserId, noti.ActorId);
+            Assert.Equal(secondaryCount, delivery.BestEffortTargets.Count);
+        });
     }
 
     private sealed class Sessions : ISelectedSessionDomainService

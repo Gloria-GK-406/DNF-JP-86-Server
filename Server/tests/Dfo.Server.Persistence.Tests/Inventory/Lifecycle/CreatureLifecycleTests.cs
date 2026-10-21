@@ -13,6 +13,7 @@ using Dfo.Server.Persistence.Creatures;
 using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Persistence.Schema;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Inventory.Lifecycle;
 
@@ -135,43 +136,46 @@ public sealed class CreatureLifecycleTests
     [Fact]
     public async Task OnlineFractionSurvivesDetailChangesButExternalStomachResetsFractionAndAnchor()
     {
-        using var db = new Database(); var scope = new DomainTransactionScope(); var clock = new Clock();
-        var session = SelectedSessionIdentity.Create(new(3), Owner, new("Game:creature"), 1, 10021);
-        var sessions = new Sessions(session);
-        var runtime = new CreatureRuntimeDomainService(db.Creatures, new Rules(), scope, sessions, clock);
-        await using (var seed = scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var items = db.Items.SessionIn(scope.Current!);
-            await items.PutAsync(Worn, 25, await items.CreateAsync(Pet() with
-                { CreatureDetail = Pet().CreatureDetail! with { Field04 = 50 } }, default), default);
-            await seed.CommitAsync(default);
-        }
-        runtime.Enter(session); await runtime.AdvanceAsync(session, default);
-        clock.Advance(180); await runtime.AdvanceAsync(session, default);
-        await using (var rename = scope.Begin())
-        {
-            var pet = (await runtime.Of(Owner).CurrentPetAsync(default))!;
-            Assert.Equal(50.5, (await pet.ReadAsync(default)).ExactStomach);
-            clock.Advance(60);
-            await pet.RenameAsync([65], default);
-            await rename.CommitAsync(default);
-        }
-        clock.Advance(120); await runtime.AdvanceAsync(session, default);
-        await using (var external = scope.Begin())
-        {
-            var items = db.Items.SessionIn(scope.Current!); var reference = (await items.GetAsync(Worn, 25, default))!;
-            Assert.Equal(51, reference.Snapshot.CreatureDetail!.Field04);
-            await items.UpdateAsync(reference, x => x with { CreatureDetail = x.CreatureDetail! with { Field04 = 80 } }, default);
-            await external.CommitAsync(default);
-        }
-        clock.Advance(3600); await runtime.AdvanceAsync(session, default);
-        clock.Advance(180); await runtime.AdvanceAsync(session, default);
-        await using (var read = scope.Begin())
-        {
-            var pet = (await runtime.Of(Owner).CurrentPetAsync(default))!;
-            Assert.Equal(80.5, (await pet.ReadAsync(default)).ExactStomach);
-            await read.CommitAsync(default);
-        }
+            using var db = new Database(); var scope = new DomainTransactionScope(); var clock = new Clock();
+            var session = SelectedSessionIdentity.Create(new(3), Owner, new("Game:creature"), 1, 10021);
+            var sessions = new Sessions(session);
+            var runtime = new CreatureRuntimeDomainService(db.Creatures, new Rules(), scope, sessions, clock);
+            await using (var seed = scope.Begin())
+            {
+                var items = db.Items.SessionIn(scope.Current!);
+                await items.PutAsync(Worn, 25, await items.CreateAsync(Pet() with
+                    { CreatureDetail = Pet().CreatureDetail! with { Field04 = 50 } }, default), default);
+                await seed.CommitAsync(default);
+            }
+            runtime.Enter(session); await runtime.AdvanceAsync(session, default);
+            clock.Advance(180); await runtime.AdvanceAsync(session, default);
+            await using (var rename = scope.Begin())
+            {
+                var pet = (await runtime.Of(Owner).CurrentPetAsync(default))!;
+                Assert.Equal(50.5, (await pet.ReadAsync(default)).ExactStomach);
+                clock.Advance(60);
+                await pet.RenameAsync([65], default);
+                await rename.CommitAsync(default);
+            }
+            clock.Advance(120); await runtime.AdvanceAsync(session, default);
+            await using (var external = scope.Begin())
+            {
+                var items = db.Items.SessionIn(scope.Current!); var reference = (await items.GetAsync(Worn, 25, default))!;
+                Assert.Equal(51, reference.Snapshot.CreatureDetail!.Field04);
+                await items.UpdateAsync(reference, x => x with { CreatureDetail = x.CreatureDetail! with { Field04 = 80 } }, default);
+                await external.CommitAsync(default);
+            }
+            clock.Advance(3600); await runtime.AdvanceAsync(session, default);
+            clock.Advance(180); await runtime.AdvanceAsync(session, default);
+            await using (var read = scope.Begin())
+            {
+                var pet = (await runtime.Of(Owner).CurrentPetAsync(default))!;
+                Assert.Equal(80.5, (await pet.ReadAsync(default)).ExactStomach);
+                await read.CommitAsync(default);
+            }
+        });
     }
 
     private sealed class Rules : ICreatureRuleService

@@ -11,6 +11,7 @@ using Dfo.Server.Networking.Framing;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 
@@ -166,16 +167,19 @@ public sealed class ResultScreenTests
     [Fact]
     public async Task A_confirmation_without_a_published_session_is_ignored()
     {
-        var runs = new OneRun(deadActor: CapturedActorSequence);
-        var handler = new BossDieCheckHandler(
-            new NoSession(), runs, NullLogger<BossDieCheckHandler>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new OneRun(deadActor: CapturedActorSequence);
+            var handler = new BossDieCheckHandler(
+                new NoSession(), runs, NullLogger<BossDieCheckHandler>.Instance);
 
-        await handler.HandleAsync(
-            Dispatch(),
-            new BossDieCheckRequest(GameMessageMetadata.Empty, CapturedUserId, CapturedActorSequence),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(),
+                new BossDieCheckRequest(GameMessageMetadata.Empty, CapturedUserId, CapturedActorSequence),
+                CancellationToken.None);
 
-        Assert.Equal(0, runs.TimesRead);
+            Assert.Equal(0, runs.TimesRead);
+        });
     }
 
     /// <summary>The scroll's state is acknowledged, which is what moves the run off the screen.</summary>
@@ -230,28 +234,34 @@ public sealed class ResultScreenTests
 
     private static async Task Confirm(OneRun runs, int arrivals)
     {
-        var handler = new BossDieCheckHandler(
-            new OneSession(Identity), runs, NullLogger<BossDieCheckHandler>.Instance);
-
-        for (var arrival = 0; arrival < arrivals; arrival++)
+        await TestGameplay.RunAsync(async () =>
         {
-            await handler.HandleAsync(
-                Dispatch(),
-                new BossDieCheckRequest(
-                    GameMessageMetadata.Empty, CapturedUserId, CapturedActorSequence),
-                CancellationToken.None);
-        }
+            var handler = new BossDieCheckHandler(
+                new OneSession(Identity), runs, NullLogger<BossDieCheckHandler>.Instance);
+
+            for (var arrival = 0; arrival < arrivals; arrival++)
+            {
+                await handler.HandleAsync(
+                    Dispatch(),
+                    new BossDieCheckRequest(
+                        GameMessageMetadata.Empty, CapturedUserId, CapturedActorSequence),
+                    CancellationToken.None);
+            }
+        });
     }
 
     private static async Task Scroll(RecordingSender sender, ISelectedSessionDomainService sessions)
     {
-        var handler = new ScoreScrollStateHandler(
-            sessions, sender, NullLogger<ScoreScrollStateHandler>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var handler = new ScoreScrollStateHandler(
+                sessions, sender, NullLogger<ScoreScrollStateHandler>.Instance);
 
-        await handler.HandleAsync(
-            Dispatch(),
-            new ScoreScrollStateRequest(GameMessageMetadata.Empty),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(),
+                new ScoreScrollStateRequest(GameMessageMetadata.Empty),
+                CancellationToken.None);
+        });
     }
 
     private static NetworkDispatchContext Dispatch() =>

@@ -13,6 +13,7 @@ using Dfo.Server.Protocol.Tests.Game.Party;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging;
 using EnteredDungeon = Dfo.Server.Abstractions.World.DungeonEntry;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 
@@ -23,213 +24,237 @@ public sealed class PartyMoveMapHandlerTests
     [InlineData(LogLevel.Information)]
     public async Task Normal_room_diagnostics_are_debug_only_and_do_not_change_delivery(LogLevel minimum)
     {
-        var logger = new RecordingLogger(minimum);
-        var sender = new Sender();
-        var visits = new Visits();
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(visits.RunId, [Leader, Member]);
-        var handler = new MoveMapHandler(new Sessions(Leader, Member), new Runs(visits.Start), visits,
-            registry, sender, logger);
-
-        await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
-
-        Assert.Equal(1, visits.Moves);
-        Assert.Single(sender.Messages(Leader.ConnectionId));
-        Assert.Single(sender.Messages(Member.ConnectionId));
-        Assert.DoesNotContain(logger.Entries, x => x.Level >= LogLevel.Information);
-        if (minimum == LogLevel.Information) Assert.Empty(logger.Entries);
-        else
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.Contains(logger.Entries, x => x.Message.Contains("Move map received"));
-            Assert.Contains(logger.Entries, x => x.Message.Contains("stage=Committed"));
-            Assert.Contains(logger.Entries, x => x.Message.Contains("Move map delivered"));
-        }
+            var logger = new RecordingLogger(minimum);
+            var sender = new Sender();
+            var visits = new Visits();
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(visits.RunId, [Leader, Member]);
+            var handler = new MoveMapHandler(new Sessions(Leader, Member), new Runs(visits.Start), visits,
+                registry, sender, logger);
+
+            await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+
+            Assert.Equal(1, visits.Moves);
+            Assert.Single(sender.Messages(Leader.ConnectionId));
+            Assert.Single(sender.Messages(Member.ConnectionId));
+            Assert.DoesNotContain(logger.Entries, x => x.Level >= LogLevel.Information);
+            if (minimum == LogLevel.Information) Assert.Empty(logger.Entries);
+            else
+            {
+                Assert.Contains(logger.Entries, x => x.Message.Contains("Move map received"));
+                Assert.Contains(logger.Entries, x => x.Message.Contains("stage=Committed"));
+                Assert.Contains(logger.Entries, x => x.Message.Contains("Move map delivered"));
+            }
+        });
     }
 
     [Fact]
     public async Task Publication_failure_logs_the_committed_room_and_preserves_the_exception()
     {
-        var logger = new RecordingLogger(LogLevel.Information);
-        var failure = new IOException("test send failure");
-        var sender = new Sender { Failure = failure };
-        var visits = new Visits();
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(visits.RunId, [Leader, Member]);
-        var handler = new MoveMapHandler(new Sessions(Leader, Member), new Runs(visits.Start), visits,
-            registry, sender, logger);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var logger = new RecordingLogger(LogLevel.Information);
+            var failure = new IOException("test send failure");
+            var sender = new Sender { Failure = failure };
+            var visits = new Visits();
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(visits.RunId, [Leader, Member]);
+            var handler = new MoveMapHandler(new Sessions(Leader, Member), new Runs(visits.Start), visits,
+                registry, sender, logger);
 
-        var observed = await Assert.ThrowsAsync<IOException>(() =>
-            handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None).AsTask());
+            var observed = await Assert.ThrowsAsync<IOException>(() =>
+                handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None).AsTask());
 
-        Assert.Same(failure, observed);
-        Assert.Equal(1, visits.Moves);
-        var entry = Assert.Single(logger.Entries);
-        Assert.Equal(LogLevel.Error, entry.Level);
-        Assert.Contains("publication failed after commit", entry.Message);
-        Assert.Contains(visits.RunId.ToString(), entry.Message);
+            Assert.Same(failure, observed);
+            Assert.Equal(1, visits.Moves);
+            var entry = Assert.Single(logger.Entries);
+            Assert.Equal(LogLevel.Error, entry.Level);
+            Assert.Contains("publication failed after commit", entry.Message);
+            Assert.Contains(visits.RunId.ToString(), entry.Message);
+        });
     }
 
     [Fact]
     public async Task The_leaders_room_change_is_sent_to_every_frozen_current_generation()
     {
-        var sender = new Sender();
-        var visits = new Visits();
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(visits.RunId, [Leader, Member]);
-        var handler = new MoveMapHandler(
-            new Sessions(Leader, Member),
-            new Runs(visits.Start),
-            visits,
-            registry,
-            sender,
-            NullLogger<MoveMapHandler>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new Sender();
+            var visits = new Visits();
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(visits.RunId, [Leader, Member]);
+            var handler = new MoveMapHandler(
+                new Sessions(Leader, Member),
+                new Runs(visits.Start),
+                visits,
+                registry,
+                sender,
+                NullLogger<MoveMapHandler>.Instance);
 
-        await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
-        var leaderRoom = Assert.IsType<StartMapNotification>(
-            Assert.Single(sender.Messages(Leader.ConnectionId)));
-        var memberRoom = Assert.IsType<StartMapNotification>(
-            Assert.Single(sender.Messages(Member.ConnectionId)));
-        Assert.Equal(0, leaderRoom.Run.Participant!.Slot);
-        Assert.Equal(1, memberRoom.Run.Participant!.Slot);
-        Assert.Equal(1, visits.Moves);
+            var leaderRoom = Assert.IsType<StartMapNotification>(
+                Assert.Single(sender.Messages(Leader.ConnectionId)));
+            var memberRoom = Assert.IsType<StartMapNotification>(
+                Assert.Single(sender.Messages(Member.ConnectionId)));
+            Assert.Equal(0, leaderRoom.Run.Participant!.Slot);
+            Assert.Equal(1, memberRoom.Run.Participant!.Slot);
+            Assert.Equal(1, visits.Moves);
+        });
     }
 
     [Fact]
     public async Task A_replacement_connection_does_not_inherit_the_old_runs_room_change()
     {
-        var replacement = Member with
+        await TestGameplay.RunAsync(async () =>
         {
-            ConnectionId = new NetworkConnectionId("member-replacement"),
-            ConnectionGeneration = Member.ConnectionGeneration + 1,
-        };
-        var sender = new Sender();
-        var visits = new Visits();
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(visits.RunId, [Leader, Member]);
-        var handler = new MoveMapHandler(
-            new Sessions(Leader, replacement),
-            new Runs(visits.Start),
-            visits,
-            registry,
-            sender,
-            NullLogger<MoveMapHandler>.Instance);
+            var replacement = Member with
+            {
+                ConnectionId = new NetworkConnectionId("member-replacement"),
+                ConnectionGeneration = Member.ConnectionGeneration + 1,
+            };
+            var sender = new Sender();
+            var visits = new Visits();
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(visits.RunId, [Leader, Member]);
+            var handler = new MoveMapHandler(
+                new Sessions(Leader, replacement),
+                new Runs(visits.Start),
+                visits,
+                registry,
+                sender,
+                NullLogger<MoveMapHandler>.Instance);
 
-        await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
-        Assert.Single(sender.Messages(Leader.ConnectionId));
-        Assert.Empty(sender.Messages(Member.ConnectionId));
-        Assert.Empty(sender.Messages(replacement.ConnectionId));
+            Assert.Single(sender.Messages(Leader.ConnectionId));
+            Assert.Empty(sender.Messages(Member.ConnectionId));
+            Assert.Empty(sender.Messages(replacement.ConnectionId));
+        });
     }
 
     [Fact]
     public async Task A_nonleader_cannot_advance_the_shared_room()
     {
-        var sender = new Sender();
-        var visits = new Visits();
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(visits.RunId, [Leader, Member]);
-        var handler = new MoveMapHandler(
-            new Sessions(Leader, Member),
-            new Runs(visits.StartFor(Member.CharacterId)),
-            visits,
-            registry,
-            sender,
-            NullLogger<MoveMapHandler>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new Sender();
+            var visits = new Visits();
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(visits.RunId, [Leader, Member]);
+            var handler = new MoveMapHandler(
+                new Sessions(Leader, Member),
+                new Runs(visits.StartFor(Member.CharacterId)),
+                visits,
+                registry,
+                sender,
+                NullLogger<MoveMapHandler>.Instance);
 
-        await handler.HandleAsync(Dispatch(Member), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(Member), Request(), CancellationToken.None);
 
-        Assert.Empty(sender.Messages(Leader.ConnectionId));
-        Assert.Empty(sender.Messages(Member.ConnectionId));
-        Assert.Equal(1, visits.Moves);
+            Assert.Empty(sender.Messages(Leader.ConnectionId));
+            Assert.Empty(sender.Messages(Member.ConnectionId));
+            Assert.Equal(1, visits.Moves);
+        });
     }
 
     [Fact]
     public async Task A_replaced_requester_cannot_commit_a_room_change()
     {
-        var replacement = Leader with
+        await TestGameplay.RunAsync(async () =>
         {
-            ConnectionId = new NetworkConnectionId("leader-replacement"),
-            ConnectionGeneration = Leader.ConnectionGeneration + 1,
-        };
-        var sessions = new Sessions(Leader, Member);
-        sessions.Replace(Leader.CharacterId, replacement);
-        var sender = new Sender();
-        var visits = new Visits();
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(visits.RunId, [Leader, Member]);
-        var logger = new RecordingLogger(LogLevel.Debug);
-        var handler = new MoveMapHandler(
-            sessions,
-            new Runs(visits.Start),
-            visits,
-            registry,
-            sender,
-            logger);
+            var replacement = Leader with
+            {
+                ConnectionId = new NetworkConnectionId("leader-replacement"),
+                ConnectionGeneration = Leader.ConnectionGeneration + 1,
+            };
+            var sessions = new Sessions(Leader, Member);
+            sessions.Replace(Leader.CharacterId, replacement);
+            var sender = new Sender();
+            var visits = new Visits();
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(visits.RunId, [Leader, Member]);
+            var logger = new RecordingLogger(LogLevel.Debug);
+            var handler = new MoveMapHandler(
+                sessions,
+                new Runs(visits.Start),
+                visits,
+                registry,
+                sender,
+                logger);
 
-        await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
-        Assert.Equal(0, visits.Moves);
-        Assert.Empty(sender.Messages(Leader.ConnectionId));
-        Assert.Empty(sender.Messages(replacement.ConnectionId));
-        Assert.Empty(sender.Messages(Member.ConnectionId));
-        Assert.Contains(logger.Entries, x => x.Message.Contains("reason=SupersededSession"));
+            Assert.Equal(0, visits.Moves);
+            Assert.Empty(sender.Messages(Leader.ConnectionId));
+            Assert.Empty(sender.Messages(replacement.ConnectionId));
+            Assert.Empty(sender.Messages(Member.ConnectionId));
+            Assert.Contains(logger.Entries, x => x.Message.Contains("reason=SupersededSession"));
+        });
     }
 
     [Fact]
     public async Task A_current_replacement_is_not_admitted_to_the_old_run()
     {
-        var replacement = Leader with
+        await TestGameplay.RunAsync(async () =>
         {
-            ConnectionId = new NetworkConnectionId("leader-replacement"),
-            ConnectionGeneration = Leader.ConnectionGeneration + 1,
-        };
-        var sessions = new Sessions(replacement, Member);
-        var sender = new Sender();
-        var visits = new Visits();
-        var runs = new Runs(visits.Start);
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(visits.RunId, [Leader, Member]);
-        var handler = new MoveMapHandler(
-            sessions, runs, visits, registry, sender,
-            NullLogger<MoveMapHandler>.Instance,
-            new DungeonPartyRecipients(
-                new VirtualOnlyPartyService(), sessions, runs, registry));
+            var replacement = Leader with
+            {
+                ConnectionId = new NetworkConnectionId("leader-replacement"),
+                ConnectionGeneration = Leader.ConnectionGeneration + 1,
+            };
+            var sessions = new Sessions(replacement, Member);
+            var sender = new Sender();
+            var visits = new Visits();
+            var runs = new Runs(visits.Start);
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(visits.RunId, [Leader, Member]);
+            var handler = new MoveMapHandler(
+                sessions, runs, visits, registry, sender,
+                NullLogger<MoveMapHandler>.Instance,
+                new DungeonPartyRecipients(
+                    new VirtualOnlyPartyService(), sessions, runs, registry));
 
-        await handler.HandleAsync(Dispatch(replacement), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(replacement), Request(), CancellationToken.None);
 
-        Assert.Equal(0, visits.Moves);
-        Assert.Empty(sender.Messages(replacement.ConnectionId));
-        Assert.Empty(sender.Messages(Member.ConnectionId));
+            Assert.Equal(0, visits.Moves);
+            Assert.Empty(sender.Messages(replacement.ConnectionId));
+            Assert.Empty(sender.Messages(Member.ConnectionId));
+        });
     }
 
     [Fact]
     public async Task If_the_requester_is_replaced_after_commit_the_room_reaches_remaining_members()
     {
-        var replacement = Leader with
+        await TestGameplay.RunAsync(async () =>
         {
-            ConnectionId = new NetworkConnectionId("leader-replacement"),
-            ConnectionGeneration = Leader.ConnectionGeneration + 1,
-        };
-        var sessions = new Sessions(Leader, Member);
-        var sender = new Sender();
-        var visits = new Visits(() => sessions.Replace(Leader.CharacterId, replacement));
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(visits.RunId, [Leader, Member]);
-        var handler = new MoveMapHandler(
-            sessions,
-            new Runs(visits.Start),
-            visits,
-            registry,
-            sender,
-            NullLogger<MoveMapHandler>.Instance);
+            var replacement = Leader with
+            {
+                ConnectionId = new NetworkConnectionId("leader-replacement"),
+                ConnectionGeneration = Leader.ConnectionGeneration + 1,
+            };
+            var sessions = new Sessions(Leader, Member);
+            var sender = new Sender();
+            var visits = new Visits(() => sessions.Replace(Leader.CharacterId, replacement));
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(visits.RunId, [Leader, Member]);
+            var handler = new MoveMapHandler(
+                sessions,
+                new Runs(visits.Start),
+                visits,
+                registry,
+                sender,
+                NullLogger<MoveMapHandler>.Instance);
 
-        await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
-        Assert.Equal(1, visits.Moves);
-        Assert.Empty(sender.Messages(Leader.ConnectionId));
-        Assert.Empty(sender.Messages(replacement.ConnectionId));
-        Assert.IsType<StartMapNotification>(Assert.Single(sender.Messages(Member.ConnectionId)));
+            Assert.Equal(1, visits.Moves);
+            Assert.Empty(sender.Messages(Leader.ConnectionId));
+            Assert.Empty(sender.Messages(replacement.ConnectionId));
+            Assert.IsType<StartMapNotification>(Assert.Single(sender.Messages(Member.ConnectionId)));
+        });
     }
 
     private static MoveMapRequest Request() =>

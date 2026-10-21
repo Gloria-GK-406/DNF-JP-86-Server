@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.Channel;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Host.Tests;
 
@@ -24,7 +25,10 @@ public sealed class GmPlayerBrowserFixtureTests
         await GmPlayerDirectoryHttpTests.SeedAsync(host);
         var first = await GmPlayerDirectoryHttpTests.ConnectAsync(host, 40, 21011);
         var session = GmPlayerDirectoryHttpTests.Publish(host, first, 40, 40, 21011);
-        host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().StepTo(session, 123, 234, 1);
+        TestGameplay.Run(host.Services, () =>
+        {
+            host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().StepTo(session, 123, 234, 1);
+        });
         await GmPlayerDirectoryHttpTests.ConnectAsync(host, 41, 21012);
         using var page = await host.Client.GetAsync("/gm/"); page.EnsureSuccessStatusCode();
         Assert.Contains("<div id=\"root\"></div>", await page.Content.ReadAsStringAsync());
