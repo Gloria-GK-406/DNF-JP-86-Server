@@ -87,10 +87,15 @@ public sealed class CoalescingGameplaySource(IGameplayQueue queue)
 
 public static class GameplayExecutionServiceCollectionExtensions
 {
-    /// <summary>Not called by any module yet: the executor is wired in by the migration (T-004).</summary>
+    /// <summary>
+    /// Called by <c>AddCommandDispatching</c>, so every container with a command bus or dispatcher has
+    /// the one executor; it stops when the container is disposed.
+    /// </summary>
     public static IServiceCollection AddGameplayExecution(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
+        // A container built from AddCommandDispatching alone may have no logging; the executor needs it.
+        services.AddLogging();
         services.TryAddSingleton<GameplayExecutor>();
         services.TryAddSingleton<GameplayShardSelector>();
         services.TryAddSingleton<IGameplayQueue, GameplayQueue>();

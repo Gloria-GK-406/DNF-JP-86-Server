@@ -12,6 +12,9 @@ internal sealed class TouchSocketNetworkMessageSender(
     ServerMessageEncoderRegistry encoders,
     ILogger<TouchSocketNetworkMessageSender> logger) : INetworkMessageSender
 {
+    /// <summary>Per transport write, and only on the executor (<see cref="ExecutorSendDeadline"/>).</summary>
+    internal TimeSpan DirectSendDeadline { get; init; } = TimeSpan.FromSeconds(2);
+
     public async ValueTask SendBatchAsync(NetworkConnectionContext expectedConnection,
         IReadOnlyList<IServerNetworkMessage> messages, CancellationToken cancellationToken)
     {
@@ -51,8 +54,8 @@ internal sealed class TouchSocketNetworkMessageSender(
                 logger.LogDebug("S->C {ConnectionId} selector=0x{Selector:X2} type=0x{Type:X4} frame={Length} {Message}",
                     expectedConnection.ConnectionId, frame.Bytes[0], (ushort)(frame.Bytes[1] | (frame.Bytes[2] << 8)),
                     frame.Bytes.Length, frame.Message);
-            await ((ISender)connection.Session).SendAsync(new ReadOnlySequence<byte>(frame.Bytes), cancellationToken)
-                .ConfigureAwait(false);
+            await WriteAsync(connection.Session, expectedConnection.ConnectionId, frame.Bytes, frame.Message,
+                cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -95,11 +98,34 @@ internal sealed class TouchSocketNetworkMessageSender(
                     message.GetType().Name);
             }
 
-            await ((ISender)connection.Session).SendAsync(
-                new ReadOnlySequence<byte>(frame),
-                cancellationToken);
+            await WriteAsync(connection.Session, connectionId, frame, message.GetType().Name, cancellationToken);
         }
     }
+
+    // The session this write used is the one closed on timeout: looking the ID up again could reach
+    // a connection that has replaced it.
+    private Task WriteAsync(ITcpSessionClient session, NetworkConnectionId connectionId, byte[] frame,
+        string message, CancellationToken cancellationToken) =>
+        ExecutorSendDeadline.AwaitAsync(
+            ((ISender)session).SendAsync(new ReadOnlySequence<byte>(frame), cancellationToken),
+            DirectSendDeadline,
+            connectionId,
+            () =>
+            {
+                ExecutorSendDeadline.StartDetachedClose(
+                    () => session.CloseAsync("direct send deadline exceeded", CancellationToken.None), logger);
+                try
+                {
+                    logger.LogWarning(
+                        "Direct send of {Message} to {ConnectionId} did not complete within {Deadline} on the gameplay executor; closing the connection",
+                        message, connectionId, DirectSendDeadline);
+                }
+                catch (Exception)
+                {
+                    // A failing log provider must not replace the timeout the caller is owed.
+                }
+            },
+            cancellationToken);
 
     public ValueTask SendExplicitAsync(
         NetworkConnectionId requiredDirectConnectionId,

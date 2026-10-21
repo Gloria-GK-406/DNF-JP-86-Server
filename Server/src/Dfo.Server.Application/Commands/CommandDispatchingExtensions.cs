@@ -1,6 +1,7 @@
 using Dfo.Server.Application.Effects;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands.Pipeline;
+using Dfo.Server.Application.Execution;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Transactions;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,7 @@ public static class CommandDispatchingExtensions
     public static IServiceCollection AddCommandDispatching(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
+        services.AddGameplayExecution();
         services.TryAddSingleton<CommandHandlerRegistry>();
         services.TryAddSingleton<ICommandBus, CommandBus>();
         services.TryAddSingleton<NetworkCommandAuthorization>();
