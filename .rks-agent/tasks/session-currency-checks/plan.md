@@ -58,6 +58,12 @@ state: ready
 
 `NotificationAudienceResolver` 与 `NotificationBus.IsStillHere` 按 RQ-015 修改；投影里「取出再比较」的写法按 RQ-016 修改。
 
+**执行偏差（T-005 停靠点之后）**
+
+第一步跑完全量测试，排除基线的 2 个后还有 46 个失败。抽查结果是测试夹具凭空 `Select` 会话、没有登记它的连接；生产中不存在这种选中记录，`IsSelected` 会把它当作连接已撤销。第二步收紧之后，这些夹具还要再补「进入世界」，所以改为先完成第二步的生产改动，再对两步的失败统一分诊，避免同一批夹具改两遍。
+
+翻转的依据：同一条连接的入站报文按顺序处理，选角 handler 执行期间，这条连接上的下一条报文不会被处理。所以请求方自己连接上的玩法 handler 看不到 `Selected` 阶段，收紧只影响跨账号目标、非命令路径和连接已撤销的窗口。
+
 ## 路径清单（初始，执行中补全）
 
 | 类别 | 位置 | 判定 |
@@ -65,7 +71,45 @@ state: ready
 | 选角工作流 | `Protocol/Game/SelectCharacter/SelectCharacterHandler.cs`（`EnsureCurrent` 改为 `IsSelected`）、`SelectCharacterPhaseCommands.cs`、`EnsureDailyContractPuppetsCommand.cs`；`MarriageHousing/HousingSlice.cs` 中 `InitializeHousingCommand` 的处理器；各阶段命令调用的领域服务方法 | 本会话用 `IsSelected`；查别人的地方用 `TryGetInWorld` |
 | 选角工作流中已是在世界口径的 | 三种门票补充命令（`TauKingdom`、`SouthernDale`、`BossTower` 的 `RefillOnline…Ticket`） | `IsInWorld` |
 | 清理 | `Application/Sessions/SelectCharacterLifecycleServices.cs`（拆除部分）、补偿处理器、`Protocol/Game/OnlineUserConnectionObserver.cs`、`ReturnToSelection/ReturnToSelectionCommand.cs` | `StandingOf` / `ReleaseExact`；保留的查找 (b) |
-| 跨账号目标与非命令路径（RQ-014） | 由 T-006 列出 | `IsInWorld` / `TryGetInWorld`，并注明收紧后的行为 |
+| 跨账号目标与非命令路径（RQ-014） | 见下表 | `IsInWorld` / `TryGetInWorld` |
+
+### 执行后的定稿
+
+**选角工作流中保留 `IsSelected` 的调用点（5 处）**
+
+| 位置 | 说明 |
+|---|---|
+| `SelectCharacterHandler.EnsureCurrent` | 每一步之间检查；口径与原「当前选中且连接仍属于该账号」一致或更严 |
+| `EnsureDailyContractPuppetsCommand` | 发布前阶段 |
+| `InitializeHousingCommandHandler` | 发布前阶段 |
+| `SelectCharacterSessionEntryService.Publish` | 发布本身 |
+| `ClientSettingsDomainService.IsCurrent` | 热键激活和设置上传共用；另外比对在线用户代数，并允许尚无会话 |
+
+**清理路径改用 `StandingOf` 的调用点**
+
+- `SelectCharacterLifecycleServices` 拆除中的 `ownsSelectedCharacter`
+- 断线观察者 `CleanupSelectedHeldAsync`
+- `CompleteReturnToSelectionCommandHandler`
+
+**收紧后的行为（RQ-014）**
+
+以下各项都有共同的收紧：尚未入世，或连接已撤销的角色，不再算在线。
+
+| 路径 | 收紧后的行为 |
+|---|---|
+| 组队邀请、回应邀请、踢人、移交队长的目标（`PartyCommandSlice`） | 目标不在世界时，按「目标不在线」处理 |
+| 查看他人详情（`OtherCharacterDetailQueryDomainService`）、称号簿主人、求婚对象与申请人 | 返回目标不在当前 |
+| 入场时同城旁人、PvP 大厅成员（`SelectCharacterLifecycleServices`） | 跳过这个人，不再抛异常（RQ-014a） |
+| 拆除通告与队伍目录的同伴收件人 | 不投递给不在世界的同伴；离开者本人仍按自己的连接直接发送 |
+| 通知人群解析与投递（`NotificationAudienceResolver`、`NotificationBus`） | 不解析、不投递 |
+| 定时任务：虚弱恢复、比武奖励扫描、各类配额日刷新、在线过期物品清理、三种门票补充 | 跳过。名牌过期、在线过期物品清理、门票补充的 `catch` 过滤改为 `!IsInWorld` 之后，会话连接撤销时出现的失败也按「会话已离开」静默跳过 |
+| 婚礼参与者与来宾的投影（`MarriageEligibility.InWorldSessionOf`）、婚礼结算的两位新人 | 不投影；新人缺席时婚礼结算照旧失败 |
+| 副本准入时情侣副本或镜像副本的队员、循环副本的请求方、单人比武参与者 | 判为不满足前置条件 |
+| 宠物离场结算（`CreatureRuntimeDomainService.LeaveAsync`，含饥饿与排队的房间经验） | **不收紧**：属于清理路径，改问 `StandingOf`，连接撤销后照常结算 |
+| 两塔提交前对旁人的在世界检查（`BossTowerDomainService`、`IllusionTowerDomainService`） | 旁人的连接恰好在变更与提交之间被撤销时，这次提交失败；离开者的离塔会在拆除中失败。窗口很窄，接受，不另行处理 |
+| 事件订阅者与投影：外观设置、名牌过期、过期物品、钱包变化、两塔、祭坛、镜像、各副本投影 | 不投影 |
+
+**没有找到合法调用方会因此改变行为的路径。** 依据是：同一条连接的报文按顺序处理，请求方自己的玩法 handler 在选角执行期间不会被处理。
 
 ## Work and Dependencies
 

@@ -31,9 +31,12 @@ state: ready
 - **当前性判定**：回答「这个会话是否仍是当前的、是否在世界、是否仍归这条连接」「那个角色在不在线」的表达式。包括以 `is null` / `is { }` 决定是否处理或投递的查找。
 - **保留的查找**：
   - (a) 请求方按自己这条连接解析会话，之后交给命令或领域服务判定。
-  - (b) 清理路径与返回选角为取出待释放会话、确认已经没有残留记录所做的查找。包括 `SelectCharacterLifecycleServices.cs:199`、`CompleteReturnToSelectionCommandHandler`、`OnlineUserConnectionObserver.cs:106`。
+  - (b) 清理路径与返回选角为取出待释放会话、确认已经没有残留记录所做的查找。包括 `SelectCharacterLifecycleServices.cs:199`、`CompleteReturnToSelectionCommandHandler`、`OnlineUserConnectionObserver.cs` 中按连接取残留会话的查找。
   - (c) `ClientSettingsDomainService.IsCurrent` 中「尚无会话」的分支（`FindByConnection(…) is null`）。它要的是「这条连接上还没有选中会话」，三个判定都表达不了，按保底规则原样保留。
-  - 以上三类在 AC-001 的归类表里逐条列出。
+  - (d) 查到的会话在下游必经一处具名判定的查找。下游判定可以紧随其后，比如钱包变化的 `IsInWorld` 复查；也可以在必经的下游路径上，比如经通知人群投递，或宠物实例运行时的 `EnsureActive`。
+  - (e) 只用来加锁，或只做身份一致性快照、不决定在线与否的查找。包括：两塔的 `affected` 集合和队伍 `ExactSessions`，爱心点数加锁时取伴侣，城镇区域投影计算要锁的旧区域。
+  - (f) 不以在线为前提的业务动作，例如比武淘汰；发送前仍要用 `IsInWorld` 把关。
+  - 以上各类在 AC-001 的归类表里逐条列出。
 - **选角工作流路径**：`SelectCharacterHandler` 本身、它派发的各阶段命令，以及这些命令调用的领域服务方法。
 - **清理路径**：拆除服务、补偿命令、断线观察者。
 
@@ -56,7 +59,7 @@ state: ready
 | RQ-006 | 以查不到当作不在线的会话查找（`is { } x`、`is not { } x`、`is null`、`?.` 后续使用）改为 `TryGetInWorld`，选角工作流路径上的改为有效性检查。保留的查找不改。 |
 | RQ-007 | 用于当前性的在线用户组合（`TryGetByConnection` + `CharacterActive` + 账号 + `CurrentCharacterId`）改为 `IsInWorld(session)`。如果在线用户读取另有用途（例如取连接对象），只保留那部分。 |
 | RQ-008 | 同一条件里被包含的判定删除，例如 `IsSelected && IsInWorld`、`IsInWorld && IsActiveExact`。 |
-| RQ-009 | 只做当前性判定的本地 helper 删除，调用处直接用具名判定。把当前性与其他事实组合在一起的 helper 保留，内部改用具名判定；这类事实包括副本或塔的代数、在线用户代数、连接对象（例如 `ClientSettingsDomainService.IsCurrent`、两塔的 `Current`、`SelectCharacterHandler.EnsureCurrent`）。与当前性无关的 helper 不动，包括 `TownAreaMember.Owns`、`IsCurrentLeader`、`IsCurrentPeriod`。 |
+| RQ-009 | 只做当前性判定的本地 helper 删除，调用处直接用具名判定。把当前性与其他事实组合在一起的 helper 保留，内部改用具名判定；这类事实包括副本或塔的代数、在线用户代数、连接对象（例如 `ClientSettingsDomainService.IsCurrent`、两塔的 `Current`、`SelectCharacterHandler.EnsureCurrent`）。与当前性无关的 helper 不动，包括 `TownAreaMember.Owns`、`IsCurrentLeader`、`IsCurrentPeriod`。例外：`MarriageEligibility.IsCurrent` 保留，只转交 `IsInWorld`。原因是 `MarriageArchitectureTests` 规定婚姻用例组件只能依赖关系写入器和本领域的协作组件，会话只能经它触达。 |
 | RQ-010 | 测试替身实现新成员时，必须如实反映替身自身持有的状态，不得恒真或恒假。 |
 
 ### 口径
@@ -87,7 +90,7 @@ state: ready
 
 | ID | Covers | Acceptance |
 |---|---|---|
-| AC-001 | RQ-004～RQ-009 | 在 `Server/src` 中检索，满足：<br>- 会话类 `Find…(…) ==/!=` 比较为 0 处；<br>- `IsActiveExact` 为 0 处；<br>- 剩余的会话 `Find…` 调用逐条归入「保留的查找」(a) 或 (b)；<br>- `OnlineUserState.CharacterActive` 剩余的读取逐条说明为非当前性用途；<br>- RQ-009 所说的纯当前性 helper 为 0 处。 |
+| AC-001 | RQ-004～RQ-009 | 在 `Server/src` 中检索，满足：<br>- 会话类 `Find…(…) ==/!=` 比较为 0 处；<br>- `IsActiveExact` 为 0 处；<br>- 剩余的会话 `Find…` 调用逐条归入「保留的查找」(a)～(f)；<br>- `OnlineUserState.CharacterActive` 剩余的读取逐条说明为非当前性用途；<br>- RQ-009 所说的纯当前性 helper 为 0 处。 |
 | AC-002 | RQ-001～RQ-004 | 单元测试覆盖选中、在世界、隔离、连接撤销、被替换、已释放各状态，验证 `IsSelected`、`IsInWorld`、`TryGetInWorld`（三个重载）的答案。 |
 | AC-003 | RQ-011、RQ-014 | plan 里列出选角工作流路径和清理路径的调用点清单，以及 RQ-014 的跨账号与非命令路径清单。选角、顶替、断线、拆除、补偿流程的既有测试通过。 |
 | AC-004 | RQ-011 | 回归测试证明收紧生效：<br>- 至少一条玩法写操作和一条投影，拒绝连接已撤销的会话；<br>- 至少一条跨账号目标检查，拒绝尚未入世的角色；<br>- 选角工作流里至少一个领域服务，拒绝连接已撤销的会话。 |
