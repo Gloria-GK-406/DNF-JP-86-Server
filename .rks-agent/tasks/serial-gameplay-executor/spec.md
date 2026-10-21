@@ -275,7 +275,7 @@ state: ready
 | GM 自身的内存状态（`GmLoginLimiter`、`GmIconPackStore`） | 不属于玩法状态 |
 | 只读 SQLite 的查询（不读内存玩法状态，例如 GM 邮件物品查询、身份识别） | WAL 下读取快照，不写库 |
 | 口令哈希等纯计算 | 没有共享状态（RQ-007） |
-| 纯遥测 handler（只记日志，例如客户端规格、会话指标、未应答类报告） | 不改状态、不写库、不发包；仍在收包回调里按连接顺序执行（RQ-020 例外）。实施时逐个列出 |
+| 纯遥测 handler（只记日志，例如客户端规格、会话指标、未应答类报告） | 不改状态、不写库、不发包；仍在收包回调里按连接顺序执行（RQ-020 例外）。实施时逐个列出。**清单（TASK-09，基准 `690b9926`）**：2 个 handler、14 个消息类型（1 ＋ 13 ＝ 14）——`HiddenCharacterInfoHandler`：`GameHiddenCharacterInfo`；`UnansweredReportHandler`：`GameUseSkill`、`GameSyncItemSpace`、`GameOverflowInfo`、`GameLogDomainConnect`、`GameLogConnectProcess`、`GameCharacterStatistic`、`GameRequestBlacklist`、`GameFarmEventAction`、`GamePi`、`GameRequestIgaVersion`、`GameFpsPerformanceStatistic`、`GameFrameLagPerDungeon`、`GameLagStatistics`。安全理由由启动检查强制：经 `RegisterTelemetryMessageHandler` 注册的 handler，构造器参数只能是 `ILogger`／`ILogger<T>`，否则 `MessageHandlerRegistry` 构造即抛。执行器外照旧先做只读的 `IsBlocked`、`IsSuperseded` 检查（主控方裁定第 1 条）。**注**：名字像遥测、但构造器还注入了别的，所以进执行器、不在本清单：`ClientSpecStatisticHandler`、`ClientSpecProfileHandler`、`ClientHardwareDetailHandler`、`SessionMetricsHandler`、`MapEntryReportHandler`（注入 `IOnlineUserQueryDomainService`）；`CreatureResponseReportHandler`、`CreatureScriptMessageReportHandler`（注入 `ISelectedSessionDomainService`）；`SecurityStatusHandler`、`ContentsPlayInfoHandler`、`MercenaryInfoHandler`、`GenCeraTicketHandler`（注入发送器）。第一列举例中的「客户端规格、会话指标」按此判据不属于本行 |
 | 启动预热的 `Lazy` 内容源（含成就目录、称号目录） | 在开始监听前加载完毕，执行器上不会触发首次加载（RQ-091）。实施时逐个列出 |
 | 开始监听前的启动期工作：建表与迁移、`EpicBook` 迁移、经验存储策略安装、GM bootstrap | 发生在开始接受连接与 HTTP 之前，此时执行器还没有其他工作；作为 RQ-061 的启动期例外 |
 

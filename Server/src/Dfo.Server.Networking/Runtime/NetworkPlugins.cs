@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Framing;
@@ -51,7 +52,8 @@ internal sealed class ChannelNetworkPlugin(
     ILogger<ChannelNetworkPlugin> logger)
     : NetworkPluginBase(connections, observers, NetworkEndpointKind.Channel), ITcpReceivedPlugin
 {
-    public async Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
+    // Stream boundary: whatever context TouchSocket runs this on, the dispatch it starts is off the executor.
+    public Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e) => GameplayJob.RunDetachedAsync(async () =>
     {
         if (e.RequestInfo is ChannelFrameRequestInfo frame)
         {
@@ -81,7 +83,7 @@ internal sealed class ChannelNetworkPlugin(
         }
 
         await e.InvokeNext();
-    }
+    }).AsTask();
 
     private IClientNetworkMessage? Decode(ChannelFrameRequestInfo frame, NetworkConnectionId connectionId)
     {
@@ -132,7 +134,8 @@ internal sealed class GameNetworkPlugin(
 {
     private readonly ConditionalWeakTable<NetworkConnectionContext, GameInboundFrameCounter> frameCounters = new();
 
-    public async Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
+    // Stream boundary: whatever context TouchSocket runs this on, the dispatch it starts is off the executor.
+    public Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e) => GameplayJob.RunDetachedAsync(async () =>
     {
         if (e.RequestInfo is GameClientFrameRequestInfo frame)
         {
@@ -170,7 +173,7 @@ internal sealed class GameNetworkPlugin(
         }
 
         await e.InvokeNext();
-    }
+    }).AsTask();
 
     /// <remarks>
     /// The first-byte selector is not interpreted here. It is part of the wire key, so a frame whose

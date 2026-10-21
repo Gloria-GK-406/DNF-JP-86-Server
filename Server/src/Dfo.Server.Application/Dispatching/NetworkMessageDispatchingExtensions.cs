@@ -30,6 +30,21 @@ public static class NetworkMessageDispatchingExtensions
         services.AddSingleton(new MessageHandlerRegistration(messageType, typeof(THandler)));
         return services;
     }
+
+    /// <summary>
+    /// Registers a pure telemetry handler (RQ-020, spec appendix B): it runs off the gameplay executor,
+    /// so it may only inject logging; the registry refuses it at startup otherwise.
+    /// </summary>
+    public static IServiceCollection RegisterTelemetryMessageHandler<THandler>(
+        this IServiceCollection services,
+        ClientMessageType messageType)
+        where THandler : class, IClientMessageHandler
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.AddTransient<THandler>();
+        services.AddSingleton(new MessageHandlerRegistration(messageType, typeof(THandler), IsTelemetry: true));
+        return services;
+    }
 }
 
 internal sealed class MessageHandlerRegistryValidationService(MessageHandlerRegistry registry) : IHostedService

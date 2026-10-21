@@ -849,7 +849,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<CreateCharacterHandler>(ClientMessageType.GameCreateCharacter);
         services.RegisterMessageHandler<DeleteCharacterHandler>(ClientMessageType.GameDeleteCharacter);
         services.RegisterMessageHandler<MercenaryInfoHandler>(ClientMessageType.GameMercenaryInfo);
-        services.RegisterMessageHandler<HiddenCharacterInfoHandler>(ClientMessageType.GameHiddenCharacterInfo);
+        services.RegisterTelemetryMessageHandler<HiddenCharacterInfoHandler>(ClientMessageType.GameHiddenCharacterInfo);
         services.AddCommandHandler<SaveCharacterOptionCommand, bool, SaveCharacterOptionCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.RegisterMessageHandler<SaveCharacterOptionHandler>(ClientMessageType.GameSaveCharacterOption);
         services.AddGameCmdMessageDecoder<SaveCharacterOptionDecoder>(0x01C0, ClientMessageType.GameSaveCharacterOption);
@@ -971,8 +971,8 @@ public sealed class ProtocolModule : IServerModule
 
         // Known reports that this server intentionally does not answer. A durability request is
         // not one of them: it changes a persisted equipment instance and has its own CMD reply.
-        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameUseSkill);
-        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameSyncItemSpace);
+        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameUseSkill);
+        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameSyncItemSpace);
         services.RegisterMessageHandler<SortLockHandler>(ClientMessageType.GameSortLock);
         services.RegisterMessageHandler<SortLockHandler>(ClientMessageType.GameSortUnlock);
         services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameCreateAccountCargo);
@@ -989,17 +989,17 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x01AF, ClientMessageType.GameUpgradeInventory);
         services.RegisterMessageHandler<SortItemHandler>(ClientMessageType.GameSortItem);
         services.RegisterMessageHandler<DecreaseDurabilityHandler>(ClientMessageType.GameDecreaseDurability);
-        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
-        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogDomainConnect);
-        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogConnectProcess);
-        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameCharacterStatistic);
-        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameRequestBlacklist);
-        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFarmEventAction);
-        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GamePi);
-        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameRequestIgaVersion);
-        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFpsPerformanceStatistic);
-        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFrameLagPerDungeon);
-        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLagStatistics);
+        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
+        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogDomainConnect);
+        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogConnectProcess);
+        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameCharacterStatistic);
+        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameRequestBlacklist);
+        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFarmEventAction);
+        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GamePi);
+        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameRequestIgaVersion);
+        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFpsPerformanceStatistic);
+        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFrameLagPerDungeon);
+        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLagStatistics);
         services.RegisterMessageHandler<MoveItemSpaceHandler>(ClientMessageType.GameMoveItemSpace);
         services.RegisterMessageHandler<UseStackableHandler>(ClientMessageType.GameUseStackable);
         services.RegisterMessageHandler<RenameCreatureHandler>(ClientMessageType.GameRenameCreature);

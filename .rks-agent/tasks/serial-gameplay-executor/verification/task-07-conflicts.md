@@ -181,3 +181,26 @@ TASK-06 Remaining 第 3 条的各项按 TASK-07 §6.1 原样保留，加上本�
 | `GmPlayerSamplingHttpTests.SessionInvalidatedWhileReadingPositionIsExcludedBeforePagination` 的 `duringRead` 注入回调 | Host | 回调在 GM 入口内部执行（探针记为 (A)） | T-004b（GM 入口迁入后在同一作业内内联） |
 | `SelectCharacterProductionStateTests` 只驱动 `SelectCharacterPreparationService` 的 6 个用例 | Protocol | 协作者全是替身；本轮探针在它们上没有 (B) 记录 | — |
 | 测试替身在生产代码回调里读写玩法状态：`SelectCharacterLifecycleTests.RecordingSender`、`RecordingActive`，`ReplayStateSnapshotTests.DelayedInventory`，`CommonExperienceEffectTests.CallbackCloser` | Application | 替身被注入被测对象，由生产代码调用；内部包会把生产路径的访问藏进作业 | 归属见 `task-07-probe.md` §4：排除本清单的冲突用例后复跑，这些记录全部消失，所以它们都来自清单里的冲突用例 |
+
+## 7. TASK-09 处置（2026-10-22，基准 `690b9926`）
+
+只记 §1.2 中 `EffectOperationReplayTests` 7 条的去向，其余条目不变。本单元没有出现 TASK-09 §7 第 (ii)、(v) 类新冲突。
+
+| 用例 | 本单元全量中 | 去向 |
+|---|---|---|
+| `:159` `An_inherited_closed_operation_cannot_downgrade_to_trusted_direct_bus` | 通过 | 顺延 T-004c |
+| `:229` `Postdurable_operation_record_failure_preserves_typed_cause_and_exact_connection_fence` | 通过 | 顺延 T-004c |
+| `:253` `Invalid_projection_freeze_aborts_real_SQL_before_durability_and_records_confirmed_rollback` | 通过 | 顺延 T-004c |
+| `:269` `An_inherited_readonly_scope_does_not_clear_the_primary_execution_on_the_parent_flow` | 通过 | **改归 T-008**（TASK-09 主控方裁定第 3 条：测的是跨流的 AsyncLocal 帧语义，帧改为显式数据时一并改写或删除） |
+| `:292` `Waiting_on_the_connection_gate_keeps_the_original_selected_session` | 失败（`TimeoutException`，5 s） | **已删除**，见 `tasks/TASK-09.md` Result |
+| `:345` `Unknown_applied_effect_change_is_rejected_before_SQL_commit` | 通过 | 顺延 T-004c |
+| `:371` `Refusal_only_unselected_operation_cannot_pay_after_a_selection_arrives` | 通过 | 顺延 T-004c |
+
+按执行单元的新分布（总数 136 不变；删除的一条仍按条计入，便于对账）：
+
+- T-004b：21 － 7 ＝ 14（TASK-10 7 ＋ TASK-11 3 ＋ TASK-12 1 ＋ TASK-13 2 ＋ 原已标「顺延 T-004c」的 `ReplayStateSnapshotTests:206` 1 ＝ 14）；
+- T-004c：62 ＋ 5 ＝ 67；
+- T-006：53；
+- T-008：0 ＋ 1 ＝ 1；
+- TASK-09 已删除：1。
+- 加法：14 ＋ 67 ＋ 53 ＋ 1 ＋ 1 ＝ 136。

@@ -293,21 +293,6 @@ public sealed class EffectOperationReplayTests
     }
 
     [Fact]
-    public async Task Waiting_on_the_connection_gate_keeps_the_original_selected_session()
-    {
-        using var f = Fixture(); await f.Seed(69, 1000, 3); var stream = new Stream();
-        using var entered = new ManualResetEventSlim(); using var release = new ManualResetEventSlim();
-        f.Sender.BeforeExplicit = () => { entered.Set(); if (!release.Wait(TimeSpan.FromSeconds(5))) throw new TimeoutException(); };
-        var first = Task.Run(async () => await Dispatch(f, stream.Request(1)));
-        Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
-        // The synchronous invocation reaches Gate.WaitAsync after capturing the original session.
-        var pending = Dispatch(f, stream.Request(1)); Assert.False(pending.IsCompleted);
-        f.Select(2); release.Set(); await first;
-        await Assert.ThrowsAsync<InvalidOperationException>(() => pending);
-        Assert.Equal(0, f.Count(1000)); Assert.Empty(f.Sender.Batches);
-        Assert.Equal(2, f.Scalar("SELECT count FROM item_slots WHERE owner_id=1 AND list_type=0 AND slot_index=69"));
-    }
-    [Fact]
     public async Task Second_primary_command_cannot_pay_or_overwrite_the_first_committed_entry()
     {
         using var f = Fixture(); await f.Seed(69, 1000, 3); var stream = new Stream();
