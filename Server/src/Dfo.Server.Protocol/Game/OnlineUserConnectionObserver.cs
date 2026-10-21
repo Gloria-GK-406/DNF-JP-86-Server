@@ -77,8 +77,8 @@ public sealed class OnlineUserConnectionObserver(
             || observed is null)
         {
             // Protocol rejection removes an unusable OnlineUser identity immediately. Its
-            // asynchronously requested transport close can arrive here later, while the selected
-            // directory still owns the exact session whose other resources need full cleanup.
+            // asynchronously requested transport close can arrive here later, while the session it
+            // had selected still reads as revoked and its other resources need full cleanup.
             if (selectedSessions.FindByConnection(connection.ConnectionId) is { } orphaned)
             {
                 _ = await CleanupSelectedAsync(

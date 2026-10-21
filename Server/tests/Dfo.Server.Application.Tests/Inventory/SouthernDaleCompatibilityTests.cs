@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Events;
@@ -198,7 +199,7 @@ public sealed class SouthernDaleCompatibilityTests
     {
         using var fixture = new CeraShopFixture(useArchive: true);
         var services = fixture.Host.Services;
-        services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(fixture.Host.Session);
+        services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(fixture.Host.Session);
         var events = services.GetRequiredService<IEventManagementDomainService>();
         var revision = 0;
         foreach (var open in new[] { false, true, false })
@@ -227,7 +228,7 @@ public sealed class SouthernDaleCompatibilityTests
         using var fixture = new CeraShopFixture(useArchive: true, configure: s => s.AddSingleton<TimeProvider>(clock));
         var services = fixture.Host.Services;
         var session = fixture.Host.Session;
-        services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(session);
+        services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(session);
         await fixture.Host.Seed(177, 2680739, 2);
         var commands = services.GetRequiredService<ICommandBus>();
         Assert.True((await commands.SendAsync(new AcceptQuestCommand(session.AccountId, session.CharacterId, 20549))).Accepted);

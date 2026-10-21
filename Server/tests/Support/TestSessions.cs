@@ -59,6 +59,18 @@ internal static class TestSessions
     }
 
     /// <summary>
+    /// Enters the session into the world unless a fixture has already done so. Entering twice is
+    /// refused in production, as publishing twice always was.
+    /// </summary>
+    public static void EnsureInWorld(
+        this Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService sessions,
+        SelectedSessionIdentity session)
+    {
+        if (!sessions.IsInWorld(session))
+            sessions.EnterWorld(session);
+    }
+
+    /// <summary>
     /// Enters an already-built session: registers its connection, and authenticates it, under the
     /// generation the session carries. Only for sessions created at the authenticated generation.
     /// </summary>

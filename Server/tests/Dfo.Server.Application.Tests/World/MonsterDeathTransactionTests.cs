@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Sessions;
@@ -52,7 +53,7 @@ public sealed class MonsterDeathTransactionTests
         registry.EnterWorld(member);
         fixture.Services.GetRequiredService<ISelectedSessionDomainService>().Select(member);
         var leader = fixture.Session;
-        fixture.Services.GetRequiredService<ISelectedSessionDomainService>().EnterWorld(leader);
+        fixture.Services.GetRequiredService<ISelectedSessionDomainService>().EnsureInWorld(leader);
         var runs = fixture.Services.GetRequiredService<IDungeonRunDomainService>();
         var layout = new DungeonLayout(10000, 0, 1, 1, new(0, 0), new(0, 0), 61000, 17,
             new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000) },

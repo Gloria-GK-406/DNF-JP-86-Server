@@ -163,15 +163,6 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
         {
             var selection = FindExact(session)
                 ?? throw new InvalidOperationException("Cannot enter the world with a replaced selection.");
-            if (selection.Phase == SelectedSessionPhase.InWorld)
-            {
-                // Already there through a connection that is still registered: nothing to do.
-                if (selection.Owner is { } current
-                    && byId.TryGetValue(current, out var bound)
-                    && bound.Connection.ConnectionId == session.ConnectionId)
-                    return;
-                throw new InvalidOperationException("Selected connection generation is no longer current.");
-            }
             var owner = byId.Values.SingleOrDefault(value =>
                 value.AccountId == session.AccountId
                 && value.Connection.ConnectionId == session.ConnectionId

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -978,8 +979,8 @@ public sealed class IllusionTowerDomainServiceTests
             new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
         Assert.True(parties.AcceptInvite(otherParty, firstParty).Succeeded);
         var sessions = f.Services.GetRequiredService<ISelectedSessionDomainService>();
-        sessions.EnterWorld(f.Session);
-        sessions.EnterWorld(other);
+        sessions.EnsureInWorld(f.Session);
+        sessions.EnsureInWorld(other);
         var positions = f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>();
         positions.Begin(f.Session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
         positions.Begin(other, new CharacterPositionState(1, 0, 0, 0, 0), 100);
@@ -1026,7 +1027,7 @@ public sealed class IllusionTowerDomainServiceTests
             "INSERT INTO character_pvp(character_id) VALUES(1),(2); " +
             "INSERT INTO character_settings(character_id) VALUES(1),(2); " +
             "INSERT INTO character_expert_job(character_id) VALUES(1),(2);");
-        f.Services.GetRequiredService<ISelectedSessionDomainService>().EnterWorld(f.Session);
+        f.Services.GetRequiredService<ISelectedSessionDomainService>().EnsureInWorld(f.Session);
         f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
             .Begin(f.Session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
         var party = f.Services.GetRequiredService<IPartyService>().FindParty(PartyCharacter(f.Session));

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -253,7 +254,7 @@ public sealed class IllusionTowerPublicFlowTests
             INSERT INTO character_settings(character_id) VALUES(1),(2);
             INSERT INTO character_expert_job(character_id) VALUES(1),(2);
             """);
-        fixture.Services.GetRequiredService<ISelectedSessionDomainService>().EnterWorld(fixture.Session);
+        fixture.Services.GetRequiredService<ISelectedSessionDomainService>().EnsureInWorld(fixture.Session);
         fixture.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
             .Begin(fixture.Session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
         await fixture.Seed(65, 4183, tickets);

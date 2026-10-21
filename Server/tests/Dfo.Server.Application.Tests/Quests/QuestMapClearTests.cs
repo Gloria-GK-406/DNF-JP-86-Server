@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Quests;
@@ -152,7 +153,7 @@ public sealed class QuestMapClearTests
     {
         using var f = new ShopFixture(s => s.AddSingleton<IQuestContentRuleService>(Content()));
         f.Sql("INSERT INTO character_active_quests VALUES(1,0,975,1)");
-        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(f.Session);
+        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(f.Session);
         await using (var tx = f.Services.GetRequiredService<DomainTransactionScope>().Begin())
         {
             await f.Services.GetRequiredService<IEventService>().EnqueueAsync(Clear(f.Clock.GetUtcNow(), map) with

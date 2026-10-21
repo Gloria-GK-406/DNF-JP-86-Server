@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Events;
@@ -181,7 +182,7 @@ public sealed class TauKingdomTests
         clock.Now = clock.Now.AddMinutes(1);
         await using (var tx = f.Scope.Begin())
             Assert.False(await tau.RefillOnlineTicketAsync(reselected, default));
-        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(reselected);
+        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(reselected);
         for (var repeat = 0; repeat < 2; repeat++)
             Assert.True(await f.Services.GetRequiredService<ICommandBus>().SendAsync(new RefillOnlineTauTicketCommand(reselected)));
         items = await containers.GetContainer(new(71), InventoryContainerType.Main).GetAllAsync(default);

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -226,7 +227,7 @@ public sealed class TournamentDungeonTests
         registry.Select(session);
         registry.EnterWorld(session);
         f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().Select(session);
-        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(session);
+        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(session);
         var entry = (await Enter(f, Entry() with { DungeonId = 122 })).Entry!;
         Assert.NotNull(entry);
         var state = State(f); var run = Runs(f).Find(new CharacterId(71))!;

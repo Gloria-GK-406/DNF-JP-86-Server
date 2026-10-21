@@ -117,14 +117,41 @@ public sealed class ApplyEffectsTests
     }
 
     [Fact]
+    public async Task Committed_consumption_records_the_cooldown_and_potion_for_its_session()
+    {
+        var f = new Inventory();
+        f.Seed(3, 8474, 5);
+        var clock = new AdvanceableTimeProvider(Offline.At);
+        var runtime = new OnlineCharacterRuntimeDomainService(clock);
+        var sessions = new Sessions();
+        runtime.Begin(sessions.Current, InTown, 100);
+        var key = ItemCooldownKey.ForItem(8474);
+        await using (var tx = f.Scope.Begin())
+        {
+            await f.Executor(new StartItemCooldownEffectHandler(runtime, f.Scope),
+                new StartSpiritPotionEffectHandler(runtime, f.Scope))
+                .ApplyAsync(Offline with { Session = sessions.Current },
+                    [new ConsumeFromContainerEffect(Source, 8474, 1),
+                        new StartItemCooldownEffect(key, TimeSpan.FromSeconds(10)),
+                        new StartSpiritPotionEffect(1, TimeSpan.FromHours(1))], default);
+            Assert.False(runtime.IsCoolingDown(Offline.CharacterId, key));
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(4, f.CountIn(3));
+        Assert.True(runtime.IsCoolingDown(Offline.CharacterId, key));
+        Assert.Equal(1, runtime.SpiritPotionBonusRateOf(Offline.CharacterId));
+    }
+
+    [Fact]
     public async Task Late_effect_failure_rolls_back_consumption_and_memory_effects()
     {
         var f = new Inventory();
         f.Seed(3, 8474, 5);
         var clock = new AdvanceableTimeProvider(Offline.At);
         var cooldowns = new OnlineCharacterRuntimeDomainService(clock);
-        var potion = new OnlineCharacterRuntimeDomainService(clock);
+        var potion = cooldowns;
         var sessions = new Sessions();
+        cooldowns.Begin(sessions.Current, InTown, 100);
         var key = ItemCooldownKey.ForItem(8474);
         await using (f.Scope.Begin())
         {
@@ -148,8 +175,9 @@ public sealed class ApplyEffectsTests
         f.Seed(3, 8474, 5);
         var clock = new AdvanceableTimeProvider(Offline.At);
         var cooldowns = new OnlineCharacterRuntimeDomainService(clock);
-        var potion = new OnlineCharacterRuntimeDomainService(clock);
+        var potion = cooldowns;
         var sessions = new Sessions();
+        cooldowns.Begin(sessions.Current, InTown, 100);
         var key = ItemCooldownKey.ForItem(8474);
         await using (var tx = f.Scope.Begin())
         {
@@ -175,16 +203,21 @@ public sealed class ApplyEffectsTests
         var f = new Inventory();
         var cooldowns = new OnlineCharacterRuntimeDomainService(new AdvanceableTimeProvider(Offline.At));
         var sessions = new Sessions();
+        cooldowns.Begin(sessions.Current, InTown, 100);
         var key = ItemCooldownKey.ForItem(8474);
         await using (var tx = f.Scope.Begin())
         {
             await f.Executor(new StartItemCooldownEffectHandler(cooldowns, f.Scope))
                 .ApplyAsync(Offline with { Session = sessions.Current }, [new StartItemCooldownEffect(key, TimeSpan.FromSeconds(10))], default);
+            // The replacement enters the world and begins its own record before the old commit lands.
             sessions.Current = sessions.Current with { ConnectionGeneration = 2 };
+            cooldowns.Begin(sessions.Current, InTown, 100);
             await tx.CommitAsync(default);
         }
         Assert.False(cooldowns.IsCoolingDown(Offline.CharacterId, key));
     }
+
+    private static readonly Dfo.Server.Data.Characters.CharacterPositionState InTown = new(1, 0, 0, 0, 0);
 
     private sealed class Inventory : FakeMainInventory
     {

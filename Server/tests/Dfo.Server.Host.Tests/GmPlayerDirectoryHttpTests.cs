@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -153,7 +154,7 @@ public sealed class GmPlayerDirectoryHttpTests
         var prepared = SelectedSessionIdentity.Create(new(40), new(40), user40.Connection.ConnectionId, user40.Generation, 21011);
         var selected = host.Services.GetRequiredService<ISelectedSessionDomainService>(); selected.Select(prepared);
         Assert.False((await GetAsync(host, "characters/40")).GetProperty("isOnline").GetBoolean());
-        host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(prepared);
+        host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(prepared);
         Assert.True(online.GetRequired(user40.OnlineUserId).Generation > prepared.ConnectionGeneration);
         var unplaced = await GetAsync(host, "characters/40"); Assert.True(unplaced.GetProperty("isOnline").GetBoolean());
         Assert.Equal("unavailable", unplaced.GetProperty("position").GetProperty("source").GetString());
@@ -233,7 +234,7 @@ public sealed class GmPlayerDirectoryHttpTests
     {
         var session = SelectedSessionIdentity.Create(new(account), new(character), user.Connection.ConnectionId, user.Generation, port);
         host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
-        host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnterWorld(session);
+        host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(session);
         host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(session, new(3, 4, 100, 200, 2), 100);
         return session;
     }
