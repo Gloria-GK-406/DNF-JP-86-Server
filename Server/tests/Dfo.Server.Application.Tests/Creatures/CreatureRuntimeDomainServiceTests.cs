@@ -111,7 +111,7 @@ public sealed class CreatureRuntimeDomainServiceTests
 
         var settled = await LeaveAfterAnHour(revoke: false);
         Assert.NotEqual(50L, settled.Stomach);
-        Assert.NotEqual(0L, settled.Experience);
+        Assert.Equal(100L, settled.Experience); // 90 seeded, plus the 10 queued for the room.
         Assert.Equal(settled, await LeaveAfterAnHour(revoke: true));
     }
 
