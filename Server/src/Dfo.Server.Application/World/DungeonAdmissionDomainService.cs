@@ -159,7 +159,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             var permit = (Permit)raw;
             if (owned.Options.ConsumesFatigue == true && (await fatigue.BalanceOfAsync(permit.Participant.CharacterId, ct).ConfigureAwait(false)).Remaining == 0)
                 return new(null, new(null, DungeonEntryFailure.InsufficientFatigue, permit.Participant.Slot));
-            if (permit.Selected is { } selected && sessions?.Find(selected.AccountId) != selected)
+            if (permit.Selected is { } selected && sessions?.IsInWorld(selected) != true)
                 return new(null, new(null, DungeonEntryFailure.MissingPrerequisite, permit.Participant.Slot));
             if (permit.Requirements.Length > 0)
             {
@@ -225,7 +225,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             || !ReferenceEquals(paid.Batch.Transaction, transactions?.Current) || paid.Batch.Context.DungeonId != dungeonId
             || !paid.Batch.Context.Participants.SequenceEqual(participants))
             throw new InvalidOperationException("Entry receipt is foreign, stale or already used.");
-        if (paid.Batch.Permits.Cast<Permit>().Any(x => x.Selected is { } selected && sessions?.Find(selected.AccountId) != selected))
+        if (paid.Batch.Permits.Cast<Permit>().Any(x => x.Selected is { } selected && sessions?.IsInWorld(selected) != true))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite, "Mirror participants changed during entry.");
         paid.Started = true;
         return null;

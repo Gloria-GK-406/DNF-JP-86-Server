@@ -75,7 +75,7 @@ internal sealed class SharedEffectHandler(ISelectedSessionDomainService sessions
                 messages.Add(effect); // The ACK alone never renders the caster's effect.
                 if (areas.Find(actor.CharacterId) is { } self && actor.Owns(self) && areas.Find(self.Area) is { } scene)
                     foreach (var member in scene.VisibleTo(actor.CharacterId).Where(x => x.CharacterId != actor.CharacterId))
-                        if (sessions.FindByCharacter(member.CharacterId) is { } peer && peer.Owns(member))
+                        if (sessions.TryGetInWorld(member.CharacterId, out var peer) && peer.Owns(member))
                             targets.Add(new(peer.ConnectionId, [effect]));
             }
             await sender.SendExplicitAsync(c.Connection.ConnectionId, new(messages, targets), ct).ConfigureAwait(false);

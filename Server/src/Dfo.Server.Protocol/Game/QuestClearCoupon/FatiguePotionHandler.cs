@@ -47,8 +47,7 @@ public sealed class FatiguePotionHandler(ISelectedSessionDomainService sessions,
             return;
         }
         await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
-        if (sessions.FindByCharacter(session.CharacterId) != session
-            || sessions.FindByConnection(session.ConnectionId) != session) return;
+        if (!sessions.IsInWorld(session)) return;
         OpeningInventoryReceipt receipt;
         try
         {

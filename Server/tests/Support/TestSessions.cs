@@ -27,7 +27,7 @@ internal static class TestSessions
 
     /// <summary>Registers, authenticates, selects and enters one game connection.</summary>
     public static SelectedSessionIdentity InWorld(
-        this SelectedSessionDomainService sessions,
+        this Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService sessions,
         OnlineStateRegistry state,
         AccountId accountId,
         CharacterId characterId,
@@ -41,7 +41,7 @@ internal static class TestSessions
 
     /// <summary>Registers, authenticates and selects one game connection, without entering it.</summary>
     public static SelectedSessionIdentity Selected(
-        this SelectedSessionDomainService sessions,
+        this Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService sessions,
         OnlineStateRegistry state,
         AccountId accountId,
         CharacterId characterId,
@@ -75,7 +75,7 @@ internal static class TestSessions
     /// generation the session carries. Only for sessions created at the authenticated generation.
     /// </summary>
     public static void EnterWorldWithConnection(
-        this SelectedSessionDomainService sessions,
+        this Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService sessions,
         OnlineStateRegistry state,
         SelectedSessionIdentity session)
     {
@@ -88,5 +88,23 @@ internal static class TestSessions
         if (sessions.Find(session.AccountId) != session)
             sessions.Select(session);
         sessions.EnterWorld(session);
+    }
+
+    /// <summary>
+    /// The same connection selects the same character again: the previous session is released
+    /// first, and the new one carries the generation the connection has reached by then.
+    /// </summary>
+    public static SelectedSessionIdentity ReselectOnSameConnection(
+        this Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService sessions,
+        OnlineStateRegistry state,
+        SelectedSessionIdentity previous)
+    {
+        sessions.ReleaseExact(previous);
+        if (!state.TryGetByConnection(previous.ConnectionId, out var owner) || owner is null)
+            throw new InvalidOperationException("The connection is no longer registered.");
+        var session = previous with { ConnectionGeneration = owner.Generation };
+        sessions.Select(session);
+        sessions.EnterWorld(session);
+        return session;
     }
 }

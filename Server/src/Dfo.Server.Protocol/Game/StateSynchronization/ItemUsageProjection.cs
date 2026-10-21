@@ -53,7 +53,7 @@ public sealed class ReadItemUsageSnapshotCommandHandler(IItemUsageDomainService 
     public async ValueTask<ItemUsageSnapshotResult> HandleAsync(CommandExecutionContext context,
         ReadItemUsageSnapshotCommand command, CancellationToken token)
     {
-        if (sessions.FindByCharacter(command.Session.CharacterId) != command.Session) return new([], false);
+        if (!sessions.IsInWorld(command.Session)) return new([], false);
         var at = clock.GetUtcNow();
         return new(await usage.GetSnapshotAtAsync(command.Session.CharacterId, at, token).ConfigureAwait(false), true) { At = at };
     }
@@ -64,12 +64,12 @@ public sealed class ItemUsageProjectionDelivery(ICommandBus commands, ISelectedS
     public async ValueTask SendAsync(SelectedSessionIdentity session, CancellationToken token)
     {
         var snapshot = await commands.SendAsync(new ReadItemUsageSnapshotCommand(session), token).ConfigureAwait(false);
-        if (!snapshot.IsCurrent || sessions.FindByCharacter(session.CharacterId) != session) return;
+        if (!snapshot.IsCurrent || !sessions.IsInWorld(session)) return;
         var messages = ItemUsageCountMessage.FullSnapshot(snapshot.Items).Cast<IGameNotiMessage>()
             .Concat(ItemUsageCooldownProjection.Snapshot(snapshot.Items, snapshot.At)).ToArray();
         foreach (var message in messages)
         {
-            if (sessions.FindByCharacter(session.CharacterId) != session) return;
+            if (!sessions.IsInWorld(session)) return;
             await sender.SendNotiAsync(session.ConnectionId, message, token).ConfigureAwait(false);
         }
     }
@@ -105,7 +105,7 @@ public sealed class ItemUsageDailyRefreshService(ISelectedSessionSnapshotQuery d
             try
             {
                 await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
-                if (sessions.FindByCharacter(session.CharacterId) != session) continue;
+                if (!sessions.IsInWorld(session)) continue;
                 await delivery.SendAsync(session, token).ConfigureAwait(false);
                 delivered[session] = period;
             }

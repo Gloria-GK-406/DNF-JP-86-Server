@@ -52,7 +52,7 @@ internal sealed class ReviveCoinDomainService(IReviveCoinRuleService rules, IIte
 
     public async ValueTask<DailyReviveCoinResult> ClaimAsync(SelectedSessionIdentity session, CancellationToken ct)
     {
-        if (sessions.FindByCharacter(session.CharacterId) != session) return new(false, false);
+        if (!sessions.IsInWorld(session)) return new(false, false);
         var at = clock.GetUtcNow();
         var period = rules.Period(at);
         var previous = await quotas.ReadAsync(session.CharacterId, UsageQuotaKey.ReviveCoin(period), ct).ConfigureAwait(false);

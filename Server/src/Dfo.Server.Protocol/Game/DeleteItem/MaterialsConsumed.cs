@@ -18,7 +18,7 @@ public sealed class MaterialsConsumedHandler(ISelectedSessionDomainService sessi
     {
         if (recipient.CharacterId != notification.Session.CharacterId
             || recipient.ConnectionId != notification.Session.ConnectionId
-            || sessions.Find(notification.Session.AccountId) != notification.Session)
+            || !sessions.IsInWorld(notification.Session))
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         var debit = notification.Debit;
         var slot = projection.Project(debit.Cost.Slot);

@@ -216,7 +216,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
     }
 
     private DungeonRunState? CurrentRun(SelectedSessionIdentity session, DungeonRunId runId) =>
-        sessions.FindByCharacter(session.CharacterId) == session && dungeonRuns.Find(session.CharacterId) is { } run
+        sessions.IsInWorld(session) && dungeonRuns.Find(session.CharacterId) is { } run
         && run.RunId == runId && run.Layout.Tournament is not null ? run : null;
 
     private void Put(TournamentDungeonState state)

@@ -89,7 +89,9 @@ internal sealed class ClientSettingsDomainService(IClientSettingsTable table,
         users.TryGetByConnection(origin.Connection.ConnectionId, out var user)
         && user is not null && user.SessionIdentity == origin.Connection
         && user.AccountId == origin.AccountId && user.Generation == origin.Generation
-        && sessions.FindByConnection(origin.Connection.ConnectionId) == origin.SelectedSession
+        && (origin.SelectedSession is { } session
+            ? session.ConnectionId == origin.Connection.ConnectionId && sessions.IsSelected(session)
+            : sessions.FindByConnection(origin.Connection.ConnectionId) is null)
         && (origin.SelectedSession is not { } selected || selected.AccountId == origin.AccountId);
 
     private void DemandTransaction()

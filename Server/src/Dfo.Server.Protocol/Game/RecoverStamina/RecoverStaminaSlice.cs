@@ -78,12 +78,9 @@ public sealed class RecoverStaminaCommandHandler(
     {
         var session = command.Session;
         // The requested payment mode does not establish entitlement.
-        if (command.Mode > 1 || sessions.FindByConnection(session.ConnectionId) != session
-            || sessions.FindByCharacter(session.CharacterId) != session
+        if (command.Mode > 1 || !sessions.IsInWorld(session)
             || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.OnlineUserId != command.OnlineUserId || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId || runs.Find(session.CharacterId) is not null
+            || online?.OnlineUserId != command.OnlineUserId || runs.Find(session.CharacterId) is not null
             || towers?.IsInTower(session.CharacterId) == true)
             return new(4);
 
@@ -123,7 +120,7 @@ public sealed class StaminaRecoveredHandler(ISelectedSessionDomainService sessio
         ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
             recipient.CharacterId == notification.Session.CharacterId
             && recipient.ConnectionId == notification.Session.ConnectionId
-            && sessions.FindByCharacter(notification.Session.CharacterId) == notification.Session
+            && sessions.IsInWorld(notification.Session)
                 ? notification.Entitlements is { } entitlements
                     ? [new WeaknessProjectionNotification(100), new RecoverStaminaResponse(Gold: notification.Gold),
                         new PremiumServiceStateMessage(entitlements, notification.Usage ?? [], notification.PreparedAt)]
@@ -146,8 +143,7 @@ public sealed class RecoverStaminaHandler(
         if (session is null) return;
         await using var transition = await transitions.AcquireAsync(session.AccountId,
             UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
-        if (sessions.FindByConnection(connection) != session
-            || sessions.FindByCharacter(session.CharacterId) != session) return;
+        if (!sessions.IsInWorld(session)) return;
         RecoverStaminaResult result;
         try
         {

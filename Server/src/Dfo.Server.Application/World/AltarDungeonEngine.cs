@@ -86,7 +86,7 @@ internal sealed class AltarDungeonEngine(IAltarDungeonRuleService rules,
         ct.ThrowIfCancellationRequested();
         var run = runs.Find(runId);
         var state = Find(store, runId);
-        if (state is null || run is null || run.RoomVersion != roomVersion || sessions.FindByCharacter(session.CharacterId) != session
+        if (state is null || run is null || run.RoomVersion != roomVersion || !sessions.IsInWorld(session)
             || !run.ReadyParticipants.Contains(session.CharacterId)
             || !run.Participants.Any(x => x.CharacterId == session.CharacterId && x.IsLeader)
             || state.PreparationRequested
@@ -202,7 +202,7 @@ internal sealed class AltarDungeonEngine(IAltarDungeonRuleService rules,
         var state = Find(store, runId);
         if (run is null || state?.Status != AltarStatus.ChoosingDifficulty || state.RoomVersion != roomVersion
             || run.RoomVersion != roomVersion || state.Generation != generation || difficulty is not (1 or 2)
-            || state.NextDeadline <= clock.GetUtcNow() || sessions.FindByCharacter(session.CharacterId) != session
+            || state.NextDeadline <= clock.GetUtcNow() || !sessions.IsInWorld(session)
             || !run.Participants.Any(x => x.CharacterId == session.CharacterId && x.IsLeader)) return ValueTask.FromResult<AltarActionResult?>(null);
         return ValueTask.FromResult<AltarActionResult?>(StartRound(store, state with { Difficulty = difficulty }, clock.GetUtcNow(), true));
     }

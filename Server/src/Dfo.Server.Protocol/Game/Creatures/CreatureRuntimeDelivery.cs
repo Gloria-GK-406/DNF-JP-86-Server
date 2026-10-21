@@ -36,7 +36,7 @@ public sealed class CreatureProjectionDelivery(ISelectedSessionDomainService ses
     public async ValueTask<bool> SendVisibleAsync(SelectedSessionIdentity owner, IGameNotiMessage notification,
         CancellationToken ct)
     {
-        if (sessions.FindByCharacter(owner.CharacterId) != owner) return false;
+        if (!sessions.IsInWorld(owner)) return false;
         IEnumerable<SelectedSessionIdentity> receivers;
         Guid? towerRunId = null;
         if (towers?.Find(owner) is { } tower)
@@ -50,17 +50,17 @@ public sealed class CreatureProjectionDelivery(ISelectedSessionDomainService ses
                 ?? (towns.Find(owner.CharacterId) is { } member
                     ? towns.Find(member.Area)?.VisibleTo(owner.CharacterId).Select(x => x.CharacterId) : null) ?? [];
             receivers = new[] { owner.CharacterId }.Concat(audience).Distinct()
-                .Select(sessions.FindByCharacter).OfType<SelectedSessionIdentity>();
+                .Select(id => sessions.TryGetInWorld(id, out var inWorld) ? inWorld : null).OfType<SelectedSessionIdentity>();
         }
         var ownerDelivered = true;
         foreach (var receiver in receivers)
         {
             if (towerRunId is { } expectedRun
-                && (sessions.FindByCharacter(owner.CharacterId) != owner
+                && (!sessions.IsInWorld(owner)
                     || towers?.Find(owner)?.RunId != expectedRun))
                 break;
             if (towerRunId is not null
-                && (sessions.FindByCharacter(receiver.CharacterId) != receiver
+                && (!sessions.IsInWorld(receiver)
                     || towers?.Find(receiver)?.RunId != towerRunId))
                 continue;
             try
@@ -76,7 +76,7 @@ public sealed class CreatureProjectionDelivery(ISelectedSessionDomainService ses
                     receiver.CharacterId);
                 try
                 {
-                    if (sessions.FindByCharacter(receiver.CharacterId) == receiver)
+                    if (sessions.IsInWorld(receiver))
                         await connections.RequestCloseAsync(receiver.ConnectionId, CancellationToken.None)
                             .ConfigureAwait(false);
                 }
@@ -94,7 +94,7 @@ public sealed class CreatureProjectionDelivery(ISelectedSessionDomainService ses
     public async ValueTask SendAsync(SelectedSessionIdentity owner,
         IReadOnlyList<CreatureRuntimeChange> changes, CancellationToken ct)
     {
-        if (sessions.FindByCharacter(owner.CharacterId) != owner) return;
+        if (!sessions.IsInWorld(owner)) return;
         foreach (var change in changes)
         {
             var pet = change.After;
@@ -154,7 +154,7 @@ public sealed class CreatureClockService(ICreatureRuntimeDomainService creatures
                     {
                         await using var lease = await transitions.AcquireAsync(session.AccountId,
                             UserAccessMode.Exclusive, stoppingToken).ConfigureAwait(false);
-                        if (sessions.FindByCharacter(session.CharacterId) != session) continue;
+                        if (!sessions.IsInWorld(session)) continue;
                         await commands.SendAsync(new AdvanceCreatureClockCommand(session), stoppingToken)
                             .ConfigureAwait(false);
                     }
@@ -174,7 +174,7 @@ public sealed class CreatureClockService(ICreatureRuntimeDomainService creatures
                     catch (Exception exception)
                     {
                         logger.LogWarning(exception, "Creature projection failed character={CharacterId}; closing the exact connection for authoritative reload", projection.Session.CharacterId);
-                        if (sessions.FindByCharacter(projection.Session.CharacterId) == projection.Session)
+                        if (sessions.IsInWorld(projection.Session))
                             await connections.RequestCloseAsync(projection.Session.ConnectionId, stoppingToken).ConfigureAwait(false);
                     }
             }

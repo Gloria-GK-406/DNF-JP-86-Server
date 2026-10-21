@@ -38,7 +38,7 @@ public sealed class ApplyObjectDestructionCommandHandler(
         if (context.ExecutionKind != CommandExecutionKind.Transactional)
             throw new InvalidOperationException("Object rewards require one transaction.");
         var session = command.Session;
-        if (sessions.FindByConnection(session.ConnectionId) != session)
+        if (!sessions.IsInWorld(session))
             return new(null);
         var run = runs.Find(session.CharacterId);
         if (run is null || run.RunId != command.RunId || run.RoomVersion != command.RoomVersion)
@@ -48,7 +48,7 @@ public sealed class ApplyObjectDestructionCommandHandler(
         if (!command.Recipients.Contains(session)
             || command.Recipients.Count != run.Participants.Count
             || command.Recipients.Select(value => value.CharacterId).Distinct().Count() != command.Recipients.Count
-            || command.Recipients.Any(recipient => sessions.FindByConnection(recipient.ConnectionId) != recipient
+            || command.Recipients.Any(recipient => !sessions.IsInWorld(recipient)
                 || runs.Find(recipient.CharacterId) is not { } memberRun
                 || memberRun.RunId != command.RunId || memberRun.RoomVersion != command.RoomVersion
                 || !run.Participants.Any(member => member.CharacterId == recipient.CharacterId

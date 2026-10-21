@@ -50,7 +50,7 @@ public sealed class ChangeSkillSlotHandler(ISelectedSessionDomainService session
         var success = false;
         if (session is not null && users.TryGetByConnection(context.Connection.ConnectionId, out var user) && user is not null)
             success = await commands.SendAsync(new ChangeSkillSlotCommand(user.OnlineUserId, session, message.Page, message.First, message.Second), ct);
-        if (session is not null && sessions.FindByConnection(context.Connection.ConnectionId) != session) return;
+        if (session is not null && !sessions.IsInWorld(session)) return;
         await sender.SendCmdAsync(context.Connection.ConnectionId, new ChangeSkillSlotResponse(success, message.Page, message.First, message.Second), ct);
     }
 }

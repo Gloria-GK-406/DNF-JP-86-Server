@@ -20,7 +20,7 @@ internal sealed class VendingMachineDomainService(IVendingMachineDefinitionSourc
     {
         _ = transactions.Current ?? throw new InvalidOperationException("Vending requires a transaction.");
         var now = clock.GetUtcNow();
-        if (sessions.Find(session.AccountId) != session || towns.Find(session.CharacterId) is null)
+        if (!sessions.IsInWorld(session) || towns.Find(session.CharacterId) is null)
             throw new OpeningRejectedException(OpeningRejection.NoSession, "Vending requires a current town character.");
         var definition = definitions.GetRequired(machineId, groupId);
         if (!await premiums.For(session.AccountId).IsActiveAsync(PremiumServiceType.BlackDiamond, cancellationToken).ConfigureAwait(false))

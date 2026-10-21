@@ -264,6 +264,23 @@ public sealed class NpcShopPurchaseTests
     }
 
     [Fact]
+    public async Task A_purchase_after_the_connection_is_revoked_is_refused_before_teardown()
+    {
+        using var shop = new ShopFixture();
+        await shop.Seed(121, 1000, 100, 3);
+        Assert.True(shop.Services.GetRequiredService<OnlineStateRegistry>()
+            .TryDisconnectConnection(shop.Connection.ConnectionId));
+
+        // The selection is still there, waiting for its teardown, but it is no longer valid.
+        Assert.NotNull(shop.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(shop.Session));
+        var rejected = await shop.Command(2000, 1);
+
+        Assert.Equal(NpcShopRejection.NoSession, rejected.Rejection);
+        Assert.Equal(100000, shop.Gold);
+        Assert.Equal(0, shop.Count(2000));
+    }
+
+    [Fact]
     public async Task Explicit_daily_reset_allows_a_purchase_in_the_new_period()
     {
         using var shop = new ShopFixture();

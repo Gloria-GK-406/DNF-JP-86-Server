@@ -80,8 +80,6 @@ internal sealed class UserDomainServices
 
     public bool ClearExact(SelectedSessionIdentity session) => Sessions.ReleaseExact(session);
 
-    public bool IsActiveExact(SelectedSessionIdentity session) => online.IsActiveExact(session);
-
     public bool TryObserve(GameSessionIdentity session, SessionEndpoint endpoint) =>
         endpoints.TryObserve(session, endpoint);
 

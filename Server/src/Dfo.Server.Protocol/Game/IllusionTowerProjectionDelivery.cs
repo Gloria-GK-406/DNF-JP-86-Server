@@ -117,7 +117,7 @@ public sealed class IllusionTowerProjectionDelivery(
 
                 foreach (var member in attachments.Where(value => value.Session != requester))
                 {
-                    if (sessions.FindByCharacter(member.Session.CharacterId) == member.Session)
+                    if (sessions.IsInWorld(member.Session))
                         entryIntents.Consume(member.Session);
                 }
 
@@ -473,7 +473,7 @@ public sealed class IllusionTowerProjectionDelivery(
                 if (exact.Count > 0 && action.SettlementCreated && captured.Completion is { Settled: true })
                     failures.AddRange(await ProjectActionAsync(action, null, token).ConfigureAwait(false));
                 if (returning is not null
-                    && sessions.FindByCharacter(returning.CharacterId) == returning
+                    && sessions.IsInWorld(returning)
                     && !towers.IsInTower(returning.CharacterId))
                     await ReturnMembersIsolatedAsync([returning], response, failures, token, captured.DungeonId == 11000).ConfigureAwait(false);
             }
@@ -677,7 +677,7 @@ public sealed class IllusionTowerProjectionDelivery(
         var entries = new List<TownAreaEntry>();
         foreach (var member in returning.Distinct())
         {
-            if (sessions.FindByCharacter(member.CharacterId) != member) continue;
+            if (!sessions.IsInWorld(member)) continue;
             try
             {
                 var runtime = await currentViews.TryLoadAsync(member, token).ConfigureAwait(false);
@@ -726,7 +726,7 @@ public sealed class IllusionTowerProjectionDelivery(
         var result = new List<(SelectedSessionIdentity, SelectCharacterResult, byte)>();
         foreach (var member in roster.Members.OrderBy(value => value.Slot))
         {
-            var current = sessions.FindByCharacter(member.CharacterId);
+            var current = sessions.TryGetInWorld(member.CharacterId, out var inWorld) ? inWorld : null;
             var runtime = current is null ? null : await currentViews.TryLoadAsync(current, token).ConfigureAwait(false);
             if (current is null || runtime is null || current.AccountId != member.Character.AccountId
                 || current.WireUserId != member.WireUserId || member.Slot > 3
@@ -740,7 +740,7 @@ public sealed class IllusionTowerProjectionDelivery(
 
     private bool Current(IReadOnlyList<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)> members,
         IllusionTowerSnapshot? run = null) => members.All(value =>
-        sessions.FindByCharacter(value.Session.CharacterId) == value.Session
+        sessions.IsInWorld(value.Session)
         && (run is null || towers.Find(value.Session) is { } current
             && current.RunId == run.RunId && current.Room.Version == run.Room.Version));
 
@@ -760,14 +760,13 @@ public sealed class IllusionTowerProjectionDelivery(
     }
 
     private bool Exact(SelectedSessionIdentity session, IllusionTowerSnapshot expected) =>
-        sessions.FindByConnection(session.ConnectionId) == session
-        && sessions.FindByCharacter(session.CharacterId) == session
+        sessions.IsInWorld(session)
         && towers.Find(session) is { } current
         && current.RunId == expected.RunId && current.Room.Version == expected.Room.Version;
 
     private IReadOnlyList<SelectedSessionIdentity> ExactMembers(IllusionTowerSnapshot run) =>
         run.Members.OrderBy(value => value.Slot).Select(value => value.Session)
-            .Where(member => sessions.FindByCharacter(member.CharacterId) == member
+            .Where(member => sessions.IsInWorld(member)
                 && towers.Find(member) is { } current
                 && current.RunId == run.RunId
                 && current.Room.Version == run.Room.Version).ToArray();
@@ -776,7 +775,7 @@ public sealed class IllusionTowerProjectionDelivery(
     {
         foreach (var member in captured.Members.OrderBy(value => value.Slot))
         {
-            if (sessions.FindByCharacter(member.Session.CharacterId) != member.Session)
+            if (!sessions.IsInWorld(member.Session))
                 continue;
             if (towers.Find(member.Session) is { } current
                 && current.RunId == captured.RunId
@@ -852,7 +851,7 @@ public sealed class IllusionTowerProjectionDelivery(
 
     private async ValueTask CloseQuietlyAsync(SelectedSessionIdentity session)
     {
-        if (sessions.FindByCharacter(session.CharacterId) != session)
+        if (!sessions.IsInWorld(session))
             return;
         try { await connections.RequestCloseAsync(session.ConnectionId, CancellationToken.None).ConfigureAwait(false); }
         catch (Exception error) { logger.LogWarning(error, "Failed to close tower session {ConnectionId}", session.ConnectionId); }

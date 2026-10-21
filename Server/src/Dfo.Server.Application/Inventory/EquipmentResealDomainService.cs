@@ -9,7 +9,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentResealDomainService(ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers, IBusinessInventorySlotDomainService slots,
+    IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipment, IEquipmentResealRuleService rules, IItemLifecycleDomainService lifecycle,
     IDomainTransactionAccessor transactions, TimeProvider clock) : IEquipmentResealDomainService
 {
@@ -17,9 +17,7 @@ internal sealed class EquipmentResealDomainService(ISelectedSessionDomainService
         BusinessSlot targetSlot, int expectedItemId, BusinessSlot materialSlot, CancellationToken ct)
     {
         _ = transactions.Current ?? throw new InvalidOperationException("Equipment resealing requires a transaction.");
-        if (sessions.Find(session.AccountId) != session || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive } || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId) return new(EquipmentQualityRejection.NoSession);
+        if (!sessions.IsInWorld(session)) return new(EquipmentQualityRejection.NoSession);
         if (targetSlot.Space != BusinessInventorySpace.CarriedEquipment || expectedItemId <= 0
             || materialSlot.Space is not (BusinessInventorySpace.QuickSlot or BusinessInventorySpace.Consumable))
             return new(EquipmentQualityRejection.InvalidRequest);

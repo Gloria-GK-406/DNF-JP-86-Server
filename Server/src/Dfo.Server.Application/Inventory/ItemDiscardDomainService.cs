@@ -10,7 +10,6 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class ItemDiscardDomainService(
     ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
     IItemDiscardRuleService rules, IItemLifecycleDomainService lifecycle) : IItemDiscardDomainService
 {
@@ -24,11 +23,7 @@ internal sealed class ItemDiscardDomainService(
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(ItemDiscardRejection.NoSession);
 
         var requestRejection = rules.ValidateRequest(

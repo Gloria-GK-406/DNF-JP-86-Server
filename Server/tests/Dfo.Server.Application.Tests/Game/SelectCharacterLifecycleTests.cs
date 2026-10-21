@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
@@ -1275,6 +1276,13 @@ public sealed partial class SelectCharacterLifecycleTests
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => inner.FindByConnection(connectionId);
         public SelectedSessionStanding? StandingOf(SelectedSessionIdentity session) => inner.StandingOf(session);
         public bool IsInWorld(SelectedSessionIdentity session) => inner.IsInWorld(session);
+        public bool IsSelected(SelectedSessionIdentity session) => inner.IsSelected(session);
+        public bool TryGetInWorld(CharacterId characterId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+            inner.TryGetInWorld(characterId, out session);
+        public bool TryGetInWorld(ushort wireUserId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+            inner.TryGetInWorld(wireUserId, out session);
+        public bool TryGetInWorld(NetworkConnectionId connectionId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+            inner.TryGetInWorld(connectionId, out session);
     }
 
     private sealed class RecordingCleanup(

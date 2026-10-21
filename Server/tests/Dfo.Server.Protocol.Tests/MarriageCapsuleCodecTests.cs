@@ -20,13 +20,14 @@ public sealed class MarriageCapsuleCodecTests
         new Dfo.Server.Application.ApplicationModule().ConfigureServices(services,new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
         using var provider=Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(services);
         var sessions=Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(provider);
-        var actor=Dfo.Server.Data.World.SelectedSessionIdentity.Create(new(1),new(1),new("capsule"),1,10011);sessions.Select(actor);
+        var state=Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>(provider);
+        var actor=Dfo.Server.Testing.TestSessions.InWorld(sessions,state,new(1),new(1),"capsule");
         var recipient=new Dfo.Server.Abstractions.Notifications.NotificationRecipient(actor.CharacterId,actor.ConnectionId,actor);
         var handler=new CapsuleEnergyRefreshHandler(sessions,new CapsuleQuery());
         Assert.Equal(0,Assert.IsType<CapsuleEnergyMessage>(Assert.Single(await handler.ComposeAsync(recipient,new(10),default))).Energy);
         var refreshed=Assert.IsType<CapsuleStateMessage>(Assert.Single(await new CapsuleRefreshHandler(sessions,new CapsuleQuery()).ComposeAsync(recipient,new(new(new(10,7,3))),default)));
         Assert.Equal(new(0,1,0),refreshed.Snapshot.State);
-        sessions.Select(Dfo.Server.Data.World.SelectedSessionIdentity.Create(actor.AccountId,actor.CharacterId,actor.ConnectionId,2,10011));
+        _=Dfo.Server.Testing.TestSessions.ReselectOnSameConnection(sessions,state,actor);
         Assert.Empty(await handler.ComposeAsync(recipient,new(10),default));
     }
     [Theory]

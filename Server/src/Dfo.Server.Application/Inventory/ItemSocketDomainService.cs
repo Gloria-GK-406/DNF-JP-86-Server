@@ -12,7 +12,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class ItemSocketDomainService(ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers, IBusinessInventorySlotDomainService slots,
+    IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments, IAvatarDomainService avatars, IItemSocketRuleService rules,
     IItemLifecycleDomainService lifecycle, IDomainTransactionAccessor transactions,
     IRequestReplayProjectionDomainService replay, IEventService events, TimeProvider clock) : IItemSocketDomainService
@@ -20,10 +20,7 @@ internal sealed class ItemSocketDomainService(ISelectedSessionDomainService sess
     public async ValueTask<ItemSocketResult> ApplyAsync(SelectedSessionIdentity session, ItemSocketInput input, CancellationToken ct)
     {
         _ = transactions.Current ?? throw new InvalidOperationException("Socket operations require a transaction.");
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(ItemSocketRejection.NoSession);
         if (input.Avatar ? input.Target.Space is not (BusinessInventorySpace.Avatar or BusinessInventorySpace.WornAvatar)
             : input.Target.Space != BusinessInventorySpace.CarriedEquipment)

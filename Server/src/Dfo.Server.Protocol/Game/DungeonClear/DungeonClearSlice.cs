@@ -248,7 +248,7 @@ public sealed class GiveUpGameHandler(
                 // helper hides their frames from the command pipeline and deadlocks its borrow.
                 foreach (var account in accounts)
                     leases.Add(await transitionGate.AcquireAsync(account, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
-                if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session)
+                if (!selectedSessions.IsInWorld(session))
                     return;
                 if (towerParties?.HasInvolvedTower(session) == true || bossParties?.HasInvolvedTower(session) == true
                     || runs.Find(session.CharacterId)?.RunId != expectedRun?.RunId)
@@ -846,7 +846,7 @@ public sealed class SetPlayResultHandler(
         // saying so pays experience -- so a repeated report would be a repeated payment. The same
         // guard a kill has, for the same reason, and the run is left in progress either way: what
         // ends it is the character walking out.
-        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+        if (!selectedSessions.IsInWorld(session))
             return;
 
         var settlementClaim = runs.TryClaimSettlement(session.CharacterId, currentRun.RunId);

@@ -22,9 +22,8 @@ public sealed class MailboxCommandHandler(ISelectedSessionDomainService sessions
     public async ValueTask<MailboxResult> HandleAsync(CommandExecutionContext context, MailboxCommand command, CancellationToken token)
     {
         var s = command.Session;
-        if (sessions.FindByConnection(s.ConnectionId) != s || sessions.FindByCharacter(s.CharacterId) != s
-            || !users.TryGetByConnection(s.ConnectionId, out var user) || user is not { State: OnlineUserState.CharacterActive }
-            || user.OnlineUserId != command.OnlineUserId || user.AccountId != s.AccountId || user.CurrentCharacterId != s.CharacterId)
+        if (!sessions.IsInWorld(s)
+            || !users.TryGetByConnection(s.ConnectionId, out var user) || user?.OnlineUserId != command.OnlineUserId)
             throw new MailException(MailFailure.NotOwned, "Stale mail session.");
         switch (command.Operation)
         {

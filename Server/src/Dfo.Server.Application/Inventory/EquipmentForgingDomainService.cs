@@ -11,7 +11,6 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentForgingDomainService(
     ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
     IEquipmentEffectPlanRuleService rules,
@@ -24,11 +23,7 @@ internal sealed class EquipmentForgingDomainService(
         BusinessSlot targetSlot, int expectedTargetItemId, BusinessSlot materialSlot,
         CancellationToken ct)
     {
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(EquipmentForgingRejection.NoSession);
         if (targetSlot.Space is not (BusinessInventorySpace.CarriedEquipment
                 or BusinessInventorySpace.WornEquipment

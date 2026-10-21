@@ -245,8 +245,7 @@ public sealed class BackToVillageHandler(
 
         var returning = (await ResolveReturningMembersAsync(session, result, position, cancellationToken)
                 .ConfigureAwait(false))
-            .Where(value => selectedSessions.FindByCharacter(value.Session.CharacterId)
-                == value.Session)
+            .Where(value => selectedSessions.IsInWorld(value.Session))
             .ToArray();
         var requester = returning.SingleOrDefault(value => value.Session == session);
         if (requester is null)
@@ -259,8 +258,7 @@ public sealed class BackToVillageHandler(
         try
         {
             returning = returning
-                .Where(value => selectedSessions.FindByCharacter(value.Session.CharacterId)
-                    == value.Session)
+                .Where(value => selectedSessions.IsInWorld(value.Session))
                 .ToArray();
             requester = returning.SingleOrDefault(value => value.Session == session);
             if (requester is null)
@@ -356,7 +354,7 @@ public sealed class BackToVillageHandler(
 
         foreach (var member in party.Members.OrderBy(value => value.Slot))
         {
-            var current = selectedSessions.FindByCharacter(member.CharacterId);
+            var current = selectedSessions.TryGetInWorld(member.CharacterId, out var inWorld) ? inWorld : null;
             var runtime = current is null ? null
                 : await currentViews.TryLoadAsync(current, cancellationToken).ConfigureAwait(false);
             if (current is null
@@ -617,7 +615,7 @@ public sealed class EnterSelectDungeonHandler(
             attached.Select(x => x.Session.AccountId), cancellationToken).ConfigureAwait(false);
         var latestRoster = parties.FindParty(requesterCharacter);
         if (latestRoster.Generation != roster.Generation || latestRoster.Revision != roster.Revision
-            || attached.Any(x => selectedSessions.FindByCharacter(x.Session.CharacterId) != x.Session))
+            || attached.Any(x => !selectedSessions.IsInWorld(x.Session)))
             return;
         var intent = message.Selection == 0
             ? DungeonEntryIntent.Interactive
@@ -710,10 +708,10 @@ public sealed class EnterSelectDungeonHandler(
             deliveries.Add((member.Session, notifications));
         }
 
-        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+        if (!selectedSessions.IsInWorld(session))
             return;
         deliveries = deliveries
-            .Where(value => selectedSessions.FindByCharacter(value.Session.CharacterId) == value.Session)
+            .Where(value => selectedSessions.IsInWorld(value.Session))
             .ToList();
         var direct = deliveries.SingleOrDefault(value => value.Session == session);
         if (direct == default)
@@ -765,7 +763,7 @@ public sealed class EnterSelectDungeonHandler(
         var members = new List<(SelectedSessionIdentity, SelectCharacterResult)>();
         foreach (var member in roster.Members.OrderBy(value => value.Slot))
         {
-            var current = selectedSessions.FindByCharacter(member.CharacterId);
+            var current = selectedSessions.TryGetInWorld(member.CharacterId, out var inWorld) ? inWorld : null;
             var runtime = current is null ? null
                 : await currentViews.TryLoadAsync(current, cancellationToken).ConfigureAwait(false);
             if (current is null

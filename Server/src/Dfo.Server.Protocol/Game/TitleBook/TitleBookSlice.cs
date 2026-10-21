@@ -157,7 +157,7 @@ public sealed class QueryTitleBookCommandHandler(ITitleBookDomainService titles,
 {
     public async ValueTask<IReadOnlyList<CharacterTitleBookCategoryState>> HandleAsync(CommandExecutionContext context, QueryTitleBookCommand command, CancellationToken ct)
     {
-        if (command.Target.ListenerPort != command.Session.ListenerPort || sessions.FindByCharacter(command.Target.CharacterId) != command.Target) return [];
+        if (command.Target.ListenerPort != command.Session.ListenerPort || !sessions.IsInWorld(command.Target)) return [];
         return await titles.GetAsync(command.Target.CharacterId, ct).ConfigureAwait(false);
     }
 }
@@ -168,11 +168,11 @@ public sealed class QueryTitleBookHandler(ISelectedSessionDomainService sessions
     {
         if (!message.Complete || message.Owner == ushort.MaxValue) return;
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        var target = sessions.FindByWireUserId(message.Owner);
+        var target = sessions.TryGetInWorld(message.Owner, out var inWorld) ? inWorld : null;
         if (session is null || target is null || target.ListenerPort != session.ListenerPort
             || !users.TryGetByConnection(context.Connection.ConnectionId, out var user) || user is null) return;
         var rows = await commands.SendAsync(new QueryTitleBookCommand(user.OnlineUserId, session, target), ct).ConfigureAwait(false);
-        if (sessions.FindByCharacter(target.CharacterId) != target || sessions.FindByConnection(session.ConnectionId) != session) return;
+        if (!sessions.IsInWorld(target) || !sessions.IsInWorld(session)) return;
         await sender.SendExplicitAsync(session.ConnectionId, new([.. rows.Select(x => (IGameServerMessage)new TitleBookStateMessage(x with { InfoType = 1, OwnerId16 = target.WireUserId }))], []), ct).ConfigureAwait(false);
     }
 }
@@ -213,7 +213,7 @@ internal sealed class TitleBookChangedHandler(ITitleBookDomainService titles, IS
         if (notification.Unlock is { } unlock) messages.Add(new TitleUnlockedMessage(unlock));
         // ACK completes before committed equipment and silent book snapshots are delivered.
         var changedType = notification.ChangedContainer ?? (notification.ChangedSlot is { } changed ? slots.Project(changed).Space : (InventoryContainerType?)null);
-        if (changedType is { } type && sessions.FindByConnection(recipient.ConnectionId) is { } session
+        if (changedType is { } type && sessions.TryGetInWorld(recipient.ConnectionId, out var session)
             && await views.TryLoadAsync(session, ct).ConfigureAwait(false) is { } current)
         {
             var types = notification.RefreshCarriedInventory ? new[] { type, InventoryContainerType.Main } : new[] { type };

@@ -264,7 +264,7 @@ public sealed class UseStackableCommandHandler(
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        if (sessions.FindByCharacter(command.CharacterId) != command.Session)
+        if (!sessions.IsInWorld(command.Session))
             return ItemUseResult.Refused(ItemUseStatus.NoSession);
 
         if (!command.Slot.Space.IsCarriedItemSpace()

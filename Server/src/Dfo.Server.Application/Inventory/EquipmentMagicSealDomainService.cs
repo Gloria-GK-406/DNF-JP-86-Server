@@ -12,7 +12,6 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentMagicSealDomainService(
     ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers,
     IEquipmentDomainService equipments,
     IEquipmentEffectPlanRuleService rules,
     IApplyEffectsDomainService effects,
@@ -34,11 +33,7 @@ internal sealed class EquipmentMagicSealDomainService(
         SelectedSessionIdentity session, BusinessSlot targetSlot, BusinessSlot? materialSlot,
         byte? changeIndex, CancellationToken ct)
     {
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(EquipmentMagicSealRejection.NoSession);
         if (targetSlot.Space != BusinessInventorySpace.CarriedEquipment
             || materialSlot is not null)

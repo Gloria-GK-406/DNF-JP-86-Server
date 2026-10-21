@@ -18,7 +18,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Application.Creatures;
 namespace Dfo.Server.Application.Inventory;
 internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers, ICharacterTable characters,
+    ICharacterTable characters,
     ICharacterBusinessInventoryDomainService businessInventories, IItemDomainStore store,
     IBusinessInventorySlotDomainService slots,
     IDomainTransactionAccessor transactions, ICharacterInventoryEntryDomainService inventory,
@@ -29,10 +29,7 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
     public async ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken ct)
     {
         _ = transactions.Current ?? throw new InvalidOperationException("Opening requires a transaction.");
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId
+        if (!sessions.IsInWorld(session)
             || !await characters.BelongsToAsync(session.CharacterId, session.AccountId, ct).ConfigureAwait(false))
             throw new OpeningRejectedException(OpeningRejection.NoSession, "No current owned selection.");
         var bag = businessInventories.GetStore(session.CharacterId, BusinessInventoryOwnership.StoreOf(slot.Space))

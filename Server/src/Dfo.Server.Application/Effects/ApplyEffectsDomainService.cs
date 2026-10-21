@@ -33,7 +33,7 @@ internal sealed class ApplyEffectsDomainService(IEnumerable<IEffectHandler> hand
             throw new InvalidOperationException("Effect character does not belong to this account.");
         if (context.Session is { } session &&
             (session.AccountId != context.AccountId || session.CharacterId != context.CharacterId
-                || sessions.FindByCharacter(context.CharacterId) != session))
+                || !sessions.IsInWorld(session)))
             throw new InvalidOperationException("Effect session disagrees with its owner.");
         var work = effects.Select(effect => (Effect: effect,
             Handler: registered.TryGetValue(effect.GetType(), out var handler) ? handler

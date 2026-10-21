@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -238,22 +239,45 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
                 : null;
     }
 
+    public bool IsSelected(SelectedSessionIdentity session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        lock (sync) return FindExact(session) is { } selection && !IsRevoked(selection);
+    }
+
     public bool IsInWorld(SelectedSessionIdentity session)
     {
         ArgumentNullException.ThrowIfNull(session);
-        lock (sync) return FindExact(session)?.Phase == SelectedSessionPhase.InWorld;
+        lock (sync) return FindExact(session) is { } selection && InWorld(selection);
     }
 
-    public bool IsActiveExact(SelectedSessionIdentity session)
+    public bool TryGetInWorld(CharacterId characterId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+        TryGetInWorld(value => value.CharacterId == characterId, out session);
+
+    public bool TryGetInWorld(ushort wireUserId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+        TryGetInWorld(value => value.WireUserId == wireUserId, out session);
+
+    public bool TryGetInWorld(NetworkConnectionId connectionId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+        TryGetInWorld(value => value.ConnectionId == connectionId, out session);
+
+    private bool TryGetInWorld(Func<SelectedSessionIdentity, bool> key, [NotNullWhen(true)] out SelectedSessionIdentity? session)
     {
         lock (sync)
-            return FindExact(session) is { Phase: SelectedSessionPhase.InWorld, Owner: { } ownerId }
-                && byId.TryGetValue(ownerId, out var user)
-                && user.Connection.ConnectionId == session.ConnectionId
-                && user.Connection.EndpointKind == NetworkEndpointKind.Game
-                && user.AccountId == session.AccountId
-                && byConnection.TryGetValue(session.ConnectionId, out var owner) && owner == ownerId;
+        {
+            var selection = selections.Values.SingleOrDefault(value => key(value.Session));
+            session = selection is not null && InWorld(selection) ? selection.Session : null;
+            return session is not null;
+        }
     }
+
+    /// <summary>In the world, and still owned by the game connection it entered on.</summary>
+    private bool InWorld(Selection selection) =>
+        selection is { Phase: SelectedSessionPhase.InWorld, Owner: { } ownerId }
+        && byId.TryGetValue(ownerId, out var user)
+        && user.Connection.ConnectionId == selection.Session.ConnectionId
+        && user.Connection.EndpointKind == NetworkEndpointKind.Game
+        && user.AccountId == selection.Session.AccountId
+        && byConnection.TryGetValue(selection.Session.ConnectionId, out var owner) && owner == ownerId;
 
     public bool TryObserveEndpoint(GameSessionIdentity session, SessionEndpoint endpoint)
     {

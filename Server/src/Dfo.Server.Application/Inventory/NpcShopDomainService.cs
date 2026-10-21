@@ -14,7 +14,6 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class NpcShopDomainService(
     ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers,
     ITownAreaDomainService townAreas,
     ICharacterDomainService characters,
     IAccountWalletDomainService wallets,
@@ -28,7 +27,7 @@ internal sealed class NpcShopDomainService(
         SelectedSessionIdentity session, int itemId, int rawCount, int shopId, int npcId,
         DateTimeOffset now, CancellationToken cancellationToken)
     {
-        if (!IsCurrent(session))
+        if (!sessions.IsInWorld(session))
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
         var inBossTower = bossTower?.Find(session) is not null;
         if (inBossTower ? !bossTower!.CanShop(session, npcId, shopId)
@@ -123,7 +122,7 @@ internal sealed class NpcShopDomainService(
     public async ValueTask<NpcShopPurchaseCountsResult> PurchaseCountsAsync(
         SelectedSessionIdentity session, int npcId, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        if (!IsCurrent(session))
+        if (!sessions.IsInWorld(session))
             return new(NpcShopRejection.NoSession, []);
         var identity = await characters.Get(session.CharacterId).IdentityAsync(cancellationToken).ConfigureAwait(false);
         if (identity is null)
@@ -147,10 +146,4 @@ internal sealed class NpcShopDomainService(
         new(limit.Scope == NpcShopLimitScope.Account ? "account" : "character",
             limit.Scope == NpcShopLimitScope.Account ? session.AccountId.Value : session.CharacterId.Value,
             npcId, itemId, rules.PurchasePeriod(limit, now));
-
-    private bool IsCurrent(SelectedSessionIdentity session) =>
-        sessions.Find(session.AccountId) == session
-        && onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-        && online is { State: OnlineUserState.CharacterActive }
-        && online.AccountId == session.AccountId && online.CurrentCharacterId == session.CharacterId;
 }

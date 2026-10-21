@@ -62,11 +62,11 @@ public sealed class DungeonEntryProjectionDelivery(
         ValueTask RefuseAsync(NetworkConnectionId connection, byte code, byte slot, CancellationToken ct) =>
             this.RefuseAsync(connection, code, slot, ct, mirror);
         ValueTask RefuseCurrentRequesterAsync(NetworkConnectionId connection, SelectedSessionIdentity owner, CancellationToken ct) =>
-            selectedSessions.FindByCharacter(owner.CharacterId) == owner
+            selectedSessions.IsInWorld(owner)
                 ? RefuseAsync(connection, SelectDungeonRefusal.SelectionCohortUnavailable, 0, ct) : ValueTask.CompletedTask;
         void RestoreSelection()
         {
-            if (selectedSessions.FindByCharacter(requester.CharacterId) == requester)
+            if (selectedSessions.IsInWorld(requester))
                 entryIntents.RestoreIfAbsent(requester, intent);
         }
 
@@ -411,7 +411,7 @@ public sealed class DungeonEntryProjectionDelivery(
     {
         foreach (var member in members)
         {
-            if (selectedSessions.FindByCharacter(member.Session.CharacterId) != member.Session)
+            if (!selectedSessions.IsInWorld(member.Session))
                 return new CohortObservation(CohortStatus.InvalidGeneration, null);
         }
 
@@ -456,7 +456,7 @@ public sealed class DungeonEntryProjectionDelivery(
         var members = new List<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)>();
         foreach (var member in roster.Members.OrderBy(value => value.Slot))
         {
-            var current = selectedSessions.FindByCharacter(member.CharacterId);
+            var current = selectedSessions.TryGetInWorld(member.CharacterId, out var inWorld) ? inWorld : null;
             var runtime = current is null ? null
                 : await currentViews.TryLoadAsync(current, cancellationToken).ConfigureAwait(false);
             if (current is null
@@ -544,7 +544,7 @@ public sealed class DungeonEntryProjectionDelivery(
         NetworkConnectionId connectionId,
         SelectedSessionIdentity requester,
         CancellationToken cancellationToken) =>
-        selectedSessions.FindByCharacter(requester.CharacterId) == requester
+        selectedSessions.IsInWorld(requester)
             ? RefuseAsync(connectionId, SelectDungeonRefusal.SelectionCohortUnavailable, 0, cancellationToken)
             : ValueTask.CompletedTask;
 

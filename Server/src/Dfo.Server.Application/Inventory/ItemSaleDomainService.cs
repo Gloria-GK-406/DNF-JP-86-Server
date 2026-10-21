@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class ItemSaleDomainService(
-    ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
+    ISelectedSessionDomainService sessions,
     ICharacterDomainService characters,
     IBusinessInventorySlotDomainService slots, IItemSaleRuleService rules,
     IItemLifecycleDomainService lifecycle,
@@ -19,10 +19,7 @@ internal sealed class ItemSaleDomainService(
     public async ValueTask<ItemSaleResult> SellAsync(SelectedSessionIdentity session, BusinessSlot slot,
         int count, int npcId, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(ItemSaleRejection.NoSession);
         // Worn pieces, avatars and creatures require their own appearance/lifecycle updates.
         if (!slot.Space.IsCarriedItemSpace() || count <= 0)

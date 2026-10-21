@@ -232,14 +232,14 @@ public sealed class FinishQuestHandler(
             frames.Add(new ExtendedUserStateMessage(result.Character, result.CharacterEntry.Public,
                 result.CharacterEntry.Skills, equipment, clock.GetUtcNow()));
             var audience = new HashSet<SelectedSessionIdentity>();
-            if (selectedSessions.FindByCharacter(session.CharacterId) == session)
+            if (selectedSessions.IsInWorld(session))
             {
                 if (towers?.Find(session) is { } tower)
                 {
                     foreach (var member in tower.Members)
                     {
                         var peer = member.Session;
-                        if (selectedSessions.FindByCharacter(peer.CharacterId) == peer
+                        if (selectedSessions.IsInWorld(peer)
                             && towers.Find(peer)?.RunId == tower.RunId)
                             audience.Add(peer);
                     }
@@ -249,14 +249,14 @@ public sealed class FinishQuestHandler(
                     if (townAreas.Find(session.CharacterId) is { } own && session.Owns(own)
                         && townAreas.Find(own.Area) is { } area)
                         foreach (var member in area.VisibleTo(session.CharacterId))
-                            if (selectedSessions.FindByCharacter(member.CharacterId) is { } peer && peer.Owns(member))
+                            if (selectedSessions.TryGetInWorld(member.CharacterId, out var peer) && peer.Owns(member))
                                 audience.Add(peer);
                     if (dungeonRuns.Find(session.CharacterId) is { } run)
                     {
                         var admitted = runGenerations.Find(run.RunId);
                         if (admitted.Contains(session))
                             foreach (var peer in admitted)
-                                if (selectedSessions.FindByCharacter(peer.CharacterId) == peer
+                                if (selectedSessions.IsInWorld(peer)
                                     && dungeonRuns.Find(peer.CharacterId)?.RunId == run.RunId)
                                     audience.Add(peer);
                     }

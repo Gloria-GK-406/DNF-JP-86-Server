@@ -420,11 +420,11 @@ public sealed class MonsterDeathHandlerTests
     [InlineData(true)]
     public async Task Object_rewards_are_projected_only_to_each_owners_exact_session(bool replaceMember)
     {
-        var leader = SelectedSessionIdentity.Create(new(1), new(60), new("leader"), 1, 10010);
-        var member = SelectedSessionIdentity.Create(new(2), new(61), new("member"), 1, 10011);
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        sessions.Select(leader);
-        sessions.Select(member);
+        var leader = SelectedSessionIdentity.Create(new(1), new(60), new("leader"), 2, 10010);
+        var member = SelectedSessionIdentity.Create(new(2), new(61), new("member"), 2, 10011);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, leader);
+        Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, member);
         var run = new PartyRun([
             new(leader.AccountId, leader.CharacterId, 0, true),
             new(member.AccountId, member.CharacterId, 1, false)]);
@@ -433,7 +433,10 @@ public sealed class MonsterDeathHandlerTests
         var sender = new PartyRecordingSender();
         var kills = new OneDeclaredMonster();
         var replacement = member with { ConnectionId = new("replacement"), ConnectionGeneration = 2 };
-        var bus = new ObjectRewardBus(() => { if (replaceMember) sessions.Select(replacement); });
+        var bus = new ObjectRewardBus(() =>
+        {
+            if (replaceMember) Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, replacement);
+        });
         var handler = CreateHandler(sessions, new PartyRuntimeSessions([leader, member]),
             new PartyCharacters([leader.CharacterId, member.CharacterId]), run, kills,
             new DungeonClearDomainService(run, kills),
@@ -1448,6 +1451,33 @@ public sealed class MonsterDeathHandlerTests
             Dfo.Server.Data.World.SelectedSessionIdentity session) =>
             ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
                 is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
 
         public SelectedSessionIdentity? Find(AccountId accountId) =>
             sessions.SingleOrDefault(value => value.AccountId == accountId);

@@ -34,7 +34,7 @@ public sealed class DungeonCardSelectionProjectionDelivery(
         var targets = (partyRecipients?.Find(actor, change.RunId)
                 ?? deliveries.Find(change.RunId))
             .Where(frozen => recipients.Contains(frozen.CharacterId))
-            .Where(frozen => selectedSessions.FindByCharacter(frozen.CharacterId) == frozen)
+            .Where(frozen => selectedSessions.IsInWorld(frozen))
             .Where(frozen => runs.Find(frozen.CharacterId) is { } run
                 && run.RunId == change.RunId)
             .ToArray();

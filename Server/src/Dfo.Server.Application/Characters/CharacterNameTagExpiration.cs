@@ -44,7 +44,7 @@ internal static class CharacterNameTagRegistration
                 {
                     try { await commands.SendAsync(new ExpireCharacterNameTagCommand(session), ct).ConfigureAwait(false); }
                     catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-                    catch (Exception) when (sessions.Find(session.AccountId) != session) { }
+                    catch (Exception) when (!sessions.IsInWorld(session)) { }
                     catch (Exception error) { failures.Add(error); }
                 }
                 if (failures.Count > 0) throw new AggregateException("Online name tag expiration failed for some characters.", failures);

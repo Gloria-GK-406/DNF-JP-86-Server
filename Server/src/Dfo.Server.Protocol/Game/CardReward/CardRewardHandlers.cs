@@ -106,7 +106,7 @@ public sealed class SelectCardHandler(
         }
 
         var run = runs.Find(session.CharacterId);
-        if (run is null || selectedSessions.FindByCharacter(session.CharacterId) != session)
+        if (run is null || !selectedSessions.IsInWorld(session))
             return;
         if (partyRecipients is not null
             && !partyRecipients.Find(session, run.RunId).Contains(session))

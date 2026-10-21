@@ -18,7 +18,7 @@ internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainServ
     public async ValueTask<TeleportConsumableResult> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
         int expectedItemId, byte townId, ChannelEntryIdentity channel, CancellationToken ct)
     {
-        if (sessions.Find(session.AccountId) != session || runs.Find(session.CharacterId) is not null
+        if (!sessions.IsInWorld(session) || runs.Find(session.CharacterId) is not null
             || townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member)
             || onlineCharacters.PositionOf(session) is not { } standing)
             return new(ItemUsability.CharacterStateUnavailable);

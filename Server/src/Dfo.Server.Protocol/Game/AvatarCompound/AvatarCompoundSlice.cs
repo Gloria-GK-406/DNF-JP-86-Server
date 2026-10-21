@@ -144,6 +144,6 @@ public sealed class AvatarCompoundCompletedHandler(ISelectedSessionDomainService
         var receipt = notification.Receipt;
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
             recipient.CharacterId == receipt.Session.CharacterId && recipient.ConnectionId == receipt.Session.ConnectionId
-            && sessions.Find(receipt.Session.AccountId) == receipt.Session ? [new AvatarCompoundResponse(receipt)] : []);
+            && sessions.IsInWorld(receipt.Session) ? [new AvatarCompoundResponse(receipt)] : []);
     }
 }

@@ -539,9 +539,7 @@ public sealed class SelectCharacterHandler(
 
     private void EnsureCurrent(SelectedSessionIdentity session)
     {
-        if (selectedSessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var current)
-            || current?.AccountId != session.AccountId)
+        if (!selectedSessions.IsSelected(session))
         {
             throw new InvalidOperationException("Selected session is no longer current.");
         }

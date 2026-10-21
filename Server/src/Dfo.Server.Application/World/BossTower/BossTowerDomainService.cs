@@ -35,7 +35,7 @@ internal sealed class BossTowerDomainService(
     private readonly Dictionary<Guid, BossTowerRun> runs = [];
     private readonly Dictionary<CharacterId, Guid> membership = [];
     private readonly Dictionary<Guid, Changes> reservations = [];
-    private bool ValidSession(SelectedSessionIdentity session) => sessions.Find(session.AccountId) == session;
+    private bool ValidSession(SelectedSessionIdentity session) => sessions.IsInWorld(session);
     private bool InOrdinary(CharacterId id) => ordinary.Find(id) is not null;
 
     private Changes Pending => scope.Current!.Enlist(this, () => new Changes(this));
@@ -122,7 +122,7 @@ internal sealed class BossTowerDomainService(
         var run = Lookup(context.Session.CharacterId);
         if (run is null || run.RunId != context.RunId || run.Room.State.Version != context.RoomVersion
             || !run.Members.Any(x => x.Session == context.Session)
-            || (!leaving && sessions.Find(context.Session.AccountId) != context.Session)) return null;
+            || (!leaving && !sessions.IsInWorld(context.Session))) return null;
         if (!leaving) Pending.AuthenticatedSessions.Add(context.Session);
         return run;
     }

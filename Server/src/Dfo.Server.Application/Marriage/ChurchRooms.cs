@@ -41,8 +41,7 @@ internal sealed class ChurchRooms(IMarriageChurchDomainStore store, IMarriageChu
     /// <summary>The character is online on its original account and standing in the room.</summary>
     public bool IsPresent(SelectedSessionIdentity original, MarriageChurchRoom room)
     {
-        var current = sessions.FindByCharacter(original.CharacterId);
-        return current is not null && current.AccountId == original.AccountId
+        return sessions.TryGetInWorld(original.CharacterId, out var current) && current.AccountId == original.AccountId
             && areas.Find(current.CharacterId) is { } member && current.Owns(member)
             && member.Area == Key(room);
     }

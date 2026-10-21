@@ -215,13 +215,13 @@ public sealed class TownProjectionHandlerTests
         var newPeer = PeerIdentity(62, "new");
         var otherListenerOldPeer = PeerIdentity(63, "old-other-listener", listenerPort: 10011);
         var otherListenerNewPeer = PeerIdentity(64, "new-other-listener", listenerPort: 10011);
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        sessions.Select(Identity);
-        sessions.Select(oldPeer);
-        sessions.Select(secondOldPeer);
-        sessions.Select(newPeer);
-        sessions.Select(otherListenerOldPeer);
-        sessions.Select(otherListenerNewPeer);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var onlineState);
+        sessions.EnterWorldWithConnection(onlineState, Identity);
+        sessions.EnterWorldWithConnection(onlineState, oldPeer);
+        sessions.EnterWorldWithConnection(onlineState, secondOldPeer);
+        sessions.EnterWorldWithConnection(onlineState, newPeer);
+        sessions.EnterWorldWithConnection(onlineState, otherListenerOldPeer);
+        sessions.EnterWorldWithConnection(onlineState, otherListenerNewPeer);
         var currentViews = new FixedCurrentViews();
         currentViews.Publish(Identity, EntryFor(Identity, WalkedTownId, WalkedAreaId, WalkedX));
         currentViews.Publish(oldPeer, EntryFor(oldPeer, WalkedTownId, WalkedAreaId, x: 700));
@@ -456,8 +456,8 @@ public sealed class TownProjectionHandlerTests
             ChannelId: 99));
         var sessions = Dfo.Server.Testing.TestSessions.Directory(out var onlineState);
         sessions.EnterWorldWithConnection(onlineState, Identity);
-        sessions.Select(peer);
-        sessions.Select(otherListenerPeer);
+        sessions.EnterWorldWithConnection(onlineState, peer);
+        sessions.EnterWorldWithConnection(onlineState, otherListenerPeer);
         var notifications = new RecordingNotifications();
         var sender = new RecordingSender();
         var runtimes = new OneRuntimeSession(Entry());
@@ -498,7 +498,9 @@ public sealed class TownProjectionHandlerTests
     {
         var positions = Standing();
         var presence = Presence();
-        var oldPeer = PeerIdentity(61, "peer-old");
+        // An area lease is the connection generation alone, and two connections can stand at the
+        // same generation; the stale record keeps an earlier one so that only the session decides.
+        var oldPeer = PeerIdentity(61, "peer-old") with { ConnectionGeneration = 1 };
         presence.Admit(new SessionPresence(
             oldPeer.CharacterId,
             oldPeer.ListenerPort,
@@ -510,7 +512,7 @@ public sealed class TownProjectionHandlerTests
         var sessions = Dfo.Server.Testing.TestSessions.Directory(out var onlineState);
         sessions.EnterWorldWithConnection(onlineState, Identity);
         sessions.Select(oldPeer);
-        _ = sessions.Select(oldPeer with
+        sessions.EnterWorldWithConnection(onlineState, oldPeer with
         {
             ConnectionId = new NetworkConnectionId("peer-replacement"),
             ConnectionGeneration = 2,
@@ -684,7 +686,7 @@ public sealed class TownProjectionHandlerTests
             new AccountId(characterId),
             new CharacterId(characterId),
             new NetworkConnectionId(connection),
-            connectionGeneration: 1,
+            connectionGeneration: 2,
             listenerPort);
 
     private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDomainService
@@ -708,6 +710,33 @@ public sealed class TownProjectionHandlerTests
             Dfo.Server.Data.World.SelectedSessionIdentity session) =>
             ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
                 is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
 
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => identity;
 

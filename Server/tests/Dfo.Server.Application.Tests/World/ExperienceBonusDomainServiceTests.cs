@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
@@ -274,6 +275,17 @@ public sealed class ExperienceBonusDomainServiceTests
                 : null;
 
         public bool IsInWorld(SelectedSessionIdentity session) => published && session == Identity;
+
+        public bool IsSelected(SelectedSessionIdentity session) => session == Identity;
+
+        public bool TryGetInWorld(CharacterId characterId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+            (session = published && characterId == Identity.CharacterId ? Identity : null) is not null;
+
+        public bool TryGetInWorld(ushort wireUserId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+            (session = published && wireUserId == Identity.WireUserId ? Identity : null) is not null;
+
+        public bool TryGetInWorld(NetworkConnectionId connectionId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+            (session = published && connectionId == Identity.ConnectionId ? Identity : null) is not null;
 
         public static readonly SelectedSessionIdentity Identity = SelectedSessionIdentity.Create(
             new AccountId(1),

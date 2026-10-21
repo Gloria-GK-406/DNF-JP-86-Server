@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Data.Accounts;
@@ -40,5 +41,16 @@ internal sealed class SelectedSessionDomainService(OnlineStateRegistry state)
     public SelectedSessionStanding? StandingOf(SelectedSessionIdentity session) =>
         state.StandingOf(session);
 
+    public bool IsSelected(SelectedSessionIdentity session) => state.IsSelected(session);
+
     public bool IsInWorld(SelectedSessionIdentity session) => state.IsInWorld(session);
+
+    public bool TryGetInWorld(CharacterId characterId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+        state.TryGetInWorld(characterId, out session);
+
+    public bool TryGetInWorld(ushort wireUserId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+        state.TryGetInWorld(wireUserId, out session);
+
+    public bool TryGetInWorld(NetworkConnectionId connectionId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+        state.TryGetInWorld(connectionId, out session);
 }

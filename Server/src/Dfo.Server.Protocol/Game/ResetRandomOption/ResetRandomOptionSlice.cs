@@ -123,7 +123,7 @@ public sealed class MagicSealGradeCompletedHandler(ISelectedSessionDomainService
     {
         var receipt = notification.Receipt;
         if (recipient.CharacterId != receipt.Session.CharacterId || recipient.ConnectionId != receipt.Session.ConnectionId
-            || sessions.Find(receipt.Session.AccountId) != receipt.Session)
+            || !sessions.IsInWorld(receipt.Session))
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         var target = slots.Project(receipt.TargetSlot);
         var material = slots.Project(receipt.MaterialSlot);

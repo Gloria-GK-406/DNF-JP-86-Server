@@ -109,7 +109,7 @@ public sealed class DeleteItemHandler(
         if (result.Success)
             await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session!.CharacterId]),
                 new MaterialsConsumed(session, result.Debits.Single(), DateTimeOffset.UtcNow), ct);
-        else if (session is null || sessions.Find(session.AccountId) == session)
+        else if (session is null || sessions.IsInWorld(session))
             await sender.SendCmdAsync(context.Connection.ConnectionId,
                 new DeleteItemResponse(message.Slot, ErrorCode: DeleteItemResponse.CannotDelete), ct);
     }

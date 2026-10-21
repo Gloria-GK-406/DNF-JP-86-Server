@@ -55,10 +55,9 @@ public sealed class OtherCharacterDetailRequestedHandler(
         var target = projection.Target;
         var isExactRequester = recipient.CharacterId == requester.CharacterId
             && recipient.ConnectionId == requester.ConnectionId
-            && sessions.FindByConnection(recipient.ConnectionId) == requester;
+            && sessions.IsInWorld(requester);
         var isExactTarget = target.ListenerPort == requester.ListenerPort
-            && sessions.FindByWireUserId(target.WireUserId) == target
-            && sessions.FindByCharacter(target.CharacterId) == target
+            && sessions.IsInWorld(target)
             && projection.TargetState.Character.Identity.CharacterId == target.CharacterId;
 
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
@@ -119,8 +118,7 @@ public sealed class GetOtherCharacterDetailHandler(
             return;
         }
 
-        var target = sessions.FindByWireUserId(message.TargetWireUserId);
-        if (target is null)
+        if (!sessions.TryGetInWorld(message.TargetWireUserId, out var target))
         {
             logger.LogInformation(
                 "GET_USERINFO mode=3 requester={Requester} target={Target} refused={Failure}",
@@ -135,13 +133,13 @@ public sealed class GetOtherCharacterDetailHandler(
             target,
             () =>
             {
-                if (sessions.FindByConnection(context.Connection.ConnectionId) != requester)
+                if (!sessions.IsInWorld(requester))
                 {
                     return ValueTask.FromResult(CharacterDetailQueryResult.Reject(
                         CharacterDetailQueryFailure.RequesterNotCurrent));
                 }
 
-                if (sessions.FindByWireUserId(message.TargetWireUserId) != target)
+                if (!sessions.IsInWorld(target))
                 {
                     return ValueTask.FromResult(CharacterDetailQueryResult.Reject(
                         CharacterDetailQueryFailure.TargetNotCurrent));

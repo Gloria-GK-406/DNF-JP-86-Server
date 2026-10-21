@@ -106,7 +106,7 @@ internal sealed class WeddingProposalHandler(ISelectedSessionDomainService sessi
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeddingProposalRequest message, CancellationToken ct)
     {
         var actor = sessions.FindByConnection(context.Connection.ConnectionId);
-        var peer = message.Target is > 0 and <= ushort.MaxValue ? sessions.FindByWireUserId((ushort)message.Target) : null;
+        var peer = message.Target is > 0 and <= ushort.MaxValue && sessions.TryGetInWorld((ushort)message.Target, out var inWorld) ? inWorld : null;
         await WeddingProposalExecution.RunAsync(lifecycle, actor, peer, async () =>
         {
             if (message.Action == 2)
@@ -117,7 +117,7 @@ internal sealed class WeddingProposalHandler(ISelectedSessionDomainService sessi
                 logger.LogInformation("Marriage ceremony request actor={Actor} target={Target} tier={Tier} waitIndex={WaitIndex} result={Result} id={Ceremony}",
                     actor?.CharacterId, message.Target, message.First, message.Second, ceremony.Failure, ceremony.Ceremony?.Id);
                 var invited = ceremony.Succeeded && ceremony.Ceremony?.State == MarriageCeremonyState.Pending
-                    && actor is not null && peer is not null && sessions.Find(peer.AccountId) == peer
+                    && actor is not null && peer is not null && sessions.IsInWorld(peer)
                     ? new[] { new GameExplicitMessageTarget(peer.ConnectionId, [new WeddingProposalNotification(actor.WireUserId, 2, message.First)]) } : [];
                 await sender.SendExplicitAsync(context.Connection.ConnectionId, new(
                     [new WeddingProposalAck(ceremony.Succeeded ? 0 : ceremony.Failure == MarriageCeremonyFailure.InsufficientFunds ? -7 : -1,
@@ -125,12 +125,12 @@ internal sealed class WeddingProposalHandler(ISelectedSessionDomainService sessi
                 return;
             }
             var result = actor is null || peer is null || message.Action != 1 || message.First != 0 || message.Second != 0
-                || sessions.Find(actor.AccountId) != actor || sessions.Find(peer.AccountId) != peer
+                || !sessions.IsInWorld(actor) || !sessions.IsInWorld(peer)
                 ? new MarriageProposalResult(MarriageProposalFailure.Invalid)
                 : await commands.SendAsync(new MarriageProposalCommand(actor, peer, null), ct).ConfigureAwait(false);
             logger.LogInformation("Marriage proposal actor={Actor} target={Target} action={Action} result={Result} id={Proposal}",
                 actor?.CharacterId, message.Target, message.Action, result.Failure, result.Proposal?.Id);
-            var targets = result.Succeeded && actor is not null && peer is not null && sessions.Find(peer.AccountId) == peer
+            var targets = result.Succeeded && actor is not null && peer is not null && sessions.IsInWorld(peer)
                 ? new[] { new GameExplicitMessageTarget(peer.ConnectionId, [new WeddingProposalNotification(actor.WireUserId)]) } : [];
             await sender.SendExplicitAsync(context.Connection.ConnectionId, new(
                 [new WeddingProposalAck(result.Succeeded ? 0 : result.Failure == MarriageProposalFailure.Occupied ? -151 : -1,
@@ -152,11 +152,11 @@ internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessi
             return;
         }
         var pending = actor is null ? null : await marriage.ReceivedProposalAsync(actor.CharacterId, ct).ConfigureAwait(false);
-        var peer = pending is null ? null : sessions.FindByCharacter(pending.Proposer.CharacterId);
+        var peer = pending is not null && sessions.TryGetInWorld(pending.Proposer.CharacterId, out var inWorld) ? inWorld : null;
         await WeddingProposalExecution.RunAsync(lifecycle, actor, peer, async () =>
         {
             var result = actor is null || peer is null || message.Action != 1 || message.First != 0 || message.Second != 0
-                || sessions.Find(actor.AccountId) != actor || sessions.Find(peer.AccountId) != peer
+                || !sessions.IsInWorld(actor) || !sessions.IsInWorld(peer)
                 || message.Outcome > 2 || (message.Target != 0 && message.Target != peer.WireUserId)
                 ? new MarriageProposalResult(MarriageProposalFailure.Invalid)
                 : await commands.SendAsync(new MarriageProposalCommand(actor, peer, message.Outcome), ct).ConfigureAwait(false);
@@ -165,7 +165,7 @@ internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessi
             var ownMessages = new List<IGameServerMessage>
                 { new WeddingResponseAck(result.Succeeded ? 0 : -3, peer?.WireUserId ?? 0, message.Action, message.Outcome) };
             var peerMessages = new List<IGameServerMessage>();
-            if (result.Succeeded && actor is not null && peer is not null && sessions.Find(peer.AccountId) == peer)
+            if (result.Succeeded && actor is not null && peer is not null && sessions.IsInWorld(peer))
             {
                 peerMessages.Add(new WeddingResponseNotification(actor.WireUserId, message.Outcome));
                 if (result.Proposal?.State == MarriageProposalState.Engaged)
@@ -185,7 +185,7 @@ internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessi
         SelectedSessionIdentity? actor, CancellationToken ct)
     {
         var pending = actor is null ? null : await marriage.ReceivedReservationAsync(actor.CharacterId, ct).ConfigureAwait(false);
-        var peer = pending is null ? null : sessions.FindByCharacter(pending.Applicant.CharacterId);
+        var peer = pending is not null && sessions.TryGetInWorld(pending.Applicant.CharacterId, out var inWorld) ? inWorld : null;
         await WeddingProposalExecution.RunAsync(lifecycle, actor, peer, async () =>
         {
             MarriageCeremonyResult result;
@@ -206,7 +206,7 @@ internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessi
                 actor?.CharacterId, message.Target, message.Outcome, result.Failure, result.Ceremony?.Id);
             var own = new List<IGameServerMessage> { new WeddingResponseAck(result.Succeeded ? 0 : -3, peer?.WireUserId ?? 0, 2, message.Outcome) };
             var other = new List<IGameServerMessage>();
-            if (result.Succeeded && actor is not null && peer is not null && sessions.Find(peer.AccountId) == peer)
+            if (result.Succeeded && actor is not null && peer is not null && sessions.IsInWorld(peer))
             {
                 other.Add(new WeddingResponseNotification(actor.WireUserId, message.Outcome, 2));
                 if (result.Ceremony?.State == MarriageCeremonyState.Reserved)
@@ -227,7 +227,7 @@ internal sealed class WeddingResponseHandler(ISelectedSessionDomainService sessi
             else if (pending?.State == MarriageCeremonyState.Pending && actor == pending.Partner && peer == pending.Applicant
                 && message.First == 0 && message.Second == 0 && message.Outcome <= 2
                 && (message.Target == 0 || message.Target == peer.WireUserId)
-                && sessions.Find(actor.AccountId) == actor && sessions.Find(peer.AccountId) == peer)
+                && sessions.IsInWorld(actor) && sessions.IsInWorld(peer))
             {
                 // Native 03F1 failures close only the responder's window. 03CE closes
                 // the applicant's waiting window even on failure (RVA0089197D).

@@ -40,7 +40,7 @@ public sealed class InventorySortedHandler(ISelectedSessionDomainService session
     {
         var receipt = notification.Receipt;
         if (recipient.CharacterId != receipt.Session.CharacterId || recipient.ConnectionId != receipt.Session.ConnectionId
-            || sessions.Find(receipt.Session.AccountId) != receipt.Session)
+            || !sessions.IsInWorld(receipt.Session))
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         var container = notification.ContainerType == InventoryContainerType.AccountCargo ? receipt.Account.Cargo.Container
             : receipt.Character.Containers.Single(value => value.ContainerType == notification.ContainerType);

@@ -11,7 +11,6 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentOutworldDomainService(
     ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
     IEquipmentEffectPlanRuleService rules,
@@ -26,11 +25,7 @@ internal sealed class EquipmentOutworldDomainService(
         BusinessSlot materialSlot, int expectedMaterialItemId,
         byte selectedOption, CancellationToken ct)
     {
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(EquipmentOutworldRejection.NoSession);
         if (targetSlot.Space != BusinessInventorySpace.CarriedEquipment
             || !materialSlot.Space.IsCarriedItemSpace() || targetSlot == materialSlot

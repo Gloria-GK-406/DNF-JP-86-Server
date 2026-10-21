@@ -144,7 +144,7 @@ public sealed class ItemSocketCompletedHandler(ISelectedSessionDomainService ses
     {
         var receipt = notification.Receipt;
         if (recipient.CharacterId != receipt.Session.CharacterId || recipient.ConnectionId != receipt.Session.ConnectionId
-            || sessions.Find(receipt.Session.AccountId) != receipt.Session) return [];
+            || !sessions.IsInWorld(receipt.Session)) return [];
         var messages = new List<IServerNetworkMessage>();
         var remains = ImmutableArray.CreateBuilder<WireSocketRemainder>();
         foreach (var material in receipt.Materials)

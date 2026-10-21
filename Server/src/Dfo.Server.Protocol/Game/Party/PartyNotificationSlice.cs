@@ -330,7 +330,7 @@ internal static class PartyNotificationProjection
         NotificationRecipient recipient,
         CharacterId characterId,
         ISelectedSessionDomainService sessions) =>
-        sessions.FindByCharacter(characterId) is { } session
+        sessions.TryGetInWorld(characterId, out var session)
         && recipient.CharacterId == characterId
         && recipient.ConnectionId == session.ConnectionId;
 
@@ -545,7 +545,7 @@ internal static class PartyNotificationRecipientCapture
         }
 
         var characterRecipients = characterIds
-            .Select(sessions.FindByCharacter)
+            .Select(id => sessions.TryGetInWorld(id, out var inWorld) ? inWorld : null)
             .Where(candidate => candidate is not null)
             .Cast<SelectedSessionIdentity>()
             .Distinct()
@@ -567,10 +567,10 @@ internal static class PartyNotificationRecipientCapture
                          scope.ChannelId,
                          scope.TownId,
                          scope.AreaId, scope.Instance))?.Members ?? [])
-                    .Where(item => item.SharesTownPresence
-                        && sessions.FindByCharacter(item.CharacterId) is { } exact
-                        && exact.Owns(item))
-                    .Select(item => sessions.FindByCharacter(item.CharacterId)!)
+                    .Select(item => item.SharesTownPresence
+                        && sessions.TryGetInWorld(item.CharacterId, out var exact)
+                        && exact.Owns(item) ? exact : null)
+                    .OfType<SelectedSessionIdentity>()
                     .Distinct()
                     .ToArray()))
             .ToArray();

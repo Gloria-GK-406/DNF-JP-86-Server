@@ -34,12 +34,11 @@ public sealed class TournamentRewardSweepService(ITournamentDungeonDomainService
 
     internal async ValueTask SweepAsync(TournamentDungeonState candidate, CancellationToken ct)
     {
-        var session = sessions.FindByCharacter(candidate.CharacterId);
-        if (session is null) return;
+        if (!sessions.TryGetInWorld(candidate.CharacterId, out var session)) return;
         await using var projection = await projections.AcquireAsync(candidate.RunId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
         await using var transition = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
         var current = tournaments.Find(candidate.CharacterId);
-        if (sessions.FindByCharacter(candidate.CharacterId) != session || current?.RunId != candidate.RunId
+        if (!sessions.IsInWorld(session) || current?.RunId != candidate.RunId
             || runs.Find(candidate.CharacterId)?.RunId != candidate.RunId
             || current.RewardSelectionEndsAt is not { } deadline || deadline > clock.GetUtcNow()) return;
         for (byte row = 0; row < current.Rewards.Count; row++)

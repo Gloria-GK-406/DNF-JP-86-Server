@@ -182,7 +182,8 @@ public sealed class GmCeraHttpTests
         await host.ExecuteAsync("UPDATE accounts SET cera=59,token_cera=22,happy_token_cera=33 WHERE account_id=1;");
         await host.ExecuteAsync("INSERT INTO characters(character_id,account_id,name) VALUES(1,1,'actual-role');");
         var sessions=host.Services.GetRequiredService<ISelectedSessionDomainService>();
-        var session=SelectedSessionIdentity.Create(new(1),new(1),new("cera-test-session"),1,21011);sessions.Select(session);
+        var state=host.Services.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>();
+        var session=Dfo.Server.Testing.TestSessions.InWorld(sessions,state,new(1),new(1),"cera-test-session",21011);
         var handler=host.Services.GetRequiredService<INotificationHandler<AccountWalletChanged>>();
         var recipient=new NotificationRecipient(session.CharacterId,session.ConnectionId,session);
         var message=Assert.Single(await handler.ComposeAsync(recipient,new(new(1)),default));
@@ -192,7 +193,7 @@ public sealed class GmCeraHttpTests
         Assert.Equal(13,body.Length);Assert.Equal(1,body[0]);Assert.Equal(59,BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(1,4)));
         Assert.Equal(22,BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(5,4)));Assert.Equal(33,BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(9,4)));
         Assert.Empty(await handler.ComposeAsync(recipient,new(new(2)),default));
-        sessions.Select(session with{ConnectionId=new("replacement"),ConnectionGeneration=2});
+        _=Dfo.Server.Testing.TestSessions.InWorld(sessions,state,session.AccountId,session.CharacterId,"replacement",session.ListenerPort);
         Assert.Empty(await handler.ComposeAsync(recipient,new(new(1)),default));
         reminder.Check=null;Assert.Equal(HttpStatusCode.OK,(await host.PostAsync("/api/gm/v1/cera/grant",csrf,Payload(id))).StatusCode);
         Assert.Equal(new[]{"59"},await host.ReadAsync("SELECT cera FROM accounts WHERE account_id=1;"));

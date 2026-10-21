@@ -26,11 +26,9 @@ public sealed class SortLockCommandHandler(IInventorySortDomainService sorting,
         CancellationToken ct)
     {
         var session = command.Session;
-        if (sessions.Find(session.AccountId) != session
+        if (!sessions.IsInWorld(session)
             || !users.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.OnlineUserId != command.OnlineUserId || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId) return new(null);
+            || online?.OnlineUserId != command.OnlineUserId) return new(null);
         var locked = await sorting.ChangeLockAsync(session.CharacterId, command.Slot, command.Action, ct).ConfigureAwait(false);
         return new(locked is { } value ? new(session, command.Slot, value) : null);
     }

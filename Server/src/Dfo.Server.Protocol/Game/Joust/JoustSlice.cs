@@ -159,7 +159,7 @@ public sealed class JoustQueryHandler(ISelectedSessionDomainService sessions,ICo
         if(sessions.FindByConnection(c.Connection.ConnectionId) is not {} session){await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(m.Metadata.Type,6),ct);return;}
         var recipient=safety.Capture(session);
         await using var lease=await transitions.BorrowOrAcquireExclusiveAsync(session.AccountId,ct);
-        if(sessions.FindByConnection(c.Connection.ConnectionId)!=session || !ReferenceEquals(recipient.Connection,c.Connection))return;
+        if(!sessions.IsInWorld(session) || !ReferenceEquals(recipient.Connection,c.Connection))return;
         safety.DemandCurrent(recipient);
         if(m.Metadata.Type==0x04E8){var history=await bus.SendAsync(new QueryJoustHistoryCommand(session),ct);await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E8,0,history),ct);}
         else
@@ -182,7 +182,7 @@ public sealed class JoustBetHandler(ISelectedSessionDomainService sessions,IOnli
         var recipient=safety.Capture(session);
         if(!ReferenceEquals(recipient.Connection,c.Connection))return;
         await using var lease=await transitions.BorrowOrAcquireExclusiveAsync(session.AccountId,ct);
-        if(sessions.FindByConnection(c.Connection.ConnectionId)!=session)return;
+        if(!sessions.IsInWorld(session))return;
         safety.DemandCurrent(recipient);
         JoustBetResult result;
         try {result=await bus.SendAsync(new JoustBetCommand(user.OnlineUserId,session,$"joust:{Identities.GetOrCreateValue(c.Connection).Id}:{session.ConnectionGeneration}:{m.Metadata.InboundOrdinal}",m.KnightIndex,new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main,m.MaterialSlotIndex)),m.Amount),ct);}

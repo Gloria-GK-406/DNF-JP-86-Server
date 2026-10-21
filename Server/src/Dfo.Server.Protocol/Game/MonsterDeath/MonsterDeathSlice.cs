@@ -413,7 +413,7 @@ public sealed class MonsterDeathHandler(
         }
         var participants = (run.PartyMemberCount > 1
                 ? partyRecipients?.Find(reporter, run.RunId) ?? runDeliveries.Find(run.RunId) : [reporter])
-            .Where(x => selectedSessions.FindByCharacter(x.CharacterId) == x).DistinctBy(x => x.CharacterId).ToArray();
+            .Where(x => selectedSessions.IsInWorld(x)).DistinctBy(x => x.CharacterId).ToArray();
         if (!participants.Contains(reporter))
         {
             logger.LogDebug("Monster death ignored connection={ConnectionId} run={RunId} actor={Actor} reason=NotCurrentParticipant",
@@ -426,7 +426,7 @@ public sealed class MonsterDeathHandler(
             var objects = await commandBus.SendAsync(new ApplyObjectDestructionCommand(reporter,
                 run.RunId, run.RoomVersion, code, participants), ct).ConfigureAwait(false);
             if (objects.Rewards is null) return;
-            var targets = objects.Rewards.Where(x => selectedSessions.FindByCharacter(x.Session.CharacterId) == x.Session)
+            var targets = objects.Rewards.Where(x => selectedSessions.IsInWorld(x.Session))
                 .Select(x => new GameExplicitMessageTarget(x.Session.ConnectionId, QuestFrames(x.Effects))).ToArray();
             await DeliverAsync(reporter, targets, ct).ConfigureAwait(false);
             return;
@@ -464,7 +464,7 @@ public sealed class MonsterDeathHandler(
                 .ToDictionary(x => x.Number, x => SelectedSessionIdentity.ToWireUserId(x.Rolled.OwnerCharacterId!.Value));
             var death = new MonsterDeathNotification(message.ActorSequence, drops, reporter.WireUserId,
                 GameDropIdentity.ForKill(change.Run, message.ActorSequence), owners);
-            var targets = settled.Participants.Where(x => selectedSessions.FindByCharacter(x.Session.CharacterId) == x.Session)
+            var targets = settled.Participants.Where(x => selectedSessions.IsInWorld(x.Session))
                 .Select(x => new GameExplicitMessageTarget(x.Session.ConnectionId, Frames(x, death, change.AutoKilledActorSequences,
                     settled.Tournament))).ToArray();
             await DeliverAsync(reporter, targets, ct).ConfigureAwait(false);

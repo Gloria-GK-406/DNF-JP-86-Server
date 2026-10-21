@@ -173,7 +173,7 @@ public sealed class TournamentProjectionDelivery(ITournamentDungeonDomainService
         var session = sessions.FindByCharacter(run.Participants[0].CharacterId);
         if (session is null || tournaments.Find(session.CharacterId) is not { IsFinished: false }) return true;
         var action = (await commands.SendAsync(new EliminateTournamentCommand(session, runId), ct).ConfigureAwait(false)).Action;
-        if (action is not null && sessions.FindByCharacter(session.CharacterId) == session)
+        if (action is not null && sessions.IsInWorld(session))
             await sender.SendExplicitAsync(session.ConnectionId, new(CompletionFrames(action), []), ct).ConfigureAwait(false);
         return true;
     }
@@ -197,7 +197,7 @@ public sealed class TournamentRewardHandler(ISelectedSessionDomainService sessio
         }
         await using var lease = await projectionGate.AcquireAsync(run.RunId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
         await using var transition = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
-        if (sessions.FindByConnection(session.ConnectionId) != session || runs.Find(session.CharacterId)?.RunId != run.RunId) return;
+        if (!sessions.IsInWorld(session) || runs.Find(session.CharacterId)?.RunId != run.RunId) return;
         var state = tournaments.Find(session.CharacterId);
         var slot = run.Participant?.Slot ?? 0;
         if (message.Row is null)

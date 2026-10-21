@@ -247,7 +247,7 @@ public sealed class DungeonCardPresentationCoordinator(
         out DungeonRunState run)
     {
         var current = runs.Find(session.CharacterId);
-        if (selectedSessions.FindByCharacter(session.CharacterId) == session
+        if (selectedSessions.IsInWorld(session)
             && current is not null
             && current.RunId == runId)
         {

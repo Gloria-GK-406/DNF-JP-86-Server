@@ -22,9 +22,9 @@ public sealed class BuyItemCodecTests
     [Fact]
     public async Task Purchase_projects_changed_quest_progress_after_the_inventory_update()
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(2), new("purchase-quest"), 1, 10011);
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        sessions.Select(session);
+        var session = SelectedSessionIdentity.Create(new(1), new(2), new("purchase-quest"), 2, 10011);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
         var receipt = new NpcShopPurchaseReceipt(session, 2000, 1, 100, 0, 0, false, [],
             [new(new(BusinessInventorySpace.QuickSlot, 0), ItemSnapshot.FromCore(StackableItemCore.Create(2, 2000, 1), true), 1)], DateTimeOffset.UnixEpoch);
         var messages = await new NpcShopPurchaseCompletedHandler(sessions).ComposeAsync(

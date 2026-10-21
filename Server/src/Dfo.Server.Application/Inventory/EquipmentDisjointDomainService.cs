@@ -11,7 +11,6 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentDisjointDomainService(
     ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
     IEquipmentEffectPlanRuleService rules,
@@ -41,11 +40,7 @@ internal sealed class EquipmentDisjointDomainService(
         PortableMachineUse? portableMachine,
         CancellationToken cancellationToken)
     {
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(EquipmentDisjointRejection.NoSession);
         if (!targetSlot.Space.IsCarriedItemSpace()
             || portableMachine is { Slot: var toolSlot }

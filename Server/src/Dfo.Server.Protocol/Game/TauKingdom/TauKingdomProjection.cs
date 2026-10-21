@@ -24,14 +24,13 @@ internal sealed class TauTicketRefreshHandler(ISelectedSessionDomainService sess
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, TauTicketRefresh notification, CancellationToken ct)
     {
-        var session = sessions.FindByConnection(recipient.ConnectionId);
-        if (session is null || session.CharacterId != recipient.CharacterId
+        if (!sessions.TryGetInWorld(recipient.ConnectionId, out var session) || session.CharacterId != recipient.CharacterId
             || recipient.ExpectedSession is { } expected && expected != session) return [];
         var inventory = await inventories.ReadCurrentAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
         var account = await accounts.LoadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
         var messages = notification.Slots.Select(x => slots.Project(x).Space).Distinct()
             .Select(space => (IServerNetworkMessage)new InventoryFullSnapshotMessage(
                 inventory.Containers.Single(x => x.ContainerType == space), inventory, account, notification.At)).ToArray();
-        return sessions.FindByConnection(recipient.ConnectionId) == session ? messages : [];
+        return sessions.IsInWorld(session) ? messages : [];
     }
 }

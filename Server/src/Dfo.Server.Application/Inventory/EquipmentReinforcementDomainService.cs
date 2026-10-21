@@ -12,7 +12,6 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentReinforcementDomainService(
     ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
     IEquipmentUpgradeRuleService rules,
@@ -29,11 +28,7 @@ internal sealed class EquipmentReinforcementDomainService(
         BusinessSlot? protectionSlot,
         CancellationToken ct, EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement)
     {
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(EquipmentReinforcementRejection.NoSession);
         if (!(targetSlot.Space.IsCarriedItemSpace() || targetSlot.Space.IsWornEquipmentSpace())
             || expectedItemId <= 0

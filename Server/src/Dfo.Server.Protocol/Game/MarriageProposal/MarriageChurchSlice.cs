@@ -116,7 +116,7 @@ public sealed class WeddingChurchEnterHandler(ISelectedSessionDomainService sess
         {
             var previous = actor is null ? null : areas.Find(actor.CharacterId);
             var view = actor is null ? null : await views.TryLoadAsync(actor, ct).ConfigureAwait(false);
-            var result = actor is null || sessions.Find(actor.AccountId) != actor || previous is null
+            var result = actor is null || !sessions.IsInWorld(actor) || previous is null
                 || !actor.Owns(previous) || view is null
                 ? new MarriageChurchEntryResult(-10)
                 : await commands.SendAsync(new EnterMarriageChurchCommand(actor, message.Peer, message.ChurchArea, message.Flag), ct).ConfigureAwait(false);

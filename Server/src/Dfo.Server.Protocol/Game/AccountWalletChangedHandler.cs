@@ -15,7 +15,7 @@ public sealed class AccountWalletChangedHandler(IAccountWalletDomainService wall
         if (current is null || current.CharacterId != recipient.CharacterId || current.ConnectionId != recipient.ConnectionId
             || recipient.ExpectedSession != current) return [];
         var balances = await wallets.ReadAsync(notice.Account, token);
-        if (balances is null || sessions.Find(notice.Account) != current) return [];
+        if (balances is null || !sessions.IsInWorld(current)) return [];
         return [GameInstanceDelivery.Wallet(balances)];
     }
 }

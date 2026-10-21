@@ -11,7 +11,6 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentEnchantDomainService(
     ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
     IEquipmentEffectPlanRuleService rules,
@@ -23,11 +22,7 @@ internal sealed class EquipmentEnchantDomainService(
         SelectedSessionIdentity session, BusinessSlot beadSlot, BusinessSlot targetSlot,
         CancellationToken ct)
     {
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(EquipmentEnchantRejection.NoSession);
 
         if (!beadSlot.Space.IsCarriedItemSpace()

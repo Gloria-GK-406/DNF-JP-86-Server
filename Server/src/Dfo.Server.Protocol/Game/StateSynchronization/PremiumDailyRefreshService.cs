@@ -27,7 +27,7 @@ public sealed class ReadPremiumSnapshotCommandHandler(ISelectedSessionDomainServ
     public async ValueTask<PremiumSnapshotResult> HandleAsync(CommandExecutionContext context,
         ReadPremiumSnapshotCommand command, CancellationToken token)
     {
-        if (sessions.FindByCharacter(command.Session.CharacterId) != command.Session) return new(new([]), [], clock.GetUtcNow(), false);
+        if (!sessions.IsInWorld(command.Session)) return new(new([]), [], clock.GetUtcNow(), false);
         return new(new(await premiums.For(command.AccountId).ReadAsync(token).ConfigureAwait(false)),
             await usage.ReadAsync(command.Session.CharacterId, token).ConfigureAwait(false), clock.GetUtcNow());
     }
@@ -51,7 +51,7 @@ public sealed class PremiumDailyRefreshService(ISelectedSessionSnapshotQuery dir
             try
             {
                 await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
-                if (sessions.FindByCharacter(session.CharacterId) != session) continue;
+                if (!sessions.IsInWorld(session)) continue;
                 var state = await commands.SendAsync(new ReadPremiumSnapshotCommand(session), token).ConfigureAwait(false);
                 if (!state.IsCurrent) continue;
                 var active = string.Join(";", state.Entitlements.Premiums

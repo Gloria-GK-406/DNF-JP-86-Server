@@ -31,9 +31,8 @@ internal sealed class RoomMechanismNotificationHandler(IDungeonRunDomainService 
         DungeonRoomMechanismsNotification notification, CancellationToken cancellationToken)
     {
         var view = notification.View;
-        var session = sessions.FindByCharacter(recipient.CharacterId);
         var current = runs.Find(recipient.CharacterId);
-        if (session is null || session.ConnectionId != recipient.ConnectionId
+        if (!sessions.TryGetInWorld(recipient.CharacterId, out var session) || session.ConnectionId != recipient.ConnectionId
             || recipient.ExpectedSession is { } expected && session != expected
             || !view.Recipients.Contains(recipient.CharacterId)
             || current is null || current.RunId != view.RunId || current.RoomVersion != view.RoomVersion

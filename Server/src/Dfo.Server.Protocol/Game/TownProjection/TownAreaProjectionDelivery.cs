@@ -227,11 +227,11 @@ public sealed class TownAreaProjectionDelivery
     {
         ArgumentNullException.ThrowIfNull(position);
         var previous = townAreas.Find(session.CharacterId);
-        if (selectedSessions.Find(session.AccountId) != session || previous is null || !session.Owns(previous)
+        if (!selectedSessions.IsInWorld(session) || previous is null || !session.Owns(previous)
             || previous.Area.TownId != position.TownId || previous.Area.AreaId != position.AreaId)
             return false;
         await using var projection = await AcquireAreasAsync([previous.Area], cancellationToken).ConfigureAwait(false);
-        if (selectedSessions.Find(session.AccountId) != session
+        if (!selectedSessions.IsInWorld(session)
             || townAreas.Find(session.CharacterId) is not { } current || !session.Owns(current)
             || current.Area != previous.Area)
             return false;
@@ -406,7 +406,7 @@ public sealed class TownAreaProjectionDelivery
         foreach (var entry in entries)
         {
             ArgumentNullException.ThrowIfNull(entry);
-            if (selectedSessions.FindByCharacter(entry.Session.CharacterId) != entry.Session)
+            if (!selectedSessions.IsInWorld(entry.Session))
                 continue;
             var sharesTownPresence = await towns.SharesTownPresenceAsync(
                 entry.Position.TownId,
@@ -436,7 +436,7 @@ public sealed class TownAreaProjectionDelivery
         foreach (var candidate in candidates)
         {
             var entry = candidate.Entry;
-            if (selectedSessions.FindByCharacter(entry.Session.CharacterId) != entry.Session)
+            if (!selectedSessions.IsInWorld(entry.Session))
                 continue;
             var previous = townAreas.Find(entry.Session.CharacterId);
             var previousScope = previous is { SharesTownPresence: true }
@@ -527,18 +527,18 @@ public sealed class TownAreaProjectionDelivery
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(publication);
-        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+        if (!selectedSessions.IsInWorld(session))
             return;
         await sender.SendExplicitAsync(
             session.ConnectionId,
             new GameExplicitMessageDelivery(
                 TownPresenceMessages.ForNewcomer(publication.State), []),
             cancellationToken).ConfigureAwait(false);
-        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+        if (!selectedSessions.IsInWorld(session))
             return;
         await partyTownProjection.RefreshObservedPartiesAsync(
             [session], publication.Audience, cancellationToken).ConfigureAwait(false);
-        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+        if (!selectedSessions.IsInWorld(session))
             return;
         var delivered = await PartyExactNotificationDelivery.PublishWithRetryAsync(
             notifications,
@@ -707,8 +707,7 @@ public sealed class TownAreaProjectionDelivery
 
     private SelectedSessionIdentity? ExactSession(TownAreaMember member)
     {
-        var session = selectedSessions.FindByCharacter(member.CharacterId);
-        return session is not null && session.Owns(member) ? session : null;
+        return selectedSessions.TryGetInWorld(member.CharacterId, out var session) && session.Owns(member) ? session : null;
     }
 
     private async ValueTask<IAsyncDisposable> AcquireAreasAsync(

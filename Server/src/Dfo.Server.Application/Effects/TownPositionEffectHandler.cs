@@ -13,7 +13,7 @@ internal sealed class TownPositionEffectHandler(IOnlineCharacterRuntimeDomainSer
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, MoveToTownEffect effect, CancellationToken ct)
     {
-        if (context.Session is not { } session || sessions.Find(session.AccountId) != session
+        if (context.Session is not { } session || !sessions.IsInWorld(session)
             || onlineCharacters.PositionOf(context.CharacterId) != effect.Expected
             || areas.Find(context.CharacterId) is not { } member || !session.Owns(member) || member.Area != effect.SourceArea)
             throw new InvalidOperationException("Town movement target no longer satisfies its plan.");
@@ -35,7 +35,7 @@ internal sealed class TownPositionEffectHandler(IOnlineCharacterRuntimeDomainSer
         public ValueTask RollbackAsync(CancellationToken ct) => ValueTask.CompletedTask;
         public ValueTask CommitAsync(CancellationToken ct)
         {
-            if (sessions.Find(context.AccountId) == context.Session)
+            if (context.Session!.AccountId == context.AccountId && sessions.IsInWorld(context.Session!))
             {
                 areas.TransferExact(context.CharacterId, context.Session!.TownAreaLease(),
                     new(effect.ChannelId, effect.Destination.TownId, effect.Destination.AreaId), effect.Destination, false);

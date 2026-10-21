@@ -178,7 +178,7 @@ public sealed class EplpCommandHandler(
         var returning = new List<ReturnMember>();
         foreach (var participant in participants)
         {
-            var memberSession = selectedSessions.FindByCharacter(participant.CharacterId);
+            var memberSession = selectedSessions.TryGetInWorld(participant.CharacterId, out var inWorld) ? inWorld : null;
             var memberRuntime = memberSession is null ? null
                 : await currentViews.TryLoadAsync(memberSession, cancellationToken).ConfigureAwait(false);
             if (memberSession is null
@@ -207,9 +207,9 @@ public sealed class EplpCommandHandler(
             : null;
         if (message.State == LeaveState)
         {
-            if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session
+            if (!selectedSessions.IsInWorld(session)
                 || runs.Find(session.CharacterId)?.RunId != currentRun?.RunId
-                || returning.Any(x => selectedSessions.FindByCharacter(x.Session.CharacterId) != x.Session)
+                || returning.Any(x => !selectedSessions.IsInWorld(x.Session))
                 || (!isAltar && returning.Any(x => entryIntents?.Find(x.Session) is not null)))
                 return;
             if (roster is not null && parties is not null)
@@ -283,7 +283,7 @@ public sealed class EplpCommandHandler(
         // Peers must see the decision before the leader's ACK can open another selection.
         foreach (var member in returning.Where(value => value.Session != session))
         {
-            if (selectedSessions.FindByCharacter(member.Session.CharacterId) != member.Session)
+            if (!selectedSessions.IsInWorld(member.Session))
                 continue;
             try
             {
@@ -300,7 +300,7 @@ public sealed class EplpCommandHandler(
                     context.Connection.ConnectionId, member.Session.CharacterId.Value);
             }
         }
-        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+        if (!selectedSessions.IsInWorld(session))
             return;
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
@@ -310,8 +310,7 @@ public sealed class EplpCommandHandler(
         if (leaving)
         {
             await townAreaProjection.EnterAsync(
-                returning.Where(value => selectedSessions.FindByCharacter(
-                        value.Session.CharacterId) == value.Session)
+                returning.Where(value => selectedSessions.IsInWorld(value.Session))
                     .Select(value => new TownAreaEntry(
                         value.Session, value.Runtime, value.Position))
                     .ToArray(),

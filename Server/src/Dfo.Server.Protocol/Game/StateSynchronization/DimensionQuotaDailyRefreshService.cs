@@ -26,9 +26,9 @@ public sealed class DimensionQuotaDailyRefreshService(ISelectedSessionSnapshotQu
             try
             {
                 await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
-                if (sessions.FindByCharacter(session.CharacterId) != session) continue;
+                if (!sessions.IsInWorld(session)) continue;
                 var result = await delivery.SendAsync(session, UsageQuotaFamily.DimensionDungeon, ct).ConfigureAwait(false);
-                if (sessions.FindByCharacter(session.CharacterId) == session && result.Attempts.Any(x =>
+                if (sessions.IsInWorld(session) && result.Attempts.Any(x =>
                     x.CharacterId == session.CharacterId && x.Outcome == Dfo.Server.Abstractions.Notifications.NotificationOutcome.Delivered))
                     delivered[session] = period;
             }

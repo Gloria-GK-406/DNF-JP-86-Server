@@ -53,7 +53,7 @@ internal sealed class HatchCreatureHandler(ISelectedSessionDomainService session
                 cancellationToken).ConfigureAwait(false);
             return;
         }
-        if (sessions.FindByCharacter(session!.CharacterId) != session) return;
+        if (!sessions.IsInWorld(session!)) return;
 
         var pet = receipt.After;
         var itemUpdate = GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(

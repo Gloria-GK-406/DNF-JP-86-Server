@@ -56,7 +56,7 @@ internal sealed class SelectedSessionCleanupService(
         var required = new List<SelectedSessionCleanupNotice>();
         var partyNotifications = PartyNotificationPlan.Empty;
         var partyRecipients = PartyNotificationRecipientPlan.Empty;
-        var ownsSelectedCharacter = sessions.FindByCharacter(session.CharacterId) == session;
+        var ownsSelectedCharacter = sessions.StandingOf(session) is not null;
         if (currentMember is not null && session.Owns(currentMember))
         {
             // Preserve the exact peer generations this area snapshot was built from. Reducing
@@ -71,7 +71,7 @@ internal sealed class SelectedSessionCleanupService(
                              && member.CharacterId != session.CharacterId)
                      ?? [])
             {
-                if (sessions.FindByCharacter(peer.CharacterId) is { } exact
+                if (sessions.TryGetInWorld(peer.CharacterId, out var exact)
                     && exact.Owns(peer))
                 {
                     audience.Add(exact);
@@ -258,10 +258,10 @@ internal sealed class SelectedSessionCleanupService(
                          scope.ChannelId,
                          scope.TownId,
                          scope.AreaId, scope.Instance))?.Members ?? [])
-                    .Where(item => item.SharesTownPresence
-                        && sessions.FindByCharacter(item.CharacterId) is { } exact
-                        && exact.Owns(item))
-                    .Select(item => sessions.FindByCharacter(item.CharacterId)!)
+                    .Select(item => item.SharesTownPresence
+                        && sessions.TryGetInWorld(item.CharacterId, out var exact)
+                        && exact.Owns(item) ? exact : null)
+                    .OfType<SelectedSessionIdentity>()
                     .Distinct()
                     .ToArray()))
             .ToArray();
@@ -297,10 +297,10 @@ internal sealed class SelectCharacterSessionEntryService(
         var audience = new List<SelectedSessionIdentity>(occupants.Length);
         foreach (var occupant in occupants)
         {
-            var owner = sessions.FindByCharacter(occupant.CharacterId);
-            var otherResult = owner is null ? null
-                : await currentViews.TryLoadAsync(owner, cancellationToken).ConfigureAwait(false);
-            if (owner is null || !owner.Owns(occupant) || otherResult is null)
+            if (!sessions.TryGetInWorld(occupant.CharacterId, out var owner))
+                continue;
+            var otherResult = await currentViews.TryLoadAsync(owner, cancellationToken).ConfigureAwait(false);
+            if (!owner.Owns(occupant) || otherResult is null)
             {
                 continue;
             }
@@ -330,11 +330,14 @@ internal sealed class SelectCharacterSessionEntryService(
         var identities = new List<PvpParticipantEntryState>();
         foreach (var value in pvp.ReadyOn(session.ListenerPort, session.CharacterId))
         {
-            var owner = value.Session ?? sessions.FindByCharacter(value.CharacterId)
-                ?? throw new InvalidDataException("PvP participant session is unavailable.");
-            var current = await currentViews.TryLoadAsync(owner, cancellationToken)
-                .ConfigureAwait(false)
-                ?? throw new InvalidDataException("PvP participant state is unavailable.");
+            // Someone else's connection going away is not a reason for this entry to fail: a
+            // participant who is no longer in the world is left out of the lobby this one sees.
+            SelectedSessionIdentity? owner = value.Session is { } exact
+                ? sessions.IsInWorld(exact) ? exact : null
+                : sessions.TryGetInWorld(value.CharacterId, out var found) ? found : null;
+            if (owner is null
+                || await currentViews.TryLoadAsync(owner, cancellationToken).ConfigureAwait(false) is not { } current)
+                continue;
             identities.Add(CreatePvpParticipant(current));
         }
         var offeredRooms = pvp.OfferedOn(session.ListenerPort).ToDictionary(value => value.RoomId);
@@ -378,7 +381,7 @@ internal sealed class SelectCharacterSessionEntryService(
     /// </remarks>
     public void Publish(SelectedSessionIdentity session, SelectCharacterResult result)
     {
-        if (sessions.FindByCharacter(session.CharacterId) != session)
+        if (!sessions.IsSelected(session))
             throw new InvalidOperationException("Cannot publish a replaced selection.");
         creatures?.Enter(session);
         runtime.Begin(session, result.Character.Position, checked((byte)Math.Clamp(

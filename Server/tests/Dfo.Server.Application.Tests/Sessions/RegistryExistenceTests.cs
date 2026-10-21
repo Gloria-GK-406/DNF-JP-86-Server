@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
@@ -63,13 +64,12 @@ public sealed class RegistryExistenceTests
     public async Task A_registry_written_to_is_the_same_one_the_view_consults()
     {
         using var provider = BuildProductionGraph();
-        var session = SelectedSessionIdentity.Create(
+        var session = provider.GetRequiredService<ISelectedSessionDomainService>().InWorld(
+            provider.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>(),
             new AccountId(2),
             new CharacterId(2),
-            new NetworkConnectionId("Game:2"),
-            connectionGeneration: 1,
+            "Game:2",
             listenerPort: 10011);
-        _ = provider.GetRequiredService<ISelectedSessionDomainService>().Select(session);
         provider.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(
             session.CharacterId,
             session.TownAreaLease(),

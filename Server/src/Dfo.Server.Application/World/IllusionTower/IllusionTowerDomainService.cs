@@ -26,7 +26,7 @@ internal sealed class IllusionTowerDomainService(
     private readonly object sync = new();
     private readonly Dictionary<Guid, IllusionTowerDgn> runs = [];
     private readonly Dictionary<CharacterId, Guid> membership = [];
-    private bool ValidSession(SelectedSessionIdentity session) => sessions.Find(session.AccountId) == session;
+    private bool ValidSession(SelectedSessionIdentity session) => sessions.IsInWorld(session);
     private bool InOrdinary(CharacterId id) => ordinary.Find(id) is not null;
 
     private Changes Pending => scope.Current!.Enlist(this, () => new Changes(this));
@@ -73,7 +73,7 @@ internal sealed class IllusionTowerDomainService(
         foreach (var candidate in members)
         {
             var member = candidate.Session;
-            if (sessions.Find(member.AccountId) != member) return Refuse("NoSession");
+            if (!sessions.IsInWorld(member)) return Refuse("NoSession");
             if (participation?.Find(member.CharacterId) is not null || IsInTower(member.CharacterId) || ordinary.Find(member.CharacterId) is not null || Pending.OrdinaryEntries.Contains(member.CharacterId)) return Refuse("AlreadyInDungeon");
             var progress = await characters.Get(member.CharacterId).ProgressAsync(token).ConfigureAwait(false);
             if (progress is null || progress.Level < definition.MinimumLevel) return Refuse("LevelTooLow", candidate.Slot);
@@ -136,7 +136,7 @@ internal sealed class IllusionTowerDomainService(
         var run = Lookup(context.Session.CharacterId);
         if (run is null || run.RunId != context.RunId || run.Room.State.Version != context.RoomVersion
             || !run.Members.Any(x => x.Session == context.Session)
-            || (!leaving && sessions.Find(context.Session.AccountId) != context.Session)) return null;
+            || (!leaving && !sessions.IsInWorld(context.Session))) return null;
         if (!leaving) Pending.AuthenticatedSessions.Add(context.Session);
         return run;
     }

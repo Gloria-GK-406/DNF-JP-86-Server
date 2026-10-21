@@ -86,11 +86,9 @@ public sealed class UseRevivalCoinHandler(ISelectedSessionDomainService sessions
         {
             foreach (var account in frozen.Select(x => x.AccountId).Distinct().OrderBy(x => x.Value))
                 leases.Add(await transitionGate.AcquireAsync(account, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
-            if (!frozen.Contains(payer) || sessions.FindByCharacter(payer.CharacterId) != payer
-                || sessions.FindByConnection(payer.ConnectionId) != payer) return;
+            if (!frozen.Contains(payer) || !sessions.IsInWorld(payer)) return;
             var target = frozen.SingleOrDefault(x => x.WireUserId == message.TargetActorId);
-            if (target is null || sessions.FindByCharacter(target.CharacterId) != target
-                || sessions.FindByConnection(target.ConnectionId) != target
+            if (target is null || !sessions.IsInWorld(target)
                 || runs.Find(target.CharacterId)?.RunId != expected.RunId
                 || !onlineUsers.TryGetByConnection(payer.ConnectionId, out var online) || online is null)
             {
@@ -106,7 +104,7 @@ public sealed class UseRevivalCoinHandler(ISelectedSessionDomainService sessions
             }
             var noti = new CharacterLifeStateNotification(target.WireUserId, State: 1);
             var secondary = frozen.Where(x => x != payer
-                    && sessions.FindByCharacter(x.CharacterId) == x
+                    && sessions.IsInWorld(x)
                     && runs.Find(x.CharacterId)?.RunId == expected.RunId)
                 .Select(x => new GameExplicitMessageTarget(x.ConnectionId, [noti])).ToArray();
             // The payer receives life state before ACK; only its coin counter is updated.

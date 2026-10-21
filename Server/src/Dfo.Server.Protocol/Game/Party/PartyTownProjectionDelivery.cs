@@ -229,8 +229,9 @@ public sealed class PartyTownProjectionDelivery(
     private SelectedSessionIdentity? ExactSession(CharacterId characterId)
     {
         var member = townAreas.Find(characterId);
-        var session = selectedSessions.FindByCharacter(characterId);
-        return member is not null && session is not null && session.Owns(member)
+        return member is not null
+            && selectedSessions.TryGetInWorld(characterId, out var session)
+            && session.Owns(member)
             ? session
             : null;
     }

@@ -22,7 +22,7 @@ public sealed class ConsumeDungeonBuffCommandHandler(ISelectedSessionDomainServi
         ConsumeDungeonBuffCommand command, CancellationToken token)
     {
         var session = command.Session;
-        if (sessions.FindByCharacter(session.CharacterId) != session)
+        if (!sessions.IsInWorld(session))
             return new(new([]), [], clock.GetUtcNow(), false);
         if (command.RunId is { } runId && runs.Find(session.CharacterId)?.RunId == runId
             && !runs.HasUsedDungeonBuff(session.CharacterId, runId)

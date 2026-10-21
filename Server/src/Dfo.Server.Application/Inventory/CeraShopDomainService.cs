@@ -19,7 +19,7 @@ using Dfo.Server.Application.Creatures;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers, ICharacterDomainService characters,
+    ICharacterDomainService characters,
     ICharacterTable characterRows, IAccountWalletDomainService wallets, ICharacterBusinessInventoryDomainService stores,
     ICeraShopRuleService rules, IItemGrantDomainService grants, IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
     ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
@@ -32,10 +32,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
     {
         var transaction = transactions.Current
             ?? throw new InvalidOperationException("CERA purchases require a transaction boundary.");
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId
+        if (!sessions.IsInWorld(session)
             || !await characterRows.BelongsToAsync(session.CharacterId, session.AccountId, cancellationToken).ConfigureAwait(false))
             return CeraShopPurchaseResult.Refused(CeraShopRejection.NoSession);
 

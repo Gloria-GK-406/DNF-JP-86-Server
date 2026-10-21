@@ -12,7 +12,7 @@ using Dfo.Server.Data.Accounts;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentRepairDomainService(
-    ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
+    ISelectedSessionDomainService sessions,
     ICharacterDomainService characters, IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
     IEquipmentRepairRuleService rules, IPremiumServiceDomainService premiums,
@@ -29,10 +29,7 @@ internal sealed class EquipmentRepairDomainService(
     public async ValueTask<EquipmentRepairResult> AutoRepairAsync(SelectedSessionIdentity session,
         CancellationToken cancellationToken)
     {
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(EquipmentRepairRejection.NoSession);
         var entitlement = premiums.For(session.AccountId);
         if (!await entitlement.HasBenefitAsync(PremiumBenefit.AutoRepair, cancellationToken).ConfigureAwait(false))
@@ -81,10 +78,7 @@ internal sealed class EquipmentRepairDomainService(
     public async ValueTask<EquipmentRepairResult> RepairAsync(SelectedSessionIdentity session,
         BusinessSlot? slot, CancellationToken cancellationToken)
     {
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(EquipmentRepairRejection.NoSession);
         var rule = await rules.PrepareAsync(cancellationToken).ConfigureAwait(false);
         if (rule is null)

@@ -52,9 +52,9 @@ public sealed class DisjointItemCodecTests
     [Fact]
     public async Task Success_completion_also_publishes_committed_inventory_state()
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(2), new("disjoint-sync"), 1, 10011);
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        sessions.Select(session);
+        var session = SelectedSessionIdentity.Create(new(1), new(2), new("disjoint-sync"), 2, 10011);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
         var receipt = new EquipmentDisjointReceipt(
             session,
             new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0),
@@ -90,9 +90,9 @@ public sealed class DisjointItemCodecTests
     [Fact]
     public async Task Account_material_completion_acks_the_virtual_slot_and_publishes_its_absolute_total()
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(2), new("disjoint-account"), 1, 10011);
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        sessions.Select(session);
+        var session = SelectedSessionIdentity.Create(new(1), new(2), new("disjoint-account"), 2, 10011);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
         var receipt = new EquipmentDisjointReceipt(
             session,
             new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0),

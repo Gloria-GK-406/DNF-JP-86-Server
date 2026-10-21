@@ -23,7 +23,7 @@ public sealed class ForgingCompletedHandler(
         var receipt = notification.Receipt;
         if (recipient.CharacterId != receipt.Session.CharacterId
             || recipient.ConnectionId != receipt.Session.ConnectionId
-            || sessions.Find(receipt.Session.AccountId) != receipt.Session)
+            || !sessions.IsInWorld(receipt.Session))
             return [];
         var targetBound = inventory.Find(receipt.Session.CharacterId, receipt.TargetSlot);
         var materialBound = inventory.Find(receipt.Session.CharacterId, receipt.MaterialSlot);

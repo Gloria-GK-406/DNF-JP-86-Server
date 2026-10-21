@@ -97,8 +97,7 @@ public sealed class DungeonPartyWipeService(
             var entries = new List<TownAreaEntry>();
             foreach (var session in frozen)
             {
-                if (sessions.FindByCharacter(session.CharacterId) != session
-                    || sessions.FindByConnection(session.ConnectionId) != session
+                if (!sessions.IsInWorld(session)
                     || runs.Find(session.CharacterId)?.RunId != runId)
                     continue;
                 var view = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);

@@ -172,9 +172,9 @@ public sealed class OnlineExpiredItemCleanupTests
     [Fact]
     public async Task Failure_does_not_skip_next_character_and_remains_retryable()
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        sessions.Select(SelectedSessionIdentity.Create(new(1), new(1), new("one"), 1, 10011));
-        sessions.Select(SelectedSessionIdentity.Create(new(2), new(2), new("two"), 1, 10011));
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        sessions.InWorld(state, new(1), new(1), "one");
+        sessions.InWorld(state, new(2), new(2), "two");
         var commands = new FailingCommands();
         var job = new OnlineExpiredItemCleanupJob(sessions, commands, sessions, NullLogger<OnlineExpiredItemCleanupJob>.Instance);
         await Assert.ThrowsAsync<AggregateException>(() => job.RunAsync(default).AsTask());

@@ -18,7 +18,7 @@ public sealed class EnsureDailyContractPuppetsCommandHandler(
     public ValueTask<bool> HandleAsync(CommandExecutionContext context, EnsureDailyContractPuppetsCommand command,
         CancellationToken token)
     {
-        if (sessions.Find(command.AccountId) != command.Session)
+        if (!sessions.IsSelected(command.Session))
             throw new InvalidOperationException("Selected session changed before puppet delivery.");
         return puppets.EnsureDailyAsync(command.AccountId, command.Session.CharacterId, token);
     }

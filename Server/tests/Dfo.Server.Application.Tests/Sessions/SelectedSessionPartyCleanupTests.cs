@@ -90,7 +90,7 @@ public sealed class SelectedSessionPartyCleanupTests
         await fixture.Cleanup.CleanupAsync(
             oldLeader, includeOwner: false, CancellationToken.None);
 
-        var replacement = fixture.Admit(1, generation: 2, connection: "replacement");
+        var replacement = fixture.Admit(1, connection: "replacement");
         var replacementMember = fixture.Admit(3);
         fixture.Form(replacement, replacementMember);
 
@@ -139,11 +139,13 @@ public sealed class SelectedSessionPartyCleanupTests
 
     private sealed class Fixture
     {
-        private readonly SelectedSessionDomainService sessions = Dfo.Server.Testing.TestSessions.Directory();
+        private readonly SelectedSessionDomainService sessions;
+        private readonly Dfo.Server.Application.Users.OnlineStateRegistry state;
         private readonly SessionPresenceDomainService presence = new();
 
         public Fixture(bool failAfterPartyCleanup = false)
         {
+            sessions = Dfo.Server.Testing.TestSessions.Directory(out state);
             Parties = new PartyServiceTestAdapter(
                 sessions,
                 presence,
@@ -172,17 +174,15 @@ public sealed class SelectedSessionPartyCleanupTests
 
         public SelectedSessionIdentity Admit(
             int value,
-            long generation = 1,
             string? connection = null,
             int listenerPort = 10011)
         {
-            var session = SelectedSessionIdentity.Create(
+            var session = sessions.InWorld(
+                state,
                 new AccountId(value),
                 new CharacterId(value),
-                new NetworkConnectionId(connection ?? $"party-{value}"),
-                generation,
+                connection ?? $"party-{value}",
                 listenerPort);
-            sessions.Select(session);
             presence.Admit(new SessionPresence(
                 session.CharacterId, listenerPort, 1, 2, true, session,
                 ChannelId: listenerPort - 10_000));

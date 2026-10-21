@@ -135,7 +135,7 @@ public sealed class OnlineUserConnectionObserver(
     {
         // A command may have completed exact cleanup while this observer waited. Never clean a
         // replacement selected by the same account or a reused connection identifier.
-        if (selectedSessions.FindByConnection(connectionId) != selected)
+        if (selectedSessions.StandingOf(selected) is null)
         {
             return false;
         }

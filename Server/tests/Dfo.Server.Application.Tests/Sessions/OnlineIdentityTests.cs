@@ -83,7 +83,7 @@ public sealed class OnlineIdentityTests
         Assert.Equal(Character, after.CurrentCharacterId);
         Assert.Equal(OnlineUserState.CharacterActive, after.State);
         Assert.True(identity.Sessions.IsInWorld(session));
-        Assert.True(identity.Online.IsActiveExact(session));
+        Assert.True(identity.Sessions.IsInWorld(session));
     }
 
     [Fact]
@@ -127,7 +127,7 @@ public sealed class OnlineIdentityTests
         Assert.Null(after.CurrentCharacterId);
         Assert.Equal(OnlineUserState.Authenticated, after.State);
         Assert.Null(identity.Sessions.StandingOf(session));
-        Assert.False(identity.Online.IsActiveExact(session));
+        Assert.False(identity.Sessions.IsInWorld(session));
     }
 
     [Fact]
@@ -161,12 +161,12 @@ public sealed class OnlineIdentityTests
         var session = identity.SessionOn(online);
         identity.Sessions.Select(session);
         identity.Sessions.EnterWorld(session);
-        Assert.True(identity.Online.IsActiveExact(session));
+        Assert.True(identity.Sessions.IsInWorld(session));
 
         Assert.True(identity.Online.TryDisconnectConnection(online.Connection.ConnectionId));
 
-        Assert.False(identity.Online.IsActiveExact(session));
-        Assert.True(identity.Sessions.IsInWorld(session));
+        Assert.False(identity.Sessions.IsInWorld(session));
+        Assert.NotNull(identity.Sessions.StandingOf(session));
         Assert.True(identity.Sessions.StandingOf(session)!.ConnectionRevoked);
         Assert.Equal(session, identity.Sessions.FindByConnection(online.Connection.ConnectionId));
 

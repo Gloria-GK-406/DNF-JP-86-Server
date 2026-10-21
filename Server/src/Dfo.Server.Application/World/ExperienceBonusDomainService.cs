@@ -18,8 +18,7 @@ internal sealed class ExperienceBonusDomainService(
     public async ValueTask<IReadOnlyList<ExperienceModifier>> CollectAsync(
         ExperienceOccasion occasion, CancellationToken cancellationToken)
     {
-        var session = sessions.FindByCharacter(occasion.Character);
-        if (session is null || session.AccountId != occasion.Account || !sessions.IsInWorld(session))
+        if (!sessions.TryGetInWorld(occasion.Character, out var session) || session.AccountId != occasion.Account)
             return [];
 
         var account = premiums.For(occasion.Account);
@@ -28,7 +27,7 @@ internal sealed class ExperienceBonusDomainService(
         var blackDiamondRate = occasion.Event == ExperienceEvent.DungeonClear
             ? await account.GetBlackDiamondExperienceBonusRateAsync(cancellationToken).ConfigureAwait(false) : 0;
         var channel = await channels.ResolveAsync(session.ListenerPort, cancellationToken).ConfigureAwait(false);
-        if (sessions.FindByCharacter(occasion.Character) != session || !sessions.IsInWorld(session))
+        if (!sessions.IsInWorld(session))
             return [];
 
         var found = experienceRules.ModifiersFor(occasion.Event, currentPremiums,

@@ -225,7 +225,7 @@ public sealed class SessionAdjacentEntryTests
             id,
             new Dfo.Server.Data.Networking.NetworkConnectionId(
                 $"Game:{characterId}:{listenerPort}"),
-            connectionGeneration: 1,
+            connectionGeneration: 2,
             listenerPort);
         return new SessionPresence(
             id,
@@ -242,11 +242,11 @@ public sealed class SessionAdjacentEntryTests
         IExpertStoreDomainService stores,
         IPvpLobbyDomainService lobby)
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
         foreach (var candidate in presence.Query(SessionPresenceScope.Global))
         {
             if (candidate.Session is { } exact)
-                _ = sessions.Select(exact);
+                sessions.EnterWorldWithConnection(state, exact);
         }
 
         return new SessionAdjacentEntryDomainService(presence, sessions, stores, lobby);

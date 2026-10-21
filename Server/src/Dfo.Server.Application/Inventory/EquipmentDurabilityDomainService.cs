@@ -9,16 +9,13 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentDurabilityDomainService(
-    ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
+    ISelectedSessionDomainService sessions,
     IEquipmentDomainService equipments) : IEquipmentDurabilityDomainService
 {
     public async ValueTask<EquipmentDurabilityResult> DecreaseAsync(SelectedSessionIdentity session,
         BusinessSlot slot, CancellationToken cancellationToken)
     {
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(EquipmentDurabilityRejection.NoSession);
 
         // A21 worn slots: weapon, five armour pieces, support weapon, and charm. Accessories,

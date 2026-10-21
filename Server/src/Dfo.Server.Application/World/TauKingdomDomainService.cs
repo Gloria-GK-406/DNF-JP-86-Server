@@ -14,7 +14,7 @@ internal sealed class TauKingdomDomainService(ITauKingdomRuleService rules,
     IDungeonVisitDomainService visits, ICharacterDomainService characters, IEventManagementDomainService activities,
     IDailyRefillConfigurationDomainService refills, IDailyRefillDomainService refill,
     ISelectedSessionDomainService sessions,
-    IAuthenticatedGamePresenceQuery online, IEventService events, TimeProvider clock) : ITauKingdomDomainService
+    IEventService events, TimeProvider clock) : ITauKingdomDomainService
 {
     public bool Supports(int dungeonId) => rules.Supports(dungeonId);
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct)
@@ -50,7 +50,7 @@ internal sealed class TauKingdomDomainService(ITauKingdomRuleService rules,
 
     public async ValueTask<bool> RefillOnlineTicketAsync(SelectedSessionIdentity session, CancellationToken ct)
     {
-        if (sessions.Find(session.AccountId) != session || !sessions.IsInWorld(session) || !online.IsActiveExact(session))
+        if (!sessions.IsInWorld(session))
             return false;
         var at = clock.GetUtcNow();
         var configured = (await refills.EffectiveAsync(at, ct).ConfigureAwait(false))

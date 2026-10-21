@@ -14,7 +14,7 @@ using Dfo.Server.Abstractions.World.IllusionTower;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService users, ICharacterTable owners, IDungeonRunDomainService runs,
+    ICharacterTable owners, IDungeonRunDomainService runs,
     ICharacterDomainService characters, ICharacterCarriedGoldTable goldRows, ICarriedGoldRuleService goldRules,
     IAccountCargoStateTable accountStates,
     IInventoryExpansionStateTable writes, IInventoryLevelDomainService levels,
@@ -150,10 +150,8 @@ internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainServ
             await accountInventory.LoadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false), at);
     }
     private async ValueTask<bool> CurrentAsync(SelectedSessionIdentity session, CancellationToken ct) =>
-        sessions.Find(session.AccountId) == session && runs.Find(session.CharacterId) is null
+        sessions.IsInWorld(session) && runs.Find(session.CharacterId) is null
         && towers?.IsInTower(session.CharacterId) != true
-        && users.TryGetByConnection(session.ConnectionId, out var user) && user is { State: OnlineUserState.CharacterActive }
-        && user.AccountId == session.AccountId && user.CurrentCharacterId == session.CharacterId
         && await owners.BelongsToAsync(session.CharacterId, session.AccountId, ct).ConfigureAwait(false);
     private ValueTask<int> ParameterAsync(SelectedSessionIdentity session, InventoryExpansionKind kind, CancellationToken ct) =>
         levels.GetLevelAsync(Container(session, kind), ct);

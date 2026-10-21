@@ -34,7 +34,7 @@ internal sealed class SouthernDaleDailyRefillJob(ISelectedSessionSnapshotQuery o
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
             catch (Exception error)
             {
-                if (sessions.Find(session.AccountId) != session) continue;
+                if (!sessions.IsInWorld(session)) continue;
                 logger.LogError(error, "Southern Dale ticket refill failed character={CharacterId}", session.CharacterId);
                 failures.Add(error);
             }

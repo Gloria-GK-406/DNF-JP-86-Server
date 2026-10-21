@@ -27,9 +27,8 @@ internal sealed class AltarStateChangedHandler(IAltarDungeonDomainService altars
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, AltarStateChanged notification, CancellationToken ct)
     {
         var action = notification.Action; var state = action.State;
-        var session = sessions.FindByCharacter(recipient.CharacterId);
         var run = runs.Find(recipient.CharacterId);
-        if (session is null || session.ConnectionId != recipient.ConnectionId
+        if (!sessions.TryGetInWorld(recipient.CharacterId, out var session) || session.ConnectionId != recipient.ConnectionId
             || recipient.ExpectedSession is { } expected && session != expected
             || run?.RunId != state.RunId || run.RoomVersion != state.RoomVersion
             || altars.Find(state.RunId)?.Generation != state.Generation) return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
@@ -73,7 +72,7 @@ public sealed class AltarProjectionDelivery(IAltarDungeonDomainService altars, I
 {
     public void Wake() => wake.Wake();
     internal IReadOnlyList<SelectedSessionIdentity> Participants(DungeonRunId runId) => registry.Find(runId)
-        .Where(x => sessions.FindByCharacter(x.CharacterId) == x && runs.Find(x.CharacterId)?.RunId == runId).ToArray();
+        .Where(x => sessions.IsInWorld(x) && runs.Find(x.CharacterId)?.RunId == runId).ToArray();
 
     internal async ValueTask<AltarActionResult?> ExecuteAsync(SelectedSessionIdentity requester,
         DungeonRunId runId, AltarOperation operation, byte difficulty, CancellationToken ct)

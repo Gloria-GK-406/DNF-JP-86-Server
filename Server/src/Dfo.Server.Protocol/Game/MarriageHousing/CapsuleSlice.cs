@@ -78,10 +78,9 @@ internal sealed class CapsuleRefreshHandler(ISelectedSessionDomainService sessio
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, CapsuleRefresh n, CancellationToken ct)
     {
-        var actor = sessions.FindByConnection(recipient.ConnectionId);
-        if (actor is null || actor.CharacterId != recipient.CharacterId || recipient.ExpectedSession is { } expected && expected != actor) return [];
+        if (!sessions.TryGetInWorld(recipient.ConnectionId, out var actor) || actor.CharacterId != recipient.CharacterId || recipient.ExpectedSession is { } expected && expected != actor) return [];
         var snapshot = await query.ReadAsync(actor.AccountId, actor.CharacterId, ct).ConfigureAwait(false);
-        return sessions.Find(actor.AccountId) == actor ? [new CapsuleStateMessage(snapshot)] : [];
+        return sessions.IsInWorld(actor) ? [new CapsuleStateMessage(snapshot)] : [];
     }
 }
 internal sealed record CapsuleStateMessage(MarriageCapsuleSnapshot Snapshot) : Dfo.Server.Protocol.Game.StateSynchronization.GameStateSynchronizationMessage, IGameNotiMessage
@@ -112,10 +111,9 @@ internal sealed class CapsuleEnergyRefreshHandler(ISelectedSessionDomainService 
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, CapsuleEnergyRefresh n, CancellationToken ct)
     {
-        var actor = sessions.FindByConnection(recipient.ConnectionId);
-        if (actor is null || actor.CharacterId != recipient.CharacterId || recipient.ExpectedSession is { } expected && expected != actor) return [];
+        if (!sessions.TryGetInWorld(recipient.ConnectionId, out var actor) || actor.CharacterId != recipient.CharacterId || recipient.ExpectedSession is { } expected && expected != actor) return [];
         var snapshot = await query.ReadAsync(actor.AccountId, actor.CharacterId, ct).ConfigureAwait(false);
-        return sessions.Find(actor.AccountId) == actor ? [new CapsuleEnergyMessage(snapshot.State.Energy)] : [];
+        return sessions.IsInWorld(actor) ? [new CapsuleEnergyMessage(snapshot.State.Energy)] : [];
     }
 }
 internal sealed class CapsuleEnergySubscriber(IEventService events) : IDomainEventSubscriber<MarriageCapsuleEnergyChanged>

@@ -9,7 +9,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentQualityDomainService(ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers, IBusinessInventorySlotDomainService slots,
+    IBusinessInventorySlotDomainService slots,
     IEquipmentQualityRuleService rules, IEquipmentMagicSealGradeRuleService magicGrades,
     IEquipmentQualitySeedSource seeds, IItemLifecycleDomainService lifecycle,
     IDomainTransactionAccessor transactions, TimeProvider clock) : IEquipmentQualityDomainService
@@ -28,10 +28,7 @@ internal sealed class EquipmentQualityDomainService(ISelectedSessionDomainServic
         BusinessSlot targetSlot, int? expectedItemId, BusinessSlot materialSlot, byte? optionIndex, CancellationToken ct)
     {
         _ = transactions.Current ?? throw new InvalidOperationException("Quality reroll requires a transaction.");
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(EquipmentQualityRejection.NoSession);
         if (targetSlot.Space != BusinessInventorySpace.CarriedEquipment
             || materialSlot.Space is not (BusinessInventorySpace.QuickSlot or BusinessInventorySpace.Consumable)

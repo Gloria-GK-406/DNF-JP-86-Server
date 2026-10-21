@@ -8,17 +8,14 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class MaterialConsumptionDomainService(
-    ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
+    ISelectedSessionDomainService sessions,
     IBusinessInventorySlotDomainService slots, IMaterialConsumptionRuleService rules, IItemLifecycleDomainService lifecycle,
     Dfo.Server.Abstractions.DomainEvents.IEventService? events = null) : IMaterialConsumptionDomainService
 {
     public async ValueTask<MaterialConsumptionResult> ConsumeAsync(SelectedSessionIdentity session,
         IReadOnlyList<MaterialCost> costs, CancellationToken ct)
     {
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new("NoSession", []);
         if (!rules.IsValidRequest(costs)) return new("InvalidRequest", []);
 

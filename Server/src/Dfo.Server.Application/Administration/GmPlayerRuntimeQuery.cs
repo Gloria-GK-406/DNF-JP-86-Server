@@ -24,10 +24,10 @@ internal sealed class GmPlayerRuntimeQuery(IAuthenticatedGamePresenceQuery onlin
         foreach (var session in snapshots.Snapshot())
         {
             token.ThrowIfCancellationRequested();
-            if (!Current(session)) continue;
+            if (!selected.IsInWorld(session)) continue;
             var position = onlineCharacters.PositionOf(session);
             var resolved = await entry.ResolveAsync(session.ListenerPort, token);
-            if (!Current(session)) continue;
+            if (!selected.IsInWorld(session)) continue;
             accounts.Add(session.AccountId.Value);
             playing[session.CharacterId.Value] = new(session.AccountId.Value,
                 catalog.FirstOrDefault(channel => channel.ChannelId == resolved.ChannelId),
@@ -35,9 +35,6 @@ internal sealed class GmPlayerRuntimeQuery(IAuthenticatedGamePresenceQuery onlin
         }
         return new(accounts, playing, catalog, sampledAt);
     }
-
-    private bool Current(SelectedSessionIdentity session) => selected.Find(session.AccountId) == session
-        && selected.IsInWorld(session) && online.IsActiveExact(session);
 
     internal static GmPositionView Position(string source, Dfo.Server.Data.Characters.CharacterPositionState? value) =>
         new(source, value?.TownId, value?.AreaId, value?.X, value?.Y, value?.Direction);

@@ -151,6 +151,6 @@ public sealed class DungeonLoadingProjectionDelivery(
     private bool IsCurrentSession(
         Dfo.Server.Data.World.SelectedSessionIdentity session,
         NetworkConnectionId connectionId) =>
-        selectedSessions.FindByConnection(connectionId) == session
-        && selectedSessions.FindByCharacter(session.CharacterId) == session;
+        session.ConnectionId == connectionId
+        && selectedSessions.IsInWorld(session);
 }

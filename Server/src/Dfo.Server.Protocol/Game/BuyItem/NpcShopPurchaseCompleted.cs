@@ -24,7 +24,7 @@ public sealed class NpcShopPurchaseCompletedHandler(ISelectedSessionDomainServic
         if (recipient.CharacterId != receipt.Session.CharacterId && receipt.Housing is { } shared && receipt.HousingAudience.Contains(recipient.CharacterId))
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([new HousingStorageMessage(shared)]);
         if (recipient.CharacterId != receipt.Session.CharacterId || recipient.ConnectionId != receipt.Session.ConnectionId
-            || sessions.Find(receipt.Session.AccountId) != receipt.Session)
+            || !sessions.IsInWorld(receipt.Session))
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         var messages = new List<IServerNetworkMessage>();
         foreach (var change in receipt.MaterialChanges)

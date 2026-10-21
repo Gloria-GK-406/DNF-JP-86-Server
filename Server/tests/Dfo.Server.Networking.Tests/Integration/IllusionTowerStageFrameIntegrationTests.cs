@@ -75,20 +75,36 @@ public sealed class IllusionTowerStageFrameIntegrationTests
             var stream = client.GetStream();
             _ = await ReadFrameAsync(stream, timeout.Token);
 
+            var online = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
             var connectionId = await ConnectedIdAsync(
-                host.Services.GetRequiredService<IGameTcpService>(),
-                host.Services.GetRequiredService<IOnlineUserQueryDomainService>(), timeout.Token);
+                host.Services.GetRequiredService<IGameTcpService>(), online, timeout.Token);
+            // The connection logs in the way a client does, so the session can enter the world on it.
+            var commands = host.Services.GetRequiredService<ICommandBus>();
+            await commands.SendAsync(
+                new Dfo.Server.Application.Authentication.RegisterAccountCommand("towerwire", "test password"),
+                timeout.Token);
+            var issued = await commands.SendAsync(
+                new Dfo.Server.Application.Authentication.AuthenticateAndIssueTicketCommand("towerwire", "test password"),
+                timeout.Token);
+            Assert.True(online.TryGetByConnection(connectionId, out var anonymous));
+            var redeemed = await commands.SendAsync(
+                new Dfo.Server.Protocol.Game.Login.RedeemGameLoginCommand(
+                    anonymous!.OnlineUserId, issued.MId!, issued.Ticket!),
+                timeout.Token);
+            Assert.True(redeemed.Succeeded);
             var selected = SelectedSessionIdentity.Create(
-                new AccountId(7401), new CharacterId(1), connectionId, 1, gamePort);
+                redeemed.AccountId!.Value, new CharacterId(1), connectionId,
+                online.GetRequired(anonymous.OnlineUserId).Generation, gamePort);
             // The real grant service verifies ownership even for temporary tower containers.
             await using (var seed = new SqliteConnection($"Data Source={host.DatabasePath}"))
             {
                 await seed.OpenAsync(timeout.Token);
                 using var insert = seed.CreateCommand();
-                insert.CommandText = "INSERT INTO characters(character_id, account_id, name, level) VALUES(1, 7401, 'tower-test', 60)";
+                insert.CommandText = $"INSERT INTO characters(character_id, account_id, name, level) VALUES(1, {selected.AccountId.Value}, 'tower-test', 60)";
                 Assert.Equal(1, await insert.ExecuteNonQueryAsync(timeout.Token));
             }
             host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(selected);
+            host.Services.GetRequiredService<ISelectedSessionDomainService>().EnterWorld(selected);
 
             var containers = host.Services.GetRequiredService<ICharacterContainerDomainService>();
             if (dungeonId == 11000)

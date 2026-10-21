@@ -34,9 +34,8 @@ public sealed class ClientSettingsBlobTests
         });
         await f.SeedAsync();
         f.Sql("INSERT INTO character_settings(character_id,user_state_bits) VALUES(71,3)");
-        var peer = Dfo.Server.Data.World.SelectedSessionIdentity.Create(new(2), new(72), new("visibility-peer"), 1, 10011);
+        var peer = f.EnterWorld(2, 72, "visibility-peer");
         var sessions = f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>();
-        sessions.Select(peer);
         var towns = f.Services.GetRequiredService<Dfo.Server.Abstractions.World.ITownAreaDomainService>();
         towns.Enter(new(peer.CharacterId, peer.TownAreaLease(), new(1, 0, 0), new(0, 0, 0, 0, 0), true));
         var service = f.Services.GetRequiredService<IClientSettingsDomainService>(); var origin = Origin(f);

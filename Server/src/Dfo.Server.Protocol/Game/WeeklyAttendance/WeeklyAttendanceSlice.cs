@@ -98,7 +98,7 @@ public sealed class AttendanceCompletedHandler(ISelectedSessionDomainService ses
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,AttendanceCompleted notice,CancellationToken ct)
         => ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(recipient.CharacterId==notice.Session.CharacterId
-            && sessions.FindByCharacter(recipient.CharacterId)==notice.Session ? [new WeeklyAttendanceResponse(notice.Succeeded ? 0u : 1u)] : []);
+            && sessions.IsInWorld(notice.Session) ? [new WeeklyAttendanceResponse(notice.Succeeded ? 0u : 1u)] : []);
 }
 public sealed class WeeklyAttendanceHandler(ISelectedSessionDomainService sessions,ICommandBus commands,IEventService notices) : ClientMessageHandler<WeeklyAttendanceRequest>
 {
@@ -116,7 +116,7 @@ public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,EventsChanged notice,CancellationToken ct)
     {
-        if (sessions.FindByCharacter(recipient.CharacterId) is not { } session || session.ConnectionId != recipient.ConnectionId
+        if (!sessions.TryGetInWorld(recipient.CharacterId, out var session) || session.ConnectionId != recipient.ConnectionId
             || recipient.ExpectedSession is { } expected && expected != session) return [];
         var state=await projection.ReadNowAsync(session,ct);
         List<IServerNetworkMessage> messages = [new EventInformationMessage(state.Information),new WeeklyAttendanceStateMessage(state.Attendance),
@@ -132,6 +132,6 @@ public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,
                 .ReadAvailableAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
             messages.Add(new AvailableQuestListMessage(progress.Level, offers));
         }
-        return sessions.FindByCharacter(recipient.CharacterId) == session ? messages : [];
+        return sessions.IsInWorld(session) ? messages : [];
     }
 }

@@ -1,9 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Notifications;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Application.Users;
+using Dfo.Server.Testing;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -43,25 +46,30 @@ internal sealed class TownBellHandler(ComposeRule rule) : INotificationHandler<T
 internal sealed class AwkwardSessions(ISelectedSessionDomainService inner)
     : ISelectedSessionDomainService
 {
-    // Test double: the current selection counts as being in the world, and
-    // remembers which sessions were fenced.
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<
-        Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
-    void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
-        Dfo.Server.Data.World.SelectedSessionIdentity session) { }
-    bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
-        Dfo.Server.Data.World.SelectedSessionIdentity session) =>
-        ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
-        && testDoubleFences.TryAdd(session, true) | true;
-    Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
-        Dfo.Server.Data.World.SelectedSessionIdentity session) =>
-        ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
-            ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
-            : null;
-    bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
-        Dfo.Server.Data.World.SelectedSessionIdentity session) =>
-        ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
-            is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+    // Every answer is the real directory's, except that looking up a refused character throws.
+    // A lookup by character inside the bus goes through FindByCharacter, so it throws too.
+    public void EnterWorld(SelectedSessionIdentity session) => inner.EnterWorld(session);
+
+    public bool Fence(SelectedSessionIdentity session) => inner.Fence(session);
+
+    public SelectedSessionStanding? StandingOf(SelectedSessionIdentity session) => inner.StandingOf(session);
+
+    public bool IsSelected(SelectedSessionIdentity session) => inner.IsSelected(session);
+
+    public bool IsInWorld(SelectedSessionIdentity session) => inner.IsInWorld(session);
+
+    public bool TryGetInWorld(CharacterId characterId, [NotNullWhen(true)] out SelectedSessionIdentity? session)
+    {
+        session = FindByCharacter(characterId);
+        if (session is not null && !inner.IsInWorld(session)) session = null;
+        return session is not null;
+    }
+
+    public bool TryGetInWorld(ushort wireUserId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+        inner.TryGetInWorld(wireUserId, out session);
+
+    public bool TryGetInWorld(NetworkConnectionId connectionId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+        inner.TryGetInWorld(connectionId, out session);
 
     private readonly HashSet<CharacterId> refusing = [];
 
@@ -170,7 +178,8 @@ internal sealed class RecordingLoggerProvider : ILoggerProvider
 /// </remarks>
 internal sealed class NotificationWorld
 {
-    private readonly SelectedSessionDomainService sessions = Dfo.Server.Testing.TestSessions.Directory();
+    private readonly OnlineStateRegistry state;
+    private readonly SelectedSessionDomainService sessions;
     private readonly Dictionary<CharacterId, SelectedSessionIdentity> playing = [];
     private readonly ServiceProvider provider;
 
@@ -181,6 +190,7 @@ internal sealed class NotificationWorld
     /// <param name="timeout">Per recipient. Long by default, so no case waits on it by accident.</param>
     public NotificationWorld(int retryLimit = 0, TimeSpan? timeout = null)
     {
+        sessions = TestSessions.Directory(out state);
         Sessions = new AwkwardSessions(sessions);
         var services = new ServiceCollection();
         services.AddLogging(builder => builder.AddProvider(Log));
@@ -210,17 +220,18 @@ internal sealed class NotificationWorld
     public Func<NotificationRecipient, IReadOnlyList<IServerNetworkMessage>> Compose { get; set; } =
         recipient => [new TownBellMessage($"for-{recipient.CharacterId.Value}")];
 
-    public void Play(CharacterId characterId)
-    {
-        var session = SelectedSessionIdentity.Create(
-            new AccountId(characterId.Value),
-            characterId,
-            new NetworkConnectionId($"Game:{characterId.Value}"),
-            connectionGeneration: 1,
-            listenerPort: 10011);
-        playing[characterId] = session;
-        _ = sessions.Select(session);
-    }
+    public void Play(CharacterId characterId) =>
+        playing[characterId] = sessions.InWorld(
+            state, new AccountId(characterId.Value), characterId, $"Game:{characterId.Value}");
+
+    /// <summary>Selected but not yet in the world, as a character is while its entry is under way.</summary>
+    public void SelectOnly(CharacterId characterId) =>
+        playing[characterId] = sessions.Selected(
+            state, new AccountId(characterId.Value), characterId, $"Game:{characterId.Value}");
+
+    /// <summary>The connection is revoked under the session, which waits for its teardown.</summary>
+    public void Revoke(CharacterId characterId) =>
+        Assert.True(state.TryDisconnectConnection(playing[characterId].ConnectionId));
 
     public void Leave(CharacterId characterId) => sessions.ReleaseExact(playing[characterId]);
 
@@ -229,26 +240,24 @@ internal sealed class NotificationWorld
     {
         var previous = playing[characterId];
         sessions.ReleaseExact(previous);
-        var session = SelectedSessionIdentity.Create(
-            previous.AccountId,
-            characterId,
-            new NetworkConnectionId($"Game:{characterId.Value}-again"),
-            connectionGeneration: previous.ConnectionGeneration + 1,
-            listenerPort: previous.ListenerPort);
-        playing[characterId] = session;
-        _ = sessions.Select(session);
+        state.TryDisconnectConnection(previous.ConnectionId);
+        playing[characterId] = sessions.InWorld(
+            state, previous.AccountId, characterId, $"Game:{characterId.Value}-again", previous.ListenerPort);
     }
 
     public void ReplaceKeepingConnection(CharacterId characterId, int listenerPort)
     {
         var previous = playing[characterId];
+        sessions.ReleaseExact(previous);
+        Assert.True(state.TryGetByConnection(previous.ConnectionId, out var owner));
         var session = previous with
         {
-            ConnectionGeneration = previous.ConnectionGeneration + 1,
+            ConnectionGeneration = owner!.Generation,
             ListenerPort = listenerPort,
         };
+        sessions.Select(session);
+        sessions.EnterWorld(session);
         playing[characterId] = session;
-        _ = sessions.Select(session);
     }
 
     public NetworkConnectionId ConnectionOf(CharacterId characterId) =>

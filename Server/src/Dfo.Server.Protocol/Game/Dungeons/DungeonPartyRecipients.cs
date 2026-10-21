@@ -29,7 +29,7 @@ public sealed class DungeonPartyRecipients(
         var admittedGenerations = runGenerations.Find(runId).ToHashSet();
         return party.Members
             .OrderBy(member => member.Slot)
-            .Select(member => sessions.FindByCharacter(member.CharacterId))
+            .Select(member => sessions.TryGetInWorld(member.CharacterId, out var inWorld) ? inWorld : null)
             .Where(session => session is not null
                 && admittedGenerations.Contains(session)
                 && (session.CharacterId != actor.CharacterId || session == actor)

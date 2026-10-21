@@ -92,6 +92,16 @@ internal static class MarriageHarness
     internal static void Arrive(LearningFixture f, SelectedSessionIdentity actor, MarriageChurchRoom room) =>
         MoveTo(f, actor, room.TownId, room.AreaId, room.ChannelId, 300, 350);
 
+    /// <summary>
+    /// The same connection selects the same character again: the old session is released first, and
+    /// the new one carries the generation the connection is at by then.
+    /// </summary>
+    internal static SelectedSessionIdentity Reselect(LearningFixture f, SelectedSessionIdentity actor) =>
+        Dfo.Server.Testing.TestSessions.ReselectOnSameConnection(
+            f.Services.GetRequiredService<ISelectedSessionDomainService>(),
+            f.Services.GetRequiredService<OnlineStateRegistry>(),
+            actor);
+
     internal static void GoOffline(LearningFixture f, SelectedSessionIdentity actor)
     {
         f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(actor);

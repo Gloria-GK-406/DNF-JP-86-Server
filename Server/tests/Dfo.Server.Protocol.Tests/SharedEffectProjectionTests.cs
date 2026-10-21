@@ -19,11 +19,11 @@ public sealed class SharedEffectProjectionTests
     [InlineData(true)] [InlineData(false)]
     public async Task Ack_precedes_self_effect_and_only_visible_scene_members_receive_broadcast(bool success)
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory(); ITownAreaDomainService areas = new SessionPresenceDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state); ITownAreaDomainService areas = new SessionPresenceDomainService();
         SelectedSessionIdentity Add(int id, byte area, bool visible)
         {
-            var s = SelectedSessionIdentity.Create(new AccountId(id), new CharacterId(id), new NetworkConnectionId("shared-" + id), 1, 10011);
-            sessions.Select(s); areas.Enter(new(s.CharacterId, s.TownAreaLease(), new(1, 2, area), new(2, area, 0, 0, 0), visible)); return s;
+            var s = SelectedSessionIdentity.Create(new AccountId(id), new CharacterId(id), new NetworkConnectionId("shared-" + id), 2, 10011);
+            Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, s); areas.Enter(new(s.CharacterId, s.TownAreaLease(), new(1, 2, area), new(2, area, 0, 0, 0), visible)); return s;
         }
         var actor = Add(1, 12, true); var peer = Add(2, 12, true); Add(3, 13, true); Add(4, 12, false);
         var sender = new Sender(); var commands = new Commands(success);

@@ -34,7 +34,7 @@ public sealed class FatigueProjectionDelivery(ICharacterFatigueDomainService fat
     public async ValueTask SendAsync(SelectedSessionIdentity session, CancellationToken token)
     {
         var balance = await fatigue.BalanceOfAsync(session.CharacterId, token).ConfigureAwait(false);
-        if (sessions.FindByCharacter(session.CharacterId) != session) return;
+        if (!sessions.IsInWorld(session)) return;
         await sender.SendNotiAsync(session.ConnectionId, new FatigueNotification(balance), token).ConfigureAwait(false);
     }
 }
@@ -55,7 +55,7 @@ public sealed class FatigueDailyRefreshService(ISelectedSessionSnapshotQuery dir
             {
                 await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
                 var balance = await fatigue.BalanceOfAsync(session.CharacterId, token).ConfigureAwait(false);
-                if (sessions.FindByCharacter(session.CharacterId) != session) continue;
+                if (!sessions.IsInWorld(session)) continue;
                 if (delivered.TryGetValue(session, out var old) && old == balance) continue;
                 await sender.SendNotiAsync(session.ConnectionId, new FatigueNotification(balance), token).ConfigureAwait(false);
                 delivered[session] = balance;

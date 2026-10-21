@@ -260,7 +260,7 @@ public sealed class SetUserAreaHandler(
         // records both and teardown drops both -- so this conjunct admits and refuses exactly the
         // connections the two before it do.
         var result = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
-        if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session
+        if (!selectedSessions.IsInWorld(session)
             || result is null
             || onlineCharacters.PositionOf(session) is not { } standing
             || townAreas.Find(session.CharacterId) is not { } standingMember

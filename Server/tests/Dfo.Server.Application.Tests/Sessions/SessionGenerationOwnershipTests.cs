@@ -68,12 +68,9 @@ public sealed class SessionGenerationOwnershipTests
     public async Task CleanupFailure_PreservesAlreadyResolvedOwnerAndPeerNotifications()
     {
         var owner = Session("cleanup-owner", 9);
-        var peer = SelectedSessionIdentity.Create(
-            new AccountId(8), new CharacterId(80), new NetworkConnectionId("cleanup-peer"),
-            1, 10011);
-        var directory = Dfo.Server.Testing.TestSessions.Directory();
+        var directory = Dfo.Server.Testing.TestSessions.Directory(out var state);
         directory.Select(owner);
-        directory.Select(peer);
+        var peer = directory.InWorld(state, new AccountId(8), new CharacterId(80), "cleanup-peer", 10011);
         var presence = new SessionPresenceDomainService();
         presence.Admit(new SessionPresence(owner.CharacterId, 10011, 1, 2, true, owner));
         presence.Admit(new SessionPresence(peer.CharacterId, 10011, 1, 2, true, peer));
@@ -103,17 +100,12 @@ public sealed class SessionGenerationOwnershipTests
     public async Task Cleanup_ProjectsOwnerStoreCloseAndOrderedPeerStoreThenTownLeave(bool includeOwner)
     {
         var owner = Session("owner", 9);
-        var peer1 = SelectedSessionIdentity.Create(new AccountId(8), new CharacterId(80),
-            new NetworkConnectionId("peer-1"), 1, 10011);
-        var peer2 = SelectedSessionIdentity.Create(new AccountId(9), new CharacterId(90),
-            new NetworkConnectionId("peer-2"), 1, 10011);
-        var otherListener = SelectedSessionIdentity.Create(new AccountId(10), new CharacterId(100),
-            new NetworkConnectionId("peer-other-port"), 1, 10012);
-        var directory = Dfo.Server.Testing.TestSessions.Directory();
+        var directory = Dfo.Server.Testing.TestSessions.Directory(out var state);
         directory.Select(owner);
-        directory.Select(peer2);
-        directory.Select(peer1);
-        directory.Select(otherListener);
+        var peer2 = directory.InWorld(state, new AccountId(9), new CharacterId(90), "peer-2", 10011);
+        var peer1 = directory.InWorld(state, new AccountId(8), new CharacterId(80), "peer-1", 10011);
+        var otherListener = directory.InWorld(
+            state, new AccountId(10), new CharacterId(100), "peer-other-port", 10012);
         var presence = new SessionPresenceDomainService();
         presence.Admit(new SessionPresence(owner.CharacterId, 10011, 1, 2, true, owner));
         presence.Admit(new SessionPresence(peer2.CharacterId, 10011, 1, 2, true, peer2));

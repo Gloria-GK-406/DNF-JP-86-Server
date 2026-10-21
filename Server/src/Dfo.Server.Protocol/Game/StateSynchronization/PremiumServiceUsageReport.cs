@@ -47,8 +47,7 @@ public sealed class PremiumServiceUsageReportHandler(ISelectedSessionDomainServi
             : null;
         await using var lease = await transitions.AcquireAsync(session.AccountId,
             UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
-        if (sessions.FindByConnection(connection) != session
-            || sessions.FindByCharacter(session.CharacterId) != session) return;
+        if (!sessions.IsInWorld(session)) return;
         var state = message.Slot == 3
             ? await commands.SendAsync(new ConsumeDungeonBuffCommand(session, runId), cancellationToken).ConfigureAwait(false)
             : await commands.SendAsync(new ReadPremiumSnapshotCommand(session), cancellationToken).ConfigureAwait(false);

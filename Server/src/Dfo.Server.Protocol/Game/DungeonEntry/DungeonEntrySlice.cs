@@ -481,7 +481,7 @@ public sealed class SelectDungeonHandler(
                     && intent.Value.DirectedDungeonId is { } prior && sao?.Supports(prior) == true
                     && sao.Supports(message.DungeonId))))
         {
-            if (intent is { } refusedIntent && selectedSessions.FindByCharacter(session.CharacterId) == session)
+            if (intent is { } refusedIntent && selectedSessions.IsInWorld(session))
                 entryIntents.RestoreIfAbsent(session, refusedIntent);
             logger.LogWarning(
                 "Select dungeon {ConnectionId}: invalid selection context intent={Intent} dungeon={DungeonId}",
@@ -520,7 +520,7 @@ public sealed class SelectDungeonHandler(
             session.AccountId, session.CharacterId, session.WireUserId, null));
         if (roster.LeaderWireUserId != session.WireUserId)
         {
-            if (selectedSessions.FindByCharacter(session.CharacterId) == session)
+            if (selectedSessions.IsInWorld(session))
                 entryIntents.RestoreIfAbsent(session, intent.Value);
             await RefuseAsync(
                 context.Connection.ConnectionId,
@@ -539,7 +539,7 @@ public sealed class SelectDungeonHandler(
                 return;
             }
             _ = await bossProjection.EnterAsync(context.Connection.ConnectionId, session, roster, intent.Value,
-                () => { if (selectedSessions.FindByCharacter(session.CharacterId) == session) entryIntents.RestoreIfAbsent(session, intent.Value); },
+                () => { if (selectedSessions.IsInWorld(session)) entryIntents.RestoreIfAbsent(session, intent.Value); },
                 cancellationToken, message.RequestMode, (byte)message.Difficulty, message.PracticeMode).ConfigureAwait(false);
             return;
         }
@@ -556,7 +556,7 @@ public sealed class SelectDungeonHandler(
                 intent.Value,
                 () =>
                 {
-                    if (selectedSessions.FindByCharacter(session.CharacterId) == session)
+                    if (selectedSessions.IsInWorld(session))
                         entryIntents.RestoreIfAbsent(session, intent.Value);
                 },
                 cancellationToken, message.DungeonId).ConfigureAwait(false);
@@ -743,7 +743,7 @@ public sealed class MoveMapHandler(
         // FindByConnection identifies who sent this frame; it does not prove that generation is
         // still the character's published generation. Validate at the mutation boundary so a
         // superseded connection cannot advance the shared aggregate.
-        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+        if (!selectedSessions.IsInWorld(session))
         {
             logger.LogDebug("Move map refused connection={ConnectionId} character={CharacterId} generation={Generation} run={RunId} sequence={Sequence} reason=SupersededSession",
                 context.Connection.ConnectionId, session.CharacterId, session.ConnectionGeneration, current.RunId, message.Metadata.Sequence);
@@ -803,7 +803,7 @@ public sealed class MoveMapHandler(
         if (frozen.Count == 0 && partyRecipients is null)
             frozen = [session];
         var currentRecipients = frozen
-            .Where(value => selectedSessions.FindByCharacter(value.CharacterId) == value)
+            .Where(value => selectedSessions.IsInWorld(value))
             .Select(value => (Session: value, Run: runs.Find(value.CharacterId)))
             .Where(value => value.Run?.RunId == visit.Run.RunId)
             .Select(value => (value.Session, Run: value.Run!))

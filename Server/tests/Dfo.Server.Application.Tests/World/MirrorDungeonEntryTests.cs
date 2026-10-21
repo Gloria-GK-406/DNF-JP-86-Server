@@ -183,8 +183,7 @@ public sealed class MirrorDungeonEntryTests
         fixture.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(71,14395,1);");
         if (boundary != "member-quest") fixture.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(72,14395,1);");
         var sessions = fixture.Services.GetRequiredService<ISelectedSessionDomainService>();
-        var other = new SelectedSessionIdentity(new(2), new(72), new("mirror-member"), 1, 72, 10011);
-        sessions.Select(other);
+        var other = fixture.EnterWorld(2, 72, "mirror-member");
         var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         positions.Begin(fixture.Session, new(21, 2, 865, 208, 0), 100);
         positions.Begin(other, new(21, boundary == "position" ? (byte)1 : (byte)2, 865, 208, 0), 100);
@@ -192,7 +191,7 @@ public sealed class MirrorDungeonEntryTests
         var quota = new Quota(fixture);
         if (boundary == "quota")
             fixture.Sql($"INSERT INTO character_mirror_daily(character_id,day,entries,clears,daily_reward_claimed) VALUES(72,'{DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(8)).DateTime):yyyy-MM-dd}',10,0,0);");
-        var structures = new Structures(boundary == "late-session" ? () => sessions.Select(other with { ConnectionGeneration = 2 }) : null);
+        var structures = new Structures(boundary == "late-session" ? () => sessions.Select(other with { ConnectionGeneration = other.ConnectionGeneration + 1 }) : null);
         var admission = new DungeonAdmissionDomainService(structures,
             fixture.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(),
             fixture.Services.GetRequiredService<ICharacterFatigueDomainService>(), characters: fixture.Services.GetRequiredService<ICharacterDomainService>(),

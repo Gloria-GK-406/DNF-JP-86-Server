@@ -49,7 +49,7 @@ public sealed class SwitchSkillBuildHandler(ISelectedSessionDomainService sessio
         int? active = null;
         if (session is not null && users.TryGetByConnection(context.Connection.ConnectionId, out var user) && user is not null)
             active = (await commands.SendAsync(new SwitchSkillBuildCommand(user.OnlineUserId, session, message.Current), ct)).Active;
-        if (session is not null && sessions.FindByConnection(context.Connection.ConnectionId) != session) return;
+        if (session is not null && !sessions.IsInWorld(session)) return;
         await sender.SendCmdAsync(context.Connection.ConnectionId, new SwitchSkillBuildResponse(active), ct);
     }
 }

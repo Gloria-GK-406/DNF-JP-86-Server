@@ -112,7 +112,7 @@ internal sealed class HousingChangedHandler(ISelectedSessionDomainService sessio
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, HousingChanged change, CancellationToken ct)
     {
         var own = recipient.CharacterId == change.Actor.CharacterId;
-        if (own && sessions.Find(change.Actor.AccountId) != change.Actor) return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
+        if (own && !sessions.IsInWorld(change.Actor)) return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         var messages = new List<IServerNetworkMessage>();
         if (change.Request.Action == HousingAction.UpgradeRing)
         {
@@ -146,7 +146,7 @@ public sealed class InitializeHousingCommandHandler(IMarriageHousingDomainServic
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, InitializeHousingCommand command, CancellationToken ct)
     {
-        if (sessions.Find(command.AccountId) != command.Session) return false;
+        if (!sessions.IsSelected(command.Session)) return false;
         await housing.InitializeAsync(command.AccountId, command.Session.CharacterId, ct).ConfigureAwait(false); return true;
     }
 }

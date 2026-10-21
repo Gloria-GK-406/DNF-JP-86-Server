@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -31,13 +32,13 @@ public sealed class TownAreaProjectionDeliveryTests
     {
         var bride = Session(1, "bride"); var groom = Session(2, "groom");
         var guest = Session(3, "guest"); var outside = Session(4, "outside");
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
         var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var areas = new SessionPresenceDomainService();
         var views = new FixedCurrentViews();
         foreach (var actor in new[] { bride, groom, guest, outside })
         {
-            sessions.Select(actor);
+            sessions.EnterWorldWithConnection(state, actor);
             var area = actor == outside ? (byte)6 : (byte)12;
             positions.Begin(actor, new(2, area, 100, 200, 5), 100);
             ((ITownAreaDomainService)areas).Enter(Member(actor, new(11, 2, area), 100));
@@ -70,7 +71,7 @@ public sealed class TownAreaProjectionDeliveryTests
     public async Task Wedding_entry_moves_both_partners_to_one_church_and_projects_their_presence()
     {
         var first = Session(1, "groom"); var second = Session(2, "bride");
-        var sessions = Dfo.Server.Testing.TestSessions.Directory(); sessions.Select(first); sessions.Select(second);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state); sessions.EnterWorldWithConnection(state, first); sessions.EnterWorldWithConnection(state, second);
         var views = new FixedCurrentViews(); views.Publish(first, Entry(first, 100)); views.Publish(second, Entry(second, 300));
         var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var areas = new SessionPresenceDomainService();
@@ -103,7 +104,7 @@ public sealed class TownAreaProjectionDeliveryTests
     public async Task Forced_standing_respects_private_presence_and_rejects_a_replaced_owner()
     {
         var actor = Session(1, "old"); var peer = Session(2, "peer");
-        var sessions = Dfo.Server.Testing.TestSessions.Directory(); sessions.Select(actor); sessions.Select(peer);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state); sessions.EnterWorldWithConnection(state, actor); sessions.EnterWorldWithConnection(state, peer);
         var areas = new SessionPresenceDomainService(); var key = new TownAreaKey(11, 2, 12);
         ((ITownAreaDomainService)areas).Enter(new(actor.CharacterId, actor.TownAreaLease(), key, new(2, 12, 100, 200, 5), false));
         ((ITownAreaDomainService)areas).Enter(Member(peer, key, 300));
@@ -112,7 +113,7 @@ public sealed class TownAreaProjectionDeliveryTests
             new RecordingNotificationBus(), new NoopPartyProjection(), sender, SharedTownMovementDomainService.Instance);
         Assert.True(await delivery.ForcePositionAsync(actor, new(2, 12, 670, 330, 5), default));
         Assert.Empty(Assert.Single(sender.Deliveries).Delivery.BestEffortTargets);
-        sessions.Select(Session(1, "replacement"));
+        sessions.EnterWorldWithConnection(state, Session(1, "replacement"));
         Assert.False(await delivery.ForcePositionAsync(actor, new(2, 12, 685, 360, 5), default));
         Assert.Single(sender.Deliveries);
         Assert.Equal((short)670, ((ITownAreaDomainService)areas).Find(actor.CharacterId)!.Position.X);
@@ -132,9 +133,9 @@ public sealed class TownAreaProjectionDeliveryTests
     {
         var returning = Session(1, "returning");
         var existing = Session(2, "existing");
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        sessions.Select(returning);
-        sessions.Select(existing);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        sessions.EnterWorldWithConnection(state, returning);
+        sessions.EnterWorldWithConnection(state, existing);
         var currentViews = new FixedCurrentViews();
         var returningResult = Entry(returning, x: 100);
         var existingResult = Entry(existing, x: 300);
@@ -184,9 +185,9 @@ public sealed class TownAreaProjectionDeliveryTests
     {
         var returning = Session(1, "returning");
         var existing = Session(2, "existing");
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        sessions.Select(returning);
-        sessions.Select(existing);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        sessions.EnterWorldWithConnection(state, returning);
+        sessions.EnterWorldWithConnection(state, existing);
         var currentViews = new FixedCurrentViews();
         var returningBaseline = Entry(returning, x: 100);
         var returningResult = returningBaseline with
@@ -239,10 +240,10 @@ public sealed class TownAreaProjectionDeliveryTests
         var first = Session(1, "first");
         var second = Session(2, "second");
         var existing = Session(3, "existing");
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        sessions.Select(first);
-        sessions.Select(second);
-        sessions.Select(existing);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        sessions.EnterWorldWithConnection(state, first);
+        sessions.EnterWorldWithConnection(state, second);
+        sessions.EnterWorldWithConnection(state, existing);
         var currentViews = new FixedCurrentViews();
         var firstResult = Entry(first, 100);
         var secondResult = Entry(second, 200);
@@ -290,9 +291,9 @@ public sealed class TownAreaProjectionDeliveryTests
     {
         var first = Session(1, "first");
         var second = Session(2, "second");
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        sessions.Select(first);
-        sessions.Select(second);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        sessions.EnterWorldWithConnection(state, first);
+        sessions.EnterWorldWithConnection(state, second);
         var currentViews = new FixedCurrentViews();
         currentViews.Publish(first, Entry(first, 100));
         currentViews.Publish(second, Entry(second, 200));
@@ -332,9 +333,9 @@ public sealed class TownAreaProjectionDeliveryTests
             new NetworkConnectionId("replacement"),
             2,
             10011);
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        sessions.Select(old);
-        sessions.Select(replacement);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        sessions.EnterWorldWithConnection(state, old);
+        sessions.EnterWorldWithConnection(state, replacement);
         var currentViews = new FixedCurrentViews();
         var replacementResult = Entry(replacement, 300);
         currentViews.Publish(replacement, replacementResult);
@@ -365,7 +366,7 @@ public sealed class TownAreaProjectionDeliveryTests
             new AccountId(id),
             new CharacterId(id),
             new NetworkConnectionId(connection),
-            1,
+            2,
             10011);
 
     private static TownAreaMember Member(

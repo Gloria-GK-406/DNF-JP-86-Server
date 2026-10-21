@@ -34,7 +34,7 @@ internal sealed class CharacterNameTagRuleService : ICharacterNameTagRuleService
 
 internal sealed class CharacterNameTagDomainService(ICharacterNameTagDomainStore store,
     ICharacterNameTagRuleService rules, TimeProvider clock, ISelectedSessionDomainService sessions,
-    IAuthenticatedGamePresenceQuery online, IEventService events)
+    IEventService events)
     : ICharacterNameTagDomainService
 {
     public async ValueTask<CharacterNameTag> ReadEffectiveAsync(AccountId account, CharacterId character, CancellationToken ct) =>
@@ -56,8 +56,7 @@ internal sealed class CharacterNameTagDomainService(ICharacterNameTagDomainStore
 
     public async ValueTask<bool> ExpireAsync(SelectedSessionIdentity session, CancellationToken ct)
     {
-        if (sessions.Find(session.AccountId) != session || !sessions.IsInWorld(session)
-            || !online.IsActiveExact(session)) return false;
+        if (!sessions.IsInWorld(session)) return false;
         var before = await store.ReadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
         if (before is null || before == CharacterNameTag.Empty || rules.Effective(before, clock.GetUtcNow()) != CharacterNameTag.Empty)
             return false;

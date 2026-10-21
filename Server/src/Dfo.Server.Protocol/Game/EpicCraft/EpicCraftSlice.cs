@@ -92,7 +92,7 @@ public sealed class EpicCraftCompletedHandler(ISelectedSessionDomainService sess
     {
         var receipt = notification.Receipt.Inventory;
         if (recipient.CharacterId != receipt.Session.CharacterId || recipient.ConnectionId != receipt.Session.ConnectionId
-            || sessions.Find(receipt.Session.AccountId) != receipt.Session)
+            || !sessions.IsInWorld(receipt.Session))
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         var messages = new List<IServerNetworkMessage> { new EpicCraftResponse(true), new EpicBookStateMessage(1, [notification.Receipt.Pieces]) };
         var updates = receipt.Updates.GroupBy(x => OpeningWireSlots.Project(x.Slot, Mappings).Space)

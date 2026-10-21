@@ -59,7 +59,7 @@ public sealed class IncreaseStatusCommandHandler(ISelectedSessionDomainService s
 {
     public async ValueTask<IncreaseStatusResult> HandleAsync(CommandExecutionContext context, IncreaseStatusCommand command, CancellationToken ct)
     {
-        if (sessions.FindByCharacter(command.CharacterId) != command.Session)
+        if (!sessions.IsInWorld(command.Session))
             return new(ItemUsability.CharacterStateUnavailable);
         if (command.Slot.Space is not (BusinessInventorySpace.QuickSlot or BusinessInventorySpace.Consumable))
             return new(ItemUsability.NotAUsableItem);

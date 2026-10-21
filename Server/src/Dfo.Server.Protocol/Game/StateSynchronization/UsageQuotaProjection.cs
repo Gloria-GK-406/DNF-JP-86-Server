@@ -45,14 +45,12 @@ internal sealed class UsageQuotaViewChangedHandler(IUsageQuotaSnapshotDomainServ
         UsageQuotaViewChanged notification, CancellationToken cancellationToken)
     {
         if (recipient.CharacterId != notification.CharacterId) return [];
-        var session = sessions.FindByCharacter(recipient.CharacterId);
-        if (session is null || session.ConnectionId != recipient.ConnectionId
+        if (!sessions.TryGetInWorld(recipient.CharacterId, out var session) || session.ConnectionId != recipient.ConnectionId
             || recipient.ExpectedSession is { } expected && expected != session) return [];
         var snapshot = await snapshots.ReadAsync(session.AccountId, session.CharacterId,
             notification.Family, cancellationToken).ConfigureAwait(false);
         // Snapshot composition can await storage. Never route the result to a replacement generation.
-        if (sessions.FindByCharacter(session.CharacterId) != session
-            || sessions.FindByConnection(session.ConnectionId) != session) return [];
+        if (!sessions.IsInWorld(session)) return [];
         return notification.Family switch
         {
             UsageQuotaFamily.ReviveCoin => [new DailyReviveCoinStateMessage(snapshot.ReviveCoinClaimed
@@ -110,9 +108,9 @@ public sealed class MirrorQuotaDailyRefreshService(ISelectedSessionSnapshotQuery
             {
                 await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive,
                     cancellationToken).ConfigureAwait(false);
-                if (sessions.FindByCharacter(session.CharacterId) != session) continue;
+                if (!sessions.IsInWorld(session)) continue;
                 var result = await delivery.SendAsync(session, UsageQuotaFamily.MirrorDungeon, cancellationToken).ConfigureAwait(false);
-                if (sessions.FindByCharacter(session.CharacterId) == session
+                if (sessions.IsInWorld(session)
                     && result.Attempts.Any(x => x.CharacterId == session.CharacterId && x.Outcome == NotificationOutcome.Delivered))
                     delivered[session] = day;
             }

@@ -25,7 +25,7 @@ internal sealed class HousingState(IMarriageHousingDomainStore store, ISelectedS
     public ValueTask<HousingSnapshot> EnsureAsync(Guid relation, CancellationToken ct) => store.EnsureAsync(relation, ct);
     public ValueTask SaveAsync(HousingSnapshot snapshot, CancellationToken ct) => store.SaveAsync(snapshot, ct);
     public ValueTask<bool> RecordHarvestAsync(Guid planting, int round, IReadOnlyList<HousingReward> rewards, CancellationToken ct) => store.RecordHarvestAsync(planting, round, rewards, ct);
-    public bool IsInside(SelectedSessionIdentity actor, HousingSnapshot room) => sessions.Find(actor.AccountId) == actor
+    public bool IsInside(SelectedSessionIdentity actor, HousingSnapshot room) => sessions.IsInWorld(actor)
         && areas.Find(actor.CharacterId) is { Area.TownId: 101, Area.AreaId: 0 } member
         && member.Lease == actor.TownAreaLease() && member.Area.Instance == room.Instance;
     public bool Edit(Guid relation, SelectedSessionIdentity actor, bool close)
@@ -39,7 +39,7 @@ internal sealed class HousingState(IMarriageHousingDomainStore store, ISelectedS
                     if (close) PendingEdit(relation, actor, true);
                     return true;
                 }
-                if (sessions.Find(holder.AccountId) == holder && areas.Find(holder.CharacterId) is { Area.TownId: 101 } m && m.Lease == holder.TownAreaLease()) return close;
+                if (sessions.IsInWorld(holder) && areas.Find(holder.CharacterId) is { Area.TownId: 101 } m && m.Lease == holder.TownAreaLease()) return close;
                 editors.Remove(relation);
             }
             if (!close) PendingEdit(relation, actor, false);
@@ -48,7 +48,7 @@ internal sealed class HousingState(IMarriageHousingDomainStore store, ISelectedS
     }
     public bool CanEdit(Guid relation, SelectedSessionIdentity actor)
     { lock (gate) return editors.TryGetValue(relation, out var holder) && holder == actor; }
-    private bool IsPresent(SelectedSessionIdentity actor) => sessions.Find(actor.AccountId) == actor
+    private bool IsPresent(SelectedSessionIdentity actor) => sessions.IsInWorld(actor)
         && areas.Find(actor.CharacterId) is { Area.TownId: 101 } member && member.Lease == actor.TownAreaLease();
 
     private void PendingEdit(Guid relation, SelectedSessionIdentity actor, bool close) =>

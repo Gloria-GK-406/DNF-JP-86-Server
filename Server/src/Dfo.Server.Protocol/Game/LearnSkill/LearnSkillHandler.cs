@@ -45,7 +45,7 @@ public sealed class LearnSkillHandler(IOnlineUserQueryDomainService onlineUsers,
         else
             logger.LogInformation("Skill learning {ConnectionId} page={Page} count={Count} refused={Reason}",
                 context.Connection.ConnectionId, message.PageIndex, message.Changes.Count, result.Rejection);
-        if (session is not null && sessions.FindByConnection(context.Connection.ConnectionId) != session)
+        if (session is not null && !sessions.IsInWorld(session))
             return;
         if (result.Receipt?.Inventory is { } inventory)
         {

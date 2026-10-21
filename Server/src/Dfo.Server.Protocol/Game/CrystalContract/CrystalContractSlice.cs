@@ -55,7 +55,7 @@ public sealed class CrystalContractSelectedHandler(ISelectedSessionDomainService
         CrystalContractSelected message, CancellationToken ct) =>
         ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
             recipient.CharacterId == message.Session.CharacterId && recipient.ConnectionId == message.Session.ConnectionId
-            && sessions.Find(message.Session.AccountId) == message.Session
+            && sessions.IsInWorld(message.Session)
             ? [new CrystalContractResponse(true, message.Mode, message.Selection),
                 new CubeProgressionStateMessage(message.Mode, message.Selection)] : []);
 }
@@ -70,7 +70,7 @@ public sealed class CrystalContractHandler(ISelectedSessionDomainService session
         var saved = await commands.SendAsync(new SelectCrystalContractCommand(user.OnlineUserId, session, message.Mode, message.Selection), ct);
         logger.LogInformation("Crystal contract selection character={CharacterId} mode={Mode} selection={Selection} saved={Saved}",
             session.CharacterId.Value, message.Mode, message.Selection, saved);
-        if (sessions.Find(session.AccountId) != session) return;
+        if (!sessions.IsInWorld(session)) return;
         if (saved)
             await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
                 new CrystalContractSelected(session, message.Mode, message.Selection), ct);

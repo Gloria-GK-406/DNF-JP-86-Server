@@ -109,8 +109,7 @@ public sealed class CharacterDeathHandler(
             expected.RunId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
         await using var transition = await transitionGate.AcquireAsync(
             session.AccountId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
-        if (selectedSessions.FindByConnection(connectionId) != session
-            || selectedSessions.FindByCharacter(session.CharacterId) != session
+        if (!selectedSessions.IsInWorld(session)
             || deliveryRegistry.Find(expected.RunId).SingleOrDefault(x => x.CharacterId == session.CharacterId) != session)
             return;
 
@@ -122,7 +121,7 @@ public sealed class CharacterDeathHandler(
         var secondary = deliveryRegistry.Find(committed.RunId)
             .Where(x => x.CharacterId != session.CharacterId)
             .Where(x => committed.Participants.Any(p => p.CharacterId == x.CharacterId))
-            .Where(x => selectedSessions.FindByCharacter(x.CharacterId) == x)
+            .Where(x => selectedSessions.IsInWorld(x))
             .Where(x => runs.Find(x.CharacterId)?.RunId == committed.RunId)
             .Select(x => new GameExplicitMessageTarget(x.ConnectionId, [notification])).ToArray();
         await sender.SendExplicitAsync(connectionId,

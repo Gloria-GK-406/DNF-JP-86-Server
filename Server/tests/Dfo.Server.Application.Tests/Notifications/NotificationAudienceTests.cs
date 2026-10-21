@@ -30,9 +30,9 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void An_audience_of_characters_resolves_to_the_connections_they_are_on()
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        var standing = Play(sessions, Standing, "conn-standing");
-        var watching = Play(sessions, Watching, "conn-watching");
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        var standing = Play(sessions, state, Standing, "conn-standing");
+        var watching = Play(sessions, state, Watching, "conn-watching");
 
         var recipients = Resolver(sessions)
             .Resolve(new NotificationAudience.TheseCharacters([Standing, Watching]));
@@ -54,8 +54,8 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void A_character_nobody_is_playing_is_not_a_recipient()
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        var watching = Play(sessions, Watching, "conn-watching");
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        var watching = Play(sessions, state, Watching, "conn-watching");
 
         var recipients = Resolver(sessions)
             .Resolve(new NotificationAudience.TheseCharacters([Gone, Watching]));
@@ -79,9 +79,9 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void Recipients_come_back_in_the_order_the_audience_named_them()
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        Play(sessions, Standing, "conn-standing");
-        Play(sessions, Watching, "conn-watching");
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        Play(sessions, state, Standing, "conn-standing");
+        Play(sessions, state, Watching, "conn-watching");
 
         var recipients = Resolver(sessions)
             .Resolve(new NotificationAudience.TheseCharacters([Watching, Standing]));
@@ -92,10 +92,10 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void A_scoped_audience_resolves_only_matching_current_presence_sessions()
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
         var presence = new SessionPresenceDomainService();
-        var standing = Play(sessions, Standing, "conn-standing");
-        var watching = Play(sessions, Watching, "conn-watching", listenerPort: 10012);
+        var standing = Play(sessions, state, Standing, "conn-standing");
+        var watching = Play(sessions, state, Watching, "conn-watching", listenerPort: 10012);
         presence.Admit(new SessionPresence(Standing, 10011, 1, 2, true, standing));
         presence.Admit(new SessionPresence(Watching, 10012, 1, 2, true, watching));
 
@@ -111,9 +111,9 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void A_scoped_audience_rejects_a_presence_owned_by_a_replaced_session()
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
         var presence = new SessionPresenceDomainService();
-        var old = Play(sessions, Standing, "conn-old");
+        var old = Play(sessions, state, Standing, "conn-old");
         presence.Admit(new SessionPresence(Standing, 10011, 1, 2, true, old));
         _ = sessions.Select(old with
         {
@@ -141,8 +141,8 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void An_exact_session_audience_rejects_a_replacement_session()
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        var old = Play(sessions, Standing, "conn-old", listenerPort: 10011);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        var old = Play(sessions, state, Standing, "conn-old", listenerPort: 10011);
         _ = sessions.Select(old with
         {
             ConnectionId = new NetworkConnectionId("conn-new"),
@@ -159,9 +159,9 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void An_exact_session_audience_preserves_order_duplicates_and_identity()
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        var standing = Play(sessions, Standing, "conn-standing");
-        var watching = Play(sessions, Watching, "conn-watching");
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        var standing = Play(sessions, state, Standing, "conn-standing");
+        var watching = Play(sessions, state, Watching, "conn-watching");
 
         var recipients = Resolver(sessions).Resolve(
             new NotificationAudience.TheseSessions([watching, standing, watching]));
@@ -178,8 +178,8 @@ public sealed class NotificationAudienceTests
     [Fact]
     public void A_character_audience_preserves_duplicate_entries()
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        var standing = Play(sessions, Standing, "conn-standing");
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        var standing = Play(sessions, state, Standing, "conn-standing");
 
         var recipients = Resolver(sessions).Resolve(
             new NotificationAudience.TheseCharacters([Standing, Standing]));
@@ -258,19 +258,12 @@ public sealed class NotificationAudienceTests
 
     private static SelectedSessionIdentity Play(
         SelectedSessionDomainService sessions,
+        Dfo.Server.Application.Users.OnlineStateRegistry state,
         CharacterId characterId,
         string connection,
-        int listenerPort = 10011)
-    {
-        var session = SelectedSessionIdentity.Create(
-            new AccountId(characterId.Value),
-            characterId,
-            new NetworkConnectionId(connection),
-            connectionGeneration: 1,
-            listenerPort);
-        _ = sessions.Select(session);
-        return session;
-    }
+        int listenerPort = 10011) =>
+        Dfo.Server.Testing.TestSessions.InWorld(
+            sessions, state, new AccountId(characterId.Value), characterId, connection, listenerPort);
 
     private static NotificationAudienceResolver Resolver(SelectedSessionDomainService sessions) =>
         new(sessions, new SessionPresenceDomainService());

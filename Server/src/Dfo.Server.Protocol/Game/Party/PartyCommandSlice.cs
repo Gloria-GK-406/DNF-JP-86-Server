@@ -618,8 +618,7 @@ public sealed class RequestPeerHandler(
             return;
         }
 
-        var target = sessions.FindByWireUserId(message.TargetWireUserId);
-        if (target is null)
+        if (!sessions.TryGetInWorld(message.TargetWireUserId, out var target))
         {
             logger.LogInformation(
                 "REQUEST_PEER target={Target} is not a current selected session",
@@ -633,8 +632,8 @@ public sealed class RequestPeerHandler(
             target,
             sessions,
             townAreas,
-            () => sessions.FindByConnection(context.Connection.ConnectionId) == inviter
-                && sessions.FindByWireUserId(message.TargetWireUserId) == target
+            () => sessions.IsInWorld(inviter)
+                && sessions.IsInWorld(target)
                 && PartyCharacterProjection.TryCapture(inviter, townAreas, out var inviterCharacter)
                 && PartyCharacterProjection.TryCapture(target, townAreas, out var targetCharacter)
                     ? commands.SendAsync(new RequestPartyInviteCommand(
@@ -683,8 +682,7 @@ public sealed class ResponsePeerHandler(
             return;
         }
 
-        var inviter = sessions.FindByWireUserId(message.InviterWireUserId);
-        if (inviter is null)
+        if (!sessions.TryGetInWorld(message.InviterWireUserId, out var inviter))
         {
             logger.LogInformation(
                 "RESPONSE_PEER inviter={Inviter} is not a current selected session",
@@ -698,8 +696,8 @@ public sealed class ResponsePeerHandler(
             inviter,
             sessions,
             townAreas,
-            () => sessions.FindByConnection(context.Connection.ConnectionId) == invitee
-                && sessions.FindByWireUserId(message.InviterWireUserId) == inviter
+            () => sessions.IsInWorld(invitee)
+                && sessions.IsInWorld(inviter)
                 && PartyCharacterProjection.TryCapture(invitee, townAreas, out var inviteeCharacter)
                 && PartyCharacterProjection.TryCapture(inviter, townAreas, out var inviterCharacter)
                     ? commands.SendAsync(new AcceptPartyInviteCommand(
@@ -778,7 +776,7 @@ public sealed class LeavePartyHandler(
                 townAreas,
                 () =>
                 {
-                    if (sessions.FindByConnection(context.Connection.ConnectionId) != session)
+                    if (!sessions.IsInWorld(session))
                         return ValueTask.FromResult(PartyOperationResult.Reject(
                             PartyFailureReason.CallerNotCurrent));
                     if (towerParties?.HasInvolvedTower(session) == true || bossParties?.HasInvolvedTower(session) == true)
@@ -857,9 +855,10 @@ public sealed class ChangePartyLeaderHandler(
             var targetMember = roster.IsVirtual
                 ? null
                 : roster.Members.SingleOrDefault(member => member.Slot == message.TargetSlot);
-            var capturedTarget = targetMember is null
-                ? null
-                : sessions.FindByCharacter(targetMember.CharacterId);
+            var capturedTarget = targetMember is not null
+                && sessions.TryGetInWorld(targetMember.CharacterId, out var inWorld)
+                ? inWorld
+                : null;
             if (capturedTarget is null)
             {
                 logger.LogInformation(
@@ -878,8 +877,8 @@ public sealed class ChangePartyLeaderHandler(
                 townAreas,
                 () =>
                 {
-                    if (sessions.FindByConnection(context.Connection.ConnectionId) != leader
-                        || sessions.FindByCharacter(target.CharacterId) != target)
+                    if (!sessions.IsInWorld(leader)
+                        || !sessions.IsInWorld(target))
                     {
                         return ValueTask.FromResult(PartyOperationResult.Reject(
                             PartyFailureReason.CallerNotCurrent));
@@ -975,9 +974,10 @@ public sealed class RemovePartyMemberHandler(
             var targetMember = roster.IsVirtual
                 ? null
                 : roster.Members.SingleOrDefault(member => member.Slot == message.TargetSlot);
-            var capturedTarget = targetMember is null
-                ? null
-                : sessions.FindByCharacter(targetMember.CharacterId);
+            var capturedTarget = targetMember is not null
+                && sessions.TryGetInWorld(targetMember.CharacterId, out var inWorld)
+                ? inWorld
+                : null;
             if (capturedTarget is null)
             {
                 await RefuseAsync(context.Connection.ConnectionId, cancellationToken)
@@ -1000,8 +1000,8 @@ public sealed class RemovePartyMemberHandler(
                 townAreas,
                 () =>
                 {
-                    if (sessions.FindByConnection(context.Connection.ConnectionId) != leader
-                        || sessions.FindByCharacter(target.CharacterId) != target)
+                    if (!sessions.IsInWorld(leader)
+                        || !sessions.IsInWorld(target))
                     {
                         return ValueTask.FromResult(PartyOperationResult.Reject(
                             PartyFailureReason.CallerNotCurrent));
@@ -1034,7 +1034,7 @@ public sealed class RemovePartyMemberHandler(
                 && returnRuntime is not null
                 && returnPosition is not null
                 && townAreaProjection is not null
-                && sessions.FindByCharacter(target.CharacterId) == target)
+                && sessions.IsInWorld(target))
             {
                 await townAreaProjection.EnterAsync(
                     [new TownAreaEntry(target, returnRuntime, returnPosition)],
@@ -1082,7 +1082,7 @@ public sealed class CallPartyMemberRealtimeInfoHandler(
             transitionGate,
             session,
             null,
-            () => sessions.FindByConnection(context.Connection.ConnectionId) == session
+            () => sessions.IsInWorld(session)
                 ? commands.SendAsync(new QueryPartyRealtimeCommand(new PartyCharacterSnapshot(
                     session.AccountId, session.CharacterId, session.WireUserId, null)), cancellationToken)
                 : ValueTask.FromResult(new PartyRealtimeQueryResult(null)),
@@ -1126,7 +1126,7 @@ public sealed class SetPartyInfoHandler(
             null,
             sessions,
             townAreas,
-            () => sessions.FindByConnection(context.Connection.ConnectionId) == session
+            () => sessions.IsInWorld(session)
                 && PartyCharacterProjection.TryCapture(session, townAreas, out var character)
                 ? commands.SendAsync(new SetPartyInfoCommand(
                     character,

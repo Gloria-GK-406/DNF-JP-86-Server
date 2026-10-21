@@ -210,10 +210,8 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     {
         var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
         var runs = new Dfo.Server.Application.World.DungeonRunDomainService(scope);
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        var session = SelectedSessionIdentity.Create(
-            Account, Character, new Dfo.Server.Data.Networking.NetworkConnectionId("object"), 1, 10010);
-        sessions.Select(session);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        var session = Dfo.Server.Testing.TestSessions.InWorld(sessions, state, Account, Character, "object", 10010);
         var layout = new DungeonLayout(84, 0, 1, 1, new(0, 0), new(0, 0), 10, 0,
             new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(10)});
         var seed = DungeonCellSeed.CompleteEmpty(new(0, 0), 10) with
@@ -316,8 +314,8 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             Assert.Null((await fixture.Apply(fixture.Command with
                 { Recipients = [fixture.Command.Session] })).Rewards);
         var member = fixture.Command.Recipients[1];
-        fixture.Sessions.Select(member with
-            { ConnectionId = new("replacement"), ConnectionGeneration = member.ConnectionGeneration + 1 });
+        _ = Dfo.Server.Testing.TestSessions.InWorld(
+            fixture.Sessions, fixture.State, member.AccountId, member.CharacterId, "replacement", member.ListenerPort);
         await using var stale = fixture.Scope.Begin();
         Assert.Null((await fixture.Apply()).Rewards);
         Assert.Equal(14, fixture.FirstBag.Count);
@@ -327,7 +325,8 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     private sealed class ObjectPartyFixture
     {
         public readonly Dfo.Server.Application.Transactions.DomainTransactionScope Scope = new();
-        public readonly Dfo.Server.Application.Sessions.SelectedSessionDomainService Sessions = Dfo.Server.Testing.TestSessions.Directory();
+        public readonly Dfo.Server.Application.Sessions.SelectedSessionDomainService Sessions;
+        public readonly Dfo.Server.Application.Users.OnlineStateRegistry State;
         private readonly Dfo.Server.Application.World.DungeonRunDomainService runs;
         private readonly ApplyObjectDestructionCommandHandler handler;
         public readonly ApplyObjectDestructionCommand Command;
@@ -338,10 +337,9 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         public ObjectPartyFixture(int memberQuest, int count)
         {
             this.runs = new(this.Scope);
-            var first = SelectedSessionIdentity.Create(Account, Character, new("first"), 1, 10010);
-            var second = SelectedSessionIdentity.Create(new(7), new(61), new("second"), 1, 10011);
-            this.Sessions.Select(first);
-            this.Sessions.Select(second);
+            this.Sessions = Dfo.Server.Testing.TestSessions.Directory(out this.State);
+            var first = Dfo.Server.Testing.TestSessions.InWorld(this.Sessions, this.State, Account, Character, "first", 10010);
+            var second = Dfo.Server.Testing.TestSessions.InWorld(this.Sessions, this.State, new(7), new(61), "second", 10011);
             var layout = new DungeonLayout(84, 0, 1, 1, new(0, 0), new(0, 0), 10, 0,
                 new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(10)});
             var loot = new[] { first, second }.Select(owner => new RolledDrop(

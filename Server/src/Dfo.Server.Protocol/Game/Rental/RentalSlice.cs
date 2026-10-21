@@ -171,9 +171,9 @@ internal sealed class LuckyStarPanelRefreshHandler(ISelectedSessionDomainService
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,LuckyStarPanelRefresh notification,CancellationToken ct)
     {
         var owner=notification.Owner;
-        if(recipient.CharacterId!=owner.CharacterId||recipient.ConnectionId!=owner.ConnectionId||sessions.Find(owner.AccountId)!=owner)return [];
+        if(recipient.CharacterId!=owner.CharacterId||recipient.ConnectionId!=owner.ConnectionId||!sessions.IsInWorld(owner))return [];
         var panel=await rentals.PanelAsync(owner.AccountId,owner.CharacterId,ct);
-        if(sessions.Find(owner.AccountId)!=owner)return [];
+        if(!sessions.IsInWorld(owner))return [];
         return [new ChargeRentPointResponse(2,0,checked((uint)panel.LuckyStar)),RentalPanelProjection.Full(panel,notification.At)];
     }
 }

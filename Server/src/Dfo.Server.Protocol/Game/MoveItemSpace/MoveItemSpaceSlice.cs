@@ -921,7 +921,7 @@ public sealed class MoveItemSpaceHandler(
             cancellationToken).ConfigureAwait(false);
         var account = await accountInventories.LoadAsync(session.AccountId, session.CharacterId,
             cancellationToken).ConfigureAwait(false);
-        if (selectedSessions.FindByConnection(session.ConnectionId) != session) return;
+        if (!selectedSessions.IsInWorld(session)) return;
         var preparedAt = time.GetUtcNow();
         // A full container snapshot also removes phantom entries after a refused stale move.
         // The CMD must arrive first: it applies the client's local movement before reconciliation.

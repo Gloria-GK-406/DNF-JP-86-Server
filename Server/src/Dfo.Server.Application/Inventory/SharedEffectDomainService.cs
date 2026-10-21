@@ -9,7 +9,7 @@ internal sealed class SharedEffectDomainService(ISelectedSessionDomainService se
 {
     public async ValueTask<SharedEffectUseResult> UseAsync(SelectedSessionIdentity actor, BusinessSlot slot, int itemId, CancellationToken ct)
     {
-        if (sessions.Find(actor.AccountId) != actor || areas.Find(actor.CharacterId) is not { } member || !actor.Owns(member)
+        if (!sessions.IsInWorld(actor) || areas.Find(actor.CharacterId) is not { } member || !actor.Owns(member)
             || !slot.Space.IsCarriedItemSpace() || itemId <= 0) return new(false);
         var bound = inventory.Find(actor.CharacterId, slot);
         var item = bound is null ? null : await bound.Container.GetAsync(bound.Slot.Index, ct).ConfigureAwait(false);

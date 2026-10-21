@@ -262,8 +262,8 @@ internal sealed class NotificationBus(
     /// listener. Asking before composing is why a replaced recipient costs no handler call.
     /// </remarks>
     private bool IsStillHere(NotificationRecipient recipient) =>
-        sessions.FindByCharacter(recipient.CharacterId) is { } session
-        && (recipient.ExpectedSession is { } exact
-            ? session == exact
-            : session.ConnectionId == recipient.ConnectionId);
+        recipient.ExpectedSession is { } exact
+            ? sessions.IsInWorld(exact)
+            : sessions.TryGetInWorld(recipient.CharacterId, out var session)
+                && session.ConnectionId == recipient.ConnectionId;
 }

@@ -39,7 +39,7 @@ public sealed class SortLockChangedHandler(ISelectedSessionDomainService session
         var receipt = notification.Receipt;
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
             recipient.CharacterId == receipt.Session.CharacterId && recipient.ConnectionId == receipt.Session.ConnectionId
-            && sessions.Find(receipt.Session.AccountId) == receipt.Session
+            && sessions.IsInWorld(receipt.Session)
                 ? [new SortLockResponse(receipt.Slot, receipt.Locked)] : []);
     }
 }

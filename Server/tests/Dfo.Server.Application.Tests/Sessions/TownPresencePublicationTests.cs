@@ -17,7 +17,7 @@ public sealed class TownPresencePublicationTests
     [Fact]
     public async Task Published_second_character_receives_the_first_and_targets_it_for_arrival()
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
         var presence = new SessionPresenceDomainService();
         var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var currentViews = new FixedCurrentViews();
@@ -26,10 +26,10 @@ public sealed class TownPresencePublicationTests
         var first = await EntryAsync(1, 60, "Game:first", x: 100);
         var second = await EntryAsync(2, 61, "Game:second", x: 300);
 
-        sessions.Select(first.Session);
+        sessions.EnterWorldWithConnection(state, first.Session);
         service.Publish(first.Session, first.Result);
         currentViews.Publish(first.Session, first.Result);
-        sessions.Select(second.Session);
+        sessions.EnterWorldWithConnection(state, second.Session);
         service.Publish(second.Session, second.Result);
         currentViews.Publish(second.Session, second.Result);
 
@@ -46,7 +46,7 @@ public sealed class TownPresencePublicationTests
     [Fact]
     public async Task Private_gate_room_never_builds_a_cross_character_publication()
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
         var presence = new SessionPresenceDomainService();
         var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var currentViews = new FixedCurrentViews();
@@ -55,10 +55,10 @@ public sealed class TownPresencePublicationTests
         var first = await EntryAsync(1, 60, "Game:first", x: 100, sharesTownPresence: false);
         var second = await EntryAsync(2, 61, "Game:second", x: 300, sharesTownPresence: false);
 
-        sessions.Select(first.Session);
+        sessions.EnterWorldWithConnection(state, first.Session);
         service.Publish(first.Session, first.Result);
         currentViews.Publish(first.Session, first.Result);
-        sessions.Select(second.Session);
+        sessions.EnterWorldWithConnection(state, second.Session);
         service.Publish(second.Session, second.Result);
         currentViews.Publish(second.Session, second.Result);
 
@@ -68,7 +68,7 @@ public sealed class TownPresencePublicationTests
     [Fact]
     public async Task A_character_on_another_listener_but_the_same_logical_channel_is_published()
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
         var presence = new SessionPresenceDomainService();
         var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var currentViews = new FixedCurrentViews();
@@ -77,10 +77,10 @@ public sealed class TownPresencePublicationTests
         var first = await EntryAsync(1, 60, "Game:first", x: 100, listenerPort: 10012);
         var second = await EntryAsync(2, 61, "Game:second", x: 300, listenerPort: 10011);
 
-        sessions.Select(first.Session);
+        sessions.EnterWorldWithConnection(state, first.Session);
         service.Publish(first.Session, first.Result);
         currentViews.Publish(first.Session, first.Result);
-        sessions.Select(second.Session);
+        sessions.EnterWorldWithConnection(state, second.Session);
         service.Publish(second.Session, second.Result);
         currentViews.Publish(second.Session, second.Result);
 
@@ -92,7 +92,7 @@ public sealed class TownPresencePublicationTests
     [Fact]
     public async Task A_stale_presence_is_not_redirected_to_its_replacement_on_another_listener()
     {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
         var presence = new SessionPresenceDomainService();
         var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
         var currentViews = new FixedCurrentViews();
@@ -101,16 +101,12 @@ public sealed class TownPresencePublicationTests
         var old = await EntryAsync(1, 60, "Game:old", x: 100, listenerPort: 10011);
         var newcomer = await EntryAsync(2, 61, "Game:newcomer", x: 300, listenerPort: 10011);
 
-        sessions.Select(old.Session);
+        sessions.EnterWorldWithConnection(state, old.Session);
         service.Publish(old.Session, old.Result);
         currentViews.Publish(old.Session, old.Result);
-        _ = sessions.Select(old.Session with
-        {
-            ConnectionId = new NetworkConnectionId("Game:replacement"),
-            ConnectionGeneration = 2,
-            ListenerPort = 10012,
-        });
-        sessions.Select(newcomer.Session);
+        _ = sessions.InWorld(
+            state, old.Session.AccountId, old.Session.CharacterId, "Game:replacement", listenerPort: 10012);
+        sessions.EnterWorldWithConnection(state, newcomer.Session);
         service.Publish(newcomer.Session, newcomer.Result);
         currentViews.Publish(newcomer.Session, newcomer.Result);
 
@@ -153,7 +149,7 @@ public sealed class TownPresencePublicationTests
             new AccountId(accountId),
             new CharacterId(characterId),
             new NetworkConnectionId(connectionId),
-            connectionGeneration: 1,
+            connectionGeneration: 2,
             listenerPort);
         return (session, result);
     }

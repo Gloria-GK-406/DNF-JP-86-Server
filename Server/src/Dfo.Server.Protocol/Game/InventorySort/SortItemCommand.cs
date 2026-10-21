@@ -30,11 +30,9 @@ public sealed class SortItemCommandHandler(IInventorySortDomainService sorting,
         SortItemCommand command, CancellationToken ct)
     {
         var session = command.Session;
-        if (sessions.Find(session.AccountId) != session
+        if (!sessions.IsInWorld(session)
             || !users.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.OnlineUserId != command.OnlineUserId
-            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
+            || online?.OnlineUserId != command.OnlineUserId)
             return new(null);
         if (command.Space is BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo
             && (runs?.Find(session.CharacterId) is not null || towers?.IsInTower(session.CharacterId) == true)) return new(null);

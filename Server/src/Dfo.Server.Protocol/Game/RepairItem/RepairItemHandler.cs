@@ -27,7 +27,7 @@ public sealed class RepairItemHandler(IOnlineUserQueryDomainService onlineUsers,
         if (session is null) return;
         await using var transition = await transitions.AcquireAsync(session.AccountId,
             UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
-        if (sessions.FindByConnection(context.Connection.ConnectionId) != session) return;
+        if (!sessions.IsInWorld(session)) return;
         var automatic = message.AutoRepair == 1 && message.Slot is null
             && message.RepairAllSpace == InventoryContainerType.Main;
         EquipmentRepairResult result;

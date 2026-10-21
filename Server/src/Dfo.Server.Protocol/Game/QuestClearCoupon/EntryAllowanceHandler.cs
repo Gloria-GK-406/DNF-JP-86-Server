@@ -53,7 +53,7 @@ public sealed class EntryAllowanceHandler(ISelectedSessionDomainService sessions
             return true;
         }
         await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
-        if (sessions.FindByCharacter(session.CharacterId) != session || sessions.FindByConnection(session.ConnectionId) != session) return true;
+        if (!sessions.IsInWorld(session)) return true;
         OpeningInventoryReceipt receipt;
         try
         {

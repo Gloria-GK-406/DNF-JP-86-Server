@@ -86,7 +86,7 @@ public sealed class LotteryOpeningDelivery(ISelectedSessionDomainService session
         var session = sessions.FindByConnection(connection);
         if (session is null) return;
         await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
-        if (sessions.FindByConnection(connection) != session || !users.TryGetByConnection(connection, out var user) || user is null) return;
+        if (!sessions.IsInWorld(session) || !users.TryGetByConnection(connection, out var user) || user is null) return;
         LotteryOpeningResult? result = null;
         byte error = 0;
         try

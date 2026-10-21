@@ -535,7 +535,7 @@ public sealed class DungeonPickupProjectionDelivery(
         if (!recipients.Contains(change.Picker)
             || frozenPicker is null
             || frozenPicker != requester
-            || selectedSessions.FindByCharacter(change.Picker) != frozenPicker)
+            || !selectedSessions.IsInWorld(frozenPicker))
         {
             return false;
         }
@@ -606,7 +606,7 @@ public sealed class DungeonPickupProjectionDelivery(
         var secondary = partyMembers
             .Where(frozen => frozen.CharacterId != change.Picker)
             .Where(frozen => recipients.Contains(frozen.CharacterId))
-            .Where(frozen => selectedSessions.FindByCharacter(frozen.CharacterId) == frozen)
+            .Where(frozen => selectedSessions.IsInWorld(frozen))
             .Select(frozen => new GameExplicitMessageTarget(
                 frozen.ConnectionId,
                 [notification]))
@@ -697,7 +697,7 @@ public sealed class GetItemHandler(
         }
 
         var run = runs.Find(session.CharacterId);
-        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+        if (!selectedSessions.IsInWorld(session))
             return;
         if (run is not null && partyRecipients is not null
             && !partyRecipients.Find(session, run.RunId).Contains(session))

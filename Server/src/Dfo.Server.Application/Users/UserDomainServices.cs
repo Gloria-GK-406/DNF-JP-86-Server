@@ -12,7 +12,6 @@ namespace Dfo.Server.Application.Users;
 internal sealed class OnlineUserDomainService(OnlineStateRegistry state) : IOnlineUserDomainService, IAuthenticatedGamePresenceQuery
 {
     public IReadOnlyList<AccountId> SnapshotAccounts() => state.SnapshotAuthenticatedGameAccounts();
-    public bool IsActiveExact(SelectedSessionIdentity session) => state.IsActiveExact(session);
     public OnlineUserSnapshot RegisterConnection(NetworkConnectionContext connection) =>
         state.RegisterConnection(connection);
 

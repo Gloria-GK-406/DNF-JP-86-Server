@@ -18,7 +18,7 @@ internal sealed class CreatureNamingDomainService(ICreatureDomainService creatur
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(nameBytes);
         var name = ImmutableArray.CreateRange(nameBytes);
-        if (sessions.FindByCharacter(session.CharacterId) != session
+        if (!sessions.IsInWorld(session)
             || sourceSlot.Space != BusinessInventorySpace.CreatureConsumable || sourceSlot.Index is < 0 or > 50) return null;
         var store = creatures.GetStore(session.CharacterId);
         var cards = store.FindContainer(BusinessInventorySpace.CreatureConsumable);

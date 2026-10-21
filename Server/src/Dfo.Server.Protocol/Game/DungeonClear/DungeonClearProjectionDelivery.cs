@@ -28,7 +28,7 @@ public sealed class DungeonClearProjectionDelivery(
         var targets = (partyRecipients?.Find(requester, change.RunId)
                 ?? deliveries.Find(change.RunId))
             .Where(frozen => recipients.Contains(frozen.CharacterId))
-            .Where(frozen => selectedSessions.FindByCharacter(frozen.CharacterId) == frozen)
+            .Where(frozen => selectedSessions.IsInWorld(frozen))
             .Where(frozen => runs.Find(frozen.CharacterId) is { } run
                 && run.RunId == change.RunId)
             .ToArray();
@@ -55,7 +55,7 @@ public sealed class DungeonClearProjectionDelivery(
                 frames.Add(CycleQuestRechallengeProjection.Check());
             }
             // A read above may yield across logout, connection replacement, or a new run.
-            if (selectedSessions.FindByCharacter(target.CharacterId) == target
+            if (selectedSessions.IsInWorld(target)
                 && runs.Find(target.CharacterId)?.RunId == change.RunId)
                 projected.Add(new(target.ConnectionId, frames));
         }

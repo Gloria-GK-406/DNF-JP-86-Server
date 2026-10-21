@@ -404,6 +404,24 @@ internal sealed class LearningFixture : IAsyncDisposable
             true));
     }
 
+    /// <summary>
+    /// Another account's character in the world the way selecting a character puts it there: its
+    /// game connection registered and authenticated, then selected and entered.
+    /// </summary>
+    public SelectedSessionIdentity EnterWorld(int account, int character, string connectionId, int listenerPort = 10011)
+    {
+        var registry = Services.GetRequiredService<OnlineStateRegistry>();
+        var connection = new NetworkConnectionContext(new(connectionId), NetworkEndpointKind.Game, listenerPort);
+        var user = registry.RegisterConnection(connection).OnlineUserId;
+        registry.Authenticate(user, new(account));
+        var session = SelectedSessionIdentity.Create(new(account), new(character), connection.ConnectionId,
+            registry.GetRequiredUser(user).Generation, listenerPort);
+        var sessions = Services.GetRequiredService<ISelectedSessionDomainService>();
+        sessions.Select(session);
+        sessions.EnterWorld(session);
+        return session;
+    }
+
     private sealed class MinimalCurrentView(ISelectedSessionDomainService sessions)
         : ISelectedCharacterCurrentViewDomainService
     {

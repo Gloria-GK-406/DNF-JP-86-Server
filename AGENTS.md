@@ -221,7 +221,7 @@ PVF 表索引 84。数据库 `level` 仅为 SQL 兼容投影，启动时归一�
 | 疲劳 | `ICharacterFatigueDomainService` | 进本处报告消耗（`DungeonEntrySlice.cs:509-511`）。**接缝不记账，见下。** |
 
 会话是否已发布（进入世界）是在线身份上选中会话记录的阶段，用 `ISelectedSessionDomainService.IsInWorld`
-/ `StandingOf` 精确查询；是否落库位置不存储，拆除时由会话频道（`!IsTransient`）推导。
+精确查询（见下文「会话还有没有效」）；是否落库位置不存储，拆除时由会话频道（`!IsTransient`）推导。
 `SelectCharacterResult` DTO 本身仍完整，作为一次性组包结果使用，不是运行期角色聚合。
 入场后的当前视图走只读重建，不重复执行选角恢复、技能和解锁等写入。
 
@@ -257,6 +257,16 @@ AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他
 在线用户上的当前角色由这条记录投影出来，不另存。连接被撤销（协议拒绝、被顶替）时在线用户立即删除、
 选中会话记录保留，`StandingOf` 报告 `ConnectionRevoked`，直到拆除流程 `ReleaseExact`。不要再在旁边
 加平行的会话目录、活跃角色表或隔离集合（#186）。
+
+**「会话还有没有效」「那个角色在不在线」只问具名判定。**
+- `IsSelected(session)`：当前选中且连接仍归它，任何阶段都算。只用于选角工作流。
+- `IsInWorld(session)`：有效且已从它自己的游戏连接进入世界。其余玩法、投影、投递都用它。
+- `TryGetInWorld(角色 / 线上号 / 连接)`：手里只有键、要找在世界的会话时用。
+
+拆除、补偿、断线清理处理的是连接已撤销的残留记录，问 `StandingOf` / `ReleaseExact`。三个判定都不看隔离标记，隔离归管线。
+
+不再手写「`Find…` 出来再比较」「查不到就当不在线」，也不再拼在线用户的 `CharacterActive` 标志（#185）。
+`Find…` 只用于两种情况：请求方按自己这条连接解析会话，以及清理路径取出要释放的会话。
 
 ### 2) 命令执行总线（Application/Commands）
 
@@ -492,10 +502,9 @@ if (result.Publication.Audience.Count > 0)
   `NotificationBus` 在每个收件人轮到时再问一次）。**领域服务不得为投递去查连接**——
   这条正是通知服务存在的理由，在它之前有两个领域服务因为要算「通知谁」而知道了 socket 的存在。
   **规则的边界说准**：禁的是「**拿一个角色去查它在哪个连接、为的是给他发东西**」。
-  两个限定缺一不可——`FindByCharacter` 本身不是禁令的对象：
-  `SelectCharacterLifecycleServices.cs:154` 与 `ExperienceBonusDomainService.cs:31` 今天仍在调它，
-  取的是**会话标识**当运行态目录的键，**从不读 `ConnectionId`**，两处都合规。
-  按「见到 `FindByCharacter` 就是违规」去 grep 会把它们误判。
+  两个限定缺一不可——按角色取会话（`TryGetInWorld`）本身不是禁令的对象：
+  `ExperienceBonusDomainService` 这类调用取的是**会话标识**当运行态目录的键，**从不读 `ConnectionId`**，合规。
+  按「见到按角色取会话就是违规」去 grep 会把它们误判。
   不禁的是「这次操作本身就发生在其上的那个连接」：清理计划带着离开者自己的
   `session.ConnectionId`（`SelectCharacterLifecycleServices.cs:120`），必送给本人的那一半直接走它，
   不是扇出。

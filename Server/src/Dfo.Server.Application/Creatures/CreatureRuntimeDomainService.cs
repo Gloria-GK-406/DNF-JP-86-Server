@@ -24,9 +24,8 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     private CreatureInstanceContext CreateContext(IDomainTransaction tx, CharacterId characterId) =>
         new(characterId, tx, store.SessionIn(tx),
             inventories?.GetStore(characterId, BusinessInventoryStoreKind.Creature), rules, clock,
-            sessions.FindByCharacter(characterId) is { } session ? new InstanceRuntime(this, tx, session) : null);
+            sessions.FindByCharacter(characterId) is { } session ? new InstanceRuntime(this, sessions, tx, session) : null);
 
-    private bool IsCurrent(SelectedSessionIdentity session) => sessions.FindByCharacter(session.CharacterId) == session;
     private DateTimeOffset Now => clock.GetUtcNow();
     private readonly object gate = new();
     private readonly Dictionary<CharacterId, Entry> entries = [];
@@ -136,7 +135,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     private async ValueTask<IReadOnlyList<CreatureRuntimeChange>> AdvanceCoreAsync(IDomainTransaction tx,
         SelectedSessionIdentity session, bool? combat, CancellationToken ct)
     {
-        if (sessions.FindByCharacter(session.CharacterId) != session) return [];
+        if (!sessions.IsInWorld(session)) return [];
         var pending = tx.Enlist(this, () => new Pending(this));
         var previous = pending.Read(session.CharacterId);
         if (previous is null || previous.Session != session) return [];
@@ -201,7 +200,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     public async ValueTask<CreatureTransformationReceipt?> HatchAsync(SelectedSessionIdentity session,
         BusinessSlot eggSlot, CancellationToken ct)
     {
-        if (sessions.FindByCharacter(session.CharacterId) != session
+        if (!sessions.IsInWorld(session)
             || eggSlot.Space != BusinessInventorySpace.CreatureInventory || eggSlot.Index is < 0 or > 139) return null;
         var tx = transactions.Current ?? throw new InvalidOperationException("Hatching requires a use case.");
         var context = CreateContext(tx, session.CharacterId);
@@ -216,7 +215,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     public async ValueTask<CreatureRuntimeChange?> GainExperienceAsync(SelectedSessionIdentity session,
         int amount, CancellationToken ct)
     {
-        if (sessions.FindByCharacter(session.CharacterId) != session) return null;
+        if (!sessions.IsInWorld(session)) return null;
         var pet = await Of(session.CharacterId).CurrentPetAsync(ct).ConfigureAwait(false);
         return pet is null ? null : await pet.AddExpAsync(amount, ct).ConfigureAwait(false);
     }
@@ -280,13 +279,13 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
         catch { await transaction.RollbackAsync().ConfigureAwait(false); throw; }
     }
 
-    private sealed class InstanceRuntime(CreatureRuntimeDomainService owner, IDomainTransaction tx,
-        SelectedSessionIdentity session) : ICreatureInstanceRuntime
+    private sealed class InstanceRuntime(CreatureRuntimeDomainService owner, ISelectedSessionDomainService sessions,
+        IDomainTransaction tx, SelectedSessionIdentity session) : ICreatureInstanceRuntime
     {
         private Pending Pending => tx.Enlist(owner, () => new Pending(owner));
         public void EnsureActive()
         {
-            if (!owner.IsCurrent(session))
+            if (!sessions.IsInWorld(session))
                 throw new InvalidOperationException("The creature's selected session has changed.");
         }
         public async ValueTask SynchronizeAsync(CancellationToken ct) =>

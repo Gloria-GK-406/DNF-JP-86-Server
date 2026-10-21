@@ -31,7 +31,7 @@ public sealed class AltarProtocolCoordinator(IDungeonRunDomainService runs,
         {
             foreach (var account in cohort.Select(x => x.AccountId).Distinct().OrderBy(x => x.Value))
                 leases.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, ct).ConfigureAwait(false));
-            if (sessions.FindByConnection(connection) != reporter || runs.Find(reporter.CharacterId)?.RoomVersion != expected.RoomVersion
+            if (!sessions.IsInWorld(reporter) || runs.Find(reporter.CharacterId)?.RoomVersion != expected.RoomVersion
                 || runs.Find(reporter.CharacterId)?.RunId != expected.RunId || !cohort.Contains(reporter)) return;
             if (actors is not null)
             {
@@ -44,7 +44,7 @@ public sealed class AltarProtocolCoordinator(IDungeonRunDomainService runs,
                         x => SelectedSessionIdentity.ToWireUserId(x.Rolled.OwnerCharacterId!.Value));
                     var death = new MonsterDeathNotification(change.Actor.Sequence, drops, reporter.WireUserId,
                         GameDropIdentity.ForKill(change.Run, change.Actor.Sequence), owners);
-                    var targets = result.Participants.Where(x => sessions.FindByCharacter(x.Session.CharacterId) == x.Session)
+                    var targets = result.Participants.Where(x => sessions.IsInWorld(x.Session))
                         .Select(x => new GameExplicitMessageTarget(x.Session.ConnectionId, KillFrames(x, death))).ToArray();
                     await sender.SendExplicitAsync(reporter.ConnectionId, new(
                         targets.FirstOrDefault(x => x.ConnectionId == reporter.ConnectionId)?.OrderedMessages ?? [],
@@ -69,7 +69,7 @@ public sealed class AltarProtocolCoordinator(IDungeonRunDomainService runs,
     public async ValueTask SettleBeforeExitUnderGatesAsync(SelectedSessionIdentity session, DungeonRunId runId, CancellationToken ct)
     {
         var run = runs.Find(session.CharacterId);
-        if (run?.RunId != runId || run.Layout.Altar is null || sessions.FindByCharacter(session.CharacterId) != session
+        if (run?.RunId != runId || run.Layout.Altar is null || !sessions.IsInWorld(session)
             || !run.Participants.Any(x => x.CharacterId == session.CharacterId && x.IsLeader)) return;
         await delivery.ProjectAsync(await delivery.ExecuteAsync(session, runId, AltarOperation.SettleBeforeExit, 0, ct)
             .ConfigureAwait(false), ct).ConfigureAwait(false);
@@ -77,7 +77,7 @@ public sealed class AltarProtocolCoordinator(IDungeonRunDomainService runs,
     /// <summary>A member abandoning the map receives only their own completed-progress reward.</summary>
     public async ValueTask SettleGiveUpUnderGatesAsync(SelectedSessionIdentity session, DungeonRunId runId, CancellationToken ct)
     {
-        if (sessions.FindByCharacter(session.CharacterId) != session || runs.Find(session.CharacterId)?.RunId != runId) return;
+        if (!sessions.IsInWorld(session) || runs.Find(session.CharacterId)?.RunId != runId) return;
         await delivery.ProjectAsync(await delivery.ExecuteAsync(session, runId, AltarOperation.SettleParticipantBeforeExit, 0, ct)
             .ConfigureAwait(false), ct).ConfigureAwait(false);
     }

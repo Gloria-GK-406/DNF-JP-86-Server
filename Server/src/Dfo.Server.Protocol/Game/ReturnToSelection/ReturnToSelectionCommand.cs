@@ -61,7 +61,11 @@ public sealed class CompleteReturnToSelectionCommandHandler(
         var prepared = command.Prepared;
         ReturnToSelectionOwnership.Require(onlineUsers, sessions,
             prepared.AccountId, prepared.ConnectionId, prepared.Generation);
-        if (sessions.Find(prepared.AccountId) != prepared.Session)
+        // Teardown asks whether the record is still there to release, revoked or not; with nothing
+        // prepared, that there is still nothing.
+        if (prepared.Session is { } held
+                ? sessions.StandingOf(held) is null
+                : sessions.Find(prepared.AccountId) is not null)
             throw new InvalidOperationException("Return-to-selection session changed after preparation.");
         if (prepared.Session is not { } session)
             return new(null);

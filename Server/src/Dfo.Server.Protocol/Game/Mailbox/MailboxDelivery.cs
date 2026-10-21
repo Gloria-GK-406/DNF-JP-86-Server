@@ -23,7 +23,7 @@ public sealed class MailboxCompletedHandler(ISelectedSessionDomainService sessio
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, MailboxCompleted notice, CancellationToken token)
     {
         if (recipient.CharacterId != notice.Session.CharacterId || recipient.ConnectionId != notice.Session.ConnectionId
-            || sessions.FindByCharacter(notice.Session.CharacterId) != notice.Session)
+            || !sessions.IsInWorld(notice.Session))
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         var frames = new List<IServerNetworkMessage>();
         // Send ACK updates local send state; apply authoritative assets afterward.
@@ -58,7 +58,7 @@ public sealed class MailboxDelivery(ISelectedSessionDomainService sessions, IOnl
         var session = sessions.FindByConnection(connection);
         if (session is null) return;
         await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token);
-        if (sessions.FindByConnection(connection) != session || !users.TryGetByConnection(connection, out var user) || user is null) return;
+        if (!sessions.IsInWorld(session) || !users.TryGetByConnection(connection, out var user) || user is null) return;
         MailboxResult result = new(); byte error = 0;
         try
         {

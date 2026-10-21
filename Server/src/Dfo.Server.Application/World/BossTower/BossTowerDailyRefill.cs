@@ -34,7 +34,7 @@ internal sealed class BossTowerDailyRefillJob(ISelectedSessionSnapshotQuery onli
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
             catch (Exception error)
             {
-                if (sessions.Find(session.AccountId) != session) continue;
+                if (!sessions.IsInWorld(session)) continue;
                 logger.LogError(error, "Boss tower ticket refill failed character={CharacterId}", session.CharacterId);
                 failures.Add(error);
             }

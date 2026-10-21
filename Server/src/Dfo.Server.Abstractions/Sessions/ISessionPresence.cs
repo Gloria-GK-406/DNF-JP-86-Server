@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
@@ -49,10 +50,31 @@ public interface ISelectedSessionDomainService
     SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId);
 
     /// <summary>Where exactly this session stands, or null when it is not the current selection.</summary>
+    /// <remarks>
+    /// The record survives its connection being revoked until teardown releases it, so this is the
+    /// question teardown asks; everyone else asks <see cref="IsSelected"/> or <see cref="IsInWorld"/>.
+    /// </remarks>
     SelectedSessionStanding? StandingOf(SelectedSessionIdentity session);
 
-    /// <summary>Whether exactly this session is the current selection and has entered the world.</summary>
+    /// <summary>
+    /// Whether exactly this session is still valid: the current selection, at any stage, and its
+    /// connection still belongs to it.
+    /// </summary>
+    bool IsSelected(SelectedSessionIdentity session);
+
+    /// <summary>
+    /// Whether exactly this session is valid and has entered the world on its game connection.
+    /// </summary>
     bool IsInWorld(SelectedSessionIdentity session);
+
+    /// <summary>The session in the world as this character, if there is one.</summary>
+    bool TryGetInWorld(CharacterId characterId, [NotNullWhen(true)] out SelectedSessionIdentity? session);
+
+    /// <summary>The session in the world under this wire user id, if there is one.</summary>
+    bool TryGetInWorld(ushort wireUserId, [NotNullWhen(true)] out SelectedSessionIdentity? session);
+
+    /// <summary>The session in the world on this connection, if there is one.</summary>
+    bool TryGetInWorld(NetworkConnectionId connectionId, [NotNullWhen(true)] out SelectedSessionIdentity? session);
 }
 
 public interface ISelectedSessionSnapshotQuery

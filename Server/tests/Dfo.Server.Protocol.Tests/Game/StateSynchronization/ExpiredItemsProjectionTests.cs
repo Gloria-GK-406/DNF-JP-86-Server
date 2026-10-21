@@ -27,10 +27,10 @@ public sealed class ExpiredItemsProjectionTests
             Containers = [.. source.CharacterInventory.Containers.Where(x => x.ContainerType != InventoryContainerType.Equipment),
                 new(InventoryContainerType.Equipment, 0, [])]
         }};
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        var owner = SelectedSessionIdentity.Create(source.AccountInventory.AccountId, source.Character.Identity.CharacterId, new("owner"), 1, 10011);
-        var peer = SelectedSessionIdentity.Create(new(90), new(91), new("peer"), 1, 10011);
-        sessions.Select(owner); sessions.Select(peer);
+        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+        var owner = Dfo.Server.Testing.TestSessions.InWorld(
+            sessions, state, source.AccountInventory.AccountId, source.Character.Identity.CharacterId, "owner");
+        var peer = Dfo.Server.Testing.TestSessions.InWorld(sessions, state, new(90), new(91), "peer");
         var towns = new TownAreaDomainService();
         foreach (var session in new[] { owner, peer })
             towns.Enter(new TownAreaMember(session.CharacterId, session.TownAreaLease(), new(1, 1, 2), new(1, 2, 1, 1, 0), true));
@@ -44,7 +44,7 @@ public sealed class ExpiredItemsProjectionTests
         Assert.DoesNotContain(own, x => x is InventoryFullSnapshotMessage);
         var others = await handler.ComposeAsync(new(peer.CharacterId, peer.ConnectionId, peer), notice, default);
         Assert.Empty(Assert.IsType<CurrentUserStateMessage>(Assert.Single(others)).Equipment);
-        sessions.Select(owner with { ConnectionGeneration = 2 });
+        _ = Dfo.Server.Testing.TestSessions.ReselectOnSameConnection(sessions, state, owner);
         Assert.Empty(await handler.ComposeAsync(new(owner.CharacterId, owner.ConnectionId, owner), notice, default));
         Assert.Empty(await handler.ComposeAsync(new(peer.CharacterId, peer.ConnectionId, peer), notice, default));
     }

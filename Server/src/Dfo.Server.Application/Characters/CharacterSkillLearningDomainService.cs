@@ -16,7 +16,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterSkillLearningDomainService(
-    ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
+    ISelectedSessionDomainService sessions,
     ISelectedCharacterCurrentViewDomainService currentViews, ITownAreaDomainService townAreas,
     ICharacterTable characters, ICharacterEntryTable entries, ICharacterSkillTable skills,
     ICharacterSkillStateDomainService state, ICharacterSkillRuleService rules,
@@ -29,10 +29,7 @@ internal sealed class CharacterSkillLearningDomainService(
     {
         if (transactions.Current is null) throw new InvalidOperationException("Skill slot changes require a transaction.");
         if (pageIndex < 0 || first is < 0 or > 203 || second is < 0 or > 203
-            || sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive } || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId
+            || !sessions.IsInWorld(session)
             || await characters.FindOwnerAsync(session.CharacterId, ct) != session.AccountId) return false;
         var view = await currentViews.TryLoadAsync(session, ct);
         if (view is null || view.World.Channel.PvpSkillProfileApplies) return false;
@@ -48,10 +45,7 @@ internal sealed class CharacterSkillLearningDomainService(
     public async ValueTask<int?> SwitchAsync(SelectedSessionIdentity session, int expectedCurrent, int target, CancellationToken ct)
     {
         if (transactions.Current is null) throw new InvalidOperationException("Skill switching requires a transaction.");
-        if (target < 0 || sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive } || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId
+        if (target < 0 || !sessions.IsInWorld(session)
             || townAreas.Find(session.CharacterId) is not { } town || !session.Owns(town)
             || await characters.FindOwnerAsync(session.CharacterId, ct) != session.AccountId)
             return null;
@@ -68,10 +62,7 @@ internal sealed class CharacterSkillLearningDomainService(
     {
         if (transactions.Current is null)
             throw new InvalidOperationException("Skill learning requires a domain transaction.");
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(CharacterSkillLearningRejection.NoSession);
         var selected = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
         if (selected is null)

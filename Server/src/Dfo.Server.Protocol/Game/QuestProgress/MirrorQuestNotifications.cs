@@ -15,11 +15,10 @@ internal sealed class QuestProgressViewChangedHandler(IQuestQueryDomainService q
         QuestProgressViewChanged notification, CancellationToken ct)
     {
         if (recipient.CharacterId != notification.CharacterId) return [];
-        var session = sessions.FindByCharacter(recipient.CharacterId);
-        if (session is null || session.ConnectionId != recipient.ConnectionId) return [];
+        if (!sessions.TryGetInWorld(recipient.CharacterId, out var session) || session.ConnectionId != recipient.ConnectionId) return [];
         var expectedRunId = runs?.Find(session.CharacterId)?.RunId;
         var accepted = await quests.ReadAcceptedAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
-        if (sessions.FindByCharacter(session.CharacterId) != session) return [];
+        if (!sessions.IsInWorld(session)) return [];
         var currentRun = runs?.Find(session.CharacterId);
         if (currentRun?.RunId != expectedRunId) return [];
         // A clear-map/inventory event can finish after the initial clear was projected.
@@ -36,8 +35,7 @@ internal sealed class MirrorQuestViewChangedHandler(IMirrorAradQuestDomainServic
         MirrorQuestViewChanged notification, CancellationToken ct)
     {
         if (recipient.CharacterId != notification.CharacterId) return [];
-        var session = sessions.FindByCharacter(recipient.CharacterId);
-        if (session is null || session.ConnectionId != recipient.ConnectionId) return [];
+        if (!sessions.TryGetInWorld(recipient.CharacterId, out var session) || session.ConnectionId != recipient.ConnectionId) return [];
         // Read the current run here. A delayed cleanup hint for the previous run must
         // never carry an empty snapshot over the next run's accepted task.
         var snapshot = await mirror.SnapshotAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);

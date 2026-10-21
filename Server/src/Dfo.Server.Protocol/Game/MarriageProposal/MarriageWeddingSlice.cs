@@ -177,14 +177,14 @@ public sealed class MarriageWeddingProjection(ISelectedSessionDomainService sess
     public async ValueTask PositionAsync(MarriageWeddingStanding standing, CancellationToken ct)
     {
         var actor = standing.Actor;
-        if (sessions.Find(actor.AccountId) != actor || areas.Find(actor.CharacterId) is not { } area || !actor.Owns(area)
+        if (!sessions.IsInWorld(actor) || areas.Find(actor.CharacterId) is not { } area || !actor.Owns(area)
             || area.Area.TownId != standing.Position.TownId || area.Area.AreaId != standing.Position.AreaId) return;
         var moved = onlineCharacters.StepTo(actor, standing.Position.X, standing.Position.Y, standing.Position.Direction);
         await projection.ForcePositionAsync(actor, moved, ct).ConfigureAwait(false);
     }
     public async ValueTask<bool> MoveAsync(SelectedSessionIdentity actor, int channel, MarriageChurchLocation location, CancellationToken ct)
     {
-        if (sessions.Find(actor.AccountId) != actor || areas.Find(actor.CharacterId) is not { } previous || !actor.Owns(previous)
+        if (!sessions.IsInWorld(actor) || areas.Find(actor.CharacterId) is not { } previous || !actor.Owns(previous)
             || await views.TryLoadAsync(actor, ct).ConfigureAwait(false) is not { } view) return false;
         var moved = onlineCharacters.CrossInto(actor, location.TownId, location.AreaId, location.X, location.Y);
         return await projection.TransferAsync(actor.ConnectionId, actor, view, channel, moved, previous, true, ct).ConfigureAwait(false);

@@ -117,7 +117,7 @@ internal sealed class WeddingPartnerHandler(ISelectedSessionDomainService sessio
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         await WeddingProposalExecution.RunAsync(gate, session, session, async () =>
         {
-            var snapshot = session is null || sessions.Find(session.AccountId) != session ? MarriageEngagementSnapshot.Empty
+            var snapshot = session is null || !sessions.IsInWorld(session) ? MarriageEngagementSnapshot.Empty
                 : await marriage.SnapshotAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
             var peer = snapshot.Partner;
             if (peer is not null && message.Target != 0 && message.Target != peer.CharacterId) peer = null;

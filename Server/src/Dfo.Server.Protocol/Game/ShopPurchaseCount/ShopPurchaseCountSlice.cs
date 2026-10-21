@@ -80,6 +80,6 @@ public sealed class ShopPurchaseCountsReportedHandler(ISelectedSessionDomainServ
         ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
             recipient.CharacterId == notification.Session.CharacterId
             && recipient.ConnectionId == notification.Session.ConnectionId
-            && sessions.Find(notification.Session.AccountId) == notification.Session
+            && sessions.IsInWorld(notification.Session)
                 ? [new ShopPurchaseCountResponse(notification.Result)] : []);
 }

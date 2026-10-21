@@ -14,7 +14,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class AvatarCompoundDomainService(ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers, ICharacterDomainService characters,
+    ICharacterDomainService characters,
     IBusinessInventorySlotDomainService slots, IAvatarCompoundRuleService rules,
     IItemLifecycleDomainService lifecycle, IDomainTransactionAccessor transactions,
     IRequestReplayProjectionDomainService replay, IEventService events, TimeProvider clock) : IAvatarCompoundDomainService
@@ -22,10 +22,7 @@ internal sealed class AvatarCompoundDomainService(ISelectedSessionDomainService 
     public async ValueTask<AvatarCompoundResult> CompoundAsync(SelectedSessionIdentity session, AvatarCompoundInput input, CancellationToken ct)
     {
         _ = transactions.Current ?? throw new InvalidOperationException("Avatar compound requires a transaction.");
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(AvatarCompoundRejection.NoSession);
         if (input.First == input.Second || input.First.Space != BusinessInventorySpace.Avatar
             || input.Second.Space != BusinessInventorySpace.Avatar

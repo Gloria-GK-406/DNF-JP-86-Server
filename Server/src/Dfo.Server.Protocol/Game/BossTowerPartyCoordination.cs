@@ -316,15 +316,16 @@ public sealed class BossTowerPartyCoordinator(
         var targetMember = targetSlot is null || party.IsVirtual
             ? null
             : party.Members.SingleOrDefault(member => member.Slot == targetSlot.Value);
-        var target = targetMember is null
-            ? null
-            : sessions.FindByCharacter(targetMember.CharacterId);
+        var target = targetMember is not null
+            && sessions.TryGetInWorld(targetMember.CharacterId, out var inWorld)
+            ? inWorld
+            : null;
         var candidates = new List<SelectedSessionIdentity> { caller };
         if (target is not null)
             candidates.Add(target);
         foreach (var member in party.Members)
         {
-            if (sessions.FindByCharacter(member.CharacterId) is { } current
+            if (sessions.TryGetInWorld(member.CharacterId, out var current)
                 && current.AccountId == member.Character.AccountId
                 && current.WireUserId == member.WireUserId)
             {
@@ -342,11 +343,10 @@ public sealed class BossTowerPartyCoordinator(
 
     private bool ExactSessions(SelectedSessionIdentity caller, CaptureState state)
     {
-        if (sessions.FindByConnection(caller.ConnectionId) != caller
-            || sessions.FindByCharacter(caller.CharacterId) != caller)
+        if (!sessions.IsInWorld(caller))
             return false;
         if (state.Target is not null
-            && sessions.FindByCharacter(state.Target.CharacterId) != state.Target)
+            && !sessions.IsInWorld(state.Target))
             return false;
         foreach (var member in state.Party.Members)
         {
@@ -356,7 +356,7 @@ public sealed class BossTowerPartyCoordinator(
                 return false;
         }
         return state.Runs[0].Members.All(member =>
-            sessions.FindByCharacter(member.Session.CharacterId) == member.Session
+            sessions.IsInWorld(member.Session)
             && towers.Find(member.Session) is { } current
             && current.RunId == state.Runs[0].RunId
             && current.Room.Version == state.Runs[0].Room.Version);
@@ -396,7 +396,7 @@ public sealed class BossTowerPartyCoordinator(
     {
         foreach (var session in affected.Distinct())
         {
-            if (sessions.FindByCharacter(session.CharacterId) != session)
+            if (!sessions.IsInWorld(session))
                 continue;
             try
             {

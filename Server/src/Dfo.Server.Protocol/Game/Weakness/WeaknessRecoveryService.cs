@@ -35,8 +35,7 @@ public sealed class WeaknessProjectionDelivery(
         await deliveryGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (sessions.FindByCharacter(session.CharacterId) != session
-                || sessions.FindByConnection(session.ConnectionId) != session) return;
+            if (!sessions.IsInWorld(session)) return;
             await sender.SendNotiAsync(session.ConnectionId,
                 new WeaknessProjectionNotification(weakness.For(session.CharacterId).Value),
                 cancellationToken).ConfigureAwait(false);
@@ -64,7 +63,7 @@ public sealed class WeaknessRecoveryService(
                 {
                     try
                     {
-                        if (sessions.FindByCharacter(id) is not { } session) continue;
+                        if (!sessions.TryGetInWorld(id, out var session)) continue;
                         await using var transition = await transitions.AcquireAsync(session.AccountId,
                             UserAccessMode.Exclusive, stoppingToken).ConfigureAwait(false);
                         await delivery.SendCurrentAsync(session, stoppingToken).ConfigureAwait(false);
