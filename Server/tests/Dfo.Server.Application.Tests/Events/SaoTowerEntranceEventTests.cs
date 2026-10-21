@@ -6,6 +6,7 @@ using Dfo.Server.Persistence;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Events;
 
@@ -14,39 +15,48 @@ public sealed class SaoTowerEntranceEventTests
     [Fact]
     public async Task Configured_sao_activity_is_included_in_login_event_information()
     {
-        using var fixture = new Fixture();
-        await fixture.Enable();
-        var events = await fixture.Events.GetEventInfoListAsync(new AccountId(1), fixture.Now, default);
-        var sao = Assert.Single(events, e => e.EventId == 214);
-        Assert.Equal("sao aincrad event/0/0", sao.LinkKey);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new Fixture();
+            await fixture.Enable();
+            var events = await fixture.Events.GetEventInfoListAsync(new AccountId(1), fixture.Now, default);
+            var sao = Assert.Single(events, e => e.EventId == 214);
+            Assert.Equal("sao aincrad event/0/0", sao.LinkKey);
+        });
     }
 
     [Fact]
     public async Task Disabled_activity_stays_disabled_after_reopening_the_database()
     {
-        using var fixture = new Fixture();
-        await fixture.Enable();
-        await using (var tx = fixture.Services.GetRequiredService<DomainTransactionScope>().Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await fixture.Events.ChangeAsync(new(214, 2, "disable"), "test", fixture.Now, default);
-            await tx.CommitAsync(default);
-        }
-        using var reopened = fixture.Reopen();
-        Assert.DoesNotContain(await reopened.Events.GetEventInfoListAsync(new(1), reopened.Now, default), e => e.EventId == 214);
-        var state = Assert.Single((await reopened.Events.ListAsync(reopened.Now, default)).Entries, e => e.EventId == 214);
-        Assert.False(state.Enabled);
-        Assert.Equal(3, state.Revision);
+            using var fixture = new Fixture();
+            await fixture.Enable();
+            await using (var tx = fixture.Services.GetRequiredService<DomainTransactionScope>().Begin())
+            {
+                await fixture.Events.ChangeAsync(new(214, 2, "disable"), "test", fixture.Now, default);
+                await tx.CommitAsync(default);
+            }
+            using var reopened = fixture.Reopen();
+            Assert.DoesNotContain(await reopened.Events.GetEventInfoListAsync(new(1), reopened.Now, default), e => e.EventId == 214);
+            var state = Assert.Single((await reopened.Events.ListAsync(reopened.Now, default)).Entries, e => e.EventId == 214);
+            Assert.False(state.Enabled);
+            Assert.Equal(3, state.Revision);
+        });
     }
 
     [Fact]
     public async Task Activity_projection_observes_account_and_start_inclusive_end_exclusive_boundaries()
     {
-        using var fixture = new Fixture();
-        await fixture.Enable();
-        Assert.DoesNotContain(await fixture.Events.GetEventInfoListAsync(new(0), fixture.Now, default), e => e.EventId == 214);
-        Assert.DoesNotContain(await fixture.Events.GetEventInfoListAsync(new(1), fixture.Now.AddDays(-1).AddTicks(-1), default), e => e.EventId == 214);
-        Assert.Contains(await fixture.Events.GetEventInfoListAsync(new(1), fixture.Now.AddDays(-1), default), e => e.EventId == 214);
-        Assert.DoesNotContain(await fixture.Events.GetEventInfoListAsync(new(1), fixture.Now.AddDays(30), default), e => e.EventId == 214);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new Fixture();
+            await fixture.Enable();
+            Assert.DoesNotContain(await fixture.Events.GetEventInfoListAsync(new(0), fixture.Now, default), e => e.EventId == 214);
+            Assert.DoesNotContain(await fixture.Events.GetEventInfoListAsync(new(1), fixture.Now.AddDays(-1).AddTicks(-1), default), e => e.EventId == 214);
+            Assert.Contains(await fixture.Events.GetEventInfoListAsync(new(1), fixture.Now.AddDays(-1), default), e => e.EventId == 214);
+            Assert.DoesNotContain(await fixture.Events.GetEventInfoListAsync(new(1), fixture.Now.AddDays(30), default), e => e.EventId == 214);
+        });
     }
 
     private sealed class Fixture : IDisposable

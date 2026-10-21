@@ -6,6 +6,7 @@ using Dfo.Server.Application.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.Configuration;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
@@ -14,21 +15,24 @@ public sealed class WeaknessTests
     [Fact]
     public async Task Failed_level_read_is_retried_after_exit_even_after_entering_a_new_run()
     {
-        var character = new CurrentCharacterStub { ProgressReader = () => throw new IOException("transient") };
-        var weakness = new WeaknessDomainService(() => CurrentCharacterStub.Domain(character),
-            new WeaknessRuleService(new ConfigurationBuilder().Build()));
-        var runs = new DungeonRunDomainService(null!, null!, weakness);
-        var old = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
-        Assert.True(await runs.EndAsync(Id, old.RunId));
-        Assert.Null(runs.Find(Id));
-        Assert.Equal(100, weakness.For(Id).Value);
-        var next = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
-        character.ProgressReader = null;
-        Assert.Equal([Id], await weakness.RetryPendingWeakness(default));
-        Assert.Equal(10, weakness.For(Id).Value);
-        Assert.Empty(weakness.AdvanceRecovery());
-        Assert.False(await runs.EndAsync(Id, old.RunId));
-        Assert.Equal(next.RunId, runs.Find(Id)!.RunId);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var character = new CurrentCharacterStub { ProgressReader = () => throw new IOException("transient") };
+            var weakness = new WeaknessDomainService(() => CurrentCharacterStub.Domain(character),
+                new WeaknessRuleService(new ConfigurationBuilder().Build()));
+            var runs = new DungeonRunDomainService(null!, null!, weakness);
+            var old = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
+            Assert.True(await runs.EndAsync(Id, old.RunId));
+            Assert.Null(runs.Find(Id));
+            Assert.Equal(100, weakness.For(Id).Value);
+            var next = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
+            character.ProgressReader = null;
+            Assert.Equal([Id], await weakness.RetryPendingWeakness(default));
+            Assert.Equal(10, weakness.For(Id).Value);
+            Assert.Empty(weakness.AdvanceRecovery());
+            Assert.False(await runs.EndAsync(Id, old.RunId));
+            Assert.Equal(next.RunId, runs.Find(Id)!.RunId);
+        });
     }
 
     [Theory]
@@ -57,30 +61,33 @@ public sealed class WeaknessTests
     [Fact]
     public async Task One_party_members_failed_read_does_not_block_exit_or_lose_its_penalty()
     {
-        var second = new CurrentCharacterStub { ProgressReader = () => throw new IOException("transient") };
-        var weakness = new WeaknessDomainService(() => new CharacterDomainService(null!, null!,
-                id => id == Id ? new CurrentCharacterStub() : second, null!),
-            new WeaknessRuleService(new ConfigurationBuilder().Build()));
-        var runs = new DungeonRunDomainService(null!, null!, weakness);
-        DungeonRunParticipant[] members = [new(new(1), Id, 0, true), new(new(2), new(2), 1, false)];
-        var run = runs.PreparePartyEntry(members, Layout, DungeonDifficulty.Normal).Run;
-        foreach (var member in members)
+        await TestGameplay.RunAsync(async () =>
         {
-            runs.TryMarkParticipantReady(member.CharacterId, run.RunId, run.RoomVersion);
-            runs.TryMarkParticipantDead(member.CharacterId, run.RunId, run.RoomVersion);
-        }
-        runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch);
-        Assert.NotNull(await runs.TryEndPartyWipeAsync(run.RunId, DateTimeOffset.UnixEpoch.AddSeconds(10)));
-        Assert.All(members, member => Assert.Null(runs.Find(member.CharacterId)));
-        Assert.Equal(10, weakness.For(Id).Value);
-        Assert.Equal(100, weakness.For(new(2)).Value);
-        second.ProgressReader = null;
-        var command = new Dfo.Server.Protocol.Game.Weakness.AdvanceWeaknessRecoveryCommandHandler(weakness);
-        var changed = await command.HandleAsync(null!, new(), default);
-        Assert.Equal(2, changed.Count);
-        Assert.Equal(19, weakness.For(Id).Value);
-        Assert.Equal(10, weakness.For(new(2)).Value);
-        Assert.Empty(await weakness.RetryPendingWeakness(default));
+            var second = new CurrentCharacterStub { ProgressReader = () => throw new IOException("transient") };
+            var weakness = new WeaknessDomainService(() => new CharacterDomainService(null!, null!,
+                    id => id == Id ? new CurrentCharacterStub() : second, null!),
+                new WeaknessRuleService(new ConfigurationBuilder().Build()));
+            var runs = new DungeonRunDomainService(null!, null!, weakness);
+            DungeonRunParticipant[] members = [new(new(1), Id, 0, true), new(new(2), new(2), 1, false)];
+            var run = runs.PreparePartyEntry(members, Layout, DungeonDifficulty.Normal).Run;
+            foreach (var member in members)
+            {
+                runs.TryMarkParticipantReady(member.CharacterId, run.RunId, run.RoomVersion);
+                runs.TryMarkParticipantDead(member.CharacterId, run.RunId, run.RoomVersion);
+            }
+            runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch);
+            Assert.NotNull(await runs.TryEndPartyWipeAsync(run.RunId, DateTimeOffset.UnixEpoch.AddSeconds(10)));
+            Assert.All(members, member => Assert.Null(runs.Find(member.CharacterId)));
+            Assert.Equal(10, weakness.For(Id).Value);
+            Assert.Equal(100, weakness.For(new(2)).Value);
+            second.ProgressReader = null;
+            var command = new Dfo.Server.Protocol.Game.Weakness.AdvanceWeaknessRecoveryCommandHandler(weakness);
+            var changed = await command.HandleAsync(null!, new(), default);
+            Assert.Equal(2, changed.Count);
+            Assert.Equal(19, weakness.For(Id).Value);
+            Assert.Equal(10, weakness.For(new(2)).Value);
+            Assert.Empty(await weakness.RetryPendingWeakness(default));
+        });
     }
 
     private static readonly CharacterId Id = new(1);
@@ -162,53 +169,62 @@ public sealed class WeaknessTests
     [InlineData(true)]
     public async Task Exit_applies_once_and_clear_exit_does_not_apply(bool cleared)
     {
-        var weakness = Create();
-        var runs = new DungeonRunDomainService(null!, null!, weakness);
-        var run = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
-        if (cleared) runs.TryOpenClear(Id, run.RunId, run.RoomVersion);
-        Assert.True(await runs.EndAsync(Id, run.RunId));
-        Assert.Equal(cleared ? 100 : 10, weakness.For(Id).Value);
-        weakness.AdvanceRecovery();
-        Assert.False(await runs.EndAsync(Id, run.RunId));
-        Assert.Equal(cleared ? 100 : 19, weakness.For(Id).Value);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var weakness = Create();
+            var runs = new DungeonRunDomainService(null!, null!, weakness);
+            var run = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
+            if (cleared) runs.TryOpenClear(Id, run.RunId, run.RoomVersion);
+            Assert.True(await runs.EndAsync(Id, run.RunId));
+            Assert.Equal(cleared ? 100 : 10, weakness.For(Id).Value);
+            weakness.AdvanceRecovery();
+            Assert.False(await runs.EndAsync(Id, run.RunId));
+            Assert.Equal(cleared ? 100 : 19, weakness.For(Id).Value);
+        });
     }
 
     [Fact]
     public async Task Entry_pauses_existing_weakness_abort_resumes_and_old_exit_cannot_penalize_new_run()
     {
-        var weakness = Create();
-        await weakness.For(Id).SetWeakness();
-        var runs = new DungeonRunDomainService(null!, null!, weakness);
-        var old = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
-        Assert.Empty(weakness.AdvanceRecovery());
-        var current = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
-        Assert.False(await runs.EndAsync(Id, old.RunId));
-        Assert.Equal(10, weakness.For(Id).Value);
-        Assert.Empty(weakness.AdvanceRecovery());
-        Assert.True(runs.TryAbortEntry(current.RunId, current.EntryRevision, [Id]));
-        weakness.AdvanceRecovery();
-        Assert.Equal(19, weakness.For(Id).Value);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var weakness = Create();
+            await weakness.For(Id).SetWeakness();
+            var runs = new DungeonRunDomainService(null!, null!, weakness);
+            var old = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
+            Assert.Empty(weakness.AdvanceRecovery());
+            var current = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
+            Assert.False(await runs.EndAsync(Id, old.RunId));
+            Assert.Equal(10, weakness.For(Id).Value);
+            Assert.Empty(weakness.AdvanceRecovery());
+            Assert.True(runs.TryAbortEntry(current.RunId, current.EntryRevision, [Id]));
+            weakness.AdvanceRecovery();
+            Assert.Equal(19, weakness.For(Id).Value);
+        });
     }
 
     [Fact]
     public async Task Party_wipe_applies_to_every_participant_once()
     {
-        var weakness = Create();
-        var runs = new DungeonRunDomainService(null!, null!, weakness);
-        DungeonRunParticipant[] members = [new(new(1), Id, 0, true), new(new(2), new(2), 1, false)];
-        var run = runs.PreparePartyEntry(members, Layout, DungeonDifficulty.Normal).Run;
-        foreach (var member in members)
+        await TestGameplay.RunAsync(async () =>
         {
-            runs.TryMarkParticipantReady(member.CharacterId, run.RunId, run.RoomVersion);
-            runs.TryMarkParticipantDead(member.CharacterId, run.RunId, run.RoomVersion);
-        }
-        var now = DateTimeOffset.UnixEpoch;
-        Assert.Empty(runs.FindExpiredPartyWipes(now));
-        Assert.NotNull(await runs.TryEndPartyWipeAsync(run.RunId, now.AddSeconds(10)));
-        Assert.All(members, member => Assert.Equal(10, weakness.For(member.CharacterId).Value));
-        weakness.AdvanceRecovery();
-        Assert.Null(await runs.TryEndPartyWipeAsync(run.RunId, now.AddSeconds(20)));
-        Assert.All(members, member => Assert.Equal(19, weakness.For(member.CharacterId).Value));
+            var weakness = Create();
+            var runs = new DungeonRunDomainService(null!, null!, weakness);
+            DungeonRunParticipant[] members = [new(new(1), Id, 0, true), new(new(2), new(2), 1, false)];
+            var run = runs.PreparePartyEntry(members, Layout, DungeonDifficulty.Normal).Run;
+            foreach (var member in members)
+            {
+                runs.TryMarkParticipantReady(member.CharacterId, run.RunId, run.RoomVersion);
+                runs.TryMarkParticipantDead(member.CharacterId, run.RunId, run.RoomVersion);
+            }
+            var now = DateTimeOffset.UnixEpoch;
+            Assert.Empty(runs.FindExpiredPartyWipes(now));
+            Assert.NotNull(await runs.TryEndPartyWipeAsync(run.RunId, now.AddSeconds(10)));
+            Assert.All(members, member => Assert.Equal(10, weakness.For(member.CharacterId).Value));
+            weakness.AdvanceRecovery();
+            Assert.Null(await runs.TryEndPartyWipeAsync(run.RunId, now.AddSeconds(20)));
+            Assert.All(members, member => Assert.Equal(19, weakness.For(member.CharacterId).Value));
+        });
     }
 
     [Theory]
@@ -224,36 +240,39 @@ public sealed class WeaknessTests
     [InlineData(11007, true, true)]
     public async Task Altar_exit_and_wipe_do_not_add_or_reset_weakness(int altarId, bool wipe, bool alreadyWeak)
     {
-        var weakness = Create();
-        if (alreadyWeak)
+        await TestGameplay.RunAsync(async () =>
         {
-            await weakness.For(Id).SetWeakness();
-            weakness.AdvanceRecovery();
-        }
-        var before = weakness.For(Id).Value;
-        var runs = new DungeonRunDomainService(null!, null!, weakness);
-        var layout = altarId == 0 ? Layout : Layout with
-        {
-            DungeonId = altarId,
-            Altar = new(altarId == 11006 ? AltarDungeonKind.Endless : AltarDungeonKind.Ultimate,
-                new DateOnly(2026, 10, 13)),
-        };
-        var run = runs.Begin(Id, layout, DungeonDifficulty.Normal);
-        if (wipe)
-        {
-            runs.TryMarkParticipantReady(Id, run.RunId, run.RoomVersion);
-            runs.TryMarkParticipantDead(Id, run.RunId, run.RoomVersion);
-            runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch);
-            Assert.NotNull(await runs.TryEndPartyWipeAsync(run.RunId, DateTimeOffset.UnixEpoch.AddSeconds(10)));
-        }
-        else Assert.True(await runs.EndAsync(Id, run.RunId));
-        Assert.Null(runs.Find(Id));
-        Assert.Equal(altarId == 0 ? (byte)10 : before, weakness.For(Id).Value);
-        if (alreadyWeak)
-        {
-            weakness.AdvanceRecovery();
-            Assert.Equal(28, weakness.For(Id).Value);
-        }
+            var weakness = Create();
+            if (alreadyWeak)
+            {
+                await weakness.For(Id).SetWeakness();
+                weakness.AdvanceRecovery();
+            }
+            var before = weakness.For(Id).Value;
+            var runs = new DungeonRunDomainService(null!, null!, weakness);
+            var layout = altarId == 0 ? Layout : Layout with
+            {
+                DungeonId = altarId,
+                Altar = new(altarId == 11006 ? AltarDungeonKind.Endless : AltarDungeonKind.Ultimate,
+                    new DateOnly(2026, 10, 13)),
+            };
+            var run = runs.Begin(Id, layout, DungeonDifficulty.Normal);
+            if (wipe)
+            {
+                runs.TryMarkParticipantReady(Id, run.RunId, run.RoomVersion);
+                runs.TryMarkParticipantDead(Id, run.RunId, run.RoomVersion);
+                runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch);
+                Assert.NotNull(await runs.TryEndPartyWipeAsync(run.RunId, DateTimeOffset.UnixEpoch.AddSeconds(10)));
+            }
+            else Assert.True(await runs.EndAsync(Id, run.RunId));
+            Assert.Null(runs.Find(Id));
+            Assert.Equal(altarId == 0 ? (byte)10 : before, weakness.For(Id).Value);
+            if (alreadyWeak)
+            {
+                weakness.AdvanceRecovery();
+                Assert.Equal(28, weakness.For(Id).Value);
+            }
+        });
     }
 
     private static readonly DungeonLayout Layout = new(10000, 0, 1, 1,

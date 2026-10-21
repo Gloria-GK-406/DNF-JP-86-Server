@@ -15,6 +15,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Networking.Runtime;
 using Dfo.Server.Protocol.Game.BuyItem;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Sessions;
 
@@ -22,24 +23,27 @@ public sealed partial class HousingNetworkSettlementTests
 {
     private static async Task<Guid> Marry(ShopFixture f)
     {
-        f.Sql("INSERT INTO accounts(account_id,m_id) VALUES(2,'house-peer'); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(3,2,'peer',0,50,0)");
-        var peer = SelectedSessionIdentity.Create(new(2), new(3), new("offline-peer"), 1, 10011);
-        var now = f.Clock.GetUtcNow(); var p = new MarriageProposal(Guid.NewGuid(), f.Session, peer, MarriageProposalState.Pending, 1, now, now.AddMinutes(1));
-        var c = new MarriageCeremony(Guid.NewGuid(), p.Id, f.Session, peer, 0, 0, MarriageCeremonyState.Pending, 1, now, now.AddMinutes(1));
-        await using (var tx = f.Services.GetRequiredService<DomainTransactionScope>().Begin())
+        return await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var proposals = f.Services.GetRequiredService<IMarriageProposalDomainStore>(); await proposals.CreateAsync(p, default); await proposals.TransitionAsync(p, MarriageProposalState.Engaged, 0, default);
-            await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().CreateAsync(c, default);
-            var weddings = f.Services.GetRequiredService<IMarriageWeddingDomainStore>(); await weddings.CreateAsync(new(c, MarriageWeddingPhase.Preparing, 0), default); await weddings.FinishAsync(c.Id, MarriageWeddingPhase.Completed, now, default);
-            await tx.CommitAsync(default);
-        }
-        f.Sql($"INSERT INTO marriage_relations(id,stage,revision,stage_since,ceremony_id) VALUES('{p.Id:N}',4,1,{now.ToUnixTimeMilliseconds()},'{c.Id:N}'); UPDATE character_stats SET carried_gold=1000000 WHERE character_id=1");
-        await using (var tx = f.Services.GetRequiredService<DomainTransactionScope>().Begin())
-        { await f.Services.GetRequiredService<IMarriageHousingDomainService>().InitializeAsync(f.Session.AccountId, f.Session.CharacterId, default); await tx.CommitAsync(default); }
-        f.Sql("UPDATE marriage_personal_points SET points=100 WHERE character_id=1");
-        var room = (await f.Services.GetRequiredService<IMarriageHousingQueryDomainService>().ReadAsync(f.Session.AccountId, f.Session.CharacterId, default))!;
-        f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(f.Session.CharacterId, f.Session.TownAreaLease(), new(1, 101, 0, room.Instance), new(101, 0, 900, 250, 5), true);
-        return p.Id;
+            f.Sql("INSERT INTO accounts(account_id,m_id) VALUES(2,'house-peer'); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(3,2,'peer',0,50,0)");
+            var peer = SelectedSessionIdentity.Create(new(2), new(3), new("offline-peer"), 1, 10011);
+            var now = f.Clock.GetUtcNow(); var p = new MarriageProposal(Guid.NewGuid(), f.Session, peer, MarriageProposalState.Pending, 1, now, now.AddMinutes(1));
+            var c = new MarriageCeremony(Guid.NewGuid(), p.Id, f.Session, peer, 0, 0, MarriageCeremonyState.Pending, 1, now, now.AddMinutes(1));
+            await using (var tx = f.Services.GetRequiredService<DomainTransactionScope>().Begin())
+            {
+                var proposals = f.Services.GetRequiredService<IMarriageProposalDomainStore>(); await proposals.CreateAsync(p, default); await proposals.TransitionAsync(p, MarriageProposalState.Engaged, 0, default);
+                await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().CreateAsync(c, default);
+                var weddings = f.Services.GetRequiredService<IMarriageWeddingDomainStore>(); await weddings.CreateAsync(new(c, MarriageWeddingPhase.Preparing, 0), default); await weddings.FinishAsync(c.Id, MarriageWeddingPhase.Completed, now, default);
+                await tx.CommitAsync(default);
+            }
+            f.Sql($"INSERT INTO marriage_relations(id,stage,revision,stage_since,ceremony_id) VALUES('{p.Id:N}',4,1,{now.ToUnixTimeMilliseconds()},'{c.Id:N}'); UPDATE character_stats SET carried_gold=1000000 WHERE character_id=1");
+            await using (var tx = f.Services.GetRequiredService<DomainTransactionScope>().Begin())
+            { await f.Services.GetRequiredService<IMarriageHousingDomainService>().InitializeAsync(f.Session.AccountId, f.Session.CharacterId, default); await tx.CommitAsync(default); }
+            f.Sql("UPDATE marriage_personal_points SET points=100 WHERE character_id=1");
+            var room = (await f.Services.GetRequiredService<IMarriageHousingQueryDomainService>().ReadAsync(f.Session.AccountId, f.Session.CharacterId, default))!;
+            f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(f.Session.CharacterId, f.Session.TownAreaLease(), new(1, 101, 0, room.Instance), new(101, 0, 900, 250, 5), true);
+            return p.Id;
+        });
     }
     private static ShopFixture Fixture() => new(s =>
     {

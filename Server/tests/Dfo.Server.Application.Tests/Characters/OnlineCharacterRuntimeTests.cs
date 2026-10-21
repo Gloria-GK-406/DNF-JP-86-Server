@@ -4,6 +4,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
@@ -20,101 +21,116 @@ public sealed class OnlineCharacterRuntimeTests
     [Fact]
     public void A_record_begins_with_the_published_position_and_vitals_and_nothing_else()
     {
-        var runtime = Runtime(out _);
-        var session = Session("Game:begin", 2);
+        TestGameplay.Run(() =>
+        {
+            var runtime = Runtime(out _);
+            var session = Session("Game:begin", 2);
 
-        runtime.Begin(session, Town, 140);
+            runtime.Begin(session, Town, 140);
 
-        Assert.Equal(Town, runtime.PositionOf(session));
-        Assert.Equal(Town, runtime.PositionOf(Character));
-        Assert.Equal((byte)100, runtime.HpPercentOf(Character));
-        Assert.False(runtime.IsCoolingDown(Character, Potion));
-        Assert.Equal(0, runtime.SpiritPotionBonusRateOf(Character));
+            Assert.Equal(Town, runtime.PositionOf(session));
+            Assert.Equal(Town, runtime.PositionOf(Character));
+            Assert.Equal((byte)100, runtime.HpPercentOf(Character));
+            Assert.False(runtime.IsCoolingDown(Character, Potion));
+            Assert.Equal(0, runtime.SpiritPotionBonusRateOf(Character));
+        });
     }
 
     [Fact]
     public void Movement_cooldowns_and_potions_belong_to_the_owning_session()
     {
-        var runtime = Runtime(out var clock);
-        var session = Session("Game:own", 2);
-        runtime.Begin(session, Town, 80);
+        TestGameplay.Run(() =>
+        {
+            var runtime = Runtime(out var clock);
+            var session = Session("Game:own", 2);
+            runtime.Begin(session, Town, 80);
 
-        var stepped = runtime.StepTo(session, 120, 220, 1);
-        var crossed = runtime.CrossInto(session, 4, 2, 10, 20);
-        runtime.StartCooldown(session, Potion, TimeSpan.FromSeconds(30));
-        runtime.ApplySpiritPotion(session, 0.5, TimeSpan.FromMinutes(10));
+            var stepped = runtime.StepTo(session, 120, 220, 1);
+            var crossed = runtime.CrossInto(session, 4, 2, 10, 20);
+            runtime.StartCooldown(session, Potion, TimeSpan.FromSeconds(30));
+            runtime.ApplySpiritPotion(session, 0.5, TimeSpan.FromMinutes(10));
 
-        Assert.Equal(Town with { X = 120, Y = 220, Direction = 1 }, stepped);
-        Assert.Equal(stepped with { TownId = 4, AreaId = 2, X = 10, Y = 20 }, crossed);
-        Assert.Equal(crossed, runtime.PositionOf(session));
-        Assert.True(runtime.IsCoolingDown(Character, Potion));
-        Assert.Equal(0.5, runtime.SpiritPotionBonusRateOf(Character));
+            Assert.Equal(Town with { X = 120, Y = 220, Direction = 1 }, stepped);
+            Assert.Equal(stepped with { TownId = 4, AreaId = 2, X = 10, Y = 20 }, crossed);
+            Assert.Equal(crossed, runtime.PositionOf(session));
+            Assert.True(runtime.IsCoolingDown(Character, Potion));
+            Assert.Equal(0.5, runtime.SpiritPotionBonusRateOf(Character));
 
-        clock.Advance(TimeSpan.FromMinutes(11));
+            clock.Advance(TimeSpan.FromMinutes(11));
 
-        Assert.False(runtime.IsCoolingDown(Character, Potion));
-        Assert.Equal(0, runtime.SpiritPotionBonusRateOf(Character));
+            Assert.False(runtime.IsCoolingDown(Character, Potion));
+            Assert.Equal(0, runtime.SpiritPotionBonusRateOf(Character));
+        });
     }
 
     [Fact]
     public void A_replaced_session_can_neither_read_nor_change_its_successor()
     {
-        var runtime = Runtime(out _);
-        var stale = Session("Game:stale", 2);
-        var successor = Session("Game:successor", 5);
-        runtime.Begin(stale, Town, 50);
-        runtime.Begin(successor, Town with { X = 1 }, 60);
+        TestGameplay.Run(() =>
+        {
+            var runtime = Runtime(out _);
+            var stale = Session("Game:stale", 2);
+            var successor = Session("Game:successor", 5);
+            runtime.Begin(stale, Town, 50);
+            runtime.Begin(successor, Town with { X = 1 }, 60);
 
-        Assert.Throws<InvalidOperationException>(() => runtime.StepTo(stale, 9, 9, 0));
-        Assert.Throws<InvalidOperationException>(() => runtime.CrossInto(stale, 9, 9, 9, 9));
-        runtime.StartCooldown(stale, Potion, TimeSpan.FromMinutes(1));
-        runtime.ApplySpiritPotion(stale, 1.0, TimeSpan.FromMinutes(1));
+            Assert.Throws<InvalidOperationException>(() => runtime.StepTo(stale, 9, 9, 0));
+            Assert.Throws<InvalidOperationException>(() => runtime.CrossInto(stale, 9, 9, 9, 9));
+            runtime.StartCooldown(stale, Potion, TimeSpan.FromMinutes(1));
+            runtime.ApplySpiritPotion(stale, 1.0, TimeSpan.FromMinutes(1));
 
-        Assert.Null(runtime.PositionOf(stale));
-        Assert.Equal(Town with { X = 1 }, runtime.PositionOf(successor));
-        Assert.Equal(Town with { X = 1 }, runtime.PositionOf(Character));
-        Assert.Equal((byte)60, runtime.HpPercentOf(Character));
-        Assert.False(runtime.IsCoolingDown(Character, Potion));
-        Assert.Equal(0, runtime.SpiritPotionBonusRateOf(Character));
+            Assert.Null(runtime.PositionOf(stale));
+            Assert.Equal(Town with { X = 1 }, runtime.PositionOf(successor));
+            Assert.Equal(Town with { X = 1 }, runtime.PositionOf(Character));
+            Assert.Equal((byte)60, runtime.HpPercentOf(Character));
+            Assert.False(runtime.IsCoolingDown(Character, Potion));
+            Assert.Equal(0, runtime.SpiritPotionBonusRateOf(Character));
 
-        Assert.False(runtime.EndExact(stale));
-        Assert.Equal(Town with { X = 1 }, runtime.PositionOf(successor));
+            Assert.False(runtime.EndExact(stale));
+            Assert.Equal(Town with { X = 1 }, runtime.PositionOf(successor));
+        });
     }
 
     [Fact]
     public void Ending_removes_everything_and_late_writes_do_not_bring_it_back()
     {
-        var runtime = Runtime(out _);
-        var session = Session("Game:end", 2);
-        runtime.Begin(session, Town, 70);
-        runtime.StartCooldown(session, Potion, TimeSpan.FromMinutes(1));
+        TestGameplay.Run(() =>
+        {
+            var runtime = Runtime(out _);
+            var session = Session("Game:end", 2);
+            runtime.Begin(session, Town, 70);
+            runtime.StartCooldown(session, Potion, TimeSpan.FromMinutes(1));
 
-        Assert.True(runtime.EndExact(session));
+            Assert.True(runtime.EndExact(session));
 
-        Assert.Throws<InvalidOperationException>(() => runtime.StepTo(session, 1, 1, 0));
-        runtime.StartCooldown(session, Potion, TimeSpan.FromMinutes(1));
-        runtime.ApplySpiritPotion(session, 1.0, TimeSpan.FromMinutes(1));
-        Assert.Null(runtime.PositionOf(session));
-        Assert.Null(runtime.PositionOf(Character));
-        Assert.Equal((byte)0, runtime.HpPercentOf(Character));
-        Assert.False(runtime.IsCoolingDown(Character, Potion));
-        Assert.Equal(0, runtime.SpiritPotionBonusRateOf(Character));
-        Assert.False(runtime.EndExact(session));
+            Assert.Throws<InvalidOperationException>(() => runtime.StepTo(session, 1, 1, 0));
+            runtime.StartCooldown(session, Potion, TimeSpan.FromMinutes(1));
+            runtime.ApplySpiritPotion(session, 1.0, TimeSpan.FromMinutes(1));
+            Assert.Null(runtime.PositionOf(session));
+            Assert.Null(runtime.PositionOf(Character));
+            Assert.Equal((byte)0, runtime.HpPercentOf(Character));
+            Assert.False(runtime.IsCoolingDown(Character, Potion));
+            Assert.Equal(0, runtime.SpiritPotionBonusRateOf(Character));
+            Assert.False(runtime.EndExact(session));
+        });
     }
 
     [Fact]
     public void Beginning_again_starts_without_the_previous_sessions_cooldowns_or_potion()
     {
-        var runtime = Runtime(out _);
-        var first = Session("Game:first", 2);
-        runtime.Begin(first, Town, 70);
-        runtime.StartCooldown(first, Potion, TimeSpan.FromMinutes(5));
-        runtime.ApplySpiritPotion(first, 0.3, TimeSpan.FromMinutes(5));
+        TestGameplay.Run(() =>
+        {
+            var runtime = Runtime(out _);
+            var first = Session("Game:first", 2);
+            runtime.Begin(first, Town, 70);
+            runtime.StartCooldown(first, Potion, TimeSpan.FromMinutes(5));
+            runtime.ApplySpiritPotion(first, 0.3, TimeSpan.FromMinutes(5));
 
-        runtime.Begin(Session("Game:second", 3), Town, 70);
+            runtime.Begin(Session("Game:second", 3), Town, 70);
 
-        Assert.False(runtime.IsCoolingDown(Character, Potion));
-        Assert.Equal(0, runtime.SpiritPotionBonusRateOf(Character));
+            Assert.False(runtime.IsCoolingDown(Character, Potion));
+            Assert.Equal(0, runtime.SpiritPotionBonusRateOf(Character));
+        });
     }
 
     [Fact]
@@ -122,25 +138,37 @@ public sealed class OnlineCharacterRuntimeTests
     {
         var runtime = Runtime(out _);
         var session = Session("Game:concurrent", 2);
-        runtime.Begin(session, Town, 70);
+        TestGameplay.Run(() =>
+        {
+            runtime.Begin(session, Town, 70);
+        });
         var keys = Enumerable.Range(1, 200).Select(value => new ItemCooldownKey(false, value)).ToArray();
 
         using var start = new ManualResetEventSlim();
         var cooldowns = Task.Run(() =>
         {
             start.Wait();
-            foreach (var key in keys) runtime.StartCooldown(session, key, TimeSpan.FromHours(1));
+            TestGameplay.Run(() =>
+            {
+                foreach (var key in keys) runtime.StartCooldown(session, key, TimeSpan.FromHours(1));
+            });
         });
         var steps = Task.Run(() =>
         {
             start.Wait();
-            for (short x = 0; x < 200; x++) runtime.StepTo(session, x, 0, 0);
+            TestGameplay.Run(() =>
+            {
+                for (short x = 0; x < 200; x++) runtime.StepTo(session, x, 0, 0);
+            });
         });
         start.Set();
         await Task.WhenAll(cooldowns, steps);
 
-        Assert.All(keys, key => Assert.True(runtime.IsCoolingDown(Character, key)));
-        Assert.Equal((short)199, runtime.PositionOf(session)!.X);
+        TestGameplay.Run(() =>
+        {
+            Assert.All(keys, key => Assert.True(runtime.IsCoolingDown(Character, key)));
+            Assert.Equal((short)199, runtime.PositionOf(session)!.X);
+        });
     }
 
     [Fact]
@@ -150,27 +178,39 @@ public sealed class OnlineCharacterRuntimeTests
         var session = Session("Game:race", 2);
         for (var round = 0; round < 50; round++)
         {
-            runtime.Begin(session, Town, 70);
+            TestGameplay.Run(() =>
+            {
+                runtime.Begin(session, Town, 70);
+            });
             using var start = new ManualResetEventSlim();
             var writes = Task.Run(() =>
             {
                 start.Wait();
-                for (var value = 0; value < 100; value++)
+                TestGameplay.Run(() =>
                 {
-                    runtime.StartCooldown(session, new ItemCooldownKey(false, value), TimeSpan.FromHours(1));
-                    runtime.ApplySpiritPotion(session, 0.1, TimeSpan.FromHours(1));
-                }
+                    for (var value = 0; value < 100; value++)
+                    {
+                        runtime.StartCooldown(session, new ItemCooldownKey(false, value), TimeSpan.FromHours(1));
+                        runtime.ApplySpiritPotion(session, 0.1, TimeSpan.FromHours(1));
+                    }
+                });
             });
             var end = Task.Run(() =>
             {
                 start.Wait();
-                runtime.EndExact(session);
+                TestGameplay.Run(() =>
+                {
+                    runtime.EndExact(session);
+                });
             });
             start.Set();
             await Task.WhenAll(writes, end);
 
-            Assert.Null(runtime.PositionOf(Character));
-            Assert.Equal(0, runtime.SpiritPotionBonusRateOf(Character));
+            TestGameplay.Run(() =>
+            {
+                Assert.Null(runtime.PositionOf(Character));
+                Assert.Equal(0, runtime.SpiritPotionBonusRateOf(Character));
+            });
         }
     }
 

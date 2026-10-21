@@ -7,6 +7,7 @@ using Dfo.Server.Data.World;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Scheduling;
 
@@ -24,7 +25,10 @@ public sealed class OnlineExpiredItemScheduleTests
             && x.ImplementationType?.Name != "ScheduledTaskHostedService").ToArray()) services.Remove(hostedRegistration);
         var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var session = SelectedSessionIdentity.Create(new(41), new(57), new("Game:expiry"), 1, 10011);
-        sessions.Select(session);
+        TestGameplay.Run(() =>
+        {
+            sessions.Select(session);
+        });
         var commands = new RecordingCommands();
         services.AddSingleton<TimeProvider>(clock);
         services.AddSingleton<IDailyResetRuleService>(new SixOClock());
@@ -52,7 +56,10 @@ public sealed class OnlineExpiredItemScheduleTests
             Assert.Equal(41, Assert.Single(commands.BossAccounts));
             Assert.Equal(41, Assert.Single(commands.TauAccounts));
             Assert.Equal(41, Assert.Single(commands.Accounts));
-            sessions.ReleaseExact(session);
+            TestGameplay.Run(provider, () =>
+            {
+                sessions.ReleaseExact(session);
+            });
             clock.Advance(TimeSpan.FromDays(1));
             await Until(() => clock.ActiveTimers > 0);
             Assert.Single(commands.Accounts);

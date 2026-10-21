@@ -1,5 +1,6 @@
 using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.World;
+using Dfo.Server.Testing;
 using static Dfo.Server.Application.Tests.Marriage.MarriageHarness;
 
 namespace Dfo.Server.Application.Tests.Marriage;
@@ -66,33 +67,36 @@ public sealed class MarriageChurchCharacterizationTests
     [Fact]
     public async Task Wedding_appearance_depends_on_session_admission_channel_and_phase()
     {
-        await using var w = await ChurchTownAsync(); var f = w.F; var peer = w.Peer;
-        var ceremony = await ReserveAsync(w);
-        Assert.Null(await Query(f).AppearanceAsync(f.Session, default));
-        var room = (await InTx(f, () => Couple(f).OpenWeddingAsync(ceremony, default)))[0].Church.Room;
-        var bride = (await Query(f).AppearanceAsync(f.Session, default))!;
-        var groom = (await Query(f).AppearanceAsync(peer, default))!;
-        Assert.Equal(peer.CharacterId, bride.Peer); Assert.Equal(f.Session.CharacterId, groom.Peer);
-        Assert.Equal("learning"u8.ToArray(), bride.ApplicantName); Assert.Equal("other"u8.ToArray(), bride.PartnerName);
-        Assert.Equal(bride.ApplicantName, groom.ApplicantName); Assert.Equal(bride.PartnerName, groom.PartnerName);
-        Assert.Equal(room, bride.Room);
-        Assert.Null(await Query(f).AppearanceAsync(f.Session with { ConnectionGeneration = f.Session.ConnectionGeneration + 1 }, default));
-        MoveTo(f, f.Session, 2, 1, channel: 2);
-        Assert.Null(await Query(f).AppearanceAsync(f.Session, default));
-        MoveTo(f, f.Session, 2, 1);
-        var guest = AddCharacter(f, 3, 73, job: 0, gold: 100_000);
-        var key = await InviteAsync(f, peer, guest);
-        Assert.Equal(71u, key);
-        await PaidGuestAsync(f, guest, key, 10_000);
-        Assert.Null(await Query(f).AppearanceAsync(guest, default));
-        Assert.Equal(0, (await InTx(f, () => Venue(f).EnterChurchAsync(guest, key, room.AreaId, 1, default))).Status);
-        Assert.Equal(f.Session.CharacterId, (await Query(f).AppearanceAsync(guest, default))!.Peer);
-        Arrive(f, f.Session, room); Arrive(f, peer, room);
-        w.Clock.Now = room.ReadyUntil;
-        await InTx(f, () => Venue(f).AdvanceAsync(ceremony.Id, default));
-        Assert.NotNull(await Query(f).AppearanceAsync(f.Session, default));
-        Assert.Null(await Query(f).AppearanceAsync(guest, default));
-        MoveTo(f, f.Session, 2, 1);
-        Assert.Null(await Query(f).AppearanceAsync(f.Session, default));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var w = await ChurchTownAsync(); var f = w.F; var peer = w.Peer;
+            var ceremony = await ReserveAsync(w);
+            Assert.Null(await Query(f).AppearanceAsync(f.Session, default));
+            var room = (await InTx(f, () => Couple(f).OpenWeddingAsync(ceremony, default)))[0].Church.Room;
+            var bride = (await Query(f).AppearanceAsync(f.Session, default))!;
+            var groom = (await Query(f).AppearanceAsync(peer, default))!;
+            Assert.Equal(peer.CharacterId, bride.Peer); Assert.Equal(f.Session.CharacterId, groom.Peer);
+            Assert.Equal("learning"u8.ToArray(), bride.ApplicantName); Assert.Equal("other"u8.ToArray(), bride.PartnerName);
+            Assert.Equal(bride.ApplicantName, groom.ApplicantName); Assert.Equal(bride.PartnerName, groom.PartnerName);
+            Assert.Equal(room, bride.Room);
+            Assert.Null(await Query(f).AppearanceAsync(f.Session with { ConnectionGeneration = f.Session.ConnectionGeneration + 1 }, default));
+            MoveTo(f, f.Session, 2, 1, channel: 2);
+            Assert.Null(await Query(f).AppearanceAsync(f.Session, default));
+            MoveTo(f, f.Session, 2, 1);
+            var guest = AddCharacter(f, 3, 73, job: 0, gold: 100_000);
+            var key = await InviteAsync(f, peer, guest);
+            Assert.Equal(71u, key);
+            await PaidGuestAsync(f, guest, key, 10_000);
+            Assert.Null(await Query(f).AppearanceAsync(guest, default));
+            Assert.Equal(0, (await InTx(f, () => Venue(f).EnterChurchAsync(guest, key, room.AreaId, 1, default))).Status);
+            Assert.Equal(f.Session.CharacterId, (await Query(f).AppearanceAsync(guest, default))!.Peer);
+            Arrive(f, f.Session, room); Arrive(f, peer, room);
+            w.Clock.Now = room.ReadyUntil;
+            await InTx(f, () => Venue(f).AdvanceAsync(ceremony.Id, default));
+            Assert.NotNull(await Query(f).AppearanceAsync(f.Session, default));
+            Assert.Null(await Query(f).AppearanceAsync(guest, default));
+            MoveTo(f, f.Session, 2, 1);
+            Assert.Null(await Query(f).AppearanceAsync(f.Session, default));
+        });
     }
 }

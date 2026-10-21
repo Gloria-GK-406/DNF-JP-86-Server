@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -65,12 +66,15 @@ public sealed class DungeonRunClearRewardCardTests
     [Fact]
     public void A_run_opens_with_no_cards()
     {
-        var runs = new DungeonRunDomainService();
+        TestGameplay.Run(() =>
+        {
+            var runs = new DungeonRunDomainService();
 
-        var run = runs.Begin(Character, Tutorial, difficulty: 0);
+            var run = runs.Begin(Character, Tutorial, difficulty: 0);
 
-        Assert.Null(run.ClearRewardCards);
-        Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 0));
+            Assert.Null(run.ClearRewardCards);
+            Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 0));
+        });
     }
 
     /// <summary>
@@ -89,69 +93,75 @@ public sealed class DungeonRunClearRewardCardTests
     [Fact]
     public void Cards_are_fixed_once_and_a_second_fix_leaves_the_first_pair_standing()
     {
-        var runs = new DungeonRunDomainService();
-        var run = runs.Begin(Character, Tutorial, difficulty: 0);
+        TestGameplay.Run(() =>
+        {
+            var runs = new DungeonRunDomainService();
+            var run = runs.Begin(Character, Tutorial, difficulty: 0);
 
-        var first = runs.FixClearRewardCards(
-            Character,
-            Face(ClearRewardCardKind.Free, 11, 12, null, 14),
-            Face(ClearRewardCardKind.Paid, 21, 22, 23, 24),
-            Price);
+            var first = runs.FixClearRewardCards(
+                Character,
+                Face(ClearRewardCardKind.Free, 11, 12, null, 14),
+                Face(ClearRewardCardKind.Paid, 21, 22, 23, 24),
+                Price);
 
-        Assert.NotNull(first);
-        Assert.NotNull(first.ClearRewardCards);
-        Assert.Equal([11, 12, null, 14], ItemIds(first.ClearRewardCards.Free));
-        Assert.Equal([21, 22, 23, 24], ItemIds(first.ClearRewardCards.Paid));
-        Assert.Equal(Price, first.ClearRewardCards.PaidFlipCost);
+            Assert.NotNull(first);
+            Assert.NotNull(first.ClearRewardCards);
+            Assert.Equal([11, 12, null, 14], ItemIds(first.ClearRewardCards.Free));
+            Assert.Equal([21, 22, 23, 24], ItemIds(first.ClearRewardCards.Paid));
+            Assert.Equal(Price, first.ClearRewardCards.PaidFlipCost);
 
-        var second = runs.FixClearRewardCards(
-            Character,
-            Face(ClearRewardCardKind.Free, 91, 92, 93, 94),
-            Face(ClearRewardCardKind.Paid, 81, 82, 83, 84),
-            OtherPrice);
+            var second = runs.FixClearRewardCards(
+                Character,
+                Face(ClearRewardCardKind.Free, 91, 92, 93, 94),
+                Face(ClearRewardCardKind.Paid, 81, 82, 83, 84),
+                OtherPrice);
 
-        Assert.NotNull(second);
-        Assert.NotNull(second.ClearRewardCards);
-        Assert.Equal([11, 12, null, 14], ItemIds(second.ClearRewardCards.Free));
-        Assert.Equal([21, 22, 23, 24], ItemIds(second.ClearRewardCards.Paid));
+            Assert.NotNull(second);
+            Assert.NotNull(second.ClearRewardCards);
+            Assert.Equal([11, 12, null, 14], ItemIds(second.ClearRewardCards.Free));
+            Assert.Equal([21, 22, 23, 24], ItemIds(second.ClearRewardCards.Paid));
 
-        // The second price is dropped with the second pair. The two differ on purpose: equal
-        // figures could not tell a kept price from a replaced one.
-        Assert.NotEqual(Price, OtherPrice);
-        Assert.Equal(Price, second.ClearRewardCards.PaidFlipCost);
+            // The second price is dropped with the second pair. The two differ on purpose: equal
+            // figures could not tell a kept price from a replaced one.
+            Assert.NotEqual(Price, OtherPrice);
+            Assert.Equal(Price, second.ClearRewardCards.PaidFlipCost);
 
-        // And what the run holds afterwards is the first pair too, not only what was answered.
-        var found = runs.Find(Character);
-        Assert.NotNull(found);
-        Assert.NotNull(found.ClearRewardCards);
-        Assert.Equal([11, 12, null, 14], ItemIds(found.ClearRewardCards.Free));
-        Assert.Equal(Price, found.ClearRewardCards.PaidFlipCost);
+            // And what the run holds afterwards is the first pair too, not only what was answered.
+            var found = runs.Find(Character);
+            Assert.NotNull(found);
+            Assert.NotNull(found.ClearRewardCards);
+            Assert.Equal([11, 12, null, 14], ItemIds(found.ClearRewardCards.Free));
+            Assert.Equal(Price, found.ClearRewardCards.PaidFlipCost);
+        });
     }
 
     /// <summary>A position is taken once; a second flip of it comes away empty-handed.</summary>
     [Fact]
     public void A_position_is_claimed_once()
     {
-        var runs = new DungeonRunDomainService();
-        runs.Begin(Character, Tutorial, difficulty: 0);
-        runs.FixClearRewardCards(
-            Character,
-            Face(ClearRewardCardKind.Free, 11, 12, 13, 14),
-            Face(ClearRewardCardKind.Paid, 21, 22, 23, 24),
-            Price);
+        TestGameplay.Run(() =>
+        {
+            var runs = new DungeonRunDomainService();
+            runs.Begin(Character, Tutorial, difficulty: 0);
+            runs.FixClearRewardCards(
+                Character,
+                Face(ClearRewardCardKind.Free, 11, 12, 13, 14),
+                Face(ClearRewardCardKind.Paid, 21, 22, 23, 24),
+                Price);
 
-        var claimed = runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 1);
+            var claimed = runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 1);
 
-        Assert.NotNull(claimed);
-        Assert.Equal(1, claimed.Index);
-        Assert.Equal(12, claimed.Item?.ItemId);
-        Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 1));
+            Assert.NotNull(claimed);
+            Assert.Equal(1, claimed.Index);
+            Assert.Equal(12, claimed.Item?.ItemId);
+            Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 1));
 
-        var found = runs.Find(Character);
-        Assert.NotNull(found);
-        Assert.NotNull(found.ClearRewardCards);
-        Assert.True(found.ClearRewardCards.IsClaimed(ClearRewardCardKind.Free, 1));
-        Assert.False(found.ClearRewardCards.IsClaimed(ClearRewardCardKind.Free, 2));
+            var found = runs.Find(Character);
+            Assert.NotNull(found);
+            Assert.NotNull(found.ClearRewardCards);
+            Assert.True(found.ClearRewardCards.IsClaimed(ClearRewardCardKind.Free, 1));
+            Assert.False(found.ClearRewardCards.IsClaimed(ClearRewardCardKind.Free, 2));
+        });
     }
 
     /// <summary>
@@ -165,21 +175,24 @@ public sealed class DungeonRunClearRewardCardTests
     [Fact]
     public void The_two_faces_are_claimed_independently()
     {
-        var runs = new DungeonRunDomainService();
-        runs.Begin(Character, Tutorial, difficulty: 0);
-        runs.FixClearRewardCards(
-            Character,
-            Face(ClearRewardCardKind.Free, 11, 12, 13, 14),
-            Face(ClearRewardCardKind.Paid, 21, 22, 23, 24),
-            Price);
+        TestGameplay.Run(() =>
+        {
+            var runs = new DungeonRunDomainService();
+            runs.Begin(Character, Tutorial, difficulty: 0);
+            runs.FixClearRewardCards(
+                Character,
+                Face(ClearRewardCardKind.Free, 11, 12, 13, 14),
+                Face(ClearRewardCardKind.Paid, 21, 22, 23, 24),
+                Price);
 
-        var free = runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 0);
-        var paid = runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Paid, 0);
+            var free = runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 0);
+            var paid = runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Paid, 0);
 
-        Assert.Equal(11, free?.Item?.ItemId);
-        Assert.Equal(21, paid?.Item?.ItemId);
-        Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 0));
-        Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Paid, 0));
+            Assert.Equal(11, free?.Item?.ItemId);
+            Assert.Equal(21, paid?.Item?.ItemId);
+            Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 0));
+            Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Paid, 0));
+        });
     }
 
     /// <summary>
@@ -193,20 +206,23 @@ public sealed class DungeonRunClearRewardCardTests
     [Fact]
     public void A_position_that_holds_nothing_is_still_claimed_once()
     {
-        var runs = new DungeonRunDomainService();
-        runs.Begin(Character, Tutorial, difficulty: 0);
-        runs.FixClearRewardCards(
-            Character,
-            Face(ClearRewardCardKind.Free, null, null, null, null),
-            Face(ClearRewardCardKind.Paid, 21, 22, 23, 24),
-            Price);
+        TestGameplay.Run(() =>
+        {
+            var runs = new DungeonRunDomainService();
+            runs.Begin(Character, Tutorial, difficulty: 0);
+            runs.FixClearRewardCards(
+                Character,
+                Face(ClearRewardCardKind.Free, null, null, null, null),
+                Face(ClearRewardCardKind.Paid, 21, 22, 23, 24),
+                Price);
 
-        var claimed = runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 2);
+            var claimed = runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 2);
 
-        Assert.NotNull(claimed);
-        Assert.True(claimed.IsEmpty);
-        Assert.Equal(2, claimed.Index);
-        Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 2));
+            Assert.NotNull(claimed);
+            Assert.True(claimed.IsEmpty);
+            Assert.Equal(2, claimed.Index);
+            Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 2));
+        });
     }
 
     /// <summary>A position the face does not have is refused, and refusing it records nothing.</summary>
@@ -216,36 +232,42 @@ public sealed class DungeonRunClearRewardCardTests
     [InlineData(99)]
     public void A_position_the_face_does_not_have_is_refused(int index)
     {
-        var runs = new DungeonRunDomainService();
-        runs.Begin(Character, Tutorial, difficulty: 0);
-        runs.FixClearRewardCards(
-            Character,
-            Face(ClearRewardCardKind.Free, 11, 12, 13, 14),
-            Face(ClearRewardCardKind.Paid, 21, 22, 23, 24),
-            Price);
+        TestGameplay.Run(() =>
+        {
+            var runs = new DungeonRunDomainService();
+            runs.Begin(Character, Tutorial, difficulty: 0);
+            runs.FixClearRewardCards(
+                Character,
+                Face(ClearRewardCardKind.Free, 11, 12, 13, 14),
+                Face(ClearRewardCardKind.Paid, 21, 22, 23, 24),
+                Price);
 
-        Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, index));
+            Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, index));
 
-        var found = runs.Find(Character);
-        Assert.NotNull(found);
-        Assert.NotNull(found.ClearRewardCards);
-        Assert.Empty(found.ClearRewardCards.Claimed);
-        Assert.Null(found.ClearRewardCards.SlotAt(ClearRewardCardKind.Free, index));
+            var found = runs.Find(Character);
+            Assert.NotNull(found);
+            Assert.NotNull(found.ClearRewardCards);
+            Assert.Empty(found.ClearRewardCards.Claimed);
+            Assert.Null(found.ClearRewardCards.SlotAt(ClearRewardCardKind.Free, index));
+        });
     }
 
     /// <summary>A character in no run has no cards to fix and none to claim.</summary>
     [Fact]
     public void Nothing_is_fixed_or_claimed_for_a_character_in_no_run()
     {
-        var runs = new DungeonRunDomainService();
+        TestGameplay.Run(() =>
+        {
+            var runs = new DungeonRunDomainService();
 
-        Assert.Null(
-            runs.FixClearRewardCards(
-                Character,
-                Face(ClearRewardCardKind.Free, 11, 12, 13, 14),
-                Face(ClearRewardCardKind.Paid, 21, 22, 23, 24),
-                Price));
-        Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 0));
+            Assert.Null(
+                runs.FixClearRewardCards(
+                    Character,
+                    Face(ClearRewardCardKind.Free, 11, 12, 13, 14),
+                    Face(ClearRewardCardKind.Paid, 21, 22, 23, 24),
+                    Price));
+            Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 0));
+        });
     }
 
     /// <summary>
@@ -259,21 +281,24 @@ public sealed class DungeonRunClearRewardCardTests
     [Fact]
     public void Ending_the_run_takes_its_cards_with_it()
     {
-        var runs = new DungeonRunDomainService();
-        runs.Begin(Character, Tutorial, difficulty: 0);
-        runs.FixClearRewardCards(
-            Character,
-            Face(ClearRewardCardKind.Free, 11, 12, 13, 14),
-            Face(ClearRewardCardKind.Paid, 21, 22, 23, 24),
-            Price);
+        TestGameplay.Run(() =>
+        {
+            var runs = new DungeonRunDomainService();
+            runs.Begin(Character, Tutorial, difficulty: 0);
+            runs.FixClearRewardCards(
+                Character,
+                Face(ClearRewardCardKind.Free, 11, 12, 13, 14),
+                Face(ClearRewardCardKind.Paid, 21, 22, 23, 24),
+                Price);
 
-        Assert.True(runs.End(Character));
+            Assert.True(runs.End(Character));
 
-        Assert.Null(runs.Find(Character));
-        Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 0));
+            Assert.Null(runs.Find(Character));
+            Assert.Null(runs.TryClaimClearRewardCard(Character, ClearRewardCardKind.Free, 0));
 
-        // And the next run in the same dungeon opens with none, rather than inheriting them.
-        Assert.Null(runs.Begin(Character, Tutorial, difficulty: 0).ClearRewardCards);
+            // And the next run in the same dungeon opens with none, rather than inheriting them.
+            Assert.Null(runs.Begin(Character, Tutorial, difficulty: 0).ClearRewardCards);
+        });
     }
 
     /// <summary>Settling does not by itself fix any cards; the settlement asks for them.</summary>
@@ -285,14 +310,17 @@ public sealed class DungeonRunClearRewardCardTests
     [Fact]
     public void Settling_a_run_does_not_by_itself_fix_its_cards()
     {
-        var runs = new DungeonRunDomainService();
-        var run = runs.Begin(Character, Tutorial, difficulty: 0);
-        Assert.NotNull(runs.TryOpenClear(Character, run.RunId, run.RoomVersion));
+        TestGameplay.Run(() =>
+        {
+            var runs = new DungeonRunDomainService();
+            var run = runs.Begin(Character, Tutorial, difficulty: 0);
+            Assert.NotNull(runs.TryOpenClear(Character, run.RunId, run.RoomVersion));
 
-        var settled = runs.TrySettle(Character);
+            var settled = runs.TrySettle(Character);
 
-        Assert.NotNull(settled);
-        Assert.True(settled.IsSettled);
-        Assert.Null(settled.ClearRewardCards);
+            Assert.NotNull(settled);
+            Assert.True(settled.IsSettled);
+            Assert.Null(settled.ClearRewardCards);
+        });
     }
 }

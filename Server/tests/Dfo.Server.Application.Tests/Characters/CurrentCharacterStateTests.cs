@@ -17,6 +17,7 @@ using Dfo.Server.Protocol.Game.TutorialLevelUp;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
@@ -28,115 +29,124 @@ public sealed class CurrentCharacterStateTests
     [SkippableFact]
     public async Task Same_character_reads_transaction_changes_rollback_commit_and_reload()
     {
-        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
-        await using var fixture = new Fixture();
-        await fixture.SeedAsync();
-        var character = fixture.Character;
-        var baseline = await ReadAsync(character);
-        var baselineStat = Assert.IsType<CharacterBaseStats>(baseline.Stats);
-        Assert.Equal(16, baseline.Progress!.Level);
-        Assert.Same(fixture.Stats.GetStats(new CharacterCareer(0, 1), 16), baselineStat);
-        Assert.Equal(2, baseline.Learned!.Count);
-        Assert.Equal(2, Assert.Single(baseline.Learned[0].Skills).Level);
-        Assert.True(baseline.Ledger!.IsComplete);
-
-        await using (var rollback = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await fixture.ChangeAsync();
-            await AssertChangedAsync(fixture, character, baselineStat);
-        }
-        var rolledBack = await ReadAsync(character);
-        Assert.Same(baselineStat, rolledBack.Stats);
-        Assert.Equal(baseline.Progress, rolledBack.Progress);
-        Assert.Equal(baseline.Ledger.For(new(0)).Sp, rolledBack.Ledger!.For(new(0)).Sp);
-        Assert.Equal(2, Assert.Single(rolledBack.Learned![0].Skills).Level);
-        Assert.True(rolledBack.Ledger.IsComplete);
-        Assert.Equal(1, (await fixture.Entry.LoadAsync(Account, Id, default)).Public.Extras.SkillTreeIndex);
+            Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+            await using var fixture = new Fixture();
+            await fixture.SeedAsync();
+            var character = fixture.Character;
+            var baseline = await ReadAsync(character);
+            var baselineStat = Assert.IsType<CharacterBaseStats>(baseline.Stats);
+            Assert.Equal(16, baseline.Progress!.Level);
+            Assert.Same(fixture.Stats.GetStats(new CharacterCareer(0, 1), 16), baselineStat);
+            Assert.Equal(2, baseline.Learned!.Count);
+            Assert.Equal(2, Assert.Single(baseline.Learned[0].Skills).Level);
+            Assert.True(baseline.Ledger!.IsComplete);
 
-        await using (var committed = fixture.Scope.Begin())
-        {
-            await fixture.ChangeAsync();
+            await using (var rollback = fixture.Scope.Begin())
+            {
+                await fixture.ChangeAsync();
+                await AssertChangedAsync(fixture, character, baselineStat);
+            }
+            var rolledBack = await ReadAsync(character);
+            Assert.Same(baselineStat, rolledBack.Stats);
+            Assert.Equal(baseline.Progress, rolledBack.Progress);
+            Assert.Equal(baseline.Ledger.For(new(0)).Sp, rolledBack.Ledger!.For(new(0)).Sp);
+            Assert.Equal(2, Assert.Single(rolledBack.Learned![0].Skills).Level);
+            Assert.True(rolledBack.Ledger.IsComplete);
+            Assert.Equal(1, (await fixture.Entry.LoadAsync(Account, Id, default)).Public.Extras.SkillTreeIndex);
+
+            await using (var committed = fixture.Scope.Begin())
+            {
+                await fixture.ChangeAsync();
+                await AssertChangedAsync(fixture, character, baselineStat);
+                await committed.CommitAsync(default);
+            }
             await AssertChangedAsync(fixture, character, baselineStat);
-            await committed.CommitAsync(default);
-        }
-        await AssertChangedAsync(fixture, character, baselineStat);
-        await using var reloaded = new Fixture(fixture.Path);
-        var afterReload = await ReadAsync(reloaded.Character);
-        var afterCommit = await ReadAsync(character);
-        Assert.Equal(afterCommit.Stats, afterReload.Stats);
-        Assert.Equal(afterCommit.Progress, afterReload.Progress);
-        Assert.Equal(afterCommit.Ledger!.For(new(0)).Sp, afterReload.Ledger!.For(new(0)).Sp);
-        Assert.Equal(afterCommit.Ledger.For(new(1)).Tp, afterReload.Ledger.For(new(1)).Tp);
-        Assert.Equal([999999], afterReload.Ledger.MissingSkillIds);
-        Assert.Equal(70002, afterReload.Ledger.For(new(0)).Tp);
-        Assert.Equal(65535, (await reloaded.Character.RemainingSkillPointsAsync(default))!.Page0Tp);
-        var stored = await reloaded.Services.GetRequiredService<ICharacterEntryStateRepository>().LoadAsync(Account, Id, default);
-        Assert.Equal(17, stored.Profile.DerivedStats.HpMaximum);
-        Assert.Equal(4, stored.Profile.DerivedStats.Progress1);
-        Assert.Equal(73, stored.Profile.DerivedStats.CurrentHpMpPercent);
-        Assert.Equal(1, stored.Profile.SkillTreeIndex);
-        Assert.Equal([9, 8], stored.Skill.Skills.Single(row => row.PageIndex == 0 && row.Slot == 7).ExtraValues);
+            await using var reloaded = new Fixture(fixture.Path);
+            var afterReload = await ReadAsync(reloaded.Character);
+            var afterCommit = await ReadAsync(character);
+            Assert.Equal(afterCommit.Stats, afterReload.Stats);
+            Assert.Equal(afterCommit.Progress, afterReload.Progress);
+            Assert.Equal(afterCommit.Ledger!.For(new(0)).Sp, afterReload.Ledger!.For(new(0)).Sp);
+            Assert.Equal(afterCommit.Ledger.For(new(1)).Tp, afterReload.Ledger.For(new(1)).Tp);
+            Assert.Equal([999999], afterReload.Ledger.MissingSkillIds);
+            Assert.Equal(70002, afterReload.Ledger.For(new(0)).Tp);
+            Assert.Equal(65535, (await reloaded.Character.RemainingSkillPointsAsync(default))!.Page0Tp);
+            var stored = await reloaded.Services.GetRequiredService<ICharacterEntryStateRepository>().LoadAsync(Account, Id, default);
+            Assert.Equal(17, stored.Profile.DerivedStats.HpMaximum);
+            Assert.Equal(4, stored.Profile.DerivedStats.Progress1);
+            Assert.Equal(73, stored.Profile.DerivedStats.CurrentHpMpPercent);
+            Assert.Equal(1, stored.Profile.SkillTreeIndex);
+            Assert.Equal([9, 8], stored.Skill.Skills.Single(row => row.PageIndex == 0 && row.Slot == 7).ExtraValues);
+        });
     }
 
     [SkippableFact]
     public async Task Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration()
     {
-        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
-        await using var fixture = new Fixture();
-        await fixture.SeedAsync();
-        var entry = await fixture.Entry.LoadAsync(Account, Id, default);
-        Assert.Equal((await fixture.Character.BaseStatsAsync(default))!.HpMax, entry.Public.DerivedStats.HpMaximum);
-        Assert.NotEqual(17, entry.Public.DerivedStats.HpMaximum);
-        Assert.Equal(4, entry.Public.DerivedStats.Progress1);
-        Assert.Equal(73, entry.Public.DerivedStats.CurrentHpMpPercent);
-        var stale = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(Account, Id.Value, 0);
-        var equipment = new InventoryContainerState(InventoryContainerType.Equipment, 24,
-            [new InventoryItemState(new ItemIdentity(456), 2, StackableItemCore.Create(2, 9001, 1))]);
-        stale = stale with
+        await TestGameplay.RunAsync(async () =>
         {
-            CharacterEntry = entry,
-            CharacterInventory = stale.CharacterInventory with { Containers = [equipment] },
-        };
-        await using var transaction = fixture.Scope.Begin();
-        await fixture.ChangeAsync();
-        var refreshed = await fixture.Services.GetRequiredService<ICharacterStateProjectionDomainService>()
-            .RefreshAsync(stale, default);
-        Assert.Equal(51, refreshed.Character.Progression.Level);
-        Assert.Equal(fixture.ExpFor(51), refreshed.Character.Progression.Experience);
-        Assert.Equal(0x12, refreshed.Character.Identity.GrowType);
-        Assert.Equal((long)fixture.ExpFor(51), refreshed.CharacterEntry.Public.Extras.CharacterExperience);
-        Assert.Equal((await fixture.Character.BaseStatsAsync(default))!.HpMax, refreshed.CharacterEntry.Public.DerivedStats.HpMaximum);
-        Assert.Equal(4, refreshed.CharacterEntry.Public.DerivedStats.Progress1);
-        Assert.Equal(73, refreshed.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent);
-        Assert.Same(stale.CharacterEntry.Public.Identity, refreshed.CharacterEntry.Public.Identity);
-        Assert.Same(stale.CharacterEntry.Settings, refreshed.CharacterEntry.Settings);
-        Assert.Same(stale.CharacterInventory, refreshed.CharacterInventory);
-        Assert.Same(equipment, Assert.Single(refreshed.CharacterInventory.Containers));
-        Assert.Same(stale.World, refreshed.World);
-        Assert.Equal(1, refreshed.CharacterEntry.Public.Extras.SkillTreeIndex);
-        var page = refreshed.CharacterEntry.Skills.Pages.Single(page => page.PageIndex == 0);
-        var skill = page.Skills.Single(skill => skill.SkillId == 1);
-        Assert.Equal(7, skill.Slot);
-        Assert.Equal(255, skill.Level);
-        Assert.Equal([9, 8], skill.ExtraValues);
-        Assert.Equal(0, refreshed.CharacterEntry.Skills.ProtocolMirror!.Page0Sp);
-        Assert.Equal(65535, refreshed.CharacterEntry.Skills.ProtocolMirror.Page1Tp);
-        Assert.Equal(16u, entry.Progression.DailyChallengeCharacterLevel);
+            Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+            await using var fixture = new Fixture();
+            await fixture.SeedAsync();
+            var entry = await fixture.Entry.LoadAsync(Account, Id, default);
+            Assert.Equal((await fixture.Character.BaseStatsAsync(default))!.HpMax, entry.Public.DerivedStats.HpMaximum);
+            Assert.NotEqual(17, entry.Public.DerivedStats.HpMaximum);
+            Assert.Equal(4, entry.Public.DerivedStats.Progress1);
+            Assert.Equal(73, entry.Public.DerivedStats.CurrentHpMpPercent);
+            var stale = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(Account, Id.Value, 0);
+            var equipment = new InventoryContainerState(InventoryContainerType.Equipment, 24,
+                [new InventoryItemState(new ItemIdentity(456), 2, StackableItemCore.Create(2, 9001, 1))]);
+            stale = stale with
+            {
+                CharacterEntry = entry,
+                CharacterInventory = stale.CharacterInventory with { Containers = [equipment] },
+            };
+            await using var transaction = fixture.Scope.Begin();
+            await fixture.ChangeAsync();
+            var refreshed = await fixture.Services.GetRequiredService<ICharacterStateProjectionDomainService>()
+                .RefreshAsync(stale, default);
+            Assert.Equal(51, refreshed.Character.Progression.Level);
+            Assert.Equal(fixture.ExpFor(51), refreshed.Character.Progression.Experience);
+            Assert.Equal(0x12, refreshed.Character.Identity.GrowType);
+            Assert.Equal((long)fixture.ExpFor(51), refreshed.CharacterEntry.Public.Extras.CharacterExperience);
+            Assert.Equal((await fixture.Character.BaseStatsAsync(default))!.HpMax, refreshed.CharacterEntry.Public.DerivedStats.HpMaximum);
+            Assert.Equal(4, refreshed.CharacterEntry.Public.DerivedStats.Progress1);
+            Assert.Equal(73, refreshed.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent);
+            Assert.Same(stale.CharacterEntry.Public.Identity, refreshed.CharacterEntry.Public.Identity);
+            Assert.Same(stale.CharacterEntry.Settings, refreshed.CharacterEntry.Settings);
+            Assert.Same(stale.CharacterInventory, refreshed.CharacterInventory);
+            Assert.Same(equipment, Assert.Single(refreshed.CharacterInventory.Containers));
+            Assert.Same(stale.World, refreshed.World);
+            Assert.Equal(1, refreshed.CharacterEntry.Public.Extras.SkillTreeIndex);
+            var page = refreshed.CharacterEntry.Skills.Pages.Single(page => page.PageIndex == 0);
+            var skill = page.Skills.Single(skill => skill.SkillId == 1);
+            Assert.Equal(7, skill.Slot);
+            Assert.Equal(255, skill.Level);
+            Assert.Equal([9, 8], skill.ExtraValues);
+            Assert.Equal(0, refreshed.CharacterEntry.Skills.ProtocolMirror!.Page0Sp);
+            Assert.Equal(65535, refreshed.CharacterEntry.Skills.ProtocolMirror.Page1Tp);
+            Assert.Equal(16u, entry.Progression.DailyChallengeCharacterLevel);
+        });
     }
 
     [SkippableFact]
     public async Task Tutorial_grant_checks_the_actual_row_inside_the_command_transaction()
     {
-        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
-        await using var fixture = new Fixture();
-        await fixture.SeedAsync();
-        var handler = new GrantTutorialLevelCommandHandler(
-            fixture.Services.GetRequiredService<ICharacterDomainService>());
-        await using var transaction = fixture.Scope.Begin();
-        await fixture.SqlAsync($"UPDATE characters SET level=5,exp={fixture.ExpFor(5)} WHERE character_id=71;");
-        var result = await handler.HandleAsync(null!, new GrantTutorialLevelCommand(Id), default);
-        Assert.Equal(TutorialLevelUpStatus.AlreadyPast, result.Status);
-        Assert.Equal(new CharacterProgressionState(5, fixture.ExpFor(5)), await fixture.Character.ProgressAsync(default));
+        await TestGameplay.RunAsync(async () =>
+        {
+            Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+            await using var fixture = new Fixture();
+            await fixture.SeedAsync();
+            var handler = new GrantTutorialLevelCommandHandler(
+                fixture.Services.GetRequiredService<ICharacterDomainService>());
+            await using var transaction = fixture.Scope.Begin();
+            await fixture.SqlAsync($"UPDATE characters SET level=5,exp={fixture.ExpFor(5)} WHERE character_id=71;");
+            var result = await handler.HandleAsync(null!, new GrantTutorialLevelCommand(Id), default);
+            Assert.Equal(TutorialLevelUpStatus.AlreadyPast, result.Status);
+            Assert.Equal(new CharacterProgressionState(5, fixture.ExpFor(5)), await fixture.Character.ProgressAsync(default));
+        });
     }
 
     private static async Task AssertChangedAsync(Fixture fixture, ICharacter character, CharacterBaseStats baseline)

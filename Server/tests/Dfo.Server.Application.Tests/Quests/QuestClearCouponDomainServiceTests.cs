@@ -11,6 +11,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Quests;
 
@@ -22,38 +23,44 @@ public sealed class QuestClearCouponDomainServiceTests
     [Fact]
     public async Task Coupon_clears_carried_and_uncarried_removes_tracking_holes_and_updates_packed_dependents_without_rewards()
     {
-        await using var f = Fixture(); await f.SeedAsync(); SeedQuests(f);
-        var result = await Use(f);
-        Assert.Equal([101, 102], result.CompletedQuestIds);
-        Assert.Equal(4, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
-        Assert.Equal(2, f.Scalar("SELECT flag_value FROM character_invisible_flags WHERE character_id=71 AND slot_index=103"));
-        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
-        Assert.Equal((0x05040303 & ~0x1FF) | 1, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71 AND quest_id=2003"));
-        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=71"));
-        Assert.Equal(9, f.Scalar("SELECT slot_index FROM character_quest_notify_selections WHERE character_id=71"));
-        Assert.Equal((int)f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(85), f.Scalar("SELECT exp FROM characters WHERE character_id=71"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = Fixture(); await f.SeedAsync(); SeedQuests(f);
+            var result = await Use(f);
+            Assert.Equal([101, 102], result.CompletedQuestIds);
+            Assert.Equal(4, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+            Assert.Equal(2, f.Scalar("SELECT flag_value FROM character_invisible_flags WHERE character_id=71 AND slot_index=103"));
+            Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
+            Assert.Equal((0x05040303 & ~0x1FF) | 1, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71 AND quest_id=2003"));
+            Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=71"));
+            Assert.Equal(9, f.Scalar("SELECT slot_index FROM character_quest_notify_selections WHERE character_id=71"));
+            Assert.Equal((int)f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(85), f.Scalar("SELECT exp FROM characters WHERE character_id=71"));
+        });
     }
 
     [Fact]
     public async Task Clearance_plan_is_task_only_and_readonly_until_the_coupon_settles()
     {
-        await using var f = Fixture();
-        await f.SeedAsync();
-        SeedQuests(f);
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var state = await f.Services.GetRequiredService<IConsumableStateDomainService>().QuestsAsync(new(1), new(71), default);
-            var plan = await f.Services.GetRequiredService<IQuestClearancePlanRuleService>().BuildAsync(state, [101, 102, 103], default);
-            Assert.Equal(new[] { 101, 102 }, plan.Completed.ToArray());
-            Assert.All(plan.Effects, x => Assert.True(x is SetCarriedQuestEffect or RemoveTrackedQuestEffect or SetClearedQuestEffect));
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
-        Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
-        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71"));
-        Assert.Equal([101, 102], (await Use(f)).CompletedQuestIds);
-        await Assert.ThrowsAsync<OpeningRejectedException>(() => Use(f));
-        Assert.Equal(4, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+            await using var f = Fixture();
+            await f.SeedAsync();
+            SeedQuests(f);
+            await using (var tx = f.Scope.Begin())
+            {
+                var state = await f.Services.GetRequiredService<IConsumableStateDomainService>().QuestsAsync(new(1), new(71), default);
+                var plan = await f.Services.GetRequiredService<IQuestClearancePlanRuleService>().BuildAsync(state, [101, 102, 103], default);
+                Assert.Equal(new[] { 101, 102 }, plan.Completed.ToArray());
+                Assert.All(plan.Effects, x => Assert.True(x is SetCarriedQuestEffect or RemoveTrackedQuestEffect or SetClearedQuestEffect));
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+            Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
+            Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71"));
+            Assert.Equal([101, 102], (await Use(f)).CompletedQuestIds);
+            await Assert.ThrowsAsync<OpeningRejectedException>(() => Use(f));
+            Assert.Equal(4, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+        });
     }
 
     [Theory]
@@ -61,16 +68,19 @@ public sealed class QuestClearCouponDomainServiceTests
     [InlineData(true)]
     public async Task Coupon_failure_restores_cost_all_quest_sections_and_dependent_progress(bool failCost)
     {
-        await using var f = Fixture(); await f.SeedAsync(); SeedQuests(f);
-        f.Sql(failCost
-            ? "CREATE TRIGGER fail_cost BEFORE UPDATE OF bonus_sp ON characters BEGIN SELECT RAISE(ABORT,'cost'); END"
-            : "CREATE TRIGGER fail_clear BEFORE INSERT ON character_invisible_flags BEGIN SELECT RAISE(ABORT,'clear'); END");
-        await Assert.ThrowsAsync<SqliteException>(()=>Use(f));
-        Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
-        Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
-        Assert.Equal(0x05040303, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71 AND quest_id=2003"));
-        Assert.Equal(3, f.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=71"));
-        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = Fixture(); await f.SeedAsync(); SeedQuests(f);
+            f.Sql(failCost
+                ? "CREATE TRIGGER fail_cost BEFORE UPDATE OF bonus_sp ON characters BEGIN SELECT RAISE(ABORT,'cost'); END"
+                : "CREATE TRIGGER fail_clear BEFORE INSERT ON character_invisible_flags BEGIN SELECT RAISE(ABORT,'clear'); END");
+            await Assert.ThrowsAsync<SqliteException>(()=>Use(f));
+            Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+            Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
+            Assert.Equal(0x05040303, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71 AND quest_id=2003"));
+            Assert.Equal(3, f.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=71"));
+            Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71"));
+        });
     }
 
     [Theory]
@@ -78,19 +88,25 @@ public sealed class QuestClearCouponDomainServiceTests
     [InlineData(true)]
     public async Task No_eligible_or_already_cleared_selection_cannot_consume(bool already)
     {
-        await using var f = Fixture(already ? [101] : []); await f.SeedAsync();
-        if (already) f.Sql("INSERT INTO character_invisible_flags VALUES(71,101,2)");
-        await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f));
-        Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = Fixture(already ? [101] : []); await f.SeedAsync();
+            if (already) f.Sql("INSERT INTO character_invisible_flags VALUES(71,101,2)");
+            await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f));
+            Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+        });
     }
 
     [Fact]
     public async Task Another_item_does_not_change_quest_state_or_consume()
     {
-        await using var f = Fixture(sourceId: 8474); await f.SeedAsync(); SeedQuests(f);
-        await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f));
-        Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
-        Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = Fixture(sourceId: 8474); await f.SeedAsync(); SeedQuests(f);
+            await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f));
+            Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+            Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
+        });
     }
 
     private static async Task<QuestClearCouponResult> Use(LearningFixture f)

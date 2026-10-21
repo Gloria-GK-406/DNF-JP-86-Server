@@ -36,23 +36,26 @@ public sealed class RegistryExistenceTests
     [Fact]
     public async Task Every_view_answers_explicitly_when_nothing_has_been_written()
     {
-        using var provider = BuildProductionGraph();
-        var service = provider.GetRequiredService<ISessionAdjacentEntryDomainService>();
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var provider = BuildProductionGraph();
+            var service = provider.GetRequiredService<ISessionAdjacentEntryDomainService>();
 
-        var result = await service.LoadAsync(
-            new SessionAdjacentSubject(
-                new CharacterId(1),
-                new AccountId(1),
-                StubChannelEntryPolicy.FreeDuelChannel,
-                TownId: 1,
-                AreaId: 0),
-            CancellationToken.None);
+            var result = await service.LoadAsync(
+                new SessionAdjacentSubject(
+                    new CharacterId(1),
+                    new AccountId(1),
+                    StubChannelEntryPolicy.FreeDuelChannel,
+                    TownId: 1,
+                    AreaId: 0),
+                CancellationToken.None);
 
-        Assert.Empty(result.TownPresence.Others);
-        Assert.False(result.ExpertStore.OwnsOpenStore);
-        Assert.NotNull(result.PvpLobby);
-        Assert.Empty(result.PvpLobby!.Participants);
-        Assert.Empty(result.PvpLobby.Rooms);
+            Assert.Empty(result.TownPresence.Others);
+            Assert.False(result.ExpertStore.OwnsOpenStore);
+            Assert.NotNull(result.PvpLobby);
+            Assert.Empty(result.PvpLobby!.Participants);
+            Assert.Empty(result.PvpLobby.Rooms);
+        });
     }
 
     /// <remarks>
@@ -63,30 +66,33 @@ public sealed class RegistryExistenceTests
     [Fact]
     public async Task A_registry_written_to_is_the_same_one_the_view_consults()
     {
-        using var provider = BuildProductionGraph();
-        var session = provider.GetRequiredService<ISelectedSessionDomainService>().InWorld(
-            provider.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>(),
-            new AccountId(2),
-            new CharacterId(2),
-            "Game:2",
-            listenerPort: 10011);
-        provider.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(
-            session.CharacterId,
-            session.TownAreaLease(),
-            new TownAreaKey(StubChannelEntryPolicy.GeneralChannel.ChannelId, 1, 0),
-            new CharacterPositionState(1, 0, 0, 0, 0),
-            true));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var provider = BuildProductionGraph();
+            var session = provider.GetRequiredService<ISelectedSessionDomainService>().InWorld(
+                provider.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>(),
+                new AccountId(2),
+                new CharacterId(2),
+                "Game:2",
+                listenerPort: 10011);
+            provider.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(
+                session.CharacterId,
+                session.TownAreaLease(),
+                new TownAreaKey(StubChannelEntryPolicy.GeneralChannel.ChannelId, 1, 0),
+                new CharacterPositionState(1, 0, 0, 0, 0),
+                true));
 
-        var result = await provider.GetRequiredService<ISessionAdjacentEntryDomainService>().LoadAsync(
-            new SessionAdjacentSubject(
-                new CharacterId(1),
-                new AccountId(1),
-                StubChannelEntryPolicy.GeneralChannel,
-                TownId: 1,
-                AreaId: 0),
-            CancellationToken.None);
+            var result = await provider.GetRequiredService<ISessionAdjacentEntryDomainService>().LoadAsync(
+                new SessionAdjacentSubject(
+                    new CharacterId(1),
+                    new AccountId(1),
+                    StubChannelEntryPolicy.GeneralChannel,
+                    TownId: 1,
+                    AreaId: 0),
+                CancellationToken.None);
 
-        Assert.Equal([2], result.TownPresence.Others.Select(other => other.CharacterId.Value));
+            Assert.Equal([2], result.TownPresence.Others.Select(other => other.CharacterId.Value));
+        });
     }
 
     private static ServiceProvider BuildProductionGraph()

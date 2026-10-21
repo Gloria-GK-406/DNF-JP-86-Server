@@ -48,23 +48,26 @@ public sealed class DeleteItemCodecTests
     [Fact]
     public async Task Discard_sends_the_corrected_quest_snapshot_after_its_success_answer()
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(2), new("discard-quest"), 2, 10011);
-        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
-        Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
-        var receipt = new ItemDiscardReceipt(
-            session, new BusinessSlot(BusinessInventorySpace.Consumable, 0), 5000, 1,
-            null, DateTimeOffset.UnixEpoch);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = SelectedSessionIdentity.Create(new(1), new(2), new("discard-quest"), 2, 10011);
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+            Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
+            var receipt = new ItemDiscardReceipt(
+                session, new BusinessSlot(BusinessInventorySpace.Consumable, 0), 5000, 1,
+                null, DateTimeOffset.UnixEpoch);
 
-        var messages = await new ItemDiscardCompletedHandler(
-            sessions, new SlotProjection()).ComposeAsync(
-            new NotificationRecipient(session.CharacterId, session.ConnectionId),
-            new ItemDiscardCompleted(receipt,
-                new QuestProgressSnapshot([new CarriedQuest(0, 2001, 1)])),
-            CancellationToken.None);
+            var messages = await new ItemDiscardCompletedHandler(
+                sessions, new SlotProjection()).ComposeAsync(
+                new NotificationRecipient(session.CharacterId, session.ConnectionId),
+                new ItemDiscardCompleted(receipt,
+                    new QuestProgressSnapshot([new CarriedQuest(0, 2001, 1)])),
+                CancellationToken.None);
 
-        Assert.IsType<DeleteItemResponse>(messages[0]);
-        var progress = Assert.IsType<AcceptedQuestProgressMessage>(messages[1]);
-        Assert.Equal(1u, Assert.Single(progress.Quests).TriggerValue);
+            Assert.IsType<DeleteItemResponse>(messages[0]);
+            var progress = Assert.IsType<AcceptedQuestProgressMessage>(messages[1]);
+            Assert.Equal(1u, Assert.Single(progress.Quests).TriggerValue);
+        });
     }
 
     private sealed class CmdSender : IGameMessageSender

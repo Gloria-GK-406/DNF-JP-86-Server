@@ -6,6 +6,7 @@ using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -17,161 +18,185 @@ public sealed class EquipmentMagicSealDomainTests
     [Fact]
     public async Task Unseal_changes_only_random_options_and_gold_and_persists_the_original_uid()
     {
-        using var shop = Fixture();
-        var original = StackableItemCore.Create(1, 3000, 1234) with
+        await TestGameplay.RunAsync(async () =>
         {
-            EnchantCardId = 3600,
-            Attribute = 0xA3,
-            EnchantUpgradeCount = 8,
-            SealFlag = 1,
-        };
-        await shop.SeedCore(9, original);
-        var uid = shop.Scalar("SELECT core_uid FROM item_slots WHERE owner_scope='character' "
-            + "AND owner_id=1 AND list_type=0 AND slot_index=9");
+            using var shop = Fixture();
+            var original = StackableItemCore.Create(1, 3000, 1234) with
+            {
+                EnchantCardId = 3600,
+                Attribute = 0xA3,
+                EnchantUpgradeCount = 8,
+                SealFlag = 1,
+            };
+            await shop.SeedCore(9, original);
+            var uid = shop.Scalar("SELECT core_uid FROM item_slots WHERE owner_scope='character' "
+                + "AND owner_id=1 AND list_type=0 AND slot_index=9");
 
-        var result = await Unseal(shop);
+            var result = await Unseal(shop);
 
-        Assert.Equal(EquipmentMagicSealRejection.None, result.Rejection);
-        Assert.Equal(original with { RandomOption0 = new(15, 2, 2) }, await Read(shop));
-        Assert.Equal(99500, shop.Gold);
-        Assert.Equal(uid, shop.Scalar("SELECT core_uid FROM item_slots WHERE owner_scope='character' "
-            + "AND owner_id=1 AND list_type=0 AND slot_index=9"));
-        shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
-        shop.Select(1);
-        Assert.Equal(original with { RandomOption0 = new(15, 2, 2) }, await Read(shop));
+            Assert.Equal(EquipmentMagicSealRejection.None, result.Rejection);
+            Assert.Equal(original with { RandomOption0 = new(15, 2, 2) }, await Read(shop));
+            Assert.Equal(99500, shop.Gold);
+            Assert.Equal(uid, shop.Scalar("SELECT core_uid FROM item_slots WHERE owner_scope='character' "
+                + "AND owner_id=1 AND list_type=0 AND slot_index=9"));
+            shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
+            shop.Select(1);
+            Assert.Equal(original with { RandomOption0 = new(15, 2, 2) }, await Read(shop));
+        });
     }
 
     [Fact]
     public async Task Change_replaces_only_selected_option_and_keeps_uid_and_other_fields()
     {
-        using var shop = Fixture();
-        var original = StackableItemCore.Create(1, 3000, 1234) with
+        await TestGameplay.RunAsync(async () =>
         {
-            RandomOption0 = new(15, 2, 2),
-            EnchantCardId = 3600,
-            SealFlag = 1,
-        };
-        await shop.SeedCore(9, original);
-        var uid = shop.Scalar("SELECT core_uid FROM item_slots WHERE owner_scope='character' "
-            + "AND owner_id=1 AND list_type=0 AND slot_index=9");
+            using var shop = Fixture();
+            var original = StackableItemCore.Create(1, 3000, 1234) with
+            {
+                RandomOption0 = new(15, 2, 2),
+                EnchantCardId = 3600,
+                SealFlag = 1,
+            };
+            await shop.SeedCore(9, original);
+            var uid = shop.Scalar("SELECT core_uid FROM item_slots WHERE owner_scope='character' "
+                + "AND owner_id=1 AND list_type=0 AND slot_index=9");
 
-        var result = await Apply(shop, true, null, 0);
+            var result = await Apply(shop, true, null, 0);
 
-        Assert.Equal(EquipmentMagicSealRejection.None, result.Rejection);
-        Assert.Equal(original with { RandomOption0 = new(16, 4, 4),
-            RandomOptionChangedIndex = byte.MaxValue }, await Read(shop));
-        Assert.Equal(99800, shop.Gold);
-        Assert.Equal(uid, shop.Scalar("SELECT core_uid FROM item_slots WHERE owner_scope='character' "
-            + "AND owner_id=1 AND list_type=0 AND slot_index=9"));
+            Assert.Equal(EquipmentMagicSealRejection.None, result.Rejection);
+            Assert.Equal(original with { RandomOption0 = new(16, 4, 4),
+                RandomOptionChangedIndex = byte.MaxValue }, await Read(shop));
+            Assert.Equal(99800, shop.Gold);
+            Assert.Equal(uid, shop.Scalar("SELECT core_uid FROM item_slots WHERE owner_scope='character' "
+                + "AND owner_id=1 AND list_type=0 AND slot_index=9"));
+        });
     }
 
     [Fact]
     public async Task Rejects_wrong_owner_locked_state_and_insufficient_gold_without_debit()
     {
-        using var shop = Fixture();
-        var original = StackableItemCore.Create(1, 3000, 1234);
-        await shop.SeedCore(9, original);
-        shop.Services.GetRequiredService<ICharacterContainerDomainService>()
-            .Clear(shop.Session.CharacterId);
-        shop.Select(2);
-        Assert.Equal(EquipmentMagicSealRejection.ItemUnavailable,
-            (await Unseal(shop)).Rejection);
-        Assert.Equal(100000, shop.Gold);
-        shop.Services.GetRequiredService<ICharacterContainerDomainService>()
-            .Clear(shop.Session.CharacterId);
-        shop.Select(1);
-        await shop.SeedCore(9, original with { EquipmentLockId = 1 });
-        Assert.Equal(EquipmentMagicSealRejection.Locked,
-            (await Unseal(shop)).Rejection);
-        await shop.SeedCore(9, original);
-        shop.Sql("UPDATE character_stats SET carried_gold=1 WHERE character_id=1");
-        Assert.Equal(EquipmentMagicSealRejection.InsufficientGold,
-            (await Unseal(shop)).Rejection);
-        Assert.Equal(original, await Read(shop));
-        Assert.Equal(1, shop.Gold);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop = Fixture();
+            var original = StackableItemCore.Create(1, 3000, 1234);
+            await shop.SeedCore(9, original);
+            shop.Services.GetRequiredService<ICharacterContainerDomainService>()
+                .Clear(shop.Session.CharacterId);
+            shop.Select(2);
+            Assert.Equal(EquipmentMagicSealRejection.ItemUnavailable,
+                (await Unseal(shop)).Rejection);
+            Assert.Equal(100000, shop.Gold);
+            shop.Services.GetRequiredService<ICharacterContainerDomainService>()
+                .Clear(shop.Session.CharacterId);
+            shop.Select(1);
+            await shop.SeedCore(9, original with { EquipmentLockId = 1 });
+            Assert.Equal(EquipmentMagicSealRejection.Locked,
+                (await Unseal(shop)).Rejection);
+            await shop.SeedCore(9, original);
+            shop.Sql("UPDATE character_stats SET carried_gold=1 WHERE character_id=1");
+            Assert.Equal(EquipmentMagicSealRejection.InsufficientGold,
+                (await Unseal(shop)).Rejection);
+            Assert.Equal(original, await Read(shop));
+            Assert.Equal(1, shop.Gold);
+        });
     }
 
     [Fact]
     public async Task State_and_index_rejections_keep_existing_options_and_gold()
     {
-        using var shop = Fixture();
-        var original = StackableItemCore.Create(1, 3000, 1234);
-        await shop.SeedCore(9, original);
-        Assert.Equal(EquipmentMagicSealRejection.NotUnsealed,
-            (await Apply(shop, true, null, 0)).Rejection);
-        await shop.SeedCore(9, original with { RandomOption0 = new(15, 2, 2) });
-        Assert.Equal(EquipmentMagicSealRejection.AlreadyUnsealed,
-            (await Unseal(shop)).Rejection);
-        Assert.Equal(EquipmentMagicSealRejection.InvalidOption,
-            (await Apply(shop, true, null, 1)).Rejection);
-        Assert.Equal(100000, shop.Gold);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop = Fixture();
+            var original = StackableItemCore.Create(1, 3000, 1234);
+            await shop.SeedCore(9, original);
+            Assert.Equal(EquipmentMagicSealRejection.NotUnsealed,
+                (await Apply(shop, true, null, 0)).Rejection);
+            await shop.SeedCore(9, original with { RandomOption0 = new(15, 2, 2) });
+            Assert.Equal(EquipmentMagicSealRejection.AlreadyUnsealed,
+                (await Unseal(shop)).Rejection);
+            Assert.Equal(EquipmentMagicSealRejection.InvalidOption,
+                (await Apply(shop, true, null, 1)).Rejection);
+            Assert.Equal(100000, shop.Gold);
+        });
     }
 
     [Fact]
     public async Task Expired_or_wrong_business_slot_cannot_unseal()
     {
-        using var shop = Fixture();
-        var expired = StackableItemCore.Create(1, 3000, 1234) with
+        await TestGameplay.RunAsync(async () =>
         {
-            ExpireTime = checked((int)shop.Clock.GetUtcNow().ToUnixTimeSeconds() - 1),
-        };
-        await shop.SeedCore(9, expired);
-        Assert.Equal(EquipmentMagicSealRejection.ItemUnavailable,
-            (await Unseal(shop)).Rejection);
-        var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
-        await using var tx = scope.Begin();
-        Assert.Equal(EquipmentMagicSealRejection.InvalidRequest,
-            (await shop.Services.GetRequiredService<IEquipmentMagicSealDomainService>()
-                .UnsealAsync(shop.Session,
-                    new(BusinessInventorySpace.WornCreature, 0), null, default)).Rejection);
-        Assert.Equal(expired, await Read(shop));
-        Assert.Equal(100000, shop.Gold);
+            using var shop = Fixture();
+            var expired = StackableItemCore.Create(1, 3000, 1234) with
+            {
+                ExpireTime = checked((int)shop.Clock.GetUtcNow().ToUnixTimeSeconds() - 1),
+            };
+            await shop.SeedCore(9, expired);
+            Assert.Equal(EquipmentMagicSealRejection.ItemUnavailable,
+                (await Unseal(shop)).Rejection);
+            var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
+            await using var tx = scope.Begin();
+            Assert.Equal(EquipmentMagicSealRejection.InvalidRequest,
+                (await shop.Services.GetRequiredService<IEquipmentMagicSealDomainService>()
+                    .UnsealAsync(shop.Session,
+                        new(BusinessInventorySpace.WornCreature, 0), null, default)).Rejection);
+            Assert.Equal(expired, await Read(shop));
+            Assert.Equal(100000, shop.Gold);
+        });
     }
 
     [Fact]
     public async Task Dropped_transaction_does_not_persist_gold_or_equipment()
     {
-        using var shop = Fixture();
-        var original = StackableItemCore.Create(1, 3000, 1234);
-        await shop.SeedCore(9, original);
-        var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
-        await using (var tx = scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await shop.Services.GetRequiredService<IEquipmentMagicSealDomainService>()
-                .UnsealAsync(shop.Session, Target, null, default);
-            Assert.Equal(EquipmentMagicSealRejection.None, result.Rejection);
-        }
-        Assert.Equal(original, await Read(shop));
-        Assert.Equal(100000, shop.Gold);
+            using var shop = Fixture();
+            var original = StackableItemCore.Create(1, 3000, 1234);
+            await shop.SeedCore(9, original);
+            var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
+            await using (var tx = scope.Begin())
+            {
+                var result = await shop.Services.GetRequiredService<IEquipmentMagicSealDomainService>()
+                    .UnsealAsync(shop.Session, Target, null, default);
+                Assert.Equal(EquipmentMagicSealRejection.None, result.Rejection);
+            }
+            Assert.Equal(original, await Read(shop));
+            Assert.Equal(100000, shop.Gold);
+        });
     }
 
     [Fact]
     public async Task Unproven_second_field_cannot_consume_a_scroll()
     {
-        using var shop = Fixture();
-        await shop.SeedCore(9, StackableItemCore.Create(1, 3000, 1234));
-        await shop.Seed(121, 4000, 2, 3);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop = Fixture();
+            await shop.SeedCore(9, StackableItemCore.Create(1, 3000, 1234));
+            await shop.Seed(121, 4000, 2, 3);
 
-        Assert.Equal(EquipmentMagicSealRejection.InvalidRequest,
-            (await Apply(shop, false, Scroll, 0)).Rejection);
-        Assert.Equal(2, shop.Count(4000));
-        Assert.Equal(100000, shop.Gold);
+            Assert.Equal(EquipmentMagicSealRejection.InvalidRequest,
+                (await Apply(shop, false, Scroll, 0)).Rejection);
+            Assert.Equal(2, shop.Count(4000));
+            Assert.Equal(100000, shop.Gold);
+        });
     }
 
     [Fact]
     public async Task Forced_sqlite_failure_rolls_back_gold_and_target()
     {
-        using var shop = Fixture();
-        var original = StackableItemCore.Create(1, 3000, 1234);
-        await shop.SeedCore(9, original);
-        shop.Sql("CREATE TRIGGER refuse_magic_seal BEFORE UPDATE ON items "
-            + "WHEN NEW.item_core <> OLD.item_core BEGIN SELECT RAISE(ABORT,'forced seal failure'); END;");
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop = Fixture();
+            var original = StackableItemCore.Create(1, 3000, 1234);
+            await shop.SeedCore(9, original);
+            shop.Sql("CREATE TRIGGER refuse_magic_seal BEFORE UPDATE ON items "
+                + "WHEN NEW.item_core <> OLD.item_core BEGIN SELECT RAISE(ABORT,'forced seal failure'); END;");
 
-        await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(
-            () => Apply(shop, false, null, 0).AsTask());
+            await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(
+                () => Apply(shop, false, null, 0).AsTask());
 
-        Assert.Equal(original, await Read(shop));
-        Assert.Equal(100000, shop.Gold);
+            Assert.Equal(original, await Read(shop));
+            Assert.Equal(100000, shop.Gold);
+        });
     }
 
     [Fact]

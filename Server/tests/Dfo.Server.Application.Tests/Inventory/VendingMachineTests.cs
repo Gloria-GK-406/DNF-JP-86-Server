@@ -6,6 +6,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.VendingMachine;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -95,7 +96,10 @@ public sealed class VendingMachineTests
         using var f=Fixture(); await f.Host.Seed(121,7454,2);
         await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f,machine:999));
         await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f,slot:122));
-        f.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().ReleaseExact(f.Host.Session);
+        TestGameplay.Run(f.Host.Services, () =>
+        {
+            f.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().ReleaseExact(f.Host.Session);
+        });
         // Stale admission stops before the domain handler opens its UoW.
         await Assert.ThrowsAsync<InvalidOperationException>(()=>Use(f)); Assert.Equal(2,f.Host.Count(7454));
     }
@@ -128,8 +132,11 @@ public sealed class VendingMachineTests
         await f.Host.Seed(121,7454,2);
         if(leaveTown)
         {
-            var towns=f.Host.Services.GetRequiredService<Dfo.Server.Abstractions.World.ITownAreaDomainService>();
-            towns.LeaveExact(f.Host.Session.CharacterId,towns.Find(f.Host.Session.CharacterId)!.Lease,Dfo.Server.Abstractions.World.TownAreaDepartureReason.DungeonEntry);
+            TestGameplay.Run(f.Host.Services, () =>
+            {
+                var towns=f.Host.Services.GetRequiredService<Dfo.Server.Abstractions.World.ITownAreaDomainService>();
+                towns.LeaveExact(f.Host.Session.CharacterId,towns.Find(f.Host.Session.CharacterId)!.Lease,Dfo.Server.Abstractions.World.TownAreaDepartureReason.DungeonEntry);
+            });
         }
         await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f)); Assert.Equal(2,f.Host.Count(7454));
     }

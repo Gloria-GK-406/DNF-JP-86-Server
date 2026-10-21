@@ -7,6 +7,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -173,13 +174,13 @@ public sealed class WarehouseMoveSynchronizationTests
         Assert.Equal(1, host.Scalar($"SELECT COUNT(*) FROM item_slots WHERE list_type={list}"));
     }
 
-    private static ValueTask Send(ShopFixture host, byte from, int source, byte into, int target,
+    private static async ValueTask Send(ShopFixture host, byte from, int source, byte into, int target,
         int count = 0, int instance = 0)
     {
         host.Sender.Messages.Clear();
-        return host.Services.GetRequiredService<MoveItemSpaceHandler>().HandleAsync(new(host.Connection),
+        await TestGameplay.RunAsync(host.Services, async () => await host.Services.GetRequiredService<MoveItemSpaceHandler>().HandleAsync(new(host.Connection),
             new MoveItemSpaceRequest(GameMessageMetadata.Empty, new((InventoryContainerType)from, source),
-                instance, count, new((InventoryContainerType)into, target), 0), default);
+                instance, count, new((InventoryContainerType)into, target), 0), default));
     }
 
     private static void AssertSlot(ShopFixture host, byte list, int slot, int item, int count, int expiry)

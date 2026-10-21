@@ -8,6 +8,7 @@ using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Marriage;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 using static Dfo.Server.Application.Tests.Marriage.MarriageHarness;
 
 namespace Dfo.Server.Application.Tests.Marriage;
@@ -68,19 +69,22 @@ public sealed class MarriageEntityTests
         AssertStored(f, stage: 0, revision: 1);
         Assert.Equal(0, f.Scalar("SELECT state FROM marriage_proposals"));
 
-        var handler = (IClientMessageHandler)ActivatorUtilities.CreateInstance(f.Services,
-            typeof(WeddingResponseRequest).Assembly.GetType("Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseHandler")!);
-        var context = new NetworkDispatchContext(new(peer.ConnectionId, NetworkEndpointKind.Game, 10011));
-        var accept = new WeddingResponseRequest(GameMessageMetadata.Empty, 0, 1, 0, 0, 0);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => handler.HandleAsync(context, accept, default).AsTask());
-        Assert.Empty(sender.Deliveries);
-        AssertStored(f, stage: 0, revision: 1);
-        Assert.Equal(0, f.Scalar("SELECT state FROM marriage_proposals"));
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            var handler = (IClientMessageHandler)ActivatorUtilities.CreateInstance(f.Services,
+                typeof(WeddingResponseRequest).Assembly.GetType("Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseHandler")!);
+            var context = new NetworkDispatchContext(new(peer.ConnectionId, NetworkEndpointKind.Game, 10011));
+            var accept = new WeddingResponseRequest(GameMessageMetadata.Empty, 0, 1, 0, 0, 0);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => handler.HandleAsync(context, accept, default).AsTask());
+            Assert.Empty(sender.Deliveries);
+            AssertStored(f, stage: 0, revision: 1);
+            Assert.Equal(0, f.Scalar("SELECT state FROM marriage_proposals"));
 
-        relations.Armed = false;
-        await handler.HandleAsync(context, accept, default);
-        Assert.Equal(0, Assert.IsType<WeddingResponseAck>(Assert.Single(sender.Deliveries).RequiredDirectMessages[0]).Status);
-        AssertStored(f, stage: 1, revision: 2);
+            relations.Armed = false;
+            await handler.HandleAsync(context, accept, default);
+            Assert.Equal(0, Assert.IsType<WeddingResponseAck>(Assert.Single(sender.Deliveries).RequiredDirectMessages[0]).Status);
+            AssertStored(f, stage: 1, revision: 2);
+        });
     }
 
     private sealed class NoQuests : Dfo.Server.Abstractions.Content.IQuestDefinitionSource
@@ -93,46 +97,52 @@ public sealed class MarriageEntityTests
     [Fact]
     public async Task The_view_shows_a_lapsed_proposal_as_closed_and_leaves_it_stored_as_proposed()
     {
-        await using var w = await ChurchTownAsync(); var f = w.F; var peer = w.Peer;
-        var id = (await InTx(f, () => Couple(f).ProposeAsync(f.Session, peer, default))).Proposal!.Id;
-        var live = (await Query(f).ViewAsync(peer, default))!;
-        Assert.Equal((id, MarriageStage.Proposed, 1L), (live.RelationId, live.Stage, live.Revision));
-        Assert.Equal(f.Session, live.Partner);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var w = await ChurchTownAsync(); var f = w.F; var peer = w.Peer;
+            var id = (await InTx(f, () => Couple(f).ProposeAsync(f.Session, peer, default))).Proposal!.Id;
+            var live = (await Query(f).ViewAsync(peer, default))!;
+            Assert.Equal((id, MarriageStage.Proposed, 1L), (live.RelationId, live.Stage, live.Revision));
+            Assert.Equal(f.Session, live.Partner);
 
-        w.Clock.Now += TimeSpan.FromHours(1);
-        Assert.Equal(MarriageStage.Closed, (await Query(f).ViewAsync(f.Session, default))!.Stage);
-        AssertStored(f, stage: 0, revision: 1);
-        Assert.Equal(0, f.Scalar("SELECT state FROM marriage_proposals"));
+            w.Clock.Now += TimeSpan.FromHours(1);
+            Assert.Equal(MarriageStage.Closed, (await Query(f).ViewAsync(f.Session, default))!.Stage);
+            AssertStored(f, stage: 0, revision: 1);
+            Assert.Equal(0, f.Scalar("SELECT state FROM marriage_proposals"));
 
-        w.Clock.Now -= TimeSpan.FromHours(1);
-        Assert.Equal(MarriageStage.Proposed, (await Query(f).ViewAsync(f.Session, default))!.Stage);
-        GoOffline(f, peer);
-        Assert.Equal(MarriageStage.Closed, (await Query(f).ViewAsync(f.Session, default))!.Stage);
-        AssertStored(f, stage: 0, revision: 1);
-        Assert.Null(await Query(f).ViewAsync(f.Session with { AccountId = peer.AccountId }, default));
+            w.Clock.Now -= TimeSpan.FromHours(1);
+            Assert.Equal(MarriageStage.Proposed, (await Query(f).ViewAsync(f.Session, default))!.Stage);
+            GoOffline(f, peer);
+            Assert.Equal(MarriageStage.Closed, (await Query(f).ViewAsync(f.Session, default))!.Stage);
+            AssertStored(f, stage: 0, revision: 1);
+            Assert.Null(await Query(f).ViewAsync(f.Session with { AccountId = peer.AccountId }, default));
+        });
     }
 
     [Fact]
     public async Task The_view_shows_a_lapsed_reservation_as_engaged_and_leaves_it_stored_as_requested()
     {
-        await using var w = await ChurchTownAsync(Tier0()); var f = w.F; var peer = w.Peer;
-        await EligibleAsync(w, f.Session, peer);
-        var ceremony = (await InTx(f, () => Couple(f).RequestReservationAsync(f.Session, peer, 0, 0, default))).Ceremony!;
-        var live = (await Query(f).ViewAsync(f.Session, default))!;
-        Assert.Equal((MarriageStage.Requested, ceremony.Id, true), (live.Stage, live.CeremonyId, live.TrialsCleared));
-        var revision = f.Scalar("SELECT revision FROM marriage_relations");
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var w = await ChurchTownAsync(Tier0()); var f = w.F; var peer = w.Peer;
+            await EligibleAsync(w, f.Session, peer);
+            var ceremony = (await InTx(f, () => Couple(f).RequestReservationAsync(f.Session, peer, 0, 0, default))).Ceremony!;
+            var live = (await Query(f).ViewAsync(f.Session, default))!;
+            Assert.Equal((MarriageStage.Requested, ceremony.Id, true), (live.Stage, live.CeremonyId, live.TrialsCleared));
+            var revision = f.Scalar("SELECT revision FROM marriage_relations");
 
-        w.Clock.Now += TimeSpan.FromHours(1);
-        var lapsed = (await Query(f).ViewAsync(peer, default))!;
-        Assert.Equal((MarriageStage.Engaged, (Guid?)null, (long)revision), (lapsed.Stage, lapsed.CeremonyId, lapsed.Revision));
-        AssertStored(f, stage: 2, revision: revision);
-        Assert.Equal(0, f.Scalar("SELECT state FROM marriage_ceremonies"));
+            w.Clock.Now += TimeSpan.FromHours(1);
+            var lapsed = (await Query(f).ViewAsync(peer, default))!;
+            Assert.Equal((MarriageStage.Engaged, (Guid?)null, (long)revision), (lapsed.Stage, lapsed.CeremonyId, lapsed.Revision));
+            AssertStored(f, stage: 2, revision: revision);
+            Assert.Equal(0, f.Scalar("SELECT state FROM marriage_ceremonies"));
 
-        w.Clock.Now -= TimeSpan.FromHours(1);
-        GoOffline(f, peer);
-        Assert.Equal(MarriageStage.Engaged, (await Query(f).ViewAsync(f.Session, default))!.Stage);
-        AssertStored(f, stage: 2, revision: revision);
-        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_relations WHERE ceremony_id IS NOT NULL"));
+            w.Clock.Now -= TimeSpan.FromHours(1);
+            GoOffline(f, peer);
+            Assert.Equal(MarriageStage.Engaged, (await Query(f).ViewAsync(f.Session, default))!.Stage);
+            AssertStored(f, stage: 2, revision: revision);
+            Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_relations WHERE ceremony_id IS NOT NULL"));
+        });
     }
 
     private static void AssertStored(LearningFixture f, int stage, int revision)

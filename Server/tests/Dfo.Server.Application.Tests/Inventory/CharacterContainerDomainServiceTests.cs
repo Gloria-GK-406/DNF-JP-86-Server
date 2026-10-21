@@ -7,6 +7,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Tests.Support;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Dfo.Server.Protocol.Game.UseStackable;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -176,32 +177,35 @@ public sealed class CharacterContainerDomainServiceTests
     [InlineData(true)]
     public async Task Replacing_default_preserves_selection_and_rollback(bool separateCurrent)
     {
-        var scope = new DomainTransactionScope();
-        ICharacterContainerDomainService registry = new CharacterContainerDomainService(transactions: scope);
-        var original = Container("original", removable: false);
-        var replacement = Container("replacement", removable: false);
-        var temporary = Container("temporary");
-        registry.Register(Character, original);
-        if (separateCurrent)
+        await TestGameplay.RunAsync(async () =>
         {
-            registry.Register(Character, temporary);
-            registry.UseContainer(Character, temporary.Id);
-        }
-        await using (var tx = scope.Begin())
-        {
-            registry.ReplaceDefault(Character, original.Id, replacement);
-            Assert.Same(replacement, registry.GetContainer(Character, InventoryContainerType.Main, true));
-            Assert.Same(separateCurrent ? temporary : replacement, registry.GetContainer(Character, InventoryContainerType.Main));
-        }
-        Assert.Same(original, registry.GetContainer(Character, InventoryContainerType.Main, true));
-        await using (var tx = scope.Begin())
-        {
-            registry.ReplaceDefault(Character, original.Id, replacement);
-            await tx.CommitAsync(default);
-        }
-        if (separateCurrent) registry.Remove(Character, temporary.Id);
-        Assert.Same(replacement, registry.GetContainer(Character, InventoryContainerType.Main));
-        Assert.Equal([replacement], registry.GetContainers(Character, InventoryContainerType.Main));
+            var scope = new DomainTransactionScope();
+            ICharacterContainerDomainService registry = new CharacterContainerDomainService(transactions: scope);
+            var original = Container("original", removable: false);
+            var replacement = Container("replacement", removable: false);
+            var temporary = Container("temporary");
+            registry.Register(Character, original);
+            if (separateCurrent)
+            {
+                registry.Register(Character, temporary);
+                registry.UseContainer(Character, temporary.Id);
+            }
+            await using (var tx = scope.Begin())
+            {
+                registry.ReplaceDefault(Character, original.Id, replacement);
+                Assert.Same(replacement, registry.GetContainer(Character, InventoryContainerType.Main, true));
+                Assert.Same(separateCurrent ? temporary : replacement, registry.GetContainer(Character, InventoryContainerType.Main));
+            }
+            Assert.Same(original, registry.GetContainer(Character, InventoryContainerType.Main, true));
+            await using (var tx = scope.Begin())
+            {
+                registry.ReplaceDefault(Character, original.Id, replacement);
+                await tx.CommitAsync(default);
+            }
+            if (separateCurrent) registry.Remove(Character, temporary.Id);
+            Assert.Same(replacement, registry.GetContainer(Character, InventoryContainerType.Main));
+            Assert.Equal([replacement], registry.GetContainers(Character, InventoryContainerType.Main));
+        });
     }
 
     [Theory]

@@ -6,6 +6,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.DeleteItem;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -14,23 +15,26 @@ public sealed class SkillMaterialConsumptionTests
     [Fact]
     public async Task Type_29_skill_request_consumes_the_tower_cube_and_projects_type_29_after_commit()
     {
-        using var f = new ShopFixture();
-        var scope = f.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>();
-        var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
-        await using (var tx = scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await f.Services.GetRequiredService<IItemGrantDomainService>()
-                .GrantAsync(f.Session.AccountId, f.Session.CharacterId, containers, 6515, 2, default);
-            await tx.CommitAsync(default);
-        }
-        await f.Services.GetRequiredService<DeleteItemHandler>().HandleAsync(new(f.Connection),
-            new DeleteItemRequest(GameMessageMetadata.Empty, new(InventoryContainerType.QuickSlot, 3), 1, 2, 6515, 2, 0, 1), default);
-        var ack = Assert.IsType<DeleteItemResponse>(f.Sender.Messages[0]);
-        Assert.True(ack.Success);
-        Assert.Equal(new GameSlot(InventoryContainerType.QuickSlot, 3), ack.Slot);
-        Assert.Equal("InventoryDeltaMessage", f.Sender.Messages[1].GetType().Name);
-        Assert.Empty(await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot).GetAllAsync(default));
-        Assert.Equal(0, f.Count(6515));
+            using var f = new ShopFixture();
+            var scope = f.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>();
+            var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
+            await using (var tx = scope.Begin())
+            {
+                await f.Services.GetRequiredService<IItemGrantDomainService>()
+                    .GrantAsync(f.Session.AccountId, f.Session.CharacterId, containers, 6515, 2, default);
+                await tx.CommitAsync(default);
+            }
+            await f.Services.GetRequiredService<DeleteItemHandler>().HandleAsync(new(f.Connection),
+                new DeleteItemRequest(GameMessageMetadata.Empty, new(InventoryContainerType.QuickSlot, 3), 1, 2, 6515, 2, 0, 1), default);
+            var ack = Assert.IsType<DeleteItemResponse>(f.Sender.Messages[0]);
+            Assert.True(ack.Success);
+            Assert.Equal(new GameSlot(InventoryContainerType.QuickSlot, 3), ack.Slot);
+            Assert.Equal("InventoryDeltaMessage", f.Sender.Messages[1].GetType().Name);
+            Assert.Empty(await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot).GetAllAsync(default));
+            Assert.Equal(0, f.Count(6515));
+        });
     }
 
     [Theory]
@@ -107,10 +111,13 @@ public sealed class SkillMaterialConsumptionTests
     [InlineData(3,1,1)]
     public async Task Invalid_wire_shape_or_unknown_operation_does_not_consume(ushort operation,byte entries,uint reserved)
     {
-        using var f = new ShopFixture();await f.SeedShared(3037, 3, 1);
-        await Request(f,358,3037,1,operation,entries,reserved);
-        Assert.False(Assert.IsType<DeleteItemResponse>(Assert.Single(f.Sender.Messages)).Success);
-        Assert.Equal(3,f.SharedCount(3037, 1));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var f = new ShopFixture();await f.SeedShared(3037, 3, 1);
+            await Request(f,358,3037,1,operation,entries,reserved);
+            Assert.False(Assert.IsType<DeleteItemResponse>(Assert.Single(f.Sender.Messages)).Success);
+            Assert.Equal(3,f.SharedCount(3037, 1));
+        });
     }
 
     [Theory]
@@ -167,7 +174,7 @@ public sealed class SkillMaterialConsumptionTests
         Assert.Equal(3,f.SharedCount(3037, 1));
     }
 
-    private static ValueTask Request(ShopFixture f,int slot,int item,int count,ushort operation=2,byte entries=1,uint reserved=0) =>
-        f.Services.GetRequiredService<DeleteItemHandler>().HandleAsync(new(f.Connection),
-            new DeleteItemRequest(GameMessageMetadata.Empty,new(InventoryContainerType.Main,slot),entries,operation,item,count,reserved,1),default);
+    private static async ValueTask Request(ShopFixture f,int slot,int item,int count,ushort operation=2,byte entries=1,uint reserved=0) =>
+        await TestGameplay.RunAsync(f.Services, async () => await f.Services.GetRequiredService<DeleteItemHandler>().HandleAsync(new(f.Connection),
+            new DeleteItemRequest(GameMessageMetadata.Empty,new(InventoryContainerType.Main,slot),entries,operation,item,count,reserved,1),default));
 }

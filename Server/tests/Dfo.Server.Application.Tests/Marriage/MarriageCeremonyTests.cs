@@ -10,6 +10,7 @@ using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.MarriageProposal;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Marriage;
 
@@ -41,6 +42,8 @@ public sealed class MarriageCeremonyTests
     internal static async Task<Guid> MakeEligibleAsync(LearningFixture fixture,
         SelectedSessionIdentity peer, RecordingQuestLogs logs, int applicantGold = 500_000)
     {
+        return await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
         Assert.True((await MarriageProposalTests.Run(fixture,
             x => x.ProposeAsync(fixture.Session, peer, default))).Succeeded);
         var accepted = await MarriageProposalTests.Run(fixture,
@@ -63,16 +66,20 @@ public sealed class MarriageCeremonyTests
             ON CONFLICT(character_id) DO NOTHING;
             """);
         return relation;
+        });
     }
 
     internal static async Task<MarriageCeremonyResult> RunAsync(LearningFixture fixture,
         Func<IMarriageCoupleDomainService, ValueTask<MarriageCeremonyResult>> action,
         bool commit = true)
     {
-        await using var tx = fixture.Scope.Begin();
-        var result = await action(fixture.Services.GetRequiredService<IMarriageCoupleDomainService>());
-        if (commit) await tx.CommitAsync(default);
-        return result;
+        return await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            await using var tx = fixture.Scope.Begin();
+            var result = await action(fixture.Services.GetRequiredService<IMarriageCoupleDomainService>());
+            if (commit) await tx.CommitAsync(default);
+            return result;
+        });
     }
 
     [Fact]
@@ -209,57 +216,63 @@ public sealed class MarriageCeremonyTests
     [Fact]
     public async Task Reconnected_participant_expires_old_pending_before_new_request()
     {
-        var (fixture, peer, logs, _) = await Fixture(); await using var owned = fixture;
-        await MakeEligibleAsync(fixture, peer, logs);
-        var first = await RunAsync(fixture,
-            x => x.RequestReservationAsync(fixture.Session, peer, 0, 0, default));
-        var reconnected = MarriageHarness.Reselect(fixture, peer);
-        fixture.Services.GetRequiredService<ITownAreaDomainService>().Enter(
-            new(reconnected.CharacterId, reconnected.TownAreaLease(), new(1, 21, 1),
-                new(21, 1, 120, 100, 0), true));
-        var next = await RunAsync(fixture,
-            x => x.RequestReservationAsync(fixture.Session, reconnected, 0, 0, default));
-        Assert.True(next.Succeeded);
-        Assert.True(next.Changed);
-        Assert.NotEqual(first.Ceremony!.Id, next.Ceremony!.Id);
-        Assert.Equal(3, fixture.Scalar("SELECT state FROM marriage_ceremonies WHERE id='" + first.Ceremony.Id.ToString("N") + "'"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (fixture, peer, logs, _) = await Fixture(); await using var owned = fixture;
+            await MakeEligibleAsync(fixture, peer, logs);
+            var first = await RunAsync(fixture,
+                x => x.RequestReservationAsync(fixture.Session, peer, 0, 0, default));
+            var reconnected = MarriageHarness.Reselect(fixture, peer);
+            fixture.Services.GetRequiredService<ITownAreaDomainService>().Enter(
+                new(reconnected.CharacterId, reconnected.TownAreaLease(), new(1, 21, 1),
+                    new(21, 1, 120, 100, 0), true));
+            var next = await RunAsync(fixture,
+                x => x.RequestReservationAsync(fixture.Session, reconnected, 0, 0, default));
+            Assert.True(next.Succeeded);
+            Assert.True(next.Changed);
+            Assert.NotEqual(first.Ceremony!.Id, next.Ceremony!.Id);
+            Assert.Equal(3, fixture.Scalar("SELECT state FROM marriage_ceremonies WHERE id='" + first.Ceremony.Id.ToString("N") + "'"));
+        });
     }
 
     [Fact]
     public async Task Invalid_content_quest_binding_gold_session_and_target_do_not_reserve()
     {
-        var (fixture, peer, logs, _) = await Fixture(); await using var owned = fixture;
-        Assert.Equal(MarriageCeremonyFailure.Invalid, (await RunAsync(fixture,
-            x => x.RequestReservationAsync(fixture.Session, peer, 1, 0, default))).Failure);
-        var relation = await MakeEligibleAsync(fixture, peer, logs, 499_999);
-        Assert.Equal(MarriageCeremonyFailure.Invalid, (await RunAsync(fixture,
-            x => x.RequestReservationAsync(fixture.Session, peer, 0, 3, default))).Failure);
-        Assert.Equal(MarriageCeremonyFailure.InsufficientFunds, (await RunAsync(fixture,
-            x => x.RequestReservationAsync(fixture.Session, peer, 0, 0, default))).Failure);
-        fixture.Sql("UPDATE character_stats SET carried_gold=500000 WHERE character_id=71");
-        logs.Cleared[72].RemoveAll(x => x.QuestId == 20738);
-        Assert.Equal(MarriageCeremonyFailure.Ineligible, (await RunAsync(fixture,
-            x => x.RequestReservationAsync(fixture.Session, peer, 0, 0, default))).Failure);
-        logs.Cleared[72].Add(new ClearedQuest(20738, 1));
-        fixture.Sql("DELETE FROM marriage_quest_bindings WHERE character_id=72 AND quest_id=20738");
-        Assert.Equal(MarriageCeremonyFailure.Ineligible, (await RunAsync(fixture,
-            x => x.RequestReservationAsync(fixture.Session, peer, 0, 0, default))).Failure);
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await fixture.Services.GetRequiredService<IMarriageQuestDomainStore>()
-                .BindAsync(peer.CharacterId, 20738, relation, DateTimeOffset.UtcNow, default);
-            await tx.CommitAsync(default);
-        }
-        var stale = peer with { ConnectionGeneration = peer.ConnectionGeneration + 1 };
-        Assert.Equal(MarriageCeremonyFailure.Stale, (await RunAsync(fixture,
-            x => x.RequestReservationAsync(fixture.Session, stale, 0, 0, default))).Failure);
-        var pending = await RunAsync(fixture,
-            x => x.RequestReservationAsync(fixture.Session, peer, 0, 0, default));
-        Assert.True(pending.Succeeded);
-        Assert.Equal(MarriageCeremonyFailure.Stale, (await RunAsync(fixture,
-            x => x.RespondReservationAsync(fixture.Session, peer, 0, default))).Failure);
-        Assert.Equal(MarriageCeremonyState.Pending,
-            (await fixture.Services.GetRequiredService<IMarriageQueryDomainService>()
-                .ReceivedReservationAsync(peer.CharacterId, default))!.State);
+            var (fixture, peer, logs, _) = await Fixture(); await using var owned = fixture;
+            Assert.Equal(MarriageCeremonyFailure.Invalid, (await RunAsync(fixture,
+                x => x.RequestReservationAsync(fixture.Session, peer, 1, 0, default))).Failure);
+            var relation = await MakeEligibleAsync(fixture, peer, logs, 499_999);
+            Assert.Equal(MarriageCeremonyFailure.Invalid, (await RunAsync(fixture,
+                x => x.RequestReservationAsync(fixture.Session, peer, 0, 3, default))).Failure);
+            Assert.Equal(MarriageCeremonyFailure.InsufficientFunds, (await RunAsync(fixture,
+                x => x.RequestReservationAsync(fixture.Session, peer, 0, 0, default))).Failure);
+            fixture.Sql("UPDATE character_stats SET carried_gold=500000 WHERE character_id=71");
+            logs.Cleared[72].RemoveAll(x => x.QuestId == 20738);
+            Assert.Equal(MarriageCeremonyFailure.Ineligible, (await RunAsync(fixture,
+                x => x.RequestReservationAsync(fixture.Session, peer, 0, 0, default))).Failure);
+            logs.Cleared[72].Add(new ClearedQuest(20738, 1));
+            fixture.Sql("DELETE FROM marriage_quest_bindings WHERE character_id=72 AND quest_id=20738");
+            Assert.Equal(MarriageCeremonyFailure.Ineligible, (await RunAsync(fixture,
+                x => x.RequestReservationAsync(fixture.Session, peer, 0, 0, default))).Failure);
+            await using (var tx = fixture.Scope.Begin())
+            {
+                await fixture.Services.GetRequiredService<IMarriageQuestDomainStore>()
+                    .BindAsync(peer.CharacterId, 20738, relation, DateTimeOffset.UtcNow, default);
+                await tx.CommitAsync(default);
+            }
+            var stale = peer with { ConnectionGeneration = peer.ConnectionGeneration + 1 };
+            Assert.Equal(MarriageCeremonyFailure.Stale, (await RunAsync(fixture,
+                x => x.RequestReservationAsync(fixture.Session, stale, 0, 0, default))).Failure);
+            var pending = await RunAsync(fixture,
+                x => x.RequestReservationAsync(fixture.Session, peer, 0, 0, default));
+            Assert.True(pending.Succeeded);
+            Assert.Equal(MarriageCeremonyFailure.Stale, (await RunAsync(fixture,
+                x => x.RespondReservationAsync(fixture.Session, peer, 0, default))).Failure);
+            Assert.Equal(MarriageCeremonyState.Pending,
+                (await fixture.Services.GetRequiredService<IMarriageQueryDomainService>()
+                    .ReceivedReservationAsync(peer.CharacterId, default))!.State);
+        });
     }
 }

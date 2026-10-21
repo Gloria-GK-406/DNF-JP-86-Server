@@ -8,6 +8,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -46,23 +47,29 @@ public sealed class AccountMaterialBagTests
     [InlineData(-1)]
     public async Task A_non_positive_addition_is_rejected_without_changing_the_account(int count)
     {
-        using var shop = new ShopFixture();
-        var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
-        await using var tx = scope.Begin();
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => shop.Shared().AddAsync(3037, count, default).AsTask());
-        Assert.Equal(0, shop.SharedCount(3037));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop = new ShopFixture();
+            var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
+            await using var tx = scope.Begin();
+            await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => shop.Shared().AddAsync(3037, count, default).AsTask());
+            Assert.Equal(0, shop.SharedCount(3037));
+        });
     }
 
     [Fact]
     public async Task An_overflow_is_rejected_and_the_existing_count_survives()
     {
-        using var shop = new ShopFixture();
-        await shop.SeedShared(3037, int.MaxValue);
-        var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
-        await using var tx = scope.Begin();
-        Assert.IsType<ItemPlacementOutcome.NoRoom>((await shop.Shared().AddAsync(3037, 1, default)).Placement);
-        await tx.CommitAsync(default);
-        Assert.Equal(int.MaxValue, shop.SharedCount(3037));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop = new ShopFixture();
+            await shop.SeedShared(3037, int.MaxValue);
+            var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
+            await using var tx = scope.Begin();
+            Assert.IsType<ItemPlacementOutcome.NoRoom>((await shop.Shared().AddAsync(3037, 1, default)).Placement);
+            await tx.CommitAsync(default);
+            Assert.Equal(int.MaxValue, shop.SharedCount(3037));
+        });
     }
 
     [Fact]
@@ -103,19 +110,22 @@ public sealed class AccountMaterialBagTests
     [Fact]
     public async Task A_material_core_with_wrong_kind_cannot_be_written_to_a_character_container()
     {
-        using var shop = new ShopFixture();
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop = new ShopFixture();
 
-        var scope = (Dfo.Server.Application.Transactions.DomainTransactionScope)shop.Services.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>();
-        await using var tx = scope.Begin();
-        var items = shop.Services.GetRequiredService<IItemDomainStore>().SessionIn(scope.Current!);
-        var malformed = await items.CreateAsync(ItemSnapshot.FromCore(StackableItemCore.Create(2, 3037, 1), true), default);
-        var container = shop.Services.GetRequiredService<ICharacterContainerDomainService>().GetContainer(shop.Session.CharacterId, InventoryContainerType.Main);
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => container.PutAsync(121, malformed, default).AsTask());
-        await items.DeleteItemAsync(malformed, default);
-        await tx.CommitAsync(default);
+            var scope = (Dfo.Server.Application.Transactions.DomainTransactionScope)shop.Services.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>();
+            await using var tx = scope.Begin();
+            var items = shop.Services.GetRequiredService<IItemDomainStore>().SessionIn(scope.Current!);
+            var malformed = await items.CreateAsync(ItemSnapshot.FromCore(StackableItemCore.Create(2, 3037, 1), true), default);
+            var container = shop.Services.GetRequiredService<ICharacterContainerDomainService>().GetContainer(shop.Session.CharacterId, InventoryContainerType.Main);
+            var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => container.PutAsync(121, malformed, default).AsTask());
+            await items.DeleteItemAsync(malformed, default);
+            await tx.CommitAsync(default);
 
-        Assert.Contains("cannot occupy", failure.Message, StringComparison.Ordinal);
-        Assert.Equal(0, shop.Count(3037));
-        Assert.Equal(0, shop.SharedCount(3037));
+            Assert.Contains("cannot occupy", failure.Message, StringComparison.Ordinal);
+            Assert.Equal(0, shop.Count(3037));
+            Assert.Equal(0, shop.SharedCount(3037));
+        });
     }
 }

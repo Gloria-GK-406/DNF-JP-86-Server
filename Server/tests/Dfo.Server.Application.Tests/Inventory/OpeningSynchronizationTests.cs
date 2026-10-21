@@ -11,6 +11,7 @@ using Dfo.Server.Protocol.Game.CompoundItem;
 using Dfo.Server.Protocol.Game.MagicBoxBatchOpening;
 using Dfo.Server.Protocol.Game.PackageOpening;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -101,8 +102,8 @@ public sealed class OpeningSynchronizationTests
 
     private static async Task<IReadOnlyList<IServerNetworkMessage>> Compose(ShopFixture host,
         OpeningInventoryReceipt receipt, IGameCmdMessage response) =>
-        await new OpeningCompletedHandler(host.Services.GetRequiredService<ISelectedSessionDomainService>())
-            .ComposeAsync(new(receipt.Session.CharacterId, receipt.Session.ConnectionId), new(receipt, [response]), default);
+        await TestGameplay.RunAsync(host.Services, async () => await new OpeningCompletedHandler(host.Services.GetRequiredService<ISelectedSessionDomainService>())
+            .ComposeAsync(new(receipt.Session.CharacterId, receipt.Session.ConnectionId), new(receipt, [response]), default));
 
     // Bounded model of the A21 class-1 stackable consumer, not a native-client replay.
     // 0117E91E clears ID=-1; 0117E957 checks template; 0117EAF4 ignores differing IDs.

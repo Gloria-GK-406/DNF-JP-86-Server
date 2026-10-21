@@ -30,6 +30,7 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Game;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -38,13 +39,16 @@ public sealed partial class SelectCharacterLifecycleTests
     [Fact]
     public async Task Tau_current_period_is_rechecked_after_publication_even_when_scheduled_snapshot_missed_selection()
     {
-        var f = await Fixture.CreateAsync(tau: new TauMarker());
-        await f.Handler.HandleAsync(f.Context, f.Command, default);
-        var types = f.Bus.DispatchedCommands;
-        Assert.True(types.IndexOf(typeof(Dfo.Server.Application.World.RefillOnlineTauTicketCommand))
-            > types.IndexOf(typeof(PublishSelectedCharacterSessionCommand)));
-        Assert.True(types.IndexOf(typeof(Dfo.Server.Application.World.RefillOnlineTauTicketCommand))
-            < types.IndexOf(typeof(SynchronizeSelectedCharacterQuestsCommand)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var f = await Fixture.CreateAsync(tau: new TauMarker());
+            await f.Handler.HandleAsync(f.Context, f.Command, default);
+            var types = f.Bus.DispatchedCommands;
+            Assert.True(types.IndexOf(typeof(Dfo.Server.Application.World.RefillOnlineTauTicketCommand))
+                > types.IndexOf(typeof(PublishSelectedCharacterSessionCommand)));
+            Assert.True(types.IndexOf(typeof(Dfo.Server.Application.World.RefillOnlineTauTicketCommand))
+                < types.IndexOf(typeof(SynchronizeSelectedCharacterQuestsCommand)));
+        });
     }
     private sealed class TauMarker : ITauKingdomDomainService
     {
@@ -69,43 +73,46 @@ public sealed partial class SelectCharacterLifecycleTests
     [Fact]
     public async Task Success_OrdersRequiredDeliveryBeforePublicationAndPostEntryStages()
     {
-        var fixture = await Fixture.CreateAsync();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync();
 
-        await fixture.Handler.HandleAsync(
-            fixture.Context, fixture.Command, CancellationToken.None);
-        var result = fixture.Bus.State!;
+            await fixture.Handler.HandleAsync(
+                fixture.Context, fixture.Command, CancellationToken.None);
+            var result = fixture.Bus.State!;
 
-        var spawn = fixture.Result.World.Channel.Spawn;
-        Assert.Equal(
-            new CharacterPositionState(spawn.TownId, spawn.AreaId, spawn.X, spawn.Y, spawn.Direction),
-            result.Character.Position);
-        Assert.Equal(result.Character.Position, fixture.Mutations.PersistedPosition);
-        // The refill runs and its delta goes out before the post-marker frames, not after. That
-        // order is on the wire: the reference session's one UPDATE_ITEM_LIST sits directly after
-        // USER_POSITION, ahead of the invisibility flags, the clone title, the roster payload and
-        // the honour level.
-        Assert.Equal(
-            ["prepare", "position", "static", "inventory", "pre", "active", "publish",
-                "plan-pvp", "x11", "quest", "pet", "premium"],
-            fixture.Ledger);
-        Assert.Equal(
-            [
-                typeof(PrepareSelectedCharacterSessionCommand),
-                typeof(CleanupExpiredCharacterItemsCommand),
-                typeof(EnsureDailyContractPuppetsCommand),
-                typeof(Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommand),
-                typeof(PrepareSelectedCharacterStateCommand),
-                typeof(ApplySelectedCharacterDailyRefillCommand),
-                typeof(PublishSelectedCharacterSessionCommand),
-                typeof(SynchronizeSelectedCharacterQuestsCommand),
-                typeof(ReviveSelectedCharacterPetCommand),
-            ],
-            fixture.Bus.DispatchedCommands);
-        Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
-        Assert.Equal(
-            result.Character.Identity.CharacterId,
-            fixture.Users.GetRequired(fixture.OnlineUserId).CurrentCharacterId);
-        Assert.Empty(fixture.Closer.Closed);
+            var spawn = fixture.Result.World.Channel.Spawn;
+            Assert.Equal(
+                new CharacterPositionState(spawn.TownId, spawn.AreaId, spawn.X, spawn.Y, spawn.Direction),
+                result.Character.Position);
+            Assert.Equal(result.Character.Position, fixture.Mutations.PersistedPosition);
+            // The refill runs and its delta goes out before the post-marker frames, not after. That
+            // order is on the wire: the reference session's one UPDATE_ITEM_LIST sits directly after
+            // USER_POSITION, ahead of the invisibility flags, the clone title, the roster payload and
+            // the honour level.
+            Assert.Equal(
+                ["prepare", "position", "static", "inventory", "pre", "active", "publish",
+                    "plan-pvp", "x11", "quest", "pet", "premium"],
+                fixture.Ledger);
+            Assert.Equal(
+                [
+                    typeof(PrepareSelectedCharacterSessionCommand),
+                    typeof(CleanupExpiredCharacterItemsCommand),
+                    typeof(EnsureDailyContractPuppetsCommand),
+                    typeof(Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommand),
+                    typeof(PrepareSelectedCharacterStateCommand),
+                    typeof(ApplySelectedCharacterDailyRefillCommand),
+                    typeof(PublishSelectedCharacterSessionCommand),
+                    typeof(SynchronizeSelectedCharacterQuestsCommand),
+                    typeof(ReviveSelectedCharacterPetCommand),
+                ],
+                fixture.Bus.DispatchedCommands);
+            Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
+            Assert.Equal(
+                result.Character.Identity.CharacterId,
+                fixture.Users.GetRequired(fixture.OnlineUserId).CurrentCharacterId);
+            Assert.Empty(fixture.Closer.Closed);
+        });
     }
 
     /// <summary>
@@ -120,82 +127,97 @@ public sealed partial class SelectCharacterLifecycleTests
     [Fact]
     public async Task CommittedRefill_SendsTheBagChangeBetweenTheRefillAndTheTail()
     {
-        var fixture = await Fixture.CreateAsync(refillCommits: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync(refillCommits: true);
 
-        await fixture.Handler.HandleAsync(
-            fixture.Context, fixture.Command, CancellationToken.None);
+            await fixture.Handler.HandleAsync(
+                fixture.Context, fixture.Command, CancellationToken.None);
 
-        Assert.Equal(
-            ["prepare", "position", "static", "inventory", "delta", "pre", "active", "publish",
-                "plan-pvp", "x11", "quest", "pet", "premium"],
-            fixture.Ledger);
+            Assert.Equal(
+                ["prepare", "position", "static", "inventory", "delta", "pre", "active", "publish",
+                    "plan-pvp", "x11", "quest", "pet", "premium"],
+                fixture.Ledger);
+        });
     }
 
     [Fact]
     public async Task RequiredOwnerFailure_CompensatesExactAttemptAndClosesOnlyItsConnection()
     {
-        var fixture = await Fixture.CreateAsync(failTrailingLocks: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync(failTrailingLocks: true);
 
-        await Assert.ThrowsAsync<IOException>(async () =>
-            await fixture.Handler.HandleAsync(
-                fixture.Context, fixture.Command, CancellationToken.None));
+            await Assert.ThrowsAsync<IOException>(async () =>
+                await fixture.Handler.HandleAsync(
+                    fixture.Context, fixture.Command, CancellationToken.None));
 
-        Assert.Equal(
-            ["prepare", "position", "static", "inventory", "pre", "active", "publish",
-                "plan-pvp", "x11", "cleanup", "close"],
-            fixture.Ledger);
-        Assert.Null(fixture.Directory.Find(fixture.AccountId));
-        Assert.Null(fixture.Users.GetRequired(fixture.OnlineUserId).CurrentCharacterId);
-        Assert.Equal([fixture.ConnectionId], fixture.Closer.Closed);
+            Assert.Equal(
+                ["prepare", "position", "static", "inventory", "pre", "active", "publish",
+                    "plan-pvp", "x11", "cleanup", "close"],
+                fixture.Ledger);
+            Assert.Null(fixture.Directory.Find(fixture.AccountId));
+            Assert.Null(fixture.Users.GetRequired(fixture.OnlineUserId).CurrentCharacterId);
+            Assert.Equal([fixture.ConnectionId], fixture.Closer.Closed);
+        });
     }
 
     [Fact]
     public async Task StaticFailure_DoesNotInvokeDailyRefillMutation()
     {
-        var fixture = await Fixture.CreateAsync(failStatic: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync(failStatic: true);
 
-        await Assert.ThrowsAsync<IOException>(async () =>
-            await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
+            await Assert.ThrowsAsync<IOException>(async () =>
+                await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
 
-        Assert.Equal(["prepare", "position", "static", "cleanup", "close"], fixture.Ledger);
-        Assert.Null(fixture.Directory.Find(fixture.AccountId));
-        Assert.Equal(0, fixture.Inventory.Claims);
+            Assert.Equal(["prepare", "position", "static", "cleanup", "close"], fixture.Ledger);
+            Assert.Null(fixture.Directory.Find(fixture.AccountId));
+            Assert.Equal(0, fixture.Inventory.Claims);
 
-        fixture.Sender.FailStatic = false;
-        await fixture.Handler.HandleAsync(
-            fixture.Context,
-            fixture.Command,
-            CancellationToken.None);
-        Assert.Equal(1, fixture.Inventory.Claims);
+            fixture.Sender.FailStatic = false;
+            await fixture.Handler.HandleAsync(
+                fixture.Context,
+                fixture.Command,
+                CancellationToken.None);
+            Assert.Equal(1, fixture.Inventory.Claims);
+        });
     }
 
     [Fact]
     public async Task ExpiredItemCleanupRefusal_RejectsBeforeCharacterSnapshotAndCompensates()
     {
-        var fixture = await Fixture.CreateAsync(refuseExpiredCleanup: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync(refuseExpiredCleanup: true);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
 
-        Assert.Equal(["prepare", "x08", "cleanup", "close"], fixture.Ledger);
-        Assert.Equal(0, fixture.Sender.StateMessageCount);
-        Assert.Equal(0, fixture.Inventory.Claims);
-        Assert.Null(fixture.Directory.Find(fixture.AccountId));
-        Assert.DoesNotContain(typeof(PrepareSelectedCharacterStateCommand), fixture.Bus.DispatchedCommands);
+            Assert.Equal(["prepare", "x08", "cleanup", "close"], fixture.Ledger);
+            Assert.Equal(0, fixture.Sender.StateMessageCount);
+            Assert.Equal(0, fixture.Inventory.Claims);
+            Assert.Null(fixture.Directory.Find(fixture.AccountId));
+            Assert.DoesNotContain(typeof(PrepareSelectedCharacterStateCommand), fixture.Bus.DispatchedCommands);
+        });
     }
 
     [Fact]
     public async Task ExpiredItemCleanupException_RejectsBeforeCharacterSnapshotAndCompensates()
     {
-        var fixture = await Fixture.CreateAsync(failExpiredCleanup: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync(failExpiredCleanup: true);
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
 
-        Assert.IsType<IOException>(error.InnerException);
-        Assert.Equal(["prepare", "x08", "cleanup", "close"], fixture.Ledger);
-        Assert.Equal(0, fixture.Sender.StateMessageCount);
-        Assert.Null(fixture.Directory.Find(fixture.AccountId));
+            Assert.IsType<IOException>(error.InnerException);
+            Assert.Equal(["prepare", "x08", "cleanup", "close"], fixture.Ledger);
+            Assert.Equal(0, fixture.Sender.StateMessageCount);
+            Assert.Null(fixture.Directory.Find(fixture.AccountId));
+        });
     }
 
     [Theory]
@@ -204,32 +226,38 @@ public sealed partial class SelectCharacterLifecycleTests
     public async Task MissingRequiredPrePublicationState_EmitsNoAcceptedOutput(
         bool missingRoster)
     {
-        var fixture = await Fixture.CreateAsync(
-            missingRoster: missingRoster,
-            missingSkillMirror: !missingRoster);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync(
+                missingRoster: missingRoster,
+                missingSkillMirror: !missingRoster);
 
-        await Assert.ThrowsAsync<InvalidDataException>(async () =>
-            await fixture.Handler.HandleAsync(
-                fixture.Context, fixture.Command, CancellationToken.None));
+            await Assert.ThrowsAsync<InvalidDataException>(async () =>
+                await fixture.Handler.HandleAsync(
+                    fixture.Context, fixture.Command, CancellationToken.None));
 
-        Assert.Equal(0, fixture.Sender.StateMessageCount);
-        Assert.DoesNotContain("pre", fixture.Ledger);
-        Assert.Equal(["prepare", "position", "cleanup", "close"], fixture.Ledger);
+            Assert.Equal(0, fixture.Sender.StateMessageCount);
+            Assert.DoesNotContain("pre", fixture.Ledger);
+            Assert.Equal(["prepare", "position", "cleanup", "close"], fixture.Ledger);
+        });
     }
 
     [Fact]
     public async Task QuestAndPetChangesRemainInDeliveryWithoutReplacingASessionSnapshot()
     {
-        var fixture = await Fixture.CreateAsync(changeQuest: true, revivePet: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync(changeQuest: true, revivePet: true);
 
-        await fixture.Handler.HandleAsync(
-            fixture.Context, fixture.Command, CancellationToken.None);
-        var result = fixture.Bus.State!;
+            await fixture.Handler.HandleAsync(
+                fixture.Context, fixture.Command, CancellationToken.None);
+            var result = fixture.Bus.State!;
 
-        Assert.Equal(3, Assert.Single(result.CharacterEntry.Quests.ActiveQuests).TriggerValue);
-        Assert.Equal(1, Assert.Single(result.CharacterEntry.Features.Pets).Field04);
-        Assert.NotNull(fixture.SessionEntry.RuntimeResult);
-        Assert.DoesNotContain("runtime-update", fixture.Ledger);
+            Assert.Equal(3, Assert.Single(result.CharacterEntry.Quests.ActiveQuests).TriggerValue);
+            Assert.Equal(1, Assert.Single(result.CharacterEntry.Features.Pets).Field04);
+            Assert.NotNull(fixture.SessionEntry.RuntimeResult);
+            Assert.DoesNotContain("runtime-update", fixture.Ledger);
+        });
     }
 
     [Fact]
@@ -312,32 +340,45 @@ public sealed partial class SelectCharacterLifecycleTests
     public async Task RejectedRepeatedLoginStillLetsDisconnectObserverCleanupTheSelectedSession()
     {
         var fixture = await Fixture.CreateAsync();
-        await fixture.Handler.HandleAsync(
-            fixture.Context, fixture.Command, CancellationToken.None);
-        var selected = Assert.IsType<SelectedSessionIdentity>(
-            fixture.Directory.FindByConnection(fixture.ConnectionId));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await fixture.Handler.HandleAsync(
+                fixture.Context, fixture.Command, CancellationToken.None);
+        });
+        var selected = TestGameplay.Run(() =>
+        {
+            var selected = Assert.IsType<SelectedSessionIdentity>(
+                fixture.Directory.FindByConnection(fixture.ConnectionId));
+            return selected;
+        });
         var sendsBeforeRejection = fixture.Sender.StateMessageCount;
-        var login = new GameLoginHandler(
-            fixture.Users,
-            fixture.Sender,
-            new RejectedLoginCommandBus(),
-            new StubServerConfigService(),
-            new UnusedAccountEntryStateDomainService(),
-            fixture.Closer,
-            NullLogger<GameLoginHandler>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var login = new GameLoginHandler(
+                fixture.Users,
+                fixture.Sender,
+                new RejectedLoginCommandBus(),
+                new StubServerConfigService(),
+                new UnusedAccountEntryStateDomainService(),
+                fixture.Closer,
+                NullLogger<GameLoginHandler>.Instance);
 
-        await login.HandleAsync(
-            fixture.Context,
-            new GameLoginRequest(
-                GameMessageMetadata.Empty,
-                "lifecycle",
-                "already-consumed-ticket-cannot-be-replayed-0"),
-            CancellationToken.None);
+            await login.HandleAsync(
+                fixture.Context,
+                new GameLoginRequest(
+                    GameMessageMetadata.Empty,
+                    "lifecycle",
+                    "already-consumed-ticket-cannot-be-replayed-0"),
+                CancellationToken.None);
+        });
 
-        Assert.False(fixture.Users.TryGetByConnection(fixture.ConnectionId, out _));
-        Assert.Equal(selected, fixture.Directory.FindByConnection(fixture.ConnectionId));
-        Assert.Equal(sendsBeforeRejection, fixture.Sender.StateMessageCount);
-        Assert.Contains(fixture.ConnectionId, fixture.Closer.Closed);
+        TestGameplay.Run(() =>
+        {
+            Assert.False(fixture.Users.TryGetByConnection(fixture.ConnectionId, out _));
+            Assert.Equal(selected, fixture.Directory.FindByConnection(fixture.ConnectionId));
+            Assert.Equal(sendsBeforeRejection, fixture.Sender.StateMessageCount);
+            Assert.Contains(fixture.ConnectionId, fixture.Closer.Closed);
+        });
 
         var observer = new OnlineUserConnectionObserver(
             fixture.Users,
@@ -354,11 +395,14 @@ public sealed partial class SelectCharacterLifecycleTests
             fixture.Context.Connection,
             CancellationToken.None);
 
-        var cleanup = Assert.Single(fixture.Cleanup.Calls);
-        Assert.Equal(selected, cleanup.Session);
-        Assert.False(cleanup.IncludeOwner);
-        Assert.Null(fixture.Directory.FindByConnection(fixture.ConnectionId));
-        Assert.Null(fixture.Directory.Find(fixture.AccountId));
+        TestGameplay.Run(() =>
+        {
+            var cleanup = Assert.Single(fixture.Cleanup.Calls);
+            Assert.Equal(selected, cleanup.Session);
+            Assert.False(cleanup.IncludeOwner);
+            Assert.Null(fixture.Directory.FindByConnection(fixture.ConnectionId));
+            Assert.Null(fixture.Directory.Find(fixture.AccountId));
+        });
     }
 
     [Fact]
@@ -424,216 +468,249 @@ public sealed partial class SelectCharacterLifecycleTests
     [Fact]
     public async Task AdmissionRefusal_SendsOrderedX08AndHasZeroLifecycleSideEffects()
     {
-        var fixture = await Fixture.CreateAsync(refuseAdmission: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync(refuseAdmission: true);
 
-        await Assert.ThrowsAsync<Dfo.Server.Data.Channel.ChannelAdmissionRefusedException>(async () =>
-            await fixture.Handler.HandleAsync(
-                fixture.Context, fixture.Command, CancellationToken.None));
+            await Assert.ThrowsAsync<Dfo.Server.Data.Channel.ChannelAdmissionRefusedException>(async () =>
+                await fixture.Handler.HandleAsync(
+                    fixture.Context, fixture.Command, CancellationToken.None));
 
-        Assert.Equal(["prepare", "x08"], fixture.Ledger);
-        Assert.Null(fixture.Directory.Find(fixture.AccountId));
-        Assert.Null(fixture.Users.GetRequired(fixture.OnlineUserId).CurrentCharacterId);
-        Assert.Empty(fixture.Closer.Closed);
+            Assert.Equal(["prepare", "x08"], fixture.Ledger);
+            Assert.Null(fixture.Directory.Find(fixture.AccountId));
+            Assert.Null(fixture.Users.GetRequired(fixture.OnlineUserId).CurrentCharacterId);
+            Assert.Empty(fixture.Closer.Closed);
+        });
     }
 
     [Fact]
     public async Task AdmissionRefusal_DoesNotSaveOrReleaseExistingDirtyLease()
     {
-        var fixture = await Fixture.CreateAsync(refuseAdmission: true);
-        var previous = SelectedSessionIdentity.Create(
-            fixture.AccountId, fixture.Result.Character.Identity.CharacterId,
-            fixture.ConnectionId, fixture.AuthenticatedGeneration,
-            StubChannelEntryPolicy.GeneralChannel.ListenerPort);
-        fixture.Directory.Select(previous);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync(refuseAdmission: true);
+            var previous = SelectedSessionIdentity.Create(
+                fixture.AccountId, fixture.Result.Character.Identity.CharacterId,
+                fixture.ConnectionId, fixture.AuthenticatedGeneration,
+                StubChannelEntryPolicy.GeneralChannel.ListenerPort);
+            fixture.Directory.Select(previous);
 
-        await Assert.ThrowsAsync<Dfo.Server.Data.Channel.ChannelAdmissionRefusedException>(async () =>
-            await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
+            await Assert.ThrowsAsync<Dfo.Server.Data.Channel.ChannelAdmissionRefusedException>(async () =>
+                await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
 
-        Assert.Equal(0, fixture.Inventory.Saves);
-        Assert.Equal(previous, fixture.Directory.Find(fixture.AccountId));
-        Assert.Empty(fixture.Cleanup.Calls);
+            Assert.Equal(0, fixture.Inventory.Saves);
+            Assert.Equal(previous, fixture.Directory.Find(fixture.AccountId));
+            Assert.Empty(fixture.Cleanup.Calls);
+        });
     }
 
     [Fact]
     public async Task UnrepresentableWireIdentity_HasZeroRegisteredOrDurablePreparationSideEffects()
     {
-        var fixture = await Fixture.CreateAsync(invalidWireIdentity: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync(invalidWireIdentity: true);
 
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
-            await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
+            await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
+                await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
 
-        Assert.Equal(0, fixture.Preparation!.FullPreparationCalls);
-        Assert.Equal(["prepare"], fixture.Ledger);
-        Assert.Null(fixture.Directory.Find(fixture.AccountId));
-        Assert.Empty(fixture.Cleanup.Calls);
-        Assert.Empty(fixture.Closer.Closed);
+            Assert.Equal(0, fixture.Preparation!.FullPreparationCalls);
+            Assert.Equal(["prepare"], fixture.Ledger);
+            Assert.Null(fixture.Directory.Find(fixture.AccountId));
+            Assert.Empty(fixture.Cleanup.Calls);
+            Assert.Empty(fixture.Closer.Closed);
+        });
     }
 
     [Fact]
     public async Task FullPreparationFailure_AfterRegistrationCompensatesExactSessionAndCloses()
     {
-        var fixture = await Fixture.CreateAsync(failPreparation: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync(failPreparation: true);
 
-        await Assert.ThrowsAsync<IOException>(async () =>
-            await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
+            await Assert.ThrowsAsync<IOException>(async () =>
+                await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
 
-        Assert.Equal(1, fixture.Preparation!.FullPreparationCalls);
-        Assert.Equal(["prepare", "cleanup", "close"], fixture.Ledger);
-        Assert.Null(fixture.Directory.Find(fixture.AccountId));
-        Assert.Equal([fixture.ConnectionId], fixture.Closer.Closed);
+            Assert.Equal(1, fixture.Preparation!.FullPreparationCalls);
+            Assert.Equal(["prepare", "cleanup", "close"], fixture.Ledger);
+            Assert.Null(fixture.Directory.Find(fixture.AccountId));
+            Assert.Equal([fixture.ConnectionId], fixture.Closer.Closed);
+        });
     }
 
     [Fact]
     public async Task PvpDirectFailure_DoesNotMarkReadyAndRollsBackPublishedAttempt()
     {
-        var fixture = await Fixture.CreateAsync(planPvp: true, failPvp: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync(planPvp: true, failPvp: true);
 
-        await Assert.ThrowsAsync<IOException>(async () =>
-            await fixture.Handler.HandleAsync(
-                fixture.Context, fixture.Command, CancellationToken.None));
+            await Assert.ThrowsAsync<IOException>(async () =>
+                await fixture.Handler.HandleAsync(
+                    fixture.Context, fixture.Command, CancellationToken.None));
 
-        Assert.Equal(
-            ["prepare", "position", "static", "inventory", "pre", "active", "publish",
-                "plan-pvp", "pvp", "cleanup", "close"],
-            fixture.Ledger);
-        Assert.DoesNotContain("ready", fixture.Ledger);
-        Assert.Null(fixture.Directory.Find(fixture.AccountId));
-        Assert.Null(fixture.Users.GetRequired(fixture.OnlineUserId).CurrentCharacterId);
+            Assert.Equal(
+                ["prepare", "position", "static", "inventory", "pre", "active", "publish",
+                    "plan-pvp", "pvp", "cleanup", "close"],
+                fixture.Ledger);
+            Assert.DoesNotContain("ready", fixture.Ledger);
+            Assert.Null(fixture.Directory.Find(fixture.AccountId));
+            Assert.Null(fixture.Users.GetRequired(fixture.OnlineUserId).CurrentCharacterId);
+        });
     }
 
     [Fact]
     public async Task PvpPeerFailure_IsolatedAfterReadyAndDoesNotPreventTrailingLocks()
     {
-        var fixture = await Fixture.CreateAsync(planPvp: true, failPvpTarget: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync(planPvp: true, failPvpTarget: true);
 
-        await fixture.Handler.HandleAsync(
-            fixture.Context, fixture.Command, CancellationToken.None);
+            await fixture.Handler.HandleAsync(
+                fixture.Context, fixture.Command, CancellationToken.None);
 
-        Assert.Equal(
-            ["prepare", "position", "static", "inventory", "pre", "active", "publish",
-                "plan-pvp", "pvp", "ready", "target", "x11", "quest", "pet", "premium"],
-            fixture.Ledger);
-        Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
-        Assert.Empty(fixture.Closer.Closed);
+            Assert.Equal(
+                ["prepare", "position", "static", "inventory", "pre", "active", "publish",
+                    "plan-pvp", "pvp", "ready", "target", "x11", "quest", "pet", "premium"],
+                fixture.Ledger);
+            Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
+            Assert.Empty(fixture.Closer.Closed);
 
-        // Who was told, and what about. The fan-out used to be a list of connections built by the
-        // domain service; it is the same people and the same subject, said in characters.
-        var (audience, notification) = Assert.Single(fixture.Notifications.Published);
-        Assert.Equal(
-            [new CharacterId(4242)],
-            Assert.IsType<NotificationAudience.TheseCharacters>(audience).CharacterIds);
-        // Built from the state that was published, not from the one this fixture started with:
-        // spawn placement moves the character between the two, and asserting against the earlier
-        // value is how a first attempt at this case managed to fail while the code was right.
-        Assert.Equal(
-            fixture.SessionEntry.RuntimeResult!.Character,
-            Assert.IsType<PvpParticipantPublished>(notification).Newcomer.Character);
+            // Who was told, and what about. The fan-out used to be a list of connections built by the
+            // domain service; it is the same people and the same subject, said in characters.
+            var (audience, notification) = Assert.Single(fixture.Notifications.Published);
+            Assert.Equal(
+                [new CharacterId(4242)],
+                Assert.IsType<NotificationAudience.TheseCharacters>(audience).CharacterIds);
+            // Built from the state that was published, not from the one this fixture started with:
+            // spawn placement moves the character between the two, and asserting against the earlier
+            // value is how a first attempt at this case managed to fail while the code was right.
+            Assert.Equal(
+                fixture.SessionEntry.RuntimeResult!.Character,
+                Assert.IsType<PvpParticipantPublished>(notification).Newcomer.Character);
+        });
     }
 
     [Fact]
     public async Task EnteringAnOccupiedTown_PublishesTheNewcomerToTheExistingCharacters()
     {
-        var fixture = await Fixture.CreateAsync(planTown: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync(planTown: true);
 
-        await fixture.Handler.HandleAsync(
-            fixture.Context, fixture.Command, CancellationToken.None);
+            await fixture.Handler.HandleAsync(
+                fixture.Context, fixture.Command, CancellationToken.None);
 
-        var (audience, notification) = Assert.Single(fixture.Notifications.Published);
-        Assert.Equal(
-            [new CharacterId(4243)],
-            Assert.IsType<NotificationAudience.TheseSessions>(audience).Sessions
-                .Select(value => value.CharacterId));
-        Assert.Equal("TownParticipantPublished", notification.GetType().Name);
+            var (audience, notification) = Assert.Single(fixture.Notifications.Published);
+            Assert.Equal(
+                [new CharacterId(4243)],
+                Assert.IsType<NotificationAudience.TheseSessions>(audience).Sessions
+                    .Select(value => value.CharacterId));
+            Assert.Equal("TownParticipantPublished", notification.GetType().Name);
 
-        var partySteps = fixture.Ledger
-            .Where(value => value.StartsWith("party:", StringComparison.Ordinal))
-            .ToArray();
-        Assert.Equal(["party:501<-4243", "party:4243<-501"], partySteps);
-        var firstParty = fixture.Ledger.IndexOf(partySteps[0]);
-        Assert.Equal("pre", fixture.Ledger[firstParty - 1]);
-        Assert.Equal("target", fixture.Ledger[firstParty + 1]);
-        Assert.Equal(partySteps[1], fixture.Ledger[firstParty + 2]);
+            var partySteps = fixture.Ledger
+                .Where(value => value.StartsWith("party:", StringComparison.Ordinal))
+                .ToArray();
+            Assert.Equal(["party:501<-4243", "party:4243<-501"], partySteps);
+            var firstParty = fixture.Ledger.IndexOf(partySteps[0]);
+            Assert.Equal("pre", fixture.Ledger[firstParty - 1]);
+            Assert.Equal("target", fixture.Ledger[firstParty + 1]);
+            Assert.Equal(partySteps[1], fixture.Ledger[firstParty + 2]);
+        });
     }
 
     [Fact]
     public async Task TransientTownPublicationFailureRetriesBeforeSendingPartyState()
     {
-        var fixture = await Fixture.CreateAsync(
-            planTown: true,
-            failFirstTownPublication: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync(
+                planTown: true,
+                failFirstTownPublication: true);
 
-        await fixture.Handler.HandleAsync(
-            fixture.Context, fixture.Command, CancellationToken.None);
+            await fixture.Handler.HandleAsync(
+                fixture.Context, fixture.Command, CancellationToken.None);
 
-        Assert.Equal(
-            ["party:501<-4243", "party:4243<-501"],
-            fixture.Ledger
-                .Where(value => value.StartsWith("party:", StringComparison.Ordinal)));
-        Assert.Equal(2, fixture.Notifications.Published.Count);
+            Assert.Equal(
+                ["party:501<-4243", "party:4243<-501"],
+                fixture.Ledger
+                    .Where(value => value.StartsWith("party:", StringComparison.Ordinal)));
+            Assert.Equal(2, fixture.Notifications.Published.Count);
+        });
     }
 
     [Fact]
     public async Task SameConnectionSwitch_RefreshesGenerationAfterNormalCleanup()
     {
-        var fixture = await Fixture.CreateAsync();
-        Assert.True(fixture.Users.TryGetByConnection(fixture.ConnectionId, out var before));
-        var old = SelectedSessionIdentity.Create(
-            fixture.AccountId, new CharacterId(500), fixture.ConnectionId,
-            before!.Generation, StubChannelEntryPolicy.GeneralChannel.ListenerPort);
-        fixture.Directory.Select(old);
-        fixture.Active.EnterWorld(old);
-        fixture.Ledger.Clear();
-        Assert.True(fixture.Users.TryGetByConnection(fixture.ConnectionId, out var selected));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync();
+            Assert.True(fixture.Users.TryGetByConnection(fixture.ConnectionId, out var before));
+            var old = SelectedSessionIdentity.Create(
+                fixture.AccountId, new CharacterId(500), fixture.ConnectionId,
+                before!.Generation, StubChannelEntryPolicy.GeneralChannel.ListenerPort);
+            fixture.Directory.Select(old);
+            fixture.Active.EnterWorld(old);
+            fixture.Ledger.Clear();
+            Assert.True(fixture.Users.TryGetByConnection(fixture.ConnectionId, out var selected));
 
-        await fixture.Handler.HandleAsync(
-            fixture.Context, fixture.Command, CancellationToken.None);
+            await fixture.Handler.HandleAsync(
+                fixture.Context, fixture.Command, CancellationToken.None);
 
-        var current = fixture.Directory.Find(fixture.AccountId)!;
-        Assert.True(current.ConnectionGeneration > selected!.Generation);
-        Assert.Equal([(old, true)], fixture.Cleanup.Calls);
-        Assert.DoesNotContain(fixture.ConnectionId, fixture.Closer.Closed);
-        Assert.False(fixture.Directory.ReleaseExact(old));
+            var current = fixture.Directory.Find(fixture.AccountId)!;
+            Assert.True(current.ConnectionGeneration > selected!.Generation);
+            Assert.Equal([(old, true)], fixture.Cleanup.Calls);
+            Assert.DoesNotContain(fixture.ConnectionId, fixture.Closer.Closed);
+            Assert.False(fixture.Directory.ReleaseExact(old));
+        });
     }
 
     [Fact]
     public async Task CrossConnectionDisplacement_CleansCurrentOwnerBeforeRegisteringReplacement()
     {
-        var fixture = await Fixture.CreateAsync();
-        var displaced = SelectedSessionIdentity.Create(
-            fixture.AccountId, new CharacterId(500), new NetworkConnectionId("Game:old"),
-            1, StubChannelEntryPolicy.GeneralChannel.ListenerPort);
-        fixture.Directory.Select(displaced);
-        fixture.Closer.OnClose = async () =>
+        await TestGameplay.RunAsync(async () =>
         {
-            await using var callbackLease = await fixture.TransitionGate.AcquireAsync(
-                fixture.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
-        };
+            var fixture = await Fixture.CreateAsync();
+            var displaced = SelectedSessionIdentity.Create(
+                fixture.AccountId, new CharacterId(500), new NetworkConnectionId("Game:old"),
+                1, StubChannelEntryPolicy.GeneralChannel.ListenerPort);
+            fixture.Directory.Select(displaced);
+            fixture.Closer.OnClose = async () =>
+            {
+                await using var callbackLease = await fixture.TransitionGate.AcquireAsync(
+                    fixture.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
+            };
 
-        await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None)
-            .AsTask().WaitAsync(TimeSpan.FromSeconds(2));
+            await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None)
+                .AsTask().WaitAsync(TimeSpan.FromSeconds(2));
 
-        Assert.Equal([(displaced, false)], fixture.Cleanup.Calls);
-        Assert.Equal([displaced], fixture.Cleanup.SelectedOwnersAtCall);
-        Assert.Contains(displaced.ConnectionId, fixture.Closer.Closed);
-        Assert.Equal(fixture.ConnectionId, fixture.Directory.Find(fixture.AccountId)!.ConnectionId);
+            Assert.Equal([(displaced, false)], fixture.Cleanup.Calls);
+            Assert.Equal([displaced], fixture.Cleanup.SelectedOwnersAtCall);
+            Assert.Contains(displaced.ConnectionId, fixture.Closer.Closed);
+            Assert.Equal(fixture.ConnectionId, fixture.Directory.Find(fixture.AccountId)!.ConnectionId);
+        });
     }
 
     [Fact]
     public async Task DisplacedCleanupFailure_RemovesNewAttemptAndClosesCurrentConnection()
     {
-        var fixture = await Fixture.CreateAsync();
-        var displaced = SelectedSessionIdentity.Create(
-            fixture.AccountId, new CharacterId(500), new NetworkConnectionId("Game:old-fault"),
-            1, StubChannelEntryPolicy.GeneralChannel.ListenerPort);
-        fixture.Directory.Select(displaced);
-        fixture.Cleanup.FailureSession = displaced;
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync();
+            var displaced = SelectedSessionIdentity.Create(
+                fixture.AccountId, new CharacterId(500), new NetworkConnectionId("Game:old-fault"),
+                1, StubChannelEntryPolicy.GeneralChannel.ListenerPort);
+            fixture.Directory.Select(displaced);
+            fixture.Cleanup.FailureSession = displaced;
 
-        await Assert.ThrowsAsync<IOException>(async () =>
-            await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
+            await Assert.ThrowsAsync<IOException>(async () =>
+                await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
 
-        Assert.Null(fixture.Directory.Find(fixture.AccountId));
-        Assert.Contains(fixture.ConnectionId, fixture.Closer.Closed);
-        Assert.Contains(displaced.ConnectionId, fixture.Closer.Closed);
+            Assert.Null(fixture.Directory.Find(fixture.AccountId));
+            Assert.Contains(fixture.ConnectionId, fixture.Closer.Closed);
+            Assert.Contains(displaced.ConnectionId, fixture.Closer.Closed);
+        });
     }
 
     private sealed class Fixture
@@ -739,115 +816,118 @@ public sealed partial class SelectCharacterLifecycleTests
             Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? achievementGate = null,
             ITauKingdomDomainService? tau = null)
         {
-            var accountId = new AccountId(501);
-            var connectionId = new NetworkConnectionId("Game:lifecycle");
-            var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(accountId, 501, 3);
-            if (invalidWireIdentity)
-                result = result with
-                {
-                    Character = result.Character with
+            return await TestGameplay.RunAsync(async () =>
+            {
+                var accountId = new AccountId(501);
+                var connectionId = new NetworkConnectionId("Game:lifecycle");
+                var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(accountId, 501, 3);
+                if (invalidWireIdentity)
+                    result = result with
                     {
-                        Identity = result.Character.Identity with
-                        { CharacterId = new CharacterId(ushort.MaxValue + 1) }
-                    }
-                };
-            if (missingRoster)
-                result = result with { RosterEntry = null };
-            if (missingSkillMirror)
-                result = result with
-                {
-                    CharacterEntry = result.CharacterEntry with
-                    {
-                        Skills = result.CharacterEntry.Skills with { ProtocolMirror = null },
-                    },
-                };
-            if (planTown)
-                result = result with
-                {
-                    Session = result.Session with
-                    {
-                        Adjacent = result.Session.Adjacent with
+                        Character = result.Character with
                         {
-                            TownPresence = new TownPresenceEntryState(
-                                result.World.Channel.Spawn.TownId,
-                                result.World.Channel.Spawn.AreaId,
-                                [new PresentCharacterState(
-                                    new CharacterId(4243),
-                                    result.World.Channel.Spawn.TownId,
-                                    result.World.Channel.Spawn.AreaId)]),
+                            Identity = result.Character.Identity with
+                            { CharacterId = new CharacterId(ushort.MaxValue + 1) }
+                        }
+                    };
+                if (missingRoster)
+                    result = result with { RosterEntry = null };
+                if (missingSkillMirror)
+                    result = result with
+                    {
+                        CharacterEntry = result.CharacterEntry with
+                        {
+                            Skills = result.CharacterEntry.Skills with { ProtocolMirror = null },
                         },
-                    },
-                };
-            var ledger = new List<string>();
-            var users = new UserDomainServices(accountId);
-            var registered = users.RegisterConnection(new NetworkConnectionContext(
-                connectionId, NetworkEndpointKind.Game, StubChannelEntryPolicy.GeneralChannel.ListenerPort));
-            await users.AuthenticateForTestAsync(registered.OnlineUserId);
-            var authenticated = users.GetRequired(registered.OnlineUserId);
-            var directory = users.Sessions;
-            var active = new RecordingActive(directory, ledger);
-            var closer = new RecordingCloser(ledger);
-            var cleanup = new RecordingCleanup(directory, ledger);
-            var mutations = new CharacterMutations(ledger);
-            var inventory = new InventoryPreparation(result, ledger, refillCommits);
-            var sender = new RecordingSender(
-                ledger, failTrailingLocks, failPvp, failPvpTarget, failStatic, blockStatic);
-            var sessionEntry = new SessionEntry(ledger, planPvp);
-            var notifications = new RecordingNotifications(ledger, failFirstTownPublication);
-            var partyProjection = new RecordingPartyTownProjectionDelivery(ledger);
-            var townAreaProjection = new TownAreaProjectionDelivery(
-                new SessionPresenceDomainService(),
-                directory,
-                new EmptyCurrentViews(),
-                notifications,
-                partyProjection,
-                sender,
-                new EveryTownMovement());
-            var transitionGate = new SelectedSessionTransitionGate();
-            var preparation = refuseAdmission
-                ? null
-                : new Preparation(result, ledger, failPreparation, mutations);
-            var prepareHandler = new PrepareSelectedCharacterSessionCommandHandler(
-                users,
-                refuseAdmission ? new RefusingPreparation(ledger) : preparation!,
-                directory,
-                cleanup);
-            var bus = new RecordingCommandBus(
-                prepareHandler,
-                new CleanupExpiredCharacterItemsCommandHandler(
-                    new StubExpiredCleanup(refuseExpiredCleanup, failExpiredCleanup)),
-                new PrepareSelectedCharacterStateCommandHandler(
-                    refuseAdmission ? new RefusingPreparation(ledger) : preparation!, inventory),
-                new ApplySelectedCharacterDailyRefillCommandHandler(inventory),
-                new PublishSelectedCharacterSessionCommandHandler(active, sessionEntry),
-                new MarkSelectedCharacterPvpReadyCommandHandler(sessionEntry),
-                new SynchronizeSelectedCharacterQuestsCommandHandler(
-                    new QuestEntry(ledger, changeQuest)),
-                new ReviveSelectedCharacterPetCommandHandler(
-                    new PetEntry(ledger, revivePet)),
-                new CompensateSelectedCharacterSessionCommandHandler(cleanup, directory));
-            var handler = new SelectCharacterHandler(
-                users,
-                new StubChannelEntryPolicy(),
-                bus,
-                new StubStateMessageFactory(),
-                transitionGate,
-                directory,
-                sender,
-                notifications,
-                townAreaProjection,
-                new NoopCleanupDelivery(),
-                closer,
-                NullLogger<SelectCharacterHandler>.Instance,
-                // These tests describe the full delivery contract, including everything that
-                // follows the entry batch. Production runs the reference sequence instead.
-                SelectCharacterDeliveryOptions.Everything, achievementProjectionGate:achievementGate, tau:tau);
-            var command = new SelectCharacterRequest(GameMessageMetadata.Empty, 3);
-            return new Fixture(
-                accountId, connectionId, result, ledger, directory, active, closer,
-                users, cleanup, mutations, inventory, sender, notifications, sessionEntry,
-                preparation, transitionGate, bus, handler, command,
-                registered.OnlineUserId, authenticated.Generation);
+                    };
+                if (planTown)
+                    result = result with
+                    {
+                        Session = result.Session with
+                        {
+                            Adjacent = result.Session.Adjacent with
+                            {
+                                TownPresence = new TownPresenceEntryState(
+                                    result.World.Channel.Spawn.TownId,
+                                    result.World.Channel.Spawn.AreaId,
+                                    [new PresentCharacterState(
+                                        new CharacterId(4243),
+                                        result.World.Channel.Spawn.TownId,
+                                        result.World.Channel.Spawn.AreaId)]),
+                            },
+                        },
+                    };
+                var ledger = new List<string>();
+                var users = new UserDomainServices(accountId);
+                var registered = users.RegisterConnection(new NetworkConnectionContext(
+                    connectionId, NetworkEndpointKind.Game, StubChannelEntryPolicy.GeneralChannel.ListenerPort));
+                await users.AuthenticateForTestAsync(registered.OnlineUserId);
+                var authenticated = users.GetRequired(registered.OnlineUserId);
+                var directory = users.Sessions;
+                var active = new RecordingActive(directory, ledger);
+                var closer = new RecordingCloser(ledger);
+                var cleanup = new RecordingCleanup(directory, ledger);
+                var mutations = new CharacterMutations(ledger);
+                var inventory = new InventoryPreparation(result, ledger, refillCommits);
+                var sender = new RecordingSender(
+                    ledger, failTrailingLocks, failPvp, failPvpTarget, failStatic, blockStatic);
+                var sessionEntry = new SessionEntry(ledger, planPvp);
+                var notifications = new RecordingNotifications(ledger, failFirstTownPublication);
+                var partyProjection = new RecordingPartyTownProjectionDelivery(ledger);
+                var townAreaProjection = new TownAreaProjectionDelivery(
+                    new SessionPresenceDomainService(),
+                    directory,
+                    new EmptyCurrentViews(),
+                    notifications,
+                    partyProjection,
+                    sender,
+                    new EveryTownMovement());
+                var transitionGate = new SelectedSessionTransitionGate();
+                var preparation = refuseAdmission
+                    ? null
+                    : new Preparation(result, ledger, failPreparation, mutations);
+                var prepareHandler = new PrepareSelectedCharacterSessionCommandHandler(
+                    users,
+                    refuseAdmission ? new RefusingPreparation(ledger) : preparation!,
+                    directory,
+                    cleanup);
+                var bus = new RecordingCommandBus(
+                    prepareHandler,
+                    new CleanupExpiredCharacterItemsCommandHandler(
+                        new StubExpiredCleanup(refuseExpiredCleanup, failExpiredCleanup)),
+                    new PrepareSelectedCharacterStateCommandHandler(
+                        refuseAdmission ? new RefusingPreparation(ledger) : preparation!, inventory),
+                    new ApplySelectedCharacterDailyRefillCommandHandler(inventory),
+                    new PublishSelectedCharacterSessionCommandHandler(active, sessionEntry),
+                    new MarkSelectedCharacterPvpReadyCommandHandler(sessionEntry),
+                    new SynchronizeSelectedCharacterQuestsCommandHandler(
+                        new QuestEntry(ledger, changeQuest)),
+                    new ReviveSelectedCharacterPetCommandHandler(
+                        new PetEntry(ledger, revivePet)),
+                    new CompensateSelectedCharacterSessionCommandHandler(cleanup, directory));
+                var handler = new SelectCharacterHandler(
+                    users,
+                    new StubChannelEntryPolicy(),
+                    bus,
+                    new StubStateMessageFactory(),
+                    transitionGate,
+                    directory,
+                    sender,
+                    notifications,
+                    townAreaProjection,
+                    new NoopCleanupDelivery(),
+                    closer,
+                    NullLogger<SelectCharacterHandler>.Instance,
+                    // These tests describe the full delivery contract, including everything that
+                    // follows the entry batch. Production runs the reference sequence instead.
+                    SelectCharacterDeliveryOptions.Everything, achievementProjectionGate:achievementGate, tau:tau);
+                var command = new SelectCharacterRequest(GameMessageMetadata.Empty, 3);
+                return new Fixture(
+                    accountId, connectionId, result, ledger, directory, active, closer,
+                    users, cleanup, mutations, inventory, sender, notifications, sessionEntry,
+                    preparation, transitionGate, bus, handler, command,
+                    registered.OnlineUserId, authenticated.Generation);
+            });
         }
     }
 

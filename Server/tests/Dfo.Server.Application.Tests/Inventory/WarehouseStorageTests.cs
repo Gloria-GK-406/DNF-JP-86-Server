@@ -13,6 +13,7 @@ using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Tests.Support;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -205,14 +206,17 @@ public sealed class WarehouseStorageTests
     [Fact]
     public async Task Successful_handler_delivery_starts_with_committed_ack_then_authoritative_snapshots()
     {
-        using var host=Fixture();
-        host.Sql($"UPDATE characters SET level=60,exp={host.ExperienceForLevel(60)}");
-        host.Sender.BeforeSend=()=>{Assert.Equal(0,host.Gold);Assert.Equal(1,Capacity(host));};
-        await host.Services.GetRequiredService<WarehouseHandler>().HandleAsync(new(host.Connection),
-            new WarehouseRequest(Dfo.Server.Data.Networking.GameMessageMetadata.Empty with { Type=0x0131 },0),default);
-        Assert.IsType<WarehouseResponse>(host.Sender.Messages[0]);
-        Assert.Equal(3,host.Sender.Messages.Count);
-        Assert.All(host.Sender.Batches.SelectMany(b=>b.Frames),f=>Assert.InRange(f.Length,15,1048576));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var host=Fixture();
+            host.Sql($"UPDATE characters SET level=60,exp={host.ExperienceForLevel(60)}");
+            host.Sender.BeforeSend=()=>{Assert.Equal(0,host.Gold);Assert.Equal(1,Capacity(host));};
+            await host.Services.GetRequiredService<WarehouseHandler>().HandleAsync(new(host.Connection),
+                new WarehouseRequest(Dfo.Server.Data.Networking.GameMessageMetadata.Empty with { Type=0x0131 },0),default);
+            Assert.IsType<WarehouseResponse>(host.Sender.Messages[0]);
+            Assert.Equal(3,host.Sender.Messages.Count);
+            Assert.All(host.Sender.Batches.SelectMany(b=>b.Frames),f=>Assert.InRange(f.Length,15,1048576));
+        });
     }
 
     [Dfo.Server.Testing.PvfFact]
@@ -309,8 +313,11 @@ public sealed class WarehouseStorageTests
             host.OnlineUser, host.Session, space, InventorySortOrder.Default)).AsTask();
     internal static async Task InTransaction(ShopFixture host, Func<Task> action)
     {
-        await using var tx = ((DomainTransactionScope)host.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
-        await action(); await tx.CommitAsync(default);
+        await TestGameplay.RunAsync(host.Services, async () =>
+        {
+            await using var tx = ((DomainTransactionScope)host.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+            await action(); await tx.CommitAsync(default);
+        });
     }
     private static int Capacity(ShopFixture host) => host.Scalar("SELECT selection_key FROM account_cargo_state WHERE account_id=1");
     private static int CargoGold(ShopFixture host) => host.Scalar("SELECT value32 FROM account_cargo_state WHERE account_id=1");

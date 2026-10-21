@@ -17,6 +17,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Tests.Inventory;
+using Dfo.Server.Testing;
 namespace Dfo.Server.Application.Tests.World;
 
 /// <summary>
@@ -112,25 +113,28 @@ public sealed class PaidCardFlipCostTests
     [SkippableFact]
     public async Task A_paid_flip_costs_the_archives_price_for_the_dungeons_level()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        using var provider = ContentArchive.CreateContentProvider();
-        var price = Price(provider);
-        var world = new Flip(provider, funded: price + 500);
-
-        try
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await world.Turn(ClearRewardCardKind.Paid, 0);
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            using var provider = ContentArchive.CreateContentProvider();
+            var price = Price(provider);
+            var world = new Flip(provider, funded: price + 500);
 
-            Assert.Equal(SelectCardStatus.Flipped, result.Status);
-            Assert.Equal(price, result.GoldCharged);
-            Assert.NotEqual(0, result.GoldPaid);
-            Assert.Equal(500 + result.GoldPaid, await world.CarriedGold());
-            Assert.Equal(CardItemId, world.Bag.Landed?.ItemId);
-        }
-        finally
-        {
-            world.Discard();
-        }
+            try
+            {
+                var result = await world.Turn(ClearRewardCardKind.Paid, 0);
+
+                Assert.Equal(SelectCardStatus.Flipped, result.Status);
+                Assert.Equal(price, result.GoldCharged);
+                Assert.NotEqual(0, result.GoldPaid);
+                Assert.Equal(500 + result.GoldPaid, await world.CarriedGold());
+                Assert.Equal(CardItemId, world.Bag.Landed?.ItemId);
+            }
+            finally
+            {
+                world.Discard();
+            }
+        });
     }
 
     /// <summary>
@@ -146,26 +150,29 @@ public sealed class PaidCardFlipCostTests
     [SkippableFact]
     public async Task An_account_a_coin_short_of_the_archives_price_is_refused_and_keeps_it()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        using var provider = ContentArchive.CreateContentProvider();
-        var price = Price(provider);
-        var world = new Flip(provider, funded: price - 1);
-
-        try
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await world.Turn(ClearRewardCardKind.Paid, 0);
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            using var provider = ContentArchive.CreateContentProvider();
+            var price = Price(provider);
+            var world = new Flip(provider, funded: price - 1);
 
-            Assert.Equal(SelectCardStatus.NotEnoughGold, result.Status);
-            Assert.Equal(0, result.GoldCharged);
-            Assert.Equal(0, result.GoldPaid);
-            Assert.Empty(result.Slots);
-            Assert.Equal(price - 1, await world.CarriedGold());
-            Assert.Null(world.Bag.Landed);
-        }
-        finally
-        {
-            world.Discard();
-        }
+            try
+            {
+                var result = await world.Turn(ClearRewardCardKind.Paid, 0);
+
+                Assert.Equal(SelectCardStatus.NotEnoughGold, result.Status);
+                Assert.Equal(0, result.GoldCharged);
+                Assert.Equal(0, result.GoldPaid);
+                Assert.Empty(result.Slots);
+                Assert.Equal(price - 1, await world.CarriedGold());
+                Assert.Null(world.Bag.Landed);
+            }
+            finally
+            {
+                world.Discard();
+            }
+        });
     }
 
     /// <summary>
@@ -198,42 +205,45 @@ public sealed class PaidCardFlipCostTests
     [SkippableFact]
     public async Task A_clear_that_levelled_the_character_still_charges_what_it_announced()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        using var provider = ContentArchive.CreateContentProvider();
-        var announced = Price(provider, BasisLevel);
-        var atTheSettledLevel = Price(provider, LevelBeforeTheAward);
-        var afterTheAward = Price(provider, Level);
-
-        // Three different figures: the dungeon's, and the two the character's level passes through
-        // over this clear. Any of the three could have been charged and each names a different
-        // defect.
-        Assert.NotEqual(announced, atTheSettledLevel);
-        Assert.NotEqual(announced, afterTheAward);
-        Assert.NotEqual(atTheSettledLevel, afterTheAward);
-
-        var funded = announced + atTheSettledLevel + afterTheAward;
-        var world = new Flip(provider, funded: funded, settleAtLevel: LevelBeforeTheAward);
-
-        try
+        await TestGameplay.RunAsync(async () =>
         {
-            // What the result screen was handed when the clear settled: the dungeon's price, not
-            // the price of the level the character settled at.
-            Assert.Equal(announced, world.Announced);
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            using var provider = ContentArchive.CreateContentProvider();
+            var announced = Price(provider, BasisLevel);
+            var atTheSettledLevel = Price(provider, LevelBeforeTheAward);
+            var afterTheAward = Price(provider, Level);
 
-            // And what the settlement answers once the award has moved the character: the same
-            // figure, because the clear fixed it rather than pricing anything afresh.
-            Assert.Equal(announced, await world.PriceTheSettlementAnswersAt(Level));
+            // Three different figures: the dungeon's, and the two the character's level passes through
+            // over this clear. Any of the three could have been charged and each names a different
+            // defect.
+            Assert.NotEqual(announced, atTheSettledLevel);
+            Assert.NotEqual(announced, afterTheAward);
+            Assert.NotEqual(atTheSettledLevel, afterTheAward);
 
-            var result = await world.Turn(ClearRewardCardKind.Paid, 0, standingAt: Level);
+            var funded = announced + atTheSettledLevel + afterTheAward;
+            var world = new Flip(provider, funded: funded, settleAtLevel: LevelBeforeTheAward);
 
-            Assert.Equal(SelectCardStatus.Flipped, result.Status);
-            Assert.Equal(announced, result.GoldCharged);
-            Assert.Equal(funded - announced + result.GoldPaid, await world.CarriedGold());
-        }
-        finally
-        {
-            world.Discard();
-        }
+            try
+            {
+                // What the result screen was handed when the clear settled: the dungeon's price, not
+                // the price of the level the character settled at.
+                Assert.Equal(announced, world.Announced);
+
+                // And what the settlement answers once the award has moved the character: the same
+                // figure, because the clear fixed it rather than pricing anything afresh.
+                Assert.Equal(announced, await world.PriceTheSettlementAnswersAt(Level));
+
+                var result = await world.Turn(ClearRewardCardKind.Paid, 0, standingAt: Level);
+
+                Assert.Equal(SelectCardStatus.Flipped, result.Status);
+                Assert.Equal(announced, result.GoldCharged);
+                Assert.Equal(funded - announced + result.GoldPaid, await world.CarriedGold());
+            }
+            finally
+            {
+                world.Discard();
+            }
+        });
     }
 
     /// <summary>
@@ -255,36 +265,39 @@ public sealed class PaidCardFlipCostTests
     [MemberData(nameof(SwitchedOff))]
     public async Task A_dungeon_that_switched_its_paid_card_off_refuses_the_flip(int dungeonId)
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        using var provider = ContentArchive.CreateContentProvider();
-        var price = Price(provider);
-        var world = new Flip(
-            provider, funded: price + 500, settleAtLevel: Level, dungeonId: dungeonId);
-
-        try
+        await TestGameplay.RunAsync(async () =>
         {
-            // The clear named no price when it settled, which is what the result screen was given.
-            Assert.Null(world.Announced);
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            using var provider = ContentArchive.CreateContentProvider();
+            var price = Price(provider);
+            var world = new Flip(
+                provider, funded: price + 500, settleAtLevel: Level, dungeonId: dungeonId);
 
-            var paid = await world.Turn(ClearRewardCardKind.Paid, 0);
+            try
+            {
+                // The clear named no price when it settled, which is what the result screen was given.
+                Assert.Null(world.Announced);
 
-            Assert.Equal(SelectCardStatus.NotPriced, paid.Status);
-            Assert.Equal(0, paid.GoldCharged);
-            Assert.Equal(0, paid.GoldPaid);
-            Assert.Empty(paid.Slots);
-            Assert.Equal(price + 500, await world.CarriedGold());
+                var paid = await world.Turn(ClearRewardCardKind.Paid, 0);
 
-            // Only the paid card was switched off.
-            var free = await world.Turn(ClearRewardCardKind.Free, 0);
+                Assert.Equal(SelectCardStatus.NotPriced, paid.Status);
+                Assert.Equal(0, paid.GoldCharged);
+                Assert.Equal(0, paid.GoldPaid);
+                Assert.Empty(paid.Slots);
+                Assert.Equal(price + 500, await world.CarriedGold());
 
-            Assert.Equal(SelectCardStatus.Flipped, free.Status);
-            Assert.Equal(0, free.GoldCharged);
-            Assert.NotEmpty(free.Slots);
-        }
-        finally
-        {
-            world.Discard();
-        }
+                // Only the paid card was switched off.
+                var free = await world.Turn(ClearRewardCardKind.Free, 0);
+
+                Assert.Equal(SelectCardStatus.Flipped, free.Status);
+                Assert.Equal(0, free.GoldCharged);
+                Assert.NotEmpty(free.Slots);
+            }
+            finally
+            {
+                world.Discard();
+            }
+        });
     }
 
     /// <summary>
@@ -298,26 +311,29 @@ public sealed class PaidCardFlipCostTests
     [SkippableFact]
     public async Task A_dungeon_that_declares_no_switch_still_charges_for_a_paid_flip()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        using var provider = ContentArchive.CreateContentProvider();
-        var price = Price(provider);
-        var world = new Flip(
-            provider, funded: price + 500, settleAtLevel: Level, dungeonId: OrdinaryDungeonId);
-
-        try
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.Equal(price, world.Announced);
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            using var provider = ContentArchive.CreateContentProvider();
+            var price = Price(provider);
+            var world = new Flip(
+                provider, funded: price + 500, settleAtLevel: Level, dungeonId: OrdinaryDungeonId);
 
-            var paid = await world.Turn(ClearRewardCardKind.Paid, 0);
+            try
+            {
+                Assert.Equal(price, world.Announced);
 
-            Assert.Equal(SelectCardStatus.Flipped, paid.Status);
-            Assert.Equal(price, paid.GoldCharged);
-            Assert.Equal(500 + paid.GoldPaid, await world.CarriedGold());
-        }
-        finally
-        {
-            world.Discard();
-        }
+                var paid = await world.Turn(ClearRewardCardKind.Paid, 0);
+
+                Assert.Equal(SelectCardStatus.Flipped, paid.Status);
+                Assert.Equal(price, paid.GoldCharged);
+                Assert.Equal(500 + paid.GoldPaid, await world.CarriedGold());
+            }
+            finally
+            {
+                world.Discard();
+            }
+        });
     }
 
     /// <summary>What the archive charges for a paid flip of this dungeon.</summary>

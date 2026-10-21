@@ -7,6 +7,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -17,97 +18,106 @@ public sealed class IllusionTowerRewardProjectionTests
     [InlineData(2)]
     public async Task Committed_kill_batch_retries_once_without_repeating_assets(int floors)
     {
-        var sender = new FailingSender { FailuresRemaining = 1 };
-        var closer = new CleanupCloser();
-        using var fixture = Fixture(floors, sender, closer);
-        var run = await Start(fixture);
-        var states = new List<(long Experience, long Gold, long Items)>();
-        sender.OnAttempt = () => states.Add(Assets(fixture));
-
-        Assert.True(await Delivery(fixture).KillAsync(fixture.Session.ConnectionId,
-            GameMessageMetadata.Empty, run.Room.Actors[0].Uid, fixture.Session.WireUserId, default));
-
-        Assert.Equal(2, sender.Attempts.Count);
-        Assert.Same(sender.Attempts[0], sender.Attempts[1]);
-        Assert.Equal(states[0], states[1]);
-        Assert.Equal(states[0], Assets(fixture));
-        Assert.True(states[0].Experience > 0);
-        Assert.Empty(closer.Closed);
-        var current = Tower(fixture).Find(fixture.Session)!;
-        Assert.Equal(floors == 1, current.Completion?.Settled == true);
-        if (floors == 1)
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.True(states[0].Gold > 100000);
-            Assert.True(states[0].Items > 0);
-            Assert.Contains(sender.Attempts[1].RequiredDirectMessages,
-                message => message.GetType().Name == "IllusionTowerRewardNotification");
-        }
+            var sender = new FailingSender { FailuresRemaining = 1 };
+            var closer = new CleanupCloser();
+            using var fixture = Fixture(floors, sender, closer);
+            var run = await Start(fixture);
+            var states = new List<(long Experience, long Gold, long Items)>();
+            sender.OnAttempt = () => states.Add(Assets(fixture));
 
-        Assert.True(await Delivery(fixture).KillAsync(fixture.Session.ConnectionId,
-            GameMessageMetadata.Empty, run.Room.Actors[0].Uid, fixture.Session.WireUserId, default));
-        Assert.Equal(2, sender.Attempts.Count);
-        Assert.Equal(states[0], Assets(fixture));
+            Assert.True(await Delivery(fixture).KillAsync(fixture.Session.ConnectionId,
+                GameMessageMetadata.Empty, run.Room.Actors[0].Uid, fixture.Session.WireUserId, default));
+
+            Assert.Equal(2, sender.Attempts.Count);
+            Assert.Same(sender.Attempts[0], sender.Attempts[1]);
+            Assert.Equal(states[0], states[1]);
+            Assert.Equal(states[0], Assets(fixture));
+            Assert.True(states[0].Experience > 0);
+            Assert.Empty(closer.Closed);
+            var current = Tower(fixture).Find(fixture.Session)!;
+            Assert.Equal(floors == 1, current.Completion?.Settled == true);
+            if (floors == 1)
+            {
+                Assert.True(states[0].Gold > 100000);
+                Assert.True(states[0].Items > 0);
+                Assert.Contains(sender.Attempts[1].RequiredDirectMessages,
+                    message => message.GetType().Name == "IllusionTowerRewardNotification");
+            }
+
+            Assert.True(await Delivery(fixture).KillAsync(fixture.Session.ConnectionId,
+                GameMessageMetadata.Empty, run.Room.Actors[0].Uid, fixture.Session.WireUserId, default));
+            Assert.Equal(2, sender.Attempts.Count);
+            Assert.Equal(states[0], Assets(fixture));
+        });
     }
 
     [Fact]
     public async Task Persistent_delivery_failure_closes_after_two_attempts_and_real_cleanup_removes_receipt()
     {
-        var sender = new FailingSender { FailuresRemaining = int.MaxValue };
-        var closer = new CleanupCloser();
-        using var fixture = Fixture(1, sender, closer);
-        var session = fixture.Session;
-        var run = await Start(fixture);
-        var states = new List<(long Experience, long Gold, long Items)>();
-        sender.OnAttempt = () => states.Add(Assets(fixture));
-        closer.OnClose = async connectionId =>
+        await TestGameplay.RunAsync(async () =>
         {
-            _ = await fixture.Services.GetRequiredService<ISelectedSessionCleanupDomainService>()
-                .CleanupAsync(session, includeOwner: false, default);
-        };
+            var sender = new FailingSender { FailuresRemaining = int.MaxValue };
+            var closer = new CleanupCloser();
+            using var fixture = Fixture(1, sender, closer);
+            var session = fixture.Session;
+            var run = await Start(fixture);
+            var states = new List<(long Experience, long Gold, long Items)>();
+            sender.OnAttempt = () => states.Add(Assets(fixture));
+            closer.OnClose = async connectionId =>
+            {
+                _ = await fixture.Services.GetRequiredService<ISelectedSessionCleanupDomainService>()
+                    .CleanupAsync(session, includeOwner: false, default);
+            };
 
-        Assert.True(await Delivery(fixture).KillAsync(session.ConnectionId,
-            GameMessageMetadata.Empty, run.Room.Actors[0].Uid, session.WireUserId, default));
+            Assert.True(await Delivery(fixture).KillAsync(session.ConnectionId,
+                GameMessageMetadata.Empty, run.Room.Actors[0].Uid, session.WireUserId, default));
 
-        Assert.Equal(2, sender.Attempts.Count);
-        Assert.Same(sender.Attempts[0], sender.Attempts[1]);
-        Assert.Equal([session.ConnectionId], closer.Closed);
-        Assert.Null(Tower(fixture).Find(session));
-        Assert.Empty(Tower(fixture).FindReturnsDue(DateTimeOffset.MaxValue));
-        Assert.Null(fixture.Services.GetRequiredService<ISelectedSessionDomainService>()
-            .FindByCharacter(session.CharacterId));
-        Assert.Equal(states[0], states[1]);
-        Assert.Equal(states[0], Assets(fixture));
+            Assert.Equal(2, sender.Attempts.Count);
+            Assert.Same(sender.Attempts[0], sender.Attempts[1]);
+            Assert.Equal([session.ConnectionId], closer.Closed);
+            Assert.Null(Tower(fixture).Find(session));
+            Assert.Empty(Tower(fixture).FindReturnsDue(DateTimeOffset.MaxValue));
+            Assert.Null(fixture.Services.GetRequiredService<ISelectedSessionDomainService>()
+                .FindByCharacter(session.CharacterId));
+            Assert.Equal(states[0], states[1]);
+            Assert.Equal(states[0], Assets(fixture));
+        });
     }
 
     [Fact]
     public async Task A_replacement_session_receives_neither_old_retry_nor_close_and_survives_old_cleanup()
     {
-        var sender = new FailingSender { FailuresRemaining = 1 };
-        var closer = new CleanupCloser();
-        using var fixture = Fixture(1, sender, closer);
-        var old = fixture.Session;
-        var run = await Start(fixture);
-        SelectedSessionIdentity? replacement = null;
-        sender.OnAttempt = () => replacement ??= ReplaceSession(fixture);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new FailingSender { FailuresRemaining = 1 };
+            var closer = new CleanupCloser();
+            using var fixture = Fixture(1, sender, closer);
+            var old = fixture.Session;
+            var run = await Start(fixture);
+            SelectedSessionIdentity? replacement = null;
+            sender.OnAttempt = () => replacement ??= ReplaceSession(fixture);
 
-        Assert.True(await Delivery(fixture).KillAsync(old.ConnectionId,
-            GameMessageMetadata.Empty, run.Room.Actors[0].Uid, old.WireUserId, default));
+            Assert.True(await Delivery(fixture).KillAsync(old.ConnectionId,
+                GameMessageMetadata.Empty, run.Room.Actors[0].Uid, old.WireUserId, default));
 
-        Assert.Single(sender.Attempts);
-        Assert.Empty(closer.Closed);
-        Assert.NotNull(replacement);
-        var cleanup = fixture.Services.GetRequiredService<ISelectedSessionCleanupDomainService>();
-        _ = await cleanup.CleanupAsync(old, includeOwner: false, default);
-        Assert.Null(Tower(fixture).Find(old));
-        Assert.Equal(replacement, fixture.Services.GetRequiredService<ISelectedSessionDomainService>()
-            .FindByCharacter(old.CharacterId));
-        var next = await Tower(fixture).EnterAsync([new(replacement, 0)], replacement, 43, default);
-        Assert.NotNull(next.Run);
-        Assert.NotEqual(run.RunId, next.Run.RunId);
-        _ = await cleanup.CleanupAsync(old, includeOwner: false, default);
-        Assert.Equal(next.Run.RunId, Tower(fixture).Find(replacement)!.RunId);
-        Assert.Single(sender.Attempts);
-        Assert.Empty(closer.Closed);
+            Assert.Single(sender.Attempts);
+            Assert.Empty(closer.Closed);
+            Assert.NotNull(replacement);
+            var cleanup = fixture.Services.GetRequiredService<ISelectedSessionCleanupDomainService>();
+            _ = await cleanup.CleanupAsync(old, includeOwner: false, default);
+            Assert.Null(Tower(fixture).Find(old));
+            Assert.Equal(replacement, fixture.Services.GetRequiredService<ISelectedSessionDomainService>()
+                .FindByCharacter(old.CharacterId));
+            var next = await Tower(fixture).EnterAsync([new(replacement, 0)], replacement, 43, default);
+            Assert.NotNull(next.Run);
+            Assert.NotEqual(run.RunId, next.Run.RunId);
+            _ = await cleanup.CleanupAsync(old, includeOwner: false, default);
+            Assert.Equal(next.Run.RunId, Tower(fixture).Find(replacement)!.RunId);
+            Assert.Single(sender.Attempts);
+            Assert.Empty(closer.Closed);
+        });
     }
 
     private static ShopFixture Fixture(int floors, FailingSender sender, CleanupCloser closer)

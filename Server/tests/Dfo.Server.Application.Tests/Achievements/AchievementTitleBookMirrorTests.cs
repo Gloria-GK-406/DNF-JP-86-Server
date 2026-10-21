@@ -65,23 +65,26 @@ public sealed partial class AchievementTitleBookTests
     [InlineData(true,false)]
     public async Task Mirror_unequip_deletes_only_the_projection_leaves_destination_untouched_and_rolls_back_atomically(bool occupied, bool commit)
     {
-        await using var f=new Fixture(); var slot=OpenTitleSlots(f)[0];
-        var book=ContainerId.ForCharacter(Character,InventoryContainerType.TitleBookEvent); var bag=ContainerId.ForCharacter(Character,InventoryContainerType.Main);
-        var source=await SeedTitle(f,26596,book,slot.Index);
-        var target=occupied ? await SeedTitle(f,26628,bag,9) : null;
-        Assert.True((await f.WriteAsync(async()=>await f.Titles.WithdrawAsync(Character,TitleWorn,26596,4,slot.Index,default))).Success);
-        BindTitleContainers(f); var before=f.ItemsAndPositions(); var events=f.Scalar("SELECT COUNT(*) FROM domain_events");
-        await using (var tx=f.Scope.Begin()) {
-            Assert.Equal(ItemMoveStatus.MirrorRemoved,(await MoveTitle(f,TitleWorn,TitleBag)).Status);
-            if(commit)await tx.CommitAsync(default);
-        }
-        if(!commit) {Assert.Equal(before,f.ItemsAndPositions());Assert.Equal(events,f.Scalar("SELECT COUNT(*) FROM domain_events"));return;}
-        Assert.Null(await ReadTitle(f,ContainerId.ForCharacter(Character,InventoryContainerType.Equipment),13));
-        Assert.Equal(target,await ReadTitle(f,bag,9));Assert.Equal(source,await ReadTitle(f,book,slot.Index));
-        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM items WHERE is_mirror=1"));
-        await using var restored=new Fixture(f.Path);
-        await restored.WriteAsync(async()=>await restored.Titles.PrepareAsync(Character,default));
-        Assert.Null(await ReadTitle(restored,ContainerId.ForCharacter(Character,InventoryContainerType.Equipment),13));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f=new Fixture(); var slot=OpenTitleSlots(f)[0];
+            var book=ContainerId.ForCharacter(Character,InventoryContainerType.TitleBookEvent); var bag=ContainerId.ForCharacter(Character,InventoryContainerType.Main);
+            var source=await SeedTitle(f,26596,book,slot.Index);
+            var target=occupied ? await SeedTitle(f,26628,bag,9) : null;
+            Assert.True((await f.WriteAsync(async()=>await f.Titles.WithdrawAsync(Character,TitleWorn,26596,4,slot.Index,default))).Success);
+            BindTitleContainers(f); var before=f.ItemsAndPositions(); var events=f.Scalar("SELECT COUNT(*) FROM domain_events");
+            await using (var tx=f.Scope.Begin()) {
+                Assert.Equal(ItemMoveStatus.MirrorRemoved,(await MoveTitle(f,TitleWorn,TitleBag)).Status);
+                if(commit)await tx.CommitAsync(default);
+            }
+            if(!commit) {Assert.Equal(before,f.ItemsAndPositions());Assert.Equal(events,f.Scalar("SELECT COUNT(*) FROM domain_events"));return;}
+            Assert.Null(await ReadTitle(f,ContainerId.ForCharacter(Character,InventoryContainerType.Equipment),13));
+            Assert.Equal(target,await ReadTitle(f,bag,9));Assert.Equal(source,await ReadTitle(f,book,slot.Index));
+            Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM items WHERE is_mirror=1"));
+            await using var restored=new Fixture(f.Path);
+            await restored.WriteAsync(async()=>await restored.Titles.PrepareAsync(Character,default));
+            Assert.Null(await ReadTitle(restored,ContainerId.ForCharacter(Character,InventoryContainerType.Equipment),13));
+        });
     }
     [PvfFact]
     public async Task Invalid_destination_and_noop_do_not_delete_mirrors_and_real_equipment_can_replace_them()
@@ -115,38 +118,41 @@ public sealed partial class AchievementTitleBookTests
     [InlineData(6)]
     public async Task Real_title_replaces_mirror_in_one_transaction_and_refusal_or_rollback_preserves_old_wear(int mode)
     {
-        await using var f = new Fixture(wear: mode == 4 ? new RejectNewTitleWear() : null);
-        var slot = OpenTitleSlots(f)[0]; var book = ContainerId.ForCharacter(Character, InventoryContainerType.TitleBookEvent);
-        var bag = ContainerId.ForCharacter(Character, InventoryContainerType.Main); var equip = ContainerId.ForCharacter(Character, InventoryContainerType.Equipment);
-        var original = await SeedTitle(f, 26596, book, slot.Index);
-        Assert.True((await f.WriteAsync(async () => await f.Titles.WithdrawAsync(Character, TitleWorn, 26596, 4, slot.Index, default))).Success);
-        var real = await SeedTitle(f, 26628, bag, 9);
-        if (mode == 6) real = await f.WriteAsync(async () => {
-            var store = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
-            var item = (await store.GetAsync(bag, 9, default))!;
-            return (await store.UpdateAsync(item, x => x with { ExpireTime = checked((int)DateTimeOffset.UtcNow.AddDays(1).ToUnixTimeSeconds()) }, default)).Snapshot;
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = new Fixture(wear: mode == 4 ? new RejectNewTitleWear() : null);
+            var slot = OpenTitleSlots(f)[0]; var book = ContainerId.ForCharacter(Character, InventoryContainerType.TitleBookEvent);
+            var bag = ContainerId.ForCharacter(Character, InventoryContainerType.Main); var equip = ContainerId.ForCharacter(Character, InventoryContainerType.Equipment);
+            var original = await SeedTitle(f, 26596, book, slot.Index);
+            Assert.True((await f.WriteAsync(async () => await f.Titles.WithdrawAsync(Character, TitleWorn, 26596, 4, slot.Index, default))).Success);
+            var real = await SeedTitle(f, 26628, bag, 9);
+            if (mode == 6) real = await f.WriteAsync(async () => {
+                var store = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
+                var item = (await store.GetAsync(bag, 9, default))!;
+                return (await store.UpdateAsync(item, x => x with { ExpireTime = checked((int)DateTimeOffset.UtcNow.AddDays(1).ToUnixTimeSeconds()) }, default)).Snapshot;
+            });
+            Assert.True(await f.WriteAsync(async () => await f.Titles.SetAppearanceAsync(Character, 26628, default)));
+            if (mode == 3) await f.WriteAsync(async () => {
+                var store = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
+                var item = (await store.GetAsync(bag, 9, default))!;
+                await store.UpdateAsync(item, x => x with { EquipmentLockId = 1 }, default);
+            });
+            var before = f.ItemsAndPositions(); var events = f.Scalar("SELECT COUNT(*) FROM domain_events");
+            await using (var tx = f.Scope.Begin()) {
+                var result = await f.Titles.EquipCarriedTitleReplacingMirrorAsync(Character, TitleBag,
+                    mode == 1 ? 26596 : 26628, 4, mode == 2 ? slot.Index + 1 : slot.Index, default);
+                Assert.Equal(mode is 0 or 5 or 6, result.Success);
+                if (result.Success) Assert.True(result.CarriedInventoryChanged);
+                if (mode != 5) await tx.CommitAsync(default);
+            }
+            if (mode is not (0 or 6)) {
+                Assert.Equal(before, f.ItemsAndPositions()); Assert.Equal(events, f.Scalar("SELECT COUNT(*) FROM domain_events"));
+            } else {
+                Assert.Equal(real, await ReadTitle(f, equip, 13)); Assert.Null(await ReadTitle(f, bag, 9));
+                Assert.Equal(original, await ReadTitle(f, book, slot.Index)); Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM items WHERE is_mirror=1"));
+                Assert.Null((await f.Titles.GetAsync(Character, default))[4].WearSource);
+            }
         });
-        Assert.True(await f.WriteAsync(async () => await f.Titles.SetAppearanceAsync(Character, 26628, default)));
-        if (mode == 3) await f.WriteAsync(async () => {
-            var store = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
-            var item = (await store.GetAsync(bag, 9, default))!;
-            await store.UpdateAsync(item, x => x with { EquipmentLockId = 1 }, default);
-        });
-        var before = f.ItemsAndPositions(); var events = f.Scalar("SELECT COUNT(*) FROM domain_events");
-        await using (var tx = f.Scope.Begin()) {
-            var result = await f.Titles.EquipCarriedTitleReplacingMirrorAsync(Character, TitleBag,
-                mode == 1 ? 26596 : 26628, 4, mode == 2 ? slot.Index + 1 : slot.Index, default);
-            Assert.Equal(mode is 0 or 5 or 6, result.Success);
-            if (result.Success) Assert.True(result.CarriedInventoryChanged);
-            if (mode != 5) await tx.CommitAsync(default);
-        }
-        if (mode is not (0 or 6)) {
-            Assert.Equal(before, f.ItemsAndPositions()); Assert.Equal(events, f.Scalar("SELECT COUNT(*) FROM domain_events"));
-        } else {
-            Assert.Equal(real, await ReadTitle(f, equip, 13)); Assert.Null(await ReadTitle(f, bag, 9));
-            Assert.Equal(original, await ReadTitle(f, book, slot.Index)); Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM items WHERE is_mirror=1"));
-            Assert.Null((await f.Titles.GetAsync(Character, default))[4].WearSource);
-        }
     }
     [PvfTheory]
     [InlineData(false)]

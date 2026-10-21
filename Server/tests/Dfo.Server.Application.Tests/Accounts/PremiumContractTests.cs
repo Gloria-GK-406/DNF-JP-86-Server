@@ -7,6 +7,7 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Data.Inventory;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Accounts;
 
@@ -50,39 +51,45 @@ public sealed class PremiumContractTests
     [Fact]
     public async Task Extension_preserves_remaining_time_is_visible_in_transaction_and_rolls_back()
     {
-        await using var f = new LearningFixture(); await f.SeedAsync();
-        var account = f.Services.GetRequiredService<IPremiumServiceDomainService>().For(new(1));
-        Assert.False(await account.IsActiveAsync(PremiumServiceType.ExpertSkillContract, default));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => account.ExtendAsync(PremiumServiceType.ExpertSkillContract, TimeSpan.FromMinutes(60), default).AsTask());
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var first = await account.ExtendAsync(PremiumServiceType.ExpertSkillContract, TimeSpan.FromHours(1), default);
-            var next = await account.ExtendAsync(PremiumServiceType.ExpertSkillContract, TimeSpan.FromHours(1), default);
-            Assert.Equal(first.ExpiresAtUnixSeconds + 3600, next.ExpiresAtUnixSeconds);
-            Assert.True(await account.HasBenefitAsync(PremiumBenefit.LearnSkillsEarly, default));
-            Assert.False(await account.HasBenefitAsync(PremiumBenefit.EquipItemsEarly, default));
-        }
-        Assert.False(await account.IsActiveAsync(PremiumServiceType.ExpertSkillContract, default));
-        Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM account_premiums"));
+            await using var f = new LearningFixture(); await f.SeedAsync();
+            var account = f.Services.GetRequiredService<IPremiumServiceDomainService>().For(new(1));
+            Assert.False(await account.IsActiveAsync(PremiumServiceType.ExpertSkillContract, default));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => account.ExtendAsync(PremiumServiceType.ExpertSkillContract, TimeSpan.FromMinutes(60), default).AsTask());
+            await using (var tx = f.Scope.Begin())
+            {
+                var first = await account.ExtendAsync(PremiumServiceType.ExpertSkillContract, TimeSpan.FromHours(1), default);
+                var next = await account.ExtendAsync(PremiumServiceType.ExpertSkillContract, TimeSpan.FromHours(1), default);
+                Assert.Equal(first.ExpiresAtUnixSeconds + 3600, next.ExpiresAtUnixSeconds);
+                Assert.True(await account.HasBenefitAsync(PremiumBenefit.LearnSkillsEarly, default));
+                Assert.False(await account.HasBenefitAsync(PremiumBenefit.EquipItemsEarly, default));
+            }
+            Assert.False(await account.IsActiveAsync(PremiumServiceType.ExpertSkillContract, default));
+            Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM account_premiums"));
+        });
     }
 
     [Fact]
     public async Task Expired_zero_and_other_accounts_do_not_grant_benefits_and_commit_survives_reload()
     {
-        await using var f = new LearningFixture(); await f.SeedAsync();
-        f.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,27,0),(1,22,1),(2,27,4000000000)");
-        var account = f.Services.GetRequiredService<IPremiumServiceDomainService>().For(new(1));
-        Assert.False(await account.HasBenefitAsync(PremiumBenefit.LearnSkillsEarly, default));
-        Assert.False(await account.HasBenefitAsync(PremiumBenefit.EquipItemsEarly, default));
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var expiry = await account.ExtendAsync(PremiumServiceType.ExpertSkillContract, TimeSpan.FromMinutes(60), default);
-            Assert.InRange(expiry.ExpiresAtUnixSeconds - DateTimeOffset.UtcNow.ToUnixTimeSeconds(), 3598, 3600);
-            await tx.CommitAsync(default);
-        }
-        await using var reload = new LearningFixture(f.Path);
-        Assert.True(await reload.Services.GetRequiredService<IPremiumServiceDomainService>().For(new(1))
-            .HasBenefitAsync(PremiumBenefit.LearnSkillsEarly, default));
+            await using var f = new LearningFixture(); await f.SeedAsync();
+            f.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,27,0),(1,22,1),(2,27,4000000000)");
+            var account = f.Services.GetRequiredService<IPremiumServiceDomainService>().For(new(1));
+            Assert.False(await account.HasBenefitAsync(PremiumBenefit.LearnSkillsEarly, default));
+            Assert.False(await account.HasBenefitAsync(PremiumBenefit.EquipItemsEarly, default));
+            await using (var tx = f.Scope.Begin())
+            {
+                var expiry = await account.ExtendAsync(PremiumServiceType.ExpertSkillContract, TimeSpan.FromMinutes(60), default);
+                Assert.InRange(expiry.ExpiresAtUnixSeconds - DateTimeOffset.UtcNow.ToUnixTimeSeconds(), 3598, 3600);
+                await tx.CommitAsync(default);
+            }
+            await using var reload = new LearningFixture(f.Path);
+            Assert.True(await reload.Services.GetRequiredService<IPremiumServiceDomainService>().For(new(1))
+                .HasBenefitAsync(PremiumBenefit.LearnSkillsEarly, default));
+        });
     }
 
     [Theory]

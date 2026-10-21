@@ -18,6 +18,7 @@ using Dfo.Server.Protocol.Game.SessionMetrics;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Microsoft.Extensions.Logging;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -114,24 +115,27 @@ public sealed class ExitFlushHandlerTests
     [Fact]
     public async Task TaggedIdReport_AcknowledgesTheSlotAnItemActuallyReached()
     {
-        var logger = new RecordingLogger<TaggedIdReportHandler>();
-        var sender = new RecordingExplicitSender();
-        var stored = new RecordingInventory();
-        var handler = new TaggedIdReportHandler(
-            Attributed(out var context), new OneSession(), new TutorialRewardDomainService(new TutorialRewardRuleService(new OneReward())),
-            Rewarding(stored, new KnownPlacement()), sender, logger);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var logger = new RecordingLogger<TaggedIdReportHandler>();
+            var sender = new RecordingExplicitSender();
+            var stored = new RecordingInventory();
+            var handler = new TaggedIdReportHandler(
+                Attributed(out var context), new OneSession(), new TutorialRewardDomainService(new TutorialRewardRuleService(new OneReward())),
+                Rewarding(stored, new KnownPlacement()), sender, logger);
 
-        await handler.HandleAsync(
-            context,
-            new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 38, RewardFlag: 1),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                context,
+                new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 38, RewardFlag: 1),
+                CancellationToken.None);
 
-        var item = Assert.Single(
-            Assert.IsType<TutorialFlagAcknowledgement>(Assert.Single(sender.Sent)).Granted);
-        Assert.Equal(121, item.Slot);
-        Assert.Equal(8474u, item.ItemId);
-        Assert.Equal(1u, item.Count);
-        Assert.Equal((8474, 1), Assert.Single(stored.Granted));
+            var item = Assert.Single(
+                Assert.IsType<TutorialFlagAcknowledgement>(Assert.Single(sender.Sent)).Granted);
+            Assert.Equal(121, item.Slot);
+            Assert.Equal(8474u, item.ItemId);
+            Assert.Equal(1u, item.Count);
+            Assert.Equal((8474, 1), Assert.Single(stored.Granted));
+        });
     }
 
     /// <summary>
@@ -145,23 +149,26 @@ public sealed class ExitFlushHandlerTests
     [Fact]
     public async Task TaggedIdReport_SettlesEveryItemOfOneStepTogether()
     {
-        var sender = new RecordingExplicitSender();
-        var stored = new RecordingInventory();
-        var handler = new TaggedIdReportHandler(
-            Attributed(out var context), new OneSession(), new TutorialRewardDomainService(new TutorialRewardRuleService(new TwoOfOneReward())),
-            Rewarding(stored, new KnownPlacement()), sender,
-            new RecordingLogger<TaggedIdReportHandler>());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new RecordingExplicitSender();
+            var stored = new RecordingInventory();
+            var handler = new TaggedIdReportHandler(
+                Attributed(out var context), new OneSession(), new TutorialRewardDomainService(new TutorialRewardRuleService(new TwoOfOneReward())),
+                Rewarding(stored, new KnownPlacement()), sender,
+                new RecordingLogger<TaggedIdReportHandler>());
 
-        await handler.HandleAsync(
-            context,
-            new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 38, RewardFlag: 1),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                context,
+                new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 38, RewardFlag: 1),
+                CancellationToken.None);
 
-        // One pile of two, not two piles of one.
-        Assert.Equal([(121, 8474, 2)], stored.Rows());
-        var granted = Assert.IsType<TutorialFlagAcknowledgement>(Assert.Single(sender.Sent)).Granted;
-        Assert.Equal(2, granted.Count);
-        Assert.All(granted, item => Assert.Equal(121, item.Slot));
+            // One pile of two, not two piles of one.
+            Assert.Equal([(121, 8474, 2)], stored.Rows());
+            var granted = Assert.IsType<TutorialFlagAcknowledgement>(Assert.Single(sender.Sent)).Granted;
+            Assert.Equal(2, granted.Count);
+            Assert.All(granted, item => Assert.Equal(121, item.Slot));
+        });
     }
 
     [Fact]

@@ -22,6 +22,7 @@ using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Protocol;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Sessions;
 
@@ -112,21 +113,27 @@ public sealed class ReplayStateSnapshotTests
         var equipment = new PersistentItemContainer(ContainerId.ForCharacter(fixture.Session.CharacterId, InventoryContainerType.Equipment), new(InventoryContainerType.Equipment, 0), store, fixture.Scope,
             fixture.Services.GetRequiredService<IItemPlacementRuleService>(),
             fixture.Services.GetRequiredService<IItemSlotRuleService>());
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            var session = store.SessionIn(fixture.Scope.Current!);
-            await session.PutAsync(equipment.Id, 25, await session.CreateAsync(ItemSnapshot.FromCore(
-                StackableItemCore.Create(5, 63000, 1), false, creature: new(50, 1, 0, 0, 0, 1, [65], 0)), default), default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = fixture.Scope.Begin())
+            {
+                var session = store.SessionIn(fixture.Scope.Current!);
+                await session.PutAsync(equipment.Id, 25, await session.CreateAsync(ItemSnapshot.FromCore(
+                    StackableItemCore.Create(5, 63000, 1), false, creature: new(50, 1, 0, 0, 0, 1, [65], 0)), default), default);
+                await tx.CommitAsync(default);
+            }
+        });
         var before = fixture.Scalar("SELECT id FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=25");
         var snapshot = await fixture.Services.GetRequiredService<ICommandBus>().SendAsync(new ReadReplayStateCommand(fixture.Session,
             new(ReplayProjectionNeeds.CharacterAppearance, [])));
         var pet = snapshot.Inventory!.Character().Containers.Single(x => x.ContainerType == InventoryContainerType.Equipment).Items.Single();
         Assert.NotNull(pet.Noti2CreatureMarker);
-        var connection = fixture.Services.GetRequiredService<SelectedSessionSafety>().Capture(fixture.Session).Connection!;
-        await fixture.Services.GetRequiredService<IReplayStateProjectionDelivery>().RefreshAsync(connection, fixture.Session,
-            new(ReplayProjectionNeeds.CharacterAppearance, []), default);
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            var connection = fixture.Services.GetRequiredService<SelectedSessionSafety>().Capture(fixture.Session).Connection!;
+            await fixture.Services.GetRequiredService<IReplayStateProjectionDelivery>().RefreshAsync(connection, fixture.Session,
+                new(ReplayProjectionNeeds.CharacterAppearance, []), default);
+        });
         var sender = (ReplayBatchSender)fixture.Services.GetRequiredService<INetworkMessageSender>();
         var frames = Assert.Single(sender.Batches); Assert.Equal(2, frames.Length);
         Assert.All(frames, frame => { Assert.Equal(0, frame[0]); Assert.Equal(2, System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1))); });
@@ -257,14 +264,17 @@ public sealed class ReplayStateSnapshotTests
                     ["Premium:BlackDiamondExtraFatigue"] = "32", ["Fatigue:BaseTotal"] = "156" }).Build()));
         });
         await fixture.SeedAsync();
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            await fixture.Services.GetRequiredService<ICharacterFatigueDomainService>().SpendAsync(fixture.Session.CharacterId, 7, default);
-            await fixture.Services.GetRequiredService<IItemUsageDomainService>().RecordUseAsync(fixture.Session.CharacterId, 1, default);
-            await fixture.Services.GetRequiredService<IPremiumServiceUsageTable>().TryWriteAsync(fixture.Session.CharacterId,
-                "lottery_double_reward_used", null, 1, clock.Now, default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = fixture.Scope.Begin())
+            {
+                await fixture.Services.GetRequiredService<ICharacterFatigueDomainService>().SpendAsync(fixture.Session.CharacterId, 7, default);
+                await fixture.Services.GetRequiredService<IItemUsageDomainService>().RecordUseAsync(fixture.Session.CharacterId, 1, default);
+                await fixture.Services.GetRequiredService<IPremiumServiceUsageTable>().TryWriteAsync(fixture.Session.CharacterId,
+                    "lottery_double_reward_used", null, 1, clock.Now, default);
+                await tx.CommitAsync(default);
+            }
+        });
         var at = clock.Now;
         rules.BeforeRead = () => clock.Now = at.AddMinutes(2);
         var state = await fixture.Services.GetRequiredService<ICommandBus>().SendAsync(new ReadReplayStateCommand(fixture.Session,
@@ -289,26 +299,32 @@ public sealed class ReplayStateSnapshotTests
         var equipment = new PersistentItemContainer(ContainerId.ForCharacter(fixture.Session.CharacterId, InventoryContainerType.Equipment), new(InventoryContainerType.Equipment, 0), store, fixture.Scope,
             fixture.Services.GetRequiredService<IItemPlacementRuleService>(),
             fixture.Services.GetRequiredService<IItemSlotRuleService>());
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            var session = store.SessionIn(fixture.Scope.Current!);
-            await session.PutAsync(equipment.Id, 24, await session.CreateAsync(ItemSnapshot.FromCore(
-                StackableItemCore.Create(5, 63000, 1), false, creature: new(50, 1, 0, 0, 0, 1, [65], 0)), default), default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = fixture.Scope.Begin())
+            {
+                var session = store.SessionIn(fixture.Scope.Current!);
+                await session.PutAsync(equipment.Id, 24, await session.CreateAsync(ItemSnapshot.FromCore(
+                    StackableItemCore.Create(5, 63000, 1), false, creature: new(50, 1, 0, 0, 0, 1, [65], 0)), default), default);
+                await tx.CommitAsync(default);
+            }
+        });
         var identity = fixture.Scalar("SELECT id FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=24");
         var snapshot = await fixture.Services.GetRequiredService<ICommandBus>().SendAsync(new ReadReplayStateCommand(fixture.Session,
             new(ReplayProjectionNeeds.Inventory, [])));
         Assert.Equal(24, snapshot.Inventory!.Character().Containers.Single(x => x.ContainerType == InventoryContainerType.Equipment).Items.Single().SlotIndex);
         Assert.Equal(identity, fixture.Scalar("SELECT id FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=24"));
         Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=25"));
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            var entry = await fixture.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()
-                .LoadAsync(fixture.Session.AccountId, fixture.Session.CharacterId, default);
-            Assert.Equal(25, entry.Containers.Single(x => x.ContainerType == InventoryContainerType.Equipment).Items.Single().SlotIndex);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = fixture.Scope.Begin())
+            {
+                var entry = await fixture.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()
+                    .LoadAsync(fixture.Session.AccountId, fixture.Session.CharacterId, default);
+                Assert.Equal(25, entry.Containers.Single(x => x.ContainerType == InventoryContainerType.Equipment).Items.Single().SlotIndex);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(identity, fixture.Scalar("SELECT id FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=25"));
         Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=24"));
     }

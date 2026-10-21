@@ -24,6 +24,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TouchSocketSessionClient = TouchSocket.Sockets.ITcpSessionClient;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Networking.Tests.Integration;
 
@@ -89,7 +90,11 @@ public sealed class GameLoginIntegrationTests
                 await WaitUntilAsync(
                     () => onlineUsers.TryGetByConnection(connectionId, out _),
                     timeout.Token);
-                Assert.True(onlineUsers.TryGetByConnection(connectionId, out var anonymous));
+                var anonymous = TestGameplay.Run(host.Services, () =>
+                {
+                    Assert.True(onlineUsers.TryGetByConnection(connectionId, out var anonymous));
+                    return anonymous;
+                });
                 Assert.Equal(OnlineUserState.Connected, anonymous!.State);
 
                 Assert.Equal(
@@ -103,7 +108,11 @@ public sealed class GameLoginIntegrationTests
                 var response = await ReadFrameAsync(client.GetStream(), timeout.Token);
                 Assert.Equal(BuildExpectedLoginResponse(), response);
 
-                Assert.True(onlineUsers.TryGetByConnection(connectionId, out var authenticated));
+                var authenticated = TestGameplay.Run(host.Services, () =>
+                {
+                    Assert.True(onlineUsers.TryGetByConnection(connectionId, out var authenticated));
+                    return authenticated;
+                });
                 Assert.Equal(OnlineUserState.Authenticated, authenticated!.State);
                 Assert.NotNull(authenticated.AccountId);
 
@@ -144,7 +153,11 @@ public sealed class GameLoginIntegrationTests
                 Assert.Equal(2, roster[15]);
                 var honor = await ReadFrameAsync(client.GetStream(), timeout.Token);
                 Assert.Equal(0x0289, BinaryPrimitives.ReadUInt16LittleEndian(honor.AsSpan(1)));
-                Assert.True(onlineUsers.TryGetByConnection(connectionId, out var stillLoggedIn));
+                var stillLoggedIn = TestGameplay.Run(host.Services, () =>
+                {
+                    Assert.True(onlineUsers.TryGetByConnection(connectionId, out var stillLoggedIn));
+                    return stillLoggedIn;
+                });
                 Assert.Equal(authenticated.AccountId, stillLoggedIn!.AccountId);
                 Assert.Equal(OnlineUserState.Authenticated, stillLoggedIn.State);
 
@@ -285,7 +298,11 @@ public sealed class GameLoginIntegrationTests
                         _ = await ReadFrameAsync(accepted.GetStream(), timeout.Token);
                     }
 
-                    Assert.True(onlineUsers.TryGetByConnection(acceptedConnectionId, out var authenticated));
+                    var authenticated = TestGameplay.Run(host.Services, () =>
+                    {
+                        Assert.True(onlineUsers.TryGetByConnection(acceptedConnectionId, out var authenticated));
+                        return authenticated;
+                    });
                     Assert.Equal(OnlineUserState.Authenticated, authenticated!.State);
                 }
 
@@ -454,7 +471,11 @@ public sealed class GameLoginIntegrationTests
                     onlineUsers,
                     timeout.Token);
                 _ = await ReadFrameAsync(failed.GetStream(), timeout.Token);
-                Assert.True(onlineUsers.TryGetByConnection(failedConnectionId, out var anonymous));
+                var anonymous = TestGameplay.Run(host.Services, () =>
+                {
+                    Assert.True(onlineUsers.TryGetByConnection(failedConnectionId, out var anonymous));
+                    return anonymous;
+                });
                 Assert.Equal(OnlineUserState.Connected, anonymous!.State);
                 Assert.Null(anonymous.AccountId);
 
@@ -505,8 +526,12 @@ public sealed class GameLoginIntegrationTests
                         BinaryPrimitives.ReadUInt16LittleEndian(state.AsSpan(1)));
                 }
 
-                Assert.True(
-                    onlineUsers.TryGetByConnection(acceptedConnectionId, out var authenticated));
+                var authenticated = TestGameplay.Run(host.Services, () =>
+                {
+                    Assert.True(
+                        onlineUsers.TryGetByConnection(acceptedConnectionId, out var authenticated));
+                    return authenticated;
+                });
                 Assert.Equal(OnlineUserState.Authenticated, authenticated!.State);
                 Assert.NotNull(authenticated.AccountId);
             }

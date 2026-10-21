@@ -8,6 +8,7 @@ using Dfo.Server.Protocol.Game.DeleteItem;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -125,14 +126,14 @@ public sealed class ItemDiscardTests
         Assert.Empty(bag.Sender.Messages);
     }
 
-    private static ValueTask Discard(ShopFixture bag, ushort slot, int itemId, int count,
+    private static async ValueTask Discard(ShopFixture bag, ushort slot, int itemId, int count,
         ushort operationType = 1, byte safeModeSkipIndex = 0) =>
-        bag.Services.GetRequiredService<DeleteItemHandler>().HandleAsync(new(bag.Connection),
+        await TestGameplay.RunAsync(bag.Services, async () => await bag.Services.GetRequiredService<DeleteItemHandler>().HandleAsync(new(bag.Connection),
             new DeleteItemRequest(
                 GameMessageMetadata.Empty,
                 new GameSlot(InventoryContainerType.Main, slot),
                 1, operationType, itemId, count, 0, safeModeSkipIndex),
-            default);
+            default));
 
     private sealed class HeldItemQuestRules : IQuestContentRuleService
     {

@@ -12,6 +12,7 @@ using Dfo.Server.Protocol.Game.Teleport;
 using Dfo.Server.Abstractions.Networking;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -29,7 +30,10 @@ public sealed class TeleportConsumableTests
             s.AddSingleton<ISelectedCharacterCurrentViewDomainService>(new CurrentView());
         });
         f.SetLevel(2);
-        f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(f.Session, Start, 100);
+        TestGameplay.Run(f.Services, () =>
+        {
+            f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(f.Session, Start, 100);
+        });
         return f;
     }
     private static ValueTask Send(ShopFixture f, ushort sequence = 7, short slot = 65, int item = 2000, byte town = 11,
@@ -50,8 +54,11 @@ public sealed class TeleportConsumableTests
             Assert.Equal(Destination, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
         };
         await Send(f, slot: slot);
-        Assert.Equal(Destination, f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId)!.Position);
-        Assert.False(f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId)!.SharesTownPresence);
+        TestGameplay.Run(f.Services, () =>
+        {
+            Assert.Equal(Destination, f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId)!.Position);
+            Assert.False(f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId)!.SharesTownPresence);
+        });
         Assert.Single(f.Sender.Messages.OfType<TeleportCooldownNotification>());
         await Send(f, slot: slot);
         Assert.Equal(1, f.Count(2000));
@@ -73,11 +80,17 @@ public sealed class TeleportConsumableTests
         await Assert.ThrowsAsync<SqliteException>(() => Send(f).AsTask());
         Assert.Equal(2, f.Count(2000));
         Assert.Equal(0, f.Scalar("SELECT town_id FROM characters WHERE character_id=1"));
-        Assert.Equal(Start, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
-        Assert.False(f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().IsCoolingDown(f.Session.CharacterId, ItemCooldownKey.ForItem(2000)));
+        TestGameplay.Run(f.Services, () =>
+        {
+            Assert.Equal(Start, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
+            Assert.False(f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().IsCoolingDown(f.Session.CharacterId, ItemCooldownKey.ForItem(2000)));
+        });
         Assert.Empty(f.Sender.Messages);
         f.Sql("DROP TRIGGER fail_teleport"); await Send(f);
-        Assert.Equal(1, f.Count(2000)); Assert.Equal(Destination, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
+        TestGameplay.Run(f.Services, () =>
+        {
+            Assert.Equal(1, f.Count(2000)); Assert.Equal(Destination, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
+        });
     }
 
     [Fact]
@@ -87,14 +100,20 @@ public sealed class TeleportConsumableTests
         await Send(f);
         var current = new CharacterPositionState(2, 3, 100, 200, 1);
         var areas = f.Services.GetRequiredService<ITownAreaDomainService>();
-        areas.TransferExact(f.Session.CharacterId, f.Session.TownAreaLease(), new(1, 2, 3), current, false);
-        f.SetLevel(2);
-        f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(f.Session, current, 100);
+        TestGameplay.Run(f.Services, () =>
+        {
+            areas.TransferExact(f.Session.CharacterId, f.Session.TownAreaLease(), new(1, 2, 3), current, false);
+            f.SetLevel(2);
+            f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(f.Session, current, 100);
+        });
         f.Sender.Messages.Clear();
         await Send(f);
         Assert.Equal(1, f.Count(2000));
-        Assert.Equal(current, areas.Find(f.Session.CharacterId)!.Position);
-        Assert.Equal(current, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
+        TestGameplay.Run(f.Services, () =>
+        {
+            Assert.Equal(current, areas.Find(f.Session.CharacterId)!.Position);
+            Assert.Equal(current, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
+        });
         var projected = Assert.Single(f.Sender.Messages, x => x.MessageType == ServerMessageType.GameUserArea);
         var registration = f.Services.GetServices<ServerMessageEncoderRegistration>().Single(x => x.MessageType == projected.GetType());
         var frame = Assert.Single(((IServerMessageEncoder)f.Services.GetRequiredService(registration.EncoderType)).Encode(projected)).ToArray();
@@ -108,11 +127,17 @@ public sealed class TeleportConsumableTests
         using var f = Fixture(); await f.Seed(65, 2000, 2);
         f.Sender.FailBatch = true;
         await Assert.ThrowsAsync<IOException>(() => Send(f).AsTask());
-        Assert.Equal(1, f.Count(2000)); Assert.Equal(Destination, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
-        Assert.Equal(Destination, f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId)!.Position);
+        TestGameplay.Run(f.Services, () =>
+        {
+            Assert.Equal(1, f.Count(2000)); Assert.Equal(Destination, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
+            Assert.Equal(Destination, f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId)!.Position);
+        });
         f.Sender.FailBatch = false; await Send(f);
         Assert.Equal(1, f.Count(2000));
-        Assert.Equal(Destination, f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId)!.Position);
+        TestGameplay.Run(f.Services, () =>
+        {
+            Assert.Equal(Destination, f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId)!.Position);
+        });
     }
 
     [Theory]
@@ -124,7 +149,10 @@ public sealed class TeleportConsumableTests
     {
         using var f = Fixture(); await f.Seed(65, 2000, 2);
         await Send(f, item: item, town: town, reserved: reserved, x: x);
-        Assert.Equal(2, f.Count(2000)); Assert.Equal(Start, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
+        TestGameplay.Run(f.Services, () =>
+        {
+            Assert.Equal(2, f.Count(2000)); Assert.Equal(Start, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
+        });
     }
 
     [Fact]
@@ -139,7 +167,10 @@ public sealed class TeleportConsumableTests
             [new(f.Session.AccountId, f.Session.CharacterId, 0, true)],
             new(144, 0, 1, 1, cell, cell, 55611, 0, new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)}), 0));
         await Send(f, sequence: 8); Assert.Equal(2, f.Count(2000));
-        Assert.Equal(Start, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
+        TestGameplay.Run(f.Services, () =>
+        {
+            Assert.Equal(Start, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
+        });
     }
 
     private sealed class Definitions : ITeleportConsumableDefinitionSource

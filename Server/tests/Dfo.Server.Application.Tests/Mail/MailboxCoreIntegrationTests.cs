@@ -18,6 +18,7 @@ using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Mail;
 
@@ -38,12 +39,15 @@ public sealed partial class MailboxCoreIntegrationTests
         });
         fixture.Sql("CREATE TABLE mail_event_test(mail_id INTEGER PRIMARY KEY,recipient INTEGER NOT NULL)");
         var scope = fixture.Services.GetRequiredService<DomainTransactionScope>();
-        await using (var tx = scope.Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).WithText("one", "").Build());
-            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).WithText("two", "").Build());
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = scope.Begin())
+            {
+                await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).WithText("one", "").Build());
+                await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).WithText("two", "").Build());
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(2, fixture.Scalar("SELECT COUNT(*) FROM domain_events"));
         Assert.Empty(notices.Recipients);
         using var restored = fixture.Reopen();
@@ -73,14 +77,17 @@ public sealed partial class MailboxCoreIntegrationTests
         var scope = fixture.Services.GetRequiredService<DomainTransactionScope>();
         var observed = new List<(bool Settled, int RecipientCount, int StrangerCount)>();
         notices.BeforePublish = () => observed.Add((scope.Current is null, fixture.InboxRows(Recipient), fixture.InboxRows(Stranger)));
-        await using (var tx = scope.Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).WithText("first", "body").Build());
-            await fixture.Mail.SendPreparedAsync(MailBuilder.FromSystem(Recipient).WithText("second", "body").Build(), []);
-            await fixture.Mail.SendAsync(MailBuilder.FromCharacter(Sender, Stranger).WithText("third", "body").Build());
-            Assert.Empty(notices.Recipients);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = scope.Begin())
+            {
+                await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).WithText("first", "body").Build());
+                await fixture.Mail.SendPreparedAsync(MailBuilder.FromSystem(Recipient).WithText("second", "body").Build(), []);
+                await fixture.Mail.SendAsync(MailBuilder.FromCharacter(Sender, Stranger).WithText("third", "body").Build());
+                Assert.Empty(notices.Recipients);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Empty(notices.Recipients);
         Assert.Equal(3, fixture.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='mail.created'"));
         await fixture.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync();
@@ -94,16 +101,22 @@ public sealed partial class MailboxCoreIntegrationTests
         var notices = new RecordingMailNotifications();
         using var fixture = new MailFixture(services => services.AddSingleton<INotificationBus>(notices));
         var scope = fixture.Services.GetRequiredService<DomainTransactionScope>();
-        await using (scope.Begin())
-            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            await using (scope.Begin())
+                await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
+        });
         Assert.Empty(notices.Recipients);
         Assert.Equal(0, fixture.InboxRows(Recipient));
         fixture.Sql("CREATE TRIGGER fail_delivery BEFORE INSERT ON mailbox_messages BEGIN SELECT RAISE(ABORT,'mail failed'); END");
-        await Assert.ThrowsAsync<SqliteException>(() => fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build()).AsTask());
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            await Assert.ThrowsAsync<SqliteException>(() => fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build()).AsTask());
+        });
         Assert.Empty(notices.Recipients);
         fixture.Sql("DROP TRIGGER fail_delivery");
         notices.BeforePublish = () => throw new InvalidOperationException("notification transport unavailable");
-        var sent = await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
+        var sent = await TestGameplay.RunAsync(fixture.Services, async () => await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build()));
         Assert.True(sent.MailId > 0);
         Assert.Equal(1, fixture.InboxRows(Recipient));
         await fixture.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync();
@@ -119,21 +132,27 @@ public sealed partial class MailboxCoreIntegrationTests
         var scope = fixture.Services.GetRequiredService<DomainTransactionScope>();
         var participant = new MailDeliveryParticipant();
         notices.BeforePublish = () => participant.NotifiedAfterCommit = participant.Committed;
-        await using (var tx = scope.Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
-            scope.Current!.Enlist(participant, () => participant);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = scope.Begin())
+            {
+                await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
+                scope.Current!.Enlist(participant, () => participant);
+                await tx.CommitAsync(default);
+            }
+        });
         await fixture.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync();
         Assert.True(participant.NotifiedAfterCommit);
         notices.Recipients.Clear();
-        await using (var tx = scope.Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
-            scope.Current!.Enlist(new object(), () => new MailDeliveryParticipant { RefusePrepare = true });
-            await Assert.ThrowsAsync<InvalidOperationException>(() => tx.CommitAsync(default).AsTask());
-        }
+            await using (var tx = scope.Begin())
+            {
+                await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
+                scope.Current!.Enlist(new object(), () => new MailDeliveryParticipant { RefusePrepare = true });
+                await Assert.ThrowsAsync<InvalidOperationException>(() => tx.CommitAsync(default).AsTask());
+            }
+        });
         await fixture.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync();
         Assert.Empty(notices.Recipients);
         Assert.Equal(1, fixture.InboxRows(Recipient));
@@ -167,43 +186,49 @@ public sealed partial class MailboxCoreIntegrationTests
     [Fact]
     public async Task EquipmentRetainsUidAndCoreWhileDetachedAndAfterClaim()
     {
-        using var fixture = new MailFixture();
-        var uid = fixture.SeedEquipment(Sender, 9, 3000);
-        var before = fixture.EquipmentCore(uid);
-        var receipt = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromCharacter(Sender), Recipient)
-            .WithText("equipment", "same instance").AddEquipment(new ItemIdentity(uid)).Build());
-        Assert.Equal(0, fixture.EquipmentSlots(Sender, uid));
-        Assert.Equal(before, fixture.EquipmentCore(uid));
-        Assert.Equal(1, fixture.EquipmentRows(uid));
-        var mail = Assert.Single(await fixture.Mail.InboxAsync(Recipient));
-        var attachment = Assert.Single(mail.Attachments);
-        Assert.Equal(uid, Assert.IsType<MailAsset.Equipment>(attachment.Asset).Identity.Value);
-        await AssertMailFailureAsync(MailFailure.NotOwned, () => fixture.Mail.SendAsync(
-            new MailBuilder(MailSource.FromCharacter(Sender), Stranger).WithText("repeat", "repeat")
-                .AddEquipment(new ItemIdentity(uid)).Build()).AsTask());
-        Assert.Equal(1, fixture.InboxRows(Recipient));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new MailFixture();
+            var uid = fixture.SeedEquipment(Sender, 9, 3000);
+            var before = fixture.EquipmentCore(uid);
+            var receipt = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromCharacter(Sender), Recipient)
+                .WithText("equipment", "same instance").AddEquipment(new ItemIdentity(uid)).Build());
+            Assert.Equal(0, fixture.EquipmentSlots(Sender, uid));
+            Assert.Equal(before, fixture.EquipmentCore(uid));
+            Assert.Equal(1, fixture.EquipmentRows(uid));
+            var mail = Assert.Single(await fixture.Mail.InboxAsync(Recipient));
+            var attachment = Assert.Single(mail.Attachments);
+            Assert.Equal(uid, Assert.IsType<MailAsset.Equipment>(attachment.Asset).Identity.Value);
+            await AssertMailFailureAsync(MailFailure.NotOwned, () => fixture.Mail.SendAsync(
+                new MailBuilder(MailSource.FromCharacter(Sender), Stranger).WithText("repeat", "repeat")
+                    .AddEquipment(new ItemIdentity(uid)).Build()).AsTask());
+            Assert.Equal(1, fixture.InboxRows(Recipient));
 
-        using var reopened = fixture.Reopen();
-        await reopened.Mail.ClaimAsync(Recipient, attachment.Id);
-        Assert.Equal(1, fixture.EquipmentSlots(Recipient, uid));
-        Assert.Equal(0, fixture.EquipmentSlots(Sender, uid));
-        Assert.Equal(1, fixture.EquipmentRows(uid));
-        Assert.Equal(before, fixture.EquipmentCore(uid));
-        Assert.Equal(receipt.MailId, Assert.Single(await reopened.Mail.InboxAsync(Recipient)).Id);
+            using var reopened = fixture.Reopen();
+            await reopened.Mail.ClaimAsync(Recipient, attachment.Id);
+            Assert.Equal(1, fixture.EquipmentSlots(Recipient, uid));
+            Assert.Equal(0, fixture.EquipmentSlots(Sender, uid));
+            Assert.Equal(1, fixture.EquipmentRows(uid));
+            Assert.Equal(before, fixture.EquipmentCore(uid));
+            Assert.Equal(receipt.MailId, Assert.Single(await reopened.Mail.InboxAsync(Recipient)).Id);
+        });
     }
 
     [Fact]
     public async Task LoginPageKeepsTotalCountAndOnlyReturnsOldestTwentyInReverseOrder()
     {
-        using var fixture = new MailFixture();
-        var ids = new List<long>();
-        for (var i = 0; i < 25; i++)
-            ids.Add((await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
-                .WithText($"mail {i}", "body").Build())).MailId);
-        var page = await fixture.Query.PageAsync(Recipient, 20);
-        Assert.Equal(25, page.TotalCount);
-        Assert.Equal(ids.Take(20).Reverse(), page.Messages.Select(x => x.Id));
-        Assert.All(page.Messages, x => Assert.False(x.Read));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new MailFixture();
+            var ids = new List<long>();
+            for (var i = 0; i < 25; i++)
+                ids.Add((await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
+                    .WithText($"mail {i}", "body").Build())).MailId);
+            var page = await fixture.Query.PageAsync(Recipient, 20);
+            Assert.Equal(25, page.TotalCount);
+            Assert.Equal(ids.Take(20).Reverse(), page.Messages.Select(x => x.Id));
+            Assert.All(page.Messages, x => Assert.False(x.Read));
+        });
     }
 
     [Fact]
@@ -222,197 +247,228 @@ public sealed partial class MailboxCoreIntegrationTests
     [Fact]
     public async Task CharacterSendAndClaim_ConserveStackAndGoldAcrossReload()
     {
-        using var fixture = new MailFixture();
-        await fixture.SeedStackAsync(Sender, 121, 1000, 7, 3);
-        var receipt = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromCharacter(Sender), Recipient)
-            .WithText("transfer", "three materials and gold")
-            .AddStackable(1000, 3).AddGold(250).Build());
-
-        Assert.True(receipt.MailId > 0);
-        Assert.Equal(4, await fixture.StackAsync(Sender, 1000));
-        Assert.Equal(750, fixture.Gold(Sender));
-        Assert.Equal(1000, fixture.Gold(Recipient));
-        Assert.Equal(1, fixture.InboxRows(Recipient));
-
-        var reopened = fixture.Reopen();
-        using (reopened)
+        await TestGameplay.RunAsync(async () =>
         {
-            var mail = Assert.Single(await reopened.Mail.InboxAsync(Recipient));
-            Assert.Equal(receipt.MailId, mail.Id);
-            Assert.Equal("sender", mail.SenderName);
-            Assert.Equal(2, mail.Attachments.Length);
-            Assert.NotEqual(mail.Attachments[0].Id, mail.Attachments[1].Id);
-            await reopened.Mail.ClaimAsync(Recipient, mail.Attachments[0].Id);
-            await reopened.Mail.ClaimAsync(Recipient, mail.Attachments[1].Id);
-            Assert.Equal(3, await fixture.StackAsync(Recipient, 1000));
-            Assert.Equal(1250, fixture.Gold(Recipient));
-            Assert.All((await reopened.Mail.InboxAsync(Recipient)).Single().Attachments, x => Assert.True(x.Claimed));
-        }
-        Assert.Equal(7, await fixture.TotalStackAsync(1000));
-        Assert.Equal(2000, fixture.Gold(Sender) + fixture.Gold(Recipient));
+            using var fixture = new MailFixture();
+            await fixture.SeedStackAsync(Sender, 121, 1000, 7, 3);
+            var receipt = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromCharacter(Sender), Recipient)
+                .WithText("transfer", "three materials and gold")
+                .AddStackable(1000, 3).AddGold(250).Build());
+
+            Assert.True(receipt.MailId > 0);
+            Assert.Equal(4, await fixture.StackAsync(Sender, 1000));
+            Assert.Equal(750, fixture.Gold(Sender));
+            Assert.Equal(1000, fixture.Gold(Recipient));
+            Assert.Equal(1, fixture.InboxRows(Recipient));
+
+            var reopened = fixture.Reopen();
+            using (reopened)
+            {
+                var mail = Assert.Single(await reopened.Mail.InboxAsync(Recipient));
+                Assert.Equal(receipt.MailId, mail.Id);
+                Assert.Equal("sender", mail.SenderName);
+                Assert.Equal(2, mail.Attachments.Length);
+                Assert.NotEqual(mail.Attachments[0].Id, mail.Attachments[1].Id);
+                await reopened.Mail.ClaimAsync(Recipient, mail.Attachments[0].Id);
+                await reopened.Mail.ClaimAsync(Recipient, mail.Attachments[1].Id);
+                Assert.Equal(3, await fixture.StackAsync(Recipient, 1000));
+                Assert.Equal(1250, fixture.Gold(Recipient));
+                Assert.All((await reopened.Mail.InboxAsync(Recipient)).Single().Attachments, x => Assert.True(x.Claimed));
+            }
+            Assert.Equal(7, await fixture.TotalStackAsync(1000));
+            Assert.Equal(2000, fixture.Gold(Sender) + fixture.Gold(Recipient));
+        });
     }
 
     [Fact]
     public async Task SystemCanDeliverToOfflineCharacterAndOnlyRecipientCanClaim()
     {
-        using var fixture = new MailFixture();
-        var receipt = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
-            .WithText("offline", "reward")
-            .AddStackable(1000, 2).Build());
-        Assert.Equal(1000, fixture.Gold(Sender));
-        Assert.Equal(1000, fixture.Gold(Recipient));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new MailFixture();
+            var receipt = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
+                .WithText("offline", "reward")
+                .AddStackable(1000, 2).Build());
+            Assert.Equal(1000, fixture.Gold(Sender));
+            Assert.Equal(1000, fixture.Gold(Recipient));
 
-        using var reopened = fixture.Reopen();
-        var mail = Assert.Single(await reopened.Mail.InboxAsync(Recipient));
-        Assert.Equal(receipt.MailId, mail.Id);
-        Assert.Equal("reward", mail.Body);
-        Assert.Empty(mail.SenderName);
-        var attachment = Assert.Single(mail.Attachments);
-        await AssertMailFailureAsync(MailFailure.NotFound, () => reopened.Mail.ClaimAsync(Stranger, attachment.Id).AsTask());
-        Assert.False(Assert.Single((await reopened.Mail.InboxAsync(Recipient)).Single().Attachments).Claimed);
-        await reopened.Mail.ClaimAsync(Recipient, attachment.Id);
-        Assert.Equal(2, await fixture.StackAsync(Recipient, 1000));
-        await AssertMailFailureAsync(MailFailure.AlreadyClaimed, () => reopened.Mail.ClaimAsync(Recipient, attachment.Id).AsTask());
-        Assert.Equal(2, await fixture.StackAsync(Recipient, 1000));
+            using var reopened = fixture.Reopen();
+            var mail = Assert.Single(await reopened.Mail.InboxAsync(Recipient));
+            Assert.Equal(receipt.MailId, mail.Id);
+            Assert.Equal("reward", mail.Body);
+            Assert.Empty(mail.SenderName);
+            var attachment = Assert.Single(mail.Attachments);
+            await AssertMailFailureAsync(MailFailure.NotFound, () => reopened.Mail.ClaimAsync(Stranger, attachment.Id).AsTask());
+            Assert.False(Assert.Single((await reopened.Mail.InboxAsync(Recipient)).Single().Attachments).Claimed);
+            await reopened.Mail.ClaimAsync(Recipient, attachment.Id);
+            Assert.Equal(2, await fixture.StackAsync(Recipient, 1000));
+            await AssertMailFailureAsync(MailFailure.AlreadyClaimed, () => reopened.Mail.ClaimAsync(Recipient, attachment.Id).AsTask());
+            Assert.Equal(2, await fixture.StackAsync(Recipient, 1000));
+        });
     }
 
     [Fact]
     public async Task FailedSendAndFullBagClaim_RollBackEveryAssetAndClaimFlag()
     {
-        using var fixture = new MailFixture();
-        await AssertMailFailureAsync(MailFailure.InsufficientAssets, () => fixture.Mail.SendAsync(
-            new MailBuilder(MailSource.FromCharacter(Sender), Recipient).WithText("bad", "bad")
-                .AddGold(200).AddStackable(1000, 1).Build()).AsTask());
-        Assert.Equal(1000, fixture.Gold(Sender));
-        Assert.Empty(await fixture.Mail.InboxAsync(Recipient));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new MailFixture();
+            await AssertMailFailureAsync(MailFailure.InsufficientAssets, () => fixture.Mail.SendAsync(
+                new MailBuilder(MailSource.FromCharacter(Sender), Recipient).WithText("bad", "bad")
+                    .AddGold(200).AddStackable(1000, 1).Build()).AsTask());
+            Assert.Equal(1000, fixture.Gold(Sender));
+            Assert.Empty(await fixture.Mail.InboxAsync(Recipient));
 
-        await fixture.SeedStackAsync(Recipient, 121, 1000, 999, 3);
-        await fixture.SeedStackAsync(Recipient, 122, 1000, 1000, 3);
-        for (var slot = 3; slot <= 8; slot++)
-            await fixture.SeedStackAsync(Recipient, slot, 4000, 1, 2);
-        var id = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
-            .WithText("full", "full").AddStackable(1000, 2).Build())).MailId;
-        var attachment = Assert.Single((await fixture.Mail.ReadAsync(Recipient, id)).Attachments);
-        await AssertMailFailureAsync(MailFailure.NoCapacity, () => fixture.Mail.ClaimAsync(Recipient, attachment.Id).AsTask());
-        Assert.Equal(1999, await fixture.StackAsync(Recipient, 1000));
-        Assert.False(Assert.Single((await fixture.Mail.InboxAsync(Recipient)).Single().Attachments).Claimed);
+            await fixture.SeedStackAsync(Recipient, 121, 1000, 999, 3);
+            await fixture.SeedStackAsync(Recipient, 122, 1000, 1000, 3);
+            for (var slot = 3; slot <= 8; slot++)
+                await fixture.SeedStackAsync(Recipient, slot, 4000, 1, 2);
+            var id = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
+                .WithText("full", "full").AddStackable(1000, 2).Build())).MailId;
+            var attachment = Assert.Single((await fixture.Mail.ReadAsync(Recipient, id)).Attachments);
+            await AssertMailFailureAsync(MailFailure.NoCapacity, () => fixture.Mail.ClaimAsync(Recipient, attachment.Id).AsTask());
+            Assert.Equal(1999, await fixture.StackAsync(Recipient, 1000));
+            Assert.False(Assert.Single((await fixture.Mail.InboxAsync(Recipient)).Single().Attachments).Claimed);
+        });
     }
 
     [Fact]
     public async Task GoldCapRefusalRollsBackClaimAndReadDeleteExpirePersist()
     {
-        using var fixture = new MailFixture();
-        fixture.Sql("UPDATE character_stats SET carried_gold=2000 WHERE character_id=2");
-        var goldId = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
-            .WithText("gold", "gold").AddGold(20).Build())).MailId;
-        var goldAttachment = Assert.Single((await fixture.Mail.InboxAsync(Recipient)).Single().Attachments).Id;
-        await AssertMailFailureAsync(MailFailure.UnclaimedAttachments, () => fixture.Mail.DeleteAsync(Recipient, goldId).AsTask());
-        await AssertMailFailureAsync(MailFailure.GoldLimit, () => fixture.Mail.ClaimAsync(Recipient, goldAttachment).AsTask());
-        Assert.Equal(2000, fixture.Gold(Recipient));
-        Assert.False(Assert.Single((await fixture.Mail.InboxAsync(Recipient)).Single().Attachments).Claimed);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new MailFixture();
+            fixture.Sql("UPDATE character_stats SET carried_gold=2000 WHERE character_id=2");
+            var goldId = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
+                .WithText("gold", "gold").AddGold(20).Build())).MailId;
+            var goldAttachment = Assert.Single((await fixture.Mail.InboxAsync(Recipient)).Single().Attachments).Id;
+            await AssertMailFailureAsync(MailFailure.UnclaimedAttachments, () => fixture.Mail.DeleteAsync(Recipient, goldId).AsTask());
+            await AssertMailFailureAsync(MailFailure.GoldLimit, () => fixture.Mail.ClaimAsync(Recipient, goldAttachment).AsTask());
+            Assert.Equal(2000, fixture.Gold(Recipient));
+            Assert.False(Assert.Single((await fixture.Mail.InboxAsync(Recipient)).Single().Attachments).Claimed);
 
-        fixture.Sql("UPDATE character_stats SET carried_gold=1000 WHERE character_id=2");
-        var read = await fixture.Mail.ReadAsync(Recipient, goldId);
-        Assert.True(read.Read);
-        await fixture.Mail.ClaimAsync(Recipient, goldAttachment);
-        await fixture.Mail.DeleteAsync(Recipient, goldId);
-        Assert.Empty(await fixture.Mail.InboxAsync(Recipient));
+            fixture.Sql("UPDATE character_stats SET carried_gold=1000 WHERE character_id=2");
+            var read = await fixture.Mail.ReadAsync(Recipient, goldId);
+            Assert.True(read.Read);
+            await fixture.Mail.ClaimAsync(Recipient, goldAttachment);
+            await fixture.Mail.DeleteAsync(Recipient, goldId);
+            Assert.Empty(await fixture.Mail.InboxAsync(Recipient));
 
-        var expires = fixture.Clock.GetUtcNow().AddMinutes(1);
-        var expiring = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
-            .WithText("short", "short").ExpiresAt(expires).AddGold(7).Build())).MailId;
-        Assert.Single(await fixture.Mail.InboxAsync(Recipient));
-        fixture.Clock.Advance(TimeSpan.FromMinutes(1));
-        Assert.Empty(await fixture.Mail.InboxAsync(Recipient));
-        await AssertMailFailureAsync(MailFailure.Expired, () => fixture.Mail.ReadAsync(Recipient, expiring).AsTask());
-        Assert.Equal(1020, fixture.Gold(Recipient));
-        using var reopened = fixture.Reopen();
-        Assert.Empty(await reopened.Mail.InboxAsync(Recipient));
+            var expires = fixture.Clock.GetUtcNow().AddMinutes(1);
+            var expiring = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
+                .WithText("short", "short").ExpiresAt(expires).AddGold(7).Build())).MailId;
+            Assert.Single(await fixture.Mail.InboxAsync(Recipient));
+            fixture.Clock.Advance(TimeSpan.FromMinutes(1));
+            Assert.Empty(await fixture.Mail.InboxAsync(Recipient));
+            await AssertMailFailureAsync(MailFailure.Expired, () => fixture.Mail.ReadAsync(Recipient, expiring).AsTask());
+            Assert.Equal(1020, fixture.Gold(Recipient));
+            using var reopened = fixture.Reopen();
+            Assert.Empty(await reopened.Mail.InboxAsync(Recipient));
+        });
     }
 
     [Fact]
     public async Task ConcurrentClaimCreditsAttachmentAtMostOnce()
     {
         using var fixture = new MailFixture();
-        var id = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
-            .WithText("race", "race").AddGold(5).Build())).MailId;
-        var attachment = Assert.Single((await fixture.Mail.InboxAsync(Recipient)).Single().Attachments).Id;
+        var (id, attachment) = await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            var id = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
+                .WithText("race", "race").AddGold(5).Build())).MailId;
+            var attachment = Assert.Single((await fixture.Mail.InboxAsync(Recipient)).Single().Attachments).Id;
+            return (id, attachment);
+        });
         using var another = fixture.Reopen();
         var results = await Task.WhenAll(
-            Task.Run(() => AttemptAsync(() => fixture.Mail.ClaimAsync(Recipient, attachment).AsTask())),
-            Task.Run(() => AttemptAsync(() => another.Mail.ClaimAsync(Recipient, attachment).AsTask())));
+            Task.Run(() => TestGameplay.RunAsync(fixture.Services, () => AttemptAsync(() => fixture.Mail.ClaimAsync(Recipient, attachment).AsTask()))),
+            Task.Run(() => TestGameplay.RunAsync(another.Services, () => AttemptAsync(() => another.Mail.ClaimAsync(Recipient, attachment).AsTask()))));
         Assert.Equal(1, results.Count(x => x is null));
         Assert.Equal(1005, fixture.Gold(Recipient));
-        Assert.True(Assert.Single((await fixture.Mail.ReadAsync(Recipient, id)).Attachments).Claimed);
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            Assert.True(Assert.Single((await fixture.Mail.ReadAsync(Recipient, id)).Attachments).Claimed);
+        });
     }
 
     [Fact]
     public async Task SendRulesRejectRestrictedEquipmentAndCrossAccountBoundStacks()
     {
-        using var fixture = new MailFixture();
-        var uid = fixture.SeedEquipment(Sender, 9, 3001);
-        await AssertMailFailureAsync(MailFailure.NotSendable, () => fixture.Mail.SendAsync(new MailBuilder(
-            MailSource.FromCharacter(Sender), Recipient).AddEquipment(new ItemIdentity(uid)).Build()).AsTask());
-        Assert.Equal(1, fixture.EquipmentSlots(Sender, uid));
-        await fixture.SeedStackAsync(Sender, 121, 1001, 2, 3);
-        fixture.Sql("INSERT INTO accounts(account_id,m_id) VALUES(2,'other'); UPDATE characters SET account_id=2 WHERE character_id=3");
-        await AssertMailFailureAsync(MailFailure.InsufficientAssets, () => fixture.Mail.SendAsync(new MailBuilder(
-            MailSource.FromCharacter(Sender), Stranger).AddStackable(1001, 1).Build()).AsTask());
-        Assert.Equal(2, await fixture.StackAsync(Sender, 1001));
-        await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromCharacter(Sender), Recipient).AddStackable(1001, 1).Build());
-        Assert.Equal(1, await fixture.StackAsync(Sender, 1001));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new MailFixture();
+            var uid = fixture.SeedEquipment(Sender, 9, 3001);
+            await AssertMailFailureAsync(MailFailure.NotSendable, () => fixture.Mail.SendAsync(new MailBuilder(
+                MailSource.FromCharacter(Sender), Recipient).AddEquipment(new ItemIdentity(uid)).Build()).AsTask());
+            Assert.Equal(1, fixture.EquipmentSlots(Sender, uid));
+            await fixture.SeedStackAsync(Sender, 121, 1001, 2, 3);
+            fixture.Sql("INSERT INTO accounts(account_id,m_id) VALUES(2,'other'); UPDATE characters SET account_id=2 WHERE character_id=3");
+            await AssertMailFailureAsync(MailFailure.InsufficientAssets, () => fixture.Mail.SendAsync(new MailBuilder(
+                MailSource.FromCharacter(Sender), Stranger).AddStackable(1001, 1).Build()).AsTask());
+            Assert.Equal(2, await fixture.StackAsync(Sender, 1001));
+            await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromCharacter(Sender), Recipient).AddStackable(1001, 1).Build());
+            Assert.Equal(1, await fixture.StackAsync(Sender, 1001));
+        });
     }
 
     [Fact]
     public async Task AccountMaterialAttachmentsUseAccountBalanceAndRollbackWithMail()
     {
-        using var fixture = new MailFixture();
-        await fixture.SeedShared(3037, 10, 1);
-        var sent = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromCharacter(Sender), Recipient)
-            .AddStackable(3037, 3).Build());
-        Assert.Equal(7, fixture.SharedCount(3037, 1));
-        Assert.Equal(BusinessInventorySpace.SharedMaterial, Assert.Single(sent.Changes).Slot!.Value.Space);
-        var attachment = Assert.Single((await fixture.Mail.ReadAsync(Recipient, sent.MailId)).Attachments);
-        var claimed = await fixture.Mail.ClaimAsync(Recipient, attachment.Id);
-        Assert.Equal(BusinessInventorySpace.SharedMaterial, Assert.Single(claimed.Changes).Slot!.Value.Space);
-        Assert.Equal(10, fixture.SharedCount(3037, 1));
-        Assert.Equal(0, await fixture.TotalStackAsync(3037));
-        await AssertMailFailureAsync(MailFailure.InsufficientAssets, () => fixture.Mail.SendAsync(
-            new MailBuilder(MailSource.FromCharacter(Sender), Recipient).AddStackable(3037, 2).AddGold(1001).Build()).AsTask());
-        Assert.Equal(10, fixture.SharedCount(3037, 1));
-        var reward = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient).AddStackable(3037, 4).Build());
-        await fixture.Mail.ClaimAsync(Recipient, Assert.Single((await fixture.Mail.ReadAsync(Recipient, reward.MailId)).Attachments).Id);
-        Assert.Equal(14, fixture.SharedCount(3037, 1));
-        Assert.Equal(0, await fixture.TotalStackAsync(3037));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new MailFixture();
+            await fixture.SeedShared(3037, 10, 1);
+            var sent = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromCharacter(Sender), Recipient)
+                .AddStackable(3037, 3).Build());
+            Assert.Equal(7, fixture.SharedCount(3037, 1));
+            Assert.Equal(BusinessInventorySpace.SharedMaterial, Assert.Single(sent.Changes).Slot!.Value.Space);
+            var attachment = Assert.Single((await fixture.Mail.ReadAsync(Recipient, sent.MailId)).Attachments);
+            var claimed = await fixture.Mail.ClaimAsync(Recipient, attachment.Id);
+            Assert.Equal(BusinessInventorySpace.SharedMaterial, Assert.Single(claimed.Changes).Slot!.Value.Space);
+            Assert.Equal(10, fixture.SharedCount(3037, 1));
+            Assert.Equal(0, await fixture.TotalStackAsync(3037));
+            await AssertMailFailureAsync(MailFailure.InsufficientAssets, () => fixture.Mail.SendAsync(
+                new MailBuilder(MailSource.FromCharacter(Sender), Recipient).AddStackable(3037, 2).AddGold(1001).Build()).AsTask());
+            Assert.Equal(10, fixture.SharedCount(3037, 1));
+            var reward = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient).AddStackable(3037, 4).Build());
+            await fixture.Mail.ClaimAsync(Recipient, Assert.Single((await fixture.Mail.ReadAsync(Recipient, reward.MailId)).Attachments).Id);
+            Assert.Equal(14, fixture.SharedCount(3037, 1));
+            Assert.Equal(0, await fixture.TotalStackAsync(3037));
+        });
     }
 
     [Fact]
     public async Task InvalidTemplateAndDeletedRecipientDoNotCreateMailOrDebit()
     {
-        using var fixture = new MailFixture();
-        await AssertMailFailureAsync(MailFailure.InvalidItem, () => fixture.Mail.SendAsync(new MailBuilder(
-            MailSource.FromCharacter(Sender), Recipient).AddGold(5).AddStackable(int.MaxValue, 1).Build()).AsTask());
-        Assert.Equal(1000, fixture.Gold(Sender));
-        fixture.Sql("UPDATE characters SET delete_flag=1 WHERE character_id=2");
-        await AssertMailFailureAsync(MailFailure.CharacterNotFound, () => fixture.Mail.SendAsync(new MailBuilder(
-            MailSource.FromSystem(), Recipient).AddGold(5).Build()).AsTask());
-        Assert.Equal(0, fixture.InboxRows(Recipient));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new MailFixture();
+            await AssertMailFailureAsync(MailFailure.InvalidItem, () => fixture.Mail.SendAsync(new MailBuilder(
+                MailSource.FromCharacter(Sender), Recipient).AddGold(5).AddStackable(int.MaxValue, 1).Build()).AsTask());
+            Assert.Equal(1000, fixture.Gold(Sender));
+            fixture.Sql("UPDATE characters SET delete_flag=1 WHERE character_id=2");
+            await AssertMailFailureAsync(MailFailure.CharacterNotFound, () => fixture.Mail.SendAsync(new MailBuilder(
+                MailSource.FromSystem(), Recipient).AddGold(5).Build()).AsTask());
+            Assert.Equal(0, fixture.InboxRows(Recipient));
+        });
     }
 
     [Fact]
     public async Task DatabaseFailureAndCaughtRefusalCannotCommitPartialAssets()
     {
-        using var fixture = new MailFixture();
-        await fixture.SeedStackAsync(Sender, 121, 1000, 4, 3);
-        fixture.Sql("CREATE TRIGGER fail_mail BEFORE INSERT ON mailbox_messages BEGIN SELECT RAISE(ABORT,'mail test failure'); END");
-        await Assert.ThrowsAsync<SqliteException>(() => fixture.Mail.SendAsync(new MailBuilder(MailSource.FromCharacter(Sender), Recipient)
-            .AddGold(20).AddStackable(1000, 2).Build()).AsTask());
-        Assert.Equal(1000, fixture.Gold(Sender));
-        Assert.Equal(4, await fixture.StackAsync(Sender, 1000));
-        Assert.Equal(0, fixture.InboxRows(Recipient));
-        fixture.Sql("DROP TRIGGER fail_mail");
-        await fixture.CaughtFailureCannotCommitAsync();
-        Assert.Equal(1000, fixture.Gold(Sender));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new MailFixture();
+            await fixture.SeedStackAsync(Sender, 121, 1000, 4, 3);
+            fixture.Sql("CREATE TRIGGER fail_mail BEFORE INSERT ON mailbox_messages BEGIN SELECT RAISE(ABORT,'mail test failure'); END");
+            await Assert.ThrowsAsync<SqliteException>(() => fixture.Mail.SendAsync(new MailBuilder(MailSource.FromCharacter(Sender), Recipient)
+                .AddGold(20).AddStackable(1000, 2).Build()).AsTask());
+            Assert.Equal(1000, fixture.Gold(Sender));
+            Assert.Equal(4, await fixture.StackAsync(Sender, 1000));
+            Assert.Equal(0, fixture.InboxRows(Recipient));
+            fixture.Sql("DROP TRIGGER fail_mail");
+            await fixture.CaughtFailureCannotCommitAsync();
+            Assert.Equal(1000, fixture.Gold(Sender));
+        });
     }
 
     private static async Task<Exception?> AttemptAsync(Func<Task> action)

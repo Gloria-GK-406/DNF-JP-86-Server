@@ -10,6 +10,7 @@ using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Parties;
 
@@ -117,193 +118,217 @@ public sealed class PartySettingsDomainTests
     [Fact]
     public void ExactLeaderCreatesThenUpdatesOnePartyWithoutChangingItsIdentityOrMembers()
     {
-        var fixture = new PartySettingsFixture();
-        var leader = fixture.Admit(1, 101);
-        var createSettings = Settings(4, PartyCategory.Story, 31);
-        var created = fixture.Parties.CreateOrUpdateSettingsExact(
-            leader, createSettings, new PartyTitle([0x61]));
+        TestGameplay.Run(() =>
+        {
+            var fixture = new PartySettingsFixture();
+            var leader = fixture.Admit(1, 101);
+            var createSettings = Settings(4, PartyCategory.Story, 31);
+            var created = fixture.Parties.CreateOrUpdateSettingsExact(
+                leader, createSettings, new PartyTitle([0x61]));
 
-        Assert.True(created.Succeeded);
-        Assert.Equal(PartySettingsChangeKind.Created, created.Notifications.SettingsChange);
-        var first = Assert.IsType<PartySnapshot>(created.Notifications.Snapshot);
-        Assert.Equal(leader.WireUserId, first.LeaderWireUserId);
-        Assert.Equal(createSettings, first.Settings);
-        Assert.Equal(new PartyTitle([0x61]), first.Title);
-        Assert.Single(first.Members);
+            Assert.True(created.Succeeded);
+            Assert.Equal(PartySettingsChangeKind.Created, created.Notifications.SettingsChange);
+            var first = Assert.IsType<PartySnapshot>(created.Notifications.Snapshot);
+            Assert.Equal(leader.WireUserId, first.LeaderWireUserId);
+            Assert.Equal(createSettings, first.Settings);
+            Assert.Equal(new PartyTitle([0x61]), first.Title);
+            Assert.Single(first.Members);
 
-        var updateSettings = Settings(2, PartyCategory.Cycle, 44);
-        var updated = fixture.Parties.CreateOrUpdateSettingsExact(
-            leader, updateSettings, new PartyTitle([0x62, 0x63]));
-        var second = Assert.IsType<PartySnapshot>(updated.Notifications.Snapshot);
-        Assert.Equal(PartySettingsChangeKind.Updated, updated.Notifications.SettingsChange);
+            var updateSettings = Settings(2, PartyCategory.Cycle, 44);
+            var updated = fixture.Parties.CreateOrUpdateSettingsExact(
+                leader, updateSettings, new PartyTitle([0x62, 0x63]));
+            var second = Assert.IsType<PartySnapshot>(updated.Notifications.Snapshot);
+            Assert.Equal(PartySettingsChangeKind.Updated, updated.Notifications.SettingsChange);
 
-        Assert.Equal(first.PartyId, second.PartyId);
-        Assert.Equal(first.Generation, second.Generation);
-        Assert.Equal(first.Revision + 1, second.Revision);
-        Assert.Equal(
-            first.Members.Select(value => (value.Character, value.Slot, value.Endpoint, value.HpPercent)),
-            second.Members.Select(value => (value.Character, value.Slot, value.Endpoint, value.HpPercent)));
-        Assert.Equal(updateSettings, second.Settings);
-        Assert.Equal(new PartyTitle([0x62, 0x63]), second.Title);
-        AssertSnapshotEqual(second, fixture.Parties.FindParty(leader));
+            Assert.Equal(first.PartyId, second.PartyId);
+            Assert.Equal(first.Generation, second.Generation);
+            Assert.Equal(first.Revision + 1, second.Revision);
+            Assert.Equal(
+                first.Members.Select(value => (value.Character, value.Slot, value.Endpoint, value.HpPercent)),
+                second.Members.Select(value => (value.Character, value.Slot, value.Endpoint, value.HpPercent)));
+            Assert.Equal(updateSettings, second.Settings);
+            Assert.Equal(new PartyTitle([0x62, 0x63]), second.Title);
+            AssertSnapshotEqual(second, fixture.Parties.FindParty(leader));
+        });
     }
 
     [Fact]
     public void ServerDisablesReturnUserPartyWithoutChangingTheOtherSubmittedSettings()
     {
-        var fixture = new PartySettingsFixture();
-        var leader = fixture.Admit(1, 101);
-        var submittedBytes = SettingsBytes(3, PartyCategory.Cycle, 0x1234);
-        submittedBytes[1] = 1;
-        var submitted = new PartySettings(submittedBytes);
+        TestGameplay.Run(() =>
+        {
+            var fixture = new PartySettingsFixture();
+            var leader = fixture.Admit(1, 101);
+            var submittedBytes = SettingsBytes(3, PartyCategory.Cycle, 0x1234);
+            submittedBytes[1] = 1;
+            var submitted = new PartySettings(submittedBytes);
 
-        var result = fixture.Parties.CreateOrUpdateSettingsExact(
-            leader, submitted, new PartyTitle([0x61]));
+            var result = fixture.Parties.CreateOrUpdateSettingsExact(
+                leader, submitted, new PartyTitle([0x61]));
 
-        Assert.True(result.Succeeded);
-        var snapshot = Assert.IsType<PartySnapshot>(result.Notifications.Snapshot);
-        var expectedBytes = (byte[])submittedBytes.Clone();
-        expectedBytes[1] = 0;
-        Assert.Equal(expectedBytes, snapshot.Settings.ToWireBytes());
-        Assert.Equal(expectedBytes, fixture.Parties.FindParty(leader)!.Settings.ToWireBytes());
+            Assert.True(result.Succeeded);
+            var snapshot = Assert.IsType<PartySnapshot>(result.Notifications.Snapshot);
+            var expectedBytes = (byte[])submittedBytes.Clone();
+            expectedBytes[1] = 0;
+            Assert.Equal(expectedBytes, snapshot.Settings.ToWireBytes());
+            Assert.Equal(expectedBytes, fixture.Parties.FindParty(leader)!.Settings.ToWireBytes());
+        });
     }
 
     [Fact]
     public void InvitationsCreateANormalPartyAndItsCapacityControlsAdmission()
     {
-        var fixture = new PartySettingsFixture();
-        var leader = fixture.Admit(1, 101);
-        var second = fixture.Admit(2, 202);
-        var third = fixture.Admit(3, 303);
+        TestGameplay.Run(() =>
+        {
+            var fixture = new PartySettingsFixture();
+            var leader = fixture.Admit(1, 101);
+            var second = fixture.Admit(2, 202);
+            var third = fixture.Admit(3, 303);
 
-        fixture.Form(leader, second);
-        var formed = Assert.IsType<PartySnapshot>(fixture.Parties.FindParty(leader));
-        Assert.Equal(PartyCategory.Normal, formed.Settings.Category);
-        Assert.Equal((byte)4, formed.Settings.Capacity);
+            fixture.Form(leader, second);
+            var formed = Assert.IsType<PartySnapshot>(fixture.Parties.FindParty(leader));
+            Assert.Equal(PartyCategory.Normal, formed.Settings.Category);
+            Assert.Equal((byte)4, formed.Settings.Capacity);
 
-        Assert.True(fixture.Parties.CreateOrUpdateSettingsExact(
-            leader,
-            Settings(2, PartyCategory.Normal, 0),
-            PartyTitle.Empty).Succeeded);
-        Assert.Equal(
-            PartyFailureReason.PartyFull,
-            fixture.Parties.RequestInvite(leader, third.WireUserId, Profile(1)).Failure);
+            Assert.True(fixture.Parties.CreateOrUpdateSettingsExact(
+                leader,
+                Settings(2, PartyCategory.Normal, 0),
+                PartyTitle.Empty).Succeeded);
+            Assert.Equal(
+                PartyFailureReason.PartyFull,
+                fixture.Parties.RequestInvite(leader, third.WireUserId, Profile(1)).Failure);
+        });
     }
 
     [Fact]
     public void CapacityChangedAfterInvitationIsRecheckedOnAcceptWithoutConsumingTheInvite()
     {
-        var fixture = new PartySettingsFixture();
-        var leader = fixture.Admit(1, 101);
-        var second = fixture.Admit(2, 202);
-        var third = fixture.Admit(3, 303);
-        fixture.Form(leader, second);
-        Assert.True(fixture.Parties.RequestInvite(leader, third.WireUserId, Profile(1)).Succeeded);
-        Assert.True(fixture.Parties.CreateOrUpdateSettingsExact(
-            leader,
-            Settings(2, PartyCategory.Normal, 0),
-            PartyTitle.Empty).Succeeded);
-        var full = Assert.IsType<PartySnapshot>(fixture.Parties.FindParty(leader));
+        TestGameplay.Run(() =>
+        {
+            var fixture = new PartySettingsFixture();
+            var leader = fixture.Admit(1, 101);
+            var second = fixture.Admit(2, 202);
+            var third = fixture.Admit(3, 303);
+            fixture.Form(leader, second);
+            Assert.True(fixture.Parties.RequestInvite(leader, third.WireUserId, Profile(1)).Succeeded);
+            Assert.True(fixture.Parties.CreateOrUpdateSettingsExact(
+                leader,
+                Settings(2, PartyCategory.Normal, 0),
+                PartyTitle.Empty).Succeeded);
+            var full = Assert.IsType<PartySnapshot>(fixture.Parties.FindParty(leader));
 
-        Assert.Equal(
-            PartyFailureReason.PartyFull,
-            fixture.Parties.AcceptInvite(third, leader.WireUserId).Failure);
-        AssertSnapshotEqual(full, fixture.Parties.FindParty(leader));
-        Assert.True(fixture.Parties.FindParty(third).IsVirtual);
+            Assert.Equal(
+                PartyFailureReason.PartyFull,
+                fixture.Parties.AcceptInvite(third, leader.WireUserId).Failure);
+            AssertSnapshotEqual(full, fixture.Parties.FindParty(leader));
+            Assert.True(fixture.Parties.FindParty(third).IsVirtual);
 
-        Assert.True(fixture.Parties.CreateOrUpdateSettingsExact(
-            leader,
-            Settings(3, PartyCategory.Normal, 0),
-            PartyTitle.Empty).Succeeded);
-        Assert.True(fixture.Parties.AcceptInvite(third, leader.WireUserId).Succeeded);
+            Assert.True(fixture.Parties.CreateOrUpdateSettingsExact(
+                leader,
+                Settings(3, PartyCategory.Normal, 0),
+                PartyTitle.Empty).Succeeded);
+            Assert.True(fixture.Parties.AcceptInvite(third, leader.WireUserId).Succeeded);
+        });
     }
 
     [Fact]
     public void DefaultAdmissionFailureCannotPartiallyCreateOrConsumeAnInvitation()
     {
-        var rules = new MutableDefaultRules(Settings(4, PartyCategory.Normal, 0));
-        var fixture = new PartySettingsFixture(rules);
-        var leader = fixture.Admit(1, 101);
-        var invitee = fixture.Admit(2, 202);
-        Assert.True(fixture.Parties.RequestInvite(leader, invitee.WireUserId, Profile(1)).Succeeded);
+        TestGameplay.Run(() =>
+        {
+            var rules = new MutableDefaultRules(Settings(4, PartyCategory.Normal, 0));
+            var fixture = new PartySettingsFixture(rules);
+            var leader = fixture.Admit(1, 101);
+            var invitee = fixture.Admit(2, 202);
+            Assert.True(fixture.Parties.RequestInvite(leader, invitee.WireUserId, Profile(1)).Succeeded);
 
-        rules.DefaultSettings = Settings(1, PartyCategory.Normal, 0);
-        Assert.Equal(
-            PartyFailureReason.PartyFull,
-            fixture.Parties.AcceptInvite(invitee, leader.WireUserId).Failure);
-        Assert.True(fixture.Parties.FindParty(leader).IsVirtual);
-        Assert.True(fixture.Parties.FindParty(invitee).IsVirtual);
+            rules.DefaultSettings = Settings(1, PartyCategory.Normal, 0);
+            Assert.Equal(
+                PartyFailureReason.PartyFull,
+                fixture.Parties.AcceptInvite(invitee, leader.WireUserId).Failure);
+            Assert.True(fixture.Parties.FindParty(leader).IsVirtual);
+            Assert.True(fixture.Parties.FindParty(invitee).IsVirtual);
 
-        rules.DefaultSettings = Settings(4, PartyCategory.Normal, 0);
-        Assert.True(fixture.Parties.AcceptInvite(invitee, leader.WireUserId).Succeeded);
+            rules.DefaultSettings = Settings(4, PartyCategory.Normal, 0);
+            Assert.True(fixture.Parties.AcceptInvite(invitee, leader.WireUserId).Succeeded);
+        });
     }
 
     [Fact]
     public void RejectedSettingsLeaveSnapshotRevisionAndInvitationsUntouched()
     {
-        var fixture = new PartySettingsFixture();
-        var leader = fixture.Admit(1, 101);
-        var member = fixture.Admit(2, 202);
-        var pending = fixture.Admit(3, 303);
-        fixture.Form(leader, member);
-        Assert.True(fixture.Parties.RequestInvite(leader, pending.WireUserId, Profile(8)).Succeeded);
-        var before = Assert.IsType<PartySnapshot>(fixture.Parties.FindParty(leader));
+        TestGameplay.Run(() =>
+        {
+            var fixture = new PartySettingsFixture();
+            var leader = fixture.Admit(1, 101);
+            var member = fixture.Admit(2, 202);
+            var pending = fixture.Admit(3, 303);
+            fixture.Form(leader, member);
+            Assert.True(fixture.Parties.RequestInvite(leader, pending.WireUserId, Profile(8)).Succeeded);
+            var before = Assert.IsType<PartySnapshot>(fixture.Parties.FindParty(leader));
 
-        Assert.Equal(
-            PartyFailureReason.NotPartyLeader,
-            fixture.Parties.CreateOrUpdateSettingsExact(
-                member, Settings(4, PartyCategory.Story, 1), PartyTitle.Empty).Failure);
-        Assert.Equal(
-            PartyFailureReason.InvalidPartyCapacity,
-            fixture.Parties.CreateOrUpdateSettingsExact(
-                leader, Settings(0, PartyCategory.Normal, 1), PartyTitle.Empty).Failure);
-        Assert.Equal(
-            PartyFailureReason.PartyCapacityBelowMemberCount,
-            fixture.Parties.CreateOrUpdateSettingsExact(
-                leader, Settings(1, PartyCategory.Normal, 1), PartyTitle.Empty).Failure);
-        Assert.Equal(
-            PartyFailureReason.UnknownPartyCategory,
-            fixture.Parties.CreateOrUpdateSettingsExact(
-                leader, Settings(4, (PartyCategory)9, 1), PartyTitle.Empty).Failure);
-        Assert.Equal(
-            PartyFailureReason.InvalidPartyCapacity,
-            fixture.Parties.CreateOrUpdateSettingsExact(
-                leader, Settings(5, PartyCategory.Normal, 1), PartyTitle.Empty).Failure);
+            Assert.Equal(
+                PartyFailureReason.NotPartyLeader,
+                fixture.Parties.CreateOrUpdateSettingsExact(
+                    member, Settings(4, PartyCategory.Story, 1), PartyTitle.Empty).Failure);
+            Assert.Equal(
+                PartyFailureReason.InvalidPartyCapacity,
+                fixture.Parties.CreateOrUpdateSettingsExact(
+                    leader, Settings(0, PartyCategory.Normal, 1), PartyTitle.Empty).Failure);
+            Assert.Equal(
+                PartyFailureReason.PartyCapacityBelowMemberCount,
+                fixture.Parties.CreateOrUpdateSettingsExact(
+                    leader, Settings(1, PartyCategory.Normal, 1), PartyTitle.Empty).Failure);
+            Assert.Equal(
+                PartyFailureReason.UnknownPartyCategory,
+                fixture.Parties.CreateOrUpdateSettingsExact(
+                    leader, Settings(4, (PartyCategory)9, 1), PartyTitle.Empty).Failure);
+            Assert.Equal(
+                PartyFailureReason.InvalidPartyCapacity,
+                fixture.Parties.CreateOrUpdateSettingsExact(
+                    leader, Settings(5, PartyCategory.Normal, 1), PartyTitle.Empty).Failure);
 
-        AssertSnapshotEqual(before, fixture.Parties.FindParty(member));
-        Assert.True(fixture.Parties.AcceptInvite(pending, leader.WireUserId).Succeeded);
-        var afterAccept = Assert.IsType<PartySnapshot>(fixture.Parties.FindParty(member));
+            AssertSnapshotEqual(before, fixture.Parties.FindParty(member));
+            Assert.True(fixture.Parties.AcceptInvite(pending, leader.WireUserId).Succeeded);
+            var afterAccept = Assert.IsType<PartySnapshot>(fixture.Parties.FindParty(member));
 
-        var replacement = fixture.Replace(leader, 2);
-        Assert.Equal(
-            PartyFailureReason.CallerNotCurrent,
-            fixture.Parties.CreateOrUpdateSettingsExact(
-                leader, Settings(4, PartyCategory.Normal, 1), PartyTitle.Empty).Failure);
-        AssertSnapshotEqual(afterAccept, fixture.Parties.FindParty(member));
-        AssertSnapshotEqual(afterAccept, fixture.Parties.FindParty(replacement));
+            var replacement = fixture.Replace(leader, 2);
+            Assert.Equal(
+                PartyFailureReason.CallerNotCurrent,
+                fixture.Parties.CreateOrUpdateSettingsExact(
+                    leader, Settings(4, PartyCategory.Normal, 1), PartyTitle.Empty).Failure);
+            AssertSnapshotEqual(afterAccept, fixture.Parties.FindParty(member));
+            AssertSnapshotEqual(afterAccept, fixture.Parties.FindParty(replacement));
+        });
     }
 
     [Fact]
     public async Task ConcurrentUpdatesAreLinearizedIntoUniqueRevisionsAndDetachedResults()
     {
         var fixture = new PartySettingsFixture();
-        var leader = fixture.Admit(1, 101);
-        Assert.True(fixture.Parties.CreateOrUpdateSettingsExact(
-            leader, Settings(4, PartyCategory.Normal, 0), PartyTitle.Empty).Succeeded);
+        var leader = TestGameplay.Run(() =>
+        {
+            var leader = fixture.Admit(1, 101);
+            Assert.True(fixture.Parties.CreateOrUpdateSettingsExact(
+                leader, Settings(4, PartyCategory.Normal, 0), PartyTitle.Empty).Succeeded);
+            return leader;
+        });
         using var start = new Barrier(3);
 
         var first = Task.Run(() =>
-        {
-            start.SignalAndWait();
-            return fixture.Parties.CreateOrUpdateSettingsExact(
-                leader, Settings(4, PartyCategory.Story, 11), new PartyTitle([0x31]));
-        });
+            TestGameplay.Run(() =>
+            {
+                start.SignalAndWait();
+                return fixture.Parties.CreateOrUpdateSettingsExact(
+                    leader, Settings(4, PartyCategory.Story, 11), new PartyTitle([0x31]));
+            }));
         var second = Task.Run(() =>
-        {
-            start.SignalAndWait();
-            return fixture.Parties.CreateOrUpdateSettingsExact(
-                leader, Settings(4, PartyCategory.Cycle, 22), new PartyTitle([0x32]));
-        });
+            TestGameplay.Run(() =>
+            {
+                start.SignalAndWait();
+                return fixture.Parties.CreateOrUpdateSettingsExact(
+                    leader, Settings(4, PartyCategory.Cycle, 22), new PartyTitle([0x32]));
+            }));
         start.SignalAndWait();
         var results = await Task.WhenAll(first, second).WaitAsync(TimeSpan.FromSeconds(2));
 
@@ -311,8 +336,11 @@ public sealed class PartySettingsDomainTests
         var snapshots = results.Select(result =>
             Assert.IsType<PartySnapshot>(result.Notifications.Snapshot)).ToArray();
         Assert.Equal([2L, 3L], snapshots.Select(value => value.Revision).Order().ToArray());
-        var final = Assert.IsType<PartySnapshot>(fixture.Parties.FindParty(leader));
-        AssertSnapshotEqual(snapshots.Single(value => value.Revision == 3), final);
+        TestGameplay.Run(() =>
+        {
+            var final = Assert.IsType<PartySnapshot>(fixture.Parties.FindParty(leader));
+            AssertSnapshotEqual(snapshots.Single(value => value.Revision == 3), final);
+        });
         Assert.NotEqual(snapshots[0].Settings, snapshots[1].Settings);
     }
 

@@ -14,6 +14,7 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 using System.Buffers.Binary;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.BuyItem;
 
@@ -22,27 +23,30 @@ public sealed class BuyItemCodecTests
     [Fact]
     public async Task Purchase_projects_changed_quest_progress_after_the_inventory_update()
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(2), new("purchase-quest"), 2, 10011);
-        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
-        Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
-        var receipt = new NpcShopPurchaseReceipt(session, 2000, 1, 100, 0, 0, false, [],
-            [new(new(BusinessInventorySpace.QuickSlot, 0), ItemSnapshot.FromCore(StackableItemCore.Create(2, 2000, 1), true), 1)], DateTimeOffset.UnixEpoch);
-        var messages = await new NpcShopPurchaseCompletedHandler(sessions).ComposeAsync(
-            new NotificationRecipient(session.CharacterId, session.ConnectionId),
-            new NpcShopPurchaseCompleted(receipt,
-                new QuestProgressSnapshot([new CarriedQuest(0, 2001, 0)])),
-            CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = SelectedSessionIdentity.Create(new(1), new(2), new("purchase-quest"), 2, 10011);
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+            Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
+            var receipt = new NpcShopPurchaseReceipt(session, 2000, 1, 100, 0, 0, false, [],
+                [new(new(BusinessInventorySpace.QuickSlot, 0), ItemSnapshot.FromCore(StackableItemCore.Create(2, 2000, 1), true), 1)], DateTimeOffset.UnixEpoch);
+            var messages = await new NpcShopPurchaseCompletedHandler(sessions).ComposeAsync(
+                new NotificationRecipient(session.CharacterId, session.ConnectionId),
+                new NpcShopPurchaseCompleted(receipt,
+                    new QuestProgressSnapshot([new CarriedQuest(0, 2001, 0)])),
+                CancellationToken.None);
 
-        Assert.IsType<InventoryDeltaMessage>(messages[0]);
-        Assert.True(Assert.IsType<BuyItemResponse>(messages[1]).InventoryAlreadyProjected);
-        var progress = Assert.IsType<AcceptedQuestProgressMessage>(messages[^1]);
-        var frame = Assert.Single(
-            new SupplementalNotiSynchronizationEncoder<AcceptedQuestProgressMessage>().Encode(progress));
-        Assert.Equal(0, frame[0]);
-        Assert.Equal(0x023F, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));
-        Assert.Equal(1u, BinaryPrimitives.ReadUInt32LittleEndian(frame.AsSpan(15, 4)));
-        Assert.Equal((ushort)2001, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(19, 2)));
-        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(frame.AsSpan(21, 4)));
+            Assert.IsType<InventoryDeltaMessage>(messages[0]);
+            Assert.True(Assert.IsType<BuyItemResponse>(messages[1]).InventoryAlreadyProjected);
+            var progress = Assert.IsType<AcceptedQuestProgressMessage>(messages[^1]);
+            var frame = Assert.Single(
+                new SupplementalNotiSynchronizationEncoder<AcceptedQuestProgressMessage>().Encode(progress));
+            Assert.Equal(0, frame[0]);
+            Assert.Equal(0x023F, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));
+            Assert.Equal(1u, BinaryPrimitives.ReadUInt32LittleEndian(frame.AsSpan(15, 4)));
+            Assert.Equal((ushort)2001, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(19, 2)));
+            Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(frame.AsSpan(21, 4)));
+        });
     }
 
     [Theory]

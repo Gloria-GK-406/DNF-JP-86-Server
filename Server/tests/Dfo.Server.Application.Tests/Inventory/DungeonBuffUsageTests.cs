@@ -9,6 +9,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -35,17 +36,23 @@ public sealed class DungeonBuffUsageTests
     }
     private static DungeonRunId Enter(ShopFixture shop)
     {
-        var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
-        var id = shop.Session.CharacterId;
-        if (runs.Find(id) is { } old) runs.End(id, old.RunId);
-        var cell = new MazeCell(0, 0);
-        return shop.InTransaction(() => runs.Begin(id, new DungeonLayout(144, 0, 1, 1, cell, cell, 55611, 0,
-            new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)}), difficulty: 0)).RunId;
+        return TestGameplay.Run(shop.Services, () =>
+        {
+            var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
+            var id = shop.Session.CharacterId;
+            if (runs.Find(id) is { } old) runs.End(id, old.RunId);
+            var cell = new MazeCell(0, 0);
+            return shop.InTransaction(() => runs.Begin(id, new DungeonLayout(144, 0, 1, 1, cell, cell, 55611, 0,
+                new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)}), difficulty: 0)).RunId;
+        });
     }
     private static async Task<int> Report(ShopFixture shop)
     {
-        await shop.Services.GetRequiredService<PremiumServiceUsageReportHandler>().HandleAsync(
-            new(shop.Connection), new PremiumServiceUsageReport(GameMessageMetadata.Empty, 3), default);
+        await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            await shop.Services.GetRequiredService<PremiumServiceUsageReportHandler>().HandleAsync(
+                new(shop.Connection), new PremiumServiceUsageReport(GameMessageMetadata.Empty, 3), default);
+        });
         var snapshot = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new ReadPremiumSnapshotCommand(shop.Session));
         return snapshot.Usage.Single(x => x.SlotIndex == 3).UsedCount;
     }
@@ -97,7 +104,10 @@ public sealed class DungeonBuffUsageTests
         await Assert.ThrowsAsync<InvalidDataException>(() => shop.Services.GetRequiredService<ICommandBus>()
             .SendAsync(new ConsumeDungeonBuffCommand(shop.Session, run)).AsTask());
         Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM character_daily_counters WHERE counter_key='premium_dungeon_buff_used'"));
-        Assert.False(shop.Services.GetRequiredService<IDungeonRunDomainService>().HasUsedDungeonBuff(shop.Session.CharacterId, run));
+        TestGameplay.Run(shop.Services, () =>
+        {
+            Assert.False(shop.Services.GetRequiredService<IDungeonRunDomainService>().HasUsedDungeonBuff(shop.Session.CharacterId, run));
+        });
         shop.Sql("DELETE FROM character_daily_counters WHERE counter_key='lottery_double_reward_used'");
         Assert.Equal(1, await Report(shop));
     }

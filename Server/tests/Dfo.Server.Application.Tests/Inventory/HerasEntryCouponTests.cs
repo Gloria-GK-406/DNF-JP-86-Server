@@ -15,6 +15,7 @@ using Dfo.Server.Protocol.Game.QuestClearCoupon;
 using Dfo.Server.Protocol.Game.UseStackable;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -52,11 +53,14 @@ public sealed class HerasEntryCouponTests
         Assert.Equal(1, f.Host.Count(Coupon));
         var q = await Quota(f);
         Assert.Equal(6, q.Remaining);
-        await using (var tx = f.Host.Services.GetRequiredService<DomainTransactionScope>().Begin())
+        await TestGameplay.RunAsync(f.Host.Services, async () =>
         {
-            await f.Host.Services.GetRequiredService<IEventService>().DirectAsync(new HerasQuotaRecorded(f.Host.Session.CharacterId, q.Period, "entries", null, 4), default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Host.Services.GetRequiredService<DomainTransactionScope>().Begin())
+            {
+                await f.Host.Services.GetRequiredService<IEventService>().DirectAsync(new HerasQuotaRecorded(f.Host.Session.CharacterId, q.Period, "entries", null, 4), default);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(2, (await Quota(f)).Remaining);
         f.Host.Clock.Advance(TimeSpan.FromMinutes(1));
         var fresh = await Quota(f);
@@ -101,11 +105,14 @@ public sealed class HerasEntryCouponTests
         using var f = Fixture();
         await f.Host.Seed(69, Coupon, 2);
         var q = await Quota(f);
-        await using (var tx = f.Host.Services.GetRequiredService<DomainTransactionScope>().Begin())
+        await TestGameplay.RunAsync(f.Host.Services, async () =>
         {
-            await f.Host.Services.GetRequiredService<IEventService>().DirectAsync(new HerasQuotaRecorded(f.Host.Session.CharacterId, q.Period, "bonus", null, 252), default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Host.Services.GetRequiredService<DomainTransactionScope>().Begin())
+            {
+                await f.Host.Services.GetRequiredService<IEventService>().DirectAsync(new HerasQuotaRecorded(f.Host.Session.CharacterId, q.Period, "bonus", null, 252), default);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.NotEqual(ItemUseStatus.Used, (await Use(f)).Status);
         Assert.Equal(2, f.Host.Count(Coupon));
         Assert.Equal(255, (await Quota(f)).Remaining);

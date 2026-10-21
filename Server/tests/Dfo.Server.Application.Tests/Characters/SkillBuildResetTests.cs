@@ -10,6 +10,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using Dfo.Server.Persistence.Database;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 namespace Dfo.Server.Application.Tests.Characters;
 
 public sealed class SkillBuildResetTests
@@ -17,67 +18,76 @@ public sealed class SkillBuildResetTests
     [Fact]
     public async Task Third_build_has_independent_budget_and_reset_and_survives_reload()
     {
-        await using var f = new LearningFixture(); await f.SeedAsync();
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await f.State.UnlockAsync(new(71), new(256), default);
-            await f.State.ActivateAsync(new(71), new(256), default);
-            await tx.CommitAsync(default);
-        }
-        await using (var tx = f.Scope.Begin())
-        {
-            var result = await f.Services.GetRequiredService<ICharacterSkillLearningDomainService>()
-                .LearnAsync(f.Session, 256, [new(1,0,3)], 0, default);
-            Assert.Equal(CharacterSkillLearningRejection.None,result.Rejection);
-            Assert.Equal(945,result.Receipt!.Ledger.For(new(256)).Sp);
-            Assert.Equal(975,result.Receipt.Ledger.For(new(0)).Sp);
-            await tx.CommitAsync(default);
-        }
-        await using (var tx = f.Scope.Begin())
-        {
-            await f.State.ResetAsync(new(71),new(256),default);
-            await f.State.ResetAsync(new(71),new(256),default);
-            await tx.CommitAsync(default);
-        }
-        await using var reloaded = new LearningFixture(f.Path);
-        var facts = (await reloaded.State.ReadAsync(new(71),default))!;
-        Assert.Equal(256,(await reloaded.State.BuildsAsync(new(71),default)).Active.Value);
-        var ledger = reloaded.Rules.GetLedger(facts.Career,facts.Level,facts.Pages,facts.PointBasis);
-        Assert.Equal(1005,ledger.For(new(256)).Sp);
-        Assert.Equal(975,ledger.For(new(0)).Sp);
-        Assert.Equal(36+3,ledger.For(new(256)).Tp);
-        Assert.All(facts.Pages.Single(p=>p.PageIndex==256).Skills, skill => Assert.Equal(4u,skill.SkillId));
+            await using var f = new LearningFixture(); await f.SeedAsync();
+            await using (var tx = f.Scope.Begin())
+            {
+                await f.State.UnlockAsync(new(71), new(256), default);
+                await f.State.ActivateAsync(new(71), new(256), default);
+                await tx.CommitAsync(default);
+            }
+            await using (var tx = f.Scope.Begin())
+            {
+                var result = await f.Services.GetRequiredService<ICharacterSkillLearningDomainService>()
+                    .LearnAsync(f.Session, 256, [new(1,0,3)], 0, default);
+                Assert.Equal(CharacterSkillLearningRejection.None,result.Rejection);
+                Assert.Equal(945,result.Receipt!.Ledger.For(new(256)).Sp);
+                Assert.Equal(975,result.Receipt.Ledger.For(new(0)).Sp);
+                await tx.CommitAsync(default);
+            }
+            await using (var tx = f.Scope.Begin())
+            {
+                await f.State.ResetAsync(new(71),new(256),default);
+                await f.State.ResetAsync(new(71),new(256),default);
+                await tx.CommitAsync(default);
+            }
+            await using var reloaded = new LearningFixture(f.Path);
+            var facts = (await reloaded.State.ReadAsync(new(71),default))!;
+            Assert.Equal(256,(await reloaded.State.BuildsAsync(new(71),default)).Active.Value);
+            var ledger = reloaded.Rules.GetLedger(facts.Career,facts.Level,facts.Pages,facts.PointBasis);
+            Assert.Equal(1005,ledger.For(new(256)).Sp);
+            Assert.Equal(975,ledger.For(new(0)).Sp);
+            Assert.Equal(36+3,ledger.For(new(256)).Tp);
+            Assert.All(facts.Pages.Single(p=>p.PageIndex==256).Skills, skill => Assert.Equal(4u,skill.SkillId));
+        });
     }
 
     [Fact]
     public async Task Failed_reset_restores_learning_and_does_not_reset_another_character()
     {
-        await using var f = new LearningFixture(); await f.SeedAsync();
-        f.Sql("CREATE TRIGGER fail_reset BEFORE INSERT ON character_skills WHEN NEW.character_id=71 BEGIN SELECT RAISE(ABORT,'reset failure'); END");
-        await Assert.ThrowsAnyAsync<Exception>(async () =>
+        await TestGameplay.RunAsync(async () =>
         {
-            await using var tx = f.Scope.Begin();
-            await f.State.ResetAllAsync(new(71),default);
-            await tx.CommitAsync(default);
+            await using var f = new LearningFixture(); await f.SeedAsync();
+            f.Sql("CREATE TRIGGER fail_reset BEFORE INSERT ON character_skills WHEN NEW.character_id=71 BEGIN SELECT RAISE(ABORT,'reset failure'); END");
+            await Assert.ThrowsAnyAsync<Exception>(async () =>
+            {
+                await using var tx = f.Scope.Begin();
+                await f.State.ResetAllAsync(new(71),default);
+                await tx.CommitAsync(default);
+            });
+            Assert.Equal(2,f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0"));
+            Assert.Equal(8,f.Scalar("SELECT level FROM character_skills WHERE character_id=72"));
+            Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM character_skill_builds"));
         });
-        Assert.Equal(2,f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0"));
-        Assert.Equal(8,f.Scalar("SELECT level FROM character_skills WHERE character_id=72"));
-        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM character_skill_builds"));
     }
 
     [Fact]
     public async Task Locked_build_is_not_reset_or_switched_and_unlock_does_not_copy_paid_learning()
     {
-        await using var f = new LearningFixture(); await f.SeedAsync();
-        await using var tx = f.Scope.Begin();
-        await Assert.ThrowsAsync<InvalidOperationException>(async()=>await f.State.ResetAsync(new(71),new(1),default));
-        var learning=f.Services.GetRequiredService<ICharacterSkillLearningDomainService>();
-        Assert.Null(await learning.SwitchAsync(f.Session,0,1,default));
-        await f.State.UnlockAsync(new(71),new(2),default);
-        Assert.Equal(2,await learning.SwitchAsync(f.Session,0,2,default));
-        Assert.Null(await learning.SwitchAsync(f.Session,0,2,default));
-        await tx.CommitAsync(default);
-        Assert.DoesNotContain((await f.State.ReadAsync(new(71),default))!.Pages.Single(p=>p.PageIndex==2).Skills,s=>s.SkillId==1);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = new LearningFixture(); await f.SeedAsync();
+            await using var tx = f.Scope.Begin();
+            await Assert.ThrowsAsync<InvalidOperationException>(async()=>await f.State.ResetAsync(new(71),new(1),default));
+            var learning=f.Services.GetRequiredService<ICharacterSkillLearningDomainService>();
+            Assert.Null(await learning.SwitchAsync(f.Session,0,1,default));
+            await f.State.UnlockAsync(new(71),new(2),default);
+            Assert.Equal(2,await learning.SwitchAsync(f.Session,0,2,default));
+            Assert.Null(await learning.SwitchAsync(f.Session,0,2,default));
+            await tx.CommitAsync(default);
+            Assert.DoesNotContain((await f.State.ReadAsync(new(71),default))!.Pages.Single(p=>p.PageIndex==2).Skills,s=>s.SkillId==1);
+        });
     }
 
     [Fact]

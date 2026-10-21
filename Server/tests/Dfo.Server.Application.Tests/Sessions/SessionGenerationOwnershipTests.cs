@@ -28,70 +28,79 @@ public sealed class SessionGenerationOwnershipTests
     [Fact]
     public void ExactCleanup_DoesNotRemoveReplacementOwnedRuntimeState()
     {
-        var oldSession = Session("old", generation: 3);
-        var current = Session("new", generation: 4);
-        var presence = new SessionPresenceDomainService();
-        var stores = new ExpertStoreDomainService();
-        var lobby = new PvpLobbyDomainService();
+        TestGameplay.Run(() =>
+        {
+            var oldSession = Session("old", generation: 3);
+            var current = Session("new", generation: 4);
+            var presence = new SessionPresenceDomainService();
+            var stores = new ExpertStoreDomainService();
+            var lobby = new PvpLobbyDomainService();
 
-        presence.Admit(new SessionPresence(current.CharacterId, 10011, 1, 2, true, current));
-        stores.Open(current);
-        lobby.MarkReady(new PvpLobbyParticipant(current.CharacterId, 10011, current));
+            presence.Admit(new SessionPresence(current.CharacterId, 10011, 1, 2, true, current));
+            stores.Open(current);
+            lobby.MarkReady(new PvpLobbyParticipant(current.CharacterId, 10011, current));
 
-        Assert.False(presence.WithdrawExact(oldSession));
-        Assert.False(stores.CloseExact(oldSession));
-        Assert.False(lobby.ClearReadyExact(oldSession));
-        Assert.NotNull(presence.Find(current.CharacterId));
-        Assert.True(stores.HasOpenStore(current.CharacterId));
-        Assert.Single(lobby.ReadyOn(10011, new CharacterId(999)));
+            Assert.False(presence.WithdrawExact(oldSession));
+            Assert.False(stores.CloseExact(oldSession));
+            Assert.False(lobby.ClearReadyExact(oldSession));
+            Assert.NotNull(presence.Find(current.CharacterId));
+            Assert.True(stores.HasOpenStore(current.CharacterId));
+            Assert.Single(lobby.ReadyOn(10011, new CharacterId(999)));
 
-        Assert.True(presence.WithdrawExact(current));
-        Assert.True(stores.CloseExact(current));
-        Assert.True(lobby.ClearReadyExact(current));
+            Assert.True(presence.WithdrawExact(current));
+            Assert.True(stores.CloseExact(current));
+            Assert.True(lobby.ClearReadyExact(current));
+        });
     }
 
     [Fact]
     public async Task Cleanup_AttemptsLaterExactActionsWhenOneActionThrows()
     {
-        var session = Session("cleanup", 9);
-        var directory = Dfo.Server.Testing.TestSessions.Directory();
-        directory.Select(session);
-        var service = Cleanup(directory, runtime: new ThrowingRuntime());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = Session("cleanup", 9);
+            var directory = Dfo.Server.Testing.TestSessions.Directory();
+            directory.Select(session);
+            var service = Cleanup(directory, runtime: new ThrowingRuntime());
 
-        await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
-            await service.CleanupAsync(session, includeOwner: false, CancellationToken.None));
+            await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
+                await service.CleanupAsync(session, includeOwner: false, CancellationToken.None));
 
-        Assert.Null(directory.Find(session.AccountId));
+            Assert.Null(directory.Find(session.AccountId));
+        });
     }
 
     [Fact]
     public async Task CleanupFailure_PreservesAlreadyResolvedOwnerAndPeerNotifications()
     {
-        var owner = Session("cleanup-owner", 9);
-        var directory = Dfo.Server.Testing.TestSessions.Directory(out var state);
-        directory.Select(owner);
-        var peer = directory.InWorld(state, new AccountId(8), new CharacterId(80), "cleanup-peer", 10011);
-        var presence = new SessionPresenceDomainService();
-        presence.Admit(new SessionPresence(owner.CharacterId, 10011, 1, 2, true, owner));
-        presence.Admit(new SessionPresence(peer.CharacterId, 10011, 1, 2, true, peer));
-        var stores = new ExpertStoreDomainService();
-        stores.Open(owner);
-        var service = Cleanup(directory, presence, stores, runtime: new ThrowingRuntime());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var owner = Session("cleanup-owner", 9);
+            var directory = Dfo.Server.Testing.TestSessions.Directory(out var state);
+            directory.Select(owner);
+            var peer = directory.InWorld(state, new AccountId(8), new CharacterId(80), "cleanup-peer", 10011);
+            var presence = new SessionPresenceDomainService();
+            presence.Admit(new SessionPresence(owner.CharacterId, 10011, 1, 2, true, owner));
+            presence.Admit(new SessionPresence(peer.CharacterId, 10011, 1, 2, true, peer));
+            var stores = new ExpertStoreDomainService();
+            stores.Open(owner);
+            var service = Cleanup(directory, presence, stores, runtime: new ThrowingRuntime());
 
-        var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
-            await service.CleanupAsync(owner, includeOwner: true, CancellationToken.None));
+            var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
+                await service.CleanupAsync(owner, includeOwner: true, CancellationToken.None));
 
-        Assert.Equal(
-            [SelectedSessionCleanupNoticeKind.ExpertStoreClosed],
-            failure.NotificationPlan.RequiredOwnerNotices.Select(value => value.Kind));
-        Assert.Equal(
-            [peer.CharacterId],
-            failure.NotificationPlan.PeerAudience.Select(value => value.CharacterId));
-        Assert.Equal(
-            [SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
-                SelectedSessionCleanupNoticeKind.TownDeparture],
-            failure.NotificationPlan.PeerNotices.Select(value => value.Kind));
-        Assert.Null(directory.Find(owner.AccountId));
+            Assert.Equal(
+                [SelectedSessionCleanupNoticeKind.ExpertStoreClosed],
+                failure.NotificationPlan.RequiredOwnerNotices.Select(value => value.Kind));
+            Assert.Equal(
+                [peer.CharacterId],
+                failure.NotificationPlan.PeerAudience.Select(value => value.CharacterId));
+            Assert.Equal(
+                [SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
+                    SelectedSessionCleanupNoticeKind.TownDeparture],
+                failure.NotificationPlan.PeerNotices.Select(value => value.Kind));
+            Assert.Null(directory.Find(owner.AccountId));
+        });
     }
 
     [Theory]
@@ -99,39 +108,42 @@ public sealed class SessionGenerationOwnershipTests
     [InlineData(false)]
     public async Task Cleanup_ProjectsOwnerStoreCloseAndOrderedPeerStoreThenTownLeave(bool includeOwner)
     {
-        var owner = Session("owner", 9);
-        var directory = Dfo.Server.Testing.TestSessions.Directory(out var state);
-        directory.Select(owner);
-        var peer2 = directory.InWorld(state, new AccountId(9), new CharacterId(90), "peer-2", 10011);
-        var peer1 = directory.InWorld(state, new AccountId(8), new CharacterId(80), "peer-1", 10011);
-        var otherListener = directory.InWorld(
-            state, new AccountId(10), new CharacterId(100), "peer-other-port", 10012);
-        var presence = new SessionPresenceDomainService();
-        presence.Admit(new SessionPresence(owner.CharacterId, 10011, 1, 2, true, owner));
-        presence.Admit(new SessionPresence(peer2.CharacterId, 10011, 1, 2, true, peer2));
-        presence.Admit(new SessionPresence(peer1.CharacterId, 10011, 1, 2, true, peer1));
-        presence.Admit(new SessionPresence(
-            otherListener.CharacterId, 10012, 1, 2, true, otherListener));
-        var stores = new ExpertStoreDomainService();
-        stores.Open(owner);
-        var service = Cleanup(directory, presence, stores);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var owner = Session("owner", 9);
+            var directory = Dfo.Server.Testing.TestSessions.Directory(out var state);
+            directory.Select(owner);
+            var peer2 = directory.InWorld(state, new AccountId(9), new CharacterId(90), "peer-2", 10011);
+            var peer1 = directory.InWorld(state, new AccountId(8), new CharacterId(80), "peer-1", 10011);
+            var otherListener = directory.InWorld(
+                state, new AccountId(10), new CharacterId(100), "peer-other-port", 10012);
+            var presence = new SessionPresenceDomainService();
+            presence.Admit(new SessionPresence(owner.CharacterId, 10011, 1, 2, true, owner));
+            presence.Admit(new SessionPresence(peer2.CharacterId, 10011, 1, 2, true, peer2));
+            presence.Admit(new SessionPresence(peer1.CharacterId, 10011, 1, 2, true, peer1));
+            presence.Admit(new SessionPresence(
+                otherListener.CharacterId, 10012, 1, 2, true, otherListener));
+            var stores = new ExpertStoreDomainService();
+            stores.Open(owner);
+            var service = Cleanup(directory, presence, stores);
 
-        var delivery = await service.CleanupAsync(owner, includeOwner, CancellationToken.None);
+            var delivery = await service.CleanupAsync(owner, includeOwner, CancellationToken.None);
 
-        Assert.Equal(includeOwner ? 1 : 0, delivery.RequiredOwnerNotices.Count);
-        if (includeOwner)
+            Assert.Equal(includeOwner ? 1 : 0, delivery.RequiredOwnerNotices.Count);
+            if (includeOwner)
+                Assert.Equal(
+                    SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
+                    delivery.RequiredOwnerNotices[0].Kind);
             Assert.Equal(
-                SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
-                delivery.RequiredOwnerNotices[0].Kind);
-        Assert.Equal(
-            [peer1.CharacterId, peer2.CharacterId],
-            delivery.PeerAudience.Select(value => value.CharacterId));
-        // One set for everybody rather than a copy each. They were always the same two entries;
-        // saying so once is the difference between that being true and being a coincidence.
-        Assert.Equal(
-            [SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
-                SelectedSessionCleanupNoticeKind.TownDeparture],
-            delivery.PeerNotices.Select(value => value.Kind));
+                [peer1.CharacterId, peer2.CharacterId],
+                delivery.PeerAudience.Select(value => value.CharacterId));
+            // One set for everybody rather than a copy each. They were always the same two entries;
+            // saying so once is the difference between that being true and being a coincidence.
+            Assert.Equal(
+                [SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
+                    SelectedSessionCleanupNoticeKind.TownDeparture],
+                delivery.PeerNotices.Select(value => value.Kind));
+        });
     }
 
     /// <remarks>
@@ -144,93 +156,105 @@ public sealed class SessionGenerationOwnershipTests
     public async Task Cleanup_PersistsRuntimePositionOnlyWhenTheChannelKeepsPositions(
         ChannelEntryKind kind, int expectedWrites)
     {
-        var session = Session("position", 9);
-        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(
-            session.AccountId, session.CharacterId.Value, 1);
-        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
-        runtime.Begin(session, result.Character.Position, 100);
-        var directory = Dfo.Server.Testing.TestSessions.Directory();
-        directory.Select(session);
-        var persistence = new RecordingPositionPersistence();
-        var service = Cleanup(directory, runtime: runtime, channels: new KindChannels(kind),
-            persistence: persistence);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = Session("position", 9);
+            var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(
+                session.AccountId, session.CharacterId.Value, 1);
+            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            runtime.Begin(session, result.Character.Position, 100);
+            var directory = Dfo.Server.Testing.TestSessions.Directory();
+            directory.Select(session);
+            var persistence = new RecordingPositionPersistence();
+            var service = Cleanup(directory, runtime: runtime, channels: new KindChannels(kind),
+                persistence: persistence);
 
-        await service.CleanupAsync(session, false, CancellationToken.None);
+            await service.CleanupAsync(session, false, CancellationToken.None);
 
-        Assert.Equal(expectedWrites, persistence.Writes);
-        if (expectedWrites == 1)
-            Assert.Equal(result.Character.Position, persistence.Position);
+            Assert.Equal(expectedWrites, persistence.Writes);
+            if (expectedWrites == 1)
+                Assert.Equal(result.Character.Position, persistence.Position);
+        });
     }
 
     [Fact]
     public async Task Cleanup_DoesNotPersistAPositionForASessionThatNeverEnteredTheWorld()
     {
-        var session = Session("never-entered", 9);
-        var directory = Dfo.Server.Testing.TestSessions.Directory();
-        directory.Select(session);
-        var persistence = new RecordingPositionPersistence();
-        var channels = new KindChannels(ChannelEntryKind.General);
-        var service = Cleanup(directory, channels: channels, persistence: persistence);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = Session("never-entered", 9);
+            var directory = Dfo.Server.Testing.TestSessions.Directory();
+            directory.Select(session);
+            var persistence = new RecordingPositionPersistence();
+            var channels = new KindChannels(ChannelEntryKind.General);
+            var service = Cleanup(directory, channels: channels, persistence: persistence);
 
-        await service.CleanupAsync(session, false, CancellationToken.None);
+            await service.CleanupAsync(session, false, CancellationToken.None);
 
-        Assert.Equal(0, persistence.Writes);
-        Assert.Equal(0, channels.Resolutions);
+            Assert.Equal(0, persistence.Writes);
+            Assert.Equal(0, channels.Resolutions);
+        });
     }
 
     [Fact]
     public async Task Cleanup_ReportsAChannelItCannotResolveAndFinishesTheRest()
     {
-        var session = Session("channel-fails", 9);
-        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
-        runtime.Begin(session, new CharacterPositionState(1, 0, 10, 10, 0), 100);
-        var directory = Dfo.Server.Testing.TestSessions.Directory();
-        directory.Select(session);
-        var persistence = new RecordingPositionPersistence();
-        var service = Cleanup(directory, runtime: runtime, channels: new FailingChannels(),
-            persistence: persistence);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = Session("channel-fails", 9);
+            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            runtime.Begin(session, new CharacterPositionState(1, 0, 10, 10, 0), 100);
+            var directory = Dfo.Server.Testing.TestSessions.Directory();
+            directory.Select(session);
+            var persistence = new RecordingPositionPersistence();
+            var service = Cleanup(directory, runtime: runtime, channels: new FailingChannels(),
+                persistence: persistence);
 
-        var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
-            await service.CleanupAsync(session, false, CancellationToken.None));
+            var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
+                await service.CleanupAsync(session, false, CancellationToken.None));
 
-        Assert.Contains(failure.InnerExceptions, error => error.Message == "channel unavailable");
-        Assert.Equal(0, persistence.Writes);
-        Assert.Null(runtime.PositionOf(session.CharacterId));
-        Assert.Null(directory.Find(session.AccountId));
+            Assert.Contains(failure.InnerExceptions, error => error.Message == "channel unavailable");
+            Assert.Equal(0, persistence.Writes);
+            Assert.Null(runtime.PositionOf(session.CharacterId));
+            Assert.Null(directory.Find(session.AccountId));
+        });
     }
 
     [Fact]
     public async Task Cleanup_StaleSessionDoesNotProjectOrRemoveReplacementPresence()
     {
-        var stale = Session("stale", 1);
-        var replacement = Session("replacement", 2);
-        var directory = Dfo.Server.Testing.TestSessions.Directory();
-        directory.Select(replacement);
-        var presence = new SessionPresenceDomainService();
-        presence.Admit(new SessionPresence(replacement.CharacterId, 10011, 1, 2, true, replacement));
-        var stores = new ExpertStoreDomainService();
-        stores.Open(replacement);
-        var runs = new DungeonRunDomainService();
-        var replacementRun = runs.Begin(
-            replacement.CharacterId,
-            new DungeonLayout(
-                10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
-                61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)}),
-            difficulty: 0);
-        var departure = new RecordingDepartureSink();
-        var service = Cleanup(directory, presence, stores, runs: runs, departures: [departure]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var stale = Session("stale", 1);
+            var replacement = Session("replacement", 2);
+            var directory = Dfo.Server.Testing.TestSessions.Directory();
+            directory.Select(replacement);
+            var presence = new SessionPresenceDomainService();
+            presence.Admit(new SessionPresence(replacement.CharacterId, 10011, 1, 2, true, replacement));
+            var stores = new ExpertStoreDomainService();
+            stores.Open(replacement);
+            var runs = new DungeonRunDomainService();
+            var replacementRun = runs.Begin(
+                replacement.CharacterId,
+                new DungeonLayout(
+                    10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
+                    61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)}),
+                difficulty: 0);
+            var departure = new RecordingDepartureSink();
+            var service = Cleanup(directory, presence, stores, runs: runs, departures: [departure]);
 
-        var delivery = await service.CleanupAsync(
-            stale, includeOwner: true, CancellationToken.None);
+            var delivery = await service.CleanupAsync(
+                stale, includeOwner: true, CancellationToken.None);
 
-        Assert.Empty(delivery.RequiredOwnerNotices);
-        Assert.Empty(delivery.PeerAudience);
-        Assert.Empty(delivery.PeerNotices);
-        Assert.Equal(replacement, directory.Find(replacement.AccountId));
-        Assert.Equal(replacement, presence.Find(replacement.CharacterId)!.Session);
-        Assert.True(stores.HasOpenStore(replacement.CharacterId));
-        Assert.Equal(replacementRun.RunId, runs.Find(replacement.CharacterId)!.RunId);
-        Assert.Empty(departure.Calls);
+            Assert.Empty(delivery.RequiredOwnerNotices);
+            Assert.Empty(delivery.PeerAudience);
+            Assert.Empty(delivery.PeerNotices);
+            Assert.Equal(replacement, directory.Find(replacement.AccountId));
+            Assert.Equal(replacement, presence.Find(replacement.CharacterId)!.Session);
+            Assert.True(stores.HasOpenStore(replacement.CharacterId));
+            Assert.Equal(replacementRun.RunId, runs.Find(replacement.CharacterId)!.RunId);
+            Assert.Empty(departure.Calls);
+        });
     }
 
     /// <remarks>
@@ -241,20 +265,23 @@ public sealed class SessionGenerationOwnershipTests
     [Fact]
     public async Task Cleanup_ClearsTheCharactersCooldowns()
     {
-        var session = Session("cleanup-cooldown", 11);
-        var directory = Dfo.Server.Testing.TestSessions.Directory();
-        directory.Select(session);
-        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
-        runtime.Begin(session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
-        runtime.StartCooldown(session, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
-        runtime.ApplySpiritPotion(session, 1, TimeSpan.FromHours(2));
-        var service = Cleanup(directory, runtime: runtime, channels: new KindChannels(ChannelEntryKind.Raid));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = Session("cleanup-cooldown", 11);
+            var directory = Dfo.Server.Testing.TestSessions.Directory();
+            directory.Select(session);
+            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            runtime.Begin(session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
+            runtime.StartCooldown(session, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
+            runtime.ApplySpiritPotion(session, 1, TimeSpan.FromHours(2));
+            var service = Cleanup(directory, runtime: runtime, channels: new KindChannels(ChannelEntryKind.Raid));
 
-        await service.CleanupAsync(session, includeOwner: false, CancellationToken.None);
+            await service.CleanupAsync(session, includeOwner: false, CancellationToken.None);
 
-        Assert.False(
-            runtime.IsCoolingDown(session.CharacterId, ItemCooldownKey.ForGroup(70)));
-        Assert.Equal(0, runtime.SpiritPotionBonusRateOf(session.CharacterId));
+            Assert.False(
+                runtime.IsCoolingDown(session.CharacterId, ItemCooldownKey.ForGroup(70)));
+            Assert.Equal(0, runtime.SpiritPotionBonusRateOf(session.CharacterId));
+        });
     }
 
     /// <remarks>
@@ -264,21 +291,24 @@ public sealed class SessionGenerationOwnershipTests
     [Fact]
     public async Task Cleanup_LeavesTheCooldownsOfACharacterWhoAlreadyReturned()
     {
-        var departing = Session("cooldown-departing", 12);
-        var returned = Session("cooldown-returned", 13);
-        var directory = Dfo.Server.Testing.TestSessions.Directory();
-        directory.Select(returned);
-        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
-        runtime.Begin(returned, new CharacterPositionState(1, 0, 0, 0, 0), 100);
-        runtime.StartCooldown(returned, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
-        runtime.ApplySpiritPotion(returned, 1, TimeSpan.FromHours(2));
-        var service = Cleanup(directory, runtime: runtime);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var departing = Session("cooldown-departing", 12);
+            var returned = Session("cooldown-returned", 13);
+            var directory = Dfo.Server.Testing.TestSessions.Directory();
+            directory.Select(returned);
+            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            runtime.Begin(returned, new CharacterPositionState(1, 0, 0, 0, 0), 100);
+            runtime.StartCooldown(returned, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
+            runtime.ApplySpiritPotion(returned, 1, TimeSpan.FromHours(2));
+            var service = Cleanup(directory, runtime: runtime);
 
-        await service.CleanupAsync(departing, includeOwner: false, CancellationToken.None);
+            await service.CleanupAsync(departing, includeOwner: false, CancellationToken.None);
 
-        Assert.True(
-            runtime.IsCoolingDown(returned.CharacterId, ItemCooldownKey.ForGroup(70)));
-        Assert.Equal(1, runtime.SpiritPotionBonusRateOf(returned.CharacterId));
+            Assert.True(
+                runtime.IsCoolingDown(returned.CharacterId, ItemCooldownKey.ForGroup(70)));
+            Assert.Equal(1, runtime.SpiritPotionBonusRateOf(returned.CharacterId));
+        });
     }
 
     private static SelectedSessionIdentity Session(string connection, long generation) =>

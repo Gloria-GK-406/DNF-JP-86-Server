@@ -14,6 +14,7 @@ using System.Collections.Immutable;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -25,25 +26,28 @@ public sealed class SpecialConsumableEffectTests
     [InlineData(3,4,false)]
     public async Task Consumption_checks_the_decided_lock_without_changing_it(byte expected, byte actual, bool success)
     {
-        using var f = new ShopFixture();
-        await f.SeedCore(65, StackableItemCore.Create(2,2000,2) with { EquipmentLockId=actual,ExpireTime=int.MaxValue });
-        var scope = (DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
-        await using var tx=scope.Begin();
-        var apply=f.Services.GetRequiredService<IApplyEffectsDomainService>();
-        var context=new EffectExecutionContext(f.Session.AccountId,f.Session.CharacterId,f.Clock.GetUtcNow(),f.Session);
-        if(success)
+        await TestGameplay.RunAsync(async () =>
         {
-            await apply.ApplyAsync(context,[new ConsumeFromContainerEffect(new(BusinessInventorySpace.Consumable,0),2000,1,expected)],default);
-            await tx.CommitAsync(default);
-            Assert.Equal(1,f.Count(2000));
-            Assert.Equal(actual,(await f.Services.GetRequiredService<IBusinessInventorySlotDomainService>().Get(f.Session.CharacterId,
-                new(BusinessInventorySpace.Consumable,0)).Container.GetAsync(0,default))!.Snapshot.ToCore().EquipmentLockId);
-        }
-        else
-        {
-            await Assert.ThrowsAsync<InventoryEffectException>(()=>apply.ApplyAsync(context,[new ConsumeFromContainerEffect(new(BusinessInventorySpace.Consumable,0),2000,1,expected)],default).AsTask());
-            await tx.CommitAsync(default); Assert.Equal(2,f.Count(2000));
-        }
+            using var f = new ShopFixture();
+            await f.SeedCore(65, StackableItemCore.Create(2,2000,2) with { EquipmentLockId=actual,ExpireTime=int.MaxValue });
+            var scope = (DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
+            await using var tx=scope.Begin();
+            var apply=f.Services.GetRequiredService<IApplyEffectsDomainService>();
+            var context=new EffectExecutionContext(f.Session.AccountId,f.Session.CharacterId,f.Clock.GetUtcNow(),f.Session);
+            if(success)
+            {
+                await apply.ApplyAsync(context,[new ConsumeFromContainerEffect(new(BusinessInventorySpace.Consumable,0),2000,1,expected)],default);
+                await tx.CommitAsync(default);
+                Assert.Equal(1,f.Count(2000));
+                Assert.Equal(actual,(await f.Services.GetRequiredService<IBusinessInventorySlotDomainService>().Get(f.Session.CharacterId,
+                    new(BusinessInventorySpace.Consumable,0)).Container.GetAsync(0,default))!.Snapshot.ToCore().EquipmentLockId);
+            }
+            else
+            {
+                await Assert.ThrowsAsync<InventoryEffectException>(()=>apply.ApplyAsync(context,[new ConsumeFromContainerEffect(new(BusinessInventorySpace.Consumable,0),2000,1,expected)],default).AsTask());
+                await tx.CommitAsync(default); Assert.Equal(2,f.Count(2000));
+            }
+        });
     }
 
     [Theory]
@@ -51,29 +55,32 @@ public sealed class SpecialConsumableEffectTests
     [InlineData(true)]
     public async Task Real_potion_inventory_fatigue_usage_and_cooldown_commit_or_rollback_together(bool fail)
     {
-        using var f=new ShopFixture(s=>
+        await TestGameplay.RunAsync(async () =>
         {
-            s.AddSingleton<IStackableActionDefinitionSource>(new ActionSource());
-            s.AddSingleton<IItemUsageRuleSource>(new UsageSource());
-            s.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((2000,ItemUseRules.Potion(1000))));
+            using var f=new ShopFixture(s=>
+            {
+                s.AddSingleton<IStackableActionDefinitionSource>(new ActionSource());
+                s.AddSingleton<IItemUsageRuleSource>(new UsageSource());
+                s.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((2000,ItemUseRules.Potion(1000))));
+            });
+            await f.Seed(65,2000,2);
+            var scope=(DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
+            var fatigue=f.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterFatigueDomainService>();
+            await using(var tx=scope.Begin()){await fatigue.SpendAsync(f.Session.CharacterId,100,default);await tx.CommitAsync(default);}
+            if(fail) f.Sql("CREATE TRIGGER fail_potion BEFORE INSERT ON character_daily_counters BEGIN SELECT RAISE(ABORT,'usage'); END");
+            async Task Use()
+            {
+                await using var tx=scope.Begin();
+                await f.Services.GetRequiredService<IFatiguePotionDomainService>().UseAsync(f.Session,new(BusinessInventorySpace.Consumable,0),f.Clock.GetUtcNow(),default);
+                await tx.CommitAsync(default);
+            }
+            if(fail) await Assert.ThrowsAsync<SqliteException>(Use); else await Use();
+            Assert.Equal(fail?2:1,f.Count(2000));
+            var balance=await fatigue.BalanceOfAsync(f.Session.CharacterId,default);
+            Assert.Equal(fail?100:70,balance.Used);Assert.Equal(100,balance.ConsumedToday);
+            Assert.Equal(fail?0:1,f.Scalar("SELECT COUNT(*) FROM character_daily_counters WHERE counter_key='consumable_used_2000'"));
+            Assert.Equal(!fail,f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().IsCoolingDown(f.Session.CharacterId,ItemCooldownKey.ForItem(2000)));
         });
-        await f.Seed(65,2000,2);
-        var scope=(DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
-        var fatigue=f.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterFatigueDomainService>();
-        await using(var tx=scope.Begin()){await fatigue.SpendAsync(f.Session.CharacterId,100,default);await tx.CommitAsync(default);}
-        if(fail) f.Sql("CREATE TRIGGER fail_potion BEFORE INSERT ON character_daily_counters BEGIN SELECT RAISE(ABORT,'usage'); END");
-        async Task Use()
-        {
-            await using var tx=scope.Begin();
-            await f.Services.GetRequiredService<IFatiguePotionDomainService>().UseAsync(f.Session,new(BusinessInventorySpace.Consumable,0),f.Clock.GetUtcNow(),default);
-            await tx.CommitAsync(default);
-        }
-        if(fail) await Assert.ThrowsAsync<SqliteException>(Use); else await Use();
-        Assert.Equal(fail?2:1,f.Count(2000));
-        var balance=await fatigue.BalanceOfAsync(f.Session.CharacterId,default);
-        Assert.Equal(fail?100:70,balance.Used);Assert.Equal(100,balance.ConsumedToday);
-        Assert.Equal(fail?0:1,f.Scalar("SELECT COUNT(*) FROM character_daily_counters WHERE counter_key='consumable_used_2000'"));
-        Assert.Equal(!fail,f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().IsCoolingDown(f.Session.CharacterId,ItemCooldownKey.ForItem(2000)));
     }
 
     [Fact]
@@ -109,31 +116,37 @@ public sealed class SpecialConsumableEffectTests
     [Fact]
     public async Task Sequential_skill_effects_use_prior_effect_state_and_replaced_identity_rolls_back_the_batch()
     {
-        await using var f=new LearningFixture();await f.SeedAsync();
-        var apply=f.Services.GetRequiredService<IApplyEffectsDomainService>();
-        var context=new EffectExecutionContext(f.Session.AccountId,f.Session.CharacterId,DateTimeOffset.UtcNow,f.Session);
-        await using(var tx=f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await apply.ApplyAsync(context,[new SetLearnedSkillEffect(0,7,1,2,3),new SetLearnedSkillEffect(0,7,1,3,4)],default);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(4,f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND slot=7"));
-        await using(f.Scope.Begin())
-            await Assert.ThrowsAsync<InvalidOperationException>(()=>apply.ApplyAsync(context,[new SetLearnedSkillEffect(0,7,1,4,5),
-                new SetLearnedSkillEffect(0,7,2,5,6)],default).AsTask());
-        Assert.Equal(4,f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND slot=7"));
+            await using var f=new LearningFixture();await f.SeedAsync();
+            var apply=f.Services.GetRequiredService<IApplyEffectsDomainService>();
+            var context=new EffectExecutionContext(f.Session.AccountId,f.Session.CharacterId,DateTimeOffset.UtcNow,f.Session);
+            await using(var tx=f.Scope.Begin())
+            {
+                await apply.ApplyAsync(context,[new SetLearnedSkillEffect(0,7,1,2,3),new SetLearnedSkillEffect(0,7,1,3,4)],default);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(4,f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND slot=7"));
+            await using(f.Scope.Begin())
+                await Assert.ThrowsAsync<InvalidOperationException>(()=>apply.ApplyAsync(context,[new SetLearnedSkillEffect(0,7,1,4,5),
+                    new SetLearnedSkillEffect(0,7,2,5,6)],default).AsTask());
+            Assert.Equal(4,f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND slot=7"));
+        });
     }
 
     [Fact]
     public async Task Sequential_quest_effects_keep_the_original_SQL_expectation_until_flush()
     {
-        await using var f=new LearningFixture();await f.SeedAsync();f.Sql("INSERT INTO character_active_quests VALUES(71,2,2003,3)");
-        var first=new StoredActiveQuest(2,2003,3);var next=first with {TriggerValue=2};
-        await using var tx=f.Scope.Begin();
-        await f.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(new(f.Session.AccountId,f.Session.CharacterId,DateTimeOffset.UtcNow,f.Session),
-            [new SetCarriedQuestEffect(first,next),new SetCarriedQuestEffect(next,next with {TriggerValue=1})],default);
-        await tx.CommitAsync(default);
-        Assert.Equal(1,f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f=new LearningFixture();await f.SeedAsync();f.Sql("INSERT INTO character_active_quests VALUES(71,2,2003,3)");
+            var first=new StoredActiveQuest(2,2003,3);var next=first with {TriggerValue=2};
+            await using var tx=f.Scope.Begin();
+            await f.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(new(f.Session.AccountId,f.Session.CharacterId,DateTimeOffset.UtcNow,f.Session),
+                [new SetCarriedQuestEffect(first,next),new SetCarriedQuestEffect(next,next with {TriggerValue=1})],default);
+            await tx.CommitAsync(default);
+            Assert.Equal(1,f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));
+        });
     }
 
     [Theory]

@@ -10,6 +10,7 @@ using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Marriage;
 
@@ -33,28 +34,34 @@ public sealed class MarriageProposalTests
         });
         await f.SeedAsync();
         f.Sql("UPDATE characters SET job=0 WHERE character_id=72;");
-        var registry = f.Services.GetRequiredService<OnlineStateRegistry>();
-        var connection = new NetworkConnectionContext(new("marriage-peer"), NetworkEndpointKind.Game, 10011);
-        var user = registry.RegisterConnection(connection).OnlineUserId;
-        registry.Authenticate(user, new(2));
-        var peer = SelectedSessionIdentity.Create(new(2), new(72), connection.ConnectionId, registry.GetRequiredUser(user).Generation, 10011);
-        registry.Select(peer);
-        registry.EnterWorld(peer);
-        f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(peer);
-        var positions = f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>();
-        positions.Begin(f.Session, new(21, 1, 100, 100, 0), 100);
-        positions.Begin(peer, new(21, 1, 120, 100, 0), 100);
-        var areas = f.Services.GetRequiredService<ITownAreaDomainService>();
-        areas.Enter(new(f.Session.CharacterId, f.Session.TownAreaLease(), new(1, 21, 1), new(21, 1, 100, 100, 0), true));
-        areas.Enter(new(peer.CharacterId, peer.TownAreaLease(), new(1, 21, 1), new(21, 1, 120, 100, 0), true));
-        return (f, peer);
+        return TestGameplay.Run(f.Services, () =>
+        {
+            var registry = f.Services.GetRequiredService<OnlineStateRegistry>();
+            var connection = new NetworkConnectionContext(new("marriage-peer"), NetworkEndpointKind.Game, 10011);
+            var user = registry.RegisterConnection(connection).OnlineUserId;
+            registry.Authenticate(user, new(2));
+            var peer = SelectedSessionIdentity.Create(new(2), new(72), connection.ConnectionId, registry.GetRequiredUser(user).Generation, 10011);
+            registry.Select(peer);
+            registry.EnterWorld(peer);
+            f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(peer);
+            var positions = f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>();
+            positions.Begin(f.Session, new(21, 1, 100, 100, 0), 100);
+            positions.Begin(peer, new(21, 1, 120, 100, 0), 100);
+            var areas = f.Services.GetRequiredService<ITownAreaDomainService>();
+            areas.Enter(new(f.Session.CharacterId, f.Session.TownAreaLease(), new(1, 21, 1), new(21, 1, 100, 100, 0), true));
+            areas.Enter(new(peer.CharacterId, peer.TownAreaLease(), new(1, 21, 1), new(21, 1, 120, 100, 0), true));
+            return (f, peer);
+        });
     }
     internal static async Task<MarriageProposalResult> Run(LearningFixture f, Func<IMarriageCoupleDomainService, ValueTask<MarriageProposalResult>> action, bool commit = true)
     {
-        await using var tx = f.Scope.Begin();
-        var result = await action(f.Services.GetRequiredService<IMarriageCoupleDomainService>());
-        if (commit) await tx.CommitAsync(default);
-        return result;
+        return await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            await using var tx = f.Scope.Begin();
+            var result = await action(f.Services.GetRequiredService<IMarriageCoupleDomainService>());
+            if (commit) await tx.CommitAsync(default);
+            return result;
+        });
     }
     [Fact]
     public async Task Acceptance_is_persistent_symmetric_and_replay_does_not_duplicate_relation()
@@ -98,14 +105,17 @@ public sealed class MarriageProposalTests
     [Fact]
     public async Task Only_invited_exact_generation_can_answer_and_pending_pair_cannot_be_reversed()
     {
-        var (f, peer) = await Fixture(); await using var fixture = f;
-        await Run(f, s => s.ProposeAsync(f.Session, peer, default));
-        Assert.False((await Run(f, s => s.ProposeAsync(peer, f.Session, default))).Succeeded);
-        Assert.False((await Run(f, s => s.RespondProposalAsync(f.Session, peer, 0, default))).Succeeded);
-        var changed = peer with { ConnectionGeneration = peer.ConnectionGeneration + 1 };
-        f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(changed);
-        Assert.False((await Run(f, s => s.RespondProposalAsync(changed, f.Session, 0, default))).Succeeded);
-        Assert.Equal(0, f.Scalar("SELECT state FROM marriage_proposals"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (f, peer) = await Fixture(); await using var fixture = f;
+            await Run(f, s => s.ProposeAsync(f.Session, peer, default));
+            Assert.False((await Run(f, s => s.ProposeAsync(peer, f.Session, default))).Succeeded);
+            Assert.False((await Run(f, s => s.RespondProposalAsync(f.Session, peer, 0, default))).Succeeded);
+            var changed = peer with { ConnectionGeneration = peer.ConnectionGeneration + 1 };
+            f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(changed);
+            Assert.False((await Run(f, s => s.RespondProposalAsync(changed, f.Session, 0, default))).Succeeded);
+            Assert.Equal(0, f.Scalar("SELECT state FROM marriage_proposals"));
+        });
     }
     [Fact]
     public async Task Server_expiry_cannot_accept_and_a_new_request_can_claim_slots_again()
@@ -120,23 +130,29 @@ public sealed class MarriageProposalTests
     [Fact]
     public async Task Same_gender_wrong_town_and_self_requests_do_not_create_rows()
     {
-        var (f, peer) = await Fixture(); await using var fixture = f;
-        Assert.False((await Run(f, s => s.ProposeAsync(f.Session, f.Session, default))).Succeeded);
-        f.Sql("UPDATE characters SET job=12 WHERE character_id=72;");
-        Assert.Equal(MarriageProposalFailure.Ineligible, (await Run(f, s => s.ProposeAsync(f.Session, peer, default))).Failure);
-        f.Sql("UPDATE characters SET job=0 WHERE character_id=72;");
-        f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(peer.CharacterId, peer.TownAreaLease(), new(1, 22, 1), new(22, 1, 120, 100, 0), true);
-        Assert.False((await Run(f, s => s.ProposeAsync(f.Session, peer, default))).Succeeded);
-        Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_proposals"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (f, peer) = await Fixture(); await using var fixture = f;
+            Assert.False((await Run(f, s => s.ProposeAsync(f.Session, f.Session, default))).Succeeded);
+            f.Sql("UPDATE characters SET job=12 WHERE character_id=72;");
+            Assert.Equal(MarriageProposalFailure.Ineligible, (await Run(f, s => s.ProposeAsync(f.Session, peer, default))).Failure);
+            f.Sql("UPDATE characters SET job=0 WHERE character_id=72;");
+            f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(peer.CharacterId, peer.TownAreaLease(), new(1, 22, 1), new(22, 1, 120, 100, 0), true);
+            Assert.False((await Run(f, s => s.ProposeAsync(f.Session, peer, default))).Succeeded);
+            Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_proposals"));
+        });
     }
     [Fact]
     public async Task Leaving_town_prevents_acceptance_but_does_not_prevent_refusal()
     {
-        var (f, peer) = await Fixture(); await using var fixture = f;
-        await Run(f, s => s.ProposeAsync(f.Session, peer, default));
-        f.Services.GetRequiredService<ITownAreaDomainService>().LeaveExact(peer.CharacterId, peer.TownAreaLease(), TownAreaDepartureReason.DungeonEntry);
-        Assert.False((await Run(f, s => s.RespondProposalAsync(peer, f.Session, 0, default))).Succeeded);
-        Assert.True((await Run(f, s => s.RespondProposalAsync(peer, f.Session, 1, default))).Succeeded);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (f, peer) = await Fixture(); await using var fixture = f;
+            await Run(f, s => s.ProposeAsync(f.Session, peer, default));
+            f.Services.GetRequiredService<ITownAreaDomainService>().LeaveExact(peer.CharacterId, peer.TownAreaLease(), TownAreaDepartureReason.DungeonEntry);
+            Assert.False((await Run(f, s => s.RespondProposalAsync(peer, f.Session, 0, default))).Succeeded);
+            Assert.True((await Run(f, s => s.RespondProposalAsync(peer, f.Session, 1, default))).Succeeded);
+        });
     }
     [Fact]
     public async Task Concurrent_cross_proposals_through_real_command_pipeline_commit_only_one_relationship()

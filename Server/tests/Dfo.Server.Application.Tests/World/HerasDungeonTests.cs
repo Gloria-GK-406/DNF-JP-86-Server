@@ -7,6 +7,7 @@ using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -33,11 +34,14 @@ public sealed class HerasDungeonTests
             new Dfo.Server.Protocol.ProtocolModule().ConfigureServices(s, new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
         });
         await f.SeedAsync();
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(71)).SetLevelAsync(70, default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(71)).SetLevelAsync(70, default);
+                await tx.CommitAsync(default);
+            }
+        });
         f.Services.GetRequiredService<IIndependentDropRuleService>().Initialize();
         f.Services.GetRequiredService<IExtraDropRuleService>().Initialize();
         f.Services.GetRequiredService<IMonsterDeclaredDropRuleService>().Initialize();
@@ -54,10 +58,16 @@ public sealed class HerasDungeonTests
             Assert.Equal((byte)70, result.Entry.Layout.FixedMonsterLevel);
             Assert.Equal((DungeonDifficulty)1, result.Entry.Change!.Run.Difficulty);
             Assert.All(result.Entry.Visits.Values.SelectMany(v => v.Actors), a => Assert.Equal((byte)70, a.Actor.Level));
-            runs.End(new(71));
+            TestGameplay.Run(f.Services, () =>
+            {
+                runs.End(new(71));
+            });
         }
         Assert.Equal(DungeonEntryFailure.DailyEntryLimitReached, (await commands.SendAsync(new EnterDungeonCommand(context))).Failure);
-        Assert.Null(runs.Find(new Dfo.Server.Data.Characters.CharacterId(71)));
+        TestGameplay.Run(f.Services, () =>
+        {
+            Assert.Null(runs.Find(new Dfo.Server.Data.Characters.CharacterId(71)));
+        });
     }
 
     private static DungeonEntryContext Entry() => new(3900, DungeonEntryFacts.None, 0, 0, [new(new(1), new(71), 0, true)]);
@@ -69,9 +79,12 @@ public sealed class HerasDungeonTests
             new Dfo.Server.Protocol.ProtocolModule().ConfigureServices(s, new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
         });
         await f.SeedAsync();
-        await using var tx = f.Scope.Begin();
-        await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(71)).SetLevelAsync(level, default);
-        await tx.CommitAsync(default);
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            await using var tx = f.Scope.Begin();
+            await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(71)).SetLevelAsync(level, default);
+            await tx.CommitAsync(default);
+        });
         f.Services.GetRequiredService<IIndependentDropRuleService>().Initialize();
         f.Services.GetRequiredService<IExtraDropRuleService>().Initialize();
         f.Services.GetRequiredService<IMonsterDeclaredDropRuleService>().Initialize();
@@ -86,13 +99,16 @@ public sealed class HerasDungeonTests
         var commands = f.Services.GetRequiredService<ICommandBus>();
         var heras = f.Services.GetRequiredService<IHerasDungeonDomainService>();
         Assert.Equal(DungeonEntryFailure.LevelTooLow, (await commands.SendAsync(new EnterDungeonCommand(Entry()))).Failure);
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(71)).SetLevelAsync(50, default);
-            var fatigue = f.Services.GetRequiredService<ICharacterFatigueDomainService>();
-            await fatigue.SpendAsync(new(71), (await fatigue.BalanceOfAsync(new(71), default)).Remaining, default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(71)).SetLevelAsync(50, default);
+                var fatigue = f.Services.GetRequiredService<ICharacterFatigueDomainService>();
+                await fatigue.SpendAsync(new(71), (await fatigue.BalanceOfAsync(new(71), default)).Remaining, default);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(DungeonEntryFailure.MissingPrerequisite, (await commands.SendAsync(new EnterDungeonCommand(Entry() with { PracticeMode = 1 }))).Failure);
         Assert.Equal(DungeonEntryFailure.MissingPrerequisite, (await commands.SendAsync(new EnterDungeonCommand(Entry() with { Participants = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)] }))).Failure);
         Assert.Equal(3, (await heras.ReadQuotaAsync(new(71), default)).Remaining);
@@ -104,19 +120,22 @@ public sealed class HerasDungeonTests
     [SkippableFact]
     public async Task Failed_room_creation_rolls_back_the_charged_quota()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        await using var f = await Fixture();
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await f.Services.GetRequiredService<IDungeonAdmissionDomainService>().ExecuteAsync(Entry() with { Facts = DungeonEntryFacts.None with { Difficulty = (DungeonDifficulty)1 } },
-                new() { RequireMinimumLevel = true, ConsumesFatigue = false, RequiredItemsOverride = [],
-                    Quota = new(Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.HerasDungeon,
-                        (await f.Services.GetRequiredService<IHerasDungeonDomainService>().ReadQuotaAsync(new(71), default)).Period, 3, 3900) },
-                (_, _) => ValueTask.FromResult(DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid)), default);
-            Assert.Equal(DungeonEntryFailure.ConfigurationInvalid, result.Failure);
-        }
-        Assert.Equal(3, (await f.Services.GetRequiredService<IHerasDungeonDomainService>().ReadQuotaAsync(new(71), default)).Remaining);
-        Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new Dfo.Server.Data.Characters.CharacterId(71)));
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            await using var f = await Fixture();
+            await using (var tx = f.Scope.Begin())
+            {
+                var result = await f.Services.GetRequiredService<IDungeonAdmissionDomainService>().ExecuteAsync(Entry() with { Facts = DungeonEntryFacts.None with { Difficulty = (DungeonDifficulty)1 } },
+                    new() { RequireMinimumLevel = true, ConsumesFatigue = false, RequiredItemsOverride = [],
+                        Quota = new(Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.HerasDungeon,
+                            (await f.Services.GetRequiredService<IHerasDungeonDomainService>().ReadQuotaAsync(new(71), default)).Period, 3, 3900) },
+                    (_, _) => ValueTask.FromResult(DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid)), default);
+                Assert.Equal(DungeonEntryFailure.ConfigurationInvalid, result.Failure);
+            }
+            Assert.Equal(3, (await f.Services.GetRequiredService<IHerasDungeonDomainService>().ReadQuotaAsync(new(71), default)).Remaining);
+            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new Dfo.Server.Data.Characters.CharacterId(71)));
+        });
     }
     [SkippableFact]
     public async Task Disabled_activity_hides_the_schedule_and_refuses_new_runs_without_charging()
@@ -124,11 +143,14 @@ public sealed class HerasDungeonTests
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         await using var f = await Fixture();
         var events = f.Services.GetRequiredService<IEventManagementDomainService>();
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            await events.ChangeAsync(new(2367, 0, "disable", null, null, null, null, null, null, null), "test", DateTimeOffset.UtcNow, default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                await events.ChangeAsync(new(2367, 0, "disable", null, null, null, null, null, null, null), "test", DateTimeOffset.UtcNow, default);
+                await tx.CommitAsync(default);
+            }
+        });
         var snapshot = await f.Services.GetRequiredService<IEventPlayerProjectionDomainService>().ReadNowAsync(f.Session, default);
         Assert.False(Assert.Single(snapshot.ScheduledDungeons, x => x.DungeonId == 3900).Open);
         Assert.DoesNotContain(snapshot.Information, x => x.EventId == 2367);

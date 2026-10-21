@@ -10,6 +10,7 @@ using Dfo.Server.Data.World;
 using System.Collections.Immutable;
 using Dfo.Server.Infrastructure.Content;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -18,40 +19,43 @@ public sealed class DimensionDungeonTests
     [SkippableFact]
     public async Task All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        await using var fixture = new LearningFixture(useArchive: true, configure: services =>
-            services.AddSingleton(new PvfContentOptions { ArchivePath = ContentArchive.Path }));
-        await fixture.SeedAsync();
-        fixture.Sql("UPDATE characters SET job=0,grow_type=1 WHERE character_id=71");
-        fixture.Services.GetRequiredService<IIndependentDropRuleService>().Initialize();
-        fixture.Services.GetRequiredService<IExtraDropRuleService>().Initialize();
-        fixture.Services.GetRequiredService<IMonsterDeclaredDropRuleService>().Initialize();
-        fixture.Services.GetRequiredService<IWorldDropRuleService>().Initialize();
-        var layout = Assert.IsType<DungeonLayout>(await fixture.Services.GetRequiredService<IDungeonStructureRuleService>()
-            .ResolveAsync(7100, DungeonEntryFacts.None, 42, default));
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var entry = await fixture.Services.GetRequiredService<IDimensionDungeonDomainService>()
-                .EnterAsync(new(7100, DungeonEntryFacts.None, 0, 0, [new(new(1), new(71), 0, true)]), default);
-            Assert.True(entry.Entry is not null, $"Real fusion entry refused: {entry.Failure}; {entry.Detail}");
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(4, (await fixture.Services.GetRequiredService<IDimensionDungeonDomainService>()
-            .ReadQuotaAsync(new(71), default)).Remaining);
-        var factory = fixture.Services.GetRequiredService<IDungeonCellFactory>();
-        var cells = new List<DungeonCellSeed>();
-        for (byte x = 0; x < 6; x++)
-        {
-            var map = x == 0 ? layout.StartRoomMapId : (await fixture.Services.GetRequiredService<IDungeonStructureRuleService>()
-                .SelectMapAsync(layout, new((byte)(x - 1), 0), new(x, 0), default)).MapId!.Value;
-            cells.Add(await factory.CreateAsync(new(DungeonRunId.New(), layout, new(x, 0), map, 0,
-                DateTimeOffset.UnixEpoch, [new(new(1), new(71), 0, true)]), default));
-        }
-        Assert.All(cells, cell => Assert.NotEmpty(cell.Actors));
-        var boss = Assert.Single(cells[^1].Actors, actor => actor.Actor.Code == 61809);
-        Assert.True(boss.Actor.IsBoss);
-        Assert.InRange(boss.PendingLoot.Count(item => item.Kind == DropItemKind.Equipment && item.OwnerCharacterId == new Dfo.Server.Data.Characters.CharacterId(71)), 1, 2);
-        Assert.Equal(2, Assert.Single(boss.PendingLoot, item => item.ItemId == 3311 && item.OwnerCharacterId == new Dfo.Server.Data.Characters.CharacterId(71)).Count);
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            await using var fixture = new LearningFixture(useArchive: true, configure: services =>
+                services.AddSingleton(new PvfContentOptions { ArchivePath = ContentArchive.Path }));
+            await fixture.SeedAsync();
+            fixture.Sql("UPDATE characters SET job=0,grow_type=1 WHERE character_id=71");
+            fixture.Services.GetRequiredService<IIndependentDropRuleService>().Initialize();
+            fixture.Services.GetRequiredService<IExtraDropRuleService>().Initialize();
+            fixture.Services.GetRequiredService<IMonsterDeclaredDropRuleService>().Initialize();
+            fixture.Services.GetRequiredService<IWorldDropRuleService>().Initialize();
+            var layout = Assert.IsType<DungeonLayout>(await fixture.Services.GetRequiredService<IDungeonStructureRuleService>()
+                .ResolveAsync(7100, DungeonEntryFacts.None, 42, default));
+            await using (var tx = fixture.Scope.Begin())
+            {
+                var entry = await fixture.Services.GetRequiredService<IDimensionDungeonDomainService>()
+                    .EnterAsync(new(7100, DungeonEntryFacts.None, 0, 0, [new(new(1), new(71), 0, true)]), default);
+                Assert.True(entry.Entry is not null, $"Real fusion entry refused: {entry.Failure}; {entry.Detail}");
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(4, (await fixture.Services.GetRequiredService<IDimensionDungeonDomainService>()
+                .ReadQuotaAsync(new(71), default)).Remaining);
+            var factory = fixture.Services.GetRequiredService<IDungeonCellFactory>();
+            var cells = new List<DungeonCellSeed>();
+            for (byte x = 0; x < 6; x++)
+            {
+                var map = x == 0 ? layout.StartRoomMapId : (await fixture.Services.GetRequiredService<IDungeonStructureRuleService>()
+                    .SelectMapAsync(layout, new((byte)(x - 1), 0), new(x, 0), default)).MapId!.Value;
+                cells.Add(await factory.CreateAsync(new(DungeonRunId.New(), layout, new(x, 0), map, 0,
+                    DateTimeOffset.UnixEpoch, [new(new(1), new(71), 0, true)]), default));
+            }
+            Assert.All(cells, cell => Assert.NotEmpty(cell.Actors));
+            var boss = Assert.Single(cells[^1].Actors, actor => actor.Actor.Code == 61809);
+            Assert.True(boss.Actor.IsBoss);
+            Assert.InRange(boss.PendingLoot.Count(item => item.Kind == DropItemKind.Equipment && item.OwnerCharacterId == new Dfo.Server.Data.Characters.CharacterId(71)), 1, 2);
+            Assert.Equal(2, Assert.Single(boss.PendingLoot, item => item.ItemId == 3311 && item.OwnerCharacterId == new Dfo.Server.Data.Characters.CharacterId(71)).Count);
+        });
     }
 
     [SkippableFact]
@@ -94,81 +98,90 @@ public sealed class DimensionDungeonTests
     [Fact]
     public async Task Entry_spends_only_after_preparation_persists_and_rejects_exhaustion()
     {
-        var clock = new Clock();
-        await using var fixture = await Fixture(clock);
-        var visits = new Visits();
-        var service = Service(fixture, clock, visits);
-        var context = new DungeonEntryContext(7100, DungeonEntryFacts.None, 0, 0, [new(new(1), new(71), 0, true)]);
-        visits.Refuse = true;
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.Null((await service.EnterAsync(context, default)).Entry);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(5, (await service.ReadQuotaAsync(new(71), default)).Remaining);
-        visits.Refuse = false;
-        for (var i = 0; i < 5; i++)
-        {
-            await using var tx = fixture.Scope.Begin();
-            Assert.NotNull((await service.EnterAsync(context, default)).Entry);
-            await tx.CommitAsync(default);
-        }
-        await using (var tx = fixture.Scope.Begin())
-        {
-            Assert.Equal(DungeonEntryFailure.DailyEntryLimitReached, (await service.EnterAsync(context, default)).Failure);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(0, (await service.ReadQuotaAsync(new(71), default)).Remaining);
-        await using var reload = new LearningFixture(existing: fixture.Path);
-        Assert.Equal(5, (await reload.Services.GetRequiredService<IUsageQuotaDomainService>()
-            .ReadAsync(new(71), UsageQuotaKey.Dimension(new(2026, 10, 10)), default))!.UsedCount);
+            var clock = new Clock();
+            await using var fixture = await Fixture(clock);
+            var visits = new Visits();
+            var service = Service(fixture, clock, visits);
+            var context = new DungeonEntryContext(7100, DungeonEntryFacts.None, 0, 0, [new(new(1), new(71), 0, true)]);
+            visits.Refuse = true;
+            await using (var tx = fixture.Scope.Begin())
+            {
+                Assert.Null((await service.EnterAsync(context, default)).Entry);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(5, (await service.ReadQuotaAsync(new(71), default)).Remaining);
+            visits.Refuse = false;
+            for (var i = 0; i < 5; i++)
+            {
+                await using var tx = fixture.Scope.Begin();
+                Assert.NotNull((await service.EnterAsync(context, default)).Entry);
+                await tx.CommitAsync(default);
+            }
+            await using (var tx = fixture.Scope.Begin())
+            {
+                Assert.Equal(DungeonEntryFailure.DailyEntryLimitReached, (await service.EnterAsync(context, default)).Failure);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(0, (await service.ReadQuotaAsync(new(71), default)).Remaining);
+            await using var reload = new LearningFixture(existing: fixture.Path);
+            Assert.Equal(5, (await reload.Services.GetRequiredService<IUsageQuotaDomainService>()
+                .ReadAsync(new(71), UsageQuotaKey.Dimension(new(2026, 10, 10)), default))!.UsedCount);
+        });
     }
 
     [Fact]
     public async Task Rolled_back_entry_and_blocked_party_member_do_not_consume_any_participant()
     {
-        var clock = new Clock();
-        await using var fixture = await Fixture(clock);
-        var service = Service(fixture, clock, new Visits());
-        var solo = new DungeonEntryContext(7100, DungeonEntryFacts.None, 0, 0, [new(new(1), new(71), 0, true)]);
-        await using (var tx = fixture.Scope.Begin()) Assert.NotNull((await service.EnterAsync(solo, default)).Entry);
-        Assert.Equal(5, (await service.ReadQuotaAsync(new(71), default)).Remaining);
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await fixture.Services.GetRequiredService<IEventService>().DirectAsync(new DimensionEntryRecorded([
-                new(new(72), new(2026, 10, 10), null, 5)]));
-            await tx.CommitAsync(default);
-        }
-        await using (var tx = fixture.Scope.Begin())
-        {
-            var result = await service.EnterAsync(solo with { Participants = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)] }, default);
-            Assert.Equal(DungeonEntryFailure.MemberEntryLimitReached, result.Failure);
-            Assert.Equal((byte)1, result.BlockedSlot);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(5, (await service.ReadQuotaAsync(new(71), default)).Remaining);
+            var clock = new Clock();
+            await using var fixture = await Fixture(clock);
+            var service = Service(fixture, clock, new Visits());
+            var solo = new DungeonEntryContext(7100, DungeonEntryFacts.None, 0, 0, [new(new(1), new(71), 0, true)]);
+            await using (var tx = fixture.Scope.Begin()) Assert.NotNull((await service.EnterAsync(solo, default)).Entry);
+            Assert.Equal(5, (await service.ReadQuotaAsync(new(71), default)).Remaining);
+            await using (var tx = fixture.Scope.Begin())
+            {
+                await fixture.Services.GetRequiredService<IEventService>().DirectAsync(new DimensionEntryRecorded([
+                    new(new(72), new(2026, 10, 10), null, 5)]));
+                await tx.CommitAsync(default);
+            }
+            await using (var tx = fixture.Scope.Begin())
+            {
+                var result = await service.EnterAsync(solo with { Participants = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)] }, default);
+                Assert.Equal(DungeonEntryFailure.MemberEntryLimitReached, result.Failure);
+                Assert.Equal((byte)1, result.BlockedSlot);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(5, (await service.ReadQuotaAsync(new(71), default)).Remaining);
+        });
     }
 
     [Fact]
     public async Task Reset_is_readonly_and_separate_from_mirror_midnight_and_stale_CAS_rolls_back()
     {
-        var clock = new Clock { Now = new(2026, 10, 10, 5, 59, 0, TimeSpan.FromHours(8)) };
-        await using var fixture = await Fixture(clock);
-        var service = Service(fixture, clock, new Visits());
-        var events = fixture.Services.GetRequiredService<IEventService>();
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await events.DirectAsync(new DimensionEntryRecorded([new(new(71), new(2026, 10, 9), null, 5)]));
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(0, (await service.ReadQuotaAsync(new(71), default)).Remaining);
-        clock.Now = clock.Now.AddMinutes(1);
-        Assert.Equal(5, (await service.ReadQuotaAsync(new(71), default)).Remaining);
-        Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_daily_counters"));
-        await using (var tx = fixture.Scope.Begin())
-            await Assert.ThrowsAsync<InvalidOperationException>(() => events.DirectAsync(new DimensionEntryRecorded([
-                new(new(72), new(2026, 10, 10), null, 1), new(new(71), new(2026, 10, 9), null, 1)])).AsTask());
-        Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_daily_counters"));
+            var clock = new Clock { Now = new(2026, 10, 10, 5, 59, 0, TimeSpan.FromHours(8)) };
+            await using var fixture = await Fixture(clock);
+            var service = Service(fixture, clock, new Visits());
+            var events = fixture.Services.GetRequiredService<IEventService>();
+            await using (var tx = fixture.Scope.Begin())
+            {
+                await events.DirectAsync(new DimensionEntryRecorded([new(new(71), new(2026, 10, 9), null, 5)]));
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(0, (await service.ReadQuotaAsync(new(71), default)).Remaining);
+            clock.Now = clock.Now.AddMinutes(1);
+            Assert.Equal(5, (await service.ReadQuotaAsync(new(71), default)).Remaining);
+            Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_daily_counters"));
+            await using (var tx = fixture.Scope.Begin())
+                await Assert.ThrowsAsync<InvalidOperationException>(() => events.DirectAsync(new DimensionEntryRecorded([
+                    new(new(72), new(2026, 10, 10), null, 1), new(new(71), new(2026, 10, 9), null, 1)])).AsTask());
+            Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_daily_counters"));
+        });
     }
 
     [Fact]

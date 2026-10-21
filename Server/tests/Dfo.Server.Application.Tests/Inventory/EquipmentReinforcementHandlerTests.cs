@@ -9,6 +9,7 @@ using Dfo.Server.Protocol.Game.ReinforceItem;
 using Dfo.Server.Abstractions.Networking;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -324,12 +325,15 @@ public sealed class EquipmentReinforcementHandlerTests
         using var shop = Fixture(protectedFailure: true, materialId: 3037);
         await shop.SeedCore(9, Piece() with { Attribute = 11 });
         await shop.Seed(3, ticketId, 2);
-        var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
-        await using (var seed = scope.Begin())
+        await TestGameplay.RunAsync(shop.Services, async () =>
         {
-            await shop.PutShared(3037, 20);
-            await seed.CommitAsync(default);
-        }
+            var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
+            await using (var seed = scope.Begin())
+            {
+                await shop.PutShared(3037, 20);
+                await seed.CommitAsync(default);
+            }
+        });
 
         await Send(shop, 7, materialSlot: 358);
 
@@ -397,12 +401,15 @@ public sealed class EquipmentReinforcementHandlerTests
     {
         using var shop = Fixture(protectedFailure: true, materialId: 3037);
         await shop.SeedCore(9, Piece() with { Attribute = 11 });
-        var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
-        await using (var seed = scope.Begin())
+        await TestGameplay.RunAsync(shop.Services, async () =>
         {
-            await shop.PutShared(3037, 20);
-            await seed.CommitAsync(default);
-        }
+            var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
+            await using (var seed = scope.Begin())
+            {
+                await shop.PutShared(3037, 20);
+                await seed.CommitAsync(default);
+            }
+        });
         shop.Sender.BeforeSend = () =>
         {
             Assert.Equal(43, shop.SharedCount(3037, 1));

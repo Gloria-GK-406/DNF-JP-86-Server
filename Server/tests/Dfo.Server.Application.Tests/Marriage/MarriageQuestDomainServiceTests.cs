@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Marriage;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 using static Dfo.Server.Application.Tests.Marriage.MarriageEngagementCharacterizationTests;
 using static Dfo.Server.Application.Tests.Marriage.MarriageHarness;
 
@@ -23,9 +24,12 @@ public sealed class MarriageQuestDomainServiceTests
             [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)]) { IsBossRoom = true };
         async Task RecordAsync(DungeonMapCleared clear)
         {
-            await using var tx = f.Scope.Begin();
-            await quests.RecordTrialClearAsync(clear, default);
-            await tx.CommitAsync(default);
+            await TestGameplay.RunAsync(f.Services, async () =>
+            {
+                await using var tx = f.Scope.Begin();
+                await quests.RecordTrialClearAsync(clear, default);
+                await tx.CommitAsync(default);
+            });
         }
         int Clears() => f.Scalar("SELECT COUNT(*) FROM marriage_trial_clears");
         int Remaining() => f.Scalar("SELECT SUM(trigger_value) FROM character_active_quests WHERE quest_id=20737");

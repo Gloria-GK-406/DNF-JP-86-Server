@@ -17,6 +17,7 @@ using Dfo.Server.Protocol.Game.QuestAcceptance;
 using Dfo.Server.Protocol.Game.QuestCompletion;
 using Dfo.Server.Protocol.Game.QuestGiveUp;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Quests;
 
@@ -84,9 +85,12 @@ public sealed class CycleQuestFlowTests
 
     private static async Task PublishClear(ShopFixture f, DungeonMapCleared clear)
     {
-        await using var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
-        await f.Services.GetRequiredService<IEventService>().EnqueueAsync(clear);
-        await tx.CommitAsync(default);
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            await using var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+            await f.Services.GetRequiredService<IEventService>().EnqueueAsync(clear);
+            await tx.CommitAsync(default);
+        });
     }
 
     [Theory]
@@ -104,11 +108,15 @@ public sealed class CycleQuestFlowTests
             0, 0, [new(new(1), new(1), 0, true), new(new(2), new(3), 1, false)]);
 
         DungeonEntryAttempt result;
-        await using (var tx = ((DomainTransactionScope)fixture.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        result = await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            result = await fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>().EnterAsync(entry, default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = ((DomainTransactionScope)fixture.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+            {
+                result = await fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>().EnterAsync(entry, default);
+                await tx.CommitAsync(default);
+            }
+            return result;
+        });
 
         Assert.NotNull(visits.Facts);
         Assert.Equal(admitted, result.Entry is not null);
@@ -130,13 +138,16 @@ public sealed class CycleQuestFlowTests
         Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
         var entry = new DungeonEntryContext(84, new(DungeonDifficulty.Normal, [2001], [], DungeonEntryIntent.Cycle(84, 2001)),
             0, 0, [new(new(1), new(1), 0, true), new(new(2), new(3), 1, false), new(new(3), new(4), 2, false)]);
-        await using (var tx = ((DomainTransactionScope)fixture.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            var result = await fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>().EnterAsync(entry, default);
-            Assert.Equal(DungeonEntryFailure.MissingPrerequisite, result.Failure);
-            Assert.Equal((byte)2, result.BlockedSlot);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = ((DomainTransactionScope)fixture.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+            {
+                var result = await fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>().EnterAsync(entry, default);
+                Assert.Equal(DungeonEntryFailure.MissingPrerequisite, result.Failure);
+                Assert.Equal((byte)2, result.BlockedSlot);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Null(visits.Facts);
         Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=3"));
         Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM character_quest_acceptance_times WHERE character_id=3"));
@@ -164,11 +175,15 @@ public sealed class CycleQuestFlowTests
         var entry = new DungeonEntryContext(84, new(DungeonDifficulty.Normal, [2001], [], DungeonEntryIntent.Cycle(84, 2001)),
             0, 0, [new(new(1), new(1), 0, true), new(new(2), new(3), 1, false)]);
         DungeonEntryAttempt result;
-        await using (var tx = ((DomainTransactionScope)fixture.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        result = await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            result = await fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>().EnterAsync(entry, default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = ((DomainTransactionScope)fixture.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+            {
+                result = await fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>().EnterAsync(entry, default);
+                await tx.CommitAsync(default);
+            }
+            return result;
+        });
         Assert.Equal(DungeonEntryFailure.MissingPrerequisite, result.Failure);
         Assert.Equal((byte)1, result.BlockedSlot);
         Assert.Null(visits.Facts);
@@ -188,11 +203,14 @@ public sealed class CycleQuestFlowTests
         fixture.Sql("INSERT INTO character_active_quests VALUES(3,0,2001,0);");
         var entry = new DungeonEntryContext(84, new(DungeonDifficulty.Normal, [2001], [], DungeonEntryIntent.Cycle(84, 2001)),
             0, 0, [new(new(1), new(1), 0, true), new(new(2), new(3), 1, false)]);
-        await using (var tx = ((DomainTransactionScope)fixture.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            Assert.NotNull((await fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>().EnterAsync(entry, default)).Entry);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = ((DomainTransactionScope)fixture.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+            {
+                Assert.NotNull((await fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>().EnterAsync(entry, default)).Entry);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(0, fixture.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=3 AND quest_id=2001"));
     }
 
@@ -261,15 +279,18 @@ public sealed class CycleQuestFlowTests
     [Fact]
     public async Task A_prepared_cycle_does_not_authorize_a_different_quest_or_stale_connection()
     {
-        using var fixture = Fixture();
-        var cycles = fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>();
-        var intents = fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>();
-        Assert.False((await cycles.PrepareAsync(fixture.Session, 84, 2001, default)).Accepted);
-        intents.Record(fixture.Session, DungeonEntryIntent.Interactive);
-        Assert.True((await cycles.PrepareAsync(fixture.Session, 84, 2001, default)).Accepted);
-        Assert.False(await cycles.CanAcceptAsync(new(1), new(1), 2002, default));
-        Assert.False((await cycles.PrepareAsync(fixture.Session with { ConnectionGeneration = 500 }, 84, 2001, default)).Accepted);
-        Assert.True(await cycles.CanAcceptAsync(new(1), new(1), 2001, default));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = Fixture();
+            var cycles = fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>();
+            var intents = fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>();
+            Assert.False((await cycles.PrepareAsync(fixture.Session, 84, 2001, default)).Accepted);
+            intents.Record(fixture.Session, DungeonEntryIntent.Interactive);
+            Assert.True((await cycles.PrepareAsync(fixture.Session, 84, 2001, default)).Accepted);
+            Assert.False(await cycles.CanAcceptAsync(new(1), new(1), 2002, default));
+            Assert.False((await cycles.PrepareAsync(fixture.Session with { ConnectionGeneration = 500 }, 84, 2001, default)).Accepted);
+            Assert.True(await cycles.CanAcceptAsync(new(1), new(1), 2001, default));
+        });
     }
 
     [Fact]
@@ -304,19 +325,22 @@ public sealed class CycleQuestFlowTests
     [Fact]
     public async Task Retry_cannot_rebind_an_unrelated_directed_map_or_an_invalid_cycle_pair()
     {
-        using var fixture = Fixture();
-        var cycles = fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>();
-        var intents = fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>();
-        var unrelated = DungeonEntryIntent.Directed(10000);
-        intents.Record(fixture.Session, unrelated);
-        Assert.False((await cycles.PrepareAsync(fixture.Session, 85, 2002, default)).Accepted);
-        Assert.Equal(unrelated, intents.Find(fixture.Session));
-        var retry = DungeonEntryIntent.Directed(84);
-        intents.Record(fixture.Session, retry);
-        Assert.False((await cycles.PrepareAsync(fixture.Session, 85, 2001, default)).Accepted);
-        Assert.False((await cycles.PrepareAsync(fixture.Session with { ConnectionGeneration = 500 }, 85, 2002, default)).Accepted);
-        Assert.Equal(retry, intents.Find(fixture.Session));
-        Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = Fixture();
+            var cycles = fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>();
+            var intents = fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>();
+            var unrelated = DungeonEntryIntent.Directed(10000);
+            intents.Record(fixture.Session, unrelated);
+            Assert.False((await cycles.PrepareAsync(fixture.Session, 85, 2002, default)).Accepted);
+            Assert.Equal(unrelated, intents.Find(fixture.Session));
+            var retry = DungeonEntryIntent.Directed(84);
+            intents.Record(fixture.Session, retry);
+            Assert.False((await cycles.PrepareAsync(fixture.Session, 85, 2001, default)).Accepted);
+            Assert.False((await cycles.PrepareAsync(fixture.Session with { ConnectionGeneration = 500 }, 85, 2002, default)).Accepted);
+            Assert.Equal(retry, intents.Find(fixture.Session));
+            Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests"));
+        });
     }
 
     [Fact]
@@ -365,12 +389,15 @@ public sealed class CycleQuestFlowTests
         var intent = intents.Find(fixture.Session)!.Value;
         var entry = new DungeonEntryContext(84, new(requested, [2001], [], intent), 0, 0, [new(new(1), new(1), 0, true)]);
         var cycles = fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>();
-        await using (var tx = ((DomainTransactionScope)fixture.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            await fixture.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>()
-                .UnlockAsync(new(1), 84, maximum, default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = ((DomainTransactionScope)fixture.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+            {
+                await fixture.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>()
+                    .UnlockAsync(new(1), 84, maximum, default);
+                await tx.CommitAsync(default);
+            }
+        });
 
         // An incoming quest list cannot stand in for the persisted accepted quest.
         Assert.Equal(DungeonEntryFailure.MissingPrerequisite, (await cycles.EnterAsync(entry, default)).Failure);

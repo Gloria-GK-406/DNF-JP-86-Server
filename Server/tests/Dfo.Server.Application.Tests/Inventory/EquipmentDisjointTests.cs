@@ -7,6 +7,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.DisjointItem;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -89,16 +90,19 @@ public sealed class EquipmentDisjointTests
     [InlineData(65, 1000)]
     public async Task Missing_or_ambiguous_disjoint_provider_never_removes_equipment_or_grants_rewards(short toolSlot, int provider)
     {
-        using var shop = Fixture();
-        await shop.SeedCore(9, Piece());
-        await shop.Seed(65, 2600469, 1);
-        await Disjoint(shop, 9, provider, toolSlot);
-        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 9));
-        Assert.Equal(1, shop.Count(2600469));
-        Assert.Equal(0, shop.Count(1000));
-        var response = Assert.IsType<DisjointItemResponse>(Assert.Single(shop.Sender.Messages));
-        Assert.Null(response.TargetSlot);
-        Assert.Equal(0x13, response.ErrorCode);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop = Fixture();
+            await shop.SeedCore(9, Piece());
+            await shop.Seed(65, 2600469, 1);
+            await Disjoint(shop, 9, provider, toolSlot);
+            Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 9));
+            Assert.Equal(1, shop.Count(2600469));
+            Assert.Equal(0, shop.Count(1000));
+            var response = Assert.IsType<DisjointItemResponse>(Assert.Single(shop.Sender.Messages));
+            Assert.Null(response.TargetSlot);
+            Assert.Equal(0x13, response.ErrorCode);
+        });
     }
 
     [Fact]
@@ -521,17 +525,17 @@ public sealed class EquipmentDisjointTests
     private static InventoryItemCoreState Piece() =>
         StackableItemCore.Create(1, 3000, 1234) with { Durability = 45 };
 
-    private static ValueTask Disjoint(
+    private static async ValueTask Disjoint(
         ShopFixture shop,
         short slot,
         int? disjointProviderId = null,
         short disjointToolSlot = -1) =>
-        shop.Services.GetRequiredService<DisjointItemHandler>().HandleAsync(new(shop.Connection),
+        await TestGameplay.RunAsync(shop.Services, async () => await shop.Services.GetRequiredService<DisjointItemHandler>().HandleAsync(new(shop.Connection),
             new DisjointItemRequest(
                 GameMessageMetadata.Empty,
                 new GameSlot(InventoryContainerType.Main, slot), disjointToolSlot,
                 disjointProviderId ?? (disjointToolSlot < 0 ? 1000 : 0)),
-            default);
+            default));
 
     private sealed class FixedRules(IReadOnlyList<EquipmentDisjointReward> rewards)
         : IEquipmentDisjointRuleService

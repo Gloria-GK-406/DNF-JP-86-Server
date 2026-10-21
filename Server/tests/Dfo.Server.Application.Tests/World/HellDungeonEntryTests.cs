@@ -10,6 +10,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -23,39 +24,45 @@ public sealed class HellDungeonEntryTests
     [InlineData("final-layout")]
     public async Task Invalid_hell_configuration_refuses_without_ticket_fatigue_or_run(string boundary)
     {
-        await using var f = Fixture();
-        await f.SeedAsync();
-        await SeedTicket(f, new(71), 3330, 30, 0);
-        var (hell, runs) = Service(f, failureBoundary: boundary);
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default);
-            Assert.Equal(DungeonEntryFailure.HellConfigurationInvalid, result.Failure);
-            Assert.NotNull(result.Detail);
-            Assert.Null(result.Entry);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(30, await Count(f, new(71), 3330));
-        Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
-        Assert.Null(runs.Find(new CharacterId(71)));
+            await using var f = Fixture();
+            await f.SeedAsync();
+            await SeedTicket(f, new(71), 3330, 30, 0);
+            var (hell, runs) = Service(f, failureBoundary: boundary);
+            await using (var tx = f.Scope.Begin())
+            {
+                var result = await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default);
+                Assert.Equal(DungeonEntryFailure.HellConfigurationInvalid, result.Failure);
+                Assert.NotNull(result.Detail);
+                Assert.Null(result.Entry);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(30, await Count(f, new(71), 3330));
+            Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+            Assert.Null(runs.Find(new CharacterId(71)));
+        });
     }
 
     [Fact]
     public async Task InvalidData_from_hell_cell_creation_remains_an_exception()
     {
-        await using var f = Fixture();
-        await f.SeedAsync();
-        await SeedTicket(f, new(71), 3330, 30, 0);
-        var (hell, runs) = Service(f, failureBoundary: "cell");
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default));
-            Assert.Equal("unexpected hell cell failure", error.Message);
-        }
-        Assert.Equal(30, await Count(f, new(71), 3330));
-        Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
-        Assert.Null(runs.Find(new CharacterId(71)));
+            await using var f = Fixture();
+            await f.SeedAsync();
+            await SeedTicket(f, new(71), 3330, 30, 0);
+            var (hell, runs) = Service(f, failureBoundary: "cell");
+            await using (var tx = f.Scope.Begin())
+            {
+                var error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
+                    await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default));
+                Assert.Equal("unexpected hell cell failure", error.Message);
+            }
+            Assert.Equal(30, await Count(f, new(71), 3330));
+            Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+            Assert.Null(runs.Find(new CharacterId(71)));
+        });
     }
     [Fact]
     public async Task Registered_CMD_commits_manual_entry_and_ticket_debit_without_an_outer_transaction()
@@ -78,9 +85,12 @@ public sealed class HellDungeonEntryTests
         var result = await f.Services.GetRequiredService<Dfo.Server.Application.Commands.ICommandBus>().SendAsync(
             new Dfo.Server.Protocol.Game.DungeonEntry.EnterDungeonCommand(Context() with { Participants = [Party[0]] }), default);
         Assert.NotNull(result.Entry);
-        var run = f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71));
-        Assert.NotNull(run);
-        Assert.Equal(DungeonEntryKind.ManualHell, run.EntryKind);
+        TestGameplay.Run(f.Services, () =>
+        {
+            var run = f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71));
+            Assert.NotNull(run);
+            Assert.Equal(DungeonEntryKind.ManualHell, run.EntryKind);
+        });
         Assert.Equal(10, await Count(f, new(71), 3330));
         Assert.Equal(1, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
         Assert.Null(f.Scope.Current);
@@ -155,34 +165,40 @@ public sealed class HellDungeonEntryTests
     [InlineData(30, true)]
     public async Task Ordinary_and_hell_costs_sharing_an_item_are_reserved_together_and_rebind_split_stacks(int total, bool success)
     {
-        await using var f = Fixture(); await f.SeedAsync();
-        await SeedTicket(f, new(71), 3330, 10, 0);
-        await SeedTicket(f, new(71), 3330, total - 10, 1);
-        var (hell, runs) = Service(f, required: [new(3330, 5, true)]);
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default);
-            if (success) Assert.NotNull(result.Entry);
-            else Assert.Equal(DungeonEntryFailure.MissingHellTicket, result.Failure);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(success ? total - 25 : total, await Count(f, new(71), 3330));
-        Assert.Equal(success, runs.Find(new CharacterId(71)) is not null);
+            await using var f = Fixture(); await f.SeedAsync();
+            await SeedTicket(f, new(71), 3330, 10, 0);
+            await SeedTicket(f, new(71), 3330, total - 10, 1);
+            var (hell, runs) = Service(f, required: [new(3330, 5, true)]);
+            await using (var tx = f.Scope.Begin())
+            {
+                var result = await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default);
+                if (success) Assert.NotNull(result.Entry);
+                else Assert.Equal(DungeonEntryFailure.MissingHellTicket, result.Failure);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(success ? total - 25 : total, await Count(f, new(71), 3330));
+            Assert.Equal(success, runs.Find(new CharacterId(71)) is not null);
+        });
     }
 
     [Fact]
     public async Task Enough_hell_tickets_but_missing_a_different_ordinary_material_preserves_ordinary_refusal()
     {
-        await using var f = Fixture(); await f.SeedAsync(); await SeedTicket(f, new(71), 3330, 30, 0);
-        var (hell, runs) = Service(f, required: [new(5555, 1, true)]);
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default);
-            Assert.Equal(DungeonEntryFailure.MissingRequiredItem, result.Failure);
-            Assert.Equal((byte)0, result.BlockedSlot);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(30, await Count(f, new(71), 3330)); Assert.Null(runs.Find(new CharacterId(71)));
+            await using var f = Fixture(); await f.SeedAsync(); await SeedTicket(f, new(71), 3330, 30, 0);
+            var (hell, runs) = Service(f, required: [new(5555, 1, true)]);
+            await using (var tx = f.Scope.Begin())
+            {
+                var result = await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default);
+                Assert.Equal(DungeonEntryFailure.MissingRequiredItem, result.Failure);
+                Assert.Equal((byte)0, result.BlockedSlot);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(30, await Count(f, new(71), 3330)); Assert.Null(runs.Find(new CharacterId(71)));
+        });
     }
 
     [Theory]
@@ -190,43 +206,49 @@ public sealed class HellDungeonEntryTests
     [InlineData(5555, DungeonEntryFailure.MissingRequiredItem)]
     public async Task Payment_recheck_preserves_which_kind_of_material_became_insufficient(int removedItem, DungeonEntryFailure expected)
     {
-        await using var f = Fixture(); await f.SeedAsync();
-        await SeedTicket(f, new(71), 3330, 30, 0); await SeedTicket(f, new(71), 5555, 1, 1);
-        var admission = new DungeonAdmissionDomainService(new Structures([new(5555, 1, true)]),
-            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
-            f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var prepared = await admission.PrepareAsync(Context() with { Participants = [Party[0]] },
-                new() { HellTickets = [new(3330, 20)] }, default);
-            Assert.NotNull(prepared.Batch);
-            var material = f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>().GetStore(new(71), BusinessInventoryStoreKind.Item)
-                .GetContainer(BusinessInventorySpace.Material);
-            await material.TakeAsync((await material.GetAllAsync(default)).Single(x => x.ItemId == removedItem), null, default);
-            var result = await admission.ConsumeAsync(prepared.Batch, default);
-            Assert.Equal(expected, result.Refusal!.Failure);
-        }
-        Assert.Equal(30, await Count(f, new(71), 3330)); Assert.Equal(1, await Count(f, new(71), 5555));
+            await using var f = Fixture(); await f.SeedAsync();
+            await SeedTicket(f, new(71), 3330, 30, 0); await SeedTicket(f, new(71), 5555, 1, 1);
+            var admission = new DungeonAdmissionDomainService(new Structures([new(5555, 1, true)]),
+                f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
+                f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
+            await using (var tx = f.Scope.Begin())
+            {
+                var prepared = await admission.PrepareAsync(Context() with { Participants = [Party[0]] },
+                    new() { HellTickets = [new(3330, 20)] }, default);
+                Assert.NotNull(prepared.Batch);
+                var material = f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>().GetStore(new(71), BusinessInventoryStoreKind.Item)
+                    .GetContainer(BusinessInventorySpace.Material);
+                await material.TakeAsync((await material.GetAllAsync(default)).Single(x => x.ItemId == removedItem), null, default);
+                var result = await admission.ConsumeAsync(prepared.Batch, default);
+                Assert.Equal(expected, result.Refusal!.Failure);
+            }
+            Assert.Equal(30, await Count(f, new(71), 3330)); Assert.Equal(1, await Count(f, new(71), 5555));
+        });
     }
 
     [Fact]
     public async Task Any_member_missing_tickets_refuses_without_debit_or_run()
     {
-        await using var f = Fixture();
-        await f.SeedAsync();
-        await SeedTicket(f, new(71), 3330, 20, 0);
-        Register(f, new(72));
-        var (hell, runs) = Service(f);
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await hell.EnterManualAsync(Context(), default);
-            Assert.Equal(DungeonEntryFailure.MissingHellTicket, result.Failure);
-            Assert.Equal((byte)1, result.BlockedSlot);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(20, await Count(f, new(71), 3330));
-        Assert.Null(runs.Find(new CharacterId(71)));
-        Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+            await using var f = Fixture();
+            await f.SeedAsync();
+            await SeedTicket(f, new(71), 3330, 20, 0);
+            Register(f, new(72));
+            var (hell, runs) = Service(f);
+            await using (var tx = f.Scope.Begin())
+            {
+                var result = await hell.EnterManualAsync(Context(), default);
+                Assert.Equal(DungeonEntryFailure.MissingHellTicket, result.Failure);
+                Assert.Equal((byte)1, result.BlockedSlot);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(20, await Count(f, new(71), 3330));
+            Assert.Null(runs.Find(new CharacterId(71)));
+            Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+        });
     }
 
     [Theory]
@@ -234,54 +256,60 @@ public sealed class HellDungeonEntryTests
     [InlineData(true)]
     public async Task Successful_party_entry_uses_pass_first_and_debits_split_stacks_once(bool commit)
     {
-        await using var f = Fixture();
-        await f.SeedAsync();
-        await SeedTicket(f, new(71), 4444, 1, 0);
-        await SeedTicket(f, new(71), 3330, 30, 1);
-        await SeedTicket(f, new(72), 3330, 7, 0);
-        await SeedTicket(f, new(72), 3330, 20, 1);
-        var (hell, runs) = Service(f);
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await hell.EnterManualAsync(Context(), default);
-            Assert.NotNull(result.Entry);
-            Assert.Equal(3, result.Entry.InventoryChanges.Count);
-            Assert.Single(result.Entry.Visits.Values.Select(x => x.Run.RunId).Distinct());
-            Assert.All(result.Entry.Visits.Values, x =>
+            await using var f = Fixture();
+            await f.SeedAsync();
+            await SeedTicket(f, new(71), 4444, 1, 0);
+            await SeedTicket(f, new(71), 3330, 30, 1);
+            await SeedTicket(f, new(72), 3330, 7, 0);
+            await SeedTicket(f, new(72), 3330, 20, 1);
+            var (hell, runs) = Service(f);
+            await using (var tx = f.Scope.Begin())
             {
-                Assert.Equal(DungeonEntryKind.ManualHell, x.Run.EntryKind);
-                Assert.Same(result.Entry.Layout.Hell, x.Run.Hell);
-            });
-            Assert.Null(runs.Find(new CharacterId(71))); // publish only at commit
-            if (commit) await tx.CommitAsync(default);
-        }
-        Assert.Equal(commit ? 0 : 1, await Count(f, new(71), 4444));
-        Assert.Equal(30, await Count(f, new(71), 3330));
-        Assert.Equal(commit ? 7 : 27, await Count(f, new(72), 3330));
-        Assert.Equal(commit ? 1 : 0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
-        Assert.Equal(commit ? 1 : 0, (await Fatigue(f).BalanceOfAsync(new(72), default)).Used);
-        if (commit) Assert.Equal(runs.Find(new CharacterId(71))!.RunId, runs.Find(new CharacterId(72))!.RunId);
-        else Assert.Null(runs.Find(new CharacterId(72)));
+                var result = await hell.EnterManualAsync(Context(), default);
+                Assert.NotNull(result.Entry);
+                Assert.Equal(3, result.Entry.InventoryChanges.Count);
+                Assert.Single(result.Entry.Visits.Values.Select(x => x.Run.RunId).Distinct());
+                Assert.All(result.Entry.Visits.Values, x =>
+                {
+                    Assert.Equal(DungeonEntryKind.ManualHell, x.Run.EntryKind);
+                    Assert.Same(result.Entry.Layout.Hell, x.Run.Hell);
+                });
+                Assert.Null(runs.Find(new CharacterId(71))); // publish only at commit
+                if (commit) await tx.CommitAsync(default);
+            }
+            Assert.Equal(commit ? 0 : 1, await Count(f, new(71), 4444));
+            Assert.Equal(30, await Count(f, new(71), 3330));
+            Assert.Equal(commit ? 7 : 27, await Count(f, new(72), 3330));
+            Assert.Equal(commit ? 1 : 0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+            Assert.Equal(commit ? 1 : 0, (await Fatigue(f).BalanceOfAsync(new(72), default)).Used);
+            if (commit) Assert.Equal(runs.Find(new CharacterId(71))!.RunId, runs.Find(new CharacterId(72))!.RunId);
+            else Assert.Null(runs.Find(new CharacterId(72)));
+        });
     }
 
     [Fact]
     public async Task Missing_prerequisite_and_practice_mode_reject_without_spending()
     {
-        await using var f = Fixture();
-        await f.SeedAsync();
-        await SeedTicket(f, new(71), 3330, 20, 0);
-        var (hell, runs) = Service(f, Rules with { RequiredQuestIds = [4391] });
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default);
-            Assert.Equal(DungeonEntryFailure.HellQuestNotCleared, result.Failure);
-            Assert.Equal(DungeonEntryFailure.HellUnavailable,
-                (await hell.EnterManualAsync(Context() with { PracticeMode = 1 }, default)).Failure);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(20, await Count(f, new(71), 3330));
-        Assert.Null(runs.Find(new CharacterId(71)));
-        Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+            await using var f = Fixture();
+            await f.SeedAsync();
+            await SeedTicket(f, new(71), 3330, 20, 0);
+            var (hell, runs) = Service(f, Rules with { RequiredQuestIds = [4391] });
+            await using (var tx = f.Scope.Begin())
+            {
+                var result = await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default);
+                Assert.Equal(DungeonEntryFailure.HellQuestNotCleared, result.Failure);
+                Assert.Equal(DungeonEntryFailure.HellUnavailable,
+                    (await hell.EnterManualAsync(Context() with { PracticeMode = 1 }, default)).Failure);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(20, await Count(f, new(71), 3330));
+            Assert.Null(runs.Find(new CharacterId(71)));
+            Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+        });
     }
 
     [Theory]
@@ -289,86 +317,95 @@ public sealed class HellDungeonEntryTests
     [InlineData(true)]
     public async Task Every_party_member_uses_live_cleared_quests_instead_of_leaders_entry_facts(bool everyoneCleared)
     {
-        await using var f = Fixture();
-        await f.SeedAsync();
-        await SeedTicket(f, new(71), 3330, 20, 0);
-        await SeedTicket(f, new(72), 3330, 20, 0);
-        f.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(71,4391,1);");
-        if (everyoneCleared) f.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(72,4391,1);");
-        var (hell, runs) = Service(f, Rules with { RequiredQuestIds = [4391] });
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await hell.EnterManualAsync(Context() with { Facts = new(0, [], [4391]) }, default);
-            if (everyoneCleared) Assert.NotNull(result.Entry);
-            else
+            await using var f = Fixture();
+            await f.SeedAsync();
+            await SeedTicket(f, new(71), 3330, 20, 0);
+            await SeedTicket(f, new(72), 3330, 20, 0);
+            f.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(71,4391,1);");
+            if (everyoneCleared) f.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(72,4391,1);");
+            var (hell, runs) = Service(f, Rules with { RequiredQuestIds = [4391] });
+            await using (var tx = f.Scope.Begin())
             {
-                Assert.Equal(DungeonEntryFailure.HellQuestNotCleared, result.Failure);
-                Assert.Equal((byte)1, result.BlockedSlot);
+                var result = await hell.EnterManualAsync(Context() with { Facts = new(0, [], [4391]) }, default);
+                if (everyoneCleared) Assert.NotNull(result.Entry);
+                else
+                {
+                    Assert.Equal(DungeonEntryFailure.HellQuestNotCleared, result.Failure);
+                    Assert.Equal((byte)1, result.BlockedSlot);
+                }
+                await tx.CommitAsync(default);
             }
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(everyoneCleared ? 0 : 20, await Count(f, new(71), 3330));
-        Assert.Equal(everyoneCleared ? 0 : 20, await Count(f, new(72), 3330));
-        Assert.Equal(everyoneCleared, runs.Find(new CharacterId(71)) is not null);
+            Assert.Equal(everyoneCleared ? 0 : 20, await Count(f, new(71), 3330));
+            Assert.Equal(everyoneCleared ? 0 : 20, await Count(f, new(72), 3330));
+            Assert.Equal(everyoneCleared, runs.Find(new CharacterId(71)) is not null);
+        });
     }
 
     [Fact]
     public async Task Database_ticket_write_failure_rolls_back_fatigue_and_staged_run_together()
     {
-        await using var f = Fixture();
-        await f.SeedAsync();
-        await SeedTicket(f, new(71), 3330, 20, 0);
-        var (hell, runs) = Service(f);
-        f.Sql("CREATE TRIGGER fail_ticket BEFORE DELETE ON item_slots BEGIN SELECT RAISE(ABORT,'hell test failure'); END;");
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(async () =>
-                await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default));
-        }
-        Assert.Equal(20, await Count(f, new(71), 3330));
-        Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
-        Assert.Null(runs.Find(new CharacterId(71)));
+            await using var f = Fixture();
+            await f.SeedAsync();
+            await SeedTicket(f, new(71), 3330, 20, 0);
+            var (hell, runs) = Service(f);
+            f.Sql("CREATE TRIGGER fail_ticket BEFORE DELETE ON item_slots BEGIN SELECT RAISE(ABORT,'hell test failure'); END;");
+            await using (var tx = f.Scope.Begin())
+            {
+                await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(async () =>
+                    await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default));
+            }
+            Assert.Equal(20, await Count(f, new(71), 3330));
+            Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+            Assert.Null(runs.Find(new CharacterId(71)));
+        });
     }
 
     [Fact]
     public async Task Frozen_hell_room_survives_move_and_revisit_without_a_second_ticket_debit()
     {
-        await using var f = Fixture();
-        await f.SeedAsync();
-        await SeedTicket(f, new(71), 3330, 40, 0);
-        var (hell, runs) = Service(f);
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.NotNull((await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default)).Entry);
-            await tx.CommitAsync(default);
-        }
-        var start = runs.Find(new CharacterId(71))!;
-        var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new Structures(), runs, new Selection(), new Cells(),
-            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f), materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
-        await using (var tx = f.Scope.Begin())
-        {
-            var room = await visits.MoveAsync(new(71), start, start.Hell!.Cell, default);
-            Assert.NotNull(room);
-            Assert.Equal(900, room.Run.CurrentRoomMapId);
-            Assert.Same(start.Hell, room.Run.Hell);
-            await tx.CommitAsync(default);
-        }
-        await using (var tx = f.Scope.Begin())
-        {
-            Assert.NotNull(await visits.MoveAsync(new(71), runs.Find(new CharacterId(71))!, start.CurrentCell, default));
-            await tx.CommitAsync(default);
-        }
-        await using (var tx = f.Scope.Begin())
-        {
-            var room = await visits.MoveAsync(new(71), runs.Find(new CharacterId(71))!, start.Hell!.Cell, default);
-            Assert.NotNull(room);
-            Assert.False(room.FirstEntry);
-            Assert.Empty(room.Actors);
-            Assert.Same(start.Hell, room.Run.Hell);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(20, await Count(f, new(71), 3330));
-        Assert.Equal(2, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+            await using var f = Fixture();
+            await f.SeedAsync();
+            await SeedTicket(f, new(71), 3330, 40, 0);
+            var (hell, runs) = Service(f);
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.NotNull((await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default)).Entry);
+                await tx.CommitAsync(default);
+            }
+            var start = runs.Find(new CharacterId(71))!;
+            var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new Structures(), runs, new Selection(), new Cells(),
+                f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f), materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
+            await using (var tx = f.Scope.Begin())
+            {
+                var room = await visits.MoveAsync(new(71), start, start.Hell!.Cell, default);
+                Assert.NotNull(room);
+                Assert.Equal(900, room.Run.CurrentRoomMapId);
+                Assert.Same(start.Hell, room.Run.Hell);
+                await tx.CommitAsync(default);
+            }
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.NotNull(await visits.MoveAsync(new(71), runs.Find(new CharacterId(71))!, start.CurrentCell, default));
+                await tx.CommitAsync(default);
+            }
+            await using (var tx = f.Scope.Begin())
+            {
+                var room = await visits.MoveAsync(new(71), runs.Find(new CharacterId(71))!, start.Hell!.Cell, default);
+                Assert.NotNull(room);
+                Assert.False(room.FirstEntry);
+                Assert.Empty(room.Actors);
+                Assert.Same(start.Hell, room.Run.Hell);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(20, await Count(f, new(71), 3330));
+            Assert.Equal(2, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+        });
     }
 
     [Theory]
@@ -376,19 +413,22 @@ public sealed class HellDungeonEntryTests
     [InlineData(true)]
     public async Task Disabled_or_invalid_room_configuration_rejects_without_debit(bool disabled)
     {
-        await using var f = Fixture();
-        await f.SeedAsync();
-        await SeedTicket(f, new(71), 3330, 20, 0);
-        var (hell, runs) = Service(f, disabled ? Rules with { Enabled = false } : Rules with { Rooms = new Dictionary<int, HellRoomDefinition>() });
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default);
-            Assert.Equal(disabled ? DungeonEntryFailure.HellUnavailable : DungeonEntryFailure.HellConfigurationInvalid, result.Failure);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(20, await Count(f, new(71), 3330));
-        Assert.Null(runs.Find(new CharacterId(71)));
-        Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+            await using var f = Fixture();
+            await f.SeedAsync();
+            await SeedTicket(f, new(71), 3330, 20, 0);
+            var (hell, runs) = Service(f, disabled ? Rules with { Enabled = false } : Rules with { Rooms = new Dictionary<int, HellRoomDefinition>() });
+            await using (var tx = f.Scope.Begin())
+            {
+                var result = await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default);
+                Assert.Equal(disabled ? DungeonEntryFailure.HellUnavailable : DungeonEntryFailure.HellConfigurationInvalid, result.Failure);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(20, await Count(f, new(71), 3330));
+            Assert.Null(runs.Find(new CharacterId(71)));
+            Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+        });
     }
 
     private static readonly DungeonRunParticipant[] Party = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)];
@@ -428,12 +468,15 @@ public sealed class HellDungeonEntryTests
     }
     private static async Task SeedTicket(LearningFixture f, CharacterId character, int id, int count, int slot)
     {
-        Register(f, character);
-        var material = f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>().GetStore(character, BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.Material);
-        await using var tx = f.Scope.Begin();
-        var item = await f.Services.GetRequiredService<IItemLifecycleDomainService>().CreateAsync(ItemSnapshot.FromCore(StackableItemCore.Create(3, id, count), true), default);
-        await material.PutAsync(slot, item, default);
-        await tx.CommitAsync(default);
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            Register(f, character);
+            var material = f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>().GetStore(character, BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.Material);
+            await using var tx = f.Scope.Begin();
+            var item = await f.Services.GetRequiredService<IItemLifecycleDomainService>().CreateAsync(ItemSnapshot.FromCore(StackableItemCore.Create(3, id, count), true), default);
+            await material.PutAsync(slot, item, default);
+            await tx.CommitAsync(default);
+        });
     }
     private static async Task<int> Count(LearningFixture f, CharacterId character, int id) =>
         (await f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>().GetStore(character, BusinessInventoryStoreKind.Item)

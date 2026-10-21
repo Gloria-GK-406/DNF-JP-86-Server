@@ -65,16 +65,23 @@ public sealed class OnlineExpiredItemCleanupTests
         using var f = new ShopFixture(s => s.AddSingleton<IQuestHelperPuppetRuleService>(new PuppetRules()));
         f.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,582,4000000000)");
         var puppets = f.Services.GetRequiredService<IQuestHelperPuppetDomainService>();
-        await using (var tx = Transactions(f).Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            Assert.True(await puppets.EnsureDailyAsync(new(1), new(1), default));
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = Transactions(f).Begin())
+            {
+                Assert.True(await puppets.EnsureDailyAsync(new(1), new(1), default));
+                await tx.CommitAsync(default);
+            }
+        });
         var mailbox = f.Services.GetRequiredService<IMailboxDomainService>();
-        var old = Assert.Single(await mailbox.InboxAsync(new(1)));
-        await mailbox.ClaimAsync(new(1), old.Attachments[0].Id);
-        Assert.Equal(1, f.Count(3257));
-        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(f.Session);
+        var old = await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            var old = Assert.Single(await mailbox.InboxAsync(new(1)));
+            await mailbox.ClaimAsync(new(1), old.Attachments[0].Id);
+            Assert.Equal(1, f.Count(3257));
+            f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(f.Session);
+            return old;
+        });
         f.Clock.Advance(TimeSpan.FromDays(1));
         await f.Services.GetRequiredService<ICommandBus>().SendAsync(new CleanupOnlineExpiredItemsCommand(f.Session));
         Assert.Equal(0, f.Count(3257));
@@ -101,9 +108,12 @@ public sealed class OnlineExpiredItemCleanupTests
     {
         using var f = new ShopFixture();
         await Seed(f);
-        await using (var tx = Transactions(f).Begin())
-            Assert.True(await f.Services.GetRequiredService<IOnlineExpiredItemCleanupDomainService>()
-                .CleanupAsync(f.Session, default));
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            await using (var tx = Transactions(f).Begin())
+                Assert.True(await f.Services.GetRequiredService<IOnlineExpiredItemCleanupDomainService>()
+                    .CleanupAsync(f.Session, default));
+        });
         Assert.Equal(3, f.Count(9001));
         Assert.Empty(await Pending(f));
         Assert.Empty(f.Sender.Messages);

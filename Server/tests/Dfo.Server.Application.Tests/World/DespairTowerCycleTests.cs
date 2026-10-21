@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
 using Dfo.Server.Application.Tests.Characters;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -20,23 +21,26 @@ public sealed class DespairTowerCycleTests
     [Fact]
     public async Task Completed_cycle_advances_to_one_once_and_survives_reopen()
     {
-        await using var f = new LearningFixture();
-        await f.SeedAsync();
-        f.Sql("INSERT INTO character_despair_tower(character_id,highest_cleared_floor,last_clear_run) VALUES(71,100,'legacy-cycle')");
-        var store = f.Services.GetRequiredService<IDespairTowerDomainStore>();
-        var run = Guid.NewGuid();
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.True(await store.TryAdvanceAsync(new(71), 100, run, default));
-            await tx.CommitAsync(default);
-        }
-        await using (var tx = f.Scope.Begin())
-        {
-            Assert.False(await store.TryAdvanceAsync(new(71), 100, run, default));
-            await tx.CommitAsync(default);
-        }
-        await using var reopened = new LearningFixture(existing: f.Path);
-        Assert.Equal(1, (await reopened.Services.GetRequiredService<IDespairTowerDomainStore>().ReadAsync(new(71), default)).HighestClearedFloor);
+            await using var f = new LearningFixture();
+            await f.SeedAsync();
+            f.Sql("INSERT INTO character_despair_tower(character_id,highest_cleared_floor,last_clear_run) VALUES(71,100,'legacy-cycle')");
+            var store = f.Services.GetRequiredService<IDespairTowerDomainStore>();
+            var run = Guid.NewGuid();
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.True(await store.TryAdvanceAsync(new(71), 100, run, default));
+                await tx.CommitAsync(default);
+            }
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.False(await store.TryAdvanceAsync(new(71), 100, run, default));
+                await tx.CommitAsync(default);
+            }
+            await using var reopened = new LearningFixture(existing: f.Path);
+            Assert.Equal(1, (await reopened.Services.GetRequiredService<IDespairTowerDomainStore>().ReadAsync(new(71), default)).HighestClearedFloor);
+        });
     }
 
     private sealed class Floors : IDespairTowerContentSource

@@ -4,6 +4,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.CrystalContract;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -16,9 +17,9 @@ public sealed class CrystalContractTests
         if (active) f.Sql($"INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,97,{f.Clock.GetUtcNow().AddDays(1).ToUnixTimeSeconds()});");
         return f;
     }
-    private static ValueTask Request(ShopFixture f, byte mode, byte selection) =>
-        f.Services.GetRequiredService<CrystalContractHandler>().HandleAsync(new(f.Connection),
-            new CrystalContractRequest(GameMessageMetadata.Empty, mode, selection), default);
+    private static async ValueTask Request(ShopFixture f, byte mode, byte selection) =>
+        await TestGameplay.RunAsync(f.Services, async () => await f.Services.GetRequiredService<CrystalContractHandler>().HandleAsync(new(f.Connection),
+            new CrystalContractRequest(GameMessageMetadata.Empty, mode, selection), default));
 
     [Theory]
     [InlineData(0,0)] [InlineData(0,5)] [InlineData(1,3)] [InlineData(0,255)]

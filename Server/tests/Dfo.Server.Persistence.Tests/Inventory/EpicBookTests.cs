@@ -60,45 +60,54 @@ public sealed class EpicBookTests
     [Fact]
     public async Task Legacy_characters_and_account_cargo_merge_once_without_consuming_ordinary_items()
     {
-        using var fixture = new Fixture();
-        fixture.Legacy("character", 1, 0, 1, Piece, 7);
-        fixture.Legacy("character", 2, 0, 1, Piece, 11);
-        fixture.Legacy("account", 1, 12, 1, Piece, 13);
-        fixture.Legacy("character", 3, 0, 1, Piece, 17);
-        fixture.Legacy("character", 1, 0, 2, 3037, 9);
-        await fixture.Book.InitializeAsync(default);
-        await fixture.Book.InitializeAsync(default);
-        Assert.Equal(31, Assert.Single(await fixture.Book.GetBalancesAsync(new(1), default)).Count);
-        Assert.Equal(17, Assert.Single(await fixture.Book.GetBalancesAsync(new(2), default)).Count);
-        Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM item_slots"));
-        Assert.Equal(9, fixture.Scalar("SELECT count FROM item_slots WHERE id=3037"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Legacy("character", 1, 0, 1, Piece, 7);
+            fixture.Legacy("character", 2, 0, 1, Piece, 11);
+            fixture.Legacy("account", 1, 12, 1, Piece, 13);
+            fixture.Legacy("character", 3, 0, 1, Piece, 17);
+            fixture.Legacy("character", 1, 0, 2, 3037, 9);
+            await fixture.Book.InitializeAsync(default);
+            await fixture.Book.InitializeAsync(default);
+            Assert.Equal(31, Assert.Single(await fixture.Book.GetBalancesAsync(new(1), default)).Count);
+            Assert.Equal(17, Assert.Single(await fixture.Book.GetBalancesAsync(new(2), default)).Count);
+            Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM item_slots"));
+            Assert.Equal(9, fixture.Scalar("SELECT count FROM item_slots WHERE id=3037"));
+        });
     }
 
     [Fact]
     public async Task Migration_saturates_and_a_failure_rolls_back_all_custody_and_balances()
     {
-        using var fixture = new Fixture();
-        fixture.Legacy("character", 1, 0, 1, Piece, int.MaxValue);
-        fixture.Legacy("character", 2, 0, 1, Piece, 5);
-        fixture.Sql("CREATE TRIGGER refuse_delete BEFORE DELETE ON item_slots WHEN OLD.owner_id=2 BEGIN SELECT RAISE(ABORT,'forced'); END;");
-        await Assert.ThrowsAsync<SqliteException>(async () => await fixture.Book.InitializeAsync(default));
-        Assert.Equal(2, fixture.Scalar("SELECT COUNT(*) FROM item_slots"));
-        Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM account_epic_pieces"));
-        fixture.Sql("DROP TRIGGER refuse_delete");
-        await fixture.Book.InitializeAsync(default);
-        Assert.Equal(int.MaxValue, Assert.Single(await fixture.Book.GetBalancesAsync(new(1), default)).Count);
-        Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM item_slots"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Legacy("character", 1, 0, 1, Piece, int.MaxValue);
+            fixture.Legacy("character", 2, 0, 1, Piece, 5);
+            fixture.Sql("CREATE TRIGGER refuse_delete BEFORE DELETE ON item_slots WHEN OLD.owner_id=2 BEGIN SELECT RAISE(ABORT,'forced'); END;");
+            await Assert.ThrowsAsync<SqliteException>(async () => await fixture.Book.InitializeAsync(default));
+            Assert.Equal(2, fixture.Scalar("SELECT COUNT(*) FROM item_slots"));
+            Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM account_epic_pieces"));
+            fixture.Sql("DROP TRIGGER refuse_delete");
+            await fixture.Book.InitializeAsync(default);
+            Assert.Equal(int.MaxValue, Assert.Single(await fixture.Book.GetBalancesAsync(new(1), default)).Count);
+            Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM item_slots"));
+        });
     }
 
     [Fact]
     public async Task Invalid_legacy_core_refuses_conversion_without_losing_custody()
     {
-        using var fixture = new Fixture();
-        fixture.Legacy("character", 1, 0, 1, Piece, 7);
-        fixture.Sql("UPDATE items SET item_core=zeroblob(82)");
-        await Assert.ThrowsAsync<InvalidDataException>(async () => await fixture.Book.InitializeAsync(default));
-        Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM item_slots"));
-        Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM account_epic_pieces"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Legacy("character", 1, 0, 1, Piece, 7);
+            fixture.Sql("UPDATE items SET item_core=zeroblob(82)");
+            await Assert.ThrowsAsync<InvalidDataException>(async () => await fixture.Book.InitializeAsync(default));
+            Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM item_slots"));
+            Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM account_epic_pieces"));
+        });
     }
 
     private sealed class Catalog : IEpicBookDefinitionSource

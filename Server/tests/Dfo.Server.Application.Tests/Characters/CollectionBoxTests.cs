@@ -24,11 +24,14 @@ public sealed class CollectionBoxTests
     [Fact]
     public async Task Current_state_can_read_a_consistent_snapshot_outside_a_command_without_persisting_defaults()
     {
-        await using var f = new Fixture(synthetic: true);
-        var before = f.Dump();
-        Assert.Equal(1, (await f.Boxes.ReadAsync(Character, default)).SelectedBoxId);
-        Assert.Equal(before, f.Dump());
-        Assert.Null(f.Scope.Current);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = new Fixture(synthetic: true);
+            var before = f.Dump();
+            Assert.Equal(1, (await f.Boxes.ReadAsync(Character, default)).SelectedBoxId);
+            Assert.Equal(before, f.Dump());
+            Assert.Null(f.Scope.Current);
+        });
     }
     [Fact]
     public async Task New_series_and_selection_use_the_same_persistence_without_cross_character_leakage()
@@ -176,7 +179,7 @@ public sealed class CollectionBoxTests
                     Services.GetRequiredService<IItemDomainStore>(),Services.GetRequiredService<IDomainTransactionAccessor>(),
                     Services.GetRequiredService<IItemPlacementRuleService>(),Services.GetRequiredService<IItemSlotRuleService>()));
         }
-        public async ValueTask Write(Func<ValueTask> action) { await using var tx = Scope.Begin(); await action(); await tx.CommitAsync(default); }
+        public async ValueTask Write(Func<ValueTask> action) { await TestGameplay.RunAsync(Services, async () => { await using var tx = Scope.Begin(); await action(); await tx.CommitAsync(default); }); }
         public async ValueTask<(BusinessSlot,ItemSnapshot)> Seed(int itemId, int count, int invalid = 0)
         {
             var p = (await Services.GetRequiredService<IItemPlacementRuleService>().PlacementForAsync(itemId, default))!;

@@ -15,6 +15,7 @@ using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Persistence.Quests;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Transactions;
 
@@ -64,24 +65,30 @@ public sealed class DungeonPickupTransactionTests
                 Durability: 0,
                 IsEquipment: false,
                 DungeonGroundItemSource.FromActor(actorSequence: 1));
-            _ = runs.PreparePartyEntry(
-                [new DungeonRunParticipant(Account, Character, Slot: 0, IsLeader: true)],
-                Layout,
-                difficulty: 0,
-                new DungeonCellSeed(
-                    Layout.StartCell,
-                    Layout.StartRoomMapId,
-                    FirstActorSequence: 1,
-                    Actors: [],
-                    GroundItems: [drop]),
-                DungeonRunId.New(),
-                DateTimeOffset.UtcNow);
+            TestGameplay.Run(provider, () =>
+            {
+                _ = runs.PreparePartyEntry(
+                    [new DungeonRunParticipant(Account, Character, Slot: 0, IsLeader: true)],
+                    Layout,
+                    difficulty: 0,
+                    new DungeonCellSeed(
+                        Layout.StartCell,
+                        Layout.StartRoomMapId,
+                        FirstActorSequence: 1,
+                        Actors: [],
+                        GroundItems: [drop]),
+                    DungeonRunId.New(),
+                    DateTimeOffset.UtcNow);
+            });
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
                 await provider.GetRequiredService<ICommandBus>().SendAsync(
                     new StaleQuestPickupCommand(drop.Number), CancellationToken.None));
 
-            Assert.NotNull(runs.Find(Character)!.CurrentCellState.FindGroundItem(drop.Number));
+            TestGameplay.Run(provider, () =>
+            {
+                Assert.NotNull(runs.Find(Character)!.CurrentCellState.FindGroundItem(drop.Number));
+            });
             Assert.Equal(13, await TriggerAsync(path));
             Assert.Equal(0, await ItemCountAsync(path));
         }

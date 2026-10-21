@@ -6,6 +6,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.RepairItem;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -116,16 +117,19 @@ public sealed class EquipmentRepairTests
     [Fact]
     public async Task Unsupported_variant_does_not_charge_or_repair()
     {
-        using var shop = Fixture();
-        await shop.SeedCore(12, Piece(0), InventoryContainerType.Equipment);
-        await shop.Services.GetRequiredService<RepairItemHandler>().HandleAsync(new(shop.Connection),
-            new RepairItemRequest(
-                GameMessageMetadata.Empty,
-                new GameSlot(InventoryContainerType.Equipment, 12), -1, 0, 0, 1),
-            default);
-        Assert.Equal(100000, shop.Gold);
-        Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 12));
-        Assert.NotEqual(0, Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages)).ErrorCode);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop = Fixture();
+            await shop.SeedCore(12, Piece(0), InventoryContainerType.Equipment);
+            await shop.Services.GetRequiredService<RepairItemHandler>().HandleAsync(new(shop.Connection),
+                new RepairItemRequest(
+                    GameMessageMetadata.Empty,
+                    new GameSlot(InventoryContainerType.Equipment, 12), -1, 0, 0, 1),
+                default);
+            Assert.Equal(100000, shop.Gold);
+            Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 12));
+            Assert.NotEqual(0, Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages)).ErrorCode);
+        });
     }
 
     [Fact]
@@ -167,13 +171,13 @@ public sealed class EquipmentRepairTests
     private static InventoryItemCoreState Piece(ushort durability) =>
         StackableItemCore.Create(1, 3000, 1234) with { Durability = durability };
 
-    private static ValueTask Repair(ShopFixture shop, InventoryContainerType container, short slot) =>
-        shop.Services.GetRequiredService<RepairItemHandler>().HandleAsync(new(shop.Connection),
+    private static async ValueTask Repair(ShopFixture shop, InventoryContainerType container, short slot) =>
+        await TestGameplay.RunAsync(shop.Services, async () => await shop.Services.GetRequiredService<RepairItemHandler>().HandleAsync(new(shop.Connection),
             new RepairItemRequest(
                 GameMessageMetadata.Empty,
                 slot == -1 ? null : new GameSlot(container, slot), -1, 0, 0, 0,
                 container),
-            default);
+            default));
 
     private sealed class PremiumRules : IPremiumServiceDefinitionSource
     {
@@ -189,9 +193,9 @@ public sealed class EquipmentRepairTests
         public int ReadAutoRepairDailyLimit() => 6;
     }
 
-    private static ValueTask AutoRepair(ShopFixture shop) =>
-        shop.Services.GetRequiredService<RepairItemHandler>().HandleAsync(new(shop.Connection),
-            new RepairItemRequest(GameMessageMetadata.Empty, null, -1, 1, 0, 0), default);
+    private static async ValueTask AutoRepair(ShopFixture shop) =>
+        await TestGameplay.RunAsync(shop.Services, async () => await shop.Services.GetRequiredService<RepairItemHandler>().HandleAsync(new(shop.Connection),
+            new RepairItemRequest(GameMessageMetadata.Empty, null, -1, 1, 0, 0), default));
 
     [Fact]
     public async Task Automatic_repair_is_free_repairs_worn_and_quick_slots_once_and_preserves_bag()

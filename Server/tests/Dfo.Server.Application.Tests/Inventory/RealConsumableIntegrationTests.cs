@@ -14,6 +14,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -27,145 +28,157 @@ public sealed class RealConsumableIntegrationTests
     [InlineData(false)] [InlineData(true)]
     public async Task Food_and_pet_stomach_share_SQL_commit_late_prepare_rollback_and_retry(bool fail)
     {
-        await using var f = Fixture(); await f.SeedAsync();
-        await SeedSource(f, 24, InventoryContainerType.Pet, 189);
-        SeedPet(f);
-        var runtime = f.Services.GetRequiredService<ICreatureRuntimeDomainService>(); runtime.Enter(f.Session);
-        async Task Feed(bool lateFailure)
+        await TestGameplay.RunAsync(async () =>
         {
-            await using var tx = f.Scope.Begin();
-            var source = (await f.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
-                .Get(f.Session.CharacterId, PetSource).Container.GetAsync(0, default))!;
-            var applied = await f.Services.GetRequiredService<IItemUseEffectDomainService>().UseAsync(f.Session, PetSource, source, default);
-            Assert.Equal(ItemUsability.Allowed, applied.Status);
-            Assert.Equal(80, Assert.Single(applied.Applied!.Changes<PetStomachChange>()).Change.After.Stomach);
-            Assert.Empty(runtime.DrainProjections());
-            var database = f.Services.GetRequiredService<SqliteDatabase>();
-            var participant = f.Scope.Current!.Enlist<SqliteDatabaseParticipant>(database.ConnectionString, () => throw new InvalidOperationException("Expected existing SQL participant."));
-            if (lateFailure) f.Scope.Current!.Enlist(new object(), () => new AfterFlush(async () => {
-                Assert.Equal(1, await PreparedScalar(participant, "SELECT count FROM item_slots WHERE owner_id=71 AND list_type=7 AND slot_index=189"));
-                Assert.Equal(80, await PreparedScalar(participant, "SELECT creature_field04 FROM items WHERE item_uid=101"));
+            await using var f = Fixture(); await f.SeedAsync();
+            await SeedSource(f, 24, InventoryContainerType.Pet, 189);
+            SeedPet(f);
+            var runtime = f.Services.GetRequiredService<ICreatureRuntimeDomainService>(); runtime.Enter(f.Session);
+            async Task Feed(bool lateFailure)
+            {
+                await using var tx = f.Scope.Begin();
+                var source = (await f.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
+                    .Get(f.Session.CharacterId, PetSource).Container.GetAsync(0, default))!;
+                var applied = await f.Services.GetRequiredService<IItemUseEffectDomainService>().UseAsync(f.Session, PetSource, source, default);
+                Assert.Equal(ItemUsability.Allowed, applied.Status);
+                Assert.Equal(80, Assert.Single(applied.Applied!.Changes<PetStomachChange>()).Change.After.Stomach);
                 Assert.Empty(runtime.DrainProjections());
-                throw new IOException("after actual food and creature facet flush");
-            }));
-            await tx.CommitAsync(default);
-        }
-        if (fail)
-        {
-            await Assert.ThrowsAsync<IOException>(() => Feed(true));
-            Assert.Equal(2, SourceCount(f, InventoryContainerType.Pet, 189));
-            Assert.Equal(50, f.Scalar("SELECT creature_field04 FROM items WHERE item_uid=101"));
-            Assert.Empty(runtime.DrainProjections());
-        }
-        await Feed(false);
-        Assert.Equal(1, SourceCount(f, InventoryContainerType.Pet, 189));
-        Assert.Equal(80, f.Scalar("SELECT creature_field04 FROM items WHERE item_uid=101"));
-        Assert.NotEmpty(runtime.DrainProjections()); AssertPetIdentityAndGrowth(f);
+                var database = f.Services.GetRequiredService<SqliteDatabase>();
+                var participant = f.Scope.Current!.Enlist<SqliteDatabaseParticipant>(database.ConnectionString, () => throw new InvalidOperationException("Expected existing SQL participant."));
+                if (lateFailure) f.Scope.Current!.Enlist(new object(), () => new AfterFlush(async () => {
+                    Assert.Equal(1, await PreparedScalar(participant, "SELECT count FROM item_slots WHERE owner_id=71 AND list_type=7 AND slot_index=189"));
+                    Assert.Equal(80, await PreparedScalar(participant, "SELECT creature_field04 FROM items WHERE item_uid=101"));
+                    Assert.Empty(runtime.DrainProjections());
+                    throw new IOException("after actual food and creature facet flush");
+                }));
+                await tx.CommitAsync(default);
+            }
+            if (fail)
+            {
+                await Assert.ThrowsAsync<IOException>(() => Feed(true));
+                Assert.Equal(2, SourceCount(f, InventoryContainerType.Pet, 189));
+                Assert.Equal(50, f.Scalar("SELECT creature_field04 FROM items WHERE item_uid=101"));
+                Assert.Empty(runtime.DrainProjections());
+            }
+            await Feed(false);
+            Assert.Equal(1, SourceCount(f, InventoryContainerType.Pet, 189));
+            Assert.Equal(80, f.Scalar("SELECT creature_field04 FROM items WHERE item_uid=101"));
+            Assert.NotEmpty(runtime.DrainProjections()); AssertPetIdentityAndGrowth(f);
+        });
     }
 
     [Theory]
     [InlineData(false)] [InlineData(true)]
     public async Task Rename_card_and_actual_pet_name_share_late_prepare_rollback_and_retry(bool fail)
     {
-        await using var f = Fixture(); await f.SeedAsync();
-        await SeedSource(f, 25, InventoryContainerType.Pet, 189); SeedPet(f);
-        f.Services.GetRequiredService<ICreatureRuntimeDomainService>().Enter(f.Session);
-        async Task Rename(bool lateFailure)
+        await TestGameplay.RunAsync(async () =>
         {
-            await using var tx = f.Scope.Begin();
-            var receipt = await f.Services.GetRequiredService<ICreatureNamingDomainService>()
-                .RenameAsync(f.Session, PetSource, [0x82, 0xA0], default);
-            Assert.NotNull(receipt); Assert.Equal(1, receipt.RemainingSourceCore!.ToCore().Value);
-            var database = f.Services.GetRequiredService<SqliteDatabase>();
-            var participant = f.Scope.Current!.Enlist<SqliteDatabaseParticipant>(database.ConnectionString, () => throw new InvalidOperationException("Expected existing SQL participant."));
-            if (lateFailure) f.Scope.Current!.Enlist(new object(), () => new AfterFlush(async () => {
-                Assert.Equal(1, await PreparedScalar(participant, "SELECT count FROM item_slots WHERE owner_id=71 AND list_type=7 AND slot_index=189"));
-                Assert.Equal(1, await PreparedScalar(participant, "SELECT COUNT(*) FROM items WHERE item_uid=101 AND creature_text=X'82A0'"));
-                throw new IOException("after actual rename and card facet flush");
-            }));
-            await tx.CommitAsync(default);
-        }
-        if (fail)
-        {
-            await Assert.ThrowsAsync<IOException>(() => Rename(true));
-            Assert.Equal(2, SourceCount(f, InventoryContainerType.Pet, 189));
-            Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM items WHERE item_uid=101 AND creature_text=X'80'"));
+            await using var f = Fixture(); await f.SeedAsync();
+            await SeedSource(f, 25, InventoryContainerType.Pet, 189); SeedPet(f);
+            f.Services.GetRequiredService<ICreatureRuntimeDomainService>().Enter(f.Session);
+            async Task Rename(bool lateFailure)
+            {
+                await using var tx = f.Scope.Begin();
+                var receipt = await f.Services.GetRequiredService<ICreatureNamingDomainService>()
+                    .RenameAsync(f.Session, PetSource, [0x82, 0xA0], default);
+                Assert.NotNull(receipt); Assert.Equal(1, receipt.RemainingSourceCore!.ToCore().Value);
+                var database = f.Services.GetRequiredService<SqliteDatabase>();
+                var participant = f.Scope.Current!.Enlist<SqliteDatabaseParticipant>(database.ConnectionString, () => throw new InvalidOperationException("Expected existing SQL participant."));
+                if (lateFailure) f.Scope.Current!.Enlist(new object(), () => new AfterFlush(async () => {
+                    Assert.Equal(1, await PreparedScalar(participant, "SELECT count FROM item_slots WHERE owner_id=71 AND list_type=7 AND slot_index=189"));
+                    Assert.Equal(1, await PreparedScalar(participant, "SELECT COUNT(*) FROM items WHERE item_uid=101 AND creature_text=X'82A0'"));
+                    throw new IOException("after actual rename and card facet flush");
+                }));
+                await tx.CommitAsync(default);
+            }
+            if (fail)
+            {
+                await Assert.ThrowsAsync<IOException>(() => Rename(true));
+                Assert.Equal(2, SourceCount(f, InventoryContainerType.Pet, 189));
+                Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM items WHERE item_uid=101 AND creature_text=X'80'"));
+                AssertPetIdentityAndGrowth(f);
+            }
+            await Rename(false);
+            Assert.Equal(1, SourceCount(f, InventoryContainerType.Pet, 189));
+            Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM items WHERE item_uid=101 AND creature_text=X'82A0'"));
+            Assert.Equal(50, f.Scalar("SELECT creature_field04 FROM items WHERE item_uid=101"));
             AssertPetIdentityAndGrowth(f);
-        }
-        await Rename(false);
-        Assert.Equal(1, SourceCount(f, InventoryContainerType.Pet, 189));
-        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM items WHERE item_uid=101 AND creature_text=X'82A0'"));
-        Assert.Equal(50, f.Scalar("SELECT creature_field04 FROM items WHERE item_uid=101"));
-        AssertPetIdentityAndGrowth(f);
+        });
     }
 
     [Theory]
     [InlineData(false)] [InlineData(true)]
     public async Task Coupon_real_source_and_all_quest_sections_rollback_and_retry_together(bool fail)
     {
-        await using var f = Fixture(); await f.SeedAsync();
-        await SeedSource(f, 10_006_007, InventoryContainerType.Main, 69);
-        f.Sql("INSERT INTO character_active_quests VALUES(71,0,101,9),(71,2,2003,0x05040303); INSERT INTO character_quest_notify_selections VALUES(71,2,101),(71,7,101),(71,9,2003);");
-        async Task Use()
+        await TestGameplay.RunAsync(async () =>
         {
-            await using var tx = f.Scope.Begin();
-            var result = await f.Services.GetRequiredService<IQuestClearCouponSettlementDomainService>()
-                .UseAsync(f.Session, MainSource, f.Services.GetRequiredService<TimeProvider>().GetUtcNow(), default);
-            Assert.Equal([101], result.CompletedQuestIds);
-            await tx.CommitAsync(default);
-        }
-        if (fail)
-        {
-            f.Sql("CREATE TRIGGER late_coupon BEFORE INSERT ON character_invisible_flags BEGIN SELECT RAISE(ABORT,'late coupon flags'); END;");
-            await Assert.ThrowsAsync<SqliteException>(Use);
-            Assert.Equal(2, SourceCount(f, InventoryContainerType.Main, 69));
-            Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
-            Assert.Equal(0x05040303, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71 AND quest_id=2003"));
-            Assert.Equal(3, f.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=71"));
-            Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71"));
-            f.Sql("DROP TRIGGER late_coupon;");
-        }
-        await Use();
-        Assert.Equal(1, SourceCount(f, InventoryContainerType.Main, 69));
-        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
-        Assert.Equal((0x05040303 & ~0x1FF) | 2, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71 AND quest_id=2003"));
-        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=71"));
-        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71 AND slot_index=101"));
-        Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
-        Assert.Equal((int)f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(85), f.Scalar("SELECT exp FROM characters WHERE character_id=71"));
+            await using var f = Fixture(); await f.SeedAsync();
+            await SeedSource(f, 10_006_007, InventoryContainerType.Main, 69);
+            f.Sql("INSERT INTO character_active_quests VALUES(71,0,101,9),(71,2,2003,0x05040303); INSERT INTO character_quest_notify_selections VALUES(71,2,101),(71,7,101),(71,9,2003);");
+            async Task Use()
+            {
+                await using var tx = f.Scope.Begin();
+                var result = await f.Services.GetRequiredService<IQuestClearCouponSettlementDomainService>()
+                    .UseAsync(f.Session, MainSource, f.Services.GetRequiredService<TimeProvider>().GetUtcNow(), default);
+                Assert.Equal([101], result.CompletedQuestIds);
+                await tx.CommitAsync(default);
+            }
+            if (fail)
+            {
+                f.Sql("CREATE TRIGGER late_coupon BEFORE INSERT ON character_invisible_flags BEGIN SELECT RAISE(ABORT,'late coupon flags'); END;");
+                await Assert.ThrowsAsync<SqliteException>(Use);
+                Assert.Equal(2, SourceCount(f, InventoryContainerType.Main, 69));
+                Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
+                Assert.Equal(0x05040303, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71 AND quest_id=2003"));
+                Assert.Equal(3, f.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=71"));
+                Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71"));
+                f.Sql("DROP TRIGGER late_coupon;");
+            }
+            await Use();
+            Assert.Equal(1, SourceCount(f, InventoryContainerType.Main, 69));
+            Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
+            Assert.Equal((0x05040303 & ~0x1FF) | 2, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71 AND quest_id=2003"));
+            Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=71"));
+            Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71 AND slot_index=101"));
+            Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+            Assert.Equal((int)f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(85), f.Scalar("SELECT exp FROM characters WHERE character_id=71"));
+        });
     }
 
     [Theory]
     [InlineData(false)] [InlineData(true)]
     public async Task Water_real_source_and_mixed_skill_batch_rollback_on_late_INSERT_and_retry(bool fail)
     {
-        await using var f = Fixture(); await f.SeedAsync();
-        await SeedSource(f, 3, InventoryContainerType.Main, 69);
-        Assert.Equal(CharacterSkillLearningRejection.None, (await f.LearnAsync([new(2, 0, 1)])).Rejection);
-        async Task Use()
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await f.LearnAsync([new(1, 1, 2), new(2, 0, 2), new(3, 0, 2)]);
-            Assert.Equal(CharacterSkillLearningRejection.None, result.Rejection);
-            Assert.Equal([0, 3, 2], result.Receipt!.Skills.Select(x => (int)x.Level));
-        }
-        if (fail)
-        {
-            f.Sql("CREATE TRIGGER late_water BEFORE INSERT ON character_skills WHEN NEW.character_id=71 AND NEW.skill_id=3 BEGIN SELECT RAISE(ABORT,'late mixed skill'); END;");
-            await Assert.ThrowsAsync<SqliteException>(Use);
-            Assert.Equal(2, SourceCount(f, InventoryContainerType.Main, 69));
-            Assert.Equal(2, f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=1"));
-            Assert.Equal(1, f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=2"));
-            Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=3"));
-            f.Sql("DROP TRIGGER late_water;");
-        }
-        await Use();
-        Assert.Equal(1, SourceCount(f, InventoryContainerType.Main, 69));
-        Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=1"));
-        Assert.Equal(3, f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=2"));
-        Assert.Equal(2, f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=3"));
-        Assert.Equal(1, f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=1"));
-        Assert.Equal(8, f.Scalar("SELECT level FROM character_skills WHERE character_id=72"));
-        Assert.Equal(3, f.Scalar("SELECT bonus_tp FROM characters WHERE character_id=71"));
+            await using var f = Fixture(); await f.SeedAsync();
+            await SeedSource(f, 3, InventoryContainerType.Main, 69);
+            Assert.Equal(CharacterSkillLearningRejection.None, (await f.LearnAsync([new(2, 0, 1)])).Rejection);
+            async Task Use()
+            {
+                var result = await f.LearnAsync([new(1, 1, 2), new(2, 0, 2), new(3, 0, 2)]);
+                Assert.Equal(CharacterSkillLearningRejection.None, result.Rejection);
+                Assert.Equal([0, 3, 2], result.Receipt!.Skills.Select(x => (int)x.Level));
+            }
+            if (fail)
+            {
+                f.Sql("CREATE TRIGGER late_water BEFORE INSERT ON character_skills WHEN NEW.character_id=71 AND NEW.skill_id=3 BEGIN SELECT RAISE(ABORT,'late mixed skill'); END;");
+                await Assert.ThrowsAsync<SqliteException>(Use);
+                Assert.Equal(2, SourceCount(f, InventoryContainerType.Main, 69));
+                Assert.Equal(2, f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=1"));
+                Assert.Equal(1, f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=2"));
+                Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=3"));
+                f.Sql("DROP TRIGGER late_water;");
+            }
+            await Use();
+            Assert.Equal(1, SourceCount(f, InventoryContainerType.Main, 69));
+            Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=1"));
+            Assert.Equal(3, f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=2"));
+            Assert.Equal(2, f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=3"));
+            Assert.Equal(1, f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=1"));
+            Assert.Equal(8, f.Scalar("SELECT level FROM character_skills WHERE character_id=72"));
+            Assert.Equal(3, f.Scalar("SELECT bonus_tp FROM characters WHERE character_id=71"));
+        });
     }
 
     [Fact]

@@ -10,6 +10,7 @@ using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
@@ -35,22 +36,28 @@ public sealed class CharacterRepositoryProductsTests
     [Fact]
     public async Task The_repository_hands_back_the_character_it_was_asked_for()
     {
-        var characters = Build();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var characters = Build();
 
-        Assert.Equal(
-            ItemUsability.Allowed,
-            await characters.Get(new CharacterId(60)).CanUseAsync(Potion, CancellationToken.None));
-        Assert.Equal(
-            ItemUsability.CharacterStateUnavailable,
-            await characters.Get(new CharacterId(61)).CanUseAsync(Potion, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.Allowed,
+                await characters.Get(new CharacterId(60)).CanUseAsync(Potion, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.CharacterStateUnavailable,
+                await characters.Get(new CharacterId(61)).CanUseAsync(Potion, CancellationToken.None));
+        });
     }
 
     [Fact]
     public void The_character_it_hands_back_says_which_character_it_is()
     {
-        var characters = Build();
+        TestGameplay.Run(() =>
+        {
+            var characters = Build();
 
-        Assert.Equal(new CharacterId(61), characters.Get(new CharacterId(61)).Id);
+            Assert.Equal(new CharacterId(61), characters.Get(new CharacterId(61)).Id);
+        });
     }
 
     /// <summary>
@@ -64,11 +71,14 @@ public sealed class CharacterRepositoryProductsTests
     [Fact]
     public async Task Two_asks_for_one_character_answer_the_same()
     {
-        var characters = Build();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var characters = Build();
 
-        Assert.Equal(
-            await characters.Get(new CharacterId(60)).CanUseAsync(Potion, CancellationToken.None),
-            await characters.Get(new CharacterId(60)).CanUseAsync(Potion, CancellationToken.None));
+            Assert.Equal(
+                await characters.Get(new CharacterId(60)).CanUseAsync(Potion, CancellationToken.None),
+                await characters.Get(new CharacterId(60)).CanUseAsync(Potion, CancellationToken.None));
+        });
     }
 
     /// <summary>

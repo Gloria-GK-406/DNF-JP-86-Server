@@ -23,24 +23,30 @@ public sealed class SelectionWorkflowCurrencyTests
     [Fact]
     public async Task A_phase_runs_for_a_selection_that_has_not_entered_the_world_yet()
     {
-        var sessions = TestSessions.Directory(out var state);
-        var session = sessions.Selected(state, Account, Character, "Game:workflow");
-        var housing = new RecordingHousing();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = TestSessions.Directory(out var state);
+            var session = sessions.Selected(state, Account, Character, "Game:workflow");
+            var housing = new RecordingHousing();
 
-        Assert.True(await Run(new InitializeHousingCommandHandler(housing, sessions), session));
-        Assert.Equal([Character], housing.Initialized);
+            Assert.True(await Run(new InitializeHousingCommandHandler(housing, sessions), session));
+            Assert.Equal([Character], housing.Initialized);
+        });
     }
 
     [Fact]
     public async Task A_phase_is_refused_once_the_connection_is_revoked()
     {
-        var sessions = TestSessions.Directory(out var state);
-        var session = sessions.Selected(state, Account, Character, "Game:workflow-revoked");
-        Assert.True(state.TryDisconnectConnection(session.ConnectionId));
-        var housing = new RecordingHousing();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = TestSessions.Directory(out var state);
+            var session = sessions.Selected(state, Account, Character, "Game:workflow-revoked");
+            Assert.True(state.TryDisconnectConnection(session.ConnectionId));
+            var housing = new RecordingHousing();
 
-        Assert.False(await Run(new InitializeHousingCommandHandler(housing, sessions), session));
-        Assert.Empty(housing.Initialized);
+            Assert.False(await Run(new InitializeHousingCommandHandler(housing, sessions), session));
+            Assert.Empty(housing.Initialized);
+        });
     }
 
     private static ValueTask<bool> Run(InitializeHousingCommandHandler handler, SelectedSessionIdentity session) =>

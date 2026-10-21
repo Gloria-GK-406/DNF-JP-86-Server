@@ -7,6 +7,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Sessions;
 
@@ -22,116 +23,140 @@ public sealed class SessionCurrencyChecksTests
     [Fact]
     public void A_selection_is_valid_but_not_yet_in_the_world()
     {
-        var identity = new Identity();
-        var session = identity.SessionOn(identity.Connect("Game:selected"));
-        identity.Sessions.Select(session);
+        TestGameplay.Run(() =>
+        {
+            var identity = new Identity();
+            var session = identity.SessionOn(identity.Connect("Game:selected"));
+            identity.Sessions.Select(session);
 
-        Assert.True(identity.Sessions.IsSelected(session));
-        AssertNotInWorld(identity.Sessions, session);
+            Assert.True(identity.Sessions.IsSelected(session));
+            AssertNotInWorld(identity.Sessions, session);
+        });
     }
 
     [Fact]
     public void Entering_the_world_answers_every_question_with_the_session()
     {
-        var identity = new Identity();
-        var session = identity.SessionOn(identity.Connect("Game:world"));
-        identity.Sessions.Select(session);
-        identity.Sessions.EnterWorld(session);
+        TestGameplay.Run(() =>
+        {
+            var identity = new Identity();
+            var session = identity.SessionOn(identity.Connect("Game:world"));
+            identity.Sessions.Select(session);
+            identity.Sessions.EnterWorld(session);
 
-        Assert.True(identity.Sessions.IsSelected(session));
-        AssertInWorld(identity.Sessions, session);
+            Assert.True(identity.Sessions.IsSelected(session));
+            AssertInWorld(identity.Sessions, session);
+        });
     }
 
     [Fact]
     public void A_fence_does_not_change_the_answers()
     {
-        var identity = new Identity();
-        var session = identity.SessionOn(identity.Connect("Game:fenced"));
-        identity.Sessions.Select(session);
-        identity.Sessions.EnterWorld(session);
+        TestGameplay.Run(() =>
+        {
+            var identity = new Identity();
+            var session = identity.SessionOn(identity.Connect("Game:fenced"));
+            identity.Sessions.Select(session);
+            identity.Sessions.EnterWorld(session);
 
-        Assert.True(identity.Sessions.Fence(session));
+            Assert.True(identity.Sessions.Fence(session));
 
-        Assert.True(identity.Sessions.IsSelected(session));
-        AssertInWorld(identity.Sessions, session);
+            Assert.True(identity.Sessions.IsSelected(session));
+            AssertInWorld(identity.Sessions, session);
+        });
     }
 
     [Fact]
     public void A_revoked_connection_leaves_a_record_that_is_neither_valid_nor_in_the_world()
     {
-        var identity = new Identity();
-        var online = identity.Connect("Game:revoked");
-        var session = identity.SessionOn(online);
-        identity.Sessions.Select(session);
-        identity.Sessions.EnterWorld(session);
+        TestGameplay.Run(() =>
+        {
+            var identity = new Identity();
+            var online = identity.Connect("Game:revoked");
+            var session = identity.SessionOn(online);
+            identity.Sessions.Select(session);
+            identity.Sessions.EnterWorld(session);
 
-        Assert.True(identity.Online.TryDisconnectConnection(online.Connection.ConnectionId));
+            Assert.True(identity.Online.TryDisconnectConnection(online.Connection.ConnectionId));
 
-        Assert.NotNull(identity.Sessions.StandingOf(session));
-        Assert.False(identity.Sessions.IsSelected(session));
-        AssertNotInWorld(identity.Sessions, session);
+            Assert.NotNull(identity.Sessions.StandingOf(session));
+            Assert.False(identity.Sessions.IsSelected(session));
+            AssertNotInWorld(identity.Sessions, session);
+        });
     }
 
     [Fact]
     public void A_connection_revoked_before_entering_the_world_is_no_longer_valid()
     {
-        var identity = new Identity();
-        var online = identity.Connect("Game:revoked-early");
-        var session = identity.SessionOn(online);
-        identity.Sessions.Select(session);
+        TestGameplay.Run(() =>
+        {
+            var identity = new Identity();
+            var online = identity.Connect("Game:revoked-early");
+            var session = identity.SessionOn(online);
+            identity.Sessions.Select(session);
 
-        Assert.True(identity.Online.TryDisconnectConnection(online.Connection.ConnectionId));
+            Assert.True(identity.Online.TryDisconnectConnection(online.Connection.ConnectionId));
 
-        Assert.NotNull(identity.Sessions.StandingOf(session));
-        Assert.False(identity.Sessions.IsSelected(session));
-        AssertNotInWorld(identity.Sessions, session);
+            Assert.NotNull(identity.Sessions.StandingOf(session));
+            Assert.False(identity.Sessions.IsSelected(session));
+            AssertNotInWorld(identity.Sessions, session);
+        });
     }
 
     [Fact]
     public void A_replaced_session_answers_nothing_and_its_replacement_answers_for_the_keys()
     {
-        var identity = new Identity();
-        var online = identity.Connect("Game:replaced");
-        var old = identity.SessionOn(online);
-        identity.Sessions.Select(old);
-        identity.Sessions.EnterWorld(old);
-        identity.Sessions.ReleaseExact(old);
-        var replacement = identity.SessionOn(identity.Online.GetRequired(online.OnlineUserId));
-        identity.Sessions.Select(replacement);
-        identity.Sessions.EnterWorld(replacement);
+        TestGameplay.Run(() =>
+        {
+            var identity = new Identity();
+            var online = identity.Connect("Game:replaced");
+            var old = identity.SessionOn(online);
+            identity.Sessions.Select(old);
+            identity.Sessions.EnterWorld(old);
+            identity.Sessions.ReleaseExact(old);
+            var replacement = identity.SessionOn(identity.Online.GetRequired(online.OnlineUserId));
+            identity.Sessions.Select(replacement);
+            identity.Sessions.EnterWorld(replacement);
 
-        Assert.NotEqual(old, replacement);
-        Assert.False(identity.Sessions.IsSelected(old));
-        Assert.False(identity.Sessions.IsInWorld(old));
-        AssertInWorld(identity.Sessions, replacement);
+            Assert.NotEqual(old, replacement);
+            Assert.False(identity.Sessions.IsSelected(old));
+            Assert.False(identity.Sessions.IsInWorld(old));
+            AssertInWorld(identity.Sessions, replacement);
+        });
     }
 
     [Fact]
     public void A_released_session_answers_nothing()
     {
-        var identity = new Identity();
-        var session = identity.SessionOn(identity.Connect("Game:released"));
-        identity.Sessions.Select(session);
-        identity.Sessions.EnterWorld(session);
+        TestGameplay.Run(() =>
+        {
+            var identity = new Identity();
+            var session = identity.SessionOn(identity.Connect("Game:released"));
+            identity.Sessions.Select(session);
+            identity.Sessions.EnterWorld(session);
 
-        Assert.True(identity.Sessions.ReleaseExact(session));
+            Assert.True(identity.Sessions.ReleaseExact(session));
 
-        Assert.False(identity.Sessions.IsSelected(session));
-        AssertNotInWorld(identity.Sessions, session);
+            Assert.False(identity.Sessions.IsSelected(session));
+            AssertNotInWorld(identity.Sessions, session);
+        });
     }
 
     [Fact]
     public void Another_generation_of_the_same_session_is_not_the_session()
     {
-        var identity = new Identity();
-        var session = identity.SessionOn(identity.Connect("Game:generation"));
-        identity.Sessions.Select(session);
-        identity.Sessions.EnterWorld(session);
+        TestGameplay.Run(() =>
+        {
+            var identity = new Identity();
+            var session = identity.SessionOn(identity.Connect("Game:generation"));
+            identity.Sessions.Select(session);
+            identity.Sessions.EnterWorld(session);
 
-        var other = session with { ConnectionGeneration = session.ConnectionGeneration + 1 };
+            var other = session with { ConnectionGeneration = session.ConnectionGeneration + 1 };
 
-        Assert.False(identity.Sessions.IsSelected(other));
-        Assert.False(identity.Sessions.IsInWorld(other));
+            Assert.False(identity.Sessions.IsSelected(other));
+            Assert.False(identity.Sessions.IsInWorld(other));
+        });
     }
 
     private static void AssertInWorld(ISelectedSessionDomainService sessions, SelectedSessionIdentity session)

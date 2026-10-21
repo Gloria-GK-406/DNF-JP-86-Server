@@ -13,6 +13,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Creatures;
 
@@ -25,16 +26,19 @@ public sealed class CreatureNamingDomainServiceTests
     [Fact]
     public async Task Valid_card_renames_equipped_uid_and_consumes_one_card()
     {
-        var store = new FakeCreatureStore();
-        var (service, scope) = Service(store);
-        await using var tx = scope.Begin();
-        var receipt = await service.RenameAsync(Session, CardSlot, [0x82, 0xA0], default);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var store = new FakeCreatureStore();
+            var (service, scope) = Service(store);
+            await using var tx = scope.Begin();
+            var receipt = await service.RenameAsync(Session, CardSlot, [0x82, 0xA0], default);
 
-        Assert.NotNull(receipt);
-        Assert.Equal(new byte[] { 0x82, 0xA0 }, receipt.Creature.NameBytes);
-        Assert.Equal(1, receipt.RemainingSourceCore!.Count);
-        Assert.Equal(1, store.Card.Item!.Count);
-        Assert.Equal(1, store.Saves);
+            Assert.NotNull(receipt);
+            Assert.Equal(new byte[] { 0x82, 0xA0 }, receipt.Creature.NameBytes);
+            Assert.Equal(1, receipt.RemainingSourceCore!.Count);
+            Assert.Equal(1, store.Card.Item!.Count);
+            Assert.Equal(1, store.Saves);
+        });
     }
 
     [Theory]
@@ -42,14 +46,17 @@ public sealed class CreatureNamingDomainServiceTests
     [InlineData(25, 499)]
     public async Task Wrong_card_or_equipped_uid_cannot_rename_for_free(int cardId, int wornUid)
     {
-        var store = new FakeCreatureStore(cardId, wornUid);
-        var (service, scope) = Service(store);
-        await using var tx = scope.Begin();
-        var receipt = await service.RenameAsync(Session, CardSlot, [0x41], default);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var store = new FakeCreatureStore(cardId, wornUid);
+            var (service, scope) = Service(store);
+            await using var tx = scope.Begin();
+            var receipt = await service.RenameAsync(Session, CardSlot, [0x41], default);
 
-        Assert.Null(receipt);
-        Assert.Equal(0, store.Saves);
-        Assert.Equal(2, store.Card.Item!.Count);
+            Assert.Null(receipt);
+            Assert.Equal(0, store.Saves);
+            Assert.Equal(2, store.Card.Item!.Count);
+        });
     }
 
     [Theory]
@@ -57,32 +64,38 @@ public sealed class CreatureNamingDomainServiceTests
     [InlineData(false)]
     public async Task Expired_card_or_worn_creature_cannot_rename_or_consume(bool expiredCard)
     {
-        var store = new FakeCreatureStore(cardExpiry: expiredCard ? 1 : 0,
-            wornExpiry: expiredCard ? 0 : 1);
-        var (service, scope) = Service(store);
-        await using var tx = scope.Begin();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var store = new FakeCreatureStore(cardExpiry: expiredCard ? 1 : 0,
+                wornExpiry: expiredCard ? 0 : 1);
+            var (service, scope) = Service(store);
+            await using var tx = scope.Begin();
 
-        var receipt = await service.RenameAsync(Session, CardSlot, [0x41], default);
+            var receipt = await service.RenameAsync(Session, CardSlot, [0x41], default);
 
-        Assert.Null(receipt);
-        Assert.Equal(0, store.Saves);
-        Assert.Equal(2, store.Card.Item!.Count);
+            Assert.Null(receipt);
+            Assert.Equal(0, store.Saves);
+            Assert.Equal(2, store.Card.Item!.Count);
+        });
     }
 
     [Fact]
     public async Task Permanent_locked_card_and_pet_can_rename_after_2038_without_changing_growth()
     {
-        var store=new FakeCreatureStore(cardExpiry:int.MaxValue,wornExpiry:int.MaxValue);
-        await store.Card.UpdateAsync(store.Card.Item!, x => x with { EquipmentLockId=3 },default);
-        var before=(await store.CurrentAsync(default))!;
-        var clock=new AdvanceableTimeProvider(new DateTimeOffset(2050,1,1,0,0,0,TimeSpan.Zero));
-        var (service,scope)=Service(store,clock);await using var tx=scope.Begin();
-        var receipt=await service.RenameAsync(Session,CardSlot,[],default);
-        Assert.NotNull(receipt);Assert.Empty(receipt.Creature.NameBytes);
-        Assert.Equal((before.ItemUid,before.ItemTemplateId,before.Stomach,before.Experience,before.Level,before.ModeFlag,before.Mode1Field0A,before.Mode1Field0B,before.TailFlag,before.ExactStomach),
-            (receipt.Creature.ItemUid,receipt.Creature.ItemTemplateId,receipt.Creature.Stomach,receipt.Creature.Experience,receipt.Creature.Level,
-                receipt.Creature.ModeFlag,receipt.Creature.Mode1Field0A,receipt.Creature.Mode1Field0B,receipt.Creature.TailFlag,receipt.Creature.ExactStomach));
-        Assert.Equal((byte)3,receipt.RemainingSourceCore!.EquipmentLockId);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var store=new FakeCreatureStore(cardExpiry:int.MaxValue,wornExpiry:int.MaxValue);
+            await store.Card.UpdateAsync(store.Card.Item!, x => x with { EquipmentLockId=3 },default);
+            var before=(await store.CurrentAsync(default))!;
+            var clock=new AdvanceableTimeProvider(new DateTimeOffset(2050,1,1,0,0,0,TimeSpan.Zero));
+            var (service,scope)=Service(store,clock);await using var tx=scope.Begin();
+            var receipt=await service.RenameAsync(Session,CardSlot,[],default);
+            Assert.NotNull(receipt);Assert.Empty(receipt.Creature.NameBytes);
+            Assert.Equal((before.ItemUid,before.ItemTemplateId,before.Stomach,before.Experience,before.Level,before.ModeFlag,before.Mode1Field0A,before.Mode1Field0B,before.TailFlag,before.ExactStomach),
+                (receipt.Creature.ItemUid,receipt.Creature.ItemTemplateId,receipt.Creature.Stomach,receipt.Creature.Experience,receipt.Creature.Level,
+                    receipt.Creature.ModeFlag,receipt.Creature.Mode1Field0A,receipt.Creature.Mode1Field0B,receipt.Creature.TailFlag,receipt.Creature.ExactStomach));
+            Assert.Equal((byte)3,receipt.RemainingSourceCore!.EquipmentLockId);
+        });
     }
 
     [Theory]
@@ -91,22 +104,28 @@ public sealed class CreatureNamingDomainServiceTests
     [InlineData(0x7F)]
     public async Task Invalid_name_cannot_consume_a_card(byte value)
     {
-        var store=new FakeCreatureStore();var (service,scope)=Service(store);await using var tx=scope.Begin();
-        Assert.Null(await service.RenameAsync(Session,CardSlot,[value],default));
-        Assert.Equal(2,store.Card.Item!.Count);Assert.Equal(0,store.Saves);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var store=new FakeCreatureStore();var (service,scope)=Service(store);await using var tx=scope.Begin();
+            Assert.Null(await service.RenameAsync(Session,CardSlot,[value],default));
+            Assert.Equal(2,store.Card.Item!.Count);Assert.Equal(0,store.Saves);
+        });
     }
 
     [Fact]
     public async Task Caller_array_mutation_after_plan_construction_cannot_change_the_committed_pet_name()
     {
-        var store=new FakeCreatureStore();var name=Enumerable.Repeat((byte)0x41,12).ToArray();
-        var plan=new SpecialConsumableEffectPlanRuleService(null!,null!,null!,null!,null!).Rename(new(CardSlot,store.Card.Item,
-            await store.GetContainer(BusinessInventorySpace.WornCreature).GetAsync(0,default),await store.CurrentAsync(default),
-            System.Collections.Immutable.ImmutableArray.CreateRange(name),DateTimeOffset.UtcNow));
-        name[0]=0;
-        var effect=Assert.Single(plan.OfType<RenamePetEffect>());
-        var result=await new RenamePetEffectHandler(new FakeCreatureDomain(store)).ApplyAsync(new(Session.AccountId,Session.CharacterId,DateTimeOffset.UtcNow,Session),effect,default);
-        Assert.Equal(Enumerable.Repeat((byte)0x41,12),Assert.IsType<PetNameChange>(result).Creature.NameBytes);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var store=new FakeCreatureStore();var name=Enumerable.Repeat((byte)0x41,12).ToArray();
+            var plan=new SpecialConsumableEffectPlanRuleService(null!,null!,null!,null!,null!).Rename(new(CardSlot,store.Card.Item,
+                await store.GetContainer(BusinessInventorySpace.WornCreature).GetAsync(0,default),await store.CurrentAsync(default),
+                System.Collections.Immutable.ImmutableArray.CreateRange(name),DateTimeOffset.UtcNow));
+            name[0]=0;
+            var effect=Assert.Single(plan.OfType<RenamePetEffect>());
+            var result=await new RenamePetEffectHandler(new FakeCreatureDomain(store)).ApplyAsync(new(Session.AccountId,Session.CharacterId,DateTimeOffset.UtcNow,Session),effect,default);
+            Assert.Equal(Enumerable.Repeat((byte)0x41,12),Assert.IsType<PetNameChange>(result).Creature.NameBytes);
+        });
     }
 
     private static (CreatureNamingDomainService Service, DomainTransactionScope Scope) Service(FakeCreatureStore store,TimeProvider? clock=null)

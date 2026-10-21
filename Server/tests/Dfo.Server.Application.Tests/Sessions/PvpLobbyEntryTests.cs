@@ -20,65 +20,80 @@ public sealed class PvpLobbyEntryTests
     [Fact]
     public async Task An_ordinary_channel_has_no_lobby_rather_than_an_empty_one()
     {
-        var result = await Service(new PvpLobbyDomainService())
-            .LoadAsync(Subject(StubChannelEntryPolicy.GeneralChannel), CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var result = await Service(new PvpLobbyDomainService())
+                .LoadAsync(Subject(StubChannelEntryPolicy.GeneralChannel), CancellationToken.None);
 
-        Assert.Null(result.PvpLobby);
+            Assert.Null(result.PvpLobby);
+        });
     }
 
     [Fact]
     public async Task The_duelling_channel_has_a_lobby_even_when_nobody_is_waiting()
     {
-        var result = await Service(new PvpLobbyDomainService())
-            .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var result = await Service(new PvpLobbyDomainService())
+                .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
 
-        Assert.NotNull(result.PvpLobby);
-        Assert.Empty(result.PvpLobby!.Participants);
-        Assert.Empty(result.PvpLobby.Rooms);
+            Assert.NotNull(result.PvpLobby);
+            Assert.Empty(result.PvpLobby!.Participants);
+            Assert.Empty(result.PvpLobby.Rooms);
+        });
     }
 
     [Fact]
     public async Task The_lobby_lists_the_other_characters_who_are_ready()
     {
-        var lobby = new PvpLobbyDomainService();
-        lobby.MarkReady(Ready(10));
-        lobby.MarkReady(Ready(11));
-        lobby.MarkReady(Ready(99));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var lobby = new PvpLobbyDomainService();
+            lobby.MarkReady(Ready(10));
+            lobby.MarkReady(Ready(11));
+            lobby.MarkReady(Ready(99));
 
-        var result = await Service(lobby)
-            .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
+            var result = await Service(lobby)
+                .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
 
-        Assert.Equal(
-            [10, 11],
-            result.PvpLobby!.Participants.Select(participant => participant.CharacterId.Value));
+            Assert.Equal(
+                [10, 11],
+                result.PvpLobby!.Participants.Select(participant => participant.CharacterId.Value));
+        });
     }
 
     [Fact]
     public async Task Characters_ready_on_another_listener_are_not_in_this_lobby()
     {
-        var lobby = new PvpLobbyDomainService();
-        lobby.MarkReady(Ready(10));
-        lobby.MarkReady(Ready(11, listenerPort: 10011));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var lobby = new PvpLobbyDomainService();
+            lobby.MarkReady(Ready(10));
+            lobby.MarkReady(Ready(11, listenerPort: 10011));
 
-        var result = await Service(lobby)
-            .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
+            var result = await Service(lobby)
+                .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
 
-        Assert.Equal(
-            [10],
-            result.PvpLobby!.Participants.Select(participant => participant.CharacterId.Value));
+            Assert.Equal(
+                [10],
+                result.PvpLobby!.Participants.Select(participant => participant.CharacterId.Value));
+        });
     }
 
     [Fact]
     public async Task The_lobby_lists_the_rooms_on_offer()
     {
-        var lobby = new PvpLobbyDomainService();
-        lobby.Offer(Room(2));
-        lobby.Offer(Room(1));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var lobby = new PvpLobbyDomainService();
+            lobby.Offer(Room(2));
+            lobby.Offer(Room(1));
 
-        var result = await Service(lobby)
-            .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
+            var result = await Service(lobby)
+                .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
 
-        Assert.Equal([1, 2], result.PvpLobby!.Rooms.Select(room => room.RoomId));
+            Assert.Equal([1, 2], result.PvpLobby!.Rooms.Select(room => room.RoomId));
+        });
     }
 
     /// <remarks>
@@ -88,51 +103,60 @@ public sealed class PvpLobbyEntryTests
     [Fact]
     public async Task A_room_still_being_announced_is_not_offered()
     {
-        var lobby = new PvpLobbyDomainService();
-        lobby.Offer(Room(1, published: false));
-        lobby.Offer(Room(2));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var lobby = new PvpLobbyDomainService();
+            lobby.Offer(Room(1, published: false));
+            lobby.Offer(Room(2));
 
-        var result = await Service(lobby)
-            .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
+            var result = await Service(lobby)
+                .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
 
-        Assert.Equal([2], result.PvpLobby!.Rooms.Select(room => room.RoomId));
+            Assert.Equal([2], result.PvpLobby!.Rooms.Select(room => room.RoomId));
+        });
     }
 
     [Fact]
     public async Task Rooms_on_another_listener_are_not_offered()
     {
-        var lobby = new PvpLobbyDomainService();
-        lobby.Offer(Room(1, listenerPort: 10011));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var lobby = new PvpLobbyDomainService();
+            lobby.Offer(Room(1, listenerPort: 10011));
 
-        var result = await Service(lobby)
-            .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
+            var result = await Service(lobby)
+                .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
 
-        Assert.Empty(result.PvpLobby!.Rooms);
+            Assert.Empty(result.PvpLobby!.Rooms);
+        });
     }
 
     [Fact]
     public async Task A_room_carries_what_the_lobby_shows_about_it()
     {
-        var lobby = new PvpLobbyDomainService();
-        lobby.Offer(new PvpRoom(
-            RoomId: 7,
-            OwnerCharacterId: new CharacterId(10),
-            ListenerPort: 10068,
-            NameType: 3,
-            MapIndex: 42,
-            HasPassword: true,
-            BattleMode: 2,
-            Published: true));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var lobby = new PvpLobbyDomainService();
+            lobby.Offer(new PvpRoom(
+                RoomId: 7,
+                OwnerCharacterId: new CharacterId(10),
+                ListenerPort: 10068,
+                NameType: 3,
+                MapIndex: 42,
+                HasPassword: true,
+                BattleMode: 2,
+                Published: true));
 
-        var result = await Service(lobby)
-            .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
+            var result = await Service(lobby)
+                .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
 
-        var room = Assert.Single(result.PvpLobby!.Rooms);
-        Assert.Equal(10, room.OwnerCharacterId.Value);
-        Assert.Equal(3, room.NameType);
-        Assert.Equal(42, room.MapIndex);
-        Assert.True(room.HasPassword);
-        Assert.Equal(2, room.BattleMode);
+            var room = Assert.Single(result.PvpLobby!.Rooms);
+            Assert.Equal(10, room.OwnerCharacterId.Value);
+            Assert.Equal(3, room.NameType);
+            Assert.Equal(42, room.MapIndex);
+            Assert.True(room.HasPassword);
+            Assert.Equal(2, room.BattleMode);
+        });
     }
 
     [Fact]

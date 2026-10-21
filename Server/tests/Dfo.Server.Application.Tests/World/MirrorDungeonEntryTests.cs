@@ -10,6 +10,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 using Dfo.Server.Infrastructure.Content;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -79,21 +80,24 @@ public sealed class MirrorDungeonEntryTests
     [InlineData("late-session")]
     public async Task Refused_mirror_entry_does_not_create_a_run_or_reserve_daily_entry(string boundary)
     {
-        await using var fixture = new LearningFixture();
-        await fixture.SeedAsync();
-        var (service, visits, quota) = Create(fixture, boundary);
-        var context = Context();
-        if (boundary == "pair") context = context with { MirrorQuestId = 13801 };
-        if (boundary == "intent") context = context with { Facts = context.Facts with { Intent = DungeonEntryIntent.Directed(32) } };
-        await using var transaction = fixture.Scope.Begin();
-        var result = await service.EnterAsync(context, default);
-        Assert.Equal(boundary == "quota" ? DungeonEntryFailure.DailyEntryLimitReached
-            : DungeonEntryFailure.MissingPrerequisite, result.Failure);
-        Assert.Null(result.Entry);
-        Assert.Equal(0, visits.Calls);
-        Assert.Equal(0, quota.Reservations);
-        await transaction.CommitAsync(default);
-        Assert.Equal(0, quota.Reservations);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = new LearningFixture();
+            await fixture.SeedAsync();
+            var (service, visits, quota) = Create(fixture, boundary);
+            var context = Context();
+            if (boundary == "pair") context = context with { MirrorQuestId = 13801 };
+            if (boundary == "intent") context = context with { Facts = context.Facts with { Intent = DungeonEntryIntent.Directed(32) } };
+            await using var transaction = fixture.Scope.Begin();
+            var result = await service.EnterAsync(context, default);
+            Assert.Equal(boundary == "quota" ? DungeonEntryFailure.DailyEntryLimitReached
+                : DungeonEntryFailure.MissingPrerequisite, result.Failure);
+            Assert.Null(result.Entry);
+            Assert.Equal(0, visits.Calls);
+            Assert.Equal(0, quota.Reservations);
+            await transaction.CommitAsync(default);
+            Assert.Equal(0, quota.Reservations);
+        });
     }
 
     [Theory]
@@ -101,33 +105,39 @@ public sealed class MirrorDungeonEntryTests
     [InlineData(true)]
     public async Task Client_pair_and_frozen_mirror_identity_reach_shared_entry_and_only_success_spends_quota(bool visitRefused)
     {
-        await using var fixture = new LearningFixture();
-        await fixture.SeedAsync();
-        var (service, visits, quota) = Create(fixture);
-        visits.Refused = visitRefused;
-        await using var transaction = fixture.Scope.Begin();
-        var result = await service.EnterAsync(Context(), default);
-        Assert.Equal(1, visits.Calls);
-        Assert.Equal(32, visits.Layout!.DungeonId);
-        Assert.Equal(new MirrorDungeonRunIdentity(8000, 31, 14299), visits.Layout.Mirror);
-        Assert.Equal((byte)85, visits.Layout.FixedMonsterLevel);
-        Assert.Equal((byte)85, visits.Layout.BasisLevel);
-        Assert.Equal(DungeonDifficulty.Tier3, visits.Facts!.Difficulty);
-        Assert.Equal(DungeonEntryIntentKind.Interactive, visits.Facts.Intent.Kind);
-        Assert.Equal(visitRefused, result.Entry is null);
-        await transaction.CommitAsync(default);
-        Assert.Equal(visitRefused ? 0 : 1, quota.Reservations);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = new LearningFixture();
+            await fixture.SeedAsync();
+            var (service, visits, quota) = Create(fixture);
+            visits.Refused = visitRefused;
+            await using var transaction = fixture.Scope.Begin();
+            var result = await service.EnterAsync(Context(), default);
+            Assert.Equal(1, visits.Calls);
+            Assert.Equal(32, visits.Layout!.DungeonId);
+            Assert.Equal(new MirrorDungeonRunIdentity(8000, 31, 14299), visits.Layout.Mirror);
+            Assert.Equal((byte)85, visits.Layout.FixedMonsterLevel);
+            Assert.Equal((byte)85, visits.Layout.BasisLevel);
+            Assert.Equal(DungeonDifficulty.Tier3, visits.Facts!.Difficulty);
+            Assert.Equal(DungeonEntryIntentKind.Interactive, visits.Facts.Intent.Kind);
+            Assert.Equal(visitRefused, result.Entry is null);
+            await transaction.CommitAsync(default);
+            Assert.Equal(visitRefused ? 0 : 1, quota.Reservations);
+        });
     }
 
     [Fact]
     public async Task Quota_write_inconsistency_is_an_exception_so_entry_transaction_cannot_commit_partial_payment()
     {
-        await using var fixture = new LearningFixture();
-        await fixture.SeedAsync();
-        var (service, _, quota) = Create(fixture);
-        quota.FailReservation = true;
-        await using var transaction = fixture.Scope.Begin();
-        await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(async () => await service.EnterAsync(Context(), default));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = new LearningFixture();
+            await fixture.SeedAsync();
+            var (service, _, quota) = Create(fixture);
+            quota.FailReservation = true;
+            await using var transaction = fixture.Scope.Begin();
+            await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(async () => await service.EnterAsync(Context(), default));
+        });
     }
 
     [Theory]
@@ -152,23 +162,26 @@ public sealed class MirrorDungeonEntryTests
     [Fact]
     public async Task Entry_freezes_party_level_before_visit_and_leaves_content_layout_unchanged()
     {
-        await using var fixture = new LearningFixture();
-        await fixture.SeedAsync();
-        var scale = fixture.Services.GetRequiredService<IExperienceRuleService>().CharacterScale();
-        fixture.Sql($"UPDATE characters SET level=55,exp={scale.ExperienceForLevel(55)} WHERE character_id=71; UPDATE characters SET level=86,exp={scale.ExperienceForLevel(86)} WHERE character_id=72;");
-        var (service, visits, _) = Create(fixture);
-        await using (var transaction = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.NotNull((await service.EnterAsync(Context(), default)).Entry);
-            await transaction.CommitAsync(default);
-        }
-        fixture.Sql($"UPDATE characters SET level=85,exp={scale.ExperienceForLevel(85)} WHERE character_id=72;");
-        Assert.Equal((byte)85, (await fixture.Services.GetRequiredService<ICharacterDomainService>()
-            .Get(new(72)).ProgressAsync(default))!.Level);
-        Assert.Equal((byte)86, visits.Layout!.FixedMonsterLevel);
-        Assert.Equal((byte)86, visits.Layout.BasisLevel);
-        Assert.Null(Layout.FixedMonsterLevel);
-        Assert.Equal((byte)1, Layout.BasisLevel);
+            await using var fixture = new LearningFixture();
+            await fixture.SeedAsync();
+            var scale = fixture.Services.GetRequiredService<IExperienceRuleService>().CharacterScale();
+            fixture.Sql($"UPDATE characters SET level=55,exp={scale.ExperienceForLevel(55)} WHERE character_id=71; UPDATE characters SET level=86,exp={scale.ExperienceForLevel(86)} WHERE character_id=72;");
+            var (service, visits, _) = Create(fixture);
+            await using (var transaction = fixture.Scope.Begin())
+            {
+                Assert.NotNull((await service.EnterAsync(Context(), default)).Entry);
+                await transaction.CommitAsync(default);
+            }
+            fixture.Sql($"UPDATE characters SET level=85,exp={scale.ExperienceForLevel(85)} WHERE character_id=72;");
+            Assert.Equal((byte)85, (await fixture.Services.GetRequiredService<ICharacterDomainService>()
+                .Get(new(72)).ProgressAsync(default))!.Level);
+            Assert.Equal((byte)86, visits.Layout!.FixedMonsterLevel);
+            Assert.Equal((byte)86, visits.Layout.BasisLevel);
+            Assert.Null(Layout.FixedMonsterLevel);
+            Assert.Equal((byte)1, Layout.BasisLevel);
+        });
     }
 
     private static readonly DungeonRunParticipant[] Participants = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)];

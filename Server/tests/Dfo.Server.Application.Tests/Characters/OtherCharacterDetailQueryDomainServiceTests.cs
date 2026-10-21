@@ -9,6 +9,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
@@ -32,100 +33,118 @@ public sealed class OtherCharacterDetailQueryDomainServiceTests
     [Fact]
     public async Task CurrentSameListenerTargetReturnsAnExactTwoGenerationPlan()
     {
-        var fixture = new DetailFixture();
-        var requester = fixture.Admit(101, 1, "requester", 10011, publishRuntime: false);
-        var target = fixture.Admit(202, 2, "target", 10011, publishRuntime: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new DetailFixture();
+            var requester = fixture.Admit(101, 1, "requester", 10011, publishRuntime: false);
+            var target = fixture.Admit(202, 2, "target", 10011, publishRuntime: true);
 
-        var result = await fixture.Details.QueryAsync(requester, target.WireUserId, CancellationToken.None);
+            var result = await fixture.Details.QueryAsync(requester, target.WireUserId, CancellationToken.None);
 
-        Assert.True(result.Succeeded);
-        Assert.Equal(CharacterDetailQueryFailure.None, result.Failure);
-        var plan = Assert.IsType<OtherCharacterDetailProjection>(result.Projection);
-        Assert.Equal(requester, plan.Requester);
-        Assert.Equal(target, plan.Target);
-        Assert.Equal(target.CharacterId, plan.TargetState.Character.Identity.CharacterId);
+            Assert.True(result.Succeeded);
+            Assert.Equal(CharacterDetailQueryFailure.None, result.Failure);
+            var plan = Assert.IsType<OtherCharacterDetailProjection>(result.Projection);
+            Assert.Equal(requester, plan.Requester);
+            Assert.Equal(target, plan.Target);
+            Assert.Equal(target.CharacterId, plan.TargetState.Character.Identity.CharacterId);
+        });
     }
 
     [Fact]
     public async Task ATargetStillEnteringTheWorldIsNotCurrent()
     {
-        var fixture = new DetailFixture();
-        var requester = fixture.Admit(101, 1, "requester", 10011, publishRuntime: false);
-        var entering = fixture.AdmitSelected(202, 2, "entering", 10011);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new DetailFixture();
+            var requester = fixture.Admit(101, 1, "requester", 10011, publishRuntime: false);
+            var entering = fixture.AdmitSelected(202, 2, "entering", 10011);
 
-        var result = await fixture.Details.QueryAsync(requester, entering.WireUserId, CancellationToken.None);
+            var result = await fixture.Details.QueryAsync(requester, entering.WireUserId, CancellationToken.None);
 
-        Assert.Equal(CharacterDetailQueryFailure.TargetNotCurrent, result.Failure);
-        Assert.Null(result.Projection);
+            Assert.Equal(CharacterDetailQueryFailure.TargetNotCurrent, result.Failure);
+            Assert.Null(result.Projection);
+        });
     }
 
     [Fact]
     public async Task ATargetWhoseConnectionWasRevokedIsNotCurrent()
     {
-        var fixture = new DetailFixture();
-        var requester = fixture.Admit(101, 1, "requester", 10011, publishRuntime: false);
-        var target = fixture.Admit(202, 2, "target", 10011, publishRuntime: true);
-        fixture.Revoke(target);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new DetailFixture();
+            var requester = fixture.Admit(101, 1, "requester", 10011, publishRuntime: false);
+            var target = fixture.Admit(202, 2, "target", 10011, publishRuntime: true);
+            fixture.Revoke(target);
 
-        var result = await fixture.Details.QueryAsync(requester, target.WireUserId, CancellationToken.None);
+            var result = await fixture.Details.QueryAsync(requester, target.WireUserId, CancellationToken.None);
 
-        Assert.Equal(CharacterDetailQueryFailure.TargetNotCurrent, result.Failure);
-        Assert.Null(result.Projection);
+            Assert.Equal(CharacterDetailQueryFailure.TargetNotCurrent, result.Failure);
+            Assert.Null(result.Projection);
+        });
     }
 
     [Fact]
     public async Task CrossListenerAndMissingRuntimeTargetsAreRejectedWithoutAProjection()
     {
-        var fixture = new DetailFixture();
-        var requester = fixture.Admit(101, 1, "requester", 10011, publishRuntime: false);
-        var crossListener = fixture.Admit(202, 2, "cross", 10010, publishRuntime: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new DetailFixture();
+            var requester = fixture.Admit(101, 1, "requester", 10011, publishRuntime: false);
+            var crossListener = fixture.Admit(202, 2, "cross", 10010, publishRuntime: true);
 
-        var cross = await fixture.Details.QueryAsync(requester, crossListener.WireUserId, CancellationToken.None);
+            var cross = await fixture.Details.QueryAsync(requester, crossListener.WireUserId, CancellationToken.None);
 
-        Assert.False(cross.Succeeded);
-        Assert.Equal(CharacterDetailQueryFailure.DifferentListener, cross.Failure);
-        Assert.Null(cross.Projection);
+            Assert.False(cross.Succeeded);
+            Assert.Equal(CharacterDetailQueryFailure.DifferentListener, cross.Failure);
+            Assert.Null(cross.Projection);
 
-        var noRuntime = fixture.Admit(303, 3, "no-runtime", 10011, publishRuntime: false);
-        var missing = await fixture.Details.QueryAsync(requester, noRuntime.WireUserId, CancellationToken.None);
+            var noRuntime = fixture.Admit(303, 3, "no-runtime", 10011, publishRuntime: false);
+            var missing = await fixture.Details.QueryAsync(requester, noRuntime.WireUserId, CancellationToken.None);
 
-        Assert.False(missing.Succeeded);
-        Assert.Equal(CharacterDetailQueryFailure.TargetRuntimeUnavailable, missing.Failure);
-        Assert.Null(missing.Projection);
+            Assert.False(missing.Succeeded);
+            Assert.Equal(CharacterDetailQueryFailure.TargetRuntimeUnavailable, missing.Failure);
+            Assert.Null(missing.Projection);
+        });
     }
 
     [Fact]
     public async Task ReplacedRequesterOrTargetCannotReadAnOldGeneration()
     {
-        var fixture = new DetailFixture();
-        var requester = fixture.Admit(101, 1, "requester-old", 10011, publishRuntime: false);
-        var target = fixture.Admit(202, 2, "target-old", 10011, publishRuntime: true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new DetailFixture();
+            var requester = fixture.Admit(101, 1, "requester-old", 10011, publishRuntime: false);
+            var target = fixture.Admit(202, 2, "target-old", 10011, publishRuntime: true);
 
-        _ = fixture.Admit(101, 1, "requester-new", 10011, publishRuntime: false);
-        var staleRequester = await fixture.Details.QueryAsync(requester, target.WireUserId, CancellationToken.None);
-        Assert.Equal(CharacterDetailQueryFailure.RequesterNotCurrent, staleRequester.Failure);
+            _ = fixture.Admit(101, 1, "requester-new", 10011, publishRuntime: false);
+            var staleRequester = await fixture.Details.QueryAsync(requester, target.WireUserId, CancellationToken.None);
+            Assert.Equal(CharacterDetailQueryFailure.RequesterNotCurrent, staleRequester.Failure);
 
-        var currentRequester = fixture.Sessions.Find(new AccountId(101))!;
-        _ = fixture.Admit(202, 2, "target-new", 10011, publishRuntime: true);
-        var staleTargetId = await fixture.Details.QueryAsync(currentRequester, target.WireUserId, CancellationToken.None);
+            var currentRequester = fixture.Sessions.Find(new AccountId(101))!;
+            _ = fixture.Admit(202, 2, "target-new", 10011, publishRuntime: true);
+            var staleTargetId = await fixture.Details.QueryAsync(currentRequester, target.WireUserId, CancellationToken.None);
 
-        Assert.True(staleTargetId.Succeeded);
-        Assert.Equal(2, staleTargetId.Projection!.Target.ConnectionGeneration);
-        Assert.NotEqual(target, staleTargetId.Projection.Target);
+            Assert.True(staleTargetId.Succeeded);
+            Assert.Equal(2, staleTargetId.Projection!.Target.ConnectionGeneration);
+            Assert.NotEqual(target, staleTargetId.Projection.Target);
+        });
     }
 
     [Fact]
     public async Task UnknownAndSentinelTargetsAreRejected()
     {
-        var fixture = new DetailFixture();
-        var requester = fixture.Admit(101, 1, "requester", 10011, publishRuntime: false);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new DetailFixture();
+            var requester = fixture.Admit(101, 1, "requester", 10011, publishRuntime: false);
 
-        Assert.Equal(
-            CharacterDetailQueryFailure.InvalidTarget,
-            (await fixture.Details.QueryAsync(requester, ushort.MaxValue, CancellationToken.None)).Failure);
-        Assert.Equal(
-            CharacterDetailQueryFailure.TargetNotCurrent,
-            (await fixture.Details.QueryAsync(requester, 42, CancellationToken.None)).Failure);
+            Assert.Equal(
+                CharacterDetailQueryFailure.InvalidTarget,
+                (await fixture.Details.QueryAsync(requester, ushort.MaxValue, CancellationToken.None)).Failure);
+            Assert.Equal(
+                CharacterDetailQueryFailure.TargetNotCurrent,
+                (await fixture.Details.QueryAsync(requester, 42, CancellationToken.None)).Failure);
+        });
     }
 
     private sealed class DetailFixture

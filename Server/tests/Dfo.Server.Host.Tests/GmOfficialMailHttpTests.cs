@@ -19,6 +19,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Protocol.Game.Mailbox;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Host.Tests;
 
@@ -285,7 +286,7 @@ public sealed partial class GmOfficialMailHttpTests
                 Assert.Equal(core, attachment.ItemCore);
                 Assert.Equal(BinaryPrimitives.ReadInt32LittleEndian(core.AsSpan(5, 4)), attachment.InstanceValue);
                 var single = opened.Inbox with { Messages = [projected with { Attachments = [attachment], Gold = 0, GoldAttachments = [] }] };
-                var messages = await completion.ComposeAsync(recipient, new MailboxCompleted(session, new MailboxOpenResponse(0), new(Inbox: single)), default);
+                var messages = await TestGameplay.RunAsync(host.Services, async () => await completion.ComposeAsync(recipient, new MailboxCompleted(session, new MailboxOpenResponse(0), new(Inbox: single)), default));
                 var body = EncodeBody(host, messages, 0x0061);
                 using var reader = new BinaryReader(new MemoryStream(body));
                 Assert.Equal(1, reader.ReadByte()); reader.ReadByte(); reader.ReadUInt32(); Assert.Equal(0, reader.ReadInt32());
@@ -306,7 +307,7 @@ public sealed partial class GmOfficialMailHttpTests
                 Assert.Equal(BinaryPrimitives.ReadInt32LittleEndian(core.AsSpan(5, 4)), update.Core.Value);
                 Assert.Equal(BinaryPrimitives.ReadUInt16LittleEndian(core.AsSpan(10, 2)), update.Core.Durability);
                 Assert.Equal(core[12], update.Core.SealFlag);
-                var messages = await completion.ComposeAsync(recipient, new MailboxCompleted(session, new MailboxClaimResponse(0), claimed), default);
+                var messages = await TestGameplay.RunAsync(host.Services, async () => await completion.ComposeAsync(recipient, new MailboxCompleted(session, new MailboxClaimResponse(0), claimed), default));
                 var body = EncodeBody(host, messages, 0x000E);
                 Assert.Equal(1, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(1, 2)));
                 Assert.Equal(27312, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(5, 4)));
@@ -354,11 +355,17 @@ public sealed partial class GmOfficialMailHttpTests
             var coordinate = LegacyInventoryStorageCoordinates.ToStorage(new BusinessSlot(placement.Destination.Space, index));
             await host.ExecuteAsync($"INSERT INTO items(item_core) SELECT item_core FROM items WHERE item_uid={uid}; INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count) VALUES('character',1,{(int)coordinate.List},{coordinate.Index},'world',last_insert_rowid(),last_insert_rowid(),1);");
         }
-        Assert.Equal(MailFailure.NoCapacity, (await Assert.ThrowsAsync<MailException>(() => mailbox.ClaimAsync(character, gear.Id).AsTask())).Reason);
-        Assert.Equal(MailFailure.GoldLimit, (await Assert.ThrowsAsync<MailException>(() => mailbox.ClaimAsync(character, gold.Id).AsTask())).Reason);
+        await TestGameplay.RunAsync(host.Services, async () =>
+        {
+            Assert.Equal(MailFailure.NoCapacity, (await Assert.ThrowsAsync<MailException>(() => mailbox.ClaimAsync(character, gear.Id).AsTask())).Reason);
+            Assert.Equal(MailFailure.GoldLimit, (await Assert.ThrowsAsync<MailException>(() => mailbox.ClaimAsync(character, gold.Id).AsTask())).Reason);
+        });
         Assert.All(Assert.Single(await mailbox.InboxAsync(character)).Attachments, x => Assert.False(x.Claimed));
         await host.ExecuteAsync("DELETE FROM item_slots WHERE owner_scope='character' AND owner_id=1; UPDATE character_stats SET carried_gold=0 WHERE character_id=1;");
-        await mailbox.ClaimAsync(character, gear.Id); await mailbox.ClaimAsync(character, gold.Id);
+        await TestGameplay.RunAsync(host.Services, async () =>
+        {
+            await mailbox.ClaimAsync(character, gear.Id); await mailbox.ClaimAsync(character, gold.Id);
+        });
         Assert.Equal(new[] { uid.ToString(System.Globalization.CultureInfo.InvariantCulture) }, await host.ReadAsync("SELECT id FROM item_slots WHERE owner_scope='character' AND owner_id=1 AND kind='world';"));
         Assert.Equal(new[] { "100" }, await host.ReadAsync("SELECT carried_gold FROM character_stats WHERE character_id=1;"));
     }

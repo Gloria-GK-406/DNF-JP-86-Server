@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -34,15 +35,18 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task The_reversed_request_moves_the_potion_onto_the_bar()
     {
-        var inventory = new FakeInventory { [65] = (8474, 1) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 1) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, ObservedRequest, CancellationToken.None);
+            await handler.HandleAsync(Context, ObservedRequest, CancellationToken.None);
 
-        Assert.Equal([(3, 8474, 1)], inventory.Rows());
-        var response = Assert.IsType<MoveItemSpaceResponse>(Assert.Single(sender.Sent));
-        Assert.Null(response.ErrorCode);
-        Assert.Equal(1, response.MoveValue);
+            Assert.Equal([(3, 8474, 1)], inventory.Rows());
+            var response = Assert.IsType<MoveItemSpaceResponse>(Assert.Single(sender.Sent));
+            Assert.Null(response.ErrorCode);
+            Assert.Equal(1, response.MoveValue);
+        });
     }
 
     /// <remarks>
@@ -52,48 +56,60 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task The_acknowledgement_echoes_the_ends_the_client_sent()
     {
-        var (handler, sender) = Build(new FakeInventory { [65] = (8474, 1) });
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, sender) = Build(new FakeInventory { [65] = (8474, 1) });
 
-        await handler.HandleAsync(Context, ObservedRequest, CancellationToken.None);
+            await handler.HandleAsync(Context, ObservedRequest, CancellationToken.None);
 
-        var response = (MoveItemSpaceResponse)sender.Sent.Single();
-        Assert.Equal(3, response.SourceSlot.Index);
-        Assert.Equal(65, response.DestinationSlot.Index);
+            var response = (MoveItemSpaceResponse)sender.Sent.Single();
+            Assert.Equal(3, response.SourceSlot.Index);
+            Assert.Equal(65, response.DestinationSlot.Index);
+        });
     }
 
     [Fact]
     public async Task An_ordinary_drag_moves_the_named_source()
     {
-        var inventory = new FakeInventory { [65] = (8474, 1) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 1) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(65, 4, 8474, 0), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 4, 8474, 0), CancellationToken.None);
 
-        Assert.Equal([(4, 8474, 1)], inventory.Rows());
-        Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(4, 8474, 1)], inventory.Rows());
+            Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     [Fact]
     public async Task Two_items_trade_places_when_the_target_is_taken()
     {
-        var inventory = new FakeInventory { [65] = (8474, 1), [66] = (9000, 1) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 1), [66] = (9000, 1) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(65, 66, 8474, 9000), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 66, 8474, 9000), CancellationToken.None);
 
-        Assert.Equal([(65, 9000, 1), (66, 8474, 1)], inventory.Rows());
-        Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(65, 9000, 1), (66, 8474, 1)], inventory.Rows());
+            Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     [Fact]
     public async Task Two_piles_of_one_item_merge()
     {
-        var inventory = new FakeInventory { [65] = (8474, 3), [66] = (8474, 4) };
-        var (handler, _) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 3), [66] = (8474, 4) };
+            var (handler, _) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(65, 66, 8474, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 66, 8474, 8474), CancellationToken.None);
 
-        Assert.Equal([(66, 8474, 7)], inventory.Rows());
+            Assert.Equal([(66, 8474, 7)], inventory.Rows());
+        });
     }
 
     /// <remarks>
@@ -103,15 +119,18 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task A_slot_outside_the_items_band_is_refused()
     {
-        var inventory = new FakeInventory { [65] = (8474, 1) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 1) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(65, 130, 8474, 0), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 130, 8474, 0), CancellationToken.None);
 
-        Assert.Equal([(65, 8474, 1)], inventory.Rows());
-        Assert.Equal(
-            MoveItemSpaceResponse.NotMovable,
-            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(65, 8474, 1)], inventory.Rows());
+            Assert.Equal(
+                MoveItemSpaceResponse.NotMovable,
+                ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -126,21 +145,24 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task An_unserved_guild_medal_list_is_refused()
     {
-        var inventory = new FakeInventory { [65] = (8474, 1) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 1) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(
-            Context,
-            ObservedRequest with
-            {
-                DestinationSlot = new GameSlot(InventoryContainerType.GuildMedal, 0),
-            },
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Context,
+                ObservedRequest with
+                {
+                    DestinationSlot = new GameSlot(InventoryContainerType.GuildMedal, 0),
+                },
+                CancellationToken.None);
 
-        Assert.Equal([(65, 8474, 1)], inventory.Rows());
-        Assert.Equal(
-            MoveItemSpaceResponse.NotMovable,
-            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(65, 8474, 1)], inventory.Rows());
+            Assert.Equal(
+                MoveItemSpaceResponse.NotMovable,
+                ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -151,13 +173,16 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task Naming_one_slot_twice_succeeds_without_moving_anything()
     {
-        var inventory = new FakeInventory { [65] = (8474, 1) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 1) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(65, 65, 8474, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 65, 8474, 8474), CancellationToken.None);
 
-        Assert.Equal([(65, 8474, 1)], inventory.Rows());
-        Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(65, 8474, 1)], inventory.Rows());
+            Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -169,13 +194,16 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task Two_empty_slots_are_refused_without_a_message()
     {
-        var (handler, sender) = Build(new FakeInventory());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, sender) = Build(new FakeInventory());
 
-        await handler.HandleAsync(Context, Request(65, 66, 0, 0), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 66, 0, 0), CancellationToken.None);
 
-        Assert.Equal(
-            MoveItemSpaceResponse.Silent,
-            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal(
+                MoveItemSpaceResponse.Silent,
+                ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -186,15 +214,18 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task A_merge_past_the_stack_limit_says_the_pile_is_full()
     {
-        var inventory = new FakeInventory { [65] = (8474, 60), [66] = (8474, 60) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 60), [66] = (8474, 60) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(65, 66, 8474, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 66, 8474, 8474), CancellationToken.None);
 
-        Assert.Equal([(65, 8474, 60), (66, 8474, 60)], inventory.Rows());
-        Assert.Equal(
-            MoveItemSpaceResponse.StackLimitReached,
-            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(65, 8474, 60), (66, 8474, 60)], inventory.Rows());
+            Assert.Equal(
+                MoveItemSpaceResponse.StackLimitReached,
+                ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -206,24 +237,27 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task A_swap_whose_other_end_cannot_land_says_the_item_will_not_move()
     {
-        var inventory = new FakeInventory
+        await TestGameplay.RunAsync(async () =>
         {
-            [65] = (TwoBandPlacements.Consumable, 1),
-            [100] = (TwoBandPlacements.Equipment, 1),
-        };
-        var (handler, sender) = Build(inventory, new TwoBandPlacements());
+            var inventory = new FakeInventory
+            {
+                [65] = (TwoBandPlacements.Consumable, 1),
+                [100] = (TwoBandPlacements.Equipment, 1),
+            };
+            var (handler, sender) = Build(inventory, new TwoBandPlacements());
 
-        await handler.HandleAsync(
-            Context,
-            Request(65, 100, TwoBandPlacements.Consumable, TwoBandPlacements.Equipment),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Context,
+                Request(65, 100, TwoBandPlacements.Consumable, TwoBandPlacements.Equipment),
+                CancellationToken.None);
 
-        Assert.Equal(
-            [(65, TwoBandPlacements.Consumable, 1), (100, TwoBandPlacements.Equipment, 1)],
-            inventory.Rows());
-        Assert.Equal(
-            MoveItemSpaceResponse.NotMovable,
-            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal(
+                [(65, TwoBandPlacements.Consumable, 1), (100, TwoBandPlacements.Equipment, 1)],
+                inventory.Rows());
+            Assert.Equal(
+                MoveItemSpaceResponse.NotMovable,
+                ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <summary>
@@ -237,16 +271,19 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task Dragging_part_of_a_pile_onto_an_empty_slot_leaves_the_rest_behind()
     {
-        var inventory = new FakeInventory { [65] = (8474, 5) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 5) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(
-            Context, Request(65, 66, 0, 0) with { MoveCount = 2 }, CancellationToken.None);
+            await handler.HandleAsync(
+                Context, Request(65, 66, 0, 0) with { MoveCount = 2 }, CancellationToken.None);
 
-        Assert.Equal([(65, 8474, 3), (66, 8474, 2)], inventory.Rows());
-        var response = (MoveItemSpaceResponse)sender.Sent.Single();
-        Assert.Null(response.ErrorCode);
-        Assert.Equal(2, response.MoveValue);
+            Assert.Equal([(65, 8474, 3), (66, 8474, 2)], inventory.Rows());
+            var response = (MoveItemSpaceResponse)sender.Sent.Single();
+            Assert.Null(response.ErrorCode);
+            Assert.Equal(2, response.MoveValue);
+        });
     }
 
     /// <summary>
@@ -264,16 +301,19 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task Dragging_part_of_a_pile_onto_another_item_will_not_swap()
     {
-        var inventory = new FakeInventory { [65] = (8474, 5), [66] = (9000, 1) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 5), [66] = (9000, 1) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(
-            Context, Request(65, 66, 0, 0) with { MoveCount = 2 }, CancellationToken.None);
+            await handler.HandleAsync(
+                Context, Request(65, 66, 0, 0) with { MoveCount = 2 }, CancellationToken.None);
 
-        Assert.Equal([(65, 8474, 5), (66, 9000, 1)], inventory.Rows());
-        Assert.Equal(
-            MoveItemSpaceResponse.NotMovable,
-            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(65, 8474, 5), (66, 9000, 1)], inventory.Rows());
+            Assert.Equal(
+                MoveItemSpaceResponse.NotMovable,
+                ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -283,13 +323,16 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task A_merge_within_the_stack_limit_still_happens()
     {
-        var inventory = new FakeInventory { [65] = (8474, 10), [66] = (8474, 10) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 10), [66] = (8474, 10) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(65, 66, 8474, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 66, 8474, 8474), CancellationToken.None);
 
-        Assert.Equal([(66, 8474, 20)], inventory.Rows());
-        Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(66, 8474, 20)], inventory.Rows());
+            Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <summary>

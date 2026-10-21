@@ -23,6 +23,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Runtime;
 using Dfo.Server.Protocol.Game.UseStackable;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Sessions;
 
@@ -42,14 +43,17 @@ public sealed class EffectOperationReplayTests
         var at = f.Clock.GetUtcNow();
         var relation = new MarriageProposal(Guid.NewGuid(), f.Session, peer, MarriageProposalState.Pending, 1, at, at.AddMinutes(1));
         var ceremony = new MarriageCeremony(Guid.NewGuid(), relation.Id, f.Session, peer, 0, 0, MarriageCeremonyState.Pending, 1, at, at.AddMinutes(1));
-        await using (var tx = ((Dfo.Server.Application.Transactions.DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var relations = f.Services.GetRequiredService<IMarriageProposalDomainStore>(); await relations.CreateAsync(relation, default);
-            Assert.True(await relations.TransitionAsync(relation, MarriageProposalState.Engaged, 0, default));
-            await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().CreateAsync(ceremony, default);
-            var weddings = f.Services.GetRequiredService<IMarriageWeddingDomainStore>(); await weddings.CreateAsync(new(ceremony, MarriageWeddingPhase.Preparing, 0), default);
-            Assert.True(await weddings.FinishAsync(ceremony.Id, MarriageWeddingPhase.Completed, at, default)); await tx.CommitAsync(default);
-        }
+            await using (var tx = ((Dfo.Server.Application.Transactions.DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+            {
+                var relations = f.Services.GetRequiredService<IMarriageProposalDomainStore>(); await relations.CreateAsync(relation, default);
+                Assert.True(await relations.TransitionAsync(relation, MarriageProposalState.Engaged, 0, default));
+                await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().CreateAsync(ceremony, default);
+                var weddings = f.Services.GetRequiredService<IMarriageWeddingDomainStore>(); await weddings.CreateAsync(new(ceremony, MarriageWeddingPhase.Preparing, 0), default);
+                Assert.True(await weddings.FinishAsync(ceremony.Id, MarriageWeddingPhase.Completed, at, default)); await tx.CommitAsync(default);
+            }
+        });
         f.Sql($"INSERT INTO marriage_relations(id,stage,revision,stage_since,ceremony_id) VALUES('{relation.Id:N}',4,1,{at.ToUnixTimeMilliseconds()},'{ceremony.Id:N}')");
         await f.Seed(69, 1000, 3);
         var counter = new GameInboundFrameCounter();
@@ -318,23 +322,27 @@ public sealed class EffectOperationReplayTests
     {
         using var f = Fixture(); await f.Seed(69, 1000, 3); var stream = new Stream();
         await Dispatch(f, stream.Request(1));
-        var safety = f.Services.GetRequiredService<SelectedSessionSafety>();
-        await safety.BlockAsync(safety.Capture(f.Session), new TransactionOutcomeUncertainException(
-            TransactionUncertaintyReason.RollbackFailure, "test physical fence", new IOException("unknown")), "probe");
-        var registry = f.Services.GetRequiredService<OnlineStateRegistry>();
-        Assert.True(registry.TryDisconnect(f.OnlineUser, f.Connection.ConnectionId, registry.GetRequiredUser(f.OnlineUser).Generation));
-        var replacement = f.Connection with { };
-        var user = registry.RegisterConnection(replacement); registry.Authenticate(user.OnlineUserId, new(1));
-        var other = SelectedSessionIdentity.Create(new(1), new(2), replacement.ConnectionId,
-            registry.GetRequiredUser(user.OnlineUserId).Generation, 10011);
-        registry.Select(other);
-        registry.EnterWorld(other);
-        var session = SelectedSessionIdentity.Create(new(1), new(1), replacement.ConnectionId,
-            registry.GetRequiredUser(user.OnlineUserId).Generation, 10011);
-        registry.Select(session);
-        registry.EnterWorld(session);
-        f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(session.CharacterId, session.TownAreaLease(),
-            new TownAreaKey(1, 0, 0), new CharacterPositionState(0, 0, 0, 0, 0), true));
+        var (safety, replacement) = await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            var safety = f.Services.GetRequiredService<SelectedSessionSafety>();
+            await safety.BlockAsync(safety.Capture(f.Session), new TransactionOutcomeUncertainException(
+                TransactionUncertaintyReason.RollbackFailure, "test physical fence", new IOException("unknown")), "probe");
+            var registry = f.Services.GetRequiredService<OnlineStateRegistry>();
+            Assert.True(registry.TryDisconnect(f.OnlineUser, f.Connection.ConnectionId, registry.GetRequiredUser(f.OnlineUser).Generation));
+            var replacement = f.Connection with { };
+            var user = registry.RegisterConnection(replacement); registry.Authenticate(user.OnlineUserId, new(1));
+            var other = SelectedSessionIdentity.Create(new(1), new(2), replacement.ConnectionId,
+                registry.GetRequiredUser(user.OnlineUserId).Generation, 10011);
+            registry.Select(other);
+            registry.EnterWorld(other);
+            var session = SelectedSessionIdentity.Create(new(1), new(1), replacement.ConnectionId,
+                registry.GetRequiredUser(user.OnlineUserId).Generation, 10011);
+            registry.Select(session);
+            registry.EnterWorld(session);
+            f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(session.CharacterId, session.TownAreaLease(),
+                new TownAreaKey(1, 0, 0), new CharacterPositionState(0, 0, 0, 0, 0), true));
+            return (safety, replacement);
+        });
         Assert.True(safety.IsBlocked(f.Connection)); Assert.False(safety.IsBlocked(replacement));
         await f.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(replacement), new Stream().Request(1), default);
         Assert.Equal(1, f.Count(1000)); Assert.Empty(f.Sender.Batches);

@@ -14,6 +14,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Infrastructure.Content;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -79,8 +80,11 @@ public sealed class EquipmentSocketTests
         f.Services.GetRequiredService<ICommandBus>().SendAsync(new ItemSocketCommand(f.OnlineUser, f.Session, input)).AsTask();
     private static async Task<ItemSnapshot> Read(ShopFixture f, InventoryContainerType list, int slot)
     {
-        await using var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
-        return (await f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Services.GetRequiredService<IDomainTransactionAccessor>().Current!).GetAsync(ContainerId.ForCharacter(f.Session.CharacterId, list), slot, default))!.Snapshot;
+        return await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            await using var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+            return (await f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Services.GetRequiredService<IDomainTransactionAccessor>().Current!).GetAsync(ContainerId.ForCharacter(f.Session.CharacterId, list), slot, default))!.Snapshot;
+        });
     }
     private static ValueTask SendOpen(ShopFixture f, ushort sequence = 7) => EffectRequestTransport.Send(f,
         new ItemSocketRequest(new(1, 0x037A, 0, sequence), InventoryContainerType.Main, 9, 3000, 65, []));
@@ -161,15 +165,18 @@ public sealed class EquipmentSocketTests
     [Fact]
     public async Task Database_commit_failure_does_not_leave_open_sockets_or_spent_drill()
     {
-        using var f = Fixture(); await Seed(f); var before = f.StoredCore(9);
-        f.Sql("CREATE TABLE socket_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
-        await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.NotNull((await f.Services.GetRequiredService<IItemSocketDomainService>().ApplyAsync(f.Session, Open(), default)).Receipt);
-            await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (cmd, ct) => { cmd.CommandText = "INSERT INTO socket_commit_probe VALUES(99999)"; await cmd.ExecuteNonQueryAsync(ct); }, default);
-            await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
-        }
-        Assert.Equal(before, f.StoredCore(9)); Assert.Equal(2, f.Count(4000));
+            using var f = Fixture(); await Seed(f); var before = f.StoredCore(9);
+            f.Sql("CREATE TABLE socket_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
+            await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+            {
+                Assert.NotNull((await f.Services.GetRequiredService<IItemSocketDomainService>().ApplyAsync(f.Session, Open(), default)).Receipt);
+                await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (cmd, ct) => { cmd.CommandText = "INSERT INTO socket_commit_probe VALUES(99999)"; await cmd.ExecuteNonQueryAsync(ct); }, default);
+                await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
+            }
+            Assert.Equal(before, f.StoredCore(9)); Assert.Equal(2, f.Count(4000));
+        });
     }
     [Fact]
     public async Task Open_ack_is_five_bytes_before_absolute_material_and_target_updates_and_replay_does_not_decrement_twice()
@@ -207,12 +214,15 @@ public sealed class EquipmentSocketTests
         await f.SeedCore(0, StackableItemCore.Create(8, 3001, 98765), list); await f.Seed(65, 4001, 2);
         await f.Seed(289, 5003, 1, 9); await f.Seed(290, 5000, 2, 9);
         var slot = new BusinessSlot(worn ? BusinessInventorySpace.WornAvatar : BusinessInventorySpace.Avatar, 0);
-        await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var bound = f.Services.GetRequiredService<IBusinessInventorySlotDomainService>().Find(f.Session.CharacterId, slot)!;
-            await bound.Container.UpdateAsync((await bound.Container.GetAsync(0, default))!, x => x with { AppearanceItemId = 123, AvatarDetail = x.AvatarDetail! with { Color1 = 12, Color2 = 34 } }, default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+            {
+                var bound = f.Services.GetRequiredService<IBusinessInventorySlotDomainService>().Find(f.Session.CharacterId, slot)!;
+                await bound.Container.UpdateAsync((await bound.Container.GetAsync(0, default))!, x => x with { AppearanceItemId = 123, AvatarDetail = x.AvatarDetail! with { Color1 = 12, Color2 = 34 } }, default);
+                await tx.CommitAsync(default);
+            }
+        });
         var before = await Read(f, list, 0);
         Assert.NotNull((await Apply(f, Open(true) with { Target = slot })).Receipt);
         Assert.NotNull((await Apply(f, new(true, false, slot, 3001, null, [Green(0, 5003), Green(1, 5000, 1), Green(2, 5000, 1)]))).Receipt);

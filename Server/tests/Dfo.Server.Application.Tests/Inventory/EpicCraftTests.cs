@@ -11,6 +11,7 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -45,20 +46,23 @@ public sealed class EpicCraftTests
     [Fact]
     public async Task SQLite_commit_failure_rolls_back_pieces_materials_and_new_equipment()
     {
-        using var f = Fixture(); await Seed(f);
-        f.Sql("CREATE TABLE craft_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
-        await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await f.Services.GetRequiredService<IEpicCraftDomainService>().CraftAsync(f.Session, 3000, f.Clock.GetUtcNow(), default);
-            await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (command, ct) =>
+            using var f = Fixture(); await Seed(f);
+            f.Sql("CREATE TABLE craft_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
+            await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
             {
-                command.CommandText = "INSERT INTO craft_commit_probe VALUES(99999)";
-                await command.ExecuteNonQueryAsync(ct);
-            }, default);
-            await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
-        }
-        Assert.Equal(1000, Balance(f)); Assert.Equal(25, f.Count(3244)); Assert.Equal(100, f.SharedCount(3262));
-        Assert.Equal(0, f.Count(3000)); Assert.Empty(f.Sender.Messages);
+                await f.Services.GetRequiredService<IEpicCraftDomainService>().CraftAsync(f.Session, 3000, f.Clock.GetUtcNow(), default);
+                await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (command, ct) =>
+                {
+                    command.CommandText = "INSERT INTO craft_commit_probe VALUES(99999)";
+                    await command.ExecuteNonQueryAsync(ct);
+                }, default);
+                await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
+            }
+            Assert.Equal(1000, Balance(f)); Assert.Equal(25, f.Count(3244)); Assert.Equal(100, f.SharedCount(3262));
+            Assert.Equal(0, f.Count(3000)); Assert.Empty(f.Sender.Messages);
+        });
     }
     [Fact]
     public async Task Stale_selection_cannot_consume_the_account_balance()

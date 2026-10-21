@@ -7,6 +7,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Tournament;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -55,8 +56,11 @@ public sealed class TournamentRewardSweepTests
         var candidate = tournament.State;
         if (replaceCanonicalRun)
         {
-            Assert.True(shop.Services.GetRequiredService<IDungeonRunDomainService>().End(shop.Session.CharacterId, run));
-            Assert.NotEqual(run, Enter(shop));
+            TestGameplay.Run(shop.Services, () =>
+            {
+                Assert.True(shop.Services.GetRequiredService<IDungeonRunDomainService>().End(shop.Session.CharacterId, run));
+                Assert.NotEqual(run, Enter(shop));
+            });
         }
         else tournament.State = tournament.State with { RunId = DungeonRunId.New() };
 

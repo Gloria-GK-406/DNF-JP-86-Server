@@ -19,6 +19,7 @@ using Dfo.Server.Persistence.Database;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Protocol.Game.QuestAcceptance;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Quests;
 
@@ -119,110 +120,122 @@ public sealed class MirrorAradQuestTests
     [Fact]
     public async Task Acceptance_replay_is_refused_and_completion_remains_run_local_idempotent()
     {
-        await using var fixture = new LearningFixture();
-        await fixture.SeedAsync();
-        var runtime = new Runtime { Current = Run() };
-        var (service, store, _, effects, settlement) = Create(fixture, runtime);
-        await Write(fixture, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
-        var first = await store.ReadAsync(new(71), runtime.Current.RunId, default);
-        var handler = ActivatorUtilities.CreateInstance<AcceptQuestCommandHandler>(fixture.Services, new DefinitionDomain(), service);
-        await Write(fixture, async () =>
+        await TestGameplay.RunAsync(async () =>
         {
-            var replay = await handler.HandleAsync(new(Guid.NewGuid(), typeof(AcceptQuestCommand), typeof(AcceptQuestCommandHandler),
-                CommandExecutionKind.Transactional), new(new(1), new(71), 14299), default);
-            Assert.False(replay.Accepted);
-            Assert.Equal(QuestAcceptRefusal.AlreadyActive, replay.Refusal);
-            Assert.Null(replay.QuestProgress);
-            Assert.Empty(replay.Items);
+            await using var fixture = new LearningFixture();
+            await fixture.SeedAsync();
+            var runtime = new Runtime { Current = Run() };
+            var (service, store, _, effects, settlement) = Create(fixture, runtime);
+            await Write(fixture, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
+            var first = await store.ReadAsync(new(71), runtime.Current.RunId, default);
+            var handler = ActivatorUtilities.CreateInstance<AcceptQuestCommandHandler>(fixture.Services, new DefinitionDomain(), service);
+            await Write(fixture, async () =>
+            {
+                var replay = await handler.HandleAsync(new(Guid.NewGuid(), typeof(AcceptQuestCommand), typeof(AcceptQuestCommandHandler),
+                    CommandExecutionKind.Transactional), new(new(1), new(71), 14299), default);
+                Assert.False(replay.Accepted);
+                Assert.Equal(QuestAcceptRefusal.AlreadyActive, replay.Refusal);
+                Assert.Null(replay.QuestProgress);
+                Assert.Empty(replay.Items);
+            });
+            Assert.Equal(System.Text.Json.JsonSerializer.Serialize(first),
+                System.Text.Json.JsonSerializer.Serialize(await store.ReadAsync(new(71), runtime.Current.RunId, default)));
+            await Write(fixture, async () => Assert.False((await Finish(settlement)).Finished));
+            runtime.Current = runtime.Current with { ClearOpen = true, ClearedAt = Now.AddSeconds(10) };
+            // No QuestDungeonCleared report is needed before finishing.
+            await Write(fixture, async () => Assert.True((await Finish(settlement)).Finished));
+            await Write(fixture, async () => Assert.True((await Finish(settlement)).Finished));
+            await Write(fixture, async () => Assert.False(await service.GiveUpAsync(new(1), new(71), 14299, default)));
+            await Write(fixture, async () => Assert.False((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
+            Assert.Equal(1, effects.Calls);
+            Assert.Equal(1, (await store.ReadQuotaAsync(new(71), new(2026, 10, 10), default)).Clears);
+            Assert.Empty(await fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>().LogOf(new(1), new(71)).CarriedAsync(default));
+            Assert.Empty((await service.SnapshotAsync(new(1), new(71), default)).Quests);
         });
-        Assert.Equal(System.Text.Json.JsonSerializer.Serialize(first),
-            System.Text.Json.JsonSerializer.Serialize(await store.ReadAsync(new(71), runtime.Current.RunId, default)));
-        await Write(fixture, async () => Assert.False((await Finish(settlement)).Finished));
-        runtime.Current = runtime.Current with { ClearOpen = true, ClearedAt = Now.AddSeconds(10) };
-        // No QuestDungeonCleared report is needed before finishing.
-        await Write(fixture, async () => Assert.True((await Finish(settlement)).Finished));
-        await Write(fixture, async () => Assert.True((await Finish(settlement)).Finished));
-        await Write(fixture, async () => Assert.False(await service.GiveUpAsync(new(1), new(71), 14299, default)));
-        await Write(fixture, async () => Assert.False((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
-        Assert.Equal(1, effects.Calls);
-        Assert.Equal(1, (await store.ReadQuotaAsync(new(71), new(2026, 10, 10), default)).Clears);
-        Assert.Empty(await fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>().LogOf(new(1), new(71)).CarriedAsync(default));
-        Assert.Empty((await service.SnapshotAsync(new(1), new(71), default)).Quests);
     }
 
     [Fact]
     public async Task Prepare_is_readonly_for_rewards_run_claim_quota_and_events()
     {
-        await using var fixture = new LearningFixture();
-        await fixture.SeedAsync();
-        var runtime = new Runtime { Current = Run(true) };
-        var (service, store, _, effects, settlement) = Create(fixture, runtime);
-        await Write(fixture, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
-        var before = System.Text.Json.JsonSerializer.Serialize(await store.ReadAsync(new(71), runtime.Current.RunId, default));
-        var events = fixture.Scalar("SELECT COUNT(*) FROM domain_events");
-        await Write(fixture, async () =>
+        await TestGameplay.RunAsync(async () =>
         {
-            var plan = await service.PrepareCompletionAsync(new(1), new(71), 14299, ushort.MaxValue, 1, Now, null, default);
-            Assert.True(plan.Prepared);
-            Assert.False(plan.AlreadyClaimed);
-            Assert.NotEmpty(plan.Reward!.Items);
-            Assert.Empty(plan.Reward.ConsumedItems ?? []);
-            Assert.NotNull(plan.QuotaChange);
-            Assert.True(plan.Completed!.RewardClaimed);
-            Assert.False(plan.Expected!.RewardClaimed);
+            await using var fixture = new LearningFixture();
+            await fixture.SeedAsync();
+            var runtime = new Runtime { Current = Run(true) };
+            var (service, store, _, effects, settlement) = Create(fixture, runtime);
+            await Write(fixture, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
+            var before = System.Text.Json.JsonSerializer.Serialize(await store.ReadAsync(new(71), runtime.Current.RunId, default));
+            var events = fixture.Scalar("SELECT COUNT(*) FROM domain_events");
+            await Write(fixture, async () =>
+            {
+                var plan = await service.PrepareCompletionAsync(new(1), new(71), 14299, ushort.MaxValue, 1, Now, null, default);
+                Assert.True(plan.Prepared);
+                Assert.False(plan.AlreadyClaimed);
+                Assert.NotEmpty(plan.Reward!.Items);
+                Assert.Empty(plan.Reward.ConsumedItems ?? []);
+                Assert.NotNull(plan.QuotaChange);
+                Assert.True(plan.Completed!.RewardClaimed);
+                Assert.False(plan.Expected!.RewardClaimed);
+            });
+            Assert.Equal(0, effects.Calls);
+            Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM mirror_test_rewards"));
+            Assert.Equal(0, (await store.ReadQuotaAsync(new(71), new(2026, 10, 10), default)).Clears);
+            Assert.Equal(events, fixture.Scalar("SELECT COUNT(*) FROM domain_events"));
+            Assert.Equal(before, System.Text.Json.JsonSerializer.Serialize(await store.ReadAsync(new(71), runtime.Current.RunId, default)));
+            await Write(fixture, async () => Assert.True((await Finish(settlement)).MirrorCompletion));
+            Assert.Equal(1, effects.Calls);
+            Assert.Equal(1, (await store.ReadQuotaAsync(new(71), new(2026, 10, 10), default)).Clears);
         });
-        Assert.Equal(0, effects.Calls);
-        Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM mirror_test_rewards"));
-        Assert.Equal(0, (await store.ReadQuotaAsync(new(71), new(2026, 10, 10), default)).Clears);
-        Assert.Equal(events, fixture.Scalar("SELECT COUNT(*) FROM domain_events"));
-        Assert.Equal(before, System.Text.Json.JsonSerializer.Serialize(await store.ReadAsync(new(71), runtime.Current.RunId, default)));
-        await Write(fixture, async () => Assert.True((await Finish(settlement)).MirrorCompletion));
-        Assert.Equal(1, effects.Calls);
-        Assert.Equal(1, (await store.ReadQuotaAsync(new(71), new(2026, 10, 10), default)).Clears);
     }
 
     [Fact]
     public async Task Reward_refusal_and_rollback_leave_claim_and_daily_ledger_unchanged()
     {
-        await using var fixture = new LearningFixture();
-        await fixture.SeedAsync();
-        var runtime = new Runtime { Current = Run(true) };
-        var (service, store, preview, effects, settlement) = Create(fixture, runtime);
-        await Write(fixture, async () => { await service.AcceptAsync(new(1), new(71), 14299, default); });
-        preview.Rejection = InventoryEffectRejection.NoRoom;
-        await Write(fixture, async () => Assert.False((await Finish(settlement)).Finished));
-        Assert.False((await store.ReadAsync(new(71), runtime.Current.RunId, default))!.RewardClaimed);
-        Assert.Equal(0, (await store.ReadQuotaAsync(new(71), new(2026, 10, 10), default)).Clears);
-        preview.Rejection = InventoryEffectRejection.None;
-        // Roll back after the reward, quest marker, quota and event have all been staged.
-        await using (fixture.Scope.Begin()) Assert.True((await Finish(settlement)).Finished);
-        Assert.False((await store.ReadAsync(new(71), runtime.Current.RunId, default))!.RewardClaimed);
-        Assert.Equal(0, (await store.ReadQuotaAsync(new(71), new(2026, 10, 10), default)).Clears);
-        Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM mirror_test_rewards"));
-        effects.Fail = true;
-        await using (fixture.Scope.Begin()) await Assert.ThrowsAsync<InvalidOperationException>(async () => await Finish(settlement));
-        Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM mirror_test_rewards"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = new LearningFixture();
+            await fixture.SeedAsync();
+            var runtime = new Runtime { Current = Run(true) };
+            var (service, store, preview, effects, settlement) = Create(fixture, runtime);
+            await Write(fixture, async () => { await service.AcceptAsync(new(1), new(71), 14299, default); });
+            preview.Rejection = InventoryEffectRejection.NoRoom;
+            await Write(fixture, async () => Assert.False((await Finish(settlement)).Finished));
+            Assert.False((await store.ReadAsync(new(71), runtime.Current.RunId, default))!.RewardClaimed);
+            Assert.Equal(0, (await store.ReadQuotaAsync(new(71), new(2026, 10, 10), default)).Clears);
+            preview.Rejection = InventoryEffectRejection.None;
+            // Roll back after the reward, quest marker, quota and event have all been staged.
+            await using (fixture.Scope.Begin()) Assert.True((await Finish(settlement)).Finished);
+            Assert.False((await store.ReadAsync(new(71), runtime.Current.RunId, default))!.RewardClaimed);
+            Assert.Equal(0, (await store.ReadQuotaAsync(new(71), new(2026, 10, 10), default)).Clears);
+            Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM mirror_test_rewards"));
+            effects.Fail = true;
+            await using (fixture.Scope.Begin()) await Assert.ThrowsAsync<InvalidOperationException>(async () => await Finish(settlement));
+            Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM mirror_test_rewards"));
+        });
     }
 
     [Fact]
     public async Task Old_leave_cleanup_cannot_delete_new_run_and_stale_run_is_not_an_authority()
     {
-        await using var fixture = new LearningFixture();
-        await fixture.SeedAsync();
-        var runtime = new Runtime { Current = Run() };
-        var (service, store, _, _, _) = Create(fixture, runtime);
-        var old = runtime.Current.RunId;
-        await Write(fixture, async () => { await service.AcceptAsync(new(1), new(71), 14299, default); });
-        runtime.Current = null;
-        Assert.Empty((await service.SnapshotAsync(new(1), new(71), default)).Quests);
-        await Write(fixture, async () => Assert.False((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
-        runtime.Current = Run();
-        await Write(fixture, async () => { await service.AcceptAsync(new(1), new(71), 14299, default); });
-        await Write(fixture, async () => { await service.ClearRunAsync(new(71), old, default); await service.ClearRunAsync(new(71), old, default); });
-        Assert.Null(await store.ReadAsync(new(71), old, default));
-        Assert.NotNull(await store.ReadAsync(new(71), runtime.Current.RunId, default));
-        var full = new QuestProgressSnapshot(Enumerable.Range(1, 30).Select(i => new CarriedQuest((short)i, i, 1)).ToArray());
-        Assert.Equal(31, (await service.MergeAsync(new(71), full, default)).Quests.Count);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = new LearningFixture();
+            await fixture.SeedAsync();
+            var runtime = new Runtime { Current = Run() };
+            var (service, store, _, _, _) = Create(fixture, runtime);
+            var old = runtime.Current.RunId;
+            await Write(fixture, async () => { await service.AcceptAsync(new(1), new(71), 14299, default); });
+            runtime.Current = null;
+            Assert.Empty((await service.SnapshotAsync(new(1), new(71), default)).Quests);
+            await Write(fixture, async () => Assert.False((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
+            runtime.Current = Run();
+            await Write(fixture, async () => { await service.AcceptAsync(new(1), new(71), 14299, default); });
+            await Write(fixture, async () => { await service.ClearRunAsync(new(71), old, default); await service.ClearRunAsync(new(71), old, default); });
+            Assert.Null(await store.ReadAsync(new(71), old, default));
+            Assert.NotNull(await store.ReadAsync(new(71), runtime.Current.RunId, default));
+            var full = new QuestProgressSnapshot(Enumerable.Range(1, 30).Select(i => new CarriedQuest((short)i, i, 1)).ToArray());
+            Assert.Equal(31, (await service.MergeAsync(new(71), full, default)).Quests.Count);
+        });
     }
 
     [Fact]
@@ -248,8 +261,11 @@ public sealed class MirrorAradQuestTests
         await Write(fixture, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
         runtime.Current = null;
         // Disconnects publish outside a CMD transaction; duplicate facts remain safe.
-        await lifecycle.RecordDepartureAsync(new(new(71), old, 32));
-        await lifecycle.RecordDepartureAsync(new(new(71), old, 32));
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            await lifecycle.RecordDepartureAsync(new(new(71), old, 32));
+            await lifecycle.RecordDepartureAsync(new(new(71), old, 32));
+        });
         runtime.Current = Run();
         await Write(fixture, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
         Assert.NotNull(await store.ReadAsync(new(71), old, default));
@@ -264,65 +280,71 @@ public sealed class MirrorAradQuestTests
     [Fact]
     public async Task Read_only_query_uses_run_local_lifecycle_and_never_writes_virtual_slot_to_ordinary_log()
     {
-        await using var fixture = new LearningFixture();
-        await fixture.SeedAsync();
-        var runtime = new Runtime { Current = Run(true) };
-        var (service, store, _, _, _) = Create(fixture, runtime);
-        await Write(fixture, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
-        var before = await store.ReadAsync(new(71), runtime.Current.RunId, default);
-        var definitions = new Definitions();
-        var query = new QuestQueryDomainService(definitions,
-            fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(), null!,
-            new QuestStateRuleService(definitions), null!,
-            fixture.Services.GetRequiredService<Dfo.Server.Abstractions.Persistence.ICharacterTable>(),
-            mirror: store, runs: runtime,
-            mirrorRules: new MirrorAradQuestRuleService(definitions, new MirrorRules(), new Placements()));
-        var status = await query.QueryAsync(new(1), new(71), 14299, default);
-        Assert.Equal(QuestLifecycle.Accepted, status.Lifecycle);
-        Assert.True(status.Accepted!.CanComplete);
-        definitions.Value = Quest("hunt enemy", null, 32, -1, -3, 1, 1);
-        await Write(fixture, async () => await store.WriteAsync(new(1), before! with { TriggerValue = 0 }, default));
-        runtime.Current = runtime.Current with { ClearOpen = false, ClearedAt = null };
-        var incompleteRun = await query.QueryAsync(new(1), new(71), 14299, default);
-        Assert.Equal(0, incompleteRun.Accepted!.Quest.TriggerValue);
-        Assert.False(incompleteRun.Accepted.CanComplete);
-        Assert.False(Assert.Single(await query.ReadAcceptedAsync(new(1), new(71), default)).CanComplete);
-        runtime.Current = runtime.Current with { ClearOpen = true, ClearedAt = Now.AddSeconds(10) };
-        Assert.True((await query.QueryAsync(new(1), new(71), 14299, default)).Accepted!.CanComplete);
-        await Write(fixture, async () => await store.WriteAsync(new(1), before!, default));
-        Assert.Equal(short.MaxValue, Assert.Single(await query.ReadAcceptedAsync(new(1), new(71), default)).Quest.Slot);
-        Assert.Equal(System.Text.Json.JsonSerializer.Serialize(before),
-            System.Text.Json.JsonSerializer.Serialize(await store.ReadAsync(new(71), runtime.Current.RunId, default)));
-        Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
-        await Write(fixture, async () => await store.WriteAsync(new(1), before! with { RewardClaimed = true }, default));
-        Assert.Equal(QuestLifecycle.Completed, (await query.QueryAsync(new(1), new(71), 14299, default)).Lifecycle);
-        Assert.Empty(await query.ReadAcceptedAsync(new(1), new(71), default));
-        await Write(fixture, async () => await store.WriteAsync(new(1), before! with { GivenUp = true }, default));
-        var givenUp = await query.QueryAsync(new(1), new(71), 14299, default);
-        Assert.Equal(QuestLifecycle.NotAccepted, givenUp.Lifecycle);
-        Assert.False(givenUp.CanAccept);
-        runtime.Current = Run();
-        var newRun = await query.QueryAsync(new(1), new(71), 14299, default);
-        Assert.Equal(QuestLifecycle.NotAccepted, newRun.Lifecycle);
-        Assert.True(newRun.CanAccept);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = new LearningFixture();
+            await fixture.SeedAsync();
+            var runtime = new Runtime { Current = Run(true) };
+            var (service, store, _, _, _) = Create(fixture, runtime);
+            await Write(fixture, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
+            var before = await store.ReadAsync(new(71), runtime.Current.RunId, default);
+            var definitions = new Definitions();
+            var query = new QuestQueryDomainService(definitions,
+                fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(), null!,
+                new QuestStateRuleService(definitions), null!,
+                fixture.Services.GetRequiredService<Dfo.Server.Abstractions.Persistence.ICharacterTable>(),
+                mirror: store, runs: runtime,
+                mirrorRules: new MirrorAradQuestRuleService(definitions, new MirrorRules(), new Placements()));
+            var status = await query.QueryAsync(new(1), new(71), 14299, default);
+            Assert.Equal(QuestLifecycle.Accepted, status.Lifecycle);
+            Assert.True(status.Accepted!.CanComplete);
+            definitions.Value = Quest("hunt enemy", null, 32, -1, -3, 1, 1);
+            await Write(fixture, async () => await store.WriteAsync(new(1), before! with { TriggerValue = 0 }, default));
+            runtime.Current = runtime.Current with { ClearOpen = false, ClearedAt = null };
+            var incompleteRun = await query.QueryAsync(new(1), new(71), 14299, default);
+            Assert.Equal(0, incompleteRun.Accepted!.Quest.TriggerValue);
+            Assert.False(incompleteRun.Accepted.CanComplete);
+            Assert.False(Assert.Single(await query.ReadAcceptedAsync(new(1), new(71), default)).CanComplete);
+            runtime.Current = runtime.Current with { ClearOpen = true, ClearedAt = Now.AddSeconds(10) };
+            Assert.True((await query.QueryAsync(new(1), new(71), 14299, default)).Accepted!.CanComplete);
+            await Write(fixture, async () => await store.WriteAsync(new(1), before!, default));
+            Assert.Equal(short.MaxValue, Assert.Single(await query.ReadAcceptedAsync(new(1), new(71), default)).Quest.Slot);
+            Assert.Equal(System.Text.Json.JsonSerializer.Serialize(before),
+                System.Text.Json.JsonSerializer.Serialize(await store.ReadAsync(new(71), runtime.Current.RunId, default)));
+            Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
+            await Write(fixture, async () => await store.WriteAsync(new(1), before! with { RewardClaimed = true }, default));
+            Assert.Equal(QuestLifecycle.Completed, (await query.QueryAsync(new(1), new(71), 14299, default)).Lifecycle);
+            Assert.Empty(await query.ReadAcceptedAsync(new(1), new(71), default));
+            await Write(fixture, async () => await store.WriteAsync(new(1), before! with { GivenUp = true }, default));
+            var givenUp = await query.QueryAsync(new(1), new(71), 14299, default);
+            Assert.Equal(QuestLifecycle.NotAccepted, givenUp.Lifecycle);
+            Assert.False(givenUp.CanAccept);
+            runtime.Current = Run();
+            var newRun = await query.QueryAsync(new(1), new(71), 14299, default);
+            Assert.Equal(QuestLifecycle.NotAccepted, newRun.Lifecycle);
+            Assert.True(newRun.CanAccept);
+        });
     }
 
     [Fact]
     public async Task Party_daily_entry_reservation_is_atomic_and_uses_server_day()
     {
-        await using var fixture = new LearningFixture();
-        await fixture.SeedAsync();
-        var store = fixture.Services.GetRequiredService<IMirrorAradQuestDomainStore>();
-        var clock = new Clock { Now = new(2026, 10, 10, 15, 59, 59, TimeSpan.Zero) };
-        var quota = new MirrorDungeonQuotaDomainService(fixture.Services.GetRequiredService<IUsageQuotaDomainService>(), clock, fixture.Services.GetRequiredService<IEventService>());
-        DungeonRunParticipant[] participants = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)];
-        await Write(fixture, async () => await store.WriteQuotaAsync(new(2), new(72), new(2026, 10, 10), new(Entries: 10), default));
-        await Write(fixture, async () => Assert.Equal((byte)1, await quota.TryReserveEntryAsync(participants, 10, default)));
-        Assert.Equal(0, (await store.ReadQuotaAsync(new(71), new(2026, 10, 10), default)).Entries);
-        clock.Now = clock.Now.AddSeconds(1);
-        await Write(fixture, async () => Assert.Null(await quota.TryReserveEntryAsync(participants, 10, default)));
-        Assert.Equal(1, (await store.ReadQuotaAsync(new(71), new(2026, 10, 11), default)).Entries);
-        Assert.Equal(1, (await store.ReadQuotaAsync(new(72), new(2026, 10, 11), default)).Entries);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = new LearningFixture();
+            await fixture.SeedAsync();
+            var store = fixture.Services.GetRequiredService<IMirrorAradQuestDomainStore>();
+            var clock = new Clock { Now = new(2026, 10, 10, 15, 59, 59, TimeSpan.Zero) };
+            var quota = new MirrorDungeonQuotaDomainService(fixture.Services.GetRequiredService<IUsageQuotaDomainService>(), clock, fixture.Services.GetRequiredService<IEventService>());
+            DungeonRunParticipant[] participants = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)];
+            await Write(fixture, async () => await store.WriteQuotaAsync(new(2), new(72), new(2026, 10, 10), new(Entries: 10), default));
+            await Write(fixture, async () => Assert.Equal((byte)1, await quota.TryReserveEntryAsync(participants, 10, default)));
+            Assert.Equal(0, (await store.ReadQuotaAsync(new(71), new(2026, 10, 10), default)).Entries);
+            clock.Now = clock.Now.AddSeconds(1);
+            await Write(fixture, async () => Assert.Null(await quota.TryReserveEntryAsync(participants, 10, default)));
+            Assert.Equal(1, (await store.ReadQuotaAsync(new(71), new(2026, 10, 11), default)).Entries);
+            Assert.Equal(1, (await store.ReadQuotaAsync(new(72), new(2026, 10, 11), default)).Entries);
+        });
     }
 
     [Fact]
@@ -373,7 +395,7 @@ public sealed class MirrorAradQuestTests
     private static ValueTask<QuestCompletionReceipt> Finish(IQuestCompletionSettlementDomainService service) =>
         service.FinishAsync(new(1), new(71), 14299, ushort.MaxValue, 1, Now, default);
     private static async Task Write(LearningFixture fixture, Func<Task> action)
-    { await using var transaction = fixture.Scope.Begin(); await action(); await transaction.CommitAsync(default); }
+    { await TestGameplay.RunAsync(fixture.Services, async () => { await using var transaction = fixture.Scope.Begin(); await action(); await transaction.CommitAsync(default); }); }
     private sealed class DefinitionDomain : IQuestDefinitionDomainService
     {
         public QuestParameters RewardParameters() => throw new NotSupportedException();

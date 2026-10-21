@@ -33,116 +33,119 @@ public sealed class IllusionTowerPublicFlowTests
     [Dfo.Server.Testing.PvfFact]
     public async Task Public_handlers_complete_real_pvf_tower_return_to_town_and_reenter()
     {
-        using var fixture = CreateFixture();
-        await PrepareSelectedCharacterAsync(fixture, tickets: 1);
-        var beforeExperience = fixture.Scalar("SELECT exp FROM characters WHERE character_id=1");
-        var beforeGold = fixture.Gold;
-
-        await EnterAsync(fixture);
-
-        AssertEntryDebitPrecedesTowerMode(fixture.Sender.Messages);
-
-        var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
-        var firstRun = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
-        Assert.Equal(0, fixture.Count(4183));
-        Assert.Null(fixture.Services.GetRequiredService<ITownAreaDomainService>().Find(fixture.Session.CharacterId));
-        Assert.Equal(
-            [ServerMessageType.GameIllusionTowerInfo, ServerMessageType.GameIllusionTowerMap],
-            fixture.Sender.Messages
-                .Where(message => message.MessageType is ServerMessageType.GameIllusionTowerInfo
-                    or ServerMessageType.GameIllusionTowerMap)
-                .Select(message => message.MessageType));
-
-        List<int> visitedMaps = [];
-        for (var floor = 1; floor <= RealFloorMaps.Length; floor++)
+        await TestGameplay.RunAsync(async () =>
         {
-            var loading = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
-            Assert.Equal(floor, loading.Room.Level);
-            Assert.Equal(TowerRoomPhase.Loading, loading.Room.Phase);
-            Assert.NotEmpty(loading.Room.Actors);
-            visitedMaps.Add(loading.Room.MapId);
+            using var fixture = CreateFixture();
+            await PrepareSelectedCharacterAsync(fixture, tickets: 1);
+            var beforeExperience = fixture.Scalar("SELECT exp FROM characters WHERE character_id=1");
+            var beforeGold = fixture.Gold;
 
-            await fixture.Services.GetRequiredService<FinishLoadingHandler>().HandleAsync(
-                new(fixture.Connection), new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0), default);
-            await fixture.Services.GetRequiredService<IllusionTowerStageHandler>().HandleAsync(
-                new(fixture.Connection), new IllusionTowerStageRequest(GameMessageMetadata.Empty, 1, []), default);
+            await EnterAsync(fixture);
 
-            if (floor == 1)
+            AssertEntryDebitPrecedesTowerMode(fixture.Sender.Messages);
+
+            var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
+            var firstRun = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
+            Assert.Equal(0, fixture.Count(4183));
+            Assert.Null(fixture.Services.GetRequiredService<ITownAreaDomainService>().Find(fixture.Session.CharacterId));
+            Assert.Equal(
+                [ServerMessageType.GameIllusionTowerInfo, ServerMessageType.GameIllusionTowerMap],
+                fixture.Sender.Messages
+                    .Where(message => message.MessageType is ServerMessageType.GameIllusionTowerInfo
+                        or ServerMessageType.GameIllusionTowerMap)
+                    .Select(message => message.MessageType));
+
+            List<int> visitedMaps = [];
+            for (var floor = 1; floor <= RealFloorMaps.Length; floor++)
             {
-                var fighting = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
+                var loading = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
+                Assert.Equal(floor, loading.Room.Level);
+                Assert.Equal(TowerRoomPhase.Loading, loading.Room.Phase);
+                Assert.NotEmpty(loading.Room.Actors);
+                visitedMaps.Add(loading.Room.MapId);
+
+                await fixture.Services.GetRequiredService<FinishLoadingHandler>().HandleAsync(
+                    new(fixture.Connection), new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0), default);
+                await fixture.Services.GetRequiredService<IllusionTowerStageHandler>().HandleAsync(
+                    new(fixture.Connection), new IllusionTowerStageRequest(GameMessageMetadata.Empty, 1, []), default);
+
+                if (floor == 1)
+                {
+                    var fighting = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
+                    await fixture.Services.GetRequiredService<IllusionTowerStageHandler>().HandleAsync(
+                        new(fixture.Connection), new IllusionTowerStageRequest(GameMessageMetadata.Empty, 2, []), default);
+                    var refused = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
+                    Assert.Equal(fighting.Room.Version, refused.Room.Version);
+                    Assert.Equal(fighting.Room.Level, refused.Room.Level);
+                }
+
+                foreach (var actor in Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session)).Room.Actors)
+                {
+                    await fixture.Services.GetRequiredService<MonsterDeathHandler>().HandleAsync(
+                        new(fixture.Connection),
+                        new MonsterDeathRequest(GameMessageMetadata.Empty, actor.Uid, fixture.Session.WireUserId),
+                        default);
+                }
+
+                var cleared = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
+                if (floor == RealFloorMaps.Length)
+                {
+                    Assert.NotNull(cleared.Completion);
+                    break;
+                }
+
+                Assert.Equal(TowerRoomPhase.Cleared, cleared.Room.Phase);
                 await fixture.Services.GetRequiredService<IllusionTowerStageHandler>().HandleAsync(
                     new(fixture.Connection), new IllusionTowerStageRequest(GameMessageMetadata.Empty, 2, []), default);
-                var refused = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
-                Assert.Equal(fighting.Room.Version, refused.Room.Version);
-                Assert.Equal(fighting.Room.Level, refused.Room.Level);
+                Assert.Equal(floor, towers.Find(fixture.Session)!.Room.Level);
+                await fixture.Services.GetRequiredService<MoveMapHandler>().HandleAsync(
+                    new(fixture.Connection), new MoveMapRequest(GameMessageMetadata.Empty, 0, 0, 0, 0), default);
+                Assert.Equal(floor + 1, towers.Find(fixture.Session)!.Room.Level);
             }
 
-            foreach (var actor in Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session)).Room.Actors)
-            {
-                await fixture.Services.GetRequiredService<MonsterDeathHandler>().HandleAsync(
-                    new(fixture.Connection),
-                    new MonsterDeathRequest(GameMessageMetadata.Empty, actor.Uid, fixture.Session.WireUserId),
-                    default);
-            }
+            Assert.Equal(RealFloorMaps, visitedMaps);
+            var completed = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
+            Assert.Equal(firstRun.RunId, completed.RunId);
+            Assert.True(completed.Completion!.Settled);
+            var member = Assert.Single(completed.Completion.Receipt!.Members);
+            var afterExperience = fixture.Scalar("SELECT exp FROM characters WHERE character_id=1");
+            Assert.True(afterExperience - beforeExperience >= member.Experience);
+            Assert.True(fixture.Sender.Messages.Count(message =>
+                message.MessageType == ServerMessageType.GameExperience) > RealFloorMaps.Length);
+            Assert.Equal(member.Gold, fixture.Gold - beforeGold);
+            foreach (var rewards in member.Items.GroupBy(reward => reward.ItemId))
+                Assert.Equal(rewards.Sum(reward => reward.Count), fixture.Count(rewards.Key));
+            Assert.Equal(
+                [ServerMessageType.GameIllusionTowerRanking, ServerMessageType.GameIllusionTowerReward,
+                    ServerMessageType.GameIllusionTowerContinue],
+                fixture.Sender.Messages
+                    .Where(message => message.MessageType is ServerMessageType.GameIllusionTowerRanking
+                        or ServerMessageType.GameIllusionTowerReward or ServerMessageType.GameIllusionTowerContinue)
+                    .Select(message => message.MessageType));
 
-            var cleared = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
-            if (floor == RealFloorMaps.Length)
-            {
-                Assert.NotNull(cleared.Completion);
-                break;
-            }
+            await fixture.Services.GetRequiredService<BackToVillageHandler>().HandleAsync(
+                new(fixture.Connection), new BackToVillageRequest(GameMessageMetadata.Empty), default);
 
-            Assert.Equal(TowerRoomPhase.Cleared, cleared.Room.Phase);
-            await fixture.Services.GetRequiredService<IllusionTowerStageHandler>().HandleAsync(
-                new(fixture.Connection), new IllusionTowerStageRequest(GameMessageMetadata.Empty, 2, []), default);
-            Assert.Equal(floor, towers.Find(fixture.Session)!.Room.Level);
-            await fixture.Services.GetRequiredService<MoveMapHandler>().HandleAsync(
-                new(fixture.Connection), new MoveMapRequest(GameMessageMetadata.Empty, 0, 0, 0, 0), default);
-            Assert.Equal(floor + 1, towers.Find(fixture.Session)!.Room.Level);
-        }
+            Assert.Null(towers.Find(fixture.Session));
+            Assert.NotNull(fixture.Services.GetRequiredService<ITownAreaDomainService>().Find(fixture.Session.CharacterId));
 
-        Assert.Equal(RealFloorMaps, visitedMaps);
-        var completed = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
-        Assert.Equal(firstRun.RunId, completed.RunId);
-        Assert.True(completed.Completion!.Settled);
-        var member = Assert.Single(completed.Completion.Receipt!.Members);
-        var afterExperience = fixture.Scalar("SELECT exp FROM characters WHERE character_id=1");
-        Assert.True(afterExperience - beforeExperience >= member.Experience);
-        Assert.True(fixture.Sender.Messages.Count(message =>
-            message.MessageType == ServerMessageType.GameExperience) > RealFloorMaps.Length);
-        Assert.Equal(member.Gold, fixture.Gold - beforeGold);
-        foreach (var rewards in member.Items.GroupBy(reward => reward.ItemId))
-            Assert.Equal(rewards.Sum(reward => reward.Count), fixture.Count(rewards.Key));
-        Assert.Equal(
-            [ServerMessageType.GameIllusionTowerRanking, ServerMessageType.GameIllusionTowerReward,
-                ServerMessageType.GameIllusionTowerContinue],
-            fixture.Sender.Messages
-                .Where(message => message.MessageType is ServerMessageType.GameIllusionTowerRanking
-                    or ServerMessageType.GameIllusionTowerReward or ServerMessageType.GameIllusionTowerContinue)
-                .Select(message => message.MessageType));
+            fixture.Sender.Messages.Clear();
+            await fixture.Seed(65, 4183, 1);
+            fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>()
+                .Record(fixture.Session, DungeonEntryIntent.Interactive);
+            await EnterAsync(fixture);
 
-        await fixture.Services.GetRequiredService<BackToVillageHandler>().HandleAsync(
-            new(fixture.Connection), new BackToVillageRequest(GameMessageMetadata.Empty), default);
-
-        Assert.Null(towers.Find(fixture.Session));
-        Assert.NotNull(fixture.Services.GetRequiredService<ITownAreaDomainService>().Find(fixture.Session.CharacterId));
-
-        fixture.Sender.Messages.Clear();
-        await fixture.Seed(65, 4183, 1);
-        fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>()
-            .Record(fixture.Session, DungeonEntryIntent.Interactive);
-        await EnterAsync(fixture);
-
-        var secondRun = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
-        AssertEntryDebitPrecedesTowerMode(fixture.Sender.Messages);
-        Assert.NotEqual(firstRun.RunId, secondRun.RunId);
-        Assert.Equal(0, fixture.Count(4183));
-        Assert.Equal(
-            [ServerMessageType.GameIllusionTowerInfo, ServerMessageType.GameIllusionTowerMap],
-            fixture.Sender.Messages
-                .Where(message => message.MessageType is ServerMessageType.GameIllusionTowerInfo
-                    or ServerMessageType.GameIllusionTowerMap)
-                .Select(message => message.MessageType));
+            var secondRun = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
+            AssertEntryDebitPrecedesTowerMode(fixture.Sender.Messages);
+            Assert.NotEqual(firstRun.RunId, secondRun.RunId);
+            Assert.Equal(0, fixture.Count(4183));
+            Assert.Equal(
+                [ServerMessageType.GameIllusionTowerInfo, ServerMessageType.GameIllusionTowerMap],
+                fixture.Sender.Messages
+                    .Where(message => message.MessageType is ServerMessageType.GameIllusionTowerInfo
+                        or ServerMessageType.GameIllusionTowerMap)
+                    .Select(message => message.MessageType));
+        });
     }
 
     [Dfo.Server.Testing.PvfFact]
@@ -254,12 +257,15 @@ public sealed class IllusionTowerPublicFlowTests
             INSERT INTO character_settings(character_id) VALUES(1),(2);
             INSERT INTO character_expert_job(character_id) VALUES(1),(2);
             """);
-        fixture.Services.GetRequiredService<ISelectedSessionDomainService>().EnsureInWorld(fixture.Session);
-        fixture.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
-            .Begin(fixture.Session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
-        await fixture.Seed(65, 4183, tickets);
-        fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>()
-            .Record(fixture.Session, DungeonEntryIntent.Interactive);
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            fixture.Services.GetRequiredService<ISelectedSessionDomainService>().EnsureInWorld(fixture.Session);
+            fixture.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
+                .Begin(fixture.Session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
+            await fixture.Seed(65, 4183, tickets);
+            fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>()
+                .Record(fixture.Session, DungeonEntryIntent.Interactive);
+        });
     }
 
     private static ValueTask EnterAsync(ShopFixture fixture) =>

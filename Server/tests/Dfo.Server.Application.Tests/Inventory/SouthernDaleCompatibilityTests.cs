@@ -73,11 +73,14 @@ public sealed class SouthernDaleCompatibilityTests
         Assert.True(await availability.CanAcceptAsync(session.CharacterId, default));
         var activities = fixture.Host.Services.GetRequiredService<IEventManagementDomainService>();
         var current = Assert.Single((await activities.ListAsync(clock.Now, default)).Entries, entry => entry.EventId == 2330);
-        await using (var tx = fixture.Host.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin())
+        await TestGameplay.RunAsync(fixture.Host.Services, async () =>
         {
-            await activities.ChangeAsync(new EventChange(2330, current.Revision, "disable"), "test", clock.Now, default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = fixture.Host.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin())
+            {
+                await activities.ChangeAsync(new EventChange(2330, current.Revision, "disable"), "test", clock.Now, default);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.False(await availability.CanAcceptAsync(session.CharacterId, default));
         Assert.False((await commands.SendAsync(new AcceptQuestCommand(session.AccountId, session.CharacterId, 20549))).Accepted);
         Assert.Equal(4, fixture.Host.Count(2680739));
@@ -134,26 +137,29 @@ public sealed class SouthernDaleCompatibilityTests
     [Dfo.Server.Testing.PvfFact]
     public async Task Southern_target_refill_counts_overflow_mail_across_game_days()
     {
-        using var fixture = new CeraShopFixture(useArchive: true);
-        var at = new DateTimeOffset(2026, 10, 19, 6, 0, 0, TimeSpan.FromHours(8));
-        var rule = Assert.Single(await fixture.Host.Services.GetRequiredService<IDailyRefillConfigurationDomainService>()
-            .EffectiveAsync(at, default), x => x.ItemId == 2680738);
-        Assert.Equal(DailyRefillMode.RefillToTarget, rule.Mode);
-        Assert.Equal(2, rule.Quantity);
-        // Constrain the available band to one occupied quest cell to exercise real overflow delivery.
-        rule = rule with { Destination = new(Dfo.Server.Data.Inventory.BusinessInventorySpace.Quest, 0, 0) };
-        await fixture.Host.Seed(177, 2680739, 1);
-        for (var day = 0; day < 3; day++)
+        await TestGameplay.RunAsync(async () =>
         {
-            await using var tx = fixture.Host.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
-            await fixture.Host.Services.GetRequiredService<IDailyRefillDomainService>()
-                .ApplyIndependentRefillAsync(new(1), new(1), [rule], at.AddDays(day), default);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(0, fixture.Host.Count(2680738));
-        Assert.Equal(2, await fixture.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.IItemDeliveryDomainService>()
-            .PendingQuantityAsync(new(1), 2680738, default));
-        Assert.Single(await fixture.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Mail.IMailboxDomainService>().InboxAsync(new(1)));
+            using var fixture = new CeraShopFixture(useArchive: true);
+            var at = new DateTimeOffset(2026, 10, 19, 6, 0, 0, TimeSpan.FromHours(8));
+            var rule = Assert.Single(await fixture.Host.Services.GetRequiredService<IDailyRefillConfigurationDomainService>()
+                .EffectiveAsync(at, default), x => x.ItemId == 2680738);
+            Assert.Equal(DailyRefillMode.RefillToTarget, rule.Mode);
+            Assert.Equal(2, rule.Quantity);
+            // Constrain the available band to one occupied quest cell to exercise real overflow delivery.
+            rule = rule with { Destination = new(Dfo.Server.Data.Inventory.BusinessInventorySpace.Quest, 0, 0) };
+            await fixture.Host.Seed(177, 2680739, 1);
+            for (var day = 0; day < 3; day++)
+            {
+                await using var tx = fixture.Host.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+                await fixture.Host.Services.GetRequiredService<IDailyRefillDomainService>()
+                    .ApplyIndependentRefillAsync(new(1), new(1), [rule], at.AddDays(day), default);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(0, fixture.Host.Count(2680738));
+            Assert.Equal(2, await fixture.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.IItemDeliveryDomainService>()
+                .PendingQuantityAsync(new(1), 2680738, default));
+            Assert.Single(await fixture.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Mail.IMailboxDomainService>().InboxAsync(new(1)));
+        });
     }
 
     [Dfo.Server.Testing.PvfFact]
@@ -161,8 +167,11 @@ public sealed class SouthernDaleCompatibilityTests
     {
         using var fixture = new CeraShopFixture(useArchive: true);
         var services = fixture.Host.Services;
-        services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
-            .Begin(fixture.Host.Session, new(1, 0, 0, 0, 0), 100);
+        TestGameplay.Run(services, () =>
+        {
+            services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
+                .Begin(fixture.Host.Session, new(1, 0, 0, 0, 0), 100);
+        });
         fixture.Host.Sql("""
             INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0),(2,0);
             INSERT INTO character_pvp(character_id) VALUES(1),(2);
@@ -170,24 +179,33 @@ public sealed class SouthernDaleCompatibilityTests
             INSERT INTO character_expert_job(character_id) VALUES(1),(2);
             """);
         var scope = services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>();
-        await using (var tx = scope.Begin())
+        await TestGameplay.RunAsync(services, async () =>
         {
-            await services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterDomainService>()
-                .Get(new(1)).SetLevelAsync(27, default);
-            await tx.CommitAsync(default);
-        }
-        foreach (var open in new[] { true, false })
-        {
-            if (!open)
+            await using (var tx = scope.Begin())
             {
-                await using var tx = scope.Begin();
-                await services.GetRequiredService<IEventManagementDomainService>()
-                    .ChangeAsync(new(2330, 0, "disable"), "test", fixture.Host.Clock.GetUtcNow(), default);
+                await services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterDomainService>()
+                    .Get(new(1)).SetLevelAsync(27, default);
                 await tx.CommitAsync(default);
             }
-            var current = await services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterCurrentStateQueryDomainService>()
-                .ReadAsync(fixture.Host.Session, default);
-            Assert.Equal(open, current.World.Subject!.SouthernDaleQuestAvailable);
+        });
+        foreach (var open in new[] { true, false })
+        {
+            await TestGameplay.RunAsync(services, async () =>
+            {
+                if (!open)
+                {
+                    await using var tx = scope.Begin();
+                    await services.GetRequiredService<IEventManagementDomainService>()
+                        .ChangeAsync(new(2330, 0, "disable"), "test", fixture.Host.Clock.GetUtcNow(), default);
+                    await tx.CommitAsync(default);
+                }
+            });
+            await TestGameplay.RunAsync(services, async () =>
+            {
+                var current = await services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterCurrentStateQueryDomainService>()
+                    .ReadAsync(fixture.Host.Session, default);
+                Assert.Equal(open, current.World.Subject!.SouthernDaleQuestAvailable);
+            });
             var replay = await services.GetRequiredService<ICommandBus>().SendAsync(new Dfo.Server.Application.Effects.ReadReplayStateCommand(
                 fixture.Host.Session, new(Dfo.Server.Abstractions.Effects.ReplayProjectionNeeds.Quests, [])));
             Assert.Equal(open, replay.Quests!.Offers.Any(x => x.QuestId == 20549));
@@ -199,19 +217,25 @@ public sealed class SouthernDaleCompatibilityTests
     {
         using var fixture = new CeraShopFixture(useArchive: true);
         var services = fixture.Host.Services;
-        services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(fixture.Host.Session);
+        TestGameplay.Run(services, () =>
+        {
+            services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(fixture.Host.Session);
+        });
         var events = services.GetRequiredService<IEventManagementDomainService>();
         var revision = 0;
         foreach (var open in new[] { false, true, false })
         {
             fixture.Host.Sender.Messages.Clear();
-            await using (var tx = services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin())
+            await TestGameplay.RunAsync(services, async () =>
             {
-                await events.ChangeAsync(new(2330, revision, open ? "enable" : "disable"), "test", fixture.Host.Clock.GetUtcNow(), default);
-                await services.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>()
-                    .EnqueueAsync(new ManagedEventConfigurationChanged(2330, ++revision));
-                await tx.CommitAsync(default);
-            }
+                await using (var tx = services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin())
+                {
+                    await events.ChangeAsync(new(2330, revision, open ? "enable" : "disable"), "test", fixture.Host.Clock.GetUtcNow(), default);
+                    await services.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>()
+                        .EnqueueAsync(new ManagedEventConfigurationChanged(2330, ++revision));
+                    await tx.CommitAsync(default);
+                }
+            });
             await services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync("activity.refresh");
             Assert.Equal(open, OffersSouthern(fixture));
             var state = Assert.Single(fixture.Host.Sender.Messages.Select(fixture.Encode), x =>

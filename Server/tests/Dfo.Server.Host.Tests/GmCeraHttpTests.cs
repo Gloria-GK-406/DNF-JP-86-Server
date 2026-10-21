@@ -17,6 +17,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.CeraShopPurchase;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Host.Tests;
 
@@ -186,15 +187,18 @@ public sealed class GmCeraHttpTests
         var session=Dfo.Server.Testing.TestSessions.InWorld(sessions,state,new(1),new(1),"cera-test-session",21011);
         var handler=host.Services.GetRequiredService<INotificationHandler<AccountWalletChanged>>();
         var recipient=new NotificationRecipient(session.CharacterId,session.ConnectionId,session);
-        var message=Assert.Single(await handler.ComposeAsync(recipient,new(new(1)),default));
-        var registration=host.Services.GetServices<ServerMessageEncoderRegistration>().Single(x=>x.MessageType==message.GetType());
-        var frame=Assert.Single(((IServerMessageEncoder)host.Services.GetRequiredService(registration.EncoderType)).Encode(message));
-        Assert.Equal((ushort)0x0035,BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1,2)));var body=frame[15..];
-        Assert.Equal(13,body.Length);Assert.Equal(1,body[0]);Assert.Equal(59,BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(1,4)));
-        Assert.Equal(22,BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(5,4)));Assert.Equal(33,BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(9,4)));
-        Assert.Empty(await handler.ComposeAsync(recipient,new(new(2)),default));
-        _=Dfo.Server.Testing.TestSessions.InWorld(sessions,state,session.AccountId,session.CharacterId,"replacement",session.ListenerPort);
-        Assert.Empty(await handler.ComposeAsync(recipient,new(new(1)),default));
+        await TestGameplay.RunAsync(host.Services, async () =>
+        {
+            var message=Assert.Single(await handler.ComposeAsync(recipient,new(new(1)),default));
+            var registration=host.Services.GetServices<ServerMessageEncoderRegistration>().Single(x=>x.MessageType==message.GetType());
+            var frame=Assert.Single(((IServerMessageEncoder)host.Services.GetRequiredService(registration.EncoderType)).Encode(message));
+            Assert.Equal((ushort)0x0035,BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1,2)));var body=frame[15..];
+            Assert.Equal(13,body.Length);Assert.Equal(1,body[0]);Assert.Equal(59,BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(1,4)));
+            Assert.Equal(22,BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(5,4)));Assert.Equal(33,BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(9,4)));
+            Assert.Empty(await handler.ComposeAsync(recipient,new(new(2)),default));
+            _=Dfo.Server.Testing.TestSessions.InWorld(sessions,state,session.AccountId,session.CharacterId,"replacement",session.ListenerPort);
+            Assert.Empty(await handler.ComposeAsync(recipient,new(new(1)),default));
+        });
         reminder.Check=null;Assert.Equal(HttpStatusCode.OK,(await host.PostAsync("/api/gm/v1/cera/grant",csrf,Payload(id))).StatusCode);
         Assert.Equal(new[]{"59"},await host.ReadAsync("SELECT cera FROM accounts WHERE account_id=1;"));
     }

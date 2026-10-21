@@ -18,6 +18,7 @@ using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Inventory;
 
 using Dfo.Server.Application.Tests.Characters;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -36,219 +37,252 @@ public sealed class UseStackableHandlerTests
     [InlineData(65, 1)]
     public async Task Use_publishes_absolute_slot_state_after_ack(short wireSlot, int count)
     {
-        var inventory = new FakeInventory(wireSlot, 8474, count, 2);
-        var (handler, sender) = Build(inventory);
-        await handler.HandleAsync(Context, Request(wireSlot, 8474), default);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory(wireSlot, 8474, count, 2);
+            var (handler, sender) = Build(inventory);
+            await handler.HandleAsync(Context, Request(wireSlot, 8474), default);
 
-        Assert.Equal(count - 1, inventory.Count);
-        Assert.Equal(2, sender.Sent.Count);
-        var ack = Assert.IsType<UseStackableResponse>(sender.Sent[0]);
-        Assert.Null(ack.ErrorCode);
-        Assert.Equal(wireSlot, ack.Slot.Index);
-        var state = Assert.IsType<ItemUseSlotState>(ack.InventoryState);
-        if (count == 1) Assert.Null(state.Item);
-        else Assert.Equal(count - 1, state.Item!.Count);
-        Assert.IsAssignableFrom<IGameNotiMessage>(sender.Sent[1]);
+            Assert.Equal(count - 1, inventory.Count);
+            Assert.Equal(2, sender.Sent.Count);
+            var ack = Assert.IsType<UseStackableResponse>(sender.Sent[0]);
+            Assert.Null(ack.ErrorCode);
+            Assert.Equal(wireSlot, ack.Slot.Index);
+            var state = Assert.IsType<ItemUseSlotState>(ack.InventoryState);
+            if (count == 1) Assert.Null(state.Item);
+            else Assert.Equal(count - 1, state.Item!.Count);
+            Assert.IsAssignableFrom<IGameNotiMessage>(sender.Sent[1]);
+        });
     }
 
     [Fact]
     public async Task Repeated_use_of_an_exhausted_slot_resends_clear_without_consuming_again()
     {
-        var inventory = new FakeInventory(4, 8474, 1, 2);
-        var (handler, sender) = Build(inventory);
-        await handler.HandleAsync(Context, Request(4, 8474), default);
-        await handler.HandleAsync(Context, Request(4, 8474), default);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory(4, 8474, 1, 2);
+            var (handler, sender) = Build(inventory);
+            await handler.HandleAsync(Context, Request(4, 8474), default);
+            await handler.HandleAsync(Context, Request(4, 8474), default);
 
-        Assert.True(inventory.IsEmpty);
-        Assert.Equal(4, sender.Sent.Count);
-        var ack = Assert.IsType<UseStackableResponse>(sender.Sent[2]);
-        Assert.Equal(UseStackableResponse.Silent, ack.ErrorCode);
-        Assert.Null(Assert.IsType<ItemUseSlotState>(ack.InventoryState).Item);
-        Assert.IsAssignableFrom<IGameNotiMessage>(sender.Sent[3]);
+            Assert.True(inventory.IsEmpty);
+            Assert.Equal(4, sender.Sent.Count);
+            var ack = Assert.IsType<UseStackableResponse>(sender.Sent[2]);
+            Assert.Equal(UseStackableResponse.Silent, ack.ErrorCode);
+            Assert.Null(Assert.IsType<ItemUseSlotState>(ack.InventoryState).Item);
+            Assert.IsAssignableFrom<IGameNotiMessage>(sender.Sent[3]);
+        });
     }
 
     [Fact]
     public async Task Remaining_pile_projection_preserves_item_metadata()
     {
-        var inventory = new FakeInventory(4, 8474, 2, 2);
-        var slots = new BusinessInventorySlotDomainService(inventory.Containers(), new InventorySlotMappingRuleService());
-        await using (var tx = inventory.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var bound = slots.Get(new CharacterId(60), new(BusinessInventorySpace.QuickSlot, 1));
-            var item = (await bound.Container.GetAsync(1, default))!;
-            await bound.Container.UpdateAsync(item, x => x with { ExpireTime = int.MaxValue, SortLockFlag = 1 }, default);
-            await tx.CommitAsync(default);
-        }
-        var (handler, sender) = Build(inventory);
-        await handler.HandleAsync(Context, Request(4, 8474), default);
-        var remaining = sender.Sent.OfType<UseStackableResponse>().Single().InventoryState!.Item!;
-        Assert.Equal(1, remaining.Count);
-        Assert.Equal(int.MaxValue, remaining.ExpireTime);
-        Assert.Equal(1, remaining.SortLockFlag);
+            var inventory = new FakeInventory(4, 8474, 2, 2);
+            var slots = new BusinessInventorySlotDomainService(inventory.Containers(), new InventorySlotMappingRuleService());
+            await using (var tx = inventory.Scope.Begin())
+            {
+                var bound = slots.Get(new CharacterId(60), new(BusinessInventorySpace.QuickSlot, 1));
+                var item = (await bound.Container.GetAsync(1, default))!;
+                await bound.Container.UpdateAsync(item, x => x with { ExpireTime = int.MaxValue, SortLockFlag = 1 }, default);
+                await tx.CommitAsync(default);
+            }
+            var (handler, sender) = Build(inventory);
+            await handler.HandleAsync(Context, Request(4, 8474), default);
+            var remaining = sender.Sent.OfType<UseStackableResponse>().Single().InventoryState!.Item!;
+            Assert.Equal(1, remaining.Count);
+            Assert.Equal(int.MaxValue, remaining.ExpireTime);
+            Assert.Equal(1, remaining.SortLockFlag);
+        });
     }
 
     [Fact]
     public async Task Expired_stackable_is_refused_without_consumption()
     {
-        var inventory = new FakeInventory(3, 8474, 2, 2);
-        var slots = new BusinessInventorySlotDomainService(inventory.Containers(), new InventorySlotMappingRuleService());
-        await using (var tx = inventory.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var bound = slots.Get(new CharacterId(60), new(BusinessInventorySpace.QuickSlot, 0));
-            var item = (await bound.Container.GetAsync(0, default))!;
-            await bound.Container.UpdateAsync(item, x => x with { ExpireTime = 1 }, default);
-            await tx.CommitAsync(default);
-        }
-        var (handler, sender) = Build(inventory);
-        await handler.HandleAsync(Context, Request(3, 8474), default);
-        Assert.Equal(2, inventory.Count);
-        Assert.Equal(UseStackableResponse.NotConsumable, ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+            var inventory = new FakeInventory(3, 8474, 2, 2);
+            var slots = new BusinessInventorySlotDomainService(inventory.Containers(), new InventorySlotMappingRuleService());
+            await using (var tx = inventory.Scope.Begin())
+            {
+                var bound = slots.Get(new CharacterId(60), new(BusinessInventorySpace.QuickSlot, 0));
+                var item = (await bound.Container.GetAsync(0, default))!;
+                await bound.Container.UpdateAsync(item, x => x with { ExpireTime = 1 }, default);
+                await tx.CommitAsync(default);
+            }
+            var (handler, sender) = Build(inventory);
+            await handler.HandleAsync(Context, Request(3, 8474), default);
+            Assert.Equal(2, inventory.Count);
+            Assert.Equal(UseStackableResponse.NotConsumable, ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+        });
     }
 
     [Fact]
     public async Task Rolled_back_use_leaves_the_item_immediately_usable()
     {
-        var inventory = new FakeInventory(3, 8474, 2, 2);
-        var setup = BuildDetailed(inventory, (8474, ItemUseRules.Potion()));
-        var command = new UseStackableCommand(OneSession.Session,
-            new BusinessSlot(BusinessInventorySpace.QuickSlot, 0), 8474);
-        await using (inventory.Scope.Begin())
-            Assert.Equal(ItemUseStatus.Used,
-                (await setup.Command.HandleAsync(UseContext, command, default)).Status);
-
-        Assert.Equal(2, inventory.Count);
-        await using (var tx = inventory.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.Equal(ItemUseStatus.Used,
-                (await setup.Command.HandleAsync(UseContext, command, default)).Status);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(1, inventory.Count);
+            var inventory = new FakeInventory(3, 8474, 2, 2);
+            var setup = BuildDetailed(inventory, (8474, ItemUseRules.Potion()));
+            var command = new UseStackableCommand(OneSession.Session,
+                new BusinessSlot(BusinessInventorySpace.QuickSlot, 0), 8474);
+            await using (inventory.Scope.Begin())
+                Assert.Equal(ItemUseStatus.Used,
+                    (await setup.Command.HandleAsync(UseContext, command, default)).Status);
+
+            Assert.Equal(2, inventory.Count);
+            await using (var tx = inventory.Scope.Begin())
+            {
+                Assert.Equal(ItemUseStatus.Used,
+                    (await setup.Command.HandleAsync(UseContext, command, default)).Status);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(1, inventory.Count);
+        });
     }
 
     [Fact]
     public async Task Spirit_potion_starts_only_after_consumption_commits()
     {
-        var inventory = new FakeInventory(3, 7377, 2, 2);
-        var setup = BuildDetailed(inventory, (7377, SpiritRule()));
-
-        await using (var transaction = inventory.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await setup.Command.HandleAsync(UseContext,
-                SpiritCommand(), CancellationToken.None);
-            Assert.Equal(ItemUseStatus.Used, result.Status);
-            Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
-            await transaction.CommitAsync(CancellationToken.None);
-        }
+            var inventory = new FakeInventory(3, 7377, 2, 2);
+            var setup = BuildDetailed(inventory, (7377, SpiritRule()));
 
-        Assert.Equal(1, inventory.Count);
-        Assert.Equal(1, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
+            await using (var transaction = inventory.Scope.Begin())
+            {
+                var result = await setup.Command.HandleAsync(UseContext,
+                    SpiritCommand(), CancellationToken.None);
+                Assert.Equal(ItemUseStatus.Used, result.Status);
+                Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
+                await transaction.CommitAsync(CancellationToken.None);
+            }
+
+            Assert.Equal(1, inventory.Count);
+            Assert.Equal(1, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
+        });
     }
 
     [Fact]
     public async Task Rolled_back_consumption_does_not_start_spirit_potion()
     {
-        var inventory = new FakeInventory(3, 7377, 2, 2);
-        var setup = BuildDetailed(inventory, (7377, SpiritRule()));
-
-        await using (inventory.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await setup.Command.HandleAsync(UseContext, SpiritCommand(), CancellationToken.None);
-            Assert.Equal(ItemUseStatus.Used, result.Status);
-        }
+            var inventory = new FakeInventory(3, 7377, 2, 2);
+            var setup = BuildDetailed(inventory, (7377, SpiritRule()));
 
-        Assert.Equal(2, inventory.Count);
-        Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
+            await using (inventory.Scope.Begin())
+            {
+                var result = await setup.Command.HandleAsync(UseContext, SpiritCommand(), CancellationToken.None);
+                Assert.Equal(ItemUseStatus.Used, result.Status);
+            }
+
+            Assert.Equal(2, inventory.Count);
+            Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
+        });
     }
 
     [Fact]
     public async Task Late_commit_after_session_exit_does_not_restore_spirit_potion()
     {
-        var inventory = new FakeInventory(3, 7377, 2, 2);
-        var setup = BuildDetailed(inventory, (7377, SpiritRule()));
-
-        await using (var transaction = inventory.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await setup.Command.HandleAsync(UseContext, SpiritCommand(), CancellationToken.None);
-            Assert.Equal(ItemUseStatus.Used, result.Status);
-            Assert.True(setup.Sessions.ReleaseExact(OneSession.Session));
-            Assert.True(setup.Potion.EndExact(OneSession.Session));
-            await transaction.CommitAsync(CancellationToken.None);
-        }
+            var inventory = new FakeInventory(3, 7377, 2, 2);
+            var setup = BuildDetailed(inventory, (7377, SpiritRule()));
 
-        Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
+            await using (var transaction = inventory.Scope.Begin())
+            {
+                var result = await setup.Command.HandleAsync(UseContext, SpiritCommand(), CancellationToken.None);
+                Assert.Equal(ItemUseStatus.Used, result.Status);
+                Assert.True(setup.Sessions.ReleaseExact(OneSession.Session));
+                Assert.True(setup.Potion.EndExact(OneSession.Session));
+                await transaction.CommitAsync(CancellationToken.None);
+            }
+
+            Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
+        });
     }
 
     [Fact]
     public async Task Replaced_session_rejects_old_spirit_potion_commit()
     {
-        var inventory = new FakeInventory(3, 7377, 2, 2);
-        var setup = BuildDetailed(inventory, (7377, SpiritRule()));
-
-        await using (var transaction = inventory.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var result = await setup.Command.HandleAsync(UseContext, SpiritCommand(), CancellationToken.None);
-            Assert.Equal(ItemUseStatus.Used, result.Status);
-            var replacement = OneSession.Session with
-            {
-                ConnectionId = new NetworkConnectionId("game-replacement"),
-                ConnectionGeneration = 2,
-            };
-            setup.Sessions.Select(replacement);
-            setup.Potion.Begin(replacement, new CharacterPositionState(1, 1, 0, 0, 0), 100);
-            await transaction.CommitAsync(CancellationToken.None);
-        }
+            var inventory = new FakeInventory(3, 7377, 2, 2);
+            var setup = BuildDetailed(inventory, (7377, SpiritRule()));
 
-        Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
+            await using (var transaction = inventory.Scope.Begin())
+            {
+                var result = await setup.Command.HandleAsync(UseContext, SpiritCommand(), CancellationToken.None);
+                Assert.Equal(ItemUseStatus.Used, result.Status);
+                var replacement = OneSession.Session with
+                {
+                    ConnectionId = new NetworkConnectionId("game-replacement"),
+                    ConnectionGeneration = 2,
+                };
+                setup.Sessions.Select(replacement);
+                setup.Potion.Begin(replacement, new CharacterPositionState(1, 1, 0, 0, 0), 100);
+                await transaction.CommitAsync(CancellationToken.None);
+            }
+
+            Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
+        });
     }
 
     [Fact]
     public async Task Replaced_session_before_command_rejects_old_potion_use()
     {
-        var inventory = new FakeInventory(3, 7377, 2, 2);
-        var setup = BuildDetailed(inventory, (7377, SpiritRule()));
-        setup.Sessions.Select(OneSession.Session with
+        await TestGameplay.RunAsync(async () =>
         {
-            ConnectionId = new NetworkConnectionId("game-replacement"),
-            ConnectionGeneration = 2,
+            var inventory = new FakeInventory(3, 7377, 2, 2);
+            var setup = BuildDetailed(inventory, (7377, SpiritRule()));
+            setup.Sessions.Select(OneSession.Session with
+            {
+                ConnectionId = new NetworkConnectionId("game-replacement"),
+                ConnectionGeneration = 2,
+            });
+
+            await using (var transaction = inventory.Scope.Begin())
+            {
+                var result = await setup.Command.HandleAsync(UseContext,
+                    SpiritCommand(), CancellationToken.None);
+                Assert.Equal(ItemUseStatus.NoSession, result.Status);
+                await transaction.CommitAsync(CancellationToken.None);
+            }
+
+            Assert.Equal(2, inventory.Count);
+            Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
         });
-
-        await using (var transaction = inventory.Scope.Begin())
-        {
-            var result = await setup.Command.HandleAsync(UseContext,
-                SpiritCommand(), CancellationToken.None);
-            Assert.Equal(ItemUseStatus.NoSession, result.Status);
-            await transaction.CommitAsync(CancellationToken.None);
-        }
-
-        Assert.Equal(2, inventory.Count);
-        Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
     }
 
     [Fact]
     public async Task Shared_effect_checks_real_item_and_rule_consumes_once_and_rolls_back()
     {
-        var inventory = new FakeInventory(3, 8474, 2, 2);
-        var setup = BuildDetailed(inventory, (8474, ItemUseRules.Potion(cooldownMilliseconds: 0) with { SharedEffectSelector = 0 }));
-        var slot = new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, 3));
-        await using (var tx = inventory.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.False((await setup.Shared.UseAsync(OneSession.Session, slot, 9000, default)).Succeeded);
+            var inventory = new FakeInventory(3, 8474, 2, 2);
+            var setup = BuildDetailed(inventory, (8474, ItemUseRules.Potion(cooldownMilliseconds: 0) with { SharedEffectSelector = 0 }));
+            var slot = new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, 3));
+            await using (var tx = inventory.Scope.Begin())
+            {
+                Assert.False((await setup.Shared.UseAsync(OneSession.Session, slot, 9000, default)).Succeeded);
+                Assert.Equal(2, inventory.Count);
+                var result = await setup.Shared.UseAsync(OneSession.Session, slot, 8474, default);
+                Assert.True(result.Succeeded); Assert.Equal(1, result.State!.Item!.Count);
+            }
             Assert.Equal(2, inventory.Count);
-            var result = await setup.Shared.UseAsync(OneSession.Session, slot, 8474, default);
-            Assert.True(result.Succeeded); Assert.Equal(1, result.State!.Item!.Count);
-        }
-        Assert.Equal(2, inventory.Count);
-        await using (var tx = inventory.Scope.Begin())
-        {
-            Assert.True((await setup.Shared.UseAsync(OneSession.Session, slot, 8474, default)).Succeeded);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(1, inventory.Count);
-        var ordinary = BuildDetailed(inventory, (8474, ItemUseRules.Potion(cooldownMilliseconds: 0)));
-        await using (var tx = inventory.Scope.Begin())
-            Assert.False((await ordinary.Shared.UseAsync(OneSession.Session, slot, 8474, default)).Succeeded);
-        Assert.Equal(1, inventory.Count);
+            await using (var tx = inventory.Scope.Begin())
+            {
+                Assert.True((await setup.Shared.UseAsync(OneSession.Session, slot, 8474, default)).Succeeded);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(1, inventory.Count);
+            var ordinary = BuildDetailed(inventory, (8474, ItemUseRules.Potion(cooldownMilliseconds: 0)));
+            await using (var tx = inventory.Scope.Begin())
+                Assert.False((await ordinary.Shared.UseAsync(OneSession.Session, slot, 8474, default)).Succeeded);
+            Assert.Equal(1, inventory.Count);
+        });
     }
 
     private static ItemUseRule SpiritRule() => ItemUseRules.Potion(cooldownMilliseconds: 0) with
@@ -267,36 +301,45 @@ public sealed class UseStackableHandlerTests
     [Fact]
     public async Task One_item_leaves_the_pile()
     {
-        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 2, itemKind: 2);
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 2, itemKind: 2);
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
-        Assert.Equal(1, inventory.Count);
-        Assert.Null(((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+            Assert.Equal(1, inventory.Count);
+            Assert.Null(((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+        });
     }
 
     [Fact]
     public async Task A_large_pile_loses_only_one()
     {
-        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 99, itemKind: 2);
-        var (handler, _) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 99, itemKind: 2);
+            var (handler, _) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
-        Assert.Equal(98, inventory.Count);
+            Assert.Equal(98, inventory.Count);
+        });
     }
 
     [Fact]
     public async Task The_last_of_a_pile_empties_the_slot()
     {
-        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2);
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2);
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
-        Assert.True(inventory.IsEmpty);
-        Assert.Null(((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+            Assert.True(inventory.IsEmpty);
+            Assert.Null(((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -310,29 +353,35 @@ public sealed class UseStackableHandlerTests
     [Fact]
     public async Task A_slot_holding_a_different_item_is_refused_without_a_message()
     {
-        var inventory = new FakeInventory(slot: 3, itemId: 9000, count: 1, itemKind: 2);
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory(slot: 3, itemId: 9000, count: 1, itemKind: 2);
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
-        Assert.Equal(1, inventory.Count);
-        Assert.Equal(
-            UseStackableResponse.Silent,
-            ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
-        Assert.Equal(9000, sender.Sent.OfType<UseStackableResponse>().Single().InventoryState!.Item!.ItemId);
-        Assert.Equal(2, sender.Sent.Count);
+            Assert.Equal(1, inventory.Count);
+            Assert.Equal(
+                UseStackableResponse.Silent,
+                ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+            Assert.Equal(9000, sender.Sent.OfType<UseStackableResponse>().Single().InventoryState!.Item!.ItemId);
+            Assert.Equal(2, sender.Sent.Count);
+        });
     }
 
     [Fact]
     public async Task An_empty_slot_is_refused_without_a_message()
     {
-        var (handler, sender) = Build(new FakeInventory(slot: 3, itemId: 8474, count: 0, itemKind: 2));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, sender) = Build(new FakeInventory(slot: 3, itemId: 8474, count: 0, itemKind: 2));
 
-        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
-        Assert.Equal(
-            UseStackableResponse.Silent,
-            ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+            Assert.Equal(
+                UseStackableResponse.Silent,
+                ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -344,35 +393,41 @@ public sealed class UseStackableHandlerTests
     [Fact]
     public async Task Equipment_is_refused_as_not_consumable()
     {
-        var inventory = new FakeInventory(slot: 3, itemId: 10000, count: 1, itemKind: 1);
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory(slot: 3, itemId: 10000, count: 1, itemKind: 1);
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(3, 10000), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(3, 10000), CancellationToken.None);
 
-        Assert.Equal(1, inventory.Count);
-        Assert.Equal(
-            UseStackableResponse.NotConsumable,
-            ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+            Assert.Equal(1, inventory.Count);
+            Assert.Equal(
+                UseStackableResponse.NotConsumable,
+                ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+        });
     }
 
     [Fact]
     public async Task A_list_other_than_the_main_one_is_refused()
     {
-        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2);
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2);
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(
-            Context,
-            Request(3, 8474) with
-            {
-                Slot = new GameSlot(InventoryContainerType.Pet, 3),
-            },
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Context,
+                Request(3, 8474) with
+                {
+                    Slot = new GameSlot(InventoryContainerType.Pet, 3),
+                },
+                CancellationToken.None);
 
-        Assert.Equal(1, inventory.Count);
-        Assert.Equal(
-            UseStackableResponse.NotConsumable,
-            ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+            Assert.Equal(1, inventory.Count);
+            Assert.Equal(
+                UseStackableResponse.NotConsumable,
+                ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -383,13 +438,16 @@ public sealed class UseStackableHandlerTests
     [Fact]
     public async Task An_unlimited_item_is_used_without_leaving_the_pile()
     {
-        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2);
-        var (handler, sender) = Build(inventory, (8474, ItemUseRules.Unlimited()));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2);
+            var (handler, sender) = Build(inventory, (8474, ItemUseRules.Unlimited()));
 
-        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
-        Assert.Equal(1, inventory.Count);
-        Assert.Null(((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+            Assert.Equal(1, inventory.Count);
+            Assert.Null(((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -399,16 +457,19 @@ public sealed class UseStackableHandlerTests
     [Fact]
     public async Task A_second_use_inside_the_cooldown_is_refused()
     {
-        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 5, itemKind: 2);
-        var (handler, sender) = Build(inventory, (8474, ItemUseRules.Potion()));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 5, itemKind: 2);
+            var (handler, sender) = Build(inventory, (8474, ItemUseRules.Potion()));
 
-        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
-        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
-        Assert.Equal(4, inventory.Count);
-        Assert.Equal(
-            UseStackableResponse.CurrentlyUnusable,
-            ((UseStackableResponse)sender.Sent.Last()).ErrorCode);
+            Assert.Equal(4, inventory.Count);
+            Assert.Equal(
+                UseStackableResponse.CurrentlyUnusable,
+                ((UseStackableResponse)sender.Sent.Last()).ErrorCode);
+        });
     }
 
     /// <summary>
@@ -424,19 +485,22 @@ public sealed class UseStackableHandlerTests
     [Fact]
     public async Task Using_one_member_of_a_group_makes_the_others_wait()
     {
-        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 5, itemKind: 2);
-        var (handler, sender) = Build(
-            inventory,
-            (8474, ItemUseRules.Potion(3_000, cooltimeGroup: 70)),
-            (9000, ItemUseRules.Potion(3_000, cooltimeGroup: 70)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 5, itemKind: 2);
+            var (handler, sender) = Build(
+                inventory,
+                (8474, ItemUseRules.Potion(3_000, cooltimeGroup: 70)),
+                (9000, ItemUseRules.Potion(3_000, cooltimeGroup: 70)));
 
-        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
-        inventory.Reseed(slot: 3, itemId: 9000, count: 5, itemKind: 2);
-        await handler.HandleAsync(Context, Request(3, 9000), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+            inventory.Reseed(slot: 3, itemId: 9000, count: 5, itemKind: 2);
+            await handler.HandleAsync(Context, Request(3, 9000), CancellationToken.None);
 
-        Assert.Equal(
-            UseStackableResponse.CurrentlyUnusable,
-            ((UseStackableResponse)sender.Sent.Last()).ErrorCode);
+            Assert.Equal(
+                UseStackableResponse.CurrentlyUnusable,
+                ((UseStackableResponse)sender.Sent.Last()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -446,17 +510,20 @@ public sealed class UseStackableHandlerTests
     [Fact]
     public async Task A_refused_use_does_not_start_the_cooldown()
     {
-        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 5, itemKind: 2);
-        var (handler, sender) = Build(inventory, (8474, ItemUseRules.RequiringLevel(99)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 5, itemKind: 2);
+            var (handler, sender) = Build(inventory, (8474, ItemUseRules.RequiringLevel(99)));
 
-        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
-        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
-        Assert.Equal(5, inventory.Count);
-        Assert.All(
-            sender.Sent,
-            message => Assert.Equal(
-                UseStackableResponse.LevelTooLow, ((UseStackableResponse)message).ErrorCode));
+            Assert.Equal(5, inventory.Count);
+            Assert.All(
+                sender.Sent,
+                message => Assert.Equal(
+                    UseStackableResponse.LevelTooLow, ((UseStackableResponse)message).ErrorCode));
+        });
     }
 
     /// <remarks>
@@ -466,22 +533,25 @@ public sealed class UseStackableHandlerTests
     [Fact]
     public async Task A_wrong_job_and_too_low_a_level_are_told_apart()
     {
-        var wrongJob = Build(
-            new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2),
-            (8474, ItemUseRules.RequiringJob(QuestJobRequirement.Priest)));
-        var tooLow = Build(
-            new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2),
-            (8474, ItemUseRules.RequiringLevel(99)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var wrongJob = Build(
+                new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2),
+                (8474, ItemUseRules.RequiringJob(QuestJobRequirement.Priest)));
+            var tooLow = Build(
+                new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2),
+                (8474, ItemUseRules.RequiringLevel(99)));
 
-        await wrongJob.Handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
-        await tooLow.Handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+            await wrongJob.Handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+            await tooLow.Handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
-        Assert.Equal(
-            UseStackableResponse.JobMismatch,
-            ((UseStackableResponse)wrongJob.Sender.Sent.Single()).ErrorCode);
-        Assert.Equal(
-            UseStackableResponse.LevelTooLow,
-            ((UseStackableResponse)tooLow.Sender.Sent.Single()).ErrorCode);
+            Assert.Equal(
+                UseStackableResponse.JobMismatch,
+                ((UseStackableResponse)wrongJob.Sender.Sent.Single()).ErrorCode);
+            Assert.Equal(
+                UseStackableResponse.LevelTooLow,
+                ((UseStackableResponse)tooLow.Sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -491,15 +561,18 @@ public sealed class UseStackableHandlerTests
     [Fact]
     public async Task An_item_only_usable_underground_is_refused_in_town()
     {
-        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2);
-        var (handler, sender) = Build(inventory, (8474, ItemUseRules.UsableIn(ItemUsePlace.Dungeon)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2);
+            var (handler, sender) = Build(inventory, (8474, ItemUseRules.UsableIn(ItemUsePlace.Dungeon)));
 
-        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
-        Assert.Equal(1, inventory.Count);
-        Assert.Equal(
-            UseStackableResponse.CurrentlyUnusable,
-            ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+            Assert.Equal(1, inventory.Count);
+            Assert.Equal(
+                UseStackableResponse.CurrentlyUnusable,
+                ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -509,11 +582,14 @@ public sealed class UseStackableHandlerTests
     [Fact]
     public async Task The_instance_value_comes_back_unchanged()
     {
-        var (handler, sender) = Build(new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, sender) = Build(new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2));
 
-        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
-        Assert.Equal(25333, ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).InstanceValue);
+            Assert.Equal(25333, ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).InstanceValue);
+        });
     }
 
     private static readonly NetworkDispatchContext Context = new(

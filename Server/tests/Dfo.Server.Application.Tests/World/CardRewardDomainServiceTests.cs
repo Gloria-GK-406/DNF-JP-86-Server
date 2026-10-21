@@ -7,6 +7,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -24,24 +25,27 @@ public sealed class CardRewardDomainServiceTests
     [Fact]
     public async Task Black_diamond_is_personal_and_frozen_once_with_an_independent_seed()
     {
-        var runs = new DungeonRunDomainService();
-        var leader = new DungeonRunParticipant(new AccountId(11), new CharacterId(1), 0, true);
-        var member = new DungeonRunParticipant(new AccountId(22), new CharacterId(2), 1, false);
-        var run = runs.BeginParty([leader, member], Tutorial, (DungeonDifficulty)Difficulty);
-        var premiums = new Dfo.Server.Application.Tests.Support.CardPremiums(11);
-        var rules = new RecordingRules();
-        var service = new CardRewardDomainService(rules, runs, premiums);
-        var first = await service.SettleAsync(new(leader.CharacterId, Level, 2, run.RunId), default);
-        var second = await service.SettleAsync(new(member.CharacterId, Level, 2, run.RunId), default);
-        Assert.NotNull(first!.Cards.BlackDiamond);
-        Assert.Null(second!.Cards.BlackDiamond);
-        Assert.Equal(5, rules.Asked.Count);
-        Assert.Equal(3, rules.Asked.Take(3).Select(x => x.Seed).Distinct().Count());
-        premiums.Enabled = false;
-        var repeated = await service.SettleAsync(new(leader.CharacterId, Level, 2, run.RunId), default);
-        Assert.Same(first.Cards, repeated!.Cards);
-        Assert.Equal(2, premiums.Queries);
-        Assert.Equal(5, rules.Asked.Count);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new DungeonRunDomainService();
+            var leader = new DungeonRunParticipant(new AccountId(11), new CharacterId(1), 0, true);
+            var member = new DungeonRunParticipant(new AccountId(22), new CharacterId(2), 1, false);
+            var run = runs.BeginParty([leader, member], Tutorial, (DungeonDifficulty)Difficulty);
+            var premiums = new Dfo.Server.Application.Tests.Support.CardPremiums(11);
+            var rules = new RecordingRules();
+            var service = new CardRewardDomainService(rules, runs, premiums);
+            var first = await service.SettleAsync(new(leader.CharacterId, Level, 2, run.RunId), default);
+            var second = await service.SettleAsync(new(member.CharacterId, Level, 2, run.RunId), default);
+            Assert.NotNull(first!.Cards.BlackDiamond);
+            Assert.Null(second!.Cards.BlackDiamond);
+            Assert.Equal(5, rules.Asked.Count);
+            Assert.Equal(3, rules.Asked.Take(3).Select(x => x.Seed).Distinct().Count());
+            premiums.Enabled = false;
+            var repeated = await service.SettleAsync(new(leader.CharacterId, Level, 2, run.RunId), default);
+            Assert.Same(first.Cards, repeated!.Cards);
+            Assert.Equal(2, premiums.Queries);
+            Assert.Equal(5, rules.Asked.Count);
+        });
     }
 
     private static readonly CharacterId Character = new(1);
@@ -241,87 +245,96 @@ public sealed class CardRewardDomainServiceTests
     [Fact]
     public async Task A_clear_fixes_two_faces_drawn_from_different_seeds()
     {
-        var (service, _, rules) = Build(Tutorial);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (service, _, rules) = Build(Tutorial);
 
-        var settled = await service.SettleAsync(Settlement, CancellationToken.None);
+            var settled = await service.SettleAsync(Settlement, CancellationToken.None);
 
-        Assert.NotNull(settled);
-        var cards = settled.Cards;
-        Assert.Equal(2, rules.Asked.Count);
-        Assert.Equal(ClearRewardCardKind.Free, rules.Asked[0].Occasion.Kind);
-        Assert.Equal(ClearRewardCardKind.Paid, rules.Asked[1].Occasion.Kind);
-        Assert.NotEqual(rules.Asked[0].Seed, rules.Asked[1].Seed);
+            Assert.NotNull(settled);
+            var cards = settled.Cards;
+            Assert.Equal(2, rules.Asked.Count);
+            Assert.Equal(ClearRewardCardKind.Free, rules.Asked[0].Occasion.Kind);
+            Assert.Equal(ClearRewardCardKind.Paid, rules.Asked[1].Occasion.Kind);
+            Assert.NotEqual(rules.Asked[0].Seed, rules.Asked[1].Seed);
 
-        Assert.Equal(ClearRewardCardKind.Free, cards.Free.Kind);
-        Assert.Equal(ClearRewardCardKind.Paid, cards.Paid.Kind);
-        Assert.Empty(cards.Claimed);
+            Assert.Equal(ClearRewardCardKind.Free, cards.Free.Kind);
+            Assert.Equal(ClearRewardCardKind.Paid, cards.Paid.Kind);
+            Assert.Empty(cards.Claimed);
+        });
     }
 
     [Fact]
     public async Task A_clear_hands_the_runs_committed_kills_to_both_reward_faces()
     {
-        const ushort sequence = 41;
-        var actor = new DungeonRoomActor(
-            61670, 5, (byte)MonsterRank.Champion);
-        var runs = new DungeonRunDomainService();
-        var participant = new DungeonRunParticipant(
-            new AccountId(1), Character, Slot: 0, IsLeader: true);
-        _ = runs.PreparePartyEntry(
-            [participant],
-            Tutorial,
-            (DungeonDifficulty)Difficulty,
-            new DungeonCellSeed(
-                Tutorial.StartCell,
-                Tutorial.StartRoomMapId,
-                sequence,
-                [new DungeonCellActorState(
+        await TestGameplay.RunAsync(async () =>
+        {
+            const ushort sequence = 41;
+            var actor = new DungeonRoomActor(
+                61670, 5, (byte)MonsterRank.Champion);
+            var runs = new DungeonRunDomainService();
+            var participant = new DungeonRunParticipant(
+                new AccountId(1), Character, Slot: 0, IsLeader: true);
+            _ = runs.PreparePartyEntry(
+                [participant],
+                Tutorial,
+                (DungeonDifficulty)Difficulty,
+                new DungeonCellSeed(
+                    Tutorial.StartCell,
+                    Tutorial.StartRoomMapId,
                     sequence,
-                    actor,
-                    IsAiCharacter: false,
-                    IsDead: false,
-                    PendingLoot: [],
-                    IsMonster: true)],
-                GroundItems: []),
-            DungeonRunId.New(),
-            DateTimeOffset.UtcNow);
-        var death = Assert.IsType<DungeonActorDeathClaim>(
-            runs.TryClaimActorDeath(Character, sequence));
-        var killed = Assert.IsType<DungeonRunState>(runs.CommitActorDeath(death));
-        Assert.NotNull(runs.TryOpenClear(Character, killed.RunId, killed.RoomVersion));
-        var rules = new RecordingRules();
-        var service = new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums());
+                    [new DungeonCellActorState(
+                        sequence,
+                        actor,
+                        IsAiCharacter: false,
+                        IsDead: false,
+                        PendingLoot: [],
+                        IsMonster: true)],
+                    GroundItems: []),
+                DungeonRunId.New(),
+                DateTimeOffset.UtcNow);
+            var death = Assert.IsType<DungeonActorDeathClaim>(
+                runs.TryClaimActorDeath(Character, sequence));
+            var killed = Assert.IsType<DungeonRunState>(runs.CommitActorDeath(death));
+            Assert.NotNull(runs.TryOpenClear(Character, killed.RunId, killed.RoomVersion));
+            var rules = new RecordingRules();
+            var service = new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums());
 
-        var settled = await service.SettleAsync(Settlement, CancellationToken.None);
+            var settled = await service.SettleAsync(Settlement, CancellationToken.None);
 
-        Assert.NotNull(settled);
-        Assert.Equal(2, rules.Asked.Count);
-        Assert.All(
-            rules.Asked,
-            asked =>
-            {
-                var recorded = Assert.Single(asked.Occasion.Kills);
-                Assert.Equal(actor.Code, recorded.MonsterCode);
-                Assert.Equal(MonsterRank.Champion, recorded.Rank);
-            });
+            Assert.NotNull(settled);
+            Assert.Equal(2, rules.Asked.Count);
+            Assert.All(
+                rules.Asked,
+                asked =>
+                {
+                    var recorded = Assert.Single(asked.Occasion.Kills);
+                    Assert.Equal(actor.Code, recorded.MonsterCode);
+                    Assert.Equal(MonsterRank.Champion, recorded.Rank);
+                });
+        });
     }
 
     [Fact]
     public async Task Card_resolution_for_an_old_run_cannot_fix_cards_on_its_replacement()
     {
-        var runs = new DungeonRunDomainService();
-        var old = runs.Begin(Character, Tutorial, (DungeonDifficulty)Difficulty);
-        var rules = new RecordingRules(pauseOffers: true);
-        var service = new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums());
-        var pending = service.SettleAsync(
-            Settlement with { RunId = old.RunId }, CancellationToken.None).AsTask();
-        await rules.WaitForOffersAsync();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new DungeonRunDomainService();
+            var old = runs.Begin(Character, Tutorial, (DungeonDifficulty)Difficulty);
+            var rules = new RecordingRules(pauseOffers: true);
+            var service = new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums());
+            var pending = service.SettleAsync(
+                Settlement with { RunId = old.RunId }, CancellationToken.None).AsTask();
+            await rules.WaitForOffersAsync();
 
-        var replacement = runs.Begin(Character, Tutorial, (DungeonDifficulty)(Difficulty + 1));
-        rules.ReleaseOffers();
+            var replacement = runs.Begin(Character, Tutorial, (DungeonDifficulty)(Difficulty + 1));
+            rules.ReleaseOffers();
 
-        Assert.Null(await pending);
-        Assert.Null(runs.Find(Character)!.ClearRewardCards);
-        Assert.NotEqual(old.RunId, replacement.RunId);
+            Assert.Null(await pending);
+            Assert.Null(runs.Find(Character)!.ClearRewardCards);
+            Assert.NotEqual(old.RunId, replacement.RunId);
+        });
     }
 
     /// <summary>
@@ -337,24 +350,27 @@ public sealed class CardRewardDomainServiceTests
     [Fact]
     public async Task Both_seeds_are_derived_from_the_run_and_from_nothing_else()
     {
-        var first = await SeedsFor(Tutorial);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var first = await SeedsFor(Tutorial);
 
-        Assert.NotEqual(first.Free, first.Paid);
+            Assert.NotEqual(first.Free, first.Paid);
 
-        // A second server and a second run of the same layout: the same two seeds. This is what a
-        // repeated settlement of one clear rests on, and what a clock or a shared generator
-        // would break.
-        Assert.Equal(first, await SeedsFor(Tutorial));
+            // A second server and a second run of the same layout: the same two seeds. This is what a
+            // repeated settlement of one clear rests on, and what a clock or a shared generator
+            // would break.
+            Assert.Equal(first, await SeedsFor(Tutorial));
 
-        // And they are the run's own rather than two constants: change what the maze was laid out
-        // from, or which dungeon it is a run of, and both seeds move.
-        var otherSeed = await SeedsFor(Tutorial with { Seed = Tutorial.Seed + 1 });
-        Assert.NotEqual(first.Free, otherSeed.Free);
-        Assert.NotEqual(first.Paid, otherSeed.Paid);
+            // And they are the run's own rather than two constants: change what the maze was laid out
+            // from, or which dungeon it is a run of, and both seeds move.
+            var otherSeed = await SeedsFor(Tutorial with { Seed = Tutorial.Seed + 1 });
+            Assert.NotEqual(first.Free, otherSeed.Free);
+            Assert.NotEqual(first.Paid, otherSeed.Paid);
 
-        var otherDungeon = await SeedsFor(Tutorial with { DungeonId = Tutorial.DungeonId + 2 });
-        Assert.NotEqual(first.Free, otherDungeon.Free);
-        Assert.NotEqual(first.Paid, otherDungeon.Paid);
+            var otherDungeon = await SeedsFor(Tutorial with { DungeonId = Tutorial.DungeonId + 2 });
+            Assert.NotEqual(first.Free, otherDungeon.Free);
+            Assert.NotEqual(first.Paid, otherDungeon.Paid);
+        });
     }
 
     /// <summary>
@@ -368,35 +384,38 @@ public sealed class CardRewardDomainServiceTests
     [Fact]
     public async Task A_second_settlement_keeps_the_cards_already_fixed()
     {
-        var (service, runs, rules) = Build(Tutorial);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (service, runs, rules) = Build(Tutorial);
 
-        var first = await service.SettleAsync(Settlement, CancellationToken.None);
-        var second = await service.SettleAsync(Settlement, CancellationToken.None);
+            var first = await service.SettleAsync(Settlement, CancellationToken.None);
+            var second = await service.SettleAsync(Settlement, CancellationToken.None);
 
-        Assert.NotNull(first);
-        Assert.NotNull(second);
-        Assert.Equal(ItemIds(first.Cards.Free), ItemIds(second.Cards.Free));
-        Assert.Equal(ItemIds(first.Cards.Paid), ItemIds(second.Cards.Paid));
-        Assert.Equal(2, rules.Asked.Count);
+            Assert.NotNull(first);
+            Assert.NotNull(second);
+            Assert.Equal(ItemIds(first.Cards.Free), ItemIds(second.Cards.Free));
+            Assert.Equal(ItemIds(first.Cards.Paid), ItemIds(second.Cards.Paid));
+            Assert.Equal(2, rules.Asked.Count);
 
-        var found = runs.Find(Character);
-        Assert.NotNull(found);
-        Assert.NotNull(found.ClearRewardCards);
-        Assert.Equal(ItemIds(first.Cards.Free), ItemIds(found.ClearRewardCards.Free));
-        Assert.Equal(ItemIds(first.Cards.Paid), ItemIds(found.ClearRewardCards.Paid));
+            var found = runs.Find(Character);
+            Assert.NotNull(found);
+            Assert.NotNull(found.ClearRewardCards);
+            Assert.Equal(ItemIds(first.Cards.Free), ItemIds(found.ClearRewardCards.Free));
+            Assert.Equal(ItemIds(first.Cards.Paid), ItemIds(found.ClearRewardCards.Paid));
 
-        // And what the flip costs comes back both times, because the first settlement fixed it
-        // with the faces and the run kept it. It was once the other way round -- asked of the
-        // rules again on every settlement, so that no copy of an archive answer could go stale --
-        // and that lost to the frame: the price is announced beside these faces, and a figure
-        // worked out again at a level the clear's own experience bought is not the announced one.
-        // That last hazard is gone now the price is the dungeon's rather than the character's,
-        // but the single entry below is what says the answer was kept rather than re-fetched, and
-        // it would say so whichever level the price were keyed on.
-        Assert.Equal(RecordingRules.Price, first.PaidFlipCost);
-        Assert.Equal(first.PaidFlipCost, second.PaidFlipCost);
-        Assert.Equal(first.PaidFlipCost, first.Cards.PaidFlipCost);
-        Assert.Equal([(int)BasisLevel], rules.Priced);
+            // And what the flip costs comes back both times, because the first settlement fixed it
+            // with the faces and the run kept it. It was once the other way round -- asked of the
+            // rules again on every settlement, so that no copy of an archive answer could go stale --
+            // and that lost to the frame: the price is announced beside these faces, and a figure
+            // worked out again at a level the clear's own experience bought is not the announced one.
+            // That last hazard is gone now the price is the dungeon's rather than the character's,
+            // but the single entry below is what says the answer was kept rather than re-fetched, and
+            // it would say so whichever level the price were keyed on.
+            Assert.Equal(RecordingRules.Price, first.PaidFlipCost);
+            Assert.Equal(first.PaidFlipCost, second.PaidFlipCost);
+            Assert.Equal(first.PaidFlipCost, first.Cards.PaidFlipCost);
+            Assert.Equal([(int)BasisLevel], rules.Priced);
+        });
     }
 
     /// <summary>
@@ -425,29 +444,32 @@ public sealed class CardRewardDomainServiceTests
     [InlineData(true)]
     public async Task The_occasion_is_assembled_from_the_run_and_the_settlement(bool sprawling)
     {
-        var layout = sprawling ? Sprawling : Tutorial;
-        var (service, _, rules) = Build(layout);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var layout = sprawling ? Sprawling : Tutorial;
+            var (service, _, rules) = Build(layout);
 
-        await service.SettleAsync(Settlement, CancellationToken.None);
+            await service.SettleAsync(Settlement, CancellationToken.None);
 
-        Assert.Equal(2, rules.Asked.Count);
-        Assert.All(
-            rules.Asked,
-            asked =>
-            {
-                Assert.Equal(Level, asked.Occasion.CharacterLevel);
-                Assert.Equal(BasisLevel, asked.Occasion.DungeonBasisLevel);
-                Assert.Equal(PartySize, asked.Occasion.PartyMemberCount);
-                Assert.Equal((DungeonDifficulty)Difficulty, asked.Occasion.Difficulty);
-                Assert.Equal(layout.Cells.Count, asked.Occasion.MapMaxCount);
-            });
+            Assert.Equal(2, rules.Asked.Count);
+            Assert.All(
+                rules.Asked,
+                asked =>
+                {
+                    Assert.Equal(Level, asked.Occasion.CharacterLevel);
+                    Assert.Equal(BasisLevel, asked.Occasion.DungeonBasisLevel);
+                    Assert.Equal(PartySize, asked.Occasion.PartyMemberCount);
+                    Assert.Equal((DungeonDifficulty)Difficulty, asked.Occasion.Difficulty);
+                    Assert.Equal(layout.Cells.Count, asked.Occasion.MapMaxCount);
+                });
 
-        // The two layouts hold different numbers of rooms, so a map count that came from anywhere
-        // but the run cannot satisfy both rows of this theory.
-        Assert.NotEqual(Tutorial.Cells.Count, Sprawling.Cells.Count);
+            // The two layouts hold different numbers of rooms, so a map count that came from anywhere
+            // but the run cannot satisfy both rows of this theory.
+            Assert.NotEqual(Tutorial.Cells.Count, Sprawling.Cells.Count);
 
-        // And the two levels are not one number wearing two names.
-        Assert.NotEqual(Level, (int)BasisLevel);
+            // And the two levels are not one number wearing two names.
+            Assert.NotEqual(Level, (int)BasisLevel);
+        });
     }
 
     /// <summary>
@@ -464,19 +486,22 @@ public sealed class CardRewardDomainServiceTests
     [Fact]
     public async Task The_price_is_asked_at_the_dungeons_level_and_not_the_characters()
     {
-        var (service, _, rules) = Build(Tutorial);
-        var (other, _, otherRules) = Build(Tutorial);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (service, _, rules) = Build(Tutorial);
+            var (other, _, otherRules) = Build(Tutorial);
 
-        var settled = await service.SettleAsync(Settlement, CancellationToken.None);
-        var byAnother = await other.SettleAsync(
-            Settlement with { CharacterLevel = Level + 9 }, CancellationToken.None);
+            var settled = await service.SettleAsync(Settlement, CancellationToken.None);
+            var byAnother = await other.SettleAsync(
+                Settlement with { CharacterLevel = Level + 9 }, CancellationToken.None);
 
-        Assert.NotNull(settled);
-        Assert.NotNull(byAnother);
-        Assert.Equal(RecordingRules.Price, settled.PaidFlipCost);
-        Assert.Equal(settled.PaidFlipCost, byAnother.PaidFlipCost);
-        Assert.Equal([(int)BasisLevel], rules.Priced);
-        Assert.Equal(rules.Priced, otherRules.Priced);
+            Assert.NotNull(settled);
+            Assert.NotNull(byAnother);
+            Assert.Equal(RecordingRules.Price, settled.PaidFlipCost);
+            Assert.Equal(settled.PaidFlipCost, byAnother.PaidFlipCost);
+            Assert.Equal([(int)BasisLevel], rules.Priced);
+            Assert.Equal(rules.Priced, otherRules.Priced);
+        });
     }
 
     /// <summary>
@@ -492,13 +517,16 @@ public sealed class CardRewardDomainServiceTests
     [Fact]
     public async Task The_settlement_hands_back_what_a_paid_flip_costs()
     {
-        var (service, _, rules) = Build(Tutorial);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (service, _, rules) = Build(Tutorial);
 
-        var settled = await service.SettleAsync(Settlement, CancellationToken.None);
+            var settled = await service.SettleAsync(Settlement, CancellationToken.None);
 
-        Assert.NotNull(settled);
-        Assert.Equal(RecordingRules.Price, settled.PaidFlipCost);
-        Assert.Equal([(int)BasisLevel], rules.Priced);
+            Assert.NotNull(settled);
+            Assert.Equal(RecordingRules.Price, settled.PaidFlipCost);
+            Assert.Equal([(int)BasisLevel], rules.Priced);
+        });
     }
 
     /// <summary>
@@ -521,18 +549,21 @@ public sealed class CardRewardDomainServiceTests
     [Fact]
     public async Task A_clear_asked_again_after_a_level_up_keeps_the_price_it_settled_at()
     {
-        var (service, _, rules) = Build(Tutorial);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (service, _, rules) = Build(Tutorial);
 
-        var announced = await service.SettleAsync(Settlement, CancellationToken.None);
-        var afterTheAward = await service.SettleAsync(
-            Settlement with { CharacterLevel = Level + 1 }, CancellationToken.None);
+            var announced = await service.SettleAsync(Settlement, CancellationToken.None);
+            var afterTheAward = await service.SettleAsync(
+                Settlement with { CharacterLevel = Level + 1 }, CancellationToken.None);
 
-        Assert.NotNull(announced);
-        Assert.NotNull(afterTheAward);
-        Assert.Equal(RecordingRules.Price, announced.PaidFlipCost);
-        Assert.Equal(announced.PaidFlipCost, afterTheAward.PaidFlipCost);
-        Assert.Equal(announced.PaidFlipCost, afterTheAward.Cards.PaidFlipCost);
-        Assert.Equal([(int)BasisLevel], rules.Priced);
+            Assert.NotNull(announced);
+            Assert.NotNull(afterTheAward);
+            Assert.Equal(RecordingRules.Price, announced.PaidFlipCost);
+            Assert.Equal(announced.PaidFlipCost, afterTheAward.PaidFlipCost);
+            Assert.Equal(announced.PaidFlipCost, afterTheAward.Cards.PaidFlipCost);
+            Assert.Equal([(int)BasisLevel], rules.Priced);
+        });
     }
 
     /// <summary>
@@ -552,58 +583,70 @@ public sealed class CardRewardDomainServiceTests
     [Fact]
     public async Task A_level_the_rules_price_no_flip_at_settles_with_no_price()
     {
-        var (service, _, _) = Build(Tutorial with { BasisLevel = BasisLevel + 1 });
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (service, _, _) = Build(Tutorial with { BasisLevel = BasisLevel + 1 });
 
-        var settled = await service.SettleAsync(Settlement, CancellationToken.None);
+            var settled = await service.SettleAsync(Settlement, CancellationToken.None);
 
-        Assert.NotNull(settled);
-        Assert.Null(settled.PaidFlipCost);
-        Assert.Equal(4, settled.Cards.Free.Slots.Count);
+            Assert.NotNull(settled);
+            Assert.Null(settled.PaidFlipCost);
+            Assert.Equal(4, settled.Cards.Free.Slots.Count);
+        });
     }
 
     /// <summary>One position is handed over once, and each face is claimed on its own.</summary>
     [Fact]
     public async Task A_position_is_handed_over_once()
     {
-        var (service, _, _) = Build(Tutorial);
-        await service.SettleAsync(Settlement, CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (service, _, _) = Build(Tutorial);
+            await service.SettleAsync(Settlement, CancellationToken.None);
 
-        var claimed = await service.ClaimAsync(
-            Character, ClearRewardCardKind.Free, 2, CancellationToken.None);
+            var claimed = await service.ClaimAsync(
+                Character, ClearRewardCardKind.Free, 2, CancellationToken.None);
 
-        Assert.NotNull(claimed);
-        Assert.Equal(2, claimed.Index);
-        Assert.Null(
-            await service.ClaimAsync(
-                Character, ClearRewardCardKind.Free, 2, CancellationToken.None));
-        Assert.NotNull(
-            await service.ClaimAsync(
-                Character, ClearRewardCardKind.Paid, 2, CancellationToken.None));
+            Assert.NotNull(claimed);
+            Assert.Equal(2, claimed.Index);
+            Assert.Null(
+                await service.ClaimAsync(
+                    Character, ClearRewardCardKind.Free, 2, CancellationToken.None));
+            Assert.NotNull(
+                await service.ClaimAsync(
+                    Character, ClearRewardCardKind.Paid, 2, CancellationToken.None));
+        });
     }
 
     /// <summary>A character in no run settles nothing, and the rules are not consulted.</summary>
     [Fact]
     public async Task A_character_in_no_run_settles_nothing()
     {
-        var rules = new RecordingRules();
-        var service = new CardRewardDomainService(rules, new DungeonRunDomainService(), new Dfo.Server.Application.Tests.Support.CardPremiums());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var rules = new RecordingRules();
+            var service = new CardRewardDomainService(rules, new DungeonRunDomainService(), new Dfo.Server.Application.Tests.Support.CardPremiums());
 
-        Assert.Null(await service.SettleAsync(Settlement, CancellationToken.None));
-        Assert.Null(
-            await service.ClaimAsync(
-                Character, ClearRewardCardKind.Free, 0, CancellationToken.None));
-        Assert.Empty(rules.Asked);
+            Assert.Null(await service.SettleAsync(Settlement, CancellationToken.None));
+            Assert.Null(
+                await service.ClaimAsync(
+                    Character, ClearRewardCardKind.Free, 0, CancellationToken.None));
+            Assert.Empty(rules.Asked);
+        });
     }
 
     /// <summary>Cards cannot be claimed before the clear has fixed any.</summary>
     [Fact]
     public async Task Nothing_is_claimed_before_the_clear_fixes_its_cards()
     {
-        var (service, _, _) = Build(Tutorial);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (service, _, _) = Build(Tutorial);
 
-        Assert.Null(
-            await service.ClaimAsync(
-                Character, ClearRewardCardKind.Free, 0, CancellationToken.None));
+            Assert.Null(
+                await service.ClaimAsync(
+                    Character, ClearRewardCardKind.Free, 0, CancellationToken.None));
+        });
     }
 
     /// <summary>

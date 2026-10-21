@@ -6,6 +6,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -53,16 +54,19 @@ public sealed class PersistentContainerBoundaryTests
     [Fact]
     public async Task InsideAUseCaseItAccepts()
     {
-        var scope = new DomainTransactionScope();
-        var container = Persistent(scope, out var lifecycle);
-
-        await using (var transaction = scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await container.PutAsync(65, await lifecycle.CreateAsync(ItemSnapshot.FromCore(Core(2), true), default), default);
-            await transaction.CommitAsync(CancellationToken.None);
-        }
+            var scope = new DomainTransactionScope();
+            var container = Persistent(scope, out var lifecycle);
 
-        Assert.Equal(2, (await container.GetAsync(65, CancellationToken.None))!.Count);
+            await using (var transaction = scope.Begin())
+            {
+                await container.PutAsync(65, await lifecycle.CreateAsync(ItemSnapshot.FromCore(Core(2), true), default), default);
+                await transaction.CommitAsync(CancellationToken.None);
+            }
+
+            Assert.Equal(2, (await container.GetAsync(65, CancellationToken.None))!.Count);
+        });
     }
 
     /// <remarks>

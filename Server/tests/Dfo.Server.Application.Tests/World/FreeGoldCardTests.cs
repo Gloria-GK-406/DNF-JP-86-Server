@@ -7,6 +7,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.CardReward;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -42,20 +43,23 @@ public sealed class FreeGoldCardTests
     }
     private static void Open(ShopFixture shop, int? price = 1300)
     {
-        var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
-        var id = shop.Session.CharacterId;
-        if (runs.Find(id) is { } old) runs.End(id, old.RunId);
-        var cell = new MazeCell(0, 0);
-        var layout = new DungeonLayout(144, 0, 1, 1, cell, cell, 55611, 0,
-            new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)});
-        var run = shop.InTransaction(() => runs.Begin(id, layout, difficulty: 0));
-        runs.FixClearRewardCards(id, run.RunId,
-            new(ClearRewardCardKind.Free, [new(0, null)], Gold: 0),
-            new(ClearRewardCardKind.Paid, [new(0, null)], Gold: 95), price);
-        Assert.NotNull(runs.TryOpenClear(id, run.RunId, run.RoomVersion));
-        var settlement = Assert.IsType<DungeonSettlementClaim>(runs.TryClaimSettlement(id, run.RunId));
-        Assert.NotNull(runs.CommitSettlement(settlement));
-        Assert.NotNull(runs.TryOpenCardLayout(id, run.RunId));
+        TestGameplay.Run(shop.Services, () =>
+        {
+            var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
+            var id = shop.Session.CharacterId;
+            if (runs.Find(id) is { } old) runs.End(id, old.RunId);
+            var cell = new MazeCell(0, 0);
+            var layout = new DungeonLayout(144, 0, 1, 1, cell, cell, 55611, 0,
+                new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)});
+            var run = shop.InTransaction(() => runs.Begin(id, layout, difficulty: 0));
+            runs.FixClearRewardCards(id, run.RunId,
+                new(ClearRewardCardKind.Free, [new(0, null)], Gold: 0),
+                new(ClearRewardCardKind.Paid, [new(0, null)], Gold: 95), price);
+            Assert.NotNull(runs.TryOpenClear(id, run.RunId, run.RoomVersion));
+            var settlement = Assert.IsType<DungeonSettlementClaim>(runs.TryClaimSettlement(id, run.RunId));
+            Assert.NotNull(runs.CommitSettlement(settlement));
+            Assert.NotNull(runs.TryOpenCardLayout(id, run.RunId));
+        });
     }
     private static ValueTask<SelectCardResult> Flip(ShopFixture shop, ClearRewardCardKind kind = ClearRewardCardKind.Paid) =>
         shop.Services.GetRequiredService<ICommandBus>().SendAsync(new SelectCardCommand(

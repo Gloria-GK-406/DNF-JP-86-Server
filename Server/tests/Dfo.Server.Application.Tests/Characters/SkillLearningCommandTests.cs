@@ -8,6 +8,7 @@ using Dfo.Server.Protocol.Game.LearnSkill;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
@@ -61,7 +62,11 @@ public sealed class SkillLearningCommandTests
         await using var fixture = Fixture(new LearningSender());
         await fixture.SeedAsync();
         var users = fixture.Services.GetRequiredService<IOnlineUserQueryDomainService>();
-        Assert.True(users.TryGetByConnection(fixture.Session.ConnectionId, out var online));
+        var online = TestGameplay.Run(fixture.Services, () =>
+        {
+            Assert.True(users.TryGetByConnection(fixture.Session.ConnectionId, out var online));
+            return online;
+        });
         var commands = fixture.Services.GetRequiredService<ICommandBus>();
         var command = new LearnSkillCommand(online!.OnlineUserId, fixture.Session, 0, [new(1, 0, 1)], 0);
         var results = await Task.WhenAll(commands.SendAsync(command).AsTask(), commands.SendAsync(command).AsTask());
@@ -86,10 +91,10 @@ public sealed class SkillLearningCommandTests
         services.AddSingleton<INetworkMessageSender>(sender);
     });
 
-    private static ValueTask Handle(LearningFixture fixture, IReadOnlyList<CharacterSkillLearningChange> changes) =>
-        fixture.Services.GetRequiredService<LearnSkillHandler>().HandleAsync(
+    private static async ValueTask Handle(LearningFixture fixture, IReadOnlyList<CharacterSkillLearningChange> changes) =>
+        await TestGameplay.RunAsync(fixture.Services, async () => await fixture.Services.GetRequiredService<LearnSkillHandler>().HandleAsync(
             new(new(fixture.Session.ConnectionId, NetworkEndpointKind.Game, 10011)),
-            new LearnSkillRequest(GameMessageMetadata.Empty, 0, changes, 0), default);
+            new LearnSkillRequest(GameMessageMetadata.Empty, 0, changes, 0), default));
 
     private sealed class LearningSender : INetworkMessageSender
     {

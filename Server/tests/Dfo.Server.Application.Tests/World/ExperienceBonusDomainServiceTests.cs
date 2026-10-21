@@ -19,6 +19,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -40,13 +41,16 @@ public sealed class ExperienceBonusDomainServiceTests
     [InlineData(ExperienceEvent.QuestCompletion, false, false)]
     public void Growth_and_potion_have_separate_occasion_rules(ExperienceEvent occasion, bool growth, bool potion)
     {
-        var potions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
-        potions.Begin(OneSession.Identity, new Dfo.Server.Data.Characters.CharacterPositionState(1, 0, 0, 0, 0), 100);
-        potions.ApplySpiritPotion(OneSession.Identity, 1, TimeSpan.FromHours(2));
-        var found = Collect(Service(premiums: [new(84, 4_000_000_000)], potions: potions), OtherDungeon, occasion);
-        Assert.Equal(growth, found.Any(x => x.Kind == ExperienceBonusKind.GrowthContract && x.Rate == .2));
-        Assert.Equal(potion, found.Any(x => x.Kind == ExperienceBonusKind.SpiritPotion && x.Rate == 1));
-        Assert.Equal((growth ? 1 : 0) + (potion ? 1 : 0), found.Count);
+        TestGameplay.Run(() =>
+        {
+            var potions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            potions.Begin(OneSession.Identity, new Dfo.Server.Data.Characters.CharacterPositionState(1, 0, 0, 0, 0), 100);
+            potions.ApplySpiritPotion(OneSession.Identity, 1, TimeSpan.FromHours(2));
+            var found = Collect(Service(premiums: [new(84, 4_000_000_000)], potions: potions), OtherDungeon, occasion);
+            Assert.Equal(growth, found.Any(x => x.Kind == ExperienceBonusKind.GrowthContract && x.Rate == .2));
+            Assert.Equal(potion, found.Any(x => x.Kind == ExperienceBonusKind.SpiritPotion && x.Rate == 1));
+            Assert.Equal((growth ? 1 : 0) + (potion ? 1 : 0), found.Count);
+        });
     }
 
     [Theory]
@@ -62,13 +66,16 @@ public sealed class ExperienceBonusDomainServiceTests
     [InlineData(ExperienceEvent.QuestCompletion, true, false)]
     public void BlackDiamondIsOnlyGrantedForEligibleClear(ExperienceEvent occasion, bool enabled, bool expected)
     {
-        var found = Collect(Service(blackDiamond: enabled, premiums: [new(56, 4_000_000_000)]), OtherDungeon, occasion);
-        Assert.Equal(expected ? 1 : 0, found.Count);
-        if (expected)
+        TestGameplay.Run(() =>
         {
-            Assert.Equal(ExperienceBonusKind.BlackDiamond, found[0].Kind);
-            Assert.Equal(.05, found[0].Rate);
-        }
+            var found = Collect(Service(blackDiamond: enabled, premiums: [new(56, 4_000_000_000)]), OtherDungeon, occasion);
+            Assert.Equal(expected ? 1 : 0, found.Count);
+            if (expected)
+            {
+                Assert.Equal(ExperienceBonusKind.BlackDiamond, found[0].Kind);
+                Assert.Equal(.05, found[0].Rate);
+            }
+        });
     }
 
     private sealed class Rates : IPremiumServiceRuleService
@@ -108,11 +115,14 @@ public sealed class ExperienceBonusDomainServiceTests
     [Fact]
     public void AKillInTheChannelsOwnDungeonEarnsTheDeclaredRate()
     {
-        var found = Collect(Service(), CarriedDungeon);
+        TestGameplay.Run(() =>
+        {
+            var found = Collect(Service(), CarriedDungeon);
 
-        var channel = Assert.Single(found);
-        Assert.Equal(0.05, channel.Rate);
-        Assert.Equal(ExperienceBonusKind.SeriaBlessing, channel.Kind);
+            var channel = Assert.Single(found);
+            Assert.Equal(0.05, channel.Rate);
+            Assert.Equal(ExperienceBonusKind.SeriaBlessing, channel.Kind);
+        });
     }
 
     /// <summary>The rate is the one declared for the channel the session is actually on.</summary>
@@ -129,9 +139,12 @@ public sealed class ExperienceBonusDomainServiceTests
     public void TheRateIsTheOneDeclaredForTheChannelTheSessionIsOn(
         int channelId, int dungeonId, double expected)
     {
-        var found = Collect(Service(channelId: channelId), dungeonId);
+        TestGameplay.Run(() =>
+        {
+            var found = Collect(Service(channelId: channelId), dungeonId);
 
-        Assert.Equal(expected, Assert.Single(found).Rate);
+            Assert.Equal(expected, Assert.Single(found).Rate);
+        });
     }
 
     /// <summary>A channel earns nothing for the other channel's dungeon.</summary>
@@ -177,9 +190,10 @@ public sealed class ExperienceBonusDomainServiceTests
         IExperienceBonusDomainService service,
         int dungeonId,
         ExperienceEvent occasion = ExperienceEvent.MonsterKill) =>
+        TestGameplay.Run(() =>
         service.CollectAsync(new ExperienceOccasion(
             occasion, new AccountId(1), new CharacterId(60), dungeonId),
-            CancellationToken.None).AsTask().GetAwaiter().GetResult();
+            CancellationToken.None).AsTask().GetAwaiter().GetResult());
 
     /// <summary>
     /// The service over one published session on <see cref="Channel"/>, with no premium terms.

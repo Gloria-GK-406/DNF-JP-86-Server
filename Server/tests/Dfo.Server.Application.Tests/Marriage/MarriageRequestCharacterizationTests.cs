@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Marriage;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 using static Dfo.Server.Application.Tests.Marriage.MarriageHarness;
 
 namespace Dfo.Server.Application.Tests.Marriage;
@@ -82,16 +83,19 @@ public sealed class MarriageRequestCharacterizationTests
     [Fact]
     public async Task Pending_proposal_lapses_when_a_participant_session_is_replaced()
     {
-        await using var w = await ChurchTownAsync(); var f = w.F; var peer = w.Peer;
-        var first = await InTx(f, () => Couple(f).ProposeAsync(f.Session, peer, default));
-        var reconnected = Reselect(f, peer);
-        f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(reconnected.CharacterId, reconnected.TownAreaLease(),
-            new(1, 2, 1), new(2, 1, 100, 200, 0), true));
-        var next = await InTx(f, () => Couple(f).ProposeAsync(f.Session, reconnected, default));
-        Assert.True(next.Succeeded); Assert.True(next.Changed);
-        Assert.NotEqual(first.Proposal!.Id, next.Proposal!.Id);
-        Assert.Equal(3, f.Scalar($"SELECT state FROM marriage_proposals WHERE id='{first.Proposal.Id:N}'"));
-        Assert.Equal(2, f.Scalar($"SELECT response FROM marriage_proposals WHERE id='{first.Proposal.Id:N}'"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var w = await ChurchTownAsync(); var f = w.F; var peer = w.Peer;
+            var first = await InTx(f, () => Couple(f).ProposeAsync(f.Session, peer, default));
+            var reconnected = Reselect(f, peer);
+            f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(reconnected.CharacterId, reconnected.TownAreaLease(),
+                new(1, 2, 1), new(2, 1, 100, 200, 0), true));
+            var next = await InTx(f, () => Couple(f).ProposeAsync(f.Session, reconnected, default));
+            Assert.True(next.Succeeded); Assert.True(next.Changed);
+            Assert.NotEqual(first.Proposal!.Id, next.Proposal!.Id);
+            Assert.Equal(3, f.Scalar($"SELECT state FROM marriage_proposals WHERE id='{first.Proposal.Id:N}'"));
+            Assert.Equal(2, f.Scalar($"SELECT response FROM marriage_proposals WHERE id='{first.Proposal.Id:N}'"));
+        });
     }
 
     [Fact]

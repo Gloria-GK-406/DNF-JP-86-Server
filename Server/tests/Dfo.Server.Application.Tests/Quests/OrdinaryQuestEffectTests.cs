@@ -18,6 +18,7 @@ using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Infrastructure.Content;
 using Microsoft.Data.Sqlite;
 using Dfo.Server.Application.Effects;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Quests;
 
@@ -84,20 +85,23 @@ public sealed class OrdinaryQuestEffectTests
         await shop.Seed(121, 1000, 2, 3);
         Carry(shop, 1);
         var events = shop.Scalar("SELECT COUNT(*) FROM domain_events");
-        await using (var tx = shop.Services.GetRequiredService<DomainTransactionScope>().Begin())
+        await TestGameplay.RunAsync(shop.Services, async () =>
         {
-            var prepared = await shop.Services.GetRequiredService<IQuestCompletionDomainService>()
-                .PrepareAsync(new(1), new(1), 2001, ushort.MaxValue, 1, DateTimeOffset.UnixEpoch, default);
-            Assert.True(prepared.Prepared);
-            var reward = prepared.Plan!.Reward!;
-            Assert.Equal(rules.Quest.SeekingItems, reward.ConsumedItems);
-            Assert.Equal(new QuestRewardItemGrant(2000, 3), Assert.Single(reward.Items));
-            Assert.Equal(20, reward.Gold);
-            Assert.Contains(prepared.Plan.Effects, x => x is SetCarriedQuestEffect { Value: null });
-            Assert.Contains(prepared.Plan.Effects, x => x is SetClearedQuestEffect { QuestId: 2001 });
-            Assert.Contains(prepared.Plan.Effects, x => x is SpendGoldEffect { Amount: 100 });
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = shop.Services.GetRequiredService<DomainTransactionScope>().Begin())
+            {
+                var prepared = await shop.Services.GetRequiredService<IQuestCompletionDomainService>()
+                    .PrepareAsync(new(1), new(1), 2001, ushort.MaxValue, 1, DateTimeOffset.UnixEpoch, default);
+                Assert.True(prepared.Prepared);
+                var reward = prepared.Plan!.Reward!;
+                Assert.Equal(rules.Quest.SeekingItems, reward.ConsumedItems);
+                Assert.Equal(new QuestRewardItemGrant(2000, 3), Assert.Single(reward.Items));
+                Assert.Equal(20, reward.Gold);
+                Assert.Contains(prepared.Plan.Effects, x => x is SetCarriedQuestEffect { Value: null });
+                Assert.Contains(prepared.Plan.Effects, x => x is SetClearedQuestEffect { QuestId: 2001 });
+                Assert.Contains(prepared.Plan.Effects, x => x is SpendGoldEffect { Amount: 100 });
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(1000, shop.SharedCount(3034));
         Assert.Equal(2, shop.Count(1000));
         Assert.Equal(0, shop.Count(2000));
@@ -171,16 +175,19 @@ public sealed class OrdinaryQuestEffectTests
         await shop.SeedShared(3034, 1000);
         Carry(shop, 1);
         shop.Sql("INSERT INTO character_active_quests VALUES(1,1,2002,1)");
-        var scope = shop.Services.GetRequiredService<DomainTransactionScope>();
-        await using (var tx = scope.Begin())
+        await TestGameplay.RunAsync(shop.Services, async () =>
         {
-            var progress = await shop.Services.GetRequiredService<IQuestProgressDomainService>()
-                .ReportAsync(new(1), new(1), [new QuestHoldingsChanged()], default);
-            Assert.All(progress.NotificationSnapshot!.Quests, x => Assert.Equal(0, x.TriggerValue));
-            Assert.Empty(await shop.Services.GetRequiredService<IQuestMaterialRequirementDomainService>()
-                .GetOutstandingMaterialIdsAsync(new(1), new(1), default));
-            await tx.CommitAsync(default);
-        }
+            var scope = shop.Services.GetRequiredService<DomainTransactionScope>();
+            await using (var tx = scope.Begin())
+            {
+                var progress = await shop.Services.GetRequiredService<IQuestProgressDomainService>()
+                    .ReportAsync(new(1), new(1), [new QuestHoldingsChanged()], default);
+                Assert.All(progress.NotificationSnapshot!.Quests, x => Assert.Equal(0, x.TriggerValue));
+                Assert.Empty(await shop.Services.GetRequiredService<IQuestMaterialRequirementDomainService>()
+                    .GetOutstandingMaterialIdsAsync(new(1), new(1), default));
+                await tx.CommitAsync(default);
+            }
+        });
         var result = await Finish(shop);
         Assert.True(result.Finished);
         Assert.Equal(511, Assert.Single(result.QuestProgress!.Quests).TriggerValue);
@@ -190,22 +197,25 @@ public sealed class OrdinaryQuestEffectTests
     [Fact]
     public async Task Rolling_back_completion_restores_shared_materials_carried_materials_and_quest()
     {
-        var rules = new Rules();
-        rules.Quest = rules.Quest with { ObjectiveTypeCode = "seeking", SeekingItems = [new(3034, 1000), new(1000, 2)] };
-        using var shop = Shop(s => s.AddSingleton<IQuestContentRuleService>(rules));
-        await shop.SeedShared(3034, 1000);
-        await shop.Seed(121, 1000, 2, 3);
-        Carry(shop);
-        await using (var tx = shop.Services.GetRequiredService<DomainTransactionScope>().Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var receipt = await shop.Services.GetRequiredService<IQuestCompletionSettlementDomainService>()
-                .FinishAsync(new(1), new(1), 2001, ushort.MaxValue, 1, DateTimeOffset.UnixEpoch, default);
-            Assert.True(receipt.Finished);
-        }
-        Assert.Equal(1000, shop.SharedCount(3034));
-        Assert.Equal(2, shop.Count(1000));
-        Assert.Equal(1, shop.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE quest_id=2001"));
-        Assert.Equal(0, shop.Count(2000));
+            var rules = new Rules();
+            rules.Quest = rules.Quest with { ObjectiveTypeCode = "seeking", SeekingItems = [new(3034, 1000), new(1000, 2)] };
+            using var shop = Shop(s => s.AddSingleton<IQuestContentRuleService>(rules));
+            await shop.SeedShared(3034, 1000);
+            await shop.Seed(121, 1000, 2, 3);
+            Carry(shop);
+            await using (var tx = shop.Services.GetRequiredService<DomainTransactionScope>().Begin())
+            {
+                var receipt = await shop.Services.GetRequiredService<IQuestCompletionSettlementDomainService>()
+                    .FinishAsync(new(1), new(1), 2001, ushort.MaxValue, 1, DateTimeOffset.UnixEpoch, default);
+                Assert.True(receipt.Finished);
+            }
+            Assert.Equal(1000, shop.SharedCount(3034));
+            Assert.Equal(2, shop.Count(1000));
+            Assert.Equal(1, shop.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE quest_id=2001"));
+            Assert.Equal(0, shop.Count(2000));
+        });
     }
 
     [Fact]
@@ -261,11 +271,14 @@ public sealed class OrdinaryQuestEffectTests
         }); Carry(shop);
         var result=await Finish(shop); Assert.True(result.Finished); Assert.Equal(2,result.Items.Count);
         Assert.Equal(2,shop.Scalar("SELECT COUNT(DISTINCT core_uid) FROM item_slots WHERE owner_scope='character' AND owner_id=1"));
-        await using var read = shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
-        var bag = shop.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
-            .GetPersistentStore(new(InventoryOwnerType.Character, 1), BusinessInventoryOwnership.StoreOf(BusinessInventorySpace.CarriedEquipment))
-            .GetContainer(BusinessInventorySpace.CarriedEquipment);
-        Assert.All(await bag.GetAllAsync(default), item => Assert.Equal((ushort)45, item.Snapshot.Durability));
+        await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            await using var read = shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
+            var bag = shop.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
+                .GetPersistentStore(new(InventoryOwnerType.Character, 1), BusinessInventoryOwnership.StoreOf(BusinessInventorySpace.CarriedEquipment))
+                .GetContainer(BusinessInventorySpace.CarriedEquipment);
+            Assert.All(await bag.GetAllAsync(default), item => Assert.Equal((ushort)45, item.Snapshot.Durability));
+        });
     }
 
     private sealed class RewardEquipmentDefinition : IEquipmentDefinitionSource
@@ -323,18 +336,21 @@ public sealed class OrdinaryQuestEffectTests
     [Fact]
     public async Task Two_experience_effects_validate_first_then_apply_expected_after_and_preserve_cap_earned()
     {
-        using var shop=Shop(); shop.Sql("UPDATE characters SET level=1,exp=90 WHERE character_id=1");
-        IExperienceRuleService rules=new FixedProgression();
-        var first=rules.DecideAward(new(1,90),new(Base:30));
-        var second=rules.DecideAward(new(first.Award.Level,first.Award.Total),new(Base:400,Channel:50));
-        await using var tx=shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
-        var result=await shop.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(new(new(1),new(1),DateTimeOffset.UnixEpoch),
-            [new CharacterExperienceEffect(first),new CharacterExperienceEffect(second)],default);
-        await tx.CommitAsync(default);
-        Assert.Equal(450u,result.Changes<CharacterExperienceChange>().Last().Award.Gained);
-        Assert.Equal(300,shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
-        Assert.Equal(3,shop.Scalar("SELECT level FROM characters WHERE character_id=1"));
-        var zero=rules.DecideAward(new(3,300),new()); Assert.Equal(3,zero.Award.Level); Assert.Equal(300u,zero.Award.Total);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop=Shop(); shop.Sql("UPDATE characters SET level=1,exp=90 WHERE character_id=1");
+            IExperienceRuleService rules=new FixedProgression();
+            var first=rules.DecideAward(new(1,90),new(Base:30));
+            var second=rules.DecideAward(new(first.Award.Level,first.Award.Total),new(Base:400,Channel:50));
+            await using var tx=shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
+            var result=await shop.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(new(new(1),new(1),DateTimeOffset.UnixEpoch),
+                [new CharacterExperienceEffect(first),new CharacterExperienceEffect(second)],default);
+            await tx.CommitAsync(default);
+            Assert.Equal(450u,result.Changes<CharacterExperienceChange>().Last().Award.Gained);
+            Assert.Equal(300,shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
+            Assert.Equal(3,shop.Scalar("SELECT level FROM characters WHERE character_id=1"));
+            var zero=rules.DecideAward(new(3,300),new()); Assert.Equal(3,zero.Award.Level); Assert.Equal(300u,zero.Award.Total);
+        });
     }
     internal sealed class FixedProgression(IReadOnlyList<uint>? thresholds = null) : IExperienceRuleService
     {
@@ -570,11 +586,14 @@ public sealed class OrdinaryQuestEffectTests
     [Fact]
     public async Task Basic_experience_handler_rejects_missing_target_even_for_zero_award()
     {
-        using var shop=Shop();
-        await using var tx=shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
-        var handler=new CharacterExperienceEffectHandler(shop.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterDomainService>());
-        var error=await Assert.ThrowsAsync<InvalidOperationException>(async()=>await handler.ApplyAsync(new(new(1),new(999),DateTimeOffset.UnixEpoch),new(new(new(1,0),ExperienceAward.Nothing(1,0))),default));
-        Assert.Equal("Decided experience target changed.",error.Message);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop=Shop();
+            await using var tx=shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
+            var handler=new CharacterExperienceEffectHandler(shop.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterDomainService>());
+            var error=await Assert.ThrowsAsync<InvalidOperationException>(async()=>await handler.ApplyAsync(new(new(1),new(999),DateTimeOffset.UnixEpoch),new(new(new(1,0),ExperienceAward.Nothing(1,0))),default));
+            Assert.Equal("Decided experience target changed.",error.Message);
+        });
     }
     [Fact]
     public async Task Quest_pays_its_decided_amount_into_sqlite_and_prices_each_completion_at_current_db_level()
@@ -634,13 +653,16 @@ public sealed class OrdinaryQuestEffectTests
     [InlineData(3,300,0,3,300)]
     public async Task Decided_experience_separates_multilevel_cap_and_zero_from_earned(byte level,uint held,uint earned,byte afterLevel,uint after)
     {
-        using var shop=Shop();shop.Sql($"UPDATE characters SET level={level},exp={held} WHERE character_id=1");
-        IExperienceRuleService rules=new FixedProgression();var decision=rules.DecideAward(new(level,held),new(Base:earned));
-        if(earned==0) shop.Sql("CREATE TRIGGER forbid_xp_write BEFORE UPDATE OF exp ON characters BEGIN SELECT RAISE(ABORT,'zero XP wrote'); END");
-        await using var tx=shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
-        var result=await shop.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(new(new(1),new(1),DateTimeOffset.UnixEpoch),[new CharacterExperienceEffect(decision)],default);await tx.CommitAsync(default);
-        var award=Assert.Single(result.Changes<CharacterExperienceChange>()).Award;Assert.Equal(earned,award.Gained);Assert.Equal(after,award.Total);Assert.Equal(afterLevel,award.Level);
-        Assert.Equal((int)after,shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));Assert.Equal((int)afterLevel,shop.Scalar("SELECT level FROM characters WHERE character_id=1"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop=Shop();shop.Sql($"UPDATE characters SET level={level},exp={held} WHERE character_id=1");
+            IExperienceRuleService rules=new FixedProgression();var decision=rules.DecideAward(new(level,held),new(Base:earned));
+            if(earned==0) shop.Sql("CREATE TRIGGER forbid_xp_write BEFORE UPDATE OF exp ON characters BEGIN SELECT RAISE(ABORT,'zero XP wrote'); END");
+            await using var tx=shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
+            var result=await shop.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(new(new(1),new(1),DateTimeOffset.UnixEpoch),[new CharacterExperienceEffect(decision)],default);await tx.CommitAsync(default);
+            var award=Assert.Single(result.Changes<CharacterExperienceChange>()).Award;Assert.Equal(earned,award.Gained);Assert.Equal(after,award.Total);Assert.Equal(afterLevel,award.Level);
+            Assert.Equal((int)after,shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));Assert.Equal((int)afterLevel,shop.Scalar("SELECT level FROM characters WHERE character_id=1"));
+        });
     }
     [SkippableFact]
     public async Task Large_reward_finishes_once_with_inventory_entries_and_mailed_overflow()

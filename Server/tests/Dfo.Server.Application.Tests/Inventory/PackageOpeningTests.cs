@@ -17,6 +17,7 @@ using Dfo.Server.Protocol.Game.PackageOpening;
 using Dfo.Server.Protocol.Game.AvatarPackageOpening;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -203,8 +204,11 @@ public sealed class PackageOpeningTests
         await opening.Host.Seed(80, 1001, 1);
         opening.Host.Sql("CREATE TRIGGER fail_reward BEFORE INSERT ON item_slots BEGIN SELECT RAISE(ABORT,'forced reward failure'); END;");
         await Assert.ThrowsAsync<SqliteException>(() => opening.Package());
-        Assert.False(opening.Host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
-            .IsCoolingDown(opening.Host.Session.CharacterId, ItemCooldownKey.ForItem(1001)));
+        TestGameplay.Run(opening.Host.Services, () =>
+        {
+            Assert.False(opening.Host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
+                .IsCoolingDown(opening.Host.Session.CharacterId, ItemCooldownKey.ForItem(1001)));
+        });
         Assert.Equal(1, opening.Host.Count(1001));
         opening.Host.Sql("DROP TRIGGER fail_reward");
         await opening.Package(); Assert.Equal(0, opening.Host.Count(1001));
@@ -427,12 +431,18 @@ public sealed class PackageOpeningTests
         var receipt = result.Receipt!;
         var notification = new OpeningCompleted(receipt, [new MagicBoxBatchOpeningResponse(new(0, 80, 1000, 120, 2000, 1), result)]);
         var notifications = opening.Host.Services.GetRequiredService<IEventService>();
-        await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), notification, default);
+        await TestGameplay.RunAsync(opening.Host.Services, async () =>
+        {
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), notification, default);
+        });
         Assert.IsType<MagicBoxBatchOpeningResponse>(opening.Host.Sender.Messages[0]);
         Assert.All(opening.Host.Sender.Messages.Skip(1), message => Assert.IsAssignableFrom<IGameNotiMessage>(message));
         var sent = opening.Host.Sender.Messages.Count;
         opening.Host.Select(2);
-        await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), notification, default);
+        await TestGameplay.RunAsync(opening.Host.Services, async () =>
+        {
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), notification, default);
+        });
         Assert.Equal(sent, opening.Host.Sender.Messages.Count);
     }
 

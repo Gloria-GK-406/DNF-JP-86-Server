@@ -12,6 +12,7 @@ using Dfo.Server.Persistence.Database;
 using Dfo.Server.Protocol.Game.LevelUpTicket;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -58,16 +59,19 @@ public sealed class LevelUpTicketTests
     [Fact]
     public async Task Ticket_reaches_next_level_start_and_clears_only_old_visible_story_stages_without_rewards()
     {
-        await using var f = Fixture(); await Seed(f, 17);
-        f.Sql("INSERT INTO character_active_quests VALUES(71,0,101,9),(71,2,102,9); INSERT INTO character_quest_notify_selections VALUES(71,0,101),(71,1,102)");
-        var result = await Use(f);
-        Assert.Equal((byte)18, result.Progress.Level);
-        Assert.Equal(Scale(f).ExperienceForLevel(18), result.Progress.Experience);
-        Assert.Equal(new[] { 101 }, result.CompletedQuestIds.ToArray());
-        Assert.Equal(4, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
-        Assert.Equal(1, f.Scalar("SELECT flag_value FROM character_invisible_flags WHERE character_id=71 AND slot_index=101"));
-        Assert.Equal(102, f.Scalar("SELECT quest_id FROM character_active_quests WHERE character_id=71"));
-        Assert.Equal(102, f.Scalar("SELECT quest_id FROM character_quest_notify_selections WHERE character_id=71"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = Fixture(); await Seed(f, 17);
+            f.Sql("INSERT INTO character_active_quests VALUES(71,0,101,9),(71,2,102,9); INSERT INTO character_quest_notify_selections VALUES(71,0,101),(71,1,102)");
+            var result = await Use(f);
+            Assert.Equal((byte)18, result.Progress.Level);
+            Assert.Equal(Scale(f).ExperienceForLevel(18), result.Progress.Experience);
+            Assert.Equal(new[] { 101 }, result.CompletedQuestIds.ToArray());
+            Assert.Equal(4, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+            Assert.Equal(1, f.Scalar("SELECT flag_value FROM character_invisible_flags WHERE character_id=71 AND slot_index=101"));
+            Assert.Equal(102, f.Scalar("SELECT quest_id FROM character_active_quests WHERE character_id=71"));
+            Assert.Equal(102, f.Scalar("SELECT quest_id FROM character_quest_notify_selections WHERE character_id=71"));
+        });
     }
 
     [Theory]
@@ -75,15 +79,18 @@ public sealed class LevelUpTicketTests
     [InlineData(false)]
     public async Task A_quest_or_level_write_failure_rolls_back_the_cost_level_and_quest_log(bool failLevel)
     {
-        await using var f = Fixture(); await Seed(f, 17);
-        f.Sql("INSERT INTO character_active_quests VALUES(71,0,101,9)");
-        f.Sql(failLevel ? "CREATE TRIGGER fail_ticket BEFORE UPDATE OF exp ON characters BEGIN SELECT RAISE(ABORT,'level'); END"
-            : "CREATE TRIGGER fail_ticket BEFORE INSERT ON character_invisible_flags BEGIN SELECT RAISE(ABORT,'quest'); END");
-        await Assert.ThrowsAsync<SqliteException>(() => Use(f));
-        Assert.Equal(17, f.Scalar("SELECT level FROM characters WHERE character_id=71"));
-        Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
-        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
-        Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = Fixture(); await Seed(f, 17);
+            f.Sql("INSERT INTO character_active_quests VALUES(71,0,101,9)");
+            f.Sql(failLevel ? "CREATE TRIGGER fail_ticket BEFORE UPDATE OF exp ON characters BEGIN SELECT RAISE(ABORT,'level'); END"
+                : "CREATE TRIGGER fail_ticket BEFORE INSERT ON character_invisible_flags BEGIN SELECT RAISE(ABORT,'quest'); END");
+            await Assert.ThrowsAsync<SqliteException>(() => Use(f));
+            Assert.Equal(17, f.Scalar("SELECT level FROM characters WHERE character_id=71"));
+            Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+            Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
+            Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71"));
+        });
     }
 
     [Theory]
@@ -91,24 +98,30 @@ public sealed class LevelUpTicketTests
     [InlineData(17, true)]
     public async Task Cap_and_hardcore_restrictions_do_not_consume_or_clear(byte level, bool hardcore)
     {
-        await using var f = Fixture(); await Seed(f, level);
-        if (hardcore) f.Sql("UPDATE character_condition SET is_hardcore_mode=1 WHERE character_id=71");
-        await Assert.ThrowsAsync<OpeningRejectedException>(() => Use(f));
-        Assert.Equal(level, f.Scalar("SELECT level FROM characters WHERE character_id=71"));
-        Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
-        Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71"));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = Fixture(); await Seed(f, level);
+            if (hardcore) f.Sql("UPDATE character_condition SET is_hardcore_mode=1 WHERE character_id=71");
+            await Assert.ThrowsAsync<OpeningRejectedException>(() => Use(f));
+            Assert.Equal(level, f.Scalar("SELECT level FROM characters WHERE character_id=71"));
+            Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+            Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71"));
+        });
     }
 
     [Fact]
     public async Task No_old_quests_is_still_a_valid_upgrade_and_multi_level_range_is_capped_at_server_limit()
     {
-        await using var f = Fixture(increase: 10); await Seed(f, 85);
-        f.Sql("INSERT INTO character_invisible_flags VALUES(71,101,1),(71,102,1)");
-        var result = await Use(f);
-        Assert.Equal((byte)86, result.Progress.Level);
-        Assert.Empty(result.CompletedQuestIds);
-        Assert.Equal(4, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
-        Assert.Equal(Scale(f).MaximumExperience, result.Progress.Experience);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = Fixture(increase: 10); await Seed(f, 85);
+            f.Sql("INSERT INTO character_invisible_flags VALUES(71,101,1),(71,102,1)");
+            var result = await Use(f);
+            Assert.Equal((byte)86, result.Progress.Level);
+            Assert.Empty(result.CompletedQuestIds);
+            Assert.Equal(4, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+            Assert.Equal(Scale(f).MaximumExperience, result.Progress.Experience);
+        });
     }
 
     private static CharacterExperienceScale Scale(LearningFixture f) => f.Services.GetRequiredService<IExperienceRuleService>().CharacterScale();

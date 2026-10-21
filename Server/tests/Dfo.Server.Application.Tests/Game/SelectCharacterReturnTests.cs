@@ -16,6 +16,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.ReturnToSelection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -24,114 +25,123 @@ public sealed partial class SelectCharacterLifecycleTests
     [Fact]
     public async Task Return_releases_production_state_preserves_login_and_allows_selection_again()
     {
-        var f = await Fixture.CreateAsync();
-        await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
-        var selected = f.Directory.Find(f.AccountId)!;
-        var online = f.Users.GetRequired(f.OnlineUserId);
-        var roster = new RosterCharacters(f.Result);
-        var prepared = await new PrepareReturnToSelectionCommandHandler(f.Users, f.Directory, roster)
-            .HandleAsync(ReturnContext(), new(f.AccountId, f.ConnectionId, online.Generation), CancellationToken.None);
-        Assert.Equal(0, f.Inventory.Saves);
-        Assert.Same(roster.Latest, prepared.Roster);
-        Assert.Equal(413500016, Assert.Single(prepared.Roster.Characters[0].Appearances!).DisplayItemId);
-        Assert.True(prepared.ResetKnightDeck);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var f = await Fixture.CreateAsync();
+            await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
+            var selected = f.Directory.Find(f.AccountId)!;
+            var online = f.Users.GetRequired(f.OnlineUserId);
+            var roster = new RosterCharacters(f.Result);
+            var prepared = await new PrepareReturnToSelectionCommandHandler(f.Users, f.Directory, roster)
+                .HandleAsync(ReturnContext(), new(f.AccountId, f.ConnectionId, online.Generation), CancellationToken.None);
+            Assert.Equal(0, f.Inventory.Saves);
+            Assert.Same(roster.Latest, prepared.Roster);
+            Assert.Equal(413500016, Assert.Single(prepared.Roster.Characters[0].Appearances!).DisplayItemId);
+            Assert.True(prepared.ResetKnightDeck);
 
-        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
-        positions.Begin(selected, f.Result.Character.Position, 100);
-        var presence = new SessionPresenceDomainService();
-        presence.Admit(new SessionPresence(selected.CharacterId, 10011, 1, 2, true, selected));
-        var stores = new ExpertStoreDomainService();
-        stores.Open(selected);
-        var runs = new DungeonRunDomainService();
-        var departure = new RecordingDungeonDeparture();
-        var memberSession = SelectedSessionIdentity.Create(
-            new AccountId(43), new CharacterId(502), new NetworkConnectionId("Game:return-member"), 1, 10011);
-        f.Directory.Select(memberSession);
-        var started = runs.BeginParty(
-            [
-                new(selected.AccountId, selected.CharacterId, 0, true),
-                new(memberSession.AccountId, memberSession.CharacterId, 1, false),
-            ],
-            new(10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
-                61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)}), 0);
-        var cleanup = new SelectedSessionCleanupService(f.Directory,
-            new CharacterContainerDomainService(),
-            presence, stores, new PvpLobbyDomainService(), [f.Mutations], positions,
-            new StubChannelEntryPolicy(),
-            new PartyService(
-                new StubPartyMemberStatusDomainService(),
-                new PartyModeRuleService(),
-                TimeProvider.System,
-                EmptyPartyMemberSessionEndpointSource.Instance),
-            runs,
-            [departure]);
-        var complete = new CompleteReturnToSelectionCommandHandler(f.Users, f.Directory, cleanup);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            positions.Begin(selected, f.Result.Character.Position, 100);
+            var presence = new SessionPresenceDomainService();
+            presence.Admit(new SessionPresence(selected.CharacterId, 10011, 1, 2, true, selected));
+            var stores = new ExpertStoreDomainService();
+            stores.Open(selected);
+            var runs = new DungeonRunDomainService();
+            var departure = new RecordingDungeonDeparture();
+            var memberSession = SelectedSessionIdentity.Create(
+                new AccountId(43), new CharacterId(502), new NetworkConnectionId("Game:return-member"), 1, 10011);
+            f.Directory.Select(memberSession);
+            var started = runs.BeginParty(
+                [
+                    new(selected.AccountId, selected.CharacterId, 0, true),
+                    new(memberSession.AccountId, memberSession.CharacterId, 1, false),
+                ],
+                new(10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
+                    61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)}), 0);
+            var cleanup = new SelectedSessionCleanupService(f.Directory,
+                new CharacterContainerDomainService(),
+                presence, stores, new PvpLobbyDomainService(), [f.Mutations], positions,
+                new StubChannelEntryPolicy(),
+                new PartyService(
+                    new StubPartyMemberStatusDomainService(),
+                    new PartyModeRuleService(),
+                    TimeProvider.System,
+                    EmptyPartyMemberSessionEndpointSource.Instance),
+                runs,
+                [departure]);
+            var complete = new CompleteReturnToSelectionCommandHandler(f.Users, f.Directory, cleanup);
 
-        await complete.HandleAsync(ReturnContext(), new(prepared), CancellationToken.None);
+            await complete.HandleAsync(ReturnContext(), new(prepared), CancellationToken.None);
 
-        Assert.Null(f.Directory.Find(f.AccountId));
-        Assert.False(f.Directory.IsInWorld(selected));
-        Assert.Null(positions.PositionOf(selected.CharacterId));
-        Assert.Null(presence.Find(selected.CharacterId));
-        Assert.False(stores.HasOpenStore(selected.CharacterId));
-        Assert.Null(runs.Find(selected.CharacterId));
-        Assert.Equal(started.RunId, runs.Find(memberSession.CharacterId)!.RunId);
-        Assert.Equal([(started.RunId, selected.CharacterId)], departure.Calls);
-        Assert.Equal(f.Result.Character.Position, f.Mutations.PersistedPosition);
-        var returned = f.Users.GetRequired(f.OnlineUserId);
-        Assert.Equal(f.AccountId, returned.AccountId);
-        Assert.Equal(OnlineUserState.Authenticated, returned.State);
-        Assert.Null(returned.CurrentCharacterId);
+            Assert.Null(f.Directory.Find(f.AccountId));
+            Assert.False(f.Directory.IsInWorld(selected));
+            Assert.Null(positions.PositionOf(selected.CharacterId));
+            Assert.Null(presence.Find(selected.CharacterId));
+            Assert.False(stores.HasOpenStore(selected.CharacterId));
+            Assert.Null(runs.Find(selected.CharacterId));
+            Assert.Equal(started.RunId, runs.Find(memberSession.CharacterId)!.RunId);
+            Assert.Equal([(started.RunId, selected.CharacterId)], departure.Calls);
+            Assert.Equal(f.Result.Character.Position, f.Mutations.PersistedPosition);
+            var returned = f.Users.GetRequired(f.OnlineUserId);
+            Assert.Equal(f.AccountId, returned.AccountId);
+            Assert.Equal(OnlineUserState.Authenticated, returned.State);
+            Assert.Null(returned.CurrentCharacterId);
 
-        await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
-        Assert.Equal(selected.CharacterId, f.Users.GetRequired(f.OnlineUserId).CurrentCharacterId);
-        Assert.NotEqual(selected, f.Directory.Find(f.AccountId));
+            await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
+            Assert.Equal(selected.CharacterId, f.Users.GetRequired(f.OnlineUserId).CurrentCharacterId);
+            Assert.NotEqual(selected, f.Directory.Find(f.AccountId));
 
-        await cleanup.CleanupAsync(memberSession, includeOwner: false, CancellationToken.None);
-        Assert.Null(runs.Find(memberSession.CharacterId));
-        Assert.Equal(
-            [(started.RunId, selected.CharacterId), (started.RunId, memberSession.CharacterId)],
-            departure.Calls);
+            await cleanup.CleanupAsync(memberSession, includeOwner: false, CancellationToken.None);
+            Assert.Null(runs.Find(memberSession.CharacterId));
+            Assert.Equal(
+                [(started.RunId, selected.CharacterId), (started.RunId, memberSession.CharacterId)],
+                departure.Calls);
+        });
     }
 
     [Fact]
     public async Task Stale_return_cannot_release_a_newly_selected_session()
     {
-        var f = await Fixture.CreateAsync();
-        await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
-        var online = f.Users.GetRequired(f.OnlineUserId);
-        var prepare = new PrepareReturnToSelectionCommandHandler(f.Users, f.Directory,
-            new RosterCharacters(f.Result));
-        var old = await prepare.HandleAsync(ReturnContext(),
-            new(f.AccountId, f.ConnectionId, online.Generation), CancellationToken.None);
-        await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
-        var replacement = f.Directory.Find(f.AccountId);
-        var cleanupCalls = f.Cleanup.Calls.Count;
-        var complete = new CompleteReturnToSelectionCommandHandler(f.Users, f.Directory, f.Cleanup);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var f = await Fixture.CreateAsync();
+            await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
+            var online = f.Users.GetRequired(f.OnlineUserId);
+            var prepare = new PrepareReturnToSelectionCommandHandler(f.Users, f.Directory,
+                new RosterCharacters(f.Result));
+            var old = await prepare.HandleAsync(ReturnContext(),
+                new(f.AccountId, f.ConnectionId, online.Generation), CancellationToken.None);
+            await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
+            var replacement = f.Directory.Find(f.AccountId);
+            var cleanupCalls = f.Cleanup.Calls.Count;
+            var complete = new CompleteReturnToSelectionCommandHandler(f.Users, f.Directory, f.Cleanup);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await complete.HandleAsync(ReturnContext(), new(old), CancellationToken.None));
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await complete.HandleAsync(ReturnContext(), new(old), CancellationToken.None));
 
-        Assert.Equal(replacement, f.Directory.Find(f.AccountId));
-        Assert.Equal(cleanupCalls, f.Cleanup.Calls.Count);
+            Assert.Equal(replacement, f.Directory.Find(f.AccountId));
+            Assert.Equal(cleanupCalls, f.Cleanup.Calls.Count);
+        });
     }
 
     [Fact]
     public async Task Return_preparation_does_not_call_obsolete_inventory_save()
     {
-        var f = await Fixture.CreateAsync();
-        await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
-        var selected = f.Directory.Find(f.AccountId);
-        f.Inventory.FailSave = true;
-        var handler = new PrepareReturnToSelectionCommandHandler(f.Users, f.Directory,
-            new RosterCharacters(f.Result));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var f = await Fixture.CreateAsync();
+            await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
+            var selected = f.Directory.Find(f.AccountId);
+            f.Inventory.FailSave = true;
+            var handler = new PrepareReturnToSelectionCommandHandler(f.Users, f.Directory,
+                new RosterCharacters(f.Result));
 
-        _ = await handler.HandleAsync(ReturnContext(),
-            new(f.AccountId, f.ConnectionId, f.Users.GetRequired(f.OnlineUserId).Generation), CancellationToken.None);
+            _ = await handler.HandleAsync(ReturnContext(),
+                new(f.AccountId, f.ConnectionId, f.Users.GetRequired(f.OnlineUserId).Generation), CancellationToken.None);
 
-        Assert.Equal(0, f.Inventory.Saves);
-        Assert.Equal(selected, f.Directory.Find(f.AccountId));
-        Assert.Equal(selected!.CharacterId, f.Users.GetRequired(f.OnlineUserId).CurrentCharacterId);
+            Assert.Equal(0, f.Inventory.Saves);
+            Assert.Equal(selected, f.Directory.Find(f.AccountId));
+            Assert.Equal(selected!.CharacterId, f.Users.GetRequired(f.OnlineUserId).CurrentCharacterId);
+        });
     }
 
     private static CommandExecutionContext ReturnContext() => new(Guid.NewGuid(),

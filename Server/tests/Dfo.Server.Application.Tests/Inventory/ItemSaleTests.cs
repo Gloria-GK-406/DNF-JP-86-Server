@@ -14,6 +14,7 @@ using Dfo.Server.Protocol.Game.SellItem;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -36,10 +37,13 @@ public sealed class ItemSaleTests
         var layout = new DungeonLayout(11008, 0, 1, 1, cell, cell, 55611, 0,
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611) })
             { Despair = tower ? new(1, new(2026, 10, 11)) : null };
-        var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
-        var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId,
-            shop.Session.CharacterId, 0, true)], layout, 0)).Run;
-        if (clear) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);
+        TestGameplay.Run(shop.Services, () =>
+        {
+            var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
+            var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId,
+                shop.Session.CharacterId, 0, true)], layout, 0)).Run;
+            if (clear) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);
+        });
         await Sell(shop, 65, 1, npc: npc);
         Assert.Equal(1, shop.Count(5000));
         Assert.Equal(100031, shop.Gold);
@@ -62,10 +66,13 @@ public sealed class ItemSaleTests
         var layout = new DungeonLayout(144, 0, boss ? (byte)1 : (byte)2, 1, cell, boss ? cell : other, 55611, 0,
             boss ? new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)}
                 : new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611), [other] = DungeonCellDefinition.Fixed(55611)});
-        var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
-        var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId,
-            shop.Session.CharacterId, 0, true)], layout, 0)).Run;
-        if (open) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);
+        TestGameplay.Run(shop.Services, () =>
+        {
+            var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
+            var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId,
+                shop.Session.CharacterId, 0, true)], layout, 0)).Run;
+            if (open) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);
+        });
         await Sell(shop, 65, 1, npc: npc);
         Assert.Equal(1, shop.Count(5000));
         Assert.Equal(100031, shop.Gold);
@@ -248,8 +255,11 @@ public sealed class ItemSaleTests
             new BusinessSlot(BusinessInventorySpace.Consumable, 0),
             5000, 1, 31, null, DateTimeOffset.UtcNow);
         shop.Select(2);
-        await shop.Services.GetRequiredService<IEventService>().ProjectAsync(
-            new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), new ItemSaleCompleted(receipt), default);
+        await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            await shop.Services.GetRequiredService<IEventService>().ProjectAsync(
+                new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), new ItemSaleCompleted(receipt), default);
+        });
         Assert.Single(shop.Sender.Messages);
     }
 
@@ -356,14 +366,14 @@ public sealed class ItemSaleTests
         Assert.Empty(shop.Sender.Messages);
     }
 
-    private static ValueTask Sell(ShopFixture shop, int slot, int count,
+    private static async ValueTask Sell(ShopFixture shop, int slot, int count,
         InventoryContainerType container = InventoryContainerType.Main, int npc = 2, int? sum = null) =>
-        shop.Services.GetRequiredService<SellItemHandler>().HandleAsync(new(shop.Connection),
+        await TestGameplay.RunAsync(shop.Services, async () => await shop.Services.GetRequiredService<SellItemHandler>().HandleAsync(new(shop.Connection),
             new SellItemRequest(
                 GameMessageMetadata.Empty,
                 new GameSlot(container, slot),
                 checked((short)count), npc, sum ?? (byte)container + slot + count),
-            default);
+            default));
 
     private static ShopFixture Fixture(int cap = 1000000, IItemSaleDefinitionSource? prices = null,
         SaleLogger? logger = null) => new(services =>

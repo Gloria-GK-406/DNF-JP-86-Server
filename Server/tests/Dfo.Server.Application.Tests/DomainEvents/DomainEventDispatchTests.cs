@@ -10,6 +10,7 @@ using Dfo.Server.Persistence.DomainEvents;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.DomainEvents;
 
@@ -29,11 +30,14 @@ public sealed class DomainEventDispatchTests
     public async Task Business_write_and_all_event_rows_roll_back_together()
     {
         await using var f = new Fixture();
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            await f.Probe.WriteAsync("business", 10, default);
-            await f.Events.EnqueueAsync(new Awarded("a", 2));
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                await f.Probe.WriteAsync("business", 10, default);
+                await f.Events.EnqueueAsync(new Awarded("a", 2));
+            }
+        });
         Assert.Equal(0, f.Count("business"));
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM domain_events"));
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM domain_event_deliveries"));
@@ -44,13 +48,16 @@ public sealed class DomainEventDispatchTests
     public async Task Each_fact_is_retained_with_one_transaction_batch_and_an_independent_delivery_per_subscriber()
     {
         await using var f = new Fixture();
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            await f.Probe.WriteAsync("business", 10, default);
-            Assert.NotEqual(await f.Events.EnqueueAsync(new Awarded("a", 2)),
-                await f.Events.EnqueueAsync(new Awarded("a", 3)));
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                await f.Probe.WriteAsync("business", 10, default);
+                Assert.NotEqual(await f.Events.EnqueueAsync(new Awarded("a", 2)),
+                    await f.Events.EnqueueAsync(new Awarded("a", 3)));
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(10, f.Count("business"));
         Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM domain_events"));
         Assert.Equal(1, f.Scalar("SELECT COUNT(DISTINCT batch_id) FROM domain_events"));
@@ -394,10 +401,13 @@ public sealed class DomainEventDispatchTests
         }
         public async ValueTask SendAsync<TEvent>(TEvent e) where TEvent : class, IDomainEvent
         {
-            await using var admission = await Services.GetRequiredService<TransactionalExecutionGate>().AcquireAsync(default);
-            await using var tx = Scope.Begin();
-            await Events.EnqueueAsync(e);
-            await tx.CommitAsync(default);
+            await TestGameplay.RunAsync(Services, async () =>
+            {
+                await using var admission = await Services.GetRequiredService<TransactionalExecutionGate>().AcquireAsync(default);
+                await using var tx = Scope.Begin();
+                await Events.EnqueueAsync(e);
+                await tx.CommitAsync(default);
+            });
         }
         public long Count(string owner) => Scalar($"SELECT COALESCE((SELECT amount FROM event_test_counter WHERE owner='{owner}'),0)");
         public long Scalar(string sql)

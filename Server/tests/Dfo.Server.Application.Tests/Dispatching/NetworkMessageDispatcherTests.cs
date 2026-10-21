@@ -4,6 +4,7 @@ using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Channel.Connect;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Dispatching;
 
@@ -107,7 +108,10 @@ public sealed class NetworkMessageDispatcherTests
         var connection = new NetworkConnectionContext(new("blocked"), NetworkEndpointKind.Game, 10011);
         var session = Dfo.Server.Data.World.SelectedSessionIdentity.Create(new(1),new(1),connection.ConnectionId,1,10011);
         var safety = provider.GetRequiredService<Dfo.Server.Application.Commands.SelectedSessionSafety>();
-        await safety.BlockAsync(new(session, connection), new IOException("unknown"), "test");
+        await TestGameplay.RunAsync(provider, async () =>
+        {
+            await safety.BlockAsync(new(session, connection), new IOException("unknown"), "test");
+        });
         await provider.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(connection),new AlternativeConnectMessage(),default);
         Assert.False(safety.IsBlocked(connection with { }));
         await Assert.ThrowsAsync<KeyNotFoundException>(async () => await provider.GetRequiredService<INetworkMessageDispatcher>()

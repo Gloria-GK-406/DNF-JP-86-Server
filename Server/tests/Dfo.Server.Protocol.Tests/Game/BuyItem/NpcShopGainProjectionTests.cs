@@ -7,6 +7,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.BuyItem;
 using Dfo.Server.Protocol.Game;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.BuyItem;
 
@@ -18,63 +19,72 @@ public sealed class NpcShopGainProjectionTests
     [InlineData(5, 3, 2)]
     public async Task Each_purchase_announces_only_its_added_count_and_keeps_the_final_pile(int initial, int bought, int repeats)
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(2), new("gain"), 2, 10011);
-        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state); Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
-        var handler = new NpcShopPurchaseCompletedHandler(sessions);
-        var client = new NativeStackConsumer();
-        client.Seed(new(BusinessInventorySpace.QuickSlot, 0), 5000, initial);
-        for (var index = 1; index <= repeats; index++)
+        await TestGameplay.RunAsync(async () =>
         {
-            var total = initial + index * bought;
-            var receipt = new NpcShopPurchaseReceipt(session, 5000, bought, 1000 - index, 0, 0, true, [],
-                [Grant(0, total, bought)], DateTimeOffset.UnixEpoch);
-            var messages = await handler.ComposeAsync(new(session.CharacterId, session.ConnectionId), new(receipt), default);
-            client.Apply(messages);
-            Assert.Equal(total, client.Total(5000));
-            Assert.Equal(bought, client.Gains.GetValueOrDefault(5000));
-            // A repeated absolute projection must neither grant nor announce the purchase twice.
-            client.Apply(messages);
-            Assert.Equal(total, client.Total(5000));
-            Assert.Empty(client.Gains);
-        }
+            var session = SelectedSessionIdentity.Create(new(1), new(2), new("gain"), 2, 10011);
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state); Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
+            var handler = new NpcShopPurchaseCompletedHandler(sessions);
+            var client = new NativeStackConsumer();
+            client.Seed(new(BusinessInventorySpace.QuickSlot, 0), 5000, initial);
+            for (var index = 1; index <= repeats; index++)
+            {
+                var total = initial + index * bought;
+                var receipt = new NpcShopPurchaseReceipt(session, 5000, bought, 1000 - index, 0, 0, true, [],
+                    [Grant(0, total, bought)], DateTimeOffset.UnixEpoch);
+                var messages = await handler.ComposeAsync(new(session.CharacterId, session.ConnectionId), new(receipt), default);
+                client.Apply(messages);
+                Assert.Equal(total, client.Total(5000));
+                Assert.Equal(bought, client.Gains.GetValueOrDefault(5000));
+                // A repeated absolute projection must neither grant nor announce the purchase twice.
+                client.Apply(messages);
+                Assert.Equal(total, client.Total(5000));
+                Assert.Empty(client.Gains);
+            }
+        });
     }
 
     [Fact]
     public async Task Split_stacks_and_material_payment_keep_gross_purchase_gain_without_regranting_the_first_slot()
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(2), new("split"), 2, 10011);
-        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state); Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
-        var client = new NativeStackConsumer();
-        client.Seed(new(BusinessInventorySpace.QuickSlot, 0), 5000, 9);
-        client.Seed(new(BusinessInventorySpace.Material, 0), 1000, 5);
-        var receipt = new NpcShopPurchaseReceipt(session, 5000, 3, 99700, 0, 0, true,
-            [new(new(BusinessInventorySpace.Material, 0), null)],
-            [Grant(0, 10, 1), Grant(1, 2, 2)], DateTimeOffset.UnixEpoch);
-        var messages = await new NpcShopPurchaseCompletedHandler(sessions).ComposeAsync(
-            new(session.CharacterId, session.ConnectionId), new(receipt), default);
-        client.Apply(messages);
-        Assert.Equal(0, client.Total(1000)); Assert.Equal(12, client.Total(5000));
-        Assert.Equal(new[] { new KeyValuePair<int, int>(5000, 3) }, client.Gains);
-        client.Apply(messages);
-        Assert.Equal(12, client.Total(5000)); Assert.Empty(client.Gains);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = SelectedSessionIdentity.Create(new(1), new(2), new("split"), 2, 10011);
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state); Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
+            var client = new NativeStackConsumer();
+            client.Seed(new(BusinessInventorySpace.QuickSlot, 0), 5000, 9);
+            client.Seed(new(BusinessInventorySpace.Material, 0), 1000, 5);
+            var receipt = new NpcShopPurchaseReceipt(session, 5000, 3, 99700, 0, 0, true,
+                [new(new(BusinessInventorySpace.Material, 0), null)],
+                [Grant(0, 10, 1), Grant(1, 2, 2)], DateTimeOffset.UnixEpoch);
+            var messages = await new NpcShopPurchaseCompletedHandler(sessions).ComposeAsync(
+                new(session.CharacterId, session.ConnectionId), new(receipt), default);
+            client.Apply(messages);
+            Assert.Equal(0, client.Total(1000)); Assert.Equal(12, client.Total(5000));
+            Assert.Equal(new[] { new KeyValuePair<int, int>(5000, 3) }, client.Gains);
+            client.Apply(messages);
+            Assert.Equal(12, client.Total(5000)); Assert.Empty(client.Gains);
+        });
     }
 
     [Fact]
     public async Task Limited_stack_keeps_the_native_absolute_quota_after_a_zero_increment_ack_and_replay()
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(2), new("limited"), 2, 10011);
-        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state); Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
-        var client = new NativeStackConsumer();
-        client.Seed(new(BusinessInventorySpace.QuickSlot, 0), 5000, 2);
-        client.Purchased[5000] = 2;
-        var receipt = new NpcShopPurchaseReceipt(session, 5000, 3, 99700, 0, 0, true, [],
-            [Grant(0, 5, 3)], DateTimeOffset.UnixEpoch) { PurchaseCount = new(5000, 5) };
-        var messages = await new NpcShopPurchaseCompletedHandler(sessions).ComposeAsync(
-            new(session.CharacterId, session.ConnectionId), new(receipt), default);
-        client.Apply(messages);
-        Assert.Equal(3, client.Gains[5000]); Assert.Equal(5, client.Total(5000)); Assert.Equal(5, client.Purchased[5000]);
-        client.Apply(messages);
-        Assert.Empty(client.Gains); Assert.Equal(5, client.Total(5000)); Assert.Equal(5, client.Purchased[5000]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = SelectedSessionIdentity.Create(new(1), new(2), new("limited"), 2, 10011);
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state); Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
+            var client = new NativeStackConsumer();
+            client.Seed(new(BusinessInventorySpace.QuickSlot, 0), 5000, 2);
+            client.Purchased[5000] = 2;
+            var receipt = new NpcShopPurchaseReceipt(session, 5000, 3, 99700, 0, 0, true, [],
+                [Grant(0, 5, 3)], DateTimeOffset.UnixEpoch) { PurchaseCount = new(5000, 5) };
+            var messages = await new NpcShopPurchaseCompletedHandler(sessions).ComposeAsync(
+                new(session.CharacterId, session.ConnectionId), new(receipt), default);
+            client.Apply(messages);
+            Assert.Equal(3, client.Gains[5000]); Assert.Equal(5, client.Total(5000)); Assert.Equal(5, client.Purchased[5000]);
+            client.Apply(messages);
+            Assert.Empty(client.Gains); Assert.Equal(5, client.Total(5000)); Assert.Equal(5, client.Purchased[5000]);
+        });
     }
 
     private static NpcShopGrantedSlot Grant(int slot, int final, int added) => new(

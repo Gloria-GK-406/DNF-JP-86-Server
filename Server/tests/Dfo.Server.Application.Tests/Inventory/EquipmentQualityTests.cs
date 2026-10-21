@@ -153,19 +153,22 @@ public sealed class EquipmentQualityTests
     [PvfFact]
     public async Task Wax_commit_failure_restores_the_material_and_seal_state()
     {
-        using var f = Fixture(new Content { Rarity = 3 });
-        await f.SeedCore(9, Equipment with { SealFlag = 0, TradeRestriction = 0 });
-        await f.Seed(65, 14, 30); var before = f.StoredCore(9);
-        f.Sql("CREATE TABLE wax_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
-        await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.NotNull((await f.Services.GetRequiredService<IEquipmentResealDomainService>().TryResealAsync(
-                f.Session, Command(f).Target, 3000, Command(f).Material, default))!.Receipt);
-            await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (cmd, ct) =>
-            { cmd.CommandText = "INSERT INTO wax_commit_probe VALUES(99999)"; await cmd.ExecuteNonQueryAsync(ct); }, default);
-            await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
-        }
-        Assert.Equal(30, f.Count(14)); Assert.Equal(before, f.StoredCore(9));
+            using var f = Fixture(new Content { Rarity = 3 });
+            await f.SeedCore(9, Equipment with { SealFlag = 0, TradeRestriction = 0 });
+            await f.Seed(65, 14, 30); var before = f.StoredCore(9);
+            f.Sql("CREATE TABLE wax_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
+            await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+            {
+                Assert.NotNull((await f.Services.GetRequiredService<IEquipmentResealDomainService>().TryResealAsync(
+                    f.Session, Command(f).Target, 3000, Command(f).Material, default))!.Receipt);
+                await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (cmd, ct) =>
+                { cmd.CommandText = "INSERT INTO wax_commit_probe VALUES(99999)"; await cmd.ExecuteNonQueryAsync(ct); }, default);
+                await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
+            }
+            Assert.Equal(30, f.Count(14)); Assert.Equal(before, f.StoredCore(9));
+        });
     }
 
     [Fact]
@@ -214,17 +217,20 @@ public sealed class EquipmentQualityTests
     [Fact]
     public async Task Commit_failure_rolls_back_both_mutations()
     {
-        using var f = Fixture(); await Seed(f); var before = f.StoredCore(9);
-        f.Sql("CREATE TABLE quality_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
-        await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.NotNull((await f.Services.GetRequiredService<IEquipmentQualityDomainService>().RerollAsync(
-                f.Session, Command(f).Target, 3000, Command(f).Material, default)).Receipt);
-            await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (cmd, ct) =>
-            { cmd.CommandText = "INSERT INTO quality_commit_probe VALUES(99999)"; await cmd.ExecuteNonQueryAsync(ct); }, default);
-            await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
-        }
-        Assert.Equal(2, f.Count(4000)); Assert.Equal(before, f.StoredCore(9));
+            using var f = Fixture(); await Seed(f); var before = f.StoredCore(9);
+            f.Sql("CREATE TABLE quality_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
+            await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+            {
+                Assert.NotNull((await f.Services.GetRequiredService<IEquipmentQualityDomainService>().RerollAsync(
+                    f.Session, Command(f).Target, 3000, Command(f).Material, default)).Receipt);
+                await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (cmd, ct) =>
+                { cmd.CommandText = "INSERT INTO quality_commit_probe VALUES(99999)"; await cmd.ExecuteNonQueryAsync(ct); }, default);
+                await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
+            }
+            Assert.Equal(2, f.Count(4000)); Assert.Equal(before, f.StoredCore(9));
+        });
     }
     [Fact]
     public async Task One_box_cannot_be_spent_by_two_concurrent_requests()
