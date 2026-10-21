@@ -81,8 +81,7 @@ public sealed class OnlineUserConnectionObserver(
             // had selected still reads as revoked and its other resources need full cleanup.
             if (selectedSessions.FindByConnection(connection.ConnectionId) is { } orphaned)
             {
-                _ = await CleanupSelectedAsync(
-                    connection.ConnectionId, orphaned, cancellationToken).ConfigureAwait(false);
+                _ = await CleanupSelectedAsync(orphaned, cancellationToken).ConfigureAwait(false);
             }
             return;
         }
@@ -121,7 +120,6 @@ public sealed class OnlineUserConnectionObserver(
     }
 
     private async ValueTask<bool> CleanupSelectedAsync(
-        NetworkConnectionId connectionId,
         SelectedSessionIdentity selected,
         CancellationToken cancellationToken)
     {

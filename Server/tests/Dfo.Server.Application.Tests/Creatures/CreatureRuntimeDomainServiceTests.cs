@@ -94,21 +94,24 @@ public sealed class CreatureRuntimeDomainServiceTests
     }
 
     [Fact]
-    public async Task Leaving_after_the_connection_is_revoked_still_settles_the_stomach()
+    public async Task Leaving_after_the_connection_is_revoked_still_settles_the_stomach_and_queued_experience()
     {
-        async Task<long> LeaveAfterAnHour(bool revoke)
+        async Task<(long Stomach, long Experience)> LeaveAfterAnHour(bool revoke)
         {
             await using var f = new Fixture();
             await f.SeedAsync(); f.Enter();
             await f.Runtime.AdvanceAsync(f.Session, default);
             f.Clock.Advance(TimeSpan.FromHours(1));
+            f.Runtime.QueueRoomExperience(f.Session, DungeonRunId.New(), new(0, 0), 10);
             if (revoke) f.Sessions.Revoke(f.Session);
             await f.Runtime.LeaveAsync(f.Session, default);
-            return await f.StomachAsync();
+            Assert.Empty(f.Runtime.DueSessions());
+            return (await f.StomachAsync(), await f.ExperienceAsync());
         }
 
         var settled = await LeaveAfterAnHour(revoke: false);
-        Assert.NotEqual(50L, settled);
+        Assert.NotEqual(50L, settled.Stomach);
+        Assert.NotEqual(0L, settled.Experience);
         Assert.Equal(settled, await LeaveAfterAnHour(revoke: true));
     }
 

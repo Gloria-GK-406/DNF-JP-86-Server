@@ -193,7 +193,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
             var uid = reward.ResolveInitialPet ? current?.ItemUid : reward.CreatureKey;
             var pet = uid is { } id ? await pets.ReadAsync(session.CharacterId, id, ct).ConfigureAwait(false) : null;
             if (pet is not null)
-                await GainCoreAsync(tx, session, pet, reward.Amount, ct).ConfigureAwait(false);
+                await GainCoreAsync(tx, session, pet, reward.Amount, ct, leaving).ConfigureAwait(false);
             pending.Acknowledge(session, reward);
         }
         return changed;
@@ -223,11 +223,11 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     }
 
     private async ValueTask<CreatureRuntimeChange?> GainCoreAsync(IDomainTransaction tx,
-        SelectedSessionIdentity session, CreatureState pet, int amount, CancellationToken ct)
+        SelectedSessionIdentity session, CreatureState pet, int amount, CancellationToken ct, bool leaving = false)
     {
         var rule = await rules.GetAsync(pet.ItemTemplateId, ct).ConfigureAwait(false);
         if (rule is null || rule.IsEgg) return null;
-        var context = CreateContext(tx, session.CharacterId);
+        var context = CreateContext(tx, session.CharacterId, leaving);
         var reference = await context.FindAsync(pet.ItemUid, ct).ConfigureAwait(false);
         return reference is null ? null : await new PetInstance(reference, context)
             .AddExpCoreAsync(amount, ct).ConfigureAwait(false);
