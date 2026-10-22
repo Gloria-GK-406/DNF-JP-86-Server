@@ -7,7 +7,6 @@ using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Effects;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
@@ -21,7 +20,7 @@ namespace Dfo.Server.Protocol.Game;
 
 /// <summary>Replaces current client state after a committed operation; never repeats the original ACK or reward.</summary>
 internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, SelectedSessionSafety safety,
-    SelectedSessionTransitionGate transitions, IGameMessageSender sender, IServiceProvider services) : IReplayStateProjectionDelivery
+    IGameMessageSender sender, IServiceProvider services) : IReplayStateProjectionDelivery
 {
     public async ValueTask RefreshAsync(NetworkConnectionContext originalConnection, SelectedSessionIdentity session,
         ReplayProjectionRequest request, CancellationToken ct)
@@ -33,7 +32,6 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
             || recipient.Connection is null || !ReferenceEquals(recipient.Connection, originalConnection)
             || safety.IsBlocked(originalConnection))
             throw new InvalidOperationException("Replay projection requires its exact original connection.");
-        await using var lease = await transitions.BorrowOrAcquireExclusiveAsync(session.AccountId, ct).ConfigureAwait(false);
         safety.DemandCurrent(recipient);
         var snapshot = await commands.SendAsync(new ReadReplayStateCommand(session, request), ct).ConfigureAwait(false);
         if (snapshot.Quests is { } quests && services.GetService<Dfo.Server.Abstractions.Quests.IMirrorAradQuestDomainService>() is { } mirror)

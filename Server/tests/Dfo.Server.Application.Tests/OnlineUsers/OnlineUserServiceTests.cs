@@ -488,11 +488,10 @@ public sealed class UserServiceTests
     {
         var accountId = new AccountId(104);
         var service = CreateService(accountId);
-        var gate = new OnlineUserExecutionGate();
         var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var cleanup = new ClearingCleanup(service);
         var observer = new OnlineUserConnectionObserver(
-            service, gate, new SelectedSessionTransitionGate(), sessions, cleanup,
+            service, sessions, cleanup,
             new StubChannelEntryPolicy(), new StubServerConfigService(),
             new RecordingInitialSender(), new RecordingCleanupDelivery(), TimeProvider.System);
         var connection = new NetworkConnectionContext(
@@ -588,7 +587,7 @@ public sealed class UserServiceTests
         var service = CreateService(new AccountId(105));
         var lifecycleGate = new SelectedSessionTransitionGate();
         var observer = new OnlineUserConnectionObserver(
-            service, new OnlineUserExecutionGate(), lifecycleGate,
+            service,
             new EmptySelectedSessions(), new NoopCleanup(), new StubChannelEntryPolicy(),
             new StubServerConfigService(), new RecordingInitialSender(), new RecordingCleanupDelivery(), TimeProvider.System);
         var connection = new NetworkConnectionContext(
@@ -637,8 +636,6 @@ public sealed class UserServiceTests
         RecordingCleanupDelivery? cleanupDelivery = null) =>
         new(
             service,
-            new OnlineUserExecutionGate(),
-            new SelectedSessionTransitionGate(),
             sessions,
             cleanup,
             channelPolicy ?? new StubChannelEntryPolicy(),

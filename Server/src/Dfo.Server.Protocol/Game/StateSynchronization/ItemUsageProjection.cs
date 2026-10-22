@@ -4,7 +4,6 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -62,7 +61,7 @@ public sealed class ReadItemUsageSnapshotCommandHandler(IItemUsageDomainService 
 }
 public sealed class ItemUsageProjectionDelivery(ICommandBus commands, ISelectedSessionDomainService sessions, IGameMessageSender sender)
 {
-    // Callers hold the selected-session transition lease across read and delivery (including reset + chunks).
+    // Read and delivery (including reset + chunks) run in the caller's job; no other job interleaves them.
     public async ValueTask SendAsync(SelectedSessionIdentity session, CancellationToken token)
     {
         var snapshot = await commands.SendAsync(new ReadItemUsageSnapshotCommand(session), token).ConfigureAwait(false);
@@ -91,7 +90,7 @@ internal static class ItemUsageCooldownProjection
 
 // One server timer only checks online sessions. Offline counters remain untouched and reset on read.
 public sealed class ItemUsageDailyRefreshService(ISelectedSessionSnapshotQuery directory,
-    ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
+    ISelectedSessionDomainService sessions,
     IDailyResetRuleService days, TimeProvider clock, ItemUsageProjectionDelivery delivery,
     ILogger<ItemUsageDailyRefreshService> logger, IGameplayQueue queue) : BackgroundService
 {
@@ -110,7 +109,6 @@ public sealed class ItemUsageDailyRefreshService(ISelectedSessionSnapshotQuery d
             if (delivered.TryGetValue(session, out var previous) && previous == period) continue;
             try
             {
-                await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
                 if (!sessions.IsInWorld(session)) continue;
                 await delivery.SendAsync(session, token).ConfigureAwait(false);
                 delivered[session] = period;

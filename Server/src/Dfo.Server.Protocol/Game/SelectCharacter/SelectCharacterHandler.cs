@@ -6,7 +6,6 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
@@ -58,7 +57,6 @@ public sealed class SelectCharacterHandler(
     IChannelEntryPolicy channels,
     ICommandBus commandBus,
     ISelectedCharacterStateMessageFactory stateMessages,
-    SelectedSessionTransitionGate lifecycleGate,
     ISelectedSessionDomainService selectedSessions,
     IGameMessageSender sender,
     IEventService notifications,
@@ -70,7 +68,6 @@ public sealed class SelectCharacterHandler(
     Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionDelivery? weaknessProjection = null,
     LotteryCounterExperimentOptions? lotteryCounterExperiment = null,
     ItemUsageProjectionDelivery? itemUsageProjection = null,
-    Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? achievementProjectionGate = null,
     UsageQuotaProjectionDelivery? quotaProjection = null,
     Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService? clientSettings = null,
     Dfo.Server.Abstractions.World.ISaoTowerDomainService? sao = null,
@@ -100,8 +97,6 @@ public sealed class SelectCharacterHandler(
         SelectedSessionIdentity? session = null;
         ExceptionDispatchInfo? failure = null;
         var expiredItemCleanupRejected = false;
-        var lifecycleLease = await lifecycleGate.AcquireAsync(
-            accountId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
         try
         {
             var prepared = await commandBus.SendAsync(
@@ -139,9 +134,6 @@ public sealed class SelectCharacterHandler(
             await commandBus.SendAsync(new EnsureDailyContractPuppetsCommand(session), cancellationToken)
                 .ConfigureAwait(false);
             await commandBus.SendAsync(new Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommand(session), cancellationToken).ConfigureAwait(false);
-            // Hold live achievement/title projections until the complete entry batch has reached the client.
-            using var achievementProjection = achievementProjectionGate is null ? null
-                : await achievementProjectionGate.EnterAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
             var state = await commandBus.SendAsync(
                 new PrepareSelectedCharacterStateCommand(
                     session, prepared.Selected, prepared.Channel), cancellationToken)
@@ -233,10 +225,6 @@ public sealed class SelectCharacterHandler(
                 }
             }
         }
-        finally
-        {
-            await lifecycleLease.DisposeAsync().ConfigureAwait(false);
-        }
 
         // Logged where it is known to have happened. Every phase of this handler that can fail
         // funnels into `failure`, and the command pipeline only reports failures of commands --
@@ -265,8 +253,8 @@ public sealed class SelectCharacterHandler(
             }
             catch
             {
-                // Best effort after lifecycle ownership is released. A close callback may itself
-                // wait on the same transition gate, so it must never run inside the lease.
+                // Best effort, after the workflow and its compensation have finished: closing
+                // runs the connection's own cleanup.
             }
         }
 

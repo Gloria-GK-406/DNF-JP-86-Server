@@ -145,18 +145,15 @@ public sealed class DungeonLoadingProjectionDeliveryTests
         var runs = new Runs(run);
         var registry = new DungeonRunDeliveryRegistry();
         registry.Register(run.RunId, [Current]);
-        var transitionGate = new SelectedSessionTransitionGate();
         var commands = new ReadyCommandBus(runs, enteredCommand, releaseCommand);
         var sender = new WeaknessSender();
         var delivery = new DungeonLoadingProjectionDelivery(
             sessions,
             runs,
             registry,
-            transitionGate,
-            new DungeonProjectionGate(),
             commands,
             new WeaknessProjectionDelivery(new WeaknessState(weaknessValue), sessions, sender), quotaProjection);
-        return new TestWorld(delivery, sessions, runs, commands, transitionGate, sender);
+        return new TestWorld(delivery, sessions, runs, commands, sender);
     }
 
     private static readonly SelectedSessionIdentity Current = SelectedSessionIdentity.Create(
@@ -173,7 +170,6 @@ public sealed class DungeonLoadingProjectionDeliveryTests
         Sessions Sessions,
         Runs Runs,
         ReadyCommandBus Commands,
-        SelectedSessionTransitionGate TransitionGate,
         WeaknessSender Sender);
 
     private sealed class WeaknessState(byte value) : IWeaknessDomainService, IWeakness

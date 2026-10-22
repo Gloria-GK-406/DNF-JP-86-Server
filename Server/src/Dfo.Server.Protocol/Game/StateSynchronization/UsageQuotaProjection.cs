@@ -3,7 +3,6 @@ using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.UsageQuotas;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
@@ -94,7 +93,7 @@ public sealed class UsageQuotaProjectionDelivery(IEventService events)
 
 // Mirror's original quota resets at local midnight, independently of the 06:00 item/premium period.
 public sealed class MirrorQuotaDailyRefreshService(ISelectedSessionSnapshotQuery directory,
-    ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
+    ISelectedSessionDomainService sessions,
     UsageQuotaProjectionDelivery delivery, TimeProvider clock, ILogger<MirrorQuotaDailyRefreshService> logger, IGameplayQueue queue) : BackgroundService
 {
     private readonly Dictionary<SelectedSessionIdentity, DateOnly> delivered = [];
@@ -112,8 +111,6 @@ public sealed class MirrorQuotaDailyRefreshService(ISelectedSessionSnapshotQuery
             if (delivered.TryGetValue(session, out var previous) && previous == day) continue;
             try
             {
-                await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive,
-                    cancellationToken).ConfigureAwait(false);
                 if (!sessions.IsInWorld(session)) continue;
                 var result = await delivery.SendAsync(session, UsageQuotaFamily.MirrorDungeon, cancellationToken).ConfigureAwait(false);
                 if (sessions.IsInWorld(session)

@@ -4,7 +4,6 @@ using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Execution;
@@ -42,7 +41,7 @@ public sealed class FatigueProjectionDelivery(ICharacterFatigueDomainService fat
 }
 // One server clock; persistence rolls over lazily even when this worker is stopped or a player is offline.
 public sealed class FatigueDailyRefreshService(ISelectedSessionSnapshotQuery directory,
-    ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
+    ISelectedSessionDomainService sessions,
     ICharacterFatigueDomainService fatigue, IGameMessageSender sender, TimeProvider clock,
     ILogger<FatigueDailyRefreshService> logger, IGameplayQueue queue) : BackgroundService
 {
@@ -59,7 +58,6 @@ public sealed class FatigueDailyRefreshService(ISelectedSessionSnapshotQuery dir
         {
             try
             {
-                await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
                 var balance = await fatigue.BalanceOfAsync(session.CharacterId, token).ConfigureAwait(false);
                 if (!sessions.IsInWorld(session)) continue;
                 if (delivered.TryGetValue(session, out var old) && old == balance) continue;

@@ -211,7 +211,6 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<CharacterSelectionDelivery>();
         services.TryAddSingleton<DungeonRunDeliveryRegistry>();
         services.TryAddSingleton<DungeonPartyRecipients>();
-        services.TryAddSingleton<DungeonProjectionGate>();
         services.AddHostedService<DungeonPartyWipeService>();
         services.AddCommandHandler<RecoverStaminaCommand, RecoverStaminaResult, RecoverStaminaCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
@@ -480,7 +479,6 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<PartyProjectionStreamRegistry>();
         services.TryAddSingleton<PartyNotificationDelivery>();
         services.TryAddSingleton<IPartyTownProjectionDelivery, PartyTownProjectionDelivery>();
-        services.TryAddSingleton<TownAreaProjectionGate>();
         services.TryAddSingleton<TownAreaProjectionDelivery>();
         services.AddNotificationHandler<PartyInviteIssued, PartyInviteIssuedHandler>(retryLimit: 0);
         services.AddNotificationHandler<PartyRealtimeChanged, PartyRealtimeChangedHandler>(retryLimit: 0);
@@ -658,7 +656,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<EquipCarriedTitleReplacingMirrorCommand, TitleBookMutationResult, EquipCarriedTitleReplacingMirrorCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<ReconcileAchievementCommand, AchievementReconciliationResult, ReconcileAchievementCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<QueryTitleBookCommand, IReadOnlyList<CharacterTitleBookCategoryState>, QueryTitleBookCommandHandler>(CommandExecutionKind.ReadOnly, UserAccessMode.Shared, UserAccessMode.Shared);
-        services.TryAddSingleton<AchievementTitleProjectionGate>();
         services.AddDomainSubscriber<AchievementProgressChanged, AchievementEventSubscriber>("achievement.noti", DomainEventDeliveryPolicy.LiveOnly, f => f.CharacterId.Value.ToString());
         services.AddDomainSubscriber<TitleUnlocked, TitleBookEventSubscriber>("title.noti-unlock", DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainSubscriber<TitleStored, TitleBookEventSubscriber>("title.noti-store", DomainEventDeliveryPolicy.LiveOnly);
@@ -905,8 +902,6 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UseRevivalCoinHandler>(ClientMessageType.GameUseRevivalCoin);
         services.RegisterMessageHandler<CharacterDeathHandler>(ClientMessageType.GameCharacterDeath);
         services.RegisterMessageHandler<MonsterDeathHandler>(ClientMessageType.GameMonsterDeath);
-        services.TryAddSingleton<BossTowerProjectionGate>();
-        services.TryAddSingleton<BossTowerEntryGate>();
         services.TryAddSingleton<BossTowerProjectionDelivery>();
         services.TryAddSingleton<BossTowerPartyCoordinator>();
         services.TryAddSingleton<BossTowerDepartureProjectionQueue>();
@@ -924,8 +919,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<SelectBossTowerResultCommand, BossTowerActionResult, SelectBossTowerResultCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<PickupBossTowerItemCommand, BossTowerPickupResult, PickupBossTowerItemCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<ReleaseBossTowerSelectionCommand, BossTowerActionResult, ReleaseBossTowerSelectionCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.TryAddSingleton<IllusionTowerProjectionGate>();
-        services.TryAddSingleton<IllusionTowerEntryGate>();
         services.TryAddSingleton<IllusionTowerProjectionDelivery>();
         services.TryAddSingleton<IllusionTowerPartyCoordinator>();
         services.TryAddSingleton<IllusionTowerDepartureProjectionQueue>();

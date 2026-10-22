@@ -339,8 +339,7 @@ public sealed class SelectDungeonHandlerTests
                     new OneSession(Identity),
                     new OneRuntimeSession(Entry()),
                     sender),
-                NullLogger<SelectDungeonHandler>.Instance,
-                new SelectedSessionTransitionGate());
+                NullLogger<SelectDungeonHandler>.Instance);
 
             await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
@@ -375,8 +374,7 @@ public sealed class SelectDungeonHandlerTests
                 sender,
                 new NoopConnectionCloser(),
                 TownAreaProjectionTestFactory.Create(sessions, runtimes, sender),
-                NullLogger<SelectDungeonHandler>.Instance,
-                new SelectedSessionTransitionGate());
+                NullLogger<SelectDungeonHandler>.Instance);
             var stale = new GameMessageMetadata(1, 0x0010, 0, 9)
             {
                 InboundOrdinal = 2,
@@ -540,8 +538,7 @@ public sealed class SelectDungeonHandlerTests
                 sender,
                 new NoopConnectionCloser(),
                 townProjection,
-                NullLogger<SelectDungeonHandler>.Instance,
-                new SelectedSessionTransitionGate());
+                NullLogger<SelectDungeonHandler>.Instance);
 
             await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
@@ -599,8 +596,7 @@ public sealed class SelectDungeonHandlerTests
                 sender,
                 new NoopConnectionCloser(),
                 townProjection,
-                NullLogger<SelectDungeonHandler>.Instance,
-                new SelectedSessionTransitionGate());
+                NullLogger<SelectDungeonHandler>.Instance);
 
             await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
@@ -644,8 +640,7 @@ public sealed class SelectDungeonHandlerTests
                     new NoSession(),
                     new OneRuntimeSession(Entry()),
                     new RecordingSender()),
-                NullLogger<SelectDungeonHandler>.Instance,
-                new SelectedSessionTransitionGate());
+                NullLogger<SelectDungeonHandler>.Instance);
 
             await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
@@ -683,8 +678,7 @@ public sealed class SelectDungeonHandlerTests
                     new NoSession(),
                     new OneRuntimeSession(Entry()),
                     sender),
-                NullLogger<SelectDungeonHandler>.Instance,
-                new SelectedSessionTransitionGate());
+                NullLogger<SelectDungeonHandler>.Instance);
 
             await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
@@ -730,13 +724,12 @@ public sealed class SelectDungeonHandlerTests
         var intents = new IntentStore(intent ?? DungeonEntryIntent.Interactive);
         var runs = new NoopRuns();
         var registry = new DungeonRunDeliveryRegistry();
-        var transitionGate = new SelectedSessionTransitionGate();
         var town = TownAreaProjectionTestFactory.Create(sessions, runtimes, actualSender);
         var projection = commands is null ? null : new DungeonEntryProjectionDelivery(
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(), new UnchangedState(),
             sessions, new RuntimeCurrentView(runtimes), runs, registry, intents, visits,
-            actualFatigue, actualSender, new NoopConnectionCloser(), town, transitionGate,
-            new DungeonProjectionGate(), NullLogger<DungeonEntryProjectionDelivery>.Instance, commands);
+            actualFatigue, actualSender, new NoopConnectionCloser(), town,
+            NullLogger<DungeonEntryProjectionDelivery>.Instance, commands);
         return new(
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new UnchangedState(),
@@ -758,12 +751,11 @@ public sealed class SelectDungeonHandlerTests
             new NoopConnectionCloser(),
             town,
             NullLogger<SelectDungeonHandler>.Instance,
-            transitionGate,
             entryProjection: projection,
             illusionTower: tower,
             // Sentinel projection: the probe throws if the shortcut is even consulted.
             illusionTowerProjection: tower is null ? null : new(tower, null!, null!, null!, null!, null!, null!,
-                null!, null!, null!, null!, null!, null!, null!, null!, null!, null!));
+                null!, null!, null!, null!, null!, null!, null!));
     }
 
     private static SelectDungeonRequest Request() =>

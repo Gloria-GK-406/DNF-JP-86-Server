@@ -4,7 +4,6 @@ using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
@@ -99,12 +98,11 @@ public sealed class EplpCommandHandler(
     IGameMessageSender sender,
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<EplpCommandHandler> logger,
-    SelectedSessionTransitionGate transitionGate,
     DungeonCardPresentationCoordinator? cardPresentation = null,
     IPartyService? parties = null,
     IllusionTowerProjectionDelivery? illusionTower = null,
     Dfo.Server.Protocol.Game.Altar.AltarProtocolCoordinator? altars = null,
-    DungeonProjectionGate? projectionGate = null, BossTowerProjectionDelivery? bossTower = null,
+    BossTowerProjectionDelivery? bossTower = null,
     IDungeonEntryIntentDomainService? entryIntents = null, ICommandBus? commands = null,
     ITownAreaDomainService? townAreas = null)
     : ClientMessageHandler<EplpCommandRequest>
@@ -195,31 +193,14 @@ public sealed class EplpCommandHandler(
         if (!returning.Any(value => value.Session == session))
             return;
 
-        await using var altarProjection = leaving && isAltar
-            ? await (projectionGate ?? throw new InvalidOperationException("Altar projection gate is unavailable."))
-                .AcquireAsync(currentRun!.RunId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false)
-            : null;
-        // Keep the same lifecycle boundary through ACK and all town frames. ENTER_SELECT and
-        // the entry command participate in this boundary too.
-        await using var transitions = message.State == LeaveState
-            ? await transitionGate.AcquireManyExclusiveAsync(
-                participants.Select(x => x.AccountId), cancellationToken).ConfigureAwait(false)
-            : null;
         if (message.State == LeaveState)
         {
             if (!selectedSessions.IsInWorld(session)
-                || runs.Find(session.CharacterId)?.RunId != currentRun?.RunId
                 || returning.Any(x => !selectedSessions.IsInWorld(x.Session))
                 || (!isAltar && returning.Any(x => entryIntents?.Find(x.Session) is not null)))
                 return;
-            if (roster is not null && parties is not null)
-            {
-                var latest = parties.FindParty(new PartyCharacterSnapshot(
-                    session.AccountId, session.CharacterId, session.WireUserId, null));
-                if (latest.Generation != roster.Generation || latest.Revision != roster.Revision
-                    || returning.Count != roster.Members.Length)
-                    return;
-            }
+            if (roster is not null && parties is not null && returning.Count != roster.Members.Length)
+                return;
             if (currentRun is null && townAreas is not null
                 && (townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member)))
                 return;
@@ -231,7 +212,7 @@ public sealed class EplpCommandHandler(
         {
             if (isAltar)
                 await (altars ?? throw new InvalidOperationException("Altar coordinator is unavailable."))
-                    .SettleBeforeExitUnderGatesAsync(session, currentRun!.RunId, cancellationToken).ConfigureAwait(false);
+                    .SettleBeforeExitAsync(session, currentRun!.RunId, cancellationToken).ConfigureAwait(false);
 
             if (currentRun is not null)
             {

@@ -10,7 +10,6 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Data.Networking;
@@ -196,7 +195,6 @@ public sealed class BackToVillageHandler(
     IGameMessageSender sender,
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<BackToVillageHandler> logger,
-    SelectedSessionTransitionGate transitionGate,
     IPartyService parties,
     IDungeonEntryIntentDomainService? entryIntents = null,
     IllusionTowerProjectionDelivery? illusionTower = null, BossTowerProjectionDelivery? bossTower = null)
@@ -251,39 +249,30 @@ public sealed class BackToVillageHandler(
         if (requester is null)
             return;
 
-        var transitionLeases = await AcquireTransitionsAsync(
-            transitionGate, returning, cancellationToken).ConfigureAwait(false);
         List<TownAreaEntry> areaEntries = [];
         var endedRuns = 0;
-        try
-        {
-            returning = returning
-                .Where(value => selectedSessions.IsInWorld(value.Session))
-                .ToArray();
-            requester = returning.SingleOrDefault(value => value.Session == session);
-            if (requester is null)
-                return;
+        returning = returning
+            .Where(value => selectedSessions.IsInWorld(value.Session))
+            .ToArray();
+        requester = returning.SingleOrDefault(value => value.Session == session);
+        if (requester is null)
+            return;
 
-            foreach (var member in returning)
+        foreach (var member in returning)
+        {
+            var currentRun = runs.Find(member.Session.CharacterId);
+            var ended = currentRun is not null
+                && await runs.EndAsync(member.Session.CharacterId, currentRun.RunId).ConfigureAwait(false);
+            if (ended && currentRun is not null)
             {
-                var currentRun = runs.Find(member.Session.CharacterId);
-                var ended = currentRun is not null
-                    && await runs.EndAsync(member.Session.CharacterId, currentRun.RunId).ConfigureAwait(false);
-                if (ended && currentRun is not null)
-                {
-                    deliveries.RemoveParticipant(currentRun.RunId, member.Session.CharacterId);
-                    endedRuns++;
-                }
-
-                areaEntries.Add(new TownAreaEntry(
-                    member.Session,
-                    member.Runtime,
-                    member.Position));
+                deliveries.RemoveParticipant(currentRun.RunId, member.Session.CharacterId);
+                endedRuns++;
             }
-        }
-        finally
-        {
-            await transitionLeases.DisposeAsync().ConfigureAwait(false);
+
+            areaEntries.Add(new TownAreaEntry(
+                member.Session,
+                member.Runtime,
+                member.Position));
         }
 
         logger.LogInformation(
@@ -304,32 +293,6 @@ public sealed class BackToVillageHandler(
             cancellationToken).ConfigureAwait(false);
         await townAreaProjection.EnterAsync(areaEntries, cancellationToken)
             .ConfigureAwait(false);
-    }
-
-    private static async ValueTask<IAsyncDisposable> AcquireTransitionsAsync(
-        SelectedSessionTransitionGate gate,
-        IReadOnlyList<ReturningMember> returning,
-        CancellationToken cancellationToken)
-    {
-        var leases = new List<IAsyncDisposable>();
-        try
-        {
-            foreach (var accountId in returning
-                .Select(value => value.Session.AccountId)
-                .Distinct()
-                .OrderBy(value => value.Value))
-            {
-                leases.Add(await gate.AcquireAsync(
-                    accountId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
-            }
-            return new TransitionLeaseSet(leases);
-        }
-        catch
-        {
-            for (var index = leases.Count - 1; index >= 0; index--)
-                await leases[index].DisposeAsync().ConfigureAwait(false);
-            throw;
-        }
     }
 
     private async ValueTask<IReadOnlyList<ReturningMember>> ResolveReturningMembersAsync(
@@ -378,16 +341,6 @@ public sealed class BackToVillageHandler(
         SelectedSessionIdentity Session,
         SelectCharacterResult Runtime,
         CharacterPositionState Position);
-
-    private sealed class TransitionLeaseSet(IReadOnlyList<IAsyncDisposable> leases)
-        : IAsyncDisposable
-    {
-        public async ValueTask DisposeAsync()
-        {
-            for (var index = leases.Count - 1; index >= 0; index--)
-                await leases[index].DisposeAsync().ConfigureAwait(false);
-        }
-    }
 }
 
 /// <summary>
@@ -569,11 +522,9 @@ public sealed class EnterSelectDungeonHandler(
     IPartyService parties,
     UsageQuotaProjectionDelivery? quotaProjection = null, IDespairTowerDomainService? despair = null, ISaoTowerDomainService? sao = null,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
-    BossTowerProjectionDelivery? bossTower = null, SelectedSessionTransitionGate? transitionGate = null)
+    BossTowerProjectionDelivery? bossTower = null)
     : ClientMessageHandler<EnterSelectDungeonRequest>
 {
-    private readonly SelectedSessionTransitionGate transitions = transitionGate ?? new();
-
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         EnterSelectDungeonRequest message,
@@ -611,11 +562,7 @@ public sealed class EnterSelectDungeonHandler(
             session, result, roster, cancellationToken).ConfigureAwait(false);
         if (attached.Count != roster.Members.Length)
             return;
-        await using var transition = await transitions.AcquireManyExclusiveAsync(
-            attached.Select(x => x.Session.AccountId), cancellationToken).ConfigureAwait(false);
-        var latestRoster = parties.FindParty(requesterCharacter);
-        if (latestRoster.Generation != roster.Generation || latestRoster.Revision != roster.Revision
-            || attached.Any(x => !selectedSessions.IsInWorld(x.Session)))
+        if (attached.Any(x => !selectedSessions.IsInWorld(x.Session)))
             return;
         var intent = message.Selection == 0
             ? DungeonEntryIntent.Interactive

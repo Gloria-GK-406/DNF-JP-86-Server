@@ -5,7 +5,6 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
@@ -162,7 +161,6 @@ public sealed class GiveUpGameHandler(
     IGameMessageSender sender,
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<GiveUpGameHandler> logger,
-    SelectedSessionTransitionGate transitionGate,
     ITownAreaDomainService? townAreas = null,
     ICommandBus? commands = null,
     PartyNotificationDelivery? partyNotifications = null,
@@ -170,7 +168,7 @@ public sealed class GiveUpGameHandler(
     IllusionTowerProjectionDelivery? illusionTower = null,
     IllusionTowerPartyCoordinator? towerParties = null,
     Dfo.Server.Protocol.Game.Altar.AltarProtocolCoordinator? altars = null,
-    DungeonProjectionGate? projectionGate = null, BossTowerPartyCoordinator? bossParties = null)
+    BossTowerPartyCoordinator? bossParties = null)
     : ClientMessageHandler<GiveUpGameRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -189,132 +187,90 @@ public sealed class GiveUpGameHandler(
             return;
         }
 
-        for (var attempt = 0; ; attempt++)
+        if (bossParties is not null)
         {
-            if (bossParties is not null)
-            {
-                var bossAttempt = await bossParties.TryLeaveAsync(session, allowVirtual: true,
-                    new GiveUpGameResponse(), cancellationToken).ConfigureAwait(false);
-                if (bossAttempt.Handled) return;
-            }
-            if (towerParties is not null)
-            {
-                var towerAttempt = await towerParties.TryLeaveAsync(
-                    session, allowVirtual: true, new GiveUpGameResponse(), cancellationToken)
-                    .ConfigureAwait(false);
-                if (towerAttempt.Handled)
-                {
-                    logger.LogInformation(
-                        "Give up game {ConnectionId} character={CharacterId}: tower ended={Ended}",
-                        context.Connection.ConnectionId, session.CharacterId.Value,
-                        towerAttempt.Result.Succeeded);
-                    return;
-                }
-            }
-            else if (illusionTower is not null
-                && await illusionTower.LeaveAndReturnAsync(
-                    context.Connection.ConnectionId, message.Metadata,
-                    new GiveUpGameResponse(), cancellationToken).ConfigureAwait(false))
-            {
-                return;
-            }
-
-            var result = await currentViews.TryLoadAsync(session, cancellationToken)
+            var bossAttempt = await bossParties.TryLeaveAsync(session, allowVirtual: true,
+                new GiveUpGameResponse(), cancellationToken).ConfigureAwait(false);
+            if (bossAttempt.Handled) return;
+        }
+        if (towerParties is not null)
+        {
+            var towerAttempt = await towerParties.TryLeaveAsync(
+                session, allowVirtual: true, new GiveUpGameResponse(), cancellationToken)
                 .ConfigureAwait(false);
-            if (result is null || onlineCharacters.PositionOf(session) is not { } position)
+            if (towerAttempt.Handled)
             {
-                logger.LogWarning(
-                    "Give up game {ConnectionId}: no published session, ignoring",
-                    context.Connection.ConnectionId);
+                logger.LogInformation(
+                    "Give up game {ConnectionId} character={CharacterId}: tower ended={Ended}",
+                    context.Connection.ConnectionId, session.CharacterId.Value,
+                    towerAttempt.Result.Succeeded);
                 return;
             }
-
-            var ended = false;
-            var reroute = false;
-            PartyCommandExecution? partyExecution = null;
-            var expectedRun = runs.Find(session.CharacterId);
-            var leases = new List<IAsyncDisposable>();
-            try
-            {
-                if (expectedRun?.Layout.Altar is not null)
-                {
-                    leases.Add(await (projectionGate ?? throw new InvalidOperationException("Altar projection gate is unavailable."))
-                        .AcquireAsync(expectedRun.RunId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
-                }
-                var accounts = expectedRun?.Layout.Altar is not null
-                    ? expectedRun.Participants.Select(x => x.AccountId).Append(session.AccountId).Distinct().OrderBy(x => x.Value)
-                    : new[] { session.AccountId }.AsEnumerable();
-                // Install each AsyncLocal lease on this flow. Returning leases from an async
-                // helper hides their frames from the command pipeline and deadlocks its borrow.
-                foreach (var account in accounts)
-                    leases.Add(await transitionGate.AcquireAsync(account, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
-                if (!selectedSessions.IsInWorld(session))
-                    return;
-                if (towerParties?.HasInvolvedTower(session) == true || bossParties?.HasInvolvedTower(session) == true
-                    || runs.Find(session.CharacterId)?.RunId != expectedRun?.RunId)
-                {
-                    reroute = true;
-                }
-                else
-                {
-                    var currentRun = runs.Find(session.CharacterId);
-                    if (currentRun?.Layout.Altar is not null)
-                        await (altars ?? throw new InvalidOperationException("Altar coordinator is unavailable."))
-                            .SettleGiveUpUnderGatesAsync(session, currentRun.RunId, cancellationToken).ConfigureAwait(false);
-                    if (currentRun is not null)
-                        cardPresentation?.Cancel(session.CharacterId, currentRun.RunId);
-                    ended = currentRun is not null
-                        && await runs.EndAsync(session.CharacterId, currentRun.RunId)
-                            .ConfigureAwait(false);
-                    if (ended && currentRun is not null)
-                        deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
-                    if (ended && townAreas is not null && commands is not null)
-                    {
-                        var partyResult = await commands.SendAsync(
-                            new LeavePartyCommand(session.CharacterId),
-                            cancellationToken).ConfigureAwait(false);
-                        partyExecution = new PartyCommandExecution(
-                            partyResult,
-                            PartyNotificationRecipientCapture.Capture(
-                                partyResult.Notifications, selectedSessions, townAreas));
-                    }
-                }
-            }
-            finally
-            {
-                for (var index = leases.Count - 1; index >= 0; index--)
-                    await leases[index].DisposeAsync().ConfigureAwait(false);
-            }
-
-            if (reroute)
-            {
-                if (attempt >= 7)
-                    return;
-                continue;
-            }
-
-            if (partyExecution is { Result.Succeeded: true } && partyNotifications is not null)
-            {
-                await partyNotifications.DeliverAsync(
-                    partyExecution.Result.Notifications,
-                    partyExecution.Recipients,
-                    cancellationToken).ConfigureAwait(false);
-            }
-            logger.LogInformation(
-                "Give up game {ConnectionId} character={CharacterId}: run ended={Ended}",
-                context.Connection.ConnectionId,
-                session.CharacterId.Value,
-                ended);
-
-            await sender.SendExplicitAsync(
-                context.Connection.ConnectionId,
-                new GameExplicitMessageDelivery([new GiveUpGameResponse()], []),
-                cancellationToken).ConfigureAwait(false);
-            await townAreaProjection.EnterAsync(
-                [new TownAreaEntry(session, result, position, ProjectWeaknessBeforeTown: true)],
-                cancellationToken).ConfigureAwait(false);
+        }
+        else if (illusionTower is not null
+            && await illusionTower.LeaveAndReturnAsync(
+                context.Connection.ConnectionId, message.Metadata,
+                new GiveUpGameResponse(), cancellationToken).ConfigureAwait(false))
+        {
             return;
         }
+
+        var result = await currentViews.TryLoadAsync(session, cancellationToken)
+            .ConfigureAwait(false);
+        if (result is null || onlineCharacters.PositionOf(session) is not { } position)
+        {
+            logger.LogWarning(
+                "Give up game {ConnectionId}: no published session, ignoring",
+                context.Connection.ConnectionId);
+            return;
+        }
+
+        var ended = false;
+        PartyCommandExecution? partyExecution = null;
+        if (!selectedSessions.IsInWorld(session))
+            return;
+        var currentRun = runs.Find(session.CharacterId);
+        if (currentRun?.Layout.Altar is not null)
+            await (altars ?? throw new InvalidOperationException("Altar coordinator is unavailable."))
+                .SettleGiveUpAsync(session, currentRun.RunId, cancellationToken).ConfigureAwait(false);
+        if (currentRun is not null)
+            cardPresentation?.Cancel(session.CharacterId, currentRun.RunId);
+        ended = currentRun is not null
+            && await runs.EndAsync(session.CharacterId, currentRun.RunId)
+                .ConfigureAwait(false);
+        if (ended && currentRun is not null)
+            deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
+        if (ended && townAreas is not null && commands is not null)
+        {
+            var partyResult = await commands.SendAsync(
+                new LeavePartyCommand(session.CharacterId),
+                cancellationToken).ConfigureAwait(false);
+            partyExecution = new PartyCommandExecution(
+                partyResult,
+                PartyNotificationRecipientCapture.Capture(
+                    partyResult.Notifications, selectedSessions, townAreas));
+        }
+
+        if (partyExecution is { Result.Succeeded: true } && partyNotifications is not null)
+        {
+            await partyNotifications.DeliverAsync(
+                partyExecution.Result.Notifications,
+                partyExecution.Recipients,
+                cancellationToken).ConfigureAwait(false);
+        }
+        logger.LogInformation(
+            "Give up game {ConnectionId} character={CharacterId}: run ended={Ended}",
+            context.Connection.ConnectionId,
+            session.CharacterId.Value,
+            ended);
+
+        await sender.SendExplicitAsync(
+            context.Connection.ConnectionId,
+            new GameExplicitMessageDelivery([new GiveUpGameResponse()], []),
+            cancellationToken).ConfigureAwait(false);
+        await townAreaProjection.EnterAsync(
+            [new TownAreaEntry(session, result, position, ProjectWeaknessBeforeTown: true)],
+            cancellationToken).ConfigureAwait(false);
     }
 
 }

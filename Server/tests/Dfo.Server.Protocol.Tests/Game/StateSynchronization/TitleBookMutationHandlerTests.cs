@@ -29,14 +29,13 @@ public sealed class TitleBookMutationHandlerTests
     {
         var connection = new NetworkConnectionContext(new("title-ack"), NetworkEndpointKind.Game, 10011);
         var session = SelectedSessionIdentity.Create(new(1), new(1), connection.ConnectionId, 1, 10011);
-        var gate = new AchievementTitleProjectionGate();
         var commands = new Commands(new(success, success ? null : "InvalidItem", 4, 10,
             new(BusinessInventorySpace.WornEquipment, 1)));
         var sender = new Sender();
         var handler = new TitleBookMutationHandler(new Sessions(session),
             new Users(new(OnlineUserId.New(), connection, session.AccountId, session.CharacterId,
                 OnlineUserState.CharacterActive, 1)), new InventorySlotMappingRuleService(), commands, sender,
-            gate, NullLogger<TitleBookMutationHandler>.Instance);
+            NullLogger<TitleBookMutationHandler>.Instance);
         // The request is one CMD: its ACK is sent inside it, and no projection can run until it ends.
         sender.Complete.TrySetResult();
         await TestGameplay.RunAsync(async () => await handler.HandleAsync(new(connection), new TitleBookMutationRequest(new(1, store ? (ushort)0x019C : (ushort)0x019D, 0, 1),
@@ -51,11 +50,6 @@ public sealed class TitleBookMutationHandlerTests
             var command = Assert.IsType<EquipCarriedTitleReplacingMirrorCommand>(commands.Seen);
             Assert.Equal(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), command.Source);
         }
-        // The handler released the projection gate: a later job takes it without waiting.
-        await TestGameplay.RunAsync(async () =>
-        {
-            using var held = await gate.EnterAsync(session.CharacterId, default);
-        });
         Assert.Single(sender.Sent);
     }
     private sealed class Commands(TitleBookMutationResult result) : ICommandBus

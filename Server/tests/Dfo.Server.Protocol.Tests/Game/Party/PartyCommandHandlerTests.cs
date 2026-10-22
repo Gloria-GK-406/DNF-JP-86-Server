@@ -152,7 +152,6 @@ public sealed class PartyCommandHandlerTests
 
             await new CallPartyMemberRealtimeInfoHandler(
                     sessions,
-                    new SelectedSessionTransitionGate(),
                     commands,
                     new PartyNotificationDelivery(published),
                     NullLogger<CallPartyMemberRealtimeInfoHandler>.Instance)
@@ -176,36 +175,35 @@ public sealed class PartyCommandHandlerTests
         {
             var sessions = new SessionDirectory(Inviter, Invitee);
             var commands = new RecordingCommandBus();
-            var gate = new SelectedSessionTransitionGate();
 
-            await new RequestPeerHandler(sessions, Presence, gate, commands, Notifications,
+            await new RequestPeerHandler(sessions, Presence, commands, Notifications,
                     NullLogger<RequestPeerHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(
                     GameMessageMetadata.Empty, Invitee.WireUserId, 0, 64, []),
                     CancellationToken.None);
-            await new ResponsePeerHandler(sessions, Presence, gate, commands, Notifications,
+            await new ResponsePeerHandler(sessions, Presence, commands, Notifications,
                     NullLogger<ResponsePeerHandler>.Instance)
                 .HandleAsync(Dispatch(Invitee), new ResponsePeerRequest(
                     GameMessageMetadata.Empty, Inviter.WireUserId, 0, 0, []),
                     CancellationToken.None);
-            await new LeavePartyHandler(sessions, gate, commands, Notifications,
+            await new LeavePartyHandler(sessions, commands, Notifications,
                     NullLogger<LeavePartyHandler>.Instance)
                 .HandleAsync(Dispatch(Invitee), new LeavePartyRequest(GameMessageMetadata.Empty),
                     CancellationToken.None);
             await new ChangePartyLeaderHandler(
-                    sessions, new RecordingParties(), gate, commands, Notifications,
+                    sessions, new RecordingParties(), commands, Notifications,
                     NullLogger<ChangePartyLeaderHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter),
                     new ChangePartyLeaderRequest(GameMessageMetadata.Empty, 1),
                     CancellationToken.None);
             var sender = new RecordingSender();
             await new RemovePartyMemberHandler(
-                    sessions, new RecordingParties(), gate, commands, Notifications, sender,
+                    sessions, new RecordingParties(), commands, Notifications, sender,
                     NullLogger<RemovePartyMemberHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter),
                     new RemovePartyMemberRequest(GameMessageMetadata.Empty, 1),
                     CancellationToken.None);
-            await new SetPartyInfoHandler(sessions, Presence, gate, commands, Notifications,
+            await new SetPartyInfoHandler(sessions, Presence, commands, Notifications,
                     NullLogger<SetPartyInfoHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter), new SetPartyInfoRequest(
                     GameMessageMetadata.Empty, Settings(), new PartyTitle([0x41])),
@@ -239,7 +237,6 @@ public sealed class PartyCommandHandlerTests
             await new RemovePartyMemberHandler(
                     sessions,
                     new RecordingParties(),
-                    new SelectedSessionTransitionGate(),
                     commands,
                     Notifications,
                     sender,
@@ -341,14 +338,13 @@ public sealed class PartyCommandHandlerTests
         {
             var sessions = new SessionDirectory(Inviter, Invitee);
             var commands = new RecordingCommandBus();
-            var gate = new SelectedSessionTransitionGate();
 
-            await new RequestPeerHandler(sessions, Presence, gate, commands, Notifications,
+            await new RequestPeerHandler(sessions, Presence, commands, Notifications,
                     NullLogger<RequestPeerHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(
                     GameMessageMetadata.Empty, Invitee.WireUserId, 1, 90667, []),
                     CancellationToken.None);
-            await new ResponsePeerHandler(sessions, Presence, gate, commands, Notifications,
+            await new ResponsePeerHandler(sessions, Presence, commands, Notifications,
                     NullLogger<ResponsePeerHandler>.Instance)
                 .HandleAsync(Dispatch(Invitee), new ResponsePeerRequest(
                     GameMessageMetadata.Empty, Inviter.WireUserId, 2, 64, []),
@@ -366,7 +362,6 @@ public sealed class PartyCommandHandlerTests
             var commands = new RecordingCommandBus();
             await new LeavePartyHandler(
                     new SessionDirectory(),
-                    new SelectedSessionTransitionGate(),
                     commands,
                     Notifications,
                     NullLogger<LeavePartyHandler>.Instance)
@@ -391,7 +386,6 @@ public sealed class PartyCommandHandlerTests
 
             await new LeavePartyHandler(
                     new SessionDirectory(Invitee),
-                    new SelectedSessionTransitionGate(),
                     commands,
                     Notifications,
                     NullLogger<LeavePartyHandler>.Instance)
@@ -416,15 +410,14 @@ public sealed class PartyCommandHandlerTests
             var parties = new RecordingParties();
             var commands = new RecordingCommandBus();
             var sender = new RecordingSender();
-            var gate = new SelectedSessionTransitionGate();
 
             await new ChangePartyLeaderHandler(
-                    sessions, parties, gate, commands, Notifications,
+                    sessions, parties, commands, Notifications,
                     NullLogger<ChangePartyLeaderHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter), new ChangePartyLeaderRequest(stale, 1),
                     CancellationToken.None);
             await new RemovePartyMemberHandler(
-                    sessions, parties, gate, commands, Notifications, sender,
+                    sessions, parties, commands, Notifications, sender,
                     NullLogger<RemovePartyMemberHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter), new RemovePartyMemberRequest(stale, 1),
                     CancellationToken.None);
@@ -446,7 +439,6 @@ public sealed class PartyCommandHandlerTests
             await new RequestPeerHandler(
                     sessions,
                     Presence,
-                    new SelectedSessionTransitionGate(),
                     commands,
                     Notifications,
                     NullLogger<RequestPeerHandler>.Instance)
@@ -483,7 +475,6 @@ public sealed class PartyCommandHandlerTests
             await new RequestPeerHandler(
                     sessions,
                     Presence,
-                    gate,
                     commands,
                     delivery,
                     NullLogger<RequestPeerHandler>.Instance)
@@ -517,7 +508,6 @@ public sealed class PartyCommandHandlerTests
             await new SetPartyInfoHandler(
                     sessions,
                     Presence,
-                    gate,
                     commands,
                     new PartyNotificationDelivery(
                         published,

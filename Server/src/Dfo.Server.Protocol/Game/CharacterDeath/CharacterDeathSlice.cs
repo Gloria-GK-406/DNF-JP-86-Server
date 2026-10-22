@@ -3,7 +3,6 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Dungeons;
@@ -84,8 +83,6 @@ public sealed class CharacterDeathHandler(
     ISelectedSessionDomainService selectedSessions,
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveryRegistry,
-    SelectedSessionTransitionGate transitionGate,
-    DungeonProjectionGate projectionGate,
     ICommandBus commands,
     IGameMessageSender sender,
     ILogger<CharacterDeathHandler> logger,
@@ -104,11 +101,6 @@ public sealed class CharacterDeathHandler(
         var expected = runs.Find(session.CharacterId);
         if (expected is null) return;
 
-        // Same lock order as dungeon entry/loading: projection, then selected-session transition.
-        await using var projection = await projectionGate.AcquireAsync(
-            expected.RunId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
-        await using var transition = await transitionGate.AcquireAsync(
-            session.AccountId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
         if (!selectedSessions.IsInWorld(session)
             || deliveryRegistry.Find(expected.RunId).SingleOrDefault(x => x.CharacterId == session.CharacterId) != session)
             return;

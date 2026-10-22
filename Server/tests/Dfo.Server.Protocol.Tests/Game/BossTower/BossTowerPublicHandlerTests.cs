@@ -57,7 +57,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sender = new Sender(); var commands = new FlowCommands(towers);
             var sessions = new Sessions(session); var projection = Delivery(towers, sessions, commands, sender);
             var handler = new EplpCommandHandler(sessions, new NoViews(), null!, null!, null!, sender, null!,
-                NullLogger<EplpCommandHandler>.Instance, new Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate(), bossTower: projection);
+                NullLogger<EplpCommandHandler>.Instance, bossTower: projection);
 
             await handler.HandleAsync(Dispatch(session), new EplpCommandRequest(GameMessageMetadata.Empty, 2, 0), default);
             Assert.Equal(0, commands.ResultChoices);

@@ -292,8 +292,6 @@ public sealed partial class SelectCharacterLifecycleTests
 
         var observer = new OnlineUserConnectionObserver(
             fixture.Users,
-            new OnlineUserExecutionGate(),
-            fixture.TransitionGate,
             fixture.Directory,
             fixture.Cleanup,
             new StubChannelEntryPolicy(),
@@ -666,7 +664,6 @@ public sealed partial class SelectCharacterLifecycleTests
             bool failFirstTownPublication = false,
             bool refuseExpiredCleanup = false,
             bool failExpiredCleanup = false,
-            Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? achievementGate = null,
             ITauKingdomDomainService? tau = null)
         {
             return await TestGameplay.RunAsync(async () =>
@@ -763,7 +760,6 @@ public sealed partial class SelectCharacterLifecycleTests
                     new StubChannelEntryPolicy(),
                     bus,
                     new StubStateMessageFactory(),
-                    transitionGate,
                     directory,
                     sender,
                     notifications,
@@ -773,7 +769,7 @@ public sealed partial class SelectCharacterLifecycleTests
                     NullLogger<SelectCharacterHandler>.Instance,
                     // These tests describe the full delivery contract, including everything that
                     // follows the entry batch. Production runs the reference sequence instead.
-                    SelectCharacterDeliveryOptions.Everything, achievementProjectionGate:achievementGate, tau:tau);
+                    SelectCharacterDeliveryOptions.Everything, tau:tau);
                 var command = new SelectCharacterRequest(GameMessageMetadata.Empty, 3);
                 return new Fixture(
                     accountId, connectionId, result, ledger, directory, active, closer,

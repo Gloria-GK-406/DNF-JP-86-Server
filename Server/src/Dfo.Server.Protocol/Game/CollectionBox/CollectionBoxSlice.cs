@@ -6,7 +6,6 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -97,13 +96,12 @@ internal sealed class CollectionBoxContentsEncoder : GameNotiMessageEncoder<Coll
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CollectionBoxContentsMessage m) => OnePayload(0x03EB, m.EncodeBody());
 }
 internal sealed class CollectionBoxHandler(ISelectedSessionDomainService sessions, ICommandBus commands, IGameMessageSender sender,
-    SelectedSessionSafety safety, SelectedSessionTransitionGate transitions, TimeProvider clock) : ClientMessageHandler<CollectionBoxRequest>
+    SelectedSessionSafety safety, TimeProvider clock) : ClientMessageHandler<CollectionBoxRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, CollectionBoxRequest message, CancellationToken ct)
     {
         var actor = sessions.FindByConnection(context.Connection.ConnectionId);
         if (actor is null) return;
-        await using var lease = await transitions.BorrowOrAcquireExclusiveAsync(actor.AccountId, ct).ConfigureAwait(false);
         var recipient = safety.Capture(actor);
         safety.DemandCurrent(recipient);
         CollectionBoxMutation? result = null; byte? error = null;

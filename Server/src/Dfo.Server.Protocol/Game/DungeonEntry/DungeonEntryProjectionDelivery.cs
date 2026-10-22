@@ -5,7 +5,6 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
@@ -41,8 +40,6 @@ public sealed class DungeonEntryProjectionDelivery(
     IGameMessageSender sender,
     INetworkConnectionCloser connectionCloser,
     TownAreaProjectionDelivery townAreaProjection,
-    SelectedSessionTransitionGate transitionGate,
-    DungeonProjectionGate projectionGate,
     ILogger<DungeonEntryProjectionDelivery> logger,
     ICommandBus? commands = null,
     IInventorySlotProjectionDomainService? inventoryProjection = null,
@@ -155,8 +152,6 @@ public sealed class DungeonEntryProjectionDelivery(
             }
         }
 
-        await using var projectionLease = await projectionGate.AcquireAsync(
-            runId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
         var requireRunMatch = entered.Change is not null;
         var observed = ObserveCurrentCohort(
             attachments.Members, runId, change.Run.RoomVersion, requireRunMatch);
@@ -302,11 +297,64 @@ public sealed class DungeonEntryProjectionDelivery(
             throw;
         }
 
-        IAsyncDisposable transitions;
+        observed = ObserveCurrentCohort(
+            attachments.Members, runId, change.Run.RoomVersion, requireRunMatch);
+        if (observed.Status != CohortStatus.Current)
+        {
+            if (observed.Status == CohortStatus.InvalidGeneration)
+                RollbackEntry(runId, preparedRevision, participants);
+            await RefuseCurrentRequesterAsync(requesterConnection, requester, cancellationToken)
+                .ConfigureAwait(false);
+            return;
+        }
+        change = observed.Change ?? change;
+
+        // Frame preparation may have awaited persistence while the instance advanced. Rewrite
+        // the receiver-specific run view from the latest snapshot before any batch is sent;
+        // room content is unchanged because ObserveCurrentCohort requires the same room.
+        for (var index = 0; index < deliveries.Count; index++)
+        {
+            var delivery = deliveries[index];
+            var currentRun = roster.IsVirtual
+                ? change.Run with { Participant = null }
+                : change.Run with
+                {
+                    Participant = change.Run.Participants.Single(value =>
+                        value.CharacterId == delivery.Session.CharacterId),
+                };
+            deliveries[index] = (
+                delivery.Session,
+                delivery.Frames.Select(frame => frame is StartMapNotification start
+                    ? start with { Run = currentRun }
+                    : frame).ToArray());
+        }
+
         try
         {
-            transitions = await AcquireTransitionsAsync(
-                transitionGate, attachments.Members, cancellationToken).ConfigureAwait(false);
+            // Every participant is required. Followers go first so a failed peer cannot leave
+            // the requesting leader believing that the whole cohort entered successfully.
+            var delivered = new List<SelectedSessionIdentity>();
+            foreach (var delivery in deliveries
+                .OrderBy(value => value.Session == requester ? 1 : 0))
+            {
+                try
+                {
+                    await sender.SendExplicitAsync(
+                        delivery.Session.ConnectionId,
+                        new GameExplicitMessageDelivery(delivery.Frames, []),
+                        cancellationToken).ConfigureAwait(false);
+                    delivered.Add(delivery.Session);
+                }
+                catch
+                {
+                    // TCP cannot retract a completed batch. If a later required recipient
+                    // fails, isolate every generation that may already hold START_MAP so none
+                    // can continue against an aborted server instance.
+                    await IsolatePartialCohortAsync(
+                        [.. delivered, delivery.Session]).ConfigureAwait(false);
+                    throw;
+                }
+            }
         }
         catch
         {
@@ -314,80 +362,11 @@ public sealed class DungeonEntryProjectionDelivery(
             throw;
         }
 
-        await using (transitions)
-        {
-            observed = ObserveCurrentCohort(
-                attachments.Members, runId, change.Run.RoomVersion, requireRunMatch);
-            if (observed.Status != CohortStatus.Current)
-            {
-                if (observed.Status == CohortStatus.InvalidGeneration)
-                    RollbackEntry(runId, preparedRevision, participants);
-                await RefuseCurrentRequesterAsync(requesterConnection, requester, cancellationToken)
-                    .ConfigureAwait(false);
-                return;
-            }
-            change = observed.Change ?? change;
-
-            // Frame preparation may have awaited persistence while the instance advanced. Rewrite
-            // the receiver-specific run view from the latest snapshot before any batch is sent;
-            // room content is unchanged because ObserveCurrentCohort requires the same room.
-            for (var index = 0; index < deliveries.Count; index++)
-            {
-                var delivery = deliveries[index];
-                var currentRun = roster.IsVirtual
-                    ? change.Run with { Participant = null }
-                    : change.Run with
-                    {
-                        Participant = change.Run.Participants.Single(value =>
-                            value.CharacterId == delivery.Session.CharacterId),
-                    };
-                deliveries[index] = (
-                    delivery.Session,
-                    delivery.Frames.Select(frame => frame is StartMapNotification start
-                        ? start with { Run = currentRun }
-                        : frame).ToArray());
-            }
-
-            try
-            {
-                // Every participant is required. Followers go first so a failed peer cannot leave
-                // the requesting leader believing that the whole cohort entered successfully.
-                var delivered = new List<SelectedSessionIdentity>();
-                foreach (var delivery in deliveries
-                    .OrderBy(value => value.Session == requester ? 1 : 0))
-                {
-                    try
-                    {
-                        await sender.SendExplicitAsync(
-                            delivery.Session.ConnectionId,
-                            new GameExplicitMessageDelivery(delivery.Frames, []),
-                            cancellationToken).ConfigureAwait(false);
-                        delivered.Add(delivery.Session);
-                    }
-                    catch
-                    {
-                        // TCP cannot retract a completed batch. If a later required recipient
-                        // fails, isolate every generation that may already hold START_MAP so none
-                        // can continue against an aborted server instance.
-                        await IsolatePartialCohortAsync(
-                            [.. delivered, delivery.Session]).ConfigureAwait(false);
-                        throw;
-                    }
-                }
-            }
-            catch
-            {
-                RollbackEntry(runId, preparedRevision, participants);
-                throw;
-            }
-
-            // Keep the exact selected-session generations leased until their town memberships
-            // have been removed, so replacement cannot slip between dungeon delivery and leave.
-            await townAreaProjection.LeaveManyAsync(
-                attachments.Members.Select(attachment => attachment.Session).ToArray(),
-                TownAreaDepartureReason.DungeonEntry,
-                cancellationToken).ConfigureAwait(false);
-        }
+        // Town memberships are removed right after the dungeon delivery, before any other job runs.
+        await townAreaProjection.LeaveManyAsync(
+            attachments.Members.Select(attachment => attachment.Session).ToArray(),
+            TownAreaDepartureReason.DungeonEntry,
+            cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation(
             "Select dungeon {ConnectionId}: projected run={RunId} revision={Revision} "
@@ -482,30 +461,6 @@ public sealed class DungeonEntryProjectionDelivery(
             : new EntryAttachments([], 0);
     }
 
-    private static async ValueTask<IAsyncDisposable> AcquireTransitionsAsync(
-        SelectedSessionTransitionGate gate,
-        IReadOnlyList<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)> members,
-        CancellationToken cancellationToken)
-    {
-        var leases = new List<IAsyncDisposable>();
-        try
-        {
-            foreach (var accountId in members.Select(value => value.Session.AccountId)
-                         .Distinct().OrderBy(value => value.Value))
-            {
-                leases.Add(await gate.AcquireAsync(
-                    accountId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
-            }
-            return new TransitionLeaseSet(leases);
-        }
-        catch
-        {
-            for (var index = leases.Count - 1; index >= 0; index--)
-                await leases[index].DisposeAsync().ConfigureAwait(false);
-            throw;
-        }
-    }
-
     private void RollbackEntry(
         DungeonRunId runId,
         long preparedRevision,
@@ -571,14 +526,5 @@ public sealed class DungeonEntryProjectionDelivery(
         Current,
         InvalidGeneration,
         SupersededSameRun,
-    }
-
-    private sealed class TransitionLeaseSet(IReadOnlyList<IAsyncDisposable> leases) : IAsyncDisposable
-    {
-        public async ValueTask DisposeAsync()
-        {
-            for (var index = leases.Count - 1; index >= 0; index--)
-                await leases[index].DisposeAsync().ConfigureAwait(false);
-        }
     }
 }

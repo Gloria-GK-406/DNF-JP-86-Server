@@ -71,9 +71,6 @@ public sealed class ReplayStateSnapshotTests
         Assert.Equal(2, sender.Batches.Count); Assert.Equal(0, gate.TrackedEntryCount);
         await using (var exclusiveOwner = await gate.BorrowOrAcquireExclusiveAsync(fixture.Session.AccountId, default))
             await delivery.RefreshAsync(fixture.Connection, fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default);
-        await using (var sharedOwner = await gate.BorrowOrAcquireSharedAsync(fixture.Session.AccountId, default))
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => await delivery.RefreshAsync(fixture.Connection,
-                fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default));
         Assert.Equal(3, sender.Batches.Count); Assert.Equal(0, gate.TrackedEntryCount);
         });
     }

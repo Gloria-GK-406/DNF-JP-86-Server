@@ -10,7 +10,6 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
@@ -131,7 +130,7 @@ public sealed class StaminaRecoveredHandler(ISelectedSessionDomainService sessio
 
 public sealed class RecoverStaminaHandler(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    SelectedSessionTransitionGate transitions, ICommandBus commands, IEventService notifications,
+    ICommandBus commands, IEventService notifications,
     IGameMessageSender sender, TimeProvider clock, ILogger<RecoverStaminaHandler> logger)
     : ClientMessageHandler<RecoverStaminaRequest>
 {
@@ -141,8 +140,6 @@ public sealed class RecoverStaminaHandler(
         var connection = context.Connection.ConnectionId;
         var session = sessions.FindByConnection(connection);
         if (session is null) return;
-        await using var transition = await transitions.AcquireAsync(session.AccountId,
-            UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
         if (!sessions.IsInWorld(session)) return;
         RecoverStaminaResult result;
         try

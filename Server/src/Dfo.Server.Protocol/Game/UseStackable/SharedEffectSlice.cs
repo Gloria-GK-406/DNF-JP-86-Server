@@ -5,7 +5,6 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -51,34 +50,31 @@ public sealed class SharedEffectCommandHandler(ISharedEffectDomainService effect
     public ValueTask<SharedEffectUseResult> HandleAsync(CommandExecutionContext c, SharedEffectCommand q, CancellationToken ct) => effects.UseAsync(q.Actor, q.Slot, q.ItemId, ct);
 }
 internal sealed class SharedEffectHandler(ISelectedSessionDomainService sessions, IInventorySlotMappingRuleService mappings,
-    ITownAreaDomainService areas, ICommandBus commands, IGameMessageSender sender, SelectedSessionTransitionGate gate) : ClientMessageHandler<SharedEffectRequest>
+    ITownAreaDomainService areas, ICommandBus commands, IGameMessageSender sender) : ClientMessageHandler<SharedEffectRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c, SharedEffectRequest m, CancellationToken ct)
     {
         var actor = sessions.FindByConnection(c.Connection.ConnectionId);
-        await WeddingProposalExecution.RunAsync(gate, actor, actor, async () =>
+        BusinessSlot slot;
+        try { slot = mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, m.Slot)); }
+        catch (ArgumentOutOfRangeException) { await sender.SendExplicitAsync(c.Connection.ConnectionId, new([new SharedEffectAck(false, m.Slot)], []), ct).ConfigureAwait(false); return; }
+        var result = actor is null ? new SharedEffectUseResult(false) : await commands.SendAsync(new SharedEffectCommand(actor, slot, m.ItemId), ct).ConfigureAwait(false);
+        var messages = new List<IGameServerMessage> { new SharedEffectAck(result.Succeeded, m.Slot) };
+        var targets = new List<GameExplicitMessageTarget>();
+        if (result.Succeeded && actor is not null)
         {
-            BusinessSlot slot;
-            try { slot = mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, m.Slot)); }
-            catch (ArgumentOutOfRangeException) { await sender.SendExplicitAsync(c.Connection.ConnectionId, new([new SharedEffectAck(false, m.Slot)], []), ct).ConfigureAwait(false); return; }
-            var result = actor is null ? new SharedEffectUseResult(false) : await commands.SendAsync(new SharedEffectCommand(actor, slot, m.ItemId), ct).ConfigureAwait(false);
-            var messages = new List<IGameServerMessage> { new SharedEffectAck(result.Succeeded, m.Slot) };
-            var targets = new List<GameExplicitMessageTarget>();
-            if (result.Succeeded && actor is not null)
-            {
-                var effect = new SharedEffectNotification(actor.WireUserId, m.ItemId, result.Selector);
-                // ACK performs the native decrement; authoritative absolute state follows it.
-                if (result.State is { } state)
-                    messages.Add(state.Item is { } item
-                        ? GameInventoryDelivery.Notification(new(InventoryContainerType.Main, [new(item.ItemUid, m.Slot, item.ToCore(), item.AvatarDetail)], state.PreparedAt))
-                        : GameInventoryDelivery.ClearedSlotNotification(InventoryContainerType.Main, m.Slot, state.PreparedAt));
-                messages.Add(effect); // The ACK alone never renders the caster's effect.
-                if (areas.Find(actor.CharacterId) is { } self && actor.Owns(self) && areas.Find(self.Area) is { } scene)
-                    foreach (var member in scene.VisibleTo(actor.CharacterId).Where(x => x.CharacterId != actor.CharacterId))
-                        if (sessions.TryGetInWorld(member.CharacterId, out var peer) && peer.Owns(member))
-                            targets.Add(new(peer.ConnectionId, [effect]));
-            }
-            await sender.SendExplicitAsync(c.Connection.ConnectionId, new(messages, targets), ct).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
+            var effect = new SharedEffectNotification(actor.WireUserId, m.ItemId, result.Selector);
+            // ACK performs the native decrement; authoritative absolute state follows it.
+            if (result.State is { } state)
+                messages.Add(state.Item is { } item
+                    ? GameInventoryDelivery.Notification(new(InventoryContainerType.Main, [new(item.ItemUid, m.Slot, item.ToCore(), item.AvatarDetail)], state.PreparedAt))
+                    : GameInventoryDelivery.ClearedSlotNotification(InventoryContainerType.Main, m.Slot, state.PreparedAt));
+            messages.Add(effect); // The ACK alone never renders the caster's effect.
+            if (areas.Find(actor.CharacterId) is { } self && actor.Owns(self) && areas.Find(self.Area) is { } scene)
+                foreach (var member in scene.VisibleTo(actor.CharacterId).Where(x => x.CharacterId != actor.CharacterId))
+                    if (sessions.TryGetInWorld(member.CharacterId, out var peer) && peer.Owns(member))
+                        targets.Add(new(peer.ConnectionId, [effect]));
+        }
+        await sender.SendExplicitAsync(c.Connection.ConnectionId, new(messages, targets), ct).ConfigureAwait(false);
     }
 }

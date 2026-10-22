@@ -181,7 +181,6 @@ public sealed class TournamentProjectionDelivery(ITournamentDungeonDomainService
 
 public sealed class TournamentRewardHandler(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
     ITournamentDungeonDomainService tournaments, ICommandBus commands, IGameMessageSender sender,
-    DungeonProjectionGate projectionGate, Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate transitions,
     TournamentProjectionDelivery projection) : ClientMessageHandler<TournamentRewardRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, TournamentRewardRequest message, CancellationToken ct)
@@ -195,9 +194,7 @@ public sealed class TournamentRewardHandler(ISelectedSessionDomainService sessio
             else await sender.SendCmdAsync(session.ConnectionId, new TournamentSelectionResponse(null, 0), ct).ConfigureAwait(false);
             return;
         }
-        await using var lease = await projectionGate.AcquireAsync(run.RunId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
-        await using var transition = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
-        if (!sessions.IsInWorld(session) || runs.Find(session.CharacterId)?.RunId != run.RunId) return;
+        if (!sessions.IsInWorld(session)) return;
         var state = tournaments.Find(session.CharacterId);
         var slot = run.Participant?.Slot ?? 0;
         if (message.Row is null)

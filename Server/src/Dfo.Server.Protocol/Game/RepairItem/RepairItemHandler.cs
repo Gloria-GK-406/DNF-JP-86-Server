@@ -5,7 +5,6 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Microsoft.Extensions.Logging;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -15,7 +14,7 @@ namespace Dfo.Server.Protocol.Game.RepairItem;
 public sealed class RepairItemHandler(IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions, IInventorySlotMappingRuleService slotMappings,
     ICommandBus commands, IEventService notifications,
-    IGameMessageSender sender, SelectedSessionTransitionGate transitions, TimeProvider clock, ILogger<RepairItemHandler> logger) : ClientMessageHandler<RepairItemRequest>
+    IGameMessageSender sender, TimeProvider clock, ILogger<RepairItemHandler> logger) : ClientMessageHandler<RepairItemRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
         RepairItemRequest message, CancellationToken cancellationToken)
@@ -25,8 +24,6 @@ public sealed class RepairItemHandler(IOnlineUserQueryDomainService onlineUsers,
             : null;
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null) return;
-        await using var transition = await transitions.AcquireAsync(session.AccountId,
-            UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
         if (!sessions.IsInWorld(session)) return;
         var automatic = message.AutoRepair == 1 && message.Slot is null
             && message.RepairAllSpace == InventoryContainerType.Main;

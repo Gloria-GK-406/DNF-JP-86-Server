@@ -13,7 +13,6 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -439,9 +438,7 @@ public sealed class SelectDungeonHandler(
     INetworkConnectionCloser connectionCloser,
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<SelectDungeonHandler> logger,
-    SelectedSessionTransitionGate transitionGate,
     DungeonEntryProjectionDelivery? entryProjection = null,
-    DungeonProjectionGate? entryProjectionGate = null,
     ILogger<DungeonEntryProjectionDelivery>? entryProjectionLogger = null,
     IIllusionTowerDomainService? illusionTower = null,
     IllusionTowerProjectionDelivery? illusionTowerProjection = null, ISaoTowerDomainService? sao = null,
@@ -576,8 +573,6 @@ public sealed class SelectDungeonHandler(
             sender,
             connectionCloser,
             townAreaProjection,
-            transitionGate,
-            entryProjectionGate ?? new DungeonProjectionGate(),
             entryProjectionLogger
                 ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<
                     DungeonEntryProjectionDelivery>.Instance);

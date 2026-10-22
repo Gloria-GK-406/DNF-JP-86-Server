@@ -160,11 +160,11 @@ public sealed class LeaveDungeonTests
     }
 
     private static EplpCommandHandler StoryHandler(OneRun runs, RecordingSender sender,
-        SelectedSessionTransitionGate? gate = null, IDungeonEntryIntentDomainService? intents = null) => new(
+        IDungeonEntryIntentDomainService? intents = null) => new(
         new OneSession(Identity), new OneRuntimeSession(Entry()), new StandingWhereTheyAre(),
         runs, new DungeonRunDeliveryRegistry(), sender,
         TownAreaProjectionTestFactory.Create(new OneSession(Identity), new OneRuntimeSession(Entry()), sender),
-        NullLogger<EplpCommandHandler>.Instance, gate ?? new SelectedSessionTransitionGate(), entryIntents: intents);
+        NullLogger<EplpCommandHandler>.Instance, entryIntents: intents);
 
     [Fact]
     public async Task Failed_exit_delivery_releases_the_transition_without_repeating_the_exit()
@@ -172,13 +172,11 @@ public sealed class LeaveDungeonTests
         await TestGameplay.RunAsync(async () =>
         {
             var runs = new OneRun();
-            var gate = new SelectedSessionTransitionGate();
             var sender = new RecordingSender { BeforeSend = _ => throw new IOException("send failed") };
-            var handler = StoryHandler(runs, sender, gate);
+            var handler = StoryHandler(runs, sender);
             await Assert.ThrowsAsync<IOException>(async () => await handler.HandleAsync(Dispatch(),
                 new EplpCommandRequest(GameMessageMetadata.Empty, 1, 1), default));
             Assert.True(runs.Ended);
-            Assert.Equal(0, gate.TrackedEntryCount);
             await handler.HandleAsync(Dispatch(), new EplpCommandRequest(GameMessageMetadata.Empty, 1, 3), default);
             Assert.Empty(sender.Sent);
         });
@@ -387,8 +385,7 @@ public sealed class LeaveDungeonTests
                     new OneSession(Identity),
                     new OneRuntimeSession(Entry()),
                     new RecordingSender()),
-                NullLogger<EplpCommandHandler>.Instance,
-                new SelectedSessionTransitionGate());
+                NullLogger<EplpCommandHandler>.Instance);
 
             await handler.HandleAsync(
                 Dispatch(),
@@ -429,7 +426,6 @@ public sealed class LeaveDungeonTests
                     weaknessProjection: new WeaknessProjectionDelivery(
                         new FixedWeakness(weaknessValue), new OneSession(Identity), sender)),
                 NullLogger<GiveUpGameHandler>.Instance,
-                new SelectedSessionTransitionGate(),
                 new SessionPresenceDomainService(),
                 commands,
                 new PartyNotificationDelivery(new NoopNotificationBus()));
@@ -473,7 +469,6 @@ public sealed class LeaveDungeonTests
                     new OneRuntimeSession(Entry()),
                     new RecordingSender()),
                 NullLogger<GiveUpGameHandler>.Instance,
-                new SelectedSessionTransitionGate(),
                 new SessionPresenceDomainService(),
                 commands,
                 new PartyNotificationDelivery(new NoopNotificationBus()));
@@ -496,7 +491,7 @@ public sealed class LeaveDungeonTests
         var deliveries = new DungeonRunDeliveryRegistry(); deliveries.Register(runs.RunId, [Identity]);
         var sessions = new OneSession(Identity);
         var sender = new RecordingSender(); var transitions = new SelectedSessionTransitionGate();
-        var projections = new DungeonProjectionGate(); var clock = TimeProvider.System;
+        var clock = TimeProvider.System;
         var trace = new ExitCommandTrace();
         var services = new ServiceCollection().AddLogging();
         services.AddSingleton<TimeProvider>(clock);
@@ -514,7 +509,7 @@ public sealed class LeaveDungeonTests
             var altars = new AltarView(runs.RunId); var wake = new AltarWakeSignal(clock);
             var projection = new AltarProjectionDelivery(altars, runs, sessions, deliveries, commands,
                 new NoopNotificationBus(), clock, wake, null!, NullLogger<AltarProjectionDelivery>.Instance);
-            var coordinator = new AltarProtocolCoordinator(runs, sessions, projections, transitions,
+            var coordinator = new AltarProtocolCoordinator(runs, sessions,
                 projection, commands, sender, null!);
             runs.BeforeEnd = () =>
             {
@@ -524,8 +519,8 @@ public sealed class LeaveDungeonTests
             };
             var handler = new GiveUpGameHandler(sessions, new OneRuntimeSession(Entry()), new StandingWhereTheyAre(),
                 runs, deliveries, sender, TownAreaProjectionTestFactory.Create(sessions, new OneRuntimeSession(Entry()), sender),
-                NullLogger<GiveUpGameHandler>.Instance, transitions,
-                townAreas: new SessionPresenceDomainService(), commands: commands, altars: coordinator, projectionGate: projections);
+                NullLogger<GiveUpGameHandler>.Instance,
+                townAreas: new SessionPresenceDomainService(), commands: commands, altars: coordinator);
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
             await handler.HandleAsync(Dispatch(), new GiveUpGameRequest(GameMessageMetadata.Empty), deadline.Token)
                 .AsTask().WaitAsync(TimeSpan.FromSeconds(5));
@@ -595,8 +590,7 @@ public sealed class LeaveDungeonTests
                     new NoSession(),
                     new NoRuntimeSession(),
                     sender),
-                NullLogger<EplpCommandHandler>.Instance,
-                new SelectedSessionTransitionGate());
+                NullLogger<EplpCommandHandler>.Instance);
 
             await handler.HandleAsync(
                 Dispatch(),
@@ -636,7 +630,6 @@ public sealed class LeaveDungeonTests
                     new OneRuntimeSession(Entry()),
                     sender),
                 NullLogger<BackToVillageHandler>.Instance,
-                new SelectedSessionTransitionGate(),
                 new VirtualOnlyPartyService());
 
             await handler.HandleAsync(
@@ -678,8 +671,7 @@ public sealed class LeaveDungeonTests
                 new OneSession(Identity),
                 new OneRuntimeSession(Entry()),
                 sender),
-            NullLogger<EplpCommandHandler>.Instance,
-            new SelectedSessionTransitionGate());
+            NullLogger<EplpCommandHandler>.Instance);
 
         await handler.HandleAsync(
             Dispatch(),

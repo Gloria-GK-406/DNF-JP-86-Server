@@ -35,7 +35,6 @@ public sealed class OtherCharacterDetailFlowTests
 
             await new GetOtherCharacterDetailHandler(
                     sessions,
-                    new SelectedSessionTransitionGate(),
                     commands,
                     notifications,
                     NullLogger<GetOtherCharacterDetailHandler>.Instance)
@@ -72,7 +71,6 @@ public sealed class OtherCharacterDetailFlowTests
 
             await new GetOtherCharacterDetailHandler(
                     new SessionDirectory(requester, target),
-                    new SelectedSessionTransitionGate(),
                     new DetailCommandBus(CharacterDetailQueryResult.Reject(
                         CharacterDetailQueryFailure.TargetRuntimeUnavailable)),
                     notifications,

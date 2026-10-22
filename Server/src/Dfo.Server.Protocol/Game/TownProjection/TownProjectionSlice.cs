@@ -6,7 +6,6 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Characters;
@@ -226,7 +225,6 @@ public sealed class SetUserAreaHandler(
     ITownAreaDomainService townAreas,
     IChannelEntryPolicy channels,
     ITownMovementDomainService towns,
-    SelectedSessionTransitionGate transitionGate,
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<SetUserAreaHandler> logger,
     ISelectedSessionPositionPersistence persistence,
@@ -251,10 +249,6 @@ public sealed class SetUserAreaHandler(
             return;
         }
 
-        await using var transitionLease = await transitionGate.AcquireAsync(
-            session.AccountId,
-            UserAccessMode.Exclusive,
-            cancellationToken).ConfigureAwait(false);
         // The position is asked for here alongside the published session because the refusal below
         // reports where the character stays. The two arrive and leave together -- publication
         // records both and teardown drops both -- so this conjunct admits and refuses exactly the

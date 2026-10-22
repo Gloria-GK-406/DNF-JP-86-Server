@@ -73,8 +73,8 @@ public sealed class TitleBookProtocolTests
     [Fact]
     public async Task Mutation_projection_waits_for_ack_and_never_turns_storage_into_an_unlock()
     {
-        var gate=new AchievementTitleProjectionGate(); var events=new RecordingEvents();
-        var subscriber=new TitleBookEventSubscriber(events,gate);
+        var events=new RecordingEvents();
+        var subscriber=new TitleBookEventSubscriber(events);
         // The projection is an event job of its own; the request's ACK job has already ended.
         await TestGameplay.RunAsync(async () =>
             await subscriber.HandleAsync(new DomainEventEnvelope<TitleStored>(Guid.NewGuid(),Guid.NewGuid(),DateTimeOffset.UtcNow,Guid.NewGuid(),new(new(1),0,2,new(BusinessInventorySpace.CarriedEquipment,0))),default));
@@ -87,7 +87,7 @@ public sealed class TitleBookProtocolTests
     [InlineData(false)]
     public async Task Mirror_removal_projection_keeps_generic_move_reconciliation_and_can_skip_carried_inventory_for_book_operations(bool refreshCarriedInventory)
     {
-        var events=new RecordingEvents();var gate=new AchievementTitleProjectionGate();var subscriber=new TitleBookEventSubscriber(events,gate);
+        var events=new RecordingEvents();var subscriber=new TitleBookEventSubscriber(events);
         await TestGameplay.RunAsync(async () =>
             await subscriber.HandleAsync(new DomainEventEnvelope<Dfo.Server.Abstractions.Inventory.ItemMirrorRemoved>(Guid.NewGuid(),Guid.NewGuid(),DateTimeOffset.UtcNow,Guid.NewGuid(),new(new(1),InventoryContainerType.Equipment) { RefreshCarriedInventory = refreshCarriedInventory }),default));
         if (!refreshCarriedInventory) { Assert.Empty(events.Projected); return; }
@@ -153,8 +153,8 @@ public sealed class TitleBookProtocolTests
     [Fact]
     public async Task Achievement_progress_projection_waits_until_request_ack_releases_the_character_gate()
     {
-        var gate = new AchievementTitleProjectionGate(); var events = new RecordingEvents();
-        var subscriber = new AchievementEventSubscriber(events, gate);
+        var events = new RecordingEvents();
+        var subscriber = new AchievementEventSubscriber(events);
         await TestGameplay.RunAsync(async () =>
             await subscriber.HandleAsync(new DomainEventEnvelope<AchievementProgressChanged>(Guid.NewGuid(), Guid.NewGuid(), DateTimeOffset.UtcNow, Guid.NewGuid(), new(new(1), 4303)), default));
         Assert.IsType<AchievementChanged>(Assert.Single(events.Projected));

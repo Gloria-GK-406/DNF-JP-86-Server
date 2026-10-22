@@ -7,7 +7,6 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -41,7 +40,7 @@ public sealed class UseEntryAllowanceCommandHandler(IOpeningInventoryDomainServi
 public sealed class EntryAllowanceHandler(ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers, ICommandBus commands, IEventService notifications,
     IGameMessageSender sender, ILogger<EntryAllowanceHandler> logger,
-    UsageQuotaProjectionDelivery quotas, SelectedSessionTransitionGate transitions, IBusinessInventorySlotDomainService slots,
+    UsageQuotaProjectionDelivery quotas, IBusinessInventorySlotDomainService slots,
     IEntryAllowanceItemRuleService definitions)
 {
     public async ValueTask<bool> TryHandleAsync(NetworkDispatchContext context, QuestClearCouponRequest request, CancellationToken ct)
@@ -52,7 +51,6 @@ public sealed class EntryAllowanceHandler(ISelectedSessionDomainService sessions
             await RefuseAsync(context, request, ct).ConfigureAwait(false);
             return true;
         }
-        await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
         if (!sessions.IsInWorld(session)) return true;
         OpeningInventoryReceipt receipt;
         try

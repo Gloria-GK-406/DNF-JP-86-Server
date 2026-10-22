@@ -3,7 +3,6 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
@@ -12,9 +11,6 @@ using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Party;
 
 namespace Dfo.Server.Protocol.Game.TownProjection;
-
-/// <summary>Serializes projections that can redraw the same logical town area.</summary>
-public sealed class TownAreaProjectionGate : UserExecutionGate<TownAreaKey>;
 
 /// <summary>One selected character asking the area service to enter its current town location.</summary>
 public sealed record TownAreaEntry(
@@ -38,8 +34,8 @@ public sealed record TownAreaDeparture(
 
 /// <summary>The area boundary that commits town membership changes and projects their latest state.</summary>
 /// <remarks>
-/// Every delivery takes the destination area's projection gate and re-reads its current snapshot.
-/// A delayed older change can therefore only redraw the newest state, never an older roster.
+/// Every delivery re-reads the destination area's current snapshot, so it only ever draws the
+/// newest roster.
 /// </remarks>
 public sealed class TownAreaProjectionDelivery
 {
@@ -52,7 +48,6 @@ public sealed class TownAreaProjectionDelivery
     private readonly IEventService notifications;
     private readonly IPartyTownProjectionDelivery partyTownProjection;
     private readonly IGameMessageSender sender;
-    private readonly TownAreaProjectionGate projectionGate;
     private readonly Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionDelivery? weaknessProjection;
 
     public TownAreaProjectionDelivery(
@@ -63,7 +58,6 @@ public sealed class TownAreaProjectionDelivery
         IPartyTownProjectionDelivery partyTownProjection,
         IGameMessageSender sender,
         ITownMovementDomainService towns,
-        TownAreaProjectionGate? projectionGate = null,
         Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionDelivery? weaknessProjection = null,
         Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
         Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService? housingSessions = null)
@@ -75,7 +69,6 @@ public sealed class TownAreaProjectionDelivery
         this.notifications = notifications;
         this.partyTownProjection = partyTownProjection;
         this.sender = sender;
-        this.projectionGate = projectionGate ?? new TownAreaProjectionGate();
         this.weaknessProjection = weaknessProjection;
         this.housing = housing;
         this.housingSessions = housingSessions;
@@ -134,10 +127,6 @@ public sealed class TownAreaProjectionDelivery
     {
         var member = townAreas.Find(session.CharacterId);
         if (member is null || !session.Owns(member)) return false;
-        var keys = new[] { previousMember.Area, member.Area };
-        await using var projection = await AcquireAreasAsync(keys, cancellationToken)
-            .ConfigureAwait(false);
-
         var changedArea = previousMember.Area != member.Area;
         if (changedArea && previousMember.Area.TownId == 101) housingSessions?.CloseExact(session);
         var currentKey = member.Area;
@@ -230,10 +219,7 @@ public sealed class TownAreaProjectionDelivery
         if (!selectedSessions.IsInWorld(session) || previous is null || !session.Owns(previous)
             || previous.Area.TownId != position.TownId || previous.Area.AreaId != position.AreaId)
             return false;
-        await using var projection = await AcquireAreasAsync([previous.Area], cancellationToken).ConfigureAwait(false);
-        if (!selectedSessions.IsInWorld(session)
-            || townAreas.Find(session.CharacterId) is not { } current || !session.Owns(current)
-            || current.Area != previous.Area)
+        if (!selectedSessions.IsInWorld(session))
             return false;
         var movement = townAreas.MoveExact(session.CharacterId, session.TownAreaLease(), position);
         if (movement is null) return false;
@@ -290,8 +276,6 @@ public sealed class TownAreaProjectionDelivery
             return false;
         }
 
-        await using var projection = await AcquireAreasAsync([area.Key], cancellationToken)
-            .ConfigureAwait(false);
         var current = townAreas.Find(area.Key);
         var own = current?.Members.SingleOrDefault(member => session.Owns(member));
         if (own is null)
@@ -373,9 +357,6 @@ public sealed class TownAreaProjectionDelivery
         if (departures.Count == 0)
             return [];
 
-        await using var projection = await AcquireAreasAsync(
-            departures.Select(departure => departure.PreviousArea), cancellationToken)
-            .ConfigureAwait(false);
         foreach (var area in departures
             .Where(departure => departure.SharedTownPresence)
             .Select(departure => departure.PreviousArea)
@@ -418,19 +399,6 @@ public sealed class TownAreaProjectionDelivery
         }
         if (candidates.Count == 0)
             return 0;
-
-        var keys = candidates.Select(candidate => new TownAreaKey(
-                candidate.Entry.Runtime.World.Channel.ChannelId,
-                candidate.Entry.Position.TownId,
-                candidate.Entry.Position.AreaId, candidate.Instance))
-            .Concat(candidates
-                .Select(candidate => townAreas.Find(candidate.Entry.Session.CharacterId))
-                .Where(member => member is not null
-                    && selectedSessions.FindByCharacter(member.CharacterId) is { } exact
-                    && exact.Owns(member))
-                .Select(member => member!.Area));
-        await using var projection = await AcquireAreasAsync(keys, cancellationToken)
-            .ConfigureAwait(false);
 
         var admissions = new List<TownAreaAdmission>(candidates.Count);
         foreach (var candidate in candidates)
@@ -557,8 +525,6 @@ public sealed class TownAreaProjectionDelivery
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
-        await using var projection = await AcquireAreasAsync([snapshot.Key], cancellationToken)
-            .ConfigureAwait(false);
         await PublishCurrentRosterCoreAsync(snapshot.Key, cancellationToken).ConfigureAwait(false);
     }
 
@@ -710,31 +676,6 @@ public sealed class TownAreaProjectionDelivery
         return selectedSessions.TryGetInWorld(member.CharacterId, out var session) && session.Owns(member) ? session : null;
     }
 
-    private async ValueTask<IAsyncDisposable> AcquireAreasAsync(
-        IEnumerable<TownAreaKey> keys,
-        CancellationToken cancellationToken)
-    {
-        var leases = new List<IAsyncDisposable>();
-        try
-        {
-            foreach (var key in keys.Distinct().OrderBy(KeyOrder))
-            {
-                leases.Add(await projectionGate.AcquireAsync(
-                    key, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
-            }
-            return new ProjectionLeaseSet(leases);
-        }
-        catch
-        {
-            for (var index = leases.Count - 1; index >= 0; index--)
-                await leases[index].DisposeAsync().ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    private static (int, byte, byte, int) KeyOrder(TownAreaKey key) =>
-        (key.ChannelId, key.TownId, key.AreaId, key.Instance);
-
     private static PartyDirectoryScope Scope(TownAreaKey key) =>
         new(key.ChannelId, key.TownId, key.AreaId, key.Instance);
 
@@ -743,14 +684,4 @@ public sealed class TownAreaProjectionDelivery
         TownAreaSnapshot Area,
         IReadOnlyList<(SelectedSessionIdentity Session, TownParticipantEntryState Participant)> Peers,
         IReadOnlyList<IGameServerMessage> Frames);
-
-    private sealed class ProjectionLeaseSet(IReadOnlyList<IAsyncDisposable> leases)
-        : IAsyncDisposable
-    {
-        public async ValueTask DisposeAsync()
-        {
-            for (var index = leases.Count - 1; index >= 0; index--)
-                await leases[index].DisposeAsync().ConfigureAwait(false);
-        }
-    }
 }

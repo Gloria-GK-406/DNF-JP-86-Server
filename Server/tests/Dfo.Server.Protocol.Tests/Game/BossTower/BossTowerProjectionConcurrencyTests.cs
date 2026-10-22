@@ -25,6 +25,11 @@ using Dfo.Server.Protocol.Game.BossTowerContinue;
 using Dfo.Server.Protocol.Game.BossTowerReward;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.TownProjection;
+using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.World;
+using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
+using Dfo.Server.Protocol.Tests.Game.TownProjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Dfo.Server.Testing;
 
@@ -61,8 +66,6 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                 tower,
                 parties,
                 sessions,
-                new SelectedSessionTransitionGate(),
-                new BossTowerProjectionGate(),
                 commands,
                 Notifications(parties, sessions, town),
                 delivery,
@@ -103,8 +106,8 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var closer = new Closer();
             var town = new NoTown();
             var coordinator = new BossTowerPartyCoordinator(
-                tower, parties, sessions, new SelectedSessionTransitionGate(),
-                new BossTowerProjectionGate(), commands,
+                tower, parties, sessions,
+                commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
                 closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
@@ -152,8 +155,8 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var closer = new Closer();
             var town = new NoTown();
             var coordinator = new BossTowerPartyCoordinator(
-                tower, parties, sessions, new SelectedSessionTransitionGate(),
-                new BossTowerProjectionGate(), commands,
+                tower, parties, sessions,
+                commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
                 closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
@@ -196,7 +199,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var closer = new ReentrantCloser(gate, first.AccountId);
             var town = new NoTown();
             var coordinator = new BossTowerPartyCoordinator(
-                tower, parties, sessions, gate, new BossTowerProjectionGate(), commands,
+                tower, parties, sessions, commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
                 closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
@@ -239,8 +242,8 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var closer = new Closer();
             var town = new NoTown();
             var coordinator = new BossTowerPartyCoordinator(
-                tower, parties, sessions, new SelectedSessionTransitionGate(),
-                new BossTowerProjectionGate(), commands,
+                tower, parties, sessions,
+                commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
                 closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
@@ -288,8 +291,8 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var closer = new Closer();
             var town = new NoTown();
             var coordinator = new BossTowerPartyCoordinator(
-                tower, parties, sessions, new SelectedSessionTransitionGate(),
-                new BossTowerProjectionGate(), commands,
+                tower, parties, sessions,
+                commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
                 closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
@@ -329,11 +332,10 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         var tower = new TowerDomain(PartyRun(Guid.NewGuid(), first, second, third));
         using var request = new CancellationTokenSource();
         var commands = new CoordinatorCommands(tower, parties, request);
-        var gate = new SelectedSessionTransitionGate();
         var closer = new Closer();
         var town = new NoTown();
         var coordinator = new BossTowerPartyCoordinator(
-            tower, parties, sessions, gate, new BossTowerProjectionGate(), commands,
+            tower, parties, sessions, commands,
             Notifications(parties, sessions, town),
             Delivery(tower, sessions, commands, new Sender(), closer),
             closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
@@ -476,6 +478,201 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         });
     }
 
+    [Fact]
+    public async Task A_caller_whose_session_is_not_current_is_refused_at_once_without_a_tower_or_party_write()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var first = Session(1);
+            var second = Session(2);
+            // The caller is still a tower member but no longer the current selected session.
+            var sessions = new Sessions(second);
+            var parties = new PartyService(
+                new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
+                new NoPartyEndpoints());
+            Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
+            var tower = new TowerDomain(PartyRun(Guid.NewGuid(), first, second));
+            using var request = new CancellationTokenSource();
+            var commands = new CoordinatorCommands(tower, parties, request);
+            var closer = new Closer();
+            var town = new NoTown();
+            var coordinator = new BossTowerPartyCoordinator(
+                tower, parties, sessions, commands,
+                Notifications(parties, sessions, town),
+                Delivery(tower, sessions, commands, new Sender(), closer),
+                closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
+
+            var result = await coordinator.TryLeaveAsync(
+                first, allowVirtual: false, departureResponse: null, CancellationToken.None);
+
+            Assert.True(result.Handled);
+            Assert.False(result.Result.Succeeded);
+            Assert.Equal(PartyFailureReason.CallerNotCurrent, result.Result.Failure);
+            Assert.Null(result.Target);
+            Assert.Equal(0, commands.PartyCalls);
+            Assert.NotNull(tower.Find(first));
+            Assert.Contains(parties.FindParty(PartyCharacter(second)).Members,
+                member => member.CharacterId == first.CharacterId);
+        });
+    }
+
+    // VC-7: the coordinator is present and answers "not a tower matter"; each of the four requests then runs its
+    // ordinary path exactly once and answers.
+    [Fact]
+    public async Task Leave_party_outside_a_tower_runs_the_ordinary_path_once_and_delivers_the_party_change()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var party = OrdinaryParty();
+
+            await new LeavePartyHandler(party.Sessions, party.Commands, party.Delivery,
+                    NullLogger<LeavePartyHandler>.Instance, townAreas: party.Town, bossParties: party.Coordinator)
+                .HandleAsync(Dispatch(party.Third), new LeavePartyRequest(GameMessageMetadata.Empty),
+                    CancellationToken.None);
+
+            Assert.Equal(1, party.Commands.PartyCalls);
+            Assert.DoesNotContain(party.Parties.FindParty(PartyCharacter(party.First)).Members,
+                member => member.CharacterId == party.Third.CharacterId);
+            Assert.NotEmpty(party.Projections.Projected);
+        });
+    }
+
+    [Fact]
+    public async Task Change_leader_outside_a_tower_runs_the_ordinary_path_once_and_delivers_the_party_change()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var party = OrdinaryParty();
+
+            await new ChangePartyLeaderHandler(party.Sessions, party.Parties, party.Commands, party.Delivery,
+                    NullLogger<ChangePartyLeaderHandler>.Instance, townAreas: party.Town, bossParties: party.Coordinator)
+                .HandleAsync(Dispatch(party.First), new ChangePartyLeaderRequest(GameMessageMetadata.Empty, 1),
+                    CancellationToken.None);
+
+            Assert.Equal(1, party.Commands.PartyCalls);
+            Assert.Equal(party.Second.WireUserId, party.Parties.FindParty(PartyCharacter(party.First)).LeaderWireUserId);
+            Assert.NotEmpty(party.Projections.Projected);
+        });
+    }
+
+    [Fact]
+    public async Task Remove_member_outside_a_tower_runs_the_ordinary_path_once_and_delivers_the_party_change()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var party = OrdinaryParty();
+            var sender = new Sender();
+
+            await new RemovePartyMemberHandler(party.Sessions, party.Parties, party.Commands, party.Delivery, sender,
+                    NullLogger<RemovePartyMemberHandler>.Instance, townAreas: party.Town, bossParties: party.Coordinator)
+                .HandleAsync(Dispatch(party.First), new RemovePartyMemberRequest(GameMessageMetadata.Empty, 2),
+                    CancellationToken.None);
+
+            Assert.Equal(1, party.Commands.PartyCalls);
+            Assert.DoesNotContain(party.Parties.FindParty(PartyCharacter(party.First)).Members,
+                member => member.CharacterId == party.Third.CharacterId);
+            Assert.NotEmpty(party.Projections.Projected);
+            Assert.Empty(sender.Deliveries);
+        });
+    }
+
+    [Fact]
+    public async Task Give_up_outside_a_tower_runs_the_ordinary_path_once_and_answers_before_the_town()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var party = OrdinaryParty();
+            var views = new FixedCurrentViews();
+            var entry = SelectCharacterPayloadTestData.Create();
+            views.Publish(party.First, entry with
+            {
+                World = entry.World with
+                {
+                    Channel = new ChannelEntryPolicyState(
+                        ChannelId: 10,
+                        Spawn: new EntrySpawnState(
+                            TownId: 1, AreaId: 1, X: 100, Y: 100,
+                            Direction: 0, AreaState: 7, IsTransient: false),
+                        PersistsPosition: true,
+                        PvpSkillProfileApplies: false),
+                },
+            });
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            positions.Begin(party.First, new CharacterPositionState(1, 1, 100, 100, 0), 100);
+            var sender = new RecordingSender();
+
+            await new GiveUpGameHandler(party.Sessions, views, positions,
+                    new DungeonRunDomainService(party.Parties), new DungeonRunDeliveryRegistry(), sender,
+                    TownAreaProjectionTestFactory.Create(party.Sessions, views, sender),
+                    NullLogger<GiveUpGameHandler>.Instance, bossParties: party.Coordinator)
+                .HandleAsync(Dispatch(party.First), new GiveUpGameRequest(GameMessageMetadata.Empty),
+                    CancellationToken.None);
+
+            Assert.IsType<GiveUpGameResponse>(sender.Sent[0]);
+            Assert.Single(sender.Sent.OfType<GiveUpGameResponse>());
+            Assert.Equal(0, party.Commands.PartyCalls);
+        });
+    }
+
+    private static OrdinaryPartyFixture OrdinaryParty()
+    {
+        var first = Session(1);
+        var second = Session(2);
+        var third = Session(3);
+        var sessions = new Sessions(first, second, third);
+        // The production party service: the wire party numbers come from the protocol projection.
+        var parties = new PartyClientProjectionService(new PartyService(
+            new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
+            new NoPartyEndpoints()), new PartyClientIdRegistry());
+        foreach (var member in new[] { second, third })
+        {
+            Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(member),
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(parties.AcceptInvite(PartyCharacter(member), PartyCharacter(first)).Succeeded);
+        }
+        // No tower run: the coordinator answers "not mine" for every caller.
+        var tower = new TowerDomain();
+        var commands = new CoordinatorCommands(tower, parties, new CancellationTokenSource());
+        var closer = new Closer();
+        var town = new NoTown();
+        var projections = new RecordingProjections();
+        var delivery = new PartyNotificationDelivery(projections, new PartyProjectionStreamRegistry(),
+            sessions, town, parties);
+        var coordinator = new BossTowerPartyCoordinator(
+            tower, parties, sessions, commands, delivery,
+            Delivery(tower, sessions, commands, new Sender(), closer),
+            closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
+        return new(first, second, third, sessions, parties, commands, town, projections, delivery, coordinator);
+    }
+
+    private sealed record OrdinaryPartyFixture(
+        SelectedSessionIdentity First,
+        SelectedSessionIdentity Second,
+        SelectedSessionIdentity Third,
+        Sessions Sessions,
+        IPartyService Parties,
+        CoordinatorCommands Commands,
+        NoTown Town,
+        RecordingProjections Projections,
+        PartyNotificationDelivery Delivery,
+        BossTowerPartyCoordinator Coordinator);
+
+    private sealed class RecordingProjections : Dfo.Server.Testing.ProjectionEventService
+    {
+        public List<object> Projected { get; } = [];
+
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
+            NotificationAudience audience,
+            TNotification notification,
+            CancellationToken cancellationToken)
+        {
+            Projected.Add(notification);
+            return ValueTask.FromResult(new NotificationDelivery([]));
+        }
+    }
+
     private static BossTowerProjectionDelivery Delivery(
         TowerDomain towers, Sessions sessions, ICommandBus commands, Sender sender,
         INetworkConnectionCloser? closer = null)
@@ -495,9 +692,6 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             new Intents(),
             sender,
             town,
-            new SelectedSessionTransitionGate(),
-            new BossTowerProjectionGate(),
-            new BossTowerEntryGate(),
             TimeProvider.System,
             closer ?? new Closer(),
             NullLogger<BossTowerProjectionDelivery>.Instance);

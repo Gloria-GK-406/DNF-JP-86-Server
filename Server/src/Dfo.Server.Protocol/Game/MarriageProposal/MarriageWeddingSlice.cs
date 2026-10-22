@@ -6,7 +6,6 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.Networking;
@@ -139,36 +138,30 @@ public sealed class WeddingGiftCommandHandler(IMarriageVenueDomainService venue)
 {
     public ValueTask<int> HandleAsync(CommandExecutionContext c, WeddingGiftCommand q, CancellationToken ct) => venue.GiftAsync(q.Actor, q.Key, q.Gold, ct);
 }
-internal sealed class WeddingLetterHandler(ISelectedSessionDomainService sessions, ICommandBus commands, IGameMessageSender sender, SelectedSessionTransitionGate gate)
+internal sealed class WeddingLetterHandler(ISelectedSessionDomainService sessions, ICommandBus commands, IGameMessageSender sender)
     : ClientMessageHandler<WeddingLetterRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c, WeddingLetterRequest m, CancellationToken ct)
     {
         var actor = sessions.FindByConnection(c.Connection.ConnectionId);
-        await WeddingProposalExecution.RunAsync(gate, actor, actor, async () =>
-        {
-            var result = actor is null ? new MarriageWeddingLetterResult(-1, 0, [])
-                : await commands.SendAsync(new WeddingLetterCommand(actor, m.Mode, m.Target), ct).ConfigureAwait(false);
-            var messages = new List<IGameServerMessage> { new WeddingLetterAck(result.Status, result.Remaining) };
-            if (result.Status == 0) messages.Add(new WeddingInvitedGuestsNotification(result.Invited));
-            await sender.SendExplicitAsync(c.Connection.ConnectionId, new(messages,
-                result.Letters.Select(x => new GameExplicitMessageTarget(x.Guest.ConnectionId, [new WeddingLetterNotification(x.Church, x.Key)])).ToArray()), ct).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
+        var result = actor is null ? new MarriageWeddingLetterResult(-1, 0, [])
+            : await commands.SendAsync(new WeddingLetterCommand(actor, m.Mode, m.Target), ct).ConfigureAwait(false);
+        var messages = new List<IGameServerMessage> { new WeddingLetterAck(result.Status, result.Remaining) };
+        if (result.Status == 0) messages.Add(new WeddingInvitedGuestsNotification(result.Invited));
+        await sender.SendExplicitAsync(c.Connection.ConnectionId, new(messages,
+            result.Letters.Select(x => new GameExplicitMessageTarget(x.Guest.ConnectionId, [new WeddingLetterNotification(x.Church, x.Key)])).ToArray()), ct).ConfigureAwait(false);
     }
 }
 internal sealed class WeddingGiftHandler(ISelectedSessionDomainService sessions, ICommandBus commands, IGameMessageSender sender,
-    SelectedSessionTransitionGate gate, ICharacterDomainService characters, TimeProvider clock) : ClientMessageHandler<WeddingGiftRequest>
+    ICharacterDomainService characters, TimeProvider clock) : ClientMessageHandler<WeddingGiftRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c, WeddingGiftRequest m, CancellationToken ct)
     {
         var actor = sessions.FindByConnection(c.Connection.ConnectionId);
-        await WeddingProposalExecution.RunAsync(gate, actor, actor, async () =>
-        {
-            var result = actor is null ? -1 : await commands.SendAsync(new WeddingGiftCommand(actor, m.Key, m.Gold), ct).ConfigureAwait(false);
-            var messages = new List<IGameServerMessage> { new WeddingGiftAck(result, m.Key) };
-            if (result == 0 && actor is not null) messages.Add(GameInventoryDelivery.CarriedGoldNotification(await characters.Get(actor.CharacterId).GoldAsync(ct), clock.GetUtcNow()));
-            await sender.SendExplicitAsync(c.Connection.ConnectionId, new(messages, []), ct).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
+        var result = actor is null ? -1 : await commands.SendAsync(new WeddingGiftCommand(actor, m.Key, m.Gold), ct).ConfigureAwait(false);
+        var messages = new List<IGameServerMessage> { new WeddingGiftAck(result, m.Key) };
+        if (result == 0 && actor is not null) messages.Add(GameInventoryDelivery.CarriedGoldNotification(await characters.Get(actor.CharacterId).GoldAsync(ct), clock.GetUtcNow()));
+        await sender.SendExplicitAsync(c.Connection.ConnectionId, new(messages, []), ct).ConfigureAwait(false);
     }
 }
 public sealed class MarriageWeddingProjection(ISelectedSessionDomainService sessions, ISelectedCharacterCurrentViewDomainService views,
@@ -193,7 +186,7 @@ public sealed class MarriageWeddingProjection(ISelectedSessionDomainService sess
     }
 }
 internal sealed class MarriageWeddingScheduler(IMarriageQueryDomainService marriage, ICommandBus commands,
-    SelectedSessionTransitionGate gate, IGameMessageSender sender,
+    IGameMessageSender sender,
     MarriageWeddingProjection projection, ILogger<MarriageWeddingScheduler> logger, TimeProvider clock,
     IGameplayQueue queue) : BackgroundService
 {
@@ -217,11 +210,8 @@ internal sealed class MarriageWeddingScheduler(IMarriageQueryDomainService marri
         foreach (var ceremony in await marriage.ActiveWeddingsAsync(ct).ConfigureAwait(false))
         {
             var accounts = await marriage.WeddingAccountsAsync(ceremony, ct).ConfigureAwait(false);
-            var leases = new List<IAsyncDisposable>();
             try
             {
-                foreach (var account in accounts) leases.Add(await gate.AcquireAsync(account, UserAccessMode.Exclusive, ct).ConfigureAwait(false));
-                if (!(await marriage.WeddingAccountsAsync(ceremony, ct).ConfigureAwait(false)).SequenceEqual(accounts)) continue;
                 var result = (await commands.SendAsync(new AdvanceMarriageWeddingCommand(ceremony, accounts), ct).ConfigureAwait(false)).Transition;
                 if (result is null) continue;
                 logger.LogInformation("Wedding {Ceremony} reached {Phase}", ceremony, result.Wedding.Phase);
@@ -251,7 +241,6 @@ internal sealed class MarriageWeddingScheduler(IMarriageQueryDomainService marri
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
             catch (Exception e) { logger.LogError(e, "Wedding advancement failed for {Ceremony}", ceremony); }
-            finally { for (var n = leases.Count - 1; n >= 0; n--) await leases[n].DisposeAsync().ConfigureAwait(false); }
         }
     }
 }

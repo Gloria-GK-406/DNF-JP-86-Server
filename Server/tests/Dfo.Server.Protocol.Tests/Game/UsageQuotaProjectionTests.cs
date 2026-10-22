@@ -57,7 +57,7 @@ public sealed class UsageQuotaProjectionTests
         var events = new Events { Family = UsageQuotaFamily.GoldSilverHorn };
         await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
         using var worker = new GoldSilverHornQuotaDailyRefreshService(sessions, sessions,
-            new SelectedSessionTransitionGate(), new UsageQuotaProjectionDelivery(events), new Daily(), clock,
+            new UsageQuotaProjectionDelivery(events), new Daily(), clock,
             NullLogger<GoldSilverHornQuotaDailyRefreshService>.Instance, new GameplayQueue(new GameplayShardSelector(executor)));
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Single(events.Projections);
@@ -92,7 +92,7 @@ public sealed class UsageQuotaProjectionTests
         var events = new Events { Family = UsageQuotaFamily.TournamentDungeon };
         await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
         using var worker = new Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService(sessions, sessions,
-            new SelectedSessionTransitionGate(), new UsageQuotaProjectionDelivery(events), new Daily(), clock,
+            new UsageQuotaProjectionDelivery(events), new Daily(), clock,
             NullLogger<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>.Instance, new GameplayQueue(new GameplayShardSelector(executor)));
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Single(events.Projections);
@@ -222,7 +222,7 @@ public sealed class UsageQuotaProjectionTests
     {
         var sessions = new Sessions(); var clock = new Clock(); var events = new Events();
         await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
-        using var worker = new MirrorQuotaDailyRefreshService(sessions, sessions, new SelectedSessionTransitionGate(),
+        using var worker = new MirrorQuotaDailyRefreshService(sessions, sessions,
             new UsageQuotaProjectionDelivery(events), clock, NullLogger<MirrorQuotaDailyRefreshService>.Instance, new GameplayQueue(new GameplayShardSelector(executor)));
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Single(events.Projections);

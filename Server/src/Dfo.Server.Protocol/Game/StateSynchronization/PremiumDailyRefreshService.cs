@@ -3,7 +3,6 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
@@ -38,7 +37,7 @@ public sealed class ReadPremiumSnapshotCommandHandler(ISelectedSessionDomainServ
 // One server timer refreshes day and entitlement changes; counters reset lazily.
 // A21 effect gates only test nonzero end, so expired slots must be projected as zero.
 public sealed class PremiumDailyRefreshService(ISelectedSessionSnapshotQuery directory,
-    ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
+    ISelectedSessionDomainService sessions,
     IPremiumServiceUsageDomainService usage, ICommandBus commands, IGameMessageSender sender, TimeProvider clock,
     ILogger<PremiumDailyRefreshService> logger, IGameplayQueue queue) : BackgroundService
 {
@@ -56,7 +55,6 @@ public sealed class PremiumDailyRefreshService(ISelectedSessionSnapshotQuery dir
             var period = usage.CurrentPeriodStart;
             try
             {
-                await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
                 if (!sessions.IsInWorld(session)) continue;
                 var state = await commands.SendAsync(new ReadPremiumSnapshotCommand(session), token).ConfigureAwait(false);
                 if (!state.IsCurrent) continue;

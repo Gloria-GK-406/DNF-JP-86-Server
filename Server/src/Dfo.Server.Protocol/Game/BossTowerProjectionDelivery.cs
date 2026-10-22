@@ -9,7 +9,6 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.World.BossTower;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
@@ -43,9 +42,6 @@ using Dfo.Server.Protocol.Game.BossTowerMap;
 using Dfo.Server.Protocol.Game.BossTowerReward;
 using Dfo.Server.Protocol.Game.BossTowerContinue;
 
-public sealed class BossTowerProjectionGate : UserExecutionGate<Guid>;
-public sealed class BossTowerEntryGate : UserExecutionGate<CharacterId>;
-
 public sealed class BossTowerProjectionDelivery(
     IBossTowerDomainService towers,
     ICommandBus commands,
@@ -58,9 +54,6 @@ public sealed class BossTowerProjectionDelivery(
     IDungeonEntryIntentDomainService entryIntents,
     IGameMessageSender sender,
     TownAreaProjectionDelivery townProjection,
-    SelectedSessionTransitionGate transitions,
-    BossTowerProjectionGate projectionGate,
-    BossTowerEntryGate entryGate,
     TimeProvider clock,
     INetworkConnectionCloser connections,
     ILogger<BossTowerProjectionDelivery> logger,
@@ -89,97 +82,91 @@ public sealed class BossTowerProjectionDelivery(
         var isolate = new List<SelectedSessionIdentity>();
         try
         {
-            await using (await entryGate.AcquireAsync(requester.CharacterId, UserAccessMode.Exclusive, token).ConfigureAwait(false))
-            await using (var accountLeases = new LeaseSet())
+            if (!Current(attachments) || !PartyCurrent(requester, roster, attachments))
             {
-                foreach (var account in (attachments.Select(value => value.Session)).Select(value => value.AccountId).Distinct().OrderBy(value => value.Value))
-                    accountLeases.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, token).ConfigureAwait(false));
-                if (!Current(attachments) || !PartyCurrent(requester, roster, attachments))
-                {
-                    restoreIntent();
-                    await RefuseAsync(requesterConnection, SelectDungeonRefusal.SelectionCohortUnavailable, token).ConfigureAwait(false);
-                    return true;
-                }
-
-                var entered = await commands.SendAsync(new EnterBossTowerCommand(
-                    attachments.Select(value => new TowerEntryMember(value.Session, value.Slot)).ToArray(),
-                    requester, unchecked((uint)Random.Shared.Next()), requestMode, difficulty, practiceMode), token).ConfigureAwait(false);
-                if (entered.Run is null)
-                {
-                    restoreIntent();
-                    await RefuseAsync(requesterConnection,
-                        entered.Failure is { } failure ? DungeonEntryRefusalCodes.For(failure, false) : entered.Rejection switch
-                        {
-                            "LevelTooLow" => SelectDungeonRefusal.LevelTooLow,
-                            "InsufficientMaterial" or "MissingRequiredItem" => SelectDungeonRefusal.MissingRequiredItem,
-                            "InvalidParty" or "NoSession" or "AlreadyInDungeon" => SelectDungeonRefusal.InvalidSelectionState,
-                            _ => SelectDungeonRefusal.DungeonUnavailable,
-                        },
-                        token, entered.BlockedSlot ?? 0).ConfigureAwait(false);
-                    return true;
-                }
-
-                committed = true;
-                isolate.AddRange(attachments.Select(value => value.Session));
-                var run = entered.Run;
-                if (!Current(attachments, run))
-                    throw new InvalidOperationException("Tower cohort changed after committed admission.");
-
-                foreach (var member in attachments.Where(value => value.Session != requester))
-                {
-                    if (sessions.IsInWorld(member.Session))
-                        entryIntents.Consume(member.Session);
-                }
-
-                var refreshed = new Dictionary<CharacterId, SelectCharacterResult>();
-                foreach (var member in attachments.OrderBy(value => value.Slot))
-                {
-                    // The attachment was loaded before admission. Attribute refresh alone keeps
-                    // its inventory snapshot, so reread after the temporary bindings commit.
-                    var runtime = await currentViews.TryLoadAsync(member.Session, token).ConfigureAwait(false)
-                        ?? throw new InvalidOperationException("Tower member view disappeared after admission.");
-                    refreshed[member.Session.CharacterId] = await currentState.RefreshAsync(runtime, token).ConfigureAwait(false);
-                }
-
-                var ordered = attachments.OrderBy(value => value.Slot).ToArray();
-                var wireUsers = ordered.Select(value => value.Session.WireUserId).ToImmutableArray();
-                var hostSlot = ordered.Single(value => value.Session == requester).Slot;
-                var batches = new List<(SelectedSessionIdentity Session, IReadOnlyList<IGameServerMessage> Frames)>();
-                foreach (var receiver in ordered)
-                {
-                    var frames = new List<IGameServerMessage>();
-                    // A21 recalculates player attributes on DELETE_ITEM. Deliver the committed
-                    // debit before 008E/008F switch it into tower mode, whose table can still be null.
-                    foreach (var debit in entered.InventoryChanges.Where(value => value.CharacterId == receiver.Session.CharacterId))
-                        AppendDebit(frames, debit, clock.GetUtcNow());
-                    foreach (var source in ordered
-                        .OrderBy(value => value.Session == receiver.Session ? 0 : 1)
-                        .ThenBy(value => value.Slot))
-                    {
-                        var state = refreshed[source.Session.CharacterId];
-                        var equipment = state.CharacterInventory.Containers
-                            .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)?.Items ?? [];
-                        frames.Add(new ExtendedUserStateMessage(
-                            state.Character, state.CharacterEntry.Public, state.CharacterEntry.Skills,
-                            equipment, state.World.PreparedAt,
-                            source.Session == receiver.Session ? null : source.Session.WireUserId));
-                    }
-                    frames.AddRange(await HousingCurrentProjection.ReadAsync(housing, receiver.Session, token).ConfigureAwait(false));
-                    frames.Add(new EnterSelectDungeonAcknowledgement());
-                    frames.Add(new UserStateNotification(wireUsers, 0x01));
-                    frames.Add(new UdpHostNotification(hostSlot));
-                    frames.Add(new SupportTagNotification());
-                    frames.Add(new BossTowerInfoNotification(run.DungeonId, run.TotalLevels));
-                    frames.Add(new BossTowerMapNotification(run.Room));
-                    batches.Add((receiver.Session, frames));
-                }
-
-                foreach (var batch in batches.OrderBy(value => value.Session == requester ? 1 : 0))
-                    await sender.SendExplicitAsync(batch.Session.ConnectionId,
-                        new GameExplicitMessageDelivery(batch.Frames, []), token).ConfigureAwait(false);
-                await townProjection.LeaveManyAsync(ordered.Select(value => value.Session).ToArray(),
-                    TownAreaDepartureReason.DungeonEntry, token).ConfigureAwait(false);
+                restoreIntent();
+                await RefuseAsync(requesterConnection, SelectDungeonRefusal.SelectionCohortUnavailable, token).ConfigureAwait(false);
+                return true;
             }
+
+            var entered = await commands.SendAsync(new EnterBossTowerCommand(
+                attachments.Select(value => new TowerEntryMember(value.Session, value.Slot)).ToArray(),
+                requester, unchecked((uint)Random.Shared.Next()), requestMode, difficulty, practiceMode), token).ConfigureAwait(false);
+            if (entered.Run is null)
+            {
+                restoreIntent();
+                await RefuseAsync(requesterConnection,
+                    entered.Failure is { } failure ? DungeonEntryRefusalCodes.For(failure, false) : entered.Rejection switch
+                    {
+                        "LevelTooLow" => SelectDungeonRefusal.LevelTooLow,
+                        "InsufficientMaterial" or "MissingRequiredItem" => SelectDungeonRefusal.MissingRequiredItem,
+                        "InvalidParty" or "NoSession" or "AlreadyInDungeon" => SelectDungeonRefusal.InvalidSelectionState,
+                        _ => SelectDungeonRefusal.DungeonUnavailable,
+                    },
+                    token, entered.BlockedSlot ?? 0).ConfigureAwait(false);
+                return true;
+            }
+
+            committed = true;
+            isolate.AddRange(attachments.Select(value => value.Session));
+            var run = entered.Run;
+            if (!Current(attachments, run))
+                throw new InvalidOperationException("Tower cohort changed after committed admission.");
+
+            foreach (var member in attachments.Where(value => value.Session != requester))
+            {
+                if (sessions.IsInWorld(member.Session))
+                    entryIntents.Consume(member.Session);
+            }
+
+            var refreshed = new Dictionary<CharacterId, SelectCharacterResult>();
+            foreach (var member in attachments.OrderBy(value => value.Slot))
+            {
+                // The attachment was loaded before admission. Attribute refresh alone keeps
+                // its inventory snapshot, so reread after the temporary bindings commit.
+                var runtime = await currentViews.TryLoadAsync(member.Session, token).ConfigureAwait(false)
+                    ?? throw new InvalidOperationException("Tower member view disappeared after admission.");
+                refreshed[member.Session.CharacterId] = await currentState.RefreshAsync(runtime, token).ConfigureAwait(false);
+            }
+
+            var ordered = attachments.OrderBy(value => value.Slot).ToArray();
+            var wireUsers = ordered.Select(value => value.Session.WireUserId).ToImmutableArray();
+            var hostSlot = ordered.Single(value => value.Session == requester).Slot;
+            var batches = new List<(SelectedSessionIdentity Session, IReadOnlyList<IGameServerMessage> Frames)>();
+            foreach (var receiver in ordered)
+            {
+                var frames = new List<IGameServerMessage>();
+                // A21 recalculates player attributes on DELETE_ITEM. Deliver the committed
+                // debit before 008E/008F switch it into tower mode, whose table can still be null.
+                foreach (var debit in entered.InventoryChanges.Where(value => value.CharacterId == receiver.Session.CharacterId))
+                    AppendDebit(frames, debit, clock.GetUtcNow());
+                foreach (var source in ordered
+                    .OrderBy(value => value.Session == receiver.Session ? 0 : 1)
+                    .ThenBy(value => value.Slot))
+                {
+                    var state = refreshed[source.Session.CharacterId];
+                    var equipment = state.CharacterInventory.Containers
+                        .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)?.Items ?? [];
+                    frames.Add(new ExtendedUserStateMessage(
+                        state.Character, state.CharacterEntry.Public, state.CharacterEntry.Skills,
+                        equipment, state.World.PreparedAt,
+                        source.Session == receiver.Session ? null : source.Session.WireUserId));
+                }
+                frames.AddRange(await HousingCurrentProjection.ReadAsync(housing, receiver.Session, token).ConfigureAwait(false));
+                frames.Add(new EnterSelectDungeonAcknowledgement());
+                frames.Add(new UserStateNotification(wireUsers, 0x01));
+                frames.Add(new UdpHostNotification(hostSlot));
+                frames.Add(new SupportTagNotification());
+                frames.Add(new BossTowerInfoNotification(run.DungeonId, run.TotalLevels));
+                frames.Add(new BossTowerMapNotification(run.Room));
+                batches.Add((receiver.Session, frames));
+            }
+
+            foreach (var batch in batches.OrderBy(value => value.Session == requester ? 1 : 0))
+                await sender.SendExplicitAsync(batch.Session.ConnectionId,
+                    new GameExplicitMessageDelivery(batch.Frames, []), token).ConfigureAwait(false);
+            await townProjection.LeaveManyAsync(ordered.Select(value => value.Session).ToArray(),
+                TownAreaDepartureReason.DungeonEntry, token).ConfigureAwait(false);
         }
         catch (Exception error) when (committed)
         {
@@ -205,23 +192,15 @@ public sealed class BossTowerProjectionDelivery(
         var expected = session is null ? null : towers.Find(session);
         if (session is null || expected is null) return false;
         IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures = [];
-        await using (await projectionGate.AcquireAsync(
-            expected.RunId, UserAccessMode.Exclusive, token).ConfigureAwait(false))
-        await using (var accountLeases = new LeaseSet())
-        {
-            foreach (var account in (
-            expected.Members.Select(member => member.Session)).Select(value => value.AccountId).Distinct().OrderBy(value => value.Value))
-                accountLeases.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, token).ConfigureAwait(false));
-            if (!Exact(session, expected)) return true;
-            var action = await commands.SendAsync(
-                new LoadBossTowerCommand(Context(expected, session)) { Sessions = Members(expected) }, token).ConfigureAwait(false);
-            if (action.Run is not { Room.Phase: TowerRoomPhase.Ready } run) return true;
-            var leader = run.Members.Single(value => value.IsLeader).Session;
-            var started = await commands.SendAsync(new StartBossTowerCommand(Context(run, leader)) { Sessions = Members(run) }, token).ConfigureAwait(false);
-            if (started.Run is not { Room.Phase: TowerRoomPhase.Fighting } fighting) return true;
-            failures = await SendToExactAsync(
-                fighting, _ => [new LoadingCompleteNotification()], token).ConfigureAwait(false);
-        }
+        if (!Exact(session, expected)) return true;
+        var action = await commands.SendAsync(
+            new LoadBossTowerCommand(Context(expected, session)) { Sessions = Members(expected) }, token).ConfigureAwait(false);
+        if (action.Run is not { Room.Phase: TowerRoomPhase.Ready } run) return true;
+        var leader = run.Members.Single(value => value.IsLeader).Session;
+        var started = await commands.SendAsync(new StartBossTowerCommand(Context(run, leader)) { Sessions = Members(run) }, token).ConfigureAwait(false);
+        if (started.Run is not { Room.Phase: TowerRoomPhase.Fighting } fighting) return true;
+        failures = await SendToExactAsync(
+            fighting, _ => [new LoadingCompleteNotification()], token).ConfigureAwait(false);
         await CloseProjectionFailuresAsync(failures, expected.RunId).ConfigureAwait(false);
         return true;
     }
@@ -233,11 +212,6 @@ public sealed class BossTowerProjectionDelivery(
         var session = sessions.FindByConnection(connectionId);
         var expected = session is null ? null : towers.Find(session);
         if (session is null || expected is null) return false;
-        await using var projection = await projectionGate.AcquireAsync(
-            expected.RunId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
-        await using var transition = new LeaseSet();
-        foreach (var account in expected.Members.Select(member => member.Session.AccountId).Distinct().OrderBy(value => value.Value))
-            transition.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, token).ConfigureAwait(false));
         if (Exact(session, expected))
             _ = await commands.SendAsync(
                 new StartBossTowerCommand(Context(expected, session)) { Sessions = Members(expected) }, token).ConfigureAwait(false);
@@ -260,28 +234,20 @@ public sealed class BossTowerProjectionDelivery(
             connectionId, session.CharacterId.Value, metadata.Sequence, metadata.InboundOrdinal, expected.RunId,
             expected.Room.Version, expected.Room.Level, expected.Room.Phase, targetX, targetY);
         IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures = [];
-        await using (await projectionGate.AcquireAsync(
-            expected.RunId, UserAccessMode.Exclusive, token).ConfigureAwait(false))
-        await using (var accountLeases = new LeaseSet())
+        if (!Exact(session, expected))
         {
-            foreach (var account in (
-            expected.Members.Select(member => member.Session)).Select(value => value.AccountId).Distinct().OrderBy(value => value.Value))
-                accountLeases.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, token).ConfigureAwait(false));
-            if (!Exact(session, expected))
-            {
-                logger.LogWarning("Boss tower move refused character={CharacterId} run={RunId} roomVersion={RoomVersion} reason=SnapshotOrSessionChanged",
-                    session.CharacterId.Value, expected.RunId, expected.Room.Version);
-                return true;
-            }
-            var action = await commands.SendAsync(
-                new AdvanceBossTowerCommand(Context(expected, session), targetX, targetY) { Sessions = Members(expected) }, token).ConfigureAwait(false);
-            logger.LogInformation("Boss tower move result character={CharacterId} run={RunId} changed={Changed} stage={Stage} map={MapId} phase={Phase} roomVersion={RoomVersion}",
-                session.CharacterId.Value, expected.RunId, action.Changed, action.Run?.Room.Level,
-                action.Run?.Room.MapId, action.Run?.Room.Phase, action.Run?.Room.Version);
-            if (action.Changed && action.Run is { } run)
-                failures = await SendToExactAsync(
-                    run, _ => [new BossTowerMapNotification(run.Room)], token).ConfigureAwait(false);
+            logger.LogWarning("Boss tower move refused character={CharacterId} run={RunId} roomVersion={RoomVersion} reason=SnapshotOrSessionChanged",
+                session.CharacterId.Value, expected.RunId, expected.Room.Version);
+            return true;
         }
+        var action = await commands.SendAsync(
+            new AdvanceBossTowerCommand(Context(expected, session), targetX, targetY) { Sessions = Members(expected) }, token).ConfigureAwait(false);
+        logger.LogInformation("Boss tower move result character={CharacterId} run={RunId} changed={Changed} stage={Stage} map={MapId} phase={Phase} roomVersion={RoomVersion}",
+            session.CharacterId.Value, expected.RunId, action.Changed, action.Run?.Room.Level,
+            action.Run?.Room.MapId, action.Run?.Room.Phase, action.Run?.Room.Version);
+        if (action.Changed && action.Run is { } run)
+            failures = await SendToExactAsync(
+                run, _ => [new BossTowerMapNotification(run.Room)], token).ConfigureAwait(false);
         await CloseProjectionFailuresAsync(failures, expected.RunId).ConfigureAwait(false);
         return true;
     }
@@ -294,21 +260,13 @@ public sealed class BossTowerProjectionDelivery(
         var expected = session is null ? null : towers.Find(session);
         if (session is null || expected is null) return false;
         IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures = [];
-        await using (await projectionGate.AcquireAsync(
-            expected.RunId, UserAccessMode.Exclusive, token).ConfigureAwait(false))
-        await using (var accountLeases = new LeaseSet())
-        {
-            foreach (var account in (
-            expected.Members.Select(member => member.Session)).Select(value => value.AccountId).Distinct().OrderBy(value => value.Value))
-                accountLeases.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, token).ConfigureAwait(false));
-            if (!Exact(session, expected)) return true;
-            var action = await commands.SendAsync(
-                new KillBossTowerActorCommand(Context(expected, session), actorUid) { Sessions = Members(expected) }, token).ConfigureAwait(false);
-            if (!action.Changed || action.Run is null) return true;
-            failures = await ProjectActionAsync(
-                action, new MonsterDeathNotification(actorUid, action.Drops.Select(item => new MonsterDrop(item.Uid,
-                    item.Rolled)).ToArray(), killerUid), token).ConfigureAwait(false);
-        }
+        if (!Exact(session, expected)) return true;
+        var action = await commands.SendAsync(
+            new KillBossTowerActorCommand(Context(expected, session), actorUid) { Sessions = Members(expected) }, token).ConfigureAwait(false);
+        if (!action.Changed || action.Run is null) return true;
+        failures = await ProjectActionAsync(
+            action, new MonsterDeathNotification(actorUid, action.Drops.Select(item => new MonsterDrop(item.Uid,
+                item.Rolled)).ToArray(), killerUid), token).ConfigureAwait(false);
         await CloseProjectionFailuresAsync(failures, expected.RunId).ConfigureAwait(false);
         return true;
     }
@@ -321,45 +279,39 @@ public sealed class BossTowerProjectionDelivery(
         if (session is null || expected is null) return false;
         if (Stale(metadata)) return true;
         var failures = new List<(SelectedSessionIdentity, Exception)>();
-        await using (await projectionGate.AcquireAsync(expected.RunId, UserAccessMode.Exclusive, token).ConfigureAwait(false))
-        await using (var leases = new LeaseSet())
+        if (!Exact(session, expected)) return true;
+        var picked = await commands.SendAsync(new PickupBossTowerItemCommand(Context(expected, session), groundUid) { Sessions = Members(expected) }, token).ConfigureAwait(false);
+        if (!picked.Action.Changed || picked.Action.Run is not { } run)
         {
-            foreach (var account in expected.Members.Select(value => value.Session.AccountId).Distinct().OrderBy(value => value.Value))
-                leases.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, token).ConfigureAwait(false));
-            if (!Exact(session, expected)) return true;
-            var picked = await commands.SendAsync(new PickupBossTowerItemCommand(Context(expected, session), groundUid) { Sessions = Members(expected) }, token).ConfigureAwait(false);
-            if (!picked.Action.Changed || picked.Action.Run is not { } run)
+            if (picked.NoRoom) await sender.SendCmdAsync(connectionId, new GetItemResponse(false), token).ConfigureAwait(false);
+            return true;
+        }
+        var item = run.GroundItems.Single(value => value.Uid == groundUid);
+        foreach (var member in ExactMembers(run))
+        {
+            try
             {
-                if (picked.NoRoom) await sender.SendCmdAsync(connectionId, new GetItemResponse(false), token).ConfigureAwait(false);
-                return true;
-            }
-            var item = run.GroundItems.Single(value => value.Uid == groundUid);
-            foreach (var member in ExactMembers(run))
-            {
-                try
+                var frames = new List<IGameServerMessage>();
+                if (member == session) frames.Add(new GetItemResponse(true));
+                if (item.Rolled.IsGold)
+                    frames.Add(new GroundGoldPickupNotification(groundUid, session.WireUserId, item.Rolled.Count));
+                else
                 {
-                    var frames = new List<IGameServerMessage>();
-                    if (member == session) frames.Add(new GetItemResponse(true));
-                    if (item.Rolled.IsGold)
-                        frames.Add(new GroundGoldPickupNotification(groundUid, session.WireUserId, item.Rolled.Count));
-                    else
-                    {
-                        var update = picked.Action.InventoryUpdates.FirstOrDefault();
-                        frames.Add(new GroundPickupNotification(groundUid, session.WireUserId,
-                            update is null ? (ushort)0 : checked((ushort)SlotMappings.ToGameSlot(update.Slot).Index)));
-                    }
-                    if (member == session)
-                    {
-                        AppendInventory(frames, picked.Action.InventoryUpdates, clock.GetUtcNow());
-                        AppendQuest(frames, picked.Action.QuestProgress);
-                        if (picked.Action.GoldBalance is { } balance)
-                            frames.Add(GameInventoryDelivery.CarriedGoldNotification(balance, clock.GetUtcNow()));
-                    }
-                    await SendCommittedBatchAsync(run, member, new GameExplicitMessageDelivery(frames, []), token).ConfigureAwait(false);
+                    var update = picked.Action.InventoryUpdates.FirstOrDefault();
+                    frames.Add(new GroundPickupNotification(groundUid, session.WireUserId,
+                        update is null ? (ushort)0 : checked((ushort)SlotMappings.ToGameSlot(update.Slot).Index)));
                 }
-                catch (Exception error) when (error is not OperationCanceledException || !token.IsCancellationRequested)
-                { failures.Add((member, error)); }
+                if (member == session)
+                {
+                    AppendInventory(frames, picked.Action.InventoryUpdates, clock.GetUtcNow());
+                    AppendQuest(frames, picked.Action.QuestProgress);
+                    if (picked.Action.GoldBalance is { } balance)
+                        frames.Add(GameInventoryDelivery.CarriedGoldNotification(balance, clock.GetUtcNow()));
+                }
+                await SendCommittedBatchAsync(run, member, new GameExplicitMessageDelivery(frames, []), token).ConfigureAwait(false);
             }
+            catch (Exception error) when (error is not OperationCanceledException || !token.IsCancellationRequested)
+            { failures.Add((member, error)); }
         }
         await CloseProjectionFailuresAsync(failures, expected.RunId).ConfigureAwait(false);
         return true;
@@ -373,21 +325,13 @@ public sealed class BossTowerProjectionDelivery(
         var expected = session is null ? null : towers.Find(session);
         if (session is null || expected is null) return false;
         IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures = [];
-        await using (await projectionGate.AcquireAsync(
-            expected.RunId, UserAccessMode.Exclusive, token).ConfigureAwait(false))
-        await using (var accountLeases = new LeaseSet())
-        {
-            foreach (var account in (
-            expected.Members.Select(member => member.Session)).Select(value => value.AccountId).Distinct().OrderBy(value => value.Value))
-                accountLeases.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, token).ConfigureAwait(false));
-            if (!Exact(session, expected)) return true;
-            var action = await commands.SendAsync(
-                new DieInBossTowerCommand(Context(expected, session)) { Sessions = Members(expected) }, token).ConfigureAwait(false);
-            if (!action.Changed || action.Run is null) return true;
-            failures = await ProjectActionAsync(
-                action, new CharacterLifeStateNotification(session.WireUserId), token,
-                requester: session, requesterResponse: new CharacterDeathResponse()).ConfigureAwait(false);
-        }
+        if (!Exact(session, expected)) return true;
+        var action = await commands.SendAsync(
+            new DieInBossTowerCommand(Context(expected, session)) { Sessions = Members(expected) }, token).ConfigureAwait(false);
+        if (!action.Changed || action.Run is null) return true;
+        failures = await ProjectActionAsync(
+            action, new CharacterLifeStateNotification(session.WireUserId), token,
+            requester: session, requesterResponse: new CharacterDeathResponse()).ConfigureAwait(false);
         await CloseProjectionFailuresAsync(failures, expected.RunId).ConfigureAwait(false);
         return true;
     }
@@ -400,29 +344,23 @@ public sealed class BossTowerProjectionDelivery(
         if (session is null || expected is null) return false;
         if (Stale(metadata)) return true;
         var failures = new List<(SelectedSessionIdentity Session, Exception Error)>();
-        await using (await projectionGate.AcquireAsync(expected.RunId, UserAccessMode.Exclusive, token).ConfigureAwait(false))
-        await using (var leases = new LeaseSet())
+        if (!Exact(session, expected)) return true;
+        if (state == 2)
         {
-            foreach (var account in expected.Members.Select(value => value.Session.AccountId).Distinct().OrderBy(value => value.Value))
-                leases.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, token).ConfigureAwait(false));
-            if (!Exact(session, expected)) return true;
-            if (state == 2)
-            {
-                await sender.SendCmdAsync(connectionId, new EplpCommandResponse(state, option), token).ConfigureAwait(false);
-                return true;
-            }
-            if (state != 1 || option > 2) return true;
-            var action = await commands.SendAsync(new SelectBossTowerResultCommand(Context(expected, session), option) { Sessions = Members(expected) }, token).ConfigureAwait(false);
-            if (!action.Changed || action.Run is not { } run) return true;
-            var frozen = ExactMembers(run);
-            failures.AddRange(await SendToExactAsync(run, _ => [new EplpCommandResponse(state, option)], token).ConfigureAwait(false));
-            // Native Boss module sends 000F then 0010 for buttons 0/1. Admission belongs to 0010.
-            if (option == 2)
-            {
-                foreach (var member in frozen)
-                    _ = await commands.SendAsync(new LeaveBossTowerCommand(Context(run, member), false) { Sessions = Members(run) }, CancellationToken.None).ConfigureAwait(false);
-                await ReturnMembersIsolatedAsync(frozen, null, failures, CancellationToken.None, false).ConfigureAwait(false);
-            }
+            await sender.SendCmdAsync(connectionId, new EplpCommandResponse(state, option), token).ConfigureAwait(false);
+            return true;
+        }
+        if (state != 1 || option > 2) return true;
+        var action = await commands.SendAsync(new SelectBossTowerResultCommand(Context(expected, session), option) { Sessions = Members(expected) }, token).ConfigureAwait(false);
+        if (!action.Changed || action.Run is not { } run) return true;
+        var frozen = ExactMembers(run);
+        failures.AddRange(await SendToExactAsync(run, _ => [new EplpCommandResponse(state, option)], token).ConfigureAwait(false));
+        // Native Boss module sends 000F then 0010 for buttons 0/1. Admission belongs to 0010.
+        if (option == 2)
+        {
+            foreach (var member in frozen)
+                _ = await commands.SendAsync(new LeaveBossTowerCommand(Context(run, member), false) { Sessions = Members(run) }, CancellationToken.None).ConfigureAwait(false);
+            await ReturnMembersIsolatedAsync(frozen, null, failures, CancellationToken.None, false).ConfigureAwait(false);
         }
         await CloseProjectionFailuresAsync(failures, expected.RunId).ConfigureAwait(false);
         return true;
@@ -436,10 +374,6 @@ public sealed class BossTowerProjectionDelivery(
         var expected = session is null ? null : towers.Find(session);
         if (session is null || expected is null) return false;
         if (Stale(metadata)) return true;
-        await using var projection = await projectionGate.AcquireAsync(expected.RunId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
-        await using var leases = new LeaseSet();
-        foreach (var account in expected.Members.Select(value => value.Session.AccountId).Distinct().OrderBy(value => value.Value))
-            leases.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, token).ConfigureAwait(false));
         if (!Exact(session, expected) || !expected.Members.Any(value => value.Session == session && value.IsLeader)) return true;
         var released = await commands.SendAsync(new ReleaseBossTowerSelectionCommand(Context(expected, session), requestedDungeonId) { Sessions = Members(expected) }, token).ConfigureAwait(false);
         return !released.Changed;
@@ -455,19 +389,11 @@ public sealed class BossTowerProjectionDelivery(
         var expected = session is null ? null : towers.Find(session);
         if (session is null || expected is null) return false;
         BossTowerActionResult? committed = null;
-        await using (await projectionGate.AcquireAsync(
-            expected.RunId, UserAccessMode.Exclusive, token).ConfigureAwait(false))
-        await using (var accountLeases = new LeaseSet())
-        {
-            foreach (var account in (
-            expected.Members.Select(member => member.Session)).Select(value => value.AccountId).Distinct().OrderBy(value => value.Value))
-                accountLeases.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, token).ConfigureAwait(false));
-            if (!Exact(session, expected)) return true;
-            var action = await commands.SendAsync(
-                new LeaveBossTowerCommand(Context(expected, session), Disconnected: false) { Sessions = Members(expected) }, token).ConfigureAwait(false);
-            if (action.Changed)
-                committed = action;
-        }
+        if (!Exact(session, expected)) return true;
+        var action = await commands.SendAsync(
+            new LeaveBossTowerCommand(Context(expected, session), Disconnected: false) { Sessions = Members(expected) }, token).ConfigureAwait(false);
+        if (action.Changed)
+            committed = action;
         if (committed is not null)
             await ProjectCommittedDepartureAsync(committed, session, response, token).ConfigureAwait(false);
         return true;
@@ -494,8 +420,8 @@ public sealed class BossTowerProjectionDelivery(
                 continue;
             }
 
-            // Transport close may synchronously enter selected-session cleanup. The run and all
-            // account transition gates acquired by SweepOneAsync have been released at this point.
+            // Transport close may synchronously enter selected-session cleanup, so it runs only
+            // after SweepOneAsync has finished with the run.
             foreach (var (session, error) in failures)
             {
                 logger.LogWarning(error,
@@ -515,39 +441,30 @@ public sealed class BossTowerProjectionDelivery(
         if (!action.Changed || action.Run is null) return;
         var captured = action.Run;
         var failures = new List<(SelectedSessionIdentity, Exception)>();
-        await using (await projectionGate.AcquireAsync(
-            captured.RunId, UserAccessMode.Exclusive, token).ConfigureAwait(false))
+        var participants = captured.Members.Select(member => member.Session)
+            .Append(returning).OfType<SelectedSessionIdentity>().Distinct().ToArray();
+        var exact = ExactMembers(captured);
+        var current = CurrentRun(captured);
+        if (exact.Count > 0 && current?.Members.SingleOrDefault(member => member.IsLeader) is { } leader)
         {
-            var participants = captured.Members.Select(member => member.Session)
-                .Append(returning).OfType<SelectedSessionIdentity>().Distinct().ToArray();
-            await using (var accountLeases = new LeaseSet())
-            {
-                foreach (var account in (participants).Select(value => value.AccountId).Distinct().OrderBy(value => value.Value))
-                    accountLeases.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, token).ConfigureAwait(false));
-                var exact = ExactMembers(captured);
-                var current = CurrentRun(captured);
-                if (exact.Count > 0 && current?.Members.SingleOrDefault(member => member.IsLeader) is { } leader)
-                {
-                    failures.AddRange(await SendToExactAsync(
-                        current, _ => [new UdpHostNotification(leader.Slot)], token).ConfigureAwait(false));
-                }
-                current = CurrentRun(captured);
-                if (current is not null && ExactMembers(current).Count == current.Members.Length
-                    && current.Room.Phase == TowerRoomPhase.Ready
-                    && current.Members.SingleOrDefault(member => member.IsLeader) is { } readyLeader)
-                {
-                    var start = await commands.SendAsync(new StartBossTowerCommand(Context(current, readyLeader.Session)) { Sessions = Members(current) }, token).ConfigureAwait(false);
-                    if (start.Run is { Room.Phase: TowerRoomPhase.Fighting } fighting)
-                        failures.AddRange(await SendToExactAsync(fighting, _ => [new LoadingCompleteNotification()], token).ConfigureAwait(false));
-                }
-                if (exact.Count > 0 && action.SettlementCreated && captured.Completion is { Settled: true })
-                    failures.AddRange(await ProjectActionAsync(action, null, token).ConfigureAwait(false));
-                if (returning is not null
-                    && sessions.IsInWorld(returning)
-                    && !towers.IsInTower(returning.CharacterId))
-                    await ReturnMembersIsolatedAsync([returning], response, failures, token, false).ConfigureAwait(false);
-            }
+            failures.AddRange(await SendToExactAsync(
+                current, _ => [new UdpHostNotification(leader.Slot)], token).ConfigureAwait(false));
         }
+        current = CurrentRun(captured);
+        if (current is not null && ExactMembers(current).Count == current.Members.Length
+            && current.Room.Phase == TowerRoomPhase.Ready
+            && current.Members.SingleOrDefault(member => member.IsLeader) is { } readyLeader)
+        {
+            var start = await commands.SendAsync(new StartBossTowerCommand(Context(current, readyLeader.Session)) { Sessions = Members(current) }, token).ConfigureAwait(false);
+            if (start.Run is { Room.Phase: TowerRoomPhase.Fighting } fighting)
+                failures.AddRange(await SendToExactAsync(fighting, _ => [new LoadingCompleteNotification()], token).ConfigureAwait(false));
+        }
+        if (exact.Count > 0 && action.SettlementCreated && captured.Completion is { Settled: true })
+            failures.AddRange(await ProjectActionAsync(action, null, token).ConfigureAwait(false));
+        if (returning is not null
+            && sessions.IsInWorld(returning)
+            && !towers.IsInTower(returning.CharacterId))
+            await ReturnMembersIsolatedAsync([returning], response, failures, token, false).ConfigureAwait(false);
         await CloseProjectionFailuresAsync(failures, captured.RunId).ConfigureAwait(false);
     }
 
@@ -557,19 +474,11 @@ public sealed class BossTowerProjectionDelivery(
         if (captured.Members.IsEmpty)
             return;
         var failures = new List<(SelectedSessionIdentity, Exception)>();
-        await using (await projectionGate.AcquireAsync(
-            captured.RunId, UserAccessMode.Exclusive, token).ConfigureAwait(false))
-        await using (var accountLeases = new LeaseSet())
+        var current = CurrentRun(captured);
+        if (current?.Members.SingleOrDefault(member => member.IsLeader) is { } leader)
         {
-            foreach (var account in (
-            captured.Members.Select(member => member.Session)).Select(value => value.AccountId).Distinct().OrderBy(value => value.Value))
-                accountLeases.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, token).ConfigureAwait(false));
-            var current = CurrentRun(captured);
-            if (current?.Members.SingleOrDefault(member => member.IsLeader) is { } leader)
-            {
-                failures.AddRange(await SendToExactAsync(
-                    current, _ => [new UdpHostNotification(leader.Slot)], token).ConfigureAwait(false));
-            }
+            failures.AddRange(await SendToExactAsync(
+                current, _ => [new UdpHostNotification(leader.Slot)], token).ConfigureAwait(false));
         }
         await CloseProjectionFailuresAsync(failures, captured.RunId).ConfigureAwait(false);
     }
@@ -580,20 +489,9 @@ public sealed class BossTowerProjectionDelivery(
         if (expected is null || expected.RunId != context.RunId || expected.Room.Version != context.RoomVersion
             || expected.Completion is not { Settled: true, Receipt: not null }) return;
         var failures = new List<(SelectedSessionIdentity, Exception)>();
-        await using (await projectionGate.AcquireAsync(
-            expected.RunId, UserAccessMode.Exclusive, token).ConfigureAwait(false))
-        await using (var accountLeases = new LeaseSet())
-        {
-            foreach (var account in (
-            expected.Members.Select(member => member.Session)).Select(value => value.AccountId).Distinct().OrderBy(value => value.Value))
-                accountLeases.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, token).ConfigureAwait(false));
-            var current = towers.Find(context.Session);
-            if (current is null || current.RunId != context.RunId || current.Room.Version != context.RoomVersion
-                || current.Completion is not { Settled: true, Receipt: not null }) return;
-            failures.AddRange(await ProjectActionAsync(
-                new BossTowerActionResult(false, current) { SettlementCreated = true }, null, token)
-                .ConfigureAwait(false));
-        }
+        failures.AddRange(await ProjectActionAsync(
+            new BossTowerActionResult(false, expected) { SettlementCreated = true }, null, token)
+            .ConfigureAwait(false));
         await CloseProjectionFailuresAsync(failures, expected.RunId).ConfigureAwait(false);
     }
 
@@ -608,21 +506,13 @@ public sealed class BossTowerProjectionDelivery(
         var expected = towers.Find(context.Session);
         if (expected is null || expected.RunId != context.RunId || expected.Room.Version != context.RoomVersion
             || !IsDue(expected, now)) return failures;
-        await using var projection = await projectionGate.AcquireAsync(
-            expected.RunId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
         var frozen = ExactMembers(expected);
         if (frozen.Count == 0) return failures;
-        await using var transition = new LeaseSet();
-        foreach (var account in frozen.Select(member => member.AccountId).Distinct().OrderBy(value => value.Value))
-            transition.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, token).ConfigureAwait(false));
-        var current = towers.Find(context.Session);
-        if (current is null || current.RunId != expected.RunId || current.Room.Version != expected.Room.Version
-            || !IsDue(current, now)) return failures;
         // Remove dead members first: a loading timeout must not momentarily leave an all-dead
         // cohort and accidentally create a defeat settlement while abandoning the entire run.
-        foreach (var member in frozen.OrderBy(member => current.Members.Single(value => value.Session == member).Dead ? 0 : 1))
+        foreach (var member in frozen.OrderBy(member => expected.Members.Single(value => value.Session == member).Dead ? 0 : 1))
             _ = await commands.SendAsync(
-                new LeaveBossTowerCommand(Context(current, member), Disconnected: false) { Sessions = Members(current) }, token).ConfigureAwait(false);
+                new LeaveBossTowerCommand(Context(expected, member), Disconnected: false) { Sessions = Members(expected) }, token).ConfigureAwait(false);
         await ReturnMembersIsolatedAsync(frozen, null, failures, CancellationToken.None, false).ConfigureAwait(false);
         return failures;
     }
@@ -677,7 +567,7 @@ public sealed class BossTowerProjectionDelivery(
         catch (Exception) when (!token.IsCancellationRequested)
         {
             // The first attempt may have sent part of the batch. Only replay these committed
-            // projections, under the caller's run/account gates; never execute the reward again.
+            // projections; never execute the reward again.
             if (!Exact(member, run)
                 || !Equals(towers.Find(member)?.Completion?.Receipt, run.Completion?.Receipt))
                 throw;
@@ -926,17 +816,6 @@ public sealed class BossTowerProjectionDelivery(
                 "Boss tower post-commit projection failed for exact session {ConnectionId} in run {RunId}",
                 session.ConnectionId, runId);
             await CloseQuietlyAsync(session).ConfigureAwait(false);
-        }
-    }
-
-    private sealed class LeaseSet : IAsyncDisposable
-    {
-        private readonly List<IAsyncDisposable> leases = [];
-        public void Add(IAsyncDisposable lease) => leases.Add(lease);
-        public async ValueTask DisposeAsync()
-        {
-            for (var index = leases.Count - 1; index >= 0; index--)
-                await leases[index].DisposeAsync().ConfigureAwait(false);
         }
     }
 }

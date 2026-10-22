@@ -90,7 +90,7 @@ public sealed class TownAreaProjectionDeliveryTests
                 new NoopPartyProjection(), sender, SharedTownMovementDomainService.Instance);
             var room = new MarriageChurchRoom(7, Guid.NewGuid(), 11, 2, 12, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMinutes(5));
             var handler = new WeddingChurchEnterHandler(sessions, new ChurchCommands(room), sender,
-                new SelectedSessionTransitionGate(), positions, areas, views, projection, NullLogger<WeddingChurchEnterHandler>.Instance);
+                positions, areas, views, projection, NullLogger<WeddingChurchEnterHandler>.Instance);
             foreach (var session in new[] { first, second })
                 await handler.HandleAsync(new NetworkDispatchContext(new(session.ConnectionId, NetworkEndpointKind.Game, 10011)),
                     new WeddingChurchEnterRequest(GameMessageMetadata.Empty, (uint)(session == first ? 2 : 1), room.AreaId, 0), default);

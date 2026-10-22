@@ -5,7 +5,6 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -140,7 +139,7 @@ public sealed class CreatureProjectionDelivery(ISelectedSessionDomainService ses
 
 /// <summary>One timer; only creatures reaching a whole-value boundary access their durable store.</summary>
 public sealed class CreatureClockService(ICreatureRuntimeDomainService creatures, ICommandBus commands,
-    ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
+    ISelectedSessionDomainService sessions,
     CreatureProjectionDelivery delivery, TimeProvider clock, INetworkConnectionCloser connections,
     ILogger<CreatureClockService> logger, IGameplayQueue queue) : BackgroundService
 {
@@ -164,8 +163,6 @@ public sealed class CreatureClockService(ICreatureRuntimeDomainService creatures
         foreach (var session in creatures.DueSessions())
             try
             {
-                await using var lease = await transitions.AcquireAsync(session.AccountId,
-                    UserAccessMode.Exclusive, stoppingToken).ConfigureAwait(false);
                 if (!sessions.IsInWorld(session)) continue;
                 await commands.SendAsync(new AdvanceCreatureClockCommand(session), stoppingToken)
                     .ConfigureAwait(false);
@@ -178,8 +175,6 @@ public sealed class CreatureClockService(ICreatureRuntimeDomainService creatures
         foreach (var projection in creatures.DrainProjections())
             try
             {
-                await using var lease = await transitions.AcquireAsync(projection.Session.AccountId,
-                    UserAccessMode.Exclusive, stoppingToken).ConfigureAwait(false);
                 await delivery.SendAsync(projection.Session, projection.Changes, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }

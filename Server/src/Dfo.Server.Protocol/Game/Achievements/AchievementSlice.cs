@@ -60,13 +60,12 @@ public sealed class ReconcileAchievementCommandHandler(IAchievementDomainService
         new(await achievements.ReconcileAsync(command.Session.CharacterId, command.AchievementId, ct).ConfigureAwait(false));
 }
 internal sealed class AchievementTriggerHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    ICommandBus commands, IGameMessageSender sender, AchievementTitleProjectionGate gate, ILogger<AchievementTriggerHandler> logger) : ClientMessageHandler<AchievementTriggerRequest>
+    ICommandBus commands, IGameMessageSender sender, ILogger<AchievementTriggerHandler> logger) : ClientMessageHandler<AchievementTriggerRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, AchievementTriggerRequest message, CancellationToken ct)
     {
         CharacterAchievementProgressState? progress = null;
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        using var held = session is null ? null : await gate.EnterAsync(session.CharacterId, ct).ConfigureAwait(false);
         if (message.Complete && session is not null && users.TryGetByConnection(context.Connection.ConnectionId, out var user) && user is not null)
         {
             try
@@ -81,11 +80,10 @@ internal sealed class AchievementTriggerHandler(ISelectedSessionDomainService se
     }
 }
 internal sealed record AchievementChanged(CharacterId Character) : INotification<AchievementChanged>;
-internal sealed class AchievementEventSubscriber(IEventService events, AchievementTitleProjectionGate gate) : IDomainEventSubscriber<AchievementProgressChanged>
+internal sealed class AchievementEventSubscriber(IEventService events) : IDomainEventSubscriber<AchievementProgressChanged>
 {
     public async ValueTask HandleAsync(DomainEventEnvelope<AchievementProgressChanged> message, CancellationToken ct)
     {
-        using var held = await gate.EnterAsync(message.Payload.CharacterId, ct).ConfigureAwait(false);
         await events.ProjectAsync(new NotificationAudience.TheseCharacters([message.Payload.CharacterId]), new AchievementChanged(message.Payload.CharacterId), ct).ConfigureAwait(false);
     }
 }

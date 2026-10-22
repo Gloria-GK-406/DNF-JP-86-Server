@@ -146,25 +146,4 @@ public sealed class MarriageProposalCodecTests
         var body = WeddingProposalPayload.Cmd(-151, 72, 1);
         Assert.Equal(Convert.FromHexString("0169FFFFFF48000000010000"), body);
     }
-    [Fact]
-    public async Task Two_party_delivery_is_ordered_through_peer_notification_and_command_can_borrow_fences()
-    {
-        var gate = new SelectedSessionTransitionGate();
-        var a = SelectedSessionIdentity.Create(new(1), new(71), new("first"), 1, 10011);
-        var b = SelectedSessionIdentity.Create(new(2), new(72), new("second"), 1, 10011);
-        var order = new List<string>();
-        // Each party's proposal is one CMD; the second runs after the first has sent both of its frames.
-        var first = TestGameplay.RunAsync(async () => await WeddingProposalExecution.RunAsync(gate, a, b, async () =>
-        {
-            await using var own = await gate.BorrowOrAcquireSharedAsync(a.AccountId, default);
-            await using var peer = await gate.BorrowOrAcquireSharedAsync(b.AccountId, default);
-            order.Add("first-ACK");
-            order.Add("first-NOTI");
-        }, default));
-        await first.WaitAsync(TimeSpan.FromSeconds(3));
-        var second = TestGameplay.RunAsync(async () => await WeddingProposalExecution.RunAsync(gate, b, a, () =>
-        { order.Add("second-ACK+NOTI"); return ValueTask.CompletedTask; }, default));
-        await Task.WhenAll(first, second).WaitAsync(TimeSpan.FromSeconds(3));
-        Assert.Equal(["first-ACK", "first-NOTI", "second-ACK+NOTI"], order);
-    }
 }

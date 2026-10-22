@@ -7,7 +7,6 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -77,7 +76,7 @@ public sealed class VendingMachineCommandHandler(IVendingMachineDomainService ve
             OpeningWireSlots.FromMain(command.Slot), token);
 }
 public sealed class VendingMachineHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    SelectedSessionTransitionGate transitions, ICommandBus commands, IEventService notifications, IGameMessageSender sender,
+    ICommandBus commands, IEventService notifications, IGameMessageSender sender,
     ILogger<VendingMachineHandler> logger) : ClientMessageHandler<VendingMachineRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, VendingMachineRequest message, CancellationToken token)
@@ -85,7 +84,6 @@ public sealed class VendingMachineHandler(ISelectedSessionDomainService sessions
         var connection = context.Connection.ConnectionId;
         var session = sessions.FindByConnection(connection);
         if (session is null) return;
-        await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
         if (!sessions.IsInWorld(session) || !users.TryGetByConnection(connection, out var user) || user is null) return;
         VendingMachineResult? result = null;
         byte error = 0;

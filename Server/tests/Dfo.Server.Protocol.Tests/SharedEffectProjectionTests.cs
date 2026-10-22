@@ -32,7 +32,7 @@ public sealed class SharedEffectProjectionTests
             var sender = new Sender(); var commands = new Commands(success);
             var request = new SharedEffectRequest(GameMessageMetadata.Empty, 10002625, 65);
             Assert.Equal(ReplayProjectionNeeds.Inventory, ((IEffectSettlementRequest)request).MinimumReplayNeeds);
-            await new SharedEffectHandler(sessions, new InventorySlotMappingRuleService(), areas, commands, sender, new SelectedSessionTransitionGate())
+            await new SharedEffectHandler(sessions, new InventorySlotMappingRuleService(), areas, commands, sender)
                 .HandleAsync(new NetworkDispatchContext(new(actor.ConnectionId, NetworkEndpointKind.Game, 10011)), request, default);
             var delivery = Assert.Single(sender.Items); Assert.Equal(success, Assert.IsType<SharedEffectAck>(delivery.RequiredDirectMessages[0]).Success);
             Assert.Equal(1, commands.Count);

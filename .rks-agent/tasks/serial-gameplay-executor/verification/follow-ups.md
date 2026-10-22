@@ -6,6 +6,7 @@
 - 状态：未关闭／已在 TASK-16 关闭／信息（只记录，不需要动作）。
 - TASK-19（2026-10-23，基准 `0c9c59c8`）逐条确认了 T-004 范围内各项的去向，确认表在 `t004-closure.md` §6；新增 F-63～F-76，并改正了 F-02、F-15、F-56、F-58、F-62 的来源与 F-36、F-61、F-62 的归属；F-61、F-62 的状态由「信息」改为「未关闭」（归属写了动作）。
 - TASK-20（2026-10-23，基准 `5f7dba11`，测量闸 M-1，记录 `measurement/m1-summary.md`）更新了 F-02～F-10（`t004-closure.md` §7 交 M-1 的 9 项）的状态与去向，新增 F-77～F-83：F-83 是收尾断线时的失败作业，主控方裁定为预期、不计入 S5，归 T-006；F-77～F-81 是未达目标值的项，归「后续性能优化（交主控方立项）」；F-82 是合成负载覆盖不到的项合并成的一个覆盖缺口。
+- TASK-21（2026-10-23，基准 `b1959f3e`，T-005a：Protocol 层删锁）更新了 F-19（Weakness `deliveryGate` 一项关闭），新增 F-84～F-91：F-90 记 VC-7 已落实；其余分别交 T-006、T-008、T-009 与 TASK-22。
 
 ## 1. 清单
 
@@ -32,7 +33,7 @@
 | F-16 | RQ-061 启动期例外的取舍（TASK-16 结论：判据只挂工作单元入口等时可以不设） | TASK-14 Remaining 6 | T-004c | **已在 TASK-18 关闭**：不设启动期例外。判据只挂工作单元入口与附录 F 的写入口，仍在执行器外的建表与迁移不经这两类入口；诊断与正式全量中没有测试帧的记录为 0。附录 B 那一行末句已改写；Plan T-009 行的括注见 F-60 |
 | F-17 | 事件组门与调度任务并发槽在执行器外持有并等待作业：门断言要排除它们，或先删除 | TASK-16 §7 第 1 项（`t004c-entry.md`）；附录 F | T-004c 与 T-005 定顺序 | **门断言一半已在 TASK-17 关闭**（主控方裁定第 2 条）：不挂门断言，改为反向断言；并发槽在 `slots.WaitAsync` 前补 `AssertNotOnExecutor`（反例 `GameplayGateAssertionTests.Taking_a_scheduled_task_slot_on_the_executor_is_a_self_wait`），组门沿用既有反例 `DomainEventDispatchTests.Draining_from_inside_a_job_fails_at_once_as_a_program_error`。删除仍归 T-005（F-19） |
 | F-18 | `UserServiceTests` 中不在冲突清单里的方法也直接调用观察者（x1 中 3.3 为 42／54，计划预期为 0） | TASK-16 新发现（`entry-reconciliation.md` §1.4） | T-004c（处置冲突时一并判定） | **已在 TASK-17 关闭**：9 个方法的观察者调用包进作业、断言不变，无新判定冲突；同形的 `SelectCharacterLifecycleTests.RejectedRepeatedLogin…` 一并处理（§14.4） |
-| F-19 | 调度任务的 `Task.Run` 外壳与并发槽；组门与准入门；Weakness `deliveryGate`；Joust `ticks` | TASK-11 Remaining 1 与对账行、附录 F | T-005 | 未关闭 |
+| F-19 | 调度任务的 `Task.Run` 外壳与并发槽；组门与准入门；Weakness `deliveryGate`；Joust `ticks` | TASK-11 Remaining 1 与对账行、附录 F | T-005（TASK-22：其余各项） | 未关闭。**Weakness `deliveryGate` 一项已在 TASK-21 关闭**（`WeaknessProjectionDelivery` 不再持信号量，判据 `LockRemovalSourceTests` 的信号量名单不含该文件）；调度 `Task.Run` 与并发槽、组门与准入门、Joust `ticks` 仍归 TASK-22 |
 | F-20 | VC-8 提前范围（入站、生命周期、定时、事件、GM）在发件箱之后消失；W7 改回严格形式（帧先于 FIN） | TASK-10 Remaining 2、3；TASK-11 Remaining 3；TASK-12 Remaining 3；TASK-14 Remaining 5 | T-006 | 未关闭 |
 | F-21 | 停机时排空兜底拆除与 `TryRemove` 仲裁要保留；停服之外是否也会丢关闭回调未测 | TASK-10 Remaining 4 | T-006 | 未关闭 |
 | F-22 | `AddNotificationDispatching` 不自带执行器；删除重试排空服务（连同 TASK-11 加的那几行） | TASK-11 Remaining 7、对账行 | T-006 | 未关闭 |
@@ -94,6 +95,14 @@
 | F-81 | 单条玩法 CMD 目标 p99.9 ≤ 100 ms、max ≤ 250 ms：`inbound:GameSelectCharacter` 在构成 A 中 p99 130.7～132.8 ms、p99.9（n < 1000，即 max）229.5～236.1 ms，未达 p99.9 目标（max 目标达到）；一次选角内四条每日补给命令（`ApplySelectedCharacterDailyRefillCommand`、`RefillOnline{Southern,BossTower,Tau}TicketCommand`）p50 合计约 58 ms，是选角作业的主要部分（D 类每日补给规则的读取与各自的事务，推断）。其余作业 max ≤ 101.7 ms | TASK-20 `measurement/m1-summary.md` §5；F-03、F-04 的剩余部分 | 后续性能优化（交主控方立项） | 未关闭 |
 | F-82 | 合成负载覆盖不到的项（覆盖缺口）：F-07 日切时遍历全部在线会话的长作业（运行没有跨过日切）；F-09 GM 查询与玩法串行（负载关闭 GmWeb）；F-10 中没有出现的称号簿等慢订阅；F-05 中负载走不到的 CMD（装备强化、NPC 商店、邮件等）的 C 类首次加载与 D 类读档。要覆盖它们需要扩展负载工具（开 GmWeb 并发 GM 查询、跨日切、加这些 CMD） | TASK-20 主控方裁定第 5 条；`measurement/m1-summary.md` §8 | 后续性能优化（交主控方立项）；不阻断 T-005 与 M-2 | 未关闭 |
 | F-83 | 2 s 口径爬坡（ramp-A-2s）收尾时，过载档留下的排队作业向工具刚关闭的连接回包，抛出 `Writing is not allowed after writer was completed`。结果是 8 个执行器作业失败（6 个 `inbound:GameConnectionCheck`、2 个 `inbound:GameSetUserPosition`），另有网络插件 8 行 `Game handler failed`、通知总线 81 行警告，全在 18 ms 内。其余 11 次运行收尾时队列为空，这类失败为 0。主控方裁定：这是断线竞态的预期失败，与基线同类（对已关闭会话的写入，基线与今天都由 `session.SendAsync` 抛出），不计入 S5。T-006 要用一条用例钉住：发件箱的交付对象是已关闭的连接时静默丢弃，作业不因此失败；**评审补记（TASK-20 L2、L3）**：「与基线同类」是读代码的推断而非基线观测（依据：发送器自 `a02bce46` 只多期限包装、异常原样上抛；TouchSocket 4.3.1 未变；连接关闭不等接收回调结束）；失败限于单个作业、无黏滞程序错误、不涉及事务。`judge.py` 的「预期，不计」规则没有时间窗，M-2 复用时去掉该豁免或限定在工具关闭连接之后的窗口内 | TASK-20 `measurement/m1-summary.md` §1；`tasks/TASK-20.md`「主控方裁定（补测回报后）」 | T-006（用例钉住静默丢弃） | 未关闭 |
+| F-84 | `GameplayGateAssertion` 随队伍两把投递门在 T-006 删除时，取证源 `DiagnosticSourceName`／`Report` 由 RQ-061 写断言与泄漏流断言共用，要挪到别处；各程序集的正向对照 `GameplayAssertionRecorderControlTests` 今天报 `gate-off-executor`，要改用写断言 | TASK-21 主控方裁定第 2 条 | T-006 | 未关闭 |
+| F-85 | `PasswordComputationLimiter` 的信号量（RQ-007 要求的口令哈希并发上限，在执行器外）不在附录 F「保留」栏；判据 `LockRemovalSourceTests` 已把它列入信号量名单并写明理由，附录 F 要补这一项 | TASK-21 主控方裁定第 9 条；Detailed Plan §5 | T-009（补附录 F「保留」栏） | 未关闭 |
+| F-86 | `DungeonCardPresentationCoordinator.cs:243` 的「预留冲突重试 3 次」不是锁内复查，TASK-21 未动；串行之后这一冲突是否还会发生、重试是否还需要，未判定 | TASK-21 主控方裁定第 9 条；Detailed Plan §2.7 | T-008 | 未关闭 |
+| F-87 | 用例名里仍提到门、租约或「门释放之后」的用例，以及 TASK-21 之后门行为已无对象的空转用例，见 `logs/task-21-vacuous.txt` 与 `t005-test-dispositions.md`「交 TASK-22」小节；用例名本单元不改 | TASK-21 Detailed Plan §6.3、§6.4 | TASK-22（空转用例）；改名随 T-008 按簇决定 | 未关闭 |
+| F-88 | R5 保留下来的当前性检查，抽查两处都没有用例守着：`RecoverStaminaHandler` 的 `IsInWorld`（变异 S8a）与 `TeleportHandler` 的 `session.Owns(previous)`（变异 S8b），删掉后相关用例全部照常通过。其余 R5 检查没有逐一变异，是否有用例守着未判定 | TASK-21 Required check 10（`logs/task-21-mutations.txt`） | T-008 | 未关闭 |
+| F-89 | AGENTS.md「SelectCharacter：接受与状态同步工作流」与「命令执行总线」两节仍写 `SelectCharacterHandler` 手工获取并释放 `SelectedSessionTransitionGate`、「关连接在 lease 释放后执行」；TASK-21 之后 handler 不再取门（关连接仍排在工作流与补偿之后） | TASK-21 Detailed Plan §10 | T-009（RQ-100） | 未关闭 |
+| F-90 | VC-7：放弃副本、离队、换队长、踢出队员在重试用尽时不回包、只记日志或回拒绝包的分支 | 附录 G VC-7（TASK-21 主控方裁定第 4 条补「踢出队员」）；TASK-21 §7 | TASK-21 | **已在 TASK-21 落实**：七个循环删除（`logs/task-21-loops.txt`），`reroute`、`RetryLimit` 在 Protocol 中为 0（`logs/task-21-sites.txt`「after」）；四个请求在两塔协调器答「不归我管」时各走一次普通路径并回包（`BossTowerProjectionConcurrencyTests` 中以 `_outside_a_tower_runs_the_ordinary_path_once_` 命名的四条），变异 S6、S7 下变红（`logs/task-21-mutations.txt`）；证据汇总在 `t005-test-dispositions.md` VC-7 小节 |
+| F-91 | TASK-22 删除 `Dfo.Server.Application.OnlineUsers` 里的门类型后，该命名空间为空：`Protocol/Game/Altar/AltarProjection.cs` 仍有 `using Dfo.Server.Application.OnlineUsers;`（不使用门，TASK-21 未改该文件），届时编译失败；另有两处注释描述管线的账号租约（`MonsterDeath/ApplyObjectDestructionCommand.cs:47`、`RecoverStamina/RecoverStaminaSlice.cs:104`），随管线取锁一起改写 | TASK-21 `logs/task-21-sites.txt` 附录 D | TASK-22 | 未关闭 |
 
 ## 2. 测试基础设施：重型宿主与打包进程用例（TASK-16 §5，信息与建议，不改预算）
 

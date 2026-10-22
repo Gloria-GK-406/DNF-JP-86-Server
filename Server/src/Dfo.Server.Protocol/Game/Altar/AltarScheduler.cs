@@ -1,7 +1,6 @@
 using System.Threading.Channels;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Execution;
@@ -27,7 +26,7 @@ public sealed class AltarWakeSignal(TimeProvider clock)
     }
 }
 public sealed class AltarScheduler(IAltarDungeonDomainService altars, IDungeonRunDomainService runs,
-    DungeonProjectionGate projections, SelectedSessionTransitionGate transitions, ICommandBus commands,
+    ICommandBus commands,
     AltarProjectionDelivery delivery, AltarWakeSignal wake, TimeProvider clock, ILogger<AltarScheduler> logger,
     IGameplayQueue queue) : BackgroundService
 {
@@ -62,21 +61,13 @@ public sealed class AltarScheduler(IAltarDungeonDomainService altars, IDungeonRu
     }
     internal async ValueTask AdvanceAsync(AltarDeadline due, CancellationToken ct)
     {
-        await using var projection = await projections.AcquireAsync(due.RunId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
         var cohort = delivery.Participants(due.RunId);
         if (cohort.Count == 0) return;
-        var leases = new List<IAsyncDisposable>();
-        try
-        {
-            foreach (var account in cohort.Select(x => x.AccountId).Distinct().OrderBy(x => x.Value))
-                leases.Add(await transitions.AcquireAsync(account, UserAccessMode.Exclusive, ct).ConfigureAwait(false));
-            var current = altars.Find(due.RunId);
-            if (current?.Generation != due.Generation || current.RoomVersion != due.RoomVersion
-                || runs.Find(due.RunId)?.RoomVersion != due.RoomVersion) return;
-            var result = await commands.SendAsync(new AltarActionCommand(cohort[0], cohort, due.RunId, due.RoomVersion,
-                due.Generation, clock.GetUtcNow(), AltarOperation.Advance), ct).ConfigureAwait(false);
-            await delivery.ProjectAsync(result.Action, ct).ConfigureAwait(false);
-        }
-        finally { for (var i = leases.Count - 1; i >= 0; i--) await leases[i].DisposeAsync().ConfigureAwait(false); }
+        var current = altars.Find(due.RunId);
+        if (current?.Generation != due.Generation || current.RoomVersion != due.RoomVersion
+            || runs.Find(due.RunId)?.RoomVersion != due.RoomVersion) return;
+        var result = await commands.SendAsync(new AltarActionCommand(cohort[0], cohort, due.RunId, due.RoomVersion,
+            due.Generation, clock.GetUtcNow(), AltarOperation.Advance), ct).ConfigureAwait(false);
+        await delivery.ProjectAsync(result.Action, ct).ConfigureAwait(false);
     }
 }

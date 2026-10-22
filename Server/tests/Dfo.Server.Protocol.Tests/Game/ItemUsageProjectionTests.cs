@@ -56,7 +56,7 @@ public sealed class ItemUsageProjectionTests
         var sessions = new Sessions(); var clock = new Clock(); var bus = new Bus(); var sender = new Sender();
         var delivery = new ItemUsageProjectionDelivery(bus, sessions, sender);
         await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
-        using var worker = new ItemUsageDailyRefreshService(sessions, sessions, new SelectedSessionTransitionGate(),
+        using var worker = new ItemUsageDailyRefreshService(sessions, sessions,
             new Days(), clock, delivery, NullLogger<ItemUsageDailyRefreshService>.Instance, new GameplayQueue(new GameplayShardSelector(executor)));
         await worker.RefreshAsync(default); Assert.Equal(2, sender.Bodies.Count);
         await worker.RefreshAsync(default); Assert.Equal(2, sender.Bodies.Count);

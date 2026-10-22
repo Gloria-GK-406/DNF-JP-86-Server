@@ -4,7 +4,6 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -61,8 +60,8 @@ public sealed class UseRevivalCoinCommandHandler(IDungeonRevivalDomainService re
 
 public sealed class UseRevivalCoinHandler(ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers, IDungeonRunDomainService runs,
-    DungeonRunDeliveryRegistry registry, DungeonProjectionGate projectionGate,
-    SelectedSessionTransitionGate transitionGate, ICommandBus commands, IGameMessageSender sender,
+    DungeonRunDeliveryRegistry registry,
+    ICommandBus commands, IGameMessageSender sender,
     RevivalOptions options, TimeProvider clock, ILogger<UseRevivalCoinHandler> logger,
     Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null)
     : ClientMessageHandler<UseRevivalCoinRequest>
@@ -78,47 +77,35 @@ public sealed class UseRevivalCoinHandler(ISelectedSessionDomainService sessions
             return;
         }
         if (runs.Find(payer.CharacterId) is not { } expected) return;
-        await using var projection = await projectionGate.AcquireAsync(expected.RunId,
-            UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
         var frozen = registry.Find(expected.RunId);
-        var leases = new List<IAsyncDisposable>();
-        try
+        if (!frozen.Contains(payer) || !sessions.IsInWorld(payer)) return;
+        var target = frozen.SingleOrDefault(x => x.WireUserId == message.TargetActorId);
+        if (target is null || !sessions.IsInWorld(target)
+            || runs.Find(target.CharacterId)?.RunId != expected.RunId
+            || !onlineUsers.TryGetByConnection(payer.ConnectionId, out var online) || online is null)
         {
-            foreach (var account in frozen.Select(x => x.AccountId).Distinct().OrderBy(x => x.Value))
-                leases.Add(await transitionGate.AcquireAsync(account, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
-            if (!frozen.Contains(payer) || !sessions.IsInWorld(payer)) return;
-            var target = frozen.SingleOrDefault(x => x.WireUserId == message.TargetActorId);
-            if (target is null || !sessions.IsInWorld(target)
-                || runs.Find(target.CharacterId)?.RunId != expected.RunId
-                || !onlineUsers.TryGetByConnection(payer.ConnectionId, out var online) || online is null)
-            {
-                await RefuseAsync(payer, message, cancellationToken).ConfigureAwait(false);
-                return;
-            }
-            var result = await commands.SendAsync(new UseRevivalCoinCommand(online.OnlineUserId,
-                payer, target.CharacterId, expected.RunId), cancellationToken).ConfigureAwait(false);
-            if (!result.Succeeded)
-            {
-                await RefuseAsync(payer, message, cancellationToken).ConfigureAwait(false);
-                return;
-            }
-            var noti = new CharacterLifeStateNotification(target.WireUserId, State: 1);
-            var secondary = frozen.Where(x => x != payer
-                    && sessions.IsInWorld(x)
-                    && runs.Find(x.CharacterId)?.RunId == expected.RunId)
-                .Select(x => new GameExplicitMessageTarget(x.ConnectionId, [noti])).ToArray();
-            // The payer receives life state before ACK; only its coin counter is updated.
-            await sender.SendExplicitAsync(payer.ConnectionId, new GameExplicitMessageDelivery(
-                [noti, new UseRevivalCoinResponse(true, target.WireUserId, options.AckFlag),
-                 new InventoryDeltaMessage(InventoryContainerType.Main,
-                    [new InventoryItemState(null, 1, result.RemainingCoin!)], clock.GetUtcNow())], secondary), cancellationToken).ConfigureAwait(false);
-            logger.LogInformation("Revival payer={Payer} target={Target} run={RunId} coins={Coins} ackFlag={Flag}",
-                payer.CharacterId, target.CharacterId, expected.RunId, result.RemainingCoin!.Value, options.AckFlag);
+            await RefuseAsync(payer, message, cancellationToken).ConfigureAwait(false);
+            return;
         }
-        finally
+        var result = await commands.SendAsync(new UseRevivalCoinCommand(online.OnlineUserId,
+            payer, target.CharacterId, expected.RunId), cancellationToken).ConfigureAwait(false);
+        if (!result.Succeeded)
         {
-            for (var i = leases.Count - 1; i >= 0; i--) await leases[i].DisposeAsync().ConfigureAwait(false);
+            await RefuseAsync(payer, message, cancellationToken).ConfigureAwait(false);
+            return;
         }
+        var noti = new CharacterLifeStateNotification(target.WireUserId, State: 1);
+        var secondary = frozen.Where(x => x != payer
+                && sessions.IsInWorld(x)
+                && runs.Find(x.CharacterId)?.RunId == expected.RunId)
+            .Select(x => new GameExplicitMessageTarget(x.ConnectionId, [noti])).ToArray();
+        // The payer receives life state before ACK; only its coin counter is updated.
+        await sender.SendExplicitAsync(payer.ConnectionId, new GameExplicitMessageDelivery(
+            [noti, new UseRevivalCoinResponse(true, target.WireUserId, options.AckFlag),
+             new InventoryDeltaMessage(InventoryContainerType.Main,
+                [new InventoryItemState(null, 1, result.RemainingCoin!)], clock.GetUtcNow())], secondary), cancellationToken).ConfigureAwait(false);
+        logger.LogInformation("Revival payer={Payer} target={Target} run={RunId} coins={Coins} ackFlag={Flag}",
+            payer.CharacterId, target.CharacterId, expected.RunId, result.RemainingCoin!.Value, options.AckFlag);
     }
     private ValueTask RefuseAsync(SelectedSessionIdentity payer, UseRevivalCoinRequest message, CancellationToken ct)
     {

@@ -3,7 +3,6 @@ using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.Networking;
@@ -70,15 +69,12 @@ public sealed class WeddingCommentCommandHandler(IMarriageVenueDomainService ven
         _ => new(-1, [])
     };
 }
-internal sealed class WeddingCommentHandler(ISelectedSessionDomainService sessions, ICommandBus commands, IGameMessageSender sender, SelectedSessionTransitionGate gate) : ClientMessageHandler<WeddingCommentRequest>
+internal sealed class WeddingCommentHandler(ISelectedSessionDomainService sessions, ICommandBus commands, IGameMessageSender sender) : ClientMessageHandler<WeddingCommentRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c, WeddingCommentRequest m, CancellationToken ct)
     {
         var actor = sessions.FindByConnection(c.Connection.ConnectionId);
-        await WeddingProposalExecution.RunAsync(gate, actor, actor, async () =>
-        {
-            var result = actor is null ? new MarriageGuestbookResult(-1, []) : await commands.SendAsync(new WeddingCommentCommand(actor, m.Type, m.Key, m.Id, m.Text), ct).ConfigureAwait(false);
-            await sender.SendExplicitAsync(c.Connection.ConnectionId, new([new WeddingCommentAck(m.Type, m.Key, m.Id, result)], []), ct).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
+        var result = actor is null ? new MarriageGuestbookResult(-1, []) : await commands.SendAsync(new WeddingCommentCommand(actor, m.Type, m.Key, m.Id, m.Text), ct).ConfigureAwait(false);
+        await sender.SendExplicitAsync(c.Connection.ConnectionId, new([new WeddingCommentAck(m.Type, m.Key, m.Id, result)], []), ct).ConfigureAwait(false);
     }
 }

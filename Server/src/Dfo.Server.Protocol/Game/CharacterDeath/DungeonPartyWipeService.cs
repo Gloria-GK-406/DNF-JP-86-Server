@@ -2,7 +2,6 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Protocol.Game.CardReward;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.TownProjection;
@@ -39,8 +38,6 @@ public sealed class DungeonPartyWipeService(
     ISelectedCharacterCurrentViewDomainService currentViews,
     IOnlineCharacterRuntimeDomainService onlineCharacters,
     DungeonRunDeliveryRegistry registry,
-    DungeonProjectionGate projectionGate,
-    SelectedSessionTransitionGate transitionGate,
     DungeonCardPresentationCoordinator cards,
     TownAreaProjectionDelivery towns,
     ICommandBus commands,
@@ -83,68 +80,54 @@ public sealed class DungeonPartyWipeService(
 
     internal async ValueTask ReturnAsync(DungeonRunId runId, CancellationToken cancellationToken, bool cleared = false)
     {
-        await using var projection = await projectionGate.AcquireAsync(
-            runId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
         var frozen = registry.Find(runId);
-        var leases = new List<IAsyncDisposable>();
-        try
+        if (!cleared && runs.Find(runId)?.Layout.Altar is not null)
         {
-            // The same ordering as entry: instance, then accounts in stable order.
-            foreach (var account in frozen.Select(x => x.AccountId).Distinct().OrderBy(x => x.Value))
-                leases.Add(await transitionGate.AcquireAsync(account, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
-            if (!cleared && runs.Find(runId)?.Layout.Altar is not null)
-            {
-                await (altars ?? throw new InvalidOperationException("Altar projection is unavailable."))
-                    .FailAsync(runId, cancellationToken).ConfigureAwait(false);
-                return;
-            }
-            if (!cleared && runs.Find(runId)?.Layout.Tournament is not null)
-            {
-                await (tournaments ?? throw new InvalidOperationException("Tournament projection is unavailable."))
-                    .EliminateAsync(runId, cancellationToken).ConfigureAwait(false);
-                return;
-            }
-            var entries = new List<TownAreaEntry>();
-            foreach (var session in frozen)
-            {
-                if (!sessions.IsInWorld(session)
-                    || runs.Find(session.CharacterId)?.RunId != runId)
-                    continue;
-                var view = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
-                var position = onlineCharacters.PositionOf(session);
-                if (view is null || position is null)
-                    throw new InvalidOperationException($"Cannot prepare party wipe return for {session.CharacterId}.");
-                entries.Add(new TownAreaEntry(session, view, position));
-            }
-            var result = cleared
-                ? await commands.SendAsync(new EndClearReturnCommand(runId, clock.GetUtcNow()), cancellationToken).ConfigureAwait(false)
-                : await commands.SendAsync(new EndPartyWipeCommand(runId, clock.GetUtcNow()), cancellationToken).ConfigureAwait(false);
-            if (result.Ended is not { } ended) return;
-            foreach (var session in frozen)
-            {
-                cards.Cancel(session.CharacterId, runId);
-                registry.RemoveParticipant(runId, session.CharacterId);
-            }
-            // Keep the party intact. Automatic failure ends the instance, not party membership.
-            // No unsolicited 002A/007B ACK: the existing town projection provides 0003/0017/0018.
-            foreach (var entry in entries.Where(x => ended.Participants.Any(p => p.CharacterId == x.Session.CharacterId)))
-            {
-                try
-                {
-                    await towns.EnterAsync([entry], cancellationToken).ConfigureAwait(false);
-                    logger.LogInformation("Dungeon returned character={CharacterId} run={RunId} reason={Reason}", entry.Session.CharacterId, runId, cleared ? "clear-timeout" : "party-wipe");
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-                catch (Exception exception)
-                {
-                    logger.LogError(exception, "Party wipe town projection failed character={CharacterId} run={RunId}", entry.Session.CharacterId, runId);
-                }
-            }
+            await (altars ?? throw new InvalidOperationException("Altar projection is unavailable."))
+                .FailAsync(runId, cancellationToken).ConfigureAwait(false);
+            return;
         }
-        finally
+        if (!cleared && runs.Find(runId)?.Layout.Tournament is not null)
         {
-            for (var index = leases.Count - 1; index >= 0; index--)
-                await leases[index].DisposeAsync().ConfigureAwait(false);
+            await (tournaments ?? throw new InvalidOperationException("Tournament projection is unavailable."))
+                .EliminateAsync(runId, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+        var entries = new List<TownAreaEntry>();
+        foreach (var session in frozen)
+        {
+            if (!sessions.IsInWorld(session)
+                || runs.Find(session.CharacterId)?.RunId != runId)
+                continue;
+            var view = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+            var position = onlineCharacters.PositionOf(session);
+            if (view is null || position is null)
+                throw new InvalidOperationException($"Cannot prepare party wipe return for {session.CharacterId}.");
+            entries.Add(new TownAreaEntry(session, view, position));
+        }
+        var result = cleared
+            ? await commands.SendAsync(new EndClearReturnCommand(runId, clock.GetUtcNow()), cancellationToken).ConfigureAwait(false)
+            : await commands.SendAsync(new EndPartyWipeCommand(runId, clock.GetUtcNow()), cancellationToken).ConfigureAwait(false);
+        if (result.Ended is not { } ended) return;
+        foreach (var session in frozen)
+        {
+            cards.Cancel(session.CharacterId, runId);
+            registry.RemoveParticipant(runId, session.CharacterId);
+        }
+        // Keep the party intact. Automatic failure ends the instance, not party membership.
+        // No unsolicited 002A/007B ACK: the existing town projection provides 0003/0017/0018.
+        foreach (var entry in entries.Where(x => ended.Participants.Any(p => p.CharacterId == x.Session.CharacterId)))
+        {
+            try
+            {
+                await towns.EnterAsync([entry], cancellationToken).ConfigureAwait(false);
+                logger.LogInformation("Dungeon returned character={CharacterId} run={RunId} reason={Reason}", entry.Session.CharacterId, runId, cleared ? "clear-timeout" : "party-wipe");
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+            catch (Exception exception)
+            {
+                logger.LogError(exception, "Party wipe town projection failed character={CharacterId} run={RunId}", entry.Session.CharacterId, runId);
+            }
         }
     }
 }

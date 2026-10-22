@@ -11,7 +11,6 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Events;
@@ -152,13 +151,12 @@ public sealed class JoustBetCommandHandler(IJoustDomainService joust,TimeProvide
         projection.RecordInventorySlots(q.Session,result.Debits.Select(d=>d.Slot).ToArray());return result;
     }
 }
-public sealed class JoustQueryHandler(ISelectedSessionDomainService sessions,ICommandBus bus,IGameMessageSender sender,SelectedSessionTransitionGate transitions,SelectedSessionSafety safety):ClientMessageHandler<JoustQueryRequest>
+public sealed class JoustQueryHandler(ISelectedSessionDomainService sessions,ICommandBus bus,IGameMessageSender sender,SelectedSessionSafety safety):ClientMessageHandler<JoustQueryRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c,JoustQueryRequest m,CancellationToken ct)
     {
         if(sessions.FindByConnection(c.Connection.ConnectionId) is not {} session){await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(m.Metadata.Type,6),ct);return;}
         var recipient=safety.Capture(session);
-        await using var lease=await transitions.BorrowOrAcquireExclusiveAsync(session.AccountId,ct);
         if(!sessions.IsInWorld(session) || !ReferenceEquals(recipient.Connection,c.Connection))return;
         safety.DemandCurrent(recipient);
         if(m.Metadata.Type==0x04E8){var history=await bus.SendAsync(new QueryJoustHistoryCommand(session),ct);await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E8,0,history),ct);}
@@ -171,7 +169,7 @@ public sealed class JoustQueryHandler(ISelectedSessionDomainService sessions,ICo
     }
 }
 public sealed class JoustBetHandler(ISelectedSessionDomainService sessions,IOnlineUserQueryDomainService users,ICommandBus bus,
-    IEventService notices,IGameMessageSender sender,IReplayStateProjectionDelivery replay,ISelectedSessionSnapshotQuery selected,SelectedSessionTransitionGate transitions,SelectedSessionSafety safety):ClientMessageHandler<JoustBetRequest>
+    IEventService notices,IGameMessageSender sender,IReplayStateProjectionDelivery replay,ISelectedSessionSnapshotQuery selected,SelectedSessionSafety safety):ClientMessageHandler<JoustBetRequest>
 {
     private sealed class PhysicalIdentity { public string Id {get;}=Guid.NewGuid().ToString("N"); }
     private static readonly ConditionalWeakTable<NetworkConnectionContext,PhysicalIdentity> Identities=new();
@@ -181,7 +179,6 @@ public sealed class JoustBetHandler(ISelectedSessionDomainService sessions,IOnli
         {await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E7,6),ct);return;}
         var recipient=safety.Capture(session);
         if(!ReferenceEquals(recipient.Connection,c.Connection))return;
-        await using var lease=await transitions.BorrowOrAcquireExclusiveAsync(session.AccountId,ct);
         if(!sessions.IsInWorld(session))return;
         safety.DemandCurrent(recipient);
         JoustBetResult result;

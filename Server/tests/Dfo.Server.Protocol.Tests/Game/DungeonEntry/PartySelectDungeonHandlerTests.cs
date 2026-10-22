@@ -115,8 +115,7 @@ public sealed class PartySelectDungeonHandlerTests
             var handler = new EplpCommandHandler(
                 sessions, runtime, new PartyPositions(), runs, deliveries, sender,
                 TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
-                NullLogger<EplpCommandHandler>.Instance,
-                new SelectedSessionTransitionGate());
+                NullLogger<EplpCommandHandler>.Instance);
             var request = new EplpCommandRequest(GameMessageMetadata.Empty, 1, 2);
 
             await handler.HandleAsync(Dispatch(Member), request, CancellationToken.None);
@@ -248,8 +247,7 @@ public sealed class PartySelectDungeonHandlerTests
                     sessions, new RuntimeCurrentView(runtime), new Parties(Snapshot()),
                     services.GetRequiredService<IDungeonRunDomainService>(), services.GetRequiredService<DungeonRunDeliveryRegistry>(),
                     intents, visits, new RecordingQuestLogs(), new Fatigue(), sender, new RecordingCloser(),
-                    services.GetRequiredService<TownAreaProjectionDelivery>(), NullLogger<SelectDungeonHandler>.Instance,
-                    services.GetRequiredService<SelectedSessionTransitionGate>());
+                    services.GetRequiredService<TownAreaProjectionDelivery>(), NullLogger<SelectDungeonHandler>.Instance);
                 for (var i = 0; i < 2; i++)
                     await selection.HandleAsync(Dispatch(Leader), new SelectDungeonRequest(GameMessageMetadata.Empty, DungeonId, DungeonDifficulty.Normal, 0, 0), default);
                 Assert.Equal(2, visits.Attempts); // A repeated click still reaches fatigue validation.
@@ -667,7 +665,6 @@ public sealed class PartySelectDungeonHandlerTests
             partyTownProjection ?? new NoopPartyTownProjection(),
             sender,
             SharedTownMovementDomainService.Instance);
-        var transitionGate = new SelectedSessionTransitionGate();
         var state = new UnchangedState(() =>
         {
             if (!replaceMemberDuringPrelude)
@@ -706,10 +703,9 @@ public sealed class PartySelectDungeonHandlerTests
             sender,
             closer,
             townProjection,
-            NullLogger<SelectDungeonHandler>.Instance,
-            transitionGate);
+            NullLogger<SelectDungeonHandler>.Instance);
         return new TestWorld(
-            handler, visits, intents, registry, runs, fatigue, sender, closer, areas, transitionGate);
+            handler, visits, intents, registry, runs, fatigue, sender, closer, areas);
     }
 
     private static SelectCharacterResult Entry() => SelectCharacterPayloadTestData.Create();
@@ -769,8 +765,7 @@ public sealed class PartySelectDungeonHandlerTests
         Fatigue Fatigue,
         Sender Sender,
         RecordingCloser Closer,
-        ITownAreaDomainService Areas,
-        SelectedSessionTransitionGate TransitionGate);
+        ITownAreaDomainService Areas);
 
     private sealed class Parties(PartySnapshot snapshot) : IPartyService
     {

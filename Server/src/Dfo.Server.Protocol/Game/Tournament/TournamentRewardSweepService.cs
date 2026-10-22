@@ -2,7 +2,6 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Execution;
@@ -14,7 +13,6 @@ namespace Dfo.Server.Protocol.Game.Tournament;
 /// <summary>The client leaves the flip UI on a timer without selecting the remaining cards.</summary>
 public sealed class TournamentRewardSweepService(ITournamentDungeonDomainService tournaments,
     ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, ICommandBus commands,
-    DungeonProjectionGate projections, SelectedSessionTransitionGate transitions,
     TournamentProjectionDelivery delivery, IGameMessageSender sender, TimeProvider clock,
     ILogger<TournamentRewardSweepService> logger, IGameplayQueue queue) : BackgroundService
 {
@@ -46,8 +44,6 @@ public sealed class TournamentRewardSweepService(ITournamentDungeonDomainService
     internal async ValueTask SweepAsync(TournamentDungeonState candidate, CancellationToken ct)
     {
         if (!sessions.TryGetInWorld(candidate.CharacterId, out var session)) return;
-        await using var projection = await projections.AcquireAsync(candidate.RunId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
-        await using var transition = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
         var current = tournaments.Find(candidate.CharacterId);
         if (!sessions.IsInWorld(session) || current?.RunId != candidate.RunId
             || runs.Find(candidate.CharacterId)?.RunId != candidate.RunId

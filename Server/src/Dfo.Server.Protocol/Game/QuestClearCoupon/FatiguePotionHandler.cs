@@ -6,7 +6,6 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.OnlineUsers;
@@ -35,7 +34,7 @@ public sealed class UseFatiguePotionCommandHandler(IFatiguePotionDomainService p
 public sealed class FatiguePotionHandler(ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers, ICommandBus commands, IEventService notifications,
     ICharacterFatigueDomainService fatigue, IGameMessageSender sender, ILogger<FatiguePotionHandler> logger,
-    ItemUsageProjectionDelivery itemUsageProjection, SelectedSessionTransitionGate transitions)
+    ItemUsageProjectionDelivery itemUsageProjection)
 {
     public async ValueTask HandleAsync(NetworkDispatchContext context, QuestClearCouponRequest request, CancellationToken ct)
     {
@@ -46,7 +45,6 @@ public sealed class FatiguePotionHandler(ISelectedSessionDomainService sessions,
             await RefuseAsync(context, request, ct).ConfigureAwait(false);
             return;
         }
-        await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
         if (!sessions.IsInWorld(session)) return;
         OpeningInventoryReceipt receipt;
         try

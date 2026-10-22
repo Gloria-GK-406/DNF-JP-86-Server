@@ -846,7 +846,6 @@ public sealed class MoveItemSpaceHandler(
     ICharacterInventoryEntryDomainService characterInventories,
     IAccountInventoryEntryDomainService accountInventories,
     TimeProvider time,
-    Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? projectionGate = null,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null) : ClientMessageHandler<MoveItemSpaceRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -855,8 +854,6 @@ public sealed class MoveItemSpaceHandler(
         CancellationToken cancellationToken)
     {
         var identity = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        using var projectionLease = projectionGate is not null && identity is not null
-            ? await projectionGate.EnterAsync(identity.CharacterId, cancellationToken).ConfigureAwait(false) : null;
         var (response, result) = await ResolveAsync(context, message, cancellationToken)
             .ConfigureAwait(false);
         List<IGameServerMessage> frames = [response];

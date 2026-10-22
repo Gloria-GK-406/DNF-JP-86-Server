@@ -4,7 +4,6 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Mail;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -17,13 +16,12 @@ internal sealed record ExpiredItemsRefresh(SelectedSessionIdentity Owner,
     bool MailboxChanged = false) : INotification<ExpiredItemsRefresh>;
 
 internal sealed class ExpiredItemsNotificationSubscriber(IEventService events,
-    ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
+    ISelectedSessionDomainService sessions,
     ICharacterVisibleSessionDomainService visible) : IDomainEventSubscriber<OnlineExpiredItemsRemoved>
 {
     public async ValueTask HandleAsync(DomainEventEnvelope<OnlineExpiredItemsRemoved> message, CancellationToken ct)
     {
         var change = message.Payload;
-        await using var lease = await transitions.BorrowOrAcquireExclusiveAsync(change.AccountId, ct).ConfigureAwait(false);
         var owner = sessions.Find(change.AccountId);
         if (owner is null || owner.CharacterId != change.CharacterId || owner.ConnectionId.Value != change.ConnectionId
             || owner.ConnectionGeneration != change.ConnectionGeneration || !sessions.IsInWorld(owner)) return;

@@ -8,7 +8,6 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -77,7 +76,7 @@ public sealed class LotteryOpeningCommandHandler(ILotteryOpeningDomainService op
 }
 
 public sealed class LotteryOpeningDelivery(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    SelectedSessionTransitionGate transitions, ICommandBus commands, IEventService notifications, IGameMessageSender sender,
+    ICommandBus commands, IEventService notifications, IGameMessageSender sender,
     ILogger<LotteryOpeningDelivery> logger)
 {
     public async ValueTask HandleAsync(NetworkDispatchContext context, int slot, ushort mode, ushort sequence, CancellationToken token)
@@ -85,7 +84,6 @@ public sealed class LotteryOpeningDelivery(ISelectedSessionDomainService session
         var connection = context.Connection.ConnectionId;
         var session = sessions.FindByConnection(connection);
         if (session is null) return;
-        await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
         if (!sessions.IsInWorld(session) || !users.TryGetByConnection(connection, out var user) || user is null) return;
         LotteryOpeningResult? result = null;
         byte error = 0;

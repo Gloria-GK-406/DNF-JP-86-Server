@@ -62,7 +62,7 @@ public sealed class CharacterDeathHandlerTests
             registry.Register(run.RunId, [Current, Other]);
             var sender = new Sender();
             var handler = new CharacterDeathHandler(sessions, runs, registry,
-                new SelectedSessionTransitionGate(), new DungeonProjectionGate(), new Commands(runs),
+                new Commands(runs),
                 sender, NullLogger<CharacterDeathHandler>.Instance);
             var context = new NetworkDispatchContext(new NetworkConnectionContext(Current.ConnectionId, NetworkEndpointKind.Game, 10011));
             var request = new CharacterDeathRequest(GameMessageMetadata.Empty, 612, 294, 0);

@@ -7,7 +7,6 @@ using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
@@ -404,74 +403,18 @@ public sealed class SetPartyInfoCommandHandler(IPartyService parties)
 
 internal static class PartyTransitionExecution
 {
-    public static async ValueTask<TResult> RunAsync<TResult>(
-        SelectedSessionTransitionGate transitionGate,
-        SelectedSessionIdentity first,
-        SelectedSessionIdentity? second,
-        Func<ValueTask<TResult>> action,
-        CancellationToken cancellationToken)
-    {
-        var accountIds = second is null || second.AccountId == first.AccountId
-            ? [first.AccountId]
-            : new[] { first.AccountId, second.AccountId }
-                .OrderBy(value => value.Value)
-                .ToArray();
-        var leases = new List<IAsyncDisposable>(accountIds.Length);
-        try
-        {
-            foreach (var accountId in accountIds)
-            {
-                leases.Add(await transitionGate
-                    .AcquireAsync(accountId, UserAccessMode.Exclusive, cancellationToken)
-                    .ConfigureAwait(false));
-            }
-
-            return await action().ConfigureAwait(false);
-        }
-        finally
-        {
-            for (var index = leases.Count - 1; index >= 0; index--)
-                await leases[index].DisposeAsync().ConfigureAwait(false);
-        }
-    }
-
     public static async ValueTask<PartyCommandExecution> RunPartyAsync(
-        SelectedSessionTransitionGate transitionGate,
-        SelectedSessionIdentity first,
-        SelectedSessionIdentity? second,
         ISelectedSessionDomainService sessions,
         ITownAreaDomainService? townAreas,
-        Func<ValueTask<PartyOperationResult>> action,
-        CancellationToken cancellationToken)
+        Func<ValueTask<PartyOperationResult>> action)
     {
-        var accountIds = second is null || second.AccountId == first.AccountId
-            ? [first.AccountId]
-            : new[] { first.AccountId, second.AccountId }
-                .OrderBy(value => value.Value)
-                .ToArray();
-        var leases = new List<IAsyncDisposable>(accountIds.Length);
-        try
-        {
-            foreach (var accountId in accountIds)
-            {
-                leases.Add(await transitionGate
-                    .AcquireAsync(accountId, UserAccessMode.Exclusive, cancellationToken)
-                    .ConfigureAwait(false));
-            }
-
-            var result = await action().ConfigureAwait(false);
-            return new PartyCommandExecution(
-                result,
-                PartyNotificationRecipientCapture.Capture(
-                    result.Notifications,
-                    sessions,
-                    townAreas));
-        }
-        finally
-        {
-            for (var index = leases.Count - 1; index >= 0; index--)
-                await leases[index].DisposeAsync().ConfigureAwait(false);
-        }
+        var result = await action().ConfigureAwait(false);
+        return new PartyCommandExecution(
+            result,
+            PartyNotificationRecipientCapture.Capture(
+                result.Notifications,
+                sessions,
+                townAreas));
     }
 }
 
@@ -592,7 +535,6 @@ internal static class SessionEndpointObservation
 public sealed class RequestPeerHandler(
     ISelectedSessionDomainService sessions,
     ITownAreaDomainService townAreas,
-    SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     PartyNotificationDelivery notifications,
     ILogger<RequestPeerHandler> logger) : ClientMessageHandler<RequestPeerRequest>
@@ -627,9 +569,6 @@ public sealed class RequestPeerHandler(
         }
 
         var execution = await PartyTransitionExecution.RunPartyAsync(
-            transitionGate,
-            inviter,
-            target,
             sessions,
             townAreas,
             () => sessions.IsInWorld(inviter)
@@ -639,8 +578,7 @@ public sealed class RequestPeerHandler(
                     ? commands.SendAsync(new RequestPartyInviteCommand(
                         inviterCharacter, targetCharacter), cancellationToken)
                     : ValueTask.FromResult(PartyOperationResult.Reject(
-                        PartyFailureReason.CallerNotCurrent)),
-            cancellationToken).ConfigureAwait(false);
+                        PartyFailureReason.CallerNotCurrent))).ConfigureAwait(false);
         var result = execution.Result;
         if (result.Succeeded)
             await notifications.DeliverAsync(
@@ -656,7 +594,6 @@ public sealed class RequestPeerHandler(
 public sealed class ResponsePeerHandler(
     ISelectedSessionDomainService sessions,
     ITownAreaDomainService townAreas,
-    SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     PartyNotificationDelivery notifications,
     ILogger<ResponsePeerHandler> logger) : ClientMessageHandler<ResponsePeerRequest>
@@ -691,9 +628,6 @@ public sealed class ResponsePeerHandler(
         }
 
         var execution = await PartyTransitionExecution.RunPartyAsync(
-            transitionGate,
-            invitee,
-            inviter,
             sessions,
             townAreas,
             () => sessions.IsInWorld(invitee)
@@ -703,8 +637,7 @@ public sealed class ResponsePeerHandler(
                     ? commands.SendAsync(new AcceptPartyInviteCommand(
                         inviteeCharacter, inviterCharacter), cancellationToken)
                     : ValueTask.FromResult(PartyOperationResult.Reject(
-                        PartyFailureReason.CallerNotCurrent)),
-            cancellationToken).ConfigureAwait(false);
+                        PartyFailureReason.CallerNotCurrent))).ConfigureAwait(false);
         var result = execution.Result;
         if (result.Succeeded)
             await notifications.DeliverAsync(
@@ -718,7 +651,6 @@ public sealed class ResponsePeerHandler(
 
 public sealed class LeavePartyHandler(
     ISelectedSessionDomainService sessions,
-    SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     PartyNotificationDelivery notifications,
     ILogger<LeavePartyHandler> logger,
@@ -745,53 +677,37 @@ public sealed class LeavePartyHandler(
 
         PartyCommandExecution execution;
         DungeonRunState? departingRun;
-        for (var attempt = 0; ; attempt++)
+        if (bossParties is not null)
         {
-            if (bossParties is not null)
-            {
-                var bossAttempt = await bossParties.TryLeaveAsync(session, allowVirtual: false, departureResponse: null, cancellationToken).ConfigureAwait(false);
-                if (bossAttempt.Handled) return;
-            }
-            if (towerParties is not null)
-            {
-                var towerAttempt = await towerParties.TryLeaveAsync(
-                    session, allowVirtual: false, departureResponse: null, cancellationToken)
-                    .ConfigureAwait(false);
-                if (towerAttempt.Handled)
-                {
-                    logger.LogInformation(
-                        "LEAVE_PARTY character={CharacterId} accepted={Accepted} failure={Failure}",
-                        session.CharacterId, towerAttempt.Result.Succeeded, towerAttempt.Result.Failure);
-                    return;
-                }
-            }
-
-            departingRun = runs?.Find(session.CharacterId);
-            var reroute = false;
-            execution = await PartyTransitionExecution.RunPartyAsync(
-                transitionGate,
-                session,
-                null,
-                sessions,
-                townAreas,
-                () =>
-                {
-                    if (!sessions.IsInWorld(session))
-                        return ValueTask.FromResult(PartyOperationResult.Reject(
-                            PartyFailureReason.CallerNotCurrent));
-                    if (towerParties?.HasInvolvedTower(session) == true || bossParties?.HasInvolvedTower(session) == true)
-                    {
-                        reroute = true;
-                        return ValueTask.FromResult(PartyOperationResult.Reject(
-                            PartyFailureReason.CallerNotCurrent));
-                    }
-                    return commands.SendAsync(
-                        new LeavePartyCommand(session.CharacterId), cancellationToken);
-                },
-                cancellationToken).ConfigureAwait(false);
-            if (!reroute || attempt >= 7)
-                break;
+            var bossAttempt = await bossParties.TryLeaveAsync(session, allowVirtual: false, departureResponse: null, cancellationToken).ConfigureAwait(false);
+            if (bossAttempt.Handled) return;
         }
+        if (towerParties is not null)
+        {
+            var towerAttempt = await towerParties.TryLeaveAsync(
+                session, allowVirtual: false, departureResponse: null, cancellationToken)
+                .ConfigureAwait(false);
+            if (towerAttempt.Handled)
+            {
+                logger.LogInformation(
+                    "LEAVE_PARTY character={CharacterId} accepted={Accepted} failure={Failure}",
+                    session.CharacterId, towerAttempt.Result.Succeeded, towerAttempt.Result.Failure);
+                return;
+            }
+        }
+
+        departingRun = runs?.Find(session.CharacterId);
+        execution = await PartyTransitionExecution.RunPartyAsync(
+            sessions,
+            townAreas,
+            () =>
+            {
+                if (!sessions.IsInWorld(session))
+                    return ValueTask.FromResult(PartyOperationResult.Reject(
+                        PartyFailureReason.CallerNotCurrent));
+                return commands.SendAsync(
+                    new LeavePartyCommand(session.CharacterId), cancellationToken);
+            }).ConfigureAwait(false);
         var result = execution.Result;
         if (result.Succeeded)
         {
@@ -810,7 +726,6 @@ public sealed class LeavePartyHandler(
 public sealed class ChangePartyLeaderHandler(
     ISelectedSessionDomainService sessions,
     IPartyService parties,
-    SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     PartyNotificationDelivery notifications,
     ILogger<ChangePartyLeaderHandler> logger,
@@ -830,72 +745,56 @@ public sealed class ChangePartyLeaderHandler(
             return;
         PartyCommandExecution execution;
         SelectedSessionIdentity target;
-        for (var attempt = 0; ; attempt++)
+        if (bossParties is not null)
         {
-            if (bossParties is not null)
-            {
-                var bossAttempt = await bossParties.TryTransferAsync(leader, message.TargetSlot, cancellationToken).ConfigureAwait(false);
-                if (bossAttempt.Handled) return;
-            }
-            if (towerParties is not null)
-            {
-                var towerAttempt = await towerParties.TryTransferAsync(
-                    leader, message.TargetSlot, cancellationToken).ConfigureAwait(false);
-                if (towerAttempt.Handled)
-                {
-                    logger.LogInformation(
-                        "CHANGE_HOST leader={Leader} target={Target} slot={Slot} accepted={Accepted} failure={Failure}",
-                        leader.CharacterId, towerAttempt.Target?.CharacterId, message.TargetSlot,
-                        towerAttempt.Result.Succeeded, towerAttempt.Result.Failure);
-                    return;
-                }
-            }
-
-            var roster = parties.FindParty(Character(leader));
-            var targetMember = roster.IsVirtual
-                ? null
-                : roster.Members.SingleOrDefault(member => member.Slot == message.TargetSlot);
-            var capturedTarget = targetMember is not null
-                && sessions.TryGetInWorld(targetMember.CharacterId, out var inWorld)
-                ? inWorld
-                : null;
-            if (capturedTarget is null)
+            var bossAttempt = await bossParties.TryTransferAsync(leader, message.TargetSlot, cancellationToken).ConfigureAwait(false);
+            if (bossAttempt.Handled) return;
+        }
+        if (towerParties is not null)
+        {
+            var towerAttempt = await towerParties.TryTransferAsync(
+                leader, message.TargetSlot, cancellationToken).ConfigureAwait(false);
+            if (towerAttempt.Handled)
             {
                 logger.LogInformation(
-                    "CHANGE_HOST leader={Leader} slot={Slot} ignored because the target is not current",
-                    leader.CharacterId, message.TargetSlot);
+                    "CHANGE_HOST leader={Leader} target={Target} slot={Slot} accepted={Accepted} failure={Failure}",
+                    leader.CharacterId, towerAttempt.Target?.CharacterId, message.TargetSlot,
+                    towerAttempt.Result.Succeeded, towerAttempt.Result.Failure);
                 return;
             }
-            target = capturedTarget;
-
-            var reroute = false;
-            execution = await PartyTransitionExecution.RunPartyAsync(
-                transitionGate,
-                leader,
-                target,
-                sessions,
-                townAreas,
-                () =>
-                {
-                    if (!sessions.IsInWorld(leader)
-                        || !sessions.IsInWorld(target))
-                    {
-                        return ValueTask.FromResult(PartyOperationResult.Reject(
-                            PartyFailureReason.CallerNotCurrent));
-                    }
-                    if (towerParties?.HasInvolvedTower(leader, message.TargetSlot) == true || bossParties?.HasInvolvedTower(leader, message.TargetSlot) == true)
-                    {
-                        reroute = true;
-                        return ValueTask.FromResult(PartyOperationResult.Reject(
-                            PartyFailureReason.CallerNotCurrent));
-                    }
-                    return commands.SendAsync(new TransferPartyLeadershipCommand(
-                        leader.CharacterId, target.CharacterId), cancellationToken);
-                },
-                cancellationToken).ConfigureAwait(false);
-            if (!reroute || attempt >= 7)
-                break;
         }
+
+        var roster = parties.FindParty(Character(leader));
+        var targetMember = roster.IsVirtual
+            ? null
+            : roster.Members.SingleOrDefault(member => member.Slot == message.TargetSlot);
+        var capturedTarget = targetMember is not null
+            && sessions.TryGetInWorld(targetMember.CharacterId, out var inWorld)
+            ? inWorld
+            : null;
+        if (capturedTarget is null)
+        {
+            logger.LogInformation(
+                "CHANGE_HOST leader={Leader} slot={Slot} ignored because the target is not current",
+                leader.CharacterId, message.TargetSlot);
+            return;
+        }
+        target = capturedTarget;
+
+        execution = await PartyTransitionExecution.RunPartyAsync(
+            sessions,
+            townAreas,
+            () =>
+            {
+                if (!sessions.IsInWorld(leader)
+                    || !sessions.IsInWorld(target))
+                {
+                    return ValueTask.FromResult(PartyOperationResult.Reject(
+                        PartyFailureReason.CallerNotCurrent));
+                }
+                return commands.SendAsync(new TransferPartyLeadershipCommand(
+                    leader.CharacterId, target.CharacterId), cancellationToken);
+            }).ConfigureAwait(false);
         if (execution.Result.Succeeded)
         {
             await notifications.DeliverAsync(
@@ -915,7 +814,6 @@ public sealed class ChangePartyLeaderHandler(
 public sealed class RemovePartyMemberHandler(
     ISelectedSessionDomainService sessions,
     IPartyService parties,
-    SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     PartyNotificationDelivery notifications,
     IGameMessageSender sender,
@@ -944,81 +842,65 @@ public sealed class RemovePartyMemberHandler(
         DungeonRunState? departingRun;
         SelectCharacterResult? returnRuntime;
         CharacterPositionState? returnPosition;
-        for (var attempt = 0; ; attempt++)
+        if (bossParties is not null)
         {
-            if (bossParties is not null)
+            var bossAttempt = await bossParties.TryRemoveAsync(leader, message.TargetSlot, cancellationToken).ConfigureAwait(false);
+            if (bossAttempt.Handled) return;
+        }
+        if (towerParties is not null)
+        {
+            var towerAttempt = await towerParties.TryRemoveAsync(
+                leader, message.TargetSlot, cancellationToken).ConfigureAwait(false);
+            if (towerAttempt.Handled)
             {
-                var bossAttempt = await bossParties.TryRemoveAsync(leader, message.TargetSlot, cancellationToken).ConfigureAwait(false);
-                if (bossAttempt.Handled) return;
-            }
-            if (towerParties is not null)
-            {
-                var towerAttempt = await towerParties.TryRemoveAsync(
-                    leader, message.TargetSlot, cancellationToken).ConfigureAwait(false);
-                if (towerAttempt.Handled)
+                if (!towerAttempt.Result.Succeeded)
                 {
-                    if (!towerAttempt.Result.Succeeded)
-                    {
-                        await RefuseAsync(context.Connection.ConnectionId, cancellationToken)
-                            .ConfigureAwait(false);
-                    }
-                    logger.LogInformation(
-                        "WALKOUT_PARTY_MEMBER leader={Leader} target={Target} slot={Slot} accepted={Accepted} failure={Failure}",
-                        leader.CharacterId, towerAttempt.Target?.CharacterId, message.TargetSlot,
-                        towerAttempt.Result.Succeeded, towerAttempt.Result.Failure);
-                    return;
+                    await RefuseAsync(context.Connection.ConnectionId, cancellationToken)
+                        .ConfigureAwait(false);
                 }
-            }
-
-            var roster = parties.FindParty(Character(leader));
-            var targetMember = roster.IsVirtual
-                ? null
-                : roster.Members.SingleOrDefault(member => member.Slot == message.TargetSlot);
-            var capturedTarget = targetMember is not null
-                && sessions.TryGetInWorld(targetMember.CharacterId, out var inWorld)
-                ? inWorld
-                : null;
-            if (capturedTarget is null)
-            {
-                await RefuseAsync(context.Connection.ConnectionId, cancellationToken)
-                    .ConfigureAwait(false);
+                logger.LogInformation(
+                    "WALKOUT_PARTY_MEMBER leader={Leader} target={Target} slot={Slot} accepted={Accepted} failure={Failure}",
+                    leader.CharacterId, towerAttempt.Target?.CharacterId, message.TargetSlot,
+                    towerAttempt.Result.Succeeded, towerAttempt.Result.Failure);
                 return;
             }
-            target = capturedTarget;
-
-            departingRun = runs?.Find(target.CharacterId);
-            returnRuntime = departingRun is not null && currentViews is not null
-                ? await currentViews.TryLoadAsync(target, cancellationToken).ConfigureAwait(false)
-                : null;
-            returnPosition = departingRun is not null ? onlineCharacters?.PositionOf(target) : null;
-            var reroute = false;
-            execution = await PartyTransitionExecution.RunPartyAsync(
-                transitionGate,
-                leader,
-                target,
-                sessions,
-                townAreas,
-                () =>
-                {
-                    if (!sessions.IsInWorld(leader)
-                        || !sessions.IsInWorld(target))
-                    {
-                        return ValueTask.FromResult(PartyOperationResult.Reject(
-                            PartyFailureReason.CallerNotCurrent));
-                    }
-                    if (towerParties?.HasInvolvedTower(leader, message.TargetSlot) == true || bossParties?.HasInvolvedTower(leader, message.TargetSlot) == true)
-                    {
-                        reroute = true;
-                        return ValueTask.FromResult(PartyOperationResult.Reject(
-                            PartyFailureReason.CallerNotCurrent));
-                    }
-                    return commands.SendAsync(new RemovePartyMemberCommand(
-                        leader.CharacterId, target.CharacterId), cancellationToken);
-                },
-                cancellationToken).ConfigureAwait(false);
-            if (!reroute || attempt >= 7)
-                break;
         }
+
+        var roster = parties.FindParty(Character(leader));
+        var targetMember = roster.IsVirtual
+            ? null
+            : roster.Members.SingleOrDefault(member => member.Slot == message.TargetSlot);
+        var capturedTarget = targetMember is not null
+            && sessions.TryGetInWorld(targetMember.CharacterId, out var inWorld)
+            ? inWorld
+            : null;
+        if (capturedTarget is null)
+        {
+            await RefuseAsync(context.Connection.ConnectionId, cancellationToken)
+                .ConfigureAwait(false);
+            return;
+        }
+        target = capturedTarget;
+
+        departingRun = runs?.Find(target.CharacterId);
+        returnRuntime = departingRun is not null && currentViews is not null
+            ? await currentViews.TryLoadAsync(target, cancellationToken).ConfigureAwait(false)
+            : null;
+        returnPosition = departingRun is not null ? onlineCharacters?.PositionOf(target) : null;
+        execution = await PartyTransitionExecution.RunPartyAsync(
+            sessions,
+            townAreas,
+            () =>
+            {
+                if (!sessions.IsInWorld(leader)
+                    || !sessions.IsInWorld(target))
+                {
+                    return ValueTask.FromResult(PartyOperationResult.Reject(
+                        PartyFailureReason.CallerNotCurrent));
+                }
+                return commands.SendAsync(new RemovePartyMemberCommand(
+                    leader.CharacterId, target.CharacterId), cancellationToken);
+            }).ConfigureAwait(false);
         if (!execution.Result.Succeeded)
         {
             await RefuseAsync(context.Connection.ConnectionId, cancellationToken).ConfigureAwait(false);
@@ -1058,7 +940,6 @@ public sealed class RemovePartyMemberHandler(
 
 public sealed class CallPartyMemberRealtimeInfoHandler(
     ISelectedSessionDomainService sessions,
-    SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     PartyNotificationDelivery notifications,
     ILogger<CallPartyMemberRealtimeInfoHandler> logger)
@@ -1078,15 +959,10 @@ public sealed class CallPartyMemberRealtimeInfoHandler(
             return;
         }
 
-        var result = await PartyTransitionExecution.RunAsync(
-            transitionGate,
-            session,
-            null,
-            () => sessions.IsInWorld(session)
-                ? commands.SendAsync(new QueryPartyRealtimeCommand(new PartyCharacterSnapshot(
-                    session.AccountId, session.CharacterId, session.WireUserId, null)), cancellationToken)
-                : ValueTask.FromResult(new PartyRealtimeQueryResult(null)),
-            cancellationToken).ConfigureAwait(false);
+        var result = await (sessions.IsInWorld(session)
+            ? commands.SendAsync(new QueryPartyRealtimeCommand(new PartyCharacterSnapshot(
+                session.AccountId, session.CharacterId, session.WireUserId, null)), cancellationToken)
+            : ValueTask.FromResult(new PartyRealtimeQueryResult(null))).ConfigureAwait(false);
         if (result.Snapshot is { IsVirtual: false } snapshot)
         {
             await notifications.DeliverRealtimeAsync(session, snapshot, cancellationToken)
@@ -1101,7 +977,6 @@ public sealed class CallPartyMemberRealtimeInfoHandler(
 public sealed class SetPartyInfoHandler(
     ISelectedSessionDomainService sessions,
     ITownAreaDomainService townAreas,
-    SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     PartyNotificationDelivery notifications,
     ILogger<SetPartyInfoHandler> logger) : ClientMessageHandler<SetPartyInfoRequest>
@@ -1121,9 +996,6 @@ public sealed class SetPartyInfoHandler(
         }
 
         var execution = await PartyTransitionExecution.RunPartyAsync(
-            transitionGate,
-            session,
-            null,
             sessions,
             townAreas,
             () => sessions.IsInWorld(session)
@@ -1133,8 +1005,7 @@ public sealed class SetPartyInfoHandler(
                     message.Settings,
                     message.Title), cancellationToken)
                 : ValueTask.FromResult(PartyOperationResult.Reject(
-                    PartyFailureReason.CallerNotCurrent)),
-            cancellationToken).ConfigureAwait(false);
+                    PartyFailureReason.CallerNotCurrent))).ConfigureAwait(false);
         var result = execution.Result;
         if (result.Succeeded)
         {

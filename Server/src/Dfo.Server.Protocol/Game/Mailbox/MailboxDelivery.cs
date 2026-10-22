@@ -5,7 +5,6 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Mail;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Game;
@@ -49,7 +48,7 @@ public sealed class MailboxCompletedHandler(ISelectedSessionDomainService sessio
     }
 }
 public sealed class MailboxDelivery(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    SelectedSessionTransitionGate transitions, ICommandBus commands, IEventService notifications,
+    ICommandBus commands, IEventService notifications,
     IGameMessageSender sender, ILogger<MailboxDelivery> logger)
 {
     public async ValueTask HandleAsync(NetworkDispatchContext context, MailboxOperation operation, uint wireId, ushort action, byte[]? name, CancellationToken token, MailboxSendRequest? send = null)
@@ -57,7 +56,6 @@ public sealed class MailboxDelivery(ISelectedSessionDomainService sessions, IOnl
         var connection = context.Connection.ConnectionId;
         var session = sessions.FindByConnection(connection);
         if (session is null) return;
-        await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token);
         if (!sessions.IsInWorld(session) || !users.TryGetByConnection(connection, out var user) || user is null) return;
         MailboxResult result = new(); byte error = 0;
         try

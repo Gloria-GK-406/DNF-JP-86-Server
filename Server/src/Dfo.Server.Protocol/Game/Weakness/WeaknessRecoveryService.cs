@@ -2,7 +2,6 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.SelectCharacter;
@@ -30,25 +29,18 @@ public sealed class AdvanceWeaknessRecoveryCommandHandler(IWeaknessDomainService
 public sealed class WeaknessProjectionDelivery(
     IWeaknessDomainService weakness, ISelectedSessionDomainService sessions, IGameMessageSender sender)
 {
-    private readonly SemaphoreSlim deliveryGate = new(1, 1);
-
     public async ValueTask SendCurrentAsync(SelectedSessionIdentity session, CancellationToken cancellationToken)
     {
-        GameplayGateAssertion.Enter(deliveryGate, nameof(WeaknessProjectionDelivery), cancellationToken);
-        try
-        {
-            if (!sessions.IsInWorld(session)) return;
-            await sender.SendNotiAsync(session.ConnectionId,
-                new WeaknessProjectionNotification(weakness.For(session.CharacterId).Value),
-                cancellationToken).ConfigureAwait(false);
-        }
-        finally { deliveryGate.Release(); }
+        if (!sessions.IsInWorld(session)) return;
+        await sender.SendNotiAsync(session.ConnectionId,
+            new WeaknessProjectionNotification(weakness.For(session.CharacterId).Value),
+            cancellationToken).ConfigureAwait(false);
     }
 }
 
 public sealed class WeaknessRecoveryService(
     IWeaknessDomainService weakness, ICommandBus commands,
-    ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
+    ISelectedSessionDomainService sessions,
     WeaknessProjectionDelivery delivery, TimeProvider clock,
     ILogger<WeaknessRecoveryService> logger, IGameplayQueue queue) : BackgroundService
 {
@@ -76,8 +68,6 @@ public sealed class WeaknessRecoveryService(
             try
             {
                 if (!sessions.TryGetInWorld(id, out var session)) continue;
-                await using var transition = await transitions.AcquireAsync(session.AccountId,
-                    UserAccessMode.Exclusive, stoppingToken).ConfigureAwait(false);
                 await delivery.SendCurrentAsync(session, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }

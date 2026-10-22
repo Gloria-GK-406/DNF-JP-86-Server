@@ -60,8 +60,6 @@ public sealed class IllusionTowerProjectionConcurrencyTests
                 tower,
                 parties,
                 sessions,
-                new SelectedSessionTransitionGate(),
-                new IllusionTowerProjectionGate(),
                 commands,
                 Notifications(parties, sessions, town),
                 delivery,
@@ -102,8 +100,8 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var closer = new Closer();
             var town = new NoTown();
             var coordinator = new IllusionTowerPartyCoordinator(
-                tower, parties, sessions, new SelectedSessionTransitionGate(),
-                new IllusionTowerProjectionGate(), commands,
+                tower, parties, sessions,
+                commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
                 closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
@@ -151,8 +149,8 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var closer = new Closer();
             var town = new NoTown();
             var coordinator = new IllusionTowerPartyCoordinator(
-                tower, parties, sessions, new SelectedSessionTransitionGate(),
-                new IllusionTowerProjectionGate(), commands,
+                tower, parties, sessions,
+                commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
                 closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
@@ -195,7 +193,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var closer = new ReentrantCloser(gate, first.AccountId);
             var town = new NoTown();
             var coordinator = new IllusionTowerPartyCoordinator(
-                tower, parties, sessions, gate, new IllusionTowerProjectionGate(), commands,
+                tower, parties, sessions, commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
                 closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
@@ -238,8 +236,8 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var closer = new Closer();
             var town = new NoTown();
             var coordinator = new IllusionTowerPartyCoordinator(
-                tower, parties, sessions, new SelectedSessionTransitionGate(),
-                new IllusionTowerProjectionGate(), commands,
+                tower, parties, sessions,
+                commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
                 closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
@@ -287,8 +285,8 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var closer = new Closer();
             var town = new NoTown();
             var coordinator = new IllusionTowerPartyCoordinator(
-                tower, parties, sessions, new SelectedSessionTransitionGate(),
-                new IllusionTowerProjectionGate(), commands,
+                tower, parties, sessions,
+                commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
                 closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
@@ -328,11 +326,10 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         var tower = new TowerDomain(PartyRun(Guid.NewGuid(), first, second, third));
         using var request = new CancellationTokenSource();
         var commands = new CoordinatorCommands(tower, parties, request);
-        var gate = new SelectedSessionTransitionGate();
         var closer = new Closer();
         var town = new NoTown();
         var coordinator = new IllusionTowerPartyCoordinator(
-            tower, parties, sessions, gate, new IllusionTowerProjectionGate(), commands,
+            tower, parties, sessions, commands,
             Notifications(parties, sessions, town),
             Delivery(tower, sessions, commands, new Sender(), closer),
             closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
@@ -477,6 +474,46 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         });
     }
 
+    [Fact]
+    public async Task A_caller_whose_session_is_not_current_is_refused_at_once_without_a_tower_or_party_write()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var first = Session(1);
+            var second = Session(2);
+            // The caller is still a tower member but no longer the current selected session.
+            var sessions = new Sessions(second);
+            var parties = new PartyService(
+                new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
+                new NoPartyEndpoints());
+            Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
+            var tower = new TowerDomain(PartyRun(Guid.NewGuid(), first, second));
+            using var request = new CancellationTokenSource();
+            var commands = new CoordinatorCommands(tower, parties, request);
+            var closer = new Closer();
+            var town = new NoTown();
+            var coordinator = new IllusionTowerPartyCoordinator(
+                tower, parties, sessions, commands,
+                Notifications(parties, sessions, town),
+                Delivery(tower, sessions, commands, new Sender(), closer),
+                closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
+
+            var result = await coordinator.TryLeaveAsync(
+                first, allowVirtual: false, departureResponse: null, CancellationToken.None);
+
+            Assert.True(result.Handled);
+            Assert.False(result.Result.Succeeded);
+            Assert.Equal(PartyFailureReason.CallerNotCurrent, result.Result.Failure);
+            Assert.Null(result.Target);
+            Assert.Equal(0, commands.PartyCalls);
+            Assert.NotNull(tower.Find(first));
+            Assert.Contains(parties.FindParty(PartyCharacter(second)).Members,
+                member => member.CharacterId == first.CharacterId);
+        });
+    }
+
     private static IllusionTowerProjectionDelivery Delivery(
         TowerDomain towers, Sessions sessions, ICommandBus commands, Sender sender,
         INetworkConnectionCloser? closer = null)
@@ -496,9 +533,6 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             new Intents(),
             sender,
             town,
-            new SelectedSessionTransitionGate(),
-            new IllusionTowerProjectionGate(),
-            new IllusionTowerEntryGate(),
             TimeProvider.System,
             closer ?? new Closer(),
             NullLogger<IllusionTowerProjectionDelivery>.Instance);

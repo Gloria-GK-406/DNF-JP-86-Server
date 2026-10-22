@@ -5,7 +5,6 @@ using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -53,34 +52,31 @@ public sealed class WeddingLovePointCommandHandler(IMarriageCoupleDomainService 
 }
 internal sealed class WeddingLovePointHandler(ISelectedSessionDomainService sessions,
     IMarriageQueryDomainService marriage, IInventorySlotMappingRuleService mappings, ICommandBus commands,
-    IGameMessageSender sender, SelectedSessionTransitionGate gate) : ClientMessageHandler<WeddingLovePointRequest>
+    IGameMessageSender sender) : ClientMessageHandler<WeddingLovePointRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c, WeddingLovePointRequest m, CancellationToken ct)
     {
         var actor = sessions.FindByConnection(c.Connection.ConnectionId);
         var profile = actor is null ? null : (await marriage.SnapshotAsync(actor.AccountId, actor.CharacterId, ct).ConfigureAwait(false)).Partner;
         var peer = profile is null ? null : sessions.FindByCharacter(new(profile.CharacterId));
-        await WeddingProposalExecution.RunAsync(gate, actor, peer ?? actor, async () =>
+        var result = new MarriageLovePointResult(-1);
+        if (actor is not null && m.Slot <= ushort.MaxValue)
         {
-            var result = new MarriageLovePointResult(-1);
-            if (actor is not null && m.Slot <= ushort.MaxValue)
-            {
-                BusinessSlot? slot = null;
-                try { slot = mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, checked((int)m.Slot))); }
-                catch (InventorySlotMappingException) { }
-                if (slot is { } source)
-                    result = await commands.SendAsync(new WeddingLovePointCommand(actor, source, await marriage.CoupleAccountsAsync(actor, ct).ConfigureAwait(false)), ct).ConfigureAwait(false);
-            }
-            var own = new List<IGameServerMessage> { new WeddingLovePointAck(result.Status) };
-            var targets = new List<GameExplicitMessageTarget>();
-            if (result.Status == 0 && actor is not null && result.State is { } state)
-            {
-                own.Add(state.Item is { } item
-                    ? GameInventoryDelivery.Notification(new(InventoryContainerType.Main, [new(item.ItemUid, checked((int)m.Slot), item.ToCore(), item.AvatarDetail)], state.PreparedAt))
-                    : GameInventoryDelivery.ClearedSlotNotification(InventoryContainerType.Main, checked((int)m.Slot), state.PreparedAt));
-                own.Add(new WeddingLovePointNotification(actor.CharacterId.Value, result.Points));
-            }
-            await sender.SendExplicitAsync(c.Connection.ConnectionId, new(own, targets), ct).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
+            BusinessSlot? slot = null;
+            try { slot = mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, checked((int)m.Slot))); }
+            catch (InventorySlotMappingException) { }
+            if (slot is { } source)
+                result = await commands.SendAsync(new WeddingLovePointCommand(actor, source, await marriage.CoupleAccountsAsync(actor, ct).ConfigureAwait(false)), ct).ConfigureAwait(false);
+        }
+        var own = new List<IGameServerMessage> { new WeddingLovePointAck(result.Status) };
+        var targets = new List<GameExplicitMessageTarget>();
+        if (result.Status == 0 && actor is not null && result.State is { } state)
+        {
+            own.Add(state.Item is { } item
+                ? GameInventoryDelivery.Notification(new(InventoryContainerType.Main, [new(item.ItemUid, checked((int)m.Slot), item.ToCore(), item.AvatarDetail)], state.PreparedAt))
+                : GameInventoryDelivery.ClearedSlotNotification(InventoryContainerType.Main, checked((int)m.Slot), state.PreparedAt));
+            own.Add(new WeddingLovePointNotification(actor.CharacterId.Value, result.Points));
+        }
+        await sender.SendExplicitAsync(c.Connection.ConnectionId, new(own, targets), ct).ConfigureAwait(false);
     }
 }

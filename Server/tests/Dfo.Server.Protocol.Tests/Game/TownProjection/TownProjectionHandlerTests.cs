@@ -75,7 +75,6 @@ public sealed class TownProjectionHandlerTests
                 presenceRegistry,
                 new OneChannel(transient),
                 new EveryTownDeclared(),
-                new SelectedSessionTransitionGate(),
                 new TownAreaProjectionDelivery(
                     presenceRegistry,
                     sessions,
@@ -142,7 +141,7 @@ public sealed class TownProjectionHandlerTests
             var currentViews = new OneRuntimeSession(Entry());
             var towns = new EveryTownDeclared(allowEntry: false);
             var handler = new SetUserAreaHandler(sessions, currentViews, positions, presence,
-                new OneChannel(saintHorn), towns, new SelectedSessionTransitionGate(),
+                new OneChannel(saintHorn), towns,
                 new TownAreaProjectionDelivery(presence, sessions, currentViews, notifications,
                     new NoopPartyTownProjectionDelivery(), sender, towns),
                 NullLogger<SetUserAreaHandler>.Instance, persistence);
@@ -265,7 +264,6 @@ public sealed class TownProjectionHandlerTests
                 presence,
                 new OneChannel(),
                 new EveryTownDeclared(),
-                new SelectedSessionTransitionGate(),
                 new TownAreaProjectionDelivery(
                     presence,
                     sessions,

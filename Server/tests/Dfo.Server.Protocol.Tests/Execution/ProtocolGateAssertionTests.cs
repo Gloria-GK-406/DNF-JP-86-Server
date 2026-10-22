@@ -1,117 +1,25 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Reflection;
 using Dfo.Server.Abstractions.Execution;
-using Dfo.Server.Abstractions.World;
-using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Execution;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
-using Dfo.Server.Protocol.Game;
-using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.Party;
-using Dfo.Server.Protocol.Game.TitleBook;
-using Dfo.Server.Protocol.Game.TownProjection;
-using Dfo.Server.Protocol.Game.Weakness;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Protocol.Tests.Execution;
 
 /// <summary>
-/// Plan transition rule 2 for the Protocol gates: off the executor taking one throws, and on the executor
-/// a gate that would have to wait fails the job at once. Removed with the gates in T-005.
+/// Plan transition rule 2 for the party delivery gates: off the executor taking one throws, and on the executor
+/// a gate that would have to wait fails the job at once. Removed with those gates in T-006.
 /// </summary>
-/// <remarks>A counterexample class the zero-violation evidence subtracts: 14 violations per run.</remarks>
+/// <remarks>A counterexample class the zero-violation evidence subtracts: 4 violations per run.</remarks>
 public sealed class ProtocolGateAssertionTests
 {
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(10);
-
-    public static TheoryData<string> DerivedGates => new()
-    {
-        nameof(TownAreaProjectionGate),
-        nameof(DungeonProjectionGate),
-        nameof(BossTowerProjectionGate),
-        nameof(BossTowerEntryGate),
-        nameof(IllusionTowerProjectionGate),
-        nameof(IllusionTowerEntryGate),
-    };
-
-    [Theory]
-    [MemberData(nameof(DerivedGates))]
-    public async Task A_projection_or_entry_gate_cannot_be_taken_off_the_executor(string name)
-    {
-        var seen = Capture.Attach();
-
-        await Assert.ThrowsAsync<GameplayOffExecutorException>(async () => await (name switch
-        {
-            nameof(TownAreaProjectionGate) => new TownAreaProjectionGate().AcquireAsync(new TownAreaKey(1, 2, 3), UserAccessMode.Exclusive, default),
-            nameof(DungeonProjectionGate) => new DungeonProjectionGate().AcquireAsync(new DungeonRunId(Guid.NewGuid()), UserAccessMode.Exclusive, default),
-            nameof(BossTowerProjectionGate) => new BossTowerProjectionGate().AcquireAsync(Guid.NewGuid(), UserAccessMode.Exclusive, default),
-            nameof(BossTowerEntryGate) => new BossTowerEntryGate().AcquireAsync(new CharacterId(4), UserAccessMode.Exclusive, default),
-            nameof(IllusionTowerProjectionGate) => new IllusionTowerProjectionGate().AcquireAsync(Guid.NewGuid(), UserAccessMode.Exclusive, default),
-            nameof(IllusionTowerEntryGate) => new IllusionTowerEntryGate().AcquireAsync(new CharacterId(5), UserAccessMode.Exclusive, default),
-            _ => throw new ArgumentOutOfRangeException(nameof(name)),
-        }));
-
-        var violation = Assert.Single(seen);
-        Assert.Equal(GameplayGateAssertion.OffExecutorKind, violation.Kind);
-        Assert.Contains(name, violation.Operation, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task The_title_projection_gate_cannot_be_taken_off_the_executor()
-    {
-        var seen = Capture.Attach();
-
-        await Assert.ThrowsAsync<GameplayOffExecutorException>(async () =>
-            await new AchievementTitleProjectionGate().EnterAsync(new CharacterId(1), default));
-
-        Assert.Equal(GameplayGateAssertion.OffExecutorKind, Assert.Single(seen).Kind);
-    }
-
-    [Fact]
-    public async Task On_the_executor_the_title_projection_gate_is_taken_released_and_never_waited_on()
-    {
-        var gate = new AchievementTitleProjectionGate();
-        await using var executor = Executor();
-        var seen = new ConcurrentQueue<GameplayAssertionViolation>();
-        await RunAsync(executor, async ct =>
-        {
-            Capture.Attach(seen);
-            (await gate.EnterAsync(new CharacterId(1), ct)).Dispose();
-            (await gate.EnterAsync(new CharacterId(1), ct)).Dispose();
-        });
-        Assert.Empty(seen);
-        var leaked = await RunAsync(executor, ct => gate.EnterAsync(new CharacterId(1), ct).AsTask());
-        GameplayGateWaitException? caught = null;
-
-        var failure = await Assert.ThrowsAsync<GameplayGateWaitException>(() => RunAsync(executor, async ct =>
-        {
-            Capture.Attach(seen);
-            try
-            {
-                // Same stripe as character 1: 65 % 64.
-                await gate.EnterAsync(new CharacterId(65), ct);
-            }
-            catch (GameplayGateWaitException exception)
-            {
-                caught = exception;
-            }
-        }));
-
-        Assert.Same(caught, failure);
-        Assert.Equal(GameplayGateAssertion.WaitKind, Assert.Single(seen).Kind);
-        leaked.Dispose();
-        await RunAsync(executor, async ct => (await gate.EnterAsync(new CharacterId(1), ct)).Dispose());
-        using var cancelled = new CancellationTokenSource();
-        await cancelled.CancelAsync();
-        Capture.Attach(seen);
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await gate.EnterAsync(new CharacterId(1), cancelled.Token));
-        Assert.Single(seen);
-    }
 
     [Fact]
     public async Task Party_participant_gates_cannot_be_taken_off_the_executor()
@@ -174,39 +82,6 @@ public sealed class ProtocolGateAssertionTests
 
         Assert.Equal(GameplayGateAssertion.WaitKind, Assert.Single(seen).Kind);
         stream.Gate.Release();
-    }
-
-    [Fact]
-    public async Task The_weakness_delivery_gate_cannot_be_taken_off_the_executor()
-    {
-        // The gate is the first statement, so the collaborators are never reached.
-        var delivery = new WeaknessProjectionDelivery(null!, null!, null!);
-        var seen = Capture.Attach();
-
-        await Assert.ThrowsAsync<GameplayOffExecutorException>(async () =>
-            await delivery.SendCurrentAsync(Session(1), default));
-
-        Assert.Equal(GameplayGateAssertion.OffExecutorKind, Assert.Single(seen).Kind);
-    }
-
-    [Fact]
-    public async Task A_contended_weakness_delivery_gate_fails_the_job_at_once()
-    {
-        var delivery = new WeaknessProjectionDelivery(null!, null!, null!);
-        var gate = (SemaphoreSlim)typeof(WeaknessProjectionDelivery)
-            .GetField("deliveryGate", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(delivery)!;
-        Assert.True(gate.Wait(0));
-        await using var executor = Executor();
-        var seen = new ConcurrentQueue<GameplayAssertionViolation>();
-
-        await Assert.ThrowsAsync<GameplayGateWaitException>(() => RunAsync(executor, async ct =>
-        {
-            Capture.Attach(seen);
-            await delivery.SendCurrentAsync(Session(1), ct);
-        }));
-
-        Assert.Equal(GameplayGateAssertion.WaitKind, Assert.Single(seen).Kind);
-        gate.Release();
     }
 
     private static SelectedSessionIdentity Session(int character) =>

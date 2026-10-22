@@ -100,13 +100,13 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
                 }
             }
 
-            // Account selection runs under the lifecycle transition gate. Cleanup must finish
-            // while the displaced session is still the current owner, otherwise its character
-            // artifacts would be indistinguishable from replacement state at the cleanup seam.
+            // Cleanup must finish while the displaced session is still the current owner, otherwise
+            // its character artifacts would be indistinguishable from replacement state at the
+            // cleanup seam.
             var displaced = sessions.Select(session);
             if (displaced is not null)
                 throw new InvalidOperationException(
-                    "A selected session changed outside its account lifecycle gate.");
+                    "A selected session changed during account selection.");
 
             return new PreparedSelectedCharacterSession(
                 session, selected, command.Channel, cleanupNotifications, pendingCloses);
@@ -371,7 +371,7 @@ internal sealed class SelectCharacterPhaseFailure : Exception
         Exception failure,
         IReadOnlyList<NetworkConnectionId> connectionsToClose,
         IReadOnlyList<SelectedSessionCleanupNotificationPlan>? cleanupNotifications = null)
-        : base("A SelectCharacter phase failed after acquiring lifecycle ownership.", failure)
+        : base("A SelectCharacter phase failed after the session was prepared.", failure)
     {
         Failure = ExceptionDispatchInfo.Capture(failure);
         ConnectionsToClose = connectionsToClose;

@@ -4,7 +4,6 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Dungeons;
@@ -66,7 +65,7 @@ public sealed class RoomMechanismProjectionDelivery(IEventService events)
 /// <summary>One worker sleeps until a room deadline or lifecycle wakeup; no per-room threads.</summary>
 internal sealed class RoomMechanismMaintenanceService(IDungeonRunDomainService runs,
     IDungeonRoomMechanismRuleService rules, IDungeonRoomMechanismWakeSignal wake, IEventService events,
-    DungeonProjectionGate projections, TimeProvider clock, ILogger<RoomMechanismMaintenanceService> logger,
+    TimeProvider clock, ILogger<RoomMechanismMaintenanceService> logger,
     IGameplayQueue queue) : BackgroundService
 {
     private readonly CoalescingGameplaySource ticks = new(queue);
@@ -94,8 +93,6 @@ internal sealed class RoomMechanismMaintenanceService(IDungeonRunDomainService r
                         if (delivered.TryGetValue(key, out var previous) && previous.SequenceEqual(view.States)) continue;
                         try
                         {
-                            await using var lease = await projections.AcquireAsync(view.RunId, UserAccessMode.Exclusive,
-                                token).ConfigureAwait(false);
                             await events.DirectAsync(new DungeonRoomMechanismsChanged(view), token).ConfigureAwait(false);
                             delivered[key] = view.States.ToArray();
                             logger.LogInformation("Room mechanism state run={RunId} roomVersion={RoomVersion} states={States}",

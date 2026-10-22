@@ -8,7 +8,6 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Rental;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -106,13 +105,12 @@ internal static class RentalPanelProjection
         checked((ushort)panel.LuckyStar),at);
 }
 internal sealed class RentEquipmentHandler(ISelectedSessionDomainService sessions,ICommandBus commands,IGameMessageSender sender,
-    SelectedSessionSafety safety,SelectedSessionTransitionGate transitions,IEventService events,ICharacterVisibleSessionDomainService visible,
+    SelectedSessionSafety safety,IEventService events,ICharacterVisibleSessionDomainService visible,
     ILogger<RentEquipmentHandler> logger) : ClientMessageHandler<RentEquipmentRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,RentEquipmentRequest message,CancellationToken ct)
     {
         var actor=sessions.FindByConnection(context.Connection.ConnectionId); if(actor is null){await sender.SendCmdAsync(context.Connection.ConnectionId,new RentEquipmentResponse(Error:1),ct);return;}
-        await using var lease=await transitions.BorrowOrAcquireExclusiveAsync(actor.AccountId,ct);
         var recipient=safety.Capture(actor);safety.DemandCurrent(recipient);
         var result=await commands.SendAsync(new RentEquipmentCommand(actor,message.ItemId),ct);
         safety.DemandCurrent(recipient);
@@ -138,13 +136,12 @@ internal sealed class RentEquipmentHandler(ISelectedSessionDomainService session
     }
 }
 internal sealed class ChargeRentPointHandler(ISelectedSessionDomainService sessions,ICommandBus commands,IGameMessageSender sender,
-    SelectedSessionSafety safety,SelectedSessionTransitionGate transitions,ILogger<ChargeRentPointHandler> logger) : ClientMessageHandler<ChargeRentPointRequest>
+    SelectedSessionSafety safety,ILogger<ChargeRentPointHandler> logger) : ClientMessageHandler<ChargeRentPointRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,ChargeRentPointRequest message,CancellationToken ct)
     {
         var actor=sessions.FindByConnection(context.Connection.ConnectionId);
         if(actor is null||message.Mode!=1){await sender.SendCmdAsync(context.Connection.ConnectionId,new ChargeRentPointResponse(1,0,0,1),ct);return;}
-        await using var lease=await transitions.BorrowOrAcquireExclusiveAsync(actor.AccountId,ct);
         var recipient=safety.Capture(actor);safety.DemandCurrent(recipient);
         var result=await commands.SendAsync(new ChargeRentPointCommand(actor,message.Count),ct);safety.DemandCurrent(recipient);
         logger.LogInformation("Lucky star purchase character={Character} count={Count} result={Result} balance={Balance}",actor.CharacterId,message.Count,result.Rejection,result.Balance);

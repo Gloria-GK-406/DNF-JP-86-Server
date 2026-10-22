@@ -8,7 +8,6 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Inventory;
@@ -79,7 +78,7 @@ public sealed class TeleportCommandHandler(ITeleportConsumableDomainService tele
 public sealed class TeleportHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ISelectedCharacterCurrentViewDomainService currentViews, ITownAreaDomainService townAreas,
     IInventorySlotMappingRuleService mappings, IChannelEntryPolicy channels, ICommandBus commands,
-    SelectedSessionTransitionGate transitions, TownAreaProjectionDelivery townProjection,
+    TownAreaProjectionDelivery townProjection,
     IGameMessageSender sender, ILogger<TeleportHandler> logger) : ClientMessageHandler<TeleportRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, TeleportRequest request, CancellationToken ct)
@@ -91,7 +90,6 @@ public sealed class TeleportHandler(ISelectedSessionDomainService sessions, IOnl
             await sender.SendCmdAsync(context.Connection.ConnectionId, new TeleportResponse(), ct).ConfigureAwait(false);
             return;
         }
-        await using var lease = await transitions.BorrowOrAcquireExclusiveAsync(session.AccountId, ct).ConfigureAwait(false);
         var view = await currentViews.TryLoadAsync(session, ct).ConfigureAwait(false);
         var previous = townAreas.Find(session.CharacterId);
         if (view is null || previous is null || !session.Owns(previous)) return;

@@ -87,26 +87,9 @@ public sealed class EquipCarriedTitleReplacingMirrorCommandHandler(ITitleBookDom
         titles.EquipCarriedTitleReplacingMirrorAsync(command.Session.CharacterId, command.Source, command.ItemId, command.Category, command.Index, ct);
 }
 
-// Bounded stripes keep committed title projections and request confirmations ordered.
-// They coordinate only protocol delivery, never durable consumers.
-public sealed class AchievementTitleProjectionGate
-{
-    private readonly SemaphoreSlim[] gates = Enumerable.Range(0, 64).Select(_ => new SemaphoreSlim(1)).ToArray();
-    public ValueTask<IDisposable> EnterAsync(CharacterId character, CancellationToken ct)
-    {
-        var gate = gates[(uint)character.Value % (uint)gates.Length];
-        GameplayGateAssertion.Enter(gate, nameof(AchievementTitleProjectionGate), ct);
-        return ValueTask.FromResult<IDisposable>(new Lease(gate));
-    }
-    private sealed class Lease(SemaphoreSlim gate) : IDisposable
-    {
-        private bool disposed;
-        public void Dispose() { if (disposed) return; disposed = true; gate.Release(); }
-    }
-}
 internal sealed class TitleBookMutationHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
     IInventorySlotMappingRuleService mapping, ICommandBus commands, IGameMessageSender sender,
-    AchievementTitleProjectionGate gate, ILogger<TitleBookMutationHandler> logger) : ClientMessageHandler<TitleBookMutationRequest>
+    ILogger<TitleBookMutationHandler> logger) : ClientMessageHandler<TitleBookMutationRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, TitleBookMutationRequest message, CancellationToken ct)
     {
@@ -117,7 +100,6 @@ internal sealed class TitleBookMutationHandler(ISelectedSessionDomainService ses
         if (!message.Complete || (message.Space is not (0 or 3) && !replaceMirror) || message.Slot < 0 || message.Category is < 0 or > 4 || message.Index < 0
             || session is null || !users.TryGetByConnection(context.Connection.ConnectionId, out var user) || user is null)
         { await Refuse(); return; }
-        using var held = await gate.EnterAsync(session.CharacterId, ct).ConfigureAwait(false);
         TitleBookMutationResult result;
         try
         {
@@ -181,14 +163,11 @@ public sealed class QueryTitleBookHandler(ISelectedSessionDomainService sessions
 internal sealed record TitleBookChanged(CharacterId Character, int? Category = null, TitleUnlocked? Unlock = null,
     BusinessSlot? ChangedSlot = null, InventoryContainerType? ChangedContainer = null, bool RefreshCarriedInventory = false,
     int? ChangedIndex = null, bool RefreshBook = false) : INotification<TitleBookChanged>;
-internal sealed class TitleBookEventSubscriber(IEventService events, AchievementTitleProjectionGate gate)
+internal sealed class TitleBookEventSubscriber(IEventService events)
     : IDomainEventSubscriber<TitleUnlocked>, IDomainEventSubscriber<TitleStored>, IDomainEventSubscriber<TitleWithdrawn>, IDomainEventSubscriber<ItemMirrorRemoved>, IDomainEventSubscriber<TitleAppearanceChanged>
 {
-    private async ValueTask ProjectAsync(TitleBookChanged notice, CancellationToken ct)
-    {
-        using var held = await gate.EnterAsync(notice.Character, ct).ConfigureAwait(false);
+    private async ValueTask ProjectAsync(TitleBookChanged notice, CancellationToken ct) =>
         await events.ProjectAsync(new NotificationAudience.TheseCharacters([notice.Character]), notice, ct).ConfigureAwait(false);
-    }
     public ValueTask HandleAsync(DomainEventEnvelope<TitleUnlocked> message, CancellationToken ct) =>
         ProjectAsync(new(message.Payload.CharacterId, message.Payload.Category, message.Payload, ChangedIndex: message.Payload.Index), ct);
     public ValueTask HandleAsync(DomainEventEnvelope<TitleStored> message, CancellationToken ct) =>

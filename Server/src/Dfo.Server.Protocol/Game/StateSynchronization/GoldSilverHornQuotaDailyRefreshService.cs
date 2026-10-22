@@ -2,7 +2,6 @@ using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Execution;
@@ -12,7 +11,7 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.StateSynchronization;
 
 public sealed class GoldSilverHornQuotaDailyRefreshService(ISelectedSessionSnapshotQuery directory,
-    ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
+    ISelectedSessionDomainService sessions,
     UsageQuotaProjectionDelivery delivery, IDailyResetRuleService daily, TimeProvider clock,
     ILogger<GoldSilverHornQuotaDailyRefreshService> logger, IGameplayQueue queue) : BackgroundService
 {
@@ -31,7 +30,6 @@ public sealed class GoldSilverHornQuotaDailyRefreshService(ISelectedSessionSnaps
             if (delivered.TryGetValue(session, out var previous) && previous == period) continue;
             try
             {
-                await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
                 if (!sessions.IsInWorld(session)) continue;
                 var result = await delivery.SendAsync(session, UsageQuotaFamily.GoldSilverHorn, ct).ConfigureAwait(false);
                 if (sessions.IsInWorld(session) && result.Attempts.Any(x =>

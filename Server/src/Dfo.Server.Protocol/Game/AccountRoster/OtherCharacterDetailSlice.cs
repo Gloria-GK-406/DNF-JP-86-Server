@@ -4,7 +4,6 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
@@ -98,7 +97,6 @@ internal sealed class OtherCharacterDetailResponseEncoder
 
 public sealed class GetOtherCharacterDetailHandler(
     ISelectedSessionDomainService sessions,
-    SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     IEventService notifications,
     ILogger<GetOtherCharacterDetailHandler> logger)
@@ -128,28 +126,21 @@ public sealed class GetOtherCharacterDetailHandler(
             return;
         }
 
-        var result = await ExecuteExactAsync(
-            requester,
-            target,
-            () =>
-            {
-                if (!sessions.IsInWorld(requester))
-                {
-                    return ValueTask.FromResult(CharacterDetailQueryResult.Reject(
-                        CharacterDetailQueryFailure.RequesterNotCurrent));
-                }
-
-                if (!sessions.IsInWorld(target))
-                {
-                    return ValueTask.FromResult(CharacterDetailQueryResult.Reject(
-                        CharacterDetailQueryFailure.TargetNotCurrent));
-                }
-
-                return commands.SendAsync(
-                    new QueryOtherCharacterDetailCommand(requester, message.TargetWireUserId),
-                    cancellationToken);
-            },
-            cancellationToken).ConfigureAwait(false);
+        CharacterDetailQueryResult result;
+        if (!sessions.IsInWorld(requester))
+        {
+            result = CharacterDetailQueryResult.Reject(CharacterDetailQueryFailure.RequesterNotCurrent);
+        }
+        else if (!sessions.IsInWorld(target))
+        {
+            result = CharacterDetailQueryResult.Reject(CharacterDetailQueryFailure.TargetNotCurrent);
+        }
+        else
+        {
+            result = await commands.SendAsync(
+                new QueryOtherCharacterDetailCommand(requester, message.TargetWireUserId),
+                cancellationToken).ConfigureAwait(false);
+        }
 
         if (result.Projection is { } projection)
         {
@@ -165,34 +156,5 @@ public sealed class GetOtherCharacterDetailHandler(
             message.TargetWireUserId,
             result.Succeeded,
             result.Failure);
-    }
-
-    private async ValueTask<TResult> ExecuteExactAsync<TResult>(
-        SelectedSessionIdentity requester,
-        SelectedSessionIdentity target,
-        Func<ValueTask<TResult>> action,
-        CancellationToken cancellationToken)
-    {
-        var accounts = requester.AccountId == target.AccountId
-            ? [requester.AccountId]
-            : new[] { requester.AccountId, target.AccountId }
-                .OrderBy(value => value.Value)
-                .ToArray();
-        var leases = new List<IAsyncDisposable>(accounts.Length);
-        try
-        {
-            foreach (var account in accounts)
-            {
-                leases.Add(await transitionGate.AcquireAsync(
-                    account, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
-            }
-
-            return await action().ConfigureAwait(false);
-        }
-        finally
-        {
-            for (var index = leases.Count - 1; index >= 0; index--)
-                await leases[index].DisposeAsync().ConfigureAwait(false);
-        }
     }
 }

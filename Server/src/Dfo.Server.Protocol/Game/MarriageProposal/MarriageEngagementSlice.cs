@@ -2,7 +2,6 @@ using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.Networking;
@@ -110,30 +109,27 @@ internal sealed class WeddingPartnerEncoder : GameCmdMessageEncoder<WeddingPartn
 }
 
 internal sealed class WeddingPartnerHandler(ISelectedSessionDomainService sessions, IMarriageQueryDomainService marriage,
-    IGameMessageSender sender, SelectedSessionTransitionGate gate, ICommandBus commands) : ClientMessageHandler<WeddingPartnerQuery>
+    IGameMessageSender sender, ICommandBus commands) : ClientMessageHandler<WeddingPartnerQuery>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeddingPartnerQuery message, CancellationToken ct)
     {
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        await WeddingProposalExecution.RunAsync(gate, session, session, async () =>
+        var snapshot = session is null || !sessions.IsInWorld(session) ? MarriageEngagementSnapshot.Empty
+            : await marriage.SnapshotAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
+        var peer = snapshot.Partner;
+        if (peer is not null && message.Target != 0 && message.Target != peer.CharacterId) peer = null;
+        var messages = new List<IGameServerMessage> { new WeddingPartnerAck(peer) };
+        if (peer is not null && snapshot.IsCeremonyReserved && session is not null)
         {
-            var snapshot = session is null || !sessions.IsInWorld(session) ? MarriageEngagementSnapshot.Empty
-                : await marriage.SnapshotAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
-            var peer = snapshot.Partner;
-            if (peer is not null && message.Target != 0 && message.Target != peer.CharacterId) peer = null;
-            var messages = new List<IGameServerMessage> { new WeddingPartnerAck(peer) };
-            if (peer is not null && snapshot.IsCeremonyReserved && session is not null)
+            var prepared = await commands.SendAsync(new PrepareMarriageChurchCommand(session), ct).ConfigureAwait(false);
+            if (prepared.Snapshot is { } church)
             {
-                var prepared = await commands.SendAsync(new PrepareMarriageChurchCommand(session), ct).ConfigureAwait(false);
-                if (prepared.Snapshot is { } church)
-                {
-                    messages.Add(new WeddingChurchPreparationNotification(church, await marriage.RemainingInvitationsAsync(church.Room.CeremonyId, session.CharacterId, ct).ConfigureAwait(false)));
-                    messages.Add(new WeddingInvitedGuestsNotification(await marriage.InvitedAsync(church.Room.CeremonyId, ct).ConfigureAwait(false)));
-                }
+                messages.Add(new WeddingChurchPreparationNotification(church, await marriage.RemainingInvitationsAsync(church.Room.CeremonyId, session.CharacterId, ct).ConfigureAwait(false)));
+                messages.Add(new WeddingInvitedGuestsNotification(await marriage.InvitedAsync(church.Room.CeremonyId, ct).ConfigureAwait(false)));
             }
-            if (session is not null && await marriage.AppearanceAsync(session, ct).ConfigureAwait(false) is { } appearance)
-                messages.Add(new WeddingAvatarNotification(appearance));
-            await sender.SendExplicitAsync(context.Connection.ConnectionId, new(messages, []), ct).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
+        }
+        if (session is not null && await marriage.AppearanceAsync(session, ct).ConfigureAwait(false) is { } appearance)
+            messages.Add(new WeddingAvatarNotification(appearance));
+        await sender.SendExplicitAsync(context.Connection.ConnectionId, new(messages, []), ct).ConfigureAwait(false);
     }
 }
