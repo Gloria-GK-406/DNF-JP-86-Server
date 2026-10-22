@@ -65,3 +65,15 @@ public interface INetworkConnectionObserver
 
     ValueTask DisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken);
 }
+
+/// <summary>
+/// What the transport calls when a connection is established or lost (RQ-012): every
+/// <see cref="INetworkConnectionObserver"/> runs, in registration order, as one lifecycle CMD.
+/// Returns once that CMD has run (not delivered), like <see cref="INetworkMessageDispatcher"/>.
+/// </summary>
+public interface INetworkConnectionLifecycleDispatcher
+{
+    ValueTask DispatchConnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken);
+
+    ValueTask DispatchDisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken);
+}

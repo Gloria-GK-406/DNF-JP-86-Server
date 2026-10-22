@@ -28,7 +28,7 @@ public sealed class ReceivedStreamBoundaryTests
         connections.Add(session, NetworkEndpointKind.Game);
         var dispatcher = new RecordingDispatcher();
         var services = new ServiceCollection().AddSingleton<GameDecoder>().BuildServiceProvider();
-        var plugin = new GameNetworkPlugin(connections, [], dispatcher,
+        var plugin = new GameNetworkPlugin(connections, null!, dispatcher,
             new GameMessageDecoderRegistry([new GameMessageDecoderRegistration(1, 0x0003, typeof(GameDecoder))], services),
             NullLogger<GameNetworkPlugin>.Instance);
         var frame = new GameClientFrameRequestInfo();
@@ -54,7 +54,7 @@ public sealed class ReceivedStreamBoundaryTests
         connections.Add(session, NetworkEndpointKind.Channel);
         var dispatcher = new RecordingDispatcher();
         var services = new ServiceCollection().AddSingleton<ChannelDecoder>().BuildServiceProvider();
-        var plugin = new ChannelNetworkPlugin(connections, [], dispatcher,
+        var plugin = new ChannelNetworkPlugin(connections, null!, dispatcher,
             new ChannelMessageDecoderRegistry([new ChannelMessageDecoderRegistration(0x0B, typeof(ChannelDecoder))], services),
             NullLogger<ChannelNetworkPlugin>.Instance);
         var frame = new ChannelFrameRequestInfo();

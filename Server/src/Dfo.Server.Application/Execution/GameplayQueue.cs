@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 
 namespace Dfo.Server.Application.Execution;
 
@@ -99,6 +100,9 @@ public static class GameplayExecutionServiceCollectionExtensions
         services.TryAddSingleton<GameplayExecutor>();
         services.TryAddSingleton<GameplayShardSelector>();
         services.TryAddSingleton<IGameplayQueue, GameplayQueue>();
+        // A host stops the executor after its services and producers (RQ-009); a bare container
+        // still stops it on disposal.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, GameplayExecutorLifetime>());
         return services;
     }
 }

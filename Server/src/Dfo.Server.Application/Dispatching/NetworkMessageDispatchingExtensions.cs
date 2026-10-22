@@ -15,6 +15,7 @@ public static class NetworkMessageDispatchingExtensions
         Commands.CommandDispatchingExtensions.AddCommandDispatching(services);
         services.TryAddSingleton<MessageHandlerRegistry>();
         services.TryAddSingleton<INetworkMessageDispatcher, NetworkMessageDispatcher>();
+        services.TryAddSingleton<INetworkConnectionLifecycleDispatcher, NetworkConnectionLifecycleDispatcher>();
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, MessageHandlerRegistryValidationService>());
         return services;

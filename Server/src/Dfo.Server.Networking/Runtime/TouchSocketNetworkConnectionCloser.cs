@@ -27,10 +27,22 @@ internal sealed class TouchSocketNetworkConnectionCloser(
         return ValueTask.CompletedTask;
     }
 
-    private async Task CloseDetachedAsync(IClosableClient session)
+    // The close must not carry the caller's context (3e): close callbacks run inline by it would
+    // otherwise see the requesting job's token and frames. CloseAsync returns at its Yield, still on
+    // this thread, so the flow is restored where it was suppressed.
+    private Task CloseDetachedAsync(IClosableClient session)
+    {
+        // Suppressing an already suppressed flow throws.
+        if (ExecutionContext.IsFlowSuppressed()) return CloseAsync(session);
+        using (ExecutionContext.SuppressFlow())
+            return CloseAsync(session);
+    }
+
+    private async Task CloseAsync(IClosableClient session)
     {
         // TouchSocket waits for the active receive callback to finish while closing. Protocol
         // handlers run inside that callback, so awaiting the close here would wait on ourselves.
+        // Yield rather than Task.Run: the close is scheduled exactly as before 3e.
         await Task.Yield();
         try
         {
@@ -39,7 +51,14 @@ internal sealed class TouchSocketNetworkConnectionCloser(
         }
         catch (Exception error)
         {
-            logger.LogWarning(error, "Requested network connection close failed");
+            try
+            {
+                logger.LogWarning(error, "Requested network connection close failed");
+            }
+            catch (Exception)
+            {
+                // Nothing is left to report to.
+            }
         }
     }
 }

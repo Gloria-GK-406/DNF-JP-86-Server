@@ -11,46 +11,52 @@ namespace Dfo.Server.Networking.Runtime;
 
 internal abstract class NetworkPluginBase(
     TouchSocketConnectionRegistry connections,
-    IEnumerable<INetworkConnectionObserver> observers,
+    INetworkConnectionLifecycleDispatcher lifecycle,
     NetworkEndpointKind endpointKind) : PluginBase, ITcpConnectedPlugin, ITcpClosedPlugin
 {
     protected TouchSocketConnectionRegistry Connections { get; } = connections;
 
     protected NetworkEndpointKind EndpointKind { get; } = endpointKind;
 
-    public async Task OnTcpConnected(ITcpSession client, ConnectedEventArgs e)
+    // Stream boundaries, like the receive callbacks. The registry is transport state and changes
+    // here, before the lifecycle CMD is enqueued.
+    public Task OnTcpConnected(ITcpSession client, ConnectedEventArgs e) => GameplayJob.RunDetachedAsync(async () =>
     {
         var context = Connections.Add(client, EndpointKind);
-        foreach (var observer in observers)
-        {
-            await observer.ConnectedAsync(context, CancellationToken.None);
-        }
+        await lifecycle.DispatchConnectedAsync(context, CancellationToken.None);
 
         await e.InvokeNext();
-    }
+    }).AsTask();
 
-    public async Task OnTcpClosed(ITcpSession client, ClosedEventArgs e)
+    // Counted as in flight from the removal until its lifecycle CMD has run, so the transport drain
+    // cannot see an empty registry while a teardown is still to be enqueued.
+    public Task OnTcpClosed(ITcpSession client, ClosedEventArgs e) => GameplayJob.RunDetachedAsync(async () =>
     {
-        var connectionId = TouchSocketConnectionRegistry.CreateConnectionId(client, EndpointKind);
-        if (Connections.TryRemove(connectionId, out var context))
+        Connections.BeginClosing();
+        try
         {
-            foreach (var observer in observers)
+            var connectionId = TouchSocketConnectionRegistry.CreateConnectionId(client, EndpointKind);
+            if (Connections.TryRemove(connectionId, out var context))
             {
-                await observer.DisconnectedAsync(context!, CancellationToken.None);
+                await lifecycle.DispatchDisconnectedAsync(context!, CancellationToken.None);
             }
         }
+        finally
+        {
+            Connections.EndClosing();
+        }
 
         await e.InvokeNext();
-    }
+    }).AsTask();
 }
 
 internal sealed class ChannelNetworkPlugin(
     TouchSocketConnectionRegistry connections,
-    IEnumerable<INetworkConnectionObserver> observers,
+    INetworkConnectionLifecycleDispatcher lifecycle,
     INetworkMessageDispatcher dispatcher,
     ChannelMessageDecoderRegistry decoders,
     ILogger<ChannelNetworkPlugin> logger)
-    : NetworkPluginBase(connections, observers, NetworkEndpointKind.Channel), ITcpReceivedPlugin
+    : NetworkPluginBase(connections, lifecycle, NetworkEndpointKind.Channel), ITcpReceivedPlugin
 {
     // Stream boundary: whatever context TouchSocket runs this on, the dispatch it starts is off the executor.
     public Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e) => GameplayJob.RunDetachedAsync(async () =>
@@ -126,11 +132,11 @@ internal sealed class ChannelNetworkPlugin(
 
 internal sealed class GameNetworkPlugin(
     TouchSocketConnectionRegistry connections,
-    IEnumerable<INetworkConnectionObserver> observers,
+    INetworkConnectionLifecycleDispatcher lifecycle,
     INetworkMessageDispatcher dispatcher,
     GameMessageDecoderRegistry decoders,
     ILogger<GameNetworkPlugin> logger)
-    : NetworkPluginBase(connections, observers, NetworkEndpointKind.Game), ITcpReceivedPlugin
+    : NetworkPluginBase(connections, lifecycle, NetworkEndpointKind.Game), ITcpReceivedPlugin
 {
     private readonly ConditionalWeakTable<NetworkConnectionContext, GameInboundFrameCounter> frameCounters = new();
 

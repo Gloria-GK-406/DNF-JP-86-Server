@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Networking.Configuration;
 using Dfo.Server.Networking.Framing;
@@ -53,6 +54,8 @@ public sealed class NetworkingModule : IServerModule
         services.TryAddSingleton<GameMessageDecoderRegistry>();
         services.TryAddSingleton<ChannelMessageDecoderRegistry>();
         services.TryAddSingleton<ServerMessageEncoderRegistry>();
+        // Registered with networking disabled too: an empty registry drains at once.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayProducerDrain, TouchSocketTransportDrain>());
 
         if (!options.Enabled)
         {

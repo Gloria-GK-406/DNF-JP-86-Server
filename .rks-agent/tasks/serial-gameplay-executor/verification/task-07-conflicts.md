@@ -204,3 +204,26 @@ TASK-06 Remaining 第 3 条的各项按 TASK-07 §6.1 原样保留，加上本�
 - T-008：0 ＋ 1 ＝ 1；
 - TASK-09 已删除：1。
 - 加法：14 ＋ 67 ＋ 53 ＋ 1 ＋ 1 ＝ 136。
+
+## 8. TASK-10 处置（2026-10-22，基准 `1eea890f`）
+
+只记 §1.2 中分给 TASK-10 的 7 条的去向，其余条目不变。7 条都在测试线程上直接构造 `OnlineUserConnectionObserver`（或直接调用 handler），不经插件，本单元没有改变它们的执行位置；正式全量中全部通过，按拆分原则第 5 条顺延 T-004c。本单元没有出现 TASK-10 §9 第 (ii)、(v)、(vi) 类新冲突。
+
+| 用例 | 本单元全量中 | 去向 | 承接保护意图的本单元用例 |
+|---|---|---|---|
+| `SelectCharacterLifecycleTests:236` `DisconnectWinningTransitionGate_PreventsPreparationMutationAndPublication` | 通过 | 顺延 T-004c | `LifecycleExecutorWireTests.A_disconnect_during_an_inbound_job_starts_only_after_that_job_completes`（W6） |
+| `…:261` `CommandHoldingTransitionGate_BlocksDisconnectCleanupUntilRegisteredFlowCompletes` | 通过 | 顺延 T-004c | W6 |
+| `…:288` `ObserverQueuedBeforeRollbackClose_CompletesAfterGateRelease` | 通过 | 顺延 T-004c | `LifecycleExecutorWireTests.A_cmd_closing_its_own_source_connection_does_not_wait_on_itself`（W7） |
+| `…:365` `OrphanedDisconnectWaitingForLifecycleGateDoesNotCleanupAReplacementSession` | 通过 | 顺延 T-004c | `SerialDisconnectTests.The_old_connections_disconnect_after_a_replacement_session_neither_cleans_nor_deselects_it`（P1） |
+| `OnlineUserServiceTests:30` `DisconnectWaitingForLifecycleKeepsItsCapturedSessionAndDoesNotCleanReplacement` | 通过 | 顺延 T-004c | P1 |
+| `…:67` `TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse`（Theory，2 例） | 通过 | 顺延 T-004c（门删除时直接删除） | 无：测的是两把门之间的锁序 |
+| `…:519` `DisconnectObservedBeforeAuthentication_DoesNotRemoveNewerGeneration` | 通过 | 顺延 T-004c | W6（同一连接上断开只排在最后一条入站之后，过期的观察不再出现）＋ `SerialDisconnectTests.The_old_connections_disconnect_after_a_newer_login_leaves_the_newer_identity_and_its_generation`（P2，跨连接不误删） |
+
+按执行单元的新分布（总数 136 不变）：
+
+- T-004b：14 － 7 ＝ 7（TASK-11 3 ＋ TASK-12 1 ＋ TASK-13 2 ＋ 原已标「顺延 T-004c」的 `ReplayStateSnapshotTests:206` 1 ＝ 7）；
+- T-004c：67 ＋ 7 ＝ 74；
+- T-006：53；
+- T-008：1；
+- TASK-09 已删除：1。
+- 加法：7 ＋ 74 ＋ 53 ＋ 1 ＋ 1 ＝ 136。
