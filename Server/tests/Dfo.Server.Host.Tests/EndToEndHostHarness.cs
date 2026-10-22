@@ -539,6 +539,7 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
     private static void Append(StringBuilder output, string? line)
     {
         if (line is null) return;
+        Dfo.Server.Testing.GameplayAssertionRecorder.ObserveHostOutput(line);
         lock (output) output.AppendLine(line);
     }
 

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
@@ -22,6 +23,7 @@ internal sealed class OnlineCharacterRuntimeDomainService(TimeProvider clock)
 
     public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(Begin));
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(position);
         entries[session.CharacterId] = new Entry(
@@ -31,6 +33,7 @@ internal sealed class OnlineCharacterRuntimeDomainService(TimeProvider clock)
 
     public bool EndExact(SelectedSessionIdentity session)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(EndExact));
         ArgumentNullException.ThrowIfNull(session);
         while (entries.TryGetValue(session.CharacterId, out var current) && current.Session == session)
         {
@@ -52,12 +55,18 @@ internal sealed class OnlineCharacterRuntimeDomainService(TimeProvider clock)
         entries.TryGetValue(characterId, out var entry) ? entry.Position : null;
 
     public CharacterPositionState CrossInto(
-        SelectedSessionIdentity session, byte townId, byte areaId, short x, short y) =>
-        Move(session, current => current with { TownId = townId, AreaId = areaId, X = x, Y = y });
+        SelectedSessionIdentity session, byte townId, byte areaId, short x, short y)
+    {
+        GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(CrossInto));
+        return Move(session, current => current with { TownId = townId, AreaId = areaId, X = x, Y = y });
+    }
 
     public CharacterPositionState StepTo(
-        SelectedSessionIdentity session, short x, short y, byte direction) =>
-        Move(session, current => current with { X = x, Y = y, Direction = direction });
+        SelectedSessionIdentity session, short x, short y, byte direction)
+    {
+        GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(StepTo));
+        return Move(session, current => current with { X = x, Y = y, Direction = direction });
+    }
 
     public byte HpPercentOf(CharacterId characterId) =>
         entries.TryGetValue(characterId, out var entry) ? entry.HpPercent : (byte)0;
@@ -74,6 +83,7 @@ internal sealed class OnlineCharacterRuntimeDomainService(TimeProvider clock)
     /// </remarks>
     public void StartCooldown(SelectedSessionIdentity session, ItemCooldownKey key, TimeSpan duration)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(StartCooldown));
         ArgumentNullException.ThrowIfNull(session);
         if (duration <= TimeSpan.Zero)
             return;
@@ -83,6 +93,7 @@ internal sealed class OnlineCharacterRuntimeDomainService(TimeProvider clock)
 
     public void ApplySpiritPotion(SelectedSessionIdentity session, double bonusRate, TimeSpan duration)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(ApplySpiritPotion));
         ArgumentNullException.ThrowIfNull(session);
         if (!double.IsFinite(bonusRate) || bonusRate <= 0)
             throw new ArgumentOutOfRangeException(nameof(bonusRate));

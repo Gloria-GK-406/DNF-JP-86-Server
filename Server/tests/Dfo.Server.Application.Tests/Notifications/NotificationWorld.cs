@@ -230,22 +230,22 @@ internal sealed class NotificationWorld
             state, new AccountId(characterId.Value), characterId, $"Game:{characterId.Value}");
 
     /// <summary>The connection is revoked under the session, which waits for its teardown.</summary>
-    public void Revoke(CharacterId characterId) =>
-        Assert.True(state.TryDisconnectConnection(playing[characterId].ConnectionId));
+    public void Revoke(CharacterId characterId) => TestGameplay.Run(() =>
+        Assert.True(state.TryDisconnectConnection(playing[characterId].ConnectionId)));
 
-    public void Leave(CharacterId characterId) => sessions.ReleaseExact(playing[characterId]);
+    public void Leave(CharacterId characterId) => TestGameplay.Run(() => sessions.ReleaseExact(playing[characterId]));
 
     /// <summary>The same character, back on a connection this publish never resolved.</summary>
-    public void Reconnect(CharacterId characterId)
+    public void Reconnect(CharacterId characterId) => TestGameplay.Run(() =>
     {
         var previous = playing[characterId];
         sessions.ReleaseExact(previous);
         state.TryDisconnectConnection(previous.ConnectionId);
         playing[characterId] = sessions.InWorld(
             state, previous.AccountId, characterId, $"Game:{characterId.Value}-again", previous.ListenerPort);
-    }
+    });
 
-    public void ReplaceKeepingConnection(CharacterId characterId, int listenerPort)
+    public void ReplaceKeepingConnection(CharacterId characterId, int listenerPort) => TestGameplay.Run(() =>
     {
         var previous = playing[characterId];
         sessions.ReleaseExact(previous);
@@ -258,7 +258,7 @@ internal sealed class NotificationWorld
         sessions.Select(session);
         sessions.EnterWorld(session);
         playing[characterId] = session;
-    }
+    });
 
     public NetworkConnectionId ConnectionOf(CharacterId characterId) =>
         playing[characterId].ConnectionId;

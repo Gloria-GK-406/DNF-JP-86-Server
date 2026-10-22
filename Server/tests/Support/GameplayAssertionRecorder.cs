@@ -31,6 +31,33 @@ internal static class GameplayAssertionRecorder
         DiagnosticListener.AllListeners.Subscribe(new Sources());
     }
 
+    /// <summary>
+    /// TASK-18 section 5.2: a packaged Host has no recorder of its own, so the fixtures that start one pass every
+    /// line of its output here. A line naming an assertion exception is recorded as kind <c>exe:&lt;type&gt;</c>, which
+    /// the evidence script always counts as outside. A violation the Host swallows without printing stays unseen.
+    /// </summary>
+    internal static void ObserveHostOutput(string? line)
+    {
+        if (path is null || ViolationIn(line) is not { } type) return;
+        Record(new GameplayAssertionViolation("exe:" + type, line!.Trim()));
+    }
+
+    /// <summary>The assertion exception named in one line of Host output, if any.</summary>
+    internal static string? ViolationIn(string? line)
+    {
+        if (string.IsNullOrEmpty(line)) return null;
+        foreach (var type in HostViolationTypes)
+            if (line.Contains(type, StringComparison.Ordinal)) return type;
+        return null;
+    }
+
+    private static readonly string[] HostViolationTypes =
+    [
+        nameof(GameplayOffExecutorException),
+        nameof(GameplayGateWaitException),
+        nameof(GameplayLeakedFlowException),
+    ];
+
     private static void Record(GameplayAssertionViolation violation)
     {
         var frames = Environment.StackTrace

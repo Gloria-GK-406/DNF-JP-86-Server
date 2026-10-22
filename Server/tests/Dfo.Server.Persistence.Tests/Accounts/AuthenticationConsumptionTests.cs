@@ -6,7 +6,7 @@ namespace Dfo.Server.Persistence.Tests.Accounts;
 public sealed class AuthenticationConsumptionTests
 {
     [Fact]
-    public async Task ExactCredentialBindsAgainButOverlappingUncommittedBindsAreRejected()
+    public async Task ExactCredentialBindsAgainButWrongCredentialsAreRejected()
     {
         using var fixture = new AuthenticationFixture();
         await fixture.RegisterAsync("player", "test password");
@@ -16,16 +16,13 @@ public sealed class AuthenticationConsumptionTests
         Assert.Null(await fixture.Consume(login.MId!, new string('x', 32)));
         Assert.Null(await fixture.Consume(login.MId!, login.Ticket + "?"));
         var service = (Dfo.Server.Abstractions.Authentication.IAuthenticationDomainService)fixture.Services.GetService(typeof(Dfo.Server.Abstractions.Authentication.IAuthenticationDomainService))!;
-        await using (var first = fixture.Scope.Begin())
+        // Two binds can no longer overlap uncommitted: one gameplay job opens one unit of work at a time.
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
+            await using var first = fixture.Scope.Begin();
             Assert.NotNull(await service.BindSessionAsync(new Dfo.Server.Data.Networking.NetworkConnectionId("first"), login.MId!, login.Ticket!, default));
-            // Suppress ambient transaction flow: the competing connection owns another transaction.
-            Task<Dfo.Server.Data.Accounts.AccountId?> competing;
-            using (System.Threading.ExecutionContext.SuppressFlow())
-                competing = Task.Run(() => fixture.Consume(login.MId!, login.Ticket!));
-            Assert.Null(await competing);
             await first.CommitAsync(default);
-        }
+        });
         Assert.NotNull(await fixture.Consume(login.MId!, login.Ticket!));
     }
 

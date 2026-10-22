@@ -20,6 +20,7 @@
     <Compile Include="../Support/TestSessions.cs" Link="Support/TestSessions.cs" />
     <Compile Include="../Support/TestGameplay.cs" Link="Support/TestGameplay.cs" />
     <Compile Include="../Support/GameplayAssertionRecorder.cs" Link="Support/GameplayAssertionRecorder.cs" />
+    <Compile Include="../Support/GameplayAssertionRecorderControlTests.cs" Link="Support/GameplayAssertionRecorderControlTests.cs" />
     <Compile Include="../Support/TestCredentials.cs" Link="Support/TestCredentials.cs" />
     <ProjectReference Include="..\..\src\Dfo.Server.Host\Dfo.Server.Host.csproj" />
   </ItemGroup>

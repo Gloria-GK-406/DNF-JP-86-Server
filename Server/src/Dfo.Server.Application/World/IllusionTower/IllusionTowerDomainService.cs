@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -54,13 +55,17 @@ internal sealed class IllusionTowerDomainService(
 
     public bool TryReserveOrdinaryEntry(IReadOnlyList<CharacterId> members)
     {
+        GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(TryReserveOrdinaryEntry));
         if (members.Any(x => IsInTower(x) || participation?.Find(x) is { Mode: not DungeonParticipationMode.Ordinary })) return false;
         if (scope.Current is not null) Pending.OrdinaryEntries.UnionWith(members);
         return true;
     }
 
     public ValueTask<TowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members,
-        SelectedSessionIdentity leader, uint seed, CancellationToken token, int dungeonId = 11001) => Execute(async () =>
+        SelectedSessionIdentity leader, uint seed, CancellationToken token, int dungeonId = 11001)
+    {
+        GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(EnterAsync));
+        return Execute(async () =>
     {
         TowerEntryResult Refuse(string reason, byte? slot = null) => new(reason, null, []) { BlockedSlot = slot };
         if (members.Count is < 1 or > 4 || !members.Any(x => x.Session == leader)
@@ -130,6 +135,7 @@ internal sealed class IllusionTowerDomainService(
         Pending.Add(run);
         return new TowerEntryResult(null, run.Snapshot(), debits);
     }, token);
+    }
 
     private IllusionTowerDgn? Match(TowerActionContext context, bool leaving = false)
     {
@@ -150,13 +156,25 @@ internal sealed class IllusionTowerDomainService(
         if (result.Changed) Pending.Put(current, next);
         return ValueTask.FromResult(result);
     }, token);
-    public ValueTask<TowerActionResult> LoadAsync(TowerActionContext context, CancellationToken token) =>
-        Mutate(context, run => run.Load(context.Session), token);
-    public ValueTask<TowerActionResult> StartAsync(TowerActionContext context, CancellationToken token) =>
-        Mutate(context, run => run.Start(context.Session, clock.GetUtcNow()), token);
-    public ValueTask<TowerActionResult> KillAsync(TowerActionContext context, ushort actorUid, CancellationToken token) =>
-        RewardingMutation(context, run => run.Kill(context.Session, actorUid, clock.GetUtcNow()), token);
-    public ValueTask<TowerPickupResult> PickupAsync(TowerActionContext context, ushort groundUid, CancellationToken token) => Execute(async () =>
+    public ValueTask<TowerActionResult> LoadAsync(TowerActionContext context, CancellationToken token)
+    {
+        GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(LoadAsync));
+        return Mutate(context, run => run.Load(context.Session), token);
+    }
+    public ValueTask<TowerActionResult> StartAsync(TowerActionContext context, CancellationToken token)
+    {
+        GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(StartAsync));
+        return Mutate(context, run => run.Start(context.Session, clock.GetUtcNow()), token);
+    }
+    public ValueTask<TowerActionResult> KillAsync(TowerActionContext context, ushort actorUid, CancellationToken token)
+    {
+        GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(KillAsync));
+        return RewardingMutation(context, run => run.Kill(context.Session, actorUid, clock.GetUtcNow()), token);
+    }
+    public ValueTask<TowerPickupResult> PickupAsync(TowerActionContext context, ushort groundUid, CancellationToken token)
+    {
+        GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(PickupAsync));
+        return Execute(async () =>
     {
         var current = Match(context);
         TowerPickupResult Refuse(bool noRoom = false) => new(new(false, current?.Snapshot()), groundUid, null, noRoom);
@@ -172,7 +190,11 @@ internal sealed class IllusionTowerDomainService(
         Pending.Put(current, next);
         return new TowerPickupResult(next.Result(true), groundUid, update);
     }, token);
-    public ValueTask<TowerActionResult> NextLevelAsync(TowerActionContext context, CancellationToken token) => Execute(async () =>
+    }
+    public ValueTask<TowerActionResult> NextLevelAsync(TowerActionContext context, CancellationToken token)
+    {
+        GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(NextLevelAsync));
+        return Execute(async () =>
     {
         var current = Match(context);
         if (current is null) return new TowerActionResult(false, null);
@@ -184,18 +206,32 @@ internal sealed class IllusionTowerDomainService(
         Pending.Put(current, next);
         return result;
     }, token);
-    public ValueTask<TowerActionResult> DieAsync(TowerActionContext context, CancellationToken token) =>
-        RewardingMutation(context, run => run.Die(context.Session, clock.GetUtcNow()), token);
-    public ValueTask<TowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected, CancellationToken token) =>
-        RewardingMutation(context, run => run.Leave(context.Session, disconnected, clock.GetUtcNow()), token, leaving: true);
+    }
+    public ValueTask<TowerActionResult> DieAsync(TowerActionContext context, CancellationToken token)
+    {
+        GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(DieAsync));
+        return RewardingMutation(context, run => run.Die(context.Session, clock.GetUtcNow()), token);
+    }
+    public ValueTask<TowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected, CancellationToken token)
+    {
+        GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(LeaveAsync));
+        return RewardingMutation(context, run => run.Leave(context.Session, disconnected, clock.GetUtcNow()), token, leaving: true);
+    }
     public ValueTask<TowerActionResult> SynchronizeLeaderAsync(TowerActionContext context,
-        SelectedSessionIdentity leader, CancellationToken token) =>
-        Mutate(context, run => run.SynchronizeLeader(leader), token);
-    public ValueTask<TowerActionResult> MarkSettledAsync(TowerActionContext context, TowerSettlementReceipt receipt, CancellationToken token) =>
-        Mutate(context, run => run.Settle(receipt, clock.GetUtcNow(), rules.DefaultReturnDelay), token);
+        SelectedSessionIdentity leader, CancellationToken token)
+    {
+        GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(SynchronizeLeaderAsync));
+        return Mutate(context, run => run.SynchronizeLeader(leader), token);
+    }
+    public ValueTask<TowerActionResult> MarkSettledAsync(TowerActionContext context, TowerSettlementReceipt receipt, CancellationToken token)
+    {
+        GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(MarkSettledAsync));
+        return Mutate(context, run => run.Settle(receipt, clock.GetUtcNow(), rules.DefaultReturnDelay), token);
+    }
 
     public ValueTask<TowerActionResult> SelectReturnAsync(TowerActionContext context, byte option, CancellationToken token)
     {
+        GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(SelectReturnAsync));
         TimeSpan? delay;
         try { delay = rules.ReturnDelay(option); }
         catch (ArgumentOutOfRangeException) { return ValueTask.FromResult(new TowerActionResult(false, Find(context.Session))); }
@@ -220,7 +256,10 @@ internal sealed class IllusionTowerDomainService(
     public async ValueTask<bool> SupportsDungeonAsync(int dungeonId, CancellationToken token) =>
         dungeonId is 11000 or 11001 && (await rules.GetDefinitionAsync(token, dungeonId).ConfigureAwait(false)).DungeonId == dungeonId;
 
-    public ValueTask<bool> CanContinueAsync(TowerActionContext context, CancellationToken token) => Execute(async () =>
+    public ValueTask<bool> CanContinueAsync(TowerActionContext context, CancellationToken token)
+    {
+        GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(CanContinueAsync));
+        return Execute(async () =>
     {
         var run = Match(context);
         if (run?.Completion is not { Settled: true }) return false;
@@ -244,6 +283,7 @@ internal sealed class IllusionTowerDomainService(
         }
         return true;
     }, token);
+    }
 
     private ValueTask<TowerActionResult> RewardingMutation(TowerActionContext context,
         Func<IllusionTowerDgn, TowerActionResult> action, CancellationToken token, bool leaving = false) => Execute(async () =>

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Data.Characters;
@@ -26,6 +27,7 @@ public sealed class PartyService(
 
     public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope)
     {
+        GameplayWriteAssertion.Writing(nameof(PartyService) + "." + nameof(UpdateDirectoryPresence));
         lock (sync)
         {
             if (!membership.TryGetValue(characterId, out var party)
@@ -68,6 +70,7 @@ public sealed class PartyService(
         PartySettings settings,
         PartyTitle title)
     {
+        GameplayWriteAssertion.Writing(nameof(PartyService) + "." + nameof(CreateOrUpdateSettings));
         ArgumentNullException.ThrowIfNull(character);
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(title);
@@ -119,6 +122,7 @@ public sealed class PartyService(
         PartyCharacterSnapshot target,
         PartyInviteDisplayState display)
     {
+        GameplayWriteAssertion.Writing(nameof(PartyService) + "." + nameof(RequestInvite));
         ArgumentNullException.ThrowIfNull(inviter);
         ArgumentNullException.ThrowIfNull(target);
         ArgumentNullException.ThrowIfNull(display);
@@ -182,6 +186,7 @@ public sealed class PartyService(
         PartyCharacterSnapshot invitee,
         PartyCharacterSnapshot inviter)
     {
+        GameplayWriteAssertion.Writing(nameof(PartyService) + "." + nameof(AcceptInvite));
         ArgumentNullException.ThrowIfNull(invitee);
         ArgumentNullException.ThrowIfNull(inviter);
 
@@ -271,6 +276,7 @@ public sealed class PartyService(
 
     public PartyOperationResult LeaveParty(CharacterId characterId)
     {
+        GameplayWriteAssertion.Writing(nameof(PartyService) + "." + nameof(LeaveParty));
         lock (sync)
             return LeaveLocked(characterId);
     }
@@ -308,6 +314,7 @@ public sealed class PartyService(
         CharacterId currentLeaderCharacterId,
         CharacterId nextLeaderCharacterId)
     {
+        GameplayWriteAssertion.Writing(nameof(PartyService) + "." + nameof(TransferLeadership));
         lock (sync)
         {
             if (!membership.TryGetValue(currentLeaderCharacterId, out var party)
@@ -342,6 +349,7 @@ public sealed class PartyService(
         CharacterId currentLeaderCharacterId,
         CharacterId targetCharacterId)
     {
+        GameplayWriteAssertion.Writing(nameof(PartyService) + "." + nameof(RemoveMember));
         lock (sync)
         {
             if (!membership.TryGetValue(currentLeaderCharacterId, out var party))
@@ -373,6 +381,7 @@ public sealed class PartyService(
 
     public PartyOperationResult CleanupCharacter(CharacterId characterId)
     {
+        GameplayWriteAssertion.Writing(nameof(PartyService) + "." + nameof(CleanupCharacter));
         lock (sync)
         {
             foreach (var targetCharacterId in invitations

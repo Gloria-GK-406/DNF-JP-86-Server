@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Inventory;
@@ -34,6 +35,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     private readonly Queue<CreaturePendingProjection> projections = new();
     public IReadOnlyList<CreaturePendingProjection> DrainProjections()
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(DrainProjections));
         lock (gate)
         {
             var result = projections.ToArray();
@@ -57,6 +59,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
 
     public void QueueRoomExperience(SelectedSessionIdentity session, DungeonRunId runId, MazeCell cell, int amount)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(QueueRoomExperience));
         if (amount <= 0) return;
         lock (gate)
         {
@@ -68,6 +71,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
 
     public void Enter(SelectedSessionIdentity session)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(Enter));
         lock (gate)
         {
             foreach (var old in roomRewards.Keys.Where(x => x.CharacterId == session.CharacterId).ToArray())
@@ -79,6 +83,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
 
     public void DiscardExact(SelectedSessionIdentity session)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(DiscardExact));
         lock (gate)
         {
             if (entries.TryGetValue(session.CharacterId, out var entry) && entry.Session == session) entries.Remove(session.CharacterId);
@@ -91,6 +96,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
 
     public void ChangeCombat(CharacterId characterId, bool combat)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(ChangeCombat));
         lock (gate)
         {
             if (!entries.TryGetValue(characterId, out var entry) || entry.Combat == combat) return;
@@ -114,6 +120,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
 
     public void Invalidate(CharacterId characterId)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(Invalidate));
         lock (gate)
             if (entries.TryGetValue(characterId, out var entry))
                 entries[characterId] = entry with { Due = clock.GetUtcNow() };
@@ -128,9 +135,12 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     }
 
     public async ValueTask<IReadOnlyList<CreatureRuntimeChange>> AdvanceAsync(SelectedSessionIdentity session,
-        CancellationToken cancellationToken, bool? combat = null) =>
-        await WithinAsync(tx => AdvanceCoreAsync(tx, session, combat, cancellationToken), cancellationToken)
+        CancellationToken cancellationToken, bool? combat = null)
+    {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(AdvanceAsync));
+        return await WithinAsync(tx => AdvanceCoreAsync(tx, session, combat, cancellationToken), cancellationToken)
             .ConfigureAwait(false);
+    }
 
     private async ValueTask<IReadOnlyList<CreatureRuntimeChange>> AdvanceCoreAsync(IDomainTransaction tx,
         SelectedSessionIdentity session, bool? combat, CancellationToken ct, bool leaving = false)
@@ -202,6 +212,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     public async ValueTask<CreatureTransformationReceipt?> HatchAsync(SelectedSessionIdentity session,
         BusinessSlot eggSlot, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(HatchAsync));
         if (!sessions.IsInWorld(session)
             || eggSlot.Space != BusinessInventorySpace.CreatureInventory || eggSlot.Index is < 0 or > 139) return null;
         var tx = transactions.Current ?? throw new InvalidOperationException("Hatching requires a use case.");
@@ -217,6 +228,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     public async ValueTask<CreatureRuntimeChange?> GainExperienceAsync(SelectedSessionIdentity session,
         int amount, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(GainExperienceAsync));
         if (!sessions.IsInWorld(session)) return null;
         var pet = await Of(session.CharacterId).CurrentPetAsync(ct).ConfigureAwait(false);
         return pet is null ? null : await pet.AddExpAsync(amount, ct).ConfigureAwait(false);
@@ -236,6 +248,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     public async ValueTask<CreatureRuntimeChange?> GainRoomExperienceAsync(SelectedSessionIdentity session,
         DungeonRunId runId, MazeCell cell, int amount, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(GainRoomExperienceAsync));
         var tx = transactions.Current ?? throw new InvalidOperationException("Room experience requires a use case.");
         var pending = tx.Enlist(this, () => new Pending(this));
         var entry = pending.Read(session.CharacterId);
@@ -251,6 +264,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
 
     public async ValueTask LeaveAsync(SelectedSessionIdentity session, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(LeaveAsync));
         lock (gate) if (!entries.TryGetValue(session.CharacterId, out var entry) || entry.Session != session) return;
         await WithinAsync(async tx =>
         {
@@ -271,6 +285,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
             await lease.CommitAsync(ct).ConfigureAwait(false);
             return result;
         }
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(WithinAsync));
         var transaction = new DomainTransaction();
         try
         {

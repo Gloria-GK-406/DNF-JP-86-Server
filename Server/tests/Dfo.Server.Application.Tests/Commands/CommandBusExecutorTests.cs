@@ -152,6 +152,62 @@ public sealed class CommandBusExecutorTests
         Assert.Single(world.Seen);
     }
 
+    [Fact]
+    public async Task L1_a_flow_leaked_from_a_finished_job_is_refused_and_never_queued()
+    {
+        await using var world = World.Build();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var seen = new System.Collections.Concurrent.ConcurrentQueue<GameplayAssertionViolation>();
+        // Started inside the job without suppressing the flow, so it carries the job's token past the job's end.
+        var leaked = await TestGameplay.RunAsync(world.Services, () => Task.FromResult(Task.Run(async () =>
+        {
+            await release.Task;
+            Execution.ViolationCapture.Attach(seen);
+            return await world.Bus.SendAsync(new Probe(5), CancellationToken.None);
+        }))).WaitAsync(Patience);
+        release.TrySetResult();
+
+        var thrown = await Assert.ThrowsAsync<GameplayLeakedFlowException>(() => leaked.WaitAsync(Patience));
+
+        Assert.Contains("bus:" + nameof(Probe), thrown.Message, StringComparison.Ordinal);
+        Assert.Empty(world.Seen);
+        Assert.Equal(0, world.Queue.Enqueued);
+        var violation = Assert.Single(seen);
+        Assert.Equal(GameplayLeakAssertion.LeakedFlowKind, violation.Kind);
+    }
+
+    [Fact]
+    public async Task L2_the_same_leaked_flow_detached_first_is_an_ordinary_off_executor_send()
+    {
+        await using var world = World.Build();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var leaked = await TestGameplay.RunAsync(world.Services, () => Task.FromResult(Task.Run(async () =>
+        {
+            await release.Task;
+            return await GameplayJob.RunDetachedAsync(() => world.Bus.SendAsync(new Probe(5), CancellationToken.None));
+        }))).WaitAsync(Patience);
+        release.TrySetResult();
+
+        var result = await leaked.WaitAsync(Patience);
+
+        Assert.Equal(6, result.Value);
+        var seen = Assert.Single(world.Seen);
+        Assert.True(seen.OnExecutor);
+        Assert.Equal("bus:" + nameof(Probe), seen.CommandType);
+        Assert.Equal(1, world.Queue.Enqueued);
+    }
+
+    [Fact]
+    public async Task L4_a_null_command_fails_the_returned_task_instead_of_throwing_at_the_call()
+    {
+        await using var world = World.Build();
+
+        var pending = world.Bus.SendAsync<ProbeResult>(null!, CancellationToken.None);
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => pending.AsTask());
+        Assert.Equal(0, world.Queue.Enqueued);
+    }
+
     private enum Leak { None, Detached, Continuation }
 
     private sealed record Probe(int Value) : ICommand<ProbeResult>;

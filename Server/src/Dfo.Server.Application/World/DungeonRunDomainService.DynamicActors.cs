@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
 
@@ -8,6 +9,7 @@ internal sealed partial class DungeonRunDomainService
     public bool StageDynamicCell(DungeonRunId runId, long roomVersion, long cellRevision,
         IReadOnlyList<DungeonCellActorState> actors, bool mechanismBlocksClear)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(StageDynamicCell));
         var transaction = this.transactions?.Current
             ?? throw new InvalidOperationException("Dynamic cells require a transaction.");
         if (transaction.IsReadOnly) throw new InvalidOperationException("Dynamic cells require a writable transaction.");

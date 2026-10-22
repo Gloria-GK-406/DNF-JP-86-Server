@@ -159,6 +159,29 @@ public sealed class EffectOperationReplayTests
         await Dispatch(f, stream.Request(1)); Assert.Equal(2, f.Count(1000));
         await Dispatch(f, stream.Request(1)); Assert.Equal(2, f.Count(1000)); Assert.Single(f.Sender.Batches);
     }
+    /// <summary>
+    /// Successor of the deleted <c>An_inherited_closed_operation_cannot_downgrade_to_trusted_direct_bus</c> (F-58):
+    /// a continuation started inside the operation's job without suppressing the flow reaches the bus after the
+    /// job, and with it the request frame, has ended. It is refused as a leaked flow instead of becoming a fresh
+    /// trusted root command, so nothing is paid.
+    /// </summary>
+    [Fact]
+    public async Task A_flow_leaked_from_a_closed_operation_cannot_reach_the_bus()
+    {
+        using var f = Fixture(); await f.Seed(69, 1000, 3); var stream = new Stream();
+        var inherited = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task? child = null;
+        f.Sender.BeforeExplicit = () => child = Task.Run(async () =>
+        {
+            inherited.SetResult(); await release.Task;
+            await f.Services.GetRequiredService<ICommandBus>().SendAsync(new UseStackableCommand(f.Session,
+                new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, 69)), 1000));
+        });
+        await Dispatch(f, stream.Request(1)); await inherited.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        release.SetResult(); await Assert.ThrowsAsync<Dfo.Server.Abstractions.Execution.GameplayLeakedFlowException>(async () => await child!);
+        Assert.Equal(2, f.Count(1000));
+    }
     [Fact]
     public async Task Later_readonly_transactions_do_not_replace_the_primary_footprint_or_commit_state()
     {
@@ -356,7 +379,7 @@ public sealed class EffectOperationReplayTests
     public async Task Refusal_only_unselected_operation_cannot_pay_after_a_selection_arrives()
     {
         using var f = Fixture(); await f.Seed(69, 1000, 3);
-        f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(f.Session);
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(f.Session));
         // The selection arrives inside the refusal-only operation's own CMD, before it sends its command.
         var pending = TestGameplay.RunAsync(f.Services, () => f.Services.GetRequiredService<EffectOperationLedger>().DispatchAsync(f.Connection, new Stream().Request(1), async () => {
             f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId);

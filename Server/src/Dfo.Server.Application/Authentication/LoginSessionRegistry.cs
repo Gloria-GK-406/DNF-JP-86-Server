@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -56,6 +57,7 @@ internal sealed class LoginSessionRegistry(
 
     public void Disconnected(NetworkConnectionId connectionId)
     {
+        GameplayWriteAssertion.Writing(nameof(LoginSessionRegistry) + "." + nameof(Disconnected));
         lock (sync)
         {
             superseded.Remove(connectionId);
@@ -69,6 +71,7 @@ internal sealed class LoginSessionRegistry(
 
     public void SweepExpired()
     {
+        GameplayWriteAssertion.Writing(nameof(LoginSessionRegistry) + "." + nameof(SweepExpired));
         lock (sync) RemoveExpired(clock.GetUtcNow());
     }
 
@@ -89,6 +92,7 @@ internal sealed class LoginSessionRegistry(
         DateTimeOffset issuedAt,
         DateTimeOffset expiresAt)
     {
+        GameplayWriteAssertion.Writing(nameof(LoginSessionRegistry) + "." + nameof(Issue));
         if (accountId.Value <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(accountId));
@@ -103,6 +107,7 @@ internal sealed class LoginSessionRegistry(
 
     public AccountId? TryBind(NetworkConnectionId connectionId, string mId, string ticket)
     {
+        GameplayWriteAssertion.Writing(nameof(LoginSessionRegistry) + "." + nameof(TryBind));
         ArgumentNullException.ThrowIfNull(mId);
         ArgumentNullException.ThrowIfNull(ticket);
         return Participant().TryReserveBinding(connectionId, mId, Digest(ticket));

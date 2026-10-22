@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Transactions;
 using Microsoft.Extensions.Logging;
 
@@ -31,6 +32,7 @@ internal sealed class DomainTransactionScope(ILogger<DomainTransaction>? logger 
 
     public DomainTransactionLease Begin(bool readOnly = false)
     {
+        if (!readOnly) GameplayWriteAssertion.Writing(nameof(DomainTransactionScope) + "." + nameof(Begin));
         if (this.ambient.Value is { IsSettled: false })
         {
             throw new InvalidOperationException(
@@ -38,6 +40,25 @@ internal sealed class DomainTransactionScope(ILogger<DomainTransaction>? logger 
         }
 
         var transaction = new DomainTransaction(readOnly, logger);
+        this.ambient.Value = transaction;
+        return new DomainTransactionLease(transaction);
+    }
+
+    /// <summary><see cref="Begin"/> in write mode without the RQ-061 assertion, for the never-committed read snapshot.</summary>
+    /// <remarks>
+    /// Only <c>AmbientStoreAccess.ReadSnapshotAsync</c> may call it, and that never commits; both are pinned by
+    /// <c>GameplayWriteEntryTableTests</c> (TASK-18 ruling 3). Write mode is kept because item custody sessions
+    /// enlist lifecycle participants a read-only transaction refuses.
+    /// </remarks>
+    internal DomainTransactionLease BeginSnapshot()
+    {
+        if (this.ambient.Value is { IsSettled: false })
+        {
+            throw new InvalidOperationException(
+                "A domain transaction is already open on this flow. One use case opens one.");
+        }
+
+        var transaction = new DomainTransaction(readOnly: false, logger);
         this.ambient.Value = transaction;
         return new DomainTransactionLease(transaction);
     }

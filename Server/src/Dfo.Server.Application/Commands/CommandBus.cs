@@ -20,10 +20,13 @@ internal sealed class CommandBus(
         CancellationToken cancellationToken = default)
         where TResult : notnull
     {
-        ArgumentNullException.ThrowIfNull(command);
+        if (command is null) return ValueTask.FromException<TResult>(new ArgumentNullException(nameof(command)));
         // Before the executor check: a flow that left its handler (RunDetached, or a continuation that
         // outlived its job) still carries the depth and must not become a fresh root job.
         if (DispatchDepth.Value != 0) return ValueTask.FromException<TResult>(NestedDispatch());
+        // F-58: outside any handler, a flow still carrying a finished job's token is a leak, not a root.
+        if (GameplayLeakAssertion.LeakedFrom("bus:" + command.GetType().Name) is { } leaked)
+            return ValueTask.FromException<TResult>(leaked);
         if (GameplayJob.IsOnExecutor) return InlineAsync(command, cancellationToken);
         // Production has no off-executor caller (entry reconciliation §1.3); only tests reach this.
         return queue.RunAsync(new GameplayWork<TResult>(

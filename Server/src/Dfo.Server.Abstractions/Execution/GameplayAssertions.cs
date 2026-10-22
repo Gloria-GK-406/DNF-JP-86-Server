@@ -55,10 +55,53 @@ public static class GameplayGateAssertion
         return new GameplayOffExecutorException(operation);
     }
 
-    private static void Report(string kind, string operation)
+    /// <summary>The one diagnostic source every gameplay assertion reports to.</summary>
+    internal static void Report(string kind, string operation)
     {
         if (Diagnostics.IsEnabled(ViolationEvent))
             Diagnostics.Write(ViolationEvent, new GameplayAssertionViolation(kind, operation));
+    }
+}
+
+/// <summary>
+/// RQ-061, the half that does not wait for the outbox: a write unit of work, and every write member of
+/// the spec appendix F "move onto the executor" types, refuses a caller off the executor. Reads are not
+/// asserted. On a job it is one check of the running token and nothing else; a flow still carrying a
+/// finished job's token counts as off the executor, as it does for the gates.
+/// </summary>
+public static class GameplayWriteAssertion
+{
+    public const string OffExecutorKind = "write-off-executor";
+
+    /// <summary>Throws <see cref="GameplayOffExecutorException"/> unless a job is running on this flow.</summary>
+    /// <param name="entry">The asserted entry, written as <c>Type.Member</c>.</param>
+    public static void Writing(string entry)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(entry);
+        if (GameplayJob.Active is not null) return;
+        var operation = $"Writing {entry}";
+        GameplayGateAssertion.Report(OffExecutorKind, operation);
+        throw new GameplayOffExecutorException(operation);
+    }
+}
+
+/// <summary>
+/// F-58: a flow that still carries the token of a job that has ended (a continuation started inside the
+/// job without suppressing the flow) is a leak, not an off-executor caller, and must not reach the bus
+/// as a fresh root. <see cref="GameplayJob.RunDetached(Action)"/> clears the token, so a detached call is
+/// not a leak. To be reviewed when T-008 turns the frame into explicit data.
+/// </summary>
+public static class GameplayLeakAssertion
+{
+    public const string LeakedFlowKind = "bus-leaked-flow";
+
+    /// <summary>Reports and returns the error to throw when this flow leaked from a finished job; otherwise null.</summary>
+    public static Exception? LeakedFrom(string operation)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operation);
+        if (GameplayJob.Running.Value is not { IsActive: false } finished) return null;
+        GameplayGateAssertion.Report(LeakedFlowKind, operation);
+        return new GameplayLeakedFlowException(operation, finished.Chain);
     }
 }
 
@@ -71,6 +114,16 @@ public sealed class GameplayGateWaitException(string gate, GameplayCallChain cha
         $"Gate {gate} would wait on the gameplay executor (root {chain.RootId}, depth {chain.Depth}: {chain.Describe()}).")
 {
     public string Gate { get; } = gate;
+
+    public GameplayCallChain Chain { get; } = chain;
+}
+
+/// <summary>F-58: <see cref="GameplayLeakAssertion"/> found a flow leaked from a finished job.</summary>
+public sealed class GameplayLeakedFlowException(string operation, GameplayCallChain chain)
+    : InvalidOperationException(
+        $"{operation} was called on a flow leaked from a finished gameplay job (root {chain.RootId}, depth {chain.Depth}: {chain.Describe()}).")
+{
+    public string Operation { get; } = operation;
 
     public GameplayCallChain Chain { get; } = chain;
 }

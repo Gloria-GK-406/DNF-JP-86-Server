@@ -316,12 +316,15 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         var parties = new PartyService(
             new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
             new NoPartyEndpoints());
-        Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
-            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
-        Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
-        Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(third),
-            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
-        Assert.True(parties.AcceptInvite(PartyCharacter(third), PartyCharacter(first)).Succeeded);
+        TestGameplay.Run(() =>
+        {
+            Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
+            Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(third),
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(parties.AcceptInvite(PartyCharacter(third), PartyCharacter(first)).Succeeded);
+        });
         var tower = new TowerDomain(PartyRun(Guid.NewGuid(), first, second, third));
         using var request = new CancellationTokenSource();
         var commands = new CoordinatorCommands(tower, parties, request);

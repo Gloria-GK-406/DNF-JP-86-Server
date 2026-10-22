@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Transactions;
@@ -34,7 +35,7 @@ internal sealed class AmbientStoreAccess(IDomainTransactionAccessor transactions
             throw new InvalidOperationException("Snapshot reads require the configured domain transaction scope.");
         // Item custody sessions enlist lifecycle participants. Like ReadAsync below, this
         // boundary is never committed; all readers still share one deferred SQLite snapshot.
-        await using var snapshot = scope.Begin();
+        await using var snapshot = scope.BeginSnapshot();
         return await read().ConfigureAwait(false);
     }
 
@@ -83,6 +84,7 @@ internal sealed class AmbientStoreAccess(IDomainTransactionAccessor transactions
             return;
         }
 
+        GameplayWriteAssertion.Writing(nameof(AmbientStoreAccess) + "." + nameof(ChangeAsync));
         if (store.IsDurable)
         {
             throw new InvalidOperationException(
@@ -159,6 +161,7 @@ internal sealed class SelectedSessionPositionPersistence(
     private async ValueTask AloneAsync(
         OwnedCharacterId owned, CharacterPositionState position, byte? innTown, CancellationToken cancellationToken)
     {
+        GameplayWriteAssertion.Writing(nameof(SelectedSessionPositionPersistence) + "." + nameof(AloneAsync));
         var alone = new DomainTransaction();
         try
         {

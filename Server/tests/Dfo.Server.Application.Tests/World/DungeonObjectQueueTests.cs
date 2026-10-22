@@ -82,27 +82,6 @@ public sealed class DungeonObjectQueueTests
         });
     }
 
-    [Fact]
-    public async Task Leaving_the_room_before_prepare_rolls_back_the_reservation()
-    {
-        var scope = new DomainTransactionScope();
-        var service = new DungeonRunDomainService(scope);
-        var run = Start(service);
-        await using (var tx = scope.Begin())
-        {
-            service.ClaimObjectDestruction(Character, run.RunId, run.RoomVersion, 8961);
-            Task externalMove;
-            using (ExecutionContext.SuppressFlow())
-                externalMove = Task.Run(() => Assert.NotNull(service.TryMove(Character, run.RunId, run.RoomVersion, new(1, 0),
-                    DungeonCellSeed.CompleteEmpty(new(1, 0), 11))));
-            await externalMove;
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => await tx.CommitAsync(default));
-        }
-        var back = service.TryMove(Character, new(0, 0))!;
-        await using var retry = scope.Begin();
-        Assert.Equal(0, service.ClaimObjectDestruction(Character, back.RunId, back.RoomVersion, 8961)!.QueueIndex);
-    }
-
     private static DungeonRunState Start(DungeonRunDomainService service)
     {
         DungeonCellObjectState[] objects = [

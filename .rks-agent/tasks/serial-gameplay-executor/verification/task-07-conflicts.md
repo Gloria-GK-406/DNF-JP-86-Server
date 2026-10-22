@@ -432,3 +432,51 @@ TASK-06 Remaining 第 3 条的各项按 TASK-07 §6.1 原样保留，加上本�
 - TASK-17 已删除：41；
 - TASK-17 已改写：29。
 - 加法：7 ＋ 52 ＋ 1 ＋ 1 ＋ 8 ＋ 41 ＋ 29 ＝ 139。按类：A 22 ＝ 15 删 ＋ 2 改 ＋ 5 顺延；B 38 ＝ 17 删 ＋ 21 改；C 7 ＝ 7 删；D 4 ＝ 1 删 ＋ 3 改；E 6 ＝ 1 删 ＋ 3 改 ＋ 2 顺延；22 ＋ 38 ＋ 7 ＋ 4 ＋ 6 ＝ 77；删 15 ＋ 17 ＋ 7 ＋ 1 ＋ 1 ＝ 41，改 2 ＋ 21 ＋ 3 ＋ 3 ＝ 29，顺延 5 ＋ 2 ＝ 7。
+
+## 15. TASK-18 处置（T-004c2a：RQ-061 写断言＋泄漏流拒绝，2026-10-23，基准 `6a3bff70`）
+
+- 「触发」取自诊断全量 `logs/task-18-diag.txt`（全部断言落地后一次，取证记录与失败一一对应，没有测试帧的记录 0）。泄漏流断言没有让任何既有用例失败。
+- 通用后继沿用 §14 的〔序〕〔门〕。后继用例名都能在工作区检索到。
+
+### 15.1 顺延的 7 条：最终判定
+
+| 用例 | 类 | 触发 | 处置 | 旧断言 → 新断言 → 保护意图 | 后继用例 |
+|---|---|---|---|---|---|
+| `AuthenticationConsumptionTests.ExactCredentialBindsAgainButOverlappingUncommittedBindsAreRejected`（Persistence） | E | RQ-061：测试线程上 `fixture.Scope.Begin()`（原 `:19`） | 改写，改名 `ExactCredentialBindsAgainButWrongCredentialsAreRejected` | 旧：4 个错误凭据得 null；执行器外开写事务首次绑定，未提交时另一条 `SuppressFlow` 连接的 `Consume` 得 null（`Assert.Null(await competing)`）；提交后同一凭据再次绑定成功 → 新：4 条错误凭据与「提交后再次绑定」原样；首次绑定改在一条作业里开工作单元并提交；删除 `Assert.Null(await competing)` → 「错误凭据不绑定、同一凭据在已提交的绑定之后能再绑定」保留；「两个未提交的绑定重叠、后者被拒」随串行消失：同一时刻只有一个工作单元 | 〔序〕；`ExpiryIsExclusiveAndUncommittedConsumptionCanBeRetried` 测的是未提交消费可重试与到期边界，与改写后的用例不重复 |
+| `DungeonObjectQueueTests.Leaving_the_room_before_prepare_rolls_back_the_reservation` | E | RQ-061：测试线程上 `PreparePartyEntry`、`ClaimObjectDestruction`、`TryMove` | **删除**（§6.1 原定改写，理由见 TASK-18 Result） | 旧：执行器外开事务预留对象 → 另一线程无事务地换房 → 提交失败 → 回房后同一队首仍可预留 → 无新断言 → 「预留之后、准备之前房间被另一个发起方改变时预留回滚」：预留与提交在同一条 CMD 内，执行器上中间插不进另一条 CMD；RQ-061 下也构造不出来（作业内换房进同一个环境事务，作业外换房被断言拒绝） | `DungeonObjectQueueTests.Durable_failure_releases_the_same_head_and_revisit_does_not_refill_it`（提交失败释放同一队首）；〔序〕 |
+| `TransactionalCommandSerializationTests.TransactionalCommands_DoNotRunTheirHandlersConcurrently` | A | 仍通过 | 已不冲突，保留 | 断言不变 → 「事务命令的处理器不并发」。变异 X1（去掉 `TransactionalExecutionGate` 的获取）下仍通过：它已不依赖门，T-005 删门时不用动 | 自身 |
+| `TransactionalCommandSerializationTests.CancelledWaiter_DoesNotEnterAndDoesNotKeepTheGate` | A | 仍通过 | 已不冲突，保留 | 断言不变 → 「排队中被取消的命令不进入处理器、不妨碍后来者」。X1 下仍通过 | 自身 |
+| `CommandBusTests.ExclusiveAccountLease_IsReleasedWhenHandlerThrows` | A | 仍通过 | 交 T-005，随门删除 | 断言不变 → 测的是账号租约在异常后释放：变异 X2（租约不释放）下变红。T-005 删除访问方式（`accountAccessMode`）后无法编译；保护意图「失败的命令之后，同一账号的下一条命令照常执行」由执行器承接 | `GameplayExecutorOrderTests.A_failing_cmd_reaches_its_caller_and_the_next_cmd_still_runs` |
+| `CommandBusTests.SharedOnlineUserLease_IsReleasedWhenHandlerThrows` | A | 仍通过 | 交 T-005，随门删除 | 同上（在线用户共享租约）。X2 下仍通过：共享对共享不互斥，这条本来就测不出泄漏 | 同上 |
+| `CommandBusTests.ExclusiveOnlineUserLease_IsReleasedWhenHandlerIsCancelled` | A | 仍通过 | 交 T-005，随门删除 | 同上（独占、取消）。X2 下变红 | 同上 |
+
+加法：改写 1 ＋ 删除 1 ＋ 保留 2 ＋ 交 T-005 3 ＝ 7。
+
+### 15.2 其余因 RQ-061 失败的用例（11 条，不是新判定的冲突）
+
+诊断全量中新失败 13 条：§15.1 的 2 条，加下面 11 条（另 2 条是已知的 `DimensionDungeonTests`，13 ＋ 2 ＝ 15）。全部是测试在执行器外调用附录 F 的写成员做准备，按 §6.2 第 1 条包进 `TestGameplay`，断言不变：
+
+- 非冲突用例 1 条：`OutsideTransactionTests.ChangingACharacterOutsideAUseCaseIsRefused`，整方法包进作业，与同文件其余方法同形。作业上没有工作单元时，耐久变更照旧被原有规则拒绝，原断言（`InvalidOperationException`，「outside a use case boundary」）不变。
+- T-006 冲突的夹具 6 条：`NotificationDeliveryTests` 3 条、`NotificationRetryTests` 3 条经共用夹具 `NotificationWorld` 的 `Leave`、`Reconnect`、`ReplaceKeepingConnection` 在执行器外改会话。只把这几个辅助（连同 `Revoke`）的会话改动包进作业；发布与投递仍在执行器外，用例方法不变，仍归 T-006（§3.2）。
+- TASK-17 已改写的冲突 4 条，准备步骤在执行器外：`BossTowerProjectionConcurrencyTests` 与 `IllusionTowerProjectionConcurrencyTests` 的 `A_third_member_disconnect_during_capture_revalidates_and_completes`（组队的 4 个调用）、`LoginSessionQueuedCommandTests.ReplacedLoginCannotWriteAfterWaitingForTheAccountGateEvenAfterDisconnectCallback`（断连回调 `Disconnected`）、`EffectOperationReplayTests.Refusal_only_unselected_operation_cannot_pay_after_a_selection_arrives`（`ReleaseExact`）。仍计在 §14.2 的「TASK-17 已改写」里。
+
+加法：1 ＋ 6 ＋ 4 ＝ 11。新判定的冲突 0 条。
+
+### 15.3 恢复的保护意图
+
+§14.1 删除的 `EffectOperationReplayTests.An_inherited_closed_operation_cannot_downgrade_to_trusted_direct_bus`（D 类）由 `EffectOperationReplayTests.A_flow_leaked_from_a_closed_operation_cannot_reach_the_bus` 承接：作业结束后仍在跑的未抑制续体调用总线，被判为泄漏流（`GameplayLeakedFlowException`），没有以新根作业的身份落库（F-58）。
+
+### 15.4 新分布（总数仍为 139）
+
+- T-006：52；
+- T-008：1；
+- TASK-09 已删除：1；
+- 已改写（此前）：8；
+- TASK-17 已删除：41；
+- TASK-17 已改写：29；
+- TASK-18 已删除：1；
+- TASK-18 已改写：1；
+- 已不冲突、保留：2；
+- 交 T-005：3。
+- 加法：52 ＋ 1 ＋ 1 ＋ 8 ＋ 41 ＋ 29 ＋ 1 ＋ 1 ＋ 2 ＋ 3 ＝ 139。
+- T-004c 的 77 条按类：A 22 ＝ 15 删 ＋ 2 改 ＋ 2 保留 ＋ 3 交 T-005；B 38 ＝ 17 删 ＋ 21 改；C 7 ＝ 7 删；D 4 ＝ 1 删 ＋ 3 改；E 6 ＝ 2 删 ＋ 4 改；22 ＋ 38 ＋ 7 ＋ 4 ＋ 6 ＝ 77。删 15 ＋ 17 ＋ 7 ＋ 1 ＋ 2 ＝ 42，改 2 ＋ 21 ＋ 3 ＋ 4 ＝ 30，保留 2，交 T-005 3；42 ＋ 30 ＋ 2 ＋ 3 ＝ 77。T-004c 不再有顺延。

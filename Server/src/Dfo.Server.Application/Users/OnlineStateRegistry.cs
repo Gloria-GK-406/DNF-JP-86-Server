@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using System.Diagnostics.CodeAnalysis;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -37,6 +38,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
 
     public void PrepareAuthentication(OnlineUserId onlineUserId, AccountId accountId)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(PrepareAuthentication));
         var transaction = transactions.Current
             ?? throw new InvalidOperationException(
                 "Online authentication requires an active domain transaction.");
@@ -48,6 +50,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
 
     public void Authenticate(OnlineUserId onlineUserId, AccountId accountId)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(Authenticate));
         lock (sync)
         {
             GetRequiredAggregate(onlineUserId).Authenticate(accountId);
@@ -56,6 +59,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
 
     public OnlineUserSnapshot RegisterConnection(NetworkConnectionContext connection)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(RegisterConnection));
         ArgumentNullException.ThrowIfNull(connection);
         lock (sync)
         {
@@ -76,6 +80,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
         NetworkConnectionId connectionId,
         long expectedGeneration)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(TryDisconnect));
         lock (sync)
         {
             if (!byId.TryGetValue(onlineUserId, out var onlineUser)
@@ -94,6 +99,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
 
     public bool TryDisconnectConnection(NetworkConnectionId connectionId)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(TryDisconnectConnection));
         lock (sync)
         {
             if (!byConnection.TryGetValue(connectionId, out var id)
@@ -139,6 +145,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
 
     public SelectedSessionIdentity? Select(SelectedSessionIdentity session)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(Select));
         ArgumentNullException.ThrowIfNull(session);
         lock (sync)
         {
@@ -159,6 +166,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
 
     public void EnterWorld(SelectedSessionIdentity session)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(EnterWorld));
         ArgumentNullException.ThrowIfNull(session);
         lock (sync)
         {
@@ -178,6 +186,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
 
     public bool Fence(SelectedSessionIdentity session)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(Fence));
         ArgumentNullException.ThrowIfNull(session);
         lock (sync)
         {
@@ -189,6 +198,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
 
     public bool ReleaseExact(SelectedSessionIdentity session)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(ReleaseExact));
         ArgumentNullException.ThrowIfNull(session);
         lock (sync)
         {
@@ -281,6 +291,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
 
     public bool TryObserveEndpoint(GameSessionIdentity session, SessionEndpoint endpoint)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(TryObserveEndpoint));
         ArgumentNullException.ThrowIfNull(endpoint);
         if (!endpoint.IsValid)
             return false;

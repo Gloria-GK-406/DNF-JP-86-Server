@@ -59,6 +59,7 @@ public sealed class DungeonCardPresentationCoordinator(
 
     public void ScheduleAfterSettlement(SelectedSessionIdentity session, DungeonRunId runId)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonCardPresentationCoordinator) + "." + nameof(ScheduleAfterSettlement));
         ArgumentNullException.ThrowIfNull(session);
         const string commandType = "timer:DungeonCardPresentationCoordinator/layout";
         if (this.TryReplace(session.CharacterId, runId) is not { } cancellation)
@@ -83,6 +84,7 @@ public sealed class DungeonCardPresentationCoordinator(
         DungeonRunId runId,
         CancellationToken cancellationToken)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonCardPresentationCoordinator) + "." + nameof(OpenOnRequestAsync));
         ArgumentNullException.ThrowIfNull(session);
         await this.OpenLayoutAsync(session, runId, cancellationToken)
             .ConfigureAwait(false);
@@ -90,6 +92,7 @@ public sealed class DungeonCardPresentationCoordinator(
 
     public void Cancel(CharacterId characterId, DungeonRunId runId)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonCardPresentationCoordinator) + "." + nameof(Cancel));
         CancellationTokenSource? cancellation = null;
         lock (this.gate)
         {

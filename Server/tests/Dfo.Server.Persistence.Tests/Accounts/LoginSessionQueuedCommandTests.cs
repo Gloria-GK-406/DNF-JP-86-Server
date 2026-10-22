@@ -28,7 +28,7 @@ public sealed class LoginSessionQueuedCommandTests
         // would have; the write it carries runs only after the replacement login and the disconnect.
         var authority = registry.CaptureAuthority(old)!;
         await fixture.LoginAsync("player", "test password");
-        registry.Disconnected(old); // The transient superseded marker is now gone.
+        TestGameplay.Run(fixture.Services, () => registry.Disconnected(old)); // The transient superseded marker is now gone.
         var queued = TestGameplay.RunAsync(fixture.Services, async () =>
         {
             using var request = authorization.Enter(authority);

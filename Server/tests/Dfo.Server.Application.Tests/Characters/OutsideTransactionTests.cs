@@ -33,20 +33,23 @@ public sealed class OutsideTransactionTests
     [Fact]
     public async Task ChangingACharacterOutsideAUseCaseIsRefused()
     {
-        await using var fixture = await Fixture.CreateAsync();
-        var access = new AmbientStoreAccess(new ClosedTransactionAccessor());
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = await Fixture.CreateAsync();
+            var access = new AmbientStoreAccess(new ClosedTransactionAccessor());
 
-        var refusal = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await access.ChangeAsync(
-                fixture.Characters,
-                rows =>
-                {
-                    rows.WritePosition(Owned, new CharacterPositionState(1, 2, 3, 4, 5));
-                    return ValueTask.CompletedTask;
-                },
-                CancellationToken.None));
+            var refusal = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await access.ChangeAsync(
+                    fixture.Characters,
+                    rows =>
+                    {
+                        rows.WritePosition(Owned, new CharacterPositionState(1, 2, 3, 4, 5));
+                        return ValueTask.CompletedTask;
+                    },
+                    CancellationToken.None));
 
-        Assert.Contains("outside a use case boundary", refusal.Message, StringComparison.Ordinal);
+            Assert.Contains("outside a use case boundary", refusal.Message, StringComparison.Ordinal);
+        });
     }
 
     [Fact]

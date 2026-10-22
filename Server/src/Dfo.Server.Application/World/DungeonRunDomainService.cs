@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Dfo.Server.Abstractions.Creatures;
@@ -82,6 +83,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         DungeonRunId runId,
         DateTimeOffset startedAt)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(PreparePartyEntry));
         ArgumentNullException.ThrowIfNull(participants);
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(initialCell);
@@ -168,6 +170,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public bool StageDungeonBuff(CharacterId characterId, DungeonRunId runId)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(StageDungeonBuff));
         lock (this.gate)
         {
             if (HasUsedDungeonBuff(characterId, runId)) return false;
@@ -199,6 +202,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public bool StageRevival(CharacterId payer, CharacterId target, DungeonRunId runId)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(StageRevival));
         lock (this.gate)
         {
             if (!this.runsById.TryGetValue(runId, out var aggregate)
@@ -248,6 +252,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public void ScheduleClearReturn(CharacterId characterId, DungeonRunId runId, DateTimeOffset now)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(ScheduleClearReturn));
         lock (this.gate)
         {
             if (!this.runsById.TryGetValue(runId, out var run)
@@ -268,6 +273,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public DungeonRunState? TryEndClearReturn(DungeonRunId runId, DateTimeOffset now)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryEndClearReturn));
         lock (this.gate)
         {
             if (!this.runsById.TryGetValue(runId, out var run)
@@ -283,6 +289,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public IReadOnlyList<DungeonRunId> FindExpiredPartyWipes(DateTimeOffset now)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(FindExpiredPartyWipes));
         lock (this.gate)
         {
             foreach (var aggregate in this.runsById.Values)
@@ -298,6 +305,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public DungeonRunState? TryEndPartyWipe(DungeonRunId runId, DateTimeOffset now)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryEndPartyWipe));
         lock (this.gate)
         {
             if (!this.runsById.TryGetValue(runId, out var aggregate)
@@ -329,6 +337,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     public DungeonRunState? TryMarkParticipantDead(
         CharacterId characterId, DungeonRunId expectedRunId, long expectedRoomVersion)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryMarkParticipantDead));
         lock (this.gate)
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
@@ -349,6 +358,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         DungeonRunId expectedRunId,
         long expectedRoomVersion)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryMarkParticipantReady));
         lock (this.gate)
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
@@ -389,6 +399,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         long expectedEntryRevision,
         IReadOnlyList<CharacterId> expectedRecipients)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryAbortEntry));
         ArgumentNullException.ThrowIfNull(expectedRecipients);
         lock (this.gate)
         {
@@ -434,6 +445,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public DungeonRunState? TryMove(CharacterId characterId, MazeCell target)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryMove));
         lock (this.gate)
         {
             return this.TryMoveCore(characterId, expectedRunId: null, expectedRoomVersion: null, target);
@@ -446,6 +458,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         long expectedRoomVersion,
         MazeCell target)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryMove));
         lock (this.gate)
         {
             return this.TryMoveCore(
@@ -460,6 +473,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         MazeCell target,
         DungeonCellSeed? preparedCell)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryMove));
         lock (this.gate)
         {
             return this.TryMoveCore(
@@ -553,6 +567,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         long expectedRoomVersion,
         ushort groundDropNumber)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryClaimGroundDrop));
         lock (this.gate)
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
@@ -597,6 +612,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         DungeonGroundDropClaim claim,
         DungeonPickupKind kind)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(CommitGroundDrop));
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
@@ -635,6 +651,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         DungeonGroundDropClaim claim,
         DungeonPickupKind kind)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(StageGroundDrop));
         ArgumentNullException.ThrowIfNull(claim);
         var transaction = this.transactions?.Current;
         if (transaction is null)
@@ -650,6 +667,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public bool ReleaseGroundDrop(DungeonGroundDropClaim claim)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(ReleaseGroundDrop));
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
@@ -665,6 +683,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         long expectedCellRevision,
         IReadOnlyList<DungeonGroundItemDraft> items)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryAddGroundItems));
         ArgumentNullException.ThrowIfNull(items);
         lock (this.gate)
         {
@@ -706,6 +725,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         DungeonRunId expectedRunId,
         long expectedRoomVersion)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryOpenClear));
         lock (this.gate)
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
@@ -752,6 +772,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         CharacterId characterId,
         ushort actorSequence)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryClaimActorDeath));
         lock (this.gate)
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
@@ -779,8 +800,11 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
-    public DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim) =>
-        this.CommitActorDeathChange(claim)?.Run;
+    public DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim)
+    {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(CommitActorDeath));
+        return this.CommitActorDeathChange(claim)?.Run;
+    }
 
     public bool WillClearMap(DungeonActorDeathClaim claim)
     {
@@ -805,6 +829,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public DungeonActorDeathChange? CommitActorDeathChange(DungeonActorDeathClaim claim)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(CommitActorDeathChange));
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
@@ -860,6 +885,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public bool ReleaseActorDeath(DungeonActorDeathClaim claim)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(ReleaseActorDeath));
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
@@ -878,6 +904,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         DungeonActorDeathClaim death,
         CharacterId characterId)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryClaimParticipantKillEffect));
         ArgumentNullException.ThrowIfNull(death);
         lock (this.gate)
         {
@@ -907,10 +934,14 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     }
 
     public bool CommitParticipantKillEffect(DungeonParticipantKillEffectClaim claim)
-        => this.CommitParticipantKillEffect(claim, null);
+    {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(CommitParticipantKillEffect));
+        return this.CommitParticipantKillEffect(claim, null);
+    }
 
     public bool CommitParticipantKillEffect(DungeonParticipantKillEffectClaim claim, ExperienceAward? award)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(CommitParticipantKillEffect));
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
@@ -936,6 +967,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public bool ReleaseParticipantKillEffect(DungeonParticipantKillEffectClaim claim)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(ReleaseParticipantKillEffect));
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
@@ -947,17 +979,24 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public DungeonRunState? TrySettle(CharacterId characterId)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TrySettle));
         var claim = this.TryClaimSettlement(characterId);
         return claim is null ? null : this.CommitSettlement(claim);
     }
 
     public DungeonSettlementClaim? TryClaimSettlement(CharacterId characterId)
-        => this.TryClaimSettlementCore(characterId, expectedRunId: null);
+    {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryClaimSettlement));
+        return this.TryClaimSettlementCore(characterId, expectedRunId: null);
+    }
 
     public DungeonSettlementClaim? TryClaimSettlement(
         CharacterId characterId,
-        DungeonRunId expectedRunId) =>
-        this.TryClaimSettlementCore(characterId, expectedRunId);
+        DungeonRunId expectedRunId)
+    {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryClaimSettlement));
+        return this.TryClaimSettlementCore(characterId, expectedRunId);
+    }
 
     private DungeonSettlementClaim? TryClaimSettlementCore(
         CharacterId characterId,
@@ -989,6 +1028,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public DungeonRunState? CommitSettlement(DungeonSettlementClaim claim)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(CommitSettlement));
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
@@ -1011,6 +1051,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public bool ReleaseSettlement(DungeonSettlementClaim claim)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(ReleaseSettlement));
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
@@ -1023,6 +1064,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         CharacterId characterId,
         DungeonRunId expectedRunId)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryOpenCardLayout));
         lock (this.gate)
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
@@ -1055,8 +1097,11 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         ClearRewardCardFace free,
         ClearRewardCardFace paid,
         int? paidFlipCost)
-        => this.FixClearRewardCardsCore(
+    {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(FixClearRewardCards));
+        return this.FixClearRewardCardsCore(
             characterId, expectedRunId: null, free, paid, paidFlipCost);
+    }
 
     public DungeonRunState? FixClearRewardCards(
         CharacterId characterId,
@@ -1064,8 +1109,11 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         ClearRewardCardFace free,
         ClearRewardCardFace paid,
         int? paidFlipCost,
-        ClearRewardCardFace? blackDiamond = null) =>
-        this.FixClearRewardCardsCore(characterId, expectedRunId, free, paid, paidFlipCost, blackDiamond);
+        ClearRewardCardFace? blackDiamond = null)
+    {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(FixClearRewardCards));
+        return this.FixClearRewardCardsCore(characterId, expectedRunId, free, paid, paidFlipCost, blackDiamond);
+    }
 
     private DungeonRunState? FixClearRewardCardsCore(
         CharacterId characterId,
@@ -1098,6 +1146,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         ClearRewardCardKind kind,
         int index)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryClaimClearRewardCard));
         lock (this.gate)
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
@@ -1126,6 +1175,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         ClearRewardCardKind kind,
         int index)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryReserveClearRewardCard));
         lock (this.gate)
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
@@ -1174,6 +1224,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     public DungeonCardSelectionCommit CommitClearRewardCard(
         DungeonClearRewardCardClaim claim)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(CommitClearRewardCard));
         ArgumentNullException.ThrowIfNull(claim);
         var transaction = this.transactions?.Current;
         if (transaction is null)
@@ -1303,6 +1354,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public bool ReleaseClearRewardCard(DungeonClearRewardCardClaim claim)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(ReleaseClearRewardCard));
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
@@ -1315,6 +1367,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     // Callers retain the admitted-session transition lease through this async exit.
     public async ValueTask<bool> EndAsync(CharacterId characterId, DungeonRunId expectedRunId)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(EndAsync));
         bool failed;
         DungeonParticipantLeft departure;
         lock (this.gate)
@@ -1334,6 +1387,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public async ValueTask<DungeonRunState?> TryEndPartyWipeAsync(DungeonRunId runId, DateTimeOffset now)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryEndPartyWipeAsync));
         var ended = TryEndPartyWipe(runId, now);
         if (ended is not null && this.lifecycle is not null)
             foreach (var member in ended.Participants)
@@ -1346,6 +1400,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public async ValueTask<DungeonRunState?> TryEndClearReturnAsync(DungeonRunId runId, DateTimeOffset now)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryEndClearReturnAsync));
         var ended = TryEndClearReturn(runId, now);
         if (ended is not null && this.lifecycle is not null)
             foreach (var member in ended.Participants)
@@ -1355,6 +1410,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public bool End(CharacterId characterId)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(End));
         lock (this.gate)
         {
             return this.DetachParticipant(characterId);
@@ -1363,6 +1419,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     public bool End(CharacterId characterId, DungeonRunId expectedRunId)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(End));
         lock (this.gate)
         {
             return this.runsByCharacter.TryGetValue(characterId, out var aggregate)

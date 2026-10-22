@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
@@ -9,6 +10,7 @@ internal sealed partial class DungeonRunDomainService
     public DungeonObjectDestructionClaim? ClaimObjectDestruction(
         CharacterId characterId, DungeonRunId runId, long roomVersion, int objectCode)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(ClaimObjectDestruction));
         var transaction = this.transactions?.Current
             ?? throw new InvalidOperationException("Object rewards require an ambient transaction.");
         lock (this.gate)

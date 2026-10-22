@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
@@ -17,6 +18,7 @@ internal sealed class DungeonParticipationDomainService(IDomainTransactionAccess
     }
     public bool TryClaim(IReadOnlyList<CharacterId> ids, DungeonParticipationOwner owner)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonParticipationDomainService) + "." + nameof(TryClaim));
         if (ids.Count == 0 || ids.Distinct().Count() != ids.Count || ids.Any(x => Find(x) is { } current && current != owner
             && !(current.Mode == DungeonParticipationMode.Ordinary && owner.Mode == DungeonParticipationMode.Ordinary))) return false;
         foreach (var id in ids) Pending.Set(id, owner);
@@ -24,11 +26,13 @@ internal sealed class DungeonParticipationDomainService(IDomainTransactionAccess
     }
     public void Release(CharacterId id, DungeonParticipationOwner expected)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonParticipationDomainService) + "." + nameof(Release));
         if (transactions.Current is null) { ReleaseCommitted(id, expected); return; }
         if (Find(id) == expected) Pending.Set(id, null);
     }
     public void ReleaseCommitted(CharacterId id, DungeonParticipationOwner expected)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonParticipationDomainService) + "." + nameof(ReleaseCommitted));
         lock (gate) if (members.GetValueOrDefault(id) == expected) members.Remove(id);
     }
     private sealed class Changes(DungeonParticipationDomainService owner) : ITransactionParticipant
