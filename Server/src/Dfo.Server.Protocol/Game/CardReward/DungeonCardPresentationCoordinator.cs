@@ -60,9 +60,14 @@ public sealed class DungeonCardPresentationCoordinator(
     public void ScheduleAfterSettlement(SelectedSessionIdentity session, DungeonRunId runId)
     {
         ArgumentNullException.ThrowIfNull(session);
-        var cancellation = this.Replace(session.CharacterId, runId);
+        const string commandType = "timer:DungeonCardPresentationCoordinator/layout";
+        if (this.TryReplace(session.CharacterId, runId) is not { } cancellation)
+        {
+            this.NotScheduled(commandType);
+            return;
+        }
         this.StartDetached(() => this.RunTimerAsync(
-            "timer:DungeonCardPresentationCoordinator/layout",
+            commandType,
             timing.LayoutDelay,
             () => this.RunLayoutAsync(session, runId, cancellation.Token),
             error => logger.LogError(
@@ -94,21 +99,42 @@ public sealed class DungeonCardPresentationCoordinator(
         cancellation?.Dispose();
     }
 
-    private CancellationTokenSource Replace(CharacterId characterId, DungeonRunId runId)
+    /// <summary>
+    /// Returns null once stopped: a request arriving after the drain is treated as one the drain
+    /// cancelled, so the order in which the producer drains run does not matter.
+    /// </summary>
+    private CancellationTokenSource? TryReplace(CharacterId characterId, DungeonRunId runId)
     {
         CancellationTokenSource? prior = null;
         var next = CancellationTokenSource.CreateLinkedTokenSource(this.stopping.Token);
+        var refused = false;
         lock (this.gate)
         {
-            ObjectDisposedException.ThrowIf(Volatile.Read(ref this.stopped) != 0, this);
-            var key = new ParticipantKey(runId, characterId);
-            _ = this.pending.Remove(key, out prior);
-            this.pending.Add(key, next);
+            if (Volatile.Read(ref this.stopped) != 0)
+            {
+                refused = true;
+            }
+            else
+            {
+                var key = new ParticipantKey(runId, characterId);
+                _ = this.pending.Remove(key, out prior);
+                this.pending.Add(key, next);
+            }
+        }
+        if (refused)
+        {
+            next.Dispose();
+            return null;
         }
         prior?.Cancel();
         prior?.Dispose();
         return next;
     }
+
+    private void NotScheduled(string commandType) =>
+        logger.LogInformation(
+            "{CommandType} was not scheduled: the card presentation coordinator has stopped",
+            commandType);
 
     private async Task RunLayoutAsync(
         SelectedSessionIdentity session,
@@ -183,9 +209,14 @@ public sealed class DungeonCardPresentationCoordinator(
         }
 
         runs.ScheduleClearReturn(session.CharacterId, runId, clock.GetUtcNow());
-        var cancellation = this.Replace(session.CharacterId, runId);
+        const string commandType = "timer:DungeonCardPresentationCoordinator/auto-flip";
+        if (this.TryReplace(session.CharacterId, runId) is not { } cancellation)
+        {
+            this.NotScheduled(commandType);
+            return;
+        }
         this.StartDetached(() => this.RunTimerAsync(
-            "timer:DungeonCardPresentationCoordinator/auto-flip",
+            commandType,
             timing.AutoFlipDelay,
             () => this.RunAutoFlipAsync(session, runId, cancellation.Token),
             error => logger.LogError(

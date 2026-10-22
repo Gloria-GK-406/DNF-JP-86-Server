@@ -303,3 +303,44 @@ TASK-06 Remaining 第 3 条的各项按 TASK-07 §6.1 原样保留，加上本�
 - TASK-12 已改写：2；
 - TASK-14 已改写：2。
 - 加法：1 ＋ 75 ＋ 53 ＋ 1 ＋ 1 ＋ 3 ＋ 2 ＋ 2 ＝ 138。
+
+## 12. TASK-16 处置（2026-10-22，基准 `c3115f9a`）
+
+本单元没有分配到冲突用例。记两件事：`ReplayStateSnapshotTests:206` 改记到 T-004c；§4 的协调器容错使一条既有用例的末条断言失效，经主控方裁定（`tasks/TASK-16.md`「主控方裁定（执行中，§4 停止之后）」）按冲突改写。
+
+| 用例 | 本单元的结果 | 去向 | 旧断言 → 新断言 → 保护意图 |
+|---|---|---|---|
+| `Sessions/ReplayStateSnapshotTests.cs:206` `Inventory_and_account_balances_are_read_from_one_real_sqlite_snapshot`（Application；行号沿用 TASK-07，基准 `c3115f9a` 上方法从第 212 行开始，以方法名为准） | 正式全量中通过 | 从「T-004b（早已标顺延 T-004c）」改记为 T-004c | 不改 |
+| `CardReward/DungeonCardPresentationCoordinatorTests.Timers.cs` `The_drain_waits_for_a_timer_already_waiting_on_its_cmd_and_stops_the_rest`（Protocol，TASK-11 的 C7，本单元新判定） | §4.2 生效后末条断言失败：`Assert.Throws() Failure: No exception was thrown`（`logs/task-16-red.txt` 第二段）；前面的断言全部仍成立 | 改写末条断言，其余原样 | 旧：排空之后再 `ScheduleAfterSettlement` 抛 `ObjectDisposedException` → 新：排空之后再调度不抛异常；100 ms 后入队序列仍是 `["test:blocker", LayoutCommand]`（没有新的 `timer:` 作业）；2 秒延时上没有等待者；`pending` 的条目数与排空时相同 → 意图不变：排空之后协调器不再启动计时器。理由：抛异常是旧实现的副作用；容错实现让排空顺序不依赖模块注册次序（TASK-11 主控方补充 N3）。**与裁定文字的出入**：裁定写「`pending` 为 0」，但这条用例在排空前还为 `later` 局调度了一个计时器，它被排空取消后留在 `pending` 里（`Dispose` 的注释写明「被取消的源留在 `pending`」，`Stop`／`DrainAsync` 不在本单元改动范围内），所以排空时 `pending` 为 1；新断言改为「不增长」。与 T1 同形的「`pending` 为 0」由 T1 在一个干净的协调器上断言 |
+
+按执行单元的新分布（总数 138 ＋ 1 ＝ 139）：
+
+- T-004b：1 － 1（`:206`）＝ 0；
+- T-004c：75 ＋ 1（`:206`）＝ 76；
+- T-006：53；
+- T-008：1；
+- TASK-09 已删除：1；
+- 已改写：TASK-11 3 ＋ TASK-12 2 ＋ TASK-14 2 ＋ TASK-16 1 ＝ 8。
+- 加法：0 ＋ 76 ＋ 53 ＋ 1 ＋ 1 ＋ 8 ＝ 139。
+
+本单元没有其他新判定的冲突：探针 x1（排除 T-004c 的 76 条）与正式全量中，`GameplaySelfWait` 为 0，最终正式全量的失败只有那 2 条 `DimensionDungeonTests`（此前两次全量各有一次打包进程用例的启动超时，负载形状，经主控方裁定放宽其就绪等待后不再出现，不是冲突，见 `tasks/TASK-16.md` Result）。x1 中 3.3 仍有 42／54，来自不在本清单里的 `UserServiceTests`（`OnlineUserServiceTests.cs`）方法直接调用观察者；它们今天不因迁移失败，是否构成冲突由 T-004c 开门断言时按拆分原则第 5 条判定（`t004c-entry.md` 第 4 项）。
+
+## 13. TASK-16 第 2 轮：一条 T-006 用例改归 T-004c（2026-10-22，基准 `c3115f9a`）
+
+出处：TASK-16 结果审查 B1（`reviews/task-16-result-review.md`）；主控方处置（第 2 轮）。
+
+| 用例 | 事实 | 去向 | 处置 |
+|---|---|---|---|
+| `Protocol.Tests/Game/CleanupNotificationDeliveryTests.cs:51` `Existing_owner_and_town_notices_finish_before_party_projection`（`task-06-conflicts.md` K5 表，原归 T-006） | 在测试线程上直接调用 `CleanupNotificationDelivery.DeliverAsync`，经 `PartyNotificationDelivery` 在执行器外获取 `PartyDeliveryStream.Gate` 与 `PartyParticipantGate`（附录 F「删除」栏）。证据是探针 p1 的 P3 (B) 2 条：`logs/task-16-probe-Protocol.txt`，汇总在 `logs/task-16-probe-round2.txt` 的 `k5gates.py` 段。T-004c 开门断言时它必然失败 | **从 T-006 改归 T-004c** | 在开门断言的同一提交里处置；方式由 T-004c 细化时定，倾向「经执行器驱动、断言不变」或按 K5 规则改写 |
+
+同时核对了其余 T-006（K5）用例：以 T-006 冲突用例为最外层测试的取门记录（A／B／C 三类都查），在五个项目中只有上面这一条（`k5gates.py`）。Protocol 排除轮 x3（只排除 T-004c 的 76 条加上这一条，共 77 条）中，执行器外的 P3 与 (C) 记录都归零。没有其他 T-006 用例需要改归。
+
+按执行单元的新分布（总数仍为 139）：
+
+- T-004b：0；
+- T-004c：76 ＋ 1 ＝ 77；
+- T-006：53 － 1 ＝ 52；
+- T-008：1；
+- TASK-09 已删除：1；
+- 已改写：8。
+- 加法：0 ＋ 77 ＋ 52 ＋ 1 ＋ 1 ＋ 8 ＝ 139。

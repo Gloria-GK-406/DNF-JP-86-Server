@@ -8,6 +8,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.CardReward;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Testing;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Tests.Game.CardReward;
 
@@ -151,8 +152,87 @@ public sealed partial class DungeonCardPresentationCoordinatorTests
 
         Assert.Equal(["test:blocker", LayoutCommand], world.Queue.Enqueued);
         Assert.Empty(world.Sender.For(world.Session.ConnectionId));
-        Assert.Throws<ObjectDisposedException>(() =>
-            TestGameplay.Run(() => world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId)));
+        // TASK-16: a request after the drain is ignored rather than thrown at; no timer starts. The
+        // later run's cancelled source stays in pending (Dispose leaves it), so the count must not grow.
+        var pendingAtDrain = PendingTimers(world.Coordinator);
+        TestGameplay.Run(() => world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId));
+        await Task.Delay(100);
+        Assert.Equal(["test:blocker", LayoutCommand], world.Queue.Enqueued);
+        Assert.Equal(0, world.Delay.Pending(TimeSpan.FromSeconds(2)));
+        Assert.Equal(pendingAtDrain, PendingTimers(world.Coordinator));
+    }
+
+    /// <summary>
+    /// A settlement whose CMD runs after the coordinator drained, as when the drains run in another
+    /// order, is the same as one cancelled by the drain: no timer, no failure.
+    /// </summary>
+    [Fact]
+    public async Task Settlement_scheduled_after_the_coordinator_drained_is_ignored_without_throwing()
+    {
+        using var world = TestGameplay.Run(() => Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4)));
+        var logs = new CoordinatorLogs();
+        using var coordinator = WithLogs(world, logs);
+        await coordinator.DrainAsync(CancellationToken.None);
+
+        TestGameplay.Run(() => coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId));
+        await Task.Delay(100);
+
+        Assert.Empty(world.Queue.Enqueued);
+        Assert.Equal(0, world.Delay.Pending(TimeSpan.FromSeconds(2)));
+        Assert.Equal(0, PendingTimers(coordinator));
+        Assert.Equal(0, Inflight(coordinator));
+        Assert.True(coordinator.DrainAsync(CancellationToken.None).IsCompleted);
+        Assert.Contains(logs.Messages, x => x == $"Information {LayoutCommand} was not scheduled: the card presentation coordinator has stopped");
+    }
+
+    [Fact]
+    public async Task A_layout_opened_after_the_drain_still_answers_but_starts_no_auto_flip()
+    {
+        using var world = TestGameplay.Run(() => Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4)));
+        var logs = new CoordinatorLogs();
+        using var coordinator = WithLogs(world, logs);
+        await coordinator.DrainAsync(CancellationToken.None);
+
+        await TestGameplay.RunAsync(async () =>
+            await coordinator.OpenOnRequestAsync(world.Session, world.Run.RunId, default));
+        await Task.Delay(100);
+
+        Assert.Single(world.Sender.For(world.Session.ConnectionId).OfType<ScoreScrollStateResponse>());
+        Assert.Single(world.Sender.For(world.Session.ConnectionId).OfType<CardSelectRightStateResponse>());
+        Assert.True(world.Runs.Find(world.Session.CharacterId)!.CardLayoutOpen);
+        Assert.Empty(world.Queue.Enqueued);
+        Assert.Equal(0, world.Delay.Pending(TimeSpan.FromSeconds(4)));
+        Assert.Equal(0, PendingTimers(coordinator));
+        Assert.Contains(logs.Messages, x => x == $"Information {AutoFlipCommand} was not scheduled: the card presentation coordinator has stopped");
+    }
+
+    /// <summary>A second coordinator over the same world whose log is kept.</summary>
+    private static DungeonCardPresentationCoordinator WithLogs(World world, CoordinatorLogs logs) =>
+        new(world.Sessions,
+            world.Runs,
+            world.Bus,
+            world.Sender,
+            world.Projection,
+            TimeProvider.System,
+            world.Delay,
+            logs,
+            new DungeonCardPresentationTiming(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4)),
+            world.Queue);
+
+    private static int Inflight(DungeonCardPresentationCoordinator coordinator) =>
+        Assert.IsType<int>(typeof(DungeonCardPresentationCoordinator)
+            .GetField("inflight", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(coordinator));
+
+    private sealed class CoordinatorLogs : ILogger<DungeonCardPresentationCoordinator>
+    {
+        public ConcurrentQueue<string> Messages { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter) =>
+            this.Messages.Enqueue($"{logLevel} {formatter(state, exception)}");
     }
 
     private static int PendingTimers(DungeonCardPresentationCoordinator coordinator)
