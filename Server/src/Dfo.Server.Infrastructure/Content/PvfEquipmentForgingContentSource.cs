@@ -7,7 +7,7 @@ namespace Dfo.Server.Infrastructure.Content;
 
 /// <summary>Reads A21 separate-upgrade declarations; does not mutate items.</summary>
 internal sealed class PvfEquipmentForgingContentSource(PvfArchiveProvider provider)
-    : IEquipmentForgingContentSource
+    : IEquipmentForgingContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -20,6 +20,13 @@ internal sealed class PvfEquipmentForgingContentSource(PvfArchiveProvider provid
     private readonly Lock gate = new();
     private bool loaded;
     private EquipmentForgingTable? table;
+
+    public string Name => "equipment-forging";
+
+    public async ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        return await GetAsync(cancellationToken).ConfigureAwait(false) is null ? 0 : 1;
+    }
 
     public ValueTask<EquipmentForgingTable?> GetAsync(CancellationToken cancellationToken)
     {

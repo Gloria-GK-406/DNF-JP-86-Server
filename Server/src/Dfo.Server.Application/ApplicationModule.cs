@@ -876,5 +876,19 @@ public sealed class ApplicationModule : IServerModule
         services.AddCommandHandler<AuthenticateAndIssueTicketCommand, AuthenticationResult, AuthenticateAndIssueTicketCommandHandler>(CommandExecutionKind.Transactional);
         services.AddNetworkMessageDispatching();
         services.AddNotificationDispatching();
+        AddContentWarmups(services);
+    }
+
+    /// <summary>Rules that load on first use and are warmed at startup (spec appendix B "启动预热").</summary>
+    private static void AddContentWarmups(IServiceCollection services)
+    {
+        services.AddContentWarmup<IPremiumServiceRuleService>()
+            .AddContentWarmup<IQuestHelperPuppetRuleService>()
+            .AddContentWarmup<IExperienceRuleService>()
+            .AddContentWarmup<Dfo.Server.Abstractions.Events.IJoustRuleService>()
+            .AddContentWarmup<ITournamentDungeonRuleService>()
+            .AddContentWarmup<IEpicBookRuleService>()
+            .AddContentWarmup<IDropRuleService>();
+        services.AddSingleton<Dfo.Server.Abstractions.Content.IContentWarmup, CharacterSkillRuleWarmup>();
     }
 }

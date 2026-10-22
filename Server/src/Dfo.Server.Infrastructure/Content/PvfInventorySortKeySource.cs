@@ -6,7 +6,7 @@ using Dfo.Server.Abstractions.Inventory;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfInventorySortKeySource(PvfArchiveProvider provider,
-    IEquipmentSlotDefinitionSource slots) : IInventorySortKeySource
+    IEquipmentSlotDefinitionSource slots) : IInventorySortKeySource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -25,6 +25,27 @@ internal sealed class PvfInventorySortKeySource(PvfArchiveProvider provider,
     private readonly Dictionary<int, InventorySortKeys> cache = [];
     private Dictionary<int, string>? paths;
 
+    public string Name => "inventory-sort-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            PathsIndex();
+            return ValueTask.FromResult(paths.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
+    private void PathsIndex()
+    {
+        paths ??= new[] { "equipment", "stackable" }.SelectMany(root =>
+                PvfListFile.Read(provider.Archive, $"{root}/{root}.lst")
+                    .Select(row => new KeyValuePair<int, string>(row.Id, root + "/" + row.RelativePath)))
+                .ToDictionary();
+    }
+
     public async ValueTask<InventorySortKeys> GetAsync(int itemId, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
@@ -32,10 +53,7 @@ internal sealed class PvfInventorySortKeySource(PvfArchiveProvider provider,
         lock (gate)
         {
             if (cache.TryGetValue(itemId, out var cached)) return cached;
-            paths ??= new[] { "equipment", "stackable" }.SelectMany(root =>
-                PvfListFile.Read(provider.Archive, $"{root}/{root}.lst")
-                    .Select(row => new KeyValuePair<int, string>(row.Id, root + "/" + row.RelativePath)))
-                .ToDictionary();
+            PathsIndex();
             if (!paths.TryGetValue(itemId, out var path))
                 throw new InvalidDataException($"No PVF sorting metadata for item {itemId}.");
             var document = PvfDocument.Open(provider.Archive, path).AtRoot();

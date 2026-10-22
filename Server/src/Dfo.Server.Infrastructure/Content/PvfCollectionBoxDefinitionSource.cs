@@ -14,7 +14,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// first two integers are its width and height, followed by one item/tier pair per
 /// position in row-major order.
 /// </remarks>
-internal sealed class PvfCollectionBoxDefinitionSource : ICollectionBoxDefinitionSource
+internal sealed class PvfCollectionBoxDefinitionSource : ICollectionBoxDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -34,6 +34,10 @@ internal sealed class PvfCollectionBoxDefinitionSource : ICollectionBoxDefinitio
     private Catalog? _catalog;
 
     public PvfCollectionBoxDefinitionSource(PvfArchiveProvider provider) => _provider = provider;
+
+    public string Name => "collection-boxes";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Load().Ordered.Count);
 
     public ValueTask<IReadOnlyList<CollectionBoxDefinition>> GetAllAsync(CancellationToken cancellationToken)
     {

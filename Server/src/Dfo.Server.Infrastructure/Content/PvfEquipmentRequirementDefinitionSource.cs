@@ -5,7 +5,7 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfEquipmentRequirementDefinitionSource(PvfArchiveProvider provider) : IEquipmentRequirementDefinitionSource
+internal sealed class PvfEquipmentRequirementDefinitionSource(PvfArchiveProvider provider) : IEquipmentRequirementDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -15,14 +15,32 @@ internal sealed class PvfEquipmentRequirementDefinitionSource(PvfArchiveProvider
     private readonly Lock gate = new();
     private readonly Dictionary<int, int?> cache = [];
     private Dictionary<int, string>? paths;
+    public string Name => "equipment-requirement-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            PathsIndex();
+            return ValueTask.FromResult(paths.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
+    private void PathsIndex()
+    {
+        paths ??= PvfListFile.Read(provider.Archive, "equipment/equipment.lst")
+                .ToDictionary(row => row.Id, row => "equipment/" + row.RelativePath);
+    }
+
     public ValueTask<int?> MinimumLevelAsync(int itemId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         lock (gate)
         {
             if (cache.TryGetValue(itemId, out var cached)) return ValueTask.FromResult(cached);
-            paths ??= PvfListFile.Read(provider.Archive, "equipment/equipment.lst")
-                .ToDictionary(row => row.Id, row => "equipment/" + row.RelativePath);
+            PathsIndex();
             int? level = null;
             if (paths.TryGetValue(itemId, out var path))
             {

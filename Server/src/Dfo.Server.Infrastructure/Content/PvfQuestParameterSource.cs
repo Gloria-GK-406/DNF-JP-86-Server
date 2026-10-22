@@ -16,7 +16,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// nonnegative sequence or value/<c>-1</c> pairs (the archive's experience table). The separators are dropped: keeping them
 /// would put every real value at twice its index and price every quest at half its level.
 /// </remarks>
-internal sealed class PvfQuestParameterSource(PvfArchiveProvider provider) : IQuestParameterSource
+internal sealed class PvfQuestParameterSource(PvfArchiveProvider provider) : IQuestParameterSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -49,6 +49,14 @@ internal sealed class PvfQuestParameterSource(PvfArchiveProvider provider) : IQu
 
     private readonly Lock _gate = new();
     private QuestParameters? _parameters;
+
+    public string Name => "quest-parameters";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(Load() is null ? 0 : 1);
+    }
 
     public QuestParameters Load()
     {

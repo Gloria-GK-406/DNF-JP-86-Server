@@ -90,6 +90,8 @@ internal sealed class GameServerStartupService(IServiceProvider services, IHostE
                 cancellationToken).ConfigureAwait(false);
             logger.LogInformation("Character progression constrained: TopLevel={TopLevel}, MaxExperience={Maximum}",
                 scale.TopLevel, scale.MaximumExperience);
+            await ContentWarmup.RunAsync(ContentWarmup.IsEnabled(services.GetService<Microsoft.Extensions.Configuration.IConfiguration>()),
+                services.GetServices<IContentWarmup>, logger, cancellationToken).ConfigureAwait(false);
         }
         cancellationToken.ThrowIfCancellationRequested();
     }

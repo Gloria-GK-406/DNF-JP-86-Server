@@ -196,7 +196,8 @@ public sealed class GmGameplayRouteTests(ITestOutputHelper output)
     {
         var calls = new GameplayCallLog();
         var passwords = new GameplayCallLog();
-        await using var host = await GmTestHost.StartAsync(realContent: true, configureServices: services =>
+        await using var host = await GmTestHost.StartAsync(realContent: true,
+            configuration: new Dictionary<string, string?> { ["ContentWarmup:Enabled"] = "true" }, configureServices: services =>
         {
             calls.Decorate<IEpicBookDomainService>(services);
             calls.Decorate<ICharacterExperienceStoragePolicy>(services);
@@ -212,6 +213,7 @@ public sealed class GmGameplayRouteTests(ITestOutputHelper output)
             "startup:GmBootstrapService");
         Assert.Single(passwords.Of(nameof(IPasswordCredentialRuleService.Hash)));
         Assert.All(passwords.Calls, call => Assert.False(call.OnExecutor));
+        await ContentWarmupTests.AssertWarmedAsync(host.Services, host.Logs.Messages);
     }
 
     private static (string Route, string? Command, string? Exempt, string? Violation) Classify(RouteEndpoint endpoint)

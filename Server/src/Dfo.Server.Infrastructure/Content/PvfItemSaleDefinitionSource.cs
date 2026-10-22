@@ -5,7 +5,7 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfItemSaleDefinitionSource(PvfArchiveProvider provider) : IItemSaleDefinitionSource
+internal sealed class PvfItemSaleDefinitionSource(PvfArchiveProvider provider) : IItemSaleDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -18,6 +18,32 @@ internal sealed class PvfItemSaleDefinitionSource(PvfArchiveProvider provider) :
     private readonly Dictionary<int, ItemSaleDefinition?> cache = [];
     private Dictionary<int, string>? equipment;
     private Dictionary<int, string>? stackables;
+
+    public string Name => "item-sale-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            var archive = provider.Archive;
+            EquipmentIndex(archive);
+            StackablesIndex(archive);
+            return ValueTask.FromResult(equipment.Count + stackables.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(equipment))]
+    private void EquipmentIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        equipment ??= PvfListFile.Read(archive, "equipment/equipment.lst").ToDictionary(x => x.Id, x => x.RelativePath);
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(stackables))]
+    private void StackablesIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        stackables ??= PvfListFile.Read(archive, "stackable/stackable.lst").ToDictionary(x => x.Id, x => x.RelativePath);
+    }
 
     public ValueTask<ItemSaleDefinition?> GetAsync(int itemId, CancellationToken cancellationToken)
     {
@@ -33,8 +59,8 @@ internal sealed class PvfItemSaleDefinitionSource(PvfArchiveProvider provider) :
     private ItemSaleDefinition? Read(int itemId)
     {
         var archive = provider.Archive;
-        equipment ??= PvfListFile.Read(archive, "equipment/equipment.lst").ToDictionary(x => x.Id, x => x.RelativePath);
-        stackables ??= PvfListFile.Read(archive, "stackable/stackable.lst").ToDictionary(x => x.Id, x => x.RelativePath);
+        EquipmentIndex(archive);
+        StackablesIndex(archive);
         var isEquipment = equipment.TryGetValue(itemId, out var relative);
         if (!isEquipment && !stackables.TryGetValue(itemId, out relative))
             return null;

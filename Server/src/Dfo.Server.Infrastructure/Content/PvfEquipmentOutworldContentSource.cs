@@ -7,7 +7,7 @@ namespace Dfo.Server.Infrastructure.Content;
 
 /// <summary>Reads only A21 amplifyitem facts needed by purification and attribute selection.</summary>
 internal sealed class PvfEquipmentOutworldContentSource(PvfArchiveProvider provider)
-    : IEquipmentOutworldContentSource
+    : IEquipmentOutworldContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -37,6 +37,14 @@ internal sealed class PvfEquipmentOutworldContentSource(PvfArchiveProvider provi
     private readonly Lock gate = new();
     private bool loaded;
     private EquipmentOutworldTable? table;
+
+    // Explicit: the class already has a private Name(archive, token) helper.
+    string Dfo.Server.Abstractions.Content.IContentWarmup.Name => "equipment-outworld";
+
+    public async ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        return await GetAsync(cancellationToken).ConfigureAwait(false) is null ? 0 : 1;
+    }
 
     public ValueTask<EquipmentOutworldTable?> GetAsync(CancellationToken cancellationToken)
     {

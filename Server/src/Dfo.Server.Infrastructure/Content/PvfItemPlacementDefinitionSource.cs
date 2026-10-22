@@ -16,7 +16,7 @@ namespace Dfo.Server.Infrastructure.Content;
 internal sealed class PvfItemPlacementDefinitionSource(
     PvfArchiveProvider provider,
     IInventorySlotMappingRuleService? slotMappings = null)
-    : IItemPlacementDefinitionSource
+    : IItemPlacementDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly IInventorySlotMappingRuleService slotMappings =
         slotMappings ?? new InventorySlotMappingRuleService();
@@ -28,6 +28,25 @@ internal sealed class PvfItemPlacementDefinitionSource(
     private IReadOnlyDictionary<int, (int Id, string RelativePath)>? _stackables;
     private IReadOnlyDictionary<int, string>? _equipment;
 
+    public string Name => "item-placement-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_gate)
+        {
+            Index(provider.Archive);
+            return ValueTask.FromResult(_stackables.Count + _equipment.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_stackables), nameof(_equipment))]
+    private void Index(Dfo.Pvf.PvfArchive archive)
+    {
+        _stackables ??= PvfListFile.Read(archive, StackableListPath).ToDictionary(value => value.Id);
+        _equipment ??= PvfEntryLifecycleContentSource.ReadEquipmentPaths(archive);
+    }
+
     public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -37,8 +56,7 @@ internal sealed class PvfItemPlacementDefinitionSource(
                 return ValueTask.FromResult(cached);
 
             var archive = provider.Archive;
-            _stackables ??= PvfListFile.Read(archive, StackableListPath).ToDictionary(value => value.Id);
-            _equipment ??= PvfEntryLifecycleContentSource.ReadEquipmentPaths(archive);
+            Index(archive);
 
             var metadata = PvfEntryLifecycleContentSource.ResolveItemMetadataFor(
                 archive, itemId, _stackables, _equipment);

@@ -8,7 +8,7 @@ using Dfo.Server.Abstractions.World;
 namespace Dfo.Server.Infrastructure.Content;
 
 /// <summary>Static WDM/DGN/MAP/hellparty declarations; no player state or random choices.</summary>
-internal sealed class PvfHellDungeonDefinitionSource(PvfArchiveProvider provider) : IHellDungeonDefinitionSource
+internal sealed class PvfHellDungeonDefinitionSource(PvfArchiveProvider provider) : IHellDungeonDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lock gate = new();
     private readonly Dictionary<int, HellDungeonDefinition?> cache = [];
@@ -18,6 +18,26 @@ internal sealed class PvfHellDungeonDefinitionSource(PvfArchiveProvider provider
     private Dictionary<int, string>? aiCharacters;
     private HellPartyDefinition? party;
     private PvfArchive Archive => provider.Archive;
+
+    public string Name => "hell-dungeons";
+
+    public async ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        await GetPartyAsync(cancellationToken).ConfigureAwait(false);
+        lock (gate)
+        {
+            DungeonIndexes();
+            return areas.Count + dungeons.Count + maps.Count;
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(areas), nameof(dungeons), nameof(maps))]
+    private void DungeonIndexes()
+    {
+        areas ??= ReadAreas();
+        dungeons ??= Paths("dungeon");
+        maps ??= Paths("map");
+    }
 
     public ValueTask<HellDungeonDefinition?> GetAsync(int dungeonId, CancellationToken token)
     {
@@ -89,9 +109,7 @@ internal sealed class PvfHellDungeonDefinitionSource(PvfArchiveProvider provider
 
     private HellDungeonDefinition? ReadDungeon(int id)
     {
-        areas ??= ReadAreas();
-        dungeons ??= Paths("dungeon");
-        maps ??= Paths("map");
+        DungeonIndexes();
         if (!areas.TryGetValue(id, out var area) || !dungeons.TryGetValue(id, out var path)) return null;
         var doc = Open("dungeon/" + path);
         if (doc is null) return null;

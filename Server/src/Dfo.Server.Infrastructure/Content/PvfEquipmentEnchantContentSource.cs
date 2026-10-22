@@ -6,7 +6,7 @@ using Dfo.Server.Abstractions.Content;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provider)
-    : IEquipmentEnchantContentSource
+    : IEquipmentEnchantContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -26,6 +26,33 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
     private Dictionary<int, string>? equipment;
     private readonly Dictionary<(int Bead, int Target), EquipmentEnchantDefinition?> cache = [];
 
+    // Explicit: the class already has a private Name(archive, token) helper.
+    string Dfo.Server.Abstractions.Content.IContentWarmup.Name => "equipment-enchant-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            var archive = provider.Archive;
+            StackablesIndex(archive);
+            EquipmentIndex(archive);
+            return ValueTask.FromResult(stackables.Count + equipment.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(stackables))]
+    private void StackablesIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        stackables ??= Paths(archive, "stackable/stackable.lst");
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(equipment))]
+    private void EquipmentIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        equipment ??= Paths(archive, "equipment/equipment.lst");
+    }
+
     public ValueTask<EquipmentEnchantDefinition?> ResolveAsync(
         int beadItemId, int equipmentItemId, CancellationToken cancellationToken)
     {
@@ -42,8 +69,8 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
     private EquipmentEnchantDefinition? Read((int Bead, int Target) key)
     {
         var archive = provider.Archive;
-        stackables ??= Paths(archive, "stackable/stackable.lst");
-        equipment ??= Paths(archive, "equipment/equipment.lst");
+        StackablesIndex(archive);
+        EquipmentIndex(archive);
         if (!stackables.TryGetValue(key.Bead, out var beadPath)
             || !equipment.TryGetValue(key.Target, out var targetPath)) return null;
 

@@ -5,7 +5,7 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class EpicBookRuleService(IEpicBookDefinitionSource source) : IEpicBookRuleService
+internal sealed class EpicBookRuleService(IEpicBookDefinitionSource source) : IEpicBookRuleService, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<IReadOnlyList<EpicPieceDefinition>> catalog = new(() =>
     {
@@ -34,6 +34,12 @@ internal sealed class EpicBookRuleService(IEpicBookDefinitionSource source) : IE
         _ = Catalog();
         return recipes.Value.GetValueOrDefault(equipmentId);
     }
+
+    public string Name => "epic-book-rules";
+
+    /// <remarks>The epic-book startup job reads the catalog only; the recipes were left to the first craft.</remarks>
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(Catalog().Count + recipes.Value.Count);
 }
 
 internal sealed class EpicBookDomainService(IEpicBookRuleService rules, IEpicBookDomainStore store,

@@ -7,15 +7,25 @@ using Dfo.Server.Abstractions.World;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfAltarDungeonContentSource(
-    PvfArchiveProvider provider, IDungeonMapDefinitionSource maps) : IAltarDungeonContentSource
+    PvfArchiveProvider provider, IDungeonMapDefinitionSource maps) : IAltarDungeonContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lock gate = new();
     private readonly Dictionary<int, AltarDungeonDefinition> cached = [];
 
+    private static readonly int[] Dungeons = [11006, 11007];
+
+    public string Name => "altar-dungeons";
+
+    public async ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        foreach (var dungeonId in Dungeons) await GetAsync(dungeonId, cancellationToken).ConfigureAwait(false);
+        return Dungeons.Length;
+    }
+
     public async ValueTask<AltarDungeonDefinition> GetAsync(int dungeonId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (dungeonId is not (11006 or 11007)) throw new ArgumentOutOfRangeException(nameof(dungeonId));
+        if (!Dungeons.Contains(dungeonId)) throw new ArgumentOutOfRangeException(nameof(dungeonId));
         lock (gate) if (cached.TryGetValue(dungeonId, out var found)) return found;
         var owned = await maps.ListForDungeonAsync(dungeonId, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();

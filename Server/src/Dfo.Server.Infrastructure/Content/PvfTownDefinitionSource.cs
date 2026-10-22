@@ -20,7 +20,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// <c>[virtual movable area]</c> in rows of four bounds.
 /// </para>
 /// </remarks>
-internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
+internal sealed class PvfTownDefinitionSource : ITownDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -48,6 +48,10 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
     private Catalog? _catalog;
 
     public PvfTownDefinitionSource(PvfArchiveProvider provider) => _provider = provider;
+
+    public string Name => "towns";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Load().Ordered.Count);
 
     public ValueTask<IReadOnlyList<TownDefinition>> GetAllAsync(CancellationToken cancellationToken)
     {

@@ -6,7 +6,7 @@ using Dfo.Server.Abstractions.Content;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfMailItemDefinitionSource(PvfArchiveProvider provider)
-    : IMailItemDefinitionSource
+    : IMailItemDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -18,6 +18,34 @@ internal sealed class PvfMailItemDefinitionSource(PvfArchiveProvider provider)
     private readonly Dictionary<int, MailItemDefinition?> cache = [];
     private Dictionary<int, string>? equipmentPaths;
     private Dictionary<int, string>? stackablePaths;
+
+    public string Name => "mail-item-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            var archive = provider.Archive;
+            EquipmentPathsIndex(archive);
+            StackablePathsIndex(archive);
+            return ValueTask.FromResult(equipmentPaths.Count + stackablePaths.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(equipmentPaths))]
+    private void EquipmentPathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        equipmentPaths ??= PvfListFile.Read(archive, "equipment/equipment.lst")
+            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(stackablePaths))]
+    private void StackablePathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        stackablePaths ??= PvfListFile.Read(archive, "stackable/stackable.lst")
+            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+    }
 
     public ValueTask<MailItemDefinition?> GetAsync(int itemId, CancellationToken cancellationToken)
     {
@@ -33,10 +61,8 @@ internal sealed class PvfMailItemDefinitionSource(PvfArchiveProvider provider)
     private MailItemDefinition? Read(int itemId)
     {
         var archive = provider.Archive;
-        equipmentPaths ??= PvfListFile.Read(archive, "equipment/equipment.lst")
-            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
-        stackablePaths ??= PvfListFile.Read(archive, "stackable/stackable.lst")
-            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+        EquipmentPathsIndex(archive);
+        StackablePathsIndex(archive);
         var path = equipmentPaths.TryGetValue(itemId, out var equipment)
             ? "equipment/" + equipment
             : stackablePaths.TryGetValue(itemId, out var stackable)

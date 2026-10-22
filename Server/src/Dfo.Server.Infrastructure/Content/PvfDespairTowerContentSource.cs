@@ -4,10 +4,14 @@ using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfDespairTowerContentSource(PvfArchiveProvider provider) : IDespairTowerContentSource
+internal sealed class PvfDespairTowerContentSource(PvfArchiveProvider provider) : IDespairTowerContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private DespairTowerCatalog? cached;
     private readonly Lock gate = new();
+    public string Name => "despair-tower";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Load().Floors.Count);
+
     public DespairTowerCatalog Load()
     {
         lock (gate)

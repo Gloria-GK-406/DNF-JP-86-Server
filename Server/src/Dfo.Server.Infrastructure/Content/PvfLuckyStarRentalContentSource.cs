@@ -5,7 +5,7 @@ using Dfo.Server.Abstractions.Rental;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfLuckyStarRentalContentSource(PvfArchiveProvider provider) : ILuckyStarRentalContentSource
+internal sealed class PvfLuckyStarRentalContentSource(PvfArchiveProvider provider) : ILuckyStarRentalContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lock gate=new();
     private LuckyStarRentalCatalog? catalog;
@@ -17,6 +17,33 @@ internal sealed class PvfLuckyStarRentalContentSource(PvfArchiveProvider provide
         ["[at gunner]"]=5,["[thief]"]=6,["[at fighter]"]=7,["[at mage]"]=8,["[at swordman]"]=9,
         ["[creator mage]"]=10,["[demonic swordman]"]=11,["[knight]"]=12,["[demonic lancer]"]=13
     };
+    public string Name => "lucky-star-rental";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _ = Load();
+        lock (gate)
+        {
+            var archive = provider.Archive;
+            StackablesIndex(archive);
+            EquipmentIndex(archive);
+            return ValueTask.FromResult(stackables.Count + equipment.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(stackables))]
+    private void StackablesIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        stackables??=PvfListFile.Read(archive,"stackable/stackable.lst").ToDictionary(x=>x.Id,x=>"stackable/"+x.RelativePath);
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(equipment))]
+    private void EquipmentIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        equipment??=PvfListFile.Read(archive,"equipment/equipment.lst").ToDictionary(x=>x.Id,x=>"equipment/"+x.RelativePath);
+    }
+
     public LuckyStarRentalCatalog Load()
     {
         lock(gate) return catalog??=Read();
@@ -70,7 +97,7 @@ internal sealed class PvfLuckyStarRentalContentSource(PvfArchiveProvider provide
         lock(gate)
         {
             var archive=provider.Archive;
-            stackables??=PvfListFile.Read(archive,"stackable/stackable.lst").ToDictionary(x=>x.Id,x=>"stackable/"+x.RelativePath);
+            StackablesIndex(archive);
             if(!stackables.TryGetValue(itemId,out var path)) return ValueTask.FromResult<int?>(null);
             var matches=PvfNpcShopDefinitionSource.Sections(archive,path).Where(x=>x.Name=="[action type]").ToArray();
             if(matches.Length==0) return ValueTask.FromResult<int?>(null);
@@ -88,7 +115,7 @@ internal sealed class PvfLuckyStarRentalContentSource(PvfArchiveProvider provide
         lock(gate)
         {
             var archive=provider.Archive;
-            equipment??=PvfListFile.Read(archive,"equipment/equipment.lst").ToDictionary(x=>x.Id,x=>"equipment/"+x.RelativePath);
+            EquipmentIndex(archive);
             if(!equipment.TryGetValue(itemId,out var path)) return ValueTask.FromResult<int?>(null);
             var matches=PvfNpcShopDefinitionSource.Sections(archive,path).Where(x=>x.Name=="[equipment grade]").ToArray();
             if(matches.Length==0) return ValueTask.FromResult<int?>(null);
@@ -104,7 +131,7 @@ internal sealed class PvfLuckyStarRentalContentSource(PvfArchiveProvider provide
         lock(gate)
         {
             var archive=provider.Archive;
-            equipment??=PvfListFile.Read(archive,"equipment/equipment.lst").ToDictionary(x=>x.Id,x=>"equipment/"+x.RelativePath);
+            EquipmentIndex(archive);
             if(!equipment.TryGetValue(itemId,out var path)) return ValueTask.FromResult<IReadOnlySet<byte>?>(null);
             var matches=PvfNpcShopDefinitionSource.Sections(archive,path).Where(x=>x.Name=="[usable job]").ToArray();
             if(matches.Length!=1 || matches[0].Values.Count==0 || matches[0].Values.Any(x=>!x.IsString))

@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfItemCatalogSource(PvfArchiveProvider provider,
-    ILogger<PvfItemCatalogSource> logger) : IItemCatalogSource
+    ILogger<PvfItemCatalogSource> logger) : IItemCatalogSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -24,6 +24,18 @@ internal sealed class PvfItemCatalogSource(PvfArchiveProvider provider,
     private Dictionary<int, (string Path, bool Equipment)>? paths;
     private readonly Dictionary<int, ItemCatalogEntry?> cache = [];
     private ItemCatalogEntry[]? searchable;
+
+    public string Name => "item-catalog-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            LoadPaths();
+            return ValueTask.FromResult(paths!.Count);
+        }
+    }
 
     public ValueTask<ItemCatalogEntry?> FindAsync(int itemId, CancellationToken token)
     {

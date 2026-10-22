@@ -4,7 +4,7 @@ using Dfo.Server.Data.Marriage;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfMarriageProposalContentSource(PvfArchiveProvider provider) : IMarriageProposalContentSource
+internal sealed class PvfMarriageProposalContentSource(PvfArchiveProvider provider) : IMarriageProposalContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<MarriageProposalContent> content = new(() =>
     {
@@ -15,4 +15,8 @@ internal sealed class PvfMarriageProposalContentSource(PvfArchiveProvider provid
         return new(document.Read(PvfField.Int32("[minimum level]", minimum: 1, maximum: 255)), quests[0], quests[1]);
     });
     public MarriageProposalContent Load() => content.Value;
+    public string Name => "marriage-proposal";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Load() is null ? 0 : 1);
+
 }

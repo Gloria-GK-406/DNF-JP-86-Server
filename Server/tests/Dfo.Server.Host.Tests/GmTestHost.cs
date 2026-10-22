@@ -46,6 +46,8 @@ internal sealed class GmTestHost(IHost host, HttpClient client, string directory
             ["GmWeb:Bootstrap:LoginName"] = administrator, ["GmWeb:Bootstrap:Password"] = password, ["GmWeb:Bootstrap:Permissions"] = permissions,
             ["LauncherAuth:Enabled"] = "false", ["Networking:Enabled"] = "false", ["Game:EndpointHost"] = "127.0.0.1",
             ["GameLogin:ConnectionPort"] = "10128", ["GameLogin:EndpointPortA"] = "17200", ["GameLogin:EndpointPortB"] = "17201",
+            // Startup content warmup is exercised by S1 (W1), the characterization hosts and the packaged-process tests.
+            ["ContentWarmup:Enabled"] = "false",
         });
         if (configuration is not null) config.AddInMemoryCollection(configuration);
         var logs = new GmLogCapture(); var feature = new GmWebModule(config);

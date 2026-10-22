@@ -8,7 +8,7 @@ using Dfo.Server.Data.Content;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfAvatarCompoundDefinitionSource(PvfArchiveProvider provider,
-    ICeraShopDefinitionSource items) : IAvatarCompoundDefinitionSource
+    ICeraShopDefinitionSource items) : IAvatarCompoundDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static readonly (string Pool, string Rate, string Equipment)[] Parts =
     [ ("hat", "hat", "hat avatar"), ("hair", "hair", "hair avatar"), ("face", "face", "face avatar"),
@@ -19,14 +19,36 @@ internal sealed class PvfAvatarCompoundDefinitionSource(PvfArchiveProvider provi
     private Dictionary<int, string>? jobPaths;
     private readonly Dictionary<int, AvatarCompoundItemDefinition?> itemCache = [];
 
+    public string Name => "avatar-compound";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        int[] keys;
+        // The job list is the archive's own (key = job + 1); each job's definition is bounded by it.
+        lock (gate)
+        {
+            JobPathsIndex();
+            keys = [.. jobPaths.Keys.Where(key => key is >= 1 and <= byte.MaxValue + 1)];
+        }
+        foreach (var key in keys) _ = ForJobAsync(checked((byte)(key - 1)), cancellationToken);
+        return ValueTask.FromResult(keys.Length);
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(jobPaths))]
+    private void JobPathsIndex()
+    {
+        jobPaths ??= PvfListFile.Read(provider.Archive, "etc/compoundavatar.etc")
+                .ToDictionary(x => x.Id, x => "etc/" + x.RelativePath);
+    }
+
     public ValueTask<AvatarCompoundDefinition?> ForJobAsync(byte job, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         lock (gate)
         {
             if (cache.TryGetValue(job, out var found)) return ValueTask.FromResult(found);
-            jobPaths ??= PvfListFile.Read(provider.Archive, "etc/compoundavatar.etc")
-                .ToDictionary(x => x.Id, x => "etc/" + x.RelativePath);
+            JobPathsIndex();
             found = jobPaths.TryGetValue(job + 1, out var path) ? Parse(path) : null;
             cache[job] = found;
             return ValueTask.FromResult(found);

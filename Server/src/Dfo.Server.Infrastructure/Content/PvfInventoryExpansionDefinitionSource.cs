@@ -4,13 +4,25 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfInventoryExpansionDefinitionSource(PvfArchiveProvider provider) : IInventoryExpansionDefinitionSource
+internal sealed class PvfInventoryExpansionDefinitionSource(PvfArchiveProvider provider) : IInventoryExpansionDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static readonly PvfField<int> RequiredLevel = PvfField.Int32("[required level]");
     private static readonly PvfField<IReadOnlyList<int>> UpgradeInfo = PvfField.Int32List("[upgrade info]");
     private readonly Lock gate = new();
     private AccountCargoDefinition? account;
     private Dictionary<int, InventoryExpansionGrant>? items;
+    public string Name => "inventory-expansion";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            Load();
+            return ValueTask.FromResult(items!.Count);
+        }
+    }
+
     public ValueTask<AccountCargoDefinition> AccountCargoAsync(CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();

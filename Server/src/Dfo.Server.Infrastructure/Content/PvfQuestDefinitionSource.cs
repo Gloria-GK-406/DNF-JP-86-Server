@@ -6,7 +6,7 @@ using Dfo.Server.Abstractions.Content;
 namespace Dfo.Server.Infrastructure.Content;
 
 /// <summary>Projects the archive's quest scripts into neutral, validated definitions.</summary>
-internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
+internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -128,6 +128,10 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         IReadOnlyList<int> AccountCollisionQuestIds);
 
     public PvfQuestDefinitionSource(PvfArchiveProvider provider) => _provider = provider;
+
+    public string Name => "quests";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Load().Ordered.Count);
 
     public ValueTask<IReadOnlyList<QuestDefinition>> GetAllAsync(CancellationToken cancellationToken)
     {

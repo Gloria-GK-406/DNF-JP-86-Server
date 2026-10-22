@@ -4,10 +4,14 @@ using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfSaoTowerContentSource(PvfArchiveProvider provider) : ISaoTowerContentSource
+internal sealed class PvfSaoTowerContentSource(PvfArchiveProvider provider) : ISaoTowerContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<SaoTowerCatalog> catalog = new(() => Read(provider));
     public SaoTowerCatalog Load() => catalog.Value;
+    public string Name => "sao-tower";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Load().Floors.Count);
+
     private static SaoTowerCatalog Read(PvfArchiveProvider provider)
     {
         var archive = provider.Archive;

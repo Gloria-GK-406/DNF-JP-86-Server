@@ -4,7 +4,7 @@ using Dfo.Server.Data.Events;
 using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Events;
 
-internal sealed class JoustRuleService(IJoustDefinitionSource source) : IJoustRuleService
+internal sealed class JoustRuleService(IJoustDefinitionSource source) : IJoustRuleService, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private JoustDefinition? definition;
     private readonly SemaphoreSlim loadGate=new(1);
@@ -26,6 +26,15 @@ internal sealed class JoustRuleService(IJoustDefinitionSource source) : IJoustRu
         catch (Exception e) when (e is not OperationCanceledException) { return (null, e.Message); }
         finally{loadGate.Release();}
     }
+    public string Name => "joust";
+
+    /// <remarks>A content error is not cached here, so a request retries it exactly as it would have.</remarks>
+    public async ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        var (loaded, error) = await DefinitionAsync(cancellationToken).ConfigureAwait(false);
+        return loaded?.Knights.Length ?? throw new InvalidDataException(error);
+    }
+
     public void ValidateSchedule(JoustSchedule s)
     {
         if (s is null || !TimeOnly.TryParseExact(s.DailyStartTime, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var start)

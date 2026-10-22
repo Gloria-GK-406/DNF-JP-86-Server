@@ -3,7 +3,7 @@ using Dfo.Server.Abstractions.Marriage;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfMarriageCapsuleContentSource(PvfArchiveProvider provider) : IMarriageCapsuleContentSource
+internal sealed class PvfMarriageCapsuleContentSource(PvfArchiveProvider provider) : IMarriageCapsuleContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<MarriageCapsuleRules> rules = new(() =>
     {
@@ -15,4 +15,8 @@ internal sealed class PvfMarriageCapsuleContentSource(PvfArchiveProvider provide
         return r;
     });
     public MarriageCapsuleRules Load() => rules.Value;
+    public string Name => "marriage-capsule";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Load() is null ? 0 : 1);
+
 }

@@ -116,6 +116,8 @@ public sealed class ComponentLifecycleTests
         config.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Database:Path"] = Path.Combine(directory, "test.db"),
+            // Startup content warmup is exercised by S1 (W1), the characterization hosts and the packaged-process tests.
+            ["ContentWarmup:Enabled"] = "false",
             ["LauncherAuth:Enabled"] = http.ToString(),
             ["LauncherAuth:ListenUrl"] = $"http://127.0.0.1:{ports[0]}",
             ["LauncherAuth:PublicChannel:Host"] = "127.0.0.1",

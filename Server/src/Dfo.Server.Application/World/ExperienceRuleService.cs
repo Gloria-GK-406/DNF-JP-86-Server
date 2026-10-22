@@ -21,7 +21,7 @@ internal sealed class ExperienceRuleService(
     IDungeonExperienceProgressionPolicySource progression,
     IChannelExperienceSource channels,
     ExperienceTuning tuning,
-    ExperienceEntitlementPolicy entitlements) : IExperienceRuleService
+    ExperienceEntitlementPolicy entitlements) : IExperienceRuleService, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<DungeonExperienceProgressionPolicy> policy = new(progression.Load);
     private CharacterExperienceScale? scale;
@@ -60,4 +60,14 @@ internal sealed class ExperienceRuleService(
     }
 
     public DungeonExperienceProgressionPolicy Progression() => policy.Value;
+
+    public string Name => "experience-rules";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        _ = parameters.Load();
+        _ = rankGrades.Load();
+        _ = channels.Load();
+        return ValueTask.FromResult(Progression().LevelThresholds.Count);
+    }
 }

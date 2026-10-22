@@ -7,10 +7,18 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfCycleDungeonDefinitionSource(PvfArchiveProvider provider) : ICycleDungeonDefinitionSource
+internal sealed class PvfCycleDungeonDefinitionSource(PvfArchiveProvider provider) : ICycleDungeonDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lock gate = new();
     private IReadOnlyList<CycleDungeonRegion>? regions;
+
+    public string Name => "cycle-dungeons";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(Load().Count);
+    }
 
     public IReadOnlyList<CycleDungeonRegion> Load()
     {

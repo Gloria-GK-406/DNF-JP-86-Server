@@ -8,7 +8,7 @@ using Section = Dfo.Server.Infrastructure.Content.PvfNpcShopDefinitionSource.Sec
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) : ICeraShopDefinitionSource
+internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) : ICeraShopDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static readonly PvfFieldFamily PackageDataFields = new("[package data");
 
@@ -78,6 +78,25 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
     private IReadOnlyList<Section>? avatarAbilityCases;
     private bool loaded;
     private Dictionary<int, (int Type, TimeSpan Duration)> premiumTerms = [];
+
+    public string Name => "cera-shop";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            Load();
+            AvatarAbilityCasesIndex();
+            return ValueTask.FromResult(avatarAbilityCases.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(avatarAbilityCases))]
+    private void AvatarAbilityCasesIndex()
+    {
+        avatarAbilityCases ??= Sections("skill/abilitydatas.dat");
+    }
 
     public ValueTask<CeraShopProductDefinition?> GetProductAsync(int productId, CancellationToken cancellationToken)
     {
@@ -417,7 +436,7 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
             var caseIndex = Number(Fields.AbilityCaseIndexField);
             if (caseIndex is not null)
             {
-                avatarAbilityCases ??= Sections("skill/abilitydatas.dat");
+                AvatarAbilityCasesIndex();
                 var parsed = ResolveAvatarAbilityCase(caseIndex.Value, avatarAbilityCases,
                     provider.Archive.ResolveString);
                 abilities.AddRange(parsed.Abilities);

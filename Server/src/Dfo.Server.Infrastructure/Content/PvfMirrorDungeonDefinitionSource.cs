@@ -6,10 +6,18 @@ using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfMirrorDungeonDefinitionSource(PvfArchiveProvider provider) : IMirrorDungeonDefinitionSource
+internal sealed class PvfMirrorDungeonDefinitionSource(PvfArchiveProvider provider) : IMirrorDungeonDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lock gate = new();
     private MirrorDungeonCatalog? catalog;
+    public string Name => "mirror-dungeons";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(Load() is null ? 0 : 1);
+    }
+
     public MirrorDungeonCatalog Load()
     {
         lock (gate) return catalog ??= Read();

@@ -20,7 +20,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// </para>
 /// </remarks>
 internal sealed class PvfDropRateTableSource(PvfArchiveProvider provider)
-    : IDropRateTableSource, IGoldDropTableSource
+    : IDropRateTableSource, IGoldDropTableSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static readonly PvfField<int> BandCountSection = PvfField.Int32("[drop prob count]");
     private static readonly PvfField<IReadOnlyList<int>> BandSection = PvfField.Int32List("[drop prob]", optional: true);
@@ -53,6 +53,20 @@ internal sealed class PvfDropRateTableSource(PvfArchiveProvider provider)
 
     private readonly ConcurrentDictionary<string, GoldDropTable> _goldTables = new(
         StringComparer.OrdinalIgnoreCase);
+
+    public string Name => "drop-rate-tables";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        // Every table a reader names: monster, monster extra and breakable object rates; monster, breakable object
+        // and clear-reward gold.
+        string[] rates = [DropRateTables.Monster, DropRateTables.MonsterExtra, DropRateTables.BreakableObject];
+        string[] gold = [DropRateTables.Monster, DropRateTables.BreakableObject, DropRateTables.ClearReward];
+        foreach (var table in rates) _ = Load(table);
+        foreach (var table in gold) _ = ((IGoldDropTableSource)this).Load(table);
+        return ValueTask.FromResult(rates.Length + gold.Length);
+    }
 
     public DropRateTable Load(string archivePath)
     {
