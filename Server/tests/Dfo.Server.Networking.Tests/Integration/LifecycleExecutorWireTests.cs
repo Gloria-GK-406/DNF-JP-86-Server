@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
 using static Dfo.Server.Networking.Tests.Integration.LifecycleWireHost;
@@ -146,9 +147,8 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
     {
         await using var server = await LifecycleWireHost.StartAsync();
         var commands = server.Host.Services.GetRequiredService<ICommandBus>();
-        await commands.SendAsync(new RegisterAccountCommand("superseded", "integration password"), server.Timeout);
-        var first = await commands.SendAsync(
-            new AuthenticateAndIssueTicketCommand("superseded", "integration password"), server.Timeout);
+        await TestCredentials.RegisterAsync(server.Host.Services, "superseded", "integration password", server.Timeout);
+        var first = await TestCredentials.LoginAsync(server.Host.Services, "superseded", "integration password", server.Timeout);
         var (client, id) = await server.ConnectGameAsync();
         await client.GetStream().WriteAsync(GameFrame(0x0001, 1, DStrings(first.MId!, first.Ticket!)), server.Timeout);
         var login = await ReadFrameAsync(client, server.Timeout);
@@ -156,7 +156,7 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
         Assert.Equal(0x0001, BinaryPrimitives.ReadUInt16LittleEndian(login.AsSpan(1)));
 
         // A second login of the same account supersedes the bound connection.
-        await commands.SendAsync(new AuthenticateAndIssueTicketCommand("superseded", "integration password"), server.Timeout);
+        await TestCredentials.LoginAsync(server.Host.Services, "superseded", "integration password", server.Timeout);
 
         Assert.True(await DrainsToFinAsync(client, server.Timeout));
         await WaitUntilAsync(() => server.Recorder.First("disconnect-exit", id) is not null, server.Timeout);

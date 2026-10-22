@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Administration;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Administration;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Administration;
@@ -7,7 +9,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.GmWeb;
 
-internal sealed class GmBootstrapService(IConfiguration configuration, ICommandBus commands, ILogger<GmBootstrapService> logger) : IHostedService
+internal sealed class GmBootstrapService(IConfiguration configuration, ICommandBus commands, IGmCredentialReader credentials,
+    IGameplayQueue queue, ILogger<GmBootstrapService> logger) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -20,7 +23,11 @@ internal sealed class GmBootstrapService(IConfiguration configuration, ICommandB
         { logger.LogWarning("GM bootstrap configuration is incomplete or invalid; no credentials were changed."); return; }
         if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(password))
         { logger.LogWarning("GM bootstrap credentials are not configured; private access remains restricted."); return; }
-        await commands.SendAsync(new BootstrapGmAdministratorCommand(name, password, permissions), cancellationToken);
+        // Hashed off the executor (RQ-007), also when an administrator already exists and the record goes unused.
+        var record = await credentials.PrepareBootstrapAsync(password, cancellationToken);
+        await queue.RunAsync(new GameplayWork<bool>(GameplayShardKey.World, GameplayCallChain.NewRoot(GameplayCallSource.StartupRecovery),
+            "startup:GmBootstrapService",
+            token => commands.SendAsync(new BootstrapGmAdministratorCommand(name, record, permissions), token)), cancellationToken);
     }
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

@@ -67,8 +67,8 @@ public sealed class BossTowerFrameIntegrationTests
             var online = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
             while (!online.TryGetByConnection(connection, out _)) await Task.Delay(10, timeout.Token);
             var commands = host.Services.GetRequiredService<ICommandBus>();
-            await commands.SendAsync(new RegisterAccountCommand("bosswire", "test password"), timeout.Token);
-            var issued = await commands.SendAsync(new AuthenticateAndIssueTicketCommand("bosswire", "test password"), timeout.Token);
+            await TestCredentials.RegisterAsync(host.Services, "bosswire", "test password", timeout.Token);
+            var issued = await TestCredentials.LoginAsync(host.Services, "bosswire", "test password", timeout.Token);
             var anonymous = TestGameplay.Run(host.Services, () =>
             {
                 Assert.True(online.TryGetByConnection(connection, out var anonymous));

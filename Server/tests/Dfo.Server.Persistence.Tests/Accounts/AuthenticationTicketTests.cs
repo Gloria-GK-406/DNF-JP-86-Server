@@ -11,9 +11,9 @@ public sealed class AuthenticationTicketTests
     public async Task PasswordLoginIssuesRotatingMemoryOnlyCredentialsAndRevokesTheOlderPair()
     {
         using var fixture = new AuthenticationFixture();
-        await fixture.Bus.SendAsync(new RegisterAccountCommand("player", "test password"));
-        var first = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "test password"));
-        var second = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "test password"));
+        await fixture.RegisterAsync("player", "test password");
+        var first = await fixture.LoginAsync("player", "test password");
+        var second = await fixture.LoginAsync("player", "test password");
         Assert.Equal(AuthenticationStatus.Success, first.Status);
         Assert.Matches("^[0-9]{6}$", first.MId!);
         Assert.NotNull(first.Ticket);
@@ -34,9 +34,8 @@ public sealed class AuthenticationTicketTests
     public async Task NewProcessRegistryStartsEmptyWhileThePersistentAccountSurvives()
     {
         using var fixture = new AuthenticationFixture();
-        await fixture.Bus.SendAsync(new RegisterAccountCommand("player", "test password"));
-        var login = await fixture.Bus.SendAsync(
-            new AuthenticateAndIssueTicketCommand("player", "test password"));
+        await fixture.RegisterAsync("player", "test password");
+        var login = await fixture.LoginAsync("player", "test password");
 
         await TestGameplay.RunAsync(fixture.Services, async () =>
         {
@@ -58,9 +57,9 @@ public sealed class AuthenticationTicketTests
     {
         var passwords = new ObservedPasswords();
         using var fixture = new AuthenticationFixture(passwords);
-        await fixture.Bus.SendAsync(new RegisterAccountCommand("player", "test password"));
-        var wrong = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "wrong"));
-        var missing = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("missing", "wrong"));
+        await fixture.RegisterAsync("player", "test password");
+        var wrong = await fixture.LoginAsync("player", "wrong");
+        var missing = await fixture.LoginAsync("missing", "wrong");
         Assert.Equal(new AuthenticationResult(AuthenticationStatus.InvalidCredentials), wrong);
         Assert.Equal(wrong, missing);
         Assert.Equal(1, passwords.DummyVerifications);

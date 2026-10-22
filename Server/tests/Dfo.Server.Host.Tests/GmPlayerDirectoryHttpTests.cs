@@ -263,7 +263,7 @@ public sealed class GmPlayerDirectoryHttpTests
             online.RegisterConnection(new(new("fixture-connection-" + Guid.NewGuid().ToString("N")), NetworkEndpointKind.Game, port))
         );
         using var scope = host.Services.CreateScope(); var commands = scope.ServiceProvider.GetRequiredService<ICommandBus>();
-        var ticket = await commands.SendAsync(new AuthenticateAndIssueTicketCommand($"player{accountId:D2}", password), default);
+        var ticket = await TestCredentials.LoginAsync(scope.ServiceProvider, $"player{accountId:D2}", password, default);
         Assert.NotNull(ticket.Ticket);
         var result = await commands.SendAsync(new RedeemGameLoginCommand(user.OnlineUserId, ticket.MId!, ticket.Ticket!), default);
         Assert.Equal(new AccountId(accountId), result.AccountId);

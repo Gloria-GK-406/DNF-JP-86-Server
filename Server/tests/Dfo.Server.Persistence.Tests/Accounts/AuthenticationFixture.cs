@@ -41,6 +41,12 @@ internal sealed class AuthenticationFixture : IDisposable
         _ = Store;
     }
 
+    public Task<Dfo.Server.Data.Authentication.RegistrationResult> RegisterAsync(string loginId, string password) =>
+        TestCredentials.RegisterAsync(Services, loginId, password);
+
+    public Task<Dfo.Server.Data.Authentication.AuthenticationResult> LoginAsync(string loginId, string password) =>
+        TestCredentials.LoginAsync(Services, loginId, password);
+
     public async Task<object?> Scalar(string sql)
     {
         await using var connection = new SqliteConnection($"Data Source={DatabasePath};Pooling=False");

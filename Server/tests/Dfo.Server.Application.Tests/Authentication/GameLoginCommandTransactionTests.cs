@@ -42,9 +42,8 @@ public sealed class GameLoginCommandTransactionTests
                 includePersistence: true);
             var commands = services.GetRequiredService<ICommandBus>();
             var onlineUsers = services.GetRequiredService<IOnlineUserDomainService>();
-            _ = await commands.SendAsync(new RegisterAccountCommand("player", "test password"));
-            var issued = await commands.SendAsync(
-                new AuthenticateAndIssueTicketCommand("player", "test password"));
+            _ = await TestCredentials.RegisterAsync(services, "player", "test password");
+            var issued = await TestCredentials.LoginAsync(services, "player", "test password");
             Assert.NotNull(issued.Ticket);
             var first = Register(onlineUsers, "Game:cancelled-redemption");
 
@@ -196,14 +195,12 @@ public sealed class GameLoginCommandTransactionTests
         public bool Available { get; private set; } = true;
 
         public ValueTask<RegistrationResult> RegisterAsync(
-            string loginId,
-            string password,
+            PreparedRegistration registration,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
         public ValueTask<AuthenticationResult> AuthenticateAndIssueTicketAsync(
-            string loginId,
-            string password,
+            VerifiedLogin login,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 

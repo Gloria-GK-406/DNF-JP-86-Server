@@ -19,12 +19,15 @@ public sealed class AuthenticationFailureTests
         using var fixture = new AuthenticationFixture(settings: new()
         { ["LauncherAuth:LegacyMd5Migration:AllowedAccountIds:0"] = "1" });
         await fixture.Seed(loginId, legacy);
-        var result = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand(loginId, password));
+        var result = await fixture.LoginAsync(loginId, password);
         Assert.Equal(AuthenticationStatus.Success, result.Status);
         var modern = (await fixture.Store.FindAsync(loginId, default))!.PasswordHash;
         var digest = Convert.ToHexString(SHA256.HashData(Encoding.ASCII.GetBytes(result.Ticket!)));
-        var observed = fixture.Logs.Text + result + new AuthenticateAndIssueTicketCommand(loginId, password)
-            + new RegisterAccountCommand(loginId, password);
+        var reader = fixture.Services.GetRequiredService<ILauncherCredentialReader>();
+        var verified = (await reader.VerifyLoginAsync(loginId, password, default)).Login!;
+        var prepared = (await reader.PrepareRegistrationAsync(loginId, password, default)).Prepared!;
+        var observed = fixture.Logs.Text + result + new AuthenticateAndIssueTicketCommand(verified) + verified
+            + new RegisterAccountCommand(prepared) + prepared;
         foreach (var secret in new[] { password, loginId, legacy, modern, result.Ticket!, digest })
             Assert.DoesNotContain(secret, observed);
     }
@@ -33,9 +36,9 @@ public sealed class AuthenticationFailureTests
     public async Task CancellationBeforeCommitLeavesTicketAvailableAndCredentialCompareAndSwapRejectsStaleValues()
     {
         using var fixture = new AuthenticationFixture();
-        await fixture.Bus.SendAsync(new RegisterAccountCommand("player", "test password"));
+        await fixture.RegisterAsync("player", "test password");
         var account = (await fixture.Store.FindAsync("player", default))!;
-        var login = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "test password"));
+        var login = await fixture.LoginAsync("player", "test password");
         var service = fixture.Services.GetRequiredService<IAuthenticationDomainService>();
         await TestGameplay.RunAsync(fixture.Services, async () =>
         {
@@ -66,9 +69,9 @@ public sealed class AuthenticationFailureTests
         const string password = "short";
         var legacy = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(password)));
         await fixture.Seed("legacy", legacy);
-        Assert.Equal(AuthenticationStatus.InvalidCredentials, (await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("legacy", password))).Status);
-        var invalidRegister = await fixture.Bus.SendAsync(new RegisterAccountCommand("invalid?name", "long password"));
-        var invalidLogin = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("legacy", ""));
+        Assert.Equal(AuthenticationStatus.InvalidCredentials, (await fixture.LoginAsync("legacy", password)).Status);
+        var invalidRegister = await fixture.RegisterAsync("invalid?name", "long password");
+        var invalidLogin = await fixture.LoginAsync("legacy", "");
         Assert.Equal(AuthenticationStatus.InvalidRequest, invalidRegister.Status);
         Assert.True(invalidRegister.FieldErrors!.ContainsKey("loginId"));
         Assert.Equal(AuthenticationStatus.InvalidRequest, invalidLogin.Status);

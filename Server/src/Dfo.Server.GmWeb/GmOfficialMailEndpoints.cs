@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Administration;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Administration;
+using Dfo.Server.HttpApi;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -23,9 +24,11 @@ internal static class GmOfficialMailEndpoints
         Get("/draft", GmMailQuery.Draft); Get("/templates", GmMailQuery.Templates);
         Get("/recipients", GmMailQuery.Recipients); Get("/operations", GmMailQuery.Operations);
         group.MapGet(Prefix + "/items", (HttpContext context, IGmOfficialMailDomainService mail) => Safe(context,
-            async () => Results.Ok(await mail.SearchItemsAsync(Secret(context), ItemFilter(context), context.RequestAborted)))).WithMetadata(Permission);
+            async () => Results.Ok(await mail.SearchItemsAsync(Secret(context), ItemFilter(context), context.RequestAborted))))
+            .WithMetadata(Permission, new OutsideGameplay("只读 SQLite 的查询：身份识别与物品目录"));
         group.MapGet(Prefix + "/items/{itemId:int}", (HttpContext context, IGmOfficialMailDomainService mail, int itemId) => Safe(context,
-            async () => Results.Ok(await mail.ItemDetailsAsync(Secret(context), itemId, context.RequestAborted)))).WithMetadata(Permission);
+            async () => Results.Ok(await mail.ItemDetailsAsync(Secret(context), itemId, context.RequestAborted))))
+            .WithMetadata(Permission, new OutsideGameplay("只读 SQLite 的查询：身份识别与物品目录"));
         group.MapGet(Prefix + "/operations/{id}", (HttpContext context, ICommandBus commands, string id) => Safe(context, () => Query(context, commands, GmMailQuery.Operation, Id(id)))).WithMetadata(Permission);
         group.MapPost(Prefix + "/preview", (HttpContext context, ICommandBus commands) => Safe(context, async () =>
         {

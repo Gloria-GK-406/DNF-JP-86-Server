@@ -4,28 +4,30 @@ using Dfo.Server.Data.Authentication;
 
 namespace Dfo.Server.Application.Authentication;
 
-public sealed class RegisterAccountCommand(string loginId, string password) : ICommand<RegistrationResult>
+/// <summary>Writes a registration whose password was hashed off the executor (RQ-007).</summary>
+public sealed class RegisterAccountCommand(PreparedRegistration registration) : ICommand<RegistrationResult>
 {
-    public string LoginId { get; } = loginId;
-    public string Password { get; } = password;
+    public PreparedRegistration Registration { get; } = registration;
+    public string LoginId => Registration.LoginId;
 }
 
-public sealed class AuthenticateAndIssueTicketCommand(string loginId, string password) : ICommand<AuthenticationResult>
+/// <summary>Issues a ticket for a password verified off the executor, if its record is still current (RQ-007).</summary>
+public sealed class AuthenticateAndIssueTicketCommand(VerifiedLogin login) : ICommand<AuthenticationResult>
 {
-    public string LoginId { get; } = loginId;
-    public string Password { get; } = password;
+    public VerifiedLogin Login { get; } = login;
+    public string LoginId => Login.LoginId;
 }
 
 internal sealed class RegisterAccountCommandHandler(IAuthenticationDomainService authentication)
     : ICommandHandler<RegisterAccountCommand, RegistrationResult>
 {
     public ValueTask<RegistrationResult> HandleAsync(CommandExecutionContext context, RegisterAccountCommand command, CancellationToken cancellationToken) =>
-        authentication.RegisterAsync(command.LoginId, command.Password, cancellationToken);
+        authentication.RegisterAsync(command.Registration, cancellationToken);
 }
 
 internal sealed class AuthenticateAndIssueTicketCommandHandler(IAuthenticationDomainService authentication)
     : ICommandHandler<AuthenticateAndIssueTicketCommand, AuthenticationResult>
 {
     public ValueTask<AuthenticationResult> HandleAsync(CommandExecutionContext context, AuthenticateAndIssueTicketCommand command, CancellationToken cancellationToken) =>
-        authentication.AuthenticateAndIssueTicketAsync(command.LoginId, command.Password, cancellationToken);
+        authentication.AuthenticateAndIssueTicketAsync(command.Login, cancellationToken);
 }

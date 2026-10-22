@@ -6,6 +6,14 @@ public sealed record GmAdministrator(long Id, string LoginName, string PasswordR
 public sealed record GmIdentity(long Id, string LoginName, GmPermission Permissions, DateTimeOffset ExpiresAt);
 public sealed record GmSession(string TokenHash, long AdministratorId, DateTimeOffset ExpiresAt);
 public sealed record GmLoginResult(GmIdentity? Identity, string? SessionSecret);
+/// <summary>
+/// A GM password checked off the executor against <see cref="Record"/> of administrator
+/// <see cref="AdministratorId"/>; the login CMD accepts it only while both are still current.
+/// </summary>
+public sealed record GmCredentialCheck(string LoginName, long? AdministratorId, string? Record, bool Accepted)
+{
+    public override string ToString() => $"GmCredentialCheck {{ Accepted = {Accepted} }}";
+}
 public sealed record GmAuditRecord(string OperationId, DateTimeOffset OccurredAt, string Action,
     long? AdministratorId, string? AdministratorName, string Target, string Outcome, string Reason);
 public sealed record GmAuditPage(IReadOnlyList<GmAuditRecord> Items, long Total, int Page, int PageSize);

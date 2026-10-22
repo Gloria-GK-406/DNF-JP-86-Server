@@ -24,13 +24,15 @@ public sealed class GmPlayerSamplingHttpTests
         await GmPlayerDirectoryHttpTests.SeedAsync(host); await host.LoginAsync(await host.CsrfAsync());
         var user = await GmPlayerDirectoryHttpTests.ConnectAsync(host, 40, 10011);
         var session = GmPlayerDirectoryHttpTests.Publish(host, user, 40, 40, 10011);
+        // The query is a GM CMD on the executor, so the disconnect happens inside its database read
+        // instead of on a second job the query would have to wait for.
+        barrier.DuringRead = () =>
+        {
+            GmPlayerDirectoryHttpTests.Cleanup(host, session);
+            host.Services.GetRequiredService<IOnlineUserDomainService>().TryDisconnectConnection(user.Connection.ConnectionId);
+        };
         barrier.Armed = true;
-        var pending = GmPlayerDirectoryHttpTests.GetAsync(host, "characters?onlineOnly=true&pageSize=1");
-        await barrier.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        GmPlayerDirectoryHttpTests.Cleanup(host, session);
-        host.Services.GetRequiredService<IOnlineUserDomainService>().TryDisconnectConnection(user.Connection.ConnectionId);
-        barrier.Release.TrySetResult();
-        var page = await pending;
+        var page = await GmPlayerDirectoryHttpTests.GetAsync(host, "characters?onlineOnly=true&pageSize=1");
         Assert.Equal(1, page.GetProperty("total").GetInt32()); Assert.Equal(1, page.GetProperty("items").GetArrayLength());
         Assert.True(page.GetProperty("items")[0].GetProperty("isOnline").GetBoolean());
         var refreshed = await GmPlayerDirectoryHttpTests.GetAsync(host, "characters?onlineOnly=true");
@@ -61,15 +63,14 @@ public sealed class GmPlayerSamplingHttpTests
     private sealed class ReadBarrier
     {
         public bool Armed { get; set; }
-        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Action? DuringRead { get; set; }
     }
     private sealed class BarrierPersistence(IGmPlayerDirectoryPersistence inner, ReadBarrier barrier) : IGmPlayerDirectoryPersistence
     {
         public ValueTask<GmStoredPage<GmAccountRecord>> AccountsAsync(GmPlayerFilter filter, IReadOnlyCollection<int>? onlineIds, CancellationToken token) => inner.AccountsAsync(filter, onlineIds, token);
         public async ValueTask<GmStoredPage<GmCharacterRecord>> CharactersAsync(GmPlayerFilter filter, IReadOnlyCollection<int>? onlineIds, CancellationToken token)
         {
-            if (barrier.Armed) { barrier.Armed = false; barrier.Entered.TrySetResult(); await barrier.Release.Task.WaitAsync(token); }
+            if (barrier.Armed) { barrier.Armed = false; barrier.DuringRead?.Invoke(); }
             return await inner.CharactersAsync(filter, onlineIds, token);
         }
         public ValueTask<(long Accounts, long Characters)> CountsAsync(CancellationToken token) => inner.CountsAsync(token);

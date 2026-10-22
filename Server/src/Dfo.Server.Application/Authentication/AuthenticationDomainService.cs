@@ -7,41 +7,28 @@ using Dfo.Server.Application.Users;
 namespace Dfo.Server.Application.Authentication;
 
 internal sealed class AuthenticationDomainService(
-    IAuthenticationPersistence persistence, IPasswordCredentialRuleService passwords,
-    TimeProvider clock, AuthenticationRuleService rules,
+    IAuthenticationPersistence persistence, TimeProvider clock,
     LoginSessionRegistry sessions, LoginSessionOptions sessionOptions, Func<Dfo.Server.Abstractions.Initialization.IInitializationDomainService> initialization) : IAuthenticationDomainService
 {
     private const int MIdEncodedLength = 6;
     private const int TicketEncodedLength = 32;
 
-    public async ValueTask<RegistrationResult> RegisterAsync(string loginId, string password, CancellationToken cancellationToken)
+    public async ValueTask<RegistrationResult> RegisterAsync(PreparedRegistration registration, CancellationToken cancellationToken)
     {
-        var errors = rules.Validate(loginId, password, registration: true);
-        if (errors.Count != 0) return new(AuthenticationStatus.InvalidRequest, FieldErrors: errors);
-        var accountId = await persistence.TryCreateAsync(loginId, passwords.Hash(password), cancellationToken);
+        var accountId = await persistence.TryCreateAsync(registration.LoginId, registration.PasswordRecord, cancellationToken);
         if (accountId.HasValue) await initialization().ApplyAccountAsync(accountId.Value, cancellationToken);
-        return accountId.HasValue ? new(AuthenticationStatus.Success, loginId) : new(AuthenticationStatus.AccountExists);
+        return accountId.HasValue ? new(AuthenticationStatus.Success, registration.LoginId) : new(AuthenticationStatus.AccountExists);
     }
 
-    public async ValueTask<AuthenticationResult> AuthenticateAndIssueTicketAsync(string loginId, string password, CancellationToken cancellationToken)
+    public async ValueTask<AuthenticationResult> AuthenticateAndIssueTicketAsync(VerifiedLogin login, CancellationToken cancellationToken)
     {
-        var errors = rules.Validate(loginId, password, registration: false);
-        if (errors.Count != 0) return new(AuthenticationStatus.InvalidRequest, FieldErrors: errors);
         await persistence.AcquireWriteIntentAsync(cancellationToken);
-        var account = await persistence.FindAsync(loginId, cancellationToken);
-        if (account is null)
-        {
-            passwords.VerifyDummy(password);
-            return new(AuthenticationStatus.InvalidCredentials);
-        }
-        var check = passwords.Verify(account.PasswordHash, password);
-        var migrate = check == PasswordCheck.Failed && rules.MayMigrate(account.AccountId)
-            && PasswordCredentialService.VerifyLegacyMd5(account.PasswordHash, password);
-        if (check == PasswordCheck.Failed && !migrate)
-            return new(AuthenticationStatus.InvalidCredentials);
-        if ((migrate || check == PasswordCheck.RehashNeeded)
-            && !await persistence.TryReplaceCredentialAsync(account.AccountId, account.PasswordHash, passwords.Hash(password), cancellationToken))
-            return new(AuthenticationStatus.InvalidCredentials);
+        var account = await persistence.FindAsync(login.LoginId, cancellationToken);
+        if (account is null || account.AccountId != login.AccountId || account.PasswordHash != login.VerifiedRecord)
+            return new(AuthenticationStatus.CredentialChanged);
+        if (login.ReplacementRecord is { } replacement
+            && !await persistence.TryReplaceCredentialAsync(account.AccountId, login.VerifiedRecord, replacement, cancellationToken))
+            return new(AuthenticationStatus.CredentialChanged);
         var now = clock.GetUtcNow();
         var expiresAt = now.AddSeconds(sessionOptions.InitialLifetimeSeconds);
         var session = sessions.Issue(account.AccountId, now, expiresAt);

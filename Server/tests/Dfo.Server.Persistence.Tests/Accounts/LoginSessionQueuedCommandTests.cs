@@ -16,9 +16,9 @@ public sealed class LoginSessionQueuedCommandTests
         using var fixture = new AuthenticationFixture(configure: services => services
             .AddCommandHandler<QueuedWrite, bool, WriteHandler>(CommandExecutionKind.Transactional,
                 accountAccessMode: UserAccessMode.Exclusive));
-        await fixture.Bus.SendAsync(new RegisterAccountCommand("player", "test password"));
+        await fixture.RegisterAsync("player", "test password");
         var original = (await fixture.Store.FindAsync("player", default))!;
-        var issued = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "test password"));
+        var issued = await fixture.LoginAsync("player", "test password");
         var old = new NetworkConnectionId("old-writer");
         Assert.NotNull(await fixture.Consume(issued.MId!, issued.Ticket!, old));
         var registry = fixture.Services.GetRequiredService<LoginSessionRegistry>();
@@ -32,8 +32,7 @@ public sealed class LoginSessionQueuedCommandTests
         {
             Task replacement;
             using (System.Threading.ExecutionContext.SuppressFlow())
-                replacement = Task.Run(async () => await fixture.Bus.SendAsync(
-                    new AuthenticateAndIssueTicketCommand("player", "test password")));
+                replacement = Task.Run(async () => await fixture.LoginAsync("player", "test password"));
             await replacement.WaitAsync(TimeSpan.FromSeconds(10));
             registry.Disconnected(old); // The transient superseded marker is now gone.
         }

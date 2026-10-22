@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Execution;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Authentication;
 using Dfo.Server.Data.Configuration;
@@ -360,6 +361,40 @@ public sealed class HttpApiPipelineTests
         Assert.DoesNotContain("secret-sentinel", string.Join("\n", logs.Messages), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// L1 at the endpoint: a record changed between the credential check and the login CMD is checked
+    /// again once; changed again, the caller is refused as with a wrong password.
+    /// </summary>
+    [Theory]
+    [InlineData(1, StatusCodes.Status200OK)]
+    [InlineData(2, StatusCodes.Status401Unauthorized)]
+    public async Task LoginChecksTheCredentialAgainOnceWhenItChangedBeforeTheCommand(int changes, int expectedStatus)
+    {
+        var sent = 0;
+        await using var harness = ApiHarness.Create(command => command switch
+        {
+            AuthenticateAndIssueTicketCommand => ++sent <= changes
+                ? new AuthenticationResult(AuthenticationStatus.CredentialChanged)
+                : new AuthenticationResult(
+                    AuthenticationStatus.Success,
+                    "123456",
+                    "0123456789ABCDEF0123456789ABCDEF",
+                    new DateTimeOffset(2026, 9, 10, 12, 34, 56, TimeSpan.Zero)),
+            _ => throw new InvalidOperationException("Unexpected command."),
+        });
+
+        var response = await harness.SendAsync(
+            "POST",
+            "/api/launcher/v1/login",
+            "{\"loginId\":\"player\",\"password\":\"password-1\"}");
+
+        Assert.Equal(expectedStatus, response.StatusCode);
+        Assert.Equal(2, harness.Credentials.LoginChecks);
+        Assert.Equal(2, harness.Commands.CallCount);
+        if (expectedStatus == StatusCodes.Status401Unauthorized)
+            Assert.Equal("invalid_credentials", response.Json.RootElement.GetProperty("code").GetString());
+    }
+
     private sealed class ApiHarness : IAsyncDisposable
     {
         private readonly WebApplication application;
@@ -369,15 +404,18 @@ public sealed class HttpApiPipelineTests
             WebApplication application,
             RequestDelegate pipeline,
             StubCommandBus commands,
+            StubCredentialReader credentials,
             HttpApiReadiness readiness)
         {
             this.application = application;
             this.pipeline = pipeline;
             Commands = commands;
+            Credentials = credentials;
             Readiness = readiness;
         }
 
         public StubCommandBus Commands { get; }
+        public StubCredentialReader Credentials { get; }
         public HttpApiReadiness Readiness { get; }
 
         public static ApiHarness Create(
@@ -400,7 +438,10 @@ public sealed class HttpApiPipelineTests
                 ["Networking:Enabled"] = "true",
             });
             var commands = new StubCommandBus(execute);
+            var credentials = new StubCredentialReader();
             builder.Services.AddSingleton<ICommandBus>(commands);
+            builder.Services.AddSingleton<ILauncherCredentialReader>(credentials);
+            builder.Services.AddGameplayExecution();
             builder.Services.AddSingleton<IAuthenticationDomainService, StubAuthenticationService>();
             builder.Services.AddSingleton<IPublicEndpointSource>(new StubEndpointSource());
             builder.Services.AddSingleton<Dfo.Server.Abstractions.Hosting.IGameServerReadiness>(new ReadyGame());
@@ -413,7 +454,7 @@ public sealed class HttpApiPipelineTests
             HttpApiApplicationExtensions.UseHttpApiMiddleware(pipelineBuilder);
             pipelineBuilder.UseEndpoints(HttpApiApplicationExtensions.MapHttpApiEndpoints);
             var pipeline = pipelineBuilder.Build();
-            return new ApiHarness(app, pipeline, commands, readiness);
+            return new ApiHarness(app, pipeline, commands, credentials, readiness);
         }
 
         public async Task<ApiResponse> SendAsync(
@@ -466,6 +507,31 @@ public sealed class HttpApiPipelineTests
         }
     }
 
+    /// <summary>Stands in for the hashing half of the two-phase credential routes; accepts every well-formed request.</summary>
+    private sealed class StubCredentialReader : ILauncherCredentialReader
+    {
+        private int loginChecks;
+
+        public int LoginChecks => Volatile.Read(ref loginChecks);
+
+        public ValueTask<RegistrationPreparation> PrepareRegistrationAsync(
+            string loginId,
+            string password,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new RegistrationPreparation(new PreparedRegistration(loginId, "stub-record")));
+
+        public ValueTask<LoginVerification> VerifyLoginAsync(
+            string loginId,
+            string password,
+            CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref loginChecks);
+            return ValueTask.FromResult(new LoginVerification(
+                AuthenticationStatus.Success,
+                new VerifiedLogin(loginId, new AccountId(1), "stub-record", null)));
+        }
+    }
+
     private sealed class StubEndpointSource : IPublicEndpointSource
     {
         public PublicEndpointSnapshot Snapshot { get; } = new(
@@ -483,13 +549,11 @@ public sealed class HttpApiPipelineTests
     private sealed class StubAuthenticationService : IAuthenticationDomainService
     {
         public ValueTask<RegistrationResult> RegisterAsync(
-            string loginId,
-            string password,
+            PreparedRegistration registration,
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public ValueTask<AuthenticationResult> AuthenticateAndIssueTicketAsync(
-            string loginId,
-            string password,
+            VerifiedLogin login,
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public ValueTask<AccountId?> BindSessionAsync(

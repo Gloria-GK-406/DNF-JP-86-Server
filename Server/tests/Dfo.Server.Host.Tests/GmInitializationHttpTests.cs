@@ -97,8 +97,8 @@ public sealed class GmInitializationHttpTests
             new SaveInitializationRequest<CharacterInitialization>(0, new(20, 24, [new(item.ItemId, 20)])));
         Assert.True(savedRole.IsSuccessStatusCode, await savedRole.Content.ReadAsStringAsync());
         var bus = host.Services.GetRequiredService<ICommandBus>();
-        Assert.Equal(AuthenticationStatus.Success, (await bus.SendAsync(new RegisterAccountCommand("initial-user-01", "test-password-123"))).Status);
-        Assert.Equal(AuthenticationStatus.AccountExists, (await bus.SendAsync(new RegisterAccountCommand("initial-user-01", "test-password-123"))).Status);
+        Assert.Equal(AuthenticationStatus.Success, (await TestCredentials.RegisterAsync(host.Services, "initial-user-01", "test-password-123")).Status);
+        Assert.Equal(AuthenticationStatus.AccountExists, (await TestCredentials.RegisterAsync(host.Services, "initial-user-01", "test-password-123")).Status);
         Assert.Equal(new[] { "100:20:5" }, await host.ReadAsync("SELECT cera||':'||token_cera||':'||happy_token_cera FROM accounts"));
         Assert.Equal(new[] { "8" }, await host.ReadAsync("SELECT selection_key FROM account_cargo_state"));
         Assert.Equal(new[] { "1" }, await host.ReadAsync("SELECT COUNT(*) FROM account_premiums WHERE premium_type=97 AND end_time>strftime('%s','now')"));
@@ -132,11 +132,11 @@ public sealed class GmInitializationHttpTests
             new SaveInitializationRequest<CharacterInitialization>(0, new(20, 24, [])))).StatusCode);
         var bus = host.Services.GetRequiredService<ICommandBus>();
         fault.Account = true;
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await bus.SendAsync(new RegisterAccountCommand("rollback-user", "test-password-123")));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await TestCredentials.RegisterAsync(host.Services, "rollback-user", "test-password-123"));
         Assert.Empty(await host.ReadAsync("SELECT account_id FROM accounts"));
         Assert.Empty(await host.ReadAsync("SELECT account_id FROM account_premiums"));
         fault.Account = false;
-        await bus.SendAsync(new RegisterAccountCommand("rollback-user", "test-password-123"));
+        await TestCredentials.RegisterAsync(host.Services, "rollback-user", "test-password-123");
         fault.Character = true;
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await bus.SendAsync(new CreateCharacterCommand(new(1), 0, Encoding.UTF8.GetBytes("回滚角色"))));
         Assert.Empty(await host.ReadAsync("SELECT character_id FROM characters"));

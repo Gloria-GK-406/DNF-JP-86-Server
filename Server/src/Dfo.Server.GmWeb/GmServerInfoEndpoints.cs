@@ -5,6 +5,7 @@ using Dfo.Server.Data.Administration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Dfo.Server.HttpApi;
 using Microsoft.Extensions.Configuration;
 
 namespace Dfo.Server.GmWeb;
@@ -28,5 +29,5 @@ internal static class GmServerInfoEndpoints
                 channelPort = section["ChannelPort"] is { } channel ? Port(channel) : 7001, gamePorts = games.Length == 0 ? [10011] : games,
                 gmPort = options.ListenUrl!.Port, pvfSha256 = await archive.Sha256Async(token),
             });
-        }).WithMetadata(new GmRequiredPermission(GmPermission.None));
+        }).WithMetadata(new GmRequiredPermission(GmPermission.None), new OutsideGameplay("PVF 内容源与缓存：配置与档案摘要"));
 }

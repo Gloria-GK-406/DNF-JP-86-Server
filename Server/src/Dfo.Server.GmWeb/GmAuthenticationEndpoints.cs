@@ -1,8 +1,10 @@
 using System.Text.Json;
 using Dfo.Server.Abstractions.Administration;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Administration;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Administration;
+using Dfo.Server.HttpApi;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -16,20 +18,22 @@ internal static class GmAuthenticationEndpoints
     internal static void Map(RouteGroupBuilder group)
     {
         group.MapGet("/api/gm/v1/auth/status", async (IGmAccessDomainService access, CancellationToken token) =>
-            Results.Ok(new { initialized = await access.IsInitializedAsync(token) })).WithMetadata(new GmPublicEndpoint());
+            Results.Ok(new { initialized = await access.IsInitializedAsync(token) }))
+            .WithMetadata(new GmPublicEndpoint(), new OutsideGameplay("只读 SQLite 的查询：是否已有管理员"));
         group.MapGet("/api/gm/v1/auth/csrf", (HttpContext context, IAntiforgery antiforgery) =>
         {
             var tokens = antiforgery.GetAndStoreTokens(context);
             return Results.Ok(new { token = tokens.RequestToken });
-        }).WithMetadata(new GmPublicEndpoint());
-        group.MapPost("/api/gm/v1/auth/login", LoginAsync).WithMetadata(new GmPublicEndpoint());
+        }).WithMetadata(new GmPublicEndpoint(), new OutsideGameplay("不碰玩法状态的 HTTP 路由：防伪令牌"));
+        // Verification runs off the executor first (RQ-007), so the login enqueues its CMD itself.
+        group.MapPost("/api/gm/v1/auth/login", LoginAsync).WithMetadata(new GmPublicEndpoint(), new EnqueuesItself(GameplayCallSource.Gm));
         group.MapGet("/api/gm/v1/auth/session", (HttpContext context) => Results.Ok(IdentityResponse((GmIdentity)context.Items[GmAccessBoundary.IdentityKey]!)))
-            .WithMetadata(new GmRequiredPermission(GmPermission.None));
+            .WithMetadata(new GmRequiredPermission(GmPermission.None), new OutsideGameplay("不碰玩法状态的 HTTP 路由：边界已识别的身份"));
         group.MapPost("/api/gm/v1/auth/logout", LogoutAsync).WithMetadata(new GmRequiredPermission(GmPermission.None));
         group.MapGet("/api/gm/v1/audit", QueryAuditAsync).WithMetadata(new GmRequiredPermission(GmPermission.ViewAudit));
     }
 
-    private static async Task<IResult> LoginAsync(HttpContext context, ICommandBus commands, GmLoginLimiter limiter)
+    private static async Task<IResult> LoginAsync(HttpContext context, ICommandBus commands, IGmCredentialReader credentials, GmLoginLimiter limiter)
     {
         if (!context.Request.HasJsonContentType() || context.Request.ContentLength is > 8192) return Error(400, "请求字段无效。");
         if (context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } bodyLimit) bodyLimit.MaxRequestBodySize = 8192;
@@ -42,7 +46,9 @@ internal static class GmAuthenticationEndpoints
         var accepted = false;
         try
         {
-            var result = await commands.SendAsync(new LoginGmAdministratorCommand(request.LoginName, request.Password), context.RequestAborted);
+            var check = await credentials.CheckLoginAsync(request.LoginName, request.Password, context.RequestAborted);
+            var result = await HttpGameplay.RunAsync(context, GameplayCallSource.Gm,
+                token => commands.SendAsync(new LoginGmAdministratorCommand(check), token));
             accepted = result.Identity is not null;
             if (!accepted) return Error(401, "账号或密码错误。");
             context.Response.Cookies.Append(GmAccessBoundary.SessionCookie, result.SessionSecret!, Cookie(context, result.Identity!.ExpiresAt));

@@ -21,5 +21,6 @@
 
   <ItemGroup>
     <Compile Include="../Support/TestGameplay.cs" Link="Support/TestGameplay.cs" />
+    <Compile Include="../Support/TestCredentials.cs" Link="Support/TestCredentials.cs" />
   </ItemGroup>
 </Project>

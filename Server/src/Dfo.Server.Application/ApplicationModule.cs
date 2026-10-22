@@ -861,6 +861,9 @@ public sealed class ApplicationModule : IServerModule
         services.AddCommandHandler<Dfo.Server.Application.Administration.SearchGmInitializationItemsCommand, Dfo.Server.Data.Inventory.ItemCatalogPage, Dfo.Server.Application.Administration.SearchGmInitializationItemsCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.ReadGmInitializationItemCommand, Dfo.Server.Data.Inventory.ItemCatalogDetails, Dfo.Server.Application.Administration.ReadGmInitializationItemCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<IPasswordCredentialRuleService, PasswordCredentialService>();
+        services.TryAddSingleton<PasswordComputationLimiter>();
+        services.TryAddSingleton<ILauncherCredentialReader, LauncherCredentialReader>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmCredentialReader, Dfo.Server.Application.Administration.GmCredentialReader>();
         services.TryAddSingleton(AuthenticationRuleService.From(configuration));
         services.TryAddSingleton(LoginSessionOptions.From(configuration));
         services.TryAddSingleton<LoginSessionRegistry>();

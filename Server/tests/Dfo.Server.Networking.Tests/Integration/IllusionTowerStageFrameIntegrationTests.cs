@@ -81,12 +81,8 @@ public sealed class IllusionTowerStageFrameIntegrationTests
                 host.Services.GetRequiredService<IGameTcpService>(), online, timeout.Token);
             // The connection logs in the way a client does, so the session can enter the world on it.
             var commands = host.Services.GetRequiredService<ICommandBus>();
-            await commands.SendAsync(
-                new Dfo.Server.Application.Authentication.RegisterAccountCommand("towerwire", "test password"),
-                timeout.Token);
-            var issued = await commands.SendAsync(
-                new Dfo.Server.Application.Authentication.AuthenticateAndIssueTicketCommand("towerwire", "test password"),
-                timeout.Token);
+            await TestCredentials.RegisterAsync(host.Services, "towerwire", "test password", timeout.Token);
+            var issued = await TestCredentials.LoginAsync(host.Services, "towerwire", "test password", timeout.Token);
             var anonymous = TestGameplay.Run(host.Services, () =>
             {
                 Assert.True(online.TryGetByConnection(connectionId, out var anonymous));

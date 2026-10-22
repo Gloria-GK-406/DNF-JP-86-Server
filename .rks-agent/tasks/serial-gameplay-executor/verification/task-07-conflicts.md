@@ -278,3 +278,28 @@ TASK-06 Remaining 第 3 条的各项按 TASK-07 §6.1 原样保留，加上本�
 - TASK-11 已改写：3；
 - TASK-12 已改写：2（`:117`、新判定的 `A_slow_live_group…` 1 条）。
 - 加法：3 ＋ 75 ＋ 53 ＋ 1 ＋ 1 ＋ 3 ＋ 2 ＝ 138。
+
+## 11. TASK-14 处置（2026-10-22，基准 `2d8cec4d`）
+
+记 §1.2 中分给本单元（拆分表中原写作 TASK-13，编号顺延后为 TASK-14）的 2 条的去向。行号是 §1 的基准行号，以方法名为准。
+
+| 用例 | 本单元的结果 | 去向 | 旧断言 → 新断言 → 保护意图 |
+|---|---|---|---|
+| `GmPlayerSamplingHttpTests.cs:14` `OnlineListUsesOneCapturedSetForTotalAndItemsEvenWhenDisconnectOccursDuringDatabaseRead`（Host） | 批 B 之后挂起：GM 查询作为 GM CMD 在执行器上被 `BarrierPersistence` 卡在数据库读里，测试线程同步等 `TestGameplay.Run` 的 `Cleanup` 作业，而那个作业排在查询后面；Host 项目运行中 1 m 46 s 后失败 | 改写（裁定第 11 条）：把交错从「跨作业的门闩」改为「在同一条 CMD 的读回调里内联执行」，与同文件 `:41` 同形。`ReadBarrier` 的 `Entered`／`Release` 两个 TCS 换成回调 `DuringRead`，armed 时在读之前调用；回调里的 `TestGameplay.Run` 发现自己已在作业里而内联执行 | 旧：查询卡在读里时，测试在执行器外做 `Cleanup` 与断连，再放行；本页 `total` 1、`items` 1、`isOnline` 真，刷新后 0／0 → 新：这 5 条断言一字不改；`Cleanup` 与断连发生在查询自己的 CMD 里、数据库读之前的那一刻 → 保护意图不变：在线集合在查询开始时捕获一次，查询中途的变化不改变本页的总数与条目。刷新后的 0／0 仍证明交错确实发生 |
+| `Accounts/AuthenticationConcurrencyTests.cs:10` `OverlappingPasswordReadsCannotLeaveTheSecondLoginWithAnUnwritableSqliteSnapshot`（Persistence） | 只换驱动调用就通过 | 改写（裁定第 11 条）：两次登录改经 `fixture.LoginAsync`（reader 在执行器外校验，再经总线发登录命令），`InterleavedPasswords` 照旧在 `Verify` 里交错；第 29～30 行注释改为说明新结构 | 旧：两次登录经总线并发，第一次在写事务内的 `Verify` 里被卡住，第二次或已读到快照、或在 SQLite 写意向上等；两次都 `Success`、票据不同、都能消费 → 新：断言一字不改；两次校验都在 reader 里、任何 SQLite 快照之外重叠，各自的登录命令随后在写意向下重读记录、比对、签发 → **保护意图收窄**：旧前提「两次校验各在自己的写事务里，第二次可能拿着不可写的快照」→ 新前提「校验不在任何事务里，命令重读并比对记录，变了就重做一次校验」→ 理由：RQ-007 把哈希移出 CMD，校验不再持有快照；「重叠的口令校验不会让第二次登录失败」仍由这条守着，与本清单原定处置「按新的先哈希、后单条 CMD 结构重写」一致 |
+
+§8.2 中只因编译换了驱动调用、仍归 T-004c 的 2 条：`AuthenticationConsumptionTests.ExactCredentialBindsAgainButOverlappingUncommittedBindsAreRejected` 与 `LoginSessionQueuedCommandTests.ReplacedLoginCannotWriteAfterWaitingForTheAccountGateEvenAfterDisconnectCallback`。断言不变，本单元正式全量中通过，不算处置。
+
+本单元没有新判定的冲突：正式全量中除那 2 条 `DimensionDungeonTests` 外没有失败，`GameplaySelfWait` 为 0。第一次全量另有 2 条失败，都不是迁入造成的交错，归因与 TASK-14 Result Checks 2 一致：`InboundExecutorWireTests.A_game_and_a_channel_message…` 是测试端口争用（同一输出里 TouchSocket 记了 `Address already in use`，基准上同频）；`ChannelHostStartupTests.PackagedHost…` 的频道列表超时推断为负载下测试进程的停顿（未测到）。证据与复现尝试见 `logs/task-14-slow-isolated.txt`、`logs/task-14-isolated.txt`、`logs/task-14-gm-recheck.txt`。TASK-14 §8.1 (iii) 初筛的 4 个文件（`GmPlayerDirectoryHttpTests` 15 处、`GmOfficialMailHttpTests` 4 处、`GmCeraHttpTests` 1 处、`GmPlayerBrowserFixtureTests` 1 处 `TestGameplay`）都不在包裹区域里发 HTTP 请求，不需要解包。
+
+按执行单元的新分布（总数仍为 138）：
+
+- T-004b：3 － 2 ＝ 1（`ReplayStateSnapshotTests:206`，早已标「顺延 T-004c」）；
+- T-004c：75；
+- T-006：53；
+- T-008：1；
+- TASK-09 已删除：1；
+- TASK-11 已改写：3；
+- TASK-12 已改写：2；
+- TASK-14 已改写：2。
+- 加法：1 ＋ 75 ＋ 53 ＋ 1 ＋ 1 ＋ 3 ＋ 2 ＋ 2 ＝ 138。

@@ -14,8 +14,8 @@ public sealed class LoginSessionReconnectTests
     public async Task DisconnectGraceExpiresAtFiveMinutes(int elapsedSeconds, bool allowed)
     {
         using var fixture = new AuthenticationFixture();
-        await fixture.Bus.SendAsync(new RegisterAccountCommand("player", "test password"));
-        var login = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "test password"));
+        await fixture.RegisterAsync("player", "test password");
+        var login = await fixture.LoginAsync("player", "test password");
         var connection = new NetworkConnectionId("first");
         Assert.NotNull(await fixture.Consume(login.MId!, login.Ticket!, connection));
         var sessions = fixture.Services.GetRequiredService<LoginSessionRegistry>();
@@ -31,8 +31,8 @@ public sealed class LoginSessionReconnectTests
     public async Task OldDisconnectCannotRevokeOrExpireReplacementConnection()
     {
         using var fixture = new AuthenticationFixture();
-        await fixture.Bus.SendAsync(new RegisterAccountCommand("player", "test password"));
-        var login = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "test password"));
+        await fixture.RegisterAsync("player", "test password");
+        var login = await fixture.LoginAsync("player", "test password");
         var sessions = fixture.Services.GetRequiredService<LoginSessionRegistry>();
         var old = new NetworkConnectionId("old");
         var current = new NetworkConnectionId("current");
@@ -53,8 +53,8 @@ public sealed class LoginSessionReconnectTests
     public async Task DuplicateDisconnectDoesNotExtendGrace()
     {
         using var fixture = new AuthenticationFixture();
-        await fixture.Bus.SendAsync(new RegisterAccountCommand("player", "test password"));
-        var login = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "test password"));
+        await fixture.RegisterAsync("player", "test password");
+        var login = await fixture.LoginAsync("player", "test password");
         var sessions = fixture.Services.GetRequiredService<LoginSessionRegistry>();
         var connection = new NetworkConnectionId("first");
         Assert.NotNull(await fixture.Consume(login.MId!, login.Ticket!, connection));
@@ -77,8 +77,8 @@ public sealed class LoginSessionReconnectTests
     public async Task NewPasswordLoginReplacesActiveOrDisconnectedCredential(bool disconnect)
     {
         using var fixture = new AuthenticationFixture();
-        await fixture.Bus.SendAsync(new RegisterAccountCommand("player", "test password"));
-        var first = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "test password"));
+        await fixture.RegisterAsync("player", "test password");
+        var first = await fixture.LoginAsync("player", "test password");
         var sessions = fixture.Services.GetRequiredService<LoginSessionRegistry>();
         var connection = new NetworkConnectionId("first");
         Assert.NotNull(await fixture.Consume(first.MId!, first.Ticket!, connection));
@@ -86,7 +86,7 @@ public sealed class LoginSessionReconnectTests
         {
             if (disconnect) sessions.Disconnected(connection);
         });
-        var second = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "test password"));
+        var second = await fixture.LoginAsync("player", "test password");
         Assert.Null(await fixture.Consume(first.MId!, first.Ticket!));
         TestGameplay.Run(fixture.Services, () =>
         {
@@ -105,8 +105,8 @@ public sealed class LoginSessionReconnectTests
     public async Task ActivatedCredentialCanAuthenticateAnotherGameConnectionAfterInitialDeadline()
     {
         using var fixture = new AuthenticationFixture();
-        await fixture.Bus.SendAsync(new RegisterAccountCommand("player", "test password"));
-        var login = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "test password"));
+        await fixture.RegisterAsync("player", "test password");
+        var login = await fixture.LoginAsync("player", "test password");
         Assert.NotNull(await fixture.Consume(login.MId!, login.Ticket!));
         fixture.Clock.Now = fixture.Clock.Now.AddHours(2);
         Assert.NotNull(await fixture.Consume(login.MId!, login.Ticket!));
