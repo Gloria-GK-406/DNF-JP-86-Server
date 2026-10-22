@@ -18,6 +18,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Xunit.Abstractions;
 
 namespace Dfo.Server.Networking.Tests.Integration;
 
@@ -31,7 +32,7 @@ namespace Dfo.Server.Networking.Tests.Integration;
 /// telemetry handler may only inject logging, so the recorder is static; the tests of this class run
 /// one at a time and each resets it.
 /// </remarks>
-public sealed class InboundExecutorWireTests
+public sealed class InboundExecutorWireTests(ITestOutputHelper output)
 {
     // GAME_EXIT (empty body) and PI (a telemetry report), as registered by ProtocolModule.
     private const ushort ExitType = 0x0003;
@@ -127,6 +128,83 @@ public sealed class InboundExecutorWireTests
         Assert.Equal(["enter", "exit", "returned", "telemetry", "returned"], Recorder.Events.Select(x => x.Kind));
     }
 
+    /// <summary>
+    /// AC-003 item 3. "Waiting" is enqueued on the executor with the body not yet started, counted at
+    /// every enqueue and start by <see cref="CountingQueue"/>, not sampled. The other connection's frame
+    /// is enqueued while a frame of the flooding one runs, and the flooding connection's next frame is
+    /// only enqueued after that job completes, so FIFO runs the other connection's frame first.
+    /// </summary>
+    [Fact]
+    public async Task A_flooding_connection_never_has_more_than_one_inbound_cmd_waiting_and_cannot_starve_another()
+    {
+        const int flood = 64;
+        const int middle = flood / 2;
+        const int firstOther = 1001;
+        const int secondOther = 1002;
+        Recorder.Reset();
+        var releaseFirst = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseMiddle = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Recorder.Hold = number => number switch
+        {
+            1 => releaseFirst.Task,
+            middle => releaseMiddle.Task,
+            _ => Task.CompletedTask,
+        };
+        await using var server = await Server.StartAsync();
+        // Both connect first: the initial notice is sent by a lifecycle job, which a held frame would block.
+        using var flooding = await server.ConnectGameAsync();
+        using var other = await server.ConnectGameAsync();
+
+        await flooding.GetStream().WriteAsync(GameFrame(ExitType, 1, []), server.Timeout);
+        await WaitUntilAsync(() => Entered(1), server.Timeout);
+        var floodingId = Recorder.Events.First(x => x.Kind == "enter" && x.Number == 1).Connection;
+        var rest = new List<byte>();
+        for (var number = 2; number <= flood; number++) rest.AddRange(GameFrame(ExitType, (ushort)number, []));
+        await flooding.GetStream().WriteAsync(rest.ToArray(), server.Timeout);
+
+        await other.GetStream().WriteAsync(GameFrame(ExitType, firstOther, []), server.Timeout);
+        NetworkConnectionId? waitingOther = null;
+        await WaitUntilAsync(() => (waitingOther = Recorder.WaitingOtherThan(floodingId)) is not null, server.Timeout);
+        var otherId = waitingOther!.Value;
+        Observe("observation 1", next: 2);
+        releaseFirst.SetResult();
+        await WaitUntilAsync(() => Entered(firstOther), server.Timeout);
+
+        await WaitUntilAsync(() => Entered(middle), server.Timeout);
+        await other.GetStream().WriteAsync(GameFrame(ExitType, secondOther, []), server.Timeout);
+        await WaitUntilAsync(() => Recorder.WaitingOf(otherId) == 1, server.Timeout);
+        Observe("observation 2", next: middle + 1);
+        releaseMiddle.SetResult();
+        await WaitUntilAsync(() => Recorder.Events.Count(x => x.Kind == "returned") == flood + 2, server.Timeout);
+
+        var entered = Recorder.Events.Where(x => x.Kind == "enter").ToArray();
+        var order = entered.Select(x => (x.Connection == floodingId ? "A" : "B") + x.Number).ToArray();
+        output.WriteLine($"flooding frames entered: {entered.Count(x => x.Connection == floodingId)}");
+        output.WriteLine("execution order: " + string.Join(" ", order));
+        output.WriteLine($"max waiting: flooding {Recorder.MaxWaitingOf(floodingId)}, other {Recorder.MaxWaitingOf(otherId)}");
+        Assert.Equal(Enumerable.Range(1, flood), entered.Where(x => x.Connection == floodingId).Select(x => x.Number));
+        Assert.Equal([firstOther, secondOther], entered.Where(x => x.Connection == otherId).Select(x => x.Number));
+        Assert.True(Array.IndexOf(order, "B" + firstOther) < Array.IndexOf(order, "A2"), string.Join(" ", order));
+        Assert.True(Array.IndexOf(order, "B" + secondOther) < Array.IndexOf(order, "A" + (middle + 1)), string.Join(" ", order));
+        Assert.Equal(1, Recorder.MaxWaitingOf(floodingId));
+        Assert.Equal(1, Recorder.MaxWaitingOf(otherId));
+        Assert.Equal(0, Recorder.Overlaps);
+        Assert.All(entered, x => AssertInboundJob(x, "inbound:GameExit"));
+
+        void Observe(string point, int next)
+        {
+            var events = Recorder.Events.ToArray();
+            output.WriteLine($"{point}: waiting flooding {Recorder.WaitingOf(floodingId)}, other {Recorder.WaitingOf(otherId)}; " +
+                $"{events.Length} events, last: " + string.Join(" ", events.TakeLast(9)
+                    .Select(x => $"{x.Kind}:{(x.Connection == floodingId ? "A" : "B")}{(x.Kind == "returned" ? "" : x.Number)}")));
+            Assert.Equal(0, Recorder.WaitingOf(floodingId));
+            Assert.Equal(1, Recorder.WaitingOf(otherId));
+            Assert.False(Entered(next));
+        }
+
+        static bool Entered(int number) => Recorder.Events.Any(x => x.Kind == "enter" && x.Number == number);
+    }
+
     private static void AssertInboundJob(Event seen, string commandType)
     {
         Assert.True(seen.OnExecutor);
@@ -151,13 +229,37 @@ public sealed class InboundExecutorWireTests
 
         public static int Active => Volatile.Read(ref active);
 
+        private static ConcurrentDictionary<NetworkConnectionId, int> waiting = new();
+        private static ConcurrentDictionary<NetworkConnectionId, int> maxWaiting = new();
+
         public static void Reset()
         {
             Events = new();
             Hold = _ => Task.CompletedTask;
             Overlaps = 0;
             active = 0;
+            waiting = new();
+            maxWaiting = new();
         }
+
+        public static int WaitingOf(NetworkConnectionId connection) => waiting.GetValueOrDefault(connection);
+
+        public static int MaxWaitingOf(NetworkConnectionId connection) => maxWaiting.GetValueOrDefault(connection);
+
+        public static NetworkConnectionId? WaitingOtherThan(NetworkConnectionId connection)
+        {
+            foreach (var (key, count) in waiting)
+                if (count > 0 && key != connection) return key;
+            return null;
+        }
+
+        public static void Enqueued(NetworkConnectionId connection)
+        {
+            var now = waiting.AddOrUpdate(connection, 1, (_, count) => count + 1);
+            maxWaiting.AddOrUpdate(connection, now, (_, max) => Math.Max(max, now));
+        }
+
+        public static void Started(NetworkConnectionId connection) => waiting.AddOrUpdate(connection, 0, (_, count) => count - 1);
 
         public static void Enter(NetworkConnectionId connection, int number)
         {
@@ -210,6 +312,75 @@ public sealed class InboundExecutorWireTests
         }
     }
 
+    /// <summary>
+    /// Counts each connection's inbound CMDs from enqueue until their body starts. It only observes:
+    /// every call reaches the real queue, the body is only wrapped to mark its start.
+    /// </summary>
+    private sealed class CountingQueue(IGameplayQueue inner) : IGameplayQueue
+    {
+        public ValueTask<T> RunAsync<T>(GameplayWork<T> work, CancellationToken cancellationToken)
+        {
+            if (!IsInbound(work.Chain, work.CommandType)) return inner.RunAsync(work, cancellationToken);
+            var mark = StartMark.Enqueued(work.Chain.SourceConnection!.Value);
+            var body = work.Body;
+            ValueTask<T> pending;
+            try
+            {
+                pending = inner.RunAsync(work with { Body = ct => { mark.Start(); return body(ct); } }, cancellationToken);
+            }
+            catch
+            {
+                mark.Start();
+                throw;
+            }
+            // A refusal completes before the call returns and never starts the body; it is not waiting.
+            if (pending.IsCompleted && !pending.IsCompletedSuccessfully) mark.Start();
+            return pending;
+        }
+
+        public ValueTask RunAsync(GameplayWork work, CancellationToken cancellationToken)
+        {
+            if (!IsInbound(work.Chain, work.CommandType)) return inner.RunAsync(work, cancellationToken);
+            var mark = StartMark.Enqueued(work.Chain.SourceConnection!.Value);
+            var body = work.Body;
+            ValueTask pending;
+            try
+            {
+                pending = inner.RunAsync(work with { Body = ct => { mark.Start(); return body(ct); } }, cancellationToken);
+            }
+            catch
+            {
+                mark.Start();
+                throw;
+            }
+            if (pending.IsCompleted && !pending.IsCompletedSuccessfully) mark.Start();
+            return pending;
+        }
+
+        private static bool IsInbound(GameplayCallChain chain, string commandType) =>
+            chain.Source == GameplayCallSource.Connection && chain.SourceConnection is not null
+            && commandType.StartsWith("inbound:", StringComparison.Ordinal);
+
+        private sealed class StartMark
+        {
+            private readonly NetworkConnectionId connection;
+            private int started;
+
+            private StartMark(NetworkConnectionId connection) => this.connection = connection;
+
+            public static StartMark Enqueued(NetworkConnectionId connection)
+            {
+                Recorder.Enqueued(connection);
+                return new StartMark(connection);
+            }
+
+            public void Start()
+            {
+                if (Interlocked.Exchange(ref started, 1) == 0) Recorder.Started(connection);
+            }
+        }
+    }
+
     private sealed class Server : IAsyncDisposable
     {
         private readonly TestInfrastructure host;
@@ -251,6 +422,10 @@ public sealed class InboundExecutorWireTests
             builder.Services.Remove(original);
             builder.Services.AddSingleton<INetworkMessageDispatcher>(sp => new ReturnRecordingDispatcher(
                 (INetworkMessageDispatcher)ActivatorUtilities.CreateInstance(sp, original.ImplementationType!)));
+            var queue = builder.Services.Last(x => x.ServiceType == typeof(IGameplayQueue));
+            builder.Services.Remove(queue);
+            builder.Services.AddSingleton<IGameplayQueue>(sp => new CountingQueue(
+                (IGameplayQueue)ActivatorUtilities.CreateInstance(sp, queue.ImplementationType!)));
             var host = TestInfrastructure.Build(builder);
             var server = new Server(host, channel, game);
             try

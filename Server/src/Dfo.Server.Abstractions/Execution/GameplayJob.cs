@@ -94,7 +94,7 @@ public static class GameplayJob
     internal static GameplayJobToken? Active => Running.Value is { IsActive: true } token ? token : null;
 }
 
-/// <summary>An opaque handle on one running job; only its <see cref="GameplayJobHost"/> can use it.</summary>
+/// <summary>An opaque handle on one running job; only the <see cref="GameplayJobHost"/> that issued it can use it.</summary>
 public sealed class GameplayJobToken
 {
     private volatile bool active = true;
@@ -126,7 +126,8 @@ public sealed class GameplayJobToken
 
 /// <summary>
 /// The only way into and out of a job token. An executor derives from it so that Abstractions keeps
-/// its internals to itself instead of opening them to the executor's assembly.
+/// its internals to itself instead of opening them to the executor's assembly. A host only accepts the
+/// tokens it issued, and <c>GameplayExecutor</c> is the only host (RQ-072, GameplayJobHostStructureTests).
 /// </summary>
 public abstract class GameplayJobHost
 {
@@ -145,23 +146,51 @@ public abstract class GameplayJobHost
         return token;
     }
 
-    protected static void ExitJob(GameplayJobToken token)
+    protected void ExitJob(GameplayJobToken token)
     {
-        ArgumentNullException.ThrowIfNull(token);
+        OwnedOrThrow(token, nameof(ExitJob));
         token.Deactivate();
         if (ReferenceEquals(GameplayJob.Running.Value, token)) GameplayJob.Running.Value = null;
     }
 
-    protected static GameplayCallChain ChainOf(GameplayJobToken token) => token.Chain;
+    protected GameplayCallChain ChainOf(GameplayJobToken token)
+    {
+        OwnedOrThrow(token, nameof(ChainOf));
+        return token.Chain;
+    }
 
     /// <summary>Records <paramref name="error"/> as the job's program error (first one wins) and returns it.</summary>
-    protected static Exception Fault(GameplayJobToken token, Exception error) => token.Fault(error);
+    protected Exception Fault(GameplayJobToken token, Exception error)
+    {
+        OwnedOrThrow(token, nameof(Fault));
+        return token.Fault(error);
+    }
 
-    protected static Exception? ProgramErrorOf(GameplayJobToken token) => token.ProgramError;
+    protected Exception? ProgramErrorOf(GameplayJobToken token)
+    {
+        OwnedOrThrow(token, nameof(ProgramErrorOf));
+        return token.ProgramError;
+    }
+
+    /// <summary>
+    /// Records <paramref name="error"/> on the job running on this flow, whichever executor runs it, and
+    /// returns it. A depth refusal sticks to the enqueuing job even across executors; anyone can already
+    /// do the same through <see cref="GameplayJob.AssertNotOnExecutor"/>.
+    /// </summary>
+    protected static Exception FaultRunningJob(Exception error) =>
+        GameplayJob.Active is { } token ? token.Fault(error) : error;
 
     /// <summary>Throws a self-wait if called from a job of this executor; it sticks to that job.</summary>
     protected void ThrowIfRunningHere(string operation)
     {
         if (JobRunningHere is { } token) throw token.Fault(new GameplaySelfWaitException(operation, token.Chain));
+    }
+
+    /// <summary>A token reaching another host is a defect of the executor itself, so it only throws (RQ-072).</summary>
+    private void OwnedOrThrow(GameplayJobToken token, string operation)
+    {
+        ArgumentNullException.ThrowIfNull(token);
+        if (!ReferenceEquals(token.Owner, this))
+            throw new InvalidOperationException($"{operation} was given a job token of another executor.");
     }
 }

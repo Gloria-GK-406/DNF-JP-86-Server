@@ -48,7 +48,7 @@ public sealed class GameplayExecutor(ILogger<GameplayExecutor> logger) : Gamepla
                 work.CommandType, GameplayCallDepth.Limit, work.Chain.RootId, work.Chain.ParentId,
                 work.Chain.Depth, work.Chain.Source, work.Chain.Describe(work.CommandType));
             Exception exceeded = new GameplayDepthExceededException(work.Chain, work.CommandType);
-            return ValueTask.FromException<T>(running is null ? exceeded : Fault(running, exceeded));
+            return ValueTask.FromException<T>(running is null ? exceeded : FaultRunningJob(exceeded));
         }
 
         // Only work of this executor waits on itself; another executor is just another queue.
@@ -276,11 +276,11 @@ public sealed class GameplayExecutor(ILogger<GameplayExecutor> logger) : Gamepla
             }
             finally
             {
-                if (token is not null) ExitJob(token);
+                if (token is not null) executor.ExitJob(token);
             }
 
             // RQ-003: a program error raised inside the job fails it even if the body swallowed it.
-            if (token is not null && ProgramErrorOf(token) is { } programError)
+            if (token is not null && executor.ProgramErrorOf(token) is { } programError)
             {
                 failure = programError;
                 cancelled = false;
