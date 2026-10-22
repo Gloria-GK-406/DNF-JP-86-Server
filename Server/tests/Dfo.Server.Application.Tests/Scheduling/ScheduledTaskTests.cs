@@ -34,7 +34,7 @@ public sealed class ScheduledTaskTests
             foreach (var job in jobs) services.AddScheduledTask(job);
             configure?.Invoke(services);
             Provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
-            Worker = Assert.Single(Provider.GetServices<IHostedService>());
+            Worker = Assert.Single(Provider.GetServices<IHostedService>().OfType<ScheduledTaskHostedService>());
         }
         public async Task Start() { await Worker.StartAsync(default); await Until(() => Clock.ActiveTimers > 0); }
         public async Task Tick(TimeSpan amount)
@@ -186,25 +186,39 @@ public sealed class ScheduledTaskTests
         await retried.Task.WaitAsync(Budget);
     }
 
+    /// <summary>
+    /// RQ-013 reverses what this case once protected: scheduled tasks no longer run beside each
+    /// other. A task held up behind a blocked one is postponed, not lost, and stopping still cancels
+    /// the task that blocks (formerly <c>Different_task_can_finish_while_long_task_is_blocked_and_stop_cancels_it</c>).
+    /// </summary>
     [Fact]
-    public async Task Different_task_can_finish_while_long_task_is_blocked_and_stop_cancels_it()
+    public async Task Blocked_task_postpones_rather_than_loses_another_and_stop_cancels_it()
     {
-        var entered = NewSignal(); var canceled = NewSignal(); var other = NewSignal();
+        var entered = NewSignal(); var release = NewSignal(); var reentered = NewSignal(); var canceled = NewSignal();
+        var blockedRuns = 0; var shortRuns = 0;
         ScopedProbe? probe = null;
         await using var run = new Running([
             Job("blocked", async (context, ct) =>
             {
-                probe = context.Services.GetRequiredService<ScopedProbe>(); entered.SetResult();
+                probe = context.Services.GetRequiredService<ScopedProbe>();
+                if (Interlocked.Increment(ref blockedRuns) == 1) { entered.SetResult(); await release.Task.WaitAsync(ct); return; }
+                reentered.TrySetResult();
                 try { await Task.Delay(Timeout.Infinite, ct); }
                 finally { canceled.TrySetResult(); }
             }, ScheduledTaskMissedRunPolicy.RunOnce),
-            Job("short", (_, _) => { other.SetResult(); return ValueTask.CompletedTask; })
+            Job("short", (_, _) => { Interlocked.Increment(ref shortRuns); return ValueTask.CompletedTask; })
         ], configure: services => services.AddScoped<ScopedProbe>());
         await run.Start(); await entered.Task.WaitAsync(Budget);
-        await run.Tick(TimeSpan.FromMinutes(1)); await other.Task.WaitAsync(Budget);
+        await run.Tick(TimeSpan.FromMinutes(1));
+        await Task.Delay(100);
+        Assert.Equal(0, Volatile.Read(ref shortRuns));
+        release.SetResult();
+        await Until(() => Volatile.Read(ref shortRuns) == 1);
+        await reentered.Task.WaitAsync(Budget);
         await run.Worker.StopAsync(default).WaitAsync(Budget);
         await canceled.Task.WaitAsync(Budget);
         Assert.True(probe!.Disposed);
+        Assert.Equal(1, Volatile.Read(ref shortRuns));
         Assert.Equal(0, run.Clock.ActiveTimers);
     }
 
@@ -265,7 +279,7 @@ public sealed class ScheduledTaskTests
         services.AddTaskScheduling();
         await using var provider = services.BuildServiceProvider();
         Assert.Equal(1, provider.GetRequiredService<ScheduledTaskSchedulerOptions>().MaximumConcurrency);
-        var worker = Assert.Single(provider.GetServices<IHostedService>());
+        var worker = Assert.Single(provider.GetServices<IHostedService>().OfType<ScheduledTaskHostedService>());
         try { await worker.StartAsync(default); await called.Task.WaitAsync(Budget); }
         finally { await worker.StopAsync(default); }
     }
@@ -300,7 +314,7 @@ public sealed class ScheduledTaskTests
             (context, ct) => { called.SetResult(context); return ValueTask.CompletedTask; })
         { MissedRun = ScheduledTaskMissedRunPolicy.RunOnce });
         await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
-        var worker = Assert.Single(provider.GetServices<IHostedService>());
+        var worker = Assert.Single(provider.GetServices<IHostedService>().OfType<ScheduledTaskHostedService>());
         try
         {
             await worker.StartAsync(default);

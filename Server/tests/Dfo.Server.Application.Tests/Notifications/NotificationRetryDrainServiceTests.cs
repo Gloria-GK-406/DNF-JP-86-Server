@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Execution;
 using Dfo.Server.Application.Notifications;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -20,7 +21,8 @@ public sealed class NotificationRetryDrainServiceTests
     public async Task The_loop_comes_round_again_rather_than_draining_once()
     {
         var drain = new CountingDrain();
-        await using var service = Service(drain);
+        await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
+        await using var service = Service(drain, executor);
 
         await service.StartAsync(CancellationToken.None);
         await drain.ReachedAsync(passes: 2);
@@ -33,7 +35,8 @@ public sealed class NotificationRetryDrainServiceTests
     public async Task Stopping_ends_the_loop()
     {
         var drain = new CountingDrain();
-        await using var service = Service(drain);
+        await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
+        await using var service = Service(drain, executor);
         await service.StartAsync(CancellationToken.None);
         await drain.ReachedAsync(passes: 1);
 
@@ -53,7 +56,8 @@ public sealed class NotificationRetryDrainServiceTests
     public async Task A_pass_that_throws_does_not_end_the_loop()
     {
         var drain = new CountingDrain { ThrowOnPass = 1 };
-        await using var service = Service(drain);
+        await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
+        await using var service = Service(drain, executor);
 
         await service.StartAsync(CancellationToken.None);
         await drain.ReachedAsync(passes: 3);
@@ -72,19 +76,21 @@ public sealed class NotificationRetryDrainServiceTests
     [InlineData(-5)]
     public async Task An_interval_that_cannot_tick_is_refused_at_startup(int milliseconds)
     {
+        await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
         await using var service = Service(
-            new CountingDrain(), TimeSpan.FromMilliseconds(milliseconds));
+            new CountingDrain(), executor, TimeSpan.FromMilliseconds(milliseconds));
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
             () => service.StartAsync(CancellationToken.None));
     }
 
     private static NotificationRetryDrainService Service(
-        CountingDrain drain, TimeSpan? interval = null) =>
+        CountingDrain drain, GameplayExecutor executor, TimeSpan? interval = null) =>
         new(drain,
             new NotificationDeliveryOptions(
                 PerRecipientTimeout: TimeSpan.FromSeconds(1),
                 RetryInterval: interval ?? TimeSpan.FromMilliseconds(5)),
+            new GameplayQueue(new GameplayShardSelector(executor)),
             NullLogger<NotificationRetryDrainService>.Instance);
 
     private sealed class CountingDrain : INotificationRetryDrain

@@ -430,6 +430,7 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<IDungeonCardPresentationDelay,
             SystemDungeonCardPresentationDelay>();
         services.TryAddSingleton<DungeonCardPresentationCoordinator>();
+        services.AddSingleton<Dfo.Server.Abstractions.Execution.IGameplayProducerDrain>(provider => provider.GetRequiredService<DungeonCardPresentationCoordinator>());
         services.TryAddSingleton<IDungeonLoadingProjectionDelivery, DungeonLoadingProjectionDelivery>();
         services.TryAddSingleton<IDungeonRunParticipantDepartureSink>(provider =>
             provider.GetRequiredService<DungeonRunDeliveryRegistry>());

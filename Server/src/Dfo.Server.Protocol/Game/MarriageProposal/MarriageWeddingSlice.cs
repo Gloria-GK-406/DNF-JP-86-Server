@@ -12,6 +12,8 @@ using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.TownProjection;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -192,8 +194,11 @@ public sealed class MarriageWeddingProjection(ISelectedSessionDomainService sess
 }
 internal sealed class MarriageWeddingScheduler(IMarriageQueryDomainService marriage, ICommandBus commands,
     SelectedSessionTransitionGate gate, IGameMessageSender sender,
-    MarriageWeddingProjection projection, ILogger<MarriageWeddingScheduler> logger, TimeProvider clock) : BackgroundService
+    MarriageWeddingProjection projection, ILogger<MarriageWeddingScheduler> logger, TimeProvider clock,
+    IGameplayQueue queue) : BackgroundService
 {
+    private readonly CoalescingGameplaySource ticks = new(queue);
+
     private async ValueTask ProjectAsync(Func<ValueTask> action, CancellationToken ct)
     {
         try { await action().ConfigureAwait(false); }
@@ -203,47 +208,50 @@ internal sealed class MarriageWeddingScheduler(IMarriageQueryDomainService marri
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1), clock);
+        // One tick (every active wedding) is one timer CMD on the executor.
         while (await timer.WaitForNextTickAsync(ct).ConfigureAwait(false))
+            await GameplayTimerWork.TickAsync(ticks, "timer:MarriageWeddingScheduler", TickAsync, ct).ConfigureAwait(false);
+    }
+    private async ValueTask TickAsync(CancellationToken ct)
+    {
+        foreach (var ceremony in await marriage.ActiveWeddingsAsync(ct).ConfigureAwait(false))
         {
-            foreach (var ceremony in await marriage.ActiveWeddingsAsync(ct).ConfigureAwait(false))
+            var accounts = await marriage.WeddingAccountsAsync(ceremony, ct).ConfigureAwait(false);
+            var leases = new List<IAsyncDisposable>();
+            try
             {
-                var accounts = await marriage.WeddingAccountsAsync(ceremony, ct).ConfigureAwait(false);
-                var leases = new List<IAsyncDisposable>();
-                try
+                foreach (var account in accounts) leases.Add(await gate.AcquireAsync(account, UserAccessMode.Exclusive, ct).ConfigureAwait(false));
+                if (!(await marriage.WeddingAccountsAsync(ceremony, ct).ConfigureAwait(false)).SequenceEqual(accounts)) continue;
+                var result = (await commands.SendAsync(new AdvanceMarriageWeddingCommand(ceremony, accounts), ct).ConfigureAwait(false)).Transition;
+                if (result is null) continue;
+                logger.LogInformation("Wedding {Ceremony} reached {Phase}", ceremony, result.Wedding.Phase);
+                var completed = result.Wedding.Phase == MarriageWeddingPhase.Completed;
+                // Broadcast both authoritative positions before either endpoint starts the cinema.
+                foreach (var standing in result.Standing)
+                    await ProjectAsync(() => projection.PositionAsync(standing, ct), ct).ConfigureAwait(false);
+                foreach (var participant in result.Participants)
                 {
-                    foreach (var account in accounts) leases.Add(await gate.AcquireAsync(account, UserAccessMode.Exclusive, ct).ConfigureAwait(false));
-                    if (!(await marriage.WeddingAccountsAsync(ceremony, ct).ConfigureAwait(false)).SequenceEqual(accounts)) continue;
-                    var result = (await commands.SendAsync(new AdvanceMarriageWeddingCommand(ceremony, accounts), ct).ConfigureAwait(false)).Transition;
-                    if (result is null) continue;
-                    logger.LogInformation("Wedding {Ceremony} reached {Phase}", ceremony, result.Wedding.Phase);
-                    var completed = result.Wedding.Phase == MarriageWeddingPhase.Completed;
-                    // Broadcast both authoritative positions before either endpoint starts the cinema.
-                    foreach (var standing in result.Standing)
-                        await ProjectAsync(() => projection.PositionAsync(standing, ct), ct).ConfigureAwait(false);
-                    foreach (var participant in result.Participants)
-                    {
-                        var messages = new List<IGameServerMessage>();
-                        if (completed) messages.Add(new WeddingBeginNotification(participant.Church));
-                        messages.Add(new WeddingInfoMessage(await marriage.SnapshotAsync(participant.Actor.AccountId, participant.Actor.CharacterId, ct).ConfigureAwait(false)));
-                        if (!completed) messages.Add(new GameServerNoticeMessage("婚礼因双方未能按时到场而取消，费用已通过邮件退回。"));
-                        await ProjectAsync(() => sender.SendExplicitAsync(participant.Actor.ConnectionId, new(messages, []), ct), ct).ConfigureAwait(false);
-                    }
-                    foreach (var guest in result.Guests)
-                        if (completed) await ProjectAsync(() => sender.SendNotiAsync(guest.Actor.ConnectionId, new WeddingBeginNotification(guest.Church), ct), ct).ConfigureAwait(false);
-                    // Move first: op1 may itself cause a native 0024 if the client is still in church.
-                    foreach (var departure in result.Departures)
-                        await ProjectAsync(async () => { await projection.MoveAsync(departure.Actor, departure.Channel, departure.Location, ct).ConfigureAwait(false); }, ct).ConfigureAwait(false);
-                    foreach (var cleanup in result.Cleanup)
-                        await ProjectAsync(async () =>
-                        {
-                            await projection.AppearanceAsync(cleanup.Actor, cleanup.Church, true, ct).ConfigureAwait(false);
-                            await commands.SendAsync(new CompleteWeddingCleanupCommand(cleanup.Actor, ceremony), ct).ConfigureAwait(false);
-                        }, ct).ConfigureAwait(false);
+                    var messages = new List<IGameServerMessage>();
+                    if (completed) messages.Add(new WeddingBeginNotification(participant.Church));
+                    messages.Add(new WeddingInfoMessage(await marriage.SnapshotAsync(participant.Actor.AccountId, participant.Actor.CharacterId, ct).ConfigureAwait(false)));
+                    if (!completed) messages.Add(new GameServerNoticeMessage("婚礼因双方未能按时到场而取消，费用已通过邮件退回。"));
+                    await ProjectAsync(() => sender.SendExplicitAsync(participant.Actor.ConnectionId, new(messages, []), ct), ct).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-                catch (Exception e) { logger.LogError(e, "Wedding advancement failed for {Ceremony}", ceremony); }
-                finally { for (var n = leases.Count - 1; n >= 0; n--) await leases[n].DisposeAsync().ConfigureAwait(false); }
+                foreach (var guest in result.Guests)
+                    if (completed) await ProjectAsync(() => sender.SendNotiAsync(guest.Actor.ConnectionId, new WeddingBeginNotification(guest.Church), ct), ct).ConfigureAwait(false);
+                // Move first: op1 may itself cause a native 0024 if the client is still in church.
+                foreach (var departure in result.Departures)
+                    await ProjectAsync(async () => { await projection.MoveAsync(departure.Actor, departure.Channel, departure.Location, ct).ConfigureAwait(false); }, ct).ConfigureAwait(false);
+                foreach (var cleanup in result.Cleanup)
+                    await ProjectAsync(async () =>
+                    {
+                        await projection.AppearanceAsync(cleanup.Actor, cleanup.Church, true, ct).ConfigureAwait(false);
+                        await commands.SendAsync(new CompleteWeddingCleanupCommand(cleanup.Actor, ceremony), ct).ConfigureAwait(false);
+                    }, ct).ConfigureAwait(false);
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch (Exception e) { logger.LogError(e, "Wedding advancement failed for {Ceremony}", ceremony); }
+            finally { for (var n = leases.Count - 1; n >= 0; n--) await leases[n].DisposeAsync().ConfigureAwait(false); }
         }
     }
 }

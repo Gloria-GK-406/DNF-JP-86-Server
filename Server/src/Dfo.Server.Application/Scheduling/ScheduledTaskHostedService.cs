@@ -1,5 +1,7 @@
 using System.Threading.Channels;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Scheduling;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -24,16 +26,17 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
     { SingleReader = true, SingleWriter = false, AllowSynchronousContinuations = false });
     private readonly HashSet<Task> executions = [];
     private readonly IServiceScopeFactory scopes;
+    private readonly IGameplayQueue queue;
     private readonly TimeProvider clock;
     private readonly ILogger<ScheduledTaskHostedService> logger;
     private readonly int concurrency;
 
     public ScheduledTaskHostedService(IEnumerable<ScheduledTaskRegistration> registrations,
-        IServiceScopeFactory scopes, TimeProvider clock, ScheduledTaskSchedulerOptions options,
+        IServiceScopeFactory scopes, IGameplayQueue queue, TimeProvider clock, ScheduledTaskSchedulerOptions options,
         ILogger<ScheduledTaskHostedService> logger)
     {
         if (options.MaximumConcurrency < 1) throw new ArgumentOutOfRangeException(nameof(options));
-        this.scopes = scopes; this.clock = clock; this.logger = logger; concurrency = options.MaximumConcurrency;
+        this.scopes = scopes; this.queue = queue; this.clock = clock; this.logger = logger; concurrency = options.MaximumConcurrency;
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var now = clock.GetUtcNow();
         foreach (var definition in registrations)
@@ -121,7 +124,8 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
     private void Start(Job job, DateTimeOffset scheduledAt, SemaphoreSlim slots, CancellationToken ct)
     {
         job.Started = false; job.Requested = scheduledAt;
-        // A callback's synchronous prefix must not block the single timing loop.
+        // A callback's synchronous prefix must not block the single timing loop. Until T-005 the Task.Run and
+        // the concurrency slots only decide which task queues first: each attempt runs on the executor.
         job.Execution = Task.Run(() => RunAsync(job, slots, ct), CancellationToken.None);
         executions.Add(job.Execution);
     }
@@ -137,10 +141,13 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
                 lock (job) { job.Started = true; scheduledAt = job.Requested; }
                 try
                 {
-                    ct.ThrowIfCancellationRequested();
-                    await using (var scope = scopes.CreateAsyncScope())
-                        await job.Definition.Execute(new(scope.ServiceProvider, job.Definition.Id,
-                            scheduledAt, clock.GetUtcNow(), attempt), ct).ConfigureAwait(false);
+                    await GameplayTimerWork.RunAsync(queue, $"timer:ScheduledTaskHostedService/{job.Definition.Id}", async token =>
+                    {
+                        token.ThrowIfCancellationRequested();
+                        await using (var scope = scopes.CreateAsyncScope())
+                            await job.Definition.Execute(new(scope.ServiceProvider, job.Definition.Id,
+                                scheduledAt, clock.GetUtcNow(), attempt), token).ConfigureAwait(false);
+                    }, ct).ConfigureAwait(false);
                     logger.LogInformation("Scheduled task {TaskId} completed due={ScheduledAt} attempt={Attempt}",
                         job.Definition.Id, scheduledAt, attempt);
                     return;

@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Execution;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -54,8 +55,9 @@ public sealed class ItemUsageProjectionTests
     {
         var sessions = new Sessions(); var clock = new Clock(); var bus = new Bus(); var sender = new Sender();
         var delivery = new ItemUsageProjectionDelivery(bus, sessions, sender);
+        await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
         using var worker = new ItemUsageDailyRefreshService(sessions, sessions, new SelectedSessionTransitionGate(),
-            new Days(), clock, delivery, NullLogger<ItemUsageDailyRefreshService>.Instance);
+            new Days(), clock, delivery, NullLogger<ItemUsageDailyRefreshService>.Instance, new GameplayQueue(new GameplayShardSelector(executor)));
         await worker.RefreshAsync(default); Assert.Equal(2, sender.Bodies.Count);
         await worker.RefreshAsync(default); Assert.Equal(2, sender.Bodies.Count);
         clock.Now = clock.Now.AddMinutes(2); bus.Used = 0;

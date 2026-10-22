@@ -4,6 +4,8 @@ using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -12,10 +14,14 @@ namespace Dfo.Server.Protocol.Game.StateSynchronization;
 public sealed class ReviveCoinQuotaDailyRefreshService(ISelectedSessionSnapshotQuery directory,
     ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
     UsageQuotaProjectionDelivery delivery, IDailyResetRuleService daily, TimeProvider clock,
-    ILogger<ReviveCoinQuotaDailyRefreshService> logger) : BackgroundService
+    ILogger<ReviveCoinQuotaDailyRefreshService> logger, IGameplayQueue queue) : BackgroundService
 {
     private readonly Dictionary<SelectedSessionIdentity, DateTimeOffset> delivered = [];
-    public async Task RefreshAsync(CancellationToken ct)
+    private const string Command = "timer:ReviveCoinQuotaDailyRefreshService";
+    private readonly CoalescingGameplaySource ticks = new(queue);
+    // One refresh is one timer CMD on the executor; the entry enqueues it directly, the loop through its source.
+    public Task RefreshAsync(CancellationToken ct) => GameplayTimerWork.RunAsync(queue, Command, RefreshCoreAsync, ct);
+    private async ValueTask RefreshCoreAsync(CancellationToken ct)
     {
         var period = daily.PeriodStart(clock.GetUtcNow());
         var current = directory.Snapshot();
@@ -39,7 +45,7 @@ public sealed class ReviveCoinQuotaDailyRefreshService(ISelectedSessionSnapshotQ
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1), clock);
-        try { while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false)) await RefreshAsync(stoppingToken).ConfigureAwait(false); }
+        try { while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false)) await GameplayTimerWork.TickAsync(ticks, Command, RefreshCoreAsync, stoppingToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
     }
 }

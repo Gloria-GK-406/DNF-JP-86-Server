@@ -11,6 +11,8 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -140,45 +142,52 @@ public sealed class CreatureProjectionDelivery(ISelectedSessionDomainService ses
 public sealed class CreatureClockService(ICreatureRuntimeDomainService creatures, ICommandBus commands,
     ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
     CreatureProjectionDelivery delivery, TimeProvider clock, INetworkConnectionCloser connections,
-    ILogger<CreatureClockService> logger) : BackgroundService
+    ILogger<CreatureClockService> logger, IGameplayQueue queue) : BackgroundService
 {
+    private readonly CoalescingGameplaySource ticks = new(queue);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1), clock);
         try
         {
+            // One tick (clock advance and projection drain) is one timer CMD on the executor.
             while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-            {
-                foreach (var session in creatures.DueSessions())
-                    try
-                    {
-                        await using var lease = await transitions.AcquireAsync(session.AccountId,
-                            UserAccessMode.Exclusive, stoppingToken).ConfigureAwait(false);
-                        if (!sessions.IsInWorld(session)) continue;
-                        await commands.SendAsync(new AdvanceCreatureClockCommand(session), stoppingToken)
-                            .ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
-                    catch (Exception exception)
-                    {
-                        logger.LogWarning(exception, "Creature clock failed character={CharacterId}", session.CharacterId);
-                    }
-                foreach (var projection in creatures.DrainProjections())
-                    try
-                    {
-                        await using var lease = await transitions.AcquireAsync(projection.Session.AccountId,
-                            UserAccessMode.Exclusive, stoppingToken).ConfigureAwait(false);
-                        await delivery.SendAsync(projection.Session, projection.Changes, stoppingToken).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
-                    catch (Exception exception)
-                    {
-                        logger.LogWarning(exception, "Creature projection failed character={CharacterId}; closing the exact connection for authoritative reload", projection.Session.CharacterId);
-                        if (sessions.IsInWorld(projection.Session))
-                            await connections.RequestCloseAsync(projection.Session.ConnectionId, stoppingToken).ConfigureAwait(false);
-                    }
-            }
+                await GameplayTimerWork.TickAsync(ticks, "timer:CreatureClockService", TickAsync, stoppingToken)
+                    .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+    }
+
+    private async ValueTask TickAsync(CancellationToken stoppingToken)
+    {
+        foreach (var session in creatures.DueSessions())
+            try
+            {
+                await using var lease = await transitions.AcquireAsync(session.AccountId,
+                    UserAccessMode.Exclusive, stoppingToken).ConfigureAwait(false);
+                if (!sessions.IsInWorld(session)) continue;
+                await commands.SendAsync(new AdvanceCreatureClockCommand(session), stoppingToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
+            catch (Exception exception)
+            {
+                logger.LogWarning(exception, "Creature clock failed character={CharacterId}", session.CharacterId);
+            }
+        foreach (var projection in creatures.DrainProjections())
+            try
+            {
+                await using var lease = await transitions.AcquireAsync(projection.Session.AccountId,
+                    UserAccessMode.Exclusive, stoppingToken).ConfigureAwait(false);
+                await delivery.SendAsync(projection.Session, projection.Changes, stoppingToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
+            catch (Exception exception)
+            {
+                logger.LogWarning(exception, "Creature projection failed character={CharacterId}; closing the exact connection for authoritative reload", projection.Session.CharacterId);
+                if (sessions.IsInWorld(projection.Session))
+                    await connections.RequestCloseAsync(projection.Session.ConnectionId, stoppingToken).ConfigureAwait(false);
+            }
     }
 }

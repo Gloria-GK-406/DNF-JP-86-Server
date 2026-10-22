@@ -6,6 +6,8 @@ using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Protocol.Game.CardReward;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.TownProjection;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -44,31 +46,39 @@ public sealed class DungeonPartyWipeService(
     ICommandBus commands,
     TimeProvider clock,
     ILogger<DungeonPartyWipeService> logger,
+    IGameplayQueue queue,
     Dfo.Server.Protocol.Game.Tournament.TournamentProjectionDelivery? tournaments = null,
     Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery? altars = null) : BackgroundService
 {
+    private readonly CoalescingGameplaySource ticks = new(queue);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(250), clock);
         try
         {
+            // One tick (both scans and every return) is one timer CMD on the executor.
             while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-            {
-                foreach (var runId in runs.FindExpiredClearReturns(clock.GetUtcNow()))
-                {
-                    try { await ReturnAsync(runId, stoppingToken, cleared: true).ConfigureAwait(false); }
-                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
-                    catch (Exception exception) { logger.LogError(exception, "Clear timeout return failed run={RunId}", runId); }
-                }
-                foreach (var runId in runs.FindExpiredPartyWipes(clock.GetUtcNow()))
-                {
-                    try { await ReturnAsync(runId, stoppingToken).ConfigureAwait(false); }
-                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
-                    catch (Exception exception) { logger.LogError(exception, "Party wipe return failed run={RunId}", runId); }
-                }
-            }
+                await GameplayTimerWork.TickAsync(ticks, "timer:DungeonPartyWipeService", TickAsync, stoppingToken)
+                    .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+    }
+
+    private async ValueTask TickAsync(CancellationToken stoppingToken)
+    {
+        foreach (var runId in runs.FindExpiredClearReturns(clock.GetUtcNow()))
+        {
+            try { await ReturnAsync(runId, stoppingToken, cleared: true).ConfigureAwait(false); }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
+            catch (Exception exception) { logger.LogError(exception, "Clear timeout return failed run={RunId}", runId); }
+        }
+        foreach (var runId in runs.FindExpiredPartyWipes(clock.GetUtcNow()))
+        {
+            try { await ReturnAsync(runId, stoppingToken).ConfigureAwait(false); }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
+            catch (Exception exception) { logger.LogError(exception, "Party wipe return failed run={RunId}", runId); }
+        }
     }
 
     internal async ValueTask ReturnAsync(DungeonRunId runId, CancellationToken cancellationToken, bool cleared = false)

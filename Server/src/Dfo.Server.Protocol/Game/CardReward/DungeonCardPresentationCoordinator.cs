@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -32,6 +33,11 @@ internal sealed class SystemDungeonCardPresentationDelay(TimeProvider clock)
 /// <summary>
 /// Drives the disposable presentation clock around authoritative participant settlement and flips.
 /// </summary>
+/// <remarks>
+/// Each delay runs detached from the job that scheduled it; once due it enqueues a timer CMD and
+/// waits for it (spec appendix A row 6). As a producer drain it cancels the delays and waits for the
+/// timers in flight before the executor stops (RQ-009). Stopping takes no lock (TASK-10 ruling 5).
+/// </remarks>
 public sealed class DungeonCardPresentationCoordinator(
     ISelectedSessionDomainService selectedSessions,
     IDungeonRunDomainService runs,
@@ -41,17 +47,30 @@ public sealed class DungeonCardPresentationCoordinator(
     TimeProvider clock,
     IDungeonCardPresentationDelay delay,
     ILogger<DungeonCardPresentationCoordinator> logger,
-    DungeonCardPresentationTiming timing) : IDisposable
+    DungeonCardPresentationTiming timing,
+    IGameplayQueue queue) : IGameplayProducerDrain, IDisposable
 {
     private readonly object gate = new();
     private readonly Dictionary<ParticipantKey, CancellationTokenSource> pending = [];
-    private bool disposed;
+    private readonly CancellationTokenSource stopping = new();
+    private readonly TaskCompletionSource idle = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private int stopped;
+    private int inflight;
 
     public void ScheduleAfterSettlement(SelectedSessionIdentity session, DungeonRunId runId)
     {
         ArgumentNullException.ThrowIfNull(session);
         var cancellation = this.Replace(session.CharacterId, runId);
-        _ = this.RunLayoutAsync(session, runId, cancellation.Token);
+        this.StartDetached(() => this.RunTimerAsync(
+            "timer:DungeonCardPresentationCoordinator/layout",
+            timing.LayoutDelay,
+            () => this.RunLayoutAsync(session, runId, cancellation.Token),
+            error => logger.LogError(
+                error,
+                "Dungeon card layout timer failed for character={CharacterId} run={RunId}",
+                session.CharacterId.Value,
+                runId.Value),
+            cancellation.Token));
     }
 
     public async ValueTask OpenOnRequestAsync(
@@ -78,10 +97,10 @@ public sealed class DungeonCardPresentationCoordinator(
     private CancellationTokenSource Replace(CharacterId characterId, DungeonRunId runId)
     {
         CancellationTokenSource? prior = null;
-        var next = new CancellationTokenSource();
+        var next = CancellationTokenSource.CreateLinkedTokenSource(this.stopping.Token);
         lock (this.gate)
         {
-            ObjectDisposedException.ThrowIf(this.disposed, this);
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref this.stopped) != 0, this);
             var key = new ParticipantKey(runId, characterId);
             _ = this.pending.Remove(key, out prior);
             this.pending.Add(key, next);
@@ -98,7 +117,7 @@ public sealed class DungeonCardPresentationCoordinator(
     {
         try
         {
-            await delay.WaitAsync(timing.LayoutDelay, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
             await this.OpenLayoutAsync(session, runId, cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -165,7 +184,16 @@ public sealed class DungeonCardPresentationCoordinator(
 
         runs.ScheduleClearReturn(session.CharacterId, runId, clock.GetUtcNow());
         var cancellation = this.Replace(session.CharacterId, runId);
-        _ = this.RunAutoFlipAsync(session, runId, cancellation.Token);
+        this.StartDetached(() => this.RunTimerAsync(
+            "timer:DungeonCardPresentationCoordinator/auto-flip",
+            timing.AutoFlipDelay,
+            () => this.RunAutoFlipAsync(session, runId, cancellation.Token),
+            error => logger.LogError(
+                error,
+                "Dungeon card auto flip failed for character={CharacterId} run={RunId}",
+                session.CharacterId.Value,
+                runId.Value),
+            cancellation.Token));
     }
 
     private async Task RunAutoFlipAsync(
@@ -175,7 +203,7 @@ public sealed class DungeonCardPresentationCoordinator(
     {
         try
         {
-            await delay.WaitAsync(timing.AutoFlipDelay, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
             // A transient reservation conflict retries the same personal confirmation. It must
             // never turn into a choice of another shared display column.
             for (var attempt = 0; attempt < 3; attempt++)
@@ -259,23 +287,89 @@ public sealed class DungeonCardPresentationCoordinator(
         return false;
     }
 
-    public void Dispose()
+    /// <summary>
+    /// Starts a timer under suppressed flow: it must not inherit the scheduling job's token or frames.
+    /// </summary>
+    private void StartDetached(Func<Task> timer)
     {
-        CancellationTokenSource[] cancellations;
-        lock (this.gate)
+        Interlocked.Increment(ref this.inflight);
+        // Suppressing an already suppressed flow throws.
+        if (ExecutionContext.IsFlowSuppressed())
         {
-            if (this.disposed)
-                return;
-            this.disposed = true;
-            cancellations = [.. this.pending.Values];
-            this.pending.Clear();
+            _ = timer();
+            return;
         }
+        using (ExecutionContext.SuppressFlow())
+            _ = timer();
+    }
 
-        foreach (var cancellation in cancellations)
+    /// <summary>
+    /// Waits out the delay, then runs <paramref name="body"/> as a timer CMD and waits for it. The
+    /// CMD is enqueued without the timer's token: once queued it runs, and the body, seeing a
+    /// cancelled token, does nothing.
+    /// </summary>
+    private async Task RunTimerAsync(
+        string commandType,
+        TimeSpan wait,
+        Func<Task> body,
+        Action<Exception> failed,
+        CancellationToken cancellationToken)
+    {
+        try
         {
-            cancellation.Cancel();
-            cancellation.Dispose();
+            // Off the scheduling job's stack first: a delay that completes at once would otherwise
+            // enqueue from inside that job, which is a self-wait.
+            await Task.Yield();
+            await delay.WaitAsync(wait, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            await queue.RunAsync(
+                new GameplayWork(
+                    GameplayShardKey.World,
+                    GameplayCallChain.NewRoot(GameplayCallSource.Timer),
+                    commandType,
+                    _ => new ValueTask(body())),
+                CancellationToken.None).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (GameplayExecutorStoppedException)
+        {
+            // Only a stop that skipped the drain, such as disposing a container without a host.
+            logger.LogInformation("{CommandType} was not enqueued: the gameplay executor has stopped", commandType);
+        }
+        catch (Exception exception)
+        {
+            failed(exception);
+        }
+        finally
+        {
+            if (Interlocked.Decrement(ref this.inflight) == 0 && Volatile.Read(ref this.stopped) != 0)
+                this.idle.TrySetResult();
+        }
+    }
+
+    /// <summary>
+    /// RQ-009: no timer enqueues once this returns; those already waiting on their CMD have run it.
+    /// </summary>
+    public async ValueTask DrainAsync(CancellationToken cancellationToken)
+    {
+        this.Stop();
+        if (Volatile.Read(ref this.inflight) == 0)
+            this.idle.TrySetResult();
+        await this.idle.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Cancels every timer without waiting. The cancelled sources left in <c>pending</c> are not
+    /// disposed; the container or process ends right after.
+    /// </summary>
+    public void Dispose() => this.Stop();
+
+    private void Stop()
+    {
+        if (Interlocked.Exchange(ref this.stopped, 1) == 0)
+            this.stopping.Cancel();
     }
 
     private readonly record struct ParticipantKey(

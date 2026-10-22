@@ -4,6 +4,8 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -14,22 +16,31 @@ public sealed class TournamentRewardSweepService(ITournamentDungeonDomainService
     ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, ICommandBus commands,
     DungeonProjectionGate projections, SelectedSessionTransitionGate transitions,
     TournamentProjectionDelivery delivery, IGameMessageSender sender, TimeProvider clock,
-    ILogger<TournamentRewardSweepService> logger) : BackgroundService
+    ILogger<TournamentRewardSweepService> logger, IGameplayQueue queue) : BackgroundService
 {
+    private readonly CoalescingGameplaySource ticks = new(queue);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50), clock);
         try
         {
+            // One tick (the scan and every candidate) is one timer CMD on the executor.
             while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-                foreach (var state in tournaments.PendingRewards(clock.GetUtcNow()))
-                {
-                    try { await SweepAsync(state, stoppingToken).ConfigureAwait(false); }
-                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
-                    catch (Exception error) { logger.LogError(error, "Tournament automatic reward failed run={RunId}", state.RunId); }
-                }
+                await GameplayTimerWork.TickAsync(ticks, "timer:TournamentRewardSweepService", TickAsync, stoppingToken)
+                    .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+    }
+
+    private async ValueTask TickAsync(CancellationToken stoppingToken)
+    {
+        foreach (var state in tournaments.PendingRewards(clock.GetUtcNow()))
+        {
+            try { await SweepAsync(state, stoppingToken).ConfigureAwait(false); }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
+            catch (Exception error) { logger.LogError(error, "Tournament automatic reward failed run={RunId}", state.RunId); }
+        }
     }
 
     internal async ValueTask SweepAsync(TournamentDungeonState candidate, CancellationToken ct)

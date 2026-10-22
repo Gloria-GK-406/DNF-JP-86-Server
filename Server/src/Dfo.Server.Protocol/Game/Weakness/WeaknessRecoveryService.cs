@@ -6,6 +6,8 @@ using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.SelectCharacter;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -48,31 +50,38 @@ public sealed class WeaknessRecoveryService(
     IWeaknessDomainService weakness, ICommandBus commands,
     ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
     WeaknessProjectionDelivery delivery, TimeProvider clock,
-    ILogger<WeaknessRecoveryService> logger) : BackgroundService
+    ILogger<WeaknessRecoveryService> logger, IGameplayQueue queue) : BackgroundService
 {
+    private readonly CoalescingGameplaySource ticks = new(queue);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(weakness.RecoveryInterval, clock);
         try
         {
+            // One tick is one timer CMD on the executor.
             while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-            {
-                var changed = await commands.SendAsync(new AdvanceWeaknessRecoveryCommand(), stoppingToken)
+                await GameplayTimerWork.TickAsync(ticks, "timer:WeaknessRecoveryService", TickAsync, stoppingToken)
                     .ConfigureAwait(false);
-                foreach (var id in changed)
-                {
-                    try
-                    {
-                        if (!sessions.TryGetInWorld(id, out var session)) continue;
-                        await using var transition = await transitions.AcquireAsync(session.AccountId,
-                            UserAccessMode.Exclusive, stoppingToken).ConfigureAwait(false);
-                        await delivery.SendCurrentAsync(session, stoppingToken).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
-                    catch (Exception exception) { logger.LogWarning(exception, "Weakness projection failed character={CharacterId}", id); }
-                }
-            }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+    }
+
+    private async ValueTask TickAsync(CancellationToken stoppingToken)
+    {
+        var changed = await commands.SendAsync(new AdvanceWeaknessRecoveryCommand(), stoppingToken)
+            .ConfigureAwait(false);
+        foreach (var id in changed)
+        {
+            try
+            {
+                if (!sessions.TryGetInWorld(id, out var session)) continue;
+                await using var transition = await transitions.AcquireAsync(session.AccountId,
+                    UserAccessMode.Exclusive, stoppingToken).ConfigureAwait(false);
+                await delivery.SendCurrentAsync(session, stoppingToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
+            catch (Exception exception) { logger.LogWarning(exception, "Weakness projection failed character={CharacterId}", id); }
+        }
     }
 }

@@ -3,6 +3,8 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -26,25 +28,33 @@ public sealed class AltarWakeSignal(TimeProvider clock)
 }
 public sealed class AltarScheduler(IAltarDungeonDomainService altars, IDungeonRunDomainService runs,
     DungeonProjectionGate projections, SelectedSessionTransitionGate transitions, ICommandBus commands,
-    AltarProjectionDelivery delivery, AltarWakeSignal wake, TimeProvider clock, ILogger<AltarScheduler> logger) : BackgroundService
+    AltarProjectionDelivery delivery, AltarWakeSignal wake, TimeProvider clock, ILogger<AltarScheduler> logger,
+    IGameplayQueue queue) : BackgroundService
 {
+    private readonly CoalescingGameplaySource ticks = new(queue);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                var now = clock.GetUtcNow();
-                foreach (var due in altars.Pending().Where(x => x.At <= now))
+                // One round (due deadlines and the next one) is one timer CMD; only the wait is outside.
+                DateTimeOffset? next = null;
+                await GameplayTimerWork.TickAsync(ticks, "timer:AltarScheduler", async token =>
                 {
-                    try { await AdvanceAsync(due, stoppingToken).ConfigureAwait(false); }
-                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
-                    catch (Exception error) { logger.LogError(error, "Altar deadline failed run={RunId} generation={Generation}", due.RunId, due.Generation); }
-                }
-                var pending = altars.Pending();
-                var next = pending.Count == 0 ? (DateTimeOffset?)null : pending.Min(x => x.At);
-                // Failed or overdue actions back off; an empty scheduler sleeps until a command wakes it.
-                if (next is { } expired && expired <= clock.GetUtcNow()) next = clock.GetUtcNow().AddMilliseconds(100);
+                    var now = clock.GetUtcNow();
+                    foreach (var due in altars.Pending().Where(x => x.At <= now))
+                    {
+                        try { await AdvanceAsync(due, token).ConfigureAwait(false); }
+                        catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+                        catch (Exception error) { logger.LogError(error, "Altar deadline failed run={RunId} generation={Generation}", due.RunId, due.Generation); }
+                    }
+                    var pending = altars.Pending();
+                    next = pending.Count == 0 ? (DateTimeOffset?)null : pending.Min(x => x.At);
+                    // Failed or overdue actions back off; an empty scheduler sleeps until a command wakes it.
+                    if (next is { } expired && expired <= clock.GetUtcNow()) next = clock.GetUtcNow().AddMilliseconds(100);
+                }, stoppingToken).ConfigureAwait(false);
                 await wake.WaitAsync(next, stoppingToken).ConfigureAwait(false);
             }
         }

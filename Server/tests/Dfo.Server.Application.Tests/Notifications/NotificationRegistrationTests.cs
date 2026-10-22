@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Execution;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Application.Notifications;
 using Dfo.Server.Data.Networking;
@@ -68,6 +69,8 @@ public sealed class NotificationRegistrationTests
         var probe = new ProbeListener();
         var builder = Host.CreateApplicationBuilder();
         builder.Services.AddSingleton<IHostedService>(probe);
+        // The retry loop is a timer source on the executor; production composes both.
+        builder.Services.AddGameplayExecution();
         builder.Services.AddNotificationDispatching();
         builder.Services.AddNotificationCatalog(typeof(NotificationRegistrationTests).Assembly);
         using var host = builder.Build();

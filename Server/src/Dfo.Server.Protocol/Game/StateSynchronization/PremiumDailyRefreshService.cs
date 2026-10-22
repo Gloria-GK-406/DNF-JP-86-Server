@@ -7,6 +7,8 @@ using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -38,10 +40,14 @@ public sealed class ReadPremiumSnapshotCommandHandler(ISelectedSessionDomainServ
 public sealed class PremiumDailyRefreshService(ISelectedSessionSnapshotQuery directory,
     ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
     IPremiumServiceUsageDomainService usage, ICommandBus commands, IGameMessageSender sender, TimeProvider clock,
-    ILogger<PremiumDailyRefreshService> logger) : BackgroundService
+    ILogger<PremiumDailyRefreshService> logger, IGameplayQueue queue) : BackgroundService
 {
     private readonly Dictionary<SelectedSessionIdentity, (DateTimeOffset Period, string Active, bool CrystalActive, bool GrowthActive)> delivered = [];
-    public async Task RefreshAsync(CancellationToken token)
+    private const string Command = "timer:PremiumDailyRefreshService";
+    private readonly CoalescingGameplaySource ticks = new(queue);
+    // One refresh is one timer CMD on the executor; the entry enqueues it directly, the loop through its source.
+    public Task RefreshAsync(CancellationToken token) => GameplayTimerWork.RunAsync(queue, Command, RefreshCoreAsync, token);
+    private async ValueTask RefreshCoreAsync(CancellationToken token)
     {
         var current = directory.Snapshot();
         foreach (var stale in delivered.Keys.Except(current).ToArray()) delivered.Remove(stale);
@@ -88,7 +94,7 @@ public sealed class PremiumDailyRefreshService(ISelectedSessionSnapshotQuery dir
         try
         {
             while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-                await RefreshAsync(stoppingToken).ConfigureAwait(false);
+                await GameplayTimerWork.TickAsync(ticks, Command, RefreshCoreAsync, stoppingToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
     }

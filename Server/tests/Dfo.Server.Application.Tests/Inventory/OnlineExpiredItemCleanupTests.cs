@@ -48,12 +48,12 @@ public sealed class OnlineExpiredItemCleanupTests
         await Seed(f);
         Select(f, 1);
         await Seed(f);
-        await f.Services.GetRequiredService<OnlineExpiredItemCleanupJob>().RunAsync(default);
+        await TestGameplay.RunAsync(f.Services, async () => await f.Services.GetRequiredService<OnlineExpiredItemCleanupJob>().RunAsync(default));
         Assert.Equal(0, f.Count(9001));
         Assert.Equal(3, f.Count(9005));
         Assert.Equal(3, f.Count(9006));
         Assert.Single(await Pending(f));
-        await f.Services.GetRequiredService<OnlineExpiredItemCleanupJob>().RunAsync(default);
+        await TestGameplay.RunAsync(f.Services, async () => await f.Services.GetRequiredService<OnlineExpiredItemCleanupJob>().RunAsync(default));
         Assert.Single(await Pending(f));
         Select(f, 2);
         Assert.Equal(3, f.Count(9001)); // Offline character was not touched.
@@ -187,10 +187,13 @@ public sealed class OnlineExpiredItemCleanupTests
         sessions.InWorld(state, new(2), new(2), "two");
         var commands = new FailingCommands();
         var job = new OnlineExpiredItemCleanupJob(sessions, commands, sessions, NullLogger<OnlineExpiredItemCleanupJob>.Instance);
-        await Assert.ThrowsAsync<AggregateException>(() => job.RunAsync(default).AsTask());
+        await TestGameplay.RunAsync(async () =>
+        {
+            await Assert.ThrowsAsync<AggregateException>(() => job.RunAsync(default).AsTask());
+        });
         Assert.Equal(new[] { 1, 2 }, commands.Attempts);
         commands.Fail = false;
-        await job.RunAsync(default);
+        await TestGameplay.RunAsync(async () => await job.RunAsync(default));
         Assert.Equal(new[] { 1, 2, 1, 2 }, commands.Attempts);
     }
     private sealed class FailingCommands : ICommandBus

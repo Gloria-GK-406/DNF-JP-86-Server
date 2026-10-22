@@ -227,3 +227,30 @@ TASK-06 Remaining 第 3 条的各项按 TASK-07 §6.1 原样保留，加上本�
 - T-008：1；
 - TASK-09 已删除：1。
 - 加法：7 ＋ 74 ＋ 53 ＋ 1 ＋ 1 ＝ 136。
+
+## 9. TASK-11 处置（2026-10-22，基准 `ca71eb26`）
+
+记 §1.2 中分给 TASK-11 的 3 条的去向，以及本单元新判定的 1 条（TASK-11 §8.4）。行号是 §1 的基准行号，以方法名为准。
+
+| 用例 | 本单元的结果 | 去向 | 旧断言 → 新断言 → 保护意图 |
+|---|---|---|---|
+| `DungeonCardPresentationCoordinatorTests:109` `Simultaneous_party_auto_flips_retry_a_contended_column_and_award_each_member_once`（Protocol） | 预判失败：两名成员的自动翻牌成为两条先后执行的定时 CMD，第一条在 `FirstAttemptGate(2)` 上等第二条，而第二条排在它后面 | 改写，改名为 `Party_auto_flips_run_one_after_the_other_and_award_each_member_once` | 旧：两人同时争用同一列、重试后各得一张，索引互不相同 → 新：两条到期 CMD 先后执行，选择数为 2，两人各一次、索引互不相同，每人恰好一帧 `SelectCardResponse` → 意图：每名成员得到且只得到一张；「争用后重试同一个个人确认」由 `:235` 守 |
+| `DungeonCardPresentationCoordinatorTests:235` `Auto_flip_retries_the_same_personal_confirmation_after_a_transient_conflict`（Protocol） | 预判失败：`ReleaseAsync(2s)` 返回时布局在另一个执行器上还没执行，同步断言 `Pending(4s) == 1` 不成立 | 改写等待方式，名字不变 | 旧：`ReleaseAsync(2s)` 后同步断言 `Assert.Equal(1, world.Delay.Pending(4s))`，`ReleaseAsync(4s)` 后同步断言 `Assert.Equal(1, world.Bus.Selections)` → 新：前者改为 `await WaitUntilAsync(() => world.Delay.Pending(4s) == 1)`；后者先 `WaitUntilAsync(() => world.Bus.Selections == 1)` 再保留原断言；`Attempts == [0, 0]` 与索引 0 两条断言不变；`Build` 与 `ScheduleAfterSettlement` 放进 `TestGameplay` → 意图不变：瞬时冲突后重试的是同一个个人确认（`Attempts == [0, 0]`、索引 0），不是换一列 |
+| `IllusionTowerPublicFlowTests:149` `Sweep_captured_for_an_old_run_cannot_return_or_reward_its_replacement`（Application，`PvfFact`） | 通过（它在 `Task.Run` 里直接调用投递的 `SweepAsync`，本单元未改这条路径） | 顺延 T-004c | 后继：`IllusionTowerPublicFlowTests.A_sweep_tick_after_the_old_runs_return_was_due_leaves_its_replacement_alone`（经两塔扫描的公开 tick 入口跑一次真实定时 CMD；新 run 不回城、无结算帧、经验金币不变） |
+| `ScheduledTaskTests.Different_task_can_finish_while_long_task_is_blocked_and_stop_cancels_it`（Application，本单元新判定，§9 第 (ii) 类） | 迁入后两条任务在同一执行器上串行，另一任务在被卡住的任务结束前不会执行 | 按 RQ-013 改写，改名为 `Blocked_task_postpones_rather_than_loses_another_and_stop_cancels_it` | 旧：一个任务被卡住时另一个任务仍能完成；停止取消被卡住的那个并释放 scope → 新：被卡住的任务占着执行器时另一个任务不执行；放行后它执行一次（推迟而不丢失）；停止取消随后再次卡住的那个并释放其 scope → 意图变化（RQ-013 规定）：「任务之间互不阻塞」被规格删除，「停止能取消一个卡住的任务」保留 |
+
+按执行单元的新分布（总数 136 ＋ 1 ＝ 137）：
+
+- T-004b：7 － 3 ＝ 4（TASK-12 1 ＋ TASK-13 2 ＋ 原已标「顺延 T-004c」的 `ReplayStateSnapshotTests:206` 1 ＝ 4）；
+- T-004c：74 ＋ 1（`:149`）＝ 75；
+- T-006：53；
+- T-008：1；
+- TASK-09 已删除：1；
+- TASK-11 已改写：3（`:109`、`:235`、新判定的 `ScheduledTaskTests` 1 条）。
+- 加法：4 ＋ 75 ＋ 53 ＋ 1 ＋ 1 ＋ 3 ＝ 137。
+
+§6 中三条「有意留在作业外」的现状（TASK-11 §3.3）：
+
+- `ControlledDelay.ReleaseAsync` 触发的回调：现在只在分离任务里放行等待，回调随后作为定时 CMD 入队，属于入口驱动；
+- `World.Dispose` → `Coordinator.Dispose()`：不再取锁（只置停止标志并取消），探针 (B) 中的那 7 条应当消失，见 TASK-11 Result 的探针一节；
+- 测试的 `World`／`PartyWorld` 各持有一个执行器，协调器的定时 CMD 落在它上面；基准的 21 处作业内轮询，加上本单元在 `Early_scroll_request…`、`Early_party_layout_requests…` 中为等待自动翻牌计时器登记各加的 1 处，共 23 处，都在 `TestGameplay.RunAsync(async () => …)` 新建的执行器上，不与定时 CMD 互等；作业外的轮询 6 处（`:109` 改写后 3 处、`:235` 3 处）。

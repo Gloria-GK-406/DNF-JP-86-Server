@@ -204,6 +204,65 @@ public sealed class IllusionTowerPublicFlowTests
         Assert.Null(fixture.Services.GetRequiredService<ITownAreaDomainService>().Find(fixture.Session.CharacterId));
     }
 
+    /// <summary>
+    /// Successor of <c>Sweep_captured_for_an_old_run_cannot_return_or_reward_its_replacement</c>,
+    /// deferred to T-004c: a whole sweep is now one timer CMD, so it cannot be overtaken between
+    /// capturing a candidate and acting on it. What remains is that a real tick, run after the old
+    /// run's return was due and the run was replaced, judges the current state and leaves the
+    /// replacement alone.
+    /// </summary>
+    [Dfo.Server.Testing.PvfFact]
+    public async Task A_sweep_tick_after_the_old_runs_return_was_due_leaves_its_replacement_alone()
+    {
+        using var fixture = CreateFixture();
+        await PrepareSelectedCharacterAsync(fixture, tickets: 1);
+        var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
+        var (replacement, messages, settlementFrames, experience, gold) = await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            await EnterAsync(fixture);
+            await fixture.Services.GetRequiredService<FinishLoadingHandler>().HandleAsync(
+                new(fixture.Connection), new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0), default);
+            await fixture.Services.GetRequiredService<IllusionTowerStageHandler>().HandleAsync(
+                new(fixture.Connection), new IllusionTowerStageRequest(GameMessageMetadata.Empty, 1, []), default);
+            await fixture.Services.GetRequiredService<CharacterDeathHandler>().HandleAsync(
+                new(fixture.Connection), new CharacterDeathRequest(GameMessageMetadata.Empty, 0, 0, null), default);
+            var oldRun = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
+            Assert.True(oldRun.Completion!.Settled);
+            var due = Assert.IsType<DateTimeOffset>(oldRun.ReturnDueAt);
+            if (due >= fixture.Clock.GetUtcNow()) fixture.Clock.Advance(due - fixture.Clock.GetUtcNow() + TimeSpan.FromSeconds(1));
+
+            await fixture.Services.GetRequiredService<BackToVillageHandler>().HandleAsync(
+                new(fixture.Connection), new BackToVillageRequest(GameMessageMetadata.Empty), default);
+            await fixture.Seed(65, 4183, 1);
+            fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>()
+                .Record(fixture.Session, DungeonEntryIntent.Interactive);
+            await EnterAsync(fixture);
+            var entered = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
+            Assert.NotEqual(oldRun.RunId, entered.RunId);
+            return (entered, fixture.Sender.Messages.Count, SettlementFrames(fixture),
+                fixture.Scalar("SELECT exp FROM characters WHERE character_id=1"), fixture.Gold);
+        });
+
+        await fixture.Services.GetRequiredService<IllusionTowerReturnSweepService>().TickAsync(default);
+
+        TestGameplay.Run(fixture.Services, () =>
+        {
+            var current = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
+            Assert.Equal(replacement.RunId, current.RunId);
+            Assert.Equal(replacement.Room.Version, current.Room.Version);
+            Assert.Null(current.Completion);
+            Assert.Equal(messages, fixture.Sender.Messages.Count);
+            Assert.Equal(settlementFrames, SettlementFrames(fixture));
+            Assert.Equal(experience, fixture.Scalar("SELECT exp FROM characters WHERE character_id=1"));
+            Assert.Equal(gold, fixture.Gold);
+            Assert.Null(fixture.Services.GetRequiredService<ITownAreaDomainService>().Find(fixture.Session.CharacterId));
+        });
+    }
+
+    private static int SettlementFrames(ShopFixture fixture) => fixture.Sender.Messages.Count(message =>
+        message.MessageType is ServerMessageType.GameIllusionTowerRanking
+            or ServerMessageType.GameIllusionTowerReward or ServerMessageType.GameIllusionTowerContinue);
+
     internal static void AssertEntryDebitPrecedesTowerMode(IEnumerable<IServerNetworkMessage> messages, int receivers = 1)
     {
         var types = messages.Select(message => message.MessageType).ToArray();

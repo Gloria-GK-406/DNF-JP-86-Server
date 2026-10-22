@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -17,9 +19,11 @@ namespace Dfo.Server.Application.Notifications;
 internal sealed class NotificationRetryDrainService(
     INotificationRetryDrain drain,
     NotificationDeliveryOptions options,
+    IGameplayQueue queue,
     ILogger<NotificationRetryDrainService> logger) : IHostedService, IAsyncDisposable
 {
     private readonly CancellationTokenSource stopping = new();
+    private readonly CoalescingGameplaySource passes = new(queue);
     private PeriodicTimer? interval;
     private Task draining = Task.CompletedTask;
 
@@ -65,7 +69,9 @@ internal sealed class NotificationRetryDrainService(
     {
         try
         {
-            await drain.DrainAsync(cancellationToken).ConfigureAwait(false);
+            // One pass is one timer CMD on the executor; the catch stays here, where it waits.
+            await GameplayTimerWork.TickAsync(passes, "timer:NotificationRetryDrainService",
+                drain.DrainAsync, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

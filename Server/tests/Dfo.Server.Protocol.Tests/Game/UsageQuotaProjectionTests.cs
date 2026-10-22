@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Execution;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Notifications;
@@ -54,9 +55,10 @@ public sealed class UsageQuotaProjectionTests
     {
         var sessions = new Sessions(); var clock = new Clock();
         var events = new Events { Family = UsageQuotaFamily.GoldSilverHorn };
+        await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
         using var worker = new GoldSilverHornQuotaDailyRefreshService(sessions, sessions,
             new SelectedSessionTransitionGate(), new UsageQuotaProjectionDelivery(events), new Daily(), clock,
-            NullLogger<GoldSilverHornQuotaDailyRefreshService>.Instance);
+            NullLogger<GoldSilverHornQuotaDailyRefreshService>.Instance, new GameplayQueue(new GameplayShardSelector(executor)));
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Single(events.Projections);
         clock.Now = new(2026, 10, 11, 5, 59, 0, TimeSpan.FromHours(8));
@@ -88,9 +90,10 @@ public sealed class UsageQuotaProjectionTests
     {
         var sessions = new Sessions(); var clock = new Clock();
         var events = new Events { Family = UsageQuotaFamily.TournamentDungeon };
+        await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
         using var worker = new Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService(sessions, sessions,
             new SelectedSessionTransitionGate(), new UsageQuotaProjectionDelivery(events), new Daily(), clock,
-            NullLogger<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>.Instance);
+            NullLogger<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>.Instance, new GameplayQueue(new GameplayShardSelector(executor)));
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Single(events.Projections);
         clock.Now = new(2026, 10, 11, 5, 59, 0, TimeSpan.FromHours(8));
@@ -218,8 +221,9 @@ public sealed class UsageQuotaProjectionTests
     public async Task Mirror_online_worker_refreshes_at_local_midnight_and_retries_failed_delivery()
     {
         var sessions = new Sessions(); var clock = new Clock(); var events = new Events();
+        await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
         using var worker = new MirrorQuotaDailyRefreshService(sessions, sessions, new SelectedSessionTransitionGate(),
-            new UsageQuotaProjectionDelivery(events), clock, NullLogger<MirrorQuotaDailyRefreshService>.Instance);
+            new UsageQuotaProjectionDelivery(events), clock, NullLogger<MirrorQuotaDailyRefreshService>.Instance, new GameplayQueue(new GameplayShardSelector(executor)));
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Single(events.Projections);
         var exact = Assert.IsType<NotificationAudience.TheseSessions>(events.Projections[0]);

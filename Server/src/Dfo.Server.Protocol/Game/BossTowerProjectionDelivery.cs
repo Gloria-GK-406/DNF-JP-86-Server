@@ -31,6 +31,8 @@ using Dfo.Server.Protocol.Game.GroundPickup;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -952,8 +954,15 @@ public sealed class BossTowerReturnSweepService(
     BossTowerProjectionDelivery delivery,
     BossTowerDepartureProjectionQueue departures,
     TimeProvider clock,
-    ILogger<BossTowerReturnSweepService> logger) : BackgroundService
+    ILogger<BossTowerReturnSweepService> logger,
+    IGameplayQueue queue) : BackgroundService
 {
+    private const string Command = "timer:BossTowerReturnSweepService";
+    private readonly CoalescingGameplaySource ticks = new(queue);
+
+    /// <summary>One tick as a timer CMD: the departure queue first, then the returns due now.</summary>
+    public Task TickAsync(CancellationToken token) => GameplayTimerWork.RunAsync(queue, Command, TickCoreAsync, token);
+
     public ValueTask SweepAsync(DateTimeOffset now, CancellationToken token) => delivery.SweepAsync(now, token);
 
     public async ValueTask DrainDeparturesAsync(CancellationToken token)
@@ -984,8 +993,7 @@ public sealed class BossTowerReturnSweepService(
         {
             try
             {
-                await DrainDeparturesAsync(stoppingToken).ConfigureAwait(false);
-                await delivery.SweepAsync(clock.GetUtcNow(), stoppingToken).ConfigureAwait(false);
+                await GameplayTimerWork.TickAsync(ticks, Command, TickCoreAsync, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -997,6 +1005,12 @@ public sealed class BossTowerReturnSweepService(
                     "Unexpected boss tower projection sweep failure; the hosted service will continue");
             }
         }
+    }
+
+    private async ValueTask TickCoreAsync(CancellationToken token)
+    {
+        await DrainDeparturesAsync(token).ConfigureAwait(false);
+        await delivery.SweepAsync(clock.GetUtcNow(), token).ConfigureAwait(false);
     }
 }
 

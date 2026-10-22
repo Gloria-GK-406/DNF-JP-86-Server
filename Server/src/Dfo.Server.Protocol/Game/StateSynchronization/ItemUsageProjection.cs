@@ -8,6 +8,8 @@ using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -91,10 +93,14 @@ internal static class ItemUsageCooldownProjection
 public sealed class ItemUsageDailyRefreshService(ISelectedSessionSnapshotQuery directory,
     ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
     IDailyResetRuleService days, TimeProvider clock, ItemUsageProjectionDelivery delivery,
-    ILogger<ItemUsageDailyRefreshService> logger) : BackgroundService
+    ILogger<ItemUsageDailyRefreshService> logger, IGameplayQueue queue) : BackgroundService
 {
     private readonly Dictionary<SelectedSessionIdentity, DateTimeOffset> delivered = [];
-    public async Task RefreshAsync(CancellationToken token)
+    private const string Command = "timer:ItemUsageDailyRefreshService";
+    private readonly CoalescingGameplaySource ticks = new(queue);
+    // One refresh is one timer CMD on the executor; the entry enqueues it directly, the loop through its source.
+    public Task RefreshAsync(CancellationToken token) => GameplayTimerWork.RunAsync(queue, Command, RefreshCoreAsync, token);
+    private async ValueTask RefreshCoreAsync(CancellationToken token)
     {
         var current = directory.Snapshot();
         foreach (var stale in delivered.Keys.Except(current).ToArray()) delivered.Remove(stale);
@@ -116,7 +122,7 @@ public sealed class ItemUsageDailyRefreshService(ISelectedSessionSnapshotQuery d
     protected override async Task ExecuteAsync(CancellationToken token)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1), clock);
-        try { while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false)) await RefreshAsync(token).ConfigureAwait(false); }
+        try { while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false)) await GameplayTimerWork.TickAsync(ticks, Command, RefreshCoreAsync, token).ConfigureAwait(false); }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
     }
 }

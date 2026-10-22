@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Scheduling;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -11,6 +12,8 @@ public static class ScheduledTaskExtensions
         ScheduledTaskSchedulerOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(services);
+        // Every attempt runs on the executor, so a container with a scheduler has one.
+        services.AddGameplayExecution();
         services.TryAddSingleton(TimeProvider.System);
         if (options is null) services.TryAddSingleton(new ScheduledTaskSchedulerOptions());
         else services.Replace(ServiceDescriptor.Singleton(options));

@@ -119,7 +119,11 @@ public sealed class TournamentRewardSweepTests
             "SweepAsync", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(method);
         var worker = shop.Services.GetRequiredService<TournamentRewardSweepService>();
-        await Assert.IsType<ValueTask>(method.Invoke(worker, [candidate, CancellationToken.None]));
+        // Part of a timer CMD's body, not an entry: called directly, it runs as a job of its own.
+        await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            await Assert.IsType<ValueTask>(method.Invoke(worker, [candidate, CancellationToken.None]));
+        });
     }
 
     private sealed class TournamentRewards : ITournamentDungeonDomainService

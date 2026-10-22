@@ -1,8 +1,10 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Execution;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -17,7 +19,7 @@ using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.CardReward;
 
-public sealed class DungeonCardPresentationCoordinatorTests
+public sealed partial class DungeonCardPresentationCoordinatorTests
 {
     [Fact]
     public async Task Settlement_opens_layout_then_auto_flips_one_free_card()
@@ -130,25 +132,38 @@ await TestGameplay.RunAsync(async () =>
 });
     }
 
+    /// <summary>
+    /// The two members' auto-flips are timer CMDs that run one after the other (RQ-001), so they no
+    /// longer contend; each member still gets exactly one card, on distinct columns. Retrying the
+    /// same personal confirmation after a conflict is kept by the transient-conflict case below
+    /// (formerly <c>Simultaneous_party_auto_flips_retry_a_contended_column_and_award_each_member_once</c>).
+    /// </summary>
     [Fact]
-    public async Task Simultaneous_party_auto_flips_retry_a_contended_column_and_award_each_member_once()
+    public async Task Party_auto_flips_run_one_after_the_other_and_award_each_member_once()
     {
-        using var world = BuildParty();
-        foreach (var session in world.Sessions.All)
-            world.Coordinator.ScheduleAfterSettlement(session, world.Run.RunId);
+        using var world = TestGameplay.Run(() => BuildParty());
+        TestGameplay.Run(() =>
+        {
+            foreach (var session in world.Sessions.All)
+                world.Coordinator.ScheduleAfterSettlement(session, world.Run.RunId);
+        });
 
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 2);
         await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 2);
         await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(4));
-        await WaitUntilAsync(() => world.Runs.Find(world.Sessions.All[0].CharacterId)!
-            .CardSelections.Count == 2);
         await WaitUntilAsync(() => world.Bus.Selections == 2);
 
-        var selections = world.Runs.Find(world.Sessions.All[0].CharacterId)!.CardSelections;
-        Assert.Equal(2, world.Bus.Selections);
-        Assert.Equal(2, selections.Select(selection => selection.CharacterId).Distinct().Count());
-        Assert.Equal(2, selections.Select(selection => selection.Index).Distinct().Count());
+        TestGameplay.Run(() =>
+        {
+            var selections = world.Runs.Find(world.Sessions.All[0].CharacterId)!.CardSelections;
+            Assert.Equal(2, world.Bus.Selections);
+            Assert.Equal(2, selections.Count);
+            Assert.Equal(2, selections.Select(selection => selection.CharacterId).Distinct().Count());
+            Assert.Equal(2, selections.Select(selection => selection.Index).Distinct().Count());
+            foreach (var session in world.Sessions.All)
+                Assert.Single(world.Sender.For(session.ConnectionId).OfType<SelectCardResponse>());
+        });
     }
 
     [Fact]
@@ -245,6 +260,8 @@ await TestGameplay.RunAsync(async () =>
                 CancellationToken.None);
 
             await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 0);
+            // The auto-flip timer starts after a yield, so its delay is registered asynchronously.
+            await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 1);
             Assert.Equal(1, world.Delay.Pending(TimeSpan.FromSeconds(4)));
             Assert.Collection(
                 world.Sender.For(world.Session.ConnectionId),
@@ -267,6 +284,8 @@ await TestGameplay.RunAsync(async () =>
                 await world.Coordinator.OpenOnRequestAsync(session, world.Run.RunId, default);
 
             await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 0);
+            // The auto-flip timers start after a yield, so their delays are registered asynchronously.
+            await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 2);
             Assert.Equal(2, world.Delay.Pending(TimeSpan.FromSeconds(4)));
             foreach (var session in world.Sessions.All)
                 Assert.Single(world.Sender.For(session.ConnectionId)
@@ -283,16 +302,17 @@ await TestGameplay.RunAsync(async () =>
     [Fact]
     public async Task Auto_flip_retries_the_same_personal_confirmation_after_a_transient_conflict()
     {
-        using var world = Build(
+        using var world = TestGameplay.Run(() => Build(
             TimeSpan.FromSeconds(2),
             TimeSpan.FromSeconds(4),
-            transientlyContendedFirstColumn: true);
-        world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
+            transientlyContendedFirstColumn: true));
+        TestGameplay.Run(() => world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId));
 
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
         await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
-        Assert.Equal(1, world.Delay.Pending(TimeSpan.FromSeconds(4)));
+        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 1);
         await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(4));
+        await WaitUntilAsync(() => world.Bus.Selections == 1);
         Assert.Equal(1, world.Bus.Selections);
 
         Assert.Equal([0, 0], world.Bus.Attempts);
@@ -303,7 +323,8 @@ await TestGameplay.RunAsync(async () =>
     private static World Build(
         TimeSpan layoutDelay,
         TimeSpan autoFlipDelay,
-        bool transientlyContendedFirstColumn = false)
+        bool transientlyContendedFirstColumn = false,
+        IDungeonCardPresentationDelay? realDelay = null)
     {
         var session = SelectedSessionIdentity.Create(
             new AccountId(1),
@@ -351,6 +372,8 @@ await TestGameplay.RunAsync(async () =>
                 ? session.CharacterId
                 : null);
         var delay = new ControlledDelay();
+        var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
+        var queue = new RecordingQueue(executor);
         var coordinator = new DungeonCardPresentationCoordinator(
             sessions,
             runs,
@@ -358,14 +381,15 @@ await TestGameplay.RunAsync(async () =>
             sender,
             projection,
             TimeProvider.System,
-            delay,
+            realDelay ?? delay,
             NullLogger<DungeonCardPresentationCoordinator>.Instance,
-            new DungeonCardPresentationTiming(layoutDelay, autoFlipDelay));
+            new DungeonCardPresentationTiming(layoutDelay, autoFlipDelay),
+            queue);
         return new World(
-            session, sessions, runs, run, sender, projection, bus, delay, coordinator);
+            session, sessions, runs, run, sender, projection, bus, delay, coordinator, executor, queue);
     }
 
-    private static PartyWorld BuildParty()
+    private static PartyWorld BuildParty(bool contendFirstAttempts = false)
     {
         SelectedSessionIdentity[] participants =
         [
@@ -418,8 +442,12 @@ await TestGameplay.RunAsync(async () =>
         var sender = new RecordingSender();
         var projection = new DungeonCardSelectionProjectionDelivery(
             sessions, runs, registry, sender);
-        var bus = new CardCommandBus(runs, new FirstAttemptGate(participants.Length));
+        // Timer CMDs run one at a time, so a gate that waits for both first attempts would hold the
+        // first one forever; it is only for a caller that drives the attempts concurrently itself.
+        var bus = new CardCommandBus(runs, contendFirstAttempts ? new FirstAttemptGate(participants.Length) : null);
         var delay = new ControlledDelay();
+        var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
+        var queue = new RecordingQueue(executor);
         var coordinator = new DungeonCardPresentationCoordinator(
             sessions,
             runs,
@@ -429,9 +457,10 @@ await TestGameplay.RunAsync(async () =>
             TimeProvider.System,
             delay,
             NullLogger<DungeonCardPresentationCoordinator>.Instance,
-            DungeonCardPresentationTiming.Production);
+            DungeonCardPresentationTiming.Production,
+            queue);
         return new PartyWorld(
-            sessions, runs, run, sender, projection, bus, delay, coordinator);
+            sessions, runs, run, sender, projection, bus, delay, coordinator, executor, queue);
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition)
@@ -454,9 +483,17 @@ await TestGameplay.RunAsync(async () =>
         DungeonCardSelectionProjectionDelivery Projection,
         CardCommandBus Bus,
         ControlledDelay Delay,
-        DungeonCardPresentationCoordinator Coordinator) : IDisposable
+        DungeonCardPresentationCoordinator Coordinator,
+        // The timer CMDs run here. Never hand it to TestGameplay: a job polling for a timer effect
+        // would then wait on the timer CMD queued behind it.
+        GameplayExecutor Executor,
+        RecordingQueue Queue) : IDisposable
     {
-        public void Dispose() => this.Coordinator.Dispose();
+        public void Dispose()
+        {
+            this.Coordinator.Dispose();
+            this.Executor.Dispose();
+        }
     }
 
     private sealed record PartyWorld(
@@ -467,9 +504,15 @@ await TestGameplay.RunAsync(async () =>
         DungeonCardSelectionProjectionDelivery Projection,
         CardCommandBus Bus,
         ControlledDelay Delay,
-        DungeonCardPresentationCoordinator Coordinator) : IDisposable
+        DungeonCardPresentationCoordinator Coordinator,
+        GameplayExecutor Executor,
+        RecordingQueue Queue) : IDisposable
     {
-        public void Dispose() => this.Coordinator.Dispose();
+        public void Dispose()
+        {
+            this.Coordinator.Dispose();
+            this.Executor.Dispose();
+        }
     }
 
     private sealed class CardCommandBus(
@@ -483,6 +526,7 @@ await TestGameplay.RunAsync(async () =>
 
         public int Selections => Volatile.Read(ref selections);
         public List<int> Attempts { get; } = [];
+        public System.Collections.Concurrent.ConcurrentQueue<(bool OnExecutor, GameplayCallChain? Chain)> Seen { get; } = new();
 
         public async ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command,
@@ -490,6 +534,7 @@ await TestGameplay.RunAsync(async () =>
             where TResult : notnull
         {
             var select = Assert.IsType<SelectCardCommand>(command);
+            this.Seen.Enqueue((GameplayJob.IsOnExecutor, GameplayJob.Current));
             this.Attempts.Add(select.Index);
             if (firstAttemptGate is not null)
                 await firstAttemptGate.ArriveAsync(select.CharacterId, cancellationToken);
@@ -739,6 +784,8 @@ await TestGameplay.RunAsync(async () =>
         private readonly object gate = new();
         private readonly Dictionary<NetworkConnectionId, List<IGameServerMessage>> sent = [];
 
+        public System.Collections.Concurrent.ConcurrentQueue<(IGameServerMessage Message, bool OnExecutor, GameplayCallChain? Chain)> Seen { get; } = new();
+
         public IReadOnlyList<IGameServerMessage> For(NetworkConnectionId connectionId)
         {
             lock (this.gate)
@@ -778,6 +825,8 @@ await TestGameplay.RunAsync(async () =>
             NetworkConnectionId connectionId,
             IReadOnlyList<IGameServerMessage> frames)
         {
+            foreach (var frame in frames)
+                this.Seen.Enqueue((frame, GameplayJob.IsOnExecutor, GameplayJob.Current));
             lock (this.gate)
             {
                 if (!this.sent.TryGetValue(connectionId, out var received))
