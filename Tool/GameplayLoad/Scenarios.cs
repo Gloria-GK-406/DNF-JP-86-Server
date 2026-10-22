@@ -26,7 +26,18 @@ internal sealed record RunOptions(
     double[] RampRates,
     TimeSpan RampStep,
     TimeSpan RampWarm,
-    int EntryConcurrency);
+    int EntryConcurrency)
+{
+    /// <summary>--executor-log: "off" (default) or "debug" (executor job lines, M-1 onwards).</summary>
+    public string ExecutorLog { get; init; } = "off";
+
+    /// <summary>
+    /// --ramp-criterion: "p99:50" (default, the TASK-03 rule: step p99 ≤ 50 ms, no error, ≥ 90 % of the target rate) or
+    /// "max:N" (M-1 controller ruling: judged max &lt; N ms, executor job max &lt; N ms, no error, ≥ 95 % of the target rate;
+    /// needs --executor-log debug).
+    /// </summary>
+    public string RampCriterion { get; init; } = "p99:50";
+}
 
 /// <summary>The three entry points: full baseline run, throughput ramp, exact outbound bytes.</summary>
 internal static class Scenarios
@@ -37,7 +48,8 @@ internal static class Scenarios
     {
         Directory.CreateDirectory(options.Output);
         var recorder = new Recorder();
-        await using var host = await HostProcess.StartAsync(options.HostDll, options.Pvf, Path.Combine(options.Output, "host.log"), CancellationToken.None);
+        await using var host = await HostProcess.StartAsync(options.HostDll, options.Pvf, Path.Combine(options.Output, "host.log"), CancellationToken.None,
+            executorDebug: options.ExecutorLog == "debug");
         var origin = host.ReadyTimestamp;
         var startup = Stopwatch.GetElapsedTime(host.StartedTimestamp, host.ReadyTimestamp);
         Console.WriteLine($"host ready after {startup.TotalMilliseconds:F0} ms (pid {host.ProcessId})");
@@ -156,7 +168,8 @@ internal static class Scenarios
     {
         Directory.CreateDirectory(options.Output);
         var recorder = new Recorder();
-        await using var host = await HostProcess.StartAsync(options.HostDll, options.Pvf, Path.Combine(options.Output, "host.log"), CancellationToken.None);
+        await using var host = await HostProcess.StartAsync(options.HostDll, options.Pvf, Path.Combine(options.Output, "host.log"), CancellationToken.None,
+            executorDebug: options.ExecutorLog == "debug");
         var origin = host.ReadyTimestamp;
         var context = new LoadContext(host, recorder, options.Tag)
         {
@@ -168,6 +181,9 @@ internal static class Scenarios
         for (var index = 0; index < options.Solos; index++) agents.Add(new SoloAgent(context, index, options.Seed * 1000 + index, options.Weights));
         for (var index = 0; index < options.Pairs; index++) agents.Add(new PairAgent(context, index, options.Seed * 1000 + 100 + index, options.Dwell));
         var connections = options.Solos + options.Pairs * 2;
+        // M-1 addition: "max:N" judges each step by the single-request and single-job maxima instead of p99.
+        var byMax = options.RampCriterion.StartsWith("max:", StringComparison.Ordinal);
+        var limitMs = double.Parse(options.RampCriterion[(options.RampCriterion.IndexOf(':') + 1)..], CultureInfo.InvariantCulture);
         var running = agents.Select(agent => Task.Run(() => agent.RunAsync(stop.Token))).ToList();
         await DelayUntil(origin, options.RampWarm);
 
@@ -181,6 +197,14 @@ internal static class Scenarios
                         "或实际包速率 < 目标的 90%，即停止；可持续吞吐取此前最后一个通过档的实际包速率。每档结束后先等计划发出在档内、仍在途的请求收口" +
                         "（完成、超时或断线，最多 65 s）再统计，负载在等待期间继续按本档速率运行。");
         text.AppendLine();
+        if (byMax)
+        {
+            text.AppendLine($"**本次改用 `--ramp-criterion {options.RampCriterion}`（M-1 主控方裁定），上一段的判定规则不适用**：某档的背景请求端到端 max（判定口径，截尾样本计入）≥ {limitMs:F0} ms、" +
+                            $"或该档执行器作业执行时长 max ≥ {limitMs:F0} ms（`--executor-log debug`，按工具读到日志行的时刻落在「档内第 2 s → 统计时刻」的作业）、" +
+                            "或该档出现错误、或实际包速率 < 目标的 95%，即停止；可持续吞吐取此前最后一个通过档的实际包速率。收口等待同上。");
+            text.AppendLine();
+        }
+
         var rows = new List<string[]>();
         double? sustainable = null;
         string? stopReason = null;
@@ -212,16 +236,30 @@ internal static class Scenarios
             var errors = recorder.Errors.Count - errorsBefore;
             var achieved = packets / seconds;
             var pass = distribution.P99 <= 50 && errors == 0 && achieved >= 0.9 * target;
+            var stepJobs = byMax ? host.ExecutorJobs.Where(j => j.ReadTimestamp >= from && j.ReadTimestamp < countedAt).ToList() : [];
+            var worstJob = stepJobs.MaxBy(j => j.ElapsedMs);
+            if (byMax)
+                pass = distribution.Max < limitMs && worstJob is not null && worstJob.ElapsedMs < limitMs && errors == 0 && achieved >= 0.95 * target;
             var actual = Distribution.OfActual(samples);
-            rows.Add([target.ToString("F0", CultureInfo.InvariantCulture), achieved.ToString("F0", CultureInfo.InvariantCulture),
+            string[] row = [target.ToString("F0", CultureInfo.InvariantCulture), achieved.ToString("F0", CultureInfo.InvariantCulture),
                 distribution.Row(), Distribution.F(actual.P99),
                 $"{longPackets}（{(packets == 0 ? 0 : 100.0 * longPackets / packets).ToString("F3", CultureInfo.InvariantCulture)}%）",
                 Distribution.F(heavy.P99), (heavy.MaxIsLowerBound ? "≥" : "") + Distribution.F(heavy.Max),
-                errors.ToString(CultureInfo.InvariantCulture), pass ? "通过" : "停止"]);
-            Console.WriteLine($"ramp {target}: achieved {achieved:F0}, p99 {distribution.P99:F2}, errors {errors}");
+                errors.ToString(CultureInfo.InvariantCulture), pass ? "通过" : "停止"];
+            if (byMax)
+                row = [.. row[..^1], stepJobs.Count.ToString(CultureInfo.InvariantCulture), worstJob is null ? "–" : Distribution.F(worstJob.ElapsedMs),
+                    worstJob?.CommandType ?? "–", Distribution.F(Distribution.Of(stepJobs.Select(j => j.QueueWaitMs)).Max), row[^1]];
+            rows.Add(row);
+            Console.WriteLine($"ramp {target}: achieved {achieved:F0}, p99 {distribution.P99:F2}, errors {errors}" +
+                              (byMax ? $", max {distribution.Max:F1}, job max {worstJob?.ElapsedMs:F1}" : ""));
             if (!pass)
             {
-                stopReason = distribution.P99 > 50 ? "p99 > 50 ms" : errors > 0 ? "出现错误" : "实际速率 < 目标 90%";
+                stopReason = byMax
+                    ? !(distribution.Max < limitMs) ? $"判定 max ≥ {limitMs:F0} ms"
+                    : worstJob is null ? "没有解析到执行器作业行"
+                    : !(worstJob.ElapsedMs < limitMs) ? $"作业 max ≥ {limitMs:F0} ms"
+                    : errors > 0 ? "出现错误" : "实际速率 < 目标 95%"
+                    : distribution.P99 > 50 ? "p99 > 50 ms" : errors > 0 ? "出现错误" : "实际速率 < 目标 90%";
                 break;
             }
 
@@ -230,7 +268,10 @@ internal static class Scenarios
 
         stop.Cancel();
         await Task.WhenAll(running);
-        Markdown.Table(text, ["目标包/秒", "实际包/秒", "判定：样本 | p50 | p95 | p99 | p99.9 | max (ms)", "参考（实际发出）p99", "长请求包数（占比）", "长请求 p99", "长请求 max", "错误", "判定"], rows);
+        Markdown.Table(text, byMax
+            ? ["目标包/秒", "实际包/秒", "判定：样本 | p50 | p95 | p99 | p99.9 | max (ms)", "参考（实际发出）p99", "长请求包数（占比）", "长请求 p99", "长请求 max", "错误",
+                "作业数", "作业执行时长 max (ms)", "max 的作业", "入队等待 max (ms)", "判定"]
+            : ["目标包/秒", "实际包/秒", "判定：样本 | p50 | p95 | p99 | p99.9 | max (ms)", "参考（实际发出）p99", "长请求包数（占比）", "长请求 p99", "长请求 max", "错误", "判定"], rows);
         text.AppendLine(Distribution.Footnote);
         text.AppendLine();
         text.AppendLine($"可持续吞吐：**{(sustainable is null ? "无通过档" : sustainable.Value.ToString("F0", CultureInfo.InvariantCulture) + " 包/秒")}**；" +
@@ -679,7 +720,129 @@ internal sealed class RunReport(
         json["failedCommands"] = failedCommands.Count;
         json["entries"] = agents.OfType<PairAgent>().Sum(p => p.Entries);
         json["hostLogLines"] = host.LogLines;
+        ExecutorSection(text, overall);
         return text.ToString();
+    }
+
+    /// <summary>
+    /// M-1 addition, appended after every baseline section: executor job lines (elapsed and queue wait), windowed by
+    /// the time the tool read the line, as the command lines are. Nothing above is changed.
+    /// </summary>
+    private void ExecutorSection(StringBuilder text, Distribution steadyOverall)
+    {
+        // Wall-clock moment of readiness, so per-second environment samples can be aligned with the windows.
+        json["originUtc"] = (DateTime.UtcNow - Stopwatch.GetElapsedTime(origin)).ToString("O", CultureInfo.InvariantCulture);
+        // The Host keeps logging until it is disposed after this report; the self-check compares the parsed lines with
+        // the executor lines among the first logLinesAtSnapshot lines of host.log.
+        var logLinesAtSnapshot = host.LogLines;
+        var all = host.ExecutorJobs.ToList();
+        var jobs = all.Where(j => j.ReadTimestamp >= origin).ToList();
+        text.AppendLine("## 执行器作业（`--executor-log debug` 时）");
+        text.AppendLine();
+        text.AppendLine($"本次 `--executor-log {options.ExecutorLog}`。解析执行器的作业完成行（Debug）与失败行（Error）：共 {all.Count} 行（Host 就绪之后 {jobs.Count} 行，失败 {jobs.Count(j => j.Failed)}）；" +
+                        $"形似作业行但未匹配 {host.ExecutorUnparsed} 行，数值解析失败 {host.ExecutorNumberFailures} 行。" +
+                        (host.ExecutorDebug ? "" : "日志级别为默认时只有失败行，下面的分布不代表全部作业。") +
+                        "执行时长 = 作业体开始 → 结束（不含入队等待；过渡态下含作业内的直接发送）；入队等待 = 入队 → 开始执行。按工具读到日志行的时刻归窗。");
+        text.AppendLine();
+        json["executorLog"] = options.ExecutorLog;
+        json["executorLines"] = new { total = all.Count, afterReady = jobs.Count, failed = all.Count(j => j.Failed), unparsed = host.ExecutorUnparsed, numberFailures = host.ExecutorNumberFailures, logLinesAtSnapshot };
+
+        var coldEnd = At(options.Cold);
+        var jobRows = new List<string[]>();
+        var jobJson = new Dictionary<string, object>();
+        foreach (var group in jobs.GroupBy(j => j.CommandType).OrderByDescending(g => g.Max(j => j.ElapsedMs)))
+        {
+            var ordered = group.OrderBy(j => j.ReadTimestamp).ToList();
+            var distribution = Distribution.Of(ordered.Select(j => j.ElapsedMs));
+            var worst = ordered.MaxBy(j => j.ElapsedMs)!;
+            var coldMax = ordered.Where(j => j.ReadTimestamp < coldEnd).Select(j => j.ElapsedMs).DefaultIfEmpty(double.NaN).Max();
+            var warmMax = ordered.Where(j => j.ReadTimestamp >= coldEnd).Select(j => j.ElapsedMs).DefaultIfEmpty(double.NaN).Max();
+            var failed = ordered.Count(j => j.Failed);
+            jobRows.Add([group.Key, distribution.Row(), Distribution.F(ordered[0].ElapsedMs), Distribution.F(coldMax), Distribution.F(warmMax),
+                Seconds(worst.ReadTimestamp).ToString("F1", CultureInfo.InvariantCulture), failed.ToString(CultureInfo.InvariantCulture)]);
+            jobJson[group.Key] = new { distribution, first = ordered[0].ElapsedMs, firstAt = Seconds(ordered[0].ReadTimestamp), coldMax, warmMax, maxAt = Seconds(worst.ReadTimestamp), failed };
+        }
+
+        text.AppendLine("### 各类作业的执行时长（Host 就绪之后）");
+        text.AppendLine();
+        Markdown.Table(text, ["作业", "样本 | p50 | p95 | p99 | p99.9 | max (ms)", "首次 (ms)", "冷启动窗 max", "之后 max", "max 出现于 (s)", "失败"], jobRows);
+        json["executorJobs"] = jobJson;
+
+        // Windows: cold, steady, (d) inside the bursts, (e) during the flood.
+        var bursts = recorder.Intervals.Where(i => i.Name.StartsWith("burst", StringComparison.Ordinal)).ToList();
+        var floodInterval = recorder.Intervals.FirstOrDefault(i => i.Name == "flood");
+        var windows = new (string Key, string Name, Func<long, bool> Inside, double Seconds)[]
+        {
+            ("cold", "冷启动窗", t => t >= origin && t < coldEnd, options.Cold.TotalSeconds),
+            ("steady", "稳态窗", t => t >= SteadyWindow.From && t < SteadyWindow.To, options.Steady.TotalSeconds),
+            ("burst", "(d) 10 并发登录的轮内", t => bursts.Any(b => t >= b.Start && t < b.End), bursts.Sum(b => (b.End - b.Start) / (double)Stopwatch.Frequency)),
+            ("flood", "(e) 灌包期间", t => floodInterval is not null && t >= floodInterval.Start && t < floodInterval.End,
+                floodInterval is null ? 0 : (floodInterval.End - floodInterval.Start) / (double)Stopwatch.Frequency),
+        };
+        var waitRows = new List<string[]>();
+        var waitJson = new Dictionary<string, object>();
+        var busyRows = new List<string[]>();
+        var busyJson = new Dictionary<string, object>();
+        foreach (var window in windows)
+        {
+            var inside = jobs.Where(j => window.Inside(j.ReadTimestamp)).ToList();
+            var inbound = inside.Where(j => j.CommandType.StartsWith("inbound:", StringComparison.Ordinal)).ToList();
+            var (allWait, inboundWait) = (Distribution.Of(inside.Select(j => j.QueueWaitMs)), Distribution.Of(inbound.Select(j => j.QueueWaitMs)));
+            var worstWait = inside.MaxBy(j => j.QueueWaitMs);
+            waitRows.Add([window.Name, "全部作业", allWait.Row(), worstWait?.CommandType ?? "–", worstWait is null ? "–" : Seconds(worstWait.ReadTimestamp).ToString("F1", CultureInfo.InvariantCulture)]);
+            waitRows.Add([window.Name, "只算 inbound:", inboundWait.Row(), "", ""]);
+            waitJson[window.Key] = new { all = allWait, inbound = inboundWait, maxType = worstWait?.CommandType, maxAt = worstWait is null ? double.NaN : Seconds(worstWait.ReadTimestamp), seconds = window.Seconds };
+
+            // Busy share: the sum of job bodies over the window length, by job type (largest first).
+            var busy = inside.Sum(j => j.ElapsedMs);
+            var top = inside.GroupBy(j => j.CommandType).Select(g => (Type: g.Key, Sum: g.Sum(j => j.ElapsedMs), Count: g.Count(), Max: g.Max(j => j.ElapsedMs)))
+                .OrderByDescending(g => g.Sum).Take(8).ToList();
+            var share = window.Seconds > 0 ? busy / (window.Seconds * 1000) : double.NaN;
+            busyRows.Add([window.Name, window.Seconds.ToString("F1", CultureInfo.InvariantCulture), inside.Count.ToString(CultureInfo.InvariantCulture),
+                busy.ToString("F0", CultureInfo.InvariantCulture), (100 * share).ToString("F1", CultureInfo.InvariantCulture) + "%",
+                string.Join("；", top.Select(t => $"{t.Type} {t.Sum:F0} ms／{t.Count}／max {Distribution.F(t.Max)}"))]);
+            busyJson[window.Key] = new { seconds = window.Seconds, jobs = inside.Count, busyMs = busy, share, top = top.Select(t => new { type = t.Type, sumMs = t.Sum, count = t.Count, maxMs = t.Max }).ToList() };
+        }
+
+        text.AppendLine("### 入队等待");
+        text.AppendLine();
+        text.AppendLine($"(e) 窗的作业行不带连接号，灌包连接自己的作业分不出来；按 RQ-005 它在队列里至多 1 条，FIFO 下它的入队等待与别人的同分布，「全部作业」可作代理。端到端对照：稳态窗 p99 {Distribution.F(steadyOverall.P99)} ms。");
+        text.AppendLine();
+        Markdown.Table(text, ["窗口", "作业", "样本 | p50 | p95 | p99 | p99.9 | max (ms)", "max 的作业", "max 出现于 (s)"], waitRows);
+        json["queueWait"] = waitJson;
+
+        var perSecond = new List<string[]>();
+        for (var second = 0; second < (int)options.Cold.TotalSeconds; second++)
+        {
+            var (from, to) = (At(TimeSpan.FromSeconds(second)), At(TimeSpan.FromSeconds(second + 1)));
+            var inSecond = jobs.Where(j => j.ReadTimestamp >= from && j.ReadTimestamp < to).ToList();
+            var distribution = Distribution.Of(inSecond.Select(j => j.QueueWaitMs));
+            perSecond.Add([second.ToString(CultureInfo.InvariantCulture), distribution.Count.ToString(CultureInfo.InvariantCulture),
+                Distribution.F(distribution.P99), Distribution.F(distribution.Max), inSecond.MaxBy(j => j.QueueWaitMs)?.CommandType ?? "–",
+                Distribution.F(inSecond.Select(j => j.ElapsedMs).DefaultIfEmpty(double.NaN).Max())]);
+        }
+
+        text.AppendLine("<details><summary>冷启动窗逐秒入队等待</summary>");
+        text.AppendLine();
+        Markdown.Table(text, ["秒", "作业数", "入队等待 p99 (ms)", "入队等待 max (ms)", "等待 max 的作业", "执行时长 max (ms)"], perSecond);
+        text.AppendLine("</details>");
+        text.AppendLine();
+        json["queueWaitColdPerSecond"] = perSecond;
+
+        text.AppendLine("### 各窗口的执行器占用（作业执行时长之和 ÷ 窗口时长）");
+        text.AppendLine();
+        Markdown.Table(text, ["窗口", "时长 (s)", "作业数", "执行时长之和 (ms)", "占用", "按执行时长之和的前 8 类（和／个数／max）"], busyRows);
+        json["executorBusy"] = busyJson;
+
+        // F-08, F-10: jobs per second in the steady window by source prefix (inbound:, timer:, event:, http:, and any
+        // other prefix as written, e.g. lifecycle:, tower:; a name without a colon counts as 其他).
+        var steadyJobs = jobs.Where(j => j.ReadTimestamp >= SteadyWindow.From && j.ReadTimestamp < SteadyWindow.To).ToList();
+        static string Prefix(string type) => type.IndexOf(':') is var colon and > 0 ? type[..(colon + 1)] : "其他";
+        var rates = steadyJobs.GroupBy(j => Prefix(j.CommandType)).OrderByDescending(g => g.Count())
+            .ToDictionary(g => g.Key, g => g.Count() / options.Steady.TotalSeconds);
+        text.AppendLine("稳态窗每秒作业数（按来源前缀）：" + (rates.Count == 0 ? "无" : string.Join("，", rates.Select(r => $"`{r.Key}` {r.Value:F1}"))) + "。");
+        text.AppendLine();
+        json["jobRatePerSecond"] = rates;
     }
 
     private static string LatencyTable(List<Sample> samples, out Dictionary<string, object> json)

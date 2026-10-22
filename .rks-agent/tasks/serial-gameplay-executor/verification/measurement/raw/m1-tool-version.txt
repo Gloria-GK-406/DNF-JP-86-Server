@@ -1,0 +1,22 @@
+# M-1 (TASK-20) tool versions. Default-log runs (m1-A-1/2, m1-B-1/2) and the p99:50 ramps (m1-ramp-full, -full-2, -clean):
+# the unchanged dll (same as baseline).
+b3d6c286e61607baf20c532fe7880f0902af60d60e40f2fb33435b53be899753  Tool/GameplayLoad/bin/m1-base/GameplayLoad.dll
+# its sources are those of raw/tool-version.txt (commit 5075a283); rebuild from there to recreate bin/m1-base/.
+#
+# --executor-log debug runs (m1-A-debug-1/2, m1-B-debug-1/2): dll b47cc49a…, built from the first edit
+# (HostProcess.cs cbe3a5cc…, Program.cs 2e564339…, Scenarios.cs a4b1d326…; the other five files unchanged).
+b47cc49af8c8c6ff1c341df8c60d13e7e22aab016debb28d848e5330f7c34bd9  GameplayLoad.dll (debug runs; no longer on disk)
+#
+# 2 s ramp (m1-ramp-full-2s, --ramp-criterion max:2000 --executor-log debug): the current dll, second edit (adds
+# --ramp-criterion; the run path is unchanged, so the debug runs' numbers stand).
+deb158a5a422ec2b9e32dc84aed934d8d1ff1d29bc061ea31d8f14782264cefa  Tool/GameplayLoad/bin/Release/net10.0/GameplayLoad.dll
+77b2b47d46916124fb28da63f26eda9822f1d980cbe65223187b23057f387210  Tool/GameplayLoad/Agents.cs
+b1bd21f3306e188e230d98fd511d8daff4164619de23a0f07ccd1c5823a221b5  Tool/GameplayLoad/EnvironmentProbe.cs
+cbe3a5cc35a4a63ac5ca72e5c453abd6df98cf5f4c9f8882f2b86a154c96e107  Tool/GameplayLoad/HostProcess.cs
+09842599662efef828317d20d0ec5ad7587696de58802a1c1aeac06a9c45fbe1  Tool/GameplayLoad/Program.cs
+18e6a69f32f358eca23913e663e66b0ef0dce1b627378d5c5841f3374cddf234  Tool/GameplayLoad/Protocol.cs
+76b2b86a0c38baffd2720a1eb54db1cec6a983222262596bc4f3dc35390d61c2  Tool/GameplayLoad/Recorder.cs
+c3a89ab3c73a7991d55cccc83e77743239156c043e0e0aa5023a1e52ff5ec314  Tool/GameplayLoad/Scenarios.cs
+42dab6ee1b084e8146933021e29485c6e51379b73469d20724efc2453b3c7a5e  Tool/GameplayLoad/Wire.cs
+# changed against raw/tool-version.txt: HostProcess.cs (d684d0a7… -> cbe3a5cc…), Program.cs (91df871f… -> 09842599…),
+# Scenarios.cs (d721390e… -> c3a89ab3…); the other five files are byte-identical. Diff: logs/task-20-tool.txt.

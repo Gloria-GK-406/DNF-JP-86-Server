@@ -13,6 +13,13 @@ namespace GameplayLoad;
 internal sealed record CommandRecord(long ReadTimestamp, string CommandType, string HandlerType, string Kind, double ElapsedMs, bool Failed);
 
 /// <summary>
+/// One gameplay executor job line (GameplayExecutor's Debug "completed" or Error "failed" template), stamped with
+/// the tool's clock when the line was read, like <see cref="CommandRecord"/>. ElapsedMs is the job body (queue
+/// wait excluded); QueueWaitMs is enqueue → start.
+/// </summary>
+internal sealed record ExecutorRecord(long ReadTimestamp, string CommandType, double ElapsedMs, double QueueWaitMs, bool Failed);
+
+/// <summary>
 /// A Release Host started as a child process, the way Server/tests/Dfo.Server.Host.Tests/EndToEndHostHarness.cs
 /// starts it: private temp directory and database, networking on, settings through environment variables.
 /// </summary>
@@ -27,7 +34,10 @@ internal sealed partial class HostProcess : IAsyncDisposable
     private readonly StreamWriter log;
     private readonly HttpClient http;
     private readonly ConcurrentQueue<CommandRecord> commands = new();
+    private readonly ConcurrentQueue<ExecutorRecord> executorJobs = new();
     private long logLines;
+    private long executorUnparsed;
+    private long executorNumberFailures;
 
     private HostProcess(Process process, StreamWriter log, string directory, int gamePort, int httpPort, long started)
     {
@@ -53,7 +63,19 @@ internal sealed partial class HostProcess : IAsyncDisposable
 
     public IReadOnlyCollection<CommandRecord> Commands => commands;
 
-    public static async Task<HostProcess> StartAsync(string hostDll, string pvf, string logPath, CancellationToken cancellationToken)
+    /// <summary>Executor job lines; the "completed" ones exist only when the Host runs with executor Debug logging.</summary>
+    public IReadOnlyCollection<ExecutorRecord> ExecutorJobs => executorJobs;
+
+    /// <summary>Lines shaped like an executor completed/failed line that <see cref="ExecutorLine"/> did not match.</summary>
+    public long ExecutorUnparsed => Interlocked.Read(ref executorUnparsed);
+
+    /// <summary>Executor lines whose elapsed or queue-wait number did not parse.</summary>
+    public long ExecutorNumberFailures => Interlocked.Read(ref executorNumberFailures);
+
+    /// <summary>Whether the Host was started with the executor category at Debug (--executor-log debug).</summary>
+    public bool ExecutorDebug { get; private init; }
+
+    public static async Task<HostProcess> StartAsync(string hostDll, string pvf, string logPath, CancellationToken cancellationToken, bool executorDebug = false)
     {
         var directory = Path.Combine(Path.GetTempPath(), "dfo-gameplay-load-" + Guid.NewGuid().ToString("N"));
         System.IO.Directory.CreateDirectory(directory);
@@ -94,13 +116,16 @@ internal sealed partial class HostProcess : IAsyncDisposable
             ["GmWeb__Enabled"] = "false",
             ["Logging__Console__FormatterOptions__SingleLine"] = "true",
         };
+        // --executor-log debug: the executor writes one Debug line per completed job with its elapsed time and queue
+        // wait (GameplayExecutor.Job<T>.RunAsync). Only this category is raised; Default stays Information.
+        if (executorDebug) environment["Logging__LogLevel__Dfo.Server.Application.Execution.GameplayExecutor"] = "Debug";
         foreach (var (key, value) in environment) startInfo.Environment[key] = value;
 
         var writer = new StreamWriter(logPath) { AutoFlush = false };
         var started = Stopwatch.GetTimestamp();
         var process = Process.Start(startInfo) ?? throw new InvalidOperationException("The Host process could not be started.");
         // The channel the load plays on is #ch.11 (appsettings Channels[1]), as WireSmoke does.
-        var host = new HostProcess(process, writer, directory, gamePortB, httpPort, started);
+        var host = new HostProcess(process, writer, directory, gamePortB, httpPort, started) { ExecutorDebug = executorDebug };
         process.OutputDataReceived += (_, line) => host.OnLine(line.Data);
         process.ErrorDataReceived += (_, line) => host.OnLine(line.Data);
         process.BeginOutputReadLine();
@@ -126,7 +151,13 @@ internal sealed partial class HostProcess : IAsyncDisposable
         Interlocked.Increment(ref logLines);
         lock (log) log.WriteLine(line);
         var match = CommandLine().Match(line);
-        if (!match.Success) return;
+        if (!match.Success)
+        {
+            // Not a command line: try the executor's job line (added for M-1; the command path below is unchanged).
+            OnExecutorLine(line, stamp);
+            return;
+        }
+
         commands.Enqueue(new CommandRecord(
             stamp,
             match.Groups["command"].Value,
@@ -135,6 +166,39 @@ internal sealed partial class HostProcess : IAsyncDisposable
             double.Parse(match.Groups["ms"].Value, CultureInfo.InvariantCulture),
             match.Groups["verb"].Value == "failed in handler"));
     }
+
+    private void OnExecutorLine(string line, long stamp)
+    {
+        if (!line.Contains("Gameplay ", StringComparison.Ordinal)) return;
+        var match = ExecutorLine().Match(line);
+        if (!match.Success)
+        {
+            if (ExecutorCandidate().IsMatch(line)) Interlocked.Increment(ref executorUnparsed);
+            return;
+        }
+
+        if (!double.TryParse(match.Groups["ms"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var elapsed)
+            || !double.TryParse(match.Groups["q"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var queued))
+        {
+            Interlocked.Increment(ref executorNumberFailures);
+            return;
+        }
+
+        executorJobs.Enqueue(new ExecutorRecord(stamp, match.Groups["type"].Value, elapsed, queued, match.Groups["verb"].Value == "failed"));
+    }
+
+    /// <summary>
+    /// GameplayExecutor's job templates (Server/src/Dfo.Server.Application/Execution/GameplayExecutor.cs): Debug
+    /// "Gameplay {CommandType} completed: … source {Source}, in {ElapsedMilliseconds} ms after {QueueWaitMilliseconds} ms queued"
+    /// and Error "Gameplay {CommandType} failed: … chain {Chain}, after {ElapsedMilliseconds} ms, {QueueWaitMilliseconds} ms queued"
+    /// (the exception follows on the same line). The type is lazy because HTTP job names contain a space.
+    /// </summary>
+    [GeneratedRegex(@"Gameplay (?<type>.+?) (?<verb>completed|failed): .*?\b(?:in|after) (?<ms>[0-9.Ee+-]+) ms(?: after|,) (?<q>[0-9.Ee+-]+) ms queued")]
+    private static partial Regex ExecutorLine();
+
+    /// <summary>The self-check's shape: what <c>grep -cE 'Gameplay .+ (completed|failed):'</c> counts.</summary>
+    [GeneratedRegex(@"Gameplay .+ (completed|failed):")]
+    private static partial Regex ExecutorCandidate();
 
     /// <summary>CommandLoggingBehavior's success and failure templates (Server/src/Dfo.Server.Application/Commands/Pipeline).</summary>
     [GeneratedRegex(@"Command (?<command>\S+) (?<verb>handled by|failed in handler) (?<handler>\S+) as (?<kind>\S+) with execution \S+ (?:in|after) (?<ms>[0-9.]+) ms")]

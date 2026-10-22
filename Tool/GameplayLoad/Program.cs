@@ -10,6 +10,8 @@ using GameplayLoad;
 //          --cold 60 --steady 120 --bursts 6 --burst-size 10 --burst-every 10 --flood 30 --flood-window 32 --dwell 4
 //          --weights fence,move,area,reselect,create (0.47,0.45,0.068,0.01,0.002)
 //          --rates 400,800,... --step 20 --warm 30
+//          --executor-log off|debug (debug raises the executor's log category to Debug; run adds the job-level section)
+//          --ramp-criterion p99:50|max:<ms> (ramp; default p99:50 is the TASK-03 rule; max:<ms> needs --executor-log debug)
 
 if (args.Length == 0 || args[0] is "-h" or "--help")
 {
@@ -52,7 +54,15 @@ var options = new RunOptions(
     RampRates: Get("rates", "400,800,1200,1600,2000,2400,3000,4000,5000,6000").Split(',').Select(value => double.Parse(value, CultureInfo.InvariantCulture)).ToArray(),
     RampStep: Seconds("step", 20),
     RampWarm: Seconds("warm", 30),
-    EntryConcurrency: (int)Number("entry-concurrency", 0));
+    EntryConcurrency: (int)Number("entry-concurrency", 0))
+{
+    ExecutorLog = Get("executor-log", "off") is "off" or "debug" ? Get("executor-log", "off") : throw new ArgumentException("--executor-log is off or debug."),
+    RampCriterion = Get("ramp-criterion", "p99:50") is var criterion
+        && (criterion == "p99:50" || criterion.StartsWith("max:", StringComparison.Ordinal) && double.TryParse(criterion[4..], CultureInfo.InvariantCulture, out _))
+            ? criterion : throw new ArgumentException("--ramp-criterion is p99:50 or max:<ms>."),
+};
+if (options.RampCriterion.StartsWith("max:", StringComparison.Ordinal) && options.ExecutorLog != "debug")
+    throw new ArgumentException("--ramp-criterion max:<ms> judges executor job times too; add --executor-log debug.");
 
 if (!File.Exists(options.HostDll)) throw new FileNotFoundException("Build the Host in Release first: dotnet build Server/86JP.Server.slnx -c Release", options.HostDll);
 if (!File.Exists(options.Pvf)) throw new FileNotFoundException("Script.pvf not found; pass --pvf or set PVF_ARCHIVE_PATH.", options.Pvf);

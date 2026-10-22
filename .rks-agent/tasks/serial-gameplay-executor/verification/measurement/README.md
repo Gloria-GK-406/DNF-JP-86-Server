@@ -18,6 +18,12 @@
 | `outbound.md`、`outbound-frames.txt` | 空闲 Host 上单条请求对单个连接的出站字节（新建角色上的实测值），以及逐帧清单（也是回包签名的核对依据） |
 | `raw/` | 各次完整运行的 `summary.json`（聚合结果）。逐请求的 `samples.csv`（每份约 350 MB，主要是灌包样本）与 Host 日志只留在运行目录，不入库 |
 | `superseded/` | 第 1 轮的记录（闭环不补发、超时剔除的旧口径），只作对照，原因见其中的 README |
+| `m1-summary.md` | **M-1 先读这份**（TASK-20，T-004 之后）：判定、与基线的逐项对照、作业层执行时长与入队等待、(c)(e) 过渡态参考、后续性能优化事项 |
+| `m1-A-1.md`、`m1-A-2.md`、`m1-B-1.md`、`m1-B-2.md` | M-1 默认日志级别的运行（与基线同一个工具 dll），工具生成的 `summary.md` 原样保存 |
+| `m1-A-debug-1.md`、`m1-A-debug-2.md`、`m1-B-debug-1.md`、`m1-B-debug-2.md` | M-1 `--executor-log debug` 的运行（改动后的工具），末尾多一节「执行器作业」 |
+| `m1-ramp-full-2s.md` | M-1 构成 A 的 2 s 口径爬坡（`--ramp-criterion max:2000`），S3 按它判定 |
+| `m1-ramp-full.md`、`m1-ramp-full-2.md`、`m1-ramp-clean.md` | M-1 吞吐爬坡（p99 ≤ 50 ms 口径）：构成 A 两次，只作目标对照；构成 B（400 → 25000 包/秒） |
+| `raw/m1-*.summary.json`、`raw/m1-tool-version.txt` | M-1 各次运行的聚合结果；两组运行各用哪个工具 dll 及新旧源码的 SHA-256 |
 
 ## 命令行
 
@@ -40,6 +46,13 @@ dotnet $G ramp --out <dir>/ramp-clean --tag r2 --seed 1 $B \
 
 # 4. 单请求出站字节精确值
 dotnet Tool/GameplayLoad/bin/Release/net10.0/GameplayLoad.dll outbound --out <dir>/outbound
+
+# 5. 作业层执行时长与入队等待（M-1 起）
+dotnet $G run --out <dir>/B-debug-1 --tag m1bd1 --seed 1 $B --executor-log debug
+
+# 6. 2 s 口径的爬坡（M-1 起，S3 按它判定）：逐档要求判定 max < 2000 ms、作业执行时长 max < 2000 ms、错误 0、实际速率 ≥ 目标 95%
+dotnet $G ramp --out <dir>/ramp-full-2s --tag m1r1s --seed 1 --executor-log debug --ramp-criterion max:2000 \
+    --rates 400,800,1200,1600,2000,2400,3000,4000,5000,6000,8000,10000,12000,15000,20000,25000
 ```
 
 默认参数：`--host Server/src/Dfo.Server.Host/bin/Release/net10.0/Dfo.Server.Host.dll`，`--pvf` 取
@@ -47,8 +60,8 @@ dotnet Tool/GameplayLoad/bin/Release/net10.0/GameplayLoad.dll outbound --out <di
 `--cold 60 --steady 120 --bursts 6 --burst-size 10 --burst-every 10 --flood 30 --flood-window 32 --dwell 4`；
 `--weights 0.47,0.45,0.068,0.01,0.002`（单人：栅栏、移动、跨区、回选角+再选角、回选角+建角+选新角）；
 爬坡 `--rates 400,800,1200,1600,2000,2400,3000,4000,5000,6000 --step 20 --warm 30`；
-`--entry-concurrency 0`（不限）。改造后的 M-1/M-2 用**同一命令行**重跑端到端与命令时长，只换 `--host`（或重新构建）；
-但 (c) 入队等待工具现在测不到，见「入队等待」一节。
+`--entry-concurrency 0`（不限）；`--executor-log off`；爬坡 `--ramp-criterion p99:50`（下面「可持续吞吐」一节的判据；`max:<ms>` 见命令 6）。改造后的 M-1/M-2 用**同一命令行**重跑端到端与命令时长，只换 `--host`（或重新构建）；
+作业层执行时长与入队等待另加 `--executor-log debug` 运行，见「入队等待」一节。
 
 ## 驱动方式
 
@@ -199,9 +212,28 @@ Host 就绪即开始负载（起始序列也在内），前 60 s 按计划发出
 **基线不存在。** 基线没有执行器，没有「入队 → 开始执行」这个量。(c)(d)(e)(f) 在基线上只给端到端对照，
 不拿别的量凑数。
 
-**改造后工具也测不到它**：入队等待是服务端执行器内部的量，客户端看不到。M-1 之前需要执行器提供每条 CMD 的入队时刻与
-开始执行时刻（日志字段或计数器，RQ-054 的开始日志可以承载），并在工具里加上对应的解析；在那之前，改造后的 (c)(d)(e)
-只能给端到端数字。
+**改造后由执行器日志提供**（M-1 起）：执行器在 Debug 级为每个完成的作业记一行
+`Gameplay {CommandType} completed: … in {ElapsedMilliseconds} ms after {QueueWaitMilliseconds} ms queued`，失败行是 Error 级
+（`… after {ElapsedMilliseconds} ms, {QueueWaitMilliseconds} ms queued`，`Server/src/Dfo.Server.Application/Execution/GameplayExecutor.cs`）。
+`--executor-log debug` 让工具给 Host 多设一个环境变量 `Logging__LogLevel__Dfo.Server.Application.Execution.GameplayExecutor=Debug`
+（只抬这一个类别），并解析这两种行：执行时长 = 作业体开始 → 结束，不含入队等待；入队等待 = 入队 → 开始执行。
+与命令日志一样按工具读到行的时刻归窗，`summary.md` 末尾多一节「执行器作业」：各类作业的执行时长分布（含首次值、冷启动窗
+与之后的 max）、四个窗口（冷启动、稳态、(d) 轮内、(e) 灌包期间）的入队等待（全部作业与只算 `inbound:`）、冷启动窗逐秒的入队
+等待、各窗口的执行器占用（执行时长之和 ÷ 窗口时长）、稳态窗按来源前缀的每秒作业数。`summary.json` 对应新增 `originUtc`
+（就绪时刻的 UTC，供环境采样对齐）、`executorLog`、`executorLines`、`executorJobs`、`queueWait`、`queueWaitColdPerSecond`、
+`executorBusy`、`jobRatePerSecond`；既有的段落、窗口与键不变。默认 `off` 时 Host 只输出失败行，新节的分布不代表全部作业。
+
+- **解析自检**：`executorLines.total` 应等于 `head -n <executorLines.logLinesAtSnapshot> host.log | grep -cE 'Gameplay .+ (completed|failed):'`。
+  只取前 N 行，是因为工具写完记录之后才结束 Host，`host.log` 在那之后还会收到几行定时作业。
+- **日志开销**：Debug 级下每个作业一行，(e) 灌包期间每秒几十万行；控制台日志队列满时写日志的线程会等，可能拖慢执行器。
+  所以作业层数字只从 debug 运行取，端到端、内层命令与错误仍以默认级别的运行为准；同一窗口 debug 运行的端到端 p99 超过默认
+  运行的 2 倍时，该窗口的入队等待只作参考（M-1 的做法，`m1-summary.md`）。
+- **(e) 的局限**：作业行不带连接号，灌包连接自己的作业分不出来；按 RQ-005 它在队列里至多 1 条，FIFO 下它的入队等待与别人
+  同分布，(e) 窗的「全部作业」可作代理。
+- **工具版本**：M-1 的默认级别运行与爬坡用改动前的 dll（`Tool/GameplayLoad/bin/m1-base/`，SHA-256 与 `raw/tool-version.txt`
+  相同，口径与基线逐字节一致）；debug 运行用改动后的 dll。`bin/` 不入库：改动前的 dll 可从提交 `5075a283` 的源码确定性
+  重建（源码 SHA-256 见 `raw/tool-version.txt`），改动后的见 `raw/m1-tool-version.txt`。M-2 起统一用改动后的 dll，默认
+  级别下它只对每条非命令日志行多做一次子串检查与正则匹配。
 
 ### 单请求出站字节
 
