@@ -26,7 +26,7 @@ public sealed class ScheduledTaskExecutorTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<TimeProvider>(clock);
-        services.AddScheduledTask(new ScheduledTaskRegistration("probe.retry", new IntervalTaskSchedule(TimeSpan.FromMinutes(1)),
+        services.AddScheduledTask(new ScheduledTaskRegistration("probe.retry", new IntervalTaskSchedule(TimeSpan.FromDays(1)),
             (_, _) =>
             {
                 attempts.Enqueue((GameplayJob.IsOnExecutor, GameplayJob.Current));
