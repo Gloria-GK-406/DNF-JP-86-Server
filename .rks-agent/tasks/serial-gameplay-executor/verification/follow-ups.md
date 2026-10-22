@@ -83,7 +83,7 @@
 | F-71 | 重型宿主建议 1（同类宿主共享）与 2（打包进程按集合串行）没有归属（§2.2；建议 3、4 分别是 F-55、F-01） | TASK-15:960～965、TASK-16:489 | 测试基础设施 | 未关闭 |
 | F-72 | Weakness／ItemSale 区域直接调 handler，TASK-08 预计翻转后作业内调总线会自我等待 | TASK-08:350、:408 | T-004c | **已在 TASK-19 核对关闭**：`WeaknessGoldRecoveryTests` 两条与 `ItemSaleTests.Two_concurrent…` 在 TASK-17、TASK-18、TASK-19 三次正式全量中都通过，`GameplaySelfWait` 0 次 |
 | F-73 | `NetworkMessageDispatcherTests:118` 改写后封锁发生在请求自己的 CMD 内、工作单元之前；TASK-17 主控方「交独立评审核对」，评审记录（`reviews/task-17-result-review.md`）没有点名这一条 | TASK-17:359、:455；`task-07-conflicts.md` §14 第 399 行 | TASK-19 结果审查核对 | **已在 TASK-19 关闭**（第 1 轮结果审查：改写后的用例仍有区分力）。信息：既有弱点，Order 100 的 `CommandExecutionPolicyBehavior` 也调用 `DemandCurrent()`，新旧两种写法都钉不住用例名里的「before_uow」 |
-| F-74 | Plan T-004 行「预计拆成三个单元」与实际 14 个单元不符；完成条件「零违规」的证据实际是两次正式全量 | TASK-19 裁定第 4 条 | 主控方规划 M-1／T-005 时修正 `plan.md` | 未关闭 |
+| F-74 | Plan T-004 行「预计拆成三个单元」与实际 14 个单元不符；完成条件「零违规」的证据实际是两次正式全量 | TASK-19 裁定第 4 条 | 主控方规划 M-1／T-005 时修正 `plan.md` | **已在规划 M-1 时关闭**：`plan.md` T-004 行改为写明实际拆分与证据位置 |
 | F-75 | spec 附录 B「开始监听前的启动期工作」一行前半句仍写「作为 RQ-061 的启动期例外」，与同格末句（TASK-18：不需要）矛盾 | TASK-19 收口对账 §4 | T-009（复核附录 B 时一并改） | 未关闭 |
 | F-76 | `GameplayJobHostStructureTests` 的源码一支可被刻意绕过：csproj 中的 `<Using Alias>` 给 `GameplayJobHost` 起别名；Unicode 转义标识符（如 `GameplayJob\u0048ost`）；字符串字面量内的 `//` 让去注释把同一行后面的代码一并去掉。反射一支覆盖的 8 个程序集不受影响；只由源码一支覆盖的 5 个项目（GameServer、GmWeb、Host、HttpApi、Utilities）受影响 | TASK-19 第 1 轮结果审查 L3 | T-009（加固判据） | 未关闭 |
 
