@@ -1,8 +1,10 @@
 using System.Text.Json;
 using System.Threading.Channels;
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands.Pipeline;
+using Dfo.Server.Application.Execution;
 using Dfo.Server.Application.Transactions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,6 +25,11 @@ internal sealed class DomainEventWakeups(DomainEventRegistry registry)
 }
 
 /// <summary>Each subscriber ID is serial; retries can be overtaken by later due facts.</summary>
+/// <remarks>
+/// The dispatcher is a producer (RQ-041): it reads due deliveries off the executor (read-only SQLite) and
+/// consumes each one as its own event CMD, waiting for it before the next. The group gates and the
+/// database admission gate stay until T-005; no job ever waits on a group gate.
+/// </remarks>
 internal sealed class DomainEventDispatcher
 {
     private readonly DomainEventRegistry registry;
@@ -35,18 +42,19 @@ internal sealed class DomainEventDispatcher
     private readonly TimeProvider clock;
     private readonly DomainEventDispatchOptions options;
     private readonly ILogger<DomainEventDispatcher> logger;
+    private readonly IGameplayQueue queue;
     private readonly Dictionary<string, SemaphoreSlim> groupGates;
     private IDomainEventPersistence Persistence => services.GetRequiredService<IDomainEventPersistence>();
 
     public DomainEventDispatcher(DomainEventRegistry registry, IServiceProvider services, IServiceScopeFactory scopes,
         DomainTransactionScope transactions, TransactionalExecutionGate gate, DomainEventWakeups wakeups,
         DomainEventInstance instance, TimeProvider clock, DomainEventDispatchOptions options,
-        ILogger<DomainEventDispatcher> logger)
+        ILogger<DomainEventDispatcher> logger, IGameplayQueue queue)
     {
         options.Validate();
         this.registry = registry; this.services = services; this.scopes = scopes; this.transactions = transactions;
         this.gate = gate; this.wakeups = wakeups; this.instance = instance; this.clock = clock;
-        this.options = options; this.logger = logger;
+        this.options = options; this.logger = logger; this.queue = queue;
         groupGates = registry.Groups.Keys.ToDictionary(id => id, _ => new SemaphoreSlim(1, 1), StringComparer.Ordinal);
     }
 
@@ -62,6 +70,8 @@ internal sealed class DomainEventDispatcher
     {
         if (transactions.Current is not null)
             throw new InvalidOperationException("Dispatch begins outside the publishing business transaction.");
+        // A job would wait here on a gate a group loop holds while it waits for a CMD queued behind that job.
+        GameplayJob.AssertNotOnExecutor("Draining domain event deliveries");
         var serial = groupGates[subscriberId];
         await serial.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -72,12 +82,24 @@ internal sealed class DomainEventDispatcher
             foreach (var delivery in due)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (await ProcessAsync(delivery, cancellationToken).ConfigureAwait(false)) processed++;
+                var consumed = false;
+                await GameplayTimerWork.RunAsync(queue, CommandTypeOf(delivery), async ct =>
+                {
+                    consumed = await ProcessAsync(delivery, ct).ConfigureAwait(false);
+                }, cancellationToken, SourceOf(delivery)).ConfigureAwait(false);
+                if (consumed) processed++;
             }
             return processed;
         }
         finally { serial.Release(); }
     }
+
+    // Transitional: every delivery is a new root. T-007 gives it the publishing CMD's chain instead.
+    private GameplayCallSource SourceOf(PendingDomainEventDelivery delivery) =>
+        delivery.Event.OriginInstanceId == instance.Id ? GameplayCallSource.Event : GameplayCallSource.StartupRecovery;
+
+    private string CommandTypeOf(PendingDomainEventDelivery delivery) =>
+        (SourceOf(delivery) == GameplayCallSource.Event ? "event:" : "startup:event/") + delivery.SubscriberId;
 
     private async ValueTask<bool> ProcessAsync(PendingDomainEventDelivery delivery, CancellationToken ct)
     {
@@ -186,6 +208,13 @@ internal sealed class DomainEventDispatcher
                 await WaitForWakeOrDueAsync(reader, delay, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
+            catch (GameplayExecutorStoppedException)
+            {
+                // Only a container disposed outside the host's stop order gets here; deliveries stay pending.
+                logger.LogInformation("Domain event dispatch group {SubscriberId} enqueues no more: the gameplay executor has stopped.",
+                    subscriberId);
+                return;
+            }
             catch (Exception error)
             {
                 logger.LogError(error, "Domain event dispatch group {SubscriberId} could not persist or scan; backing off.", subscriberId);

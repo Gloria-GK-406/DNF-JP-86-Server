@@ -254,3 +254,27 @@ TASK-06 Remaining 第 3 条的各项按 TASK-07 §6.1 原样保留，加上本�
 - `ControlledDelay.ReleaseAsync` 触发的回调：现在只在分离任务里放行等待，回调随后作为定时 CMD 入队，属于入口驱动；
 - `World.Dispose` → `Coordinator.Dispose()`：不再取锁（只置停止标志并取消），探针 (B) 中的那 7 条应当消失，见 TASK-11 Result 的探针一节；
 - 测试的 `World`／`PartyWorld` 各持有一个执行器，协调器的定时 CMD 落在它上面；基准的 21 处作业内轮询，加上本单元在 `Early_scroll_request…`、`Early_party_layout_requests…` 中为等待自动翻牌计时器登记各加的 1 处，共 23 处，都在 `TestGameplay.RunAsync(async () => …)` 新建的执行器上，不与定时 CMD 互等；作业外的轮询 6 处（`:109` 改写后 3 处、`:235` 3 处）。
+
+## 10. TASK-12 处置（2026-10-22，基准 `648fbc60`）
+
+记 §1.2 中分给 TASK-12 的 1 条（`:117`）的去向，以及本单元新判定的 1 条（TASK-12 §9.2）。行号是 §1 的基准行号，以方法名为准。
+
+| 用例 | 本单元的结果 | 去向 | 旧断言 → 新断言 → 保护意图 |
+|---|---|---|---|
+| `UsageQuotas/UsageQuotaTests.cs:117` `Quota_refresh_is_postcommit_coalesced_and_a_failed_projection_never_rolls_back_business_counts`（Application，第 1 个事务块） | 不改也通过：事务检查仍是 `DrainOnceAsync` 的第一步，执行器外照旧抛 `InvalidOperationException` | 在本单元改写（TASK-12 裁定第 5 条）：第 1 个事务块整体包进 `TestGameplay.RunAsync(f.Services, …)`，与第 2、3 块同形 | 旧：执行器外、事务内调用 `DrainOnceAsync` 抛 `InvalidOperationException`，`Assert.Empty(bus.Entries)` → 新：断言一字不改，现在在作业里、事务内调用，抛的仍是 `InvalidOperationException`（事务检查先于执行器守卫，作业不被标为程序错误；变异 M8 把两者对调后，这条用例以 `GameplaySelfWaitException` 变红）→ 意图不变：分发不在发布它的业务事务里开始 |
+| `DomainEvents/DomainEventDispatchTests.cs` `A_slow_live_group_does_not_block_other_groups_or_hold_the_business_transaction`（Application，本单元新判定，TASK-08 §4 复核表中「TASK-12 再看」的一项） | 迁入后 live 作业在 `Task.Delay(Infinite, ct)` 上占住执行器，`FastLive`、counter、audit 的事件 CMD 与第二次 `SendAsync` 都排在它后面，5 秒等待必然超时 | 按 RQ-043 改写，改名为 `A_slow_live_hint_postpones_other_groups_and_still_runs_outside_the_business_transaction` | 旧：live 卡住时 `FastLive`、counter 7、audit 7 都完成，第二次发送 5 秒内完成，停止后 live 只收到 1 条，计时器归零 → 新：live 阻塞改为可放行的 TCS（受令牌约束）；`LiveEntered` 之后入队一个标记作业，放行前断言它尚未开始；放行后 `FastLive`、counter 7、audit 7 全部完成，第二次发送完成，停止后计时器归零；owner `"a"` 的 live 提示恰好一次（`"b"` 可能在停止前被消费，不作断言）；live 订阅里的 `Assert.Null(Transactions.Current)` 原样保留 → **意图变化（RQ-043 规定）**：「订阅组互不阻塞」被规格删除；「live 投影不持有业务事务」保留；新增「慢组推迟而不丢失其他组」 |
+
+`Commit_under_database_admission…`（§2.2，T-004c）：测试在执行器外持准入门期间不等待任何作业，组循环的事件作业在门上等，属于反向情形；本单元正式全量中通过，保持原样。
+
+本单元没有出现 TASK-12 §9.4 第 (iii)～(vi) 类的其他冲突：全量中 `GameplaySelfWait` 为 0，除那 2 条 `DimensionDungeonTests` 外没有失败。
+
+按执行单元的新分布（总数 137 ＋ 1 ＝ 138）：
+
+- T-004b：4 － 1（`:117`）＝ 3（TASK-13 2 ＋ 原已标「顺延 T-004c」的 `ReplayStateSnapshotTests:206` 1 ＝ 3）；
+- T-004c：75；
+- T-006：53；
+- T-008：1；
+- TASK-09 已删除：1；
+- TASK-11 已改写：3；
+- TASK-12 已改写：2（`:117`、新判定的 `A_slow_live_group…` 1 条）。
+- 加法：3 ＋ 75 ＋ 53 ＋ 1 ＋ 1 ＋ 3 ＋ 2 ＝ 138。

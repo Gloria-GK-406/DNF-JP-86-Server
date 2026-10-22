@@ -1,20 +1,24 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands.Pipeline;
 using Dfo.Server.Application.DomainEvents;
+using Dfo.Server.Application.Execution;
+using Dfo.Server.Application.Tests.Execution;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.DomainEvents;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.DomainEvents;
 
-public sealed class DomainEventDispatchTests
+public sealed partial class DomainEventDispatchTests
 {
     [Fact]
     public async Task Enqueue_requires_a_writable_transaction_and_never_records_rejected_facts()
@@ -241,8 +245,12 @@ public sealed class DomainEventDispatchTests
         Assert.Equal(9, restored.Count("counter"));
     }
 
+    /// <summary>
+    /// RQ-043: subscriber groups no longer run beside each other, so a slow live hint holds the
+    /// executor; the other groups are postponed, not lost, and the hint still runs outside any transaction.
+    /// </summary>
     [Fact]
-    public async Task A_slow_live_group_does_not_block_other_groups_or_hold_the_business_transaction()
+    public async Task A_slow_live_hint_postpones_other_groups_and_still_runs_outside_the_business_transaction()
     {
         await using var f = new Fixture(extraLive: true);
         f.Probe.BlockLive = true;
@@ -250,6 +258,17 @@ public sealed class DomainEventDispatchTests
         using var stop = new CancellationTokenSource();
         var worker = f.Dispatcher.RunAsync(stop.Token);
         await f.Probe.LiveEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var marker = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var queued = f.Services.GetRequiredService<IGameplayQueue>().RunAsync(new GameplayWork(GameplayShardKey.World,
+            GameplayCallChain.NewRoot(GameplayCallSource.Connection), "test:marker", _ =>
+            {
+                marker.TrySetResult();
+                return ValueTask.CompletedTask;
+            }), CancellationToken.None).AsTask();
+        await Task.Delay(100);
+        Assert.False(marker.Task.IsCompleted);
+        f.Probe.LiveRelease.TrySetResult();
+        await queued.WaitAsync(TimeSpan.FromSeconds(5));
         await f.Probe.FastLive.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await f.Probe.CounterCommitted.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await f.Probe.AuditCommitted.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -258,7 +277,7 @@ public sealed class DomainEventDispatchTests
         await f.SendAsync(new Awarded("b", 2)).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         await stop.CancelAsync();
         await worker.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.Single(f.Probe.Live);
+        Assert.Single(f.Probe.Live, hint => hint.Owner == "a");
         Assert.Equal(0, f.Clock.ActiveTimers);
     }
 
@@ -308,7 +327,9 @@ public sealed class DomainEventDispatchTests
         private async ValueTask ApplyAsync(int amount, CancellationToken ct)
         {
             probe.CounterAttempts++;
+            probe.CounterSeen.Enqueue(Probe.Here());
             await probe.WriteAsync("counter", amount, ct);
+            probe.Observe?.Invoke("counter");
             probe.CounterEntered.TrySetResult();
             if (probe.BlockCounter) await Task.Delay(Timeout.Infinite, ct);
             if (probe.FailingAttempts-- > 0) throw new IOException("Injected subscriber failure after writing business data.");
@@ -331,10 +352,12 @@ public sealed class DomainEventDispatchTests
     {
         public async ValueTask HandleAsync(DomainEventEnvelope<Awarded> e, CancellationToken ct)
         {
+            probe.LiveSeen.Enqueue(Probe.Here() with { InTransaction = probe.Transactions.Current is not null });
+            probe.Observe?.Invoke("live");
             Assert.Null(probe.Transactions.Current);
             probe.Live.Enqueue(e.Payload);
             probe.LiveEntered.TrySetResult();
-            if (probe.BlockLive) await Task.Delay(Timeout.Infinite, ct);
+            if (probe.BlockLive) await probe.LiveRelease.Task.WaitAsync(ct);
             if (probe.FailLive) throw new IOException("Injected live failure.");
         }
     }
@@ -344,9 +367,27 @@ public sealed class DomainEventDispatchTests
         { Assert.Null(probe.Transactions.Current); probe.FastLive.TrySetResult(); return ValueTask.CompletedTask; }
     }
 
+    private sealed class DirectSubscriber(Probe probe) : IDomainEventSubscriber<Awarded>
+    {
+        public ValueTask HandleAsync(DomainEventEnvelope<Awarded> e, CancellationToken ct)
+        { probe.DirectSeen.Enqueue(Probe.Here()); return ValueTask.CompletedTask; }
+    }
+
+    /// <summary>Where a subscriber or a persistence call ran: on an executor, and as which CMD.</summary>
+    private sealed record Seen(string Method, string Subscriber, bool OnExecutor, GameplayCallChain? Current,
+        bool InTransaction = false);
+
     private sealed class Probe(SqliteDatabase database, IDomainTransactionAccessor transactions)
     {
+        public static Seen Here(string method = "", string subscriber = "") =>
+            new(method, subscriber, GameplayJob.IsOnExecutor, GameplayJob.Current);
         public IDomainTransactionAccessor Transactions => transactions;
+        public ConcurrentQueue<Seen> CounterSeen { get; } = [];
+        public ConcurrentQueue<Seen> LiveSeen { get; } = [];
+        public ConcurrentQueue<Seen> DirectSeen { get; } = [];
+        public ConcurrentQueue<Seen> Persisted { get; } = [];
+        public Action<string>? Observe { get; set; }
+        public TaskCompletionSource LiveRelease { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int FailingAttempts;
         public int CounterAttempts;
         public int FailRetryRecordingOnce;
@@ -377,7 +418,10 @@ public sealed class DomainEventDispatchTests
         public IEventService Events => Services.GetRequiredService<IEventService>();
         public DomainEventDispatcher Dispatcher => Services.GetRequiredService<DomainEventDispatcher>();
         public Probe Probe => Services.GetRequiredService<Probe>();
-        public Fixture(string? path = null, DomainEventDispatchOptions? options = null, bool extraLive = false)
+        public RecordingGameplayQueue Queue => (RecordingGameplayQueue)Services.GetRequiredService<IGameplayQueue>();
+        public LogRecorder Logs { get; } = new();
+        public Fixture(string? path = null, DomainEventDispatchOptions? options = null, bool extraLive = false,
+            bool record = false)
         {
             owns = path is null;
             Path = path ?? System.IO.Path.Combine(System.IO.Path.GetTempPath(), "dfo-domain-events-" + Guid.NewGuid().ToString("N") + ".db");
@@ -395,6 +439,13 @@ public sealed class DomainEventDispatchTests
             services.AddDomainSubscriber<Awarded, AuditSubscriber>("audit", DomainEventDeliveryPolicy.Reliable);
             services.AddDomainSubscriber<Awarded, LiveSubscriber>("live", DomainEventDeliveryPolicy.LiveOnly, e => e.Owner);
             if (extraLive) services.AddDomainSubscriber<Awarded, FastLiveSubscriber>("fast-live", DomainEventDeliveryPolicy.LiveOnly);
+            if (record)
+            {
+                services.AddSingleton<IGameplayQueue>(p =>
+                    new RecordingGameplayQueue(new GameplayQueue(p.GetRequiredService<GameplayShardSelector>())));
+                services.AddSingleton<ILoggerProvider>(Logs);
+                services.AddRuntimeEventSubscriber<Awarded, DirectSubscriber>();
+            }
             Services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
             _ = Services.GetRequiredService<SqliteDatabase>();
             Sql("CREATE TABLE IF NOT EXISTS event_test_counter(owner TEXT PRIMARY KEY,amount INTEGER NOT NULL)");
@@ -455,11 +506,14 @@ public sealed class DomainEventDispatchTests
         public ValueTask AppendAsync(StoredDomainEvent e, IReadOnlyList<DomainEventDeliveryTarget> s, CancellationToken ct) => inner.AppendAsync(e, s, ct);
         public ValueTask<IReadOnlyList<PendingDomainEventDelivery>> ReadDueAsync(string id, DateTimeOffset now, int limit, CancellationToken ct) => inner.ReadDueAsync(id, now, limit, ct);
         public ValueTask<DateTimeOffset?> NextDueAsync(string id, CancellationToken ct) => inner.NextDueAsync(id, ct);
-        public ValueTask<bool> TryBeginAsync(Guid id, string s, DateTimeOffset now, CancellationToken ct) => inner.TryBeginAsync(id, s, now, ct);
+        public ValueTask<bool> TryBeginAsync(Guid id, string s, DateTimeOffset now, CancellationToken ct)
+        { probe.Persisted.Enqueue(Probe.Here("TryBegin", s)); return inner.TryBeginAsync(id, s, now, ct); }
         public ValueTask<bool> HasCompletedCoalescingKeyAsync(Guid batch, string s, string key, CancellationToken ct) => inner.HasCompletedCoalescingKeyAsync(batch, s, key, ct);
-        public ValueTask CompleteAsync(Guid id, string s, DateTimeOffset now, string reason, CancellationToken ct) => inner.CompleteAsync(id, s, now, reason, ct);
+        public ValueTask CompleteAsync(Guid id, string s, DateTimeOffset now, string reason, CancellationToken ct)
+        { probe.Persisted.Enqueue(Probe.Here("Complete", s)); return inner.CompleteAsync(id, s, now, reason, ct); }
         public ValueTask FailAsync(Guid id, string s, DateTimeOffset next, string error, bool terminal, CancellationToken ct)
         {
+            probe.Persisted.Enqueue(Probe.Here("Fail", s));
             if (s == "counter" && Interlocked.Exchange(ref probe.FailRetryRecordingOnce, 0) != 0)
             {
                 probe.RetryRecordingRejected.TrySetResult();

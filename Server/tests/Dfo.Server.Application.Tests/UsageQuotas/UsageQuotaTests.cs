@@ -145,14 +145,17 @@ public sealed class UsageQuotaTests
         };
         var events = f.Services.GetRequiredService<IEventService>();
         var dispatcher = f.Services.GetRequiredService<DomainEventDispatcher>();
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            await events.DirectAsync(new MirrorEntryRecorded([new(new(1), new(71), Day, 0, 1)]));
-            await events.DirectAsync(new MirrorEntryRecorded([new(new(1), new(71), Day, 1, 2)]));
-            Assert.Empty(bus.Entries);
-            await Assert.ThrowsAsync<InvalidOperationException>(() => dispatcher.DrainOnceAsync().AsTask());
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                await events.DirectAsync(new MirrorEntryRecorded([new(new(1), new(71), Day, 0, 1)]));
+                await events.DirectAsync(new MirrorEntryRecorded([new(new(1), new(71), Day, 1, 2)]));
+                Assert.Empty(bus.Entries);
+                await Assert.ThrowsAsync<InvalidOperationException>(() => dispatcher.DrainOnceAsync().AsTask());
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Empty(bus.Entries);
         Assert.Equal(2, await dispatcher.DrainOnceAsync());
         Assert.Equal(new[] { 2 }, bus.Entries);

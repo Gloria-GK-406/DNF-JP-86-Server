@@ -4,7 +4,8 @@ using Dfo.Server.Abstractions.Execution;
 namespace Dfo.Server.Application.Execution;
 
 /// <summary>
-/// One run of a timer source as a CMD on the executor (spec appendix A rows 5-7, RQ-010). The run is
+/// One producer run as a CMD on the executor: a timer source (spec appendix A rows 5-7, RQ-010), a
+/// startup recovery, or the consumption of one domain event delivery (row 8, RQ-041). The run is
 /// enqueued with <see cref="CancellationToken.None"/>, so a run already queued when the host stops
 /// still runs before the executor stops (RQ-009); its body gets the producer's own token, as before.
 /// </summary>
