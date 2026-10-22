@@ -88,66 +88,6 @@ public sealed class DungeonLoadingProjectionDeliveryTests
     }
 
     [Fact]
-    public async Task Replacement_waits_until_the_ready_command_and_result_validation_are_complete()
-    {
-        var enteredCommand = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var releaseCommand = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var world = World(enteredCommand, releaseCommand);
-
-        var loading = world.Delivery.CompleteLoadingAsync(
-            Current.ConnectionId, _ => ValueTask.CompletedTask, CancellationToken.None).AsTask();
-        await enteredCommand.Task;
-
-        var replacementStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var replacement = Task.Run(async () =>
-        {
-            replacementStarted.SetResult();
-            await using var lease = await world.TransitionGate.AcquireAsync(
-                Current.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
-            world.Sessions.Replace(Replacement);
-        });
-        await replacementStarted.Task;
-        await Task.Yield();
-        Assert.False(replacement.IsCompleted);
-
-        releaseCommand.SetResult();
-        Assert.True(await loading);
-        await replacement;
-        Assert.Equal(Replacement, world.Sessions.FindByCharacter(Current.CharacterId));
-    }
-
-    [Fact]
-    public async Task Replacement_also_waits_until_the_loading_complete_frame_is_delivered()
-    {
-        var world = World();
-        var enteredDelivery = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var releaseDelivery = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var loading = world.Delivery.CompleteLoadingAsync(
-            Current.ConnectionId,
-            async cancellationToken =>
-            {
-                enteredDelivery.SetResult();
-                await releaseDelivery.Task.WaitAsync(cancellationToken);
-            },
-            CancellationToken.None).AsTask();
-        await enteredDelivery.Task;
-
-        var replacement = Task.Run(async () =>
-        {
-            await using var lease = await world.TransitionGate.AcquireAsync(
-                Current.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
-            world.Sessions.Replace(Replacement);
-        });
-        await Task.Yield();
-        Assert.False(replacement.IsCompleted);
-
-        releaseDelivery.SetResult();
-        Assert.True(await loading);
-        await replacement;
-        Assert.Equal(Replacement, world.Sessions.FindByCharacter(Current.CharacterId));
-    }
-
-    [Fact]
     public async Task Mirror_authority_is_projected_only_after_loading_release_without_adding_a_CMD_ACK_or_deducting_again()
     {
         await TestGameplay.RunAsync(async () =>

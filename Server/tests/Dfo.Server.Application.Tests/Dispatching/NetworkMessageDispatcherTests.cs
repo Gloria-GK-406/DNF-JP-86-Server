@@ -130,16 +130,14 @@ public sealed class NetworkMessageDispatcherTests
             services.AddCommandHandler<QueuedCommand,string,QueuedCommandHandler>(Dfo.Server.Application.Commands.CommandExecutionKind.Transactional);
         });
         var connection = new NetworkConnectionContext(new("queued"),NetworkEndpointKind.Game,10011);
-        var serial = provider.GetRequiredService<Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionGate>();
-        var held = await serial.AcquireAsync(default);
-        var request = provider.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(connection),new ChannelConnectRequest(ChannelMessageMetadata.Empty),default).AsTask();
-        try
+        // The fence lands inside the request's own CMD, after the request was admitted and before its
+        // command's unit of work: the only gap left once nothing can interleave between CMDs.
+        probe.BeforeNext = async () =>
         {
-            await probe.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
             var safety = provider.GetRequiredService<Dfo.Server.Application.Commands.SelectedSessionSafety>();
             await safety.BlockAsync(new(Dfo.Server.Data.World.SelectedSessionIdentity.Create(new(1),new(1),connection.ConnectionId,1,10011),connection),new IOException("unknown"),"test");
-        }
-        finally { await held.DisposeAsync(); }
+        };
+        var request = provider.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(connection),new ChannelConnectRequest(ChannelMessageMetadata.Empty),default).AsTask();
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => request);
         Assert.Equal(0,probe.HandlerCalls);
     }
@@ -159,9 +157,10 @@ public sealed class NetworkMessageDispatcherTests
         public int Order => 56;
         public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int HandlerCalls;
-        public ValueTask<string> ExecuteAsync(Dfo.Server.Application.Commands.CommandExecutionContext context,Dfo.Server.Application.Commands.ICommand command,
+        public Func<ValueTask>? BeforeNext;
+        public async ValueTask<string> ExecuteAsync(Dfo.Server.Application.Commands.CommandExecutionContext context,Dfo.Server.Application.Commands.ICommand command,
             Dfo.Server.Application.Commands.CommandExecutionDelegate<string> next,CancellationToken ct)
-        { Entered.TrySetResult(); return next(); }
+        { Entered.TrySetResult(); if (BeforeNext is { } before) await before(); return await next(); }
     }
 
     private sealed class StubDecoder : IGameMessageDecoder

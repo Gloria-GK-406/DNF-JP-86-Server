@@ -160,23 +160,6 @@ public sealed class EffectOperationReplayTests
         await Dispatch(f, stream.Request(1)); Assert.Equal(2, f.Count(1000)); Assert.Single(f.Sender.Batches);
     }
     [Fact]
-    public async Task An_inherited_closed_operation_cannot_downgrade_to_trusted_direct_bus()
-    {
-        using var f = Fixture(); await f.Seed(69, 1000, 3); var stream = new Stream();
-        var inherited = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        Task? child = null;
-        f.Sender.BeforeExplicit = () => child = Task.Run(async () =>
-        {
-            inherited.SetResult(); await release.Task;
-            await f.Services.GetRequiredService<ICommandBus>().SendAsync(new UseStackableCommand(f.Session,
-                new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, 69)), 1000));
-        });
-        await Dispatch(f, stream.Request(1)); await inherited.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        release.SetResult(); await Assert.ThrowsAsync<InvalidOperationException>(async () => await child!);
-        Assert.Equal(2, f.Count(1000));
-    }
-    [Fact]
     public async Task Later_readonly_transactions_do_not_replace_the_primary_footprint_or_commit_state()
     {
         using var f = Fixture(); await f.Seed(69, 1000, 1); var stream = new Stream();
@@ -238,6 +221,8 @@ public sealed class EffectOperationReplayTests
             services.AddCommandHandler<SettlementProbe, ProbeResult, SettlementProbeHandler>(CommandExecutionKind.Transactional,
                 accountAccessMode: UserAccessMode.Shared);
         });
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
         var safety = f.Services.GetRequiredService<SelectedSessionSafety>();
         var entry = new EffectOperationEntry(f.Session, 1, 1, 0x002C, 1, new string('A', 64), 11);
         using var operation = f.Services.GetRequiredService<EffectOperationContext>().Enter(entry, safety.Capture(f.Session), ReplayProjectionNeeds.Inventory);
@@ -252,6 +237,7 @@ public sealed class EffectOperationReplayTests
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await f.Services.GetRequiredService<ICommandBus>().SendAsync(new SettlementProbe(f.Session)));
         Assert.Equal(100001, f.Gold);
+        });
     }
     [Fact]
     public async Task Invalid_projection_freeze_aborts_real_SQL_before_durability_and_records_confirmed_rollback()
@@ -261,6 +247,8 @@ public sealed class EffectOperationReplayTests
             services.AddCommandHandler<SettlementProbe, ProbeResult, SettlementProbeHandler>(CommandExecutionKind.Transactional,
                 accountAccessMode: UserAccessMode.Shared);
         });
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
         var entry = new EffectOperationEntry(f.Session, 1, 1, 0x002C, 1, new string('A', 64), 11);
         using var operation = f.Services.GetRequiredService<EffectOperationContext>().Enter(entry,
             f.Services.GetRequiredService<SelectedSessionSafety>().Capture(f.Session), (ReplayProjectionNeeds)4096);
@@ -268,6 +256,7 @@ public sealed class EffectOperationReplayTests
             await f.Services.GetRequiredService<ICommandBus>().SendAsync(new SettlementProbe(f.Session)));
         Assert.Equal(100000, f.Gold); Assert.Equal(EffectOperationState.ConfirmedRollback, entry.State);
         Assert.Null(entry.Projection);
+        });
     }
     [Fact]
     public async Task An_inherited_readonly_scope_does_not_clear_the_primary_execution_on_the_parent_flow()
@@ -342,6 +331,8 @@ public sealed class EffectOperationReplayTests
             services.AddCommandHandler<SettlementProbe, ProbeResult, SettlementProbeHandler>(CommandExecutionKind.Transactional,
                 accountAccessMode: UserAccessMode.Shared);
         });
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
         var entry = new EffectOperationEntry(f.Session, 1, 1, 0x002C, 1, new string('A', 64), 11);
         using var operation = f.Services.GetRequiredService<EffectOperationContext>().Enter(entry,
             f.Services.GetRequiredService<SelectedSessionSafety>().Capture(f.Session), ReplayProjectionNeeds.Inventory);
@@ -350,6 +341,7 @@ public sealed class EffectOperationReplayTests
         Assert.Contains("UnknownEffect/UnknownChange", error.Message);
         Assert.Equal(100000, f.Gold); Assert.Equal(EffectOperationState.ConfirmedRollback, entry.State);
         Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
+        });
     }
     private sealed record UnknownEffect : DomainEffect;
     private sealed record UnknownChange : EffectChange;
@@ -365,16 +357,13 @@ public sealed class EffectOperationReplayTests
     {
         using var f = Fixture(); await f.Seed(69, 1000, 3);
         f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(f.Session);
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var pending = f.Services.GetRequiredService<EffectOperationLedger>().DispatchAsync(f.Connection, new Stream().Request(1), async () => {
-            entered.SetResult(); await release.Task;
+        // The selection arrives inside the refusal-only operation's own CMD, before it sends its command.
+        var pending = TestGameplay.RunAsync(f.Services, () => f.Services.GetRequiredService<EffectOperationLedger>().DispatchAsync(f.Connection, new Stream().Request(1), async () => {
+            f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId);
+            f.Select(1);
             await f.Services.GetRequiredService<ICommandBus>().SendAsync(new UseStackableCommand(f.Session,
                 new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, 69)), 1000));
-        }, default).AsTask();
-        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId);
-        f.Select(1); release.SetResult();
+        }, default).AsTask());
         await Assert.ThrowsAsync<InvalidOperationException>(() => pending);
         Assert.Equal(3, f.Count(1000)); Assert.Empty(f.Sender.Messages);
     }

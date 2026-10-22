@@ -57,20 +57,6 @@ public sealed partial class SelectCharacterLifecycleTests
         public ValueTask<bool> RefillOnlineTicketAsync(SelectedSessionIdentity session, CancellationToken ct) => throw new NotSupportedException();
     }
     [Fact]
-    public async Task Achievement_projection_waits_for_the_complete_entry_workflow()
-    {
-        var gate=new Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate();
-        var fixture=await Fixture.CreateAsync(blockStatic:true,achievementGate:gate);
-        var entering=fixture.Handler.HandleAsync(fixture.Context,fixture.Command,default).AsTask();
-        await fixture.Sender.StaticEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        var projection=gate.EnterAsync(fixture.Result.Character.Identity.CharacterId,default).AsTask();
-        try { Assert.False(projection.IsCompleted); }
-        finally { fixture.Sender.ReleaseStatic(); }
-        await entering;
-        using var lease=await projection.WaitAsync(TimeSpan.FromSeconds(2));
-        Assert.True(fixture.Ledger.IndexOf("publish")>=0);
-    }
-    [Fact]
     public async Task Success_OrdersRequiredDeliveryBeforePublicationAndPostEntryStages()
     {
         await TestGameplay.RunAsync(async () =>
@@ -261,82 +247,6 @@ public sealed partial class SelectCharacterLifecycleTests
     }
 
     [Fact]
-    public async Task DisconnectWinningTransitionGate_PreventsPreparationMutationAndPublication()
-    {
-        var fixture = await Fixture.CreateAsync();
-        var blocker = await fixture.TransitionGate.AcquireAsync(
-            fixture.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
-        var observer = new OnlineUserConnectionObserver(
-            fixture.Users, new OnlineUserExecutionGate(), fixture.TransitionGate,
-            fixture.Directory, fixture.Cleanup, new StubChannelEntryPolicy(),
-            new StubServerConfigService(), fixture.Sender, new NoopCleanupDelivery(), TimeProvider.System);
-        var connection = new NetworkConnectionContext(
-            fixture.ConnectionId, NetworkEndpointKind.Game,
-            StubChannelEntryPolicy.GeneralChannel.ListenerPort);
-        var disconnect = observer.DisconnectedAsync(connection, CancellationToken.None).AsTask();
-        await Task.Yield();
-        var command = fixture.Handler.HandleAsync(
-            fixture.Context, fixture.Command, CancellationToken.None).AsTask();
-        await blocker.DisposeAsync();
-
-        await disconnect;
-        await Assert.ThrowsAsync<InvalidOperationException>(() => command);
-        Assert.Empty(fixture.Ledger);
-        Assert.Null(fixture.Directory.Find(fixture.AccountId));
-    }
-
-    [Fact]
-    public async Task CommandHoldingTransitionGate_BlocksDisconnectCleanupUntilRegisteredFlowCompletes()
-    {
-        var fixture = await Fixture.CreateAsync(blockStatic: true);
-        var command = fixture.Handler.HandleAsync(
-            fixture.Context, fixture.Command, CancellationToken.None).AsTask();
-        await fixture.Sender.StaticEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
-        var observer = new OnlineUserConnectionObserver(
-            fixture.Users, new OnlineUserExecutionGate(), fixture.TransitionGate,
-            fixture.Directory, fixture.Cleanup, new StubChannelEntryPolicy(),
-            new StubServerConfigService(), fixture.Sender, new NoopCleanupDelivery(), TimeProvider.System);
-        var disconnect = observer.DisconnectedAsync(
-            new NetworkConnectionContext(fixture.ConnectionId, NetworkEndpointKind.Game,
-                StubChannelEntryPolicy.GeneralChannel.ListenerPort), CancellationToken.None).AsTask();
-        await Task.Yield();
-
-        Assert.False(disconnect.IsCompleted);
-        Assert.Empty(fixture.Cleanup.Calls);
-        fixture.Sender.ReleaseStatic();
-        await command;
-        await disconnect;
-
-        Assert.Single(fixture.Cleanup.Calls);
-        Assert.Null(fixture.Directory.Find(fixture.AccountId));
-    }
-
-    [Fact]
-    public async Task ObserverQueuedBeforeRollbackClose_CompletesAfterGateRelease()
-    {
-        var fixture = await Fixture.CreateAsync(blockStatic: true, failStatic: true);
-        var command = fixture.Handler.HandleAsync(
-            fixture.Context, fixture.Command, CancellationToken.None).AsTask();
-        await fixture.Sender.StaticEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        var observer = new OnlineUserConnectionObserver(
-            fixture.Users, new OnlineUserExecutionGate(), fixture.TransitionGate,
-            fixture.Directory, fixture.Cleanup, new StubChannelEntryPolicy(),
-            new StubServerConfigService(), fixture.Sender, new NoopCleanupDelivery(), TimeProvider.System);
-        var disconnect = observer.DisconnectedAsync(
-            new NetworkConnectionContext(fixture.ConnectionId, NetworkEndpointKind.Game,
-                StubChannelEntryPolicy.GeneralChannel.ListenerPort), CancellationToken.None).AsTask();
-        await Task.Yield();
-        Assert.False(disconnect.IsCompleted);
-        fixture.Closer.OnClose = () => new ValueTask(disconnect);
-
-        fixture.Sender.ReleaseStatic();
-        await Assert.ThrowsAsync<IOException>(() => command.WaitAsync(TimeSpan.FromSeconds(2)));
-        await disconnect.WaitAsync(TimeSpan.FromSeconds(2));
-        Assert.Contains(fixture.ConnectionId, fixture.Closer.Closed);
-    }
-
-    [Fact]
     public async Task RejectedRepeatedLoginStillLetsDisconnectObserverCleanupTheSelectedSession()
     {
         var fixture = await Fixture.CreateAsync();
@@ -391,9 +301,12 @@ public sealed partial class SelectCharacterLifecycleTests
             fixture.Sender,
             new NoopCleanupDelivery(),
             TimeProvider.System);
+        await TestGameplay.RunAsync(async () =>
+        {
         await observer.DisconnectedAsync(
             fixture.Context.Connection,
             CancellationToken.None);
+        });
 
         TestGameplay.Run(() =>
         {
@@ -403,66 +316,6 @@ public sealed partial class SelectCharacterLifecycleTests
             Assert.Null(fixture.Directory.FindByConnection(fixture.ConnectionId));
             Assert.Null(fixture.Directory.Find(fixture.AccountId));
         });
-    }
-
-    [Fact]
-    public async Task OrphanedDisconnectWaitingForLifecycleGateDoesNotCleanupAReplacementSession()
-    {
-        var fixture = await Fixture.CreateAsync();
-        await fixture.Handler.HandleAsync(
-            fixture.Context, fixture.Command, CancellationToken.None);
-        var original = Assert.IsType<SelectedSessionIdentity>(
-            fixture.Directory.FindByConnection(fixture.ConnectionId));
-        var login = new GameLoginHandler(
-            fixture.Users,
-            fixture.Sender,
-            new RejectedLoginCommandBus(),
-            new StubServerConfigService(),
-            new UnusedAccountEntryStateDomainService(),
-            fixture.Closer,
-            NullLogger<GameLoginHandler>.Instance);
-        await login.HandleAsync(
-            fixture.Context,
-            new GameLoginRequest(
-                GameMessageMetadata.Empty,
-                "lifecycle",
-                "already-consumed-ticket-cannot-be-replayed-0"),
-            CancellationToken.None);
-
-        var observer = new OnlineUserConnectionObserver(
-            fixture.Users,
-            new OnlineUserExecutionGate(),
-            fixture.TransitionGate,
-            fixture.Directory,
-            fixture.Cleanup,
-            new StubChannelEntryPolicy(),
-            new StubServerConfigService(),
-            fixture.Sender,
-            new NoopCleanupDelivery(),
-            TimeProvider.System);
-        var blocker = await fixture.TransitionGate.AcquireAsync(
-            fixture.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
-        var disconnect = observer.DisconnectedAsync(
-            fixture.Context.Connection, CancellationToken.None).AsTask();
-        await Task.Yield();
-        Assert.False(disconnect.IsCompleted);
-
-        var replacement = SelectedSessionIdentity.Create(
-            fixture.AccountId,
-            new CharacterId(650),
-            new NetworkConnectionId("Game:lifecycle-replacement"),
-            connectionGeneration: 1,
-            StubChannelEntryPolicy.GeneralChannel.ListenerPort);
-        Assert.Equal(original, fixture.Directory.Select(replacement));
-        await blocker.DisposeAsync();
-        await disconnect;
-
-        Assert.Empty(fixture.Cleanup.Calls);
-        Assert.Equal(replacement, fixture.Directory.Find(fixture.AccountId));
-        Assert.Equal(replacement, fixture.Directory.FindByCharacter(replacement.CharacterId));
-        Assert.Equal(replacement, fixture.Directory.FindByWireUserId(replacement.WireUserId));
-        Assert.Equal(replacement, fixture.Directory.FindByConnection(replacement.ConnectionId));
-        Assert.Null(fixture.Directory.FindByConnection(original.ConnectionId));
     }
 
     [Fact]

@@ -148,62 +148,6 @@ public sealed class IllusionTowerPublicFlowTests
         });
     }
 
-    [Dfo.Server.Testing.PvfFact]
-    public async Task Sweep_captured_for_an_old_run_cannot_return_or_reward_its_replacement()
-    {
-        using var fixture = CreateFixture(gateSweepFind: true);
-        await PrepareSelectedCharacterAsync(fixture, tickets: 1);
-        await EnterAsync(fixture);
-        await fixture.Services.GetRequiredService<FinishLoadingHandler>().HandleAsync(
-            new(fixture.Connection), new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0), default);
-        await fixture.Services.GetRequiredService<IllusionTowerStageHandler>().HandleAsync(
-            new(fixture.Connection), new IllusionTowerStageRequest(GameMessageMetadata.Empty, 1, []), default);
-        await fixture.Services.GetRequiredService<CharacterDeathHandler>().HandleAsync(
-            new(fixture.Connection), new CharacterDeathRequest(GameMessageMetadata.Empty, 0, 0, null), default);
-
-        var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
-        var oldRun = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
-        Assert.True(oldRun.Completion!.Settled);
-        var due = Assert.IsType<DateTimeOffset>(oldRun.ReturnDueAt);
-        var gate = fixture.Services.GetRequiredService<SweepFindGate>();
-        var delivery = fixture.Services.GetRequiredService<IllusionTowerProjectionDelivery>();
-
-        var sweep = Task.Run(async () => await delivery.SweepAsync(due, default));
-        Assert.True(gate.Captured.Wait(TimeSpan.FromSeconds(10)));
-
-        await fixture.Services.GetRequiredService<BackToVillageHandler>().HandleAsync(
-            new(fixture.Connection), new BackToVillageRequest(GameMessageMetadata.Empty), default);
-        Assert.Null(towers.Find(fixture.Session));
-        await fixture.Seed(65, 4183, 1);
-        fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>()
-            .Record(fixture.Session, DungeonEntryIntent.Interactive);
-        await EnterAsync(fixture);
-
-        var replacement = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
-        Assert.NotEqual(oldRun.RunId, replacement.RunId);
-        var messagesBeforeRelease = fixture.Sender.Messages.Count;
-        var experienceBeforeRelease = fixture.Scalar("SELECT exp FROM characters WHERE character_id=1");
-        var goldBeforeRelease = fixture.Gold;
-        var settlementFramesBeforeRelease = fixture.Sender.Messages.Count(message =>
-            message.MessageType is ServerMessageType.GameIllusionTowerRanking
-                or ServerMessageType.GameIllusionTowerReward or ServerMessageType.GameIllusionTowerContinue);
-
-        gate.Release.Set();
-        await sweep;
-
-        var current = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
-        Assert.Equal(replacement.RunId, current.RunId);
-        Assert.Equal(replacement.Room.Version, current.Room.Version);
-        Assert.Null(current.Completion);
-        Assert.Equal(messagesBeforeRelease, fixture.Sender.Messages.Count);
-        Assert.Equal(settlementFramesBeforeRelease, fixture.Sender.Messages.Count(message =>
-            message.MessageType is ServerMessageType.GameIllusionTowerRanking
-                or ServerMessageType.GameIllusionTowerReward or ServerMessageType.GameIllusionTowerContinue));
-        Assert.Equal(experienceBeforeRelease, fixture.Scalar("SELECT exp FROM characters WHERE character_id=1"));
-        Assert.Equal(goldBeforeRelease, fixture.Gold);
-        Assert.Null(fixture.Services.GetRequiredService<ITownAreaDomainService>().Find(fixture.Session.CharacterId));
-    }
-
     /// <summary>
     /// Successor of <c>Sweep_captured_for_an_old_run_cannot_return_or_reward_its_replacement</c>,
     /// deferred to T-004c: a whole sweep is now one timer CMD, so it cannot be overtaken between

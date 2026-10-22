@@ -34,7 +34,7 @@ public sealed class WeaknessProjectionDelivery(
 
     public async ValueTask SendCurrentAsync(SelectedSessionIdentity session, CancellationToken cancellationToken)
     {
-        await deliveryGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        GameplayGateAssertion.Enter(deliveryGate, nameof(WeaknessProjectionDelivery), cancellationToken);
         try
         {
             if (!sessions.IsInWorld(session)) return;

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.OnlineUsers;
@@ -25,20 +26,24 @@ public class UserExecutionGate<TKey> where TKey : notnull
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+        GameplayGateAssertion.Entering(GateName);
         while (true)
         {
             var entry = entries.GetOrAdd(
                 userId,
                 static (id, owner) => new Entry(owner, id),
                 this);
-            if (entry.TryAcquire(accessMode, cancellationToken, out var acquisition))
+            if (entry.TryAcquire(accessMode, cancellationToken, out var acquisition, out var wouldWait))
             {
+                if (wouldWait) throw GameplayGateAssertion.WouldWait(GateName);
                 return acquisition;
             }
 
             entries.TryRemove(new KeyValuePair<TKey, Entry>(userId, entry));
         }
     }
+
+    private string GateName => $"{GetType().Name}:{typeof(TKey).Name}";
 
     private void RemoveRetired(TKey userId, Entry entry) =>
         entries.TryRemove(new KeyValuePair<TKey, Entry>(userId, entry));
@@ -55,8 +60,10 @@ public class UserExecutionGate<TKey> where TKey : notnull
         public bool TryAcquire(
             UserAccessMode accessMode,
             CancellationToken cancellationToken,
-            out ValueTask<IAsyncDisposable> acquisition)
+            out ValueTask<IAsyncDisposable> acquisition,
+            out bool wouldWait)
         {
+            wouldWait = false;
             lock (sync)
             {
                 if (retired)
@@ -71,6 +78,17 @@ public class UserExecutionGate<TKey> where TKey : notnull
                     MarkEntered(accessMode);
                     acquisition = ValueTask.FromResult<IAsyncDisposable>(
                         new Lease(this, accessMode));
+                    return true;
+                }
+
+                // Transition rule 2: a job never waits here. Off the executor AcquireAsync has already
+                // thrown; the waiting path below stays until T-005 deletes the gate. Someone else holds
+                // or awaits the entry, so dropping this reference cannot retire it.
+                if (GameplayJob.IsOnExecutor)
+                {
+                    references--;
+                    wouldWait = true;
+                    acquisition = default;
                     return true;
                 }
 

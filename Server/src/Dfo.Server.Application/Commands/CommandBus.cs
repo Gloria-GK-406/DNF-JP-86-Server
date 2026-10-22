@@ -1,24 +1,44 @@
+using Dfo.Server.Abstractions.Execution;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Commands;
 
+/// <summary>
+/// Plan transition rule 1: off the executor a command is enqueued on this container's executor and
+/// awaited; on a job of any executor it runs inline (that branch goes with T-008). There is no
+/// "executor missing, run inline" path: a stopped executor refuses the command.
+/// </summary>
 internal sealed class CommandBus(
     IServiceScopeFactory scopeFactory,
-    CommandHandlerRegistry registry) : ICommandBus
+    CommandHandlerRegistry registry,
+    IGameplayQueue queue) : ICommandBus
 {
     private static readonly AsyncLocal<int> DispatchDepth = new();
 
-    public async ValueTask<TResult> SendAsync<TResult>(
+    public ValueTask<TResult> SendAsync<TResult>(
         ICommand<TResult> command,
         CancellationToken cancellationToken = default)
         where TResult : notnull
     {
         ArgumentNullException.ThrowIfNull(command);
-        if (DispatchDepth.Value != 0)
-        {
-            throw new InvalidOperationException(
-                "Nested command dispatch is not allowed. Extract shared execution logic into an application service.");
-        }
+        // Before the executor check: a flow that left its handler (RunDetached, or a continuation that
+        // outlived its job) still carries the depth and must not become a fresh root job.
+        if (DispatchDepth.Value != 0) return ValueTask.FromException<TResult>(NestedDispatch());
+        if (GameplayJob.IsOnExecutor) return InlineAsync(command, cancellationToken);
+        // Production has no off-executor caller (entry reconciliation §1.3); only tests reach this.
+        return queue.RunAsync(new GameplayWork<TResult>(
+            GameplayShardKey.World,
+            GameplayCallChain.NewRoot(GameplayCallSource.Connection),
+            "bus:" + command.GetType().Name,
+            token => InlineAsync(command, token)), cancellationToken);
+    }
+
+    private async ValueTask<TResult> InlineAsync<TResult>(
+        ICommand<TResult> command,
+        CancellationToken cancellationToken)
+        where TResult : notnull
+    {
+        if (DispatchDepth.Value != 0) throw NestedDispatch();
 
         DispatchDepth.Value++;
         try
@@ -64,4 +84,7 @@ internal sealed class CommandBus(
             DispatchDepth.Value--;
         }
     }
+
+    private static InvalidOperationException NestedDispatch() => new(
+        "Nested command dispatch is not allowed. Extract shared execution logic into an application service.");
 }

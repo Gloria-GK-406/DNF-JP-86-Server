@@ -172,6 +172,8 @@ public sealed partial class DomainEventDispatchTests
         await using var f = new Fixture();
         using var stop = new CancellationTokenSource();
         var worker = f.Dispatcher.RunAsync(stop.Token);
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
         await using (var admission = await f.Services.GetRequiredService<TransactionalExecutionGate>().AcquireAsync(default))
         await using (var tx = f.Scope.Begin())
         {
@@ -179,6 +181,7 @@ public sealed partial class DomainEventDispatchTests
             await tx.CommitAsync(default).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
             Assert.Equal(0, f.Count("counter"));
         }
+        });
         await f.Probe.CounterCommitted.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await f.Probe.AuditCommitted.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await stop.CancelAsync();

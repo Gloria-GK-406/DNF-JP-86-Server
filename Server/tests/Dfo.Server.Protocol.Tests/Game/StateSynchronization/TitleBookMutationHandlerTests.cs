@@ -12,6 +12,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.TitleBook;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.StateSynchronization;
 
@@ -36,9 +37,10 @@ public sealed class TitleBookMutationHandlerTests
             new Users(new(OnlineUserId.New(), connection, session.AccountId, session.CharacterId,
                 OnlineUserState.CharacterActive, 1)), new InventorySlotMappingRuleService(), commands, sender,
             gate, NullLogger<TitleBookMutationHandler>.Instance);
-        var handling = handler.HandleAsync(new(connection), new TitleBookMutationRequest(new(1, store ? (ushort)0x019C : (ushort)0x019D, 0, 1),
-            store, replaceMirror ? 0x314D4254 : 3, replaceMirror ? 9 : 13, 26596, 4, 10, true), default).AsTask();
-        await sender.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        // The request is one CMD: its ACK is sent inside it, and no projection can run until it ends.
+        sender.Complete.TrySetResult();
+        await TestGameplay.RunAsync(async () => await handler.HandleAsync(new(connection), new TitleBookMutationRequest(new(1, store ? (ushort)0x019C : (ushort)0x019D, 0, 1),
+            store, replaceMirror ? 0x314D4254 : 3, replaceMirror ? 9 : 13, 26596, 4, 10, true), default));
         var response = Assert.IsType<TitleBookMutationResponse>(Assert.Single(sender.Sent));
         Assert.Equal(store, response.Store);
         Assert.Equal(3, response.Space); Assert.Equal(13, response.Slot);
@@ -49,11 +51,11 @@ public sealed class TitleBookMutationHandlerTests
             var command = Assert.IsType<EquipCarriedTitleReplacingMirrorCommand>(commands.Seen);
             Assert.Equal(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), command.Source);
         }
-        var projection = gate.EnterAsync(session.CharacterId, default).AsTask();
-        Assert.False(projection.IsCompleted);
-        sender.Complete.TrySetResult();
-        await handling.WaitAsync(TimeSpan.FromSeconds(2));
-        using var held = await projection.WaitAsync(TimeSpan.FromSeconds(2));
+        // The handler released the projection gate: a later job takes it without waiting.
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var held = await gate.EnterAsync(session.CharacterId, default);
+        });
         Assert.Single(sender.Sent);
     }
     private sealed class Commands(TitleBookMutationResult result) : ICommandBus

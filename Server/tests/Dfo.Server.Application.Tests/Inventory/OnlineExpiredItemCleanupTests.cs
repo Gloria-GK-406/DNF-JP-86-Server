@@ -124,13 +124,13 @@ public sealed class OnlineExpiredItemCleanupTests
     {
         using var f = new ShopFixture();
         await Seed(f);
-        var gate = f.Services.GetRequiredService<AccountExecutionGate>();
-        var lease = await gate.AcquireAsync(f.Session.AccountId, UserAccessMode.Exclusive, default);
-        var pending = f.Services.GetRequiredService<ICommandBus>().SendAsync(new CleanupOnlineExpiredItemsCommand(f.Session)).AsTask();
-        Assert.False(pending.IsCompleted);
+        // The release and reselection are a CMD of their own that runs before the cleanup CMD.
+        TestGameplay.Run(f.Services, () =>
+        {
         f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().ReleaseExact(f.Session);
         f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().Select(f.Session);
-        await lease.DisposeAsync();
+        });
+        var pending = f.Services.GetRequiredService<ICommandBus>().SendAsync(new CleanupOnlineExpiredItemsCommand(f.Session)).AsTask();
         // Out of the world means no longer the active character either, so the queued cleanup is
         // refused at the account gate rather than skipped inside the service.
         await Assert.ThrowsAsync<InvalidOperationException>(() => pending.WaitAsync(TimeSpan.FromSeconds(10)));

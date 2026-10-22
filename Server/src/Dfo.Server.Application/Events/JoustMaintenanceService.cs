@@ -26,7 +26,7 @@ internal sealed class JoustMaintenanceService(ICommandBus bus,IJoustDomainServic
         : GameplayTimerWork.RunAsync(queue,"timer:JoustMaintenanceService",t=>TickCoreAsync(t,false),ct));
     private async ValueTask TickCoreAsync(CancellationToken ct,bool suppressNotifications)
     {
-        await ticks.WaitAsync(ct);
+        GameplayGateAssertion.Enter(ticks,nameof(JoustMaintenanceService),ct);
         try{await AdvanceAndPublishAsync(ct,suppressNotifications);}
         finally{ticks.Release();}
     }

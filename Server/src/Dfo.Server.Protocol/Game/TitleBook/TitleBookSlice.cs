@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -91,11 +92,11 @@ public sealed class EquipCarriedTitleReplacingMirrorCommandHandler(ITitleBookDom
 public sealed class AchievementTitleProjectionGate
 {
     private readonly SemaphoreSlim[] gates = Enumerable.Range(0, 64).Select(_ => new SemaphoreSlim(1)).ToArray();
-    public async ValueTask<IDisposable> EnterAsync(CharacterId character, CancellationToken ct)
+    public ValueTask<IDisposable> EnterAsync(CharacterId character, CancellationToken ct)
     {
         var gate = gates[(uint)character.Value % (uint)gates.Length];
-        await gate.WaitAsync(ct).ConfigureAwait(false);
-        return new Lease(gate);
+        GameplayGateAssertion.Enter(gate, nameof(AchievementTitleProjectionGate), ct);
+        return ValueTask.FromResult<IDisposable>(new Lease(gate));
     }
     private sealed class Lease(SemaphoreSlim gate) : IDisposable
     {

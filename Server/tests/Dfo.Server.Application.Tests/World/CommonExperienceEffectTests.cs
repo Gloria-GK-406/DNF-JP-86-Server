@@ -14,6 +14,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Data.Accounts;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -174,7 +175,8 @@ public sealed class CommonExperienceEffectTests
         var first = bus.SendAsync(Clear(shop.Session)).AsTask();
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
         var second = bus.SendAsync(Kill(shop.Session)).AsTask();
-        await admitted.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        // The second CMD is queued behind the first on the executor, so it is not admitted before the first settles.
+        Assert.False(admitted.Entered.Task.IsCompleted);
         Assert.False(second.IsCompleted);
         release.TrySetResult();
         await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(() => first);
@@ -192,48 +194,35 @@ public sealed class CommonExperienceEffectTests
     {
         using var shop = Shop(new Calculation(), new EffectTrace());
         var safety = shop.Services.GetRequiredService<SelectedSessionSafety>();
+        // The publication failure and its discard run inside one CMD; no lifecycle holder can make it wait.
+        await TestGameplay.RunAsync(shop.Services, async () =>
+        {
         var recipient = safety.Capture(shop.Session);
-        var lifecycle = shop.Services.GetRequiredService<Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate>();
-        var held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var owner = Task.Run(async () =>
-        {
-            await using var lease = await lifecycle.AcquireAsync(shop.Session.AccountId, UserAccessMode.Exclusive, default);
-            held.TrySetResult(); await release.Task;
-        });
-        await held.Task.WaitAsync(TimeSpan.FromSeconds(5));
         var failure = safety.PublicationFailedAsync(recipient, new IOException("claim lost"), "test").AsTask();
-        try
-        {
-            Assert.False(failure.IsCompleted);
             Assert.True(shop.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().StandingOf(shop.Session)?.Fenced == true);
             Assert.True(safety.IsBlocked(shop.Connection));
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
-        }
-        finally { release.TrySetResult(); }
-        await owner.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(TransactionUncertaintyReason.PostCommitPublicationFailure, (await failure.WaitAsync(TimeSpan.FromSeconds(5))).Reason);
+        });
     }
 
     [Fact]
     public async Task Effect_uow_borrows_outer_exclusive_and_keeps_teardown_waiting_until_settlement()
     {
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var trace = new EffectTrace { Prepare = async ct => { entered.TrySetResult(); await release.Task.WaitAsync(ct); } };
-        using var shop = Shop(new Calculation(), trace);
+        using var shop = Shop(new Calculation(), new EffectTrace());
         var lifecycle = shop.Services.GetRequiredService<Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate>();
-        var first = Task.Run(async () =>
+        // The outer lease and the command share one job, so the command borrows it inline; teardown is a
+        // later job and cannot interleave with the settlement.
+        var first = TestGameplay.RunAsync(shop.Services, async () =>
         {
             await using var outer = await lifecycle.AcquireAsync(shop.Session.AccountId, UserAccessMode.Exclusive, default);
             return await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session));
         });
-        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        var teardown = lifecycle.AcquireAsync(shop.Session.AccountId, UserAccessMode.Exclusive, default).AsTask();
-        try { Assert.False(teardown.IsCompleted); Assert.Equal(0, shop.Scalar("SELECT exp FROM characters WHERE character_id=1")); }
-        finally { release.TrySetResult(); }
         Assert.Equal(30u, (await first.WaitAsync(TimeSpan.FromSeconds(5))).Award!.Total);
-        await using var done = await teardown.WaitAsync(TimeSpan.FromSeconds(5));
+        await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            await using var done = await lifecycle.AcquireAsync(shop.Session.AccountId, UserAccessMode.Exclusive, default);
+        });
         Assert.Equal(30, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
     }
 
@@ -291,6 +280,11 @@ public sealed class CommonExperienceEffectTests
         var error = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
         Assert.IsType<IOException>(error.InnerException);
         await closer.Callback.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        // The teardown that follows the close takes the lease at once: the failed CMD has released it.
+        await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            await using var lease = await closer.Lifecycle.AcquireAsync(new(1),UserAccessMode.Exclusive,default);
+        });
         Assert.Same(shop.Connection,closer.Expected);
         Assert.Equal(30,shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         Assert.True(shop.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(shop.Connection));
@@ -309,12 +303,9 @@ public sealed class CommonExperienceEffectTests
         public ValueTask RequestCloseAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,CancellationToken ct) => throw new InvalidOperationException("ID-only close is forbidden here.");
         public ValueTask RequestCloseExactAsync(Dfo.Server.Data.Networking.NetworkConnectionContext expected,CancellationToken ct)
         {
+            // The close is only requested here; teardown is a later lifecycle CMD (see the test body).
             Assert.Equal(CancellationToken.None,ct); Expected = expected;
-            _ = Task.Run(async () =>
-            {
-                await using var lease = await Lifecycle.AcquireAsync(new(1),UserAccessMode.Exclusive,default);
-                Callback.TrySetResult();
-            });
+            Callback.TrySetResult();
             return ValueTask.CompletedTask;
         }
     }

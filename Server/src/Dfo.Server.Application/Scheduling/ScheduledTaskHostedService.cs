@@ -136,6 +136,7 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
         {
             for (var attempt = 1; attempt <= job.Definition.MaximumAttempts; attempt++)
             {
+                GameplayJob.AssertNotOnExecutor("Taking a scheduled task concurrency slot");
                 await slots.WaitAsync(ct).ConfigureAwait(false);
                 DateTimeOffset scheduledAt;
                 lock (job) { job.Started = true; scheduledAt = job.Requested; }

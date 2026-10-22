@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
@@ -34,7 +35,7 @@ internal sealed class EffectOperationLedger(EffectOperationContext operations, S
             throw new InvalidOperationException("Effect request is not from the captured physical recipient.");
         // Capture before waiting: the queue must never bind an old request to a replacement character.
         var ledger = ledgers.GetValue(connection, _ => new());
-        await ledger.Gate.WaitAsync(ct).ConfigureAwait(false);
+        GameplayGateAssertion.Enter(ledger.Gate, nameof(EffectOperationLedger), ct);
         try
         {
             safety.DemandCurrent(recipient);

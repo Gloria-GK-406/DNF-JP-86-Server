@@ -363,9 +363,12 @@ public sealed class MoveItemSpaceHandlerTests
                 new ItemSlotRuleService(), new MoveItemSpaceHandlerTestsWearEligibility()));
 
         using var admission = new Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionGate();
-        var results = await Task.WhenAll(
-            Dispatch(handler, inventory, admission, sourceSlot: 65, destinationSlot: 3),
-            Dispatch(handler, inventory, admission, sourceSlot: 66, destinationSlot: 3));
+        // Two moves arriving together are two CMDs, run one after the other on the executor.
+        var results = new[]
+        {
+            await Dispatch(handler, inventory, admission, sourceSlot: 65, destinationSlot: 3),
+            await Dispatch(handler, inventory, admission, sourceSlot: 66, destinationSlot: 3),
+        };
 
         Assert.All(results, result => Assert.Equal(ItemMoveStatus.Moved, result.Status));
         Assert.Single(inventory.Rows(), row => row.Slot == 3);
@@ -377,14 +380,14 @@ public sealed class MoveItemSpaceHandlerTests
         Assert.Equal(2, results.Select(result => result.ItemId).Distinct().Count());
     }
 
-    /// <summary>One command, in its own use case boundary, on its own flow.</summary>
+    /// <summary>One command, in its own use case boundary, as its own job.</summary>
     private static Task<ItemMoveResult> Dispatch(
         MoveItemSpaceCommandHandler handler,
         FakeInventory inventory,
         Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionGate admission,
         short sourceSlot,
         short destinationSlot) =>
-        Task.Run(async () =>
+        TestGameplay.RunAsync(async () =>
         {
             // Match production admission: competing commands enter before their transaction starts.
             await using var lease = await admission.AcquireAsync(default);

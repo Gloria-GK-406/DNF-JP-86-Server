@@ -25,24 +25,6 @@ public sealed class TransactionalCommandSerializationTests
     }
 
     [Fact]
-    public async Task DirectCommands_RemainConcurrent()
-    {
-        var probe = new ConcurrencyProbe();
-        await using var provider = BuildProvider(probe, CommandExecutionKind.Direct);
-        var bus = provider.GetRequiredService<ICommandBus>();
-
-        var first = bus.SendAsync(new ProbeCommand(Block: true), CancellationToken.None).AsTask();
-        await probe.FirstBlockingCallEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
-
-        var second = bus.SendAsync(new ProbeCommand(Block: false), CancellationToken.None).AsTask();
-        await second.WaitAsync(TimeSpan.FromSeconds(2));
-        probe.ReleaseBlockingCall.TrySetResult();
-        await first.WaitAsync(TimeSpan.FromSeconds(2));
-
-        Assert.Equal(2, probe.MaximumConcurrentHandlers);
-    }
-
-    [Fact]
     public async Task CancelledWaiter_DoesNotEnterAndDoesNotKeepTheGate()
     {
         var probe = new ConcurrencyProbe();

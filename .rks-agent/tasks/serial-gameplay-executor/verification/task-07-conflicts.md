@@ -344,3 +344,91 @@ TASK-06 Remaining 第 3 条的各项按 TASK-07 §6.1 原样保留，加上本�
 - TASK-09 已删除：1；
 - 已改写：8。
 - 加法：0 ＋ 77 ＋ 52 ＋ 1 ＋ 1 ＋ 8 ＝ 139。
+
+## 14. TASK-17 处置（T-004c1：翻转＋门断言，2026-10-22，基准 `f13e612a`；2026-10-23 第 1 轮评审后原位修订）
+
+- 「触发」取自两段诊断全量（含补跑）：`logs/task-17-flip-only.txt`（只翻转）与 `logs/task-17-gate-on.txt`（翻转＋门断言）。脚本 scratchpad `t17/trigger.py`。
+  - 翻转：第一段已失败或挂起；门断言：第一段通过、第二段失败或挂起；仍通过：两段都通过。
+  - 挂起 4 条（第一段 `:177`、`:206`；第二段 `:206` 与 DungeonLoading 两条），按 `--blame-hang-timeout` 报出的用例名取证；挂起项目随后排除该用例补跑到底。
+- 类别 A～E 按 TASK-17 §4.2。后继用例名都能在工作区检索到。
+- 「改写」一律只删交错、门闩与 TCS 本身，其余断言原样保留（逐方法核对见 `logs/task-17-diff-check.txt`）。下表「旧 → 新」只写有变化的断言。
+- 通用后继（下文简写）：
+  - 〔序〕`GameplayExecutorOrderTests.Concurrent_producers_see_their_work_run_in_enqueue_order_one_at_a_time` 与 `CommandBusExecutorTests.F7_concurrent_off_executor_sends_never_overlap`：同一执行器上 CMD 一次一个、先来先做，两条 CMD 之间不可能交错；
+  - 〔门〕`GameplayGateAssertionTests`／`ProtocolGateAssertionTests`：执行器外取门即抛、执行器上需要等待即抛并黏滞到作业、违规后不泄漏计数。
+
+### 14.1 删除（41）
+
+| 用例 | 类 | 触发 | 保护意图 → 去向 | 后继 |
+|---|---|---|---|---|
+| `OnlineUserExecutionGateTests` 的 `SharedExecutionsOverlap…`、`CancelledWaiterIsRemoved…`、`CancellationRacingWithGrant…`、`IdleEntriesAreReclaimed…`（4） | A | 门断言 | 门上排队、FIFO、取消不泄漏 → 执行器上不再等门，随门删除（T-005） | 〔门〕`A_wait_violation_leaks_nothing_and_the_gate_opens_once_its_holder_releases`、`A_cancelled_caller_gets_cancellation_and_no_violation` |
+| `SelectedSessionTransitionGateTests` 的 `ExclusiveBorrowPreserves…`、`PendingCancelledSharedFrame…`、`Cancelled_group…`、`ExplicitAcquireRetainsFifo…`、`ExclusiveOwnerCanBorrow…`、`BorrowDoesNotQueueBehindWriter…`、`DelayedInheritedClosedFrame…`（Theory 2 例）、`PendingCancelledFrameIsNotHeld…`、`GrantCancelRace…`（9） | A | 门断言 | 借用帧与排队、取消竞速 → 随门删除 | 〔门〕`Borrowing_inside_the_job_that_holds_the_lease_is_not_a_violation`、`A_borrow_frame_carried_off_the_executor_is_refused`、`Acquiring_many_contended_on_the_second_account_throws_and_releases_the_first` |
+| `SelectedSessionTransitionGateTests.OuterLeaseIsVisibleThroughActualCommandBus…`（Theory 2 例） | A | 翻转 | 「先持门再经总线发命令」的借用＋另一写者等待 → 借用一半由同一作业内借用承接，等待一半随门删除 | `GameplayGateAssertionTests.Borrowing_inside_the_job_that_holds_the_lease_is_not_a_violation`；`LeaveDungeonTests.Exit_command_borrows_the_projection_lease_through_the_real_pipeline`（本单元改写，同一作业内持门经真实管线借用） |
+| `TransactionalCommandSerializationTests.DirectCommands_RemainConcurrent` | A | 翻转 | 断言两条 Direct 命令真并发，与新不变量相反 | `CommandBusExecutorTests.F7_concurrent_off_executor_sends_never_overlap` |
+| `SelectCharacterLifecycleTests.Achievement_projection_waits_for_the_complete_entry_workflow` | B | 门断言 | 投影门上的次序（投影等完整个选角工作流）→ 机制随门删除：投影是事件作业，选角作业结束前不会开始 | 〔序〕；`ProtocolGateAssertionTests.On_the_executor_the_title_projection_gate_is_taken_released_and_never_waited_on` |
+| `SelectCharacterLifecycleTests` 的 `DisconnectWinning…`、`CommandHolding…`、`ObserverQueuedBeforeRollbackClose…`、`OrphanedDisconnect…`（4） | C | 门断言 | 观察者在过渡门上与选角交错 | TASK-10 给出：`LifecycleExecutorWireTests.A_disconnect_during_an_inbound_job_starts_only_after_that_job_completes`（W6，前两条）、`LifecycleExecutorWireTests.A_cmd_closing_its_own_source_connection_does_not_wait_on_itself`（W7）、`SerialDisconnectTests.The_old_connections_disconnect_after_a_replacement_session_neither_cleans_nor_deselects_it`（P1） |
+| `UserServiceTests` 的 `DisconnectWaitingForLifecycle…`、`DisconnectObservedBeforeAuthentication…` | C | 门断言 | 同上 | P1；W6 ＋ `SerialDisconnectTests.The_old_connections_disconnect_after_a_newer_login_leaves_the_newer_identity_and_its_generation`（P2） |
+| `UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse`（Theory 2 例） | C | 门断言 | 两把门之间的锁序 → 意图随门删除（T-005）：单消费者下不存在反向锁序 | 无（规格消除：RQ-001 单消费者） |
+| `EffectOperationReplayTests.An_inherited_closed_operation_cannot_downgrade_to_trusted_direct_bus` | D | 翻转 | 继承流带着已关闭的效果操作帧调用总线时被拒 → 翻转后执行器外的调用一律成为新根作业、不带任何帧，「继承关闭帧」的前提不存在；只能跨流表达。**既定为「改写」，改为删除**，理由见 Result「与既定处置不同」 | 帧语义交 T-008（同 `:269`）；现状由 `CommandBusExecutorTests.F1_a_send_from_off_the_executor_runs_as_its_own_bus_job` 与 `GameplayDispatchTests` D3 证明作业不继承调用方的 AsyncLocal |
+| `IllusionTowerPublicFlowTests.Sweep_captured_for_an_old_run_cannot_return_or_reward_its_replacement` | E | 门断言 | 旧 run 的扫描不顶替新 run | `IllusionTowerPublicFlowTests.A_sweep_tick_after_the_old_runs_return_was_due_leaves_its_replacement_alone`（TASK-11） |
+| `PartyTownProjectionDeliveryTests` 的 `ReadRepairWaitsForTheMutationGate…`、`NewGenerationMutationCannotPass…` | B | 门断言 | 流门上的等待与「等到门后重读」、新旧代的次序 → 机制随门删除：读修复与变更是两条 CMD，中间不能插入别的 CMD | 〔序〕；`PartyTownProjectionDeliveryTests.A_read_repair_finding_its_stream_gate_taken_fails_the_job_at_once` 与 `A_moved_party_refresh_finding_its_stream_gate_taken_fails_the_job_at_once`（本路径的两处流门，第 2 轮补）；`PartyTownProjectionDeliveryTests.ACommittedRevisionStillRefreshesANewObserverButAnOlderSnapshotDoesNot`（读修复按修订号取舍） |
+| `TownProjectionHandlerTests.AreaCrossingWaitsForTheSameAccountPartyTransitionGate` | B | 门断言 | 跨区等过渡门 → 随门删除 | 〔序〕；`TownProjectionHandlerTests.A_crossing_moves_the_character_the_service_owns` |
+| `DungeonLoadingProjectionDeliveryTests` 的两条 `Replacement_…waits…` | B | 门断言（挂起） | 顶替等加载 CMD 结束 → 随门删除 | 〔序〕；`DungeonLoadingProjectionDeliveryTests.A_replacement_generation_cannot_inherit_the_frozen_runs_loading_submission` |
+| `LeaveDungeonTests` 的 `Exit_owns_the_transition…`、`An_exit_queued_for_an_old_run…`、`A_return_waiting_on_the_transition_gate…` | B | 门断言 | 退出在门后排队期间被顶替 → 顺序改写不成立（顺序执行时退出读到的就是顶替后的 run），「排队期间被顶替」随门删除 | 〔序〕；`LeaveDungeonTests.Leaving_ends_the_run_and_projects_the_town`、`A_new_selection_intent_prevents_an_old_town_projection`、`A_command_without_a_published_session_is_ignored` |
+| `SelectDungeonHandlerTests.Entry_transaction_cannot_reach_the_visit_until_exit_projection_releases_its_lease` | B | 门断言 | 入场事务等退出投影放租约 → 随门删除 | 〔序〕 |
+| `PartySelectDungeonHandlerTests` 的 `Selection_waits_for_exit…`、`Cancelling_while_acquiring_commit_gates…` | B | 门断言 | 选择等退出；取门途中取消 → 执行器上不再等门，「等门时取消」不存在 | 〔序〕；`PartySelectDungeonHandlerTests.A_projection_failure_cannot_split_party_members_between_town_and_run` |
+| `PartyCommandHandlerTests` 的 `Set_party_info_rechecks…`、`A_target_replaced_before_its_gate…`、`A_higher_account_inviter_replaced…`、`Reverse_direction_pair_requests…`（4） | B | 门断言 | 「门后重查会话」与反向锁序 → 查找与取门在同一 CMD 内，中间无交错；锁序随门删除 | 〔序〕；`PartyCommandHandlerTests.A_connection_without_a_current_selected_session_cannot_write_party_state`、`Stale_targeted_party_frames_stop_before_roster_or_session_capture`、`A_target_that_was_missing_on_the_first_lookup_cannot_appear_behind_the_gate` |
+| `PartyNotificationTests.Revisions_of_one_party_generation_are_delivered_as_contiguous_phases` | B | 门断言 | 同代修订的四段投影连续 → 两次投递是两条 CMD | 〔序〕；`PartyNotificationTests.An_older_revision_arriving_after_a_newer_one_is_suppressed` |
+
+删除合计：A 15（4 ＋ 9 ＋ 1 ＋ 1）＋ B 17（应用 1 ＋ Protocol 16：2 ＋ 1 ＋ 2 ＋ 3 ＋ 1 ＋ 2 ＋ 4 ＋ 1）＋ C 7 ＋ D 1 ＋ E 1 ＝ 41。用例（Theory 按例数）：41 ＋ 3（三个 Theory 各多 1 例）＝ 44。
+（第 1 轮评审前此处为 43：`MultiAccountExecutionTests` 两条曾整文件删除，后继写的是另一个实现 `SelectedSessionTransitionGate.AcquireManyExclusiveAsync`，不能承接 `AccountExecutionBehavior` 的意图；已恢复并改写，见 §14.2。）
+
+### 14.2 改写（29）
+
+| 用例 | 类 | 触发 | 旧断言 → 新断言 → 保护意图 |
+|---|---|---|---|
+| `EffectOperationReplayTests` 的 `Postdurable_operation_record_failure…`、`Invalid_projection_freeze…`、`Unknown_applied_effect_change…`（`:229`、`:253`、`:345`） | D | 翻转 | 帧的建立与总线调用放进同一个 `TestGameplay.RunAsync(f.Services, …)`，总线在作业上内联、帧可见；断言一字不改 → 意图不变 |
+| `EffectOperationReplayTests.Refusal_only_unselected_operation_cannot_pay_after_a_selection_arrives`（`:371`） | E | 翻转 | 旧：账本分派被 TCS 卡住，测试在外面清容器、重选会话再放行 → 新：分派在作业里执行，「选择到达」写在 handler 里、发命令之前（同一 CMD 内）；`ThrowsAsync<InvalidOperationException>`、数量 3、无消息三条断言不变 → 意图不变：只拒绝的操作在选择到达后也不能付款 |
+| `ReplayStateSnapshotTests.Another_selected_settlement_cannot_commit_between_the_replay_read_and_its_batch_delivery`（`:31`） | B | 翻转 | 删 `Assert.False(newer.IsCompleted)`（交错）；回放先作为一条 CMD 完成，再发结算 CMD；`Gold==100000`（回放后）、`100100`、批次里读到的 100000、`TrackedEntryCount==0` 不变 → 意图：批次携带的是它读到的值、结算在其后；「读与发之间不能插入结算」由〔序〕承接 |
+| `ReplayStateSnapshotTests.Registered_delivery_reads_fresh_inventory…`（`:60`） | B | 翻转 | 删「投递持有独占租约时另一流程必须等待」的 `Assert.False(exclusive.IsCompleted)`；投递改在作业内执行（生产中它就在作业里），其余 12 条断言（精确连接、6 帧、新库存、错连接被拒、独占可借用、共享不能升级、计数归零）不变 |
+| `ReplayStateSnapshotTests.Replacement_while_waiting_for_lifecycle_lease_rejects_the_original_read`（`:177`） | B | 翻转（挂起） | 删 `Assert.False(pending.IsCompleted)`；先顶替（一条 CMD），再发原会话的读 → `ThrowsAsync<InvalidOperationException>`、计数归零不变 → 意图：被顶替的会话读不到 |
+| `ReplayStateSnapshotTests.Inventory_and_account_balances_are_read_from_one_real_sqlite_snapshot`（`:206`） | E | 翻转（挂起） | 旧：读被卡住时测试用裸 SQL 改金币、用 `SeedShared`（一条 CMD）写账号材料 → 新：`SeedShared` 排不进被卡住的读，改为读开始前把 3262＝7 播种在账号 99 名下，读的中途用 `fixture.Sql` 把这一行改归账号 1（与金币一样是读中途提交的真实 SQLite 写）；四条断言一字不改 → 意图不变：角色金币与账号余额都出自同一个 SQLite 快照。（第 1 轮把 `SeedShared` 挪到读之后，账号余额一半恒真，评审指出后撤销「意图收窄」） |
+| `CommonExperienceEffectTests.Unknown_fence_precedes_transaction_gate_release_and_queued_effects_never_price`（`:164`） | E | 翻转 | 旧：等第二条命令进入管线（Order 56 探针）→ 新：`Assert.False(admitted.Entered.Task.IsCompleted)`（第二条排在第一条后面，第一条结算前不会被准入）；其余断言不变 → 意图不变：排在后面的效果不计价 |
+| `CommonExperienceEffectTests.Effect_uow_borrows_outer_exclusive_and_keeps_teardown_waiting_until_settlement`（`:219`） | B | 翻转 | 删拆除等待的两条交错断言；外层租约与命令同在一个作业，命令内联借用；拆除是之后的作业；`Award 30`、`exp 30` 不变 → 意图：效果工作单元借用外层独占；「拆除等结算」随门删除（〔序〕） |
+| `CommonExperienceEffectTests.Publication_fence_is_synchronous_even_when_discard_waits_for_lifecycle_exclusive`（`:191`） | B | 门断言 | 删 `Assert.False(failure.IsCompleted)` 与外部持门者；发布失败在作业内执行；Fenced、IsBlocked、命令被拒、原因四条断言不变 → 意图：封锁同步生效；「丢弃等生命周期独占」随门删除 |
+| `CommonExperienceEffectTests.Logger_failure_does_not_replace_unknown_cause_and_exact_close_callback_waits_for_lease_release`（`:281`） | B | 门断言 | 替身关连接器不再在回调里 `Task.Run` 取门，只记录请求；测试在命令结束后用一个作业取同一账号的过渡门（立即取得）；原 5 条断言不变 → 意图：日志失败不顶替未知原因、精确关连接；「回调等租约释放」改为「之后的拆除作业立即取得租约」 |
+| `NetworkMessageDispatcherTests.Already_queued_request_without_login_authority_is_rejected_before_uow_after_fence`（`:118`） | B | 门断言 | 旧：测试持事务门，请求在门后排队时被封锁 → 新：封锁发生在请求自己的 CMD 里、准入之后、工作单元之前（探针 Order 56 的 `BeforeNext`）；`ThrowsAsync<UnauthorizedAccessException>`、`HandlerCalls==0` 不变。「先封锁再派发」的改法不成立：已封锁连接的请求在分派时被静默丢弃，不抛 |
+| `MoveItemSpaceHandlerTests.Two_moves_arriving_at_once_are_both_carried_out_and_neither_is_refused`（`:310`） | B | 门断言 | 两个发起方由 `Task.WhenAll` 并发改为两条先后执行的作业（辅助 `Dispatch` 的 `Task.Run` 换成 `TestGameplay.RunAsync`）；断言不变 → 意图不变（旧实现本来就靠门串行） |
+| `DomainEventDispatchTests.Commit_under_database_admission_returns_and_the_worker_consumes_after_admission_is_released`（`:159`） | B | 门断言 | 持准入门、开写事务、提交这一段包进 `TestGameplay.RunAsync(f.Services, …)`；断言不变 → 意图不变：准入门内提交能返回，事件在其后被消费 |
+| `JoustIntegrationTests.Native_query_holds_selection_lease_until_exact_physical_batch_is_sent`（`:743`） | B | 门断言 | 删发送回调里的取门探针与 `Assert.False(pending.IsCompleted)`；回执与批次帧的 7 条断言不变 → 意图：查询的回执与批次形状；「持租约到批次发完」由〔序〕承接 |
+| `OnlineExpiredItemCleanupTests.Queued_cleanup_revalidates_published_session_after_account_gate`（`:113`） | B | 门断言 | 删账号门与 `Assert.False(pending.IsCompleted)`；释放与重选作为一条 CMD 先执行，再发清理命令；拒绝、数量 3、无待处理三条断言不变 → 意图：离开世界的会话不能清理 |
+| `LoginSessionQueuedCommandTests.ReplacedLoginCannotWriteAfterWaitingForTheAccountGateEvenAfterDisconnectCallback`（Persistence） | B | 翻转 | 删账号门与 `Assert.False(queued.IsCompleted)`；旧请求的授权在顶替前取得，顶替登录与断连回调先发生，写命令随后在一个作业里带着旧授权执行；`ThrowsAsync<UnauthorizedAccessException>`、口令哈希不变 → 意图不变 |
+| `LeaveDungeonTests.Exit_command_borrows_the_projection_lease_through_the_real_pipeline` | B | 翻转 | 持门与经真实总线发命令放进同一个 `TestGameplay.RunAsync(provider, …)`；断言不变 → 意图不变（过渡期规则 1 点名的写法改为作业内持门） |
+| `BossTowerProjectionConcurrencyTests`、`IllusionTowerProjectionConcurrencyTests` 的 `A_third_member_disconnect_during_capture_revalidates_and_completes` | B | 门断言 | 第三名成员离塔、离队、释放会话先作为一条 CMD 完成，转移随后作为一条 CMD 执行；6 条断言不变 → 意图：成员离开后转移仍成功、不带走离开者；「捕获期间」的交错随门删除 |
+| `TitleBookProtocolTests` 的 `Mutation_projection_waits_for_ack…`、`Mirror_removal_projection…`（Theory 2 例）、`Achievement_progress_projection_waits…` | B | 门断言 | 删外部持门与「投影未完成」交错断言（`Assert.False(…IsCompleted)`、`Assert.Empty(events.Projected)`、`Assert.Equal(!refresh, delivery.IsCompleted)`）；订阅者在作业里执行；投影内容断言不变 → 意图：存入不变成解锁、镜像移除的通用对账、成就进度投影；「等 ACK」由〔序〕承接（ACK 是请求 CMD 的一部分） |
+| `TitleBookMutationHandlerTests.Worn_requests_reply_with_the_native_equipment_coordinates_and_complete_ack_before_projection`（Theory 6 例） | B | 门断言 | handler 在作业里执行（发送替身不再阻塞）；删 `Assert.False(projection.IsCompleted)`，改为之后一个作业立即取得投影门；回执坐标等断言不变 → 意图：原生装备坐标；「ACK 先于投影」由〔序〕承接 |
+| `MarriageProposalCodecTests.Two_party_delivery_is_ordered_through_peer_notification_and_command_can_borrow_fences` | B | 门断言 | 两方各为一条 CMD 先后执行，删 `Assert.False(second.IsCompleted)` 与 TCS；次序断言 `["first-ACK","first-NOTI","second-ACK+NOTI"]` 与作业内借用对方租约保留 |
+| `CleanupNotificationDeliveryTests.Existing_owner_and_town_notices_finish_before_party_projection`（F-56） | B | 门断言 | `DeliverAsync` 包进 `TestGameplay.RunAsync`（生产中只在作业里调用）；断言不变 |
+| `MultiAccountExecutionTests.All_accounts_are_locked_once_and_released_when_execution_fails` | A | 门断言 | 旧：执行体内在测试流上另取同账号门、断言等待并取消 → 新：作业里以 `[2,1,2]` 执行 `AccountExecutionBehavior`，执行体记录门里正好 2 个账号后抛 rollback；之后的作业能立即取得账号 1 与 2，计数归零 → 意图不变：每个账号只锁一次、失败后全部释放（第 2 轮恢复文件后改写） |
+| `MultiAccountExecutionTests.Cancellation_while_waiting_for_second_account_releases_first_account` → 改名 `A_second_account_held_by_an_earlier_job_fails_at_once_and_releases_the_first` | A | 门断言 | 旧：测试持账号 2，行为在账号 2 上等待后被取消 → 新：作业 A 取得账号 2 不释放就结束；作业 B 以 `[2,1,2]` 执行行为，断言抛 `GameplayGateWaitException` 且执行体没跑；作业 C 立即取得账号 1 → 意图：取到一半失败时，已取得的账号被释放（「等待中被取消」随门删除，执行器上不再等待）。另加成功路径的去重用例 `A_repeated_account_is_taken_once_and_the_group_runs`（新增，不计入 77） |
+
+改写合计：A 2（`MultiAccountExecutionTests`）＋ D 3 ＋ E 3（`:371`、`:206`、`:164`）＋ B 21（应用 11 ＋ Persistence 1 ＋ Protocol 8 ＋ F-56 1）＝ 29。
+
+### 14.3 仍通过，顺延 T-004c2（7）
+
+`TransactionalCommandSerializationTests` 的 `TransactionalCommands_DoNotRunTheirHandlersConcurrently` 与 `CancelledWaiter_DoesNotEnterAndDoesNotKeepTheGate`（A，翻转后命令在执行器上串行，第二条在排队时被取消），`CommandBusTests` 的租约释放 3 条（A，验证租约的那次总线调用翻转后经执行器），`DungeonObjectQueueTests.Leaving_the_room_before_prepare_rolls_back_the_reservation`（E，两个直接调用的发起方真并发、不经门），`AuthenticationConsumptionTests.ExactCredentialBindsAgainButOverlappingUncommittedBindsAreRejected`（E，执行器外开写事务，RQ-061 开启时才失败）。加法 2 ＋ 3 ＋ 1 ＋ 1 ＝ 7。
+
+### 14.4 本单元新判定（不在 77 条内）
+
+- `SelectCharacterLifecycleTests.RejectedRepeatedLoginStillLetsDisconnectObserverCleanupTheSelectedSession`：门断言下失败，测试线程直接调用观察者（与 F-18 同形）。观察者调用按 T5 包进 `TestGameplay.RunAsync`，断言不变；**不是冲突**（不靠门制造交错），按 §4.3 第 1 条的形状处理，单列于此。
+- F-18（`UserServiceTests` 中直接调用观察者的非冲突方法）：9 个方法的 9 处观察者调用包进 `TestGameplay.RunAsync`，断言不变；其中 4 个在门断言下失败（`A_rejected_connection…`、两条 `DisconnectSelectedSession_…`、`DisconnectWithoutSelectedSession_…`），另 5 个（`ConnectedAsync` 不取门）为 3.3 归零一并包裹。没有新判定的冲突。
+
+### 14.5 新分布（总数仍为 139）
+
+- T-004c（顺延 c2）：7；
+- T-006：52；
+- T-008：1；
+- TASK-09 已删除：1；
+- 已改写（此前）：8；
+- TASK-17 已删除：41；
+- TASK-17 已改写：29。
+- 加法：7 ＋ 52 ＋ 1 ＋ 1 ＋ 8 ＋ 41 ＋ 29 ＝ 139。按类：A 22 ＝ 15 删 ＋ 2 改 ＋ 5 顺延；B 38 ＝ 17 删 ＋ 21 改；C 7 ＝ 7 删；D 4 ＝ 1 删 ＋ 3 改；E 6 ＝ 1 删 ＋ 3 改 ＋ 2 顺延；22 ＋ 38 ＋ 7 ＋ 4 ＋ 6 ＝ 77；删 15 ＋ 17 ＋ 7 ＋ 1 ＋ 1 ＝ 41，改 2 ＋ 21 ＋ 3 ＋ 3 ＝ 29，顺延 5 ＋ 2 ＝ 7。

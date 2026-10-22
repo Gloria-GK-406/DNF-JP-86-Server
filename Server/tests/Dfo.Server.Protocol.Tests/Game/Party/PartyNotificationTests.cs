@@ -852,32 +852,6 @@ public sealed class PartyNotificationTests
     }
 
     [Fact]
-    public async Task Revisions_of_one_party_generation_are_delivered_as_contiguous_phases()
-    {
-        var bus = new BlockingNotificationBus();
-        var streams = new PartyProjectionStreamRegistry();
-        var olderDeliveryService = Delivery(bus, streams);
-        var newerDeliveryService = Delivery(bus, streams);
-        var older = Snapshot() with { Revision = 3 };
-        var newer = Snapshot() with { Revision = 4 };
-
-        var olderDelivery = olderDeliveryService.DeliverAsync(
-            new PartyNotificationPlan([], older), CancellationToken.None).AsTask();
-        await bus.FirstPublication.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        var newerDelivery = newerDeliveryService.DeliverAsync(
-            new PartyNotificationPlan([], newer), CancellationToken.None).AsTask();
-
-        Assert.Single(bus.Publications);
-        Assert.False(newerDelivery.IsCompleted);
-        bus.ReleaseFirst.TrySetResult();
-        await Task.WhenAll(olderDelivery, newerDelivery).WaitAsync(TimeSpan.FromSeconds(2));
-
-        Assert.Equal(
-            [3L, 3L, 3L, 4L, 4L, 4L],
-            bus.Publications.Select(value => SnapshotRevision(value.Notification)));
-    }
-
-    [Fact]
     public async Task An_older_revision_arriving_after_a_newer_one_is_suppressed()
     {
         await TestGameplay.RunAsync(async () =>

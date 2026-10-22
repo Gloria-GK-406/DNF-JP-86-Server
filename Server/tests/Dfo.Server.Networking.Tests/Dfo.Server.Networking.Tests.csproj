@@ -30,6 +30,7 @@
              Link="Support\DungeonRunTestEntryExtensions.cs" />
     <Compile Include="..\Support\PvfAttributes.cs" Link="Support\PvfAttributes.cs" />
     <Compile Include="..\Support\TestGameplay.cs" Link="Support\TestGameplay.cs" />
+    <Compile Include="..\Support\GameplayAssertionRecorder.cs" Link="Support\GameplayAssertionRecorder.cs" />
     <Compile Include="..\Support\TestCredentials.cs" Link="Support\TestCredentials.cs" />
   </ItemGroup>
 

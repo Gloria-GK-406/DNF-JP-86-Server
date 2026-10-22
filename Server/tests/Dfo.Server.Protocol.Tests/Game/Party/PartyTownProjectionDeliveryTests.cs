@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Execution;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
@@ -104,6 +105,64 @@ public sealed class PartyTownProjectionDeliveryTests
         });
     }
 
+    // Transition rule 2 on the read-repair paths: the generation's stream gate is never waited on. A lease
+    // left behind by an earlier job stands in for the contention; each case reports one gate-wait violation.
+    [Fact]
+    public async Task A_read_repair_finding_its_stream_gate_taken_fails_the_job_at_once()
+    {
+        var streams = new PartyProjectionStreamRegistry();
+        var stream = streams.GetOrAdd(7);
+        Assert.True(stream.Gate.Wait(0));
+        var bus = new RecordingNotificationBus();
+        var delivery = new PartyTownProjectionDelivery(
+            new StubParties((Leader, Snapshot(revision: 3))),
+            Presence(),
+            new FixedSelectedSessions(),
+            bus,
+            streams);
+
+        await Assert.ThrowsAsync<GameplayGateWaitException>(() => TestGameplay.RunAsync(async () =>
+            await delivery.RefreshObservedPartiesAsync([Observer], [Leader], CancellationToken.None))
+            .WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Empty(bus.Publications);
+
+        stream.Gate.Release();
+        await TestGameplay.RunAsync(async () =>
+            await delivery.RefreshObservedPartiesAsync([Observer], [Leader], CancellationToken.None));
+        Assert.Single(bus.Publications);
+    }
+
+    [Fact]
+    public async Task A_moved_party_refresh_finding_its_stream_gate_taken_fails_the_job_at_once()
+    {
+        var snapshot = Snapshot(revision: 4) with
+        {
+            Members = ImmutableArray.Create(
+                new PartyMemberSnapshot(
+                    new PartyCharacterSnapshot(
+                        Leader.AccountId, Leader.CharacterId, Leader.WireUserId, new PartyDirectoryScope(11, 1, 2)),
+                    1, null, 100),
+                new PartyMemberSnapshot(Character(Member), 0, null, 100)),
+        };
+        var streams = new PartyProjectionStreamRegistry();
+        var stream = streams.GetOrAdd(snapshot.Generation);
+        Assert.True(stream.Gate.Wait(0));
+        var bus = new RecordingNotificationBus();
+        var delivery = new PartyTownProjectionDelivery(
+            new StubParties((Leader, snapshot), (Member, snapshot)),
+            MovedPresence(),
+            new FixedSelectedSessions(),
+            bus,
+            streams);
+
+        await Assert.ThrowsAsync<GameplayGateWaitException>(() => TestGameplay.RunAsync(async () =>
+            await delivery.RefreshMovedPartyAsync(Leader, new PartyDirectoryScope(11, 1, 1), CancellationToken.None))
+            .WaitAsync(TimeSpan.FromSeconds(10)));
+
+        Assert.Empty(bus.Publications);
+        stream.Gate.Release();
+    }
+
     [Fact]
     public async Task ACommittedRevisionStillRefreshesANewObserverButAnOlderSnapshotDoesNot()
     {
@@ -141,41 +200,6 @@ public sealed class PartyTownProjectionDeliveryTests
     }
 
     [Fact]
-    public async Task ReadRepairWaitsForTheMutationGateAndRequeriesCurrentPartyState()
-    {
-        var streams = new PartyProjectionStreamRegistry();
-        var stream = streams.GetOrAdd(7);
-        await stream.Gate.WaitAsync(CancellationToken.None);
-        var parties = new MutableParties(Leader, Snapshot(revision: 3));
-        var bus = new RecordingNotificationBus();
-        var delivery = new PartyTownProjectionDelivery(
-            parties, Presence(), new FixedSelectedSessions(), bus, streams);
-
-        try
-        {
-            var pending = delivery.RefreshObservedPartiesAsync(
-                [Observer], [Leader], CancellationToken.None).AsTask();
-            Assert.Equal(1, parties.ReadCount);
-            Assert.False(pending.IsCompleted);
-
-            parties.Current = Snapshot(revision: 4);
-            stream.Gate.Release();
-            await pending.WaitAsync(TimeSpan.FromSeconds(2));
-        }
-        finally
-        {
-            if (stream.Gate.CurrentCount == 0)
-                stream.Gate.Release();
-        }
-
-        var publication = Assert.Single(bus.Publications);
-        Assert.Equal(
-            4,
-            Assert.IsType<PartyRosterChanged>(publication.Notification).Snapshot!.Revision);
-        Assert.Equal(2, parties.ReadCount);
-    }
-
-    [Fact]
     public async Task ReadRepairRetriesATransientRosterFailureFromOneTopLevelCall()
     {
         await TestGameplay.RunAsync(async () =>
@@ -195,44 +219,6 @@ public sealed class PartyTownProjectionDeliveryTests
             Assert.Equal(2, bus.Attempts);
             Assert.Equal(1, bus.Successes);
         });
-    }
-
-    [Fact]
-    public async Task NewGenerationMutationCannotPassABlockedOldGenerationReadRepair()
-    {
-        var oldSnapshot = Snapshot(revision: 3, generation: 7);
-        var newSnapshot = Snapshot(revision: 1, generation: 8);
-        var streams = new PartyProjectionStreamRegistry();
-        var parties = new MutableParties(Leader, oldSnapshot);
-        var bus = new BlockingFirstRosterNotificationBus();
-        var fixedPresence = Presence();
-        var readRepair = new PartyTownProjectionDelivery(
-            parties, fixedPresence, new FixedSelectedSessions(), bus, streams);
-        var mutation = new PartyNotificationDelivery(
-            bus, streams, new FixedSelectedSessions(), fixedPresence);
-
-        var oldDelivery = readRepair.RefreshObservedPartiesAsync(
-            [Observer], [Leader], CancellationToken.None).AsTask();
-        await bus.FirstRosterEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        parties.Current = newSnapshot;
-
-        var newDelivery = mutation.DeliverAsync(
-            new PartyNotificationPlan(
-                [],
-                newSnapshot,
-                DirectoryChange: new PartyDirectoryChange(
-                    new PartyDirectoryScope(11, 1, 1),
-                    new PartyDirectoryScope(11, 1, 1))),
-            CancellationToken.None).AsTask();
-        await Task.Yield();
-
-        Assert.False(newDelivery.IsCompleted);
-        bus.ReleaseFirstRoster.TrySetResult();
-        await Task.WhenAll(oldDelivery, newDelivery).WaitAsync(TimeSpan.FromSeconds(2));
-
-        Assert.Equal(
-            [7L, 8L, 8L],
-            bus.Rosters.Select(value => value.Snapshot!.Generation));
     }
 
     [Fact]

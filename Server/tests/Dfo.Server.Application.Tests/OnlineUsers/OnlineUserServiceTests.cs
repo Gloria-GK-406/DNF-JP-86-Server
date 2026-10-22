@@ -28,102 +28,6 @@ namespace Dfo.Server.Application.Tests.OnlineUsers;
 public sealed class UserServiceTests
 {
     [Fact]
-    public async Task DisconnectWaitingForLifecycleKeepsItsCapturedSessionAndDoesNotCleanReplacement()
-    {
-        var account = new AccountId(109);
-        var users = CreateService(account);
-        var onlineGate = new OnlineUserExecutionGate();
-        var lifecycle = new SelectedSessionTransitionGate();
-        var sessions = Dfo.Server.Testing.TestSessions.Directory();
-        var cleanup = new ClearingCleanup(users);
-        var connection = new NetworkConnectionContext(new("Game:replace-waiting"), NetworkEndpointKind.Game, 10011);
-        var online = users.RegisterConnection(connection);
-        await users.AuthenticateForTestAsync(online.OnlineUserId);
-        var original = SelectedSessionIdentity.Create(account, new(1009), connection.ConnectionId,
-            users.GetRequired(online.OnlineUserId).Generation, 10011);
-        sessions.Select(original);
-        users.Publish(original);
-        var observer = new OnlineUserConnectionObserver(users, onlineGate, lifecycle, sessions, cleanup,
-            new StubChannelEntryPolicy(), new StubServerConfigService(), new RecordingInitialSender(),
-            new RecordingCleanupDelivery(), TimeProvider.System);
-        var blocker = await lifecycle.AcquireAsync(account, UserAccessMode.Exclusive, default);
-        var disconnect = observer.DisconnectedAsync(connection, default).AsTask();
-        Assert.False(disconnect.IsCompleted);
-        var replacement = SelectedSessionIdentity.Create(account, new(1010), connection.ConnectionId,
-            users.GetRequired(online.OnlineUserId).Generation, 10011);
-        sessions.Select(replacement);
-        users.Publish(replacement);
-        await blocker.DisposeAsync();
-        await disconnect.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.Null(cleanup.Cleaned);
-        Assert.Equal(replacement, sessions.Find(account));
-        Assert.True(users.TryGetByConnection(connection.ConnectionId, out _));
-        Assert.Equal(0, lifecycle.TrackedEntryCount);
-        Assert.Equal(0, onlineGate.TrackedEntryCount);
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(bool returnToSelection)
-    {
-        var accountId = new AccountId(108);
-        var users = CreateService(accountId);
-        var onlineGate = new OnlineUserExecutionGate();
-        var lifecycle = new SelectedSessionTransitionGate();
-        var selected = Dfo.Server.Testing.TestSessions.Directory();
-        var connection = new NetworkConnectionContext(new("Game:lock-order"), NetworkEndpointKind.Game, 10011);
-        var online = users.RegisterConnection(connection);
-        await users.AuthenticateForTestAsync(online.OnlineUserId);
-        var authenticated = users.GetRequired(online.OnlineUserId);
-        selected.Select(SelectedSessionIdentity.Create(accountId, new(1008), connection.ConnectionId,
-            authenticated.Generation, 10011));
-        var blocker = await lifecycle.AcquireAsync(accountId, UserAccessMode.Shared, default);
-        using var cancel = new CancellationTokenSource();
-        Task teardown;
-        if (returnToSelection)
-        {
-            // Only the real acquisition boundary is exercised; command/delivery is unreachable
-            // while the lifecycle barrier is held and the waiter is cancelled in finally.
-            var handler = new Dfo.Server.Protocol.Game.ReturnToSelection.ReturnToSelectionHandler(
-                users, onlineGate, lifecycle, null!, null!, null!);
-            teardown = handler.HandleAsync(new(connection),
-                new Dfo.Server.Protocol.Game.ReturnToSelection.ReturnToSelectionRequest(GameMessageMetadata.Empty),
-                cancel.Token).AsTask();
-        }
-        else
-        {
-            var observer = new OnlineUserConnectionObserver(users, onlineGate, lifecycle, selected,
-                new NoopCleanup(), new StubChannelEntryPolicy(), new StubServerConfigService(),
-                new RecordingInitialSender(), new RecordingCleanupDelivery(), TimeProvider.System);
-            teardown = observer.DisconnectedAsync(connection, cancel.Token).AsTask();
-        }
-        var commandOnline = onlineGate.AcquireAsync(online.OnlineUserId, UserAccessMode.Exclusive, cancel.Token);
-        try
-        {
-            Assert.False(teardown.IsCompleted);
-            // The lifecycle owner can now take online ownership and finish. The previous reverse
-            // order left teardown holding online while waiting for this owner's lifecycle lease.
-            Assert.True(commandOnline.IsCompletedSuccessfully);
-            await (await commandOnline).DisposeAsync();
-        }
-        finally
-        {
-            cancel.Cancel();
-            await blocker.DisposeAsync();
-            try { await teardown.WaitAsync(TimeSpan.FromSeconds(5)); }
-            catch (OperationCanceledException) { }
-            if (!commandOnline.IsCompletedSuccessfully)
-            {
-                try { await (await commandOnline).DisposeAsync(); }
-                catch (OperationCanceledException) { }
-            }
-        }
-        Assert.Equal(0, lifecycle.TrackedEntryCount);
-        Assert.Equal(0, onlineGate.TrackedEntryCount);
-    }
-
-    [Fact]
     public async Task Udp_endpoint_belongs_to_the_game_session_not_its_selected_character()
     {
         await TestGameplay.RunAsync(async () =>
@@ -201,7 +105,10 @@ public sealed class UserServiceTests
 
         var observer = CreateObserver(
             service, service.Sessions, cleanup, new RecordingInitialSender(), TimeProvider.System);
+        await TestGameplay.RunAsync(async () =>
+        {
         await observer.DisconnectedAsync(connection, CancellationToken.None);
+        });
 
         TestGameplay.Run(() =>
         {
@@ -253,7 +160,10 @@ public sealed class UserServiceTests
             service, new EmptySelectedSessions(), new NoopCleanup(), sender,
             new FixedTimeProvider(preparedAt));
 
+        await TestGameplay.RunAsync(async () =>
+        {
         await observer.ConnectedAsync(connection, CancellationToken.None);
+        });
 
         var sent = Assert.IsType<GameInitialConnectionNotice>(Assert.Single(sender.Messages));
         Assert.Equal(11, sent.ChannelId);
@@ -272,7 +182,10 @@ public sealed class UserServiceTests
             service, new EmptySelectedSessions(), new NoopCleanup(), sender,
             TimeProvider.System);
 
+        await TestGameplay.RunAsync(async () =>
+        {
         await observer.ConnectedAsync(connection, CancellationToken.None);
+        });
 
         TestGameplay.Run(() =>
         {
@@ -292,7 +205,8 @@ public sealed class UserServiceTests
             new RecordingInitialSender(fail: true), TimeProvider.System);
 
         await Assert.ThrowsAsync<IOException>(async () =>
-            await observer.ConnectedAsync(connection, CancellationToken.None));
+            await TestGameplay.RunAsync(async () =>
+            await observer.ConnectedAsync(connection, CancellationToken.None)));
 
         TestGameplay.Run(() =>
         {
@@ -312,7 +226,10 @@ public sealed class UserServiceTests
             TimeProvider.System,
             new FixedChannelEntryPolicy(StubChannelEntryPolicy.RestrictedChannel));
 
+        await TestGameplay.RunAsync(async () =>
+        {
         await observer.ConnectedAsync(connection, CancellationToken.None);
+        });
 
         var sent = Assert.IsType<GameInitialConnectionNotice>(Assert.Single(sender.Messages));
         Assert.Equal(100, sent.ChannelId);
@@ -332,7 +249,8 @@ public sealed class UserServiceTests
                 new ChannelEntryIdentity(0, connection.ListenerPort, ChannelEntryKind.General)));
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await observer.ConnectedAsync(connection, CancellationToken.None));
+            await TestGameplay.RunAsync(async () =>
+            await observer.ConnectedAsync(connection, CancellationToken.None)));
 
         TestGameplay.Run(() =>
         {
@@ -566,38 +484,6 @@ public sealed class UserServiceTests
     }
 
     [Fact]
-    public async Task DisconnectObservedBeforeAuthentication_DoesNotRemoveNewerGeneration()
-    {
-        var service = CreateService(new AccountId(100));
-        var gate = new OnlineUserExecutionGate();
-        var observer = new OnlineUserConnectionObserver(
-            service, gate, new SelectedSessionTransitionGate(),
-            new EmptySelectedSessions(), new NoopCleanup(), new StubChannelEntryPolicy(),
-            new StubServerConfigService(), new RecordingInitialSender(), new RecordingCleanupDelivery(), TimeProvider.System);
-        var connection = new NetworkConnectionContext(
-            new NetworkConnectionId("Game:20"),
-            NetworkEndpointKind.Game,
-            10011);
-        var registered = service.RegisterConnection(connection);
-        await using var identityTransition = await gate.AcquireAsync(
-            registered.OnlineUserId,
-            UserAccessMode.Exclusive,
-            CancellationToken.None);
-
-        var disconnect = observer.DisconnectedAsync(connection, CancellationToken.None).AsTask();
-        await Task.Yield();
-        Assert.False(disconnect.IsCompleted);
-        await service.AuthenticateForTestAsync(registered.OnlineUserId);
-        var authenticated = service.GetRequired(registered.OnlineUserId);
-        await identityTransition.DisposeAsync();
-        await disconnect;
-
-        Assert.Equal(authenticated, service.GetRequired(registered.OnlineUserId));
-        Assert.True(service.TryGetByConnection(connection.ConnectionId, out var current));
-        Assert.Equal(authenticated, current);
-    }
-
-    [Fact]
     public async Task DisconnectSelectedSession_RemovesConnectionAfterExactCleanupAdvancesGeneration()
     {
         var accountId = new AccountId(104);
@@ -623,7 +509,10 @@ public sealed class UserServiceTests
             return selected;
         });
 
+        await TestGameplay.RunAsync(async () =>
+        {
         await observer.DisconnectedAsync(connection, CancellationToken.None);
+        });
 
         TestGameplay.Run(() =>
         {
@@ -670,7 +559,10 @@ public sealed class UserServiceTests
             service, sessions, new FailingCleanup(plan), sender, TimeProvider.System,
             cleanupDelivery: cleanupDelivery);
 
+        await TestGameplay.RunAsync(async () =>
+        {
         await observer.DisconnectedAsync(connection, CancellationToken.None);
+        });
 
         // Both halves are still handed over after a failed cleanup, which is what this case has
         // always been about. The peer half keeps the exact session sampled by cleanup so a later
@@ -709,8 +601,11 @@ public sealed class UserServiceTests
         await using var blocker = await TestGameplay.RunAsync(async () => await lifecycleGate.AcquireAsync(
             new AccountId(105), UserAccessMode.Exclusive, CancellationToken.None));
 
+        await TestGameplay.RunAsync(async () =>
+        {
         await observer.DisconnectedAsync(connection, CancellationToken.None).AsTask()
             .WaitAsync(TimeSpan.FromSeconds(2));
+        });
 
         TestGameplay.Run(() =>
         {

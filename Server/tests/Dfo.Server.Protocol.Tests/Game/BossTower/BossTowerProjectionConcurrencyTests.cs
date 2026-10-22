@@ -334,23 +334,14 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             Notifications(parties, sessions, town),
             Delivery(tower, sessions, commands, new Sender(), closer),
             closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
-        var thirdLease = await gate.AcquireAsync(
-            third.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
-        Task<BossTowerPartyAttempt> pending;
-        try
+        // The third member leaves in a CMD that completes before the transfer CMD runs.
+        TestGameplay.Run(() =>
         {
-            pending = coordinator.TryTransferAsync(
-                first, targetSlot: 1, CancellationToken.None).AsTask();
             tower.Leave(third);
             parties.CleanupCharacter(third.CharacterId);
             Assert.True(sessions.ReleaseExact(third));
-        }
-        finally
-        {
-            await thirdLease.DisposeAsync();
-        }
-
-        var result = await pending.WaitAsync(TimeSpan.FromSeconds(2));
+        });
+        var result = await TestGameplay.RunAsync(async () => await coordinator.TryTransferAsync(first, targetSlot: 1, CancellationToken.None)).WaitAsync(TimeSpan.FromSeconds(2));
 
         Assert.True(result.Result.Succeeded);
         Assert.Null(tower.Find(third));

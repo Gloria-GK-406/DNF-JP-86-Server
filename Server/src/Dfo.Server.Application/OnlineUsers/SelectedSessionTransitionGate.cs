@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 
@@ -72,6 +73,8 @@ public sealed class SelectedSessionTransitionGate : UserExecutionGate<AccountId>
         AccountId accountId, UserAccessMode accessMode, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        // A borrowable frame seen off the executor has flowed out of the job that holds it.
+        GameplayGateAssertion.Entering($"{nameof(SelectedSessionTransitionGate)} borrow");
         for (var candidate = this.current.Value; candidate is not null; candidate = candidate.Parent)
         {
             if (candidate.AccountId != accountId || !candidate.TryBorrow(accessMode, out var owner)) continue;

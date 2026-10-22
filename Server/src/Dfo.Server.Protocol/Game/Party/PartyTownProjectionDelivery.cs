@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Execution;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
@@ -62,7 +63,7 @@ public sealed class PartyTownProjectionDelivery(
             cancellationToken)
             .ConfigureAwait(false);
         var stream = streams.GetOrAdd(candidate.Generation);
-        await stream.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        GameplayGateAssertion.Enter(stream.Gate, nameof(PartyDeliveryStream), cancellationToken);
         try
         {
             var current = parties.FindParty(character);
@@ -194,7 +195,7 @@ public sealed class PartyTownProjectionDelivery(
                     continue;
 
                 var stream = streams.GetOrAdd(candidate.Generation);
-                await stream.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+                GameplayGateAssertion.Enter(stream.Gate, nameof(PartyDeliveryStream), cancellationToken);
                 try
                 {
                     var current = parties.Query(query).SingleOrDefault(snapshot =>

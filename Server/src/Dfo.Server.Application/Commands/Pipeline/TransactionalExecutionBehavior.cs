@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Execution;
+
 namespace Dfo.Server.Application.Commands.Pipeline;
 
 /// <summary>Admits one transactional command at a time.</summary>
@@ -41,10 +43,10 @@ internal sealed class TransactionalExecutionGate : IDisposable
 {
     private readonly SemaphoreSlim gate = new(initialCount: 1, maxCount: 1);
 
-    public async ValueTask<IAsyncDisposable> AcquireAsync(CancellationToken cancellationToken)
+    public ValueTask<IAsyncDisposable> AcquireAsync(CancellationToken cancellationToken)
     {
-        await this.gate.WaitAsync(cancellationToken).ConfigureAwait(false);
-        return new Lease(this.gate);
+        GameplayGateAssertion.Enter(this.gate, nameof(TransactionalExecutionGate), cancellationToken);
+        return ValueTask.FromResult<IAsyncDisposable>(new Lease(this.gate));
     }
 
     public void Dispose() => this.gate.Dispose();

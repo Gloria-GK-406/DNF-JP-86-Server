@@ -67,35 +67,6 @@ public sealed class PartySelectDungeonHandlerTests
     }
 
     [Fact]
-    public async Task Selection_waits_for_exit_before_recording_intent_or_sending_frames()
-    {
-        var sessions = new Sessions(Leader, Member);
-        var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
-        var intents = new Intents();
-        var sender = new Sender();
-        var gate = new SelectedSessionTransitionGate();
-        var handler = new EnterSelectDungeonHandler(new UnchangedState(), sessions,
-            new RuntimeCurrentView(runtime), new PartyVisits(), intents, sender,
-            TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
-            NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()), transitionGate: gate);
-        var exitLease = await gate.AcquireAsync(Leader.AccountId, UserAccessMode.Exclusive, default);
-        var selection = handler.HandleAsync(Dispatch(Leader),
-            new EnterSelectDungeonRequest(GameMessageMetadata.Empty, DungeonId), default).AsTask();
-        try
-        {
-            Assert.False(selection.IsCompleted);
-            Assert.Null(intents.Consume(Leader));
-            Assert.Empty(sender.Messages(Leader.ConnectionId));
-        }
-        finally { await exitLease.DisposeAsync(); }
-        await selection.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.NotNull(intents.Consume(Leader));
-        Assert.NotNull(intents.Consume(Member));
-        Assert.NotEmpty(sender.Messages(Leader.ConnectionId));
-        Assert.Equal(0, gate.TrackedEntryCount);
-    }
-
-    [Fact]
     public async Task Missing_party_member_cannot_silently_open_a_partial_selection()
     {
         await TestGameplay.RunAsync(async () =>
@@ -581,32 +552,6 @@ public sealed class PartySelectDungeonHandlerTests
             Assert.Null(world.Areas.Find(Leader.CharacterId));
             Assert.Null(world.Areas.Find(Member.CharacterId));
         });
-    }
-
-    [Fact]
-    public async Task Cancelling_while_acquiring_commit_gates_rolls_back_before_leaving_town()
-    {
-        var world = World(withTownProjection: true);
-        world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
-        var blocker = await world.TransitionGate.AcquireAsync(
-            Leader.AccountId,
-            UserAccessMode.Exclusive,
-            CancellationToken.None);
-        using var cancellation = new CancellationTokenSource();
-        var pending = world.Handler.HandleAsync(
-            Dispatch(Leader), Request(), cancellation.Token).AsTask();
-        await Task.Yield();
-        Assert.False(pending.IsCompleted);
-
-        cancellation.Cancel();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
-        await blocker.DisposeAsync();
-
-        Assert.Equal(
-            [Leader.CharacterId, Member.CharacterId],
-            world.Runs.Ended.OrderBy(value => value.Value));
-        Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
-        Assert.True(Member.Owns(world.Areas.Find(Member.CharacterId)!));
     }
 
     [Fact]

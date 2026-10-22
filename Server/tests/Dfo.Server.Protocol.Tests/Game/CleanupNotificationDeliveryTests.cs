@@ -10,6 +10,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game;
 
@@ -71,6 +72,7 @@ public sealed class CleanupNotificationDeliveryTests
             new FixedSelectedSessions(partyMember, townObserver),
             new FixedPresence(partyMember, townObserver));
 
+        await TestGameplay.RunAsync(async () =>
         await new CleanupNotificationDelivery(sender, notifications, partyDelivery).DeliverAsync(
             new SelectedSessionCleanupNotificationPlan(
                 Owner,
@@ -90,7 +92,7 @@ public sealed class CleanupNotificationDeliveryTests
                     [new PartyDirectoryRecipientGroup(
                         new PartyDirectoryScope(11, 1, 1),
                         [partyMember, townObserver])])),
-            CancellationToken.None);
+            CancellationToken.None));
 
         Assert.Equal(["owner", "peers", "party", "party"], order);
         Assert.IsType<SessionCleanupAnnounced>(notifications.Published[0].Notification);

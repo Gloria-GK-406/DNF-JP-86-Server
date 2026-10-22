@@ -823,13 +823,8 @@ public sealed class JoustIntegrationTests
     [Fact]
     public async Task Native_query_holds_selection_lease_until_exact_physical_batch_is_sent()
     {
-        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();var gate=f.Services.GetRequiredService<Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate>();
-        Task<IAsyncDisposable>? pending=null;var started=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        f.Sender.BeforeSend=()=>
-        {
-            pending=Task.Run(async()=>{started.SetResult();return await gate.AcquireAsync(f.Session.AccountId,Dfo.Server.Application.Commands.UserAccessMode.Exclusive,default);});
-            started.Task.GetAwaiter().GetResult();Assert.False(pending.IsCompleted);
-        };
+        // The query is one CMD: no other CMD can take the selection between its read and the batch send.
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();
         await f.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(f.Connection),new JoustQueryRequest(new(1,0x04E6,0,1)),default);
         var ack=Assert.Single(f.Sender.Messages.OfType<JoustResponse>());
         Assert.Equal((ushort)0x04E6,ack.Type);Assert.Equal(0u,ack.Result);
@@ -838,7 +833,6 @@ public sealed class JoustIntegrationTests
             frame=>{Assert.Equal(1,frame[0]);Assert.Equal(0x04E6,BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));Assert.Equal(new byte[]{1,0,0,0,0},frame[15..]);},
             frame=>{Assert.Equal(0,frame[0]);Assert.Equal(0x04BA,BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));},
             frame=>{Assert.Equal(0,frame[0]);Assert.Equal(0x04B9,BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));});
-        await using var replacementLease=await pending!;f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(f.Session);
     }
     [Fact]
     public async Task Native_bet_confirmed_rollback_can_retry_same_frame_without_partial_debit()

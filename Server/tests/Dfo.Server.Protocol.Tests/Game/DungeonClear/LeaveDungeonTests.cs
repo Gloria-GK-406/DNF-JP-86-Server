@@ -159,40 +159,6 @@ public sealed class LeaveDungeonTests
         });
     }
 
-    [Fact]
-    public async Task Exit_owns_the_transition_until_its_last_town_frame_is_sent()
-    {
-        var gate = new SelectedSessionTransitionGate();
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var sender = new RecordingSender { BeforeSend = async messages =>
-        {
-            if (!messages.Any(x => x is UserAreaNotification)) return;
-            entered.TrySetResult();
-            await release.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        }};
-        var exit = StoryHandler(new OneRun(), sender, gate).HandleAsync(Dispatch(),
-            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 1), default).AsTask();
-        Task<IAsyncDisposable>? next = null;
-        try
-        {
-            await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            next = gate.AcquireAsync(Identity.AccountId, UserAccessMode.Exclusive, default).AsTask();
-            Assert.False(next.IsCompleted);
-            release.TrySetResult();
-            await exit.WaitAsync(TimeSpan.FromSeconds(5));
-            await (await next.WaitAsync(TimeSpan.FromSeconds(5))).DisposeAsync();
-            Assert.Single(sender.Sent.OfType<UserAreaNotification>());
-        }
-        finally
-        {
-            release.TrySetResult();
-            await exit.WaitAsync(TimeSpan.FromSeconds(5));
-            if (next is not null) await (await next.WaitAsync(TimeSpan.FromSeconds(5))).DisposeAsync();
-        }
-        Assert.Equal(0, gate.TrackedEntryCount);
-    }
-
     private static EplpCommandHandler StoryHandler(OneRun runs, RecordingSender sender,
         SelectedSessionTransitionGate? gate = null, IDungeonEntryIntentDomainService? intents = null) => new(
         new OneSession(Identity), new OneRuntimeSession(Entry()), new StandingWhereTheyAre(),
@@ -216,23 +182,6 @@ public sealed class LeaveDungeonTests
             await handler.HandleAsync(Dispatch(), new EplpCommandRequest(GameMessageMetadata.Empty, 1, 3), default);
             Assert.Empty(sender.Sent);
         });
-    }
-
-    [Fact]
-    public async Task An_exit_queued_for_an_old_run_does_not_end_its_replacement()
-    {
-        var runs = new OneRun();
-        var gate = new SelectedSessionTransitionGate();
-        var sender = new RecordingSender();
-        var blocker = await gate.AcquireAsync(Identity.AccountId, UserAccessMode.Exclusive, default);
-        var pending = StoryHandler(runs, sender, gate).HandleAsync(Dispatch(),
-            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 1), default).AsTask();
-        Assert.False(pending.IsCompleted);
-        runs.Replace();
-        await blocker.DisposeAsync();
-        await pending.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.False(runs.Ended);
-        Assert.Empty(sender.Sent);
     }
 
     [Theory]
@@ -272,12 +221,15 @@ public sealed class LeaveDungeonTests
         services.AddCommandHandler<LeaveDungeonCommand, LeaveDungeonResult, LeaveDungeonCommandHandler>(
             CommandExecutionKind.Direct, accountAccessMode: UserAccessMode.Exclusive);
         await using var provider = services.BuildServiceProvider();
+        await TestGameplay.RunAsync(provider, async () =>
+        {
         await using var lease = await provider.GetRequiredService<SelectedSessionTransitionGate>()
             .AcquireManyExclusiveAsync([Identity.AccountId], default);
         var result = await provider.GetRequiredService<ICommandBus>().SendAsync(
             new LeaveDungeonCommand(Identity, [Identity], runs.RunId)).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal([Identity.CharacterId], result.EndedCharacters);
         Assert.True(runs.Ended);
+        });
     }
 
     [Fact]
@@ -710,88 +662,6 @@ public sealed class LeaveDungeonTests
             Assert.Equal(SpawnAreaState, presence.AreaState);
             Assert.Empty(deliveries.Find(runs.RunId));
         });
-    }
-
-    [Fact]
-    public async Task A_return_waiting_on_the_transition_gate_cannot_overwrite_a_replacement()
-    {
-        var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
-        Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, Identity);
-        var runtime = Entry();
-        runtime = runtime with
-        {
-            Character = runtime.Character with
-            {
-                Identity = runtime.Character.Identity with
-                {
-                    CharacterId = Identity.CharacterId,
-                },
-            },
-        };
-        var currentViews = new FixedCurrentViews();
-        currentViews.Publish(Identity, runtime);
-        var areas = new SessionPresenceDomainService();
-        areas.Admit(new SessionPresence(
-            Identity.CharacterId,
-            Identity.ListenerPort,
-            StandingTownId,
-            StandingAreaId,
-            true,
-            Identity,
-            true,
-            10));
-        var sender = new RecordingSender();
-        var transitionGate = new SelectedSessionTransitionGate();
-        var projection = new TownAreaProjectionDelivery(
-            areas,
-            sessions,
-            currentViews,
-            new NoopNotificationBus(),
-            new NoopPartyTownProjection(),
-            sender,
-            SharedTownMovementDomainService.Instance);
-        var handler = new EplpCommandHandler(
-            sessions,
-            currentViews,
-            new StandingWhereTheyAre(),
-            new OneRun(),
-            new DungeonRunDeliveryRegistry(),
-            sender,
-            projection,
-            NullLogger<EplpCommandHandler>.Instance,
-            transitionGate);
-        var blocker = await transitionGate.AcquireAsync(
-            Identity.AccountId,
-            UserAccessMode.Exclusive,
-            CancellationToken.None);
-        var pending = handler.HandleAsync(
-            Dispatch(),
-            new EplpCommandRequest(GameMessageMetadata.Empty, LeaveState, CapturedOption),
-            CancellationToken.None).AsTask();
-        Assert.False(pending.IsCompleted);
-
-        var replacement = SelectedSessionIdentity.Create(
-            Identity.AccountId,
-            Identity.CharacterId,
-            new NetworkConnectionId("replacement"),
-            Identity.ConnectionGeneration,
-            Identity.ListenerPort);
-        Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, replacement);
-        areas.Admit(new SessionPresence(
-            replacement.CharacterId,
-            replacement.ListenerPort,
-            StandingTownId,
-            StandingAreaId,
-            true,
-            replacement,
-            true,
-            10));
-        await blocker.DisposeAsync();
-        await pending;
-
-        Assert.True(replacement.Owns(
-            ((ITownAreaDomainService)areas).Find(replacement.CharacterId)!));
-        Assert.Empty(sender.Sent);
     }
 
     private static async Task<IReadOnlyList<IGameServerMessage>> Leave(byte state, OneRun runs)

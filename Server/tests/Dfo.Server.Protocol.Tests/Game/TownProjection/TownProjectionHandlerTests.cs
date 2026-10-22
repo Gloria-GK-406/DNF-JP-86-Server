@@ -167,53 +167,6 @@ public sealed class TownProjectionHandlerTests
     }
 
     [Fact]
-    public async Task AreaCrossingWaitsForTheSameAccountPartyTransitionGate()
-    {
-        var positions = Standing();
-        var gate = new SelectedSessionTransitionGate();
-        var presence = Presence();
-        var sender = new RecordingSender();
-        var notifications = new RecordingNotifications();
-        var sessions = new OneSession(Identity);
-        var runtimes = new OneRuntimeSession(Entry());
-        var held = await gate.AcquireAsync(
-            Identity.AccountId,
-            Dfo.Server.Application.Commands.UserAccessMode.Exclusive,
-            CancellationToken.None);
-        var handler = new SetUserAreaHandler(
-            sessions,
-            runtimes,
-            positions,
-            presence,
-            new OneChannel(),
-            new EveryTownDeclared(),
-            gate,
-            new TownAreaProjectionDelivery(
-                presence,
-                sessions,
-                runtimes,
-                notifications,
-                new NoopPartyTownProjectionDelivery(),
-                sender,
-                new EveryTownDeclared()),
-            NullLogger<SetUserAreaHandler>.Instance, new RecordingPersistence());
-
-        var pending = handler.HandleAsync(
-                Dispatch(),
-                new SetUserAreaRequest(
-                    GameMessageMetadata.Empty, CrossedTownId, CrossedAreaId, CrossedX, CrossedY),
-                CancellationToken.None)
-            .AsTask();
-
-        Assert.False(pending.IsCompleted);
-        Assert.Equal(WalkedAreaId, positions.PositionOf(Identity.CharacterId)!.AreaId);
-
-        await held.DisposeAsync();
-        await pending.WaitAsync(TimeSpan.FromSeconds(2));
-        Assert.Equal(CrossedAreaId, positions.PositionOf(Identity.CharacterId)!.AreaId);
-    }
-
-    [Fact]
     public async Task Crossing_areas_removes_the_mover_from_the_old_peers_and_publishes_to_the_new_peers()
     {
         await TestGameplay.RunAsync(async () =>

@@ -37,21 +37,12 @@ public sealed class ReplayStateSnapshotTests
             services.AddCommandHandler<AddGoldProbe, GoldProbeResult, AddGoldProbeHandler>(CommandExecutionKind.Transactional);
         });
         var sender = (ReplayBatchSender)fixture.Services.GetRequiredService<INetworkMessageSender>();
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        sender.BeforeSend = async () => { entered.SetResult(); await finish.Task; };
-        var replay = fixture.Services.GetRequiredService<IReplayStateProjectionDelivery>().RefreshAsync(fixture.Connection,
-            fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default).AsTask();
-        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        // Direct invocation runs through Capture/45 immediately. This is a different async flow
-        // from replay, and uses the real selected pipeline/transaction/SQLite gold table.
-        var newer = fixture.Services.GetRequiredService<ICommandBus>().SendAsync(new AddGoldProbe(fixture.Session)).AsTask();
-        try
-        {
-            Assert.False(newer.IsCompleted);
-            Assert.Equal(100000, fixture.Gold);
-        }
-        finally { finish.TrySetResult(); await replay.WaitAsync(TimeSpan.FromSeconds(5)); await newer.WaitAsync(TimeSpan.FromSeconds(5)); }
+        // The replay (read and batch) is one CMD and the settlement another: the settlement runs after the batch.
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+            await fixture.Services.GetRequiredService<IReplayStateProjectionDelivery>().RefreshAsync(fixture.Connection,
+            fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default));
+        Assert.Equal(100000, fixture.Gold);
+        await fixture.Services.GetRequiredService<ICommandBus>().SendAsync(new AddGoldProbe(fixture.Session)).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(100100, fixture.Gold);
         Assert.Equal(100000, System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(sender.Batches[0][0].AsSpan(26)));
         Assert.Equal(0, fixture.Services.GetRequiredService<SelectedSessionTransitionGate>().TrackedEntryCount);
@@ -64,21 +55,15 @@ public sealed class ReplayStateSnapshotTests
         var sender = (ReplayBatchSender)fixture.Services.GetRequiredService<INetworkMessageSender>();
         var delivery = fixture.Services.GetRequiredService<IReplayStateProjectionDelivery>();
         var gate = fixture.Services.GetRequiredService<SelectedSessionTransitionGate>();
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        sender.BeforeSend = async () => { entered.SetResult(); await finish.Task; };
         await fixture.Seed(69, 1000, 2);
-        var pending = delivery.RefreshAsync(fixture.Connection, fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default).AsTask();
-        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        Task exclusive;
-        using (ExecutionContext.SuppressFlow())
-            exclusive = Task.Run(async () => { await using var held = await gate.AcquireAsync(fixture.Session.AccountId, UserAccessMode.Exclusive, default); });
-        Assert.False(exclusive.IsCompleted);
-        finish.SetResult(); await pending; await exclusive.WaitAsync(TimeSpan.FromSeconds(5));
+        // The delivery runs as the CMD it belongs to in production; no other CMD can take the lease mid-batch.
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+        await delivery.RefreshAsync(fixture.Connection, fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default);
         Assert.Same(fixture.Connection, sender.Connection);
         Assert.Equal(6, Assert.Single(sender.Batches).Length);
         Assert.All(sender.Batches[0], x => Assert.Equal(0, x[0]));
-        await fixture.Seed(69, 1000, 5); sender.BeforeSend = null;
+        await fixture.Seed(69, 1000, 5);
         await delivery.RefreshAsync(fixture.Connection, fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default);
         Assert.NotEqual(sender.Batches[0][0], sender.Batches[1][0]);
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await delivery.RefreshAsync(
@@ -90,6 +75,7 @@ public sealed class ReplayStateSnapshotTests
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await delivery.RefreshAsync(fixture.Connection,
                 fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default));
         Assert.Equal(3, sender.Batches.Count); Assert.Equal(0, gate.TrackedEntryCount);
+        });
     }
 
     [SkippableFact]
@@ -185,27 +171,11 @@ public sealed class ReplayStateSnapshotTests
     {
         using var fixture = new ShopFixture(); var gate = fixture.Services.GetRequiredService<SelectedSessionTransitionGate>();
         var original = fixture.Session;
-        var held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        Task holder;
-        using (ExecutionContext.SuppressFlow())
-            holder = Task.Run(async () =>
-            {
-                await using var exclusive = await gate.AcquireAsync(original.AccountId, UserAccessMode.Exclusive, default);
-                held.SetResult(); await release.Task;
-            });
-        await held.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        try
-        {
-            // Invoke on this flow: Capture runs synchronously before the first 45 lease await.
-            // The exclusive holder is a different flow, so this cannot accidentally borrow it.
-            var pending = fixture.Services.GetRequiredService<ICommandBus>().SendAsync(
-                new ReadReplayStateCommand(original, new(ReplayProjectionNeeds.Inventory, []))).AsTask();
-            Assert.False(pending.IsCompleted);
-            fixture.Select(2); release.SetResult();
-            await Assert.ThrowsAsync<InvalidOperationException>(() => pending.WaitAsync(TimeSpan.FromSeconds(5)));
-        }
-        finally { release.TrySetResult(); await holder.WaitAsync(TimeSpan.FromSeconds(5)); }
+        // The replacement is a CMD that completes before the original read's CMD runs.
+        fixture.Select(2);
+        var pending = fixture.Services.GetRequiredService<ICommandBus>().SendAsync(
+            new ReadReplayStateCommand(original, new(ReplayProjectionNeeds.Inventory, []))).AsTask();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => pending.WaitAsync(TimeSpan.FromSeconds(5)));
         Assert.Equal(0, gate.TrackedEntryCount);
     }
 
@@ -215,12 +185,15 @@ public sealed class ReplayStateSnapshotTests
         var barriers = new ReadBarriers();
         using var fixture = new ShopFixture(services => services.AddSingleton<ICharacterInventoryEntryRepository>(provider =>
             new DelayedInventory(provider.GetRequiredService<InventoryEntryAssembly>(), barriers)));
+        // Staged on another account: the seed is a CMD and cannot run while the read's CMD is paused, so the
+        // mid-read write below moves the row to account 1 with raw SQL instead.
+        await fixture.SeedShared(3262, 7, account: 99);
         var read = Read(fixture, ReplayProjectionNeeds.Inventory);
         await barriers.Read.Task.WaitAsync(TimeSpan.FromSeconds(5));
         try
         {
             fixture.Sql("UPDATE character_stats SET carried_gold=200000 WHERE character_id=1");
-            await fixture.SeedShared(3262, 7);
+            fixture.Sql("UPDATE item_slots SET owner_id=1 WHERE owner_scope='account' AND owner_id=99 AND list_type=240");
             barriers.Release.TrySetResult();
             var snapshot = await read.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.Equal(100000, snapshot.Inventory!.Character().VirtualResources.Single(x => x.SlotIndex == 0).Value);

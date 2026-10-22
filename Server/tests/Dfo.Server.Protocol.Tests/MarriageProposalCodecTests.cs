@@ -4,6 +4,7 @@ using Dfo.Server.Protocol.Game.MarriageProposal;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Marriage;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests;
 
@@ -151,22 +152,18 @@ public sealed class MarriageProposalCodecTests
         var gate = new SelectedSessionTransitionGate();
         var a = SelectedSessionIdentity.Create(new(1), new(71), new("first"), 1, 10011);
         var b = SelectedSessionIdentity.Create(new(2), new(72), new("second"), 1, 10011);
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var order = new List<string>();
-        var first = WeddingProposalExecution.RunAsync(gate, a, b, async () =>
+        // Each party's proposal is one CMD; the second runs after the first has sent both of its frames.
+        var first = TestGameplay.RunAsync(async () => await WeddingProposalExecution.RunAsync(gate, a, b, async () =>
         {
             await using var own = await gate.BorrowOrAcquireSharedAsync(a.AccountId, default);
             await using var peer = await gate.BorrowOrAcquireSharedAsync(b.AccountId, default);
-            order.Add("first-ACK"); entered.SetResult();
-            await finish.Task;
+            order.Add("first-ACK");
             order.Add("first-NOTI");
-        }, default).AsTask();
-        await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
-        var second = WeddingProposalExecution.RunAsync(gate, b, a, () =>
-        { order.Add("second-ACK+NOTI"); return ValueTask.CompletedTask; }, default).AsTask();
-        Assert.False(second.IsCompleted);
-        finish.SetResult();
+        }, default));
+        await first.WaitAsync(TimeSpan.FromSeconds(3));
+        var second = TestGameplay.RunAsync(async () => await WeddingProposalExecution.RunAsync(gate, b, a, () =>
+        { order.Add("second-ACK+NOTI"); return ValueTask.CompletedTask; }, default));
         await Task.WhenAll(first, second).WaitAsync(TimeSpan.FromSeconds(3));
         Assert.Equal(["first-ACK", "first-NOTI", "second-ACK+NOTI"], order);
     }

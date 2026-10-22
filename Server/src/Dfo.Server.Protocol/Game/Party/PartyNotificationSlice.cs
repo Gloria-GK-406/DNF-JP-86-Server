@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
@@ -464,7 +465,7 @@ public sealed class PartyProjectionStreamRegistry
     internal PartyDeliveryStream GetOrAdd(long generation) =>
         streams.GetOrAdd(generation, static _ => new PartyDeliveryStream());
 
-    internal async ValueTask<IDisposable> EnterParticipantsAsync(
+    internal ValueTask<IDisposable> EnterParticipantsAsync(
         IEnumerable<SelectedSessionIdentity> participants,
         CancellationToken cancellationToken)
     {
@@ -479,8 +480,8 @@ public sealed class PartyProjectionStreamRegistry
         try
         {
             for (; acquired < gates.Length; acquired++)
-                await gates[acquired].WaitAsync(cancellationToken).ConfigureAwait(false);
-            return new PartyParticipantLease(gates);
+                GameplayGateAssertion.Enter(gates[acquired], "PartyParticipantGate", cancellationToken);
+            return ValueTask.FromResult<IDisposable>(new PartyParticipantLease(gates));
         }
         catch
         {
@@ -658,7 +659,7 @@ public sealed class PartyNotificationDelivery(
         using var participantLease = await streams.EnterParticipantsAsync(
             PlanParticipants(plan, clearAudience, resolver), cancellationToken).ConfigureAwait(false);
         var stream = streams.GetOrAdd(generation);
-        await stream.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        GameplayGateAssertion.Enter(stream.Gate, nameof(PartyDeliveryStream), cancellationToken);
         try
         {
             // Commands release their selected-session gates before transport work begins. A later
@@ -730,7 +731,7 @@ public sealed class PartyNotificationDelivery(
         ArgumentNullException.ThrowIfNull(requester);
         ArgumentNullException.ThrowIfNull(snapshot);
         var stream = streams.GetOrAdd(snapshot.Generation);
-        await stream.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        GameplayGateAssertion.Enter(stream.Gate, nameof(PartyDeliveryStream), cancellationToken);
         try
         {
             if (snapshot.Revision < stream.LatestRevision)
