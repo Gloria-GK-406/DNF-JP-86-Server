@@ -11,7 +11,7 @@ public sealed record NpcDisjointItemCommand(
     OnlineUserId OnlineUserId,
     SelectedSessionIdentity Session,
     BusinessSlot TargetSlot)
-    : ICommand<EquipmentDisjointResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<EquipmentDisjointResult>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
@@ -21,7 +21,7 @@ public sealed record PortableDisjointItemCommand(
     SelectedSessionIdentity Session,
     BusinessSlot TargetSlot,
     BusinessSlot DisjointToolSlot)
-    : ICommand<EquipmentDisjointResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<EquipmentDisjointResult>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

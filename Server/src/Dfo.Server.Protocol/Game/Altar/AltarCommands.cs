@@ -10,10 +10,9 @@ public sealed record AltarActionCommand(
     SelectedSessionIdentity Session, IReadOnlyList<SelectedSessionIdentity> Sessions,
     DungeonRunId RunId, long RoomVersion, long Generation, DateTimeOffset At,
     AltarOperation Operation, byte Difficulty = 0)
-    : ICommand<AltarCommandResult>, IMultiAccountCommand, IMultiSelectedSessionCommand
+    : ICommand<AltarCommandResult>, IMultiSelectedSessionCommand
 {
     SelectedSessionIdentity? ISelectedSessionCommand.Session => Session;
-    public IReadOnlyList<AccountId> AccountIds => Sessions.Select(x => x.AccountId).Distinct().ToArray();
 }
 public sealed record AltarCommandResult(AltarActionResult? Action);
 public sealed class AltarActionCommandHandler(IAltarDungeonDomainService altars)
@@ -34,10 +33,9 @@ public sealed class AltarActionCommandHandler(IAltarDungeonDomainService altars)
 public sealed record AltarDeathBatchCommand(
     SelectedSessionIdentity Session, IReadOnlyList<SelectedSessionIdentity> Sessions,
     DungeonRunId RunId, long RoomVersion, IReadOnlyList<ushort> Actors)
-    : ICommand<IReadOnlyList<MonsterDeathSettlementResult>>, IMultiAccountCommand, IMultiSelectedSessionCommand
+    : ICommand<IReadOnlyList<MonsterDeathSettlementResult>>, IMultiSelectedSessionCommand
 {
     SelectedSessionIdentity? ISelectedSessionCommand.Session => Session;
-    public IReadOnlyList<AccountId> AccountIds => Sessions.Select(x => x.AccountId).Distinct().ToArray();
 }
 public sealed class AltarDeathBatchCommandHandler(IMonsterDeathDomainService deaths, IAltarDungeonDomainService altars)
     : ICommandHandler<AltarDeathBatchCommand, IReadOnlyList<MonsterDeathSettlementResult>>

@@ -85,7 +85,7 @@ internal sealed class AvatarCompoundEncoder : GameCmdMessageEncoder<AvatarCompou
     }
 }
 public sealed record AvatarCompoundCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, AvatarCompoundInput Input)
-    : ICommand<AvatarCompoundResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<AvatarCompoundResult>, IRequestSettlementCommand, IAccountCommand
 { public AccountId AccountId => Session.AccountId; }
 public sealed class AvatarCompoundCommandHandler(IAvatarCompoundDomainService avatars)
     : ICommandHandler<AvatarCompoundCommand, AvatarCompoundResult>

@@ -7,7 +7,6 @@ using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Parties;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
@@ -457,8 +456,7 @@ public sealed class PartyCommandHandlerTests
         await TestGameplay.RunAsync(async () =>
         {
             var sessions = new SessionDirectory(Inviter, Invitee);
-            var gate = new SelectedSessionTransitionGate();
-            var published = new GateReentryNotificationBus(gate, Inviter.AccountId);
+            var published = new CountingNotificationBus();
             var delivery = new PartyNotificationDelivery(
                 published,
                 new PartyProjectionStreamRegistry(),
@@ -496,8 +494,7 @@ public sealed class PartyCommandHandlerTests
         await TestGameplay.RunAsync(async () =>
         {
             var sessions = new SessionDirectory(Inviter, Invitee);
-            var gate = new SelectedSessionTransitionGate();
-            var published = new GateReentryNotificationBus(gate, Inviter.AccountId);
+            var published = new CountingNotificationBus();
             var snapshot = Snapshot() with { Revision = 4 };
             var commands = new RecordingCommandBus(PartyOperationResult.Success(
                 new PartyNotificationPlan(
@@ -525,8 +522,7 @@ public sealed class PartyCommandHandlerTests
 
             Assert.IsType<SetPartyInfoCommand>(Assert.Single(commands.Commands));
             // This isolated delivery has not observed a full baseline for the generation, so the
-            // update is deliberately promoted to the three full-state phases. Every phase re-enters
-            // the account gate and therefore proves transport starts only after the handler releases it.
+            // update is deliberately promoted to the three full-state phases.
             Assert.Equal(3, published.Count);
         });
     }
@@ -731,21 +727,17 @@ public sealed class PartyCommandHandlerTests
         }
     }
 
-    private sealed class GateReentryNotificationBus(
-        SelectedSessionTransitionGate gate,
-        AccountId accountId) : Dfo.Server.Testing.ProjectionEventService
+    private sealed class CountingNotificationBus : Dfo.Server.Testing.ProjectionEventService
     {
         public int Count { get; private set; }
 
-        public override async ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
             CancellationToken cancellationToken)
         {
-            await using var lease = await gate.AcquireAsync(
-                accountId, UserAccessMode.Exclusive, cancellationToken);
             Count++;
-            return new NotificationDelivery([]);
+            return ValueTask.FromResult(new NotificationDelivery([]));
         }
     }
 

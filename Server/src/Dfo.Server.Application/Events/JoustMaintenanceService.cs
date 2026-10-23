@@ -12,7 +12,6 @@ internal sealed class JoustMaintenanceService(ICommandBus bus,IJoustDomainServic
 {
     private JoustState? observed;
     private readonly HashSet<string> openedRounds=[];
-    private readonly SemaphoreSlim ticks=new(1,1);
     private readonly CoalescingGameplaySource periodic=new(queue);
     public override async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -24,12 +23,7 @@ internal sealed class JoustMaintenanceService(ICommandBus bus,IJoustDomainServic
     internal ValueTask TickAsync(CancellationToken ct,bool suppressNotifications=false)=>new(suppressNotifications
         ? GameplayTimerWork.RunAsync(queue,"startup:JoustMaintenanceService",t=>TickCoreAsync(t,true),ct,GameplayCallSource.StartupRecovery)
         : GameplayTimerWork.RunAsync(queue,"timer:JoustMaintenanceService",t=>TickCoreAsync(t,false),ct));
-    private async ValueTask TickCoreAsync(CancellationToken ct,bool suppressNotifications)
-    {
-        GameplayGateAssertion.Enter(ticks,nameof(JoustMaintenanceService),ct);
-        try{await AdvanceAndPublishAsync(ct,suppressNotifications);}
-        finally{ticks.Release();}
-    }
+    private ValueTask TickCoreAsync(CancellationToken ct,bool suppressNotifications)=>AdvanceAndPublishAsync(ct,suppressNotifications);
     private async ValueTask AdvanceAndPublishAsync(CancellationToken ct,bool suppressNotifications)
     {
         var now=clock.GetUtcNow();

@@ -50,7 +50,7 @@ internal sealed class ResetRandomOptionEncoder : GameCmdMessageEncoder<ResetRand
 
 public sealed record ResetRandomOptionCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
     BusinessSlot Target, BusinessSlot Material, ushort OptionIndex)
-    : ICommand<EquipmentQualityResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<EquipmentQualityResult>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

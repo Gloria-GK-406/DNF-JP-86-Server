@@ -1,7 +1,6 @@
 using System.Buffers.Binary;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.MarriageProposal;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Marriage;
 using Dfo.Server.Testing;

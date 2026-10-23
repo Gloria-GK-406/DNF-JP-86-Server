@@ -4,7 +4,6 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,8 +14,7 @@ namespace Dfo.Server.Application.Commands;
 public sealed record SelectedSessionRecipient(SelectedSessionIdentity Session, NetworkConnectionContext? Connection, GameMessageMetadata? Metadata = null);
 
 /// <summary>Unknown settlement outcomes survive retries and session/cache rebinding.</summary>
-public sealed class SelectedSessionSafety(IServiceProvider services, SelectedSessionTransitionGate lifecycle,
-    ILogger<SelectedSessionSafety> logger)
+public sealed class SelectedSessionSafety(IServiceProvider services, ILogger<SelectedSessionSafety> logger)
 {
     // The connection fence outlives the online user: dispatch consults it before any session is
     // resolved, and the connection is only asked to close after it is raised. Whether a session
@@ -61,7 +59,6 @@ public sealed class SelectedSessionSafety(IServiceProvider services, SelectedSes
         services.GetService<ISelectedSessionDomainService>()?.Fence(recipient.Session);
         if (recipient.Connection is { } connection)
             lock (gate) connections.GetValue(connection, _ => new());
-        await using var lease = await lifecycle.BorrowOrAcquireSharedAsync(recipient.Session.AccountId, CancellationToken.None).ConfigureAwait(false);
         try { services.GetService<ICreatureRuntimeDomainService>()?.DiscardExact(recipient.Session); }
         catch (Exception cleanup) { TryLog(() => logger.LogError(cleanup, "Discard of uncertain creature runtime failed")); }
         TryLog(() => logger.LogError(error, "Unknown settlement blocked operation={Operation} reason={Reason} account={Account} character={Character} connection={Connection} generation={Generation} sequence={Sequence} ordinal={Ordinal}",

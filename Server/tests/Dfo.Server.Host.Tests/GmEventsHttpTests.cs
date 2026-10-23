@@ -52,7 +52,7 @@ public sealed class GmEventsHttpTests
     private static void Content(IServiceCollection services,Rules? rules=null)
     {
         services.AddSingleton<IWeeklyAttendanceDefinitionSource>(rules ?? new Rules());ConfigureDungeons(services);
-        services.AddCommandHandler<Act,bool,ActHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive);
+        services.AddCommandHandler<Act,bool,ActHandler>(CommandExecutionKind.Transactional);
     }
     private static EventChange Configure(long rev,string action="configure")=>new(2208,rev,action,"签到","周签到","说明","开始","结束",DateTimeOffset.Parse("2026-01-01T00:00:00Z"),DateTimeOffset.Parse("2028-01-01T00:00:00Z"));
     private static async Task<ManagedEventEntry> Get(GmTestHost host)=>Assert.Single((await host.Client.GetFromJsonAsync<ManagedEventList>(Url))!.Entries,e=>e.EventId==2208);
@@ -243,7 +243,7 @@ public sealed class GmEventsHttpTests
     {
         var path=new PvfContentOptions().ResolveArchivePath()!;
         await using var host=await GmTestHost.StartAsync(realContent:true,configuration:new Dictionary<string,string?> { ["Pvf:ArchivePath"]=path },configureServices:s=>
-        { ConfigureDungeons(s);s.AddCommandHandler<Act,bool,ActHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive); });
+        { ConfigureDungeons(s);s.AddCommandHandler<Act,bool,ActHandler>(CommandExecutionKind.Transactional); });
         await GmPlayerDirectoryHttpTests.SeedAsync(host);await Enable(host);
         var entry=(await host.Client.GetFromJsonAsync<WeeklyAttendanceSettings>(Url+"/weekly-attendance/settings"))!;
         Assert.True(entry.Available,entry.UnavailableReason);Assert.Equal("event/chn_event/chn_totalattendance.evt",entry.SourcePath);Assert.Equal(4,entry.RequiredClears);

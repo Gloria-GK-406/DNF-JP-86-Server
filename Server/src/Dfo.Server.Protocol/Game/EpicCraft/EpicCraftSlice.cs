@@ -41,7 +41,7 @@ internal sealed class EpicCraftEncoder : GameCmdMessageEncoder<EpicCraftResponse
         OnePayload(0x0313, message.Success ? new byte[] { 1 } : new byte[] { 0, message.Error });
 }
 public sealed record EpicCraftCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int EquipmentId)
-    : ICommand<EpicCraftReceipt>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<EpicCraftReceipt>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

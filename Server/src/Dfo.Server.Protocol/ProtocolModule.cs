@@ -166,9 +166,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<JoustResultsMessage,GameNotiStateSynchronizationEncoder<JoustResultsMessage>>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.Events.JoustDetailsChanged,JoustDetailsChangedHandler>(retryLimit:0);
         services.AddNotificationHandler<Dfo.Server.Abstractions.Events.JoustLifecycleNotification,JoustLifecycleNotificationHandler>(retryLimit:0);
-        services.AddCommandHandler<QueryJoustStateCommand,Dfo.Server.Data.Events.JoustState,QueryJoustStateCommandHandler>(CommandExecutionKind.ReadOnly,accountAccessMode:UserAccessMode.Exclusive);
-        services.AddCommandHandler<QueryJoustHistoryCommand,Dfo.Server.Data.Events.JoustHistoryEntry[],QueryJoustHistoryCommandHandler>(CommandExecutionKind.ReadOnly,accountAccessMode:UserAccessMode.Exclusive);
-        services.AddCommandHandler<JoustBetCommand,Dfo.Server.Data.Events.JoustBetResult,JoustBetCommandHandler>(CommandExecutionKind.Transactional,UserAccessMode.Exclusive,UserAccessMode.Exclusive);
+        services.AddCommandHandler<QueryJoustStateCommand,Dfo.Server.Data.Events.JoustState,QueryJoustStateCommandHandler>(CommandExecutionKind.ReadOnly);
+        services.AddCommandHandler<QueryJoustHistoryCommand,Dfo.Server.Data.Events.JoustHistoryEntry[],QueryJoustHistoryCommandHandler>(CommandExecutionKind.ReadOnly);
+        services.AddCommandHandler<JoustBetCommand,Dfo.Server.Data.Events.JoustBetResult,JoustBetCommandHandler>(CommandExecutionKind.Transactional);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceHandler>(ClientMessageType.GameWeeklyAttendance);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceDecoder>(0x0441,ClientMessageType.GameWeeklyAttendance);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceResponse,Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceResponseEncoder>();
@@ -178,7 +178,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledQuestStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledQuestStateMessage>>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.Events.EventsChanged,Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler>(retryLimit:0);
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompleted,Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompletedHandler>(retryLimit:0);
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommand,Dfo.Server.Data.Events.AttendanceClaimResult,Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommandHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommand,Dfo.Server.Data.Events.AttendanceClaimResult,Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommandHandler>(CommandExecutionKind.Transactional);
         services.AddSingleton<MailboxDelivery>();
         services.RegisterMessageHandler<MailboxSendHandler>(ClientMessageType.GameMailboxSend);
         services.RegisterMessageHandler<MailboxSendHandler>(ClientMessageType.GameMailboxSendMulti);
@@ -186,7 +186,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<MailboxSendMultiDecoder>(0x013B, ClientMessageType.GameMailboxSendMulti);
         services.AddGameCmdMessageEncoder<MailboxSendResponse, MailboxSendEncoder>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.Mail.MailDelivered, MailDeliveredHandler>(retryLimit: 0);
-        services.AddCommandHandler<MailboxCommand, MailboxResult, MailboxCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<MailboxCommand, MailboxResult, MailboxCommandHandler>(CommandExecutionKind.Transactional);
         services.AddNotificationHandler<MailboxCompleted, MailboxCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.MirrorQuestViewChanged, Dfo.Server.Protocol.Game.QuestProgress.MirrorQuestViewChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.QuestProgressViewChanged, Dfo.Server.Protocol.Game.QuestProgress.QuestProgressViewChangedHandler>(retryLimit: 0);
@@ -213,7 +213,7 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<DungeonPartyRecipients>();
         services.AddHostedService<DungeonPartyWipeService>();
         services.AddCommandHandler<RecoverStaminaCommand, RecoverStaminaResult, RecoverStaminaCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddNotificationHandler<StaminaRecovered, StaminaRecoveredHandler>(retryLimit: 0);
         services.TryAddSingleton<FatigueProjectionDelivery>();
         services.AddHostedService<FatigueDailyRefreshService>();
@@ -281,16 +281,16 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<ChargeRentPointHandler>(ClientMessageType.GameChargeRentPoint);
         services.AddGameCmdMessageEncoder<RentEquipmentResponse, RentEquipmentEncoder>();
         services.AddGameCmdMessageEncoder<ChargeRentPointResponse, ChargeRentPointEncoder>();
-        services.AddCommandHandler<RentEquipmentCommand, EquipmentRentalReceipt, RentEquipmentCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<ChargeRentPointCommand, LuckyStarMutation, ChargeRentPointCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<ReadRentalRefreshCommand, RentalRefreshSnapshot, ReadRentalRefreshCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<RentEquipmentCommand, EquipmentRentalReceipt, RentEquipmentCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<ChargeRentPointCommand, LuckyStarMutation, ChargeRentPointCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<ReadRentalRefreshCommand, RentalRefreshSnapshot, ReadRentalRefreshCommandHandler>(CommandExecutionKind.Transactional);
         services.AddDomainSubscriber<LuckyStarChanged, LuckyStarChangedSubscriber>("rental.lucky-star-refresh", DomainEventDeliveryPolicy.LiveOnly, x=>x.AccountId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
         services.AddNotificationHandler<LuckyStarPanelRefresh, LuckyStarPanelRefreshHandler>(retryLimit: 0);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectDecoder>(0x00FB, ClientMessageType.GameSharedEffect);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.UseStackable.SharedEffectHandler>(ClientMessageType.GameSharedEffect);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectAck, Dfo.Server.Protocol.Game.UseStackable.SharedEffectAckEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectNotification, Dfo.Server.Protocol.Game.UseStackable.SharedEffectNotificationEncoder>();
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.UseStackable.SharedEffectCommand, Dfo.Server.Abstractions.Inventory.SharedEffectUseResult, Dfo.Server.Protocol.Game.UseStackable.SharedEffectCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.UseStackable.SharedEffectCommand, Dfo.Server.Abstractions.Inventory.SharedEffectUseResult, Dfo.Server.Protocol.Game.UseStackable.SharedEffectCommandHandler>(CommandExecutionKind.Transactional);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentPostDecoder>(0x03F8, ClientMessageType.GameWeddingCommentPost);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentDeleteDecoder>(0x03F9, ClientMessageType.GameWeddingCommentDelete);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentReadDecoder>(0x03FA, ClientMessageType.GameWeddingCommentRead);
@@ -298,7 +298,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentHandler>(ClientMessageType.GameWeddingCommentDelete);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentHandler>(ClientMessageType.GameWeddingCommentRead);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentEncoder>();
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentCommand, Dfo.Server.Data.Marriage.MarriageGuestbookResult, Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentCommand, Dfo.Server.Data.Marriage.MarriageGuestbookResult, Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentCommandHandler>(CommandExecutionKind.Transactional);
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingBeginNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingBeginEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingAvatarNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingAvatarEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterEncoder>();
@@ -309,32 +309,32 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftDecoder>(0x03F2, ClientMessageType.GameWeddingMoneyGift);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftHandler>(ClientMessageType.GameWeddingMoneyGift);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftAckEncoder>();
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.AdvanceMarriageWeddingCommand, Dfo.Server.Data.Marriage.MarriageWeddingAdvanceResult, Dfo.Server.Protocol.Game.MarriageProposal.AdvanceMarriageWeddingCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.CompleteWeddingCleanupCommand, bool, Dfo.Server.Protocol.Game.MarriageProposal.CompleteWeddingCleanupCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterCommand, Dfo.Server.Data.Marriage.MarriageWeddingLetterResult, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftCommand, int, Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.AdvanceMarriageWeddingCommand, Dfo.Server.Data.Marriage.MarriageWeddingAdvanceResult, Dfo.Server.Protocol.Game.MarriageProposal.AdvanceMarriageWeddingCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.CompleteWeddingCleanupCommand, bool, Dfo.Server.Protocol.Game.MarriageProposal.CompleteWeddingCleanupCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterCommand, Dfo.Server.Data.Marriage.MarriageWeddingLetterResult, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftCommand, int, Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftCommandHandler>(CommandExecutionKind.Transactional);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalDecoder>(GameProtocol.WeddingProposalType, ClientMessageType.GameWeddingProposal);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterDecoder>(GameProtocol.WeddingChurchEntryType, ClientMessageType.GameWeddingChurchEntry);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterHandler>(ClientMessageType.GameWeddingChurchEntry);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchPreparationNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchPreparationEncoder>();
         services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.PrepareMarriageChurchCommand, Dfo.Server.Protocol.Game.MarriageProposal.MarriageChurchPreparationResult,
-            Dfo.Server.Protocol.Game.MarriageProposal.PrepareMarriageChurchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            Dfo.Server.Protocol.Game.MarriageProposal.PrepareMarriageChurchCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.EnterMarriageChurchCommand, Dfo.Server.Data.Marriage.MarriageChurchEntryResult,
-            Dfo.Server.Protocol.Game.MarriageProposal.EnterMarriageChurchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            Dfo.Server.Protocol.Game.MarriageProposal.EnterMarriageChurchCommandHandler>(CommandExecutionKind.Transactional);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxSelectDecoder>(0x03E5, ClientMessageType.GameCollectionBox);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxPutDecoder>(0x03E6, ClientMessageType.GameCollectionBox);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxWithdrawDecoder>(0x03E7, ClientMessageType.GameCollectionBox);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxExtendDecoder>(0x03E8, ClientMessageType.GameCollectionBox);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxHandler>(ClientMessageType.GameCollectionBox);
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxCommand, Dfo.Server.Abstractions.Characters.CollectionBoxMutation, Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxCommand, Dfo.Server.Abstractions.Characters.CollectionBoxMutation, Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxCommandHandler>(CommandExecutionKind.Transactional);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxAck, Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxAckEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxContentsMessage, Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxContentsEncoder>();
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleMakeDecoder>(0x0404, ClientMessageType.GameMarriageCapsule);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleGiveDecoder>(0x0405, ClientMessageType.GameMarriageCapsule);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleTakeDecoder>(0x0406, ClientMessageType.GameMarriageCapsule);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleHandler>(ClientMessageType.GameMarriageCapsule);
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleCommand, Dfo.Server.Data.Marriage.MarriageCapsuleResult, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleCommand, Dfo.Server.Data.Marriage.MarriageCapsuleResult, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleCommandHandler>(CommandExecutionKind.Transactional);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleAck, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleAckEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateMessage, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyMessage, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyEncoder>();
@@ -350,10 +350,10 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingHarvestDecoder>(0x0402, ClientMessageType.GameMarriageHousing);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingClearDecoder>(0x0403, ClientMessageType.GameMarriageHousing);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingRingDecoder>(0x03F4, ClientMessageType.GameMarriageHousing);
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.BuyItem.HousingBuyItemCommand, Dfo.Server.Protocol.Game.BuyItem.BuyItemOutcome, Dfo.Server.Protocol.Game.BuyItem.BuyItemCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.BuyItem.HousingBuyItemCommand, Dfo.Server.Protocol.Game.BuyItem.BuyItemOutcome, Dfo.Server.Protocol.Game.BuyItem.BuyItemCommandHandler>(CommandExecutionKind.Transactional);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingHandler>(ClientMessageType.GameMarriageHousing);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingAck, Dfo.Server.Protocol.Game.MarriageHousing.HousingAckEncoder>();
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingCommand, Dfo.Server.Data.Marriage.HousingResult, Dfo.Server.Protocol.Game.MarriageHousing.HousingCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingCommand, Dfo.Server.Data.Marriage.HousingResult, Dfo.Server.Protocol.Game.MarriageHousing.HousingCommandHandler>(CommandExecutionKind.Transactional);
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingChanged, Dfo.Server.Protocol.Game.MarriageHousing.HousingChangedHandler>(retryLimit: 0);
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingRoomMessage, Dfo.Server.Protocol.Game.HousingRoomEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingStorageMessage, Dfo.Server.Protocol.Game.HousingStorageEncoder>();
@@ -362,12 +362,12 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingTreeMessage, Dfo.Server.Protocol.Game.HousingTreeEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingRingMessage, Dfo.Server.Protocol.Game.HousingRingEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingRewardsMessage, Dfo.Server.Protocol.Game.HousingRewardsEncoder>();
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommand, bool, Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommand, bool, Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommandHandler>(CommandExecutionKind.Transactional);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointDecoder>(0x03F5, ClientMessageType.GameWeddingLovePoint);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointHandler>(ClientMessageType.GameWeddingLovePoint);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointAckEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotificationEncoder>();
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointCommand, Dfo.Server.Abstractions.Marriage.MarriageLovePointResult, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointCommand, Dfo.Server.Abstractions.Marriage.MarriageLovePointResult, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointCommandHandler>(CommandExecutionKind.Transactional);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerDecoder>(GameProtocol.WeddingPartnerType, ClientMessageType.GameWeddingPartnerQuery);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerHandler>(ClientMessageType.GameWeddingPartnerQuery);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerEncoder>();
@@ -376,9 +376,9 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalHandler>(ClientMessageType.GameWeddingProposal);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseHandler>(ClientMessageType.GameWeddingResponse);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.MarriageProposalCommand, Dfo.Server.Data.Marriage.MarriageProposalResult,
-            Dfo.Server.Protocol.Game.MarriageProposal.MarriageProposalCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            Dfo.Server.Protocol.Game.MarriageProposal.MarriageProposalCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.MarriageCeremonyCommand, Dfo.Server.Data.Marriage.MarriageCeremonyResult,
-            Dfo.Server.Protocol.Game.MarriageProposal.MarriageCeremonyCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            Dfo.Server.Protocol.Game.MarriageProposal.MarriageCeremonyCommandHandler>(CommandExecutionKind.Transactional);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalAckEncoder>();
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseAckEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalNotificationEncoder>();
@@ -392,9 +392,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchDecoder>(0x00FF, ClientMessageType.GameAltarDeathBatch);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyDecoder>(0x013D, ClientMessageType.GameAltarDifficulty);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.Altar.AltarActionCommand, Dfo.Server.Protocol.Game.Altar.AltarCommandResult,
-            Dfo.Server.Protocol.Game.Altar.AltarActionCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            Dfo.Server.Protocol.Game.Altar.AltarActionCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchCommand, IReadOnlyList<MonsterDeathSettlementResult>,
-            Dfo.Server.Protocol.Game.Altar.AltarDeathBatchCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            Dfo.Server.Protocol.Game.Altar.AltarDeathBatchCommandHandler>(CommandExecutionKind.Transactional);
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarInfoMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarInfoMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarMapMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarMapMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarWaveMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarWaveMessage>>();
@@ -407,7 +407,7 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<TournamentRewardSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<TournamentRewardSweepService>());
         services.AddCommandHandler<BeginTournamentRewardsCommand, bool, BeginTournamentRewardsCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.RegisterMessageHandler<TournamentRewardHandler>(ClientMessageType.GameTournamentRewardStatus);
         services.RegisterMessageHandler<TournamentRewardHandler>(ClientMessageType.GameTournamentSelectReward);
         services.AddGameCmdMessageDecoder<TournamentStatusDecoder>(0x01CA, ClientMessageType.GameTournamentRewardStatus);
@@ -418,9 +418,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<TournamentStatusResponse, TournamentStatusEncoder>();
         services.AddGameCmdMessageEncoder<TournamentSelectionResponse, TournamentSelectionEncoder>();
         services.AddCommandHandler<SelectTournamentRewardCommand, TournamentCommandResult, SelectTournamentRewardCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<EliminateTournamentCommand, TournamentCommandResult, EliminateTournamentCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.TryAddSingleton<DungeonPickupProjectionDelivery>();
         services.TryAddSingleton<DungeonPickupPostCommitCoordinator>();
         services.TryAddSingleton<DungeonClearProjectionDelivery>();
@@ -519,7 +519,7 @@ public sealed class ProtocolModule : IServerModule
     private static void RegisterCommands(IServiceCollection services)
     {
         services.AddCommandHandler<UseRevivalCoinCommand, DungeonRevivalResult, UseRevivalCoinCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<EndClearReturnCommand, EndPartyWipeResult, EndClearReturnCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<EndPartyWipeCommand, EndPartyWipeResult, EndPartyWipeCommandHandler>(
@@ -547,62 +547,50 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<AdvanceHuntEnemyQuestCommand, AdvanceHuntEnemyQuestResult, AdvanceHuntEnemyQuestCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<ApplyObjectDestructionCommand, ObjectDestructionResult, ApplyObjectDestructionCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<ProcessMonsterDeathCommand, MonsterDeathSettlementResult, ProcessMonsterDeathCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<ApplyMonsterKillCommand, ApplyMonsterKillResult, ApplyMonsterKillCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<GrantClearExperienceCommand, ClearExperienceResult, GrantClearExperienceCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<PrepareReturnToSelectionCommand, PreparedReturnToSelection, PrepareReturnToSelectionCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<CompleteReturnToSelectionCommand, CompletedReturnToSelection, CompleteReturnToSelectionCommandHandler>(
-            CommandExecutionKind.Workflow, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Workflow);
         // Every command below reaches a write that outlives the process, so every one of them
         // opens a use case boundary. A write with no boundary settles on its own: it looks like it
         // worked, it is not taken back by whatever else the command was doing, and no test shows
         // it, because a lone write does succeed. The kind decides only that -- the pipeline treats
         // Direct, Workflow and Transactional identically everywhere else.
         services.AddCommandHandler<RedeemGameLoginCommand, RedeemGameLoginResult, RedeemGameLoginCommandHandler>(
-            CommandExecutionKind.Transactional,
-            UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<GetAccountCharacterRosterCommand, AccountCharacterRoster, GetAccountCharacterRosterCommandHandler>(
-            CommandExecutionKind.Direct,
-            accountAccessMode: UserAccessMode.Shared);
+            CommandExecutionKind.Direct);
         services.AddCommandHandler<CheckCharacterNameCommand, CharacterNameStatus, CheckCharacterNameCommandHandler>(
-            CommandExecutionKind.Direct,
-            accountAccessMode: UserAccessMode.Shared);
+            CommandExecutionKind.Direct);
 
         // Creation and deletion both derive a slot from the account's current roster and then write
         // against it, so they take the account exclusively. Two concurrent creations sharing access
         // would compute the same next slot.
         services.AddCommandHandler<CreateCharacterCommand, CharacterCreationResult, CreateCharacterCommandHandler>(
-            CommandExecutionKind.Transactional,
-            accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<DeleteCharacterCommand, CharacterDeletionResult, DeleteCharacterCommandHandler>(
-            CommandExecutionKind.Transactional,
-            accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<PrepareSelectedCharacterSessionCommand, PreparedSelectedCharacterSession, PrepareSelectedCharacterSessionCommandHandler>(
-            CommandExecutionKind.Transactional,
-            accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<CleanupExpiredCharacterItemsCommand, bool, CleanupExpiredCharacterItemsCommandHandler>(
-            CommandExecutionKind.Transactional,
-            accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<EnsureDailyContractPuppetsCommand, bool, EnsureDailyContractPuppetsCommandHandler>(
-            CommandExecutionKind.Transactional,
-            accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<PrepareSelectedCharacterStateCommand, SelectCharacterResult, PrepareSelectedCharacterStateCommandHandler>(
-            CommandExecutionKind.Transactional,
-            accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<ApplySelectedCharacterDailyRefillCommand, EntryInventoryPreparation, ApplySelectedCharacterDailyRefillCommandHandler>(
-            CommandExecutionKind.Transactional,
-            accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<PublishSelectedCharacterSessionCommand, PublishedSelectedCharacterSession, PublishSelectedCharacterSessionCommandHandler>(
-            CommandExecutionKind.Workflow,
-            accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Workflow);
         services.AddCommandHandler<MarkSelectedCharacterPvpReadyCommand, SelectedCharacterPvpPublication, MarkSelectedCharacterPvpReadyCommandHandler>(
-            CommandExecutionKind.Workflow,
-            accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Workflow);
         // One further go, decided by this notification rather than for it. A failure here is not
         // only a throw: a recipient who runs out of the per-recipient deadline counts too, and by
         // then the frame may already be with the transport -- so the second attempt can arrive as
@@ -619,18 +607,15 @@ public sealed class ProtocolModule : IServerModule
         // Without it the store would have no transaction to join and the change would land
         // outside any outcome that could take it back.
         services.AddCommandHandler<SynchronizeSelectedCharacterQuestsCommand, SynchronizedSelectedCharacterQuests, SynchronizeSelectedCharacterQuestsCommandHandler>(
-            CommandExecutionKind.Transactional,
-            accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<ReviveSelectedCharacterPetCommand, RevivedSelectedCharacterPet, ReviveSelectedCharacterPetCommandHandler>(
-            CommandExecutionKind.Transactional,
-            accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         // Not transactional, deliberately. Compensation is best effort: it collects what failed
         // and carries on, and it ends by throwing what it collected. A boundary here would take
         // back everything that had worked because something else did not -- the opposite of what
         // it is for. Its one lasting write, where the character was standing, settles on its own.
         services.AddCommandHandler<CompensateSelectedCharacterSessionCommand, CompensatedSelectedCharacterSession, CompensateSelectedCharacterSessionCommandHandler>(
-            CommandExecutionKind.Workflow,
-            accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Workflow);
 
         // Both act on one character's own container, which the registry already keeps per
         // character; neither reads or writes anything the account owns, so neither takes it.
@@ -638,7 +623,7 @@ public sealed class ProtocolModule : IServerModule
         // it afterwards would leave a window in which a move was several writes with nothing to
         // settle them together -- a window every test would pass through green.
         services.AddCommandHandler<MoveItemSpaceCommand, ItemMoveResult, MoveItemSpaceCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Unscoped, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<UseStackableCommand, ItemUseResult, UseStackableCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<IncreaseStatusCommand, IncreaseStatusResult, IncreaseStatusCommandHandler>(CommandExecutionKind.Transactional);
@@ -650,12 +635,12 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<RenameCreatureCommand, RenameCreatureResult, RenameCreatureCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<QuestClearCouponCommand, QuestClearCouponResult, QuestClearCouponCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
-        services.AddCommandHandler<StoreTitleCommand, TitleBookMutationResult, StoreTitleCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
-        services.AddCommandHandler<WithdrawTitleCommand, TitleBookMutationResult, WithdrawTitleCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
-        services.AddCommandHandler<EquipCarriedTitleReplacingMirrorCommand, TitleBookMutationResult, EquipCarriedTitleReplacingMirrorCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
-        services.AddCommandHandler<ReconcileAchievementCommand, AchievementReconciliationResult, ReconcileAchievementCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
-        services.AddCommandHandler<QueryTitleBookCommand, IReadOnlyList<CharacterTitleBookCategoryState>, QueryTitleBookCommandHandler>(CommandExecutionKind.ReadOnly, UserAccessMode.Shared, UserAccessMode.Shared);
+            CommandExecutionKind.Transactional);
+        services.AddCommandHandler<StoreTitleCommand, TitleBookMutationResult, StoreTitleCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<WithdrawTitleCommand, TitleBookMutationResult, WithdrawTitleCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<EquipCarriedTitleReplacingMirrorCommand, TitleBookMutationResult, EquipCarriedTitleReplacingMirrorCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<ReconcileAchievementCommand, AchievementReconciliationResult, ReconcileAchievementCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<QueryTitleBookCommand, IReadOnlyList<CharacterTitleBookCategoryState>, QueryTitleBookCommandHandler>(CommandExecutionKind.ReadOnly);
         services.AddDomainSubscriber<AchievementProgressChanged, AchievementEventSubscriber>("achievement.noti", DomainEventDeliveryPolicy.LiveOnly, f => f.CharacterId.Value.ToString());
         services.AddDomainSubscriber<TitleUnlocked, TitleBookEventSubscriber>("title.noti-unlock", DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainSubscriber<TitleStored, TitleBookEventSubscriber>("title.noti-store", DomainEventDeliveryPolicy.LiveOnly);
@@ -663,7 +648,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddDomainSubscriber<ItemMirrorRemoved, TitleBookEventSubscriber>("inventory.noti-mirror-removed", DomainEventDeliveryPolicy.LiveOnly);
         services.AddNotificationHandler<AchievementChanged, AchievementChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<TitleBookChanged, TitleBookChangedHandler>(retryLimit: 0);
-        services.AddCommandHandler<SetTitleAppearanceCommand, bool, SetTitleAppearanceCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<SetTitleAppearanceCommand, bool, SetTitleAppearanceCommandHandler>(CommandExecutionKind.Transactional);
         services.RegisterMessageHandler<SetTitleAppearanceHandler>(ClientMessageType.GameSetTitleAppearance);
         services.AddGameCmdMessageDecoder<SetTitleAppearanceDecoder>(0x0239, ClientMessageType.GameSetTitleAppearance);
         services.AddGameCmdMessageEncoder<SetTitleAppearanceResponse, SetTitleAppearanceEncoder>();
@@ -680,92 +665,91 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<AchievementTriggerResponse, AchievementTriggerEncoder>();
         services.AddGameNotiMessageEncoder<TitleUnlockedMessage, GameNotiStateSynchronizationEncoder<TitleUnlockedMessage>>();
         services.AddCommandHandler<UseLevelUpTicketCommand, LevelUpTicketResult, UseLevelUpTicketCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<UseFatiguePotionCommand, OpeningInventoryReceipt, UseFatiguePotionCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddSingleton<FatiguePotionHandler>();
-        services.AddCommandHandler<UseEntryAllowanceCommand, OpeningInventoryReceipt, UseEntryAllowanceCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<UseEntryAllowanceCommand, OpeningInventoryReceipt, UseEntryAllowanceCommandHandler>(CommandExecutionKind.Transactional);
         services.AddSingleton<EntryAllowanceHandler>();
-        services.AddCommandHandler<ChangeSkillSlotCommand, bool, ChangeSkillSlotCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<ChangeSkillSlotCommand, bool, ChangeSkillSlotCommandHandler>(CommandExecutionKind.Transactional);
         services.RegisterMessageHandler<ChangeSkillSlotHandler>(ClientMessageType.GameChangeSkillSlot);
         services.AddGameCmdMessageDecoder<ChangeSkillSlotDecoder>(0x001C, ClientMessageType.GameChangeSkillSlot);
         services.AddGameCmdMessageEncoder<ChangeSkillSlotResponse, ChangeSkillSlotEncoder>();
-        services.AddCommandHandler<SwitchSkillBuildCommand, SwitchSkillBuildResponse, SwitchSkillBuildCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<SwitchSkillBuildCommand, SwitchSkillBuildResponse, SwitchSkillBuildCommandHandler>(CommandExecutionKind.Transactional);
         services.RegisterMessageHandler<SwitchSkillBuildHandler>(ClientMessageType.GameSwitchSkillBuild);
         services.AddGameCmdMessageDecoder<SwitchSkillBuildDecoder>(0x0104, ClientMessageType.GameSwitchSkillBuild);
         services.AddGameCmdMessageEncoder<SwitchSkillBuildResponse, SwitchSkillBuildEncoder>();
         services.AddCommandHandler<LearnSkillCommand, CharacterSkillLearningResult, LearnSkillCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<SellItemCommand, ItemSaleResult, SellItemCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<RepairItemCommand, EquipmentRepairResult, RepairItemCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<NpcDisjointItemCommand, EquipmentDisjointResult,
             NpcDisjointItemCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<PortableDisjointItemCommand, EquipmentDisjointResult,
             PortableDisjointItemCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<ReinforceItemCommand, EquipmentReinforcementResult,
             ReinforceItemCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<EnchantByBeadCommand, EquipmentEnchantResult,
             EnchantByBeadCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<TeleportCommand, TeleportConsumableResult, TeleportCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<MagicSealCommand, EquipmentMagicSealResult,
             MagicSealCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<CompoundItemCommand, RecipeCraftReceipt, CompoundItemCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<AvatarCompoundCommand, AvatarCompoundResult, AvatarCompoundCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<ResetRandomOptionCommand, EquipmentQualityResult, ResetRandomOptionCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<ItemSocketCommand, ItemSocketResult, ItemSocketCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<ResetItemQualityCommand, EquipmentQualityResult, ResetItemQualityCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<EpicCraftCommand, EpicCraftReceipt, EpicCraftCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<OutworldCommand, EquipmentOutworldResult,
             OutworldCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<ForgingCommand, EquipmentForgingResult,
             ForgingCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<SortLockCommand, SortLockResult, SortLockCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<WarehouseCommand, InventoryExpansionResult, WarehouseCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<SortItemCommand, SortItemResult, SortItemCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<DecreaseDurabilityCommand, EquipmentDurabilityResult,
-            DecreaseDurabilityCommandHandler>(CommandExecutionKind.Transactional,
-            UserAccessMode.Exclusive, UserAccessMode.Exclusive);
-        services.AddCommandHandler<SelectCrystalContractCommand, bool, SelectCrystalContractCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
-        services.AddCommandHandler<ConsumeSkillMaterialsCommand, MaterialConsumptionResult, ConsumeSkillMaterialsCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
-        services.AddCommandHandler<ConsumeEffectMaterialsCommand, MaterialConsumptionResult, ConsumeEffectMaterialsCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            DecreaseDurabilityCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<SelectCrystalContractCommand, bool, SelectCrystalContractCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<ConsumeSkillMaterialsCommand, MaterialConsumptionResult, ConsumeSkillMaterialsCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<ConsumeEffectMaterialsCommand, MaterialConsumptionResult, ConsumeEffectMaterialsCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<DiscardItemCommand, DeleteItemOutcome, DiscardItemCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<BuyItemCommand, BuyItemOutcome, BuyItemCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<CeraShopPurchaseCommand, CeraShopPurchaseResult, CeraShopPurchaseCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<MagicBoxBatchOpeningCommand, MagicBoxOpeningResult, MagicBoxBatchOpeningCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<MagicBoxSingleOpeningCommand, MagicBoxOpeningResult, MagicBoxSingleOpeningCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
-        services.AddCommandHandler<VendingMachineCommand, VendingMachineResult, VendingMachineCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
+        services.AddCommandHandler<VendingMachineCommand, VendingMachineResult, VendingMachineCommandHandler>(CommandExecutionKind.Transactional);
         services.AddSingleton<LotteryOpeningDelivery>();
-        services.AddCommandHandler<LotteryOpeningCommand, LotteryOpeningResult, LotteryOpeningCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<LotteryOpeningCommand, LotteryOpeningResult, LotteryOpeningCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<PackageOpeningCommand, PackageOpeningResult, PackageOpeningCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<AvatarPackageOpeningCommand, PackageOpeningResult, AvatarPackageOpeningCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<QueryShopPurchaseCountsCommand, NpcShopPurchaseCountsResult, QueryShopPurchaseCountsCommandHandler>(
-            CommandExecutionKind.Direct, UserAccessMode.Shared, UserAccessMode.Shared);
+            CommandExecutionKind.Direct);
         // A tutorial step's items settle together, and through the same container everything else
         // writes through.
         services.AddCommandHandler<
@@ -848,11 +832,11 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<DeleteCharacterHandler>(ClientMessageType.GameDeleteCharacter);
         services.RegisterMessageHandler<MercenaryInfoHandler>(ClientMessageType.GameMercenaryInfo);
         services.RegisterTelemetryMessageHandler<HiddenCharacterInfoHandler>(ClientMessageType.GameHiddenCharacterInfo);
-        services.AddCommandHandler<SaveCharacterOptionCommand, bool, SaveCharacterOptionCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<SaveCharacterOptionCommand, bool, SaveCharacterOptionCommandHandler>(CommandExecutionKind.Transactional);
         services.RegisterMessageHandler<SaveCharacterOptionHandler>(ClientMessageType.GameSaveCharacterOption);
         services.AddGameCmdMessageDecoder<SaveCharacterOptionDecoder>(0x01C0, ClientMessageType.GameSaveCharacterOption);
-        services.AddCommandHandler<SaveClientSettingsCommand, bool, SaveClientSettingsCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
-        services.AddCommandHandler<ActivateClientHotkeyProfileCommand, bool, ActivateClientHotkeyProfileCommandHandler>(CommandExecutionKind.Direct, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<SaveClientSettingsCommand, bool, SaveClientSettingsCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<ActivateClientHotkeyProfileCommand, bool, ActivateClientHotkeyProfileCommandHandler>(CommandExecutionKind.Direct);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysHandler>(ClientMessageType.GameSaveHotkeys);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysDecoder>(0x00C6, ClientMessageType.GameSaveHotkeys);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatHandler>(ClientMessageType.GameSaveQuickChat);
@@ -879,23 +863,23 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<NoticeSeenHandler>(ClientMessageType.GameNoticeSeen);
         services.AddGameCmdMessageDecoder<NoticeSeenDecoder>(0x01DE, ClientMessageType.GameNoticeSeen);
         services.AddCommandHandler<MarkNoticeSeenCommand, bool, MarkNoticeSeenCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.RegisterMessageHandler<SecurityStatusHandler>(ClientMessageType.GameSecurityStatus);
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameRuntimeTingStatistic);
         services.RegisterMessageHandler<EnterSelectDungeonHandler>(ClientMessageType.GameEnterSelectDungeon);
         services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameSelectDungeon);
         services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameMirrorDungeonEntry);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommand, bool, Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonEntryDecoder>(0x02B6, ClientMessageType.GameMirrorDungeonEntry);
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionNotification, Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionEncoder>();
         services.RegisterMessageHandler<PrepareCycleDungeonEntryHandler>(ClientMessageType.GamePrepareCycleDungeonEntry);
         services.AddCommandHandler<PrepareCycleDungeonEntryCommand, CycleDungeonPreparation, PrepareCycleDungeonEntryCommandHandler>(
-            CommandExecutionKind.Direct, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Direct);
         services.AddGameCmdMessageDecoder<PrepareCycleDungeonEntryDecoder>(0x0308, ClientMessageType.GamePrepareCycleDungeonEntry);
         services.AddGameCmdMessageEncoder<PrepareCycleDungeonEntryResponse, PrepareCycleDungeonEntryEncoder>();
         services.AddCommandHandler<EnterDungeonCommand, DungeonEntryAttempt, EnterDungeonCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.RegisterMessageHandler<FinishLoadingHandler>(ClientMessageType.GameFinishLoading);
         services.RegisterMessageHandler<MoveMapHandler>(ClientMessageType.GameMoveMap);
         services.RegisterMessageHandler<StoryPauseHandler>(ClientMessageType.GameStoryPause);
@@ -908,17 +892,17 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IBossTowerDepartureSink, BossTowerDepartureProjectionSink>());
         services.TryAddSingleton<BossTowerReturnSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider => provider.GetRequiredService<BossTowerReturnSweepService>());
-        services.AddCommandHandler<EnterBossTowerCommand, BossTowerEntryResult, EnterBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<LoadBossTowerCommand, BossTowerActionResult, LoadBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<StartBossTowerCommand, BossTowerActionResult, StartBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<KillBossTowerActorCommand, BossTowerActionResult, KillBossTowerActorCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<AdvanceBossTowerCommand, BossTowerActionResult, AdvanceBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<DieInBossTowerCommand, BossTowerActionResult, DieInBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<LeaveBossTowerCommand, BossTowerActionResult, LeaveBossTowerCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<SynchronizeBossTowerLeaderCommand, BossTowerActionResult, SynchronizeBossTowerLeaderCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<SelectBossTowerResultCommand, BossTowerActionResult, SelectBossTowerResultCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<PickupBossTowerItemCommand, BossTowerPickupResult, PickupBossTowerItemCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<ReleaseBossTowerSelectionCommand, BossTowerActionResult, ReleaseBossTowerSelectionCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<EnterBossTowerCommand, BossTowerEntryResult, EnterBossTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<LoadBossTowerCommand, BossTowerActionResult, LoadBossTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<StartBossTowerCommand, BossTowerActionResult, StartBossTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<KillBossTowerActorCommand, BossTowerActionResult, KillBossTowerActorCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<AdvanceBossTowerCommand, BossTowerActionResult, AdvanceBossTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<DieInBossTowerCommand, BossTowerActionResult, DieInBossTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<LeaveBossTowerCommand, BossTowerActionResult, LeaveBossTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<SynchronizeBossTowerLeaderCommand, BossTowerActionResult, SynchronizeBossTowerLeaderCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<SelectBossTowerResultCommand, BossTowerActionResult, SelectBossTowerResultCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<PickupBossTowerItemCommand, BossTowerPickupResult, PickupBossTowerItemCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<ReleaseBossTowerSelectionCommand, BossTowerActionResult, ReleaseBossTowerSelectionCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<IllusionTowerProjectionDelivery>();
         services.TryAddSingleton<IllusionTowerPartyCoordinator>();
         services.TryAddSingleton<IllusionTowerDepartureProjectionQueue>();
@@ -959,7 +943,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<SelectCardHandler>(ClientMessageType.GameSelectCard);
         services.RegisterMessageHandler<EplpCommandHandler>(ClientMessageType.GameEplpCommand);
         services.AddCommandHandler<LeaveDungeonCommand, LeaveDungeonResult, LeaveDungeonCommandHandler>(
-            CommandExecutionKind.Direct, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Direct);
         services.RegisterMessageHandler<GiveUpGameHandler>(ClientMessageType.GameGiveUpGame);
         services.RegisterMessageHandler<BackToVillageHandler>(ClientMessageType.GameBackToVillage);
 
@@ -1299,7 +1283,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinDecoder>(0x00CF, ClientMessageType.GameDailyReviveCoin);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinResponse, Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinEncoder>();
         services.AddCommandHandler<Dfo.Server.Protocol.Game.ReviveCoin.ClaimDailyReviveCoinCommand, DailyReviveCoinResult, Dfo.Server.Protocol.Game.ReviveCoin.ClaimDailyReviveCoinCommandHandler>(
-            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddGameCmdMessageDecoder<AvatarPackageOpeningDecoder>(0x0207, ClientMessageType.GameAvatarPackageOpening);
         services.AddGameCmdMessageDecoder<GenCeraTicketMessageDecoder>(0x0041, ClientMessageType.GameGenCeraTicket);
         services.AddGameCmdMessageDecoder<ShopPurchaseCountDecoder>(

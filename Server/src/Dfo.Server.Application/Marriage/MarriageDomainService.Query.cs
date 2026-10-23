@@ -120,10 +120,6 @@ internal sealed partial class MarriageDomainService
     public async ValueTask<IReadOnlyList<AccountId>> CoupleAccountsAsync(SelectedSessionIdentity actor, CancellationToken ct) =>
         CoupleAccounts(eligibility.IsCurrent(actor) ? await ledger.ForSessionAsync(actor, ct).ConfigureAwait(false) : null, actor);
 
-    public async ValueTask<IReadOnlyList<AccountId>> WeddingAccountsAsync(Guid ceremony, CancellationToken ct) =>
-        await settlement.ReadAsync(ceremony, ct).ConfigureAwait(false) is { } wedding
-            ? await guests.AccountsAsync(wedding, ct).ConfigureAwait(false) : [];
-
     public async ValueTask<IReadOnlyList<Guid>> ActiveWeddingsAsync(CancellationToken ct) =>
         (await settlement.PendingAsync(ct).ConfigureAwait(false)).Select(x => x.Ceremony.Id).ToArray();
 }

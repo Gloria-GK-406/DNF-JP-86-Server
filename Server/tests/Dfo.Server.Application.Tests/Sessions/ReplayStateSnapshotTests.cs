@@ -11,7 +11,6 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Effects;
 using Dfo.Server.Application.Inventory;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Data.Characters;
@@ -45,7 +44,6 @@ public sealed class ReplayStateSnapshotTests
         await fixture.Services.GetRequiredService<ICommandBus>().SendAsync(new AddGoldProbe(fixture.Session)).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(100100, fixture.Gold);
         Assert.Equal(100000, System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(sender.Batches[0][0].AsSpan(26)));
-        Assert.Equal(0, fixture.Services.GetRequiredService<SelectedSessionTransitionGate>().TrackedEntryCount);
     }
 
     [Fact]
@@ -54,7 +52,6 @@ public sealed class ReplayStateSnapshotTests
         using var fixture = new ShopFixture(services => services.AddSingleton<INetworkMessageSender, ReplayBatchSender>());
         var sender = (ReplayBatchSender)fixture.Services.GetRequiredService<INetworkMessageSender>();
         var delivery = fixture.Services.GetRequiredService<IReplayStateProjectionDelivery>();
-        var gate = fixture.Services.GetRequiredService<SelectedSessionTransitionGate>();
         await fixture.Seed(69, 1000, 2);
         // The delivery runs as the CMD it belongs to in production; no other CMD can take the lease mid-batch.
         await TestGameplay.RunAsync(fixture.Services, async () =>
@@ -68,10 +65,9 @@ public sealed class ReplayStateSnapshotTests
         Assert.NotEqual(sender.Batches[0][0], sender.Batches[1][0]);
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await delivery.RefreshAsync(
             fixture.Connection with { }, fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default));
-        Assert.Equal(2, sender.Batches.Count); Assert.Equal(0, gate.TrackedEntryCount);
-        await using (var exclusiveOwner = await gate.BorrowOrAcquireExclusiveAsync(fixture.Session.AccountId, default))
-            await delivery.RefreshAsync(fixture.Connection, fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default);
-        Assert.Equal(3, sender.Batches.Count); Assert.Equal(0, gate.TrackedEntryCount);
+        Assert.Equal(2, sender.Batches.Count);
+        await delivery.RefreshAsync(fixture.Connection, fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default);
+        Assert.Equal(3, sender.Batches.Count);
         });
     }
 
@@ -166,14 +162,13 @@ public sealed class ReplayStateSnapshotTests
     [Fact]
     public async Task Replacement_while_waiting_for_lifecycle_lease_rejects_the_original_read()
     {
-        using var fixture = new ShopFixture(); var gate = fixture.Services.GetRequiredService<SelectedSessionTransitionGate>();
+        using var fixture = new ShopFixture();
         var original = fixture.Session;
         // The replacement is a CMD that completes before the original read's CMD runs.
         fixture.Select(2);
         var pending = fixture.Services.GetRequiredService<ICommandBus>().SendAsync(
             new ReadReplayStateCommand(original, new(ReplayProjectionNeeds.Inventory, []))).AsTask();
         await Assert.ThrowsAsync<InvalidOperationException>(() => pending.WaitAsync(TimeSpan.FromSeconds(5)));
-        Assert.Equal(0, gate.TrackedEntryCount);
     }
 
     [Fact]
@@ -219,7 +214,6 @@ public sealed class ReplayStateSnapshotTests
         await fixture.Seed(69, 1000, 2);
         await Assert.ThrowsAsync<IOException>(() => Read(fixture, ReplayProjectionNeeds.Inventory));
         Assert.Equal(2, fixture.Count(1000)); Assert.Equal(100000, fixture.Gold);
-        Assert.Equal(0, fixture.Services.GetRequiredService<SelectedSessionTransitionGate>().TrackedEntryCount);
     }
 
     [Fact]

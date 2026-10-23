@@ -29,7 +29,7 @@ internal sealed class SwitchSkillBuildEncoder : GameCmdMessageEncoder<SwitchSkil
         OnePayload(0x0104, message.Active is { } active ? new byte[] { 1, checked((byte)active) } : new byte[] { 0, 3 });
 }
 public sealed record SwitchSkillBuildCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, byte Current)
-    : ICommand<SwitchSkillBuildResponse>, IOnlineUserCommand, IAccountCommand
+    : ICommand<SwitchSkillBuildResponse>, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

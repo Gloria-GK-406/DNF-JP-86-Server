@@ -28,7 +28,7 @@ internal sealed class CapsuleMakeDecoder() : CapsuleDecoder(MarriageCapsuleActio
 internal sealed class CapsuleGiveDecoder() : CapsuleDecoder(MarriageCapsuleAction.Give);
 internal sealed class CapsuleTakeDecoder() : CapsuleDecoder(MarriageCapsuleAction.Take);
 public sealed record CapsuleCommand(SelectedSessionIdentity Actor, MarriageCapsuleAction Action, IReadOnlyList<AccountId> AccountIds)
-    : ICommand<MarriageCapsuleResult>, IMultiAccountCommand, IRequestSettlementCommand
+    : ICommand<MarriageCapsuleResult>, IRequestSettlementCommand
 { public SelectedSessionIdentity? Session => Actor; }
 public sealed class CapsuleCommandHandler(IMarriageCapsuleDomainService capsules) : ICommandHandler<CapsuleCommand, MarriageCapsuleResult>
 {

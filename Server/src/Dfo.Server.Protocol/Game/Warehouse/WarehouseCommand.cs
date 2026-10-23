@@ -9,7 +9,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Protocol.Game.Warehouse;
 
 public sealed record WarehouseCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, ushort Type, int Value, BusinessSlot? ItemSlot = null)
-    : ICommand<InventoryExpansionResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<InventoryExpansionResult>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

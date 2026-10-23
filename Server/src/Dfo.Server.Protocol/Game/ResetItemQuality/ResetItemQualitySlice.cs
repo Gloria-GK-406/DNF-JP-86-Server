@@ -57,7 +57,7 @@ internal sealed class ResetItemQualityEncoder : GameCmdMessageEncoder<ResetItemQ
 }
 public sealed record ResetItemQualityCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
     BusinessSlot Target, int ExpectedItemId, BusinessSlot Material)
-    : ICommand<EquipmentQualityResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<EquipmentQualityResult>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

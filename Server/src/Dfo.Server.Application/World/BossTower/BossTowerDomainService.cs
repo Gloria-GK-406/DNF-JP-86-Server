@@ -11,7 +11,6 @@ using Dfo.Server.Abstractions.World.BossTower;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.Quests;
-using Dfo.Server.Application.Commands.Pipeline;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -26,7 +25,7 @@ internal sealed class BossTowerDomainService(
     IMaterialConsumptionRuleService materialRules,
     IDungeonAdmissionDomainService admission, IEventManagementDomainService activities,
     IIndependentDropRuleService independent, IItemDeliveryDomainService delivery, IQuestProgressDomainService quests,
-    IDungeonRunDomainService ordinary, DomainTransactionScope scope, TransactionalExecutionGate executionGate, TimeProvider clock,
+    IDungeonRunDomainService ordinary, DomainTransactionScope scope, TimeProvider clock,
     IBossTowerRewardDomainService? rewards = null,
     IEventService? events = null, IDungeonParticipationDomainService? participation = null,
     ILogger<BossTowerDomainService>? logger = null)
@@ -57,7 +56,6 @@ internal sealed class BossTowerDomainService(
     private async ValueTask<T> Execute<T>(Func<ValueTask<T>> action, CancellationToken token)
     {
         if (scope.Current is not null) return await action().ConfigureAwait(false);
-        await using var admission = await executionGate.AcquireAsync(token).ConfigureAwait(false);
         await using var transaction = scope.Begin();
         var result = await action().ConfigureAwait(false);
         await transaction.CommitAsync(token).ConfigureAwait(false);

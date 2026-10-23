@@ -63,7 +63,7 @@ internal sealed class PackageOpeningEncoder : GameCmdMessageEncoder<PackageOpeni
     }
 }
 public sealed record PackageOpeningCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, PackageOpeningInput Input, AvatarPackageOpeningInput? AvatarInput = null)
-    : ICommand<PackageOpeningResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<PackageOpeningResult>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

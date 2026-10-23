@@ -90,7 +90,7 @@ internal sealed class ItemSocketEncoder : GameCmdMessageEncoder<ItemSocketRespon
     }
 }
 public sealed record ItemSocketCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, ItemSocketInput Input)
-    : ICommand<ItemSocketResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<ItemSocketResult>, IRequestSettlementCommand, IAccountCommand
 { public AccountId AccountId => Session.AccountId; }
 public sealed class ItemSocketCommandHandler(IItemSocketDomainService sockets) : ICommandHandler<ItemSocketCommand, ItemSocketResult>
 {

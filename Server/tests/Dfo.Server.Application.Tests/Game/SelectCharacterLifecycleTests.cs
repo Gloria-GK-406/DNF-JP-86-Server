@@ -11,7 +11,6 @@ using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Sessions;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Users;
@@ -527,11 +526,6 @@ public sealed partial class SelectCharacterLifecycleTests
                 fixture.AccountId, new CharacterId(500), new NetworkConnectionId("Game:old"),
                 1, StubChannelEntryPolicy.GeneralChannel.ListenerPort);
             fixture.Directory.Select(displaced);
-            fixture.Closer.OnClose = async () =>
-            {
-                await using var callbackLease = await fixture.TransitionGate.AcquireAsync(
-                    fixture.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
-            };
 
             await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None)
                 .AsTask().WaitAsync(TimeSpan.FromSeconds(2));
@@ -582,7 +576,6 @@ public sealed partial class SelectCharacterLifecycleTests
             RecordingNotifications notifications,
             SessionEntry sessionEntry,
             Preparation? preparation,
-            SelectedSessionTransitionGate transitionGate,
             RecordingCommandBus bus,
             SelectCharacterHandler handler,
             SelectCharacterRequest command,
@@ -604,7 +597,6 @@ public sealed partial class SelectCharacterLifecycleTests
             Notifications = notifications;
             SessionEntry = sessionEntry;
             Preparation = preparation;
-            TransitionGate = transitionGate;
             Bus = bus;
             Handler = handler;
             Command = command;
@@ -631,7 +623,6 @@ public sealed partial class SelectCharacterLifecycleTests
         public RecordingNotifications Notifications { get; }
         public SessionEntry SessionEntry { get; }
         public Preparation? Preparation { get; }
-        public SelectedSessionTransitionGate TransitionGate { get; }
         public RecordingCommandBus Bus { get; }
         public SelectCharacterHandler Handler { get; }
         public SelectCharacterRequest Command { get; }
@@ -732,7 +723,6 @@ public sealed partial class SelectCharacterLifecycleTests
                     partyProjection,
                     sender,
                     new EveryTownMovement());
-                var transitionGate = new SelectedSessionTransitionGate();
                 var preparation = refuseAdmission
                     ? null
                     : new Preparation(result, ledger, failPreparation, mutations);
@@ -774,7 +764,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 return new Fixture(
                     accountId, connectionId, result, ledger, directory, active, closer,
                     users, cleanup, mutations, inventory, sender, notifications, sessionEntry,
-                    preparation, transitionGate, bus, handler, command,
+                    preparation, bus, handler, command,
                     registered.OnlineUserId, authenticated.Generation);
             });
         }
@@ -872,8 +862,7 @@ public sealed partial class SelectCharacterLifecycleTests
                     Guid.NewGuid(),
                     command.GetType(),
                     handler.GetType(),
-                    CommandExecutionKind.Workflow,
-                    AccountAccessMode: UserAccessMode.Exclusive),
+                    CommandExecutionKind.Workflow),
                 command,
                 cancellationToken);
     }

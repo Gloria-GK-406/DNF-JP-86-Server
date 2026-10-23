@@ -29,14 +29,12 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
     private readonly IGameplayQueue queue;
     private readonly TimeProvider clock;
     private readonly ILogger<ScheduledTaskHostedService> logger;
-    private readonly int concurrency;
 
     public ScheduledTaskHostedService(IEnumerable<ScheduledTaskRegistration> registrations,
-        IServiceScopeFactory scopes, IGameplayQueue queue, TimeProvider clock, ScheduledTaskSchedulerOptions options,
+        IServiceScopeFactory scopes, IGameplayQueue queue, TimeProvider clock,
         ILogger<ScheduledTaskHostedService> logger)
     {
-        if (options.MaximumConcurrency < 1) throw new ArgumentOutOfRangeException(nameof(options));
-        this.scopes = scopes; this.queue = queue; this.clock = clock; this.logger = logger; concurrency = options.MaximumConcurrency;
+        this.scopes = scopes; this.queue = queue; this.clock = clock; this.logger = logger;
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var now = clock.GetUtcNow();
         foreach (var definition in registrations)
@@ -66,7 +64,6 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (due.Count == 0) return;
-        using var slots = new SemaphoreSlim(concurrency);
         using var stopping = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         try
         {
@@ -98,7 +95,7 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
                                 else job.Requested = latest;
                             }
                     }
-                    else Start(job, latest, slots, stopping.Token);
+                    else Start(job, latest, stopping.Token);
                 }
                 while (completed.Reader.TryRead(out var job))
                 {
@@ -107,7 +104,7 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
                     var pending = job.Pending;
                     job.Pending = null;
                     if (!stopping.IsCancellationRequested && !job.Disabled && pending is { } missed && missed <= clock.GetUtcNow())
-                        Start(job, missed, slots, stopping.Token);
+                        Start(job, missed, stopping.Token);
                 }
                 if (due.Count == 0 && executions.Count == 0) return;
                 await WaitAsync(stopping.Token).ConfigureAwait(false);
@@ -121,29 +118,28 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
         }
     }
 
-    private void Start(Job job, DateTimeOffset scheduledAt, SemaphoreSlim slots, CancellationToken ct)
+    private void Start(Job job, DateTimeOffset scheduledAt, CancellationToken ct)
     {
         job.Started = false; job.Requested = scheduledAt;
-        // A callback's synchronous prefix must not block the single timing loop. Until T-005 the Task.Run and
-        // the concurrency slots only decide which task queues first: each attempt runs on the executor.
-        job.Execution = Task.Run(() => RunAsync(job, slots, ct), CancellationToken.None);
+        // The callback runs as an executor job, so the timing loop only queues it here and never waits for it.
+        job.Execution = RunAsync(job, ct);
         executions.Add(job.Execution);
     }
 
-    private async Task RunAsync(Job job, SemaphoreSlim slots, CancellationToken ct)
+    private async Task RunAsync(Job job, CancellationToken ct)
     {
         try
         {
             for (var attempt = 1; attempt <= job.Definition.MaximumAttempts; attempt++)
             {
-                GameplayJob.AssertNotOnExecutor("Taking a scheduled task concurrency slot");
-                await slots.WaitAsync(ct).ConfigureAwait(false);
+                // Read again when the attempt starts: a queued run that comes due again runs once, at the latest time.
                 DateTimeOffset scheduledAt;
-                lock (job) { job.Started = true; scheduledAt = job.Requested; }
+                lock (job) scheduledAt = job.Requested;
                 try
                 {
                     await GameplayTimerWork.RunAsync(queue, $"timer:ScheduledTaskHostedService/{job.Definition.Id}", async token =>
                     {
+                        lock (job) { job.Started = true; scheduledAt = job.Requested; }
                         token.ThrowIfCancellationRequested();
                         await using (var scope = scopes.CreateAsyncScope())
                             await job.Definition.Execute(new(scope.ServiceProvider, job.Definition.Id,
@@ -164,7 +160,6 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
                     }
                     logger.LogWarning(error, "Scheduled task {TaskId} failed attempt={Attempt}; retrying", job.Definition.Id, attempt);
                 }
-                finally { slots.Release(); }
                 await Task.Delay(job.Definition.RetryDelay, clock, ct).ConfigureAwait(false);
             }
         }

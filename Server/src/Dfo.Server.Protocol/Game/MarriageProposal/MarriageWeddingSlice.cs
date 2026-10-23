@@ -112,8 +112,8 @@ internal sealed class WeddingGiftAckEncoder : GameCmdMessageEncoder<WeddingGiftA
         return OnePayload(0x03F2, b);
     }
 }
-public sealed record AdvanceMarriageWeddingCommand(Guid Ceremony, IReadOnlyList<AccountId> AccountIds)
-    : ICommand<MarriageWeddingAdvanceResult>, IMultiAccountCommand;
+public sealed record AdvanceMarriageWeddingCommand(Guid Ceremony)
+    : ICommand<MarriageWeddingAdvanceResult>;
 public sealed class AdvanceMarriageWeddingCommandHandler(IMarriageVenueDomainService venue)
     : ICommandHandler<AdvanceMarriageWeddingCommand, MarriageWeddingAdvanceResult>
 {
@@ -209,10 +209,9 @@ internal sealed class MarriageWeddingScheduler(IMarriageQueryDomainService marri
     {
         foreach (var ceremony in await marriage.ActiveWeddingsAsync(ct).ConfigureAwait(false))
         {
-            var accounts = await marriage.WeddingAccountsAsync(ceremony, ct).ConfigureAwait(false);
             try
             {
-                var result = (await commands.SendAsync(new AdvanceMarriageWeddingCommand(ceremony, accounts), ct).ConfigureAwait(false)).Transition;
+                var result = (await commands.SendAsync(new AdvanceMarriageWeddingCommand(ceremony), ct).ConfigureAwait(false)).Transition;
                 if (result is null) continue;
                 logger.LogInformation("Wedding {Ceremony} reached {Phase}", ceremony, result.Wedding.Phase);
                 var completed = result.Wedding.Phase == MarriageWeddingPhase.Completed;

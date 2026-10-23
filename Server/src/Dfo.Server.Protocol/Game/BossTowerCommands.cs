@@ -8,11 +8,10 @@ namespace Dfo.Server.Protocol.Game;
 
 public sealed record EnterBossTowerCommand(
     IReadOnlyList<TowerEntryMember> Members, SelectedSessionIdentity Leader, uint Seed, byte RequestMode, byte Difficulty, byte PracticeMode)
-    : ICommand<BossTowerEntryResult>, IMultiAccountCommand, IMultiSelectedSessionCommand
+    : ICommand<BossTowerEntryResult>, IMultiSelectedSessionCommand
 {
     public SelectedSessionIdentity Session => Leader;
     public IReadOnlyList<SelectedSessionIdentity> Sessions => Members.Select(value => value.Session).ToArray();
-    public IReadOnlyList<AccountId> AccountIds => Sessions.Select(value => value.AccountId).Distinct().ToArray();
 }
 
 public sealed class EnterBossTowerCommandHandler(IBossTowerDomainService towers)
@@ -23,11 +22,10 @@ public sealed class EnterBossTowerCommandHandler(IBossTowerDomainService towers)
         towers.EnterAsync(command.Members, command.Leader, command.Seed, token, command.RequestMode, command.Difficulty, command.PracticeMode);
 }
 
-public abstract record BossTowerActionCommand(BossTowerActionContext Context) : IMultiAccountCommand, IMultiSelectedSessionCommand
+public abstract record BossTowerActionCommand(BossTowerActionContext Context) : IMultiSelectedSessionCommand
 {
     public SelectedSessionIdentity Session => Context.Session;
     public IReadOnlyList<SelectedSessionIdentity> Sessions { get; init; } = [Context.Session];
-    public IReadOnlyList<AccountId> AccountIds => Sessions.Select(value => value.AccountId).Distinct().ToArray();
 }
 
 public sealed record LoadBossTowerCommand(BossTowerActionContext Context) : BossTowerActionCommand(Context), ICommand<BossTowerActionResult>;

@@ -11,9 +11,8 @@ public enum ClientSettingKind { Main, QuickChat, Hotkeys }
 
 public sealed record SaveClientSettingsCommand(ClientSettingsOrigin Origin, ClientSettingKind Kind,
     byte[] Payload, byte Bank = 0, ClientHotkeyUploadContext? Hotkeys = null)
-    : ICommand<bool>, IOnlineUserCommand, IAccountCommand, ISelectedSessionCommand
+    : ICommand<bool>, IAccountCommand, ISelectedSessionCommand
 {
-    public OnlineUserId OnlineUserId => Origin.Connection.OnlineUserId;
     public AccountId AccountId => Origin.AccountId;
     public SelectedSessionIdentity? Session => Origin.SelectedSession;
 }
@@ -33,9 +32,8 @@ public sealed class SaveClientSettingsCommandHandler(IClientSettingsDomainServic
 }
 
 public sealed record ActivateClientHotkeyProfileCommand(ClientSettingsOrigin Origin, byte KeyType)
-    : ICommand<bool>, IOnlineUserCommand, IAccountCommand, ISelectedSessionCommand
+    : ICommand<bool>, IAccountCommand, ISelectedSessionCommand
 {
-    public OnlineUserId OnlineUserId => Origin.Connection.OnlineUserId;
     public AccountId AccountId => Origin.AccountId;
     public SelectedSessionIdentity? Session => Origin.SelectedSession;
 }

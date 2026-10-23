@@ -2,7 +2,6 @@ namespace Dfo.Server.Application.Commands;
 
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.World;
-using Dfo.Server.Data.OnlineUsers;
 
 public enum CommandExecutionKind
 {
@@ -10,13 +9,6 @@ public enum CommandExecutionKind
     Transactional = 1,
     Workflow = 2,
     ReadOnly = 3,
-}
-
-public enum UserAccessMode
-{
-    Unscoped = 0,
-    Shared = 1,
-    Exclusive = 2,
 }
 
 /// <summary>A dispatchable command. Its CLR type is its identity.</summary>
@@ -45,20 +37,9 @@ public interface IMultiSelectedSessionCommand : ISelectedSessionCommand
     IReadOnlyList<SelectedSessionIdentity> Sessions { get; }
 }
 
-public interface IOnlineUserCommand : ICommand
-{
-    OnlineUserId OnlineUserId { get; }
-}
-
 public interface IAccountCommand : ICommand
 {
     AccountId AccountId { get; }
-}
-
-/// <summary>Accounts whose state must remain protected for one shared transaction.</summary>
-public interface IMultiAccountCommand : ICommand
-{
-    IReadOnlyList<AccountId> AccountIds { get; }
 }
 
 public interface ICommandBus
@@ -73,9 +54,7 @@ public sealed record CommandExecutionContext(
     Guid ExecutionId,
     Type CommandType,
     Type HandlerType,
-    CommandExecutionKind ExecutionKind,
-    UserAccessMode OnlineUserAccessMode = UserAccessMode.Unscoped,
-    UserAccessMode AccountAccessMode = UserAccessMode.Unscoped);
+    CommandExecutionKind ExecutionKind);
 
 /// <summary>The remainder of the pipeline, carrying the command's own result type.</summary>
 public delegate ValueTask<TResult> CommandExecutionDelegate<TResult>()

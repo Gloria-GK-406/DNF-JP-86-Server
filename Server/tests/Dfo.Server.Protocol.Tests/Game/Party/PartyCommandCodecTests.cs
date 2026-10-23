@@ -303,8 +303,6 @@ public sealed class PartyCommandCodecTests
         Assert.All(commands, value =>
         {
             Assert.Equal(CommandExecutionKind.Direct, value.ExecutionKind);
-            Assert.Equal(UserAccessMode.Unscoped, value.OnlineUserAccessMode);
-            Assert.Equal(UserAccessMode.Unscoped, value.AccountAccessMode);
         });
 
         Assert.Contains(

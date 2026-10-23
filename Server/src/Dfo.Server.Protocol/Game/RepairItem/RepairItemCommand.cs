@@ -9,7 +9,7 @@ namespace Dfo.Server.Protocol.Game.RepairItem;
 
 public sealed record RepairItemCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
     BusinessSlot? Slot, bool AutoRepair = false)
-    : ICommand<EquipmentRepairResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<EquipmentRepairResult>, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

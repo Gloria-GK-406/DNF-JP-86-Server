@@ -9,7 +9,7 @@ namespace Dfo.Server.Protocol.Game.LearnSkill;
 
 public sealed record LearnSkillCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
     byte PageIndex, IReadOnlyList<CharacterSkillLearningChange> Changes, byte Mode)
-    : ICommand<CharacterSkillLearningResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<CharacterSkillLearningResult>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

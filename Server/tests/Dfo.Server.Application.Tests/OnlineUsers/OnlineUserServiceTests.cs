@@ -3,7 +3,6 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
@@ -585,7 +584,6 @@ public sealed class UserServiceTests
     public async Task DisconnectWithoutSelectedSession_DoesNotWaitForAccountLifecycleGate()
     {
         var service = CreateService(new AccountId(105));
-        var lifecycleGate = new SelectedSessionTransitionGate();
         var observer = new OnlineUserConnectionObserver(
             service,
             new EmptySelectedSessions(), new NoopCleanup(), new StubChannelEntryPolicy(),
@@ -597,8 +595,6 @@ public sealed class UserServiceTests
             var registered = service.RegisterConnection(connection);
             await service.AuthenticateForTestAsync(registered.OnlineUserId);
         });
-        await using var blocker = await TestGameplay.RunAsync(async () => await lifecycleGate.AcquireAsync(
-            new AccountId(105), UserAccessMode.Exclusive, CancellationToken.None));
 
         await TestGameplay.RunAsync(async () =>
         {

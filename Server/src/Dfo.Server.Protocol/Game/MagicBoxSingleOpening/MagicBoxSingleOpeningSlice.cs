@@ -40,7 +40,7 @@ internal sealed class MagicBoxSingleOpeningEncoder : GameCmdMessageEncoder<Magic
         OnePayload(0x00D0, OpeningPayloads.Box(message.Input ?? new(0, 0, 0, -1, 0, 0), message.Result, false));
 }
 public sealed record MagicBoxSingleOpeningCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, MagicBoxOpeningInput Input)
-    : ICommand<MagicBoxOpeningResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<MagicBoxOpeningResult>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

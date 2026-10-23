@@ -11,7 +11,6 @@ using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Tests.Support;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
@@ -234,7 +233,6 @@ public sealed class PartySelectDungeonHandlerTests
             .AddSingleton<IPartyService>(new Parties(Snapshot()))
             .AddSingleton<IGameMessageSender>(sender)
             .AddSingleton(TownAreaProjectionTestFactory.Create(sessions, runtime, sender))
-            .AddSingleton<SelectedSessionTransitionGate>()
             .AddSingleton<Microsoft.Extensions.Logging.ILogger<BackToVillageHandler>>(
                 NullLogger<BackToVillageHandler>.Instance)
             .BuildServiceProvider();

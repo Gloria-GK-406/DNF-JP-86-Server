@@ -59,9 +59,7 @@ internal sealed class CommandBus(
                 Guid.NewGuid(),
                 registration.CommandType,
                 registration.HandlerType,
-                registration.ExecutionKind,
-                registration.OnlineUserAccessMode,
-                registration.AccountAccessMode);
+                registration.ExecutionKind);
             CommandExecutionDelegate<TResult> next = () =>
                 invoker.InvokeAsync(context, command, cancellationToken);
 

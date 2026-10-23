@@ -46,7 +46,7 @@ internal sealed class UseRevivalCoinEncoder : GameCmdMessageEncoder<UseRevivalCo
         => OnePayload(0x0029, EncodeBody(message));
 }
 public sealed record UseRevivalCoinCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Payer,
-    CharacterId Target, DungeonRunId RunId) : ICommand<DungeonRevivalResult>, IOnlineUserCommand, IAccountCommand
+    CharacterId Target, DungeonRunId RunId) : ICommand<DungeonRevivalResult>, IAccountCommand
 {
     public AccountId AccountId => Payer.AccountId;
 }

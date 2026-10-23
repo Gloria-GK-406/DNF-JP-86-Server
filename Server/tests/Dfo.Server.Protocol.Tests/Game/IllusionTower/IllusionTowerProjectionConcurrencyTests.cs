@@ -8,7 +8,6 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Parties;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -189,8 +188,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             using var request = new CancellationTokenSource();
             var commands = new CoordinatorCommands(
                 tower, parties, request, throwAfterParty: true);
-            var gate = new SelectedSessionTransitionGate();
-            var closer = new ReentrantCloser(gate, first.AccountId);
+            var closer = new Closer();
             var town = new NoTown();
             var coordinator = new IllusionTowerPartyCoordinator(
                 tower, parties, sessions, commands,
@@ -849,25 +847,6 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         {
             Closed.Add(connectionId);
             return ValueTask.CompletedTask;
-        }
-    }
-
-    private sealed class ReentrantCloser(
-        SelectedSessionTransitionGate gate,
-        AccountId account) : INetworkConnectionCloser
-    {
-        public List<NetworkConnectionId> Closed { get; } = [];
-
-        public ValueTask RequestCloseExactAsync(
-            NetworkConnectionContext expected, CancellationToken cancellationToken) =>
-            RequestCloseAsync(expected.ConnectionId, cancellationToken);
-
-        public async ValueTask RequestCloseAsync(
-            NetworkConnectionId connectionId, CancellationToken cancellationToken)
-        {
-            await using var lease = await gate.AcquireAsync(
-                account, UserAccessMode.Exclusive, cancellationToken);
-            Closed.Add(connectionId);
         }
     }
 

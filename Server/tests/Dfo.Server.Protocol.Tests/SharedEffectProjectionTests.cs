@@ -4,7 +4,6 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;

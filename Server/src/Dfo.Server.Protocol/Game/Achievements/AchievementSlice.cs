@@ -48,7 +48,7 @@ internal sealed class AchievementTriggerEncoder : GameCmdMessageEncoder<Achievem
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(AchievementTriggerResponse message) => OnePayload(0x01A1, message.Body());
 }
 public sealed record ReconcileAchievementCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int AchievementId)
-    : ICommand<AchievementReconciliationResult>, IOnlineUserCommand, IAccountCommand, ISelectedSessionCommand
+    : ICommand<AchievementReconciliationResult>, IAccountCommand, ISelectedSessionCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

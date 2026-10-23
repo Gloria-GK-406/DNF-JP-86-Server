@@ -2,7 +2,6 @@ using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Parties;

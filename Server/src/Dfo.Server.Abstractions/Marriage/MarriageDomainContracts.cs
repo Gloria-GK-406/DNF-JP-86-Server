@@ -26,7 +26,6 @@ public interface IMarriageQueryDomainService
     ValueTask<ushort> RemainingInvitationsAsync(Guid ceremony, CharacterId actor, CancellationToken ct);
     ValueTask<IReadOnlyList<uint>> InvitedAsync(Guid ceremony, CancellationToken ct);
     ValueTask<IReadOnlyList<AccountId>> CoupleAccountsAsync(SelectedSessionIdentity actor, CancellationToken ct);
-    ValueTask<IReadOnlyList<AccountId>> WeddingAccountsAsync(Guid ceremony, CancellationToken ct);
     ValueTask<IReadOnlyList<Guid>> ActiveWeddingsAsync(CancellationToken ct);
 }
 

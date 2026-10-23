@@ -5,11 +5,10 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Protocol.Game.DungeonEntry;
 
-public sealed record EnterDungeonCommand(DungeonEntryContext Entry) : ICommand<DungeonEntryAttempt>, IMultiAccountCommand, IMultiSelectedSessionCommand
+public sealed record EnterDungeonCommand(DungeonEntryContext Entry) : ICommand<DungeonEntryAttempt>, IMultiSelectedSessionCommand
 {
     public SelectedSessionIdentity? Session { get; init; }
     public IReadOnlyList<SelectedSessionIdentity> Sessions { get; init; } = [];
-    public IReadOnlyList<AccountId> AccountIds => Entry.Participants.Select(x => x.AccountId).Distinct().ToArray();
 }
 
 /// <summary>Route all entry kinds here; packet and projection layers do not choose game modes.</summary>

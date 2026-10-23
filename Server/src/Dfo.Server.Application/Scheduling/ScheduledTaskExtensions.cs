@@ -8,15 +8,12 @@ namespace Dfo.Server.Application.Scheduling;
 
 public static class ScheduledTaskExtensions
 {
-    public static IServiceCollection AddTaskScheduling(this IServiceCollection services,
-        ScheduledTaskSchedulerOptions? options = null)
+    public static IServiceCollection AddTaskScheduling(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
         // Every attempt runs on the executor, so a container with a scheduler has one.
         services.AddGameplayExecution();
         services.TryAddSingleton(TimeProvider.System);
-        if (options is null) services.TryAddSingleton(new ScheduledTaskSchedulerOptions());
-        else services.Replace(ServiceDescriptor.Singleton(options));
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, ScheduledTaskHostedService>());
         return services;
     }

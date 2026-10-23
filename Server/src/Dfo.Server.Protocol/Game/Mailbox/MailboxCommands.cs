@@ -13,7 +13,7 @@ namespace Dfo.Server.Protocol.Game.Mailbox;
 
 public enum MailboxOperation { Open, Claim, Read, Delete, Query, Send }
 public sealed record MailboxCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, MailboxOperation Operation,
-    long Id = 0, byte[]? Name = null, PlayerMailRequest? Send = null) : ICommand<MailboxResult>, IOnlineUserCommand, IAccountCommand
+    long Id = 0, byte[]? Name = null, PlayerMailRequest? Send = null) : ICommand<MailboxResult>, IAccountCommand
 { public AccountId AccountId => Session.AccountId; }
 public sealed record MailboxResult(CharacterMailboxEntryState? Inbox = null, MailboxAssetProjection? Assets = null, MailRecipient? Recipient = null);
 public sealed class MailboxCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,

@@ -174,7 +174,6 @@ public sealed partial class DomainEventDispatchTests
         var worker = f.Dispatcher.RunAsync(stop.Token);
         await TestGameplay.RunAsync(f.Services, async () =>
         {
-        await using (var admission = await f.Services.GetRequiredService<TransactionalExecutionGate>().AcquireAsync(default))
         await using (var tx = f.Scope.Begin())
         {
             await f.Events.EnqueueAsync(new Awarded("a", 3));
@@ -457,7 +456,6 @@ public sealed partial class DomainEventDispatchTests
         {
             await TestGameplay.RunAsync(Services, async () =>
             {
-                await using var admission = await Services.GetRequiredService<TransactionalExecutionGate>().AcquireAsync(default);
                 await using var tx = Scope.Begin();
                 await Events.EnqueueAsync(e);
                 await tx.CommitAsync(default);

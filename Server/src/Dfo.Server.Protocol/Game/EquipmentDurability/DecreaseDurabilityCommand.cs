@@ -9,7 +9,7 @@ namespace Dfo.Server.Protocol.Game.EquipmentDurability;
 
 public sealed record DecreaseDurabilityCommand(OnlineUserId OnlineUserId,
     SelectedSessionIdentity Session, BusinessSlot Slot)
-    : ICommand<EquipmentDurabilityResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<EquipmentDurabilityResult>, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

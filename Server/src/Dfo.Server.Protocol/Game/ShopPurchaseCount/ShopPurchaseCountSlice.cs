@@ -30,7 +30,7 @@ internal sealed class ShopPurchaseCountDecoder : IGameMessageDecoder
 }
 
 public sealed record QueryShopPurchaseCountsCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int NpcId)
-    : ICommand<NpcShopPurchaseCountsResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<NpcShopPurchaseCountsResult>, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

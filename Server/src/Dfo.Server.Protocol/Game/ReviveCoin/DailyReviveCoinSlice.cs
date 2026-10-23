@@ -34,7 +34,7 @@ internal sealed class DailyReviveCoinEncoder : GameCmdMessageEncoder<DailyRevive
     }
 }
 public sealed record ClaimDailyReviveCoinCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session)
-    : ICommand<DailyReviveCoinResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<DailyReviveCoinResult>, IAccountCommand
 { public AccountId AccountId => Session.AccountId; }
 public sealed class ClaimDailyReviveCoinCommandHandler(IReviveCoinDomainService coins)
     : ICommandHandler<ClaimDailyReviveCoinCommand, DailyReviveCoinResult>

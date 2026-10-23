@@ -1,7 +1,6 @@
 using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,8 +14,7 @@ public sealed class LoginSessionQueuedCommandTests
     public async Task ReplacedLoginCannotWriteAfterWaitingForTheAccountGateEvenAfterDisconnectCallback()
     {
         using var fixture = new AuthenticationFixture(configure: services => services
-            .AddCommandHandler<QueuedWrite, bool, WriteHandler>(CommandExecutionKind.Transactional,
-                accountAccessMode: UserAccessMode.Exclusive));
+            .AddCommandHandler<QueuedWrite, bool, WriteHandler>(CommandExecutionKind.Transactional));
         await fixture.RegisterAsync("player", "test password");
         var original = (await fixture.Store.FindAsync("player", default))!;
         var issued = await fixture.LoginAsync("player", "test password");

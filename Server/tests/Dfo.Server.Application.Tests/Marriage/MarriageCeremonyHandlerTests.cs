@@ -27,9 +27,9 @@ public sealed class MarriageCeremonyHandlerTests
                 s.AddSingleton<IMarriageCeremonyContentSource, Content>();
                 s.AddSingleton<Dfo.Server.Abstractions.Content.ITownDefinitionSource, ChurchTestTowns>();
                 s.AddCommandHandler<PrepareMarriageChurchCommand, MarriageChurchPreparationResult, PrepareMarriageChurchCommandHandler>(
-                    CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+                    CommandExecutionKind.Transactional);
                 s.AddCommandHandler<MarriageCeremonyCommand, MarriageCeremonyResult, MarriageCeremonyCommandHandler>(
-                    CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+                    CommandExecutionKind.Transactional);
             });
             await using var owned = f;
             foreach (var actor in new[] { f.Session, peer })

@@ -65,7 +65,7 @@ internal sealed class LotteryOpeningEncoder : GameCmdMessageEncoder<LotteryOpeni
     }
 }
 public sealed record LotteryOpeningCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int Slot, ushort Mode)
-    : ICommand<LotteryOpeningResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<LotteryOpeningResult>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

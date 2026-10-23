@@ -22,7 +22,7 @@ internal sealed class SetTitleAppearanceDecoder : IGameMessageDecoder
         new SetTitleAppearanceRequest(metadata, body.Length == 4 ? BinaryPrimitives.ReadInt32LittleEndian(body) : -1, body.Length == 4);
 }
 public sealed record SetTitleAppearanceCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int ItemId)
-    : ICommand<bool>, IOnlineUserCommand, IAccountCommand, ISelectedSessionCommand
+    : ICommand<bool>, IAccountCommand, ISelectedSessionCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

@@ -31,7 +31,7 @@ internal static class CharacterNameTagRegistration
         services.TryAddSingleton<ICharacterNameTagRuleService, CharacterNameTagRuleService>();
         services.TryAddSingleton<ICharacterNameTagDomainService, CharacterNameTagDomainService>();
         services.AddCommandHandler<ExpireCharacterNameTagCommand, bool, ExpireCharacterNameTagCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddDomainEvent<CharacterNameTagExpired>("character.name-tag-expired", 1);
         services.AddScheduledTaskFactory(_ => new("character.name-tag.expiration",
             new IntervalTaskSchedule(TimeSpan.FromMinutes(1)), async (context, ct) =>

@@ -7,11 +7,10 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Protocol.Game.MarriageProposal;
 
 public sealed record MarriageCeremonyCommand(SelectedSessionIdentity Actor, SelectedSessionIdentity Peer,
-    int Tier, int WaitIndex, byte? Response) : ICommand<MarriageCeremonyResult>, IMultiAccountCommand, IMultiSelectedSessionCommand
+    int Tier, int WaitIndex, byte? Response) : ICommand<MarriageCeremonyResult>, IMultiSelectedSessionCommand
 {
     public SelectedSessionIdentity? Session => Actor;
     public IReadOnlyList<SelectedSessionIdentity> Sessions => [Actor, Peer];
-    public IReadOnlyList<AccountId> AccountIds => [Actor.AccountId, Peer.AccountId];
 }
 
 public sealed class MarriageCeremonyCommandHandler(IMarriageCoupleDomainService couple)

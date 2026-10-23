@@ -85,11 +85,10 @@ internal sealed class WeddingResponseNotificationEncoder : GameNotiMessageEncode
 }
 
 public sealed record MarriageProposalCommand(SelectedSessionIdentity Actor, SelectedSessionIdentity Peer, byte? Response)
-    : ICommand<MarriageProposalResult>, IMultiAccountCommand, IMultiSelectedSessionCommand
+    : ICommand<MarriageProposalResult>, IMultiSelectedSessionCommand
 {
     public SelectedSessionIdentity? Session => Actor;
     public IReadOnlyList<SelectedSessionIdentity> Sessions => [Actor, Peer];
-    public IReadOnlyList<AccountId> AccountIds => [Actor.AccountId, Peer.AccountId];
 }
 public sealed class MarriageProposalCommandHandler(IMarriageCoupleDomainService couple)
     : ICommandHandler<MarriageProposalCommand, MarriageProposalResult>

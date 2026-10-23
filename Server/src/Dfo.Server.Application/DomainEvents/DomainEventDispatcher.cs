@@ -3,7 +3,6 @@ using System.Threading.Channels;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Transactions;
-using Dfo.Server.Application.Commands.Pipeline;
 using Dfo.Server.Application.Execution;
 using Dfo.Server.Application.Transactions;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,8 +26,11 @@ internal sealed class DomainEventWakeups(DomainEventRegistry registry)
 /// <summary>Each subscriber ID is serial; retries can be overtaken by later due facts.</summary>
 /// <remarks>
 /// The dispatcher is a producer (RQ-041): it reads due deliveries off the executor (read-only SQLite) and
-/// consumes each one as its own event CMD, waiting for it before the next. The group gates and the
-/// database admission gate stay until T-005; no job ever waits on a group gate.
+/// consumes each one as its own event CMD, waiting for it before the next. A group stays serial because
+/// it has one drain loop, and that loop waits for each event CMD before it queues the next. A test that
+/// drains a group from its own thread while the loop runs interleaves the reads, not the consumption:
+/// each delivery is still consumed once, and a backed-off one is not retried early, because
+/// <c>TryBeginAsync</c> claims a delivery only while it is pending and due.
 /// </remarks>
 internal sealed class DomainEventDispatcher
 {
@@ -36,26 +38,23 @@ internal sealed class DomainEventDispatcher
     private readonly IServiceProvider services;
     private readonly IServiceScopeFactory scopes;
     private readonly DomainTransactionScope transactions;
-    private readonly TransactionalExecutionGate gate;
     private readonly DomainEventWakeups wakeups;
     private readonly DomainEventInstance instance;
     private readonly TimeProvider clock;
     private readonly DomainEventDispatchOptions options;
     private readonly ILogger<DomainEventDispatcher> logger;
     private readonly IGameplayQueue queue;
-    private readonly Dictionary<string, SemaphoreSlim> groupGates;
     private IDomainEventPersistence Persistence => services.GetRequiredService<IDomainEventPersistence>();
 
     public DomainEventDispatcher(DomainEventRegistry registry, IServiceProvider services, IServiceScopeFactory scopes,
-        DomainTransactionScope transactions, TransactionalExecutionGate gate, DomainEventWakeups wakeups,
+        DomainTransactionScope transactions, DomainEventWakeups wakeups,
         DomainEventInstance instance, TimeProvider clock, DomainEventDispatchOptions options,
         ILogger<DomainEventDispatcher> logger, IGameplayQueue queue)
     {
         options.Validate();
         this.registry = registry; this.services = services; this.scopes = scopes; this.transactions = transactions;
-        this.gate = gate; this.wakeups = wakeups; this.instance = instance; this.clock = clock;
+        this.wakeups = wakeups; this.instance = instance; this.clock = clock;
         this.options = options; this.logger = logger; this.queue = queue;
-        groupGates = registry.Groups.Keys.ToDictionary(id => id, _ => new SemaphoreSlim(1, 1), StringComparer.Ordinal);
     }
 
     internal async ValueTask<int> DrainOnceAsync(CancellationToken cancellationToken = default)
@@ -70,28 +69,22 @@ internal sealed class DomainEventDispatcher
     {
         if (transactions.Current is not null)
             throw new InvalidOperationException("Dispatch begins outside the publishing business transaction.");
-        // A job would wait here on a gate a group loop holds while it waits for a CMD queued behind that job.
+        // Draining from inside a job would queue event CMDs and then wait for them behind itself (RQ-003).
         GameplayJob.AssertNotOnExecutor("Draining domain event deliveries");
-        var serial = groupGates[subscriberId];
-        await serial.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
+        var due = await Persistence.ReadDueAsync(subscriberId, clock.GetUtcNow(), options.BatchSize, cancellationToken)
+            .ConfigureAwait(false);
+        var processed = 0;
+        foreach (var delivery in due)
         {
-            var due = await Persistence.ReadDueAsync(subscriberId, clock.GetUtcNow(), options.BatchSize, cancellationToken)
-                .ConfigureAwait(false);
-            var processed = 0;
-            foreach (var delivery in due)
+            cancellationToken.ThrowIfCancellationRequested();
+            var consumed = false;
+            await GameplayTimerWork.RunAsync(queue, CommandTypeOf(delivery), async ct =>
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var consumed = false;
-                await GameplayTimerWork.RunAsync(queue, CommandTypeOf(delivery), async ct =>
-                {
-                    consumed = await ProcessAsync(delivery, ct).ConfigureAwait(false);
-                }, cancellationToken, SourceOf(delivery)).ConfigureAwait(false);
-                if (consumed) processed++;
-            }
-            return processed;
+                consumed = await ProcessAsync(delivery, ct).ConfigureAwait(false);
+            }, cancellationToken, SourceOf(delivery)).ConfigureAwait(false);
+            if (consumed) processed++;
         }
-        finally { serial.Release(); }
+        return processed;
     }
 
     // Transitional: every delivery is a new root. T-007 gives it the publishing CMD's chain instead.
@@ -120,7 +113,6 @@ internal sealed class DomainEventDispatcher
             logger.LogWarning(error, "Domain event {EventId} subscriber {SubscriberId} failed; terminal={Terminal}",
                 delivery.Event.EventId, delivery.SubscriberId, terminal);
             // The failed handler's entire transaction has already unwound before recording its retry.
-            await using var admission = await gate.AcquireAsync(ct).ConfigureAwait(false);
             await using var transaction = transactions.Begin();
             var delay = RetryDelay(delivery.AttemptCount);
             var description = error.ToString();
@@ -134,7 +126,6 @@ internal sealed class DomainEventDispatcher
     private async ValueTask<bool> ReliableAsync(PendingDomainEventDelivery delivery,
         DomainSubscriberRegistration subscriber, object envelope, CancellationToken ct)
     {
-        await using var admission = await gate.AcquireAsync(ct).ConfigureAwait(false);
         await using var transaction = transactions.Begin();
         if (!await Persistence.TryBeginAsync(delivery.Event.EventId, delivery.SubscriberId, clock.GetUtcNow(), ct)
                 .ConfigureAwait(false)) return false;
@@ -150,7 +141,6 @@ internal sealed class DomainEventDispatcher
         DomainSubscriberRegistration subscriber, object envelope, CancellationToken ct)
     {
         var invoke = false;
-        await using (var admission = await gate.AcquireAsync(ct).ConfigureAwait(false))
         await using (var transaction = transactions.Begin())
         {
             var now = clock.GetUtcNow();

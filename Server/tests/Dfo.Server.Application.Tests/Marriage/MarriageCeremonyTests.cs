@@ -32,8 +32,7 @@ public sealed class MarriageCeremonyTests
             services.AddSingleton<IMarriageCeremonyContentSource, Content>();
             services.AddSingleton<ICharacterQuestLogDomainService>(logs);
             services.AddCommandHandler<MarriageCeremonyCommand, MarriageCeremonyResult,
-                MarriageCeremonyCommandHandler>(CommandExecutionKind.Transactional,
-                accountAccessMode: UserAccessMode.Exclusive);
+                MarriageCeremonyCommandHandler>(CommandExecutionKind.Transactional);
             configure?.Invoke(services);
         });
         return (fixture, peer, logs, clock);

@@ -12,12 +12,10 @@ namespace Dfo.Server.Protocol.Game.MonsterDeath;
 public sealed record ApplyObjectDestructionCommand(
     SelectedSessionIdentity Session, DungeonRunId RunId, long RoomVersion, int ObjectCode,
     IReadOnlyList<SelectedSessionIdentity>? Recipients = null)
-    : ICommand<ObjectDestructionResult>, IMultiAccountCommand
+    : ICommand<ObjectDestructionResult>
 {
     public IReadOnlyList<SelectedSessionIdentity> Recipients { get; init; } =
         (Recipients ?? [Session]).ToImmutableArray();
-    public IReadOnlyList<AccountId> AccountIds =>
-        [Session.AccountId, .. this.Recipients.Select(recipient => recipient.AccountId)];
 }
 
 public sealed record ObjectQuestReward(SelectedSessionIdentity Session, ApplyMonsterKillResult Effects);
@@ -44,7 +42,7 @@ public sealed class ApplyObjectDestructionCommandHandler(
         if (run is null || run.RunId != command.RunId || run.RoomVersion != command.RoomVersion)
             return new(null);
         // A reporting client is not the loot owner. Freeze exact sessions at the protocol
-        // boundary, then revalidate them after all affected account leases have been acquired.
+        // boundary, then revalidate them here, inside the command's transaction.
         if (!command.Recipients.Contains(session)
             || command.Recipients.Count != run.Participants.Count
             || command.Recipients.Select(value => value.CharacterId).Distinct().Count() != command.Recipients.Count

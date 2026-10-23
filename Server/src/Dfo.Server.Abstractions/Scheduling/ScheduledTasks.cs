@@ -19,5 +19,3 @@ public sealed record ScheduledTaskRegistration(string Id, IScheduledTaskSchedule
     public int MaximumAttempts { get; init; } = 3;
     public TimeSpan RetryDelay { get; init; } = TimeSpan.FromSeconds(5);
 }
-
-public sealed record ScheduledTaskSchedulerOptions(int MaximumConcurrency = 4);

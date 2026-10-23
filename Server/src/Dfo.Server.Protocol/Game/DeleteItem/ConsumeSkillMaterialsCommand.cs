@@ -7,7 +7,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Protocol.Game.DeleteItem;
 
 public sealed record ConsumeSkillMaterialsCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    IReadOnlyList<MaterialCost> Costs) : ICommand<MaterialConsumptionResult>, IOnlineUserCommand, IAccountCommand
+    IReadOnlyList<MaterialCost> Costs) : ICommand<MaterialConsumptionResult>, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

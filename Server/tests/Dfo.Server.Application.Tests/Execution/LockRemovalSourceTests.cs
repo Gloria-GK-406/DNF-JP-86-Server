@@ -5,52 +5,60 @@ namespace Dfo.Server.Application.Tests.Execution;
 
 /// <summary>
 /// AC-017 / RQ-060: the gates spec appendix F deletes leave no type, registration, forward or comment
-/// behind, and every <c>SemaphoreSlim</c> left in the production sources is on a list that says why.
+/// behind, every <c>SemaphoreSlim</c> left in the production sources is on a list that says why and how
+/// many times it occurs, and none of the other waiting primitives named here is used.
 /// </summary>
 /// <remarks>
 /// The scan reads the raw text, comments included: a gate name left in a comment misleads the next
-/// reader who greps for gates. T-005b widens the Protocol-scoped names to the whole of <c>Server/src</c>
-/// and shortens the semaphore list; T-006 removes the party delivery gates and their two entries. Not
-/// named here until then: the party delivery gates, <c>NotificationRetryQueue</c> and
-/// <c>NotificationRetryDrainService</c> (T-006), and the Application gate types (T-005b).
+/// reader who greps for gates. Of appendix F's delete column only T-006's three items are not named
+/// here yet: the party delivery gates, <c>NotificationRetryQueue</c> and <c>NotificationRetryDrainService</c>
+/// still exist until T-006 deletes them and adds their names. A hand-made wait over
+/// <c>TaskCompletionSource</c> is guarded by naming its type, not by scanning for the primitive; a short
+/// <c>lock</c> is kept by appendix F and is not a waiting primitive here, on a <c>System.Threading.Lock</c> as on
+/// any object. Entering a <c>Lock</c> explicitly is recognised by its parameterless <c>Enter</c>,
+/// <c>EnterScope</c> and <c>TryEnter</c> calls, since the text does not say a field's type at the call site.
 /// </remarks>
 public sealed class LockRemovalSourceTests(ITestOutputHelper output)
 {
-    private const string Everywhere = "";
-    private const string Protocol = "Dfo.Server.Protocol/";
-
-    private static readonly NameRule[] Names =
+    private static readonly string[] Names =
     [
-        .. new[]
-        {
-            "TownAreaProjectionGate", "DungeonProjectionGate", "BossTowerProjectionGate", "BossTowerEntryGate",
-            "IllusionTowerProjectionGate", "IllusionTowerEntryGate", "AchievementTitleProjectionGate",
-            "LeaseSet", "TransitionLeaseSet", "ProjectionLeaseSet", "WeddingProposalExecution",
-        }.Select(name => new NameRule(name, Everywhere, null)),
-        .. new[]
-        {
-            "SelectedSessionTransitionGate", "OnlineUserExecutionGate", "UserExecutionGate",
-            "BorrowOrAcquireSharedAsync", "BorrowOrAcquireExclusiveAsync", "AcquireManyExclusiveAsync",
-            "TransactionalExecutionGate",
-        }.Select(name => new NameRule(name, Protocol, null)),
-        // The command registrations still declare access modes until T-005b removes them.
-        new NameRule("UserAccessMode", Protocol, "Dfo.Server.Protocol/ProtocolModule.cs"),
+        "TownAreaProjectionGate", "DungeonProjectionGate", "BossTowerProjectionGate", "BossTowerEntryGate",
+        "IllusionTowerProjectionGate", "IllusionTowerEntryGate", "AchievementTitleProjectionGate",
+        "LeaseSet", "TransitionLeaseSet", "ProjectionLeaseSet", "WeddingProposalExecution",
+        "SelectedSessionTransitionGate", "OnlineUserExecutionGate", "UserExecutionGate",
+        "BorrowOrAcquireSharedAsync", "BorrowOrAcquireExclusiveAsync", "AcquireManyExclusiveAsync",
+        "TransactionalExecutionGate", "UserAccessMode",
+        "AccountExecutionGate", "OnlineUserExecutionBehavior", "AccountExecutionBehavior", "TransactionalExecutionBehavior",
+        "OnlineUserAccessMode", "AccountAccessMode", "IMultiAccountCommand", "IOnlineUserCommand",
+        "ScheduledTaskSchedulerOptions", "groupGates",
     ];
 
-    private static readonly IReadOnlyDictionary<string, string> Semaphores = new Dictionary<string, string>(StringComparer.Ordinal)
+    /// <summary>Waiting primitives other than <c>SemaphoreSlim</c>; none is allowed anywhere.</summary>
+    private static readonly string[] OtherWaits =
+    [
+        "ReaderWriterLockSlim", "ReaderWriterLock", "Semaphore", "Mutex", "SpinLock", "Barrier", "CountdownEvent",
+        "ManualResetEventSlim", "ManualResetEvent", "AutoResetEvent", "Monitor.Enter", "Monitor.TryEnter", "Monitor.Wait",
+        "EventWaitHandle", "WaitHandle", "SpinWait",
+    ];
+
+    /// <summary>Explicit entry of a <c>System.Threading.Lock</c>; a <c>lock</c> statement on one stays allowed.</summary>
+    private static readonly (string Name, Regex Pattern)[] OtherWaitCalls =
+    [
+        ("Lock.Enter() / Lock.EnterScope()", new Regex(@"\.(?:Enter|EnterScope)\(\s*\)", RegexOptions.CultureInvariant)),
+        ("Lock.TryEnter(...)", new Regex(@"\.TryEnter\(", RegexOptions.CultureInvariant)),
+    ];
+
+    /// <summary>Each file that may use <c>SemaphoreSlim</c>, how many times the name occurs in it, and why.</summary>
+    private static readonly IReadOnlyDictionary<string, (int Count, string Reason)> Semaphores =
+        new Dictionary<string, (int Count, string Reason)>(StringComparer.Ordinal)
     {
-        ["Dfo.Server.Protocol/Game/Party/PartyNotificationSlice.cs"] = "party delivery gates (DR-17); T-006 deletes",
-        ["Dfo.Server.Abstractions/Execution/GameplayAssertions.cs"] = "GameplayGateAssertion.Enter takes the party gate; T-006 deletes",
-        ["Dfo.Server.Application/DomainEvents/DomainEventDispatcher.cs"] = "subscriber group gates; T-005b deletes",
-        ["Dfo.Server.Application/Scheduling/ScheduledTaskHostedService.cs"] = "concurrency slots; T-005b deletes",
-        ["Dfo.Server.Application/Commands/Pipeline/TransactionalExecutionBehavior.cs"] = "TransactionalExecutionGate; T-005b deletes",
-        ["Dfo.Server.Application/Events/JoustMaintenanceService.cs"] = "maintenance tick; T-005b deletes",
-        ["Dfo.Server.Application/Effects/EffectOperationLedger.cs"] = "per-connection ledger; T-005b deletes",
-        ["Dfo.Server.Application/Events/JoustRuleService.cs"] = "rule initialization (appendix F keep); stays",
-        ["Dfo.Server.Application/Characters/CharacterStatRuleService.cs"] = "rule initialization (appendix F keep); stays",
-        ["Dfo.Server.Application/Authentication/PasswordComputationLimiter.cs"] = "password hashing limit off the executor (RQ-007); stays",
-        ["Dfo.Server.Infrastructure/Content/PvfItemCatalogSource.cs"] = "PVF content initialization (appendix F keep); stays",
-        ["Dfo.Server.Infrastructure/Content/PvfBossTowerContentSource.cs"] = "PVF content initialization (appendix F keep); stays",
+        ["Dfo.Server.Protocol/Game/Party/PartyNotificationSlice.cs"] = (5, "party delivery gates (DR-17); T-006 deletes"),
+        ["Dfo.Server.Abstractions/Execution/GameplayAssertions.cs"] = (1, "GameplayGateAssertion.Enter takes the party gate; T-006 deletes"),
+        ["Dfo.Server.Application/Events/JoustRuleService.cs"] = (1, "rule initialization (appendix F keep); stays"),
+        ["Dfo.Server.Application/Characters/CharacterStatRuleService.cs"] = (1, "rule initialization (appendix F keep); stays"),
+        ["Dfo.Server.Application/Authentication/PasswordComputationLimiter.cs"] = (2, "password hashing limit off the executor (RQ-007); stays"),
+        ["Dfo.Server.Infrastructure/Content/PvfItemCatalogSource.cs"] = (1, "PVF content initialization (appendix F keep); stays"),
+        ["Dfo.Server.Infrastructure/Content/PvfBossTowerContentSource.cs"] = (1, "PVF content initialization (appendix F keep); stays"),
     };
 
     private static readonly Regex Semaphore = new(@"\bSemaphoreSlim\b", RegexOptions.CultureInvariant);
@@ -60,9 +68,8 @@ public sealed class LockRemovalSourceTests(ITestOutputHelper output)
     {
         var files = ProductionSources();
         output.WriteLine($"scanned source files: {files.Count}");
-        foreach (var rule in Names)
-            output.WriteLine($"rule {rule.Name} scope '{(rule.Scope.Length == 0 ? "Server/src" : rule.Scope)}'"
-                + $"{(rule.Exempt is null ? "" : $" except {rule.Exempt}")}: {Hits(files, rule).Count} hits");
+        foreach (var name in Names)
+            output.WriteLine($"rule {name} scope 'Server/src': {Hits(files, name).Count} hits");
 
         var violations = NameViolations(files);
 
@@ -74,11 +81,26 @@ public sealed class LockRemovalSourceTests(ITestOutputHelper output)
     {
         var files = ProductionSources();
         output.WriteLine($"scanned source files: {files.Count}");
-        foreach (var (path, reason) in Semaphores)
+        foreach (var (path, (count, reason)) in Semaphores)
             output.WriteLine($"listed {path} ({reason}): "
-                + $"{(files.TryGetValue(path, out var text) ? Semaphore.Matches(text).Count : 0)} occurrences");
+                + $"{(files.TryGetValue(path, out var text) ? Semaphore.Matches(text).Count : 0)} occurrences, pinned {count}");
 
         var violations = SemaphoreViolations(files);
+
+        Assert.True(violations.Count == 0, string.Join("\n", violations));
+    }
+
+    [Fact]
+    public void No_other_waiting_primitive_is_used_in_the_production_sources()
+    {
+        var files = ProductionSources();
+        output.WriteLine($"scanned source files: {files.Count}");
+        foreach (var name in OtherWaits)
+            output.WriteLine($"primitive {name} scope 'Server/src': {Hits(files, name).Count} hits");
+        foreach (var (name, pattern) in OtherWaitCalls)
+            output.WriteLine($"call {name} scope 'Server/src': {Hits(files, pattern).Count} hits");
+
+        var violations = OtherWaitViolations(files);
 
         Assert.True(violations.Count == 0, string.Join("\n", violations));
     }
@@ -109,31 +131,61 @@ public sealed class LockRemovalSourceTests(ITestOutputHelper output)
     [Fact]
     public void A_protocol_scoped_name_is_named_in_protocol_and_not_in_application()
     {
-        var violation = Assert.Single(NameViolations(new Dictionary<string, string>
+        var violations = NameViolations(new Dictionary<string, string>
         {
             ["Dfo.Server.Protocol/Game/Somewhere.cs"] = "sealed class H(SelectedSessionTransitionGate gate);",
             ["Dfo.Server.Application/OnlineUsers/SelectedSessionTransitionGate.cs"] = "public sealed class SelectedSessionTransitionGate;",
-        }));
+        });
 
-        Assert.Contains("Dfo.Server.Protocol/Game/Somewhere.cs", violation, StringComparison.Ordinal);
+        Assert.Equal(2, violations.Count);
+        Assert.Contains(violations, violation => violation.Contains("Dfo.Server.Protocol/Game/Somewhere.cs", StringComparison.Ordinal));
+        Assert.Contains(violations, violation => violation.Contains("Dfo.Server.Application/OnlineUsers/SelectedSessionTransitionGate.cs", StringComparison.Ordinal));
     }
 
     [Fact]
     public void An_access_mode_is_allowed_in_the_protocol_module_only()
     {
-        var violation = Assert.Single(NameViolations(new Dictionary<string, string>
+        var violations = NameViolations(new Dictionary<string, string>
         {
             ["Dfo.Server.Protocol/ProtocolModule.cs"] = "services.AddCommandHandler(UserAccessMode.Shared);",
             ["Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs"] = "var mode = UserAccessMode.Shared;",
+        });
+
+        Assert.Equal(2, violations.Count);
+        Assert.Contains(violations, violation => violation.Contains("Dfo.Server.Protocol/ProtocolModule.cs", StringComparison.Ordinal));
+        Assert.Contains(violations, violation => violation.Contains("Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_pipeline_behaviour_name_is_named_outside_application_and_a_longer_identifier_is_not()
+    {
+        var violation = Assert.Single(NameViolations(new Dictionary<string, string>
+        {
+            ["Dfo.Server.Host/Somewhere.cs"] = "services.AddScoped(typeof(AccountExecutionBehavior<>));",
+            ["Dfo.Server.Protocol/Game/Elsewhere.cs"] = "sealed record Command : IMultiAccountCommandShim;",
         }));
 
-        Assert.Contains("Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs", violation, StringComparison.Ordinal);
+        Assert.Contains("Dfo.Server.Host/Somewhere.cs", violation, StringComparison.Ordinal);
+        Assert.Contains("AccountExecutionBehavior", violation, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Another_waiting_primitive_is_named_in_any_file()
+    {
+        var violation = Assert.Single(OtherWaitViolations(new Dictionary<string, string>
+        {
+            ["Dfo.Server.Infrastructure/Somewhere.cs"] = "private readonly ReaderWriterLockSlim probe = new();",
+            ["Dfo.Server.Application/Elsewhere.cs"] = "private readonly SemaphoreSlim probe = new(1, 1); lock (gate) { }",
+        }));
+
+        Assert.Contains("Dfo.Server.Infrastructure/Somewhere.cs", violation, StringComparison.Ordinal);
+        Assert.Contains("ReaderWriterLockSlim", violation, StringComparison.Ordinal);
     }
 
     [Fact]
     public void A_semaphore_outside_the_list_is_named()
     {
-        var files = Semaphores.Keys.ToDictionary(path => path, _ => "SemaphoreSlim gate;", StringComparer.Ordinal);
+        var files = Listed();
         files["Dfo.Server.Protocol/Game/Somewhere.cs"] = "private readonly SemaphoreSlim probe = new(1, 1);";
 
         var violation = Assert.Single(SemaphoreViolations(files));
@@ -144,13 +196,45 @@ public sealed class LockRemovalSourceTests(ITestOutputHelper output)
     [Fact]
     public void A_listed_file_without_a_semaphore_is_a_stale_entry()
     {
-        var files = Semaphores.Keys.ToDictionary(path => path, _ => "SemaphoreSlim gate;", StringComparer.Ordinal);
-        files["Dfo.Server.Application/Events/JoustMaintenanceService.cs"] = "class JoustMaintenanceService { }";
+        var files = Listed();
+        files["Dfo.Server.Application/Events/JoustRuleService.cs"] = "class JoustRuleService { }";
 
         var violation = Assert.Single(SemaphoreViolations(files));
 
-        Assert.Contains("Dfo.Server.Application/Events/JoustMaintenanceService.cs", violation, StringComparison.Ordinal);
+        Assert.Contains("Dfo.Server.Application/Events/JoustRuleService.cs", violation, StringComparison.Ordinal);
         Assert.Contains("stale", violation, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_listed_file_with_one_more_semaphore_than_pinned_is_named()
+    {
+        var files = Listed();
+        files["Dfo.Server.Application/Events/JoustRuleService.cs"] += "\nprivate readonly SemaphoreSlim second = new(1, 1);";
+
+        var violation = Assert.Single(SemaphoreViolations(files));
+
+        Assert.Contains("Dfo.Server.Application/Events/JoustRuleService.cs", violation, StringComparison.Ordinal);
+        Assert.Contains("pinned 1", violation, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Wait_handles_spin_waits_and_explicit_lock_entry_are_named_and_a_lock_statement_is_not()
+    {
+        var violations = OtherWaitViolations(new Dictionary<string, string>
+        {
+            ["Dfo.Server.Application/A.cs"] = "private readonly EventWaitHandle signal = new(false, EventResetMode.AutoReset);",
+            ["Dfo.Server.Application/B.cs"] = "WaitHandle.WaitAll(handles);",
+            ["Dfo.Server.Application/C.cs"] = "var spinner = new SpinWait(); spinner.SpinOnce();",
+            ["Dfo.Server.Application/D.cs"] = "gate.Enter();",
+            ["Dfo.Server.Application/E.cs"] = "using var held = gate.EnterScope();",
+            ["Dfo.Server.Application/F.cs"] = "if (gate.TryEnter()) { }",
+            ["Dfo.Server.Application/G.cs"] = "private readonly Lock gate = new(); lock (gate) { } using var selected = scope.Enter(recipient);",
+        });
+
+        Assert.Equal(6, violations.Count);
+        foreach (var file in new[] { "A", "B", "C", "D", "E", "F" })
+            Assert.Contains(violations, violation => violation.StartsWith($"Dfo.Server.Application/{file}.cs:", StringComparison.Ordinal));
+        Assert.DoesNotContain(violations, violation => violation.StartsWith("Dfo.Server.Application/G.cs:", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -163,15 +247,21 @@ public sealed class LockRemovalSourceTests(ITestOutputHelper output)
     }
 
     private static IReadOnlyList<string> NameViolations(IReadOnlyDictionary<string, string> files) =>
-        Names.SelectMany(rule => Hits(files, rule).Select(hit => $"{hit} names {rule.Name}")).ToList();
+        Names.SelectMany(name => Hits(files, name).Select(hit => $"{hit} names {name}")).ToList();
 
-    private static IReadOnlyList<string> Hits(IReadOnlyDictionary<string, string> files, NameRule rule)
+    private static IReadOnlyList<string> OtherWaitViolations(IReadOnlyDictionary<string, string> files) =>
+        OtherWaits.SelectMany(name => Hits(files, name).Select(hit => $"{hit} uses {name}"))
+            .Concat(OtherWaitCalls.SelectMany(call => Hits(files, call.Pattern).Select(hit => $"{hit} uses {call.Name}")))
+            .ToList();
+
+    private static IReadOnlyList<string> Hits(IReadOnlyDictionary<string, string> files, string name) =>
+        Hits(files, new Regex($@"\b{Regex.Escape(name)}\b", RegexOptions.CultureInvariant));
+
+    private static IReadOnlyList<string> Hits(IReadOnlyDictionary<string, string> files, Regex pattern)
     {
-        var pattern = new Regex($@"\b{rule.Name}\b", RegexOptions.CultureInvariant);
         var hits = new List<string>();
         foreach (var (path, text) in files.OrderBy(file => file.Key, StringComparer.Ordinal))
         {
-            if (!path.StartsWith(rule.Scope, StringComparison.Ordinal) || path == rule.Exempt) continue;
             var lines = text.Split('\n');
             for (var index = 0; index < lines.Length; index++)
                 if (pattern.IsMatch(lines[index])) hits.Add($"{path}:{index + 1}");
@@ -186,8 +276,17 @@ public sealed class LockRemovalSourceTests(ITestOutputHelper output)
             .Select(path => $"{path} uses SemaphoreSlim and is not on the list")
             .Concat(Semaphores.Keys.Where(path => !naming.Contains(path)).Order(StringComparer.Ordinal)
                 .Select(path => $"{path} is listed but no longer uses SemaphoreSlim: stale entry"))
+            .Concat(Semaphores.Where(file => naming.Contains(file.Key)).OrderBy(file => file.Key, StringComparer.Ordinal)
+                .Select(file => (file.Key, Found: Semaphore.Matches(files[file.Key]).Count, Pinned: file.Value.Count))
+                .Where(file => file.Found != file.Pinned)
+                .Select(file => $"{file.Key} uses SemaphoreSlim {file.Found} times, pinned {file.Pinned}"))
             .ToList();
     }
+
+    /// <summary>Every listed file, holding exactly its pinned number of semaphores.</summary>
+    private static Dictionary<string, string> Listed() =>
+        Semaphores.ToDictionary(file => file.Key, file => string.Join("\n", Enumerable.Repeat("SemaphoreSlim gate;", file.Value.Count)),
+            StringComparer.Ordinal);
 
     private static Dictionary<string, string> ProductionSources()
     {
@@ -209,6 +308,4 @@ public sealed class LockRemovalSourceTests(ITestOutputHelper output)
             if (Directory.Exists(Path.Combine(directory.FullName, "Server", "src"))) return directory.FullName;
         throw new DirectoryNotFoundException("The lock removal source test requires the repository checkout.");
     }
-
-    private sealed record NameRule(string Name, string Scope, string? Exempt);
 }

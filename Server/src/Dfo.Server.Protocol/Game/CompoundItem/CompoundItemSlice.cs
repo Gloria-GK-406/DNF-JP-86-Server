@@ -64,7 +64,7 @@ internal sealed class CompoundItemEncoder : GameCmdMessageEncoder<CompoundItemRe
     }
 }
 public sealed record CompoundItemCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    BusinessSlot Drawing, int Count) : ICommand<RecipeCraftReceipt>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    BusinessSlot Drawing, int Count) : ICommand<RecipeCraftReceipt>, IRequestSettlementCommand, IAccountCommand
 { public AccountId AccountId => Session.AccountId; }
 public sealed class CompoundItemCommandHandler(IRecipeCraftDomainService recipes, TimeProvider clock)
     : ICommandHandler<CompoundItemCommand, RecipeCraftReceipt>

@@ -9,7 +9,7 @@ namespace Dfo.Server.Protocol.Game.SellItem;
 
 public sealed record SellItemCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
     BusinessSlot Slot, int Count, int NpcId)
-    : ICommand<ItemSaleResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<ItemSaleResult>, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

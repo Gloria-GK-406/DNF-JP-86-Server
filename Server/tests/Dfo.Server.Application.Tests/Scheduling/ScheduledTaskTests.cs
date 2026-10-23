@@ -24,13 +24,13 @@ public sealed class ScheduledTaskTests
         public SchedulerClock Clock { get; } = new();
         public ServiceProvider Provider { get; }
         public IHostedService Worker { get; }
-        public Running(IEnumerable<ScheduledTaskRegistration> jobs, int concurrency = 4,
+        public Running(IEnumerable<ScheduledTaskRegistration> jobs,
             Action<IServiceCollection>? configure = null)
         {
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddSingleton<TimeProvider>(Clock);
-            services.AddTaskScheduling(new(concurrency));
+            services.AddTaskScheduling();
             foreach (var job in jobs) services.AddScheduledTask(job);
             configure?.Invoke(services);
             Provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
@@ -115,7 +115,7 @@ public sealed class ScheduledTaskTests
             finally { Interlocked.Decrement(ref active); }
         };
         await using var run = new Running([Job("a", callback, ScheduledTaskMissedRunPolicy.RunOnce),
-            Job("b", callback, ScheduledTaskMissedRunPolicy.RunOnce)], 1);
+            Job("b", callback, ScheduledTaskMissedRunPolicy.RunOnce)]);
         await run.Start();
         await first.Task.WaitAsync(Budget);
         var firstId = Assert.Single(calls).TaskId;
@@ -174,7 +174,7 @@ public sealed class ScheduledTaskTests
                 retried.TrySetResult(); return ValueTask.CompletedTask;
             }, ScheduledTaskMissedRunPolicy.RunOnce) with { RetryDelay = TimeSpan.FromMinutes(2) },
             Job("other", (_, _) => { other.TrySetResult(); return ValueTask.CompletedTask; })
-        ], 1);
+        ]);
         await run.Start();
         await failed.Task.WaitAsync(Budget);
         await Until(() => run.Clock.ActiveTimers == 2);
@@ -275,10 +275,8 @@ public sealed class ScheduledTaskTests
             new DailyTaskSchedule(root.GetRequiredService<TestScheduleConfig>().Time, TimeSpan.FromHours(8)),
             (_, _) => { called.SetResult(); return ValueTask.CompletedTask; })
         { MissedRun = ScheduledTaskMissedRunPolicy.RunOnce });
-        services.AddTaskScheduling(new(1));
         services.AddTaskScheduling();
         await using var provider = services.BuildServiceProvider();
-        Assert.Equal(1, provider.GetRequiredService<ScheduledTaskSchedulerOptions>().MaximumConcurrency);
         var worker = Assert.Single(provider.GetServices<IHostedService>().OfType<ScheduledTaskHostedService>());
         try { await worker.StartAsync(default); await called.Task.WaitAsync(Budget); }
         finally { await worker.StopAsync(default); }
@@ -288,7 +286,6 @@ public sealed class ScheduledTaskTests
     [InlineData("duplicate")]
     [InlineData("attempts")]
     [InlineData("policy")]
-    [InlineData("parallelism")]
     [InlineData("id")]
     public void Invalid_configuration_fails_before_callbacks(string kind)
     {
@@ -301,7 +298,7 @@ public sealed class ScheduledTaskTests
             "id" => [job with { Id = " " }],
             _ => [job]
         };
-        Assert.ThrowsAny<Exception>(() => new Running(jobs, kind == "parallelism" ? 0 : 4));
+        Assert.ThrowsAny<Exception>(() => new Running(jobs));
     }
 
     [Fact]

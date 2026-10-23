@@ -4,7 +4,6 @@ using Dfo.Server.Data.Channel;
 using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
@@ -34,8 +33,7 @@ public sealed class GameLoginTests
             Guid.NewGuid(),
             command.GetType(),
             handler.GetType(),
-            CommandExecutionKind.Direct,
-            UserAccessMode.Exclusive);
+            CommandExecutionKind.Direct);
 
         var result = await handler.HandleAsync(context, command, CancellationToken.None);
 

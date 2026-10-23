@@ -28,7 +28,7 @@ public sealed class MarriageProposalTests
         {
             s.AddSingleton<IMarriageProposalContentSource, Content>();
             s.AddCommandHandler<MarriageProposalCommand, MarriageProposalResult, MarriageProposalCommandHandler>(
-                CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+                CommandExecutionKind.Transactional);
             if (clock is not null) s.AddSingleton<TimeProvider>(clock);
             configure?.Invoke(s);
         });

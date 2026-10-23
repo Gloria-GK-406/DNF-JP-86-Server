@@ -335,9 +335,8 @@ public sealed class GameplayWriteAssertionTests
     public async Task BossTowerDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
         var scope = new DomainTransactionScope();
-        using var gate = new TransactionalExecutionGate();
         var towers = new BossTowerDomainService(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!,
-            null!, scope, gate, TimeProvider.System);
+            null!, scope, TimeProvider.System);
         var context = new BossTowerActionContext(Session(), Guid.NewGuid(), 1);
         var seen = ViolationCapture.Attach();
 
@@ -355,8 +354,7 @@ public sealed class GameplayWriteAssertionTests
     public async Task IllusionTowerDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
         var scope = new DomainTransactionScope();
-        using var gate = new TransactionalExecutionGate();
-        var towers = new IllusionTowerDomainService(null!, null!, null!, null!, null!, null!, null!, scope, gate,
+        var towers = new IllusionTowerDomainService(null!, null!, null!, null!, null!, null!, null!, scope,
             TimeProvider.System);
         var context = new TowerActionContext(Session(), Guid.NewGuid(), 1);
         var seen = ViolationCapture.Attach();
@@ -479,11 +477,10 @@ public sealed class GameplayWriteAssertionTests
     public async Task A_member_that_opens_its_own_unit_of_work_reports_the_member_not_the_entry()
     {
         // The tower members open their unit of work through Execute; their own assertion comes first, so the
-        // report names the member, and neither Begin nor the transactional gate is reached.
+        // report names the member, and Begin is not reached.
         var scope = new DomainTransactionScope();
-        using var gate = new TransactionalExecutionGate();
         var towers = new BossTowerDomainService(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!,
-            null!, scope, gate, TimeProvider.System);
+            null!, scope, TimeProvider.System);
         var context = new BossTowerActionContext(Session(), Guid.NewGuid(), 1);
         var seen = ViolationCapture.Attach();
 

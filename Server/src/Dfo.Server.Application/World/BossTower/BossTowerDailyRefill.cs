@@ -48,7 +48,7 @@ internal static class BossTowerDailyRefillRegistration
     {
         services.AddScoped<BossTowerDailyRefillJob>();
         services.AddCommandHandler<RefillOnlineBossTowerTicketCommand, bool, RefillOnlineBossTowerTicketCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddScheduledTaskFactory(sp => new("boss-tower.ticket-refill.online",
             new DailyResetTaskSchedule(sp.GetRequiredService<IDailyResetRuleService>()),
             (context, ct) => context.Services.GetRequiredService<BossTowerDailyRefillJob>().RunAsync(ct)));

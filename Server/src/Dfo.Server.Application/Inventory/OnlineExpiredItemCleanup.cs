@@ -90,7 +90,7 @@ internal static class OnlineExpiredItemCleanupRegistration
         services.AddSingleton<IOnlineExpiredItemCleanupDomainService, OnlineExpiredItemCleanupDomainService>();
         services.AddScoped<OnlineExpiredItemCleanupJob>();
         services.AddCommandHandler<CleanupOnlineExpiredItemsCommand, bool, CleanupOnlineExpiredItemsCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddDomainEvent<OnlineExpiredItemsRemoved>("inventory.expired-items-removed", 1);
         services.AddScheduledTaskFactory(sp => new("inventory.expiration.online",
             new DailyResetTaskSchedule(sp.GetRequiredService<IDailyResetRuleService>()),

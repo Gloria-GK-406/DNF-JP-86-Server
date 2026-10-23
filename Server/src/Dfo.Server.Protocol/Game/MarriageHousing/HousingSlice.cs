@@ -73,7 +73,7 @@ internal sealed class HousingAckEncoder : GameCmdMessageEncoder<HousingAck>
     }
 }
 public sealed record HousingCommand(SelectedSessionIdentity Actor, HousingRequest Request, IReadOnlyList<AccountId> AccountIds)
-    : ICommand<HousingResult>, IMultiAccountCommand, IRequestSettlementCommand
+    : ICommand<HousingResult>, IRequestSettlementCommand
 { public SelectedSessionIdentity? Session => Actor; }
 public sealed class HousingCommandHandler(IMarriageHousingDomainService housing) : ICommandHandler<HousingCommand, HousingResult>
 {

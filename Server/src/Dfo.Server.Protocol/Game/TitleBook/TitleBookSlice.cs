@@ -55,12 +55,12 @@ internal sealed class TitleBookMutationEncoder : GameCmdMessageEncoder<TitleBook
         OnePayload(message.Store ? (ushort)0x019C : (ushort)0x019D, message.Body());
 }
 public sealed record StoreTitleCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    BusinessSlot Source, int ItemId, int Category, int Index) : ICommand<TitleBookMutationResult>, IOnlineUserCommand, IAccountCommand, ISelectedSessionCommand
+    BusinessSlot Source, int ItemId, int Category, int Index) : ICommand<TitleBookMutationResult>, IAccountCommand, ISelectedSessionCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
 public sealed record WithdrawTitleCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    BusinessSlot Destination, int ItemId, int Category, int Index) : ICommand<TitleBookMutationResult>, IOnlineUserCommand, IAccountCommand, ISelectedSessionCommand
+    BusinessSlot Destination, int ItemId, int Category, int Index) : ICommand<TitleBookMutationResult>, IAccountCommand, ISelectedSessionCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
@@ -76,7 +76,7 @@ public sealed class WithdrawTitleCommandHandler(ITitleBookDomainService titles) 
 }
 // TBM1-only request; native ACK shape is retained, but no physical book transfer occurs.
 public sealed record EquipCarriedTitleReplacingMirrorCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    BusinessSlot Source, int ItemId, int Category, int Index) : ICommand<TitleBookMutationResult>, IOnlineUserCommand, IAccountCommand, ISelectedSessionCommand
+    BusinessSlot Source, int ItemId, int Category, int Index) : ICommand<TitleBookMutationResult>, IAccountCommand, ISelectedSessionCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
@@ -131,7 +131,7 @@ internal sealed class QueryTitleBookDecoder : IGameMessageDecoder
         new QueryTitleBookRequest(metadata, body.Length == 2 ? BinaryPrimitives.ReadUInt16LittleEndian(body) : ushort.MaxValue, body.Length == 2);
 }
 public sealed record QueryTitleBookCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    SelectedSessionIdentity Target) : ICommand<IReadOnlyList<CharacterTitleBookCategoryState>>, IOnlineUserCommand, IAccountCommand, ISelectedSessionCommand
+    SelectedSessionIdentity Target) : ICommand<IReadOnlyList<CharacterTitleBookCategoryState>>, IAccountCommand, ISelectedSessionCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

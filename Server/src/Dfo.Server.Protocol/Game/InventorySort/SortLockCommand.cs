@@ -11,7 +11,7 @@ namespace Dfo.Server.Protocol.Game.InventorySort;
 
 public sealed record SortLockCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
     BusinessSlot Slot, InventorySortLockAction Action)
-    : ICommand<SortLockResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<SortLockResult>, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

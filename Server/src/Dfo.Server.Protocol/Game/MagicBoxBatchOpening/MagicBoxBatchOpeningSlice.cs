@@ -44,7 +44,7 @@ internal sealed class MagicBoxBatchOpeningEncoder : GameCmdMessageEncoder<MagicB
         OnePayload(0x0450, OpeningPayloads.Box(message.Input ?? new(0, 0, 0, -1, 0, 0), message.Result, true));
 }
 public sealed record MagicBoxBatchOpeningCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, MagicBoxOpeningInput Input)
-    : ICommand<MagicBoxOpeningResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<MagicBoxOpeningResult>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

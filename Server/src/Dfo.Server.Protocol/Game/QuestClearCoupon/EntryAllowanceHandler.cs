@@ -18,7 +18,7 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.QuestClearCoupon;
 
 public sealed record UseEntryAllowanceCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int SourceSlot)
-    : ICommand<OpeningInventoryReceipt>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<OpeningInventoryReceipt>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

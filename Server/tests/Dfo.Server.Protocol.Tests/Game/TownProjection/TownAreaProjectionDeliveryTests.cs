@@ -18,7 +18,6 @@ using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Marriage;
 using Dfo.Server.Protocol.Game.MarriageProposal;
 using Microsoft.Extensions.Logging.Abstractions;

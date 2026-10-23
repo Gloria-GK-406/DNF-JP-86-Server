@@ -48,7 +48,7 @@ internal sealed class AvatarPackageOpeningEncoder : GameCmdMessageEncoder<Avatar
     }
 }
 public sealed record AvatarPackageOpeningCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, AvatarPackageOpeningInput Input)
-    : ICommand<PackageOpeningResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<PackageOpeningResult>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

@@ -119,8 +119,6 @@ public sealed class CommandRegistrationTests
             value => value.CommandType == typeof(RedeemGameLoginCommand));
 
         Assert.Equal(CommandExecutionKind.Transactional, registration.ExecutionKind);
-        Assert.Equal(UserAccessMode.Exclusive, registration.OnlineUserAccessMode);
-        Assert.Equal(UserAccessMode.Unscoped, registration.AccountAccessMode);
     }
 
     [Fact]

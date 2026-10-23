@@ -5,7 +5,6 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Events;
@@ -131,7 +130,6 @@ public sealed class JoustQueryHandlerTests
         var connection = new NetworkConnectionContext(new("joust-test"), NetworkEndpointKind.Game, 10010);
         var session = SelectedSessionIdentity.Create(new(1), new(1), connection.ConnectionId, 1, 10010);
         var sessions = new Sessions(session);
-        var transitions = new SelectedSessionTransitionGate();
         var sender = new Sender();
         using var services = new ServiceCollection()
             .AddSingleton<ISelectedSessionDomainService>(sessions)
@@ -141,8 +139,7 @@ public sealed class JoustQueryHandlerTests
             .AddSingleton<ICommandBus>(new Commands(state, history ?? []))
             .AddSingleton<IGameMessageSender>(sender)
             .AddSingleton<IEventService>(new Notices())
-            .AddSingleton(transitions)
-            .AddSingleton(sp => new SelectedSessionSafety(sp, transitions, NullLogger<SelectedSessionSafety>.Instance))
+            .AddSingleton(sp => new SelectedSessionSafety(sp, NullLogger<SelectedSessionSafety>.Instance))
             .BuildServiceProvider();
         var replies = await TestGameplay.RunAsync(services, async () =>
         {

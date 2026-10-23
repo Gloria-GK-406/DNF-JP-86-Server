@@ -1,9 +1,8 @@
 using Dfo.Server.Application.Effects;
-using Dfo.Server.Application.OnlineUsers;
 
 namespace Dfo.Server.Application.Commands.Pipeline;
 
-internal sealed class SelectedSessionExecutionBehavior<TResult>(SelectedSessionTransitionGate lifecycle,
+internal sealed class SelectedSessionExecutionBehavior<TResult>(
     SelectedSessionSafety safety, SelectedSessionCommandScope scope, EffectOperationContext operations) : ICommandPipelineBehavior<TResult> where TResult : notnull
 {
     public int Order => 45;
@@ -19,11 +18,8 @@ internal sealed class SelectedSessionExecutionBehavior<TResult>(SelectedSessionT
         var targets = command is IMultiSelectedSessionCommand multi ? multi.Sessions : [session];
         if (!targets.Contains(session) || targets.Count == 0)
             throw new InvalidOperationException("The reporting session must belong to the frozen participant set.");
-        var leases = new List<IAsyncDisposable>();
         try
         {
-            foreach (var account in targets.Select(x => x.AccountId).Distinct().OrderBy(x => x.Value))
-                leases.Add(await lifecycle.BorrowOrAcquireSharedAsync(account, ct).ConfigureAwait(false));
             foreach (var target in targets) safety.DemandCurrent(target);
             safety.DemandCurrent(recipient);
             operations.DemandRecipient(context, command, safety);
@@ -35,10 +31,6 @@ internal sealed class SelectedSessionExecutionBehavior<TResult>(SelectedSessionT
             foreach (var target in targets)
                 await safety.BlockAsync(new(target, null), error, context.CommandType.Name).ConfigureAwait(false);
             throw;
-        }
-        finally
-        {
-            for (var i = leases.Count - 1; i >= 0; i--) await leases[i].DisposeAsync().ConfigureAwait(false);
         }
     }
 }

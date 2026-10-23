@@ -7,7 +7,6 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.World.IllusionTower;
-using Dfo.Server.Application.Commands.Pipeline;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -19,7 +18,7 @@ internal sealed class IllusionTowerDomainService(
     IIllusionTowerRuleService rules, ISelectedSessionDomainService sessions,
     ICharacterDomainService characters, ICharacterBusinessInventoryDomainService inventory,
     IMaterialConsumptionDomainService materials, IMaterialConsumptionRuleService materialRules,
-    IDungeonRunDomainService ordinary, DomainTransactionScope scope, TransactionalExecutionGate executionGate, TimeProvider clock,
+    IDungeonRunDomainService ordinary, DomainTransactionScope scope, TimeProvider clock,
     IIllusionTowerRewardDomainService? rewards = null, TowerInventoryDomainService? towerInventory = null,
     IEventService? events = null, IDungeonParticipationDomainService? participation = null)
     : IIllusionTowerDomainService
@@ -46,7 +45,6 @@ internal sealed class IllusionTowerDomainService(
     private async ValueTask<T> Execute<T>(Func<ValueTask<T>> action, CancellationToken token)
     {
         if (scope.Current is not null) return await action().ConfigureAwait(false);
-        await using var admission = await executionGate.AcquireAsync(token).ConfigureAwait(false);
         await using var transaction = scope.Begin();
         var result = await action().ConfigureAwait(false);
         await transaction.CommitAsync(token).ConfigureAwait(false);

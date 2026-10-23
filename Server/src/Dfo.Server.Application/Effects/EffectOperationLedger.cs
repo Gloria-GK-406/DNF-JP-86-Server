@@ -33,53 +33,47 @@ internal sealed class EffectOperationLedger(EffectOperationContext operations, S
         var recipient = safety.Capture(session);
         if (!ReferenceEquals(recipient.Connection, connection))
             throw new InvalidOperationException("Effect request is not from the captured physical recipient.");
-        // Capture before waiting: the queue must never bind an old request to a replacement character.
+        // Capture before registering: an old request must never bind to a replacement character.
         var ledger = ledgers.GetValue(connection, _ => new());
-        GameplayGateAssertion.Enter(ledger.Gate, nameof(EffectOperationLedger), ct);
-        try
+        safety.DemandCurrent(recipient);
+        var ordinal = metadata.InboundOrdinal.Value;
+        if (ordinal <= ledger.LatestOrdinal) throw new InvalidDataException("Transport ordinal must advance.");
+        ledger.LatestOrdinal = ordinal;
+        foreach (var key in ledger.Entries.Where(x => ordinal - x.Value.Ordinal >= Window).Select(x => x.Key).ToArray())
+            ledger.Entries.Remove(key);
+        var identity = (session, metadata.Sequence);
+        EffectOperationEntry entry;
+        if (metadata.SequenceIsFresh)
         {
-            safety.DemandCurrent(recipient);
-            var ordinal = metadata.InboundOrdinal.Value;
-            if (ordinal <= ledger.LatestOrdinal) throw new InvalidDataException("Transport ordinal must advance.");
-            ledger.LatestOrdinal = ordinal;
-            foreach (var key in ledger.Entries.Where(x => ordinal - x.Value.Ordinal >= Window).Select(x => x.Key).ToArray())
-                ledger.Entries.Remove(key);
-            var identity = (session, metadata.Sequence);
-            EffectOperationEntry entry;
-            if (metadata.SequenceIsFresh)
-            {
-                entry = new(session, ordinal, metadata.Selector, metadata.Type, metadata.Sequence, hash, metadata.FullBodyLength.Value);
-                ledger.Entries[identity] = entry;
-            }
-            else
-            {
-                if (!ledger.Entries.TryGetValue(identity, out entry!) || entry.Selector != metadata.Selector
-                    || entry.Type != metadata.Type || entry.Hash != hash || entry.Length != metadata.FullBodyLength.Value)
-                    throw new InvalidDataException("Unknown, expired or conflicting effect request identity.");
-                if (entry.State == EffectOperationState.Committed)
-                {
-                    await delivery.RefreshAsync(connection, session, entry.Projection
-                        ?? throw new InvalidOperationException("Committed operation has no prepared projection."), ct).ConfigureAwait(false);
-                    return;
-                }
-                if (entry.State != EffectOperationState.ConfirmedRollback)
-                    throw new InvalidDataException($"Effect request cannot retry a {entry.State} operation.");
-                entry.State = EffectOperationState.Pending;
-                entry.Projection = null;
-            }
-            using var operation = operations.Enter(entry, recipient, request.MinimumReplayNeeds);
-            try { await handler().ConfigureAwait(false); }
-            finally
-            {
-                // A refusal before the primary command settles is not evidence of a confirmed rollback.
-                if (entry.State == EffectOperationState.Pending) entry.State = EffectOperationState.Rejected;
-            }
+            entry = new(session, ordinal, metadata.Selector, metadata.Type, metadata.Sequence, hash, metadata.FullBodyLength.Value);
+            ledger.Entries[identity] = entry;
         }
-        finally { ledger.Gate.Release(); }
+        else
+        {
+            if (!ledger.Entries.TryGetValue(identity, out entry!) || entry.Selector != metadata.Selector
+                || entry.Type != metadata.Type || entry.Hash != hash || entry.Length != metadata.FullBodyLength.Value)
+                throw new InvalidDataException("Unknown, expired or conflicting effect request identity.");
+            if (entry.State == EffectOperationState.Committed)
+            {
+                await delivery.RefreshAsync(connection, session, entry.Projection
+                    ?? throw new InvalidOperationException("Committed operation has no prepared projection."), ct).ConfigureAwait(false);
+                return;
+            }
+            if (entry.State != EffectOperationState.ConfirmedRollback)
+                throw new InvalidDataException($"Effect request cannot retry a {entry.State} operation.");
+            entry.State = EffectOperationState.Pending;
+            entry.Projection = null;
+        }
+        using var operation = operations.Enter(entry, recipient, request.MinimumReplayNeeds);
+        try { await handler().ConfigureAwait(false); }
+        finally
+        {
+            // A refusal before the primary command settles is not evidence of a confirmed rollback.
+            if (entry.State == EffectOperationState.Pending) entry.State = EffectOperationState.Rejected;
+        }
     }
     private sealed class Ledger
     {
-        public SemaphoreSlim Gate { get; } = new(1, 1);
         public long LatestOrdinal { get; set; }
         public Dictionary<(SelectedSessionIdentity, ushort), EffectOperationEntry> Entries { get; } = [];
     }

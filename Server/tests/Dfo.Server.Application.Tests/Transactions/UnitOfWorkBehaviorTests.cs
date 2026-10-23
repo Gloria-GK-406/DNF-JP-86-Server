@@ -101,10 +101,9 @@ public sealed class UnitOfWorkBehaviorTests
     }
 
     /// <summary>
-    /// The transaction has to open inside the account gate and close before it is released, or a
-    /// second command for the same account could interleave with an uncommitted one. That is a
-    /// statement about where the behaviour sits, so it is asserted on the order rather than on
-    /// the exact numbers.
+    /// The transaction has to open inside the selected-session check and the settlement that reads
+    /// its outcome, and around the handler. That is a statement about where the behaviour sits, so
+    /// it is asserted on the order rather than on the exact numbers.
     /// </summary>
     [Fact]
     public void UnitOfWork_OpensInsideTheAccountAndTransactionalGatesAndOutsideTheExecutionPolicy()
@@ -120,16 +119,14 @@ public sealed class UnitOfWorkBehaviorTests
                 behaviour => behaviour.Order);
 
         Assert.True(
-            orders[typeof(AccountExecutionBehavior<>)] < orders[typeof(UnitOfWorkBehavior<>)],
-            "the transaction must open inside the account gate");
+            orders[typeof(SelectedSessionExecutionBehavior<>)] < orders[typeof(SelectedSessionSettlementBehavior<>)],
+            "the settlement must run inside the selected-session check");
         Assert.True(
-            orders[typeof(AccountExecutionBehavior<>)]
-                < orders[typeof(TransactionalExecutionBehavior<>)],
-            "transactional admission must happen inside the account gate");
+            orders[typeof(SelectedSessionSettlementBehavior<>)] < orders[typeof(UnitOfWorkBehavior<>)],
+            "the transaction must open inside the settlement that reads its outcome");
         Assert.True(
-            orders[typeof(TransactionalExecutionBehavior<>)]
-                < orders[typeof(UnitOfWorkBehavior<>)],
-            "the transaction must open after transactional admission");
+            orders[typeof(SelectedSessionExecutionBehavior<>)] < orders[typeof(UnitOfWorkBehavior<>)],
+            "the transaction must open after the selected session is checked");
         Assert.True(
             orders[typeof(UnitOfWorkBehavior<>)] < orders[typeof(CommandExecutionPolicyBehavior<>)],
             "the command must execute inside the transaction");

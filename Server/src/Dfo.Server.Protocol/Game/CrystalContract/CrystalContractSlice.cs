@@ -36,7 +36,7 @@ internal sealed class CrystalContractEncoder : GameCmdMessageEncoder<CrystalCont
         OnePayload(0x0218, message.Success ? new byte[] {1, message.Mode, message.Selection} : new byte[] {0, 0});
 }
 public sealed record SelectCrystalContractCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    byte Mode, byte Selection) : ICommand<bool>, IOnlineUserCommand, IAccountCommand
+    byte Mode, byte Selection) : ICommand<bool>, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

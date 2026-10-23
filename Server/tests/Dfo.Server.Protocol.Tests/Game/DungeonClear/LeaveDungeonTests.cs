@@ -8,7 +8,6 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -217,12 +216,10 @@ public sealed class LeaveDungeonTests
         services.AddSingleton<IDungeonRunDomainService>(runs);
         services.AddSingleton<ISelectedSessionDomainService>(new OneSession(Identity));
         services.AddCommandHandler<LeaveDungeonCommand, LeaveDungeonResult, LeaveDungeonCommandHandler>(
-            CommandExecutionKind.Direct, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Direct);
         await using var provider = services.BuildServiceProvider();
         await TestGameplay.RunAsync(provider, async () =>
         {
-        await using var lease = await provider.GetRequiredService<SelectedSessionTransitionGate>()
-            .AcquireManyExclusiveAsync([Identity.AccountId], default);
         var result = await provider.GetRequiredService<ICommandBus>().SendAsync(
             new LeaveDungeonCommand(Identity, [Identity], runs.RunId)).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal([Identity.CharacterId], result.EndedCharacters);
@@ -490,17 +487,16 @@ public sealed class LeaveDungeonTests
         var runs = new OneRun(isAltar: isAltar);
         var deliveries = new DungeonRunDeliveryRegistry(); deliveries.Register(runs.RunId, [Identity]);
         var sessions = new OneSession(Identity);
-        var sender = new RecordingSender(); var transitions = new SelectedSessionTransitionGate();
+        var sender = new RecordingSender();
         var clock = TimeProvider.System;
         var trace = new ExitCommandTrace();
         var services = new ServiceCollection().AddLogging();
         services.AddSingleton<TimeProvider>(clock);
         services.AddSingleton<ISelectedSessionDomainService>(sessions);
-        services.AddSingleton(transitions);
         services.AddSingleton(trace);
         services.AddCommandDispatching();
         services.AddCommandHandler<AltarActionCommand, AltarCommandResult, ExitAltarCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<LeavePartyCommand, PartyOperationResult, ExitPartyCommandHandler>(CommandExecutionKind.Workflow);
         using var provider = services.BuildServiceProvider();
         await TestGameplay.RunAsync(provider, async () =>
@@ -530,7 +526,6 @@ public sealed class LeaveDungeonTests
             await handler.HandleAsync(Dispatch(), new GiveUpGameRequest(GameMessageMetadata.Empty), default);
             Assert.Equal(isAltar ? 2 : 1, trace.Commands.Count);
             Assert.Single(trace.Commands.OfType<LeavePartyCommand>());
-            await using var available = await transitions.AcquireAsync(Identity.AccountId, UserAccessMode.Exclusive, deadline.Token);
         });
     }
 

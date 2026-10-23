@@ -3,7 +3,7 @@ using System.Diagnostics;
 namespace Dfo.Server.Abstractions.Execution;
 
 /// <summary>
-/// Plan transition rule 2, removed with the gates in T-005: a gate of spec appendix F's "delete"
+/// Plan transition rule 2, removed with the two party delivery gates in T-006: a gate of spec appendix F's "delete"
 /// column is taken only by a job, and a job never waits on one. Taking it off the executor, or on
 /// the executor when it would have to wait, is a program error; on the executor it sticks to the job.
 /// </summary>

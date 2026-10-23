@@ -166,22 +166,75 @@ public sealed partial class DomainEventDispatchTests
         f.Queue.Watched = "event:counter";
         f.Clock.Frozen = DateTimeOffset.UtcNow;
         f.Probe.FailingAttempts = 1;
+        // The group's own drain loop does the work; every commit below wakes it.
+        using var stop = new CancellationTokenSource();
+        var worker = f.Dispatcher.RunAsync(stop.Token);
         await f.SendAsync(new Awarded("a", 4));
-        Assert.Equal(1, await f.Dispatcher.DrainOnceAsync("counter"));
+        Assert.True(await WaitUntilAsync(() => f.Scalar(CounterPending + " AND attempt_count=1") == 1));
 
         await f.SendAsync(new Awarded("a", 6));
-        Assert.Equal(1, await f.Dispatcher.DrainOnceAsync("counter"));
+        Assert.True(await WaitUntilAsync(() => f.Count("counter") == 6));
         Assert.Equal(6, f.Count("counter"));
         Assert.Equal(1, f.Scalar(CounterPending + " AND attempt_count=1"));
 
-        for (var i = 0; i < 4; i++) await f.SendAsync(new Awarded("a", 1));
+        // The backed-off fact comes due first; the next commit wakes the loop for it and the four new ones.
         f.Clock.Frozen += TimeSpan.FromMinutes(1);
-        var drains = await Task.WhenAll(Enumerable.Range(0, 3).Select(_ => f.Dispatcher.DrainOnceAsync("counter").AsTask()));
+        for (var i = 0; i < 4; i++) await f.SendAsync(new Awarded("a", 1));
+        Assert.True(await WaitUntilAsync(() => f.Count("counter") == 14 && f.Scalar(CounterPending) == 0));
 
-        Assert.Equal(5, drains.Sum());
         Assert.Equal(14, f.Count("counter"));
         Assert.Equal(0, f.Scalar(CounterPending));
         Assert.Equal(1, f.Queue.MaximumOutstanding);
+        await stop.CancelAsync();
+        await worker.WaitAsync(Patience);
+    }
+
+    /// <summary>
+    /// A drain from a test thread may run beside the group's own loop (the GM host tests do). What keeps
+    /// that correct is the claim, not a gate: a delivery is taken only while it is pending and due.
+    /// </summary>
+    [Fact]
+    public async Task Concurrent_drains_of_one_group_consume_each_delivery_once_and_never_retry_a_backed_off_one_early()
+    {
+        await using var f = new Fixture(record: true);
+        f.Clock.Frozen = DateTimeOffset.UtcNow;
+        f.Probe.FailingAttempts = 1;
+        await f.SendAsync(new Awarded("a", 4));
+
+        // Two drains read the same due fact before either consumes it. The first fails it and backs it off;
+        // the second finds it backed off and leaves it.
+        var held = new ExecutorBlocker();
+        await held.HoldAsync(f.Queue, Patience);
+        var before = f.Queue.EnqueuedCount("event:counter");
+        var racing = Enumerable.Range(0, 2).Select(_ => f.Dispatcher.DrainOnceAsync("counter").AsTask()).ToArray();
+        Assert.True(await WaitUntilAsync(() => f.Queue.EnqueuedCount("event:counter") == before + 2));
+        await held.ReleaseAsync(Patience);
+        await Task.WhenAll(racing).WaitAsync(Patience);
+        Assert.Equal(1, f.Probe.CounterAttempts);
+        Assert.Equal(1, f.Scalar(CounterPending + " AND attempt_count=1"));
+
+        // Three later facts, read together by two drains and the running group loop.
+        for (var i = 0; i < 3; i++) await f.SendAsync(new Awarded("a", 1));
+        var heldAgain = new ExecutorBlocker();
+        await heldAgain.HoldAsync(f.Queue, Patience);
+        before = f.Queue.EnqueuedCount("event:counter");
+        using var stop = new CancellationTokenSource();
+        var worker = f.Dispatcher.RunAsync(stop.Token);
+        racing = Enumerable.Range(0, 2).Select(_ => f.Dispatcher.DrainOnceAsync("counter").AsTask()).ToArray();
+        Assert.True(await WaitUntilAsync(() => f.Queue.EnqueuedCount("event:counter") == before + 3));
+        await heldAgain.ReleaseAsync(Patience);
+        await Task.WhenAll(racing).WaitAsync(Patience);
+        Assert.True(await WaitUntilAsync(() => f.Count("counter") == 3 && f.Scalar(CounterPending) == 1));
+        await stop.CancelAsync();
+        await worker.WaitAsync(Patience);
+
+        var counter = f.Probe.Persisted.Where(x => x.Subscriber == "counter").ToArray();
+        Assert.Equal(3, counter.Count(x => x.Method == "Complete"));
+        Assert.Equal(1, counter.Count(x => x.Method == "Fail"));
+        Assert.True(counter.Count(x => x.Method == "TryBegin") > 4, "the drains never competed for a delivery");
+        Assert.Equal(4, f.Probe.CounterAttempts);
+        Assert.Equal(3, f.Count("counter"));
+        Assert.Equal(1, f.Scalar(CounterPending + " AND attempt_count=1"));
     }
 
     [Fact]
@@ -232,7 +285,7 @@ public sealed partial class DomainEventDispatchTests
         var job = TestGameplay.RunAsync(f.Services, async () =>
         {
             holding.TrySetResult();
-            // The counter loop now holds its group's gate, waiting on a CMD queued behind this job.
+            // The counter loop is now waiting on a CMD queued behind this job.
             if (!await WaitUntilAsync(() => f.Queue.EnqueuedCount("event:counter") == 1)) return;
             var watch = Stopwatch.StartNew();
             caught = await Record.ExceptionAsync(() => f.Dispatcher.DrainOnceAsync("counter").AsTask().WaitAsync(Patience));

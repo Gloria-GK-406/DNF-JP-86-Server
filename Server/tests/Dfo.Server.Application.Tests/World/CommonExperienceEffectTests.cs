@@ -210,19 +210,10 @@ public sealed class CommonExperienceEffectTests
     public async Task Effect_uow_borrows_outer_exclusive_and_keeps_teardown_waiting_until_settlement()
     {
         using var shop = Shop(new Calculation(), new EffectTrace());
-        var lifecycle = shop.Services.GetRequiredService<Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate>();
-        // The outer lease and the command share one job, so the command borrows it inline; teardown is a
-        // later job and cannot interleave with the settlement.
+        // The command is one job; teardown is a later job and cannot interleave with the settlement.
         var first = TestGameplay.RunAsync(shop.Services, async () =>
-        {
-            await using var outer = await lifecycle.AcquireAsync(shop.Session.AccountId, UserAccessMode.Exclusive, default);
-            return await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session));
-        });
+            await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
         Assert.Equal(30u, (await first.WaitAsync(TimeSpan.FromSeconds(5))).Award!.Total);
-        await TestGameplay.RunAsync(shop.Services, async () =>
-        {
-            await using var done = await lifecycle.AcquireAsync(shop.Session.AccountId, UserAccessMode.Exclusive, default);
-        });
         Assert.Equal(30, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
     }
 
@@ -276,15 +267,9 @@ public sealed class CommonExperienceEffectTests
             services.AddSingleton<Dfo.Server.Abstractions.Networking.INetworkConnectionCloser>(closer);
             services.AddSingleton<Microsoft.Extensions.Logging.ILogger<SelectedSessionSafety>>(new ThrowingLogger());
         });
-        closer.Lifecycle = shop.Services.GetRequiredService<Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate>();
         var error = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
         Assert.IsType<IOException>(error.InnerException);
         await closer.Callback.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        // The teardown that follows the close takes the lease at once: the failed CMD has released it.
-        await TestGameplay.RunAsync(shop.Services, async () =>
-        {
-            await using var lease = await closer.Lifecycle.AcquireAsync(new(1),UserAccessMode.Exclusive,default);
-        });
         Assert.Same(shop.Connection,closer.Expected);
         Assert.Equal(30,shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         Assert.True(shop.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(shop.Connection));
@@ -297,7 +282,6 @@ public sealed class CommonExperienceEffectTests
     }
     private sealed class CallbackCloser : Dfo.Server.Abstractions.Networking.INetworkConnectionCloser
     {
-        public Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate Lifecycle = null!;
         public Dfo.Server.Data.Networking.NetworkConnectionContext? Expected;
         public TaskCompletionSource Callback { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public ValueTask RequestCloseAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,CancellationToken ct) => throw new InvalidOperationException("ID-only close is forbidden here.");

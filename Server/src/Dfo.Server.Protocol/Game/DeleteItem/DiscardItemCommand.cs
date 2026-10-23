@@ -15,7 +15,7 @@ public sealed record DiscardItemCommand(
     byte EntryCount,
     ushort OperationType,
     int ItemId,
-    int Count) : ICommand<DeleteItemOutcome>, IOnlineUserCommand, IAccountCommand
+    int Count) : ICommand<DeleteItemOutcome>, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

@@ -8,7 +8,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Protocol.Game.CeraShopPurchase;
 
 public sealed record CeraShopPurchaseCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, CeraShopPurchaseInput Input)
-    : ICommand<CeraShopPurchaseResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<CeraShopPurchaseResult>, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

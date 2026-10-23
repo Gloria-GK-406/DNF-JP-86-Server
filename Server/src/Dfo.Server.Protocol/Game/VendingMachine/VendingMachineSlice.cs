@@ -65,7 +65,7 @@ internal sealed class VendingMachineEncoder : GameCmdMessageEncoder<VendingMachi
     }
 }
 public sealed record VendingMachineCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    int MachineId, int GroupId, int Slot) : ICommand<VendingMachineResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    int MachineId, int GroupId, int Slot) : ICommand<VendingMachineResult>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

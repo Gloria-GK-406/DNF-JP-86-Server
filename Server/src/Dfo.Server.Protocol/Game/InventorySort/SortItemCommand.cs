@@ -12,7 +12,7 @@ namespace Dfo.Server.Protocol.Game.InventorySort;
 
 public sealed record SortItemCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
     BusinessInventorySpace Space, InventorySortOrder Order)
-    : ICommand<SortItemResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<SortItemResult>, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

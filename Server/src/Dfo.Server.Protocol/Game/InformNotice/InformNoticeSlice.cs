@@ -62,10 +62,7 @@ internal sealed class InformNoticeSecondDecoder : IGameMessageDecoder
 }
 
 public sealed record MarkNoticeSeenCommand(GameSessionIdentity Session, AccountId AccountId,
-    NoticeOwner Owner, NoticeGroup Group, byte NoticeId) : ICommand<bool>, IOnlineUserCommand, IAccountCommand
-{
-    public OnlineUserId OnlineUserId => Session.OnlineUserId;
-}
+    NoticeOwner Owner, NoticeGroup Group, byte NoticeId) : ICommand<bool>, IAccountCommand;
 
 public sealed class MarkNoticeSeenCommandHandler(INoticeStateDomainService notices)
     : ICommandHandler<MarkNoticeSeenCommand, bool>

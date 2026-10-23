@@ -20,11 +20,10 @@ public sealed class EditGmMailCommand(string secret, GmMailEdit kind, Guid id, G
     public Guid Id { get; } = id;
     public GmMailEditorRequest Input { get; } = input;
 }
-public sealed class SendGmMailCommand(string secret, GmMailPreparation preparation) : ICommand<GmMailSendResult>, IMultiAccountCommand
+public sealed class SendGmMailCommand(string secret, GmMailPreparation preparation) : ICommand<GmMailSendResult>
 {
     public string Secret { get; } = secret;
     public GmMailPreparation Preparation { get; } = preparation;
-    public IReadOnlyList<AccountId> AccountIds => Preparation.Accounts;
 }
 public sealed class RecordGmMailFailureCommand(string secret, Guid id, string outcome, string reason) : ICommand<bool>
 {

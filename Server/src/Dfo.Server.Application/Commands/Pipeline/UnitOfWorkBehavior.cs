@@ -8,10 +8,10 @@ namespace Dfo.Server.Application.Commands.Pipeline;
 /// returns.
 /// </summary>
 /// <remarks>
-/// Its order places it strictly inside the account gate and strictly outside the execution
-/// policy, so a transaction never outlives the lock that serialises the account it belongs to,
-/// and the handler always runs with one open. This is the whole of what a handler has to do to
-/// get all-or-nothing: nothing.
+/// Its order (45 &lt; 58 &lt; 60 &lt; 100) places it inside the selected-session and settlement
+/// behaviours and strictly outside the execution policy, so the settlement that reads the outcome
+/// wraps the transaction and the handler always runs with one open. This is the whole of what a
+/// handler has to do to get all-or-nothing: nothing.
 /// </remarks>
 internal sealed class UnitOfWorkBehavior<TResult>(DomainTransactionScope scope, EffectOperationContext operations)
     : ICommandPipelineBehavior<TResult>

@@ -241,8 +241,7 @@ public sealed class EffectOperationReplayTests
         var fault = new ProbeFault();
         using var f = new ShopFixture(services => {
             services.AddSingleton(fault);
-            services.AddCommandHandler<SettlementProbe, ProbeResult, SettlementProbeHandler>(CommandExecutionKind.Transactional,
-                accountAccessMode: UserAccessMode.Shared);
+            services.AddCommandHandler<SettlementProbe, ProbeResult, SettlementProbeHandler>(CommandExecutionKind.Transactional);
         });
         await TestGameplay.RunAsync(f.Services, async () =>
         {
@@ -267,8 +266,7 @@ public sealed class EffectOperationReplayTests
     {
         using var f = new ShopFixture(services => {
             services.AddSingleton(new ProbeFault());
-            services.AddCommandHandler<SettlementProbe, ProbeResult, SettlementProbeHandler>(CommandExecutionKind.Transactional,
-                accountAccessMode: UserAccessMode.Shared);
+            services.AddCommandHandler<SettlementProbe, ProbeResult, SettlementProbeHandler>(CommandExecutionKind.Transactional);
         });
         await TestGameplay.RunAsync(f.Services, async () =>
         {
@@ -351,8 +349,7 @@ public sealed class EffectOperationReplayTests
     {
         using var f = new ShopFixture(services => {
             services.AddSingleton(new ProbeFault()); services.AddSingleton<IEffectHandler, UnknownHandler>();
-            services.AddCommandHandler<SettlementProbe, ProbeResult, SettlementProbeHandler>(CommandExecutionKind.Transactional,
-                accountAccessMode: UserAccessMode.Shared);
+            services.AddCommandHandler<SettlementProbe, ProbeResult, SettlementProbeHandler>(CommandExecutionKind.Transactional);
         });
         await TestGameplay.RunAsync(f.Services, async () =>
         {

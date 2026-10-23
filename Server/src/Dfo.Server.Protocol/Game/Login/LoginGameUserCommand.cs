@@ -8,7 +8,7 @@ namespace Dfo.Server.Protocol.Game.Login;
 public sealed record RedeemGameLoginCommand(
     OnlineUserId OnlineUserId,
     string MId,
-    string Ticket) : ICommand<RedeemGameLoginResult>, IOnlineUserCommand;
+    string Ticket) : ICommand<RedeemGameLoginResult>;
 
 public sealed record RedeemGameLoginResult(AccountId? AccountId)
 {

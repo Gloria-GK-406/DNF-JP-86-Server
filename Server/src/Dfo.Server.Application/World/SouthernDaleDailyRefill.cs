@@ -48,7 +48,7 @@ internal static class SouthernDaleDailyRefillRegistration
     {
         services.AddScoped<SouthernDaleDailyRefillJob>();
         services.AddCommandHandler<RefillOnlineSouthernTicketCommand, bool, RefillOnlineSouthernTicketCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddScheduledTaskFactory(sp => new("southern-dale.ticket-refill.online",
             new DailyResetTaskSchedule(sp.GetRequiredService<IDailyResetRuleService>()),
             (context, ct) => context.Services.GetRequiredService<SouthernDaleDailyRefillJob>().RunAsync(ct)));

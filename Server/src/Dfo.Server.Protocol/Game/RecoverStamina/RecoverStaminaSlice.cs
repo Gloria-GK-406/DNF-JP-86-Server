@@ -54,7 +54,7 @@ internal sealed class RecoverStaminaEncoder : GameCmdMessageEncoder<RecoverStami
 }
 
 public sealed record RecoverStaminaCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, ushort Mode)
-    : ICommand<RecoverStaminaResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<RecoverStaminaResult>, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
@@ -101,7 +101,6 @@ public sealed class RecoverStaminaCommandHandler(
             .ConfigureAwait(false);
         if (gold is null) return new(22);
         // Recover enlists an infallible memory commit; database failure leaves weakness intact.
-        // The global recovery command shares the transaction execution gate with this command.
         state.Recover();
         return new(0, gold.Value, cost);
     }

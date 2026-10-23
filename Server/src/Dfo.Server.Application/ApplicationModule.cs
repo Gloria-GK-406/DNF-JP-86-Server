@@ -39,7 +39,6 @@ using Dfo.Server.Application.Notifications;
 using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.Settlement;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Parties;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Users;
@@ -275,9 +274,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IGameSessionEndpointDomainService>(provider =>
             new GameSessionEndpointDomainService(
                 provider.GetRequiredService<OnlineStateRegistry>()));
-        // The gate is keyed on the character rather than the account because the operations
-        // that need it span accounts: a party pays an entry cost together.
-        services.TryAddSingleton<UserExecutionGate<CharacterId>>();
         // What the archive declares about quests, and the shared parameters a reward is worked
         // out from. One reader for both, because no quest outcome is decided without both.
         services.TryAddSingleton<IQuestContentRuleService, QuestContentRuleService>();
@@ -831,14 +827,14 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmCeraReminderDomainService, Dfo.Server.Application.Administration.GmCeraReminderDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmCeraDomainService, Dfo.Server.Application.Administration.GmCeraDomainService>();
         services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmCeraCommand, Dfo.Server.Data.Administration.GmCeraQueryResult, Dfo.Server.Application.Administration.QueryGmCeraCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<Dfo.Server.Application.Administration.GrantGmCeraCommand, Dfo.Server.Data.Administration.GmCeraGrantResult, Dfo.Server.Application.Administration.GrantGmCeraCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.GrantGmCeraCommand, Dfo.Server.Data.Administration.GmCeraGrantResult, Dfo.Server.Application.Administration.GrantGmCeraCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.RecordGmCeraFailureCommand, bool, Dfo.Server.Application.Administration.RecordGmCeraFailureCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmMailRuleService, Dfo.Server.Application.Administration.GmMailRuleService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Inventory.IItemEquipmentRuleService, Dfo.Server.Application.Inventory.ItemEquipmentRuleService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmOfficialMailDomainService, Dfo.Server.Application.Administration.GmOfficialMailDomainService>();
         services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmMailCommand, Dfo.Server.Data.Administration.GmMailQueryResult, Dfo.Server.Application.Administration.QueryGmMailCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.EditGmMailCommand, Dfo.Server.Data.Administration.GmMailDocument, Dfo.Server.Application.Administration.EditGmMailCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<Dfo.Server.Application.Administration.SendGmMailCommand, Dfo.Server.Data.Administration.GmMailSendResult, Dfo.Server.Application.Administration.SendGmMailCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.SendGmMailCommand, Dfo.Server.Data.Administration.GmMailSendResult, Dfo.Server.Application.Administration.SendGmMailCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.RecordGmMailFailureCommand, bool, Dfo.Server.Application.Administration.RecordGmMailFailureCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.BootstrapGmAdministratorCommand, bool, Dfo.Server.Application.Administration.BootstrapGmAdministratorCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.LoginGmAdministratorCommand, Dfo.Server.Data.Administration.GmLoginResult, Dfo.Server.Application.Administration.LoginGmAdministratorCommandHandler>(CommandExecutionKind.Transactional);

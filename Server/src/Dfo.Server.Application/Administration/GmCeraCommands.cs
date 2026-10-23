@@ -10,13 +10,12 @@ public sealed class QueryGmCeraCommand(string secret, GmCeraQuery kind, GmPlayer
     public string Secret { get; } = secret; public GmCeraQuery Kind { get; } = kind;
     public GmPlayerFilter Filter { get; } = filter ?? new(); public Guid Id { get; } = id; public GmCeraInput? Input { get; } = input;
 }
-public sealed class GrantGmCeraCommand(string secret, Guid id, GmCeraInput input) : ICommand<GmCeraGrantResult>, IMultiAccountCommand
+public sealed class GrantGmCeraCommand(string secret, Guid id, GmCeraInput input) : ICommand<GmCeraGrantResult>
 {
     public string Secret { get; } = secret; public Guid Id { get; } = id;
     // Freeze the execution scope independently of mutable transport arrays.
     private readonly GmCeraInput frozen = input with { AccountIds = (int[])input.AccountIds.Clone() };
     public GmCeraInput Input => frozen with { AccountIds = (int[])frozen.AccountIds.Clone() };
-    public IReadOnlyList<AccountId> AccountIds => frozen.AccountIds.Select(x => new AccountId(x)).ToArray();
 }
 public sealed class RecordGmCeraFailureCommand(string secret, Guid id, string outcome, string reason) : ICommand<bool>
 {

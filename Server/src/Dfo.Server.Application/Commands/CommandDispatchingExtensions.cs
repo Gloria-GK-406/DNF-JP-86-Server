@@ -2,7 +2,6 @@ using Dfo.Server.Application.Effects;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands.Pipeline;
 using Dfo.Server.Application.Execution;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Transactions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -23,10 +22,6 @@ public static class CommandDispatchingExtensions
         services.TryAddSingleton<SelectedSessionCommandScope>();
         services.TryAddSingleton<EffectOperationContext>();
         services.TryAddSingleton<EffectOperationLedger>();
-        services.TryAddSingleton<OnlineUserExecutionGate>();
-        services.TryAddSingleton<SelectedSessionTransitionGate>();
-        services.TryAddSingleton<AccountExecutionGate>();
-        services.TryAddSingleton<TransactionalExecutionGate>();
         // The scope holds the open transaction for the flow the command runs on. Stores are
         // singletons and containers are held per character, so neither can be handed the
         // transaction by injection; both ask this accessor for it instead.
@@ -41,12 +36,6 @@ public static class CommandDispatchingExtensions
             typeof(ICommandPipelineBehavior<>), typeof(SelectedSessionExecutionBehavior<>)));
         services.TryAddEnumerable(ServiceDescriptor.Scoped(
             typeof(ICommandPipelineBehavior<>), typeof(SelectedSessionSettlementBehavior<>)));
-        services.TryAddEnumerable(ServiceDescriptor.Scoped(
-            typeof(ICommandPipelineBehavior<>), typeof(OnlineUserExecutionBehavior<>)));
-        services.TryAddEnumerable(ServiceDescriptor.Scoped(
-            typeof(ICommandPipelineBehavior<>), typeof(AccountExecutionBehavior<>)));
-        services.TryAddEnumerable(ServiceDescriptor.Scoped(
-            typeof(ICommandPipelineBehavior<>), typeof(TransactionalExecutionBehavior<>)));
         services.TryAddEnumerable(ServiceDescriptor.Scoped(
             typeof(ICommandPipelineBehavior<>), typeof(UnitOfWorkBehavior<>)));
         services.TryAddEnumerable(ServiceDescriptor.Scoped(
@@ -63,9 +52,7 @@ public static class CommandDispatchingExtensions
     /// </summary>
     public static IServiceCollection AddCommandHandler<TCommand, TResult, THandler>(
         this IServiceCollection services,
-        CommandExecutionKind executionKind,
-        UserAccessMode onlineUserAccessMode = UserAccessMode.Unscoped,
-        UserAccessMode accountAccessMode = UserAccessMode.Unscoped)
+        CommandExecutionKind executionKind)
         where TCommand : class, ICommand<TResult>
         where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult>
@@ -77,9 +64,7 @@ public static class CommandDispatchingExtensions
             typeof(TCommand),
             typeof(THandler),
             typeof(CommandInvoker<TCommand, TResult>),
-            executionKind,
-            onlineUserAccessMode,
-            accountAccessMode));
+            executionKind));
         return services;
     }
 }

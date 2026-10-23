@@ -146,7 +146,7 @@ public sealed partial class SelectCharacterLifecycleTests
 
     private static CommandExecutionContext ReturnContext() => new(Guid.NewGuid(),
         typeof(PrepareReturnToSelectionCommand), typeof(PrepareReturnToSelectionCommandHandler),
-        CommandExecutionKind.Transactional, AccountAccessMode: UserAccessMode.Exclusive);
+        CommandExecutionKind.Transactional);
 
     private sealed class RosterCharacters(SelectCharacterResult state) : ICharacterDomainService
     {

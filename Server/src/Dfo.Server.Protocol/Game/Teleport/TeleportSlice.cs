@@ -64,7 +64,7 @@ internal sealed class TeleportCooldownEncoder : GameNotiMessageEncoder<TeleportC
 }
 public sealed record TeleportCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
     BusinessSlot Source, int ItemId, byte TownId, ChannelEntryIdentity Channel)
-    : ICommand<TeleportConsumableResult>, IRequestSettlementCommand, IAccountCommand, IOnlineUserCommand
+    : ICommand<TeleportConsumableResult>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

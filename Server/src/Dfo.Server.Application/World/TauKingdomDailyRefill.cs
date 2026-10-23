@@ -48,7 +48,7 @@ internal static class TauKingdomDailyRefillRegistration
     {
         services.AddScoped<TauKingdomDailyRefillJob>();
         services.AddCommandHandler<RefillOnlineTauTicketCommand, bool, RefillOnlineTauTicketCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+            CommandExecutionKind.Transactional);
         services.AddScheduledTaskFactory(sp => new("tau-kingdom.ticket-refill.online",
             new DailyResetTaskSchedule(sp.GetRequiredService<IDailyResetRuleService>()),
             (context, ct) => context.Services.GetRequiredService<TauKingdomDailyRefillJob>().RunAsync(ct)));

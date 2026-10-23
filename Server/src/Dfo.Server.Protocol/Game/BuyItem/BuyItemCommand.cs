@@ -10,7 +10,7 @@ namespace Dfo.Server.Protocol.Game.BuyItem;
 
 public sealed record BuyItemCommand(
     OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int ItemId, int RawCount, int ShopId, int NpcId)
-    : ICommand<BuyItemOutcome>, IOnlineUserCommand, IAccountCommand, IMultiAccountCommand
+    : ICommand<BuyItemOutcome>, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
     public IReadOnlyList<AccountId> AccountIds { get; init; } = [Session.AccountId];
@@ -51,8 +51,7 @@ public sealed class BuyItemCommandHandler(
     }
 }
 
-public sealed record HousingBuyItemCommand(BuyItemCommand Purchase) : ICommand<BuyItemOutcome>, IMultiAccountCommand, IRequestSettlementCommand
+public sealed record HousingBuyItemCommand(BuyItemCommand Purchase) : ICommand<BuyItemOutcome>, IRequestSettlementCommand
 {
     public SelectedSessionIdentity? Session => Purchase.Session;
-    public IReadOnlyList<AccountId> AccountIds => Purchase.AccountIds;
 }

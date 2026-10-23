@@ -141,7 +141,7 @@ public sealed record QueryJoustHistoryCommand(SelectedSessionIdentity Session):I
 {public AccountId AccountId=>Session.AccountId;}
 public sealed class QueryJoustHistoryCommandHandler(IJoustDomainService joust):ICommandHandler<QueryJoustHistoryCommand,JoustHistoryEntry[]>
 {public ValueTask<JoustHistoryEntry[]> HandleAsync(CommandExecutionContext c,QueryJoustHistoryCommand q,CancellationToken ct)=>joust.GetHistoryAsync(ct);}
-public sealed record JoustBetCommand(OnlineUserId OnlineUserId,SelectedSessionIdentity Session,string RequestId,int KnightIndex,BusinessSlot Slot,int Amount):ICommand<JoustBetResult>,IRequestSettlementCommand,IOnlineUserCommand,IAccountCommand,ISelectedSessionCommand
+public sealed record JoustBetCommand(OnlineUserId OnlineUserId,SelectedSessionIdentity Session,string RequestId,int KnightIndex,BusinessSlot Slot,int Amount):ICommand<JoustBetResult>,IRequestSettlementCommand,IAccountCommand,ISelectedSessionCommand
 {public AccountId AccountId=>Session.AccountId;}
 public sealed class JoustBetCommandHandler(IJoustDomainService joust,TimeProvider clock,IRequestReplayProjectionDomainService projection):ICommandHandler<JoustBetCommand,JoustBetResult>
 {

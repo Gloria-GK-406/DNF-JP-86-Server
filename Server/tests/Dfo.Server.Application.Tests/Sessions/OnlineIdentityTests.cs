@@ -1,6 +1,5 @@
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Testing;
 using Dfo.Server.Application.Tests.Support;
@@ -299,7 +298,7 @@ public sealed class OnlineIdentityTests
                 .AddSingleton<ISelectedSessionDomainService>(Sessions)
                 .BuildServiceProvider();
             return new SelectedSessionSafety(
-                services, new SelectedSessionTransitionGate(), NullLogger<SelectedSessionSafety>.Instance);
+                services, NullLogger<SelectedSessionSafety>.Instance);
         }
     }
 }

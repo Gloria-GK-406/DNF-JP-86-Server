@@ -62,7 +62,7 @@ public sealed class MarriageChurchTests
         {
             s.AddSingleton<ITownDefinitionSource, ChurchTestTowns>();
             s.AddCommandHandler<PrepareMarriageChurchCommand, MarriageChurchPreparationResult, PrepareMarriageChurchCommandHandler>(
-                CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+                CommandExecutionKind.Transactional);
             configure?.Invoke(s);
         });
         await MarriageCeremonyTests.MakeEligibleAsync(f, peer, logs);

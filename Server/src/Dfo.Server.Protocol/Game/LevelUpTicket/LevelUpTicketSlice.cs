@@ -63,7 +63,7 @@ internal sealed class LevelUpTicketEncoder : GameCmdMessageEncoder<LevelUpTicket
 }
 
 public sealed record UseLevelUpTicketCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int SourceSlot)
-    : ICommand<LevelUpTicketResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<LevelUpTicketResult>, IRequestSettlementCommand, IAccountCommand
 {
     public Dfo.Server.Data.Accounts.AccountId AccountId => Session.AccountId;
 }

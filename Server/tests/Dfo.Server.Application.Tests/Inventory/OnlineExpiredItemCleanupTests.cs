@@ -10,7 +10,6 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Application.Inventory;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Inventory;

@@ -32,7 +32,7 @@ internal sealed class ChangeSkillSlotEncoder : GameCmdMessageEncoder<ChangeSkill
         OnePayload(0x001C, message.Success ? new byte[] { 1, message.Page, message.First, message.Second } : new byte[] { 0, 3 });
 }
 public sealed record ChangeSkillSlotCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, byte Page, byte First, byte Second)
-    : ICommand<bool>, IOnlineUserCommand, IAccountCommand
+    : ICommand<bool>, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

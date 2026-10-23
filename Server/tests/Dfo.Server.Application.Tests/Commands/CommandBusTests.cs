@@ -1,7 +1,5 @@
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Commands.Pipeline;
-using Dfo.Server.Data.Accounts;
-using Dfo.Server.Data.OnlineUsers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -93,58 +91,6 @@ public sealed class CommandBusTests
         Assert.Contains("Nested command dispatch", exception.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task OnlineUserScopedRegistration_RequiresAnOnlineUserCommand()
-    {
-        await using var provider = BuildProvider(services =>
-            services.AddCommandHandler<TestCommand, TestResult, CountingHandler>(
-                CommandExecutionKind.Direct,
-                UserAccessMode.Shared));
-        var bus = provider.GetRequiredService<ICommandBus>();
-
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await bus.SendAsync(new TestCommand(), CancellationToken.None));
-
-        Assert.Contains(nameof(IOnlineUserCommand), exception.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task AccountScopedRegistration_RequiresAnAccountCommand()
-    {
-        await using var provider = BuildProvider(services =>
-            services.AddCommandHandler<TestCommand, TestResult, CountingHandler>(
-                CommandExecutionKind.Direct,
-                accountAccessMode: UserAccessMode.Exclusive));
-        var bus = provider.GetRequiredService<ICommandBus>();
-
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await bus.SendAsync(new TestCommand(), CancellationToken.None));
-
-        Assert.Contains(nameof(IAccountCommand), exception.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task ExclusiveAccountLease_IsReleasedWhenHandlerThrows()
-    {
-        var probe = new FailOnceProbe(new InvalidOperationException("account failure"));
-        await using var provider = BuildProvider(services =>
-        {
-            services.AddSingleton(probe);
-            services.AddCommandHandler<AccountTestCommand, TestResult, FailOnceAccountHandler>(
-                CommandExecutionKind.Direct,
-                accountAccessMode: UserAccessMode.Exclusive);
-        });
-        var bus = provider.GetRequiredService<ICommandBus>();
-        var command = new AccountTestCommand(new AccountId(7));
-
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await bus.SendAsync(command, CancellationToken.None));
-
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-        var result = await bus.SendAsync(command, timeout.Token);
-        Assert.NotEqual(Guid.Empty, result.ScopeId);
-    }
-
     /// <summary>
     /// Behaviours register as open generics and the container closes them per result type.
     /// A behaviour that failed to resolve would leave the chain quietly shorter, so the set
@@ -169,30 +115,11 @@ public sealed class CommandBusTests
             {
                 typeof(CommandLoggingBehavior<TestResult>),
                 typeof(SelectedSessionExecutionBehavior<TestResult>),
-                typeof(OnlineUserExecutionBehavior<TestResult>),
-                typeof(AccountExecutionBehavior<TestResult>),
-                typeof(TransactionalExecutionBehavior<TestResult>),
                 typeof(SelectedSessionSettlementBehavior<TestResult>),
                 typeof(UnitOfWorkBehavior<TestResult>),
                 typeof(CommandExecutionPolicyBehavior<TestResult>),
             },
             behaviours.Select(behaviour => behaviour.GetType()).ToArray());
-    }
-
-    [Fact]
-    public async Task SharedOnlineUserLease_IsReleasedWhenHandlerThrows()
-    {
-        await AssertOnlineUserLeaseReleasedAfterFailureAsync(
-            UserAccessMode.Shared,
-            new InvalidOperationException("shared failure"));
-    }
-
-    [Fact]
-    public async Task ExclusiveOnlineUserLease_IsReleasedWhenHandlerIsCancelled()
-    {
-        await AssertOnlineUserLeaseReleasedAfterFailureAsync(
-            UserAccessMode.Exclusive,
-            new OperationCanceledException("exclusive cancellation"));
     }
 
     /// <summary>
@@ -260,29 +187,6 @@ public sealed class CommandBusTests
         return services.BuildServiceProvider();
     }
 
-    private static async Task AssertOnlineUserLeaseReleasedAfterFailureAsync(
-        UserAccessMode accessMode,
-        Exception failure)
-    {
-        var probe = new FailOnceProbe(failure);
-        await using var provider = BuildProvider(services =>
-        {
-            services.AddSingleton(probe);
-            services.AddCommandHandler<OnlineTestCommand, TestResult, FailOnceOnlineHandler>(
-                CommandExecutionKind.Direct,
-                accessMode);
-        });
-        var bus = provider.GetRequiredService<ICommandBus>();
-        var command = new OnlineTestCommand(OnlineUserId.New());
-
-        await Assert.ThrowsAsync(failure.GetType(), async () =>
-            await bus.SendAsync(command, CancellationToken.None));
-
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-        var result = await bus.SendAsync(command, timeout.Token);
-        Assert.NotEqual(Guid.Empty, result.ScopeId);
-    }
-
     private static ServiceCollection CreateServices()
     {
         var services = new ServiceCollection();
@@ -297,12 +201,6 @@ public sealed class CommandBusTests
     private sealed record TestCommand : ICommand<TestResult>;
 
     private sealed record UnregisteredCommand : ICommand<TestResult>;
-
-    private sealed record OnlineTestCommand(OnlineUserId OnlineUserId)
-        : ICommand<TestResult>, IOnlineUserCommand;
-
-    private sealed record AccountTestCommand(AccountId AccountId)
-        : ICommand<TestResult>, IAccountCommand;
 
     private sealed class ScopedProbe
     {
@@ -329,32 +227,6 @@ public sealed class CommandBusTests
         public ValueTask<TestResult> HandleAsync(
             CommandExecutionContext context,
             TestCommand command,
-            CancellationToken cancellationToken)
-        {
-            failure.ThrowIfPending();
-            return ValueTask.FromResult(new TestResult(probe.Id));
-        }
-    }
-
-    private sealed class FailOnceOnlineHandler(ScopedProbe probe, FailOnceProbe failure)
-        : ICommandHandler<OnlineTestCommand, TestResult>
-    {
-        public ValueTask<TestResult> HandleAsync(
-            CommandExecutionContext context,
-            OnlineTestCommand command,
-            CancellationToken cancellationToken)
-        {
-            failure.ThrowIfPending();
-            return ValueTask.FromResult(new TestResult(probe.Id));
-        }
-    }
-
-    private sealed class FailOnceAccountHandler(ScopedProbe probe, FailOnceProbe failure)
-        : ICommandHandler<AccountTestCommand, TestResult>
-    {
-        public ValueTask<TestResult> HandleAsync(
-            CommandExecutionContext context,
-            AccountTestCommand command,
             CancellationToken cancellationToken)
         {
             failure.ThrowIfPending();

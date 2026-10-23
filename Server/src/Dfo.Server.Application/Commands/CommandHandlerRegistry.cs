@@ -4,9 +4,7 @@ public sealed record CommandHandlerRegistration(
     Type CommandType,
     Type HandlerType,
     Type InvokerType,
-    CommandExecutionKind ExecutionKind,
-    UserAccessMode OnlineUserAccessMode,
-    UserAccessMode AccountAccessMode);
+    CommandExecutionKind ExecutionKind);
 
 /// <summary>
 /// Maps a command type to how it is executed.

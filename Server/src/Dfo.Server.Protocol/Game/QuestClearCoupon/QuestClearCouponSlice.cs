@@ -94,7 +94,7 @@ internal sealed class QuestClearCouponEncoder : GameCmdMessageEncoder<QuestClear
 }
 
 public sealed record QuestClearCouponCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int SourceSlot)
-    : ICommand<QuestClearCouponResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+    : ICommand<QuestClearCouponResult>, IRequestSettlementCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

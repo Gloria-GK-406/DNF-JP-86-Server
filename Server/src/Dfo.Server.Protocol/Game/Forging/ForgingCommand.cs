@@ -9,7 +9,7 @@ namespace Dfo.Server.Protocol.Game.Forging;
 
 public sealed record ForgingCommand(OnlineUserId OnlineUserId,
     SelectedSessionIdentity Session, BusinessSlot Target, int ExpectedTargetItemId,
-    BusinessSlot Material) : ICommand<EquipmentForgingResult>, IRequestSettlementCommand, IOnlineUserCommand,
+    BusinessSlot Material) : ICommand<EquipmentForgingResult>, IRequestSettlementCommand,
     IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;

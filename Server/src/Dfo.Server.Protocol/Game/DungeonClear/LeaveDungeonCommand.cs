@@ -8,10 +8,7 @@ namespace Dfo.Server.Protocol.Game.DungeonClear;
 
 public sealed record LeaveDungeonCommand(SelectedSessionIdentity Session,
     IReadOnlyList<SelectedSessionIdentity> Sessions, DungeonRunId RunId)
-    : ICommand<LeaveDungeonResult>, IMultiSelectedSessionCommand, IMultiAccountCommand
-{
-    public IReadOnlyList<AccountId> AccountIds => Sessions.Select(x => x.AccountId).Distinct().ToArray();
-}
+    : ICommand<LeaveDungeonResult>, IMultiSelectedSessionCommand;
 
 public sealed record LeaveDungeonResult(IReadOnlyList<CharacterId> EndedCharacters);
 

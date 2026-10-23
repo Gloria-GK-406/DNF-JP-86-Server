@@ -404,8 +404,7 @@ public sealed class DungeonVisitDomainServiceTests
     private static IDungeonVisitDomainService Bound(LearningFixture f, DungeonRunDomainService runs, DungeonLayout layout) =>
         new TransactionalDungeonVisitDomainService(Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new RecordingLayouts(layout), runs,
             new ImmediateSelection(), new RecordingCellFactory(), new MaximumDifficulty(), new DungeonDifficultyRuleService(),
-            f.Services.GetRequiredService<ICharacterFatigueDomainService>()), f.Scope,
-            f.Services.GetRequiredService<TransactionalExecutionGate>());
+            f.Services.GetRequiredService<ICharacterFatigueDomainService>()), f.Scope);
 
     private sealed class TestFatigue : Dfo.Server.Abstractions.Characters.ICharacterFatigueDomainService
     {

@@ -44,7 +44,7 @@ internal sealed class WeddingLovePointNotificationEncoder : GameNotiMessageEncod
     }
 }
 public sealed record WeddingLovePointCommand(SelectedSessionIdentity Actor, BusinessSlot Slot, IReadOnlyList<AccountId> AccountIds)
-    : ICommand<MarriageLovePointResult>, IMultiAccountCommand, IRequestSettlementCommand
+    : ICommand<MarriageLovePointResult>, IRequestSettlementCommand
 { public SelectedSessionIdentity? Session => Actor; }
 public sealed class WeddingLovePointCommandHandler(IMarriageCoupleDomainService couple) : ICommandHandler<WeddingLovePointCommand, MarriageLovePointResult>
 {
