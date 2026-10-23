@@ -162,9 +162,9 @@ public sealed class TauKingdomTests
             });
         await f.SeedAsync();
         var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
-        containers.Register(new(71), new PersistentItemContainer(ContainerId.ForCharacter(new(71), InventoryContainerType.Main),
+        TestGameplay.Run(f.Services, () => containers.Register(new(71), new PersistentItemContainer(ContainerId.ForCharacter(new(71), InventoryContainerType.Main),
             new(InventoryContainerType.Main, 0), f.Services.GetRequiredService<IItemDomainStore>(), f.Scope,
-            f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>()));
+            f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>())));
         var tau = f.Services.GetRequiredService<ITauKingdomDomainService>();
         var rule = (await f.Services.GetRequiredService<IDailyRefillConfigurationDomainService>()
             .EffectiveAsync(clock.Now, default)).Single(x => x.ItemId == 690001556);

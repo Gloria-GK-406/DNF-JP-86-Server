@@ -8,6 +8,7 @@ using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Networking.Runtime;
 using Dfo.Server.Protocol.Game.ResetRandomOption;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -69,7 +70,7 @@ public sealed class MagicSealGradeTests
         Assert.Equal(1, f.Count(4000)); Assert.Equal(100000, f.Gold);
         Assert.Equal(uid, f.Scalar("SELECT core_uid FROM item_slots WHERE list_type=0 AND slot_index=9"));
         var persisted = f.StoredCore(9);
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId); f.Select(1);
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId)); f.Select(1);
         Assert.Equal(expected, (await f.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
             .Find(f.Session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 0))!.Container.GetAsync(0, default))!.Snapshot.ToCore());
         Assert.Equal(persisted, f.StoredCore(9));
@@ -131,7 +132,7 @@ public sealed class MagicSealGradeTests
         Assert.NotNull(receipt); Assert.Equal(0, receipt.MaterialRemaining);
         var before = f.StoredCore(9); f.Select(2);
         await Assert.ThrowsAnyAsync<Exception>(async () => await f.Services.GetRequiredService<ICommandBus>().SendAsync(command));
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(command.Session.CharacterId);
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(command.Session.CharacterId));
         f.Select(1);
         Assert.Equal(before, f.StoredCore(9));
     }
@@ -190,7 +191,7 @@ public sealed class MagicSealGradeTests
         var grade = receipt.Equipment.RandomOption0;
         Assert.Equal(grade.Value1, grade.Value2); Assert.InRange(grade.Value1, (byte)0, (byte)55);
         Assert.Equal(original with { RandomOption0 = grade }, receipt.Equipment.ToCore());
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId); f.Select(1);
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId)); f.Select(1);
         Assert.Equal(original with { RandomOption0 = grade }, (await f.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
             .Find(f.Session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 0))!.Container.GetAsync(0, default))!.Snapshot.ToCore());
     }

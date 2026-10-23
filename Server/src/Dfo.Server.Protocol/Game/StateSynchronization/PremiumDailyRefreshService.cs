@@ -48,6 +48,7 @@ public sealed class PremiumDailyRefreshService(ISelectedSessionSnapshotQuery dir
     public Task RefreshAsync(CancellationToken token) => GameplayTimerWork.RunAsync(queue, Command, RefreshCoreAsync, token);
     private async ValueTask RefreshCoreAsync(CancellationToken token)
     {
+        GameplayWriteAssertion.Writing(nameof(PremiumDailyRefreshService) + "." + nameof(RefreshCoreAsync));
         var current = directory.Snapshot();
         foreach (var stale in delivered.Keys.Except(current).ToArray()) delivered.Remove(stale);
         foreach (var session in current)

@@ -23,7 +23,7 @@ public sealed class OnlineExpiredItemCleanupTests
 {
     private static void Select(ShopFixture f, int character)
     {
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(new(character));
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(new(character)));
         f.Select(character);
     }
     private const string Subscriber = "inventory.expiration.notifications";

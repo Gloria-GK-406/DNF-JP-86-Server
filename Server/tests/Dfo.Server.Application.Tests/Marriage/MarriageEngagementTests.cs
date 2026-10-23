@@ -267,10 +267,10 @@ public sealed class MarriageEngagementTests
         f.Sql("INSERT INTO character_stats(character_id,carried_gold) VALUES(71,0),(72,0);");
         var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
         foreach (var character in new[] { f.Session.CharacterId, peer.CharacterId })
-            containers.Register(character, new PersistentItemContainer(ContainerId.ForCharacter(character, InventoryContainerType.Main),
+            TestGameplay.Run(f.Services, () => containers.Register(character, new PersistentItemContainer(ContainerId.ForCharacter(character, InventoryContainerType.Main),
                 new(InventoryContainerType.Main, 0), f.Services.GetRequiredService<IItemDomainStore>(),
                 f.Services.GetRequiredService<IDomainTransactionAccessor>(), f.Services.GetRequiredService<IItemPlacementRuleService>(),
-                f.Services.GetRequiredService<IItemSlotRuleService>()));
+                f.Services.GetRequiredService<IItemSlotRuleService>())));
         await Engage(f, peer); await Accept(f, 1, 71); await Accept(f, 2, 72);
         var subscriber = ActivatorUtilities.CreateInstance<MarriageTrialClearSubscriber>(f.Services);
         await TestGameplay.RunAsync(f.Services, async () =>

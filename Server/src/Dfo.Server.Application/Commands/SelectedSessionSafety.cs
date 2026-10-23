@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
@@ -56,6 +57,7 @@ public sealed class SelectedSessionSafety(IServiceProvider services, ILogger<Sel
     }
     public async ValueTask BlockAsync(SelectedSessionRecipient recipient, Exception error, string operation)
     {
+        GameplayWriteAssertion.Writing(nameof(SelectedSessionSafety) + "." + nameof(BlockAsync));
         services.GetService<ISelectedSessionDomainService>()?.Fence(recipient.Session);
         if (recipient.Connection is { } connection)
             lock (gate) connections.GetValue(connection, _ => new());
@@ -71,6 +73,7 @@ public sealed class SelectedSessionSafety(IServiceProvider services, ILogger<Sel
     public async ValueTask<TransactionOutcomeUncertainException> PublicationFailedAsync(
         SelectedSessionRecipient recipient, Exception cause, string operation)
     {
+        GameplayWriteAssertion.Writing(nameof(SelectedSessionSafety) + "." + nameof(PublicationFailedAsync));
         var error = new TransactionOutcomeUncertainException(TransactionUncertaintyReason.PostCommitPublicationFailure,
             "Durable effects committed, but their runtime claim could not be published.", cause);
         await BlockAsync(recipient, error, operation).ConfigureAwait(false);

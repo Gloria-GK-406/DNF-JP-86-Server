@@ -7,6 +7,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.CompoundItem;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -125,7 +126,7 @@ public sealed class RecipeCraftTests
         Assert.Equal(0, f.Count(1287)); Assert.Equal(0, f.Count(3244)); Assert.Equal(1, f.Count(1286));
         Assert.Equal(0, f.SharedCount(3262, 1)); Assert.Equal(100000, f.Gold);
         Assert.Equal(3, receipt.Consumed.Length); Assert.Equal(1, Assert.Single(receipt.Inventory.Rewards).Count);
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId);
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId));
         f.Select(1);
         var bag = f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>().GetStore(f.Session.CharacterId, BusinessInventoryStoreKind.Item)
             .GetContainer(Assert.Single(receipt.Inventory.Rewards).Slot!.Value.Space);

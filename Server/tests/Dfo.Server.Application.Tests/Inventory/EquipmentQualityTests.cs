@@ -75,7 +75,7 @@ public sealed class EquipmentQualityTests
         await Send(f);
         Assert.Equal(30 - cost, f.Count(14));
         Assert.Single(f.Sender.Messages.OfType<ResetItemQualityResponse>());
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId);
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId));
         f.Select(1);
         Assert.Equal(before, f.StoredCore(9));
     }

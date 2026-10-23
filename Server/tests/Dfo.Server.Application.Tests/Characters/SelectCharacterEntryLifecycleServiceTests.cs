@@ -17,6 +17,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Persistence.Tests.Support;
 using Dfo.Server.Infrastructure.Content;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
@@ -75,7 +76,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             containers, new VolatileItemDomainStore(), new DomainTransactionScope(),
             null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
 
-        var updated = await service.PrepareLeaseAsync(next, result, CancellationToken.None);
+        var updated = await TestGameplay.RunAsync(async () => await service.PrepareLeaseAsync(next, result, CancellationToken.None));
 
         Assert.Equal(result.CharacterInventory, updated.CharacterInventory);
         Assert.Equal(1, loader.LoadCount);
@@ -102,7 +103,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             new RefillConfiguration(new RefillContent()), new RefillMutation(), new InventoryLoader(reloaded),
             new CharacterContainerDomainService(),
             new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
-        _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
+        _ = await TestGameplay.RunAsync(async () => await service.PrepareLeaseAsync(session, result, CancellationToken.None));
 
         var prepared = await service.ApplyDailyRefillAsync(session, result, CancellationToken.None);
 
@@ -123,7 +124,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             new RefillConfiguration(new RefillContent()), new FailingRefillMutation(), loader,
             new CharacterContainerDomainService(), new VolatileItemDomainStore(), new DomainTransactionScope(),
             null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
-        _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
+        _ = await TestGameplay.RunAsync(async () => await service.PrepareLeaseAsync(session, result, CancellationToken.None));
 
         await Assert.ThrowsAsync<IOException>(async () =>
             await service.ApplyDailyRefillAsync(session, result, CancellationToken.None));
@@ -309,7 +310,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             new InventoryLoader(expanded), containers,
             new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
 
-        var prepared = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
+        var prepared = await TestGameplay.RunAsync(async () => await service.PrepareLeaseAsync(session, result, CancellationToken.None));
 
         var loaded = prepared.CharacterInventory.Containers.Single(
             value => value.ContainerType == InventoryContainerType.Main);

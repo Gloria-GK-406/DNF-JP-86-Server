@@ -209,12 +209,15 @@ public sealed class SessionAdjacentEntryTests
     [Fact]
     public void Closing_a_store_removes_it()
     {
-        var stores = new ExpertStoreDomainService();
-        stores.Open(new CharacterId(10));
+        TestGameplay.Run(() =>
+        {
+            var stores = new ExpertStoreDomainService();
+            stores.Open(new CharacterId(10));
 
-        Assert.True(stores.Close(new CharacterId(10)));
-        Assert.False(stores.Close(new CharacterId(10)));
-        Assert.False(stores.HasOpenStore(new CharacterId(10)));
+            Assert.True(stores.Close(new CharacterId(10)));
+            Assert.False(stores.Close(new CharacterId(10)));
+            Assert.False(stores.HasOpenStore(new CharacterId(10)));
+        });
     }
 
     /// <remarks>

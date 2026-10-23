@@ -13,6 +13,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Protocol.Game.AvatarCompound;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -46,11 +47,11 @@ public sealed class AvatarCompoundTests
             if (content is not null) s.AddSingleton<IAvatarCompoundDefinitionSource>(content);
         });
         f.Sql("UPDATE characters SET job=0"); f.SetLevel(80);
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
             new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Avatar),
                 new(InventoryContainerType.Avatar, 0), f.Services.GetRequiredService<IItemDomainStore>(),
                 f.Services.GetRequiredService<IDomainTransactionAccessor>(), f.Services.GetRequiredService<IItemPlacementRuleService>(),
-                f.Services.GetRequiredService<IItemSlotRuleService>()));
+                f.Services.GetRequiredService<IItemSlotRuleService>())));
         return f;
     }
     private static async Task Seed(ShopFixture f, int box = 21, int count = 2)

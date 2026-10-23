@@ -23,6 +23,7 @@ public sealed class AltarQuotaDailyRefreshService(ISelectedSessionSnapshotQuery 
     public Task RefreshAsync(CancellationToken ct) => GameplayTimerWork.RunAsync(queue, Command, RefreshCoreAsync, ct);
     private async ValueTask RefreshCoreAsync(CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AltarQuotaDailyRefreshService) + "." + nameof(RefreshCoreAsync));
         var period = daily.PeriodStart(clock.GetUtcNow()); var current = directory.Snapshot();
         foreach (var stale in delivered.Keys.Except(current).ToArray()) delivered.Remove(stale);
         foreach (var session in current)

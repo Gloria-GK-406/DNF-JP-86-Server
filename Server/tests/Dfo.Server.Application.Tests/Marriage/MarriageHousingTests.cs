@@ -124,7 +124,7 @@ public sealed partial class MarriageHousingTests
         Assert.Equal(0, (await Act(w, f.Session, recall)).Status); Assert.Empty((await Read(w)).Placements); Assert.Equal(2, Assert.Single((await Read(w)).Storage).Count);
         Assert.Equal(0, (await Act(w, f.Session, new(HousingAction.Storage, Count: 1))).Status);
         Assert.Equal(0, (await Act(w, w.Peer, new(HousingAction.Storage))).Status);
-        f.Services.GetRequiredService<IMarriageHousingSessionDomainService>().CloseExact(f.Session);
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<IMarriageHousingSessionDomainService>().CloseExact(f.Session));
         Assert.Equal(-4, (await Act(w, f.Session, new(HousingAction.Storage))).Status);
     }
 

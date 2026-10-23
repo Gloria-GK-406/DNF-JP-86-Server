@@ -227,7 +227,7 @@ public sealed class SelectCharacterProductionStateTests
         var session = SelectedSessionIdentity.Create(
             seed.Account.AccountId, seed.Character.Identity.CharacterId,
             new Dfo.Server.Data.Networking.NetworkConnectionId("creature-entry"), 1, 10011);
-        result = await inventoryEntry.PrepareLeaseAsync(session, result, CancellationToken.None);
+        result = await TestGameplay.RunAsync(async () => await inventoryEntry.PrepareLeaseAsync(session, result, CancellationToken.None));
         result = (await inventoryEntry.ApplyDailyRefillAsync(
             session, result, CancellationToken.None)).Result;
 

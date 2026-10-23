@@ -828,9 +828,17 @@ public sealed class BossTowerDepartureProjectionQueue
 {
     private readonly ConcurrentQueue<BossTowerActionResult> pending = new();
 
-    public void Enqueue(BossTowerActionResult action) => pending.Enqueue(action);
+    public void Enqueue(BossTowerActionResult action)
+    {
+        GameplayWriteAssertion.Writing(nameof(BossTowerDepartureProjectionQueue) + "." + nameof(Enqueue));
+        pending.Enqueue(action);
+    }
 
-    internal bool TryDequeue(out BossTowerActionResult? action) => pending.TryDequeue(out action);
+    internal bool TryDequeue(out BossTowerActionResult? action)
+    {
+        GameplayWriteAssertion.Writing(nameof(BossTowerDepartureProjectionQueue) + "." + nameof(TryDequeue));
+        return pending.TryDequeue(out action);
+    }
 }
 
 public sealed class BossTowerReturnSweepService(

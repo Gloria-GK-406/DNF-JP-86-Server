@@ -1084,8 +1084,8 @@ public sealed class JoustIntegrationTests
                 registry.EnterWorld(Session);provider.GetRequiredService<ISelectedSessionDomainService>().Select(Session);
             });
             var containers=provider.GetRequiredService<ICharacterContainerDomainService>();
-            containers.Register(new(1),new PersistentItemContainer(ContainerId.ForCharacter(new(1),InventoryContainerType.Main),new(InventoryContainerType.Main,0),
-                provider.GetRequiredService<IItemDomainStore>(),provider.GetRequiredService<IDomainTransactionAccessor>(),provider.GetRequiredService<IItemPlacementRuleService>(),provider.GetRequiredService<IItemSlotRuleService>()));
+            TestGameplay.Run(provider, () => containers.Register(new(1),new PersistentItemContainer(ContainerId.ForCharacter(new(1),InventoryContainerType.Main),new(InventoryContainerType.Main,0),
+                provider.GetRequiredService<IItemDomainStore>(),provider.GetRequiredService<IDomainTransactionAccessor>(),provider.GetRequiredService<IItemPlacementRuleService>(),provider.GetRequiredService<IItemSlotRuleService>())));
         }
         public Fixture Reopen()=>new(directory,clock,false,useArchive);
         public async Task<T> Run<T>(Func<ValueTask<T>> act)

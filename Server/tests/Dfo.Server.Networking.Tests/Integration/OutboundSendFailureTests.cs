@@ -10,6 +10,7 @@ using Dfo.Server.Protocol.Channel.Connect;
 using Dfo.Server.Protocol.Game.Exit;
 using Dfo.Server.Protocol.Game.Login;
 using Dfo.Server.Protocol;
+using Dfo.Server.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -35,8 +36,8 @@ public sealed class OutboundSendFailureTests
         var channelConnection = await fixture.ConnectChannelAsync();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await fixture.Sender.SendAsync(
-                channelConnection, new GameExitResponse(true), fixture.Token));
+            await TestGameplay.RunAsync(fixture.Services, async () => await fixture.Sender.SendAsync(
+                channelConnection, new GameExitResponse(true), fixture.Token)));
 
         Assert.Contains(nameof(GameExitResponse), exception.Message, StringComparison.Ordinal);
         Assert.Contains(nameof(NetworkEndpointKind.Channel), exception.Message, StringComparison.Ordinal);
@@ -49,8 +50,8 @@ public sealed class OutboundSendFailureTests
         var gameConnection = await fixture.ConnectGameAsync();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await fixture.Sender.SendAsync(
-                gameConnection, new ChannelConnectResponse("key"), fixture.Token));
+            await TestGameplay.RunAsync(fixture.Services, async () => await fixture.Sender.SendAsync(
+                gameConnection, new ChannelConnectResponse("key"), fixture.Token)));
 
         Assert.Contains(nameof(ChannelConnectResponse), exception.Message, StringComparison.Ordinal);
         Assert.Contains(nameof(NetworkEndpointKind.Game), exception.Message, StringComparison.Ordinal);
@@ -63,8 +64,8 @@ public sealed class OutboundSendFailureTests
         var gameConnection = await fixture.ConnectGameAsync();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await fixture.Sender.SendAsync(
-                gameConnection, new UnregisteredMessage(), fixture.Token));
+            await TestGameplay.RunAsync(fixture.Services, async () => await fixture.Sender.SendAsync(
+                gameConnection, new UnregisteredMessage(), fixture.Token)));
 
         Assert.Contains(nameof(UnregisteredMessage), exception.Message, StringComparison.Ordinal);
         Assert.Contains("encoder", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -78,10 +79,10 @@ public sealed class OutboundSendFailureTests
         var gameConnection = await fixture.ConnectGameAsync();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await fixture.Sender.SendAsync(
+            await TestGameplay.RunAsync(fixture.Services, async () => await fixture.Sender.SendAsync(
                 gameConnection,
                 new GameLoginResponse(false, 1, 10128, "192.0.2.20", 17200, 17200),
-                fixture.Token));
+                fixture.Token)));
 
         Assert.Contains("failure body", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -114,6 +115,8 @@ public sealed class OutboundSendFailureTests
         public CancellationToken Token => timeout.Token;
 
         public INetworkMessageSender Sender => host.Services.GetRequiredService<INetworkMessageSender>();
+
+        public IServiceProvider Services => host.Services;
 
         public static async Task<OutboundFixture> StartAsync()
         {

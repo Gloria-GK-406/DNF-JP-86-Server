@@ -40,22 +40,25 @@ public sealed class WeaknessTests
     [InlineData(true)]
     public async Task An_old_read_cannot_override_recover_or_a_new_failure(bool newFailure)
     {
-        var read = new TaskCompletionSource<CharacterProgressionState?>();
-        var character = new CurrentCharacterStub { ProgressReader = () => new(read.Task) };
-        var weakness = new WeaknessDomainService(() => CurrentCharacterStub.Domain(character),
-            new WeaknessRuleService(new ConfigurationBuilder().Build()));
-        var pending = weakness.For(Id).SetWeakness().AsTask();
-        character.ProgressReader = null;
-        if (newFailure)
+        await TestGameplay.RunAsync(async () =>
         {
-            await weakness.For(Id).SetWeakness();
-            weakness.AdvanceRecovery();
-        }
-        else weakness.For(Id).Recover();
-        read.SetResult(new(20, 0));
-        await pending;
-        Assert.Equal(newFailure ? 19 : 100, weakness.For(Id).Value);
-        Assert.Empty(await weakness.RetryPendingWeakness(default));
+            var read = new TaskCompletionSource<CharacterProgressionState?>();
+            var character = new CurrentCharacterStub { ProgressReader = () => new(read.Task) };
+            var weakness = new WeaknessDomainService(() => CurrentCharacterStub.Domain(character),
+                new WeaknessRuleService(new ConfigurationBuilder().Build()));
+            var pending = weakness.For(Id).SetWeakness().AsTask();
+            character.ProgressReader = null;
+            if (newFailure)
+            {
+                await weakness.For(Id).SetWeakness();
+                weakness.AdvanceRecovery();
+            }
+            else weakness.For(Id).Recover();
+            read.SetResult(new(20, 0));
+            await pending;
+            Assert.Equal(newFailure ? 19 : 100, weakness.For(Id).Value);
+            Assert.Empty(await weakness.RetryPendingWeakness(default));
+        });
     }
 
     [Fact]
@@ -101,59 +104,71 @@ public sealed class WeaknessTests
     [InlineData(85, 10)]
     public async Task Level_threshold_is_applied_inside_set(byte level, byte expected)
     {
-        var service = Create(level);
-        await service.For(Id).SetWeakness();
-        Assert.Equal(expected, service.For(Id).Value);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var service = Create(level);
+            await service.For(Id).SetWeakness();
+            Assert.Equal(expected, service.For(Id).Value);
+        });
     }
 
     [Fact]
     public async Task Ten_ticks_recover_offline_characters_and_remove_completed_entries()
     {
-        var service = Create();
-        Assert.Equal(TimeSpan.FromSeconds(60), service.RecoveryInterval);
-        await service.For(Id).SetWeakness();
-        for (var tick = 1; tick <= 10; tick++)
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.Equal([Id], service.AdvanceRecovery());
-            Assert.Equal(10 + tick * 9, service.For(Id).Value);
-        }
-        Assert.Empty(service.AdvanceRecovery());
-        Assert.Equal(100, Create().For(Id).Value);
+            var service = Create();
+            Assert.Equal(TimeSpan.FromSeconds(60), service.RecoveryInterval);
+            await service.For(Id).SetWeakness();
+            for (var tick = 1; tick <= 10; tick++)
+            {
+                Assert.Equal([Id], service.AdvanceRecovery());
+                Assert.Equal(10 + tick * 9, service.For(Id).Value);
+            }
+            Assert.Empty(service.AdvanceRecovery());
+            Assert.Equal(100, Create().For(Id).Value);
+        });
     }
 
     [Fact]
     public async Task Pause_resume_and_full_recovery_are_idempotent()
     {
-        var service = Create();
-        var state = service.For(Id);
-        state.PauseRecovery(); state.ResumeRecovery();
-        Assert.Empty(service.AdvanceRecovery());
-        await state.SetWeakness();
-        state.PauseRecovery(); state.PauseRecovery();
-        Assert.Empty(service.AdvanceRecovery());
-        Assert.Equal(10, state.Value);
-        state.ResumeRecovery(); state.ResumeRecovery();
-        service.AdvanceRecovery();
-        Assert.Equal(19, state.Value);
-        state.Recover(); state.Recover();
-        Assert.Equal(100, state.Value);
-        Assert.Empty(service.AdvanceRecovery());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var service = Create();
+            var state = service.For(Id);
+            state.PauseRecovery(); state.ResumeRecovery();
+            Assert.Empty(service.AdvanceRecovery());
+            await state.SetWeakness();
+            state.PauseRecovery(); state.PauseRecovery();
+            Assert.Empty(service.AdvanceRecovery());
+            Assert.Equal(10, state.Value);
+            state.ResumeRecovery(); state.ResumeRecovery();
+            service.AdvanceRecovery();
+            Assert.Equal(19, state.Value);
+            state.Recover(); state.Recover();
+            Assert.Equal(100, state.Value);
+            Assert.Empty(service.AdvanceRecovery());
+        });
     }
 
     [Fact]
     public async Task Configuration_changes_initial_value_and_tick_with_clamping()
     {
-        var service = Create(5, new()
+        await TestGameplay.RunAsync(async () =>
         {
-            ["Weakness:MinimumLevel"] = "5", ["Weakness:InitialValue"] = "32",
-            ["Weakness:RecoveryIncrement"] = "40", ["Weakness:RecoveryIntervalSeconds"] = "2",
+            var service = Create(5, new()
+            {
+                ["Weakness:MinimumLevel"] = "5", ["Weakness:InitialValue"] = "32",
+                ["Weakness:RecoveryIncrement"] = "40", ["Weakness:RecoveryIntervalSeconds"] = "2",
+            });
+            await service.For(Id).SetWeakness();
+            Assert.Equal(32, service.For(Id).Value);
+            Assert.Equal(TimeSpan.FromSeconds(2), service.RecoveryInterval);
+            service.AdvanceRecovery(); Assert.Equal(72, service.For(Id).Value);
+            service.AdvanceRecovery(); Assert.Equal(100, service.For(Id).Value);
+            Assert.Empty(service.AdvanceRecovery());
         });
-        await service.For(Id).SetWeakness();
-        Assert.Equal(32, service.For(Id).Value);
-        Assert.Equal(TimeSpan.FromSeconds(2), service.RecoveryInterval);
-        service.AdvanceRecovery(); Assert.Equal(72, service.For(Id).Value);
-        service.AdvanceRecovery(); Assert.Equal(100, service.For(Id).Value);
-        Assert.Empty(service.AdvanceRecovery());
     }
 
     [Theory]

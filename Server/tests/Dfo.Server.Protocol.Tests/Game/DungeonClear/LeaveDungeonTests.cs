@@ -485,7 +485,7 @@ public sealed class LeaveDungeonTests
     public async Task Give_up_completes_through_real_command_locks_and_releases_the_session(bool isAltar)
     {
         var runs = new OneRun(isAltar: isAltar);
-        var deliveries = new DungeonRunDeliveryRegistry(); deliveries.Register(runs.RunId, [Identity]);
+        var deliveries = new DungeonRunDeliveryRegistry(); TestGameplay.Run(() => deliveries.Register(runs.RunId, [Identity]));
         var sessions = new OneSession(Identity);
         var sender = new RecordingSender();
         var clock = TimeProvider.System;

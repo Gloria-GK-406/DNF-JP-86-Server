@@ -4,22 +4,38 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Accounts;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Creatures;
+using Dfo.Server.Application.Effects;
+using Dfo.Server.Application.Events;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Marriage;
 using Dfo.Server.Application.Parties;
+using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Application.World;
 using Dfo.Server.Application.World.BossTower;
 using Dfo.Server.Application.World.IllusionTower;
+using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.Altar;
 using Dfo.Server.Protocol.Game.CardReward;
+using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Protocol.Game.Fatigue;
+using Dfo.Server.Protocol.Game.Joust;
+using Dfo.Server.Protocol.Game.Party;
+using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.Tournament;
 
 namespace Dfo.Server.Application.Tests.Execution;
 
 /// <summary>
 /// RQ-061 / RQ-072 (TASK-18 section 3): the two criteria that keep the write assertions complete.
-/// The classification criterion lists every public, internal and explicit-interface member of the appendix F
-/// "move onto the executor" types, requires each to be classified here as write, read or appendix B exemption,
+/// The classification criterion lists every public, internal and explicit-interface member of the write entries
+/// (appendix F's "move onto the executor" types, and since TASK-30 every holder of in-process gameplay state that
+/// <see cref="GameplayStateCensusTests"/> finds), requires each to be classified here as write, read or appendix B exemption,
 /// and reads each member's IL to require that exactly the write members call <see cref="GameplayWriteAssertion"/>
 /// under their own name. The source criterion pins every <c>new DomainTransaction(</c> in <c>Server/src</c> and
 /// the never-committed write-mode snapshot (TASK-18 ruling 3).
@@ -51,6 +67,9 @@ public sealed class GameplayWriteEntryTableTests
     private const string ConditionalEnlist =
         "enlists only into a writable ambient transaction, which only an asserted entry (or the never-committed snapshot) opens; what it registers (nothing, or a read set checked at prepare) takes effect only when that transaction commits";
 
+    internal static readonly Type WeaknessHandle =
+        typeof(WeaknessDomainService).GetNestedType("Weakness", BindingFlags.NonPublic) ?? throw new MissingMemberException("Weakness");
+
     internal static readonly IReadOnlyList<Type> Types =
     [
         typeof(OnlineStateRegistry),
@@ -69,6 +88,37 @@ public sealed class GameplayWriteEntryTableTests
         // AltarDungeonDomainService.HandleAsync removes from it without going through the engine.
         typeof(AltarStateStore),
         typeof(OnlineCharacterRuntimeDomainService),
+        // TASK-30: the rest of the in-process gameplay state, found by GameplayStateCensusTests.
+        typeof(ClientSettingsDomainService),
+        typeof(WeaknessDomainService),
+        // Private to Application: the handle WeaknessDomainService.For hands out behind IWeakness.
+        WeaknessHandle,
+        typeof(CharacterContainerDomainService),
+        typeof(HousingState),
+        typeof(ExpertStoreDomainService),
+        typeof(PvpLobbyDomainService),
+        typeof(DungeonEntryIntentDomainService),
+        typeof(JoustMaintenanceService),
+        typeof(SelectedSessionSafety),
+        typeof(EffectOperationLedger),
+        typeof(DungeonRunDeliveryRegistry),
+        typeof(AltarQuotaDailyRefreshService),
+        typeof(DimensionQuotaDailyRefreshService),
+        typeof(GoldSilverHornQuotaDailyRefreshService),
+        typeof(ItemUsageDailyRefreshService),
+        typeof(MirrorQuotaDailyRefreshService),
+        typeof(PremiumDailyRefreshService),
+        typeof(ReviveCoinQuotaDailyRefreshService),
+        typeof(HerasQuotaDailyRefreshService),
+        typeof(TournamentQuotaDailyRefreshService),
+        typeof(FatigueDailyRefreshService),
+        typeof(PartyProjectionStreamRegistry),
+        // Internal to Protocol: the stream handle PartyProjectionStreamRegistry.GetOrAdd hands out.
+        typeof(PartyProjectionStreamRegistry).Assembly.GetType("Dfo.Server.Protocol.Game.Party.PartyDeliveryStream", throwOnError: true)!,
+        typeof(PartyClientIdRegistry),
+        typeof(BossTowerDepartureProjectionQueue),
+        typeof(IllusionTowerDepartureProjectionQueue),
+        typeof(JoustBetHandler),
     ];
 
     internal static readonly IReadOnlyDictionary<string, Entry> Table = new Dictionary<string, Entry>(StringComparer.Ordinal)
@@ -301,7 +351,144 @@ public sealed class GameplayWriteEntryTableTests
         ["OnlineCharacterRuntimeDomainService.SpiritPotionBonusRateOf(CharacterId)"] = R,
         ["OnlineCharacterRuntimeDomainService.StartCooldown(SelectedSessionIdentity, ItemCooldownKey, TimeSpan)"] = W,
         ["OnlineCharacterRuntimeDomainService.StepTo(SelectedSessionIdentity, Int16, Int16, Byte)"] = W,
+
+        // ClientSettingsDomainService
+        ["ClientSettingsDomainService.ActivateHotkeyProfile(ClientSettingsOrigin, Byte)"] = W,
+        ["ClientSettingsDomainService.CaptureHotkeyUpload(ClientSettingsOrigin)"] = R,
+        ["ClientSettingsDomainService.ForgetConnection(GameSessionIdentity)"] = W,
+        ["ClientSettingsDomainService.ForgetConnection(NetworkConnectionId)"] = W,
+        ["ClientSettingsDomainService.ReadAppearanceAsync(AccountId, Byte, CancellationToken)"] = R,
+        ["ClientSettingsDomainService.ReadHotkeysAsync(AccountId, CancellationToken)"] = R,
+        ["ClientSettingsDomainService.SaveHotkeysAsync(ClientHotkeyUploadContext, Byte[], CancellationToken)"] = W,
+        ["ClientSettingsDomainService.SaveMainAsync(ClientSettingsOrigin, Byte[], CancellationToken)"] = W,
+        ["ClientSettingsDomainService.SaveQuickChatAsync(ClientSettingsOrigin, Byte, Byte[], CancellationToken)"] = W,
+
+        // WeaknessDomainService (its handle's writes, on the private Weakness class, assert as Weakness.*)
+        ["WeaknessDomainService.AdvanceRecovery()"] = W,
+        ["WeaknessDomainService.For(CharacterId)"] = ReadNote("returns a handle, the private Weakness listed below; its write members assert"),
+        ["WeaknessDomainService.RetryPendingWeakness(CancellationToken)"] = W,
+        ["WeaknessDomainService.get_RecoveryInterval()"] = R,
+
+        // Weakness, the private handle (no state of its own: it writes its owner's entries and pending penalties)
+        ["Weakness.get_Value()"] = R,
+        ["Weakness.PauseRecovery()"] = W,
+        ["Weakness.RecoveryGoldCost(CancellationToken)"] = R,
+        ["Weakness.Recover()"] = W,
+        ["Weakness.ResumeRecovery()"] = W,
+        ["Weakness.SetWeakness()"] = W,
+
+        // CharacterContainerDomainService
+        ["CharacterContainerDomainService.Clear(CharacterId)"] = W,
+        ["CharacterContainerDomainService.FindContainer(CharacterId, InventoryContainerType, Boolean)"] = ReadNote(StagedRead),
+        ["CharacterContainerDomainService.GetContainer(CharacterId, InventoryContainerType, Boolean)"] = ReadNote(StagedRead),
+        ["CharacterContainerDomainService.GetContainers(CharacterId, InventoryContainerType)"] = ReadNote(StagedRead),
+        ["CharacterContainerDomainService.Register(CharacterId, IItemContainer)"] = W,
+        ["CharacterContainerDomainService.Remove(CharacterId, ContainerId)"] = W,
+        ["CharacterContainerDomainService.ReplaceDefault(CharacterId, ContainerId, IItemContainer)"] = W,
+        ["CharacterContainerDomainService.UseContainer(CharacterId, ContainerId)"] = W,
+
+        // HousingState
+        ["HousingState.CanEdit(Guid, SelectedSessionIdentity)"] = R,
+        ["HousingState.CloseExact(SelectedSessionIdentity)"] = W,
+        ["HousingState.Edit(Guid, SelectedSessionIdentity, Boolean)"] = W,
+        ["HousingState.EnsureAsync(Guid, CancellationToken)"] = W,
+        ["HousingState.IsInside(SelectedSessionIdentity, HousingSnapshot)"] = R,
+        ["HousingState.ReadAsync(Guid, CancellationToken)"] = R,
+        ["HousingState.RecordHarvestAsync(Guid, Int32, IReadOnlyList<HousingReward>, CancellationToken)"] = W,
+        ["HousingState.RememberReturn(SelectedSessionIdentity, CharacterPositionState)"] = W,
+        ["HousingState.ReturnFor(SelectedSessionIdentity)"] = R,
+        ["HousingState.SaveAsync(HousingSnapshot, CancellationToken)"] = W,
+
+        // ExpertStoreDomainService
+        ["ExpertStoreDomainService.Close(CharacterId)"] = W,
+        ["ExpertStoreDomainService.CloseExact(SelectedSessionIdentity)"] = W,
+        ["ExpertStoreDomainService.HasOpenStore(CharacterId)"] = R,
+        ["ExpertStoreDomainService.Open(CharacterId)"] = W,
+        ["ExpertStoreDomainService.Open(SelectedSessionIdentity)"] = W,
+
+        // PvpLobbyDomainService
+        ["PvpLobbyDomainService.ClearReady(CharacterId)"] = W,
+        ["PvpLobbyDomainService.ClearReadyExact(SelectedSessionIdentity)"] = W,
+        ["PvpLobbyDomainService.MarkReady(PvpLobbyParticipant)"] = W,
+        ["PvpLobbyDomainService.Offer(PvpRoom)"] = W,
+        ["PvpLobbyDomainService.OfferedOn(Int32)"] = R,
+        ["PvpLobbyDomainService.ReadyOn(Int32, CharacterId)"] = R,
+        ["PvpLobbyDomainService.Withdraw(UInt16)"] = W,
+
+        // DungeonEntryIntentDomainService
+        ["DungeonEntryIntentDomainService.ClearExact(SelectedSessionIdentity)"] = W,
+        ["DungeonEntryIntentDomainService.Consume(SelectedSessionIdentity)"] = W,
+        ["DungeonEntryIntentDomainService.Find(SelectedSessionIdentity)"] = R,
+        ["DungeonEntryIntentDomainService.Record(SelectedSessionIdentity, DungeonEntryIntent)"] = W,
+        ["DungeonEntryIntentDomainService.RestoreIfAbsent(SelectedSessionIdentity, DungeonEntryIntent)"] = W,
+        ["DungeonEntryIntentDomainService.TryReplaceExact(SelectedSessionIdentity, DungeonEntryIntent, DungeonEntryIntent)"] = W,
+
+        // JoustMaintenanceService (the private tick body AdvanceAndPublishAsync asserts)
+        ["JoustMaintenanceService.StartAsync(CancellationToken)"] = Exempt(StartupRow, "runs the recovery tick as a startup CMD and waits for it before the host is ready; the CMD body asserts"),
+        ["JoustMaintenanceService.TickAsync(CancellationToken, Boolean)"] = Exempt(ProducerRow, TimerEntry),
+
+        // SelectedSessionSafety
+        ["SelectedSessionSafety.BlockAsync(SelectedSessionRecipient, Exception, String)"] = W,
+        ["SelectedSessionSafety.Capture(SelectedSessionIdentity)"] = R,
+        ["SelectedSessionSafety.DemandCurrent(SelectedSessionIdentity)"] = R,
+        ["SelectedSessionSafety.DemandCurrent(SelectedSessionRecipient)"] = R,
+        ["SelectedSessionSafety.IsBlocked(NetworkConnectionContext)"] = R,
+        ["SelectedSessionSafety.PublicationFailedAsync(SelectedSessionRecipient, Exception, String)"] = W,
+
+        // EffectOperationLedger
+        ["EffectOperationLedger.DispatchAsync(NetworkConnectionContext, IEffectSettlementRequest, Func<ValueTask>, CancellationToken)"] = W,
+
+        // DungeonRunDeliveryRegistry
+        ["DungeonRunDeliveryRegistry.CompleteKillDelivery(DungeonRunId, RoomActorId)"] = W,
+        ["DungeonRunDeliveryRegistry.Find(DungeonRunId)"] = R,
+        ["DungeonRunDeliveryRegistry.FindKillResult(DungeonRunId, RoomActorId, CharacterId)"] = R,
+        ["DungeonRunDeliveryRegistry.ParticipantDeparted(DungeonRunId, CharacterId)"] = W,
+        ["DungeonRunDeliveryRegistry.RecordKillResult(DungeonRunId, RoomActorId, CharacterId, ApplyMonsterKillResult)"] = W,
+        ["DungeonRunDeliveryRegistry.Register(DungeonRunId, IReadOnlyList<SelectedSessionIdentity>)"] = W,
+        ["DungeonRunDeliveryRegistry.RemoveParticipant(DungeonRunId, CharacterId)"] = W,
+
+        // The ten daily refreshes (each one's private timer body RefreshCoreAsync asserts)
+        ["AltarQuotaDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
+        ["DimensionQuotaDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
+        ["GoldSilverHornQuotaDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
+        ["ItemUsageDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
+        ["MirrorQuotaDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
+        ["PremiumDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
+        ["ReviveCoinQuotaDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
+        ["HerasQuotaDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
+        ["TournamentQuotaDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
+        ["FatigueDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
+
+        // PartyProjectionStreamRegistry and its stream handle
+        ["PartyProjectionStreamRegistry.GetOrAdd(Int64)"] = W,
+        ["PartyDeliveryStream.get_CurrentMembers()"] = W,
+        ["PartyDeliveryStream.get_CurrentPartyId()"] = R,
+        ["PartyDeliveryStream.get_FullStateMembers()"] = W,
+        ["PartyDeliveryStream.get_LatestRevision()"] = R,
+        ["PartyDeliveryStream.set_CurrentPartyId(UInt16?)"] = W,
+        ["PartyDeliveryStream.set_LatestRevision(Int64)"] = W,
+
+        // PartyClientIdRegistry
+        ["PartyClientIdRegistry.For(PartyKey, Int64)"] = W,
+        ["PartyClientIdRegistry.Project(PartyNotificationPlan)"] = W,
+        ["PartyClientIdRegistry.Project(PartySnapshot)"] = W,
+
+        // The two tower departure queues
+        ["BossTowerDepartureProjectionQueue.Enqueue(BossTowerActionResult)"] = W,
+        ["BossTowerDepartureProjectionQueue.TryDequeue(BossTowerActionResult&)"] = W,
+        ["IllusionTowerDepartureProjectionQueue.Enqueue(TowerActionResult)"] = W,
+        ["IllusionTowerDepartureProjectionQueue.TryDequeue(TowerActionResult&)"] = W,
+
+        // JoustBetHandler has no listed member: its protected HandleMessageAsync asserts.
     };
+
+    private const string StartupRow = "开始监听前的启动期工作";
+
+    private const string TimerEntry =
+        "enqueues the body as a timer CMD and waits for it; the private CMD body asserts (the TASK-30 counterexample calls it directly)";
+
+    private const string StagedRead =
+        "in a transaction it reads a staged copy, which commits nothing unless a write marked it";
 
     [Fact]
     public void Every_member_of_the_listed_types_is_classified_and_exactly_the_writes_assert()

@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Events;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Notifications;
@@ -175,6 +176,7 @@ public sealed class JoustBetHandler(ISelectedSessionDomainService sessions,IOnli
     private static readonly ConditionalWeakTable<NetworkConnectionContext,PhysicalIdentity> Identities=new();
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c,JoustBetRequest m,CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(JoustBetHandler) + "." + nameof(HandleMessageAsync));
         if(sessions.FindByConnection(c.Connection.ConnectionId) is not {} session || !users.TryGetByConnection(c.Connection.ConnectionId,out var user) || user is null || m.Metadata.InboundOrdinal is not >0)
         {await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E7,6),ct);return;}
         var recipient=safety.Capture(session);

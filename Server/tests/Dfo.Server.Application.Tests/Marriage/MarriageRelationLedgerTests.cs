@@ -13,6 +13,7 @@ using Dfo.Server.Protocol.Game.MarriageProposal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using static Dfo.Server.Application.Tests.Marriage.MarriageHarness;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Marriage;
 
@@ -164,10 +165,10 @@ public sealed class MarriageRelationLedgerTests
         });
         var f = w.F; var peer = w.Peer;
         var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
-        containers.Register(f.Session.CharacterId, new PersistentItemContainer(
+        TestGameplay.Run(f.Services, () => containers.Register(f.Session.CharacterId, new PersistentItemContainer(
             ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Main), new(InventoryContainerType.Main, 0),
             f.Services.GetRequiredService<IItemDomainStore>(), f.Services.GetRequiredService<IDomainTransactionAccessor>(),
-            f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>()));
+            f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>())));
         await InTx(f, async () =>
         {
             await f.Services.GetRequiredService<IItemDeliveryDomainService>().DeliverAsync(f.Session.AccountId, f.Session.CharacterId,

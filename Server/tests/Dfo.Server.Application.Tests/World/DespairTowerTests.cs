@@ -28,10 +28,10 @@ public sealed class DespairTowerTests
             if (clock is not null) s.AddSingleton<TimeProvider>(clock);
         });
         await f.SeedAsync();
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71),
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71),
             new PersistentItemContainer(ContainerId.ForCharacter(new(71), InventoryContainerType.Main),
                 new(InventoryContainerType.Main, 0), f.Services.GetRequiredService<IItemDomainStore>(), f.Scope,
-                f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>()));
+                f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>())));
         f.Services.GetRequiredService<IIndependentDropRuleService>().Initialize();
         f.Services.GetRequiredService<IExtraDropRuleService>().Initialize();
         f.Services.GetRequiredService<IMonsterDeclaredDropRuleService>().Initialize();

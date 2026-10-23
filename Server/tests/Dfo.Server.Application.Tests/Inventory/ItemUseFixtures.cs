@@ -14,6 +14,7 @@ using Dfo.Server.Persistence.Tests.Support;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Dfo.Server.Protocol.Game.UseStackable;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -149,14 +150,14 @@ internal abstract class FakeMainInventory(int characterId = 60)
         IItemPlacementDefinitionSource? placements = null)
     {
         var containers = new CharacterContainerDomainService();
-        containers.Register(this.character, new PersistentItemContainer(
+        TestGameplay.Run(() => containers.Register(this.character, new PersistentItemContainer(
             this.Main,
             new ContainerShape(InventoryContainerType.Main, 0),
             this.store,
             this.Scope,
             new ItemPlacementRuleService(
                 placements ?? new ConsumableBandPlacements(), new NoWearables()),
-            new ItemSlotRuleService()));
+            new ItemSlotRuleService())));
         return containers;
     }
 

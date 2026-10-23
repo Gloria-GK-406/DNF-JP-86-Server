@@ -101,6 +101,7 @@ public sealed class ItemUsageDailyRefreshService(ISelectedSessionSnapshotQuery d
     public Task RefreshAsync(CancellationToken token) => GameplayTimerWork.RunAsync(queue, Command, RefreshCoreAsync, token);
     private async ValueTask RefreshCoreAsync(CancellationToken token)
     {
+        GameplayWriteAssertion.Writing(nameof(ItemUsageDailyRefreshService) + "." + nameof(RefreshCoreAsync));
         var current = directory.Snapshot();
         foreach (var stale in delivered.Keys.Except(current).ToArray()) delivered.Remove(stale);
         foreach (var session in current)

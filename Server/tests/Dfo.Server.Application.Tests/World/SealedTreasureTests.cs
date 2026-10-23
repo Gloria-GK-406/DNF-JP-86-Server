@@ -153,10 +153,10 @@ public sealed class SealedTreasureTests
         var f = new LearningFixture(useArchive: true, configure: s =>
             s.AddSingleton(new PvfContentOptions { ArchivePath = ContentArchive.Path }));
         await f.SeedAsync();
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71), new PersistentItemContainer(
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71), new PersistentItemContainer(
             ContainerId.ForCharacter(new(71), InventoryContainerType.Main), new(InventoryContainerType.Main, 0),
             f.Services.GetRequiredService<IItemDomainStore>(), f.Scope,
-            f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>()));
+            f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>())));
         f.Services.GetRequiredService<IIndependentDropRuleService>().Initialize();
         f.Services.GetRequiredService<IExtraDropRuleService>().Initialize();
         f.Services.GetRequiredService<IMonsterDeclaredDropRuleService>().Initialize();

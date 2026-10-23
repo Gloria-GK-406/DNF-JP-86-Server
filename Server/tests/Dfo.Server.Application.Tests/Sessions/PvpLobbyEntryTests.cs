@@ -162,23 +162,29 @@ public sealed class PvpLobbyEntryTests
     [Fact]
     public void Withdrawing_removes_a_room_from_the_offers()
     {
-        var lobby = new PvpLobbyDomainService();
-        lobby.Offer(Room(1));
+        TestGameplay.Run(() =>
+        {
+            var lobby = new PvpLobbyDomainService();
+            lobby.Offer(Room(1));
 
-        Assert.True(lobby.Withdraw(1));
-        Assert.False(lobby.Withdraw(1));
-        Assert.Empty(lobby.OfferedOn(10068));
+            Assert.True(lobby.Withdraw(1));
+            Assert.False(lobby.Withdraw(1));
+            Assert.Empty(lobby.OfferedOn(10068));
+        });
     }
 
     [Fact]
     public void Clearing_readiness_removes_a_participant()
     {
-        var lobby = new PvpLobbyDomainService();
-        lobby.MarkReady(Ready(10));
+        TestGameplay.Run(() =>
+        {
+            var lobby = new PvpLobbyDomainService();
+            lobby.MarkReady(Ready(10));
 
-        Assert.True(lobby.ClearReady(new CharacterId(10)));
-        Assert.False(lobby.ClearReady(new CharacterId(10)));
-        Assert.Empty(lobby.ReadyOn(10068, new CharacterId(99)));
+            Assert.True(lobby.ClearReady(new CharacterId(10)));
+            Assert.False(lobby.ClearReady(new CharacterId(10)));
+            Assert.Empty(lobby.ReadyOn(10068, new CharacterId(99)));
+        });
     }
 
     private static SessionAdjacentEntryDomainService Service(IPvpLobbyDomainService lobby) =>

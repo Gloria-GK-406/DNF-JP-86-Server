@@ -62,6 +62,21 @@ public sealed class TransportWriteSourceTests(ITestOutputHelper output)
         Assert.Contains(violations, violation => violation.StartsWith("Dfo.Server.Protocol/Game/Elsewhere.cs:", StringComparison.Ordinal));
     }
 
+    /// <summary>TASK-30 section 7.3: the two shapes the first counterexample does not feed outside the list.</summary>
+    [Fact]
+    public void A_sequence_send_and_a_udp_send_in_any_other_file_are_named()
+    {
+        var files = Listed();
+        files["Dfo.Server.GmWeb/Somewhere.cs"] = "await client.SendAsync(new ReadOnlySequence<byte>(frame));";
+        files["Dfo.Server.Host/Elsewhere.cs"] = "await socket.SendToAsync(reply, remote);";
+
+        var violations = Violations(files);
+
+        Assert.Equal(2, violations.Count);
+        Assert.Contains(violations, violation => violation.StartsWith("Dfo.Server.GmWeb/Somewhere.cs:1 writes to a transport (ReadOnlySequence send)", StringComparison.Ordinal));
+        Assert.Contains(violations, violation => violation.StartsWith("Dfo.Server.Host/Elsewhere.cs:1 writes to a transport (UDP SendToAsync)", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void A_second_write_in_a_listed_file_and_a_listed_file_without_one_are_named()
     {

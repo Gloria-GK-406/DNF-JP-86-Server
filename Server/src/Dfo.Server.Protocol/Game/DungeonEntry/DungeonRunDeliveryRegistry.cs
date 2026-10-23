@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
@@ -25,6 +26,7 @@ public sealed class DungeonRunDeliveryRegistry : IDungeonRunParticipantDeparture
         DungeonRunId runId,
         IReadOnlyList<SelectedSessionIdentity> participants)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDeliveryRegistry) + "." + nameof(Register));
         if (runId == default)
             throw new ArgumentException("A delivery registration requires a run identifier.", nameof(runId));
         ArgumentNullException.ThrowIfNull(participants);
@@ -51,6 +53,7 @@ public sealed class DungeonRunDeliveryRegistry : IDungeonRunParticipantDeparture
 
     public bool RemoveParticipant(DungeonRunId runId, CharacterId characterId)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDeliveryRegistry) + "." + nameof(RemoveParticipant));
         lock (gate)
         {
             if (!entries.TryGetValue(runId, out var participants))
@@ -85,6 +88,7 @@ public sealed class DungeonRunDeliveryRegistry : IDungeonRunParticipantDeparture
         CharacterId characterId,
         ApplyMonsterKillResult result)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDeliveryRegistry) + "." + nameof(RecordKillResult));
         ArgumentNullException.ThrowIfNull(result);
         lock (gate)
         {
@@ -112,6 +116,7 @@ public sealed class DungeonRunDeliveryRegistry : IDungeonRunParticipantDeparture
 
     public void CompleteKillDelivery(DungeonRunId runId, RoomActorId actor)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDeliveryRegistry) + "." + nameof(CompleteKillDelivery));
         lock (gate)
         {
             foreach (var key in killResults.Keys
@@ -123,8 +128,11 @@ public sealed class DungeonRunDeliveryRegistry : IDungeonRunParticipantDeparture
         }
     }
 
-    public void ParticipantDeparted(DungeonRunId runId, CharacterId characterId) =>
+    public void ParticipantDeparted(DungeonRunId runId, CharacterId characterId)
+    {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDeliveryRegistry) + "." + nameof(ParticipantDeparted));
         RemoveParticipant(runId, characterId);
+    }
 
     private readonly record struct KillProjectionKey(
         DungeonRunId RunId,

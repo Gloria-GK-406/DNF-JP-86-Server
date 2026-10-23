@@ -127,7 +127,7 @@ public sealed class WeaknessGoldRecoveryTests
         Assert.Equal(4, Assert.IsType<RecoverStaminaResponse>(shop.Sender.Messages.Last()).ErrorCode);
         Assert.Equal(10, exhausted.Value);
         // Re-selecting does not reset persisted usage.
-        shop.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
+        TestGameplay.Run(shop.Services, () => shop.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>().Clear(shop.Session.CharacterId));
         shop.Select(1);
         await Recover(shop, 1);
         Assert.Equal(10, exhausted.Value);
@@ -164,7 +164,7 @@ public sealed class WeaknessGoldRecoveryTests
         Assert.Equal(100, state.Value);
         Assert.Equal(1, shop.Scalar("SELECT value FROM character_daily_counters WHERE counter_key='premium_free_weakness_used'"));
         Assert.Equal(18, Assert.IsType<RecoverStaminaResponse>(shop.Sender.Messages.Last()).ErrorCode);
-        await state.SetWeakness();
+        await TestGameplay.RunAsync(shop.Services, async () => await state.SetWeakness());
         shop.Sql("CREATE TRIGGER refuse_usage BEFORE UPDATE ON character_daily_counters BEGIN SELECT RAISE(ABORT,'usage failure'); END;");
         await Recover(shop, 1);
         Assert.Equal(10, state.Value);
@@ -215,7 +215,7 @@ public sealed class WeaknessGoldRecoveryTests
         shop.Select(2);
         shop.Sql($"UPDATE characters SET level=85,exp={shop.ExperienceForLevel(85)} WHERE character_id=2");
         var other = shop.Services.GetRequiredService<IWeaknessDomainService>().For(shop.Session.CharacterId);
-        await other.SetWeakness();
+        await TestGameplay.RunAsync(shop.Services, async () => await other.SetWeakness());
         await Recover(shop, 1);
         Assert.Equal(100, other.Value);
         Assert.Equal(2, shop.Scalar("SELECT COUNT(*) FROM character_daily_counters WHERE counter_key='premium_free_weakness_used' AND value=1"));
@@ -350,7 +350,7 @@ public sealed class WeaknessGoldRecoveryTests
     {
         shop.Sql($"UPDATE characters SET level=85,exp={shop.ExperienceForLevel(85)} WHERE character_id=1");
         var state = shop.Services.GetRequiredService<IWeaknessDomainService>().For(shop.Session.CharacterId);
-        await state.SetWeakness();
+        await TestGameplay.RunAsync(shop.Services, async () => await state.SetWeakness());
         Assert.Equal(10, state.Value);
         return state;
     }

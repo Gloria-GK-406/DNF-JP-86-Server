@@ -60,10 +60,10 @@ public sealed class EquipmentSocketTests
     {
         content ??= new();
         var f = new ShopFixture(s => { s.AddSingleton<IItemSocketDefinitionSource>(content); s.AddSingleton<IItemPlacementDefinitionSource>(content); });
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
             new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Avatar), new(InventoryContainerType.Avatar, 0),
                 f.Services.GetRequiredService<IItemDomainStore>(), f.Services.GetRequiredService<IDomainTransactionAccessor>(),
-                f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>()));
+                f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>())));
         return f;
     }
     private static InventoryItemCoreState Equipment(byte sockets = 0) => StackableItemCore.Create(1, 3000, 123456) with
@@ -270,10 +270,10 @@ public sealed class EquipmentSocketTests
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
         using var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(sp =>
             new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())));
-        if (avatar) f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
+        if (avatar) TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
             new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Avatar), new(InventoryContainerType.Avatar, 0),
                 f.Services.GetRequiredService<IItemDomainStore>(), f.Services.GetRequiredService<IDomainTransactionAccessor>(),
-                f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>()));
+                f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>())));
         var list = avatar ? InventoryContainerType.Avatar : InventoryContainerType.Main;
         ushort slot = avatar ? (ushort)0 : (ushort)9;
         await f.SeedCore(slot, StackableItemCore.Create(avatar ? (byte)8 : (byte)1, targetId, 123456), list);

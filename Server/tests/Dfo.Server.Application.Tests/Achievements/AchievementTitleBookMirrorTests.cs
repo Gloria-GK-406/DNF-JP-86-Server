@@ -25,10 +25,10 @@ public sealed partial class AchievementTitleBookTests
     private static void BindTitleContainers(Fixture f)
     {
         foreach (var type in new[] {InventoryContainerType.Main,InventoryContainerType.Equipment})
-            f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(Character,
+            TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(Character,
                 new PersistentItemContainer(ContainerId.ForCharacter(Character,type),new(type,0),
                     f.Services.GetRequiredService<IItemDomainStore>(),f.Services.GetRequiredService<IDomainTransactionAccessor>(),
-                    f.Services.GetRequiredService<IItemPlacementRuleService>(),f.Services.GetRequiredService<IItemSlotRuleService>()));
+                    f.Services.GetRequiredService<IItemPlacementRuleService>(),f.Services.GetRequiredService<IItemSlotRuleService>())));
     }
     private static async ValueTask<ItemMoveResult> MoveTitle(Fixture f, BusinessSlot source, BusinessSlot destination)
     {

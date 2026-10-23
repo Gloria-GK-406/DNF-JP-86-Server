@@ -62,11 +62,11 @@ public sealed class AvatarAppearanceTests
         var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(sp =>
             new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())));
         f.Sql("UPDATE characters SET job=0"); f.SetLevel(80);
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
             new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Avatar),
                 new(InventoryContainerType.Avatar, 0), f.Services.GetRequiredService<IItemDomainStore>(),
                 f.Services.GetRequiredService<IDomainTransactionAccessor>(), f.Services.GetRequiredService<IItemPlacementRuleService>(),
-                f.Services.GetRequiredService<IItemSlotRuleService>()));
+                f.Services.GetRequiredService<IItemSlotRuleService>())));
         return f;
     }
     private static Task<ItemMoveResult> Move(ShopFixture f, BusinessSlot source, BusinessSlot destination) =>

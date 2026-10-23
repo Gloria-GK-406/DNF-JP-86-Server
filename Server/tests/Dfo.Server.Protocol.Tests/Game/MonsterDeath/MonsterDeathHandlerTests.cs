@@ -1003,7 +1003,7 @@ public sealed class MonsterDeathHandlerTests
         var member = SelectedSessionIdentity.Create(new(2),new(61),new("member"),1,10011);
         var run = new PartyRun([new(leader.AccountId,leader.CharacterId,0,true),new(member.AccountId,member.CharacterId,1,false)])
             { RejectParticipantCharacter = member.CharacterId };
-        var registry = new DungeonRunDeliveryRegistry(); registry.Register(run.RunId,[leader,member]);
+        var registry = new DungeonRunDeliveryRegistry(); TestGameplay.Run(() => registry.Register(run.RunId,[leader,member]));
         var sessions = new PartySessions([leader,member]); var sender = new PartyRecordingSender();
         var bus = new PartyKillBus(); var killRules = new OneClearedBossMonster();
         var users = new RecipientConnections([leader,member]);
@@ -1042,7 +1042,7 @@ public sealed class MonsterDeathHandlerTests
         var leader = SelectedSessionIdentity.Create(new(1),new(60),new("leader"),1,10010);
         var member = SelectedSessionIdentity.Create(new(2),new(61),new("member"),1,10011);
         var run = new PartyRun([new(leader.AccountId,leader.CharacterId,0,true),new(member.AccountId,member.CharacterId,1,false)]);
-        var registry = new DungeonRunDeliveryRegistry(); registry.Register(run.RunId,[leader,member]);
+        var registry = new DungeonRunDeliveryRegistry(); TestGameplay.Run(() => registry.Register(run.RunId,[leader,member]));
         var sessions = new PartySessions([leader,member]);
         var bus = new PartyKillBus(); var killRules = new OneClearedBossMonster();
         var users = new RecipientConnections([leader,member]);

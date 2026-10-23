@@ -96,7 +96,7 @@ public sealed class EquipmentReinforcementHandlerTests
         Assert.Equal((byte)0xA1, immediate[15 + 3 + 0x0A]);
         Assert.Equal((byte)1, immediate[15 + 3 + 0x12]);
 
-        shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
+        TestGameplay.Run(shop.Services, () => shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId));
         shop.Select(1);
         var reloaded = await shop.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()
             .LoadAsync(shop.Session.AccountId, shop.Session.CharacterId, default);
@@ -491,7 +491,7 @@ public sealed class EquipmentReinforcementHandlerTests
 
     private static async Task<byte[]> ReloadSnapshot(ShopFixture shop)
     {
-        shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
+        TestGameplay.Run(shop.Services, () => shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId));
         shop.Select(1);
         var character = await shop.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()
             .LoadAsync(shop.Session.AccountId, shop.Session.CharacterId, default);

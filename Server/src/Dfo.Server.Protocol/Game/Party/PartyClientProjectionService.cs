@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Application.Parties;
 using Dfo.Server.Data.Characters;
@@ -14,6 +15,7 @@ public sealed class PartyClientIdRegistry
 
     public ushort For(PartyKey key, long version)
     {
+        GameplayWriteAssertion.Writing(nameof(PartyClientIdRegistry) + "." + nameof(For));
         if (key.Kind != PartyKeyKind.Real || version <= 0)
             throw new ArgumentOutOfRangeException(nameof(key));
         lock (gate)
@@ -36,20 +38,27 @@ public sealed class PartyClientIdRegistry
         }
     }
 
-    public PartySnapshot Project(PartySnapshot snapshot) =>
-        snapshot.IsVirtual || snapshot.Key == default
+    public PartySnapshot Project(PartySnapshot snapshot)
+    {
+        GameplayWriteAssertion.Writing(nameof(PartyClientIdRegistry) + "." + nameof(Project));
+        return snapshot.IsVirtual || snapshot.Key == default
             ? snapshot
             : snapshot with { PartyId = For(snapshot.Key, snapshot.LeadershipVersion) };
+    }
 
-    public PartyNotificationPlan Project(PartyNotificationPlan plan) => plan with
+    public PartyNotificationPlan Project(PartyNotificationPlan plan)
     {
-        Snapshot = plan.Snapshot is { } snapshot ? Project(snapshot) : null,
-        LeadershipTransfer = plan.LeadershipTransfer is { } transfer ? Project(transfer) : null,
-        ClearPartyId = plan.ClearPartyKey is { } key
-            && plan.ClearLeadershipVersion is { } version
-                ? For(key, version)
-                : plan.ClearPartyId,
-    };
+        GameplayWriteAssertion.Writing(nameof(PartyClientIdRegistry) + "." + nameof(Project));
+        return plan with
+        {
+            Snapshot = plan.Snapshot is { } snapshot ? Project(snapshot) : null,
+            LeadershipTransfer = plan.LeadershipTransfer is { } transfer ? Project(transfer) : null,
+            ClearPartyId = plan.ClearPartyKey is { } key
+                && plan.ClearLeadershipVersion is { } version
+                    ? For(key, version)
+                    : plan.ClearPartyId,
+        };
+    }
 }
 
 /// <summary>Protocol-facing projection over the pure PartyService; it owns no membership.</summary>

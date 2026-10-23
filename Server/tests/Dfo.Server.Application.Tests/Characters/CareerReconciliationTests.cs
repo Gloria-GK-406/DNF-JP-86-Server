@@ -169,7 +169,7 @@ public sealed class CareerReconciliationTests
         f.Sql("INSERT OR IGNORE INTO character_stats(character_id,carried_gold) VALUES(71,0)");
         var bag = new PersistentItemContainer(ContainerId.ForCharacter(new(71),InventoryContainerType.Main),new(InventoryContainerType.Main,0),f.Services.GetRequiredService<IItemDomainStore>(),
             f.Services.GetRequiredService<IDomainTransactionAccessor>(),f.Services.GetRequiredService<IItemPlacementRuleService>(),f.Services.GetRequiredService<IItemSlotRuleService>());
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71),bag);
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71),bag));
     }
     private static async ValueTask<Dfo.Server.Abstractions.Effects.QuestCompletionReceipt> Complete(LearningFixture f,int account=1,byte grow=1)
     {

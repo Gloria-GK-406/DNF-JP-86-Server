@@ -458,24 +458,58 @@ public sealed class PartyProjectionStreamRegistry
 {
     private readonly ConcurrentDictionary<long, PartyDeliveryStream> streams = [];
 
-    internal PartyDeliveryStream GetOrAdd(long generation) =>
-        streams.GetOrAdd(generation, static _ => new PartyDeliveryStream());
+    internal PartyDeliveryStream GetOrAdd(long generation)
+    {
+        GameplayWriteAssertion.Writing(nameof(PartyProjectionStreamRegistry) + "." + nameof(GetOrAdd));
+        return streams.GetOrAdd(generation, static _ => new PartyDeliveryStream());
+    }
 }
 
 internal sealed class PartyDeliveryStream
 {
     // Streams intentionally retain their final revision as a tombstone: a delayed caller from
     // a disbanded generation must never resurrect its older roster after the clear.
-    public long LatestRevision { get; set; }
+    public long LatestRevision
+    {
+        get;
+        set
+        {
+            GameplayWriteAssertion.Writing(nameof(PartyDeliveryStream) + ".set_" + nameof(LatestRevision));
+            field = value;
+        }
+    }
 
     // The wire identity currently projected to this generation. A town read-repair may
     // advance a roster revision, but it must not consume a pending leader rekey without
     // retiring the old client object first.
-    public ushort? CurrentPartyId { get; set; }
+    public ushort? CurrentPartyId
+    {
+        get;
+        set
+        {
+            GameplayWriteAssertion.Writing(nameof(PartyDeliveryStream) + ".set_" + nameof(CurrentPartyId));
+            field = value;
+        }
+    }
 
-    public HashSet<SelectedSessionIdentity> CurrentMembers { get; } = [];
+    // The getters hand out the live sets their callers change, so each counts as a write.
+    public HashSet<SelectedSessionIdentity> CurrentMembers
+    {
+        get
+        {
+            GameplayWriteAssertion.Writing(nameof(PartyDeliveryStream) + ".get_" + nameof(CurrentMembers));
+            return field;
+        }
+    } = [];
 
-    public HashSet<SelectedSessionIdentity> FullStateMembers { get; } = [];
+    public HashSet<SelectedSessionIdentity> FullStateMembers
+    {
+        get
+        {
+            GameplayWriteAssertion.Writing(nameof(PartyDeliveryStream) + ".get_" + nameof(FullStateMembers));
+            return field;
+        }
+    } = [];
 }
 
 internal static class PartyNotificationRecipientCapture

@@ -105,7 +105,7 @@ public sealed class SkillBuildResetTests
     {
         await using var f = new LearningFixture(configure:s=> { s.AddSingleton<IOpeningInventoryDomainService, WaterInventory>(); s.AddSingleton<Dfo.Server.Abstractions.Content.IItemUseRuleDefinitionSource>(new FakeItemUseRules((3, ItemUseRules.Potion(0)))); });
         await f.SeedAsync();
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71),new WaterBag());
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71),new WaterBag()));
         f.Sql("UPDATE characters SET bonus_tp=3 WHERE character_id=71");
         if(failSkillWrite) f.Sql("CREATE TRIGGER fail_refund BEFORE DELETE ON character_skills WHEN OLD.character_id=71 BEGIN SELECT RAISE(ABORT,'refund failure'); END");
         if(failSkillWrite) await Assert.ThrowsAnyAsync<Exception>(()=>f.LearnAsync([new(1,1,2)]));
@@ -133,7 +133,7 @@ public sealed class SkillBuildResetTests
             s.AddSingleton<Dfo.Server.Abstractions.Content.IItemUseRuleDefinitionSource>(new FakeItemUseRules((3,ItemUseRules.Potion(0))));
         });
         await f.SeedAsync();
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71),new WaterBag());
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71),new WaterBag()));
         Assert.Equal(CharacterSkillLearningRejection.None,(await f.LearnAsync([new(2,0,1)])).Rejection);
         if(fail) f.Sql("CREATE TRIGGER fail_mixed BEFORE INSERT ON character_skills WHEN NEW.character_id=71 AND NEW.skill_id=3 BEGIN SELECT RAISE(ABORT,'mixed'); END");
         if(fail) await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(()=>f.LearnAsync([new(1,1,2),new(2,0,2),new(3,0,2)]));

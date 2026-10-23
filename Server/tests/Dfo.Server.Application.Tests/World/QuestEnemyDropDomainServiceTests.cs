@@ -14,6 +14,7 @@ using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -360,9 +361,9 @@ public sealed class QuestEnemyDropDomainServiceTests
 
         var containers = new CharacterContainerDomainService();
         var bag = new Bag(10149163, held);
-        containers.Register(Leader, bag);
+        TestGameplay.Run(() => containers.Register(Leader, bag));
         if (memberCarriesQuest)
-            containers.Register(Member, new Bag(10149163, 0));
+            TestGameplay.Run(() => containers.Register(Member, new Bag(10149163, 0)));
         var service = new QuestEnemyDropDomainService(
             new QuestEnemyDropRuleService(new QuestRules(definition), new PremiumServiceRuleService(new PremiumRules()),
                 new Placement(questItem)), logs, containers, premiums ?? new NoPremiums());

@@ -16,6 +16,7 @@
   <ItemGroup>
     <Compile Include="../Dfo.Pvf.Tests/Support/PvfArchiveBuilder.cs" Link="Support/PvfArchiveBuilder.cs" />
     <Compile Include="../Dfo.Server.Application.Tests/Support/TestExperienceRules.cs" Link="Support/TestExperienceRules.cs" />
+    <Compile Include="../Dfo.Server.Application.Tests/Execution/GameplayJobHostClosure.cs" Link="Support/GameplayJobHostClosure.cs" />
     <Compile Include="../Support/PvfAttributes.cs" Link="Support/PvfAttributes.cs" />
     <Compile Include="../Support/TestSessions.cs" Link="Support/TestSessions.cs" />
     <Compile Include="../Support/TestGameplay.cs" Link="Support/TestGameplay.cs" />

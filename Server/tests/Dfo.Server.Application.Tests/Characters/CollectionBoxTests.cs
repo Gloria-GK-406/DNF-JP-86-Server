@@ -174,10 +174,10 @@ public sealed class CollectionBoxTests
             Services = services.BuildServiceProvider();
             _ = Services.GetRequiredService<SqliteDatabase>();
             Sql("INSERT INTO accounts(account_id,m_id,password_hash) VALUES(1,'test','test'); INSERT INTO characters(character_id,account_id,slot_index,name) VALUES(1,1,0,'one'),(2,1,1,'two')");
-            Services.GetRequiredService<ICharacterContainerDomainService>().Register(Character,
+            TestGameplay.Run(Services, () => Services.GetRequiredService<ICharacterContainerDomainService>().Register(Character,
                 new PersistentItemContainer(ContainerId.ForCharacter(Character,InventoryContainerType.Main),new(InventoryContainerType.Main,0),
                     Services.GetRequiredService<IItemDomainStore>(),Services.GetRequiredService<IDomainTransactionAccessor>(),
-                    Services.GetRequiredService<IItemPlacementRuleService>(),Services.GetRequiredService<IItemSlotRuleService>()));
+                    Services.GetRequiredService<IItemPlacementRuleService>(),Services.GetRequiredService<IItemSlotRuleService>())));
         }
         public async ValueTask Write(Func<ValueTask> action) { await TestGameplay.RunAsync(Services, async () => { await using var tx = Scope.Begin(); await action(); await tx.CommitAsync(default); }); }
         public async ValueTask<(BusinessSlot,ItemSnapshot)> Seed(int itemId, int count, int invalid = 0)

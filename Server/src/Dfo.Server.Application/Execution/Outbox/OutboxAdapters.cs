@@ -11,10 +11,11 @@ namespace Dfo.Server.Application.Execution.Outbox;
 /// it (TASK-23 ruling 1); the encoded batch then waits in the job's outbox until the job ends.
 /// </summary>
 /// <remarks>
-/// Order inside each call: find the connection, encode, check the caller is a job (RQ-061, with its
-/// evidence), register. Encoding comes before the position check so that a refused message reads as
-/// what it is wherever it is sent from. A connection that is no longer registered is not an error:
-/// the entry is dropped after the position check and the job goes on (F-83).
+/// Order inside each call: find the connection, check the caller is a job (RQ-061, with its evidence),
+/// encode, register. The position check comes first (F-97, TASK-30 ruling 2) so that a call off the
+/// executor is refused as the program error it is, with its evidence, whatever it sends. A connection
+/// that is no longer registered is not an error: the entry is dropped after the position check and the
+/// job goes on (F-83).
 /// </remarks>
 internal sealed class OutboxNetworkMessageSender : INetworkMessageSender
 {
@@ -47,8 +48,9 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender
         cancellationToken.ThrowIfCancellationRequested();
         if (!TryFind(connectionId, out var connection))
             return Dropped(connectionId);
+        var outbox = outboxes.Current;
         var frames = encoder!.EncodeMessage(connection, message);
-        outboxes.Current.Register(OutboundEntry.Batch(connection, [message], frames));
+        outbox.Register(OutboundEntry.Batch(connection, [message], frames));
         return ValueTask.CompletedTask;
     }
 
@@ -71,8 +73,9 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender
 
         if (encoder is null)
             return Dropped(expectedConnection.ConnectionId);
+        var outbox = outboxes.Current;
         var frames = encoder.EncodeBatch(expectedConnection, batch);
-        outboxes.Current.Register(OutboundEntry.Batch(expectedConnection, batch, frames));
+        outbox.Register(OutboundEntry.Batch(expectedConnection, batch, frames));
         return ValueTask.CompletedTask;
     }
 
@@ -94,8 +97,9 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender
         {
             if (TryFind(requiredDirectConnectionId, out var direct))
             {
+                var outbox = outboxes.Current;
                 var frames = EncodeEach(direct, delivery.RequiredDirectMessages);
-                outboxes.Current.Register(OutboundEntry.Batch(direct, delivery.RequiredDirectMessages, frames));
+                outbox.Register(OutboundEntry.Batch(direct, delivery.RequiredDirectMessages, frames));
             }
             else
             {
@@ -113,6 +117,7 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender
                 continue;
             }
 
+            var outbox = outboxes.Current;
             byte[] frames;
             try
             {
@@ -126,7 +131,7 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender
                 continue;
             }
 
-            outboxes.Current.Register(OutboundEntry.Batch(
+            outbox.Register(OutboundEntry.Batch(
                 connection, target.OrderedMessages, frames, OutboundDelivery.BestEffort));
         }
 

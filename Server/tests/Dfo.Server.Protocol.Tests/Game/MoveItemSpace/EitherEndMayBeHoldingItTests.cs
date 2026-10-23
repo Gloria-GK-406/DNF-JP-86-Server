@@ -728,7 +728,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
             [InventoryContainerType.Main, InventoryContainerType.Avatar,
              InventoryContainerType.Equipment, InventoryContainerType.Pet])
         {
-            containers.Register(character, new SlotBook(type, character, fixture));
+            TestGameplay.Run(() => containers.Register(character, new SlotBook(type, character, fixture)));
         }
 
         var mappings = new InventorySlotMappingRuleService();

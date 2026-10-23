@@ -26,6 +26,7 @@ internal sealed class JoustMaintenanceService(ICommandBus bus,IJoustDomainServic
     private ValueTask TickCoreAsync(CancellationToken ct,bool suppressNotifications)=>AdvanceAndPublishAsync(ct,suppressNotifications);
     private async ValueTask AdvanceAndPublishAsync(CancellationToken ct,bool suppressNotifications)
     {
+        GameplayWriteAssertion.Writing(nameof(JoustMaintenanceService) + "." + nameof(AdvanceAndPublishAsync));
         var now=clock.GetUtcNow();
         var advanced=await joust.NeedsAdvanceAsync(now,ct)
             ? await bus.SendAsync(new AdvanceJoustLifecycleCommand(now),ct) : new JoustLifecycleResult(0);

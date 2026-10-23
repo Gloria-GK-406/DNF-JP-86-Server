@@ -78,7 +78,7 @@ public sealed class CycleQuestFlowTests
     private static async Task AcceptCycle(ShopFixture f)
     {
         var commands = f.Services.GetRequiredService<ICommandBus>();
-        f.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(f.Session, DungeonEntryIntent.Interactive);
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(f.Session, DungeonEntryIntent.Interactive));
         Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(f.Session, 84, 2001))).Accepted);
         Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
     }
@@ -101,7 +101,7 @@ public sealed class CycleQuestFlowTests
         var visits = new RecordingVisits { Succeeds = admitted };
         using var fixture = PartyFixture(visits);
         var commands = fixture.Services.GetRequiredService<ICommandBus>();
-        fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(fixture.Session, DungeonEntryIntent.Interactive);
+        TestGameplay.Run(fixture.Services, () => fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(fixture.Session, DungeonEntryIntent.Interactive));
         Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
         Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
         var entry = new DungeonEntryContext(84, new(DungeonDifficulty.Normal, [2001], [], DungeonEntryIntent.Cycle(84, 2001)),
@@ -133,7 +133,7 @@ public sealed class CycleQuestFlowTests
         fixture.Sql("INSERT INTO accounts(account_id,m_id) VALUES(3,'cycle-full'); INSERT INTO characters(character_id,account_id,name,job,level) VALUES(4,3,'full',12,2); INSERT INTO character_stats(character_id) VALUES(4);");
         for (var slot = 0; slot < 30; slot++) fixture.Sql($"INSERT INTO character_active_quests VALUES(4,{slot},{3000+slot},1);");
         var commands = fixture.Services.GetRequiredService<ICommandBus>();
-        fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(fixture.Session, DungeonEntryIntent.Interactive);
+        TestGameplay.Run(fixture.Services, () => fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(fixture.Session, DungeonEntryIntent.Interactive));
         Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
         Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
         var entry = new DungeonEntryContext(84, new(DungeonDifficulty.Normal, [2001], [], DungeonEntryIntent.Cycle(84, 2001)),
@@ -164,7 +164,7 @@ public sealed class CycleQuestFlowTests
         var visits = new RecordingVisits { Succeeds = true };
         using var fixture = PartyFixture(visits);
         var commands = fixture.Services.GetRequiredService<ICommandBus>();
-        fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(fixture.Session, DungeonEntryIntent.Interactive);
+        TestGameplay.Run(fixture.Services, () => fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(fixture.Session, DungeonEntryIntent.Interactive));
         Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
         Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
         if (reason == "ineligible") fixture.Sql("UPDATE characters SET job=0 WHERE character_id=3;");
@@ -197,7 +197,7 @@ public sealed class CycleQuestFlowTests
         var visits = new RecordingVisits { Succeeds = true };
         using var fixture = PartyFixture(visits);
         var commands = fixture.Services.GetRequiredService<ICommandBus>();
-        fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(fixture.Session, DungeonEntryIntent.Interactive);
+        TestGameplay.Run(fixture.Services, () => fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(fixture.Session, DungeonEntryIntent.Interactive));
         Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
         Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
         fixture.Sql("INSERT INTO character_active_quests VALUES(3,0,2001,0);");
@@ -235,7 +235,7 @@ public sealed class CycleQuestFlowTests
         var intents = fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>();
         var accept = new AcceptQuestCommand(new(1), new(1), 2001);
         Assert.False((await commands.SendAsync(accept)).Accepted);
-        intents.Record(fixture.Session, DungeonEntryIntent.Interactive);
+        TestGameplay.Run(fixture.Services, () => intents.Record(fixture.Session, DungeonEntryIntent.Interactive));
         var prepared = await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001));
         Assert.True(prepared.Accepted);
         Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests"));
@@ -263,7 +263,7 @@ public sealed class CycleQuestFlowTests
     {
         using var fixture = Fixture();
         var commands = fixture.Services.GetRequiredService<ICommandBus>();
-        fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(fixture.Session, DungeonEntryIntent.Interactive);
+        TestGameplay.Run(fixture.Services, () => fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Record(fixture.Session, DungeonEntryIntent.Interactive));
         Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
         Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
         await fixture.Seed(121, 1000, 1, 3);
@@ -299,12 +299,12 @@ public sealed class CycleQuestFlowTests
         using var fixture = Fixture();
         var commands = fixture.Services.GetRequiredService<ICommandBus>();
         var intents = fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>();
-        intents.Record(fixture.Session, DungeonEntryIntent.Interactive);
+        TestGameplay.Run(fixture.Services, () => intents.Record(fixture.Session, DungeonEntryIntent.Interactive));
         Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
         Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
 
         // Native retry: 000F(previous map), 0308(new pair), 0020(old quest), 001F(new quest).
-        intents.Record(fixture.Session, DungeonEntryIntent.Directed(84));
+        TestGameplay.Run(fixture.Services, () => intents.Record(fixture.Session, DungeonEntryIntent.Directed(84)));
         Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 85, 2002))).Accepted);
         Assert.Equal(DungeonEntryIntent.Cycle(85, 2002), intents.Find(fixture.Session));
         Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE quest_id=2001"));
@@ -316,7 +316,7 @@ public sealed class CycleQuestFlowTests
         Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests"));
 
         // The next retry can select the original pair without restarting the session.
-        intents.Record(fixture.Session, DungeonEntryIntent.Directed(85));
+        TestGameplay.Run(fixture.Services, () => intents.Record(fixture.Session, DungeonEntryIntent.Directed(85)));
         Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
         Assert.True((await commands.SendAsync(new GiveUpQuestCommand(new(1), new(1), 2002))).GivenUp);
         Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
@@ -349,10 +349,10 @@ public sealed class CycleQuestFlowTests
         using var fixture = Fixture();
         var commands = fixture.Services.GetRequiredService<ICommandBus>();
         var intents = fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>();
-        intents.Record(fixture.Session, DungeonEntryIntent.Interactive);
+        TestGameplay.Run(fixture.Services, () => intents.Record(fixture.Session, DungeonEntryIntent.Interactive));
         Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
         Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
-        intents.Record(fixture.Session, DungeonEntryIntent.Directed(84));
+        TestGameplay.Run(fixture.Services, () => intents.Record(fixture.Session, DungeonEntryIntent.Directed(84)));
         Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
         var replay = await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001));
         Assert.False(replay.Accepted);
@@ -384,7 +384,7 @@ public sealed class CycleQuestFlowTests
         });
         var commands = fixture.Services.GetRequiredService<ICommandBus>();
         var intents = fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>();
-        intents.Record(fixture.Session, DungeonEntryIntent.Interactive);
+        TestGameplay.Run(fixture.Services, () => intents.Record(fixture.Session, DungeonEntryIntent.Interactive));
         Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
         var intent = intents.Find(fixture.Session)!.Value;
         var entry = new DungeonEntryContext(84, new(requested, [2001], [], intent), 0, 0, [new(new(1), new(1), 0, true)]);

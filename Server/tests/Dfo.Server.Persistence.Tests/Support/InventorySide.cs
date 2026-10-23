@@ -146,14 +146,14 @@ internal sealed class InventorySide
         IItemPlacementDefinitionSource? placements = null)
     {
         var character = new CharacterId(characterId);
-        this.Containers.Register(character, new PersistentItemContainer(
+        TestGameplay.Run(() => this.Containers.Register(character, new PersistentItemContainer(
             ContainerId.ForCharacter(character, containerType),
             new ContainerShape(containerType, parameter),
             new SqliteItemDomainStore(this.databasePath),
             this.Scope,
             new ItemPlacementRuleService(
                 placements ?? this.placements, new NoWearables()),
-            new ItemSlotRuleService()));
+            new ItemSlotRuleService())));
     }
 
     /// <summary>Every item an ordinary consumable: kind 2, the main band, piles of a hundred.</summary>

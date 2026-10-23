@@ -115,9 +115,12 @@ public sealed class IllusionTowerStageFrameIntegrationTests
             var containers = host.Services.GetRequiredService<ICharacterContainerDomainService>();
             if (dungeonId == 11000)
             {
-                containers.Register(selected.CharacterId, new EmptyDefault(ContainerId.ForCharacter(selected.CharacterId, InventoryContainerType.Main), InventoryContainerType.Main));
-                containers.Register(selected.CharacterId, new EmptyDefault(ContainerId.ForAccount(selected.AccountId, InventoryContainerType.SharedMaterial), InventoryContainerType.SharedMaterial));
-                containers.Register(selected.CharacterId, new EmptyDefault(new ContainerId("tower:empty:network-test"), InventoryContainerType.QuickSlot));
+                TestGameplay.Run(host.Services, () =>
+                {
+                    containers.Register(selected.CharacterId, new EmptyDefault(ContainerId.ForCharacter(selected.CharacterId, InventoryContainerType.Main), InventoryContainerType.Main));
+                    containers.Register(selected.CharacterId, new EmptyDefault(ContainerId.ForAccount(selected.AccountId, InventoryContainerType.SharedMaterial), InventoryContainerType.SharedMaterial));
+                    containers.Register(selected.CharacterId, new EmptyDefault(new ContainerId("tower:empty:network-test"), InventoryContainerType.QuickSlot));
+                });
             }
             var bus = host.Services.GetRequiredService<ICommandBus>();
             var entered = await bus.SendAsync(

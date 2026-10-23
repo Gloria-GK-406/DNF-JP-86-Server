@@ -52,6 +52,7 @@ public sealed class FatigueDailyRefreshService(ISelectedSessionSnapshotQuery dir
     public Task RefreshAsync(CancellationToken token) => GameplayTimerWork.RunAsync(queue, Command, RefreshCoreAsync, token);
     private async ValueTask RefreshCoreAsync(CancellationToken token)
     {
+        GameplayWriteAssertion.Writing(nameof(FatigueDailyRefreshService) + "." + nameof(RefreshCoreAsync));
         var current = directory.Snapshot();
         foreach (var old in delivered.Keys.Except(current).ToArray()) delivered.Remove(old);
         foreach (var session in current)

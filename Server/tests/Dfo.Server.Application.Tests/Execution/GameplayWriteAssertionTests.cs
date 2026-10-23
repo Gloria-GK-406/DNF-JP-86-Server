@@ -41,7 +41,9 @@ namespace Dfo.Server.Application.Tests.Execution;
 /// A counterexample class the zero-violation evidence subtracts: 24 write violations per run, one per off-executor
 /// write below (Begin 1, ChangeAsync 2, AloneAsync 1, the creature fallback 2 (through AdvanceAsync and direct),
 /// the fourteen types 14, a finished job's continuation 1, a cancelled caller 1, two tower members that open
-/// their own unit of work 2: 1 + 2 + 1 + 2 + 14 + 1 + 1 + 2 = 24). Every case throws before it touches any state.
+/// their own unit of work 2: 1 + 2 + 1 + 2 + 14 + 1 + 1 + 2 = 24), plus one per write entry the TASK-30 census
+/// added (Application 10 + Protocol 7 + the ten daily refreshes 10 = 27, the weakness handle's case reporting three
+/// writes: 27 + 2 = 29): 24 + 29 = 53. Every case throws before it touches any state.
 /// </remarks>
 public sealed class GameplayWriteAssertionTests
 {
@@ -493,6 +495,365 @@ public sealed class GameplayWriteAssertionTests
             seen.Select(violation => violation.Operation).ToArray());
         Assert.All(seen, violation => Assert.Equal(GameplayWriteAssertion.OffExecutorKind, violation.Kind));
         Assert.Null(scope.Current);
+    }
+
+    // TASK-30: one counterexample per write entry the state census added (GameplayStateCensusTests).
+
+    [Fact]
+    public async Task ClientSettingsDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
+    {
+        var settings = Make<Dfo.Server.Application.Accounts.ClientSettingsDomainService>();
+        var connection = new NetworkConnectionId("settings");
+        var seen = ViolationCapture.Attach();
+
+        Assert.Throws<GameplayOffExecutorException>(() => settings.ForgetConnection(connection));
+
+        AssertOneViolation(seen, "ClientSettingsDomainService.ForgetConnection");
+        Assert.Empty(await settings.ReadHotkeysAsync(Account, CancellationToken.None));
+        TestGameplay.Run(() => settings.ForgetConnection(connection));
+    }
+
+    [Fact]
+    public async Task WeaknessDomainService_refuses_a_write_through_its_handle_off_the_executor_and_reads_anywhere()
+    {
+        // The writes are on the private handle For returns; the classification table lists its members too.
+        var weakness = new WeaknessDomainService(() => null!, null!);
+        var seen = ViolationCapture.Attach();
+
+        Assert.Throws<GameplayOffExecutorException>(() => weakness.For(Character).Recover());
+        await Assert.ThrowsAsync<GameplayOffExecutorException>(async () => await weakness.For(Character).SetWeakness());
+        Assert.Throws<GameplayOffExecutorException>(() => weakness.For(Character).PauseRecovery());
+
+        Assert.Equal(["Writing Weakness.Recover", "Writing Weakness.SetWeakness", "Writing Weakness.PauseRecovery"],
+            seen.Select(violation => violation.Operation).ToArray());
+        Assert.All(seen, violation => Assert.Equal(GameplayWriteAssertion.OffExecutorKind, violation.Kind));
+        Assert.Equal(100, weakness.For(Character).Value);
+        TestGameplay.Run(() => weakness.For(Character).Recover());
+        Assert.Empty(TestGameplay.Run(() => weakness.AdvanceRecovery()));
+    }
+
+    [Fact]
+    public void CharacterContainerDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
+    {
+        var containers = new CharacterContainerDomainService();
+        var seen = ViolationCapture.Attach();
+
+        Assert.Throws<GameplayOffExecutorException>(() => containers.Clear(Character));
+
+        AssertOneViolation(seen, "CharacterContainerDomainService.Clear");
+        Assert.Null(containers.FindContainer(Character, InventoryContainerType.Main));
+        TestGameplay.Run(() => containers.Clear(Character));
+    }
+
+    [Fact]
+    public void HousingState_refuses_a_write_off_the_executor_and_reads_anywhere()
+    {
+        var housing = new Dfo.Server.Application.Marriage.HousingState(null!, null!, null!, null!);
+        var session = Session();
+        var position = new CharacterPositionState(1, 2, 3, 4, 5);
+        var seen = ViolationCapture.Attach();
+
+        Assert.Throws<GameplayOffExecutorException>(() => housing.RememberReturn(session, position));
+
+        AssertOneViolation(seen, "HousingState.RememberReturn");
+        Assert.Null(housing.ReturnFor(session));
+        TestGameplay.Run(() => housing.RememberReturn(session, position));
+        Assert.Equal(position, housing.ReturnFor(session));
+    }
+
+    [Fact]
+    public void ExpertStoreDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
+    {
+        var stores = new Dfo.Server.Application.Sessions.ExpertStoreDomainService();
+        var seen = ViolationCapture.Attach();
+
+        Assert.Throws<GameplayOffExecutorException>(() => stores.Open(Character));
+
+        AssertOneViolation(seen, "ExpertStoreDomainService.Open");
+        Assert.False(stores.HasOpenStore(Character));
+        TestGameplay.Run(() => stores.Open(Character));
+        Assert.True(stores.HasOpenStore(Character));
+    }
+
+    [Fact]
+    public void PvpLobbyDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
+    {
+        var lobby = new Dfo.Server.Application.Sessions.PvpLobbyDomainService();
+        var seen = ViolationCapture.Attach();
+
+        Assert.Throws<GameplayOffExecutorException>(() => lobby.Withdraw(1));
+
+        AssertOneViolation(seen, "PvpLobbyDomainService.Withdraw");
+        Assert.Empty(lobby.OfferedOn(10011));
+        Assert.False(TestGameplay.Run(() => lobby.Withdraw(1)));
+    }
+
+    [Fact]
+    public void DungeonEntryIntentDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
+    {
+        var intents = new DungeonEntryIntentDomainService();
+        var session = Session();
+        var seen = ViolationCapture.Attach();
+
+        Assert.Throws<GameplayOffExecutorException>(() => intents.ClearExact(session));
+
+        AssertOneViolation(seen, "DungeonEntryIntentDomainService.ClearExact");
+        Assert.Null(intents.Find(session));
+        Assert.False(TestGameplay.Run(() => intents.ClearExact(session)));
+    }
+
+    [Fact]
+    public async Task JoustMaintenanceService_refuses_its_tick_body_off_the_executor_and_runs_it_in_a_job()
+    {
+        // The tick body is private: StartAsync and TickAsync only enqueue it as a startup or timer CMD.
+        var joust = Make<Dfo.Server.Application.Events.JoustMaintenanceService>(new QuietJoust());
+        ValueTask Body() => (ValueTask)Invoke(joust, "AdvanceAndPublishAsync", CancellationToken.None, true)!;
+        var seen = ViolationCapture.Attach();
+
+        await Assert.ThrowsAsync<GameplayOffExecutorException>(async () => await Body());
+
+        AssertOneViolation(seen, "JoustMaintenanceService.AdvanceAndPublishAsync");
+        await TestGameplay.RunAsync(async () => await Body());
+    }
+
+    [Fact]
+    public async Task SelectedSessionSafety_refuses_a_write_off_the_executor_and_reads_anywhere()
+    {
+        var safety = new Dfo.Server.Application.Commands.SelectedSessionSafety(
+            Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(new Microsoft.Extensions.DependencyInjection.ServiceCollection()),
+            NullLogger<Dfo.Server.Application.Commands.SelectedSessionSafety>.Instance);
+        var connection = new NetworkConnectionContext(new NetworkConnectionId("write-assertion"), NetworkEndpointKind.Game, 10011);
+        var recipient = new Dfo.Server.Application.Commands.SelectedSessionRecipient(Session(), connection);
+        var seen = ViolationCapture.Attach();
+
+        await Assert.ThrowsAsync<GameplayOffExecutorException>(async () =>
+            await safety.BlockAsync(recipient, new InvalidOperationException("unknown"), "probe"));
+
+        AssertOneViolation(seen, "SelectedSessionSafety.BlockAsync");
+        Assert.False(safety.IsBlocked(connection));
+        await TestGameplay.RunAsync(async () => await safety.BlockAsync(recipient, new InvalidOperationException("unknown"), "probe"));
+        Assert.True(safety.IsBlocked(connection));
+    }
+
+    [Fact]
+    public async Task EffectOperationLedger_refuses_a_request_off_the_executor_and_validates_it_in_a_job()
+    {
+        // The ledger has no read member; in a job the same call reaches its own request validation.
+        var ledger = Make<Dfo.Server.Application.Effects.EffectOperationLedger>();
+        var connection = new NetworkConnectionContext(new NetworkConnectionId("write-assertion"), NetworkEndpointKind.Game, 10011);
+        var request = new Dfo.Server.Protocol.Game.Joust.JoustBetRequest(new GameMessageMetadata(1, 2, 3, 4), 0, 0, 0);
+        ValueTask Dispatch() => ledger.DispatchAsync(connection, request, () => ValueTask.CompletedTask, CancellationToken.None);
+        var seen = ViolationCapture.Attach();
+
+        await Assert.ThrowsAsync<GameplayOffExecutorException>(async () => await Dispatch());
+
+        AssertOneViolation(seen, "EffectOperationLedger.DispatchAsync");
+        await Assert.ThrowsAsync<InvalidDataException>(() => TestGameplay.RunAsync(async () => await Dispatch()));
+    }
+
+    [Fact]
+    public void DungeonRunDeliveryRegistry_refuses_a_write_off_the_executor_and_reads_anywhere()
+    {
+        var registry = new Dfo.Server.Protocol.Game.Dungeons.DungeonRunDeliveryRegistry();
+        var runId = DungeonRunId.New();
+        var seen = ViolationCapture.Attach();
+
+        Assert.Throws<GameplayOffExecutorException>(() => registry.Register(runId, [Session()]));
+
+        AssertOneViolation(seen, "DungeonRunDeliveryRegistry.Register");
+        Assert.Empty(registry.Find(runId));
+        TestGameplay.Run(() => registry.Register(runId, [Session()]));
+        Assert.Single(registry.Find(runId));
+    }
+
+    [Theory]
+    [InlineData("Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService")]
+    [InlineData("Dfo.Server.Protocol.Game.StateSynchronization.DimensionQuotaDailyRefreshService")]
+    [InlineData("Dfo.Server.Protocol.Game.StateSynchronization.GoldSilverHornQuotaDailyRefreshService")]
+    [InlineData("Dfo.Server.Protocol.Game.StateSynchronization.ItemUsageDailyRefreshService")]
+    [InlineData("Dfo.Server.Protocol.Game.StateSynchronization.MirrorQuotaDailyRefreshService")]
+    [InlineData("Dfo.Server.Protocol.Game.StateSynchronization.PremiumDailyRefreshService")]
+    [InlineData("Dfo.Server.Protocol.Game.StateSynchronization.ReviveCoinQuotaDailyRefreshService")]
+    [InlineData("Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService")]
+    [InlineData("Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService")]
+    [InlineData("Dfo.Server.Protocol.Game.Fatigue.FatigueDailyRefreshService")]
+    public async Task A_daily_refresh_refuses_its_timer_body_off_the_executor_and_runs_it_in_a_job(string typeName)
+    {
+        // The body is private: RefreshAsync and the timer loop only enqueue it as a timer CMD.
+        var type = ProtocolType(typeName);
+        var refresh = Make(type);
+        ValueTask Body() => (ValueTask)Invoke(refresh, "RefreshCoreAsync", CancellationToken.None)!;
+        var seen = ViolationCapture.Attach();
+
+        await Assert.ThrowsAsync<GameplayOffExecutorException>(async () => await Body());
+
+        AssertOneViolation(seen, type.Name + ".RefreshCoreAsync");
+        await TestGameplay.RunAsync(async () => await Body());
+    }
+
+    [Fact]
+    public void PartyProjectionStreamRegistry_refuses_to_hand_out_a_stream_off_the_executor()
+    {
+        // Its one member hands out (and may add) a stream; it has no read member.
+        var registry = new Dfo.Server.Protocol.Game.Party.PartyProjectionStreamRegistry();
+        var seen = ViolationCapture.Attach();
+
+        Assert.Throws<GameplayOffExecutorException>(() => Invoke(registry, "GetOrAdd", 1L));
+
+        AssertOneViolation(seen, "PartyProjectionStreamRegistry.GetOrAdd");
+        var stream = TestGameplay.Run(() => Invoke(registry, "GetOrAdd", 1L));
+        Assert.Same(stream, TestGameplay.Run(() => Invoke(registry, "GetOrAdd", 1L)));
+    }
+
+    [Fact]
+    public void PartyDeliveryStream_refuses_a_write_off_the_executor_and_reads_anywhere()
+    {
+        var registry = new Dfo.Server.Protocol.Game.Party.PartyProjectionStreamRegistry();
+        var stream = TestGameplay.Run(() => Invoke(registry, "GetOrAdd", 1L))!;
+        var revision = stream.GetType().GetProperty("LatestRevision")!;
+        var seen = ViolationCapture.Attach();
+
+        Assert.Throws<GameplayOffExecutorException>(() => Unwrapped(() => revision.SetValue(stream, 5L)));
+
+        AssertOneViolation(seen, "PartyDeliveryStream.set_LatestRevision");
+        Assert.Equal(0L, revision.GetValue(stream));
+        TestGameplay.Run(() => revision.SetValue(stream, 5L));
+        Assert.Equal(5L, revision.GetValue(stream));
+    }
+
+    [Fact]
+    public void PartyClientIdRegistry_refuses_to_allocate_off_the_executor()
+    {
+        // Every member may allocate a wire number; there is no read member.
+        var ids = new Dfo.Server.Protocol.Game.Party.PartyClientIdRegistry();
+        var key = new PartyKey(PartyKeyKind.Real, 1);
+        var seen = ViolationCapture.Attach();
+
+        Assert.Throws<GameplayOffExecutorException>(() => ids.For(key, 1));
+
+        AssertOneViolation(seen, "PartyClientIdRegistry.For");
+        var number = TestGameplay.Run(() => ids.For(key, 1));
+        Assert.Equal(number, TestGameplay.Run(() => ids.For(key, 1)));
+    }
+
+    [Fact]
+    public void BossTowerDepartureProjectionQueue_refuses_a_write_off_the_executor()
+    {
+        var departures = new Dfo.Server.Protocol.Game.BossTowerDepartureProjectionQueue();
+        var seen = ViolationCapture.Attach();
+
+        Assert.Throws<GameplayOffExecutorException>(() => departures.Enqueue(new BossTowerActionResult(false, null)));
+
+        AssertOneViolation(seen, "BossTowerDepartureProjectionQueue.Enqueue");
+        TestGameplay.Run(() => departures.Enqueue(new BossTowerActionResult(false, null)));
+        Assert.True((bool)TestGameplay.Run(() => Invoke(departures, "TryDequeue", new object?[] { null }))!);
+    }
+
+    [Fact]
+    public void IllusionTowerDepartureProjectionQueue_refuses_a_write_off_the_executor()
+    {
+        var departures = new Dfo.Server.Protocol.Game.IllusionTowerDepartureProjectionQueue();
+        var seen = ViolationCapture.Attach();
+
+        Assert.Throws<GameplayOffExecutorException>(() => departures.Enqueue(new TowerActionResult(false, null)));
+
+        AssertOneViolation(seen, "IllusionTowerDepartureProjectionQueue.Enqueue");
+        TestGameplay.Run(() => departures.Enqueue(new TowerActionResult(false, null)));
+        Assert.True((bool)TestGameplay.Run(() => Invoke(departures, "TryDequeue", new object?[] { null }))!);
+    }
+
+    [Fact]
+    public async Task JoustBetHandler_refuses_a_bet_off_the_executor_and_handles_it_in_a_job()
+    {
+        // The handler's static per-connection identity is its state; the dispatcher only runs it in a job.
+        var handler = Make<Dfo.Server.Protocol.Game.Joust.JoustBetHandler>();
+        var context = new NetworkDispatchContext(new NetworkConnectionContext(new NetworkConnectionId("joust"), NetworkEndpointKind.Game, 10011));
+        var bet = new Dfo.Server.Protocol.Game.Joust.JoustBetRequest(new GameMessageMetadata(1, 2, 3, 4), 0, 0, 0);
+        var seen = ViolationCapture.Attach();
+
+        await Assert.ThrowsAsync<GameplayOffExecutorException>(async () =>
+            await handler.HandleAsync(context, bet, CancellationToken.None));
+
+        AssertOneViolation(seen, "JoustBetHandler.HandleMessageAsync");
+        await TestGameplay.RunAsync(async () => await handler.HandleAsync(context, bet, CancellationToken.None));
+    }
+
+    private static Type ProtocolType(string name) =>
+        typeof(Dfo.Server.Protocol.ProtocolModule).Assembly.GetType(name, throwOnError: true)!;
+
+    private static T Make<T>(params object[] given) => (T)Make(typeof(T), given);
+
+    /// <summary>Builds a type through its widest constructor: given values first, then a null object for every interface.</summary>
+    private static object Make(Type type, params object[] given)
+    {
+        var constructor = type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .OrderByDescending(candidate => candidate.GetParameters().Length).First();
+        var arguments = constructor.GetParameters().Select(parameter =>
+            given.FirstOrDefault(parameter.ParameterType.IsInstanceOfType) ?? Fill(parameter.ParameterType)).ToArray();
+        return constructor.Invoke(arguments);
+    }
+
+    private static object? Fill(Type type)
+    {
+        if (type == typeof(TimeProvider)) return TimeProvider.System;
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Microsoft.Extensions.Logging.ILogger<>))
+            return typeof(NullLogger<>).MakeGenericType(type.GetGenericArguments()).GetField("Instance")!.GetValue(null);
+        return type.IsInterface ? NullObject.Of(type) : null;
+    }
+
+    private static object? Invoke(object target, string method, params object?[] arguments) =>
+        Unwrapped(() => target.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!
+            .Invoke(target, arguments));
+
+    private static object? Unwrapped(Func<object?> call)
+    {
+        try
+        {
+            return call();
+        }
+        catch (TargetInvocationException invocation) when (invocation.InnerException is { } inner)
+        {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(inner).Throw();
+            throw;
+        }
+    }
+
+    private static void Unwrapped(Action call) => Unwrapped(() =>
+    {
+        call();
+        return null;
+    });
+
+    /// <summary>An interface implementation that does nothing and returns empty values.</summary>
+    public class NullObject : DispatchProxy
+    {
+        public static object Of(Type type) =>
+            typeof(DispatchProxy).GetMethod(nameof(Create), 2, Type.EmptyTypes)!
+                .MakeGenericMethod(type, typeof(NullObject)).Invoke(null, null)!;
+
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) => Empty(targetMethod!.ReturnType);
+
+        private static object? Empty(Type type)
+        {
+            if (type == typeof(void)) return null;
+            if (type == typeof(Task)) return Task.CompletedTask;
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>))
+                return typeof(Task).GetMethod(nameof(Task.FromResult))!.MakeGenericMethod(type.GetGenericArguments())
+                    .Invoke(null, [Empty(type.GetGenericArguments()[0])]);
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>))
+                return Activator.CreateInstance(type, Empty(type.GetGenericArguments()[0]));
+            if (type.IsGenericType && type.GetGenericTypeDefinition() is var definition
+                && (definition == typeof(IReadOnlyList<>) || definition == typeof(IEnumerable<>) || definition == typeof(IReadOnlyCollection<>)))
+                return Array.CreateInstance(type.GetGenericArguments()[0], 0);
+            return type.IsValueType ? Activator.CreateInstance(type) : null;
+        }
+    }
+
+    /// <summary>A joust with nothing to advance and an inactive round.</summary>
+    private sealed class QuietJoust : Dfo.Server.Abstractions.Events.IJoustProjectionDomainService
+    {
+        public ValueTask<Dfo.Server.Data.Events.JoustState> ReadAsync(CharacterId character, DateTimeOffset now, CancellationToken ct) =>
+            ValueTask.FromResult(new Dfo.Server.Data.Events.JoustState(false, now, default, null, null, null, null, [], [], 0, 0, 0));
     }
 
     private static readonly DungeonLayout Layout = new(84, 0, 3, 1, new MazeCell(0, 0), new MazeCell(2, 0), 10, 123,

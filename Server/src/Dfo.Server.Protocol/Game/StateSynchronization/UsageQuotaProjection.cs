@@ -103,6 +103,7 @@ public sealed class MirrorQuotaDailyRefreshService(ISelectedSessionSnapshotQuery
     public Task RefreshAsync(CancellationToken cancellationToken) => GameplayTimerWork.RunAsync(queue, Command, RefreshCoreAsync, cancellationToken);
     private async ValueTask RefreshCoreAsync(CancellationToken cancellationToken)
     {
+        GameplayWriteAssertion.Writing(nameof(MirrorQuotaDailyRefreshService) + "." + nameof(RefreshCoreAsync));
         var current = directory.Snapshot();
         foreach (var stale in delivered.Keys.Except(current).ToArray()) delivered.Remove(stale);
         foreach (var session in current)

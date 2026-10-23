@@ -18,6 +18,7 @@ internal sealed class EffectOperationLedger(EffectOperationContext operations, S
     public async ValueTask DispatchAsync(NetworkConnectionContext connection, IEffectSettlementRequest request,
         Func<ValueTask> handler, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(EffectOperationLedger) + "." + nameof(DispatchAsync));
         var metadata = request.Metadata;
         if (metadata.InboundOrdinal is not > 0 || metadata.FullBodyLength is not (>= 0 and <= 1_048_576)
             || metadata.FullBodySha256 is not { Length: 64 } hash || !hash.All(Uri.IsHexDigit))

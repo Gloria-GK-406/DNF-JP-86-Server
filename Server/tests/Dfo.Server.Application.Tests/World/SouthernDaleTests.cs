@@ -291,10 +291,10 @@ public sealed class SouthernDaleTests
         });
         await f.SeedAsync();
         var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
-        foreach (var id in new[] { 71, 72 }) containers.Register(new(id), new PersistentItemContainer(
+        foreach (var id in new[] { 71, 72 }) TestGameplay.Run(f.Services, () => containers.Register(new(id), new PersistentItemContainer(
             ContainerId.ForCharacter(new(id), InventoryContainerType.Main), new(InventoryContainerType.Main, 0),
             f.Services.GetRequiredService<IItemDomainStore>(), f.Scope,
-            f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>()));
+            f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>())));
         f.Services.GetRequiredService<IIndependentDropRuleService>().Initialize();
         f.Services.GetRequiredService<IExtraDropRuleService>().Initialize();
         f.Services.GetRequiredService<IMonsterDeclaredDropRuleService>().Initialize();

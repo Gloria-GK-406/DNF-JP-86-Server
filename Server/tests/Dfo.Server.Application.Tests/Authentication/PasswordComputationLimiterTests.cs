@@ -107,6 +107,14 @@ public sealed class PasswordComputationLimiterTests
         Assert.Equal([nameof(HashingDomainService)], Violations([typeof(HashingDomainService)]));
     }
 
+    /// <summary>TASK-30 section 7.3: the other two branches of H5, a command handler and the limiter.</summary>
+    [Fact]
+    public void A_command_handler_that_takes_the_limiter_is_refused()
+    {
+        Assert.True(IsDomainServiceOrCommandHandler(typeof(LimitingCommandHandler)));
+        Assert.Equal([nameof(LimitingCommandHandler)], Violations([typeof(LimitingCommandHandler)]));
+    }
+
     private static bool IsDomainServiceOrCommandHandler(Type type) =>
         type is { IsClass: true, IsAbstract: false }
         && type.GetInterfaces().Any(contract =>
@@ -132,6 +140,14 @@ public sealed class PasswordComputationLimiterTests
     private sealed class HashingDomainService(IPasswordCredentialRuleService passwords) : IHashingProbeDomainService
     {
         public string Hash(string password) => passwords.Hash(password);
+    }
+
+    private sealed record LimitingCommand : ICommand<bool>;
+
+    private sealed class LimitingCommandHandler(PasswordComputationLimiter limiter) : ICommandHandler<LimitingCommand, bool>
+    {
+        public ValueTask<bool> HandleAsync(CommandExecutionContext context, LimitingCommand command, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(limiter.Capacity > 0);
     }
 
     private sealed class BlockingPasswords : IPasswordCredentialRuleService, IDisposable

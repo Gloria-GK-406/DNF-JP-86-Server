@@ -779,9 +779,17 @@ public sealed class IllusionTowerDepartureProjectionQueue
 {
     private readonly ConcurrentQueue<TowerActionResult> pending = new();
 
-    public void Enqueue(TowerActionResult action) => pending.Enqueue(action);
+    public void Enqueue(TowerActionResult action)
+    {
+        GameplayWriteAssertion.Writing(nameof(IllusionTowerDepartureProjectionQueue) + "." + nameof(Enqueue));
+        pending.Enqueue(action);
+    }
 
-    internal bool TryDequeue(out TowerActionResult? action) => pending.TryDequeue(out action);
+    internal bool TryDequeue(out TowerActionResult? action)
+    {
+        GameplayWriteAssertion.Writing(nameof(IllusionTowerDepartureProjectionQueue) + "." + nameof(TryDequeue));
+        return pending.TryDequeue(out action);
+    }
 }
 
 public sealed class IllusionTowerReturnSweepService(

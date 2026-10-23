@@ -302,7 +302,10 @@ public sealed class PartyNotificationTests
         await outbound.SettledAsync();
 
         Assert.True(await outbound.ClosedAsync(Invitee.ConnectionId));
-        Assert.Equal(Snapshot().Revision, streams.GetOrAdd(Snapshot().Generation).LatestRevision);
+        TestGameplay.Run(() =>
+        {
+            Assert.Equal(Snapshot().Revision, streams.GetOrAdd(Snapshot().Generation).LatestRevision);
+        });
         Assert.DoesNotContain(outbound.Recorder.Entries, entry => entry.IsClose);
     }
 
@@ -334,7 +337,10 @@ public sealed class PartyNotificationTests
         Assert.True(inviterEntries.FindLastIndex(entry => entries.ToList().IndexOf(entry) < first)
             < inviterEntries.FindIndex(entry => entries.ToList().IndexOf(entry) >= first),
             "the earlier CMD's inviter entries come before the later CMD's");
-        Assert.Equal(later.Revision, streams.GetOrAdd(later.Generation).LatestRevision);
+        TestGameplay.Run(() =>
+        {
+            Assert.Equal(later.Revision, streams.GetOrAdd(later.Generation).LatestRevision);
+        });
     }
 
     /// <summary>

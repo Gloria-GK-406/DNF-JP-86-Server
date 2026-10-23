@@ -7,6 +7,7 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
 
@@ -363,10 +364,13 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
             worn.Seed(slot, wornIsOrdinary ? OrdinaryTemplate
                 : wornIsOtherCostume ? OtherCostumeTemplate : CostumeTemplate);
 
-        containers.Register(character, bag);
-        containers.Register(character, avatars);
-        containers.Register(character, worn);
-        containers.Register(character, pet);
+        TestGameplay.Run(() =>
+        {
+            containers.Register(character, bag);
+            containers.Register(character, avatars);
+            containers.Register(character, worn);
+            containers.Register(character, pet);
+        });
 
         var mappings = new InventorySlotMappingRuleService();
         return new Side(

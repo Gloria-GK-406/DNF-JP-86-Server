@@ -137,6 +137,30 @@ public sealed class OutboxRegistrationTests
         Assert.Empty(host.Entries);
     }
 
+    /// <summary>
+    /// F-97 (TASK-30 ruling 2): off the executor the position check comes before encoding at every entry, so a
+    /// message that cannot be encoded is refused as the program error it is and still leaves its evidence.
+    /// </summary>
+    [Fact]
+    public async Task An_unencodable_message_off_the_executor_is_refused_by_position_first()
+    {
+        var connections = new FixedConnections();
+        var a = connections.Add("a");
+        await using var host = new OutboxRegistrationHost(connections, new TextEncoder());
+        var seen = Violations.Attach();
+
+        await Assert.ThrowsAsync<GameplayOffExecutorException>(
+            () => host.Sender.SendAsync(a.ConnectionId, new Text("unencodable"), CancellationToken.None).AsTask());
+        await Assert.ThrowsAsync<GameplayOffExecutorException>(
+            () => host.Sender.SendBatchAsync(a, [new Text("unencodable")], CancellationToken.None).AsTask());
+        await Assert.ThrowsAsync<GameplayOffExecutorException>(() => host.Sender.SendExplicitAsync(a.ConnectionId,
+            new ExplicitMessageDelivery([new Text("unencodable")], []), CancellationToken.None).AsTask());
+
+        Assert.Equal(3, seen.Count);
+        Assert.All(seen, violation => Assert.Equal(GameplayWriteAssertion.OffExecutorKind, violation.Kind));
+        Assert.Empty(host.Entries);
+    }
+
     /// <summary>The closer's counterexample (RQ-072).</summary>
     [Fact]
     public async Task A_close_off_the_executor_is_a_program_error_reported_as_evidence()

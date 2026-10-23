@@ -286,16 +286,19 @@ public sealed class WarehouseStorageTests
     {
         var registry = host.Services.GetRequiredService<ICharacterContainerDomainService>();
         var kept = new[] { InventoryContainerType.Main, InventoryContainerType.Equipment, InventoryContainerType.SharedMaterial }.Select(type => registry.GetContainer(host.Session.CharacterId, type)).ToArray();
-        registry.Clear(host.Session.CharacterId);
-        foreach (var container in kept) registry.Register(host.Session.CharacterId, container);
-        foreach (var type in new[] { InventoryContainerType.PersonalCargo, InventoryContainerType.AccountCargo, InventoryContainerType.Avatar })
+        TestGameplay.Run(host.Services, () =>
         {
-            registry.Register(host.Session.CharacterId, new PersistentItemContainer(type == InventoryContainerType.AccountCargo
-                    ? cargoStorageId ?? ContainerId.ForAccountCargo(account ?? host.Session.AccountId) : ContainerId.ForCharacter(host.Session.CharacterId, type), new(type, 0), host.Services.GetRequiredService<IItemDomainStore>(),
-                host.Services.GetRequiredService<IDomainTransactionAccessor>(),
-                host.Services.GetRequiredService<IItemPlacementRuleService>(),
-                host.Services.GetRequiredService<IItemSlotRuleService>()));
-        }
+            registry.Clear(host.Session.CharacterId);
+            foreach (var container in kept) registry.Register(host.Session.CharacterId, container);
+            foreach (var type in new[] { InventoryContainerType.PersonalCargo, InventoryContainerType.AccountCargo, InventoryContainerType.Avatar })
+            {
+                registry.Register(host.Session.CharacterId, new PersistentItemContainer(type == InventoryContainerType.AccountCargo
+                        ? cargoStorageId ?? ContainerId.ForAccountCargo(account ?? host.Session.AccountId) : ContainerId.ForCharacter(host.Session.CharacterId, type), new(type, 0), host.Services.GetRequiredService<IItemDomainStore>(),
+                    host.Services.GetRequiredService<IDomainTransactionAccessor>(),
+                    host.Services.GetRequiredService<IItemPlacementRuleService>(),
+                    host.Services.GetRequiredService<IItemSlotRuleService>()));
+            }
+        });
     }
     internal static Task<InventoryExpansionResult> Command(ShopFixture host, ushort type, int value = 0) =>
         host.Services.GetRequiredService<ICommandBus>().SendAsync(new WarehouseCommand(host.OnlineUser, host.Session, type, value,
