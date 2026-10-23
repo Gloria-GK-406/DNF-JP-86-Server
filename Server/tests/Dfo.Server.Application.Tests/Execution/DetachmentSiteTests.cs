@@ -21,11 +21,9 @@ public sealed class DetachmentSiteTests
     private static readonly IReadOnlyDictionary<string, string> SuppressFlowSites = new Dictionary<string, string>
     {
         ["Dfo.Server.Application/Execution/GameplayExecutor.cs"] = "the consumer loop must not carry its starter's flow",
-        ["Dfo.Server.Networking/Runtime/ExecutorSendDeadline.cs"] = "the deadline close runs after the job, unawaited",
-        ["Dfo.Server.Networking/Runtime/TouchSocketNetworkConnectionCloser.cs"] = "a detached close never inherits the job",
         ["Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs"] =
             "card timers outlive the job that scheduled them; only the drain waits for them",
-        ["Dfo.Server.Networking/Outbound/OutboundSender.cs"] = "admission and per-connection drain loops (not wired until T-006)",
+        ["Dfo.Server.Networking/Outbound/OutboundSender.cs"] = "admission and per-connection drain loops and the failure close",
     };
 
     private static readonly Regex RunDetachedCall = new(@"\bRunDetached(?:Async)?\s*(?:<[^>()]*>)?\s*\(", RegexOptions.Compiled);

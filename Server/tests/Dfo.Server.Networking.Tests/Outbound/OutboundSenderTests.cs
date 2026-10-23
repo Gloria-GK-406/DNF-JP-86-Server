@@ -228,26 +228,6 @@ public sealed class OutboundSenderTests
     }
 
     [Fact]
-    public async Task A_batch_that_cannot_be_encoded_sends_none_of_it()
-    {
-        var a = Context("a");
-        var connection = transport.Add(a);
-        await using var sender = Sender(transport, observer);
-        var whole = OutboundEntry.Batch(a, [new TextMessage("good"), new TextMessage("unencodable")]);
-        var next = Batch(a, "next");
-
-        sender.Submit([Batch(a, "before"), whole, next]);
-        await observer.WaitForAsync(3);
-
-        Assert.Equal(["before"], connection.Sent);
-        var report = observer.Reports.Single(item => ReferenceEquals(item.Entry, whole));
-        Assert.Equal(OutboundOutcome.EncodingFailed, report.Outcome);
-        Assert.IsType<InvalidDataException>(report.Error);
-        Assert.Equal(OutboundOutcome.Discarded, observer.OutcomeOf(next));
-        Assert.True(connection.IsClosed);
-    }
-
-    [Fact]
     public async Task An_entry_for_a_replaced_connection_is_dropped_and_never_reaches_the_new_one()
     {
         var old = Context("a");
@@ -418,7 +398,7 @@ public sealed class OutboundSenderTests
     {
         var a = Context("a");
         var connection = transport.Add(a);
-        await using var sender = new OutboundSender(transport, new TextEncoder(),
+        await using var sender = new OutboundSender(transport,
             [new ThrowingObserver(), observer], NullLogger<OutboundSender>.Instance, OutboundSendOptions.Default);
 
         sender.Submit([Batch(a, "one"), Batch(a, "two")]);

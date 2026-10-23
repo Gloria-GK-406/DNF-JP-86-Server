@@ -15,44 +15,33 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Dfo.Server.Application.Tests.Authentication;
 
 /// <summary>
-/// Login maintenance runs on the executor (spec appendix A row 4): each superseded-connection close is
-/// one lifecycle CMD, each expiry sweep one timer CMD.
+/// Login maintenance runs on the executor (spec appendix A row 4): each expiry sweep is one timer CMD,
+/// and a superseded connection is disconnected and closed by the CMD that superseded it (F-65).
 /// </summary>
 public sealed class LoginSessionMaintenanceExecutorTests
 {
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(10);
 
     [Fact]
-    public async Task A_superseded_connection_is_disconnected_and_closed_in_one_lifecycle_job()
+    public async Task A_superseded_connection_is_disconnected_and_then_closed_by_the_cmd_that_superseded_it()
     {
-        await using var provider = Executor();
         var scope = new DomainTransactionScope();
         var clock = new RecordingClock();
-        var sessions = new LoginSessionRegistry(scope, clock, new LoginSessionOptions());
         var steps = new ConcurrentQueue<Seen>();
         var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var service = Service(provider, sessions, clock, new RecordingOnlineUsers(steps), new RecordingCloser(steps, closed));
+        var sessions = new LoginSessionRegistry(scope, clock, new LoginSessionOptions(),
+            new RecordingOnlineUsers(steps), new RecordingCloser(steps, closed));
         var old = new NetworkConnectionId("Game:superseded");
+
         await SupersedeAsync(scope, sessions, clock, old);
 
-        await service.StartAsync(CancellationToken.None);
-        try
-        {
-            await closed.Task.WaitAsync(Patience);
-        }
-        finally
-        {
-            await service.StopAsync(CancellationToken.None);
-        }
-
+        Assert.True(closed.Task.IsCompleted, "The close was not registered by the superseding CMD itself.");
         Assert.Equal(["disconnect Game:superseded", "close Game:superseded"], steps.Select(x => x.Step));
         Assert.All(steps, seen =>
         {
             Assert.True(seen.OnExecutor);
             var chain = Assert.NotNull(seen.Chain);
-            Assert.Equal(GameplayCallSource.Lifecycle, chain.Source);
-            Assert.Equal(old, chain.SourceConnection);
-            Assert.Equal("lifecycle:close-superseded", chain.CommandType);
+            Assert.Equal("test:" + nameof(SupersedeAsync), chain.CommandType);
         });
         Assert.Single(steps.Select(x => x.Chain!.Value.RootId).Distinct());
     }
@@ -73,7 +62,7 @@ public sealed class LoginSessionMaintenanceExecutorTests
         });
         clock.Now = clock.Now.AddSeconds(2);
         clock.Reads.Clear();
-        var service = Service(provider, sessions, clock, new RecordingOnlineUsers(new()), new RecordingCloser(new(), new()));
+        var service = Service(provider, sessions, clock);
 
         await service.StartAsync(CancellationToken.None);
         try
@@ -106,7 +95,7 @@ public sealed class LoginSessionMaintenanceExecutorTests
         await using var provider = Executor();
         var clock = new RecordingClock();
         var sessions = new LoginSessionRegistry(new DomainTransactionScope(), clock, new LoginSessionOptions());
-        var service = Service(provider, sessions, clock, new RecordingOnlineUsers(new()), new RecordingCloser(new(), new()));
+        var service = Service(provider, sessions, clock);
 
         await service.StartAsync(CancellationToken.None);
         await Task.Delay(100);
@@ -122,11 +111,8 @@ public sealed class LoginSessionMaintenanceExecutorTests
     private static LoginSessionMaintenanceService Service(
         IServiceProvider provider,
         LoginSessionRegistry sessions,
-        TimeProvider clock,
-        IOnlineUserDomainService onlineUsers,
-        INetworkConnectionCloser closer) =>
-        new(sessions, onlineUsers, closer, clock, provider.GetRequiredService<IGameplayQueue>(),
-            NullLogger<LoginSessionMaintenanceService>.Instance)
+        TimeProvider clock) =>
+        new(sessions, clock, provider.GetRequiredService<IGameplayQueue>())
         {
             SweepInterval = TimeSpan.FromMilliseconds(50),
         };

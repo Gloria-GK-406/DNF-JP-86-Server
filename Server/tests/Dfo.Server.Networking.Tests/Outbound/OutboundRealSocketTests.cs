@@ -3,9 +3,11 @@ using System.Net;
 using System.Net.Sockets;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Application.Execution;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Outbound;
 using Dfo.Server.Networking.Runtime;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using TouchSocket.Core;
@@ -22,6 +24,50 @@ namespace Dfo.Server.Networking.Tests.Outbound;
 public sealed class OutboundRealSocketTests(ITestOutputHelper output)
 {
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(20);
+
+    /// <summary>
+    /// RQ-003, the network half, and its counterexample: a job that writes to a resolved connection waits
+    /// on the network. That is a program error that fails the job, is logged with its call chain, and is
+    /// reported as evidence; nothing reaches the client.
+    /// </summary>
+    [Fact]
+    public async Task A_job_that_writes_to_a_connection_directly_fails_as_a_program_error()
+    {
+        await using var server = await RealOutboundServer.StartAsync(confirmFlush: true);
+        var (client, context) = await server.ConnectAsync();
+        using (client)
+        {
+            var log = new Dfo.Server.Networking.Tests.Integration.LifecycleLog();
+            using var factory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddProvider(log));
+            await using var executor = new GameplayExecutor(factory.CreateLogger<GameplayExecutor>());
+            var connection = server.Transport().Resolve(context)!;
+            var seen = Violations.Attach();
+
+            var error = await Assert.ThrowsAsync<GameplaySelfWaitException>(() => executor.RunAsync(new GameplayWork(
+                GameplayShardKey.World,
+                GameplayCallChain.NewRoot(GameplayCallSource.Connection, context.ConnectionId),
+                "test:direct-write",
+                async ct =>
+                {
+                    Violations.Attach(seen);
+                    try
+                    {
+                        await connection.SendAsync(Frame(1, 16), ct);
+                    }
+                    catch (GameplaySelfWaitException)
+                    {
+                        // Swallowed on purpose: the error sticks to the job.
+                    }
+                }), CancellationToken.None).AsTask());
+
+            Assert.Contains("Waiting for the network (OutboundConnection.SendAsync)", error.Message, StringComparison.Ordinal);
+            var violation = Assert.Single(seen);
+            Assert.Equal(GameplayNetworkWaitAssertion.NetworkWaitKind, violation.Kind);
+            Assert.Contains(log.Entries, entry => entry.Message.Contains("Gameplay test:direct-write failed", StringComparison.Ordinal)
+                && entry.Message.Contains("chain", StringComparison.Ordinal));
+            Assert.Equal(0, client.Available);
+        }
+    }
 
     [Fact]
     public async Task Two_frames_then_a_close_arrive_in_full_before_the_fin()
@@ -208,8 +254,9 @@ public sealed class OutboundRealSocketTests(ITestOutputHelper output)
         }
     }
 
+    // The blob's encoding is the frame itself (BlobEncoder); the entry carries it encoded, as registered.
     private static OutboundEntry Batch(NetworkConnectionContext context, byte[] frame) =>
-        OutboundEntry.Batch(context, [new BlobMessage(frame)]);
+        OutboundEntry.Batch(context, [new BlobMessage(frame)], frame);
 
     private static byte[] Frame(byte seed, int length)
     {
@@ -340,11 +387,10 @@ public sealed class OutboundRealSocketTests(ITestOutputHelper output)
             return server;
         }
 
+        public TouchSocketOutboundTransport Transport() => new(registry);
+
         public OutboundSender Sender(OutboundSendOptions options) => new(
             new TouchSocketOutboundTransport(registry),
-            new RegistryOutboundEncoder(
-                new ServerMessageEncoderRegistry(provider.GetServices<ServerMessageEncoderRegistration>(), provider),
-                NullLogger<RegistryOutboundEncoder>.Instance),
             [Observer],
             NullLogger<OutboundSender>.Instance,
             options);

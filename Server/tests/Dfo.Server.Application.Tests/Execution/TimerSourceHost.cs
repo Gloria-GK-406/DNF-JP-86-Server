@@ -41,7 +41,6 @@ internal sealed class TimerSourceHost : IAsyncDisposable
         new Dfo.Server.Networking.NetworkingModule().ConfigureServices(services, configuration);
         new ProtocolModule().ConfigureServices(services, configuration);
         services.AddSingleton<TimeProvider>(Clock);
-        services.AddSingleton(new NotificationDeliveryOptions(TimeSpan.FromSeconds(1), TimeSpan.FromMilliseconds(20)));
         services.AddSingleton<IGameplayQueue>(sp =>
             new RecordingGameplayQueue(new GameplayQueue(sp.GetRequiredService<GameplayShardSelector>())));
         configure?.Invoke(services);

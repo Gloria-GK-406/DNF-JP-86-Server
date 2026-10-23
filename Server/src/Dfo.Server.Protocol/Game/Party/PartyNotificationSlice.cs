@@ -618,7 +618,8 @@ public sealed class PartyNotificationDelivery(
     PartyProjectionStreamRegistry streams,
     ISelectedSessionDomainService? sessions = null,
     ITownAreaDomainService? townAreas = null,
-    IPartyService? parties = null)
+    IPartyService? parties = null,
+    IOutboundOrdering? ordering = null)
 {
     internal PartyNotificationDelivery(IEventService notifications)
         : this(notifications, new PartyProjectionStreamRegistry(), null, null, null)
@@ -686,8 +687,15 @@ public sealed class PartyNotificationDelivery(
                 && plan.Snapshot!.Members.Any(member =>
                     resolver.Character(member.CharacterId) is not { } current
                     || !stream.FullStateMembers.Contains(current));
-            var stateDelivered = await DeliverPartyStateAsync(
-                plan, promoteSettingsUpdate, resolver, cancellationToken).ConfigureAwait(false);
+            // XO-6: each stage's entries are delivered only after the stage before it; a stage is
+            // Required, so a recipient whose delivery fails stops the later stages, as a stage with
+            // a failure stops the advance here (TASK-23 ruling 5).
+            bool stateDelivered;
+            using (ordering?.Begin("XO-6 party state stages", OutboundDelivery.Required))
+            {
+                stateDelivered = await DeliverPartyStateAsync(
+                    plan, promoteSettingsUpdate, resolver, cancellationToken).ConfigureAwait(false);
+            }
             if (!stateDelivered)
                 return;
 

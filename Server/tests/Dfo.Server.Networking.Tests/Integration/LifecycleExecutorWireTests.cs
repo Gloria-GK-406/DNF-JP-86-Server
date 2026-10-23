@@ -81,16 +81,12 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
         var (client, id) = await server.ConnectGameAsync();
 
         await client.GetStream().WriteAsync(GameFrame(ExitType, 1, []), server.Timeout);
-        // Transitional (baseline defect): the close can overtake a frame still in TouchSocket's send
-        // pipe, so any prefix of what was sent precedes the FIN; T-006 makes the frame certain (AC-007).
+        // The close is registered after the frame, so the frame always precedes the FIN (AC-007, F-20).
         var received = await ReadUntilFinAsync(client, server.Timeout);
         output.WriteLine($"frames before FIN: {received.Count}");
-        Assert.InRange(received.Count, 0, 1);
-        Assert.All(received, frame =>
-        {
-            Assert.Equal(BlobType, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));
-            Assert.Equal(7, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(15)));
-        });
+        var frame = Assert.Single(received);
+        Assert.Equal(BlobType, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));
+        Assert.Equal(7, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(15)));
         var untilFin = Stopwatch.GetElapsedTime(Volatile.Read(ref requestedAt));
         output.WriteLine($"FIN {untilFin.TotalMilliseconds:F0} ms after the close request");
         Assert.True(untilFin < TimeSpan.FromSeconds(2), $"FIN after {untilFin}");
@@ -100,7 +96,7 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
         AssertLifecycleJob(disconnect, id, "lifecycle:disconnected");
         Assert.True(disconnect.Order > server.Recorder.First("inbound-exit", id)!.Order);
         Assert.Equal(0, server.Log.Count("did not complete within"));
-        Assert.Equal(0, server.Log.Count("direct send deadline exceeded"));
+        Assert.Equal(0, server.Log.Count("Waiting for the network"));
         output.WriteLine($"next job ran in {(await server.NextJobLatencyAsync()).TotalMilliseconds:F0} ms");
     }
 
@@ -164,9 +160,9 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// R-5 (plan-review-r2): whether TouchSocket runs a close callback inline in a failing send. A job
-    /// marks its execution context and keeps sending to a client that resets; the close callback
-    /// shows whether it ran on that context. Measured on macOS only.
+    /// R-5 (plan-review-r2), after T-006: a job's sends to a client that then resets are only registered, so
+    /// the job never waits on that client at all; the sender closes it, its teardown is a lifecycle CMD that
+    /// runs after the job, and the job enqueued next runs at once.
     /// </summary>
     [Fact]
     public async Task A_send_to_a_resetting_client_does_not_hold_the_executor_past_the_deadline()
@@ -176,50 +172,34 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
         for (var attempt = 0; attempt < attempts; attempt++)
         {
             var (client, id) = await server.ConnectGameAsync(receiveBufferSize: 4096);
-            var sending = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var jobEnded = 0L;
-            string? outcome = null;
             var job = server.RunAsync("test:send-until-reset", async ct =>
             {
                 LifecycleRecorder.Marker.Value = "sending job";
                 var sender = server.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Networking.INetworkMessageSender>();
-                try
-                {
-                    for (var index = 0; index < 4096; index++)
-                    {
-                        await sender.SendAsync(id, new LifecycleBlob(index, 64 * 1024), ct);
-                        sending.TrySetResult();
-                    }
-                    outcome = "all sent";
-                }
-                catch (Exception error)
-                {
-                    outcome = error.GetType().Name;
-                }
-                finally
-                {
-                    sending.TrySetResult();
-                    Volatile.Write(ref jobEnded, Stopwatch.GetTimestamp());
-                }
+                // 15 x 64 KiB stays under the 1 MiB queue limit: the sender is still writing when the client
+                // resets, instead of closing the connection as OverLimit before the reset.
+                for (var index = 0; index < 15; index++)
+                    await sender.SendAsync(id, new LifecycleBlob(index, 64 * 1024), ct);
+                Volatile.Write(ref jobEnded, Stopwatch.GetTimestamp());
             });
-            await sending.Task.WaitAsync(server.Timeout);
+            await job.WaitAsync(server.Timeout);
+            var registeredAt = Volatile.Read(ref jobEnded);
             client.Client.LingerState = new System.Net.Sockets.LingerOption(true, 0);
             var resetAt = Stopwatch.GetTimestamp();
             client.Dispose();
+            var latency = await server.NextJobLatencyAsync();
 
-            await job.WaitAsync(server.Timeout);
-            var jobTook = Stopwatch.GetElapsedTime(resetAt, Volatile.Read(ref jobEnded));
             await WaitUntilAsync(() => server.Recorder.First("disconnect-exit", id) is not null, server.Timeout);
             var callback = server.Recorder.First("closed-callback", id)!;
             var disconnect = server.Recorder.First("disconnect-enter", id)!;
-            var callbackDuringJob = callback.Ticks < Volatile.Read(ref jobEnded);
-            output.WriteLine($"attempt {attempt}: job ended {jobTook.TotalMilliseconds:F0} ms after the reset with {outcome}; " +
-                $"close callback inline={callback.Flag}, during the job={callbackDuringJob}; disconnect after job={disconnect.Ticks >= Volatile.Read(ref jobEnded)}");
+            output.WriteLine($"attempt {attempt}: the job had ended {Stopwatch.GetElapsedTime(registeredAt, resetAt).TotalMilliseconds:F0} ms " +
+                $"before the reset; close callback inline={callback.Flag}; next job ran in {latency.TotalMilliseconds:F0} ms");
 
-            Assert.True(jobTook < TimeSpan.FromSeconds(2) + TimeSpan.FromSeconds(3), $"job held the executor {jobTook}");
+            Assert.True(registeredAt < resetAt, "the sending job was still running when the client reset");
+            Assert.True(latency < TimeSpan.FromSeconds(1), $"the next job waited {latency}");
             AssertLifecycleJob(disconnect, id, "lifecycle:disconnected");
-            Assert.True(disconnect.Ticks >= Volatile.Read(ref jobEnded));
-            output.WriteLine($"attempt {attempt}: next job ran in {(await server.NextJobLatencyAsync()).TotalMilliseconds:F0} ms");
+            Assert.True(disconnect.Ticks >= registeredAt);
             // Recorded, not asserted (TASK-10 ruling 3): an inline close callback stops the unit.
             output.WriteLine($"K-INLINE={callback.Flag}");
         }

@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Application.Execution.Outbox;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -13,8 +14,15 @@ namespace Dfo.Server.Application.Transactions;
 /// and including the second stage nothing is visible, so any failure unwinds cleanly; past it
 /// the remaining commits have declared that they cannot fail. That is why a second participant
 /// whose commit can fail is refused rather than accepted and hoped for.
+/// <para>
+/// A writable transaction opened on a job also owns that job's outbox work unit (RQ-031(0)(b)): what is
+/// registered while it is open is sent only if it commits, its pending compositions are composed after
+/// every participant has committed and before control returns to the CMD, and a rollback or an
+/// uncertain outcome drops them.
+/// </para>
 /// </remarks>
-internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTransaction>? logger = null) : IDomainTransaction
+internal sealed class DomainTransaction(
+    bool readOnly = false, ILogger<DomainTransaction>? logger = null, GameplayOutboxUnit? unit = null) : IDomainTransaction
 {
     private readonly Dictionary<object, Func<CancellationToken, ValueTask>> afterCommit = [];
     public bool IsReadOnly => readOnly;
@@ -131,6 +139,7 @@ internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTra
             catch (Exception violation)
             {
                 this.afterCommit.Clear();
+                EndUnit(GameplayOutboxUnitState.Uncertain);
                 throw new TransactionOutcomeUncertainException(
                     TransactionUncertaintyReason.NonFallibleCommitContractViolation,
                     $"'{participant.GetType().Name}' declared that its commit cannot fail, and it " +
@@ -138,6 +147,21 @@ internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTra
                     violation);
             }
         }
+        // Composed against the committed state, before anything that runs after the commit (RQ-031(0)).
+        // A composition that throws leaves the unit uncertain and fails the CMD; the commit stands.
+        Exception? composition = null;
+        if (unit is { State: GameplayOutboxUnitState.Open })
+        {
+            try
+            {
+                await unit.CommitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception error)
+            {
+                composition = error;
+            }
+        }
+
         // These effects observe an already committed outcome. Failure cannot turn it into
         // a rollback or a retryable command failure, nor suppress other recipients' effects.
         foreach (var callback in this.afterCommit.Values)
@@ -153,6 +177,8 @@ internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTra
             }
         }
         this.afterCommit.Clear();
+        if (composition is not null)
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(composition);
     }
 
     public ValueTask RollbackAsync()
@@ -170,7 +196,29 @@ internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTra
         return this.RollbackEnlistedAsync(cause);
     }
 
+    private void EndUnit(GameplayOutboxUnitState state)
+    {
+        if (unit is not { State: GameplayOutboxUnitState.Open } open) return;
+        if (state == GameplayOutboxUnitState.Uncertain) open.MarkUncertain();
+        else open.Rollback();
+    }
+
     private async ValueTask RollbackEnlistedAsync(Exception? cause)
+    {
+        try
+        {
+            await RollbackParticipantsAsync(cause).ConfigureAwait(false);
+        }
+        catch (TransactionOutcomeUncertainException)
+        {
+            EndUnit(GameplayOutboxUnitState.Uncertain);
+            throw;
+        }
+
+        EndUnit(GameplayOutboxUnitState.RolledBack);
+    }
+
+    private async ValueTask RollbackParticipantsAsync(Exception? cause)
     {
         List<Exception>? failures = null;
         for (var index = this.order.Count - 1; index >= 0; index--)

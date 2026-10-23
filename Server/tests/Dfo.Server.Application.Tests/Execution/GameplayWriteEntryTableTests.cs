@@ -107,7 +107,6 @@ public sealed class GameplayWriteEntryTableTests
         ["LoginSessionRegistry.Issue(AccountId, DateTimeOffset, DateTimeOffset)"] = W,
         ["LoginSessionRegistry.SweepExpired()"] = W,
         ["LoginSessionRegistry.TryBind(NetworkConnectionId, String, String)"] = W,
-        ["LoginSessionRegistry.get_CloseRequests()"] = ReadNote("the getter changes nothing; dequeuing from the reader is LoginSessionMaintenanceService consuming its own close triggers, the gameplay action runs in the lifecycle:close-superseded CMD (appendix B producer row does not name this loop yet, F-62)"),
 
         // DungeonRunDomainService
         ["DungeonRunDomainService.AdvanceRoomMechanisms(DateTimeOffset)"] = W,

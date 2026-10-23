@@ -164,8 +164,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<JoustInfoMessage,GameNotiStateSynchronizationEncoder<JoustInfoMessage>>();
         services.AddGameNotiMessageEncoder<JoustBetsMessage,GameNotiStateSynchronizationEncoder<JoustBetsMessage>>();
         services.AddGameNotiMessageEncoder<JoustResultsMessage,GameNotiStateSynchronizationEncoder<JoustResultsMessage>>();
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Events.JoustDetailsChanged,JoustDetailsChangedHandler>(retryLimit:0);
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Events.JoustLifecycleNotification,JoustLifecycleNotificationHandler>(retryLimit:0);
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Events.JoustDetailsChanged,JoustDetailsChangedHandler>();
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Events.JoustLifecycleNotification,JoustLifecycleNotificationHandler>();
         services.AddCommandHandler<QueryJoustStateCommand,Dfo.Server.Data.Events.JoustState,QueryJoustStateCommandHandler>(CommandExecutionKind.ReadOnly);
         services.AddCommandHandler<QueryJoustHistoryCommand,Dfo.Server.Data.Events.JoustHistoryEntry[],QueryJoustHistoryCommandHandler>(CommandExecutionKind.ReadOnly);
         services.AddCommandHandler<JoustBetCommand,Dfo.Server.Data.Events.JoustBetResult,JoustBetCommandHandler>(CommandExecutionKind.Transactional);
@@ -176,8 +176,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledDungeonStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledDungeonStateMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledQuestStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledQuestStateMessage>>();
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Events.EventsChanged,Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler>(retryLimit:0);
-        services.AddNotificationHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompleted,Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompletedHandler>(retryLimit:0);
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Events.EventsChanged,Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler>();
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompleted,Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompletedHandler>();
         services.AddCommandHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommand,Dfo.Server.Data.Events.AttendanceClaimResult,Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommandHandler>(CommandExecutionKind.Transactional);
         services.AddSingleton<MailboxDelivery>();
         services.RegisterMessageHandler<MailboxSendHandler>(ClientMessageType.GameMailboxSend);
@@ -185,11 +185,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<MailboxSendDecoder>(0x005E, ClientMessageType.GameMailboxSend);
         services.AddGameCmdMessageDecoder<MailboxSendMultiDecoder>(0x013B, ClientMessageType.GameMailboxSendMulti);
         services.AddGameCmdMessageEncoder<MailboxSendResponse, MailboxSendEncoder>();
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Mail.MailDelivered, MailDeliveredHandler>(retryLimit: 0);
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Mail.MailDelivered, MailDeliveredHandler>();
         services.AddCommandHandler<MailboxCommand, MailboxResult, MailboxCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddNotificationHandler<MailboxCompleted, MailboxCompletedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.MirrorQuestViewChanged, Dfo.Server.Protocol.Game.QuestProgress.MirrorQuestViewChangedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.QuestProgressViewChanged, Dfo.Server.Protocol.Game.QuestProgress.QuestProgressViewChangedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<MailboxCompleted, MailboxCompletedHandler>();
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.MirrorQuestViewChanged, Dfo.Server.Protocol.Game.QuestProgress.MirrorQuestViewChangedHandler>();
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.QuestProgressViewChanged, Dfo.Server.Protocol.Game.QuestProgress.QuestProgressViewChangedHandler>();
         services.RegisterMessageHandler<MailboxClaimHandler>(ClientMessageType.GameMailboxClaim);
         services.AddGameCmdMessageDecoder<MailboxClaimDecoder>(0x005F, ClientMessageType.GameMailboxClaim);
         services.AddGameCmdMessageEncoder<MailboxClaimResponse, MailboxClaimEncoder>();
@@ -214,7 +214,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddHostedService<DungeonPartyWipeService>();
         services.AddCommandHandler<RecoverStaminaCommand, RecoverStaminaResult, RecoverStaminaCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.AddNotificationHandler<StaminaRecovered, StaminaRecoveredHandler>(retryLimit: 0);
+        services.AddNotificationHandler<StaminaRecovered, StaminaRecoveredHandler>();
         services.TryAddSingleton<FatigueProjectionDelivery>();
         services.AddHostedService<FatigueDailyRefreshService>();
         services.AddGameNotiMessageEncoder<FatigueNotification, FatigueEncoder>();
@@ -232,11 +232,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<CreatureResponseNotification, CreatureResponseEncoder>();
         services.AddHostedService<PremiumDailyRefreshService>();
         services.AddSingleton<UsageQuotaProjectionDelivery>();
-        services.AddNotificationHandler<Dfo.Server.Abstractions.UsageQuotas.UsageQuotaViewChanged, UsageQuotaViewChangedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<Dfo.Server.Abstractions.UsageQuotas.UsageQuotaViewChanged, UsageQuotaViewChangedHandler>();
         services.TryAddScoped<ClientAppearanceVisibilityProjection>();
-        services.AddNotificationHandler<ClientAppearanceVisibilityRefresh, ClientAppearanceVisibilityProjection>(retryLimit: 0);
-        services.AddNotificationHandler<ExpiredItemsRefresh, ExpiredItemsRefreshHandler>(retryLimit: 0);
-        services.AddNotificationHandler<CharacterUserStateRefresh, CharacterUserStateRefreshHandler>(retryLimit: 0);
+        services.AddNotificationHandler<ClientAppearanceVisibilityRefresh, ClientAppearanceVisibilityProjection>();
+        services.AddNotificationHandler<ExpiredItemsRefresh, ExpiredItemsRefreshHandler>();
+        services.AddNotificationHandler<CharacterUserStateRefresh, CharacterUserStateRefreshHandler>();
         services.AddDomainSubscriber<Dfo.Server.Abstractions.Characters.CharacterNameTagExpired, NameTagExpiredSubscriber>(
             "character.name-tag.expiration.notifications", DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainSubscriber<OnlineExpiredItemsRemoved, ExpiredItemsNotificationSubscriber>(
@@ -285,7 +285,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<ChargeRentPointCommand, LuckyStarMutation, ChargeRentPointCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<ReadRentalRefreshCommand, RentalRefreshSnapshot, ReadRentalRefreshCommandHandler>(CommandExecutionKind.Transactional);
         services.AddDomainSubscriber<LuckyStarChanged, LuckyStarChangedSubscriber>("rental.lucky-star-refresh", DomainEventDeliveryPolicy.LiveOnly, x=>x.AccountId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        services.AddNotificationHandler<LuckyStarPanelRefresh, LuckyStarPanelRefreshHandler>(retryLimit: 0);
+        services.AddNotificationHandler<LuckyStarPanelRefresh, LuckyStarPanelRefreshHandler>();
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectDecoder>(0x00FB, ClientMessageType.GameSharedEffect);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.UseStackable.SharedEffectHandler>(ClientMessageType.GameSharedEffect);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectAck, Dfo.Server.Protocol.Game.UseStackable.SharedEffectAckEncoder>();
@@ -338,8 +338,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleAck, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleAckEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateMessage, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyMessage, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyEncoder>();
-        services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleRefresh, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleRefreshHandler>(retryLimit: 0);
-        services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyRefresh, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyRefreshHandler>(retryLimit: 0);
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleRefresh, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleRefreshHandler>();
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyRefresh, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyRefreshHandler>();
         services.AddDomainSubscriber<Dfo.Server.Abstractions.Marriage.MarriageCapsuleEnergyChanged, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergySubscriber>("marriage.capsule-notification", DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainSubscriber<Dfo.Server.Abstractions.Marriage.MarriageCapsuleGiftChanged, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleGiftSubscriber>("marriage.capsule-gift-notification", DomainEventDeliveryPolicy.LiveOnly);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingStorageDecoder>(0x03FD, ClientMessageType.GameMarriageHousing);
@@ -354,7 +354,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingHandler>(ClientMessageType.GameMarriageHousing);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingAck, Dfo.Server.Protocol.Game.MarriageHousing.HousingAckEncoder>();
         services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingCommand, Dfo.Server.Data.Marriage.HousingResult, Dfo.Server.Protocol.Game.MarriageHousing.HousingCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingChanged, Dfo.Server.Protocol.Game.MarriageHousing.HousingChangedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingChanged, Dfo.Server.Protocol.Game.MarriageHousing.HousingChangedHandler>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingRoomMessage, Dfo.Server.Protocol.Game.HousingRoomEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingStorageMessage, Dfo.Server.Protocol.Game.HousingStorageEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingMoveMessage, Dfo.Server.Protocol.Game.HousingMoveEncoder>();
@@ -384,7 +384,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalNotificationEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseNotificationEncoder>();
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.Altar.AltarStateChanged,
-            Dfo.Server.Protocol.Game.Altar.AltarStateChangedHandler>(retryLimit: 0);
+            Dfo.Server.Protocol.Game.Altar.AltarStateChangedHandler>();
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarPrepareHandler>(ClientMessageType.GameAltarPrepare);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchHandler>(ClientMessageType.GameAltarDeathBatch);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarDifficultyHandler>(ClientMessageType.GameAltarDifficulty);
@@ -441,69 +441,59 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.RoomMechanisms.ElevatorStateMessage,
             Dfo.Server.Protocol.Game.RoomMechanisms.ElevatorStateEncoder>();
         services.AddNotificationHandler<DungeonRoomMechanismsNotification,
-            Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismNotificationHandler>(retryLimit: 0);
+            Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismNotificationHandler>();
         services.TryAddSingleton<Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismProjectionDelivery>();
         services.AddHostedService<Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismMaintenanceService>();
         services.AddNotificationCatalog(typeof(Dfo.Server.Abstractions.Mail.MailDelivered).Assembly);
-        // BUY_ITEM adds to the client inventory. Replaying its acknowledgement could duplicate that addition.
-        services.AddNotificationHandler<NpcShopPurchaseCompleted, NpcShopPurchaseCompletedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<WarehouseChanged, WarehouseChangedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<CeraShopPurchaseCompleted, CeraShopPurchaseCompletedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Accounts.AccountWalletChanged, AccountWalletChangedHandler>(retryLimit: 1);
-        services.AddNotificationHandler<OpeningCompleted, OpeningCompletedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<EpicCraftCompleted, EpicCraftCompletedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<ItemSocketCompleted, ItemSocketCompletedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<EquipmentQualityCompleted, EquipmentQualityCompletedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<MagicSealGradeCompleted, MagicSealGradeCompletedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<AvatarCompoundCompleted, AvatarCompoundCompletedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<EquipmentRepairCompleted, EquipmentRepairCompletedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<EquipmentDisjointCompleted, EquipmentDisjointCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<NpcShopPurchaseCompleted, NpcShopPurchaseCompletedHandler>();
+        services.AddNotificationHandler<WarehouseChanged, WarehouseChangedHandler>();
+        services.AddNotificationHandler<CeraShopPurchaseCompleted, CeraShopPurchaseCompletedHandler>();
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Accounts.AccountWalletChanged, AccountWalletChangedHandler>();
+        services.AddNotificationHandler<OpeningCompleted, OpeningCompletedHandler>();
+        services.AddNotificationHandler<EpicCraftCompleted, EpicCraftCompletedHandler>();
+        services.AddNotificationHandler<ItemSocketCompleted, ItemSocketCompletedHandler>();
+        services.AddNotificationHandler<EquipmentQualityCompleted, EquipmentQualityCompletedHandler>();
+        services.AddNotificationHandler<MagicSealGradeCompleted, MagicSealGradeCompletedHandler>();
+        services.AddNotificationHandler<AvatarCompoundCompleted, AvatarCompoundCompletedHandler>();
+        services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>();
+        services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>();
+        services.AddNotificationHandler<EquipmentRepairCompleted, EquipmentRepairCompletedHandler>();
+        services.AddNotificationHandler<EquipmentDisjointCompleted, EquipmentDisjointCompletedHandler>();
         services.AddNotificationHandler<EquipmentReinforcementCompleted,
-            EquipmentReinforcementCompletedHandler>(retryLimit: 0);
+            EquipmentReinforcementCompletedHandler>();
         services.AddNotificationHandler<EquipmentEnchantCompleted,
-            EquipmentEnchantCompletedHandler>(retryLimit: 0);
+            EquipmentEnchantCompletedHandler>();
         services.AddNotificationHandler<MagicSealCompleted,
-            MagicSealCompletedHandler>(retryLimit: 0);
+            MagicSealCompletedHandler>();
         services.AddNotificationHandler<OutworldCompleted,
-            OutworldCompletedHandler>(retryLimit: 0);
+            OutworldCompletedHandler>();
         services.AddNotificationHandler<ForgingCompleted,
-            ForgingCompletedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<SortLockChanged, SortLockChangedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<InventorySorted, InventorySortedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<EquipmentDurabilityChanged, EquipmentDurabilityChangedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<ItemDiscardCompleted, ItemDiscardCompletedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<CrystalContractSelected, CrystalContractSelectedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<MaterialsConsumed, MaterialsConsumedHandler>(retryLimit: 0);
+            ForgingCompletedHandler>();
+        services.AddNotificationHandler<SortLockChanged, SortLockChangedHandler>();
+        services.AddNotificationHandler<InventorySorted, InventorySortedHandler>();
+        services.AddNotificationHandler<EquipmentDurabilityChanged, EquipmentDurabilityChangedHandler>();
+        services.AddNotificationHandler<ItemDiscardCompleted, ItemDiscardCompletedHandler>();
+        services.AddNotificationHandler<CrystalContractSelected, CrystalContractSelectedHandler>();
+        services.AddNotificationHandler<MaterialsConsumed, MaterialsConsumedHandler>();
         services.TryAddSingleton<PartyProjectionStreamRegistry>();
         services.TryAddSingleton<PartyNotificationDelivery>();
         services.TryAddSingleton<IPartyTownProjectionDelivery, PartyTownProjectionDelivery>();
         services.TryAddSingleton<TownAreaProjectionDelivery>();
-        services.AddNotificationHandler<PartyInviteIssued, PartyInviteIssuedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<PartyRealtimeChanged, PartyRealtimeChangedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<PartyInviteAccepted, PartyInviteAcceptedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<PartyEndpointsChanged, PartyEndpointsChangedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<PartyRosterChanged, PartyRosterChangedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<PartySettingsChanged, PartySettingsChangedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<PartyLeadershipChanged, PartyLeadershipChangedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<PartyInviteIssued, PartyInviteIssuedHandler>();
+        services.AddNotificationHandler<PartyRealtimeChanged, PartyRealtimeChangedHandler>();
+        services.AddNotificationHandler<PartyInviteAccepted, PartyInviteAcceptedHandler>();
+        services.AddNotificationHandler<PartyEndpointsChanged, PartyEndpointsChangedHandler>();
+        services.AddNotificationHandler<PartyRosterChanged, PartyRosterChangedHandler>();
+        services.AddNotificationHandler<PartySettingsChanged, PartySettingsChangedHandler>();
+        services.AddNotificationHandler<PartyLeadershipChanged, PartyLeadershipChangedHandler>();
         services.AddNotificationHandler<
             OtherCharacterDetailRequested,
-            OtherCharacterDetailRequestedHandler>(retryLimit: 0);
+            OtherCharacterDetailRequestedHandler>();
         services.TryAddSingleton<ICleanupNotificationDelivery, CleanupNotificationDelivery>();
-        services.AddNotificationHandler<SessionCleanupAnnounced, SessionCleanupAnnouncedHandler>(
-            // Nothing. A departure notice that misses somebody is corrected by the next thing that
-            // redraws who is standing where, and by the time a retry ran the person it describes
-            // has been gone for a second -- the notice would arrive as news about nobody.
-            retryLimit: 0);
-        services.AddNotificationHandler<TownParticipantPublished, TownParticipantPublishedHandler>(
-            // Party projection must follow the successful 0x0002 attempt. Its orchestrator retries
-            // both exact phases together; a detached generic retry could only resend 0x0002.
-            retryLimit: 0);
-        services.AddNotificationHandler<TownPositionChanged, TownPositionChangedHandler>(
-            retryLimit: 0);
-        services.AddNotificationHandler<TownAreaRosterReconciled, TownAreaRosterReconciledHandler>(
-            retryLimit: 0);
+        services.AddNotificationHandler<SessionCleanupAnnounced, SessionCleanupAnnouncedHandler>();
+        services.AddNotificationHandler<TownParticipantPublished, TownParticipantPublishedHandler>();
+        services.AddNotificationHandler<TownPositionChanged, TownPositionChangedHandler>();
+        services.AddNotificationHandler<TownAreaRosterReconciled, TownAreaRosterReconciledHandler>();
         services.TryAddSingleton<ChannelProtocolKeyProvider>();
         services.TryAddSingleton(SelectCharacterDeliveryOptions.Everything);
         services.TryAddSingleton<ISelectedCharacterStateMessageFactory, SelectedCharacterStateMessageFactoryService>();
@@ -591,17 +581,7 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Workflow);
         services.AddCommandHandler<MarkSelectedCharacterPvpReadyCommand, SelectedCharacterPvpPublication, MarkSelectedCharacterPvpReadyCommandHandler>(
             CommandExecutionKind.Workflow);
-        // One further go, decided by this notification rather than for it. A failure here is not
-        // only a throw: a recipient who runs out of the per-recipient deadline counts too, and by
-        // then the frame may already be with the transport -- so the second attempt can arrive as
-        // a duplicate rather than as a rescue. That is the trade this particular notification is
-        // making, and it makes it knowingly: a lobby roster that missed a newcomer stays wrong
-        // until something else redraws it, and the owner's standing premise for this whole path is
-        // that hearing something twice is the cheaper of those two. What the client does with a
-        // repeated publication is not something this repository can show. A notification where
-        // arriving twice would not be harmless should declare zero.
-        services.AddNotificationHandler<PvpParticipantPublished, PvpParticipantPublishedHandler>(
-            retryLimit: 1);
+        services.AddNotificationHandler<PvpParticipantPublished, PvpParticipantPublishedHandler>();
         // These two change a character's stored state, so they are the phases that need a
         // boundary: the unit of work opens one for Transactional commands and for nothing else.
         // Without it the store would have no transaction to join and the change would land
@@ -646,8 +626,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddDomainSubscriber<TitleStored, TitleBookEventSubscriber>("title.noti-store", DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainSubscriber<TitleWithdrawn, TitleBookEventSubscriber>("title.noti-withdraw", DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainSubscriber<ItemMirrorRemoved, TitleBookEventSubscriber>("inventory.noti-mirror-removed", DomainEventDeliveryPolicy.LiveOnly);
-        services.AddNotificationHandler<AchievementChanged, AchievementChangedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<TitleBookChanged, TitleBookChangedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<AchievementChanged, AchievementChangedHandler>();
+        services.AddNotificationHandler<TitleBookChanged, TitleBookChangedHandler>();
         services.AddCommandHandler<SetTitleAppearanceCommand, bool, SetTitleAppearanceCommandHandler>(CommandExecutionKind.Transactional);
         services.RegisterMessageHandler<SetTitleAppearanceHandler>(ClientMessageType.GameSetTitleAppearance);
         services.AddGameCmdMessageDecoder<SetTitleAppearanceDecoder>(0x0239, ClientMessageType.GameSetTitleAppearance);
@@ -1112,16 +1092,16 @@ public sealed class ProtocolModule : IServerModule
         services.AddDomainSubscriber<SouthernDaleDailyRefillCompleted, Dfo.Server.Protocol.Game.SouthernDale.SouthernDailyRefillNotificationSubscriber>(
             "southern-dale.daily-refill-notifications", DomainEventDeliveryPolicy.LiveOnly);
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryRefresh,
-            Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryRefreshHandler>(retryLimit: 0);
+            Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryRefreshHandler>();
         services.AddDomainSubscriber<BossTowerTicketRefilled, Dfo.Server.Protocol.Game.BossTowerTicket.BossTowerTicketNotificationSubscriber>(
             "boss-tower.ticket-notifications", DomainEventDeliveryPolicy.LiveOnly);
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.BossTowerTicket.BossTowerTicketRefresh,
-            Dfo.Server.Protocol.Game.BossTowerTicket.BossTowerTicketRefreshHandler>(retryLimit: 0);
+            Dfo.Server.Protocol.Game.BossTowerTicket.BossTowerTicketRefreshHandler>();
         services.AddDomainSubscriber<TauKingdomTicketRefilled, Dfo.Server.Protocol.Game.TauKingdom.TauTicketNotificationSubscriber>(
             "tau-kingdom.ticket-notifications", DomainEventDeliveryPolicy.LiveOnly);
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.TauKingdom.TauTicketRefresh,
-            Dfo.Server.Protocol.Game.TauKingdom.TauTicketRefreshHandler>(retryLimit: 0);
-        services.AddNotificationHandler<SaoTowerRefresh, SaoTowerRefreshHandler>(retryLimit: 0);
+            Dfo.Server.Protocol.Game.TauKingdom.TauTicketRefreshHandler>();
+        services.AddNotificationHandler<SaoTowerRefresh, SaoTowerRefreshHandler>();
         services.AddGameNotiMessageEncoder<DespairApcInfoNotification, DespairApcInfoEncoder>();
         services.AddGameNotiMessageEncoder<PlayResultNotification, PlayResultEncoder>();
         services.AddGameNotiMessageEncoder<ClearDungeonRewardNotification, ClearDungeonRewardEncoder>();

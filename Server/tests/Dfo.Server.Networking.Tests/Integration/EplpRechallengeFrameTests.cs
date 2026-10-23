@@ -12,6 +12,7 @@ using Dfo.Server.Networking.Runtime;
 using Dfo.Server.Protocol;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.EplpRechallenge;
+using Dfo.Server.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -53,9 +54,11 @@ public sealed class EplpRechallengeFrameTests
             var game = host.Services.GetRequiredService<IGameTcpService>();
             while (!game.GetClients().Any()) await Task.Delay(10, timeout.Token);
             var serverClient = Assert.IsAssignableFrom<TouchSocket.Sockets.ITcpSessionClient>(game.GetClients().Single());
-            await host.Services.GetRequiredService<IGameMessageSender>().SendNotiAsync(
-                new NetworkConnectionId($"Game:{serverClient.Id}"),
-                new EplpRechallengeNotification(), timeout.Token);
+            // A send is registered by a job and delivered when the job ends (T-006).
+            await TestGameplay.RunAsync(host.Services, async () =>
+                await host.Services.GetRequiredService<IGameMessageSender>().SendNotiAsync(
+                    new NetworkConnectionId($"Game:{serverClient.Id}"),
+                    new EplpRechallengeNotification(), timeout.Token));
 
             Assert.Equal(GameServerFrameEncoder.Encode(0, 0x0105, new byte[] { 9 }),
                 await ReadFrameAsync(stream, timeout.Token));

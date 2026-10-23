@@ -86,7 +86,7 @@ public sealed class GameplayExecutor(ILogger<GameplayExecutor> logger) : Gamepla
         {
             await body(ct).ConfigureAwait(false);
             return true;
-        });
+        }, work.Source);
         return new ValueTask(RunAsync(typed, cancellationToken).AsTask());
     }
 
@@ -274,16 +274,31 @@ public sealed class GameplayExecutor(ILogger<GameplayExecutor> logger) : Gamepla
             {
                 failure = exception;
             }
-            finally
-            {
-                if (token is not null) executor.ExitJob(token);
-            }
 
-            // RQ-003: a program error raised inside the job fails it even if the body swallowed it.
-            if (token is not null && executor.ProgramErrorOf(token) is { } programError)
+            if (token is not null)
             {
-                failure = programError;
-                cancelled = false;
+                try
+                {
+                    // RQ-003: a program error raised inside the job fails it even if the body swallowed it.
+                    if (executor.ProgramErrorOf(token) is { } programError)
+                    {
+                        failure = programError;
+                        cancelled = false;
+                    }
+
+                    // Still on the job: its outbox goes to the sender before anyone sees the result
+                    // (RQ-005), and a failed or cancelled job closes its source last (RQ-031(c)).
+                    var hookError = executor.RunEndHooks(token,
+                        new GameplayJobEnd(failure is not null || cancelled, work.Source));
+                    if (executor.ProgramErrorOf(token) is { } lateError && failure is null)
+                        failure = lateError;
+                    if (hookError is not null && failure is null && !cancelled)
+                        failure = hookError;
+                }
+                finally
+                {
+                    executor.ExitJob(token);
+                }
             }
 
             var elapsed = Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds;
@@ -294,7 +309,8 @@ public sealed class GameplayExecutor(ILogger<GameplayExecutor> logger) : Gamepla
                     "chain {Chain}, after {ElapsedMilliseconds} ms, {QueueWaitMilliseconds} ms queued",
                     work.CommandType, chain.RootId, chain.ParentId, chain.Depth, chain.Source, chain.Describe(),
                     elapsed, queueWait);
-                result.TrySetException(failure);
+                // Only a body's own failure is marked: a refusal to run the work never reaches here.
+                result.TrySetException(MarkJobFailure(failure));
             }
             else if (cancelled)
             {

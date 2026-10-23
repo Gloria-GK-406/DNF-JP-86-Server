@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Exit;
@@ -153,13 +154,16 @@ public sealed class UnknownInboundFrameIntegrationTests
         }
         finally { await host.StopAsync(timeout.Token); }
     }
-    private sealed class RawMetadataDispatcher(INetworkMessageSender sender) : INetworkMessageDispatcher
+    // The reply is registered by a job, as the production dispatcher's is, and delivered when it ends (T-006).
+    private sealed class RawMetadataDispatcher(INetworkMessageSender sender, IGameplayQueue queue) : INetworkMessageDispatcher
     {
         public List<GameMessageMetadata> Records { get; } = [];
         public async ValueTask DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken ct)
         {
             Records.Add(Assert.IsType<GameExitRequest>(message).Metadata);
-            await sender.SendAsync(context.Connection.ConnectionId, new GameExitResponse(true), ct);
+            await queue.RunAsync(new GameplayWork(GameplayShardKey.World,
+                GameplayCallChain.NewRoot(GameplayCallSource.Connection, context.Connection.ConnectionId), "test:raw-metadata",
+                token => sender.SendAsync(context.Connection.ConnectionId, new GameExitResponse(true), token)), ct);
         }
     }
 

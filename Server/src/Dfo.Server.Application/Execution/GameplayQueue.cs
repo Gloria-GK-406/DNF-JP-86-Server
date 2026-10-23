@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Application.Execution.Outbox;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -100,6 +102,12 @@ public static class GameplayExecutionServiceCollectionExtensions
         services.TryAddSingleton<GameplayExecutor>();
         services.TryAddSingleton<GameplayShardSelector>();
         services.TryAddSingleton<IGameplayQueue, GameplayQueue>();
+        // Every send, close and immediate projection of a job is registered in its outbox and handed
+        // to the outbound sender when the job ends (RQ-030); the transport registers none of them.
+        services.TryAddSingleton<GameplayOutboxes>();
+        services.TryAddSingleton<INetworkMessageSender, OutboxNetworkMessageSender>();
+        services.TryAddSingleton<INetworkConnectionCloser, OutboxConnectionCloser>();
+        services.TryAddSingleton<IOutboundOrdering, GameplayOutboxOrdering>();
         // A host stops the executor after its services and producers (RQ-009); a bare container
         // still stops it on disposal.
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, GameplayExecutorLifetime>());

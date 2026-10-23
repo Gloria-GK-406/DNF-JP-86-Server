@@ -14,7 +14,6 @@ public sealed class TimerSourceReconciliationTests
 
     public static TheoryData<string, string, GameplayCallSource> Sources => new()
     {
-        { "NotificationRetryDrainService", "timer:NotificationRetryDrainService", GameplayCallSource.Timer },
         { "JoustMaintenanceService", "timer:JoustMaintenanceService", GameplayCallSource.Timer },
         { "JoustMaintenanceService", "startup:JoustMaintenanceService", GameplayCallSource.StartupRecovery },
         { "DungeonPartyWipeService", "timer:DungeonPartyWipeService", GameplayCallSource.Timer },

@@ -13,17 +13,6 @@ internal sealed record TextMessage(string Text) : IServerNetworkMessage
     public ServerMessageType MessageType => default;
 }
 
-/// <summary>Encodes a <see cref="TextMessage"/> as its UTF-8 text; "unencodable" throws.</summary>
-internal sealed class TextEncoder : IOutboundEncoder
-{
-    public byte[] Encode(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages) =>
-    [
-        .. messages.SelectMany(message => ((TextMessage)message).Text == "unencodable"
-            ? throw new InvalidDataException("cannot encode")
-            : Encoding.UTF8.GetBytes(((TextMessage)message).Text)),
-    ];
-}
-
 internal sealed class FakeTransport : IOutboundTransport
 {
     private readonly ConcurrentDictionary<NetworkConnectionContext, FakeConnection> live =
@@ -135,14 +124,14 @@ internal static class Outbound
         string text,
         OutboundDelivery delivery = OutboundDelivery.Required,
         OutboundOrder? order = null) =>
-        OutboundEntry.Batch(connection, [new TextMessage(text)], delivery, order);
+        OutboundEntry.Batch(connection, [new TextMessage(text)], Encoding.UTF8.GetBytes(text), delivery, order);
 
     public static OutboundSender Sender(
         FakeTransport transport,
         RecordingObserver observer,
         OutboundSendOptions? options = null,
         ILogger<OutboundSender>? logger = null) =>
-        new(transport, new TextEncoder(), [observer], logger ?? NullLogger<OutboundSender>.Instance,
+        new(transport, [observer], logger ?? NullLogger<OutboundSender>.Instance,
             options ?? OutboundSendOptions.Default);
 
     public static async Task<bool> NeverAsync(CancellationToken cancellationToken)

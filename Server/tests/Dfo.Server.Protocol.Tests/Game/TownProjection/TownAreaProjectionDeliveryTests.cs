@@ -69,6 +69,91 @@ public sealed class TownAreaProjectionDeliveryTests
         });
     }
 
+    /// <summary>XO-7 (spec appendix D): both partners' standing positions are delivered before either cinema.</summary>
+    [Fact]
+    public async Task A_wedding_tick_delivers_both_positions_before_either_partners_cinema()
+    {
+        var bride = Session(1, "bride"); var groom = Session(2, "groom");
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(bride, groom);
+        outbound.Transport.Slow(bride.ConnectionId, TimeSpan.FromMilliseconds(300));
+
+        await outbound.RunAsync(async () =>
+        {
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var areas = new SessionPresenceDomainService();
+            var views = new FixedCurrentViews();
+            foreach (var actor in new[] { bride, groom })
+            {
+                sessions.EnterWorldWithConnection(state, actor);
+                positions.Begin(actor, new(2, 12, 100, 200, 5), 100);
+                ((ITownAreaDomainService)areas).Enter(Member(actor, new(11, 2, 12), 100));
+            }
+            var delivery = new TownAreaProjectionDelivery(areas, sessions, views, new RecordingNotificationBus(),
+                new NoopPartyProjection(), outbound.Game, SharedTownMovementDomainService.Instance);
+            var wedding = new MarriageWeddingProjection(sessions, views, positions, areas, delivery, outbound.Game);
+            var room = new MarriageChurchRoom(7, Guid.NewGuid(), 11, 2, 12, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMinutes(5));
+            var church = new MarriageChurchSnapshot(room, groom.CharacterId, [1], [2], new(2, 12, 670, 330));
+            var ceremony = new MarriageCeremony(room.CeremonyId, Guid.NewGuid(), bride, groom, 1, 0,
+                MarriageCeremonyState.Reserved, 1, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMinutes(5));
+            var transition = new MarriageWeddingTransition(new MarriageWedding(ceremony, MarriageWeddingPhase.Cancelled, 0),
+                [new MarriageWeddingAdmission(bride, church), new MarriageWeddingAdmission(groom, church)], [])
+            {
+                Standing = [new MarriageWeddingStanding(bride, new(2, 12, 670, 330, 5)), new MarriageWeddingStanding(groom, new(2, 12, 685, 360, 5))],
+            };
+            var scheduler = new MarriageWeddingScheduler(new OneWedding(ceremony.Id), new AdvanceCommands(transition), outbound.Game,
+                wedding, NullLogger<MarriageWeddingScheduler>.Instance, TimeProvider.System, new UnusedQueue(), outbound.Ordering);
+            var tick = typeof(MarriageWeddingScheduler).GetMethod("TickAsync",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+            await (ValueTask)tick.Invoke(scheduler, [CancellationToken.None])!;
+        });
+        await outbound.SettledAsync();
+
+        var cinema = outbound.Recorder.Entries.Single(entry => entry.Connection.ConnectionId == groom.ConnectionId
+            && entry.Messages.Any(message => message is WeddingInfoMessage));
+        Assert.Contains(outbound.Recorder.Entries.TakeWhile(entry => !ReferenceEquals(entry, cinema)),
+            entry => entry.Connection.ConnectionId == bride.ConnectionId && entry.Messages.Any(message => message is ForcedTownPositionNotification));
+        var cinemaAt = outbound.Transport.Delivered.ToList().LastIndexOf(groom.ConnectionId.Value);
+        Assert.True(cinemaAt > outbound.Delivered(bride.ConnectionId), "a cinema was delivered before the bride's position");
+    }
+
+    private sealed class OneWedding(Guid ceremony) : Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService
+    {
+        public ValueTask<IReadOnlyList<Guid>> ActiveWeddingsAsync(CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<Guid>>([ceremony]);
+        public ValueTask<MarriageEngagementSnapshot> SnapshotAsync(AccountId account, CharacterId character, CancellationToken ct) =>
+            ValueTask.FromResult(MarriageEngagementSnapshot.Empty);
+        public ValueTask<MarriageView?> ViewAsync(SelectedSessionIdentity actor, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<MarriageProposal?> ReceivedProposalAsync(CharacterId character, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<MarriageCeremony?> ReceivedReservationAsync(CharacterId character, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<bool> IsMarriedAsync(Guid relation, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<MarriageWeddingPhase?> WeddingPhaseAsync(Guid ceremony, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<MarriageChurchSnapshot?> AppearanceAsync(SelectedSessionIdentity actor, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<bool> CanCrossAsync(SelectedSessionIdentity actor, int channelId, byte townId, byte areaId, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<bool> CanLeaveAsync(SelectedSessionIdentity actor, byte town, byte area, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<ushort> RemainingInvitationsAsync(Guid ceremony, CharacterId actor, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<uint>> InvitedAsync(Guid ceremony, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<AccountId>> CoupleAccountsAsync(SelectedSessionIdentity actor, CancellationToken ct) => throw new NotSupportedException();
+    }
+
+    private sealed class AdvanceCommands(MarriageWeddingTransition transition) : ICommandBus
+    {
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
+            where TResult : notnull =>
+            command is AdvanceMarriageWeddingCommand
+                ? ValueTask.FromResult((TResult)(object)new MarriageWeddingAdvanceResult(transition))
+                : throw new NotSupportedException(command.GetType().Name);
+    }
+
+    private sealed class UnusedQueue : Dfo.Server.Abstractions.Execution.IGameplayQueue
+    {
+        public ValueTask<T> RunAsync<T>(Dfo.Server.Abstractions.Execution.GameplayWork<T> work, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public ValueTask RunAsync(Dfo.Server.Abstractions.Execution.GameplayWork work, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+    }
+
     [Fact]
     public async Task Wedding_entry_moves_both_partners_to_one_church_and_projects_their_presence()
     {

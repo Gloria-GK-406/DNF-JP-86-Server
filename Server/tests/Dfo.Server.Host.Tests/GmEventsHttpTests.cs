@@ -266,6 +266,15 @@ public sealed class GmEventsHttpTests
         public ValueTask SendBatchAsync(NetworkConnectionContext c,IReadOnlyList<IServerNetworkMessage> m,CancellationToken ct){foreach(var message in m)Messages.Enqueue(message);return ValueTask.CompletedTask;}
         public ValueTask SendExplicitAsync(NetworkConnectionId c,ExplicitMessageDelivery delivery,CancellationToken ct){foreach(var message in delivery.RequiredDirectMessages)Messages.Enqueue(message);return ValueTask.CompletedTask;}
     }
+    /// <summary>
+    /// The dispatch group loop can take a delivery before <c>DrainOnceAsync</c> reads it; that delivery is
+    /// then consumed by a job already on the executor, so a marker job enqueued afterwards waits for it.
+    /// </summary>
+    private static async Task Settled(GmTestHost host)=>
+        await host.Services.GetRequiredService<Dfo.Server.Abstractions.Execution.IGameplayQueue>().RunAsync(
+            new Dfo.Server.Abstractions.Execution.GameplayWork(Dfo.Server.Abstractions.Execution.GameplayShardKey.World,
+                Dfo.Server.Abstractions.Execution.GameplayCallChain.NewRoot(Dfo.Server.Abstractions.Execution.GameplayCallSource.Gm),
+                "test:settled",_=>ValueTask.CompletedTask),default);
     private static byte[][] Frames(GmTestHost host,CaptureSender sender)=>sender.Messages.SelectMany(message=>
     {
         var registration=host.Services.GetServices<ServerMessageEncoderRegistration>().Single(r=>r.MessageType==message.GetType());
@@ -284,7 +293,7 @@ public sealed class GmEventsHttpTests
         var decoderInfo=host.Services.GetServices<GameMessageDecoderRegistration>().Single(r=>r.Selector==1 && r.Type==0x0441);
         var request=((IGameMessageDecoder)host.Services.GetRequiredService(decoderInfo.DecoderType)).Decode(new(1,0x0441,0,1),Enumerable.Repeat((byte)0xFE,14).ToArray())!;
         sender.Messages.Clear();await host.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(user.Connection),request,default);
-        await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
+        await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();await Settled(host);
         var frames=Frames(host,sender);var ack=Assert.Single(frames,f=>f[0]==1 && BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x0441);
         var beforeIds=ReadEventIds(Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x006C)[15..]);
         Assert.Contains((ushort)2208,beforeIds);
@@ -292,7 +301,7 @@ public sealed class GmEventsHttpTests
         Assert.Single(await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
         await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
         sender.Messages.Clear();await Change(host,csrf,new(2208,2,"disable"));
-        await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();frames=Frames(host,sender);
+        await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();await Settled(host);frames=Frames(host,sender);
         var calendar=Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x006C);Assert.Equal(beforeIds.Where(id=>id!=2208),ReadEventIds(calendar[15..]));
         Assert.Contains(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x033F && BinaryPrimitives.ReadUInt32LittleEndian(f.AsSpan(23))==3900 && BinaryPrimitives.ReadUInt32LittleEndian(f.AsSpan(19))==1);
         var state=Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x042D);Assert.All(state[15..],b=>Assert.Equal(0,b));

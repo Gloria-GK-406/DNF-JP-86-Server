@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,7 +31,8 @@ public sealed class LoginSessionReconnectTests
     [Fact]
     public async Task OldDisconnectCannotRevokeOrExpireReplacementConnection()
     {
-        using var fixture = new AuthenticationFixture();
+        var closes = new RecordingCloser();
+        using var fixture = new AuthenticationFixture(configure: services => services.AddSingleton<INetworkConnectionCloser>(closes));
         await fixture.RegisterAsync("player", "test password");
         var login = await fixture.LoginAsync("player", "test password");
         var sessions = fixture.Services.GetRequiredService<LoginSessionRegistry>();
@@ -41,8 +43,7 @@ public sealed class LoginSessionReconnectTests
         TestGameplay.Run(fixture.Services, () =>
         {
             Assert.True(sessions.IsSuperseded(old));
-            Assert.True(sessions.CloseRequests.TryRead(out var requested));
-            Assert.Equal(old, requested);
+            Assert.Equal([old], closes.Requested);
             sessions.Disconnected(old);
         });
         fixture.Clock.Now = fixture.Clock.Now.AddHours(3);
@@ -110,5 +111,23 @@ public sealed class LoginSessionReconnectTests
         Assert.NotNull(await fixture.Consume(login.MId!, login.Ticket!));
         fixture.Clock.Now = fixture.Clock.Now.AddHours(2);
         Assert.NotNull(await fixture.Consume(login.MId!, login.Ticket!));
+    }
+
+    /// <summary>The supersession's close, registered by the login CMD that bound the new connection (F-65).</summary>
+    private sealed class RecordingCloser : INetworkConnectionCloser
+    {
+        public List<NetworkConnectionId> Requested { get; } = [];
+
+        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken cancellationToken)
+        {
+            Requested.Add(expected.ConnectionId);
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask RequestCloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken)
+        {
+            Requested.Add(connectionId);
+            return ValueTask.CompletedTask;
+        }
     }
 }

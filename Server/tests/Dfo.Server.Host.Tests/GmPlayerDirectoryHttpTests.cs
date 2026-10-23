@@ -140,8 +140,13 @@ public sealed class GmPlayerDirectoryHttpTests
             configureServices: services =>
             {
                 services.AddSingleton(new ChannelListenerOptions([21011, 21012], false)); services.AddSingleton<IGameServerReadiness>(readiness);
-                // Pause automatic supersession cleanup only in this deterministic lifecycle fixture.
+                // Pause automatic supersession cleanup only in this deterministic lifecycle fixture: a superseded
+                // connection is disconnected by the superseding login CMD (F-65), so the registry is built without
+                // the online users and closer it would do that with.
                 foreach (var descriptor in services.Where(item => item.ImplementationType?.Name == "LoginSessionMaintenanceService").ToArray()) services.Remove(descriptor);
+                services.AddSingleton(provider => new LoginSessionRegistry(
+                    provider.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>(),
+                    provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<LoginSessionOptions>()));
             });
         await SeedAsync(host); Assert.Equal(HttpStatusCode.OK, (await host.LoginAsync(await host.CsrfAsync())).StatusCode);
         var online = host.Services.GetRequiredService<IOnlineUserDomainService>();

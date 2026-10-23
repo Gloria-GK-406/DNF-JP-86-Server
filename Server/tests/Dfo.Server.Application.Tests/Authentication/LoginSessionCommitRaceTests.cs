@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Application.Transactions;
@@ -46,7 +47,8 @@ public sealed class LoginSessionCommitRaceTests
         {
             var scope = new DomainTransactionScope();
             var clock = new Clock();
-            var sessions = new LoginSessionRegistry(scope, clock, new LoginSessionOptions());
+            var closes = new RecordingCloser();
+            var sessions = new LoginSessionRegistry(scope, clock, new LoginSessionOptions(), closer: closes);
             LoginSessionRegistry.IssuedLoginSession issued;
             await using (var tx = scope.Begin())
             {
@@ -62,11 +64,28 @@ public sealed class LoginSessionCommitRaceTests
             await using (scope.Begin())
                 Assert.NotNull(sessions.TryBind(new NetworkConnectionId("aborted"), issued.MId, issued.Ticket));
             Assert.False(sessions.IsSuperseded(first));
-            Assert.False(sessions.CloseRequests.TryRead(out _));
+            Assert.Empty(closes.Requested);
             clock.Now = clock.Now.AddHours(2);
             await using (scope.Begin())
                 Assert.NotNull(sessions.TryBind(new NetworkConnectionId("after-rollback"), issued.MId, issued.Ticket));
         });
+    }
+
+    private sealed class RecordingCloser : INetworkConnectionCloser
+    {
+        public List<NetworkConnectionId> Requested { get; } = [];
+
+        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken cancellationToken)
+        {
+            Requested.Add(expected.ConnectionId);
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask RequestCloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken)
+        {
+            Requested.Add(connectionId);
+            return ValueTask.CompletedTask;
+        }
     }
 
     private sealed class Clock : TimeProvider

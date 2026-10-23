@@ -71,7 +71,10 @@ public sealed class NotificationInWorldTests
             var world = new NotificationWorld();
             world.Play(First);
             world.Play(Second);
-            world.Sender.OnSend = _ => world.Revoke(Second);
+            world.Composing = recipient =>
+            {
+                if (recipient.CharacterId == First) world.Revoke(Second);
+            };
 
             var delivery = await world.PublishToExactAsync([world.SessionOf(First), world.SessionOf(Second)]);
 

@@ -31,21 +31,24 @@ public sealed class OutboundOrderGroup(string name)
 public readonly record struct OutboundOrder(OutboundOrderGroup Group, int Sequence);
 
 /// <summary>
-/// One immutable unit handed from the outbox to the sender: a typed batch for one exact connection,
-/// or a request to close it. The batch keeps <c>SendBatchAsync</c> semantics: it is encoded whole
-/// before any of it is delivered, and it goes only to the connection context it was registered for.
+/// One immutable unit handed from the outbox to the sender: an encoded batch for one exact connection,
+/// or a request to close it. The batch was encoded whole where it was registered (all of it or none,
+/// RQ-034), so the sender only ever handles frames, and it goes only to the connection context it was
+/// registered for. The typed messages are kept for observation only; the sender never reads them.
 /// </summary>
 public sealed class OutboundEntry
 {
     private OutboundEntry(
         NetworkConnectionContext connection,
         IReadOnlyList<IServerNetworkMessage> messages,
+        ReadOnlyMemory<byte> frames,
         OutboundDelivery delivery,
         OutboundOrder? order,
         bool isClose)
     {
         Connection = connection;
         Messages = messages;
+        Frames = frames;
         Delivery = delivery;
         Order = order;
         IsClose = isClose;
@@ -55,15 +58,20 @@ public sealed class OutboundEntry
 
     public IReadOnlyList<IServerNetworkMessage> Messages { get; }
 
+    /// <summary>The batch's frames back to back, owned by this entry; empty for a close request.</summary>
+    public ReadOnlyMemory<byte> Frames { get; }
+
     public OutboundDelivery Delivery { get; }
 
     public OutboundOrder? Order { get; }
 
     public bool IsClose { get; }
 
+    /// <param name="frames">Copied: the entry owns its bytes, whatever the caller does with its buffer later.</param>
     public static OutboundEntry Batch(
         NetworkConnectionContext connection,
         IReadOnlyList<IServerNetworkMessage> messages,
+        ReadOnlySpan<byte> frames,
         OutboundDelivery delivery = OutboundDelivery.Required,
         OutboundOrder? order = null)
     {
@@ -76,8 +84,10 @@ public sealed class OutboundEntry
             throw new ArgumentException("An outbound batch needs at least one message.", nameof(messages));
         if (Array.IndexOf(copy, null) >= 0)
             throw new ArgumentException("An outbound batch cannot contain a missing message.", nameof(messages));
+        if (frames.IsEmpty)
+            throw new ArgumentException("An outbound batch needs its encoded frames.", nameof(frames));
         ValidateOrder(order);
-        return new OutboundEntry(connection, copy, delivery, order, isClose: false);
+        return new OutboundEntry(connection, copy, frames.ToArray(), delivery, order, isClose: false);
     }
 
     /// <summary>Closes the connection after everything registered for it before this request.</summary>
@@ -85,7 +95,18 @@ public sealed class OutboundEntry
     {
         ArgumentNullException.ThrowIfNull(connection);
         ValidateOrder(order);
-        return new OutboundEntry(connection, [], OutboundDelivery.Required, order, isClose: true);
+        return new OutboundEntry(connection, [], ReadOnlyMemory<byte>.Empty, OutboundDelivery.Required, order, isClose: true);
+    }
+
+    /// <summary>The same batch, sharing its frames, placed at <paramref name="order"/> with <paramref name="delivery"/>.</summary>
+    public OutboundEntry InGroup(OutboundOrder order, OutboundDelivery delivery)
+    {
+        if (IsClose)
+            throw new InvalidOperationException("A close request never joins an ordered group.");
+        if (!Enum.IsDefined(delivery))
+            throw new ArgumentOutOfRangeException(nameof(delivery));
+        ValidateOrder(order);
+        return new OutboundEntry(Connection, Messages, Frames, delivery, order, isClose: false);
     }
 
     private static void ValidateOrder(OutboundOrder? order)
@@ -93,6 +114,44 @@ public sealed class OutboundEntry
         if (order is { } value && value.Group is null)
             throw new ArgumentException("An ordered entry needs its group.", nameof(order));
     }
+}
+
+/// <summary>
+/// Encodes typed messages for one connection where they are registered, on the job (TASK-23 ruling 1):
+/// a message without an encoder, one for the other endpoint, or one its encoder refuses throws at the
+/// call that registers it, and nothing of the batch is registered.
+/// </summary>
+public interface IOutboundMessageEncoder
+{
+    /// <summary>One message, as a single send of it: a refusal names the message and the connection's endpoint.</summary>
+    byte[] EncodeMessage(NetworkConnectionContext connection, IServerNetworkMessage message);
+
+    /// <summary>A prepared batch, whole: every message is checked before any is encoded.</summary>
+    byte[] EncodeBatch(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages);
+}
+
+/// <summary>
+/// The named protocol-boundary capability that keeps the delivery order of entries for different
+/// connections (RQ-033, spec appendix D); an outbox capability in the RQ-070(b) list.
+/// </summary>
+public interface IOutboundOrdering
+{
+    /// <summary>
+    /// While the returned scope is open, every message batch the running job registers (sends, explicit
+    /// deliveries, the entries of immediate projections) joins one new ordered group in registration
+    /// order: each is delivered only after everything before it in the group has settled. A Required
+    /// batch takes the scope's current <see cref="IOutboundOrderingScope.Delivery"/>; a BestEffort one
+    /// stays BestEffort. A scope opened inside another joins the outer group and restores the outer
+    /// delivery when it ends. Close requests never join a group. Off the executor nothing can be
+    /// registered, so the scope groups nothing.
+    /// </summary>
+    IOutboundOrderingScope Begin(string name, OutboundDelivery delivery);
+}
+
+public interface IOutboundOrderingScope : IDisposable
+{
+    /// <summary>What a Required batch registered from now on is delivered as.</summary>
+    OutboundDelivery Delivery { get; set; }
 }
 
 /// <summary>
@@ -120,9 +179,6 @@ public enum OutboundOutcome
 
     /// <summary>Not delivered because an earlier Required entry of its ordered group did not deliver.</summary>
     Skipped,
-
-    /// <summary>The batch could not be encoded; none of it was sent and the connection was closed.</summary>
-    EncodingFailed,
 
     /// <summary>The transport failed; the connection was closed (RQ-036).</summary>
     Failed,

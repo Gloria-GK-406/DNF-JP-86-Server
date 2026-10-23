@@ -5,52 +5,69 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Application.Execution.Outbox;
 
 /// <summary>
-/// Gives every gameplay job its own outbox (attached to the job token, not to a DI scope: during the
-/// transition each inner command opens a scope of its own) and is the job's end point that flushes it.
+/// Gives every gameplay job its own outbox (attached to the job token, not to a DI scope: each inner
+/// command opens a scope of its own) and flushes it to the sender when the job ends, on whichever
+/// executor runs the job (plan "发件箱的归属").
 /// </summary>
-public sealed class GameplayOutboxes(IOutboundSender sender, ILogger<GameplayOutbox> logger)
+public sealed class GameplayOutboxes
 {
+    internal const string RegisterEntry = "GameplayOutbox.Register";
+
     private readonly GameplayJobSlot<GameplayOutbox> slot = new();
+    private readonly IOutboundSender? sender;
+    private readonly ILogger<GameplayOutbox> logger;
 
-    /// <summary>The running job's outbox; off the executor this is a program error.</summary>
-    public GameplayOutbox Current => slot.GetOrCreate("Registering outbound work", () => new GameplayOutbox(logger));
+    /// <summary>Without a sender (a container without networking) flushed entries are dropped as stale.</summary>
+    public GameplayOutboxes(ILogger<GameplayOutbox> logger) => this.logger = logger;
 
-    /// <summary>
-    /// Runs <paramref name="body"/> as the rest of the current job and then flushes the job's outbox
-    /// to the sender (RQ-031 (a)-(c)). When the body throws, <paramref name="source"/> is closed after
-    /// everything that survives the flush and the exception is rethrown.
-    /// </summary>
-    public async ValueTask<T> RunAsync<T>(
-        NetworkConnectionContext? source,
-        Func<CancellationToken, ValueTask<T>> body,
-        CancellationToken cancellationToken)
+    public GameplayOutboxes(IOutboundSender sender, ILogger<GameplayOutbox> logger)
     {
-        ArgumentNullException.ThrowIfNull(body);
-        var outbox = Current;
-        T result;
-        try
-        {
-            result = await body(cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            // The job's own failure is the one the caller sees; a flush failure is only logged.
-            Flush(outbox, failed: true, source);
-            throw;
-        }
-
-        if (Flush(outbox, failed: false, source) is { } refused)
-            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(refused);
-        return result;
+        this.sender = sender;
+        this.logger = logger;
     }
 
     /// <summary>
-    /// Hands the outbox to the sender. If the sender refuses it (a program error), the close requests
-    /// still go out on their own, unordered, and the source is closed as for a failed CMD (DR-15).
+    /// The running job's outbox. Off the executor this is a program error, reported to the gameplay
+    /// assertion source before it is thrown (RQ-061, the outbox half).
     /// </summary>
-    private Exception? Flush(GameplayOutbox outbox, bool failed, NetworkConnectionContext? source)
+    public GameplayOutbox Current
     {
-        var entries = outbox.Complete(failed, source);
+        get
+        {
+            GameplayWriteAssertion.Writing(RegisterEntry);
+            return slot.GetOrCreate(RegisterEntry, Create);
+        }
+    }
+
+    /// <summary>The running job's outbox, or null off the executor; for what is not a registration.</summary>
+    internal GameplayOutbox? CurrentOrNull => GameplayJob.IsOnExecutor ? slot.GetOrCreate(RegisterEntry, Create) : null;
+
+    private GameplayOutbox Create()
+    {
+        var outbox = new GameplayOutbox(logger);
+        // Every outbox is flushed exactly once, when its job ends and before the job's caller sees the
+        // result (RQ-005): "completed" for a dispatcher means handed to the sender.
+        GameplayJob.OnEnd("Flushing the gameplay outbox", end => Flush(outbox, end));
+        return outbox;
+    }
+
+    /// <summary>
+    /// Hands the outbox to the sender (RQ-031 (a)-(c)). If the sender refuses it (a program error), the
+    /// close requests still go out on their own, unordered, and the source is closed as for a failed CMD
+    /// (DR-15); the refusal then fails a job that had succeeded.
+    /// </summary>
+    private Exception? Flush(GameplayOutbox outbox, GameplayJobEnd end)
+    {
+        var entries = outbox.Complete(end.Failed, end.Source);
+        if (entries.Count == 0)
+            return null;
+        if (sender is null)
+        {
+            if (logger.IsEnabled(LogLevel.Debug))
+                logger.LogDebug("No outbound sender is registered; {Count} outbound entries are dropped", entries.Count);
+            return null;
+        }
+
         try
         {
             sender.Submit(entries);
@@ -60,24 +77,11 @@ public sealed class GameplayOutboxes(IOutboundSender sender, ILogger<GameplayOut
         {
             logger.LogError(refused, "The sender refused a gameplay job's outbox; only its close requests are sent");
             var closes = entries.Where(entry => entry.IsClose).Select(entry => OutboundEntry.Close(entry.Connection)).ToList();
-            if (!failed && source is not null)
-                closes.Add(OutboundEntry.Close(source));
+            if (!end.Failed && end.Source is not null)
+                closes.Add(OutboundEntry.Close(end.Source));
             sender.Submit(closes);
             return refused;
         }
-    }
-
-    public async ValueTask RunAsync(
-        NetworkConnectionContext? source,
-        Func<CancellationToken, ValueTask> body,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(body);
-        await RunAsync<bool>(source, async ct =>
-        {
-            await body(ct).ConfigureAwait(false);
-            return true;
-        }, cancellationToken).ConfigureAwait(false);
     }
 }
 
@@ -92,6 +96,7 @@ public sealed class GameplayOutbox
     private readonly ILogger logger;
     private readonly List<Slot> slots = [];
     private GameplayOutboxUnit? open;
+    private OrderedScope? ordered;
     private bool completed;
 
     internal GameplayOutbox(ILogger logger) => this.logger = logger;
@@ -109,8 +114,8 @@ public sealed class GameplayOutbox
     {
         ArgumentNullException.ThrowIfNull(entry);
         EnsureWritable();
-        // Close requests never belong to a unit (plan, R-1): they are always carried out.
-        slots.Add(new Slot(entry.IsClose ? null : open, entry, null));
+        // Close requests never belong to a unit (plan, R-1) nor to an ordered group: they are always carried out.
+        slots.Add(new Slot(entry.IsClose ? null : open, entry, null, entry.IsClose ? null : Mark(entry)));
     }
 
     public void RequestClose(NetworkConnectionContext connection) => Register(OutboundEntry.Close(connection));
@@ -128,10 +133,25 @@ public sealed class GameplayOutbox
         ArgumentNullException.ThrowIfNull(compose);
         EnsureWritable();
         var composition = new OutboxComposition<TRecipient>([.. recipients], compose, logger);
-        slots.Add(new Slot(open, null, composition));
+        slots.Add(new Slot(open, null, composition, ordered?.Mark()));
         if (open is null)
             await composition.ComposeAsync(cancellationToken).ConfigureAwait(false);
         return composition;
+    }
+
+    /// <summary>
+    /// Opens an ordered group (<see cref="IOutboundOrdering"/>); a scope opened inside another joins it.
+    /// </summary>
+    internal IOutboundOrderingScope OpenGroup(string name, OutboundDelivery delivery)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (!Enum.IsDefined(delivery))
+            throw new ArgumentOutOfRangeException(nameof(delivery));
+        EnsureWritable();
+        if (ordered is { } outer)
+            return new NestedScope(outer, delivery);
+        ordered = new OrderedScope(this, new OutboundOrderGroup(name), delivery);
+        return ordered;
     }
 
     internal async ValueTask CommitAsync(GameplayOutboxUnit unit, CancellationToken cancellationToken)
@@ -149,12 +169,16 @@ public sealed class GameplayOutbox
             open = null;
     }
 
-    /// <summary>Ends the outbox: what survives, in registration order, then the source close on failure.</summary>
+    /// <summary>
+    /// Ends the outbox: what survives, in registration order, then the source close on failure. Entries
+    /// registered in an ordered scope get their group sequence here, in that same order.
+    /// </summary>
     internal IReadOnlyList<OutboundEntry> Complete(bool failed, NetworkConnectionContext? source)
     {
         if (completed)
             throw new InvalidOperationException("The outbox has already been flushed.");
         completed = true;
+        ordered = null;
         if (open is { } unfinished)
         {
             if (!failed)
@@ -163,14 +187,15 @@ public sealed class GameplayOutbox
         }
 
         var flushed = new List<OutboundEntry>(slots.Count + 1);
+        var sequences = new Dictionary<OutboundOrderGroup, int>(ReferenceEqualityComparer.Instance);
         foreach (var slot in slots)
         {
             if (slot.Unit is { State: not GameplayOutboxUnitState.Committed })
                 continue;
             if (slot.Entry is { } entry)
-                flushed.Add(entry);
+                flushed.Add(Ordered(entry, slot.Group, sequences));
             else
-                flushed.AddRange(slot.Composition!.ComposedEntries);
+                flushed.AddRange(slot.Composition!.ComposedEntries.Select(composed => Ordered(composed, slot.Group, sequences)));
         }
 
         if (failed && source is not null)
@@ -178,15 +203,87 @@ public sealed class GameplayOutbox
         return flushed;
     }
 
+    private static OutboundEntry Ordered(
+        OutboundEntry entry, GroupMark? mark, Dictionary<OutboundOrderGroup, int> sequences)
+    {
+        if (mark is not { } group || entry.IsClose)
+            return entry;
+        if (entry.Order is not null)
+            throw new InvalidOperationException("An entry that carries its own order cannot join an ordered scope.");
+        var sequence = sequences.TryGetValue(group.Group, out var last) ? last + 1 : 1;
+        sequences[group.Group] = sequence;
+        // A BestEffort entry stays BestEffort: an explicit delivery's secondary targets never break the group.
+        var delivery = entry.Delivery == OutboundDelivery.Required ? group.Delivery : OutboundDelivery.BestEffort;
+        return entry.InGroup(new OutboundOrder(group.Group, sequence), delivery);
+    }
+
+    private GroupMark? Mark(OutboundEntry entry)
+    {
+        if (ordered is not { } scope)
+            return null;
+        if (entry.Order is not null)
+            throw new InvalidOperationException("An entry that carries its own order cannot join an ordered scope.");
+        return scope.Mark();
+    }
+
     private void EnsureWritable()
     {
-        if (!GameplayJob.IsOnExecutor)
-            throw new GameplayOffExecutorException("Registering outbound work");
+        GameplayWriteAssertion.Writing(GameplayOutboxes.RegisterEntry);
         if (completed)
             throw new InvalidOperationException("The outbox of a finished gameplay job takes no more work.");
     }
 
-    private sealed record Slot(GameplayOutboxUnit? Unit, OutboundEntry? Entry, IOutboxComposition? Composition);
+    private void EndGroup(OrderedScope scope)
+    {
+        if (ReferenceEquals(ordered, scope))
+            ordered = null;
+    }
+
+    private sealed record Slot(GameplayOutboxUnit? Unit, OutboundEntry? Entry, IOutboxComposition? Composition, GroupMark? Group);
+
+    private readonly record struct GroupMark(OutboundOrderGroup Group, OutboundDelivery Delivery);
+
+    private sealed class OrderedScope(GameplayOutbox owner, OutboundOrderGroup group, OutboundDelivery delivery)
+        : IOutboundOrderingScope
+    {
+        public OutboundDelivery Delivery
+        {
+            get => delivery;
+            set => delivery = Enum.IsDefined(value) ? value : throw new ArgumentOutOfRangeException(nameof(value));
+        }
+
+        public GroupMark Mark() => new(group, delivery);
+
+        public void Dispose() => owner.EndGroup(this);
+    }
+
+    private sealed class NestedScope : IOutboundOrderingScope
+    {
+        private readonly OrderedScope outer;
+        private readonly OutboundDelivery restored;
+        private bool disposed;
+
+        public NestedScope(OrderedScope outer, OutboundDelivery delivery)
+        {
+            this.outer = outer;
+            restored = outer.Delivery;
+            outer.Delivery = delivery;
+        }
+
+        public OutboundDelivery Delivery
+        {
+            get => outer.Delivery;
+            set => outer.Delivery = value;
+        }
+
+        public void Dispose()
+        {
+            if (disposed)
+                return;
+            disposed = true;
+            outer.Delivery = restored;
+        }
+    }
 }
 
 public enum GameplayOutboxUnitState
@@ -198,7 +295,7 @@ public enum GameplayOutboxUnitState
 }
 
 /// <summary>
-/// One work unit's share of the outbox. Its owner (T-006: the domain transaction) reports how the
+/// One work unit's share of the outbox. Its owner, the writable domain transaction, reports how the
 /// unit ended; disposing an open unit counts as a rollback.
 /// </summary>
 public sealed class GameplayOutboxUnit : IDisposable

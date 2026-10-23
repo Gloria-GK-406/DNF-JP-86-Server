@@ -140,6 +140,54 @@ public sealed class PartySelectDungeonHandlerTests
         });
     }
 
+    /// <summary>XO-2: a peer slow to take the leader's decision, within the limit, still has it before the leader's ACK.</summary>
+    [Fact]
+    public async Task A_slow_peer_is_delivered_the_decision_before_the_leaders_acknowledgement()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(Leader, Member);
+        outbound.Transport.Slow(Member.ConnectionId, TimeSpan.FromMilliseconds(300));
+
+        await outbound.RunAsync(async () =>
+        {
+            var participants = new[]
+            {
+                new DungeonRunParticipant(Leader.AccountId, Leader.CharacterId, 0, true),
+                new DungeonRunParticipant(Member.AccountId, Member.CharacterId, 1, false),
+            };
+            var layout = PartyVisits.LayoutForTest();
+            var runId = DungeonRunId.New();
+            var baseRun = new DungeonRunState(
+                layout, layout.StartCell, layout.StartRoomMapId,
+                new HashSet<MazeCell> { layout.StartCell }, DateTimeOffset.UnixEpoch,
+                RunId: runId, Participant: participants[0], Participants: participants,
+                CurrentCellState: DungeonCellSeed.CompleteEmpty(
+                    layout.StartCell, layout.StartRoomMapId).Snapshot());
+            var runs = new RollbackRuns();
+            runs.SetCurrent(Leader.CharacterId, baseRun);
+            runs.SetCurrent(Member.CharacterId, baseRun with { Participant = participants[1] });
+            var sessions = new Sessions(Leader, Member);
+            var runtime = new PartyRuntime((Leader, EntryFor(Leader)), (Member, EntryFor(Member)));
+            var deliveries = new DungeonRunDeliveryRegistry();
+            deliveries.Register(runId, [Leader, Member]);
+            var handler = new EplpCommandHandler(
+                sessions, runtime, new PartyPositions(), runs, deliveries, outbound.Game,
+                TownAreaProjectionTestFactory.Create(sessions, runtime, outbound.Game),
+                NullLogger<EplpCommandHandler>.Instance, ordering: outbound.Ordering);
+
+            await handler.HandleAsync(Dispatch(Leader),
+                new EplpCommandRequest(GameMessageMetadata.Empty, 2, 2), CancellationToken.None);
+        });
+        await outbound.SettledAsync();
+
+        var decision = outbound.Recorder.Entries.Single(entry => entry.Connection.ConnectionId == Member.ConnectionId);
+        var acknowledgement = outbound.Recorder.Entries.Single(entry => entry.Connection.ConnectionId == Leader.ConnectionId);
+        Assert.IsType<EplpCommandResponse>(Assert.Single(decision.Messages));
+        Assert.True(decision.Order!.Value.Sequence < acknowledgement.Order!.Value.Sequence);
+        Assert.True(outbound.Delivered(Leader.ConnectionId) > outbound.Delivered(Member.ConnectionId),
+            "the leader's ACK was delivered before the peer's decision");
+    }
+
     [Theory]
     [InlineData((byte)0)] [InlineData((byte)1)] [InlineData((byte)5)]
     public async Task The_leader_opens_one_selection_context_for_every_party_member(byte leaderSlot)
@@ -623,13 +671,63 @@ public sealed class PartySelectDungeonHandlerTests
         });
     }
 
+    /// <summary>XO-1: a follower slow within the limit is entered before the requesting leader.</summary>
+    [Fact]
+    public async Task A_slow_follower_is_delivered_its_entry_before_the_requesting_leader()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(Leader, Member);
+        outbound.Transport.Slow(Member.ConnectionId, TimeSpan.FromMilliseconds(300));
+        await outbound.RunAsync(async () =>
+        {
+            var world = World(outbound: outbound);
+            world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+        });
+        await outbound.SettledAsync();
+
+        var follower = EntryOf(outbound, Member);
+        var leader = EntryOf(outbound, Leader);
+        Assert.True(follower.Order!.Value.Sequence < leader.Order!.Value.Sequence);
+        Assert.True(outbound.Delivered(Leader.ConnectionId) > outbound.Delivered(Member.ConnectionId),
+            "the leader was entered before the follower");
+    }
+
+    /// <summary>XO-1, VC-3: a follower who cannot take his entry in time is closed alone; the leader is still entered.</summary>
+    [Fact]
+    public async Task A_follower_over_the_limit_is_closed_and_the_requesting_leader_is_still_entered()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery(
+            Dfo.Server.Networking.Outbound.OutboundSendOptions.Default with { DeliveryTimeout = TimeSpan.FromMilliseconds(300) });
+        outbound.Connect(Leader, Member);
+        outbound.Transport.Stall(Member.ConnectionId);
+        await outbound.RunAsync(async () =>
+        {
+            var world = World(outbound: outbound);
+            world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+        });
+        await outbound.SettledAsync();
+
+        Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundOutcome.TimedOut, outbound.Observer.OutcomeOf(EntryOf(outbound, Member)));
+        Assert.True(outbound.Transport.IsClosed(Member.ConnectionId));
+        Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundOutcome.Delivered, outbound.Observer.OutcomeOf(EntryOf(outbound, Leader)));
+    }
+
+    /// <summary>The batch that carries the session's START_MAP.</summary>
+    private static Dfo.Server.Abstractions.Execution.OutboundEntry EntryOf(
+        Dfo.Server.Protocol.Tests.Outbox.XoDelivery outbound, SelectedSessionIdentity session) =>
+        outbound.Recorder.Entries.Single(entry => entry.Connection.ConnectionId == session.ConnectionId
+            && entry.Messages.Any(message => message is StartMapNotification));
+
     private static TestWorld World(
         bool memberRuntimeAvailable = true,
         bool replaceMemberDuringPrelude = false,
         bool advanceEntryRevisionDuringPrelude = false,
         bool withTownProjection = false,
         IPartyTownProjectionDelivery? partyTownProjection = null,
-        NetworkConnectionId? failRequiredConnection = null)
+        NetworkConnectionId? failRequiredConnection = null,
+        Dfo.Server.Protocol.Tests.Outbox.XoDelivery? outbound = null)
     {
         var sessions = new Sessions(Leader, Member);
         var runtime = memberRuntimeAvailable
@@ -641,6 +739,7 @@ public sealed class PartySelectDungeonHandlerTests
         var registry = new DungeonRunDeliveryRegistry();
         var fatigue = new Fatigue();
         var sender = new Sender(failRequiredConnection);
+        IGameMessageSender game = outbound?.Game ?? sender;
         var closer = new RecordingCloser();
         var areas = new SessionPresenceDomainService();
         foreach (var member in new[] { Leader, Member })
@@ -661,7 +760,7 @@ public sealed class PartySelectDungeonHandlerTests
             runtime,
             new NoopNotificationBus(),
             partyTownProjection ?? new NoopPartyTownProjection(),
-            sender,
+            game,
             SharedTownMovementDomainService.Instance);
         var state = new UnchangedState(() =>
         {
@@ -698,10 +797,14 @@ public sealed class PartySelectDungeonHandlerTests
             visits,
             new RecordingQuestLogs(),
             fatigue,
-            sender,
+            game,
             closer,
             townProjection,
-            NullLogger<SelectDungeonHandler>.Instance);
+            NullLogger<SelectDungeonHandler>.Instance,
+            entryProjection: outbound is null ? null : new DungeonEntryProjectionDelivery(
+                CurrentCharacterStub.Domain(), state, sessions, new RuntimeCurrentView(runtime), runs, registry,
+                intents, visits, fatigue, game, closer, townProjection,
+                NullLogger<DungeonEntryProjectionDelivery>.Instance, ordering: outbound.Ordering));
         return new TestWorld(
             handler, visits, intents, registry, runs, fatigue, sender, closer, areas);
     }

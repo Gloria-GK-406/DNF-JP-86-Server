@@ -15,21 +15,20 @@ namespace Dfo.Server.Networking.Runtime;
 /// its close callback: the entry stays registered and no callback ever comes. A connection still
 /// registered here is therefore torn down by the drain itself, with the removal from the registry
 /// deciding between the drain and a late callback, so the teardown runs exactly once. Closing goes
-/// through the transport itself, never a replaced closer.
+/// through the transport session itself, off the executor and unawaited, never through the outbox:
+/// the drain is not a job.
 /// </remarks>
 internal sealed class TouchSocketTransportDrain(
     TouchSocketConnectionRegistry connections,
     INetworkConnectionLifecycleDispatcher lifecycle,
-    ILogger<TouchSocketNetworkConnectionCloser> closeLogger,
     ILogger<TouchSocketTransportDrain> logger) : IGameplayProducerDrain
 {
-    private readonly TouchSocketNetworkConnectionCloser closer = new(connections, closeLogger);
-
     public async ValueTask DrainAsync(CancellationToken cancellationToken)
     {
         foreach (var entry in connections.Snapshot())
         {
-            await closer.RequestCloseExactAsync(entry.Context, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            CloseDetached(entry);
             if (!connections.TryRemove(entry.Context.ConnectionId, out var context)) continue;
             logger.LogInformation(
                 "Connection {ConnectionId} was still registered after the transport stopped; the drain tears it down",
@@ -49,5 +48,34 @@ internal sealed class TouchSocketTransportDrain(
             }
         }
         await connections.WhenIdleAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    // Not awaited: TouchSocket waits for the active receive callback while closing. The drain runs off the
+    // executor, so the close carries no job's flow.
+    private void CloseDetached(TouchSocketConnectionRegistry.ConnectionEntry entry)
+    {
+        if (connections.TryGet(entry.Context.ConnectionId, out var current) && current is not null
+            && ReferenceEquals(current.Context, entry.Context))
+            _ = CloseAsync(current.Session);
+    }
+
+    private async Task CloseAsync(TouchSocket.Sockets.IClosableClient session)
+    {
+        await Task.Yield();
+        try
+        {
+            await session.CloseAsync("transport drain", CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception error)
+        {
+            try
+            {
+                logger.LogWarning(error, "Closing a connection still registered at the drain failed");
+            }
+            catch (Exception)
+            {
+                // Nothing is left to report to.
+            }
+        }
     }
 }

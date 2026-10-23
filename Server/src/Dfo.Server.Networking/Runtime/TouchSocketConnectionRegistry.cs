@@ -1,10 +1,11 @@
 using System.Collections.Concurrent;
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using TouchSocket.Sockets;
 
 namespace Dfo.Server.Networking.Runtime;
 
-internal sealed class TouchSocketConnectionRegistry
+internal sealed class TouchSocketConnectionRegistry : INetworkConnectionContexts
 {
     private readonly ConcurrentDictionary<NetworkConnectionId, ConnectionEntry> connections = new();
     private readonly object idleGate = new();
@@ -83,6 +84,12 @@ internal sealed class TouchSocketConnectionRegistry
     }
 
     public bool TryGet(NetworkConnectionId id, out ConnectionEntry? entry) => connections.TryGetValue(id, out entry);
+
+    bool INetworkConnectionContexts.TryGet(NetworkConnectionId connectionId, out NetworkConnectionContext? connection)
+    {
+        connection = connections.TryGetValue(connectionId, out var entry) ? entry.Context : null;
+        return connection is not null;
+    }
 
     public ConnectionEntry Get(NetworkConnectionId connectionId) => connections.TryGetValue(connectionId, out var entry)
         ? entry

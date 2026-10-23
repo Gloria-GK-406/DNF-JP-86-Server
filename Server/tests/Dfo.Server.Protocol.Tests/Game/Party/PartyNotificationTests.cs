@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.DomainEvents;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Notifications;
@@ -229,6 +230,54 @@ public sealed class PartyNotificationTests
                 snapshot,
                 Assert.IsType<PartyRealtimeChanged>(bus.Publications[5].Notification).Snapshot);
         });
+    }
+
+    /// <summary>XO-6: a recipient slow in one stage holds every later stage until his delivery is done.</summary>
+    [Fact]
+    public async Task A_slow_recipient_in_one_formation_stage_holds_the_later_stages_back()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(Inviter, Invitee, Observer);
+        outbound.Transport.Slow(Invitee.ConnectionId, TimeSpan.FromMilliseconds(300));
+        var delivery = Delivery(outbound.Projections, ordering: outbound.Ordering);
+
+        await outbound.RunAsync(async () => await delivery.DeliverAsync(FormationPlan(), CancellationToken.None));
+        await outbound.SettledAsync();
+
+        // Stage one is the clear for the invitee alone; the inviter's first entry is in stage two.
+        Assert.Equal(0, outbound.Delivered(Invitee.ConnectionId));
+        Assert.True(outbound.Delivered(Inviter.ConnectionId) > outbound.Delivered(Invitee.ConnectionId));
+        Assert.All(outbound.Recorder.Entries, entry => Assert.Equal(OutboundDelivery.Required, entry.Delivery));
+    }
+
+    /// <summary>XO-6, TASK-23 ruling 5: a recipient whose stage is not delivered stops the later stages, as a failed stage stops the advance.</summary>
+    [Fact]
+    public async Task A_failed_delivery_in_one_formation_stage_skips_every_later_stage()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(Inviter, Invitee, Observer);
+        outbound.Transport.Fail(Invitee.ConnectionId);
+        var delivery = Delivery(outbound.Projections, ordering: outbound.Ordering);
+
+        await outbound.RunAsync(async () => await delivery.DeliverAsync(FormationPlan(), CancellationToken.None));
+        await outbound.SettledAsync();
+
+        Assert.Equal(OutboundOutcome.Failed, outbound.Outcomes(Invitee.ConnectionId)[0]);
+        Assert.NotEmpty(outbound.Outcomes(Inviter.ConnectionId));
+        Assert.All(outbound.Outcomes(Inviter.ConnectionId), outcome => Assert.Equal(OutboundOutcome.Skipped, outcome));
+        Assert.Equal(-1, outbound.Delivered(Inviter.ConnectionId));
+    }
+
+    private static PartyNotificationPlan FormationPlan()
+    {
+        var snapshot = Snapshot();
+        return new PartyNotificationPlan(
+            [Invitee.CharacterId],
+            snapshot,
+            Acceptance: Acceptance(),
+            ClearPartyId: snapshot.PartyId,
+            ClearPartyGeneration: snapshot.Generation,
+            ClearPartyRevision: snapshot.Revision);
     }
 
     [Fact]
@@ -984,14 +1033,16 @@ public sealed class PartyNotificationTests
 
     private static PartyNotificationDelivery Delivery(
         IEventService bus,
-        PartyProjectionStreamRegistry? streams = null)
+        PartyProjectionStreamRegistry? streams = null,
+        IOutboundOrdering? ordering = null)
     {
         var sessions = new SessionDirectory(Inviter, Invitee, Observer);
         return new PartyNotificationDelivery(
             bus,
             streams ?? new PartyProjectionStreamRegistry(),
             sessions,
-            new FixedPresence(Inviter, Invitee, Observer));
+            new FixedPresence(Inviter, Invitee, Observer),
+            ordering: ordering);
     }
 
     private static PartySettings DefaultSettings() => new(

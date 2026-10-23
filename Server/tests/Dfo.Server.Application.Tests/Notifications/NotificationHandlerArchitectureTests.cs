@@ -157,27 +157,6 @@ public sealed class NotificationHandlerArchitectureTests
             message.GetType().GetProperty("Participant")!.GetValue(message));
     }
 
-    /// <summary>Each notification declares its own allowance, and this is what it declared.</summary>
-    /// <remarks>
-    /// The number is a decision about what is being said -- whether arriving twice is worse than
-    /// not arriving -- so it belongs to the notification and not to the machinery. Which also
-    /// means nothing else would notice it changing: without this case, editing the literal is a
-    /// one-character change that turns nothing red.
-    /// </remarks>
-    [Fact]
-    public void The_pvp_publication_declares_the_allowance_it_meant_to()
-    {
-        var services = new ServiceCollection();
-        new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
-
-        var registration = Assert.Single(
-            services.Select(descriptor => descriptor.ImplementationInstance)
-                .OfType<NotificationHandlerRegistration>(),
-            value => value.NotificationType == typeof(PvpParticipantPublished));
-        Assert.Equal(1, registration.RetryLimit);
-        Assert.Equal(typeof(PvpParticipantPublishedHandler), registration.HandlerType);
-    }
-
     private static IEnumerable<Type> ProductionNotificationHandlers() =>
         typeof(ProtocolModule).Assembly
             .GetTypes()

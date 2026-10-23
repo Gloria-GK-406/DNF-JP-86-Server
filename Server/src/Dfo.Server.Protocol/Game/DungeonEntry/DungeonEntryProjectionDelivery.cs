@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
@@ -43,7 +44,8 @@ public sealed class DungeonEntryProjectionDelivery(
     ILogger<DungeonEntryProjectionDelivery> logger,
     ICommandBus? commands = null,
     IInventorySlotProjectionDomainService? inventoryProjection = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null)
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
+    IOutboundOrdering? ordering = null)
 {
     public async ValueTask EnterAsync(
         NetworkConnectionId requesterConnection,
@@ -333,6 +335,9 @@ public sealed class DungeonEntryProjectionDelivery(
         {
             // Every participant is required. Followers go first so a failed peer cannot leave
             // the requesting leader believing that the whole cohort entered successfully.
+            // XO-1: their batches are delivered before the requester's; a follower whose delivery
+            // fails is closed alone and the requester's batch still goes (BestEffort, VC-3).
+            using var order = ordering?.Begin("XO-1 party dungeon entry", OutboundDelivery.BestEffort);
             var delivered = new List<SelectedSessionIdentity>();
             foreach (var delivery in deliveries
                 .OrderBy(value => value.Session == requester ? 1 : 0))

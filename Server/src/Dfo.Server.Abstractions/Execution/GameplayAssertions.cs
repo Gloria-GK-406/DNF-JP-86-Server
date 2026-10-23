@@ -86,6 +86,26 @@ public static class GameplayWriteAssertion
 }
 
 /// <summary>
+/// RQ-003, the network half: a job never writes to or closes a transport connection, because doing so
+/// would wait on the network. The outbound sender's loops run detached and never carry a token, so in
+/// production this cannot fire; it guards against a job touching a resolved connection directly.
+/// </summary>
+public static class GameplayNetworkWaitAssertion
+{
+    public const string NetworkWaitKind = "network-wait";
+
+    /// <summary>Throws a self-wait that sticks to the job when a job is running on this flow.</summary>
+    /// <param name="operation">The transport operation, e.g. <c>OutboundConnection.SendAsync</c>.</param>
+    public static void Touching(string operation)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operation);
+        if (GameplayJob.Active is not { } token) return;
+        GameplayGateAssertion.Report(NetworkWaitKind, operation);
+        throw token.Fault(new GameplaySelfWaitException($"Waiting for the network ({operation})", token.Chain));
+    }
+}
+
+/// <summary>
 /// F-58: a flow that still carries the token of a job that has ended (a continuation started inside the
 /// job without suppressing the flow) is a leak, not an off-executor caller, and must not reach the bus
 /// as a fresh root. <see cref="GameplayJob.RunDetached(Action)"/> clears the token, so a detached call is

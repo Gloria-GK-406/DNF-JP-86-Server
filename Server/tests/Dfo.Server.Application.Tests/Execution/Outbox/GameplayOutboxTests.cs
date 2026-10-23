@@ -209,9 +209,11 @@ public sealed class GameplayOutboxTests : IAsyncDisposable
     [Fact]
     public async Task Registering_outside_a_job_is_a_program_error()
     {
+        var seen = ViolationCapture.Attach();
         Assert.Throws<GameplayOffExecutorException>(() => outboxes.Current);
-        await Assert.ThrowsAsync<GameplayOffExecutorException>(
-            () => outboxes.RunAsync(null, _ => ValueTask.CompletedTask, CancellationToken.None).AsTask());
+        var violation = Assert.Single(seen);
+        Assert.Equal(GameplayWriteAssertion.OffExecutorKind, violation.Kind);
+        Assert.Equal("Writing GameplayOutbox.Register", violation.Operation);
 
         GameplayOutbox? kept = null;
         await RunCmdAsync(_ =>
@@ -285,13 +287,12 @@ public sealed class GameplayOutboxTests : IAsyncDisposable
         var refusing = new RefusingOnceSender();
         var boxes = new GameplayOutboxes(refusing, log);
 
-        var failure = await Assert.ThrowsAsync<InvalidDataException>(() => executor.RunAsync(ExecutionTest.Work(ct =>
-            boxes.RunAsync(Source, _ =>
+        var failure = await Assert.ThrowsAsync<InvalidDataException>(() => executor.RunAsync(Cmd(_ =>
             {
                 boxes.Current.Register(Batch(Peer, "lost"));
                 boxes.Current.RequestClose(Peer);
                 throw new InvalidDataException("cmd failed");
-            }, ct)), CancellationToken.None).AsTask());
+            }, Source), CancellationToken.None).AsTask());
 
         Assert.Equal("cmd failed", failure.Message);
         Assert.Equal(["peer:close", "source:close"], refusing.Accepted.Flushed());
@@ -304,13 +305,12 @@ public sealed class GameplayOutboxTests : IAsyncDisposable
         var refusing = new RefusingOnceSender();
         var boxes = new GameplayOutboxes(refusing, log);
 
-        await Assert.ThrowsAsync<ArgumentException>(() => executor.RunAsync(ExecutionTest.Work(ct =>
-            boxes.RunAsync(Source, _ =>
+        await Assert.ThrowsAsync<ArgumentException>(() => executor.RunAsync(Cmd(_ =>
             {
                 boxes.Current.Register(Batch(Peer, "lost"));
                 boxes.Current.Register(OutboundEntry.Close(Third, new OutboundOrder(new OutboundOrderGroup("g"), 1)));
                 return ValueTask.CompletedTask;
-            }, ct)), CancellationToken.None).AsTask());
+            }, Source), CancellationToken.None).AsTask());
 
         var closes = Assert.Single(refusing.Accepted.Submissions);
         Assert.Equal(["third:close", "source:close"], refusing.Accepted.Flushed());
@@ -318,16 +318,18 @@ public sealed class GameplayOutboxTests : IAsyncDisposable
         Assert.Contains(log.Entries, entry => entry.Level == LogLevel.Error && entry.Exception is ArgumentException);
     }
 
+    /// <summary>The body as one CMD on the executor; its outbox is flushed when the job ends.</summary>
     private ValueTask RunCmdAsync(Func<CancellationToken, ValueTask> body, NetworkConnectionContext? source = null) =>
-        executor.RunAsync(
-            ExecutionTest.Work(ct => outboxes.RunAsync(source, body, ct)),
-            CancellationToken.None);
+        executor.RunAsync(Cmd(body, source), CancellationToken.None);
+
+    private static GameplayWork Cmd(Func<CancellationToken, ValueTask> body, NetworkConnectionContext? source) =>
+        new(GameplayShardKey.World, ExecutionTest.Root(), "TestCommand", body, source);
 
     private static NetworkConnectionContext Connection(string name) =>
         new(new NetworkConnectionId(name), NetworkEndpointKind.Game, 10011);
 
     private static OutboundEntry Batch(NetworkConnectionContext connection, string text) =>
-        OutboundEntry.Batch(connection, [new TestMessage(text)]);
+        OutboundEntry.Batch(connection, [new TestMessage(text)], System.Text.Encoding.UTF8.GetBytes(text));
 
     private sealed record TestMessage(string Text) : IServerNetworkMessage
     {

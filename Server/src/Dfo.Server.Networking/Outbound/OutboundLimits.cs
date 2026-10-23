@@ -15,7 +15,7 @@ public static class OutboundLimits
     /// <summary>Per-connection queue limit in encoded bytes: at least twice <see cref="SelectionOutboundBound"/>.</summary>
     public const long QueueByteLimit = 1024 * 1024;
 
-    /// <summary>Today's per-recipient deadline (<c>NotificationDeliveryOptions.Default</c>).</summary>
+    /// <summary>How long one entry's delivery may take before its connection is closed (RQ-036): the two seconds a recipient had before T-006.</summary>
     public static TimeSpan DeliveryTimeout { get; } = TimeSpan.FromSeconds(2);
 
     /// <summary>How long an ordered entry waits for its predecessor once everything before that has settled.</summary>

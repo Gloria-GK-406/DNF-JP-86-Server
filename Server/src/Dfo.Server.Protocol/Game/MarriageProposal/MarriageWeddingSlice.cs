@@ -188,7 +188,7 @@ public sealed class MarriageWeddingProjection(ISelectedSessionDomainService sess
 internal sealed class MarriageWeddingScheduler(IMarriageQueryDomainService marriage, ICommandBus commands,
     IGameMessageSender sender,
     MarriageWeddingProjection projection, ILogger<MarriageWeddingScheduler> logger, TimeProvider clock,
-    IGameplayQueue queue) : BackgroundService
+    IGameplayQueue queue, IOutboundOrdering? ordering = null) : BackgroundService
 {
     private readonly CoalescingGameplaySource ticks = new(queue);
 
@@ -215,16 +215,20 @@ internal sealed class MarriageWeddingScheduler(IMarriageQueryDomainService marri
                 if (result is null) continue;
                 logger.LogInformation("Wedding {Ceremony} reached {Phase}", ceremony, result.Wedding.Phase);
                 var completed = result.Wedding.Phase == MarriageWeddingPhase.Completed;
-                // Broadcast both authoritative positions before either endpoint starts the cinema.
-                foreach (var standing in result.Standing)
-                    await ProjectAsync(() => projection.PositionAsync(standing, ct), ct).ConfigureAwait(false);
-                foreach (var participant in result.Participants)
+                // Broadcast both authoritative positions before either endpoint starts the cinema
+                // (XO-7: delivered in that order, each BestEffort).
+                using (ordering?.Begin("XO-7 wedding positions before the cinema", OutboundDelivery.BestEffort))
                 {
-                    var messages = new List<IGameServerMessage>();
-                    if (completed) messages.Add(new WeddingBeginNotification(participant.Church));
-                    messages.Add(new WeddingInfoMessage(await marriage.SnapshotAsync(participant.Actor.AccountId, participant.Actor.CharacterId, ct).ConfigureAwait(false)));
-                    if (!completed) messages.Add(new GameServerNoticeMessage("婚礼因双方未能按时到场而取消，费用已通过邮件退回。"));
-                    await ProjectAsync(() => sender.SendExplicitAsync(participant.Actor.ConnectionId, new(messages, []), ct), ct).ConfigureAwait(false);
+                    foreach (var standing in result.Standing)
+                        await ProjectAsync(() => projection.PositionAsync(standing, ct), ct).ConfigureAwait(false);
+                    foreach (var participant in result.Participants)
+                    {
+                        var messages = new List<IGameServerMessage>();
+                        if (completed) messages.Add(new WeddingBeginNotification(participant.Church));
+                        messages.Add(new WeddingInfoMessage(await marriage.SnapshotAsync(participant.Actor.AccountId, participant.Actor.CharacterId, ct).ConfigureAwait(false)));
+                        if (!completed) messages.Add(new GameServerNoticeMessage("婚礼因双方未能按时到场而取消，费用已通过邮件退回。"));
+                        await ProjectAsync(() => sender.SendExplicitAsync(participant.Actor.ConnectionId, new(messages, []), ct), ct).ConfigureAwait(false);
+                    }
                 }
                 foreach (var guest in result.Guests)
                     if (completed) await ProjectAsync(() => sender.SendNotiAsync(guest.Actor.ConnectionId, new WeddingBeginNotification(guest.Church), ct), ct).ConfigureAwait(false);

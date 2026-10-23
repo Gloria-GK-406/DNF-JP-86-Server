@@ -62,7 +62,7 @@ public sealed class SelectCharacterCompensationCharacterizationTests(ITestOutput
     }
 
     /// <summary>The whole refusal pair reaches the client before the close (RQ-031(c), AC-011).</summary>
-    [PvfFact(Skip = "Baseline defect: close can overtake the refusal pair under load; enabled by T-006 (RQ-031(c), AC-011).")]
+    [PvfFact]
     public async Task A_failed_expired_item_cleanup_delivers_the_whole_refusal_pair_before_the_close()
     {
         var fault = new OneShotFault();
@@ -112,7 +112,7 @@ public sealed class SelectCharacterCompensationCharacterizationTests(ITestOutput
     }
 
     /// <summary>The whole accepted batch and tail reach the client before the close (RQ-031(c), AC-007).</summary>
-    [PvfFact(Skip = "Baseline defect: close can overtake the tail of the entry batch under load; enabled by T-006 (RQ-031(c), AC-007).")]
+    [PvfFact]
     public async Task A_failed_quest_synchronization_delivers_the_whole_entry_batch_before_the_close()
     {
         var fault = new OneShotFault();

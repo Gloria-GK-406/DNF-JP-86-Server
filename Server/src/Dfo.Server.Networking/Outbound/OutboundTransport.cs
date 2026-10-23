@@ -1,4 +1,5 @@
 using System.IO.Pipelines;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Runtime;
 using TouchSocket.Core;
@@ -71,10 +72,15 @@ internal sealed class TouchSocketOutboundTransport(TouchSocketConnectionRegistry
                 : null;
     }
 
+    /// <remarks>
+    /// The only TCP write point (pinned by <c>TransportWriteSourceTests</c>). Both members refuse a job
+    /// (RQ-003): only the sender's detached loops may wait on the network.
+    /// </remarks>
     private sealed class Connection(ITcpSessionClient session) : IOutboundConnection
     {
         public async ValueTask SendAsync(ReadOnlyMemory<byte> frames, CancellationToken cancellationToken)
         {
+            GameplayNetworkWaitAssertion.Touching("OutboundConnection.SendAsync");
             if (!OutboundTransportOptions.ConfirmsFlush(session))
                 throw new InvalidOperationException(
                     "The connection's send pipe does not confirm flushes; configure it with OutboundTransportOptions.");
@@ -85,7 +91,10 @@ internal sealed class TouchSocketOutboundTransport(TouchSocketConnectionRegistry
                 throw new IOException("The connection closed before its send pipe drained.");
         }
 
-        public async ValueTask CloseAsync() =>
+        public async ValueTask CloseAsync()
+        {
+            GameplayNetworkWaitAssertion.Touching("OutboundConnection.CloseAsync");
             await session.CloseAsync("outbound close", CancellationToken.None).ConfigureAwait(false);
+        }
     }
 }

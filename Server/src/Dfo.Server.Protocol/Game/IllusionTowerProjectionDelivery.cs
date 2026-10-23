@@ -51,7 +51,8 @@ public sealed class IllusionTowerProjectionDelivery(
     TimeProvider clock,
     INetworkConnectionCloser connections,
     ILogger<IllusionTowerProjectionDelivery> logger,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null)
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
+    IOutboundOrdering? ordering = null)
 {
     private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
 
@@ -160,9 +161,13 @@ public sealed class IllusionTowerProjectionDelivery(
                 batches.Add((receiver.Session, frames));
             }
 
-            foreach (var batch in batches.OrderBy(value => value.Session == requester ? 1 : 0))
-                await sender.SendExplicitAsync(batch.Session.ConnectionId,
-                    new GameExplicitMessageDelivery(batch.Frames, []), token).ConfigureAwait(false);
+            // XO-4: every member's batch is delivered before the requester's, each BestEffort.
+            using (ordering?.Begin("XO-4 illusion tower entry", OutboundDelivery.BestEffort))
+            {
+                foreach (var batch in batches.OrderBy(value => value.Session == requester ? 1 : 0))
+                    await sender.SendExplicitAsync(batch.Session.ConnectionId,
+                        new GameExplicitMessageDelivery(batch.Frames, []), token).ConfigureAwait(false);
+            }
             await townProjection.LeaveManyAsync(ordered.Select(value => value.Session).ToArray(),
                 TownAreaDepartureReason.DungeonEntry, token).ConfigureAwait(false);
         }

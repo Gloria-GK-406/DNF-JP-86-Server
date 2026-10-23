@@ -10,9 +10,8 @@ namespace Dfo.Server.Application.Tests.Execution;
 /// </summary>
 /// <remarks>
 /// The scan reads the raw text, comments included: a gate name left in a comment misleads the next
-/// reader who greps for gates. Of appendix F's delete column only T-006's three items are not named
-/// here yet: the party delivery gates, <c>NotificationRetryQueue</c> and <c>NotificationRetryDrainService</c>
-/// still exist until T-006 deletes them and adds their names. A hand-made wait over
+/// reader who greps for gates. Of appendix F's delete column only TASK-24's one item is not named
+/// here yet: the party delivery gates still exist until TASK-24 deletes them and adds their names. A hand-made wait over
 /// <c>TaskCompletionSource</c> is guarded by naming its type, not by scanning for the primitive; a short
 /// <c>lock</c> is kept by appendix F and is not a waiting primitive here, on a <c>System.Threading.Lock</c> as on
 /// any object. Entering a <c>Lock</c> explicitly is recognised by its parameterless <c>Enter</c>,
@@ -31,6 +30,11 @@ public sealed class LockRemovalSourceTests(ITestOutputHelper output)
         "AccountExecutionGate", "OnlineUserExecutionBehavior", "AccountExecutionBehavior", "TransactionalExecutionBehavior",
         "OnlineUserAccessMode", "AccountAccessMode", "IMultiAccountCommand", "IOnlineUserCommand",
         "ScheduledTaskSchedulerOptions", "groupGates",
+        // T-006 delivery (TASK-23): the direct send path, its executor deadline, the notification retry
+        // queue and its drain, the retry options, the superseded-login close loop and the direct closer.
+        "TouchSocketNetworkMessageSender", "ExecutorSendDeadline", "NotificationRetryQueue",
+        "NotificationRetryDrainService", "INotificationRetryDrain", "NotificationDeliveryOptions",
+        "CloseSupersededAsync", "TouchSocketNetworkConnectionCloser",
     ];
 
     /// <summary>Waiting primitives other than <c>SemaphoreSlim</c>; none is allowed anywhere.</summary>

@@ -8,8 +8,8 @@ namespace Dfo.Server.Networking.Outbound;
 
 /// <summary>
 /// The sending side of the outbox (RQ-032 to RQ-037). <see cref="Submit"/> only appends to one
-/// admission queue; an admission loop encodes each entry and appends it to its connection's queue,
-/// and every connection drains its own queue in its own loop. None of these loops carries a job
+/// admission queue; an admission loop appends each entry, already encoded where it was registered, to
+/// its connection's queue, and every connection drains its own queue in its own loop. None of these loops carries a job
 /// token, so nothing here runs on, or is waited for by, the executor.
 /// </summary>
 /// <remarks>
@@ -17,10 +17,9 @@ namespace Dfo.Server.Networking.Outbound;
 /// is FIFO in submission order, and <see cref="Submit"/> is serialised, so waits always point at
 /// strictly earlier submissions. The wait limit cuts any wait that still runs long.
 /// </remarks>
-internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable
+internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable, IDisposable
 {
     private readonly IOutboundTransport transport;
-    private readonly IOutboundEncoder encoder;
     private readonly IOutboundDeliveryObserver[] observers;
     private readonly ILogger<OutboundSender> logger;
     private readonly OutboundSendOptions options;
@@ -33,13 +32,11 @@ internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable
 
     public OutboundSender(
         IOutboundTransport transport,
-        IOutboundEncoder encoder,
         IEnumerable<IOutboundDeliveryObserver> observers,
         ILogger<OutboundSender> logger,
         OutboundSendOptions options)
     {
         this.transport = transport;
-        this.encoder = encoder;
         this.observers = [.. observers];
         this.logger = logger;
         this.options = options;
@@ -84,6 +81,9 @@ internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable
             await loop.ConfigureAwait(false);
     }
 
+    /// <summary>For a container disposed synchronously: the admission loop ends once its queue is complete.</summary>
+    public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
+
     private static Task Detached(Func<Task> work)
     {
         using (ExecutionContext.SuppressFlow())
@@ -118,21 +118,7 @@ internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable
         }
 
         var queue = queues.GetValue(entry.Connection, context => new ConnectionQueue(this, context));
-        byte[] frames = [];
-        Exception? encodingError = null;
-        if (!entry.IsClose)
-        {
-            try
-            {
-                frames = encoder.Encode(entry.Connection, entry.Messages);
-            }
-            catch (Exception error)
-            {
-                encodingError = error;
-            }
-        }
-
-        var item = new Item(entry, queue, predecessor, frames, encodingError);
+        var item = new Item(entry, queue, predecessor, entry.Frames);
         if (entry.Order is { } admitted)
             groups.GetOrCreateValue(admitted.Group).LastAdmitted = item;
         queue.Enqueue(item);
@@ -147,13 +133,6 @@ internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable
                 && !item.Entry.IsClose)
             {
                 Complete(item, OutboundOutcome.Skipped);
-                return;
-            }
-
-            // In order with the rest of the queue: what was admitted before it still goes out first.
-            if (item.EncodingError is { } encodingError)
-            {
-                queue.End(item, OutboundOutcome.EncodingFailed, encodingError, close: true);
                 return;
             }
 
@@ -294,7 +273,6 @@ internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable
         {
             OutboundOutcome.Delivered or OutboundOutcome.Closed => LogLevel.Trace,
             OutboundOutcome.Stale or OutboundOutcome.Discarded or OutboundOutcome.Skipped => LogLevel.Debug,
-            OutboundOutcome.EncodingFailed => LogLevel.Error,
             _ => LogLevel.Warning,
         };
         if (logger.IsEnabled(level))
@@ -324,14 +302,13 @@ internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable
     {
         private int broken;
 
-        public Item(OutboundEntry entry, ConnectionQueue queue, Item? predecessor, byte[] frames, Exception? encodingError)
+        public Item(OutboundEntry entry, ConnectionQueue queue, Item? predecessor, ReadOnlyMemory<byte> frames)
         {
             Entry = entry;
             Queue = queue;
             Predecessor = predecessor;
             Frames = frames;
             Length = frames.Length;
-            EncodingError = encodingError;
             Settled = predecessor is null ? Done.Task : Task.WhenAll(predecessor.Settled, Done.Task);
         }
 
@@ -341,14 +318,12 @@ internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable
 
         public Item? Predecessor { get; }
 
-        /// <summary>Released once the entry is done, so a group's chain of items does not keep its bytes.</summary>
-        public byte[] Frames { get; private set; }
+        /// <summary>Released once the item is done; the entry keeps its own reference until it is collected.</summary>
+        public ReadOnlyMemory<byte> Frames { get; private set; }
 
         public int Length { get; }
 
-        public void ReleaseFrames() => Frames = [];
-
-        public Exception? EncodingError { get; }
+        public void ReleaseFrames() => Frames = ReadOnlyMemory<byte>.Empty;
 
         public TaskCompletionSource<OutboundOutcome> Done { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 

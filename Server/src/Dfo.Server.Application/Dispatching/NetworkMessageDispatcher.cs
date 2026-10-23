@@ -1,4 +1,5 @@
 using Dfo.Server.Application.Effects;
+using Dfo.Server.Application.Execution.Outbox;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
@@ -17,11 +18,17 @@ namespace Dfo.Server.Application.Dispatching;
 /// loop does not carry the producer's execution context, so a frame built out here would be
 /// invisible to the handler and to the commands it runs inline, and every guard would take its
 /// "no frame, let it through" branch (plan, request-level context, transitional shape).
+/// <para>
+/// The job carries its source connection and starts its outbox at once, so a job that fails closes
+/// that connection after whatever its outbox keeps, even if it registered nothing (RQ-031(c), DR-15);
+/// the returned task completes once the outbox has been handed to the sender (RQ-005).
+/// </para>
 /// </remarks>
 internal sealed class NetworkMessageDispatcher(
     MessageHandlerRegistry registry,
     IServiceScopeFactory scopeFactory,
-    IGameplayQueue queue) : INetworkMessageDispatcher
+    IGameplayQueue queue,
+    GameplayOutboxes outboxes) : INetworkMessageDispatcher
 {
     public ValueTask DispatchAsync(
         NetworkDispatchContext context,
@@ -39,7 +46,12 @@ internal sealed class NetworkMessageDispatcher(
             GameplayShardKey.World,
             GameplayCallChain.NewRoot(GameplayCallSource.Connection, context.Connection.ConnectionId),
             registered ? route!.CommandType : MessageHandlerRegistry.CommandTypeOf(message.MessageType),
-            token => HandleOnExecutorAsync(context, message, token)), cancellationToken);
+            token =>
+            {
+                _ = outboxes.Current;
+                return HandleOnExecutorAsync(context, message, token);
+            },
+            context.Connection), cancellationToken);
     }
 
     private async ValueTask HandleOnExecutorAsync(

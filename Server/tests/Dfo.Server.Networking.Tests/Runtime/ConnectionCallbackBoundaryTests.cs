@@ -119,7 +119,7 @@ public sealed class ConnectionCallbackBoundaryTests
         connections.Add(Session("other"), NetworkEndpointKind.Game);
         var log = new ErrorLog();
 
-        await new TouchSocketTransportDrain(connections, lifecycle, NullLogger<TouchSocketNetworkConnectionCloser>.Instance, log)
+        await new TouchSocketTransportDrain(connections, lifecycle, log)
             .DrainAsync(CancellationToken.None).AsTask().WaitAsync(Patience);
 
         Assert.Equal(["disconnected Game:failing False", "disconnected Game:other False"], lifecycle.Seen.Order());
@@ -137,8 +137,7 @@ public sealed class ConnectionCallbackBoundaryTests
 
     private static TouchSocketTransportDrain Drain(
         TouchSocketConnectionRegistry connections, INetworkConnectionLifecycleDispatcher lifecycle) =>
-        new(connections, lifecycle, NullLogger<TouchSocketNetworkConnectionCloser>.Instance,
-            NullLogger<TouchSocketTransportDrain>.Instance);
+        new(connections, lifecycle, NullLogger<TouchSocketTransportDrain>.Instance);
 
     private static async Task WaitUntilAsync(Func<bool> condition)
     {

@@ -233,7 +233,7 @@ state: ready
 | Game 与 Channel 入站协议 | `NetworkPlugins.cs` 中 Game 与 Channel 插件的 `OnTcpReceived`（`:62`、`:144`）→ `NetworkMessageDispatcher` → 173 条消息注册（173 个消息类型，141 个 handler 类型；基准 `c3115f9a`，计数方法见 `verification/entry-reconciliation.md` §2），其中附录 B 的 14 个遥测消息类型（2 个 handler 类型）留在执行器外，其余 159 条（139 个 handler 类型）在执行器上 | 每个消息类型一个协议 CMD（`inbound:<ClientMessageType>`） |
 | 效果账本重放 | `EffectOperationLedger.DispatchAsync`（入站 CMD 内的效果结算调用它） | 随所属协议 CMD 执行 |
 | 连接建立、断开、关连接后的清理、孤儿清理 | `OnlineUserConnectionObserver`、`TouchSocketNetworkConnectionCloser`，经 `NetworkConnectionLifecycleDispatcher` 入队；孤儿清理与传输排空（`TouchSocketTransportDrain`）的兜底拆除归断开 | 生命周期 CMD（`lifecycle:connected`、`lifecycle:disconnected`） |
-| 登录会话的连接观察与维护扫描 | `LoginSessionRuntime.cs` 的 `LoginSessionConnectionObserver`（`:11`）与 `LoginSessionMaintenanceService`（`:28`） | 生命周期 CMD（连接观察随 `lifecycle:disconnected`；顶替后的关闭 `lifecycle:close-superseded`）与定时 CMD（`timer:LoginSessionMaintenanceService`） |
+| 登录会话的连接观察与维护扫描 | `LoginSessionRuntime.cs` 的 `LoginSessionConnectionObserver`（`:11`）与 `LoginSessionMaintenanceService`（`:28`） | 生命周期 CMD（连接观察随 `lifecycle:disconnected`）与定时 CMD（`timer:LoginSessionMaintenanceService`）；顶替后的关闭由顶替发生的那条 CMD 登记进它的发件箱（T-006，F-65），被顶替连接的清理随它的 `lifecycle:disconnected` |
 | 22 个后台服务（其中 `ScheduledTaskHostedService` 承载 5 个调度任务） | `research/01` §3；归属表见 `tasks/TASK-11.md` §1。`research/01` 的 33 个托管服务：本行 22，第 4 行 1，第 8 行 1，第 11 行与附录 B「开始监听前的启动期工作」4，附录 B 中不碰玩法状态的 5（`HttpApiStartupService`、3 个 `*RegistryValidationService`、UDP 发现），22 ＋ 1 ＋ 1 ＋ 4 ＋ 5 ＝ 33。基准 `c3115f9a` 上托管服务注册共 34 个，多出的 1 个是执行器自身的 `GameplayExecutorLifetime` | 各自对应定时 CMD（`timer:<类型名>`；调度任务为 `timer:ScheduledTaskHostedService/<任务 ID>`） |
 | 延时计时器（卡牌布局、自动翻牌） | `DungeonCardPresentationCoordinator` 的 `ScheduleAfterSettlement`（布局）与 `OpenLayoutAsync` 末尾（自动翻牌） | 到期时入队的定时 CMD（`timer:DungeonCardPresentationCoordinator/layout`、`/auto-flip`）；协调器排空之后到达的调度请求不启动计时器（TASK-16） |
 | 两塔离场队列 | `ConcurrentQueue` ＋ `BossTowerReturnSweepService`、`IllusionTowerReturnSweepService` | 定时 CMD（`timer:BossTowerReturnSweepService`、`timer:IllusionTowerReturnSweepService`），在 tick 作业里消费队列。不采用「离场时直接入队」：写队列的 sink 在拆除 CMD 里被调用，从作业里入队并等待就是自我等待（TASK-11） |
@@ -348,7 +348,7 @@ state: ready
 |---|---|---|
 | VC-1 | 多段 CMD（例如选角）的出站消息在 CMD 完成后统一落线，而不是在各段之间陆续落线。消息内容与相对顺序不变 | 发件箱只刷出已提交的结果 |
 | VC-2 | CMD 因未处理异常结束时，在回滚或结果不确定的工作单元内登记的消息不会发出。今天的投影本来就在命令提交之后才发生，所以预期客户端可见的差异仅限于理论情形；实施中如果发现有测试受影响，补入本条并配证据 | RQ-031(c) |
-| VC-3 | 组队进本时某个成员发送失败：只断开该成员，其他成员正常进入（今天会隔离已送达的成员并回滚整次进本） | DR-2 |
+| VC-3 | 组队进本或两塔进入时某个成员发送失败：只断开该成员，其他成员与请求者正常进入（今天组队进本会隔离已送达的成员并回滚整次进本；两塔进入会中止其余成员的发送、关闭全部隔离成员与请求者） | DR-2、DR-3 |
 | VC-4 | 怪物死亡、祭坛、清算在提交后发生**传输层交付失败**时，只关闭失败的连接，不再隔离同局的其他会话。CMD 内的非传输失败仍封锁全部参与者，不在本条范围内 | DR-4 |
 | VC-5 | 钱包变化、PvP 参与者通知不再重试一次；失败时断开该连接 | DR-13 |
 | VC-6 | GM Cera 提醒的结果改为「已提交发送」或「不在线」，不再有「未确认」 | DR-7 |

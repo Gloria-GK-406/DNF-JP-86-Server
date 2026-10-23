@@ -512,6 +512,99 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         });
     }
 
+    /// <summary>XO-4 (spec appendix D): every member's tower entry batch is delivered before the requester's.</summary>
+    [Fact]
+    public async Task A_slow_member_is_delivered_the_tower_entry_before_the_requester()
+    {
+        var requester = Session(1);
+        var member = Session(2);
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(requester, member);
+        outbound.Transport.Slow(member.ConnectionId, TimeSpan.FromMilliseconds(300));
+
+        await outbound.RunAsync(async () =>
+        {
+            var run = PartyRun(Guid.NewGuid(), requester, member);
+            var towers = new TowerDomain(run);
+            var sessions = new Sessions(requester, member);
+            var views = new EntryViews(requester, member);
+            var roster = EntryRoster(requester, member);
+            var delivery = new IllusionTowerProjectionDelivery(
+                towers, new EntryCommands(run), sessions, new EntryParties(roster), views,
+                new SameState(), null!, null!, new Intents(), outbound.Game,
+                Dfo.Server.Protocol.Tests.Game.TownProjection.TownAreaProjectionTestFactory.Create(sessions, views, outbound.Game),
+                TimeProvider.System, outbound.Closer,
+                NullLogger<IllusionTowerProjectionDelivery>.Instance, ordering: outbound.Ordering);
+
+            Assert.True(await delivery.EnterAsync(
+                requester.ConnectionId, requester, roster, Dfo.Server.Abstractions.World.DungeonEntryIntent.Interactive,
+                () => { }, CancellationToken.None));
+        });
+        await outbound.SettledAsync();
+
+        var memberEntry = outbound.Recorder.Entries.Single(entry => entry.Connection.ConnectionId == member.ConnectionId);
+        var requesterEntry = outbound.Recorder.Entries.Single(entry => entry.Connection.ConnectionId == requester.ConnectionId);
+        Assert.True(memberEntry.Order!.Value.Sequence < requesterEntry.Order!.Value.Sequence);
+        Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundDelivery.BestEffort, requesterEntry.Delivery);
+        Assert.True(outbound.Delivered(requester.ConnectionId) > outbound.Delivered(member.ConnectionId),
+            "the requester entered before the member");
+    }
+
+    private static PartySnapshot EntryRoster(params SelectedSessionIdentity[] members) => new(
+        78, 1, 1, members[0].WireUserId,
+        new PartySettings(new byte[PartySettings.WireLength]), PartyTitle.Empty,
+        [.. members.Select((session, slot) => new PartyMemberSnapshot(PartyCharacter(session), checked((byte)slot), null, 100))]);
+
+    private sealed class EntryViews(params SelectedSessionIdentity[] sessions) : ISelectedCharacterCurrentViewDomainService
+    {
+        public ValueTask<SelectCharacterResult?> TryLoadAsync(SelectedSessionIdentity session, CancellationToken cancellationToken)
+        {
+            if (!sessions.Contains(session)) return ValueTask.FromResult<SelectCharacterResult?>(null);
+            var entry = Dfo.Server.Protocol.Tests.Game.SelectCharacter.SelectCharacterPayloadTestData.CreateComplete();
+            return ValueTask.FromResult<SelectCharacterResult?>(entry with
+            {
+                Character = entry.Character with
+                {
+                    Identity = entry.Character.Identity with
+                    {
+                        CharacterId = session.CharacterId,
+                        Name = [(byte)(session.WireUserId & byte.MaxValue)],
+                    },
+                },
+            });
+        }
+    }
+
+    private sealed class SameState : ICharacterStateProjectionDomainService
+    {
+        public ValueTask<SelectCharacterResult> RefreshAsync(SelectCharacterResult result, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(result);
+    }
+
+    private sealed class EntryParties(PartySnapshot snapshot) : IPartyService
+    {
+        public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
+        public PartySnapshot FindParty(PartyCharacterSnapshot character) => snapshot;
+        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
+        public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [snapshot];
+        public PartyOperationResult CreateOrUpdateSettings(PartyCharacterSnapshot character, PartySettings settings, PartyTitle title) => throw new NotSupportedException();
+        public PartyOperationResult RequestInvite(PartyCharacterSnapshot inviter, PartyCharacterSnapshot target, PartyInviteDisplayState display) => throw new NotSupportedException();
+        public PartyOperationResult AcceptInvite(PartyCharacterSnapshot invitee, PartyCharacterSnapshot inviter) => throw new NotSupportedException();
+        public PartyOperationResult TransferLeadership(CharacterId currentLeaderCharacterId, CharacterId nextLeaderCharacterId) => throw new NotSupportedException();
+        public PartyOperationResult RemoveMember(CharacterId currentLeaderCharacterId, CharacterId targetCharacterId) => throw new NotSupportedException();
+        public PartyOperationResult LeaveParty(CharacterId characterId) => throw new NotSupportedException();
+        public PartyOperationResult CleanupCharacter(CharacterId characterId) => throw new NotSupportedException();
+    }
+
+    private sealed class EntryCommands(IllusionTowerSnapshot run) : ICommandBus
+    {
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
+            where TResult : notnull =>
+            command is EnterIllusionTowerCommand
+                ? ValueTask.FromResult((TResult)(object)new TowerEntryResult(null, run, []))
+                : throw new NotSupportedException(command.GetType().Name);
+    }
+
     private static IllusionTowerProjectionDelivery Delivery(
         TowerDomain towers, Sessions sessions, ICommandBus commands, Sender sender,
         INetworkConnectionCloser? closer = null)

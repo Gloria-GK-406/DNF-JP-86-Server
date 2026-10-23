@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Networking;
+
 namespace Dfo.Server.Abstractions.Execution;
 
 /// <summary>
@@ -91,8 +93,33 @@ public static class GameplayJob
         }
     }
 
+    /// <summary>
+    /// Runs <paramref name="hook"/> when the running job's body has ended, before the job leaves the executor
+    /// and before its caller sees the result, in the order the hooks were added (spec "作业结束"). A hook's
+    /// error fails a job that would otherwise have succeeded; a failed job keeps its own error.
+    /// </summary>
+    public static void OnEnd(string operation, Func<GameplayJobEnd, Exception?> hook)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operation);
+        ArgumentNullException.ThrowIfNull(hook);
+        var token = Active ?? throw new GameplayOffExecutorException(operation);
+        token.AddEndHook(hook);
+    }
+
+    /// <summary>Whether <paramref name="error"/> is what a job body ended with, not a refusal to run the job.</summary>
+    public static bool EndedAJob(Exception error)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+        return JobFailures.TryGetValue(error, out _);
+    }
+
+    internal static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Exception, object> JobFailures = new();
+
     internal static GameplayJobToken? Active => Running.Value is { IsActive: true } token ? token : null;
 }
+
+/// <summary>How a job ended, as its end hooks see it: cancellation counts as a failure (RQ-031(c)).</summary>
+public readonly record struct GameplayJobEnd(bool Failed, NetworkConnectionContext? Source);
 
 /// <summary>An opaque handle on one running job; only the <see cref="GameplayJobHost"/> that issued it can use it.</summary>
 public sealed class GameplayJobToken
@@ -122,6 +149,31 @@ public sealed class GameplayJobToken
     }
 
     internal void Deactivate() => active = false;
+
+    // Only the job itself adds hooks and only its host runs them, so the list needs no lock.
+    private List<Func<GameplayJobEnd, Exception?>>? endHooks;
+
+    internal void AddEndHook(Func<GameplayJobEnd, Exception?> hook) => (endHooks ??= []).Add(hook);
+
+    /// <summary>Runs every hook once; returns the first error a hook returned or threw.</summary>
+    internal Exception? RunEndHooks(GameplayJobEnd end)
+    {
+        if (endHooks is not { } hooks) return null;
+        endHooks = null;
+        Exception? first = null;
+        foreach (var hook in hooks)
+        {
+            try
+            {
+                first ??= hook(end);
+            }
+            catch (Exception error)
+            {
+                first ??= error;
+            }
+        }
+        return first;
+    }
 }
 
 /// <summary>
@@ -170,6 +222,20 @@ public abstract class GameplayJobHost
     {
         OwnedOrThrow(token, nameof(ProgramErrorOf));
         return token.ProgramError;
+    }
+
+    /// <summary>Runs the job's end hooks (<see cref="GameplayJob.OnEnd"/>) while the job is still running.</summary>
+    protected Exception? RunEndHooks(GameplayJobToken token, GameplayJobEnd end)
+    {
+        OwnedOrThrow(token, nameof(RunEndHooks));
+        return token.RunEndHooks(end);
+    }
+
+    /// <summary>Marks <paramref name="error"/> as a job body's own failure (<see cref="GameplayJob.EndedAJob"/>).</summary>
+    protected static Exception MarkJobFailure(Exception error)
+    {
+        GameplayJob.JobFailures.AddOrUpdate(error, true);
+        return error;
     }
 
     /// <summary>

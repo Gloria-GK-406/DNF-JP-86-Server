@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Application.Execution.Outbox;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
 
@@ -12,18 +13,22 @@ namespace Dfo.Server.Application.Dispatching;
 /// <remarks>
 /// Every lifecycle CMD is a new root in the transition: the close callback cannot tell a close a CMD
 /// requested from one the transport made, so neither the parent chain nor <c>lifecycle:close-cleanup</c>
-/// exists yet (T-007).
+/// exists yet (T-007). <c>lifecycle:connected</c> carries its connection as the job's source, so a
+/// failed connect closes it after what its outbox keeps (RQ-031(c)); a disconnected connection has
+/// no source left to close.
 /// </remarks>
 internal sealed class NetworkConnectionLifecycleDispatcher(
     IGameplayQueue queue,
     IEnumerable<INetworkConnectionObserver> observers,
-    ILogger<NetworkConnectionLifecycleDispatcher> logger) : INetworkConnectionLifecycleDispatcher
+    ILogger<NetworkConnectionLifecycleDispatcher> logger,
+    GameplayOutboxes outboxes) : INetworkConnectionLifecycleDispatcher
 {
     private readonly INetworkConnectionObserver[] observers = [.. observers];
 
     public ValueTask DispatchConnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken) =>
-        RunAsync(connection, "lifecycle:connected", async token =>
+        RunAsync(connection, "lifecycle:connected", source: connection, async token =>
         {
+            _ = outboxes.Current;
             foreach (var observer in observers)
             {
                 await observer.ConnectedAsync(connection, token);
@@ -31,7 +36,7 @@ internal sealed class NetworkConnectionLifecycleDispatcher(
         }, cancellationToken);
 
     public ValueTask DispatchDisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken) =>
-        RunAsync(connection, "lifecycle:disconnected", async token =>
+        RunAsync(connection, "lifecycle:disconnected", source: null, async token =>
         {
             foreach (var observer in observers)
             {
@@ -42,6 +47,7 @@ internal sealed class NetworkConnectionLifecycleDispatcher(
     private async ValueTask RunAsync(
         NetworkConnectionContext connection,
         string commandType,
+        NetworkConnectionContext? source,
         Func<CancellationToken, ValueTask> body,
         CancellationToken cancellationToken)
     {
@@ -53,7 +59,8 @@ internal sealed class NetworkConnectionLifecycleDispatcher(
                 GameplayShardKey.World,
                 GameplayCallChain.NewRoot(GameplayCallSource.Lifecycle, connection.ConnectionId),
                 commandType,
-                body), cancellationToken).ConfigureAwait(false);
+                body,
+                source), cancellationToken).ConfigureAwait(false);
         }
         catch (GameplayExecutorStoppedException)
         {

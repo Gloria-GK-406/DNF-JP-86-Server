@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
@@ -104,7 +105,8 @@ public sealed class EplpCommandHandler(
     Dfo.Server.Protocol.Game.Altar.AltarProtocolCoordinator? altars = null,
     BossTowerProjectionDelivery? bossTower = null,
     IDungeonEntryIntentDomainService? entryIntents = null, ICommandBus? commands = null,
-    ITownAreaDomainService? townAreas = null)
+    ITownAreaDomainService? townAreas = null,
+    IOutboundOrdering? ordering = null)
     : ClientMessageHandler<EplpCommandRequest>
 {
     /// <summary>The state that means "take me out of here".</summary>
@@ -261,33 +263,37 @@ public sealed class EplpCommandHandler(
             leaving,
             runEnded, currentRun?.RunId, message.Metadata.Sequence, message.Metadata.InboundOrdinal);
 
-        // Peers must see the decision before the leader's ACK can open another selection.
-        foreach (var member in returning.Where(value => value.Session != session))
+        // Peers must see the decision before the leader's ACK can open another selection (XO-2:
+        // delivered before it, each BestEffort).
+        using (ordering?.Begin("XO-2 peer decisions before the leader's ACK", OutboundDelivery.BestEffort))
         {
-            if (!selectedSessions.IsInWorld(member.Session))
-                continue;
-            try
+            foreach (var member in returning.Where(value => value.Session != session))
             {
-                await sender.SendExplicitAsync(
-                    member.Session.ConnectionId,
-                    new GameExplicitMessageDelivery(
-                        [new EplpCommandResponse(message.State, message.Option)], []),
-                    cancellationToken).ConfigureAwait(false);
+                if (!selectedSessions.IsInWorld(member.Session))
+                    continue;
+                try
+                {
+                    await sender.SendExplicitAsync(
+                        member.Session.ConnectionId,
+                        new GameExplicitMessageDelivery(
+                            [new EplpCommandResponse(message.State, message.Option)], []),
+                        cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception error) when (!cancellationToken.IsCancellationRequested)
+                {
+                    logger.LogWarning(error,
+                        "Eplp command {ConnectionId}: peer decision delivery failed for character={CharacterId}",
+                        context.Connection.ConnectionId, member.Session.CharacterId.Value);
+                }
             }
-            catch (Exception error) when (!cancellationToken.IsCancellationRequested)
-            {
-                logger.LogWarning(error,
-                    "Eplp command {ConnectionId}: peer decision delivery failed for character={CharacterId}",
-                    context.Connection.ConnectionId, member.Session.CharacterId.Value);
-            }
+            if (!selectedSessions.IsInWorld(session))
+                return;
+            await sender.SendExplicitAsync(
+                context.Connection.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    [new EplpCommandResponse(message.State, message.Option)], []),
+                cancellationToken).ConfigureAwait(false);
         }
-        if (!selectedSessions.IsInWorld(session))
-            return;
-        await sender.SendExplicitAsync(
-            context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery(
-                [new EplpCommandResponse(message.State, message.Option)], []),
-            cancellationToken).ConfigureAwait(false);
         if (leaving)
         {
             await townAreaProjection.EnterAsync(

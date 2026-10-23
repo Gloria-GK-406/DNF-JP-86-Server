@@ -2,8 +2,9 @@ using Dfo.Server.Abstractions.Execution;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Channels;
 using Dfo.Server.Abstractions.Authentication;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Accounts;
@@ -17,11 +18,20 @@ namespace Dfo.Server.Application.Authentication;
 /// A launcher credential is deliberately runtime state: restarting the server invalidates every
 /// outstanding pair without a database cleanup pass. The stable account id is the only identity
 /// that leaves this registry and reaches account or character state.
+/// <para>
+/// A connection superseded by a commit is handled in the CMD that committed it (F-65): once the
+/// transaction has committed, its online identity is removed and its close is registered in that
+/// CMD's outbox, so it closes after what the CMD registered for it. Its teardown is that connection's
+/// own <c>lifecycle:disconnected</c>. Without the two services (a registry built bare) nothing is
+/// closed and only <see cref="IsSuperseded"/> fences the connection.
+/// </para>
 /// </remarks>
 internal sealed class LoginSessionRegistry(
     IDomainTransactionAccessor transactions,
     TimeProvider clock,
-    LoginSessionOptions options)
+    LoginSessionOptions options,
+    IOnlineUserDomainService? onlineUsers = null,
+    INetworkConnectionCloser? closer = null)
 {
     private const int MinimumMId = 100_000;
     private const int MaximumMIdExclusive = 1_000_000;
@@ -31,9 +41,6 @@ internal sealed class LoginSessionRegistry(
     private readonly Dictionary<NetworkConnectionId, Session> byConnection = [];
     private readonly Dictionary<NetworkConnectionId, LoginSessionParticipant> pendingBindings = [];
     private readonly HashSet<NetworkConnectionId> superseded = [];
-    private readonly Channel<NetworkConnectionId> closeRequests = System.Threading.Channels.Channel.CreateUnbounded<NetworkConnectionId>();
-
-    internal ChannelReader<NetworkConnectionId> CloseRequests => closeRequests.Reader;
 
     public Func<bool>? CaptureAuthority(NetworkConnectionId connectionId)
     {
@@ -75,13 +82,26 @@ internal sealed class LoginSessionRegistry(
         lock (sync) RemoveExpired(clock.GetUtcNow());
     }
 
-    private void Supersede(Session session)
+    private void Supersede(LoginSessionParticipant participant, Session session)
     {
         if (session.ConnectionId is not { } connection) return;
         byConnection.Remove(connection);
         session.ConnectionId = null;
         superseded.Add(connection);
-        closeRequests.Writer.TryWrite(connection);
+        participant.Superseded.Add(connection);
+    }
+
+    /// <summary>After the commit, in the committing CMD: the superseded connections lose their online identity, then are closed.</summary>
+    private async ValueTask ReleaseSupersededAsync(LoginSessionParticipant participant, CancellationToken cancellationToken)
+    {
+        foreach (var connection in participant.Superseded)
+        {
+            // Selected-session cleanup remains in the disconnect observer, including its orphan path.
+            // Removing the online identity prevents further character operations now.
+            onlineUsers?.TryDisconnectConnection(connection);
+            if (closer is not null)
+                await closer.RequestCloseAsync(connection, cancellationToken).ConfigureAwait(false);
+        }
     }
     private readonly Dictionary<string, Session> byMId = new(StringComparer.Ordinal);
     private readonly Dictionary<AccountId, Session> byAccount = [];
@@ -120,7 +140,13 @@ internal sealed class LoginSessionRegistry(
                 "Login session changes require an active domain transaction.");
         return transaction.Enlist(
             this,
-            () => new LoginSessionParticipant(this));
+            () =>
+            {
+                var participant = new LoginSessionParticipant(this);
+                if (onlineUsers is not null || closer is not null)
+                    transaction.RegisterAfterCommit(participant, ct => ReleaseSupersededAsync(participant, ct));
+                return participant;
+            });
     }
 
     private IssuedLoginSession StageIssue(
@@ -208,7 +234,7 @@ internal sealed class LoginSessionRegistry(
             {
                 if (byAccount.Remove(issue.AccountId, out var previous))
                 {
-                    Supersede(previous);
+                    Supersede(participant, previous);
                     byMId.Remove(previous.MId);
                 }
 
@@ -228,7 +254,7 @@ internal sealed class LoginSessionRegistry(
                 && ReferenceEquals(current, bound)
                 && ReferenceEquals(bound.ReservedBy, participant))
             {
-                Supersede(bound);
+                Supersede(participant, bound);
                 bound.ReservedBy = null;
                 bound.Generation++;
                 bound.ConnectionId = participant.TargetDisconnected ? null : participant.ConnectionId;
@@ -312,6 +338,7 @@ internal sealed class LoginSessionRegistry(
         public Session? Binding { get; private set; }
         public NetworkConnectionId? ConnectionId { get; private set; }
         public bool TargetDisconnected { get; set; }
+        public List<NetworkConnectionId> Superseded { get; } = [];
         public bool CommitCanFail => false;
 
         public IssuedLoginSession StageIssue(

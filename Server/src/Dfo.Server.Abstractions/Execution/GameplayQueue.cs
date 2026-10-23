@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Networking;
+
 namespace Dfo.Server.Abstractions.Execution;
 
 /// <summary>
@@ -9,17 +11,24 @@ public readonly record struct GameplayShardKey(string? Scope)
     public static GameplayShardKey World => default;
 }
 
+/// <param name="Source">
+/// The connection the work came from, exactly as registered (inbound messages and <c>lifecycle:connected</c>);
+/// null otherwise. A job whose body fails closes it after everything its outbox keeps (RQ-031(c)).
+/// </param>
 public sealed record GameplayWork<T>(
     GameplayShardKey Key,
     GameplayCallChain Chain,
     string CommandType,
-    Func<CancellationToken, ValueTask<T>> Body);
+    Func<CancellationToken, ValueTask<T>> Body,
+    NetworkConnectionContext? Source = null);
 
+/// <inheritdoc cref="GameplayWork{T}"/>
 public sealed record GameplayWork(
     GameplayShardKey Key,
     GameplayCallChain Chain,
     string CommandType,
-    Func<CancellationToken, ValueTask> Body);
+    Func<CancellationToken, ValueTask> Body,
+    NetworkConnectionContext? Source = null);
 
 /// <summary>
 /// The one way gameplay work reaches the executor (spec "入队点"). The work is enqueued before the

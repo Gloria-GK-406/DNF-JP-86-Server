@@ -19,11 +19,20 @@ internal abstract class NetworkPluginBase(
     protected NetworkEndpointKind EndpointKind { get; } = endpointKind;
 
     // Stream boundaries, like the receive callbacks. The registry is transport state and changes
-    // here, before the lifecycle CMD is enqueued.
+    // here, before the lifecycle CMD is enqueued. A lifecycle job that fails has already registered the
+    // close of this connection after its other entries (RQ-031(c)) and the executor has logged it, so
+    // the failure is not passed on to TouchSocket, whose own close would overtake those frames.
     public Task OnTcpConnected(ITcpSession client, ConnectedEventArgs e) => GameplayJob.RunDetachedAsync(async () =>
     {
         var context = Connections.Add(client, EndpointKind);
-        await lifecycle.DispatchConnectedAsync(context, CancellationToken.None);
+        try
+        {
+            await lifecycle.DispatchConnectedAsync(context, CancellationToken.None);
+        }
+        catch (Exception error) when (GameplayJob.EndedAJob(error))
+        {
+            return;
+        }
 
         await e.InvokeNext();
     }).AsTask();
@@ -83,6 +92,9 @@ internal sealed class ChannelNetworkPlugin(
                         connectionId,
                         frame.MessageNumber,
                         message.GetType().Name);
+                    // The failed job closes this connection itself, after what its outbox kept (RQ-031(c)).
+                    if (GameplayJob.EndedAJob(error))
+                        return;
                     throw;
                 }
             }
@@ -160,11 +172,12 @@ internal sealed class GameNetworkPlugin(
                 }
                 catch (Exception error)
                 {
-                    // Logged and rethrown, not handled. Without this the frame simply stops being
-                    // processed and the connection drops with nothing written anywhere: command
-                    // failures are logged by the command pipeline, but a handler that throws after
-                    // its commands succeeded had no reporting path at all. Rethrowing keeps the
-                    // existing behaviour exactly; only the silence is removed.
+                    // Logged, because a handler that throws after its commands succeeded has no other
+                    // reporting path. A job that failed is not rethrown (DR-15, RQ-031(c)): its outbox
+                    // closes this connection after the entries it kept, where a rethrow would let
+                    // TouchSocket close it at once and overtake them. A refusal to run the job (the
+                    // executor stopped, the depth limit) registered nothing and is still rethrown, so
+                    // the transport closes the connection as before.
                     logger.LogError(
                         error,
                         "Game handler failed {ConnectionId}: selector=0x{Selector:X2} "
@@ -173,6 +186,8 @@ internal sealed class GameNetworkPlugin(
                         frame.Selector,
                         frame.Type,
                         message.GetType().Name);
+                    if (GameplayJob.EndedAJob(error))
+                        return;
                     throw;
                 }
             }

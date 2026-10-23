@@ -90,7 +90,7 @@ public sealed class NotificationRegistrationTests
     {
         var registration = new NotificationHandlerRegistration(
             typeof(UnhandledProbe), typeof(ProbeHandler),
-            typeof(NotificationComposer<UnhandledProbe>), RetryLimit: 0);
+            typeof(NotificationComposer<UnhandledProbe>));
 
         var error = Assert.Throws<InvalidOperationException>(() =>
             new NotificationHandlerRegistry([registration, registration], []));
@@ -115,7 +115,7 @@ public sealed class NotificationRegistrationTests
     public void A_registered_handler_is_found_with_the_retry_limit_it_declared()
     {
         var services = new ServiceCollection()
-            .AddNotificationHandler<UnhandledProbe, ProbeHandler>(retryLimit: 2);
+            .AddNotificationHandler<UnhandledProbe, ProbeHandler>();
 
         var registration = new NotificationHandlerRegistry(
             services.Select(descriptor => descriptor.ImplementationInstance)
@@ -125,7 +125,6 @@ public sealed class NotificationRegistrationTests
 
         Assert.Equal(typeof(ProbeHandler), registration.HandlerType);
         Assert.Equal(typeof(NotificationComposer<UnhandledProbe>), registration.ComposerType);
-        Assert.Equal(2, registration.RetryLimit);
     }
 
     /// <summary>The modules are wired so the check comes before anything that opens a port.</summary>
