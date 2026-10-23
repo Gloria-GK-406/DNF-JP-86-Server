@@ -11,6 +11,7 @@ public sealed class HostOutputViolationTests
     [Theory]
     [InlineData("      Dfo.Server.Abstractions.Execution.GameplayOffExecutorException: Writing PartyService.LeaveParty must happen inside a gameplay job.", "GameplayOffExecutorException")]
     [InlineData(" ---> Dfo.Server.Abstractions.Execution.GameplayLeakedFlowException: bus:Probe was called on a flow leaked from a finished gameplay job", "GameplayLeakedFlowException")]
+    [InlineData("      Dfo.Server.Abstractions.Execution.GameplaySelfWaitException: Waiting for the network (send) must not happen on the gameplay executor (root 00000000-0000-0000-0000-000000000000, depth 0: inbound:GameLogin).", "GameplaySelfWaitException")]
     public void An_assertion_exception_in_a_line_of_host_output_is_recognised(string line, string type)
     {
         Assert.Equal(type, GameplayAssertionRecorder.ViolationIn(line));

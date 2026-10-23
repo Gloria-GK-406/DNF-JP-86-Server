@@ -100,13 +100,16 @@ public sealed class CommandHandlerArchitectureTests
     /// Without this, a rule that accepted everything would pass the check above just as quietly as
     /// a repository with no violations. The types below stand for the four ways the injection
     /// surface has actually gone wrong here: reaching a single table, reaching a storage seam,
-    /// reaching a container, and dispatching another command.
+    /// reaching a container, and dispatching another command; the two senders stand for a command
+    /// calling a sender itself (AC-011).
     /// </remarks>
     [Theory]
     [InlineData(typeof(Dfo.Server.Abstractions.Persistence.ICharacterTable))]
     [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionPositionPersistence))]
     [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionSnapshotQuery))]
     [InlineData(typeof(ICommandBus))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Networking.INetworkMessageSender))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.IGameMessageSender))]
     [InlineData(typeof(string))]
     public void ATypeOutsideTheVocabularyIsRefused(Type type) => Assert.False(IsPermitted(type));
 

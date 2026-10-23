@@ -55,6 +55,7 @@ internal static class GameplayAssertionRecorder
     [
         nameof(GameplayOffExecutorException),
         nameof(GameplayLeakedFlowException),
+        nameof(GameplaySelfWaitException),
     ];
 
     private static void Record(GameplayAssertionViolation violation)
