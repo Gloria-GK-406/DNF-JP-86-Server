@@ -1,12 +1,12 @@
 ---
 kind: rks-spec
 contract:
-  path: ./TaskContract.md
+  path: ./attempts/spec-001-executor-outbox-lock-removal/TaskContract.md
   revision: 2
 state: ready
 ---
 
-# Specification: 玩法执行改为单执行器、协议级 CMD 与提交后发件箱
+# Specification: 玩法执行改为单执行器、协议级 CMD 与提交后发件箱（spec-001：结果 A）
 
 ## Why and Outcome
 
@@ -19,7 +19,7 @@ state: ready
 ## Definitions
 
 - **执行器**：进程内唯一的玩法执行单元。先进先出，单消费者；同一时刻只执行一条 CMD，执行到完成才取下一条。
-- **CMD**：执行器上的一个执行单位，即一条命令。它不是 Game 出站首字节 `0x01` 的 CMD 类别。分两类：
+- **CMD**〔改道 R3：在 A 的验收边界内落为执行器作业，见修订记录 R3-2〕：执行器上的一个执行单位，即一条命令。它不是 Game 出站首字节 `0x01` 的 CMD 类别。分两类：
   - **协议 CMD**：一个入站协议消息类型对应一个；
   - **内部 CMD**：定时触发、事件消费、连接生命周期、GM/HTTP 写操作等非协议来源。
 - **入队点**：把 CMD 交给执行器的唯一 API。
@@ -32,7 +32,7 @@ state: ready
 
 ## Scope
 
-**In**：执行器与入队点；全部入口改为 CMD；协议 CMD 吸收 handler 的工作；工作单元与发件箱；发送端（队列、顺序、失败策略）；调用链与深度上限；删除玩法路径的锁；判据；测试；测量；文档。
+**In**：执行器与入队点；全部入口改为 CMD；协议 CMD 吸收 handler 的工作〔改道 R3：移交子 Spec B〕；工作单元与发件箱；发送端（队列、顺序、失败策略）；调用链与深度上限；删除玩法路径的锁；判据；测试；测量；文档。
 
 **Out**：按频道分流（只预留分流键）；删除短 `lock(sync)` 与 PVF 缓存锁；持久化模型与表结构；协议字段与编码；#209、#210；推送、PR、远端 issue。
 
@@ -63,25 +63,25 @@ state: ready
 | RQ-014 | **事件消费**：Reliable、LiveOnly 订阅与失败重试，都以事件 CMD 执行，语义见 RQ-040～RQ-042。`DirectAsync` 订阅仍在调用方 CMD 内同步执行。 |
 | RQ-015 | **GM 与 HTTP**：写操作，以及读取内存玩法状态的读操作，都以 CMD 执行。HTTP 请求在执行器外等待 CMD 完成，再返回结果。 |
 
-### C. 协议 CMD
+### C. 协议 CMD〔改道 R3：本节移交子 Spec B；RQ-023、RQ-024 跨 A／B，见修订记录 R3-1〕
 
 | ID | Requirement |
 |---|---|
-| RQ-020 | 每个已注册的入站消息号（`ClientMessageType`）恰好映射到一个协议 CMD 类型；一个 CMD 类型可以服务多个消息号。handler 只做两件事：把解包后的消息与连接身份交给入队点，等待 CMD 完成以实现 RQ-005。handler 不注入领域服务、发送器、门或关连接器。例外：只记日志、不改状态、不写库、不发包的纯遥测 handler，可以留在执行器外（附录 B）；它们只能注入日志。 |
-| RQ-025 | **请求级上下文是 CMD 的显式数据**，在执行器上、CMD 开始时建立，不依赖 AsyncLocal 跨入队点传递。它包括：物理连接上下文、捕获的登录权威、效果账本条目、入站元数据、选中会话接收者。dispatcher 今天在入队前做的检查（会话封锁 `IsBlocked`、登录顶替 `IsSuperseded`、`CaptureAuthority`），在 CMD 开始时、在执行器上重做。请求级上下文有三种合法状态，与今天对应：
+| RQ-020 | 〔改道 R3：移交子 Spec B〕每个已注册的入站消息号（`ClientMessageType`）恰好映射到一个协议 CMD 类型；一个 CMD 类型可以服务多个消息号。handler 只做两件事：把解包后的消息与连接身份交给入队点，等待 CMD 完成以实现 RQ-005。handler 不注入领域服务、发送器、门或关连接器。例外：只记日志、不改状态、不写库、不发包的纯遥测 handler，可以留在执行器外（附录 B）；它们只能注入日志。 |
+| RQ-025 | 〔改道 R3：移交子 Spec B〕**请求级上下文是 CMD 的显式数据**，在执行器上、CMD 开始时建立，不依赖 AsyncLocal 跨入队点传递。它包括：物理连接上下文、捕获的登录权威、效果账本条目、入站元数据、选中会话接收者。dispatcher 今天在入队前做的检查（会话封锁 `IsBlocked`、登录顶替 `IsSuperseded`、`CaptureAuthority`），在 CMD 开始时、在执行器上重做。请求级上下文有三种合法状态，与今天对应：
 |  | (1) 非效果消息：没有账本条目，这是合法的； |
 |  | (2) 没有选中会话的效果请求：可以回拒绝，但不能结算（今天的 `EnterWithoutSelectedSession`）； |
 |  | (3) 有选中会话的效果请求：有账本条目，序号必须前进。 |
 |  | 只有当效果结算请求的协议 CMD 缺少它应有的状态 (2) 或 (3) 时，才视为程序错误；不再「没有帧就放行」。今天由管线 45、58、60 号行为承担的非锁职责，按附录 H 逐项迁移。 |
-| RQ-021 | 今天 handler、`*Delivery`、`*Coordinator` / `*Coordination` 里的具名判定、领域调用、多段提交、投递、补偿、回滚，都并入对应的 CMD。多个 CMD 共享的逻辑放在领域服务或应用服务里，CMD 不调用另一个 CMD。 |
-| RQ-022 | 今天的细粒度命令处理器，并入协议 CMD 或内部 CMD、改成应用服务，或删除，不保留转发层。 |
-| RQ-023 | 以下保护原样保留，在 CMD 内的位置等价： |
+| RQ-021 | 〔改道 R3：移交子 Spec B〕今天 handler、`*Delivery`、`*Coordinator` / `*Coordination` 里的具名判定、领域调用、多段提交、投递、补偿、回滚，都并入对应的 CMD。多个 CMD 共享的逻辑放在领域服务或应用服务里，CMD 不调用另一个 CMD。 |
+| RQ-022 | 〔改道 R3：移交子 Spec B〕今天的细粒度命令处理器，并入协议 CMD 或内部 CMD、改成应用服务，或删除，不保留转发层。 |
+| RQ-023 | 〔改道 R3：跨 A／B，拆法见修订记录 R3-1〕以下保护原样保留，在 CMD 内的位置等价： |
 |  | (a) #185 的具名判定（`IsSelected`、`IsInWorld`、`TryGetInWorld`、`StandingOf`、`ReleaseExact`）； |
 |  | (b) 效果账本「一次网络效果请求只有一个主结算」与已提交请求的重放； |
 |  | (c) 事务结果不确定时的会话隔离（`TransactionOutcomeUncertainException` → `SelectedSessionSafety.BlockAsync`）。CMD 带有参与者集合时（今天的 `IMultiSelectedSessionCommand.Sessions`），封锁集合中的**每个**会话；提交之后、CMD 之内发生的非传输失败（组帧、运行时认领、评估等），保持今天的处理方式，例如怪物死亡会封锁全部参与者（`MonsterDeathSlice.cs:455-497`）。 |
 |  | (d) 登录被顶替的权威检查（`LoginSessionRegistry.IsSuperseded`、`CaptureAuthority`）； |
 |  | (e) 领域服务只接收业务槽位（`BusinessSlot`），协议槽位只在协议边界内出现。 |
-| RQ-024 | **工作单元**：今天按「一命令一事务」提交的每一段，在 CMD 内仍是独立的工作单元，提交点不合并、不拆分，除非附录 C 明确列出并说明理由。只读命令今天用只读事务的，仍用只读工作单元。 |
+| RQ-024 | 〔改道 R3：跨 A／B，拆法见修订记录 R3-1〕**工作单元**：今天按「一命令一事务」提交的每一段，在 CMD 内仍是独立的工作单元，提交点不合并、不拆分，除非附录 C 明确列出并说明理由。只读命令今天用只读事务的，仍用只读工作单元。 |
 
 ### D. 发件箱与发送端
 
@@ -135,12 +135,12 @@ state: ready
 
 | ID | Requirement |
 |---|---|
-| RQ-070 | 结构判据（反射测试）： |
+| RQ-070 | 〔改道 R3：移交子 Spec B〕结构判据（反射测试）： |
 |  | (a) handler 的构造参数只能是入队点与日志； |
 |  | (b) CMD 处理器的注入面只能是：`Dfo.Server.Abstractions` 中以 `DomainService` / `DomainStore` 结尾的接口、今天豁免清单里的 `TimeProvider` 与 `IPartyService`，以及具名的协议边界能力（发件箱、关连接、协议槽位映射、日志）。具名清单写在判据旁，每项附理由；不得出现入队点、执行器、门、发送器； |
 |  | (c) 每个已注册的入站协议消息类型恰有一个协议 CMD。 |
-| RQ-071 | 今天会冲突的判据都要重写，并保留各自的保护意图，包括：`CommandHandlerArchitectureTests`、`CommandRegistrationTests`、`CommandBusTests`（嵌套 dispatch）、`EffectSettlementRegistrationTests`、`InventorySlotBoundaryArchitectureTests`、`NotificationHandlerArchitectureTests`、`EventNotificationBoundaryTests`。 |
-| RQ-072 | RQ-061 与 RQ-070 的每一条判据，都配一条证明它会拒绝的反例用例。 |
+| RQ-071 | 〔改道 R3：跨 A／B，拆法见修订记录 R3-1〕今天会冲突的判据都要重写，并保留各自的保护意图，包括：`CommandHandlerArchitectureTests`、`CommandRegistrationTests`、`CommandBusTests`（嵌套 dispatch）、`EffectSettlementRegistrationTests`、`InventorySlotBoundaryArchitectureTests`、`NotificationHandlerArchitectureTests`、`EventNotificationBoundaryTests`。 |
+| RQ-072 | 〔改道 R3：跨 A／B，拆法见修订记录 R3-1〕RQ-061 与 RQ-070 的每一条判据，都配一条证明它会拒绝的反例用例。 |
 
 ### I. 行为不变的证据
 
@@ -182,7 +182,7 @@ state: ready
 
 | ID | Requirement |
 |---|---|
-| RQ-100 | 更新 `AGENTS.md` 的执行模型相关内容：架构总览与请求走向、命令执行总线（含管线实际层数）、handler 业务语义规则、SelectCharacter、领域事件与即时投影、构建与测试中关于并发假红的段落、`PersistOnTeardownAsync` 等已过时的名称。同时更新 `Docs/Agent/ArchitecturePhilosophy.md` §1 与 §5。文档里不再出现已删除的门与管线行为（作为被推翻做法的记录除外）。 |
+| RQ-100 | 〔改道 R3：跨 A／B，拆法见修订记录 R3-1〕更新 `AGENTS.md` 的执行模型相关内容：架构总览与请求走向、命令执行总线（含管线实际层数）、handler 业务语义规则、SelectCharacter、领域事件与即时投影、构建与测试中关于并发假红的段落、`PersistOnTeardownAsync` 等已过时的名称。同时更新 `Docs/Agent/ArchitecturePhilosophy.md` §1 与 §5。文档里不再出现已删除的门与管线行为（作为被推翻做法的记录除外）。 |
 
 ## Acceptance Criteria
 
@@ -198,9 +198,9 @@ state: ready
 | AC-005 | RQ-007、RQ-090(d)、RQ-091 | 口令哈希在执行器外执行（判据或测试断言不在执行器上），并发有上限；测量记录满足 RQ-091。 |
 | AC-006 | RQ-010、RQ-011、RQ-013～RQ-015 | 附录 A 每一项都有「来源 → CMD 类型 → 测试或检索证据」的对账行；附录 B 每一项都有安全理由；代码中检索不到在执行器外改状态、写库或发包的路径（RQ-061 判据通过）。 |
 | AC-007 | RQ-012、RQ-008、RQ-009 | 断线、关连接、被顶替三种情形下，清理都作为生命周期 CMD 执行。由 CMD 发起的关连接，发生在该 CMD 此前登记的消息交付之后（线级测试断言帧在断开之前到达）。CMD 关闭自己的来源连接（例如登录被拒）不会自锁（线级测试）。停机测试：在线玩家的拆除落库在执行器停止之前完成，位置不丢失。 |
-| AC-008 | RQ-020～RQ-022、RQ-070 | 反射判据：从全部已注册的入站消息号到协议 CMD 类型的映射是全函数，附录 B 列出的纯遥测 handler 除外，handler 与 CMD 处理器的注入面合规，判据都有反例用例；生产代码中没有 CMD 调用另一个 CMD。 |
-| AC-009 | RQ-023、RQ-025 | 具名判定、效果账本、会话隔离、登录顶替、槽位边界的既有测试，在新结构下断言不变并通过；改写的测试逐条说明。`MonsterDeathHandlerTests.Party_publication_failure_fences_every_recipient_of_the_shared_settlement` 的断言不变。经真实入站路径的反例用例：重发一个已提交的效果请求，得到重放而不是断线；效果结算请求的协议 CMD 缺少 RQ-025 的状态 (2) 或 (3) 时抛出程序错误，非效果消息没有账本条目时照常执行。附录 H 逐项对账。 |
-| AC-010 | RQ-024 | 附录 C 对照表：今天的每个事务边界都对应新的工作单元，提交点的合并或拆分各自附理由；持久化相关测试通过。 |
+| AC-008 | 〔改道 R3：移交子 Spec B〕RQ-020～RQ-022、RQ-070 | 反射判据：从全部已注册的入站消息号到协议 CMD 类型的映射是全函数，附录 B 列出的纯遥测 handler 除外，handler 与 CMD 处理器的注入面合规，判据都有反例用例；生产代码中没有 CMD 调用另一个 CMD。 |
+| AC-009 | 〔改道 R3：跨 A／B，拆法见修订记录 R3-1〕RQ-023、RQ-025 | 具名判定、效果账本、会话隔离、登录顶替、槽位边界的既有测试，在新结构下断言不变并通过；改写的测试逐条说明。`MonsterDeathHandlerTests.Party_publication_failure_fences_every_recipient_of_the_shared_settlement` 的断言不变。经真实入站路径的反例用例：重发一个已提交的效果请求，得到重放而不是断线；效果结算请求的协议 CMD 缺少 RQ-025 的状态 (2) 或 (3) 时抛出程序错误，非效果消息没有账本条目时照常执行。附录 H 逐项对账。 |
+| AC-010 | 〔改道 R3：移交子 Spec B〕RQ-024 | 附录 C 对照表：今天的每个事务边界都对应新的工作单元，提交点的合并或拆分各自附理由；持久化相关测试通过。 |
 | AC-011 | RQ-030、RQ-031 | 单元测试： |
 |  |  | - 一条 CMD 在两个工作单元里各登记一条消息，第二个工作单元回滚，只刷出第一条； |
 |  |  | - CMD 先在已提交的单元内、再在单元外登记消息，然后以未处理异常结束：这些消息按序刷出，在它们之后来源连接被关闭；回滚单元内的消息不发出； |
@@ -218,11 +218,11 @@ state: ready
 | AC-015 | RQ-040～RQ-043 | 事件测试：Reliable 完成标记与业务写入同提交、失败回滚后记录重试、LiveOnly 跳过与不补播、启动扫描遗留 delivery、订阅组内顺序与失败退避后的继续处理。 |
 | AC-016 | RQ-050～RQ-054 | Given 一条事件链超过深度上限，Then 不入队、`Error` 日志包含完整链、根连接被关闭；超限的 Reliable delivery 状态为 Terminal、LiveOnly delivery 已完成，二者都不会再被分发循环取出（测试断言分发循环之后进入等待，而不是空转）；无连接链只记日志；失败重试继承原链；正常 CMD 日志带根、父、深度；判据测试钉住深度常量与附录 A 的最长链。 |
 | AC-017 | RQ-060、RQ-061 | 附录 F 逐项对账：「删除」栏在 `Server/src` 中检索为零；运行期判据在执行器外调用时抛出（反例用例）。 |
-| AC-018 | RQ-071、RQ-072 | 被重写的判据逐条说明「旧断言 → 新断言 → 保护意图」，每条都有反例用例。 |
-| AC-019 | RQ-080 | 表征测试在基线提交上通过（记录运行日志），改造后断言不变并通过；附录 G 允许的差异逐条对应。 |
-| AC-020 | RQ-081～RQ-083 | 构建与全量测试输出（detailed logger 落盘）；测试数量加法；改动的线级测试文件清单与说明。 |
-| AC-021 | RQ-090、RQ-091 | 测量记录包含口径与数字，满足达标标准。 |
-| AC-022 | RQ-100 | 文档差异，检索已删除的类型名只出现在「被推翻的做法」一类的记录中。 |
+| AC-018 | 〔改道 R3：跨 A／B，拆法见修订记录 R3-1〕RQ-071、RQ-072 | 被重写的判据逐条说明「旧断言 → 新断言 → 保护意图」，每条都有反例用例。 |
+| AC-019 | 〔改道 R3：A 与 B 各自满足，见修订记录 R3-1〕RQ-080 | 表征测试在基线提交上通过（记录运行日志），改造后断言不变并通过；附录 G 允许的差异逐条对应。 |
+| AC-020 | 〔改道 R3：A 与 B 各自满足，见修订记录 R3-1〕RQ-081～RQ-083 | 构建与全量测试输出（detailed logger 落盘）；测试数量加法；改动的线级测试文件清单与说明。 |
+| AC-021 | 〔改道 R3：A 与 B 各自满足，见修订记录 R3-1〕RQ-090、RQ-091 | 测量记录包含口径与数字，满足达标标准。 |
+| AC-022 | 〔改道 R3：跨 A／B，拆法见修订记录 R3-1〕RQ-100 | 文档差异，检索已删除的类型名只出现在「被推翻的做法」一类的记录中。 |
 
 ## Appendix A：入口与 CMD 来源
 
@@ -284,7 +284,7 @@ state: ready
 | 不碰玩法状态的 HTTP 路由（TASK-14 按 RQ-011 新增）：GM `GET /api/gm/v1/health`、`GET /gm/{**path}`、`GET /api/gm/v1/auth/csrf`、`GET /api/gm/v1/auth/session`，启动器 `GET /api/launcher/v1/bootstrap` | 只返回常量、静态文件、防伪令牌、GM 边界已识别并放进请求的身份或就绪标志，不读写玩法状态、不写库、不发包；以路由元数据 `OutsideGameplay(理由)` 标注，豁免集合由 `GmGameplayRouteTests.Every_gm_and_launcher_route_is_a_cmd_or_a_listed_exemption` 钉住。**补齐（TASK-16）**：GM 路由组过滤器（`HttpGameplay.RunsOnGameplay`）在入队之前、执行器外把 JSON 请求体读入内存（上限 32 KiB）；它只读 HTTP 请求本身，读体异常原样交给 CMD 内的委托（判据 `GmGameplayRouteTests.A_slowly_sent_body_is_read_off_the_executor_before_its_cmd_is_queued`、`GmGameplayRouteTests.Refused_bodies_keep_their_status_and_message`） |
 | 生产者的入队侧（TASK-16 按 RQ-011 新增）：`NetworkMessageDispatcher` 与 `NetworkConnectionLifecycleDispatcher` 的入队并等待；各定时源的计时循环、`CoalescingGameplaySource` 与 `GameplayTimerWork`，`ScheduledTaskHostedService` 的计时循环与并发槽（T-005 删除）；卡牌协调器在延时上的等待与 `DrainAsync`；`DomainEventDispatcher` 的组循环与组门（T-005 删除）；`HttpGameplay.RunAsync` 与两个凭据 reader 返回之后在请求线程上的等待及 `IResult` 的写出；`GameServerStartupService`、`GmBootstrapService` 对启动作业的等待；`GameplayExecutorLifetime` 依次排空生产者再停止执行器 | 只组织作业、入队、等待作业完成，或写出作业已经算好的不可变结果；不读写玩法状态、不取玩法门、不开工作单元。玩法部分整个在作业里（拆分原则第 2 条）。等待时不持玩法门（会话门、账号门、在线用户门、准入门、投影门），所以「执行器外一边持门一边等已迁入的入口」不成立（拆分原则第 3 条，各单元 Required check 8 逐个列过）；例外是事件组门与调度任务并发槽，它们在持有期间等待作业，但作业从不获取它们，不成环，二者在 T-005 删除（门断言若覆盖它们会在执行器外报错，见 `verification/t004c-entry.md` 第 1 项）。依据：探针 P1／P2／P3 在执行器外对玩法状态的访问，3.1～3.9 族只剩 TASK-16 允许的残留（`verification/entry-reconciliation.md` §1）；生产代码中持有 `IGameplayQueue` 的位置以基准 `c3115f9a` 的 37 行检索为准，新增持有者要同时改本行与该检索；`GameplaySelfWait` 在正式全量中为 0 |
 
-## Appendix C：工作单元对照（实施时填写）
+## Appendix C：工作单元对照（实施时填写）〔改道 R3：移交子 Spec B〕
 
 实施时为每个改造的 CMD 列出：今天的命令与事务边界（Transactional / ReadOnly / Direct / Workflow），新 CMD 中对应的工作单元，以及合并或拆分的理由。默认一对一。
 
@@ -356,25 +356,100 @@ state: ready
 | VC-8 | 慢客户端在发送超时或发送队列超限时被断开（今天是标记投递失败、进入重试） | RQ-036 |
 | VC-9 | `SET_PARTY_INFO`（0x000C）的队伍标题超过 256 B 时请求被拒绝（解码失败），发送者连接被关闭；今天这样的标题被接受，并扇出给队员与区域内的人。256 B 是服务端策略，没有客户端上限证据 | F-115；不让一条客户端请求占满第三方的发送队列（RQ-036） |
 
-## Appendix H：管线行为的非锁职责去向
+## Appendix H：管线行为的非锁职责去向〔改道 R3：按行拆分，见修订记录 R3-1〕
 
 依据：`Commands/Pipeline/*.cs`、`Effects/EffectOperationContext.cs`、`Effects/EffectOperationLedger.cs`、`Commands/NetworkCommandAuthorization.cs`、`Dispatching/NetworkMessageDispatcher.cs`。实施时逐项对账（AC-009），新发现的职责补入本表。
 
 | 今天的位置 | 职责 | 去向 |
 |---|---|---|
-| dispatcher | 会话封锁 `IsBlocked`、登录顶替 `IsSuperseded`、`CaptureAuthority`、`NetworkCommandAuthorization.Enter` | 协议 CMD 开始时，在执行器上执行（RQ-025） |
-| `EffectOperationLedger` | 按连接与序号登记账本条目，并检查序号必须前进；重放已提交请求；把 Pending 结束记为 Rejected；没有选中会话时进入「可拒绝、不可结算」帧（`EnterWithoutSelectedSession`） | 作为协议 CMD 的请求级上下文（RQ-025 的三种状态），在 CMD 开始时登记，结束时落定；重放由该 CMD 执行 |
-| 45 `SelectedSessionExecutionBehavior` | `BeginMain`（一请求一主结算）、`DemandRecipient`、`Capture` 接收者、账号与会话一致性检查、参与者集合必须包含报告会话、逐个 `DemandCurrent`、结果不确定时逐个 `BlockAsync`、设置 `SelectedSessionCommandScope` | 取锁部分删除；其余在 CMD 内主结算所在的工作单元前后执行。主结算的识别方式由今天的「命令类型实现 `IRequestSettlementCommand`」改为「CMD 声明自己的主结算工作单元」，`EffectSettlementRegistrationTests` 按此重写 |
-| 58 `SelectedSessionSettlementBehavior` | `authorization.DemandCurrent`、接收者 `DemandCurrent`、`Settled` / `Failed` 记录、结果不确定时 `BlockAsync` | 在主结算工作单元提交前后执行，语义不变 |
-| 60 `UnitOfWorkBehavior` | 开启与提交事务、`RequireRollback`、`TransactionStarted` / `RollbackConfirmed` / `Freeze` | 由工作单元作用域承担，语义不变 |
-| 100 `CommandExecutionPolicyBehavior` | 授权 `DemandCurrent`、拒绝未知执行方式 | 授权检查并入 RQ-025；执行方式随工作单元模型改写 |
-| 0 `CommandLoggingBehavior` | 计时与成功或失败日志 | 由执行器对每条 CMD 记录，并带调用链（RQ-054） |
+| dispatcher | 〔改道 R3：跨 A／B，拆法见修订记录 R3-1〕会话封锁 `IsBlocked`、登录顶替 `IsSuperseded`、`CaptureAuthority`、`NetworkCommandAuthorization.Enter` | 协议 CMD 开始时，在执行器上执行（RQ-025） |
+| `EffectOperationLedger` | 〔改道 R3：移交子 Spec B〕按连接与序号登记账本条目，并检查序号必须前进；重放已提交请求；把 Pending 结束记为 Rejected；没有选中会话时进入「可拒绝、不可结算」帧（`EnterWithoutSelectedSession`） | 作为协议 CMD 的请求级上下文（RQ-025 的三种状态），在 CMD 开始时登记，结束时落定；重放由该 CMD 执行 |
+| 45 `SelectedSessionExecutionBehavior` | 〔改道 R3：跨 A／B，拆法见修订记录 R3-1〕`BeginMain`（一请求一主结算）、`DemandRecipient`、`Capture` 接收者、账号与会话一致性检查、参与者集合必须包含报告会话、逐个 `DemandCurrent`、结果不确定时逐个 `BlockAsync`、设置 `SelectedSessionCommandScope` | 取锁部分删除；其余在 CMD 内主结算所在的工作单元前后执行。主结算的识别方式由今天的「命令类型实现 `IRequestSettlementCommand`」改为「CMD 声明自己的主结算工作单元」，`EffectSettlementRegistrationTests` 按此重写 |
+| 58 `SelectedSessionSettlementBehavior` | 〔改道 R3：移交子 Spec B〕`authorization.DemandCurrent`、接收者 `DemandCurrent`、`Settled` / `Failed` 记录、结果不确定时 `BlockAsync` | 在主结算工作单元提交前后执行，语义不变 |
+| 60 `UnitOfWorkBehavior` | 〔改道 R3：移交子 Spec B〕开启与提交事务、`RequireRollback`、`TransactionStarted` / `RollbackConfirmed` / `Freeze` | 由工作单元作用域承担，语义不变 |
+| 100 `CommandExecutionPolicyBehavior` | 〔改道 R3：移交子 Spec B〕授权 `DemandCurrent`、拒绝未知执行方式 | 授权检查并入 RQ-025；执行方式随工作单元模型改写 |
+| 0 `CommandLoggingBehavior` | 〔改道 R3：跨 A／B，拆法见修订记录 R3-1〕计时与成功或失败日志 | 由执行器对每条 CMD 记录，并带调用链（RQ-054） |
 
 ## Success Evidence
 
 - EV-1：执行器、发件箱、发送端、调用链、事件 CMD 的单元测试与反例用例（AC-001～AC-004、AC-011、AC-013、AC-015～AC-017）。
 - EV-2：基线与改造后的表征测试运行日志（AC-019）。
 - EV-3：全量构建与测试日志，以及测试数量加法（AC-020）。
-- EV-4：附录 A、C、E、F 的对账记录（AC-006、AC-010、AC-014、AC-017）。
+- EV-4：附录 A、C、E、F 的对账记录〔改道 R3：附录 C 与 AC-010 移交子 Spec B〕（AC-006、AC-010、AC-014、AC-017）。
 - EV-5：测量记录（AC-021）。
 - EV-6：文档差异（AC-022）。
+
+## 修订记录
+
+### R3（2026-10-23，基准 `06ca5e0f`；2026-10-23 已生效）
+
+- **起因**：根契约（revision 3 起，现为 revision 4）把交付拆成结果 A（单执行器、提交后发件箱与删锁）与结果 B（协议级 CMD），改道为 Multi Spec（`routing-decision.md`「改道记录」，`verification/reroute-t008.md`）。本 Spec 改作 spec-001，即结果 A，验收边界随之收窄；归属 Plan T-008 的需求、附录与验收移交子 Spec B。
+- **生效条件**：根契约当前 revision（4）与子契约 A 当前 revision（2）的独立审查通过；本修订本身通过 Spec 修订审查。生效之前，正文中的「〔改道提案 R3：…〕」只是标记，原文照旧有效。
+- **生效时要做的改动**：
+  - frontmatter 的 `contract` 改为 `path: ./attempts/spec-001-executor-outbox-lock-removal/TaskContract.md`，`revision` 填子契约 A 审查通过时的 revision（今天是 2）；
+  - 标题后加注「（spec-001：结果 A）」，标题原文不改；
+  - 各处标记去掉「提案」二字；
+  - 以单独的修订提交（amendment commit）落盘，之后才继续 T-007。
+- **生效**：2026-10-23 已生效。三份审查都已通过：根契约 revision 4（`reviews/task-contract-review-r3.md` Round 2）、子契约 A revision 2（`reviews/spec-001-contract-review.md` Round 2）、本修订（`reviews/spec-plan-r3-review.md` Round 3）。按上一条做的生效改动：frontmatter 的 `contract` 改指子契约 A（revision 2），标题加注「（spec-001：结果 A）」，31 处标记由「〔改道提案 R3：」改为「〔改道 R3：」；正文与表格的实质内容未改。
+- **不改原文**：移交的需求与附录原文保留，作为子 Spec B 写 Spec 时的起点材料。B 有自己的 Spec，本文件不再为它维护这些条目。
+
+#### R3-1 移交清单与拆法
+
+「A」指留在本 Spec（spec-001）；「B」指移交子 Spec B；「跨」指按所列拆法分开，各自验收。
+
+| 条目 | 去向 | 拆法与依据 |
+|---|---|---|
+| Scope In「协议 CMD 吸收 handler 的工作」 | B | — |
+| RQ-020 | B | 纯遥测 handler 的例外已在 A 中落实，B 沿用、不重做：附录 B 有清单（TASK-09），`MessageHandlerRegistry` 对 `RegisterTelemetryMessageHandler` 有启动检查 |
+| RQ-021、RQ-022 | B | — |
+| RQ-023 | 跨 | **A**：(a)～(e) 在今天的位置原样保留，由既有测试证明，这些测试的断言不变并通过（见 AC-009 的 A 一半）。(c) 的参与者集合按附录 F「保留」栏保留；45 号行为逐个 `BlockAsync`（`verification/t005-closure.md` §4）。**B**：归并后在 CMD 内的位置等价 |
+| RQ-024 | 跨 | **A**：过渡期每条内层命令一个事务（Plan 共享决定「工作单元」）。T-009 核对 A 期间有没有合并或拆分提交点；有则逐条列出理由，这份对账属于 A。**B**：附录 C 与 AC-010 |
+| RQ-025 | B | A 中已有、B 在其上改写的部分有两处：①过渡期的请求级帧在作业内设置（Plan 共享决定「请求级上下文」过渡期一条；TASK-09 `GameplayDispatchTests.Request_frames_are_built_inside_the_job_and_reach_the_commands_it_runs`）；②泄漏流的总线一支已在 TASK-18 关闭（F-58）。「不再没有帧就放行」与三种合法状态的程序错误判定，在 B |
+| RQ-070 | B | — |
+| RQ-071 | 跨 | **A**：A 期间因删锁、发件箱而改写的判据，在 T-009 按 AC-018 逐条对账「旧断言 → 新断言 → 保护意图」。例如 `CommandBusTests` 的管线与访问方式用例、`CommandRegistrationTests`、`NotificationHandlerArchitectureTests`，以 `t005-test-dispositions.md`、`t006-test-dispositions.md` 的处置为准。`CommandHandlerArchitectureTests` 在 A 期间也改过一次：TASK-26（`8c531c9b`）在 `ATypeOutsideTheVocabularyIsRefused` 中补了 `INetworkMessageSender`、`IGameMessageSender` 两行反例（AC-011 第 6 条），这次补充计入 A 的 AC-018 对账。**B**：其余各条，即 `CommandHandlerArchitectureTests` 的注入面（在 TASK-26 那次补充之上重写）、`CommandBusTests` 的嵌套 dispatch、`EffectSettlementRegistrationTests`（主结算识别方式，附录 H 第 45 行）、`InventorySlotBoundaryArchitectureTests`、`EventNotificationBoundaryTests`，以及因 B 而新冲突的判据 |
+| RQ-072 | 跨 | **A**：RQ-061 以及 A 建立的全部判据的反例。已有的包括 `GameplayWriteAssertionTests`、`LockRemovalSourceTests`、`OutboxRegistrationTests` N3、`GameplayJobHostStructureTests`；F-76 的加固归 T-009。**B**：RQ-070 的反例 |
+| RQ-100 | 跨 | **A**：执行模型与请求走向、命令执行总线（管线实际层数 0／45／58／60／100，以及 `SendAsync` 在执行器上的过渡内联）、SelectCharacter（不再取门）、领域事件与即时投影（发件箱）、构建与测试中关于并发假红的段落、`PersistOnTeardownAsync` 等已过时的名称，以及 `ArchitecturePhilosophy.md` §1、§5 中关于执行与锁的部分。handler 仍在作业内编排细粒度命令的事实，写成「今天的状态与已知缺口」（根 SC-10）。「文档里不再出现已删除的门与管线行为」只对 A 删除的项成立。**B**：handler 业务语义规则、命令处理器注入面、切片边界规则、快速开发步骤与端到端示例，以及 B 删除的管线行为 |
+| AC-008 | B | — |
+| AC-009 | 跨 | **A**：<br>① 具名判定、效果账本、会话隔离、登录顶替、槽位边界的既有测试，在 A 封存状态下断言不变并通过，改写的逐条说明；<br>② `MonsterDeathHandlerTests.Party_publication_failure_fences_every_recipient_of_the_shared_settlement` 断言不变；<br>③ 经真实入站路径的反例「重发一个已提交的效果请求，得到重放而不是断线」，若 A 中尚无，在 T-009 补；<br>④ 附录 H 中属于 A 的部分（见本表附录 H 各行）。<br>**B**：<br>① 效果结算请求的协议 CMD 缺少状态 (2) 或 (3) 时抛出程序错误，非效果消息没有账本条目时照常执行（RQ-025）；<br>② 附录 H 其余部分的对账，含主结算识别方式的改变与 `EffectSettlementRegistrationTests` 的重写（`t005-closure.md` §4 原写「归 T-008」） |
+| AC-010 | B | A 只做 RQ-024 中属于 A 的那份对账，不以 AC-010 计 |
+| AC-018 | 跨 | 按 RQ-071、RQ-072 的拆法 |
+| AC-019、AC-020、AC-021 | A 与 B 各自满足 | 不移交。A 在 A 封存状态上满足；B 的 Spec 在 B 封存状态上设同类验收（根 SC-8B、SC-9B）。AC-021 在 A 中由 T-009 的最终测量关闭（F-02） |
+| AC-022 | 跨 | 按 RQ-100 的拆法；「检索已删除的类型名」只对各自删除的类型 |
+| 附录 C | B | A 不填写 |
+| 附录 H dispatcher 行 | 跨 | **A**：检查在执行器上、作业开始时执行（TASK-09 已落实，形式是过渡期的 AsyncLocal 帧）。**B**：改为协议 CMD 的显式数据（RQ-025） |
+| 附录 H `EffectOperationLedger` 行 | B | A 中账本语义原样保留；每连接 `SemaphoreSlim` 已按附录 F 删除 |
+| 附录 H 第 45 行 | 跨 | **A**：取锁部分删除（TASK-21、TASK-22，对账见 `t005-closure.md` §4）。**B**：其余职责迁到 CMD 主结算工作单元的前后，主结算识别方式改变，`EffectSettlementRegistrationTests` 重写 |
+| 附录 H 第 58、60、100 行 | B | A 中原样保留（`t005-closure.md` §4 记第 58 行未改） |
+| 附录 H 第 0 行 | 跨 | **A**：执行器对每个作业记录调用链（RQ-054，T-007）。**B**：`CommandLoggingBehavior` 随细粒度命令归并删除或改写 |
+| EV-4 中的附录 C、AC-010 | B | — |
+
+不在上表的需求、验收与附录，即 RQ-001～RQ-015、RQ-030～RQ-038、RQ-040～RQ-043、RQ-050～RQ-054、RQ-060、RQ-061、RQ-080～RQ-083、RQ-090、RQ-091，AC-001～AC-007、AC-011～AC-017，附录 A、B、D、E、F、G，全部留在 A，原文不变。Success Evidence 的 EV-1～EV-3、EV-5 随对应的 AC 留在 A；EV-6 随 AC-022 拆分；EV-4 见上表。
+
+#### R3-2 术语在 A 中的含义
+
+- 「CMD」在 A 的验收边界内落为执行器上的作业：每个入口一个作业，CMD 类型名见附录 A（`inbound:<ClientMessageType>`、`timer:…`、`event:…` 等）。作业内仍可按顺序派发多条细粒度命令，这是过渡状态，不是 RQ-021 的违反——RQ-021 已移交 B。
+- RQ-003「CMD 内不得向执行器入队后等待那条 CMD 完成」在 A 中照常成立。`ICommandBus.SendAsync` 在执行器上调用时内联执行，不是入队后等待，所以不违反 RQ-003。内联规则本身是过渡机制（根 SC-12），由 B 删除；删除之后，在执行器上调用就是 RQ-003 定义的程序错误（Plan 共享决定原文）。
+- 附录 G 的可见变化 VC-1～VC-9 属于 A。B 若有可见变化，在 B 的 Spec 中另列。
+
+#### R3-3 原归 T-009、实际依赖 T-008 的部分
+
+| 原 T-009 中的部分 | 判定 | 理由 |
+|---|---|---|
+| RQ-061 运行期判据全开 | A | 不依赖 T-008。TASK-18 已判定不需要启动期例外（F-16），Plan 原文的括注按 F-60 改正 |
+| 结构判据与反例 | 跨 | RQ-070 的结构判据属于 B；A 只加固自己的判据（F-76）并对账反例（RQ-072 的 A 一半） |
+| 文档 | 跨 | 按 RQ-100 的拆法 |
+| 最终测量 | A 与 B 各自 | A 测 A 封存状态并关闭 AC-021、F-02；TASK-28 主控方裁定第 5 条的理由是「只有最终代码的测量能代表它」，所以 B 封存后还要再测（根 SC-9B） |
+| 附录 A／B／E／F 最终对账 | A | 不依赖 T-008（F-62、F-75、F-85、F-99 等） |
+| 附录 H 最终对账 | 跨 | 按 R3-1 附录 H 各行 |
+| AC-009 的附录 H 一半 | 跨 | 按 R3-1 AC-009 一行 |
+| 删除 `SendAsync` 过渡内联规则（原 T-008 最后一项） | B | 它要等全部 handler 归并之后才能删。A 把它列进过渡机制清单（根 SC-12） |
+| 测试数量加法 | A 与 B 各自 | A 从基线加到 A 封存；B 从 A 封存加到 B 封存 |
+
+#### R3-4 根 SC-11、SC-12 的验收
+
+本 Spec 没有对应根 SC-11（A 的最终汇报）与根 SC-12（过渡机制清单）的 RQ 或 AC。这两条直接按子契约 A（`attempts/spec-001-executor-outbox-lock-removal/TaskContract.md`）与根契约的同号行验收，不在本 Spec 另设 AC：
+
+- SC-12 的证据：过渡机制清单与代码检索。清单的每一项写出位置、存在理由与由 B 删除的方式；清单之外，检索不到旧门、旧管线行为、转发层或 `[Obsolete]`。
+- SC-11 的证据：A 的最终汇报。rev 2 规划停点的三项默示决定，以最终汇报中的复述为证据（主控方裁定第 7 条）。
+
+两者都由 Plan T-009 交付，在 A 的封存验证中逐项核对。
