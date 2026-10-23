@@ -41,10 +41,10 @@ Docs/        四类东西混在一个平面上，读之前先认清是哪一类�
 | `Dfo.Pvf` | — | 只读 PVF 档案库（cipher/zlib/索引/token），无游戏概念 |
 | `Dfo.Server.Data` | — | 纯模型：领域记录 + 协议身份契约（`Networking/NetworkMessages.cs` 只留两个枚举、两个消息接口、两个帧元数据 record） |
 | `Dfo.Server.Abstractions` | Data | 接缝层：`IServerModule` + 各领域服务/仓储/内容源/网络契约 + 通用只读服务器配置契约 |
-| `Dfo.Server.Application` | Abstractions, Data | **领域编排核心**：命令总线与管线、消息分发机制、领域服务 |
+| `Dfo.Server.Application` | Abstractions, Data | **领域编排核心**：玩法执行器与发件箱、命令总线与管线、消息分发机制、领域服务 |
 | `Dfo.Server.Infrastructure` | Dfo.Pvf, Abstractions, Data | PVF 内容源 + 频道脚本 + 启动配置内存快照 |
 | `Dfo.Server.Persistence` | Abstractions, Data | SQLite 仓储与存储 + `Schema/` 唯一建表归属者 + `Database/` 事务参与者。**全部类型 `internal`**，对外只经 Abstractions 契约 |
-| `Dfo.Server.Networking` | Abstractions, Data | TouchSocket **传输**：帧适配/解析、TCP 服务、插件、发送器、注册表。收发路径上不含任何单个协议的知识；显式多收件人投递也只表达必达顺序和逐目标失败隔离 |
+| `Dfo.Server.Networking` | Abstractions, Data | TouchSocket **传输**：帧适配/解析、TCP 服务、插件、出站编码器、发送端（每连接发送队列、交付期限、队列上限、失败即关连接）、注册表。收发路径上不含任何单个协议的知识；发送端也只表达必达/尽力、跨连接的交付顺序和逐目标失败隔离 |
 | `Dfo.Server.Protocol` | Abstractions, Application, Data, Networking | **协议切片**：一个协议一个目录，含其消息、解包器、编码器、消息 handler、命令与命令 handler；`ProtocolModule` 是唯一接线点 |
 | `Dfo.Server.HttpApi` | Abstractions, Application, Data | HTTP 组件：Kestrel 装配、路由、中间件、HTTP 就绪；保留 LauncherAuth 配置键 |
 | `Dfo.Server.GmWeb` | HttpApi, Abstractions, Application, Data | GM HTTP 功能模块：管理员访问边界、查询/发放端点及 `/gm` 静态页面；前端源码在 `Web/gm-admin` |
@@ -79,7 +79,8 @@ Docs/        四类东西混在一个平面上，读之前先认清是哪一类�
 ## 架构设计
 
 一句话：**领域服务承载业务能力，命令执行总线执行领域命令，
-socket 层的 handler 驱动领域命令完成任务。**
+socket 层的 handler 驱动领域命令完成任务；一切玩法在唯一的执行器上按作业串行执行，
+出站先登记进作业的发件箱，作业完成后才由发送端发出。**
 
 ```
 TCP 字节
@@ -91,15 +92,19 @@ TCP 字节
       （Protocol/<Endpoint>/<Protocol>/*MessageDecoder.cs）
       调本切片的 payload codec → 强类型 IClientNetworkMessage
   → INetworkMessageDispatcher（Abstractions 接缝，实现在 Application）
-  → NetworkMessageDispatcher：按 ClientMessageType 查注册表 → 每 message 新 DI scope
+  → NetworkMessageDispatcher：按 ClientMessageType 查注册表 → 入队 inbound:<ClientMessageType>
+      作业并等它完成，之后传输才读这条连接的下一帧（纯遥测 handler 例外，留在收包回调里）
+  → GameplayExecutor（Application/Execution）：唯一的玩法执行器，一次执行一个作业；
+      作业内新 DI scope
   → ClientMessageHandler<TMessage>（Protocol/<Endpoint>/<Protocol>/*Handler.cs）
-      鉴权门（IOnlineUserQueryDomainService）→ commandBus.SendAsync(...) → 发响应
-  → CommandBus 管线（机制在 Application）→ ICommandHandler（在切片内）
+      身份检查（IOnlineUserQueryDomainService）→ commandBus.SendAsync(...) → 发响应
+  → CommandBus 管线（机制在 Application；在作业里内联执行）→ ICommandHandler（在切片内）
       → 领域服务（Application）→ 仓储与存储（Persistence）
                               → 规则服务（Application）→ 内容源（Infrastructure）
   → Game 由 IGameMessageSender 约束 CMD/NOTI，Channel 直接用 INetworkMessageSender；
-      最终均委托 TouchSocketNetworkMessageSender 按消息 CLR 类型查编码器注册表
-      → IServerMessageEncoder（Protocol 切片内）产出完整帧 → 出站
+      两者都在登记时按消息 CLR 类型查编码器注册表，由 IServerMessageEncoder（Protocol 切片内）
+      产出完整帧 → 登记进本作业的发件箱 → 作业结束后交给 OutboundSender（Networking/Outbound）
+      → 每连接发送队列 → 出站
 ```
 
 
@@ -120,7 +125,7 @@ TCP 字节
 领域按目录组织：`Accounts/`（账号 entry 状态）、`Channel/`（入场策略）、
 `Characters/`（花名册/entry 状态/入场后修正）、`Inventory/`（入场读取、物品生命周期、每日补货）、
 `Quests/`（按角色取得的任务日志：在做的、已通关的、追踪选择）、
-`OnlineUsers/`（在线聚合 + 执行门）、`Sessions/`（在场、选中会话、PvP 大厅、专家商店
+`Sessions/`（在场、选中会话、PvP 大厅、专家商店
 四个领域服务，各自把运行态留在私有容器里；选中会话服务本身不存状态，读写在线身份）、
 `World/`（出生点策略、世界内容）、`Users/`（`OnlineStateRegistry` 是在线身份：在线用户、
 认证账号、选中会话及其阶段同在唯一那把锁后，`OnlineUserDomainService`、
@@ -274,36 +279,103 @@ AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他
 - 不以在线为前提的业务动作（如比武淘汰），发送前仍以 `IsInWorld` 把关；
 - 客户端设置确认「这条连接上还没有选中会话」。
 
+### 玩法执行器、发件箱与发送端
+
+**一条队列。** 进程内只有一个玩法执行器 `GameplayExecutor`（`Application/Execution/`）：先进先出、
+单消费者，一个作业执行完才取下一个。作业只经入队点 `IGameplayQueue` 进入。作业类型名按来源：
+`inbound:<ClientMessageType>`；`lifecycle:connected`／`lifecycle:disconnected`／`lifecycle:depth-exceeded`；
+`timer:<类型名>`（调度任务为 `timer:ScheduledTaskHostedService/<任务 ID>`，卡牌计时器为
+`timer:DungeonCardPresentationCoordinator/layout`／`/auto-flip`）；`event:<订阅 ID>`（别的进程留下的 delivery 为
+`startup:event/<订阅 ID>`，超过深度上限的落定加 `/depth-exceeded`）；`gm:<METHOD> <路由模板>`、
+`http:<METHOD> <路由模板>`；启动作业 `startup:<服务名>[/<作业>]`。在执行器外直接调用命令总线得到
+`bus:<命令类型名>`，生产中没有这样的调用方。
+
+**生产者只入队、等待。** 两个 dispatcher、定时源、事件组循环、GM／HTTP 路由过滤器与启动服务只组织作业、
+入队并等它完成，不读写玩法状态、不开写事务、不发包。入站 dispatcher 等作业完成之后传输才读这条连接的
+下一帧，所以一条连接在队列里至多有一个待执行的入站作业；同一个定时源的上一个作业没完成，不再入队
+（`CoalescingGameplaySource`）。经 `RegisterTelemetryMessageHandler` 注册的纯遥测 handler 是唯一留在收包回调里的 handler。
+
+**玩法路径上不加门、信号量与「锁内复查、重试」循环**，串行只靠这条队列（`LockRemovalSourceTests` 按名字与文件守着）。
+短 `lock(sync)`、PVF 内容源与规则初始化的锁保留；执行器外的口令哈希限流保留它的信号量。
+
+**作业里不等网络，也不入队后等待。** 在执行器上调用入队点并等待是自我等待，以 `GameplaySelfWaitException`
+作为程序错误失败；作业直接写或关传输连接同样失败。从作业里分出去的工作在 `ExecutionContext.SuppressFlow`
+下启动，传输回调入口经 `GameplayJob.RunDetachedAsync` 清除作业身份；两者能出现在哪些文件由 `DetachmentSiteTests` 列名单。
+
+**运行期判据没有开关。** 执行器外开启写工作单元、登记发件箱、调用玩法状态的写入口，立即抛出
+`GameplayOffExecutorException`。玩法状态名单的唯一出处是 `GameplayWriteEntryTableTests.Types`（挂点）与
+`GameplayStateCensusTests.Exemptions`（豁免）；新增持有进程内可变状态的单例或静态字段必须进其中之一，
+普查判据会拒绝漏登记的。测试在执行器外写玩法状态要经 `Server/tests/Support/TestGameplay.cs`。
+只有 `GameplayExecutor` 能进出作业（`GameplayJobHostStructureTests`）。
+口令哈希只经 `PasswordComputationLimiter`，在执行器外计算，结果作为作业的输入；在执行器上调用即失败。
+
+**请求级上下文**今天是作业内的 AsyncLocal 帧：`NetworkCommandAuthorization`、`SelectedSessionCommandScope`、
+`EffectOperationContext` 与 `CommandBus` 的静态分派深度，都在作业内进入与退出（普查豁免 E3）。
+这是过渡形态：新代码不要在作业之外读写这些帧，也不要新增同类的 AsyncLocal 帧。
+
+**调用链。** 每个作业带根、父、深度、来源种类与来源连接。事件作业是发布它的那个作业的子；作业登记的关连接
+引起的 `lifecycle:disconnected` 是登记它的那个作业的子；入站、定时、GM、HTTP、启动恢复与传输层自发的关闭是新根。
+深度上限 `GameplayCallDepth.Limit`（32）：超限的作业不入队，执行器记一条带完整链的 `Error`，根来源是客户端连接的，
+关闭该连接；超限的事件 delivery 由系统作业落定，超限的拆除改作新根执行。
+
+**失败与日志。** 作业体失败由执行器记一条 `Error`，带调用链与来源连接。生产者与中间件拿到失败时用
+`GameplayJob.EndedAJob` 认出这是作业体自己的失败，不再记 `Error`（降为 `Debug`，带额外事实的记不附异常的
+`Warning`）；新写的生产者照此写 catch。拒绝入队（执行器已停止、深度超限）不是作业体失败，照旧由生产者记。
+细粒度命令失败时 `CommandLoggingBehavior` 另记一条 `Error`。这是过渡形态：读日志时，同一次失败今天可能有两条 `Error`。
+
+**发件箱。** 作业内的一切出站——`IGameMessageSender`、`INetworkMessageSender`、`IEventService.ProjectAsync`、
+`INetworkConnectionCloser`——都只登记进本作业的发件箱（`GameplayOutbox`），消息在登记时编码。工作单元内登记的条目
+在该单元提交时组装，回滚或结果不确定即丢弃；工作单元外的条目与关连接请求总会保留。作业结束时发件箱按登记顺序
+交给发送端，之后作业的调用方才看到结果。作业以未处理异常结束时，保留的条目照发，最后关闭来源连接。
+为某个收件人组装失败只丢他的条目并记 `Warning`，不关他的连接。
+失败作业关闭来源连接，今天依赖作业里已经打开过发件箱，两个 dispatcher 都在作业一开始打开它。
+这是过渡形态：新的带来源连接的作业要在开始时打开发件箱（读一次 `GameplayOutboxes.Current`），不要依赖别处替它打开。
+
+**发送端** `OutboundSender`（`Networking/Outbound/`）：每连接一个发送队列；条目分必达与尽力；跨连接的有序组
+按登记顺序交付，组内一条必达条目没交付成功，其后的条目一律跳过（关连接请求除外）。交付超过
+`OutboundLimits.DeliveryTimeout`（2 秒）、等前序有序条目超过 `OutboundLimits.OrderedWaitLimit`（2 秒）、
+或队列超过 `OutboundLimits.QueueByteLimit`（1 MiB，按编码后的字节计）时，关闭该连接并丢弃它余下的条目；
+连接已不在登记表里时条目直接丢弃；没有重试。执行器从不等待发送。
+日志：交付失败、超时、超限记 `Warning`；交付失败时传输层已认不出这条连接的，记 `Information` 并带后缀
+`; the connection was already gone`。已知缺口：「连接已不在」按失败那一刻传输层还能否解析这条连接来判定，
+客户端在发送途中断开时，传输层可能先完成写端、后摘除登记，这种失败今天仍记 `Warning` 的 `Failed`。
+
+**停机。** 宿主先停止接受连接与 HTTP、停掉各后台服务；`GameplayExecutorLifetime` 再依次排空生产者
+（传输排空会拆除仍登记的连接），最后排空并停止执行器。在线玩家的拆除落库因此在执行器停止之前完成。
+
 ### 2) 命令执行总线（Application/Commands）
 
-- 契约（`CommandContracts.cs`）：`ICommand<TResult>`（CLR 类型即身份），
-  `IOnlineUserCommand`/`IAccountCommand` 携带作用域用户 id；
-  `CommandExecutionKind` = Direct / Transactional / Workflow；
-  `UserAccessMode` = Unscoped / Shared / Exclusive。
-- `CommandBus`：每次 `SendAsync` 开新 DI scope → 查 `CommandHandlerRegistry` →
-  按 `Order` 排序管线行为、从外到内包装 → 执行。
+- 契约（`CommandContracts.cs`）：`ICommand<TResult>`（CLR 类型即身份）；
+  `ISelectedSessionCommand` 带它所属的精确选中会话（null 表示可信的离线工作），
+  `IRequestSettlementCommand` 标出一次效果网络请求唯一的主结算，
+  `IMultiSelectedSessionCommand` 再带参与者集合（逐个复查当前性、结果不确定时逐个封锁），
+  `IAccountCommand` 带账号 id（今天只用于检查它与所属会话的账号一致）；
+  `CommandExecutionKind` = Direct / Transactional / Workflow / ReadOnly。命令没有访问方式，也不取租约。
+- `CommandBus.SendAsync` 在作业里调用时内联执行：开新 DI scope → 查 `CommandHandlerRegistry` →
+  按 `Order` 排序管线行为、从外到内包装 → 执行；在执行器外调用时，把命令包成 `bus:<命令类型名>` 作业入队并等待。
+  这是过渡形态：新代码不要在执行器外调用总线来完成玩法动作。
   协议 handler 可以按顺序调用多次 `SendAsync`；**命令处理器禁止嵌套
   dispatch**，不得在 `ICommandHandler` 内递归或间接调用 `ICommandBus`。
   共享业务逻辑抽成应用服务，由命令处理器直接调用。
-- 管线（`Pipeline/`，Order 从小到大为外到内）：
+- 管线（`Pipeline/`，Order 从小到大为外到内）。这五层今天包在每一条细粒度命令外；
+  这个粒度是过渡形态，新代码不要依赖「一条命令一套管线」：
   1. `CommandLoggingBehavior`（0）：计时 + 成功/失败日志
-  2. `OnlineUserExecutionBehavior`（50）：按 OnlineUserId 取共享/独占租约
-  3. `AccountExecutionBehavior`（55）：按 AccountId 取租约
+  2. `SelectedSessionExecutionBehavior`（45）：开启本请求的主结算（效果账本）、检查命令账号与会话一致、
+     参与者集合须含报告会话、逐个复查接收者与参与者的当前性、设置选中会话作用域；事务结果不确定时逐个封锁参与者
+  3. `SelectedSessionSettlementBehavior`（58）：复查授权与接收者，记主结算 Settled/Failed；结果不确定时封锁接收者
   4. `UnitOfWorkBehavior`（60）：Transactional 命令在此开领域事务，命令正常返回
-     后提交；显式标记 `RequireRollback()` 的正常拒绝结果也先回滚再返回，其他失败出路回滚；其余执行方式原样放行。**Order 必须严格落在
-     55 与 100 之间**，事务才整个待在账号租约之内（对**声明了**账号访问方式的
-     命令而言——未声明的命令 `AccountExecutionBehavior` 直接放行，不取租约，
-     道具移动与道具使用两条即是如此）、又整个包住 handler
-  5. `CommandExecutionPolicyBehavior`（100）：Direct/Workflow/Transactional 均放行；
+     后提交；显式标记 `RequireRollback()` 的正常拒绝结果也先回滚再返回，其他失败出路回滚；
+     ReadOnly 命令在此开只读事务；其余执行方式原样放行。**Order 必须落在 58 与 100 之间**：
+     读结果的结算包住事务，事务又整个包住 handler
+  5. `CommandExecutionPolicyBehavior`（100）：复查授权，Direct/ReadOnly/Workflow/Transactional 均放行；
      未知执行方式抛异常
-- 执行门（`OnlineUsers/UserExecutionGate.cs`）：按 key 的读写锁 + FIFO 等待队列；
-  三个实例：OnlineUserExecutionGate、AccountExecutionGate、
-  SelectedSessionTransitionGate（第三个由 `SelectCharacterHandler` 手工获取，
-  串行化会话切换/拆除）。
+- 玩法路径上没有门与租约：命令之间的串行由执行器保证。
 - 错误语义：异常直接上抛。Direct/Workflow **总线级无回滚**；Transactional 由
   `UnitOfWorkBehavior` 回滚本次登记的全部参与者，但只回滚参与者，不回滚
   参与者之外的副作用。跨阶段补偿仍由协议 handler 派发专用补偿命令，
   命令 handler 只执行单一领域动作。
+- handler 今天在入站作业内经总线顺序派发多条细粒度命令，每条 Transactional 命令各是一个事务。
+  这是过渡形态：新代码不要假设一个入站请求只有一个事务；跨命令的补偿仍由 handler 派发专用补偿命令。
 - 领域事务（`Abstractions/Transactions/`、`Application/Transactions/`）：参与者声明
   `CommitCanFail`；提交分三段——全体 `PrepareAsync` → 唯一可失败者 `CommitAsync`
   → 其余 `CommitAsync`。**一次事务只收一个 `CommitCanFail` 参与者**，第二个在
@@ -328,25 +400,25 @@ AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他
   自开一次性边界并当场落定。
 - 注册（`ProtocolModule.cs`，与协议接线同处）：**凡能触达持久写的命令一律
   `Transactional`**——只有它会让 `UnitOfWorkBehavior` 开领域事务，没有那个事务，
-  持久化就没有边界可加入，写会各自落定且无人能收回。据此：LoginGameUser、
+  持久化就没有边界可加入，写会各自落定且无人能收回。据此：RedeemGameLogin、
   CreateCharacter、DeleteCharacter，以及 SelectCharacter 的 Prepare、DailyRefill、
   Quests、Pet，加上 MoveItemSpace、UseStackable、GrantTutorialReward，均为
   **Transactional**。
-  仍为 Workflow 的只有两条只动内存注册表的（Publish、PvpReady）与 **Compensate**；
-  Compensate 是刻意的——补偿逐个收集失败并继续，最后把收集到的抛出，边界会把此前
-  每一处成功一并撤销，正是它的反面。它唯一的持久写（离场位置）经
-  `PersistOnTeardownAsync` 自开边界当场落定。
-  GetAccountCharacterRoster 与 CheckCharacterName = Direct+Account Shared；
-  AcknowledgeGameExit 与 Channel 的 ScriptVersion、Script、Info = Direct。
-  `ApplicationModule` 只留 `AddCommandDispatching()`：机制在 Application，
-  具体命令在切片。
+  Workflow 只有四条：只动内存注册表的 Publish、PvpReady，以及执行拆除清理的
+  **Compensate** 与 CompleteReturnToSelection。Compensate 是刻意的——补偿逐个收集失败并继续，
+  最后把收集到的抛出，边界会把此前每一处成功一并撤销，正是它的反面。拆除清理唯一的持久写
+  （离场位置）经 `SelectedSessionPositionPersistence.PersistAsync`：没有环境事务时自开一次性边界当场落定。
+  GetAccountCharacterRoster、CheckCharacterName 与 Channel 的 ScriptVersion、Script、Info = Direct；
+  ReadOnly 由 `UnitOfWorkBehavior` 开只读事务（`Server/src` 中 9 条注册）。
+  机制在 Application（`AddCommandDispatching()`）；具体命令多数在切片里、由 `ProtocolModule` 注册，
+  Application 自己的命令由 `ApplicationModule` 注册（该文件中 `AddCommandHandler<` 36 处）。
 - 命令注册表**没有**启动完备性检查（未知命令 dispatch 时才报错）——与消息
   注册表相反。
 
 ### 3) Socket 层：handler 驱动领域命令
 
 - Networking 只做传输：`ChannelNetworkPlugin`/`GameNetworkPlugin` 把帧交给
-  注册表查出的解包器，拿到类型化消息后丢给 dispatcher。**传输侧没有任何
+  注册表查出的解包器，拿到类型化消息后交给 dispatcher，等它入队的作业完成。**传输侧没有任何
   `switch`，也不认识任何具体协议**：线级键（Game 是 selector+type，Channel 是
   消息号）查不到就是未注册，帧被静默丢弃。
 - 解包与编码都由 DI 注册表驱动，注册表在 `ProtocolModule` 里被填满：
@@ -360,12 +432,12 @@ AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他
   发命令 → 用端点对应 sender 回响应。没有领域状态或领域决策的纯协议交互
   可以直接发送，例如 Channel Connect 直接返回 Protocol 所有的当日密钥。
   **handler 不得承载业务语义**：见下面的"handler 业务语义规则"。
-- 发送器按端点校验（Channel 消息只能发往 Channel 连接），Channel 载荷走
+- 出站消息在登记时按端点校验（`RegistryOutboundEncoder`：Channel 消息只能发往 Channel 连接），Channel 载荷走
   AES-128-ECB + zlib + 当日密钥；Game 出站 15 字节头。
-- 连接生命周期：`OnlineUserConnectionObserver`（`Protocol/Game/`）在 TCP
-  连接/断开时直接调在线服务/清理服务/发送器（**不经过命令总线**——连接事件
-  不建模为命令）。它落在 Protocol 而非 Application，是因为连接建立时要发
-  `GameInitialConnectionNotice`，而消息 DTO 在切片里。
+- 连接生命周期：TCP 连接与断开经 `NetworkConnectionLifecycleDispatcher` 作为 `lifecycle:connected`／
+  `lifecycle:disconnected` 作业在执行器上运行，`OnlineUserConnectionObserver`（`Protocol/Game/`）在作业内
+  调在线服务/清理服务/发送器（**不经过命令总线**——连接事件不建模为命令）。它落在 Protocol 而非 Application，
+  是因为连接建立时要发 `GameInitialConnectionNotice`，而消息 DTO 在切片里。
 
 ### 切片边界规则
 
@@ -396,7 +468,7 @@ AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他
 不许在 handler 里就地完成。
 
 理由是防一类隐性 bug：handler 直接改了状态，而领域服务层对此一无所知，
-于是并发门、执行次序、补偿与日志全部绕过。
+于是执行次序、补偿与日志全部绕过。
 
 普通 handler 里允许出现的只有四类：
 
@@ -410,8 +482,8 @@ AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他
    即时投影是投递，不是业务：谁该收到由前面的命令决定，投影只负责按原顺序送出。
    handler 不发布领域事实；事实由实际变更所属的领域服务在事务中记录。
    **一份计划要分两条路送出去时，把顺序封进一个投递服务，不要在每个调用点各写一遍**——
-   清理通告有六个投递点，**其中四个在 catch 里**（`OnlineUserConnectionObserver.cs:102`、
-   `SelectCharacterHandler.cs:136` / `:156` / `:162`），`:156` 那个还在补偿命令之后。
+   清理通告的投递调用（`cleanupDelivery.DeliverAsync(`）在 `Server/src` 中有 7 处，**其中四个在 catch 里**
+   （`OnlineUserConnectionObserver.cs:120`、`SelectCharacterHandler.cs:171` / `:208` / `:214`），`:208` 那个还在补偿命令之后。
 
 Game 出站还必须遵守一条协议边界：`0x01` 是 CMD，`0x00` 是 NOTI，二者由客户端的
 两张独立注册表接收。这个语义只属于 Protocol。每个 Game 出站 message 必须且只能实现
@@ -420,10 +492,10 @@ Game 出站还必须遵守一条协议边界：`0x01` 是 CMD，`0x00` 是 NOTI�
 `GameExplicitMessageDelivery`，其中每条消息仍携带自身类别，调用方不能覆盖首字节。
 Networking 只把该字节当作不透明 `Selector` 做拆帧、查表与写帧，不解释 CMD/NOTI。
 
-`SelectCharacterHandler` 是批准的多阶段协议工作流例外：除上述四类外，它可以获取并
-释放 `SelectedSessionTransitionGate`、用只读目录/在线查询检查 session 仍为 current、
-维护待关闭连接集合，并在失败时派发专用补偿命令；实际关闭必须在 gate lease 释放后
-执行。这个例外只授权生命周期**协调**，不授权 handler 直接修改领域状态；所有准备、
+`SelectCharacterHandler` 是批准的多阶段协议工作流例外：除上述四类外，它可以在
+`inbound:GameSelectCharacter` 作业内用只读目录/在线查询检查 session 仍为 current、
+维护待关闭连接集合，并在失败时派发专用补偿命令；关闭在工作流与补偿都结束之后才请求，
+请求登记进作业的发件箱，排在此前登记的消息之后执行。这个例外只授权生命周期**协调**，不授权 handler 直接修改领域状态；所有准备、
 补货、发布、PVP、任务、宠物与补偿动作仍分别由阶段命令处理器完成。
 
 **禁止命令处理器嵌套 dispatch**：协议 handler 可以为一个入站工作流按顺序派发
@@ -437,27 +509,27 @@ Networking 只把该字节当作不透明 `Selector` 做拆帧、查表与写帧
 1. 14B 头帧 → `GameClientFrameDataHandlingAdapter` → `GameNetworkPlugin`
    按不透明 selector 0x01/type 0x0001 查表；Protocol 将所有 C→S Game 注册固定为 CMD，
    `GameLoginPayloadCodec` 解出 loginId + 密码哈希
-2. dispatcher → `GameLoginHandler`：要求该连接已有匿名在线注册
-   （TCP 连上时由 `OnlineUserConnectionObserver` 创建并推送初始连接通知）
-3. `commandBus.SendAsync(LoginGameUserCommand)` → 管线：日志 →
-   OnlineUser 独占租约 → Direct 放行 → `LoginGameUserCommandHandler` →
+2. dispatcher 入队 `inbound:GameLogin` 作业 → 作业内 `GameLoginHandler`：要求该连接已有匿名在线注册
+   （TCP 连上时由 `lifecycle:connected` 作业里的 `OnlineUserConnectionObserver` 创建并登记初始连接通知）
+3. `commandBus.SendAsync(LoginGameUserCommand)` 在同一作业内经管线（没有租约）→
+   `LoginGameUserCommandHandler` →
    `IAccountDomainService.LoginAsync` → SQLite `GetOrCreate` → `OnlineUser.Authenticate`
    （generation +1）
 4. handler 从通用 `IServerConfigService` 的内存快照读取环境、公开 host 与三个端口，
-   构造完整 `GameLoginResponse` 后通过 `SendCmdAsync` 发出；CMD 编码器只按消息字段编码，
-   固定首字节 0x01，再由 15B Game 头出站
+   构造完整 `GameLoginResponse` 后经 `SendCmdAsync` 编码并登记进作业的发件箱，作业结束后由发送端交付；
+   CMD 编码器只按消息字段编码，固定首字节 0x01，再由 15B Game 头出站
 
 集成测试 `Dfo.Server.Networking.Tests/Integration/GameLoginIntegrationTests.cs`
 用真实 TouchSocket host + SQLite 断言逐字节行为。
 
 ### SelectCharacter：接受与状态同步工作流
 
-`SelectCharacterHandler` 是协议工作流协调者：它持有
-`SelectedSessionTransitionGate`，在同一 lease 内顺序派发准备、每日补货、发布、
-PVP、任务、宠物与补偿等顶层命令，并在阶段之间发送具体状态同步消息。
+`SelectCharacterHandler` 是协议工作流协调者：它在 `inbound:GameSelectCharacter` 作业内
+顺序派发准备、每日补货、发布、PVP、任务、宠物与补偿等顶层命令，并在阶段之间登记具体状态同步消息，
+这些消息在作业结束后一起交付。
 `01/0004` 只表示接受进入，后续消息是可复用的生命周期状态同步。发送前会先验证
-已准备的全部必达接受/前置状态可编码；失败时派发 exact-session 补偿命令，lease
-释放后再尽力关闭连接。每个命令 handler 只执行单一领域动作，禁止持有
+已准备的全部必达接受/前置状态可编码；失败时派发 exact-session 补偿命令，之后才请求
+关闭连接，关闭排在已登记的消息之后。每个命令 handler 只执行单一领域动作，禁止持有
 `ICommandBus` 递归编排。同步消息按自身协议身份分类，不按工作流位置猜测：进入接受、
 PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝保持相邻的 CMD
 `01/0004` 与 NOTI `00/01F7` 两条消息。Networking 只执行通用传输与显式收件人失败隔离。
@@ -475,15 +547,16 @@ PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝�
   可在事务内外调用，失败与取消向上传播。次数写入订阅要求当前可写业务事务，扣次事实不注册为队列订阅；
   提交后的界面刷新另由持久化变化事件进入 ProjectAsync。马战维护仍在事务外发布阶段变化，
   查询不发布；启动恢复静默、变化去重、失败不重复公告。
-- `ProjectAsync<TNotification>`：等待即时协议投影，原样返回 NotificationDelivery；
+- `ProjectAsync<TNotification>`：在当前作业里组装即时协议投影并登记进发件箱，原样返回 NotificationDelivery；
   不持久化 Session/CMD 回复，也不能在未提交的可写事务内调用。登录、队伍、库存等流程
   保持批次、精确会话与 ACK 顺序。单连接直接 sender 和明确协议投递工作流仍可使用。
 
-事件稳定名称/版本与 subscriber ID 在组合根注册。每订阅组独立异步循环，闲时 await
-唤醒或最近重试时间，启动扫描遗留工作，停服取消未完成消费。Reliable 订阅在新 scope、
-数据库准入门及新事务中处理，业务更新与完成标记同事务；失败回滚后另事务记录重试。
-Reliable 不能重入命令管线，也不能在该门内再获取外层账户/会话锁。组内串行，失败退避期间
-后续到期事实可先处理，不保证严格 FIFO。当前只注册每个稳定名称的一个版本；未知版本保留
+事件稳定名称/版本与 subscriber ID 在组合根注册。每个订阅组一个生产者循环：在执行器外读出到期的
+delivery，把每次消费入队为一个 `event:<订阅 ID>` 作业并等它完成，再处理下一条；闲时 await
+唤醒或最近重试时间，启动扫描遗留工作，停服取消未完成消费。Reliable 订阅在作业内的新 scope
+与新事务中处理，业务更新与完成标记同事务；失败回滚后另事务记录重试。
+Reliable 不能重入命令管线。组内串行，失败退避期间后续到期事实可先处理，不保证严格 FIFO；
+订阅组之间不并发，因为都在同一个执行器上。当前只注册每个稳定名称的一个版本；未知版本保留
 诊断，不自动 upcast；新订阅不回填历史 delivery，完成记录暂不自动清理。
 
 LiveOnly 只处理本进程的新鲜事件：发送前提交一次消费决定，离线、旧进程或过期提示跳过，
@@ -512,7 +585,7 @@ if (result.Publication.Audience.Count > 0)
   `ExperienceBonusDomainService` 这类调用取的是**会话标识**当运行态目录的键，**从不读 `ConnectionId`**，合规。
   按「见到按角色取会话就是违规」去 grep 会把它们误判。
   不禁的是「这次操作本身就发生在其上的那个连接」：清理计划带着离开者自己的
-  `session.ConnectionId`（`SelectCharacterLifecycleServices.cs:120`），必送给本人的那一半直接走它，
+  `session.ConnectionId`（`SelectCharacterLifecycleServices.cs:204`），必送给本人的那一半直接走它，
   不是扇出。
   **别把这条豁免读宽**：`SelectedSessionIdentity` 里带着 `ConnectionId`，而它被传进十来个领域服务，
   照字面它们都「手上有连接」。豁免的是**这次操作的主体自己的**那一个，不是任何拿得到的连接；
@@ -521,9 +594,10 @@ if (result.Publication.Audience.Count > 0)
   加宽到契约接口本身编译不过（`CS0311`）。处理器按**收件人**产出该收件人的消息，返回空表示弃权。
 - **处理器只读。** 写属于已经提交完的那条命令。`NotificationHandlerArchitectureTests` 守着注入面：
   只允许 `Dfo.Server.Abstractions` 里以 `DomainService` 结尾的接口。
-- **注册时声明重试上限**，每个通知自己决定。0 表示只发一次。
-  **失败不只是抛异常**——每收件人有一个全局一致的投递期限，到点也算失败，而那时帧可能已经在传输里，
-  所以重试可能是重复而不是补送。「到两次会出问题的通知应当声明 0」。
+- **通知没有重试，也没有每收件人期限。** 组装或编码失败的收件人记为 `Failed`，只丢他的条目；
+  交付失败由发送端关闭该连接，之后的清理是那条连接的 `lifecycle:disconnected` 作业。
+  `NotificationOutcome.Delivered` 的名字没跟上：今天它表示消息已组装、编码并登记进发件箱（连接已不在时条目被丢弃，
+  也记作它），不表示已交给传输层；按它记「本期已送」的调用方，记的是「已登记」。
 - **通知类型必须在 `ProtocolModule` 里注册处理器**，且该程序集要 `AddNotificationCatalog`。
   漏注册会在**开始接受连接之前**让服务器起不来（宿主先实例化 hosted service 再启动）。
 
@@ -532,22 +606,18 @@ if (result.Publication.Audience.Count > 0)
 - 人群通知用于 PvP 大厅公示、会话清理以及队伍城镇投影等路径；
   `PartyTownProjectionDelivery` 使用 `TheseSessions` 指定精确会话。
 - `SessionAdjacentEntryDomainService` 给入场者本人计算周围角色，不因此成为多人扇出。
-- 事件服务拥有领域订阅与分发；通知总线是低层投递机制，`NotificationRetryDrainService`
-  只排空运输层的既有重试队列，不处理可靠领域事实。
+- 事件服务拥有领域订阅与分发；通知总线是低层投递机制，只组装并登记进发件箱，不处理可靠领域事实。
 - 回给请求方的消息仍可直接投递，不必套上人群抽象。
 - 没有专用的频道、全服或组队 Audience 类型；队伍业务已存在，使用现有精确会话人群。
   人群 record 层级不能完全阻止外部派生，解析器会明确拒绝未知形态。
 
-**投递结果既有摘要，也有日志。** 总线返回成功、弃权、离线与失败结果；
+**投递结果既有摘要，也有日志。** 总线返回成功（已登记）、弃权、离线与失败结果；
 `PartyTownProjectionDelivery` 已读取成功和失败集合，用于维护实际送达的受众与后续处理。
 读取摘要仍是可选的，不能依赖每个调用方都读取它来保证可观测性。
-所以总线自己记日志，在还拿得到原因的地方记：
+所以在还拿得到原因的地方记日志：
 
-- 投递抛异常 → `Warning` + 异常本身；
-- 到了每收件人期限 → `Warning`，与抛异常**分开说**（超时也是从 catch 里出来的，异常就在手上；
-  不记它是因为那是取消令牌，不是原因）；
-- 重试额度用尽、彻底放弃某个收件人 → `Warning`；声明了 0 次重试的通知不记这一条，
-  因为它从来就没有第二次机会可放弃，失败那一条已经说过了。
+- 组装或编码抛异常 → 总线（或发件箱的逐收件人组装）记 `Warning` + 异常本身，只丢该收件人的条目；
+- 交付失败、超时、超过队列上限 → 发送端按连接记，级别见「玩法执行器、发件箱与发送端」。
 
 **弃权与「人不在了」不记**——它们不是出了问题。
 
@@ -770,6 +840,16 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
 **栈根是**：清单外的新栈根**不得直接归入**，要另给不归因的明证（改动与该路径无交集等），
 确认之后把新栈根追加进这张表。
 
+另有一条已登记的内容数据偶发，**身份三样一起看，用例名是其中一样**：
+
+1. 用例 `IllusionTowerPublicFlowTests.Public_handlers_complete_real_pvf_tower_return_to_town_and_reenter`；
+2. 异常 `InvalidDataException`，消息含 `[minimum level]` 与 `required field is missing`；
+3. 栈根是 `PvfEquipmentDefinitionSource` 缺必填字段时的那次抛出（`PvfEquipmentDefinitionSource.cs:160`）。
+
+单独复跑该用例 5 次全过，才归入。用例名在这里算身份，与上一类相反：成因是随机奖励选中了 PVF 里缺
+`[minimum level]` 字段的装备，只在这条随机奖励路径上出现；同一栈根出现在别的用例上，可能是另一处内容缺陷，
+不归入。这同时是一处生产健壮性缺口：PVF 内容缺这个字段时，奖励结算会直接抛错。
+
 **取不到身份的失败一律是取证缺口，不是结论。** 所以跑全量判据时把完整输出落盘
 （`--logger "console;verbosity=detailed"`），不要用会滤掉明细的过滤器——
 这条规则是因为同一个成果里连续四次遇到失败、四次都没取到身份才写下来的。
@@ -779,12 +859,16 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
 ### 其他与主设计的偏差（诚实清单）
 
 - `CLIENT_SPEC_STATISTIC`(0x00AB) 的 handler 直接打语义化日志，**不经过命令总线**
-  （纯遥测、无领域变更、无响应；见 protocol 记录的 Implementation mapping）。
+  （无领域变更、无响应；见 protocol 记录的 Implementation mapping）。它注入了
+  `IOnlineUserQueryDomainService`，所以不算纯遥测，作为 `inbound:GameClientSpecStatistic` 作业在执行器上运行。
+  纯遥测的判据是「构造器只注入日志」：经 `RegisterTelemetryMessageHandler` 注册的 handler 留在收包回调里，
+  构造器注入了日志以外的东西时 `MessageHandlerRegistry` 构造即抛。
   EXIT 与 Channel Connect 均为纯协议直接响应，不修改领域状态。
   ScriptVersion、Script、Info 三个命令曾直接读基础设施内容源，现已改为经
   `IChannelDirectoryDomainService` → `IChannelContentRuleService` 取得，目录与脚本同一个所有者。
 - 登录失败目前**无法编码**（sender 对失败体直接抛异常），失败以服务器内部
   异常形态存在，客户端看不到错误。
+- handler 仍在入站作业内编排多条细粒度命令，业务编排与协议处理没有分开（见「命令执行总线」）。
 - **修改协议 handler 前检查具体行为覆盖。** 历史的“48 个 handler、19 个无测试”清单已失效；
   `GetItemHandler`、`MoveMapHandler`、`GiveUpGameHandler` 等已有测试。
   类名搜索只能定位候选测试，不能证明覆盖充分。重点检查当前事实读取、事务结果、
@@ -814,8 +898,8 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
 - **拉真实进程或真实 socket 的用例在满载全量下会假红。** `Host.Tests` 与
   `Networking.Tests/Integration/` 各条都用 10 秒预算等进程退出或等连接就绪，
   机器被占满时会撞线，报的是 `TaskCanceledException`/`OperationCanceledException`
-  而非断言不符。判据是单独跑该项目：隔离下 `Networking.Tests` 46 条 1 秒跑完，
-  全量下同样 46 条要 10 秒。看到这个形状先隔离复跑，不要当缺陷查。
+  而非断言不符。判据是单独跑该项目：`2bdb1afd` 上 Release，`Networking.Tests` 188 条单独跑
+  52.8 秒，全量并行中 1.9 分钟（`dotnet test` 报告的「总时间」）。看到这个形状先隔离复跑，不要当缺陷查。
 - **两个用例同时「先读后写」同一个库，第二个会等满 30 秒再失败。** 一次用例一条连接、
   一个 deferred 事务，这让用例内的多次读看到同一时刻，也让长读不挡写。代价是：
   用例 A 与 B 都先读、A 先提交之后，B 再写时它手里那份视图已经过期，SQLite 拒绝在其上写。
@@ -823,8 +907,8 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
   `Microsoft.Data.Sqlite` 的默认 `Default Timeout` 等满 30 秒才抛。
   今天没有任何地方设过这个超时，也没有任何地方在 BUSY 上重试。
   真正的解法是「整条用例重来」，属于派发用例的那一层，不属于数据库。
-  单人调试撞不到；同账号有闸，跨账号（登录、建号这类先读后写的命令）能真实撞上。
-  在此之前，第二条用例的调用方会先卡 30 秒再收到失败。
+  生产中撞不上：写事务只在执行器上开启（执行器外开启即抛），两个写用例不会同时进行。
+  直接操作 SQLite、并行运行的测试仍可能撞上，那时第二条用例的调用方会先卡 30 秒再收到失败。
 
 ## 快速开发：新增一个协议的固定动作
 
@@ -837,11 +921,14 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
    （见"切片边界规则"）：`Messages.cs` → payload codec → 解包器 → 编码器 →
    消息 handler → 命令与命令 handler。业务逻辑留在领域服务里。
 4. `ProtocolModule` 加四类注册行——入站解包器（线级键 + 声明可产出的目录成员）、
-   出站编码器（消息 CLR 类型 + 允许端点）、命令（ExecutionKind + AccessMode）、
+   出站编码器（消息 CLR 类型 + 允许端点）、命令（ExecutionKind）、
    消息 handler（目录成员）。**这是唯一需要改的接线点**；传输侧不动，
    `ApplicationModule` 不动。
 5. 测试三件套：codec 向量、handler/命令单测、Networking.Tests 线级集成测试。
    注意测试仍按功能组织，尚未跟随切片重排。
+6. 客户端提供、会扇出给其他连接（或累积进其他连接一次作业的出站）的变长字段，解码器或规则服务必须有上限，
+   并在协议记录里写明上限的依据与依据等级。超过发送队列上限（`OutboundLimits.QueueByteLimit`）的出站会让
+   收件的第三方连接被关闭。这条没有判据守着。
 
 ## 约定
 
@@ -863,6 +950,7 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
 | `*Query` / `*Reader` | 只读投影/查询 | 只读，不改世界状态 |
 | `*Decoder` / `*Encoder` / `*Sender` / `*Dispatcher` / `*Handler` / `*Observer` / `*Closer` | 传输与协议 | 各自后缀已表明 |
 | `*Module` | 组合根接线 | `IServerModule`，只注册不执行业务 |
+| `IGameplayQueue`（按名字认，不按后缀） | 入队点 | 把一个作业交给执行器，作业执行完返回的任务才完成。只由生产者调用；在执行器上调用并等待即自我等待，以程序错误失败。命令处理器注入不了它：注入面判据按后缀判定，它不在放行之列 |
 
 判断一个进程内容器属于哪一边，看**接口说的是领域动作还是容器动作**，而不是看它内部有没有用字典。会话、在场、摆摊、PvP 大厅四处都在内存里保存运行态，但它们对外只回答领域问题（谁在这个区域、这个角色有没有摊开着、哪些房间已公告），所以它们是领域服务；字典是实现细节。反过来，一个对外暴露「取出来、改一改、塞回去」的类型不会因为改个名字就变成领域服务。
 

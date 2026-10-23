@@ -4,6 +4,7 @@
 > 本文讲**设计意图**和它在代码里的样子；具体约束（命令执行方式、handler 四类操作、事件三入口的使用规则）
 > 以 [AGENTS.md「架构设计」](../../AGENTS.md#架构设计) 为准，这里只引不抄。
 > 标注：**已核实**＝读过代码；**推断**＝归纳，未经用户确认。路径相对 `Server/src/`。
+> §1、§5 中执行与锁的部分于 2026-10-24 按基准 `2bdb1afd` 改写；其余各节仍是 `d29033a0` 时的记录。
 
 ## 1. 总架构
 
@@ -11,9 +12,10 @@
 代码里的对应（已核实）：
 
 ```
+GameplayExecutor 上的作业（inbound:<ClientMessageType>）   唯一的玩法执行器，一次一个作业
 Protocol/Game/<协议>/ 切片
-  PacketHandler            只做身份解析、发命令、映射错误码、发回包
-    └─ commands.SendAsync(XxxCommand)           CMD：sealed record : ICommand<TResult>
+  PacketHandler            只做身份解析、发命令、映射错误码、登记回包
+    └─ commands.SendAsync(XxxCommand)           CMD：sealed record : ICommand<TResult>；在作业里内联执行（过渡形态）
          ICommandHandler<TCmd,TResult>          只能注入 *DomainService / *DomainStore
            └─ I*DomainService                   Application/<领域>/
                 ├─ I*RuleService / static *Rules   不变规则
@@ -22,7 +24,8 @@ Protocol/Game/<协议>/ 切片
                      EnqueueAsync / DirectAsync / ProjectAsync
                        └─ NotificationProjectionSubscriber<T>   唯一的桥
                             └─ INotificationBus.PublishAsync    口述的 "NotiBus"
-                                 受众(NotificationAudience) → INotificationHandler 组包 → 发送
+                                 受众(NotificationAudience) → INotificationHandler 组包 → 登记进作业的发件箱
+  作业结束 → 发件箱按登记顺序交给 OutboundSender（Networking/Outbound）→ 每连接发送队列 → 出站
 ```
 
 - 命令契约 `Dfo.Server.Application/Commands/CommandContracts.cs`；总线为自研 `CommandBus`，不是 MediatR。
@@ -32,8 +35,8 @@ Protocol/Game/<协议>/ 切片
   → `ProjectAsync(NpcShopPurchaseCompleted)`；邮件 `MailboxDomainService` `EnqueueAsync(MailCreated)`
   → `MailCreatedNotificationSubscriber` → `ProjectAsync`。
 
-**口述没覆盖的第二条出站路（已核实）**：CMD 回包和一部分 NOTI 由 handler 直接经 `IGameMessageSender` 发出，
-不经事件服务。领域结果的扇出才走 `ProjectAsync → NotificationBus`。
+**口述没覆盖的第二条出站路（已核实）**：CMD 回包和一部分 NOTI 由 handler 直接经 `IGameMessageSender` 登记进发件箱，
+不经事件服务。领域结果的扇出才走 `ProjectAsync → NotificationBus`。两条路最后都在作业结束后由发送端交付。
 
 ## 2. 领域模块按功能内聚
 
@@ -79,7 +82,5 @@ Protocol/Game/<协议>/ 切片
 - handler 里有业务判断：`BuyItemHandler.cs` 硬编码 `NpcId == 20011`；`CharacterDeath/CharacterDeathSlice.cs`
   自己算多人扇出，没用 `NotificationAudience`。
 - 通知 handler 直接 `new InventorySlotMappingRuleService()`（`BuyItem/NpcShopPurchaseCompleted.cs`）。
-- 自取会话门的 handler 不止 AGENTS.md 批准的 `SelectCharacterHandler`（还有 `Mailbox/MailboxDelivery.cs`、
-  `CharacterDeathSlice`、`MarriageChurchSlice` 等）。
-- 命令总线还有 `ReadOnly` 执行方式与 `SelectedSessionExecution`、`TransactionalExecution`、
-  `SelectedSessionSettlement` 三个管线行为，AGENTS.md 未列。
+- handler 在入站作业内编排多条细粒度命令，每条命令一个事务（过渡形态，见 AGENTS.md「命令执行总线」）。
+- 命令总线的执行方式（含 `ReadOnly`）与管线的五层以 AGENTS.md「命令执行总线」为准。

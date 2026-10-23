@@ -1,5 +1,14 @@
 # 入口对账（TASK-16，T-004b 收口）
 
+> **落地状态（2026-10-24，冻结点 `2bdb1afd`；TASK-33 补）**：本文是基准 `c3115f9a` 上的对账，原文不改。下面这些在冻结点上已不成立：
+>
+> - §2.1 第 4 行与 §2.2 第 4 行的 `lifecycle:close-superseded`：TASK-23 删除，顶替后的关闭由顶替发生的那条 CMD 登记进它的发件箱，被顶替连接的清理随它的 `lifecycle:disconnected`；
+> - §2.3「发送端」行、§2.4 第 2、3 行与 §3.2 第 2、3、6、10 行中的 `ExecutorSendDeadline`（及 `ExecutorSendDeadlineTests`）、`TouchSocketNetworkMessageSender`、`TouchSocketNetworkConnectionCloser`（及 `DetachedCloseTests`）与「`OutboundSender` 未接线」：TASK-23 删除前三者并接线发送端，关连接改为登记进发件箱的请求；`ExecutionContext.SuppressFlow` 今天只在 `GameplayExecutor`、`OutboundSender`、`DungeonCardPresentationCoordinator` 三个文件里（§3.3 第 3 条的「五个文件」随之不成立）；
+> - §2.1 第 5 行的 `NotificationRetryDrainExecutorTests`（E2d）、§2.4 末行与 §3.2 第 7 行的 `ScheduledTaskHostedService` 的 `Task.Run` 与并发槽、`DomainEventDispatcher` 的组门、`NotificationRetryDrainService`：随 T-005、T-006 删除；
+> - 其余已删除的名字逐个列在 `logs/task-33-deleted-names.txt`。
+>
+> 今天的答案：附录 A、B 在冻结点上的最终对账见 `t009-docs-and-appendices.md` §3、§4。文中用例名是 TASK-16 时的名字，TASK-31 改名的新旧对照见 `t009-logs-and-cases.md` §7.3。
+
 - 日期 2026-10-22。基准提交 `c3115f9a`，加上本单元唯一的生产改动（`DungeonCardPresentationCoordinator.cs`，§4）。探针跑在这份最终代码上。
 - 本文件是 T-004c 进入条件（`t004c-entry.md`）的证据底稿。各单元原有的对账行（TASK-09～TASK-15 的 Checks）在这里汇总，并在基准上复核数字与测试名；不重新设计证据。
 - 引用的每个测试名都用 `logs/task-16-evidence-names.txt` 核对过：在基准上 `git grep` 找到定义，本单元新增的在工作区找到并注明。
