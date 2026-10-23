@@ -31,6 +31,13 @@
 | `m2-B-g0.md` | M-2 控制运行：构成 B，用基线 dll（`bin/m1-base/`），与 M-2 的构成 B 对照两个 dll 是否等价（结论：未证明等价，(e) 不在差距之内） |
 | `m2-ramp-full-2s.md`、`m2-ramp-full.md`、`m2-ramp-clean.md` | M-2 吞吐爬坡：构成 A 的 2 s 口径（判 S3）、构成 A 的 p99 ≤ 50 ms 口径（目标对照）、构成 B |
 | `raw/m2-*.summary.json`、`raw/m2-tool-version.txt` | M-2 各次运行的聚合结果；工具源码与两个 dll 的 SHA-256 |
+| `m3-summary.md` | **M-3 先读这份**（TASK-32，代码冻结点 `2bdb1afd`，结果 A 的最终测量）：判定（含发送端层的行按连接行为归类的规则 T／P／D）、与基线、M-1、M-2 的四方对照、「相对 M-2 显著变差」的检验、三次控制运行、后续性能优化事项、对子 Spec B 最终测量的交代 |
+| `m3-A-1.md`、`m3-A-2.md`、`m3-B-1.md`、`m3-B-2.md` | M-3 默认日志级别的运行（M-1 的最终 dll），工具生成的 `summary.md` 原样保存 |
+| `m3-A-debug-1.md`、`m3-A-debug-2.md`、`m3-B-debug-1.md`、`m3-B-debug-2.md` | M-3 `--executor-log debug` 的运行 |
+| `m3-A-f256.md`、`m3-B-f256.md`、`m3-A-f256-debug.md`、`m3-B-f256-debug.md` | M-3 灌包窗口 256 的运行（默认级别与 debug 级各一次） |
+| `m3-B-g0.md`、`m3-B-g0-2.md`、`m3-B-g0-3.md` | M-3 的三次控制运行：构成 B，用基线 dll（`bin/m1-base/`）；结论：未证明等价（`m3-summary.md` §5.3） |
+| `m3-ramp-full-2s.md`、`m3-ramp-full.md`、`m3-ramp-clean.md` | M-3 吞吐爬坡：构成 A 的 2 s 口径（判 S3）、构成 A 的 p99 ≤ 50 ms 口径（目标对照）、构成 B |
+| `raw/m3-*.summary.json`、`raw/m3-tool-version.txt` | M-3 各次运行的聚合结果；工具源码与两个 dll 的 SHA-256 |
 
 ## 命令行
 
@@ -225,7 +232,7 @@ Host 就绪即开始负载（起始序列也在内），前 60 s 按计划发出
 
 **改造后由执行器日志提供**（M-1 起）：执行器在 Debug 级为每个完成的作业记一行
 `Gameplay {CommandType} completed: … in {ElapsedMilliseconds} ms after {QueueWaitMilliseconds} ms queued`，失败行是 Error 级
-（`… after {ElapsedMilliseconds} ms, {QueueWaitMilliseconds} ms queued`，`Server/src/Dfo.Server.Application/Execution/GameplayExecutor.cs`）。
+（`… connection {SourceConnection}, chain {Chain}, after {ElapsedMilliseconds} ms, {QueueWaitMilliseconds} ms queued`；`connection` 字段是 TASK-31 加的，解析式不受影响，M-3 的解析自检相等，`Server/src/Dfo.Server.Application/Execution/GameplayExecutor.cs`）。
 `--executor-log debug` 让工具给 Host 多设一个环境变量 `Logging__LogLevel__Dfo.Server.Application.Execution.GameplayExecutor=Debug`
 （只抬这一个类别），并解析这两种行：执行时长 = 作业体开始 → 结束，不含入队等待；入队等待 = 入队 → 开始执行。
 与命令日志一样按工具读到行的时刻归窗，`summary.md` 末尾多一节「执行器作业」：各类作业的执行时长分布（含首次值、冷启动窗
@@ -245,8 +252,12 @@ Host 就绪即开始负载（起始序列也在内），前 60 s 按计划发出
   `deb158a5…`，`raw/m2-tool-version.txt`）；默认级别下它只对每条非命令日志行多做一次子串检查与正则匹配。改动前的 dll
   （`bin/m1-base/`，`b3d6c286…`，口径与基线逐字节一致）只用于一次构成 B 的控制运行。结果**没有证明**两个 dll
   在默认级别下等价：稳态、(d)、(f) 落在两次改动后 dll 运行的差距之内，(e) 不在。所以 (e) 与基线、M-1 对照时同时给两种
-  dll 的口径（`m2-summary.md` §5.1、§5.2）；改动前的 dll 只跑了 1 次，可能含噪声。M-1 的默认级别组与 p99 ≤ 50 ms 爬坡用的是改动前的 dll。`bin/` 不入库：
+  dll 的口径（`m2-summary.md` §5.1、§5.2）。M-3 用改动前的 dll 跑了三次控制运行，仍**未证明**等价：12 项里 2 项落在两次改动后 dll 运行的差距之内，三次落在两侧、方向不一致；(e) 在改动前 dll 口径下为 8.47～14.84 ms，约是 M-1 的 2 倍（`m3-summary.md` §5.3）。M-1 的默认级别组与 p99 ≤ 50 ms 爬坡用的是改动前的 dll。`bin/` 不入库：
   改动前的 dll 可从提交 `5075a283` 的源码确定性重建（源码 SHA-256 见 `raw/tool-version.txt`），改动后的源码见 `raw/m1-tool-version.txt`。
+
+### 发送端层的告警
+
+T-006 之后回包由发送端交付。客户端（工具）先断开、交付时连接已不在的 `Failed`，自 TASK-31（F-121）起记为 Information，带后缀 `; the connection was already gone`；`TimedOut`、`OverLimit` 与连接仍可解析时的 `Failed` 仍是 Warning。测量判定把这些行按连接行为归为收尾（T）、就绪探测（P）、(d) 轮登录连接（D）或计入，规则与 M-3 的结果见 `m3-summary.md` §4.2；收尾时连接仍可解析、写端已完成的 Warning `Failed` 是 F-127。
 
 ### 单请求出站字节
 
