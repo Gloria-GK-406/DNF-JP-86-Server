@@ -24,6 +24,13 @@
 | `m1-ramp-full-2s.md` | M-1 构成 A 的 2 s 口径爬坡（`--ramp-criterion max:2000`），S3 按它判定 |
 | `m1-ramp-full.md`、`m1-ramp-full-2.md`、`m1-ramp-clean.md` | M-1 吞吐爬坡（p99 ≤ 50 ms 口径）：构成 A 两次，只作目标对照；构成 B（400 → 25000 包/秒） |
 | `raw/m1-*.summary.json`、`raw/m1-tool-version.txt` | M-1 各次运行的聚合结果；两组运行各用哪个工具 dll 及新旧源码的 SHA-256 |
+| `m2-summary.md` | **M-2 先读这份**（TASK-28，T-005、T-006 之后）：判定、与基线和 M-1 的三方对照、§4.4 预期对照、延迟构成估计、(c)(e) 正式数字、后续性能优化事项 |
+| `m2-A-1.md`、`m2-A-2.md`、`m2-B-1.md`、`m2-B-2.md` | M-2 默认日志级别的运行（M-1 的最终 dll），工具生成的 `summary.md` 原样保存 |
+| `m2-A-debug-1.md`、`m2-A-debug-2.md`、`m2-B-debug-1.md`、`m2-B-debug-2.md` | M-2 `--executor-log debug` 的运行 |
+| `m2-A-f256.md`、`m2-B-f256.md`、`m2-A-f256-debug.md`、`m2-B-f256-debug.md` | M-2 灌包窗口 256 的运行（默认级别与 debug 级各一次） |
+| `m2-B-g0.md` | M-2 控制运行：构成 B，用基线 dll（`bin/m1-base/`），与 M-2 的构成 B 对照两个 dll 是否等价（结论：未证明等价，(e) 不在差距之内） |
+| `m2-ramp-full-2s.md`、`m2-ramp-full.md`、`m2-ramp-clean.md` | M-2 吞吐爬坡：构成 A 的 2 s 口径（判 S3）、构成 A 的 p99 ≤ 50 ms 口径（目标对照）、构成 B |
+| `raw/m2-*.summary.json`、`raw/m2-tool-version.txt` | M-2 各次运行的聚合结果；工具源码与两个 dll 的 SHA-256 |
 
 ## 命令行
 
@@ -53,6 +60,10 @@ dotnet $G run --out <dir>/B-debug-1 --tag m1bd1 --seed 1 $B --executor-log debug
 # 6. 2 s 口径的爬坡（M-1 起，S3 按它判定）：逐档要求判定 max < 2000 ms、作业执行时长 max < 2000 ms、错误 0、实际速率 ≥ 目标 95%
 dotnet $G ramp --out <dir>/ramp-full-2s --tag m1r1s --seed 1 --executor-log debug --ramp-criterion max:2000 \
     --rates 400,800,1200,1600,2000,2400,3000,4000,5000,6000,8000,10000,12000,15000,20000,25000
+
+# 7. 灌包窗口 256（M-2 起，与窗口 32 的同名运行对照；debug 级同样加 --executor-log debug）
+dotnet $G run --out <dir>/B-f256 --tag m2bf --seed 1 $B --flood-window 256
+dotnet $G run --out <dir>/A-f256 --tag m2af --seed 1 --flood-window 256
 ```
 
 默认参数：`--host Server/src/Dfo.Server.Host/bin/Release/net10.0/Dfo.Server.Host.dll`，`--pvf` 取
@@ -199,7 +210,7 @@ dotnet $G ramp --out <dir>/ramp-full-2s --tag m1r1s --seed 1 --executor-log debu
 比较灌包期间其余连接的端到端分布与稳态窗；另给灌包连接自己的应答速率。
 **窗口 32 是结论的一部分**：基线上服务端按连接并行，窗口大小几乎不影响别的连接；改造后单执行器上，灌包连接在执行器队列里
 最多同时占 32 项（RQ-005 实施后入站 CMD 每连接最多 1 条待执行，窗口其余部分停在传输层），(e) 的结果直接取决于这个数。
-M-2 建议加跑一档更大的窗口（`--flood-window 256`）或开环灌包，并在记录里写明窗口。0x04DD 不经命令总线、无扇出，
+M-2 加跑了窗口 256（命令 7）：其余连接的 (e) 端到端与窗口 32 同量级（`m2-summary.md` §7）；开环灌包没有做。0x04DD 不经命令总线、无扇出，
 是最轻的路径，灌包连接每秒约 20 万个应答衡量的是「一个连接能抢走多少」，不是命令吞吐。
 
 ### (f) 冷启动
@@ -230,10 +241,12 @@ Host 就绪即开始负载（起始序列也在内），前 60 s 按计划发出
   运行的 2 倍时，该窗口的入队等待只作参考（M-1 的做法，`m1-summary.md`）。
 - **(e) 的局限**：作业行不带连接号，灌包连接自己的作业分不出来；按 RQ-005 它在队列里至多 1 条，FIFO 下它的入队等待与别人
   同分布，(e) 窗的「全部作业」可作代理。
-- **工具版本**：M-1 的默认级别运行与爬坡用改动前的 dll（`Tool/GameplayLoad/bin/m1-base/`，SHA-256 与 `raw/tool-version.txt`
-  相同，口径与基线逐字节一致）；debug 运行用改动后的 dll。`bin/` 不入库：改动前的 dll 可从提交 `5075a283` 的源码确定性
-  重建（源码 SHA-256 见 `raw/tool-version.txt`），改动后的见 `raw/m1-tool-version.txt`。M-2 起统一用改动后的 dll，默认
-  级别下它只对每条非命令日志行多做一次子串检查与正则匹配。
+- **工具版本**：M-2 起默认级别运行、debug 运行与爬坡都用改动后的 dll（`Tool/GameplayLoad/bin/Release/net10.0/`，
+  `deb158a5…`，`raw/m2-tool-version.txt`）；默认级别下它只对每条非命令日志行多做一次子串检查与正则匹配。改动前的 dll
+  （`bin/m1-base/`，`b3d6c286…`，口径与基线逐字节一致）只用于一次构成 B 的控制运行。结果**没有证明**两个 dll
+  在默认级别下等价：稳态、(d)、(f) 落在两次改动后 dll 运行的差距之内，(e) 不在。所以 (e) 与基线、M-1 对照时同时给两种
+  dll 的口径（`m2-summary.md` §5.1、§5.2）；改动前的 dll 只跑了 1 次，可能含噪声。M-1 的默认级别组与 p99 ≤ 50 ms 爬坡用的是改动前的 dll。`bin/` 不入库：
+  改动前的 dll 可从提交 `5075a283` 的源码确定性重建（源码 SHA-256 见 `raw/tool-version.txt`），改动后的源码见 `raw/m1-tool-version.txt`。
 
 ### 单请求出站字节
 
