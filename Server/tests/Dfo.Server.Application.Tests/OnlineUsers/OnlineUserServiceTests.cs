@@ -581,7 +581,7 @@ public sealed class UserServiceTests
     }
 
     [Fact]
-    public async Task DisconnectWithoutSelectedSession_DoesNotWaitForAccountLifecycleGate()
+    public async Task DisconnectWithoutSelectedSession_CompletesAndRemovesTheOnlineUser()
     {
         var service = CreateService(new AccountId(105));
         var observer = new OnlineUserConnectionObserver(

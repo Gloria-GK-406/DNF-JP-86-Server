@@ -292,37 +292,6 @@ public sealed class PartyTownProjectionDeliveryTests
         }
     }
 
-    private sealed class BlockingFirstRosterNotificationBus : Dfo.Server.Testing.ProjectionEventService
-    {
-        private int rosterCount;
-
-        public TaskCompletionSource FirstRosterEntered { get; } = new(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public TaskCompletionSource ReleaseFirstRoster { get; } = new(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public List<PartyRosterChanged> Rosters { get; } = [];
-
-        public override async ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
-            NotificationAudience audience,
-            TNotification notification,
-            CancellationToken cancellationToken)
-        {
-            if (notification is PartyRosterChanged roster)
-            {
-                Rosters.Add(roster);
-                if (Interlocked.Increment(ref rosterCount) == 1)
-                {
-                    FirstRosterEntered.TrySetResult();
-                    await ReleaseFirstRoster.Task.WaitAsync(cancellationToken);
-                }
-            }
-
-            return new NotificationDelivery([]);
-        }
-    }
-
     private sealed class StubParties(
         params (SelectedSessionIdentity Session, PartySnapshot Snapshot)[] snapshots)
         : IPartyService

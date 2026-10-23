@@ -85,7 +85,10 @@ internal sealed class ChannelNetworkPlugin(
                 }
                 catch (Exception error)
                 {
-                    logger.LogError(
+                    // A job's own failure was logged by the executor with its chain (F-30): Debug here.
+                    var failed = GameplayJob.EndedAJob(error);
+                    logger.Log(
+                        failed ? Microsoft.Extensions.Logging.LogLevel.Debug : Microsoft.Extensions.Logging.LogLevel.Error,
                         error,
                         "Channel handler failed {ConnectionId}: message=0x{MessageNumber:X2} "
                             + "handler={Message}",
@@ -93,7 +96,7 @@ internal sealed class ChannelNetworkPlugin(
                         frame.MessageNumber,
                         message.GetType().Name);
                     // The failed job closes this connection itself, after what its outbox kept (RQ-031(c)).
-                    if (GameplayJob.EndedAJob(error))
+                    if (failed)
                         return;
                     throw;
                 }
@@ -177,8 +180,11 @@ internal sealed class GameNetworkPlugin(
                     // closes this connection after the entries it kept, where a rethrow would let
                     // TouchSocket close it at once and overtake them. A refusal to run the job (the
                     // executor stopped, the depth limit) registered nothing and is still rethrown, so
-                    // the transport closes the connection as before.
-                    logger.LogError(
+                    // the transport closes the connection as before. A job's own failure was logged by
+                    // the executor with its chain and connection (F-30), so this line is Debug then.
+                    var failed = GameplayJob.EndedAJob(error);
+                    logger.Log(
+                        failed ? Microsoft.Extensions.Logging.LogLevel.Debug : Microsoft.Extensions.Logging.LogLevel.Error,
                         error,
                         "Game handler failed {ConnectionId}: selector=0x{Selector:X2} "
                             + "type=0x{Type:X4} message={Message}",
@@ -186,7 +192,7 @@ internal sealed class GameNetworkPlugin(
                         frame.Selector,
                         frame.Type,
                         message.GetType().Name);
-                    if (GameplayJob.EndedAJob(error))
+                    if (failed)
                         return;
                     throw;
                 }

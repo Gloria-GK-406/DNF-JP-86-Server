@@ -248,9 +248,11 @@ internal sealed class HttpApiExceptionMiddleware(
         {
             throw;
         }
-        catch (Exception) when (!context.Response.HasStarted)
+        catch (Exception error) when (!context.Response.HasStarted)
         {
-            logger.LogError(
+            // A CMD's own failure was logged by the executor with its chain (F-30).
+            logger.Log(
+                GameplayJob.EndedAJob(error) ? LogLevel.Debug : LogLevel.Error,
                 "HTTP API request failed with code {ErrorCode}; TraceId={TraceId}.",
                 "internal_error",
                 context.TraceIdentifier);

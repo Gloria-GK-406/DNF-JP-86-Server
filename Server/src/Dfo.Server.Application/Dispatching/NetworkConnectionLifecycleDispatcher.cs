@@ -106,12 +106,13 @@ internal sealed class NetworkConnectionLifecycleDispatcher(
             await queue.RunAsync(new GameplayWork(GameplayShardKey.World, chain, commandType, body, source), cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (GameplayExecutorStoppedException)
+        catch (GameplayExecutorStoppedException stopped)
         {
             // The shutdown order exists to make this zero (RQ-009); a teardown lost here is a lost position.
             try
             {
                 logger.LogWarning(
+                    stopped,
                     "The gameplay executor has stopped; {CommandType} for {ConnectionId} did not run",
                     commandType, connection.ConnectionId);
             }

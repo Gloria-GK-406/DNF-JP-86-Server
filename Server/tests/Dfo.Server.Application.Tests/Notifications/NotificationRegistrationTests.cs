@@ -112,7 +112,7 @@ public sealed class NotificationRegistrationTests
 
     /// <summary>Registration binds the notification, its handler and its composer together.</summary>
     [Fact]
-    public void A_registered_handler_is_found_with_the_retry_limit_it_declared()
+    public void A_registered_handler_is_found_with_its_handler_and_composer_types()
     {
         var services = new ServiceCollection()
             .AddNotificationHandler<UnhandledProbe, ProbeHandler>();

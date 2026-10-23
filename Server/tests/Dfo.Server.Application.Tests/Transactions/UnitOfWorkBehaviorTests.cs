@@ -106,7 +106,7 @@ public sealed class UnitOfWorkBehaviorTests
     /// it is asserted on the order rather than on the exact numbers.
     /// </summary>
     [Fact]
-    public void UnitOfWork_OpensInsideTheAccountAndTransactionalGatesAndOutsideTheExecutionPolicy()
+    public void UnitOfWork_OpensInsideTheSelectedSessionSettlementAndOutsideTheExecutionPolicy()
     {
         var probe = new ParticipantProbe();
         using var provider = BuildProvider(probe, CommandExecutionKind.Transactional);

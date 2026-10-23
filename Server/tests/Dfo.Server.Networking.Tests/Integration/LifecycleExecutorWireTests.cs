@@ -142,7 +142,7 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task A_superseded_connection_is_closed_by_maintenance_and_cleaned_up_on_the_executor()
+    public async Task A_superseded_connection_is_closed_by_the_login_cmd_and_its_teardown_is_that_cmds_child()
     {
         await using var server = await LifecycleWireHost.StartAsync();
         var commands = server.Host.Services.GetRequiredService<ICommandBus>();
@@ -169,7 +169,7 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
     /// runs after the job, and the job enqueued next runs at once.
     /// </summary>
     [Fact]
-    public async Task A_send_to_a_resetting_client_does_not_hold_the_executor_past_the_deadline()
+    public async Task A_send_to_a_resetting_client_does_not_hold_the_executor()
     {
         const int attempts = 5;
         await using var server = await LifecycleWireHost.StartAsync();

@@ -311,9 +311,9 @@ public sealed class GameplayExecutor(ILogger<GameplayExecutor> logger) : Gamepla
             {
                 executor.Log(LogLevel.Error, failure,
                     "Gameplay {CommandType} failed: root {RootId}, parent {ParentId}, depth {Depth}, source {Source}, " +
-                    "chain {Chain}, after {ElapsedMilliseconds} ms, {QueueWaitMilliseconds} ms queued",
-                    work.CommandType, chain.RootId, chain.ParentId, chain.Depth, chain.Source, chain.Describe(),
-                    elapsed, queueWait);
+                    "connection {SourceConnection}, chain {Chain}, after {ElapsedMilliseconds} ms, {QueueWaitMilliseconds} ms queued",
+                    work.CommandType, chain.RootId, chain.ParentId, chain.Depth, chain.Source, chain.SourceConnection,
+                    chain.Describe(), elapsed, queueWait);
                 // Only a body's own failure is marked: a refusal to run the work never reaches here.
                 result.TrySetException(MarkJobFailure(failure));
             }

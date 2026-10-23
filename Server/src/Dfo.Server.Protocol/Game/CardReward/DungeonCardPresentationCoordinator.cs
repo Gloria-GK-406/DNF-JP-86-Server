@@ -71,7 +71,9 @@ public sealed class DungeonCardPresentationCoordinator(
             commandType,
             timing.LayoutDelay,
             () => this.RunLayoutAsync(session, runId, cancellation.Token),
-            error => logger.LogError(
+            // A timer CMD's own failure was logged by the executor with its chain (F-30).
+            error => logger.Log(
+                GameplayJob.EndedAJob(error) ? LogLevel.Debug : LogLevel.Error,
                 error,
                 "Dungeon card layout timer failed for character={CharacterId} run={RunId}",
                 session.CharacterId.Value,
@@ -222,7 +224,8 @@ public sealed class DungeonCardPresentationCoordinator(
             commandType,
             timing.AutoFlipDelay,
             () => this.RunAutoFlipAsync(session, runId, cancellation.Token),
-            error => logger.LogError(
+            error => logger.Log(
+                GameplayJob.EndedAJob(error) ? LogLevel.Debug : LogLevel.Error,
                 error,
                 "Dungeon card auto flip failed for character={CharacterId} run={RunId}",
                 session.CharacterId.Value,
@@ -367,10 +370,12 @@ public sealed class DungeonCardPresentationCoordinator(
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
         }
-        catch (GameplayExecutorStoppedException)
+        catch (GameplayExecutorStoppedException stopped)
         {
-            // Only a stop that skipped the drain, such as disposing a container without a host.
-            logger.LogInformation("{CommandType} was not enqueued: the gameplay executor has stopped", commandType);
+            // Only a stop that skipped the drain, such as disposing a container without a host. A cause is the
+            // executor's faulted consumption loop (F-31).
+            logger.Log(stopped.InnerException is null ? LogLevel.Information : LogLevel.Warning, stopped,
+                "{CommandType} was not enqueued: the gameplay executor has stopped", commandType);
         }
         catch (Exception exception)
         {

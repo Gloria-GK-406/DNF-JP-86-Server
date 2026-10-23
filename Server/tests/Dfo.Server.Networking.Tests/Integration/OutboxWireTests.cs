@@ -9,6 +9,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Outbound;
 using Dfo.Server.Networking.Tests.Outbound;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
 using static Dfo.Server.Networking.Tests.Integration.LifecycleWireHost;
 
@@ -102,7 +103,8 @@ public sealed class OutboxWireTests(ITestOutputHelper output)
         var received = await ReadFramesUntilFinAsync(client, server.Timeout);
         Assert.Equal([1, 2], received.Select(Index));
         await WaitUntilAsync(() => server.Recorder.First("disconnect-exit", id) is not null, server.Timeout);
-        Assert.Equal(1, server.Log.Count("Game handler failed"));
+        Assert.Equal(1, server.Log.Count("Gameplay inbound:GameExit failed", LogLevel.Error));
+        Assert.Equal(0, server.Log.Count("Game handler failed", LogLevel.Error));
     }
 
     /// <summary>TASK-23 ruling 1: a message that cannot be encoded fails the CMD where it is sent; what came before still arrives.</summary>
@@ -124,7 +126,8 @@ public sealed class OutboxWireTests(ITestOutputHelper output)
         var received = await ReadFramesUntilFinAsync(client, server.Timeout);
         Assert.Equal([1], received.Select(Index));
         await WaitUntilAsync(() => server.Recorder.First("disconnect-exit", id) is not null, server.Timeout);
-        Assert.Equal(1, server.Log.Count("Game handler failed"));
+        Assert.Equal(1, server.Log.Count("Gameplay inbound:GameExit failed", LogLevel.Error));
+        Assert.Equal(0, server.Log.Count("Game handler failed", LogLevel.Error));
         Assert.Null(server.Recorder.First("inbound-exit", id));
     }
 

@@ -451,7 +451,7 @@ public sealed class PartyCommandHandlerTests
     }
 
     [Fact]
-    public async Task Successful_command_notifications_are_delivered_after_both_transition_gates_release()
+    public async Task Successful_command_notifications_are_delivered_once()
     {
         await TestGameplay.RunAsync(async () =>
         {
@@ -489,7 +489,7 @@ public sealed class PartyCommandHandlerTests
     }
 
     [Fact]
-    public async Task Set_party_info_delivers_its_immutable_result_after_the_transition_gate_releases()
+    public async Task Set_party_info_sends_one_command_and_delivers_its_result_as_three_full_state_phases()
     {
         await TestGameplay.RunAsync(async () =>
         {

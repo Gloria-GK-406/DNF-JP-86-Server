@@ -207,7 +207,7 @@ public sealed class CommonExperienceEffectTests
     }
 
     [Fact]
-    public async Task Effect_uow_borrows_outer_exclusive_and_keeps_teardown_waiting_until_settlement()
+    public async Task Effect_award_settles_inside_its_clearing_cmd()
     {
         using var shop = Shop(new Calculation(), new EffectTrace());
         // The command is one job; teardown is a later job and cannot interleave with the settlement.
@@ -258,7 +258,7 @@ public sealed class CommonExperienceEffectTests
     }
 
     [Fact]
-    public async Task Logger_failure_does_not_replace_unknown_cause_and_exact_close_callback_waits_for_lease_release()
+    public async Task Logger_failure_does_not_replace_unknown_cause_and_the_exact_connection_is_closed_and_blocked()
     {
         var closer = new CallbackCloser();
         var trace = new EffectTrace { Commit = _ => throw new IOException("durable publication") };

@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Scheduling;
 using Dfo.Server.Application.Scheduling;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Tests.Scheduling;
 
@@ -73,9 +74,64 @@ public sealed class ScheduledTaskExecutorTests
         Assert.Equal(2, attempts.Select(x => x.Chain!.Value.RootId).Distinct().Count());
     }
 
+    /// <summary>
+    /// F-30 (TASK-31 section 2.2): the last attempt's CMD fails. The executor logs that failure with its stack;
+    /// the scheduler only adds that the attempts are used up, as a warning without the stack.
+    /// </summary>
+    [Fact]
+    public async Task An_exhausted_task_is_logged_once_by_the_executor_and_warned_without_its_stack()
+    {
+        var clock = new SchedulerClock();
+        var logs = new CapturedLogs();
+        var services = new ServiceCollection();
+        services.AddLogging(builder => builder.AddProvider(logs));
+        services.AddSingleton<TimeProvider>(clock);
+        services.AddScheduledTask(new ScheduledTaskRegistration("probe.last-attempt", new IntervalTaskSchedule(TimeSpan.FromDays(1)),
+            (_, _) => throw new InvalidOperationException("the only attempt fails"))
+        { MissedRun = ScheduledTaskMissedRunPolicy.RunOnce, MaximumAttempts = 1 });
+        await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
+        var scheduler = provider.GetServices<IHostedService>().OfType<ScheduledTaskHostedService>().Single();
+
+        await scheduler.StartAsync(CancellationToken.None);
+        try
+        {
+            await Until(() => logs.Entries.Any(x => x.Message.Contains("exhausted", StringComparison.Ordinal)));
+        }
+        finally
+        {
+            await scheduler.StopAsync(CancellationToken.None).WaitAsync(Patience);
+        }
+
+        var exhausted = Assert.Single(logs.Entries, x => x.Message.Contains("exhausted", StringComparison.Ordinal));
+        Assert.Equal(LogLevel.Warning, exhausted.Level);
+        Assert.Null(exhausted.Exception);
+        var error = Assert.Single(logs.Entries, x => x.Level >= LogLevel.Error);
+        Assert.StartsWith("Gameplay timer:ScheduledTaskHostedService/probe.last-attempt failed", error.Message, StringComparison.Ordinal);
+        Assert.IsType<InvalidOperationException>(error.Exception);
+    }
+
     private static async Task Until(Func<bool> condition)
     {
         using var timeout = new CancellationTokenSource(Patience);
         while (!condition()) await Task.Delay(1, timeout.Token);
+    }
+
+    private sealed class CapturedLogs : ILoggerProvider
+    {
+        public ConcurrentQueue<(LogLevel Level, string Message, Exception? Exception)> Entries { get; } = new();
+
+        public ILogger CreateLogger(string categoryName) => new Logger(this);
+
+        public void Dispose() { }
+
+        private sealed class Logger(CapturedLogs owner) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => true;
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+                Func<TState, Exception?, string> formatter) => owner.Entries.Enqueue((logLevel, formatter(state, exception), exception));
+        }
     }
 }

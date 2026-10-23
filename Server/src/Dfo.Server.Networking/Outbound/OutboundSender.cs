@@ -203,7 +203,7 @@ internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable, IDispo
         }
         catch (Exception error)
         {
-            queue.End(item, OutboundOutcome.Failed, error, close: true);
+            queue.End(item, OutboundOutcome.Failed, error, close: true, gone: IsGone(item));
             return;
         }
 
@@ -225,9 +225,15 @@ internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable, IDispo
         }
         catch (Exception error)
         {
-            queue.End(item, OutboundOutcome.Failed, error, close: true);
+            queue.End(item, OutboundOutcome.Failed, error, close: true, gone: IsGone(item));
         }
     }
+
+    /// <summary>
+    /// F-121: a send that failed because its connection had already gone (the peer reset, the drain's close) is
+    /// told apart by asking the transport, as <see cref="ProcessAsync"/> does for Stale, not by the exception type.
+    /// </summary>
+    private bool IsGone(Item item) => transport.Resolve(item.Entry.Connection) is null;
 
     private static void Observe(Task task) =>
         _ = task.ContinueWith(static done => _ = done.Exception, CancellationToken.None,
@@ -245,9 +251,13 @@ internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable, IDispo
         }
     }
 
-    private void FailConnection(NetworkConnectionContext context, OutboundOutcome reason)
+    private void FailConnection(NetworkConnectionContext context, OutboundOutcome reason, bool gone = false)
     {
-        logger.LogWarning("Outbound connection {ConnectionId} closed: {Reason}", context.ConnectionId, reason);
+        if (gone && reason == OutboundOutcome.Failed)
+            logger.LogInformation("Outbound connection {ConnectionId} closed: {Reason}; the connection was already gone",
+                context.ConnectionId, reason);
+        else
+            logger.LogWarning("Outbound connection {ConnectionId} closed: {Reason}", context.ConnectionId, reason);
         foreach (var observer in observers)
         {
             try
@@ -264,19 +274,27 @@ internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable, IDispo
             _ = Detached(() => CloseAsync(connection));
     }
 
-    private void Complete(Item item, OutboundOutcome outcome, Exception? error = null)
+    private void Complete(Item item, OutboundOutcome outcome, Exception? error = null, bool gone = false)
     {
         if (!item.Done.TrySetResult(outcome))
             return;
         item.ReleaseFrames();
+        gone = gone && outcome == OutboundOutcome.Failed;
         var level = outcome switch
         {
             OutboundOutcome.Delivered or OutboundOutcome.Closed => LogLevel.Trace,
             OutboundOutcome.Stale or OutboundOutcome.Discarded or OutboundOutcome.Skipped => LogLevel.Debug,
+            OutboundOutcome.Failed when gone => LogLevel.Information,
             _ => LogLevel.Warning,
         };
         if (logger.IsEnabled(level))
-            logger.Log(level, error, "Outbound entry for {ConnectionId}: {Outcome}", item.Entry.Connection.ConnectionId, outcome);
+        {
+            if (gone)
+                logger.Log(level, error, "Outbound entry for {ConnectionId}: {Outcome}; the connection was already gone",
+                    item.Entry.Connection.ConnectionId, outcome);
+            else
+                logger.Log(level, error, "Outbound entry for {ConnectionId}: {Outcome}", item.Entry.Connection.ConnectionId, outcome);
+        }
         var report = new OutboundDeliveryReport(item.Entry, outcome, error);
         foreach (var observer in observers)
         {
@@ -398,7 +416,8 @@ internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable, IDispo
             OutboundOutcome outcome,
             Exception? error,
             bool close,
-            OutboundOutcome remainder = OutboundOutcome.Discarded)
+            OutboundOutcome remainder = OutboundOutcome.Discarded,
+            bool gone = false)
         {
             Item[] dropped;
             lock (gate)
@@ -419,11 +438,11 @@ internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable, IDispo
             }
 
             ending.Cancel();
-            owner.Complete(cause, outcome, error);
+            owner.Complete(cause, outcome, error, gone);
             foreach (var item in dropped)
                 owner.Complete(item, remainder);
             if (close)
-                owner.FailConnection(context, outcome);
+                owner.FailConnection(context, outcome, gone);
         }
 
         private async Task RunAsync()

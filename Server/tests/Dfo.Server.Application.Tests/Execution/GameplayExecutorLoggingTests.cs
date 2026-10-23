@@ -55,4 +55,30 @@ public sealed class GameplayExecutorLoggingTests
         Assert.IsType<double>(failure.Fields["ElapsedMilliseconds"]);
         Assert.DoesNotContain(log.Entries, entry => entry.Level == LogLevel.Debug);
     }
+
+    /// <summary>
+    /// F-30 (TASK-31 section 2.3): the producer's own line for a failed job is Debug, so the executor's Error is
+    /// the only line at the default level and has to say which connection the job came from.
+    /// </summary>
+    [Fact]
+    public async Task The_failure_log_names_the_source_connection()
+    {
+        var (executor, log) = ExecutionTest.Executor();
+        await using var _executor = executor;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await executor.RunAsync(ExecutionTest.Work(
+                _ => throw new InvalidOperationException("broken"), "Broken", ExecutionTest.Root("conn-source")),
+                CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await executor.RunAsync(ExecutionTest.Work(
+                _ => throw new InvalidOperationException("broken"), "NoConnection", ExecutionTest.Root()),
+                CancellationToken.None));
+
+        var failures = log.Entries.Where(entry => entry.Level == LogLevel.Error).ToArray();
+        Assert.Equal(2, failures.Length);
+        Assert.Equal(new Dfo.Server.Data.Networking.NetworkConnectionId("conn-source"),
+            Assert.Single(failures, entry => Equals(entry.Fields["CommandType"], "Broken")).Fields["SourceConnection"]);
+        Assert.Null(Assert.Single(failures, entry => Equals(entry.Fields["CommandType"], "NoConnection")).Fields["SourceConnection"]);
+    }
 }

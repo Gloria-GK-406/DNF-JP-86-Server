@@ -54,7 +54,7 @@ public sealed class IllusionTowerRewardProjectionTests
     }
 
     [Fact]
-    public async Task Persistent_delivery_failure_closes_after_two_attempts_and_real_cleanup_removes_receipt()
+    public async Task Persistent_registration_failure_closes_after_two_attempts_and_real_cleanup_removes_receipt()
     {
         await TestGameplay.RunAsync(async () =>
         {

@@ -171,7 +171,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
     }
 
     [Fact]
-    public async Task Party_wrapper_failure_after_its_inner_write_isolated_sessions_after_gates_release()
+    public async Task Party_wrapper_failure_after_its_inner_write_isolates_and_closes_both_sessions()
     {
         await TestGameplay.RunAsync(async () =>
         {

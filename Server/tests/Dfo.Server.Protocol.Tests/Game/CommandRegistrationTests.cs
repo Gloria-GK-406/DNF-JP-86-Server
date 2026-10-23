@@ -111,7 +111,7 @@ public sealed class CommandRegistrationTests
     }
 
     [Fact]
-    public void GameTicketRedemptionIsTransactionalAndOnlineUserExclusive()
+    public void GameTicketRedemptionIsTransactional()
     {
         using var provider = BuildProductionGraph();
         var registration = Assert.Single(

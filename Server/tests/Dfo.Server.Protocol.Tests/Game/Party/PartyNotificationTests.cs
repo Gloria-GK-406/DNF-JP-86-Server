@@ -1302,31 +1302,6 @@ public sealed class PartyNotificationTests
         public SessionEndpoint? FindThroughCurrentSession(CharacterId characterId) => null;
     }
 
-    private sealed class BlockingNotificationBus : Dfo.Server.Testing.ProjectionEventService
-    {
-        public List<Publication> Publications { get; } = [];
-
-        public TaskCompletionSource FirstPublication { get; } =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public TaskCompletionSource ReleaseFirst { get; } =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public override async ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
-            NotificationAudience audience,
-            TNotification notification,
-            CancellationToken cancellationToken)
-        {
-            Publications.Add(new(audience, notification));
-            if (Publications.Count == 1)
-            {
-                FirstPublication.TrySetResult();
-                await ReleaseFirst.Task.WaitAsync(cancellationToken);
-            }
-            return new NotificationDelivery([]);
-        }
-    }
-
     private sealed class SessionDirectory(params SelectedSessionIdentity[] initial)
         : ISelectedSessionDomainService
     {

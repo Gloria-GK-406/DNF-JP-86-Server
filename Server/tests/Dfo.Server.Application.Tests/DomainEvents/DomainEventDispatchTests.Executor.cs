@@ -333,7 +333,7 @@ public sealed partial class DomainEventDispatchTests
         return true;
     }
 
-    private sealed record LogEntry(LogLevel Level, string Message);
+    private sealed record LogEntry(LogLevel Level, string Message, Exception? Exception = null);
 
     private sealed class LogRecorder : ILoggerProvider
     {
@@ -350,7 +350,7 @@ public sealed partial class DomainEventDispatchTests
             public bool IsEnabled(LogLevel logLevel) => true;
 
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
-                Func<TState, Exception?, string> formatter) => owner.Entries.Enqueue(new(logLevel, formatter(state, exception)));
+                Func<TState, Exception?, string> formatter) => owner.Entries.Enqueue(new(logLevel, formatter(state, exception), exception));
         }
     }
 }

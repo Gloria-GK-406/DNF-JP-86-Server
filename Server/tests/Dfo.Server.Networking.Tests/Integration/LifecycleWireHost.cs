@@ -317,6 +317,9 @@ internal sealed class LifecycleLog : ILoggerProvider
 
     public int Count(string fragment) => Entries.Count(x => x.Message.Contains(fragment, StringComparison.Ordinal));
 
+    public int Count(string fragment, LogLevel level) =>
+        Entries.Count(x => x.Level == level && x.Message.Contains(fragment, StringComparison.Ordinal));
+
     public ILogger CreateLogger(string categoryName) => new Logger(this, categoryName);
 
     public void Dispose()

@@ -167,7 +167,7 @@ public sealed partial class DomainEventDispatchTests
     }
 
     [Fact]
-    public async Task Commit_under_database_admission_returns_and_the_worker_consumes_after_admission_is_released()
+    public async Task Commit_returns_at_once_and_the_worker_consumes_the_delivery_afterwards()
     {
         await using var f = new Fixture();
         using var stop = new CancellationTokenSource();
@@ -318,6 +318,74 @@ public sealed partial class DomainEventDispatchTests
         await hosted.StopAsync(default);
     }
 
+    /// <summary>
+    /// F-30 (TASK-31 section 2.2): the event CMD fails because recording its retry fails. The executor logs that
+    /// failure with its stack; the group loop only adds that it backs off, as a warning without the stack.
+    /// </summary>
+    [Fact]
+    public async Task A_group_whose_failure_record_fails_backs_off_with_a_warning_and_one_error()
+    {
+        await using var f = new Fixture(record: true);
+        f.Probe.FailingAttempts = 1;
+        f.Probe.FailRetryRecordingOnce = 1;
+        await f.SendAsync(new Awarded("a", 8));
+        using var stop = new CancellationTokenSource();
+        var worker = f.Dispatcher.RunAsync(stop.Token);
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (!f.Logs.Entries.Any(x => x.Message.Contains("could not persist or scan", StringComparison.Ordinal)))
+        {
+            Assert.True(DateTime.UtcNow < deadline, "the group loop never backed off");
+            await Task.Delay(5);
+        }
+        await stop.CancelAsync();
+        await worker.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var backoff = Assert.Single(f.Logs.Entries, x => x.Message.Contains("could not persist or scan", StringComparison.Ordinal));
+        Assert.Equal(LogLevel.Warning, backoff.Level);
+        Assert.Null(backoff.Exception);
+        var error = Assert.Single(f.Logs.Entries, x => x.Level >= LogLevel.Error);
+        Assert.StartsWith("Gameplay event:counter failed", error.Message, StringComparison.Ordinal);
+        Assert.IsType<IOException>(error.Exception);
+    }
+
+    /// <summary>
+    /// F-31 (TASK-31 section 3): a group loop that stops enqueuing because the executor's loop faulted says why,
+    /// as a warning that carries the stop and its cause; an ordinary stop stays an information line.
+    /// </summary>
+    [Fact]
+    public async Task A_group_loop_ended_by_a_faulted_executor_logs_the_cause_as_a_warning()
+    {
+        var cause = new InvalidOperationException("the consumption loop faulted");
+        await using var f = new Fixture(record: true, queue: p => new FaultedExecutorQueue(
+            new GameplayQueue(p.GetRequiredService<GameplayShardSelector>()), cause));
+        await f.SendAsync(new Awarded("a", 3));
+
+        await f.Dispatcher.RunAsync(CancellationToken.None).WaitAsync(Patience);
+
+        var stopped = f.Logs.Entries.Where(x => x.Message.Contains("the gameplay executor has stopped", StringComparison.Ordinal)).ToArray();
+        Assert.Equal(3, stopped.Length);
+        Assert.All(stopped, x =>
+        {
+            Assert.Equal(LogLevel.Warning, x.Level);
+            Assert.Same(cause, Assert.IsType<GameplayExecutorStoppedException>(x.Exception).InnerException);
+        });
+        Assert.Equal(3, f.Scalar("SELECT COUNT(*) FROM domain_event_deliveries WHERE state=0"));
+    }
+
+    /// <summary>Refuses every event CMD as an executor whose consumption loop faulted would; other work runs.</summary>
+    private sealed class FaultedExecutorQueue(IGameplayQueue inner, Exception cause) : IGameplayQueue
+    {
+        public ValueTask<T> RunAsync<T>(GameplayWork<T> work, CancellationToken cancellationToken) =>
+            work.CommandType.StartsWith("event:", StringComparison.Ordinal)
+                ? ValueTask.FromException<T>(new GameplayExecutorStoppedException(work.CommandType, cause))
+                : inner.RunAsync(work, cancellationToken);
+
+        public ValueTask RunAsync(GameplayWork work, CancellationToken cancellationToken) =>
+            work.CommandType.StartsWith("event:", StringComparison.Ordinal)
+                ? ValueTask.FromException(new GameplayExecutorStoppedException(work.CommandType, cause))
+                : inner.RunAsync(work, cancellationToken);
+    }
+
     internal sealed record Awarded(string Owner, int Amount) : IDomainEvent;
     internal sealed record QuestFinished(int QuestId, int Amount) : IDomainEvent;
 
@@ -431,8 +499,9 @@ public sealed partial class DomainEventDispatchTests
             Services.GetRequiredService<Dfo.Server.Abstractions.Networking.INetworkConnectionLifecycleDispatcher>();
         /// <param name="chain">Every log level, an outbound sender and connection contexts that record, and a lifecycle observer.</param>
         /// <param name="relay">A reliable subscriber of <see cref="Awarded"/> that publishes <see cref="Relayed"/>, and its subscriber.</param>
+        /// <param name="queue">Replaces the queue the dispatcher enqueues on (it wins over <paramref name="record"/>'s).</param>
         public Fixture(string? path = null, DomainEventDispatchOptions? options = null, bool extraLive = false,
-            bool record = false, bool chain = false, bool relay = false)
+            bool record = false, bool chain = false, bool relay = false, Func<IServiceProvider, IGameplayQueue>? queue = null)
         {
             owns = path is null;
             Path = path ?? System.IO.Path.Combine(System.IO.Path.GetTempPath(), "dfo-domain-events-" + Guid.NewGuid().ToString("N") + ".db");
@@ -472,6 +541,7 @@ public sealed partial class DomainEventDispatchTests
                 services.AddDomainSubscriber<Awarded, RelaySubscriber>("relay", DomainEventDeliveryPolicy.Reliable);
                 services.AddDomainSubscriber<Relayed, RelayedSubscriber>("relayed", DomainEventDeliveryPolicy.Reliable);
             }
+            if (queue is not null) services.AddSingleton<IGameplayQueue>(queue);
             Services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
             _ = Services.GetRequiredService<SqliteDatabase>();
             Sql("CREATE TABLE IF NOT EXISTS event_test_counter(owner TEXT PRIMARY KEY,amount INTEGER NOT NULL)");

@@ -47,7 +47,7 @@ public sealed class ReplayStateSnapshotTests
     }
 
     [Fact]
-    public async Task Registered_delivery_reads_fresh_inventory_and_keeps_the_exact_connection_and_exclusive_lease_through_batch()
+    public async Task Registered_delivery_reads_fresh_inventory_and_keeps_the_exact_connection_through_its_batch()
     {
         using var fixture = new ShopFixture(services => services.AddSingleton<INetworkMessageSender, ReplayBatchSender>());
         var sender = (ReplayBatchSender)fixture.Services.GetRequiredService<INetworkMessageSender>();
@@ -161,7 +161,7 @@ public sealed class ReplayStateSnapshotTests
     }
 
     [Fact]
-    public async Task Replacement_while_waiting_for_lifecycle_lease_rejects_the_original_read()
+    public async Task A_replacement_selected_before_the_original_read_runs_rejects_that_read()
     {
         using var fixture = new ShopFixture();
         var original = fixture.Session;

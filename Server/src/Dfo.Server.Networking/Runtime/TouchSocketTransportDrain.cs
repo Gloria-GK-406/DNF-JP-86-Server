@@ -44,7 +44,9 @@ internal sealed class TouchSocketTransportDrain(
             }
             catch (Exception error)
             {
-                logger.LogError(error, "The drain's teardown of connection {ConnectionId} failed", context.ConnectionId);
+                // A teardown CMD's own failure was logged by the executor with its chain (F-30).
+                logger.Log(GameplayJob.EndedAJob(error) ? LogLevel.Debug : LogLevel.Error, error,
+                    "The drain's teardown of connection {ConnectionId} failed", context.ConnectionId);
             }
         }
         await connections.WhenIdleAsync(cancellationToken).ConfigureAwait(false);

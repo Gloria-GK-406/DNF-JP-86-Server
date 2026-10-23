@@ -285,16 +285,22 @@ internal sealed class DomainEventDispatcher
                 await WaitForWakeOrDueAsync(reader, delay, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
-            catch (GameplayExecutorStoppedException)
+            catch (GameplayExecutorStoppedException stopped)
             {
                 // Only a container disposed outside the host's stop order gets here; deliveries stay pending.
-                logger.LogInformation("Domain event dispatch group {SubscriberId} enqueues no more: the gameplay executor has stopped.",
+                // A cause is the executor's faulted consumption loop (F-31).
+                logger.Log(stopped.InnerException is null ? LogLevel.Information : LogLevel.Warning, stopped,
+                    "Domain event dispatch group {SubscriberId} enqueues no more: the gameplay executor has stopped.",
                     subscriberId);
                 return;
             }
             catch (Exception error)
             {
-                logger.LogError(error, "Domain event dispatch group {SubscriberId} could not persist or scan; backing off.", subscriberId);
+                // An event CMD's own failure was logged by the executor with its stack (F-30).
+                if (GameplayJob.EndedAJob(error))
+                    logger.LogWarning("Domain event dispatch group {SubscriberId} could not persist or scan; backing off.", subscriberId);
+                else
+                    logger.LogError(error, "Domain event dispatch group {SubscriberId} could not persist or scan; backing off.", subscriberId);
                 try { await Task.Delay(options.RetryDelay, clock, stoppingToken).ConfigureAwait(false); }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
             }

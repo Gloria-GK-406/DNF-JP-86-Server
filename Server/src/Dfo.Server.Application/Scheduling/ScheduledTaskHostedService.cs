@@ -154,8 +154,13 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
                 {
                     if (attempt == job.Definition.MaximumAttempts)
                     {
-                        logger.LogError(error, "Scheduled task {TaskId} exhausted {Attempts} attempts due={ScheduledAt}",
-                            job.Definition.Id, attempt, scheduledAt);
+                        // The executor logged the attempt's own failure with its stack (F-30).
+                        if (GameplayJob.EndedAJob(error))
+                            logger.LogWarning("Scheduled task {TaskId} exhausted {Attempts} attempts due={ScheduledAt}",
+                                job.Definition.Id, attempt, scheduledAt);
+                        else
+                            logger.LogError(error, "Scheduled task {TaskId} exhausted {Attempts} attempts due={ScheduledAt}",
+                                job.Definition.Id, attempt, scheduledAt);
                         return;
                     }
                     logger.LogWarning(error, "Scheduled task {TaskId} failed attempt={Attempt}; retrying", job.Definition.Id, attempt);

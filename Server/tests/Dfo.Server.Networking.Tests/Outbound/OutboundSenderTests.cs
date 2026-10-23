@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Execution;
 using Dfo.Server.Networking.Outbound;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using static Dfo.Server.Networking.Tests.Outbound.Outbound;
 
@@ -405,6 +406,113 @@ public sealed class OutboundSenderTests
 
         await observer.WaitForAsync(2);
         Assert.Equal(["one", "two"], connection.Sent);
+    }
+
+    /// <summary>
+    /// F-121 (TASK-31 section 4): a send that fails because its connection has already gone (the peer reset, the
+    /// transport's drain) is logged as information with a fixed suffix; the outcome, discard and report are unchanged.
+    /// </summary>
+    [Fact]
+    public async Task A_failed_send_to_a_connection_that_is_already_gone_is_logged_as_information()
+    {
+        var a = Context("a");
+        var connection = transport.Add(a);
+        connection.Gate = _ =>
+        {
+            transport.Remove(a);
+            return Task.CompletedTask;
+        };
+        connection.FailWith = new IOException("The connection closed before its send pipe drained.");
+        var log = new LevelLog();
+        await using var sender = Sender(transport, observer, logger: log);
+        var first = Batch(a, "first");
+        var second = Batch(a, "second");
+
+        sender.Submit([first, second]);
+        await observer.WaitForAsync(2);
+        await WaitForFailuresAsync(1);
+
+        Assert.Equal(OutboundOutcome.Failed, observer.OutcomeOf(first));
+        Assert.Equal(OutboundOutcome.Discarded, observer.OutcomeOf(second));
+        Assert.Equal((a, OutboundOutcome.Failed), Assert.Single(observer.Failures));
+        Assert.False(connection.IsClosed);
+        var entry = Assert.Single(log.Entries, x => x.Message.StartsWith("Outbound entry for a: Failed", StringComparison.Ordinal));
+        Assert.Equal((LogLevel.Information, "Outbound entry for a: Failed; the connection was already gone"), entry);
+        var closed = Assert.Single(log.Entries, x => x.Message.StartsWith("Outbound connection a closed", StringComparison.Ordinal));
+        Assert.Equal((LogLevel.Information, "Outbound connection a closed: Failed; the connection was already gone"), closed);
+        Assert.DoesNotContain(log.Entries, x => x.Level >= LogLevel.Warning);
+    }
+
+    /// <summary>The pair of the case above: the connection is still there, so the failure is the send's own.</summary>
+    [Fact]
+    public async Task A_failed_send_on_a_connection_that_is_still_there_stays_a_warning()
+    {
+        var a = Context("a");
+        var connection = transport.Add(a);
+        connection.FailWith = new IOException("socket write failed");
+        var log = new LevelLog();
+        await using var sender = Sender(transport, observer, logger: log);
+        var first = Batch(a, "first");
+
+        sender.Submit([first]);
+        await observer.WaitForAsync(1);
+        await WaitForFailuresAsync(1);
+
+        Assert.Equal(OutboundOutcome.Failed, observer.OutcomeOf(first));
+        await connection.Closed.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Contains((LogLevel.Warning, "Outbound entry for a: Failed"), log.Entries);
+        Assert.Contains((LogLevel.Warning, "Outbound connection a closed: Failed"), log.Entries);
+        Assert.DoesNotContain(log.Entries, x => x.Message.Contains("already gone", StringComparison.Ordinal));
+    }
+
+    /// <summary>Only Failed is judged by whether the connection is still there: a time-out is the server's own verdict.</summary>
+    [Fact]
+    public async Task A_timed_out_send_stays_a_warning_even_when_the_connection_is_gone()
+    {
+        var a = Context("a");
+        var connection = transport.Add(a);
+        connection.Gate = ct =>
+        {
+            transport.Remove(a);
+            return NeverAsync(ct);
+        };
+        var log = new LevelLog();
+        await using var sender = Sender(transport, observer,
+            OutboundSendOptions.Default with { DeliveryTimeout = TimeSpan.FromMilliseconds(200) }, log);
+        var first = Batch(a, "first");
+
+        sender.Submit([first]);
+        await observer.WaitForAsync(1);
+        await WaitForFailuresAsync(1);
+
+        Assert.Equal(OutboundOutcome.TimedOut, observer.OutcomeOf(first));
+        Assert.Contains((LogLevel.Warning, "Outbound entry for a: TimedOut"), log.Entries);
+        Assert.Contains((LogLevel.Warning, "Outbound connection a closed: TimedOut"), log.Entries);
+        Assert.DoesNotContain(log.Entries, x => x.Message.Contains("already gone", StringComparison.Ordinal));
+    }
+
+    private async Task WaitForFailuresAsync(int count)
+    {
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (observer.Failures.Count < count)
+        {
+            if (DateTime.UtcNow > deadline) throw new TimeoutException($"Expected {count} connection failures.");
+            await Task.Delay(5);
+        }
+    }
+
+    private sealed class LevelLog : ILogger<OutboundSender>
+    {
+        private readonly System.Collections.Concurrent.ConcurrentQueue<(LogLevel Level, string Message)> entries = new();
+
+        public IReadOnlyList<(LogLevel Level, string Message)> Entries => [.. entries];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter) => entries.Enqueue((logLevel, formatter(state, exception)));
     }
 
     private sealed class ThrowingObserver : IOutboundDeliveryObserver

@@ -207,7 +207,7 @@ public sealed class LeaveDungeonTests
     }
 
     [Fact]
-    public async Task Exit_command_borrows_the_projection_lease_through_the_real_pipeline()
+    public async Task Exit_command_ends_the_run_through_the_real_pipeline()
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -482,7 +482,7 @@ public sealed class LeaveDungeonTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task Give_up_completes_through_real_command_locks_and_releases_the_session(bool isAltar)
+    public async Task Give_up_completes_through_the_real_command_bus_and_releases_the_session(bool isAltar)
     {
         var runs = new OneRun(isAltar: isAltar);
         var deliveries = new DungeonRunDeliveryRegistry(); TestGameplay.Run(() => deliveries.Register(runs.RunId, [Identity]));

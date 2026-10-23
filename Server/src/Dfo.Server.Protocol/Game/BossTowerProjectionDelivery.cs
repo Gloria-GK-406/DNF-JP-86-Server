@@ -890,6 +890,11 @@ public sealed class BossTowerReturnSweepService(
             {
                 throw;
             }
+            catch (Exception error) when (GameplayJob.EndedAJob(error))
+            {
+                // The executor logged the sweep CMD's failure with its stack (F-30).
+                logger.LogWarning("Unexpected boss tower projection sweep failure; the hosted service will continue");
+            }
             catch (Exception error)
             {
                 logger.LogError(error,

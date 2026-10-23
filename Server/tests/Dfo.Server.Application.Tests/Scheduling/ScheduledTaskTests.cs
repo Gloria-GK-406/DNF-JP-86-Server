@@ -98,7 +98,7 @@ public sealed class ScheduledTaskTests
     }
 
     [Fact]
-    public async Task Global_limit_queues_one_instance_and_coalesces_waiting_runs()
+    public async Task Runs_execute_one_at_a_time_and_waiting_runs_coalesce()
     {
         var first = NewSignal(); var release = NewSignal();
         var calls = new ConcurrentQueue<ScheduledTaskContext>();
@@ -163,7 +163,7 @@ public sealed class ScheduledTaskTests
     }
 
     [Fact]
-    public async Task Retry_delay_does_not_hold_the_global_execution_slot()
+    public async Task A_retry_delay_lets_another_task_run_meanwhile()
     {
         var failed = NewSignal(); var other = NewSignal(); var retried = NewSignal();
         var calls = 0;
@@ -264,7 +264,7 @@ public sealed class ScheduledTaskTests
     private sealed record TestScheduleConfig(TimeOnly Time);
 
     [Fact]
-    public async Task Factory_uses_configured_singletons_and_explicit_options_override_defaults()
+    public async Task Factory_task_is_built_from_configured_singletons_and_runs()
     {
         var clock = new SchedulerClock(); var called = NewSignal();
         var services = new ServiceCollection();

@@ -506,7 +506,7 @@ public sealed partial class SelectCharacterLifecycleTests
     }
 
     [Fact]
-    public async Task PvpPeerFailure_IsolatedAfterReadyAndDoesNotPreventTrailingLocks()
+    public async Task Pvp_plan_publishes_the_newcomer_to_its_audience_and_the_selection_completes_every_stage()
     {
         await TestGameplay.RunAsync(async () =>
         {

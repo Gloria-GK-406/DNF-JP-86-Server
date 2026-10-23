@@ -73,15 +73,25 @@ public static class HttpGameplay
 
     /// <remarks>
     /// The handler keeps its own checks: a body that is not JSON or declares more than the limit is left
-    /// unread for it to refuse. Otherwise the limit is enforced while buffering, in memory only. A read
+    /// unread for it to refuse. Otherwise, where the request's limit can be lowered, the limit is enforced
+    /// while buffering, in memory only. A read
     /// that fails is replayed to the handler as the same exception, so it answers as it always has.
     /// </remarks>
     private static async ValueTask BufferBodyAsync(HttpContext context, int bodyLimit)
     {
         var request = context.Request;
         if (!request.HasJsonContentType() || request.ContentLength > bodyLimit) return;
-        if (context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } size) size.MaxRequestBodySize = bodyLimit;
-        request.EnableBuffering(bodyLimit, bodyLimit);
+        if (context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } size)
+        {
+            size.MaxRequestBodySize = bodyLimit;
+            request.EnableBuffering(bodyLimit, bodyLimit);
+        }
+        else
+        {
+            // F-33: the limit could not be lowered, so the server's own limit applies while reading, as it did when
+            // the handler read the body itself; beyond the threshold the buffer spills to a temporary file.
+            request.EnableBuffering(bodyLimit);
+        }
         try
         {
             await request.Body.DrainAsync(context.RequestAborted).ConfigureAwait(false);

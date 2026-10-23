@@ -2,7 +2,6 @@ using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
-using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -415,28 +414,6 @@ public sealed class SessionGenerationOwnershipTests
         public PartySnapshot FindParty(PartyCharacterSnapshot character) =>
             PartySnapshot.Virtual(character, new PartySettings(new byte[PartySettings.WireLength]));
 
-    }
-
-    private sealed class NoopSender : INetworkMessageSender
-    {
-        public ValueTask SendAsync(NetworkConnectionId connectionId, IServerNetworkMessage message,
-            CancellationToken cancellationToken) => ValueTask.CompletedTask;
-        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId,
-            ExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
-            ValueTask.CompletedTask;
-    }
-
-    private sealed class RecordingSender : INetworkMessageSender
-    {
-        public List<ExplicitMessageDelivery> Deliveries { get; } = [];
-        public ValueTask SendAsync(NetworkConnectionId connectionId, IServerNetworkMessage message,
-            CancellationToken cancellationToken) => ValueTask.CompletedTask;
-        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId,
-            ExplicitMessageDelivery delivery, CancellationToken cancellationToken)
-        {
-            Deliveries.Add(delivery);
-            return ValueTask.CompletedTask;
-        }
     }
 
     private sealed class RecordingPositionPersistence : ISelectedSessionPositionPersistence

@@ -77,7 +77,7 @@ public sealed class EquipmentEnchantHandlerTests
     }
 
     [Fact]
-    public async Task A_partial_notification_failure_can_be_replayed_without_a_second_debit()
+    public async Task A_failed_notification_batch_can_be_replayed_without_a_second_debit()
     {
         using var shop = Fixture();
         await shop.SeedCore(12, Piece(), InventoryContainerType.Equipment);

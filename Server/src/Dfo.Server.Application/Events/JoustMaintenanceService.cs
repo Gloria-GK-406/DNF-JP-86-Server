@@ -72,6 +72,8 @@ internal sealed class JoustMaintenanceService(ICommandBus bus,IJoustDomainServic
         {
             try{await GameplayTimerWork.TickAsync(periodic,"timer:JoustMaintenanceService",t=>TickCoreAsync(t,false),stoppingToken);}
             catch(OperationCanceledException) when(stoppingToken.IsCancellationRequested){break;}
+            // The executor logged the tick CMD's own failure with its stack (F-30).
+            catch(Exception e) when(GameplayJob.EndedAJob(e)){logger.LogWarning("Joust advancement or projection failed; next tick re-evaluates persisted state.");}
             catch(Exception e){logger.LogError(e,"Joust advancement or projection failed; next tick re-evaluates persisted state.");}
         }
     }

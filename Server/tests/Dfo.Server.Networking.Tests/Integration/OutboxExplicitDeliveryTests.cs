@@ -17,7 +17,7 @@ namespace Dfo.Server.Networking.Tests.Integration;
 public sealed class OutboxExplicitDeliveryTests
 {
     [Fact]
-    public async Task TouchSocketNetworkMessageSender_PreservesRequiredAndPerTargetOrderAndExcludesOwner()
+    public async Task ExplicitDelivery_PreservesRequiredAndPerTargetOrderAndExcludesOwner()
     {
         var connections = new FixedConnections();
         var owner = connections.Add("owner");
@@ -38,7 +38,7 @@ public sealed class OutboxExplicitDeliveryTests
     }
 
     [Fact]
-    public async Task TouchSocketNetworkMessageSender_RequiredDirectFailurePropagatesAndStopsDelivery()
+    public async Task ExplicitDelivery_RequiredDirectFailurePropagatesAndStopsDelivery()
     {
         var connections = new FixedConnections();
         var owner = connections.Add("owner");
@@ -57,7 +57,7 @@ public sealed class OutboxExplicitDeliveryTests
     }
 
     [Fact]
-    public async Task TouchSocketNetworkMessageSender_BestEffortFailureStopsOnlyThatTarget()
+    public async Task ExplicitDelivery_BestEffortFailureStopsOnlyThatTarget()
     {
         var connections = new FixedConnections();
         var owner = connections.Add("owner");
