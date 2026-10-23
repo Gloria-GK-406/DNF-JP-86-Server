@@ -207,6 +207,14 @@ internal sealed class CallPartyMemberRealtimeInfoDecoder : IGameMessageDecoder
 
 internal sealed class SetPartyInfoDecoder(IPartyModeRuleService rules) : IGameMessageDecoder
 {
+    /// <remarks>
+    /// A server policy, not a measured client limit: only 1 B and 12 B titles have been observed
+    /// (protocol/game/client-to-server/0x000C.md, section of 2026-10-23). The title is fanned out
+    /// to every observer and newcomer in the area, so an unbounded one could fill a third party's
+    /// send queue. A longer title is refused rather than cut: a cut title is not what the leader wrote.
+    /// </remarks>
+    internal const int MaximumTitleBytes = 256;
+
     private static readonly UTF8Encoding StrictUtf8 = new(
         encoderShouldEmitUTF8Identifier: false,
         throwOnInvalidBytes: true);
@@ -234,6 +242,11 @@ internal sealed class SetPartyInfoDecoder(IPartyModeRuleService rules) : IGameMe
             var titleLength = BinaryPrimitives.ReadInt32LittleEndian(body[2..]);
             if (titleLength < 0)
                 throw new InvalidDataException("SET_PARTY_INFO title length cannot be negative.");
+            if (titleLength > MaximumTitleBytes)
+            {
+                throw new InvalidDataException(
+                    $"SET_PARTY_INFO title length '{titleLength}' exceeds '{MaximumTitleBytes}' bytes.");
+            }
             var expectedLength = 16L + titleLength;
             if (expectedLength != body.Length)
             {

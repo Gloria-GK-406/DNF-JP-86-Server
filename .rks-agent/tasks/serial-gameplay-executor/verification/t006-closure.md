@@ -218,3 +218,67 @@ T-006 结束时的全量与取证（TASK-26 正式全量 `logs/task-26-build-tes
 | F-61 的已知残余：打包进程里没有取证记录器，只能看输出；子进程中被 `catch` 吞掉、又没有打印的违规仍看不见。扫描判据 `HostOutputWiringSourceTests` 的识别范围：文件里出现单词 `ProcessStartInfo`（构造或对象初始化器写法）或调用 `Process.Start(` 即算启动进程（第 1 轮评审后由「`new ProcessStartInfo(`」放宽，补对象初始化器反例）；别的写法（例如不经这两个记号构造 `Process` 再调实例 `process.Start()`）认不出。认出之后只查文件里同时有两个输出事件的订阅与 `ObserveHostOutput` 调用，不查三者相连，也不分辨一个文件里有几个进程（`EndToEndHostHarness.cs` 另用 `Process.Start("kill", …)` 发停机信号，按文件计已接线）；`Tool/` 下的进程启动不在 `Server/tests`，不在范围。识别名单不含 `GameplayExecutorStoppedException`（停机时合法打印）与 `GameplayDepthExceededException`（RQ-053 的超限处理，T-007） | TASK-26 §3；`logs/task-26-f61.txt` | 信息（F-61 已关闭） |
 | 人群项：城镇在场与 PvP 大厅没有人数上限，保守口径只成立于适用范围之内；PvP 大厅没有线级实测（表征宿主只有普通频道），按公式 | §6 AC-013；F-113 | 已接受（主控方裁定第 1 条），交主控方立项 |
 | 队伍标题只受 1 MiB 入站帧约束：改包客户端可让走进该区域的任何玩家因 `OverLimit` 断线，基准上 2 s 直发期限内能收完、不会断开。这是 T-006 引入、可由客户端触发的第三方断线，风险中，保守上界对恶意输入不成立 | F-115；TASK-26 主控方处置（第 1 轮评审后）第 1 条 | **不接受**，由 TASK-27 修复；修复前 T-006 不算完成 |
+
+## 12. 落地状态（TASK-27，2026-10-23，基准 `8c531c9b`）
+
+上文 §1～§11 一字不动；与它们不同的今天的状态记在这里。证据：`logs/task-27-verify.txt`、`logs/task-27-census.txt`、`logs/task-27-red-green.txt`、`logs/task-27-build-test.txt`、`logs/task-27-violations.txt`、`logs/task-27-mutations.txt`、`logs/task-27-new-x10.txt`、`logs/task-27-isolated.txt`、`logs/task-27-retrievals.txt`、`logs/task-27-diff-check.txt`、`logs/task-27-boundary.txt`、`logs/task-27-closure-refs.txt`。
+
+本单元关闭：F-115。
+
+**1. F-115 的修复。**
+- 改动：`SetPartyInfoDecoder`（`Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs:216` 常量 `MaximumTitleBytes` ＝ 256，`:245-249` 检查）。标题长度超过 256 B 时抛 `InvalidDataException`，与该解码器对负长度、非法 UTF-8、长度不自洽的拒绝方式相同，传输层记 `Game decoder … threw` 后关闭发送者连接；不截断。检查排在长度自洽检查之前，宣称超长而 body 被截断的请求也按超长拒绝，日志写明上限。
+- 依据等级：推断。客户端上限没有证据，已知只有下界 1 B 与 12 B（`protocol/game/client-to-server/0x000C.md` 2026-10-23 一节）；取证立项 F-117，结果大于 256 B 时必须上调。
+- 证据用例：P1 `PartyCommandCodecTests.Set_party_info_accepts_a_title_of_exactly_the_maximum_length`（2 行）、P2 `PartyCommandCodecTests.Set_party_info_rejects_a_title_longer_than_the_maximum`（3 行）、P3 `PartyNotificationTests.Full_roster_with_a_maximum_length_title_is_eighty_bytes_plus_the_title`、W1 `PartyTitleFanOutWireTests.A_maximum_length_party_title_keeps_a_walk_in_within_the_per_person_bound`、W2 `PartyTitleFanOutWireTests.A_party_title_at_the_limit_reaches_a_player_walking_in`。
+- 证据形态按 TASK-27「主控方处置（执行中断后）」调整：不做「超长标题使他人断线」的线级复现；基准先红由 P2 承担——在不改生产代码时 3 行都变红（两行「No exception was thrown」，截断那行的拒绝原因不含上限），修复后变绿；W1 改为尺寸用例，实测走进区域的 CMD 649 B ＝ 52 ＋ 261 ＋ 336 ≤ 52 ＋ 926 ＝ 978，名单帧 336 B ＝ 80 ＋ 256（`logs/task-27-red-green.txt`）。
+- 变异：MT1（去掉检查）P2 3 行红；MT2（`>=`）P1 2 行与 W1、W2 红；MT3（上限减半）P1、P2 共 5 行与 W1、W2 红，P3 绿；MT4（检查挪到自洽检查之后）P2 截断那行红。每项都有指定的红用例（`logs/task-27-mutations.txt`）。
+- Spec：附录 G 新增 VC-9（见第 9 条）。
+
+**2. 同类字段普查**（`logs/task-27-census.txt`，第一位执行者写的脚本，本轮复跑一次，输出逐字节相同）：
+- 注册 184 ＝ GameCmd 180 ＋ Channel 4；不同的解码器类 175（184 － 9 ＝ 175：`ItemSocketDecoder` ×4、`JoustQueryDecoder` ×2、`WarehouseDecoder` ×6 多占的 3 ＋ 1 ＋ 5 ＝ 9 个键）。
+- 长度规则：定长 89 ＋ 有界变长 16 ＋ 开放 70 ＝ 175。保留客户端可变字节的类 36 ＝ 6 ＋ 8 ＋ 22，不保留的 139，36 ＋ 139 ＝ 175。
+- 这 36 个类的字节去向：无上限扇出 1 ＋ 认证 1 ＋ 丢弃 7 ＋ 有界扇出 5 ＋ 只记日志 15 ＋ 只回本人 7 ＝ 36。
+- 协议清单里名字像文本或社交的 C→S 协议 161 ＝ 已注册 25 ＋ 未注册 136；未注册的帧被传输层按「Unhandled Game frame」丢弃。
+
+| 字段（协议） | 入站约束 | 到达其他连接的路径 | 处置 |
+|---|---|---|---|
+| 队伍标题（`SET_PARTY_INFO` 0x000C） | 修复前只拒负数、要求自洽；修复后 ≤ 256 B | 名单帧 80 ＋ T 给区域观察者与新到者，设置帧 37 ＋ T 给队员 | **本单元加上限** |
+| 角色名（`CREATE_CHARACTER` 0x0005） | 创建规则 ≤ 18 B（`CharacterCreationRuleService.cs:22`） | 0x0002 在场快照等，含在每人 539 B 内 | 已有上限 |
+| 宠物名（`RENAME_CREATURE` 0x0064） | 规则 ≤ 12 B、无控制字符（`PetInstance.cs:80` 等三处） | 改名通知 33 B；0x0002 名牌，含在每人 539 B 内 | 已有上限 |
+| 婚礼留言（`UPDATE_GUEST_COMMENT` 0x03F8） | ≤ 20 B，每本 ≤ 100 条 | 别人读留言簿时进读者自己的 CMD：15 ＋ 13 ＋ 6,200 ＝ 6,228 B | 已有上限 |
+| 邮件收件人与正文（0x005E、0x013B） | 请求 ≤ 1,024 B，正文 ≤ 512 B，收件人 ≤ 19 B | 收件人只收定长提醒；正文在收件人自己打开邮箱时随页送出 | 已有上限 |
+
+结论：需要加上限的只有队伍标题，停止条件 1 没有触发。
+
+**3. AC-013、RQ-036 的现状态。** 仍是「满足，附条件」，条件只剩两条：同区他人或 PvP 大厅的人数（F-113，适用范围按第 4 条重算）、无生产写入方的字段不被导入或写库放大（F-114）。§6 两行与 §9 中「保守上界对恶意输入不成立，由 TASK-27 修复（F-115）」一句自本节起作废，原文保留。客户端可变长度字段中，本单元唯一新增上界的单帧是队伍名单帧，最大 80 ＋ 256 ＝ 336 B（0x0002 在场快照同样含客户端提供的字节，单帧约 539 B，已在每人上界内）。256 B 没有客户端证据（F-117）只影响「合法玩家会不会被误拒」，不影响上界：上界由服务端强制。
+
+**4. F-113 重算**（每人 670 ＋ 256 ＝ 926 B）：
+- `inbound:GameSetUserArea`：N_max ＝ ⌊(524,288 － 52) ÷ 926⌋ ＝ ⌊524,236 ÷ 926⌋ ＝ 566（566 × 926 ＝ 524,116 ≤ 524,236；567 × 926 ＝ 525,042 ＞ 524,236）。超过 1,048,576 B 的人数：1,048,576 － 52 ＝ 1,048,524，1,132 × 926 ＝ 1,048,232 ≤ 1,048,524，1,133 × 926 ＝ 1,049,158 ＞ 1,048,524，所以是 1,133。20 人规模（他人 19）：52 ＋ 19 × 926 ＝ 52 ＋ 17,594 ＝ 17,646 B，还能多 566 － 19 ＝ 547 人。
+- 选角（PvP 频道）不含队伍帧，133／1,140 不变；其余城镇进入为 ⌊(524,288 － F) ÷ 926⌋。
+- 改记于 `measurement/selection-outbound-bound.md`「落地状态（TASK-27）」与 F-113。
+
+**5. T-006 是否完成。** T-006 的五个单元（TASK-23～TASK-27）在 T-006 范围内的交付都有证据，F-115 已修复，§9「T-006 尚未完成」的唯一理由不再成立。T-006 的完成以 TASK-27 经结果审查（合同 Result review：required）并提交为准；在那之前记为「交付有证据，待 TASK-27 结果审查」。
+
+**6. M-2 进入条件**（§9 的三条，逐条）：
+1. T-006 的交付全部有证据：**成立**（TASK-23～TASK-26 已提交；TASK-27 的证据见第 1 条），以 TASK-27 经结果审查并提交为准。
+2. AC-011、AC-013 的状态：都是「满足，附条件」，条件已写明（AC-013 见第 3 条）。F-113、F-114、F-116、F-117、F-118 均不阻断 M-2。
+3. 没有未处置的停止条件：TASK-27 的六条都没有触发——普查只有队伍标题（1）；W1 的线级复现按中断后处置取消，基准先红由 P2 承担且原因正确（2）；现有用例、表征测试与金样本的标题最长 12 B，全量里都通过（3，`logs/task-27-verify.txt` V9）；没有改 `OutboundLimits`、发送端、发件箱、登记点，`spec.md` 只加 VC-9 一行，`plan.md`、`AGENTS.md` 未改（4，`logs/task-27-boundary.txt`）；取证 `exe:` 0、反例类与对照以外 0，失败只有基线 2 条（5）；拒绝方式在解码器内做得到（6）。
+- 所以 **TASK-27 经结果审查并提交后，M-2 可以进入**；今天待该审查。
+
+**7. §7 测试数量的加法续写**（按实际运行的例数，Theory 按行计）：
+- 8238（TASK-26 正式全量）→ 8239（TASK-26 评审后 Host ＋ 1）→ 8239 ＋ 8 － 0 ＝ 8247（TASK-27 正式全量，`logs/task-27-build-test.txt`）。
+- N 8 ＝ Protocol 6（P1 2 行 ＋ P2 3 行 ＋ P3 1 条）＋ Networking 2（W1、W2）；逐项目 Protocol 1746 ＋ 6 ＝ 1752，Networking 179 ＋ 2 ＝ 181，其余六个项目不变。
+- 结果：通过 8227，失败 2（基线 `DimensionDungeonTests`），跳过 18；8227 ＋ 2 ＋ 18 ＝ 8247。表征测试 10 通过、0 跳过；取证 40 条 ＝ 2 ＋ 1 ＋ 37，反例类与对照以外 0，`exe:` 0。
+
+**8. §8 移交清单的变化。** TASK-27 一行（F-115）关闭。新增：F-116（发送端或登记点的通用防线，T-009 或主控方立项，不阻断 M-2）、F-117（队伍标题的客户端上限待 ClientStatic 取证，归属用户或客户端研究仓库）、F-118（AGENTS.md 新增协议固定动作补「扇出字段必须有上限」，T-009）。F-113 的归属不变（主控方），内容按第 4 条更新；F-114 的宠物文本一句更正（宠物改名是生产写入方，≤ 12 B，每人 539 B 不变）。
+
+**9. §10 Spec 修订续行。**
+
+| 位置 | 原文 → 现文（或解读） | 性质 | 授权 | 提交 |
+|---|---|---|---|---|
+| 附录 G VC-9 | 新增：`SET_PARTY_INFO` 的队伍标题超过 256 B 时请求被拒绝（解码失败），发送者连接被关闭；今天这样的标题被接受并扇出给队员与区域内的人 | 文字已改，新增可见变化 | TASK-27 主控方裁定（执行前）第 3 条 | 本单元 |
+
+**10. §11 的变化。** 队伍标题一行由「不接受，由 TASK-27 修复」变为**已修复**（第 1 条）。新增一条已接受的证明边界：
+
+| 差异或边界 | 依据 | 状态 |
+|---|---|---|
+| 队伍标题上限 256 B 没有客户端证据，是推断；客户端若能产生更长的标题，合法玩家改标题时会被断线（VC-9） | F-117；TASK-27 主控方裁定（执行前）第 1 条 | 已接受，取证后若更大必须上调 |

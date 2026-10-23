@@ -157,6 +157,23 @@ public sealed class PartyNotificationTests
             PartyRosterEncoder.EncodeBody(PartyRosterMessage.Refresh(snapshot)));
     }
 
+    /// <remarks>
+    /// 256 is the title limit of spec appendix G VC-9. The frame length is the per-party term of the
+    /// walk-in bound (80 + 256 = 336 B) that the T-006 closure derives its head counts from.
+    /// </remarks>
+    [Fact]
+    public void Full_roster_with_a_maximum_length_title_is_eighty_bytes_plus_the_title()
+    {
+        var title = Enumerable.Repeat((byte)'A', 256).ToArray();
+        var snapshot = Snapshot() with { Title = new PartyTitle(title) };
+
+        var frame = Assert.Single(new PartyRosterEncoder().Encode(PartyRosterMessage.Refresh(snapshot)));
+
+        Assert.Equal(80 + 256, frame.Length);
+        Assert.Equal(256, BitConverter.ToInt32(frame, 15 + 5 + 1));
+        Assert.Equal(title, frame.AsSpan(15 + 5 + 1 + 4, 256).ToArray());
+    }
+
     [Fact]
     public void Settings_only_body_matches_both_current_a21_information_branches()
     {
