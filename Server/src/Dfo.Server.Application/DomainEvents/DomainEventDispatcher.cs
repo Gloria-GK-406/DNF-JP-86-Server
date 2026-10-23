@@ -44,17 +44,21 @@ internal sealed class DomainEventDispatcher
     private readonly DomainEventDispatchOptions options;
     private readonly ILogger<DomainEventDispatcher> logger;
     private readonly IGameplayQueue queue;
+    private readonly DomainEventCallChains chains;
+    private readonly GameplayDepthGuard guard;
     private IDomainEventPersistence Persistence => services.GetRequiredService<IDomainEventPersistence>();
+
+    internal const string DepthExceededReason = "Depth limit exceeded; live hint skipped.";
 
     public DomainEventDispatcher(DomainEventRegistry registry, IServiceProvider services, IServiceScopeFactory scopes,
         DomainTransactionScope transactions, DomainEventWakeups wakeups,
         DomainEventInstance instance, TimeProvider clock, DomainEventDispatchOptions options,
-        ILogger<DomainEventDispatcher> logger, IGameplayQueue queue)
+        ILogger<DomainEventDispatcher> logger, IGameplayQueue queue, DomainEventCallChains chains, GameplayDepthGuard guard)
     {
         options.Validate();
         this.registry = registry; this.services = services; this.scopes = scopes; this.transactions = transactions;
         this.wakeups = wakeups; this.instance = instance; this.clock = clock;
-        this.options = options; this.logger = logger; this.queue = queue;
+        this.options = options; this.logger = logger; this.queue = queue; this.chains = chains; this.guard = guard;
     }
 
     internal async ValueTask<int> DrainOnceAsync(CancellationToken cancellationToken = default)
@@ -78,21 +82,100 @@ internal sealed class DomainEventDispatcher
         {
             cancellationToken.ThrowIfCancellationRequested();
             var consumed = false;
-            await GameplayTimerWork.RunAsync(queue, CommandTypeOf(delivery), async ct =>
+            try
             {
-                consumed = await ProcessAsync(delivery, ct).ConfigureAwait(false);
-            }, cancellationToken, SourceOf(delivery)).ConfigureAwait(false);
+                await GameplayTimerWork.RunAsync(queue, CommandTypeOf(delivery), async ct =>
+                {
+                    consumed = await ProcessAsync(delivery, ct).ConfigureAwait(false);
+                }, cancellationToken, ChainOf(delivery)).ConfigureAwait(false);
+            }
+            catch (GameplayDepthExceededException refused) when (!GameplayJob.EndedAJob(refused))
+            {
+                // RQ-053(b): left pending, the row would be read and refused again at every scan.
+                consumed = await SettleAsync(delivery, refused, cancellationToken).ConfigureAwait(false);
+            }
             if (consumed) processed++;
         }
         return processed;
     }
 
-    // Transitional: every delivery is a new root. T-007 gives it the publishing CMD's chain instead.
-    private GameplayCallSource SourceOf(PendingDomainEventDelivery delivery) =>
-        delivery.Event.OriginInstanceId == instance.Id ? GameplayCallSource.Event : GameplayCallSource.StartupRecovery;
+    private bool IsLocal(PendingDomainEventDelivery delivery) => delivery.Event.OriginInstanceId == instance.Id;
+
+    /// <summary>
+    /// RQ-050, RQ-051: the publishing CMD's child, the same parent for every retry of the delivery. A delivery of
+    /// another process is a startup recovery root; one this process published off the executor, an event root.
+    /// </summary>
+    private GameplayCallChain ChainOf(PendingDomainEventDelivery delivery)
+    {
+        if (!IsLocal(delivery)) return GameplayCallChain.NewRoot(GameplayCallSource.StartupRecovery);
+        return chains.TryGet(delivery.Event.EventId, delivery.SubscriberId, out var publisher)
+            ? publisher.Child(GameplayCallSource.Event)
+            : GameplayCallChain.NewRoot(GameplayCallSource.Event);
+    }
 
     private string CommandTypeOf(PendingDomainEventDelivery delivery) =>
-        (SourceOf(delivery) == GameplayCallSource.Event ? "event:" : "startup:event/") + delivery.SubscriberId;
+        (IsLocal(delivery) ? "event:" : "startup:event/") + delivery.SubscriberId;
+
+    private void Forget(PendingDomainEventDelivery delivery) => chains.Forget(delivery.Event.EventId, delivery.SubscriberId);
+
+    /// <summary>
+    /// RQ-053(b): a system CMD, a new root so the depth check passes it, settles the refused delivery without running
+    /// its subscriber, then closes the refused chain's root connection (RQ-053(a)). The refusal itself was logged by
+    /// the executor. A failure of this CMD goes to the group loop, which reads the row again and settles it again.
+    /// </summary>
+    private async ValueTask<bool> SettleAsync(PendingDomainEventDelivery delivery, GameplayDepthExceededException refused,
+        CancellationToken cancellationToken)
+    {
+        var outcome = "";
+        await GameplayTimerWork.RunAsync(queue, CommandTypeOf(delivery) + "/depth-exceeded", async ct =>
+        {
+            outcome = await SettleOnExecutorAsync(delivery, refused, ct).ConfigureAwait(false);
+        }, cancellationToken, GameplayCallChain.NewRoot(GameplayCallSource.Event)).ConfigureAwait(false);
+        logger.LogWarning("Domain event {EventId} subscriber {SubscriberId} exceeded the depth limit and was settled {Outcome} " +
+            "without running: refused root {RootId}, parent {ParentId}, depth {Depth}",
+            delivery.Event.EventId, delivery.SubscriberId, outcome, refused.Chain.RootId, refused.Chain.ParentId, refused.Chain.Depth);
+        return true;
+    }
+
+    private async ValueTask<string> SettleOnExecutorAsync(PendingDomainEventDelivery delivery,
+        GameplayDepthExceededException refused, CancellationToken ct)
+    {
+        var live = PolicyOf(delivery) == DomainEventDeliveryPolicy.LiveOnly;
+        await using (var transaction = transactions.Begin())
+        {
+            if (live)
+            {
+                if (!await Persistence.TryBeginAsync(delivery.Event.EventId, delivery.SubscriberId, clock.GetUtcNow(), ct)
+                        .ConfigureAwait(false)) return "by another consumer";
+                await Persistence.CompleteAsync(delivery.Event.EventId, delivery.SubscriberId, clock.GetUtcNow(),
+                    DepthExceededReason, ct).ConfigureAwait(false);
+            }
+            else
+            {
+                var description = "Depth limit exceeded: " + refused.Chain.Describe(refused.CommandType);
+                await Persistence.FailAsync(delivery.Event.EventId, delivery.SubscriberId, clock.GetUtcNow(),
+                    description[..Math.Min(description.Length, 4000)], terminal: true, ct).ConfigureAwait(false);
+            }
+            await transaction.CommitAsync(ct).ConfigureAwait(false);
+        }
+        Forget(delivery);
+        guard.CloseRootConnection(refused.Chain);
+        return live ? "completed" : "terminal";
+    }
+
+    /// <summary>An unreadable event settles as a reliable one would after its failures: terminal.</summary>
+    private DomainEventDeliveryPolicy PolicyOf(PendingDomainEventDelivery delivery)
+    {
+        try
+        {
+            var type = registry.For(delivery.Event.EventType, delivery.Event.SchemaVersion);
+            return registry.SubscriberFor(type.PayloadType, delivery.SubscriberId).Policy;
+        }
+        catch (Exception)
+        {
+            return DomainEventDeliveryPolicy.Reliable;
+        }
+    }
 
     private async ValueTask<bool> ProcessAsync(PendingDomainEventDelivery delivery, CancellationToken ct)
     {
@@ -119,6 +202,8 @@ internal sealed class DomainEventDispatcher
             await Persistence.FailAsync(delivery.Event.EventId, delivery.SubscriberId, clock.GetUtcNow() + delay,
                 description[..Math.Min(description.Length, 4000)], terminal, ct).ConfigureAwait(false);
             await transaction.CommitAsync(ct).ConfigureAwait(false);
+            // A retry keeps its first consumption's parent (RQ-050); only a settled delivery forgets it.
+            if (terminal) Forget(delivery);
             return true;
         }
     }
@@ -134,6 +219,7 @@ internal sealed class DomainEventDispatcher
         await Persistence.CompleteAsync(delivery.Event.EventId, delivery.SubscriberId, clock.GetUtcNow(), "", ct)
             .ConfigureAwait(false);
         await transaction.CommitAsync(ct).ConfigureAwait(false);
+        Forget(delivery);
         return true;
     }
 
@@ -156,6 +242,7 @@ internal sealed class DomainEventDispatcher
                 .ConfigureAwait(false);
             await transaction.CommitAsync(ct).ConfigureAwait(false);
         }
+        Forget(delivery);
         if (invoke)
         {
             // Consumption is durable before the external side effect. Failure or a crash never replays a live hint.

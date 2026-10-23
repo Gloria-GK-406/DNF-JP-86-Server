@@ -39,6 +39,11 @@ public sealed class GameplayExecutor(ILogger<GameplayExecutor> logger) : Gamepla
         if (string.IsNullOrWhiteSpace(work.CommandType))
             return ValueTask.FromException<T>(new ArgumentException("Gameplay work needs a CMD type.", nameof(work)));
 
+        // F-59: a flow still carrying a finished job's token would otherwise enter as a fresh root and slip past
+        // the depth limit; the bus refuses it first, under its own evidence kind.
+        if (GameplayLeakAssertion.LeakedFrom("Enqueueing " + work.CommandType, GameplayLeakAssertion.QueueLeakedFlowKind) is { } leaked)
+            return ValueTask.FromException<T>(leaked);
+
         var running = JobRunningAnywhere;
         if (work.Chain.Depth > GameplayCallDepth.Limit)
         {

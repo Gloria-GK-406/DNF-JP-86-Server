@@ -93,7 +93,8 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
 
         await WaitUntilAsync(() => server.Recorder.First("disconnect-exit", id) is not null, server.Timeout);
         var disconnect = server.Recorder.First("disconnect-enter", id)!;
-        AssertLifecycleJob(disconnect, id, "lifecycle:disconnected");
+        AssertLifecycleChild(disconnect, id, id, new(GameplayCallSource.Connection, "inbound:GameExit"),
+            server.Recorder.First("inbound-enter", id)!.Chain);
         Assert.True(disconnect.Order > server.Recorder.First("inbound-exit", id)!.Order);
         Assert.Equal(0, server.Log.Count("did not complete within"));
         Assert.Equal(0, server.Log.Count("Waiting for the network"));
@@ -111,7 +112,8 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
 
         Assert.True(await ReadsFinAsync(client, server.Timeout));
         await WaitUntilAsync(() => server.Recorder.First("disconnect-exit", id) is not null, server.Timeout);
-        AssertLifecycleJob(server.Recorder.First("disconnect-enter", id)!, id, "lifecycle:disconnected");
+        AssertLifecycleChild(server.Recorder.First("disconnect-enter", id)!, id, id,
+            new(GameplayCallSource.Connection, "inbound:GameLogin"));
         output.WriteLine($"next job ran in {(await server.NextJobLatencyAsync()).TotalMilliseconds:F0} ms");
     }
 
@@ -133,7 +135,8 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
         await WaitUntilAsync(() => server.Recorder.First("disconnect-exit", idleId) is not null, server.Timeout);
 
         var disconnect = server.Recorder.First("disconnect-enter", idleId)!;
-        AssertLifecycleJob(disconnect, idleId, "lifecycle:disconnected");
+        AssertLifecycleChild(disconnect, idleId, requesterId, new(GameplayCallSource.Connection, "inbound:GameExit"),
+            server.Recorder.First("inbound-enter", requesterId)!.Chain);
         Assert.True(disconnect.Order > server.Recorder.First("inbound-exit", requesterId)!.Order);
         Assert.Null(server.Recorder.First("disconnect-enter", requesterId));
     }
@@ -156,7 +159,8 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
 
         Assert.True(await DrainsToFinAsync(client, server.Timeout));
         await WaitUntilAsync(() => server.Recorder.First("disconnect-exit", id) is not null, server.Timeout);
-        AssertLifecycleJob(server.Recorder.First("disconnect-enter", id)!, id, "lifecycle:disconnected");
+        AssertLifecycleChild(server.Recorder.First("disconnect-enter", id)!, id, rootConnection: null,
+            new(GameplayCallSource.Connection, "bus:" + nameof(AuthenticateAndIssueTicketCommand)));
     }
 
     /// <summary>
@@ -213,6 +217,27 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
         Assert.Equal(connection, chain.SourceConnection);
         Assert.Equal(commandType, chain.CommandType);
         Assert.Equal(0, chain.Depth);
+    }
+
+    /// <summary>
+    /// The teardown of a connection a CMD asked to close is that CMD's child (RQ-050): one deeper, the CMD's root
+    /// and its root's connection; <paramref name="parentHop"/> names the CMD.
+    /// </summary>
+    private static void AssertLifecycleChild(LifecycleEvent seen, NetworkConnectionId closed, NetworkConnectionId? rootConnection,
+        GameplayCallHop parentHop, GameplayCallChain? parent = null)
+    {
+        Assert.True(seen.OnExecutor, $"{seen.Kind} of {closed} was off the executor");
+        var chain = Assert.NotNull(seen.Chain);
+        Assert.Equal(GameplayCallSource.Lifecycle, chain.Source);
+        Assert.Equal("lifecycle:disconnected", chain.CommandType);
+        Assert.Equal(1, chain.Depth);
+        Assert.Equal(rootConnection, chain.SourceConnection);
+        Assert.Equal(parentHop, Assert.Single(chain.Ancestors));
+        if (parent is { } cmd)
+        {
+            Assert.Equal(cmd.Id, chain.ParentId);
+            Assert.Equal(cmd.RootId, chain.RootId);
+        }
     }
 
     /// <summary>Whole frames read until a FIN; a reset or a FIN inside a frame fails.</summary>

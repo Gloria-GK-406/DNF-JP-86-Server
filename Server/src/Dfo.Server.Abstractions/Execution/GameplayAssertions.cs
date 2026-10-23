@@ -78,12 +78,20 @@ public static class GameplayLeakAssertion
 {
     public const string LeakedFlowKind = "bus-leaked-flow";
 
+    /// <summary>F-59: the same leak caught at the executor's enqueue point, where it would otherwise be a depth 0 root.</summary>
+    public const string QueueLeakedFlowKind = "queue-leaked-flow";
+
     /// <summary>Reports and returns the error to throw when this flow leaked from a finished job; otherwise null.</summary>
-    public static Exception? LeakedFrom(string operation)
+    public static Exception? LeakedFrom(string operation) => LeakedFrom(operation, LeakedFlowKind);
+
+    /// <inheritdoc cref="LeakedFrom(string)"/>
+    /// <param name="kind">The evidence kind the leak is reported as.</param>
+    public static Exception? LeakedFrom(string operation, string kind)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operation);
+        ArgumentException.ThrowIfNullOrWhiteSpace(kind);
         if (GameplayJob.Running.Value is not { IsActive: false } finished) return null;
-        GameplayAssertionDiagnostics.Report(LeakedFlowKind, operation);
+        GameplayAssertionDiagnostics.Report(kind, operation);
         return new GameplayLeakedFlowException(operation, finished.Chain);
     }
 }

@@ -104,7 +104,17 @@ public static class GameplayExecutionServiceCollectionExtensions
         services.TryAddSingleton<IGameplayQueue, GameplayQueue>();
         // Every send, close and immediate projection of a job is registered in its outbox and handed
         // to the outbound sender when the job ends (RQ-030); the transport registers none of them.
-        services.TryAddSingleton<GameplayOutboxes>();
+        // A close a CMD's outbox carries is the cause of that connection's teardown (RQ-050).
+        services.TryAddSingleton<GameplayCloseCauses>();
+        services.TryAddSingleton<GameplayDepthGuard>();
+        services.TryAddSingleton(provider =>
+        {
+            var causes = provider.GetRequiredService<GameplayCloseCauses>();
+            var logger = provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<GameplayOutbox>>();
+            return provider.GetService<IOutboundSender>() is { } sender
+                ? new GameplayOutboxes(sender, causes, logger)
+                : new GameplayOutboxes(causes, logger);
+        });
         services.TryAddSingleton<INetworkMessageSender, OutboxNetworkMessageSender>();
         services.TryAddSingleton<INetworkConnectionCloser, OutboxConnectionCloser>();
         services.TryAddSingleton<IOutboundOrdering, GameplayOutboxOrdering>();

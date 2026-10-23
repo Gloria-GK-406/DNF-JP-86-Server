@@ -388,6 +388,9 @@ public sealed partial class DomainEventDispatchTests
         public ConcurrentQueue<Seen> LiveSeen { get; } = [];
         public ConcurrentQueue<Seen> DirectSeen { get; } = [];
         public ConcurrentQueue<Seen> Persisted { get; } = [];
+        public ConcurrentQueue<Seen> RelayedSeen { get; } = [];
+        public ConcurrentQueue<Seen> LifecycleSeen { get; } = [];
+        public int ReadDueCalls;
         public Action<string>? Observe { get; set; }
         public TaskCompletionSource LiveRelease { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int FailingAttempts;
@@ -422,8 +425,14 @@ public sealed partial class DomainEventDispatchTests
         public Probe Probe => Services.GetRequiredService<Probe>();
         public RecordingGameplayQueue Queue => (RecordingGameplayQueue)Services.GetRequiredService<IGameplayQueue>();
         public LogRecorder Logs { get; } = new();
+        public ChainSender Sender { get; } = new();
+        public ChainContexts Contexts { get; } = new();
+        public Dfo.Server.Abstractions.Networking.INetworkConnectionLifecycleDispatcher Lifecycle =>
+            Services.GetRequiredService<Dfo.Server.Abstractions.Networking.INetworkConnectionLifecycleDispatcher>();
+        /// <param name="chain">Every log level, an outbound sender and connection contexts that record, and a lifecycle observer.</param>
+        /// <param name="relay">A reliable subscriber of <see cref="Awarded"/> that publishes <see cref="Relayed"/>, and its subscriber.</param>
         public Fixture(string? path = null, DomainEventDispatchOptions? options = null, bool extraLive = false,
-            bool record = false)
+            bool record = false, bool chain = false, bool relay = false)
         {
             owns = path is null;
             Path = path ?? System.IO.Path.Combine(System.IO.Path.GetTempPath(), "dfo-domain-events-" + Guid.NewGuid().ToString("N") + ".db");
@@ -447,6 +456,21 @@ public sealed partial class DomainEventDispatchTests
                     new RecordingGameplayQueue(new GameplayQueue(p.GetRequiredService<GameplayShardSelector>())));
                 services.AddSingleton<ILoggerProvider>(Logs);
                 services.AddRuntimeEventSubscriber<Awarded, DirectSubscriber>();
+            }
+            if (chain)
+            {
+                services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Trace));
+                Dfo.Server.Application.Dispatching.NetworkMessageDispatchingExtensions.AddNetworkMessageDispatching(services);
+                services.AddSingleton<IOutboundSender>(Sender);
+                services.AddSingleton<Dfo.Server.Abstractions.Networking.INetworkConnectionContexts>(Contexts);
+                services.AddSingleton<Dfo.Server.Abstractions.Networking.INetworkConnectionObserver>(p =>
+                    new ChainObserver(p.GetRequiredService<Probe>()));
+            }
+            if (relay)
+            {
+                services.AddDomainEvent<Relayed>("award.relayed", 1);
+                services.AddDomainSubscriber<Awarded, RelaySubscriber>("relay", DomainEventDeliveryPolicy.Reliable);
+                services.AddDomainSubscriber<Relayed, RelayedSubscriber>("relayed", DomainEventDeliveryPolicy.Reliable);
             }
             Services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
             _ = Services.GetRequiredService<SqliteDatabase>();
@@ -505,7 +529,8 @@ public sealed partial class DomainEventDispatchTests
     private sealed class FaultingRetryPersistence(IDomainEventPersistence inner, Probe probe) : IDomainEventPersistence
     {
         public ValueTask AppendAsync(StoredDomainEvent e, IReadOnlyList<DomainEventDeliveryTarget> s, CancellationToken ct) => inner.AppendAsync(e, s, ct);
-        public ValueTask<IReadOnlyList<PendingDomainEventDelivery>> ReadDueAsync(string id, DateTimeOffset now, int limit, CancellationToken ct) => inner.ReadDueAsync(id, now, limit, ct);
+        public ValueTask<IReadOnlyList<PendingDomainEventDelivery>> ReadDueAsync(string id, DateTimeOffset now, int limit, CancellationToken ct)
+        { Interlocked.Increment(ref probe.ReadDueCalls); return inner.ReadDueAsync(id, now, limit, ct); }
         public ValueTask<DateTimeOffset?> NextDueAsync(string id, CancellationToken ct) => inner.NextDueAsync(id, ct);
         public ValueTask<bool> TryBeginAsync(Guid id, string s, DateTimeOffset now, CancellationToken ct)
         { probe.Persisted.Enqueue(Probe.Here("TryBegin", s)); return inner.TryBeginAsync(id, s, now, ct); }

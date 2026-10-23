@@ -15,6 +15,7 @@ public sealed class GameplayOutboxes
 
     private readonly GameplayJobSlot<GameplayOutbox> slot = new();
     private readonly IOutboundSender? sender;
+    private readonly GameplayCloseCauses? causes;
     private readonly ILogger<GameplayOutbox> logger;
 
     /// <summary>Without a sender (a container without networking) flushed entries are dropped as stale.</summary>
@@ -25,6 +26,12 @@ public sealed class GameplayOutboxes
         this.sender = sender;
         this.logger = logger;
     }
+
+    internal GameplayOutboxes(GameplayCloseCauses causes, ILogger<GameplayOutbox> logger)
+        : this(logger) => this.causes = causes;
+
+    internal GameplayOutboxes(IOutboundSender sender, GameplayCloseCauses causes, ILogger<GameplayOutbox> logger)
+        : this(sender, logger) => this.causes = causes;
 
     /// <summary>
     /// The running job's outbox. Off the executor this is a program error, reported to the gameplay
@@ -68,6 +75,14 @@ public sealed class GameplayOutboxes
             return null;
         }
 
+        // Before the sender has them, so the close callback always finds its cause (RQ-050). The source close
+        // added for a failed CMD, and the fallback one below, are this CMD's too (TASK-29 ruling 6(a)).
+        var chain = GameplayJob.Current;
+        foreach (var entry in entries)
+        {
+            if (outbox.IsCausedClose(entry)) RecordCause(entry.Connection, chain);
+        }
+
         try
         {
             sender.Submit(entries);
@@ -78,10 +93,18 @@ public sealed class GameplayOutboxes
             logger.LogError(refused, "The sender refused a gameplay job's outbox; only its close requests are sent");
             var closes = entries.Where(entry => entry.IsClose).Select(entry => OutboundEntry.Close(entry.Connection)).ToList();
             if (!end.Failed && end.Source is not null)
+            {
                 closes.Add(OutboundEntry.Close(end.Source));
+                RecordCause(end.Source, chain);
+            }
             sender.Submit(closes);
             return refused;
         }
+    }
+
+    private void RecordCause(NetworkConnectionContext connection, GameplayCallChain? chain)
+    {
+        if (causes is not null && chain is { } cause) causes.Record(connection, cause);
     }
 }
 
@@ -119,6 +142,20 @@ public sealed class GameplayOutbox
     }
 
     public void RequestClose(NetworkConnectionContext connection) => Register(OutboundEntry.Close(connection));
+
+    /// <summary>
+    /// A close that is not this CMD's request, so the teardown it leads to is a new root: the depth guard's
+    /// (RQ-053(a)). Carried out like any other close.
+    /// </summary>
+    internal void RequestCloseWithoutCause(NetworkConnectionContext connection)
+    {
+        EnsureWritable();
+        slots.Add(new Slot(null, OutboundEntry.Close(connection), null, null, WithoutCause: true));
+    }
+
+    /// <summary>Whether <paramref name="entry"/> is a close this CMD asked for, which makes it the teardown's cause.</summary>
+    internal bool IsCausedClose(OutboundEntry entry) =>
+        entry.IsClose && !slots.Exists(slot => slot.WithoutCause && ReferenceEquals(slot.Entry, entry));
 
     /// <summary>
     /// Registers entries composed per recipient. Inside a unit they are composed when it commits;
@@ -239,7 +276,8 @@ public sealed class GameplayOutbox
             ordered = null;
     }
 
-    private sealed record Slot(GameplayOutboxUnit? Unit, OutboundEntry? Entry, IOutboxComposition? Composition, GroupMark? Group);
+    private sealed record Slot(GameplayOutboxUnit? Unit, OutboundEntry? Entry, IOutboxComposition? Composition, GroupMark? Group,
+        bool WithoutCause = false);
 
     private readonly record struct GroupMark(OutboundOrderGroup Group, OutboundDelivery Delivery);
 

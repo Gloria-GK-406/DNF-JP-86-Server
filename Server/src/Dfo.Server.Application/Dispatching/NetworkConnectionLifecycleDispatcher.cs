@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Application.Execution;
 using Dfo.Server.Application.Execution.Outbox;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
@@ -11,22 +12,25 @@ namespace Dfo.Server.Application.Dispatching;
 /// The loop is the one the transport plugin used to run itself, in DI registration order.
 /// </summary>
 /// <remarks>
-/// Every lifecycle CMD is a new root in the transition: the close callback cannot tell a close a CMD
-/// requested from one the transport made, so neither the parent chain nor <c>lifecycle:close-cleanup</c>
-/// exists yet (T-007). <c>lifecycle:connected</c> carries its connection as the job's source, so a
-/// failed connect closes it after what its outbox keeps (RQ-031(c)); a disconnected connection has
-/// no source left to close.
+/// <c>lifecycle:connected</c> is a new root. <c>lifecycle:disconnected</c> is the child of the CMD whose outbox
+/// carried the close (RQ-050, <see cref="GameplayCloseCauses"/>); any other teardown (a client that went away, a
+/// close the sender made on its own, RQ-036) is a new root. There is one CMD type for both: the chain tells them
+/// apart (TASK-29 ruling 3). <c>lifecycle:connected</c> carries its connection as the job's source, so a failed
+/// connect closes it after what its outbox keeps (RQ-031(c)); a disconnected connection has no source left to close.
 /// </remarks>
 internal sealed class NetworkConnectionLifecycleDispatcher(
     IGameplayQueue queue,
     IEnumerable<INetworkConnectionObserver> observers,
     ILogger<NetworkConnectionLifecycleDispatcher> logger,
-    GameplayOutboxes outboxes) : INetworkConnectionLifecycleDispatcher
+    GameplayOutboxes outboxes,
+    GameplayCloseCauses causes,
+    GameplayDepthGuard guard) : INetworkConnectionLifecycleDispatcher
 {
+    private const string Disconnected = "lifecycle:disconnected";
     private readonly INetworkConnectionObserver[] observers = [.. observers];
 
     public ValueTask DispatchConnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken) =>
-        RunAsync(connection, "lifecycle:connected", source: connection, async token =>
+        RunAsync(connection, "lifecycle:connected", NewRoot(connection), source: connection, async token =>
         {
             _ = outboxes.Current;
             foreach (var observer in observers)
@@ -35,18 +39,62 @@ internal sealed class NetworkConnectionLifecycleDispatcher(
             }
         }, cancellationToken);
 
-    public ValueTask DispatchDisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken) =>
-        RunAsync(connection, "lifecycle:disconnected", source: null, async token =>
+    public async ValueTask DispatchDisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        var chain = causes.TryTake(connection, out var cause) ? cause.Child(GameplayCallSource.Lifecycle) : NewRoot(connection);
+        try
         {
-            foreach (var observer in observers)
-            {
-                await observer.DisconnectedAsync(connection, token);
-            }
-        }, cancellationToken);
+            await RunAsync(connection, Disconnected, chain, source: null, TeardownOf(connection), cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (GameplayDepthExceededException refused) when (!GameplayJob.EndedAJob(refused))
+        {
+            // RQ-053(d): the connection is already gone and nothing else would tear it down, so the teardown
+            // runs as a new root; the refused chain's root connection is closed as for any other refusal.
+            LogTeardownPastTheLimit(connection, refused.Chain);
+            await RunAsync(connection, Disconnected, NewRoot(connection), source: null, TeardownOf(connection), cancellationToken)
+                .ConfigureAwait(false);
+            if (refused.Chain.SourceConnection is { } root && root != connection.ConnectionId)
+                await RunAsync(connection, "lifecycle:depth-exceeded", GameplayCallChain.NewRoot(GameplayCallSource.Lifecycle),
+                    source: null, _ =>
+                    {
+                        guard.CloseRootConnection(refused.Chain);
+                        return ValueTask.CompletedTask;
+                    }, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private Func<CancellationToken, ValueTask> TeardownOf(NetworkConnectionContext connection) => async token =>
+    {
+        foreach (var observer in observers)
+        {
+            await observer.DisconnectedAsync(connection, token);
+        }
+    };
+
+    private static GameplayCallChain NewRoot(NetworkConnectionContext connection) =>
+        GameplayCallChain.NewRoot(GameplayCallSource.Lifecycle, connection.ConnectionId);
+
+    private void LogTeardownPastTheLimit(NetworkConnectionContext connection, GameplayCallChain refused)
+    {
+        try
+        {
+            logger.LogWarning(
+                "The teardown of {ConnectionId} exceeded the depth limit and runs as a new root: refused root {RootId}, " +
+                "parent {ParentId}, depth {Depth}",
+                connection.ConnectionId, refused.RootId, refused.ParentId, refused.Depth);
+        }
+        catch (Exception)
+        {
+            // Logging never decides the outcome.
+        }
+    }
 
     private async ValueTask RunAsync(
         NetworkConnectionContext connection,
         string commandType,
+        GameplayCallChain chain,
         NetworkConnectionContext? source,
         Func<CancellationToken, ValueTask> body,
         CancellationToken cancellationToken)
@@ -55,12 +103,8 @@ internal sealed class NetworkConnectionLifecycleDispatcher(
         if (observers.Length == 0) return;
         try
         {
-            await queue.RunAsync(new GameplayWork(
-                GameplayShardKey.World,
-                GameplayCallChain.NewRoot(GameplayCallSource.Lifecycle, connection.ConnectionId),
-                commandType,
-                body,
-                source), cancellationToken).ConfigureAwait(false);
+            await queue.RunAsync(new GameplayWork(GameplayShardKey.World, chain, commandType, body, source), cancellationToken)
+                .ConfigureAwait(false);
         }
         catch (GameplayExecutorStoppedException)
         {

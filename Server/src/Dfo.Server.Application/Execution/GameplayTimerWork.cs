@@ -19,10 +19,15 @@ public static class GameplayTimerWork
     /// <summary>Enqueues one run directly: an entry method, or a startup recovery.</summary>
     public static Task RunAsync(IGameplayQueue queue, string commandType,
         Func<CancellationToken, ValueTask> body, CancellationToken cancellationToken,
-        GameplayCallSource source = GameplayCallSource.Timer)
+        GameplayCallSource source = GameplayCallSource.Timer) =>
+        RunAsync(queue, commandType, body, cancellationToken, GameplayCallChain.NewRoot(source));
+
+    /// <summary>Enqueues one run as <paramref name="chain"/>: an event CMD that is its publisher's child (RQ-050).</summary>
+    public static Task RunAsync(IGameplayQueue queue, string commandType,
+        Func<CancellationToken, ValueTask> body, CancellationToken cancellationToken, GameplayCallChain chain)
     {
         ArgumentNullException.ThrowIfNull(queue);
-        var run = new Run(commandType, body, cancellationToken, source);
+        var run = new Run(commandType, body, cancellationToken, chain);
         return run.WaitAsync(queue.RunAsync(run.Work, CancellationToken.None).AsTask());
     }
 
@@ -31,7 +36,7 @@ public static class GameplayTimerWork
         Func<CancellationToken, ValueTask> body, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(ticks);
-        var run = new Run(commandType, body, cancellationToken, GameplayCallSource.Timer);
+        var run = new Run(commandType, body, cancellationToken, GameplayCallChain.NewRoot(GameplayCallSource.Timer));
         return run.WaitAsync(ticks.TryRun(run.Work, CancellationToken.None).Completion);
     }
 
@@ -40,10 +45,10 @@ public static class GameplayTimerWork
         private ExceptionDispatchInfo? cancelled;
 
         public Run(string commandType, Func<CancellationToken, ValueTask> body, CancellationToken token,
-            GameplayCallSource source)
+            GameplayCallChain chain)
         {
             ArgumentNullException.ThrowIfNull(body);
-            Work = new GameplayWork(GameplayShardKey.World, GameplayCallChain.NewRoot(source), commandType, async _ =>
+            Work = new GameplayWork(GameplayShardKey.World, chain, commandType, async _ =>
             {
                 try
                 {
