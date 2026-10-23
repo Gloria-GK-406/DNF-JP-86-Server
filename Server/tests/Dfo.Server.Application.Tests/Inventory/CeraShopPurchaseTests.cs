@@ -361,9 +361,10 @@ public sealed class CeraShopPurchaseTests
     public async Task Send_failure_does_not_repeat_or_undo_the_committed_purchase()
     {
         using var shop = new CeraShopFixture();
-        shop.Host.Sender.BeforeSend = () => throw new IOException("closed socket");
+        shop.Host.Sender.FailSends(() => new IOException("closed socket"));
         await shop.Handle(CeraShopTestContent.Input(CeraShopTestContent.Entry()));
         Assert.Equal(1, shop.Host.Sender.Attempts);
+        Assert.Empty(shop.Host.Sender.Messages);
         Assert.Equal(96400, shop.Cera);
         Assert.Equal(1, shop.Host.Count(3));
     }

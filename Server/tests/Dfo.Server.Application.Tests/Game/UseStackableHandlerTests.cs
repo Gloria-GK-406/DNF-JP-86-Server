@@ -750,27 +750,40 @@ public sealed class UseStackableHandlerTests
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => current;
     }
 
+    /// <summary>
+    /// The direct messages of the explicit deliveries a real registration adapter registered, read from its outbox;
+    /// every call goes to the real protocol sender over it (TASK-25). A CMD or NOTI outside an explicit delivery fails
+    /// where it is registered, with the exception the old double threw.
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+
+        public RecordingSender()
+        {
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage,
+                () => new InvalidOperationException("The use acknowledgement is sent explicitly."));
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage,
+                () => new InvalidOperationException("The use acknowledgement is a CMD."));
+        }
+
+        public List<IGameServerMessage> Sent =>
+            [.. outbound.Explicits.SelectMany(call => call.Delivery.RequiredDirectMessages).Cast<IGameServerMessage>()];
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId, IGameCmdMessage message,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The use acknowledgement is sent explicitly.");
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId, IGameNotiMessage message,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The use acknowledgement is a CMD.");
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            Sent.AddRange(delivery.RequiredDirectMessages);
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 }

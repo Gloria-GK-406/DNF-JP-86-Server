@@ -40,7 +40,8 @@ public sealed class EquipmentEnchantHandlerTests
         var sent = shop.Sender.Messages.Count;
         await Send(shop, 7);
         Assert.Equal(sent + 6, shop.Sender.Messages.Count);
-        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(3, Assert.Single(shop.Sender.Batches, batch => batch.Messages.Any(message => message is EnchantByBeadResponse)).Messages.Length);
         await Assert.ThrowsAsync<InvalidDataException>(() => Send(shop, 7, targetSlot: 13).AsTask());
         Assert.True(Assert.Single(shop.Sender.Messages.OfType<EnchantByBeadResponse>()).Success);
         Assert.Equal(1, shop.Count(1000));
@@ -81,20 +82,16 @@ public sealed class EquipmentEnchantHandlerTests
         using var shop = Fixture();
         await shop.SeedCore(12, Piece(), InventoryContainerType.Equipment);
         await shop.Seed(121, 1000, 2, 3);
-        shop.Sender.BeforeSend = () =>
-        {
-            if (shop.Sender.Attempts == 2)
-                throw new IOException("forced second notification failure");
-        };
+        shop.Sender.FailingSends = () => new IOException("forced second notification failure");
 
         await Send(shop, 7);
-        Assert.Single(shop.Sender.Messages);
+        Assert.Empty(shop.Sender.Messages);
         Assert.Equal(1, shop.Count(1000));
-        shop.Sender.BeforeSend = null;
+        shop.Sender.FailingSends = null;
 
         await Send(shop, 7);
 
-        Assert.Equal(7, shop.Sender.Messages.Count);
+        Assert.Equal(6, shop.Sender.Messages.Count);
         Assert.Single(shop.Sender.Batches);
         Assert.Empty(shop.Sender.Messages.OfType<EnchantByBeadResponse>());
         Assert.Equal(1, shop.Count(1000));
@@ -144,8 +141,9 @@ public sealed class EquipmentEnchantHandlerTests
             await Send(shop, sequence);
         Assert.Equal(1, shop.Count(1000));
 
+        var batchesBefore = shop.Sender.Batches.Count;
         await Assert.ThrowsAsync<InvalidDataException>(() => Send(shop, 1).AsTask());
-        Assert.Empty(shop.Sender.Batches);
+        Assert.Equal(batchesBefore, shop.Sender.Batches.Count);
         Assert.Equal(1, shop.Count(1000));
     }
 
@@ -192,7 +190,8 @@ public sealed class EquipmentEnchantHandlerTests
         await Send(shop, 7);
 
         Assert.Equal(1, EffectRequestTransport.MainValue(shop, 121));
-        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(2, shop.Sender.Batches.Count(batch => batch.Messages.Any(message => message is EnchantByBeadResponse)));
         Assert.Equal(1, shop.Count(1000));
     }
 

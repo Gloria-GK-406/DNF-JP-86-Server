@@ -263,3 +263,169 @@ KB 保留的 7 条：DR-2 1 ＋ DR-4 1 ＋ DR-6 4 ＋ 提交后不回滚 1 ＝ 7
 | N46～N47 | `GmCeraReminderTests.An_account_whose_session_the_reminder_cannot_reach_makes_the_result_offline`（Theory 2 行：`gone`、`declined`） | 新增 | 发现 2：`Gone`／`Declined` → `offline`；变异 M22 下两行都红 |
 
 数量：Protocol 1744 ＋ 2 ＝ 1746；合计 8229 ＋ 2 ＝ 8231；N 45 ＋ 2 ＝ 47；D 不变。附录 G 的 VC-6 因此是 `GmCeraReminderTests` 6 条与 V6。证据 `logs/task-24-review.txt`。
+
+## TASK-25
+
+- 日期 2026-10-23，基准提交 `1ee1c91e`（TASK-24 已提交）。T-006c：「发送即记录」替身改为经真实登记适配器与发件箱观察；18 条 F 类改为登记点注入；F-102 通知总线每收件人整批登记；F-101、F-104 复核。
+- 分类沿用 TASK-23、TASK-24 的 E、R、S、W、F、K、KE，另加五类替身处置：**C1**（容器级，去掉覆盖、容器用真实适配器）、**C2**（构造注入，换成支撑提供的真实发送器／关闭器）、**C3**（不改）、**T8**（交 T-008）、**P**（投影替身，只分类）；注入另分 **G**（守卫：旧替身拒绝的路径，登记点照样拒绝，用例通过时不触发）。断言变化按 Detailed Plan §9 三类：**§9-1** 登记点语义的有意差异、**§9-2** 替身内部断言由真实组件承接、**§9-3** 类型名或成员名的机械替换。
+- 共用支撑（tests/Support，只有一份实现）：`RecordedOutbound.cs`（真实 `GameplayOutboxes`、`OutboxNetworkMessageSender`、`OutboxConnectionCloser` 之上的记录与门面：发件箱交给发送端时记录条目，作业内读取时补上当前发件箱里未刷出的条目，回滚的单元不计；回调在登记点、编码之前运行；失败只在登记点编码器上注入）、`RecordedOutbound.Game.cs`（`Game`、`GameExplicits` 等 Protocol 类型的视图，只链接到能引用 Protocol 的 Application、Protocol、Host）、`OutboundRegistrationParts.cs`（从 `XoDelivery.cs` 拆出的 `XoSubmissions`、`XoConnections`、`FaultingEncoder`、`NameEncoder`，命名空间不变，XO 用例不改一字；`XoConnections` 加「首次见到即登记」，`FaultingEncoder` 加内层编码器与按连接判定的注入）。容器用 `RecordedOutbound.AddTo(services)` 换上真实适配器与按协议注册的编码器（`RegistrationEncoder`，拒绝文字与网络模块的注册表编码器一致）。
+- 「首次见到即登记」的后果：用这种上下文表的用例里，F-83 的「连接已不在即丢弃」不会发生；需要它的 F-83 证据仍在 `OutboxRegistrationTests` 与 XO 用例里（它们不用首次登记）。
+- 机械核对：`logs/task-25-diff-check.txt`；替身清单：`logs/task-25-doubles.txt`；注入清单：`logs/task-25-injections.txt`。
+
+### 1. 数量（按实际运行的例数，Theory 按行计）
+
+| 项目 | 基准 | 新增 N | 删除 D | 结果 |
+|---|---:|---:|---:|---:|
+| Application.Tests | 4535 | 2 | 1 | 4536 |
+| Protocol.Tests | 1746 | 0 | 0 | 1746 |
+| Networking.Tests | 179 | 0 | 0 | 179 |
+| Host.Tests | 190 | 0 | 0 | 190 |
+| 其余四个项目 | 1581 | 0 | 0 | 1581 |
+| 合计 | 8231 | 2 | 1 | 8232 |
+
+其余四个项目：HttpApi 54 ＋ Pvf 80 ＋ Persistence 477 ＋ Infrastructure 970 ＝ 1581。
+合计：8231 ＋ 2 － 1 ＝ 8232；4536 ＋ 1746 ＋ 179 ＋ 190 ＋ 1581 ＝ 8232。N、D 逐条见 §7、§5。
+
+### 2. 替身处置（与 `logs/task-25-doubles.txt` 一致）
+
+- 基准 100 个类（`t23/doubles.py` 的 94 ＋ 主构造器换行漏数的 6）：C1 16 ＋ C2 54 ＋ C3 3 ＋ P 27 ＝ 100；T8 0。
+- 改写的 70 个（C1 ＋ C2）终态：仍实现发送／关闭接口、三个方法都转给真实适配器的包装 65，只读门面 4（`ShopSender`、`LearningSender`、`ReusingConnectionSender`、`CaptureSender`），删除 1（`IllusionTowerPublicFlowTests.NoopConnectionCloser`，连同它的容器覆盖；容器用夹具的真实关闭器，没有用例读它）。65 ＋ 4 ＋ 1 ＝ 70。
+- 包装里保留的「到达登记点的调用」记录（不是「发出了什么」的记录，原断言要读它）：`IllusionTowerRewardProjectionTests.FailingSender.Attempts`（重试复用同一个投递对象，`Assert.Same` 要求按调用记）、两塔 `Sender.Attempts`（连接号）、`DungeonCardPresentationCoordinatorTests.Seen`（登记点所在的作业与调用链）、`SelectCharacterLifecycleTests` 的 ledger 与 `StateMessageCount`、`ShopSender.Attempts`（见 §6.1）。
+- C3 3 个：`ExplicitMessageDeliveryContractTests.RecordingSender`（被测的就是 `INetworkMessageSender` 默认方法的契约）、`SessionGenerationOwnershipTests.NoopSender`／`RecordingSender`（文件内只有声明，没有任何用例使用）。
+- `CommonExperienceEffectTests.CallbackCloser` 改为转给真实关闭器的包装，但保留 `RequestCloseAsync`（按 ID 关闭）抛 `InvalidOperationException("ID-only close is forbidden here.")`：它是测试自身的不变量检查——这个流程只允许按精确上下文关闭，走了按 ID 的关闭就让用例失败（TASK-24 V13：生产中这条路不被调用）；不是失败注入。主控方处置第 2 条接受。
+- P 27 个只分类（裁定第 2 条）：记录型 9、空操作型 7、失败注入型＋记录型 8（含抽象基类 `ProjectionEventService`）、失败注入型 1、阻塞型＋记录型 2（`PartyNotificationTests.BlockingNotificationBus`、`PartyTownProjectionDeliveryTests.BlockingFirstRosterNotificationBus`）；9 ＋ 7 ＋ 8 ＋ 1 ＋ 2 ＝ 27（逐类见 `logs/task-25-doubles.txt` §3）。两个阻塞型逐个核对：文件内都只有声明、没有任何用例使用（用它们的门反例已在 TASK-24 K2 随门删除），按空转登记交 T-008（F-111）。失败注入型都是「投影或组装失败」（KB），不改。
+
+### 3. 18 条 F 类（TASK-24 §5，驱动替换；断言除 §6.1 的 3 处 `Attempts` 外不变）
+
+| DR | 用例 | 注入 旧 → 新 | 异常 |
+|---|---|---|---|
+| DR-1 | `SelectCharacterLifecycleTests.RequiredOwnerFailure_CompensatesExactAttemptAndClosesOnlyItsConnection` | 替身在首条直接消息为 `TrailingEquipmentLockSnapshotMessage` 的 `SendExplicitAsync` 抛出 → 编码器对该投递的直接消息失败 | `IOException("required delivery failed")` |
+| | `…PvpDirectFailure_DoesNotMarkReadyAndRollsBackPublishedAttempt` | 首条直接消息为 `PvpLobbySnapshotMessage` 的显式投递 → 同上 | `IOException("PvP direct delivery failed")` |
+| DR-2 | `PartySelectDungeonHandlerTests.A_secondary_recipient_delivery_failure_aborts_entry_before_anyone_leaves_town` | `Sender(failRequiredConnection)` 对成员为直接收件人的显式投递抛出 → `FailDirect(Member)` | `InvalidOperationException("required delivery failed")` |
+| | `PartyMoveMapHandlerTests.Publication_failure_logs_the_committed_room_and_preserves_the_exception` | `Sender { Failure }` 显式投递抛出 → 编码器对显式投递的直接消息抛同一个异常实例 | 用例自己的 `failure` 实例 |
+| DR-3 | `BossTowerProjectionConcurrencyTests.Projection_failure_does_not_close_a_replacement_selected_session`、`IllusionTowerProjectionConcurrencyTests` 同名 | `Sender(connection => …)` 按直接收件人抛出 → `Encoder.Fail((连接, 消息) => 直接消息 ? failure(连接) : null)` | 用例给的异常 |
+| DR-4 | `MonsterDeathHandlerTests.Death_send_failure_cannot_erase_the_committed_shared_clear_fact`、`GetItemHandlerTests.Pickup_send_failure_cannot_erase_the_committed_shared_clear_fact` | `ThrowingSender` 三个方法都抛 → 编码器对一切直接消息失败 | `IOException("send failed")` |
+| | `IllusionTowerRewardProjectionTests.Persistent_delivery_failure_closes_after_two_attempts_and_real_cleanup_removes_receipt` | `FailingSender { FailuresRemaining = int.MaxValue }` 每次显式投递抛 → 每次尝试在登记点对直接消息失败；「两次尝试」是同一注入连续命中两次（`Attempts` 记到达登记点的两次调用） | `IOException("Injected committed-batch delivery failure.")` |
+| DR-9 | `CreatureProjectionDeliveryTests.Owner_send_failure_closes_owner_and_reports_failure` | `Sender { Failing = owner }` → `outbound.Fail(owner, 全部消息)` | `IOException("send failed")` |
+| DR-12 | `OnlineUserServiceTests.FailedInitialNotice_RemovesExactRegisteredIdentity`（文件名；类名是 `UserServiceTests`） | `RecordingInitialSender(fail: true)` 的 NOTI 抛 → 编码器对 NOTI 失败 | `IOException("initial notice failed")` |
+| 离开副本 | `LeaveDungeonTests.Failed_exit_delivery_releases_the_transition_without_repeating_the_exit` | `BeforeSend = _ => throw …` → `Failure = () => …`，编码器对显式投递的直接消息失败 | `IOException("send failed")` |
+| 登录 | `GameLoginTests.MessageHandler_SendFailureConsumesTheSuccessButRemovesItsPublishedIdentity` | `RecordingSender(failAtAttempt: 2)` → 第 2 次发送的消息在登记点编码失败 | `IOException("send failed")` |
+| 提交后不回滚 | `SkillLearningCommandTests.A_send_failure_leaves_the_committed_learning_for_relogin` | `BeforeSend = () => throw …` → `Failure = () => …`，单条发送在登记点失败 | `IOException("closed socket")` |
+| | `CeraShopPurchaseTests.Send_failure_does_not_repeat_or_undo_the_committed_purchase`、`NpcShopPurchaseTests.Delivery_failure_neither_repeats_the_purchase_nor_rolls_back_its_commit`、`ItemSaleTests.Failed_delivery_does_not_retry_or_reverse_the_sale` | `BeforeSend = () => throw …` → `FailSends(() => …)`，单条发送与整批登记在登记点失败；`Attempts` 口径改义见 §6.1 | `IOException("closed socket")`／`IOException("test connection failure")` |
+| | `EffectOperationReplayTests.A_use_already_durable_before_sender_failure_cannot_consume_twice_on_the_same_raw_request` | `FailExplicit` 由「替身抛出」改为编码器对显式投递的直接消息失败 | `IOException("Fixture Explicit publication failed after settlement.")` |
+
+加法：DR-1 2 ＋ DR-2 2 ＋ DR-3 2 ＋ DR-4 3 ＋ DR-9 1 ＋ DR-12 1 ＋ 离开副本 1 ＋ 登录 1 ＋ 提交后不回滚 5 ＝ 18。`MonsterDeathHandlerTests.Party_publication_failure_fences_every_recipient_of_the_shared_settlement`（AC-009）方法体与基准逐字相同，断言 8 行多重集合相同（`logs/task-25-diff-check.txt` 末尾）。
+
+### 4. 其余注入（§6.2，`logs/task-25-injections.txt`）
+
+- 登记点注入 79 处（第 1 轮评审后；之前 78，多出的 1 处是 `GameLoginTests.RecordingSender` 补上的守卫）：KE 18（由开关或构造参数打开，都是直接收件人的编码失败，TASK-24 §2 来源表「直接收件人、`SendAsync`、`SendBatchAsync` 的编码或端点失败」一行）＋ G 61（守卫：旧替身拒绝的路径——例如「只接受显式投递」的替身收到 CMD／NOTI——在登记点照样以原异常拒绝；用例通过时它们不触发，触发即说明生产改走了旧替身不允许的路径）。
+- 打开注入的用例 33 个：18 条 F 类 ＋ 15 条其他（`ShopSender.FailBatch` 8，含 `JoustIntegrationTests` 一条；`FailExplicit` 3；`FailingSends` 1；`SelectCharacterLifecycleTests.StaticFailure_DoesNotInvokeDailyRefillMutation` 1；`IllusionTowerRewardProjectionTests` 另两条 2；8 ＋ 3 ＋ 1 ＋ 1 ＋ 2 ＝ 15）。全部是 KE，生产中登记点的编码失败仍会抛出，所以都保留，断言不变；旧 `FailBatch`「先记录、再抛出」改为「登记点失败、不登记」后，读失败批次的断言 0 处（失败之后各用例都先 `Clear()` 再读）。
+- KB（投影或组装失败）只在 P 类替身里，按裁定第 2 条不改。
+- 「不再抛出」类：§6.2 范围内 0 条。唯一一条删除（§5）是 C1 改写时发现的传输模型替身，不在 §6.2 的开关里。
+- `EquipmentEnchantHandlerTests.A_partial_notification_failure_can_be_replayed_without_a_second_debit`：`BeforeSend` 按 `Attempts == 2` 抛 → `FailingSends` 在登记点注入（主控方处置第 3 条），连同 §6.1 的两处断言一起改。
+
+### 5. 删除（D ＝ 1）
+
+| 用例 | 类 | 保护意图 | 承接 |
+|---|---|---|---|
+| `CollectionBoxNetworkSettlementTests.Refusal_is_not_delivered_to_a_connection_replaced_before_transport_lookup` | 不再抛出 | 拒绝帧绑定登记时的那个物理连接，连接号被复用后不会送到替代连接。用例断言调用点抛 `IOException`，这个异常只来自替身对「物理连接已被替换」的模拟；登记后由发送端判 `Stale`（RQ-035），登记点不再抛出 | 同文件改写后的 `Ack_cannot_follow_a_reused_connection_id_after_the_inventory_batch`（同一个 `SendBatchAsync(context.Connection)` 发送点，连接表在批次之后改指替代连接，确认回执仍登记给原上下文）；`OutboundSenderTests.An_entry_for_a_replaced_connection_is_dropped_and_never_reaches_the_new_one`；`OutboundRealSocketTests.An_entry_for_an_equal_but_not_identical_context_is_stale` |
+
+### 6. 改写（方法不增不减；只列断言有变化或位置有变化的）
+
+#### 6.1 §9-1：F-102 引起的改义（主控方处置第 1 条：上限 30 处，本单元 24 处）
+
+`Batches` 的含义：基准上 `ShopFixture` 的通知投影经 `SendAsync` 逐条登记，`Batches` 里只有 handler 自己的整批登记，在这些用例里就是「重放当前状态」的那一批（库存快照）。F-102 之后投影也是每收件人一批，`Batches` 里多出投影批。改写把原断言限定到重放批（`EffectRequestTransport.IsStateReplay`：批里有 `InventorySnapshotMessage` 类型的消息；该类型是 Protocol 的 internal，按全名取得一次，改名即在取得处失败），保住「重放只登记一批」的区分力；被拒请求的三处（#10、#17、#18）改为比较请求前后的 `Batches.Count`；另在首个请求产生投影的用例里加一条断言，说明投影（确认回执连同它的增量）作为**一整批**登记（RQ-031(d)）。
+
+| # | 文件:行（改后） | 旧 → 新 | 依据 |
+|---|---|---|---|
+| 1 | `EquipmentAmplificationTests.cs:126-127` | `Assert.Single(f.Sender.Batches)` → `Assert.Single(f.Sender.Batches, IsStateReplay)`；加：含 `ReinforceItemResponse` 的批唯一、3 条消息 | F-102 |
+| 2 | `EquipmentOutworldHandlerTests.cs:35-36` | 同上（`PurifyItemResponse`，3 条） | F-102 |
+| 3 | `LotteryOpeningTests.cs:46-47` | 同上（`LotteryOpeningResponse`，3 条；3 行 Theory） | F-102 |
+| 4 | `LotteryOpeningTests.cs:97-98` | 同上（4 条） | F-102 |
+| 5 | `LotteryOpeningTests.cs:114-115` | 同上（3 条） | F-102 |
+| 6 | `LotteryOpeningTests.cs:191-192` | 同上（4 条，含 `PremiumServiceStateMessage`） | F-102 |
+| 7 | `VendingMachineTests.cs:51-52` | `Assert.Equal(2, Batches.Count)` → `Assert.Equal(2, Batches.Count(IsStateReplay))`；加：含 `VendingMachineResponse` 的批 2 个（两次真实使用各一批投影） | F-102 |
+| 8 | `VendingMachineTests.cs:150-151` | `Assert.Single(Batches)` → `Assert.Single(Batches, IsStateReplay)`；加：投影批唯一、2 条消息 | F-102 |
+| 9 | `EquipmentEnchantHandlerTests.cs:43-44` | 同 #1（`EnchantByBeadResponse`，3 条） | F-102 |
+| 10 | `EquipmentEnchantHandlerTests.cs:146` | `Assert.Empty(Batches)` → 被拒请求前记 `var batchesBefore = Batches.Count`，之后 `Assert.Equal(batchesBefore, Batches.Count)`（被逐出的序号什么批次都不登记；前面 130 次正常附魔的投影批不计）。第 1 轮评审后修改，原为 `DoesNotContain(Batches, IsStateReplay)` | F-102 |
+| 11 | `EquipmentEnchantHandlerTests.cs:192-193` | `Assert.Single(Batches)` → `Assert.Single(Batches, IsStateReplay)`；加：含 `EnchantByBeadResponse` 的批 2 个（序号 7、8 两次附魔） | F-102 |
+| 12 | `EquipmentForgingHandlerTests.cs:35-36` | 同 #1（`ForgingResponse`，3 条） | F-102 |
+| 13 | `HerasEntryCouponTests.cs:147-148` | `var replay = Assert.Single(Batches)` → `Assert.Single(Batches, IsStateReplay)`；加：含 `QuestClearCouponResponse` 的批唯一、2 条消息（3 行 Theory） | F-102 |
+| 14 | `MagicSealHandlerTests.cs:117` | `Assert.Single(Batches)` → `Assert.Single(Batches, IsStateReplay)`（投影批只有两条增量，没有确认回执，不加第二条） | F-102 |
+| 15 | `EquippedUpgradeTicketTests.cs:98-99` | 同 #1（`ReinforceItemResponse`，4 条；3 行 Theory） | F-102 |
+| 16 | `EquipmentReinforcementHandlerTests.cs:153-154` | 同 #1（3 条） | F-102 |
+| 17 | `EquipmentReinforcementHandlerTests.cs:172` | 同 #10（改了请求的同序号被拒，什么批次都不登记） | F-102 |
+| 18 | `EquipmentReinforcementHandlerTests.cs:189` | 同 #10（换角色后不重放前一角色的回执） | F-102 |
+| 19 | `EquipmentReinforcementHandlerTests.cs:313-314` | 同 #1（3 条；2 行 Theory） | F-102 |
+| 20 | `NpcShopPurchaseTests.cs:240-241` | `Assert.Equal(1, shop.Sender.Attempts)` 文字不变，口径改义；加 `Assert.Empty(shop.Sender.Messages)`（第 1 轮评审后） | F-102 |
+| 21 | `ItemSaleTests.cs:244-245` | 同上 | F-102 |
+| 22 | `CeraShopPurchaseTests.cs:366-367` | 同上（`shop.Host.Sender`） | F-102 |
+| 23 | `EquipmentEnchantHandlerTests.cs:88` | `Assert.Single(shop.Sender.Messages)` → `Assert.Empty(shop.Sender.Messages)` | F-102、RQ-031(d) |
+| 24 | `EquipmentEnchantHandlerTests.cs:94` | `Assert.Equal(7, Messages.Count)` → `Assert.Equal(6, Messages.Count)` | F-102、RQ-031(d) |
+
+加法：`Batches` 19（#1～#19）＋ `Attempts` 3（#20～#22）＋ 部分通知失败 2（#23、#24）＝ 24 ≤ 30。另：`NotificationDeliveryTests.A_recipient_whose_message_cannot_be_encoded_fails_and_the_others_are_registered` 的登记列表断言（§8）是计划内唯一一处有意改义，不计入这 24 处。新增断言行 18 处（#1～#9、#11～#13、#15、#16、#19 各一行，#20～#22 各一行；#3、#13、#15、#19 的 Theory 行数不另计）。
+
+`Attempts` 的口径（#20～#22）：
+- 旧：`ShopSender.Attempts` 数到达登记点的 `SendAsync` 调用。这三个用例里 handler 的回执经通知投影发出，总线逐条 `SendAsync`；第一条就在登记点失败，总线把该收件人记为 `Failed` 不再继续，所以是 1。`NpcShopPurchaseTests` 与 `CeraShopPurchaseTests` 的投影各组装 3 条消息，注入一旦失效，三条都会到达登记点，`Attempts` 是 3，所以 `Assert.Equal(1, …)` 同时钉住「失败发生在第一条、之后不再尝试」；`ItemSaleTests` 的投影只有 1 条（`SellItemResponse`），注入失效时也是 1。
+- 新：`Attempts` 数到达登记点的单条发送与整批登记调用（`SendAsync` ＋ `SendBatchAsync`，显式投递不计）。F-102 之后总线对一个收件人只登记一批，无论这一批在登记点失败与否都是 1。所以 `Assert.Equal(1, …)` 只剩「不重试」的含义；「失败生效、注入点之后什么都没登记」的区分力由新加的 `Assert.Empty(…Sender.Messages)` 承接——注入失效时三条用例的投影都会登记，这一行变红（M7 局部重跑：3 条全红，`logs/task-25-mutations.txt` round 4）。第 2 轮执行时写的「基准上也一样」只对 `ItemSaleTests` 成立，已在第 1 轮评审后改正。
+
+部分通知失败（#23、#24）：旧注入在第 2 条消息上抛出，前 1 条已登记，所以首个请求后 `Messages` 有 1 条、重放后 1 ＋ 6 ＝ 7 条；F-102 之后一个收件人的消息是一整批，注入改为整批在登记点失败（`FailingSends`），首个请求后 0 条、重放后 0 ＋ 6 ＝ 6 条。用例要证明的「通知失败之后可重放、不二次扣费」不变（`Assert.Equal(1, shop.Count(1000))` 两处不变）；「部分」二字已无对象，名字随 T-008 改，登记 F-87。
+
+#### 6.2 §9-2 与断言所在行的其他变化
+
+| 文件 | 变化 | 承接／说明 |
+|---|---|---|
+| `NpcShopPurchaseTests.cs`（`ShopSender.SendBatchAsync`） | 删 `Assert.Equal(connection.EndpointKind, registration.Endpoint)`、`Assert.All(frames, frame => Assert.InRange(frame.Length, 15, 1_048_576))` | §9-2：端点不符由 `RegistrationEncoder.EncodeBatch` 在登记点抛出（文字同 `RegistryOutboundEncoder`）；帧长上限由 `GameServerFrameEncoder.Encode` 与 `EncodeBatch` 的帧长检查承接，队列字节上限由 `OutboundSender` 承接 |
+| `CommonExperienceEffectTests.cs`（`CallbackCloser`） | `Assert.Equal(CancellationToken.None,ct); Expected = expected;` → `Assert.Equal(CancellationToken.None,ct);` 单独一行，`Expected` 改为在登记之后取自关闭条目 | 断言表达式不变；`Expected` 由「调用参数」变为「登记了关闭的那个上下文」，更严（关闭被丢弃时为 null） |
+| `CharacterDeathHandlerTests.cs`（`Sender.SendExplicitAsync`） | 同一行里的 `Deliveries.Add(delivery); return …` 改为转给真实发送器 | 断言 `Assert.Equal(Current.ConnectionId, connectionId)` 不变，仍在登记点 |
+| `DungeonLoadingProjectionDeliveryTests.cs`（`WeaknessSender`）、`WeaknessProjectionTests.cs`（`Sender`）、`ItemUsageProjectionTests.cs`（`Sender`） | `Assert.IsType`／`Assert.IsAssignableFrom` 从发送方法移到读取视图的属性里 | 断言表达式不变，作用对象由「被调用的消息」变为「登记了的消息」 |
+
+#### 6.3 位置变化：作业外调用放进作业（§5.3，断言不变）
+
+`HerasEntryCouponTests.Malformed_requests_finish_with_refusal_without_touching_the_bag`（2 行）、`ChannelConnectHandlerTests.HandleAsync_SendsTheDateBasedConnectKeyToTheSameConnection`、`ChannelControlMessageHandlerTests` 3 条、`GameExitMessageHandlerTests.HandleAsync_AcknowledgesTheExitOnTheSameConnection`、`ExitFlushHandlerTests.TaggedIdReport_AcknowledgesAndLogsIdAndFlag`／`TaggedIdReport_ToleratesAnUnattributedConnection`／`RosterFollowUp_FlagsTheSentinelButNotOtherValues`、`SelectDungeonHandlerTests.Refusals_preserve_the_actual_reason_and_allow_retry`（15 行）、`ReturnToSelectionTests.The_return_batch_uses_the_reference_order_and_cmd_envelope`（2 行）。方法 11 个、运行例 27 个（加法见 `logs/task-25-verify.txt` V10）。都是 handler 或投递方法在作业外被直接调用，登记点要求在作业里；没有一条进入 `violations.py` 的期望表。
+
+#### 6.4 作业内读取
+
+C2 门面在作业内读取时包含当前发件箱里尚未刷出的条目（回滚的单元不计），与旧替身「调用即可见」的时机一致；这类读取证明不了「作业结束才刷出」（RQ-031(a)）与「回滚丢弃」在刷出时的效果。作业之后读取的改写用例（`ShopFixture` 全部 106 个文件、`SkillLearningCommandTests`、两个 Channel 用例、`CardRewardTests`、`GmEventsHttpTests` 等）读到的都是发件箱交给发送端的条目：变异 M3（刷出时丢弃全部条目）下抽查的 `NpcShopPurchaseTests`、`SkillLearningCommandTests`、`ChannelControlMessageHandlerTests`、`CardRewardTests`、`GmEventsHttpTests` 都变红；后四个中前三个的基准版本在同一变异下保持绿（旧替身在调用点记录，看不到刷出）。`GmEventsHttpTests` 的基准版本在 F-102 之后不加变异也红（总线自己查连接，宿主的连接表里没有用例的合成连接），所以做不了对照；`ShopFixture` 的基准版本无法单独编译，也没有对照（`logs/task-25-mutations.txt`）。
+- 工作单元：领域事务从容器里的 `GameplayOutboxes` 开工作单元。C1 用例的容器就是 `RecordedOutbound.AddTo` 换上的那一个，所以回滚丢弃（RQ-031(b)）对它们生效；C2 包装各自持有独立的 `RecordedOutbound`，与被测对象容器的工作单元不是同一个发件箱，回滚丢弃对它们不生效。旧替身两种情况都看不到回滚，这一点没有变弱；但这些 C2 用例不能作为 RQ-031(b) 的证据（F-112，交 T-008）。回滚丢弃本身的证据仍在 `OutboxWorkUnitTests`（TASK-23 N5；M5 下 2 条变红，§11）。
+
+### 7. 新增（N ＝ 2）
+
+| # | 用例 | 钉住 |
+|---|---|---|
+| N1 | `NotificationDeliveryTests.A_recipient_whose_last_message_cannot_be_encoded_registers_none_of_its_messages` | RQ-031(d)、F-102：三条消息中最后一条不可编码，该收件人一条都不登记、记 `Failed` 与一条 `Warning`（`InvalidDataException`），连接不被关闭，其他收件人照常登记 |
+| N2 | `NotificationDeliveryTests.A_recipient_with_several_messages_is_resolved_once_and_registered_as_one_batch` | F-102：多条消息的收件人只查一次连接上下文，按组装顺序登记为一条批次 |
+
+两条都先 RED 后 GREEN（`logs/task-25-f102-stop.txt` §1、§2）；N2 的「只查一次」由 M2 守着。
+
+### 8. F-102
+
+- 生产改动只在 `Dfo.Server.Application/Notifications/NotificationBus.cs`：加一个带 `INetworkConnectionContexts` 的构造器（没有上下文表的容器视为连接都不在，丢弃并记 Debug，结果 `Delivered`，同 F-83）；每个收件人组装之后只查一次上下文，经公开接缝 `INetworkMessageSender.SendBatchAsync` 整批编码、登记一条批次（裁定第 3 条 A）。`INotificationBus.cs` 的注释已经是「composed, encoded and registered」，没有要改的句子；注册处 `NotificationDispatchingExtensions` 不用改（容器按可解析的最长构造器选）。
+- 改写的那一条断言：`A_recipient_whose_message_cannot_be_encoded_fails_and_the_others_are_registered` 的登记列表 `[(First, "first part"), (Second, "for-…")]` → `[(Second, "for-…")]`，依据 RQ-031(d)「只丢弃该收件人的这批条目」、F-102；方法注释同步。
+- V12：Game 与 Channel 编码器都在帧编码器里先检查帧长上限，通知产不出超限帧，换成整批编码没有新增的拒绝。
+- 引起的其余断言改义见 §6.1（24 处，经主控方处置第 1 条放宽上限后改写）。
+
+### 9. F-101
+
+`EffectOperationReplayTests` 的三条用例（`Later_readonly_transactions_do_not_replace_the_primary_footprint_or_commit_state`、`Second_primary_command_cannot_pay_or_overwrite_the_first_committed_entry`、`A_use_already_durable_before_sender_failure_cannot_consume_twice_on_the_same_raw_request`）都经 `ShopFixture`：回调 `f.Sender.BeforeExplicit` 由 `RecordedOutbound` 的包装在调用真实登记适配器之前执行——就是登记点，仍在入站作业里、主命令之后；第三条的 `FailExplicit` 改为编码器对直接消息失败。三条断言行多重集合与基准相同（文件不在 diffcheck 的改动列表里），全量与 ×10 通过。F-101 关闭。
+
+### 10. F-104
+
+19 个用到 `DrainOnceAsync` 的文件逐个判定（宿主是否开着派发组循环）：
+- Application 17 个：都是普通 `ServiceProvider` 容器，托管服务不启动，`DrainOnceAsync` 是唯一的排空者，返回时投递作业已完成并刷出（RQ-005），不改。`DomainEventDispatchTests`／`.Executor` 自己调 `Dispatcher.RunAsync` 的用例，组循环在 `DrainOnceAsync` 之前已停或 `DrainOnceAsync` 本身就是被测者，不改。
+- Host `GmEventsHttpTests`：TASK-23 S14 已在读帧前加屏障；本单元在另外两处「`DrainOnceAsync()` 之后紧接 `Clear()`」处补同一屏障（`:291`、`:305`），防止组循环正在处理的投递在 `Clear()` 之后才登记、混进下一段读取。断言不变。
+- Host `GmOfficialMailHttpTests.ReminderExceptionAfterCommitNeverRegrantsAndSuccessRemainsQueryable`：宿主开着组循环，`DrainOnceAsync()` 之后紧接读 `notices.Count`；加同样的执行器屏障（`Settled`），断言不变。
+- F-104 关闭。
+
+### 11. 第 1 轮评审后修改（主控方处置第 1～5 条）
+
+| # | 位置 | 修改 | 证据 |
+|---|---|---|---|
+| 1 | `NpcShopPurchaseTests.cs:241`、`ItemSaleTests.cs:245`、`CeraShopPurchaseTests.cs:367` | 各加 `Assert.Empty(…Sender.Messages)`：该收件人在注入点之后什么都没登记；§6.1 #20～#22 的推导改正 | M7 局部重跑（round 4）3 条全红，M7 合计 15 ＋ 3 ＝ 18 条全红 |
+| 2 | `EquipmentEnchantHandlerTests.cs:146`、`EquipmentReinforcementHandlerTests.cs:172`、`:189` | 被拒请求前后比较 `Batches.Count`（§6.1 #10、#17、#18） | Inventory 全部类过滤运行通过 |
+| 2 | `EffectRequestTransport.cs`（`IsStateReplay`） | 按类型判定：`InventorySnapshotMessage` 的 `Type` 按全名从 Protocol 程序集取得一次（`throwOnError: true`），不再比较类型名字符串 | 同上 |
+| 3 | `follow-ups.md` F-112 | C2 包装各自持有独立发件箱，这些用例证明不了「事务回滚但消息已发」不会发生，不能作为 RQ-031(b) 的证据；交 T-008，TASK-26 收口引用 | — |
+| 4 | `GameLoginTests.cs`（`RecordingSender`） | 补 `outbound.RefuseExplicit(() => new InvalidOperationException("This handler does not use explicit-recipient delivery."))`，与同类文件一致（旧替身就是这样拒绝显式投递） | `GameLoginTests` 过滤运行通过 |
+| 5 | M5 | 加跑 `OutboxWorkUnitTests`：2 条变红（`Of_two_writable_transactions_only_the_one_that_commits_is_flushed`、`Entries_of_a_transaction_whose_outcome_is_uncertain_are_dropped`），是 RQ-031(b) 的证据 | `logs/task-25-mutations.txt` round 4 |
+
+断言行：新增 3 行（#1），改写 3 行（#2 的三处 `DoesNotContain` → `Equal`）；方法不增不减。

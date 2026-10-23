@@ -48,7 +48,8 @@ public sealed class VendingMachineTests
         Assert.Equal(4,f.Host.Count(7463));
         await Network(f, 1); Assert.Equal(1,f.Host.Count(7454)); Assert.Equal(8,f.Host.Count(7463));
         await Network(f, 0);
-        Assert.Equal(2, f.Host.Sender.Batches.Count);
+        Assert.Equal(2, f.Host.Sender.Batches.Count(EffectRequestTransport.IsStateReplay));
+        Assert.Equal(2, f.Host.Sender.Batches.Count(batch => batch.Messages.Any(message => message is VendingMachineResponse)));
         Assert.Equal(2, f.Host.Sender.Messages.OfType<VendingMachineResponse>().Count());
         Assert.Equal(1,f.Host.Count(7454));
     }
@@ -146,7 +147,8 @@ public sealed class VendingMachineTests
         using var f=Fixture(); await f.Host.Seed(121,7454,2);
         await Task.WhenAll(Network(f, 1).AsTask(), Network(f, 1).AsTask());
         Assert.Equal(1,f.Host.Count(7454)); Assert.Equal(4,f.Host.Count(7463));
-        Assert.Single(f.Host.Sender.Messages.OfType<VendingMachineResponse>()); Assert.Single(f.Host.Sender.Batches);
+        Assert.Single(f.Host.Sender.Messages.OfType<VendingMachineResponse>()); Assert.Single(f.Host.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(2, Assert.Single(f.Host.Sender.Batches, batch => batch.Messages.Any(message => message is VendingMachineResponse)).Messages.Length);
     }
     [Fact]
     public void Weighted_intervals_skip_zero_weights_and_respect_boundaries()

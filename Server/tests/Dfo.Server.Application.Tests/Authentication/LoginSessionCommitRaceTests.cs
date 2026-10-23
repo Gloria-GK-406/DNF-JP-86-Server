@@ -71,21 +71,18 @@ public sealed class LoginSessionCommitRaceTests
         });
     }
 
+    /// <summary>The closes a real closer registered, read from its outbox (TASK-25).</summary>
     private sealed class RecordingCloser : INetworkConnectionCloser
     {
-        public List<NetworkConnectionId> Requested { get; } = [];
+        private readonly RecordedOutbound outbound = new();
 
-        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken cancellationToken)
-        {
-            Requested.Add(expected.ConnectionId);
-            return ValueTask.CompletedTask;
-        }
+        public List<NetworkConnectionId> Requested => [.. outbound.Closes];
 
-        public ValueTask RequestCloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken)
-        {
-            Requested.Add(connectionId);
-            return ValueTask.CompletedTask;
-        }
+        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken cancellationToken) =>
+            outbound.Closer.RequestCloseExactAsync(expected, cancellationToken);
+
+        public ValueTask RequestCloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken) =>
+            outbound.Closer.RequestCloseAsync(connectionId, cancellationToken);
     }
 
     private sealed class Clock : TimeProvider

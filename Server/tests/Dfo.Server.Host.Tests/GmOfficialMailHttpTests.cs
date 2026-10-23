@@ -225,6 +225,16 @@ public sealed partial class GmOfficialMailHttpTests
         Assert.Equal(new[] { "0" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));
     }
 
+    /// <summary>
+    /// F-104: the host runs the dispatch group loop, which can take a delivery before <c>DrainOnceAsync</c> reads it;
+    /// the job consuming it is then already on the executor, so a marker job enqueued afterwards waits for it.
+    /// </summary>
+    private static async Task Settled(GmTestHost host) =>
+        await host.Services.GetRequiredService<Dfo.Server.Abstractions.Execution.IGameplayQueue>().RunAsync(
+            new Dfo.Server.Abstractions.Execution.GameplayWork(Dfo.Server.Abstractions.Execution.GameplayShardKey.World,
+                Dfo.Server.Abstractions.Execution.GameplayCallChain.NewRoot(Dfo.Server.Abstractions.Execution.GameplayCallSource.Gm),
+                "test:settled", _ => ValueTask.CompletedTask), default);
+
     [Fact]
     public async Task ReminderExceptionAfterCommitNeverRegrantsAndSuccessRemainsQueryable()
     {
@@ -237,6 +247,7 @@ public sealed partial class GmOfficialMailHttpTests
             using var sent = await host.PostAsync("/api/gm/v1/mail/send", login.Csrf, Payload(id)); Assert.Equal(HttpStatusCode.OK, sent.StatusCode);
             Assert.Equal("unconfirmed", (await sent.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("reminder").GetString());
             await host.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync();
+            await Settled(host);
             Assert.Equal(1, notices.Count); // A replay must not announce an existing letter again.
         }
         Assert.Equal(1, notices.Count); Assert.Equal(new[] { "1" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));

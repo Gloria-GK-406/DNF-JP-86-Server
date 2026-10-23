@@ -145,8 +145,11 @@ public sealed class SelectDungeonHandlerTests
         var sender = new RecordingSender();
         var visits = new RecordingVisits();
         var handler = Handler(visits, sender, commands: new RefusalCommands(failure));
-        for (var i = 0; i < 2; i++)
-            await handler.HandleAsync(Dispatch(), Request() with { RequestMode = hell ? (byte)1 : (byte)0 }, default);
+        await TestGameplay.RunAsync(async () =>
+        {
+            for (var i = 0; i < 2; i++)
+                await handler.HandleAsync(Dispatch(), Request() with { RequestMode = hell ? (byte)1 : (byte)0 }, default);
+        });
         Assert.Equal(2, sender.Sent.Count);
         Assert.All(sender.Sent, message =>
         {
@@ -1170,36 +1173,38 @@ public sealed class SelectDungeonHandlerTests
             throw new NotSupportedException("This fixture only answers.");
     }
 
+    /// <summary>
+    /// The direct messages of the explicit deliveries a real registration adapter registered, read from its outbox;
+    /// every call goes to the real protocol sender over it (TASK-25). A CMD or NOTI outside an explicit delivery fails
+    /// where it is registered, with the exception the old double threw.
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
+        private readonly RecordedOutbound outbound = new();
 
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId, IGameCmdMessage message,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("Entering a dungeon answers as one delivery.");
+        public RecordingSender() => outbound.RefuseOutsideExplicit(
+            () => new InvalidOperationException("Entering a dungeon answers as one delivery."));
 
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId, IGameNotiMessage message,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("Entering a dungeon answers as one delivery.");
+        public List<IGameServerMessage> Sent =>
+            [.. outbound.Explicits.SelectMany(call => call.Delivery.RequiredDirectMessages).Cast<IGameServerMessage>()];
 
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            this.Sent.AddRange(delivery.RequiredDirectMessages);
-            return ValueTask.CompletedTask;
-        }
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
+    /// <summary>A real closer over its own outbox (TASK-25); nothing here reads what it registered.</summary>
     private sealed class NoopConnectionCloser : INetworkConnectionCloser
     {
-        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken ct) => RequestCloseAsync(expected.ConnectionId, ct);
+        private readonly RecordedOutbound outbound = new();
+        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken ct) =>
+            outbound.Closer.RequestCloseExactAsync(expected, ct);
         public ValueTask RequestCloseAsync(
             NetworkConnectionId connectionId,
-            CancellationToken cancellationToken) => ValueTask.CompletedTask;
+            CancellationToken cancellationToken) => outbound.Closer.RequestCloseAsync(connectionId, cancellationToken);
     }
 
     private sealed class NoPartyService : IPartyService

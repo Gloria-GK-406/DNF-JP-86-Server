@@ -15,19 +15,52 @@ namespace Dfo.Server.Application.Notifications;
 /// RQ-031(d)). The outbound sender delivers after the job ends.
 /// </summary>
 /// <remarks>
-/// Each message is registered as the sender registers any single send: encoded on the job, so a message
-/// that cannot be encoded fails its recipient here, after the ones before it were registered, as a
-/// send that threw part way through did before the outbox (TASK-23 ruling 1).
+/// A recipient's connection is looked up once, and all his messages are registered as one prepared batch
+/// for that exact connection: encoded whole on the job, so one message that cannot be encoded fails the
+/// recipient with none of his messages registered (RQ-031(d), F-102). A connection that is no longer
+/// registered drops the recipient's messages, as a send to it is dropped (F-83).
 /// </remarks>
-internal sealed class NotificationBus(
-    IServiceScopeFactory scopeFactory,
-    NotificationHandlerRegistry registry,
-    INotificationAudienceResolver audiences,
-    INetworkMessageSender sender,
-    ISelectedSessionDomainService sessions,
-    GameplayOutboxes outboxes,
-    ILogger<NotificationBus> logger) : INotificationBus
+internal sealed class NotificationBus : INotificationBus
 {
+    private readonly IServiceScopeFactory scopeFactory;
+    private readonly NotificationHandlerRegistry registry;
+    private readonly INotificationAudienceResolver audiences;
+    private readonly INetworkMessageSender sender;
+    private readonly ISelectedSessionDomainService sessions;
+    private readonly GameplayOutboxes outboxes;
+    private readonly INetworkConnectionContexts? contexts;
+    private readonly ILogger<NotificationBus> logger;
+
+    /// <summary>Without networking every connection is unknown, so every recipient's messages are dropped.</summary>
+    public NotificationBus(
+        IServiceScopeFactory scopeFactory,
+        NotificationHandlerRegistry registry,
+        INotificationAudienceResolver audiences,
+        INetworkMessageSender sender,
+        ISelectedSessionDomainService sessions,
+        GameplayOutboxes outboxes,
+        ILogger<NotificationBus> logger)
+    {
+        this.scopeFactory = scopeFactory;
+        this.registry = registry;
+        this.audiences = audiences;
+        this.sender = sender;
+        this.sessions = sessions;
+        this.outboxes = outboxes;
+        this.logger = logger;
+    }
+
+    public NotificationBus(
+        IServiceScopeFactory scopeFactory,
+        NotificationHandlerRegistry registry,
+        INotificationAudienceResolver audiences,
+        INetworkMessageSender sender,
+        ISelectedSessionDomainService sessions,
+        GameplayOutboxes outboxes,
+        INetworkConnectionContexts contexts,
+        ILogger<NotificationBus> logger)
+        : this(scopeFactory, registry, audiences, sender, sessions, outboxes, logger) => this.contexts = contexts;
+
     public async ValueTask<NotificationDelivery> PublishAsync<TNotification>(
         NotificationAudience audience,
         TNotification notification,
@@ -89,11 +122,12 @@ internal sealed class NotificationBus(
             if (messages is null || messages.Count == 0)
                 return NotificationOutcome.Declined;
 
-            foreach (var message in messages)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                await sender.SendAsync(recipient.ConnectionId, message, cancellationToken).ConfigureAwait(false);
-            }
+            cancellationToken.ThrowIfCancellationRequested();
+            if (contexts is not null && contexts.TryGet(recipient.ConnectionId, out var connection) && connection is not null)
+                await sender.SendBatchAsync(connection, messages, cancellationToken).ConfigureAwait(false);
+            else if (logger.IsEnabled(LogLevel.Debug))
+                logger.LogDebug("Notification for character {CharacterId} was dropped: {ConnectionId} is no longer registered",
+                    recipient.CharacterId.Value, recipient.ConnectionId);
 
             return NotificationOutcome.Delivered;
         }

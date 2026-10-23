@@ -49,11 +49,21 @@ public sealed class SharedEffectProjectionTests
         public ValueTask<T> SendAsync<T>(ICommand<T> command, CancellationToken ct = default) where T : notnull
         { Assert.IsType<SharedEffectCommand>(command); Count++; return ValueTask.FromResult((T)(object)new SharedEffectUseResult(success)); }
     }
+    /// <summary>
+    /// The explicit deliveries a real registration adapter registered, read from its outbox; every call goes to the
+    /// real protocol sender over it (TASK-25). A CMD or NOTI outside an explicit delivery fails where it is registered,
+    /// as the old double refused one.
+    /// </summary>
     private sealed class Sender : IGameMessageSender
     {
-        public List<GameExplicitMessageDelivery> Items { get; } = [];
-        public ValueTask SendExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken ct) { Items.Add(delivery); return ValueTask.CompletedTask; }
-        public ValueTask SendCmdAsync(NetworkConnectionId id, IGameCmdMessage m, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage m, CancellationToken ct) => throw new NotSupportedException();
+        private readonly RecordedOutbound outbound = new();
+        public Sender() => outbound.RefuseOutsideExplicit();
+        public List<GameExplicitMessageDelivery> Items => [.. outbound.GameExplicits];
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 }

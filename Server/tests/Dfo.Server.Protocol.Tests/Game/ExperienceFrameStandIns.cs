@@ -9,6 +9,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game;
 
@@ -121,33 +122,37 @@ internal sealed class OneRuntimeSession(SelectCharacterResult entry)
 }
 
 /// <summary>Every frame a slice handed out, in the order it handed them out.</summary>
+/// <summary>
+/// What a real registration adapter registered, read from its outbox: the NOTIs and the direct messages of explicit
+/// deliveries in <see cref="Sent"/>, the targets of explicit deliveries in <see cref="Targets"/>; every call goes to the
+/// real protocol sender over it (TASK-25). A CMD outside an explicit delivery fails where it is registered, with the
+/// exception the old double threw.
+/// </summary>
 internal sealed class RecordingSender : IGameMessageSender
 {
-    public List<IGameServerMessage> Sent { get; } = [];
-    public List<GameExplicitMessageTarget> Targets { get; } = [];
+    private readonly RecordedOutbound outbound = new();
+
+    public RecordingSender() => outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage,
+        () => new InvalidOperationException("These slices send their frames explicitly."));
+
+    public List<IGameServerMessage> Sent => [.. outbound.CallMessages.Cast<IGameServerMessage>()];
+    public List<GameExplicitMessageTarget> Targets => [.. outbound.GameExplicits.SelectMany(delivery => delivery.BestEffortTargets)];
 
     public ValueTask SendCmdAsync(
         NetworkConnectionId connectionId, IGameCmdMessage message,
         CancellationToken cancellationToken) =>
-        throw new InvalidOperationException("These slices send their frames explicitly.");
+        outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
 
     public ValueTask SendNotiAsync(
         NetworkConnectionId connectionId, IGameNotiMessage message,
-        CancellationToken cancellationToken)
-    {
-        Sent.Add(message);
-        return ValueTask.CompletedTask;
-    }
+        CancellationToken cancellationToken) =>
+        outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
 
     public ValueTask SendExplicitAsync(
         NetworkConnectionId requiredDirectConnectionId,
         GameExplicitMessageDelivery delivery,
-        CancellationToken cancellationToken)
-    {
-        this.Sent.AddRange(delivery.RequiredDirectMessages);
-        Targets.AddRange(delivery.BestEffortTargets);
-        return ValueTask.CompletedTask;
-    }
+        CancellationToken cancellationToken) =>
+        outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
 }
 
 /// <summary>

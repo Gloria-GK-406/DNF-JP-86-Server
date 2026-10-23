@@ -172,20 +172,25 @@ public sealed class HatchCreatureHandlerTests
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => Owner;
     }
 
+    /// <summary>
+    /// What a real registration adapter registered, read from its outbox; every call goes to the real protocol sender
+    /// over it, and an explicit delivery is checked at the registration point (TASK-25). An explicit delivery counts
+    /// with its direct messages, as before.
+    /// </summary>
     private sealed class Sender(Bus bus) : IGameMessageSender
     {
-        public List<IGameServerMessage> Messages { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+        public List<IGameServerMessage> Messages => [.. outbound.CallMessages.Cast<IGameServerMessage>()];
         public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message,
-            CancellationToken cancellationToken) { Messages.Add(message); return ValueTask.CompletedTask; }
+            CancellationToken cancellationToken) => outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
         public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message,
-            CancellationToken cancellationToken) { Messages.Add(message); return ValueTask.CompletedTask; }
+            CancellationToken cancellationToken) => outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
         public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery, CancellationToken cancellationToken)
         {
             Assert.Equal(1, bus.Calls);
             Assert.Empty(delivery.BestEffortTargets);
-            Messages.AddRange(delivery.RequiredDirectMessages);
-            return ValueTask.CompletedTask;
+            return outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
         }
     }
 }

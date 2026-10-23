@@ -78,6 +78,7 @@ public sealed class ReplayStateSnapshotTests
         await using var fixture = new LearningFixture(configure: services =>
         {
             new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
+            RecordedOutbound.AddTo(services);
             services.AddSingleton<INetworkMessageSender, ReplayBatchSender>();
         });
         await fixture.SeedAsync();
@@ -328,25 +329,35 @@ public sealed class ReplayStateSnapshotTests
             CharacterId character, CancellationToken ct)
         { await inner.LoadCharacterAsync(account, character, ct); throw new IOException("late current inventory read"); }
     }
-    // Exercise the registered Protocol delivery, command bus and actual encoders. Socket registry,
-    // cap validation and captured transport are separately exercised by PreparedBatchTests.
-    private sealed class ReplayBatchSender(IServiceProvider provider) : INetworkMessageSender
+    // Exercise the registered Protocol delivery, command bus and actual encoders, now through the real registration
+    // adapter and outbox (TASK-25): this forwards every call to it and reads back the prepared batches it registered.
+    // A single send or an explicit delivery fails where it is registered, as the old double refused them. Socket
+    // registry, cap validation and captured transport are separately exercised by PreparedBatchTests.
+    private sealed class ReplayBatchSender : INetworkMessageSender
     {
-        public List<byte[][]> Batches { get; } = [];
-        public NetworkConnectionContext? Connection { get; private set; }
+        private readonly RecordedOutbound outbound;
+
+        public ReplayBatchSender(RecordedOutbound outbound)
+        {
+            this.outbound = outbound;
+            outbound.FailAny(_ => outbound.ExplicitInFlight is null && !outbound.BatchInFlight,
+                () => new NotSupportedException("Replay must use the typed batch."));
+            outbound.FailAny(_ => outbound.ExplicitInFlight is not null,
+                () => new NotSupportedException("Replay must not repeat explicit historical delivery."));
+        }
+
+        public List<byte[][]> Batches => [.. outbound.Batches.Select(batch => batch.Frames)];
+        public NetworkConnectionContext? Connection => outbound.Batches.LastOrDefault().Connection;
         public Func<Task>? BeforeSend { get; set; }
         public async ValueTask SendBatchAsync(NetworkConnectionContext expected, IReadOnlyList<IServerNetworkMessage> messages, CancellationToken ct)
         {
-            var registrations = provider.GetServices<ServerMessageEncoderRegistration>().ToDictionary(x => x.MessageType);
-            var frames = messages.SelectMany(message => ((IServerMessageEncoder)provider.GetRequiredService(registrations[message.GetType()].EncoderType))
-                .Encode(message)).Select(x => x.ToArray()).ToArray();
             if (BeforeSend is not null) await BeforeSend();
-            Connection = expected; Batches.Add(frames);
+            await outbound.Network.SendBatchAsync(expected, messages, ct);
         }
         public ValueTask SendAsync(NetworkConnectionId id, IServerNetworkMessage message, CancellationToken ct) =>
-            ValueTask.FromException(new NotSupportedException("Replay must use the typed batch."));
+            outbound.Network.SendAsync(id, message, ct);
         public ValueTask SendExplicitAsync(NetworkConnectionId id, ExplicitMessageDelivery delivery, CancellationToken ct) =>
-            ValueTask.FromException(new NotSupportedException("Replay must not repeat explicit historical delivery."));
+            outbound.Network.SendExplicitAsync(id, delivery, ct);
     }
     private sealed record AddGoldProbe(Dfo.Server.Data.World.SelectedSessionIdentity Session)
         : ICommand<GoldProbeResult>, ISelectedSessionCommand, IAccountCommand

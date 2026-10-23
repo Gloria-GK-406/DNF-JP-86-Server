@@ -233,7 +233,6 @@ public sealed class IllusionTowerPublicFlowTests
         services.AddSingleton<IItemPlacementDefinitionSource, PvfItemPlacementDefinitionSource>();
         services.RemoveAll<ICharacterSkillPointDomainService>();
         services.AddSingleton<ICharacterSkillPointDomainService, CharacterSkillPointDomainService>();
-        services.AddSingleton<INetworkConnectionCloser, NoopConnectionCloser>();
         if (gateSweepFind)
             DecorateTowerForSweepRace(services);
     });
@@ -276,15 +275,6 @@ public sealed class IllusionTowerPublicFlowTests
             new(fixture.Connection),
             new SelectDungeonRequest(GameMessageMetadata.Empty, 11001, DungeonDifficulty.Normal, 0, 0),
             default);
-
-    private sealed class NoopConnectionCloser : INetworkConnectionCloser
-    {
-        public ValueTask RequestCloseAsync(NetworkConnectionId connectionId,
-            CancellationToken cancellationToken) => ValueTask.CompletedTask;
-
-        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected,
-            CancellationToken cancellationToken) => ValueTask.CompletedTask;
-    }
 
     private sealed class SweepFindGate(IIllusionTowerDomainService inner) : IIllusionTowerDomainService
     {

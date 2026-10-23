@@ -24,5 +24,7 @@
     <Compile Include="../Support/GameplayAssertionRecorder.cs" Link="Support/GameplayAssertionRecorder.cs" />
     <Compile Include="../Support/GameplayAssertionRecorderControlTests.cs" Link="Support/GameplayAssertionRecorderControlTests.cs" />
     <Compile Include="../Support/TestCredentials.cs" Link="Support/TestCredentials.cs" />
+    <Compile Include="../Support/OutboundRegistrationParts.cs" Link="Support/OutboundRegistrationParts.cs" />
+    <Compile Include="../Support/RecordedOutbound.cs" Link="Support/RecordedOutbound.cs" />
   </ItemGroup>
 </Project>

@@ -171,7 +171,7 @@ public sealed class LeaveDungeonTests
         await TestGameplay.RunAsync(async () =>
         {
             var runs = new OneRun();
-            var sender = new RecordingSender { BeforeSend = _ => throw new IOException("send failed") };
+            var sender = new RecordingSender { Failure = () => new IOException("send failed") };
             var handler = StoryHandler(runs, sender);
             await Assert.ThrowsAsync<IOException>(async () => await handler.HandleAsync(Dispatch(),
                 new EplpCommandRequest(GameMessageMetadata.Empty, 1, 1), default));
@@ -1041,32 +1041,33 @@ public sealed class LeaveDungeonTests
         public double SpiritPotionBonusRateOf(CharacterId characterId) => 0;
     }
 
+    /// <summary>
+    /// What a real registration adapter registered, read from its outbox (an explicit delivery with its direct messages
+    /// only, as before); every call goes to the real protocol sender over it (TASK-25). <see cref="Failure"/> makes the
+    /// direct messages of an explicit delivery fail to encode where they are registered; a CMD fails there as the old
+    /// double refused one.
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
-        public Func<IReadOnlyList<IGameServerMessage>, Task>? BeforeSend { get; init; }
+        private readonly RecordedOutbound outbound = new();
 
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId, IGameCmdMessage message,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("These frames are sent explicitly.");
-
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId, IGameNotiMessage message,
-            CancellationToken cancellationToken)
+        public RecordingSender()
         {
-            Sent.Add(message);
-            return ValueTask.CompletedTask;
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage,
+                () => new InvalidOperationException("These frames are sent explicitly."));
+            outbound.FailAny(message => outbound.ExplicitInFlight is not null && outbound.IsDirect(message) && Failure is not null,
+                () => Failure!());
         }
 
-        public async ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            if (BeforeSend is not null) await BeforeSend(delivery.RequiredDirectMessages);
-            this.Sent.AddRange(delivery.RequiredDirectMessages);
-        }
+        public List<IGameServerMessage> Sent => [.. outbound.CallMessages.Cast<IGameServerMessage>()];
+        public Func<Exception>? Failure { get; init; }
+
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
     private sealed class FixedWeakness(byte value) : IWeaknessDomainService, IWeakness

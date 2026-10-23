@@ -144,7 +144,8 @@ public sealed class HerasEntryCouponTests
         Assert.Equal(4, (await Quota(f)).Remaining);
         Assert.Contains(f.Host.Sender.Messages.Select(f.Encode), frame => BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) == 0x0227 && frame[^1] == 4);
         await dispatcher.DispatchAsync(new(f.Host.Connection), Request(), default);
-        var replay = Assert.Single(f.Host.Sender.Batches);
+        var replay = Assert.Single(f.Host.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(2, Assert.Single(f.Host.Sender.Batches, batch => batch.Messages.Any(message => message is QuestClearCouponResponse)).Messages.Length);
         Assert.DoesNotContain(replay.Messages, m => m is QuestClearCouponResponse);
         Assert.Contains(replay.Frames, frame => BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) == 0x0227 && frame[^1] == 4);
         Assert.Equal(1, f.Host.Count(Coupon));
@@ -174,8 +175,9 @@ public sealed class HerasEntryCouponTests
     {
         using var f = Fixture();
         await f.Host.Seed(69, Coupon, 2);
-        await f.Host.Services.GetRequiredService<QuestClearCouponHandler>().HandleAsync(new(f.Host.Connection),
-            new QuestClearCouponRequest(GameMessageMetadata.Empty, 69, 0, reserved, action, 0, 0, true), default);
+        await TestGameplay.RunAsync(f.Host.Services, async () =>
+            await f.Host.Services.GetRequiredService<QuestClearCouponHandler>().HandleAsync(new(f.Host.Connection),
+                new QuestClearCouponRequest(GameMessageMetadata.Empty, 69, 0, reserved, action, 0, 0, true), default));
         Assert.False(Assert.Single(f.Host.Sender.Messages.OfType<QuestClearCouponResponse>()).Succeeded);
         Assert.Equal(2, f.Host.Count(Coupon));
         Assert.Equal(3, (await Quota(f)).Remaining);

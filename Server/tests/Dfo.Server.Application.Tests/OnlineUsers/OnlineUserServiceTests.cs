@@ -670,11 +670,32 @@ public sealed class UserServiceTests
             int characterLevel) => null;
     }
 
-    private sealed class RecordingInitialSender(
-        Action? beforeSend = null,
-        bool fail = false) : IGameMessageSender
+    /// <summary>
+    /// What a real registration adapter registered, read from its outbox; every call goes to the real protocol sender
+    /// over it (TASK-25). <c>beforeSend</c> runs at the registration point; <c>fail</c> makes the notice fail to encode
+    /// there, with the exception the old double threw; a CMD or an explicit delivery fails there as the old double
+    /// refused one.
+    /// </summary>
+    private sealed class RecordingInitialSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Messages { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+        private readonly Action? beforeSend;
+
+        public RecordingInitialSender(
+            Action? beforeSend = null,
+            bool fail = false)
+        {
+            this.beforeSend = beforeSend;
+            outbound.RefuseExplicit(() => new InvalidOperationException(
+                "The initial notice path does not use explicit-recipient delivery."));
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage,
+                () => new InvalidOperationException("Initial connection sends a NOTI message."));
+            if (fail)
+                outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage,
+                    () => new IOException("initial notice failed"));
+        }
+
+        public List<IGameServerMessage> Messages => [.. outbound.MessagesAs<IGameServerMessage>()];
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId,
@@ -682,24 +703,20 @@ public sealed class UserServiceTests
             CancellationToken cancellationToken)
         {
             beforeSend?.Invoke();
-            if (fail)
-                return ValueTask.FromException(new IOException("initial notice failed"));
-            Messages.Add(message);
-            return ValueTask.CompletedTask;
+            return outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
         }
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId,
             IGameCmdMessage message,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("Initial connection sends a NOTI message.");
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException(
-                "The initial notice path does not use explicit-recipient delivery.");
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
@@ -783,29 +800,32 @@ public sealed class UserServiceTests
                 new SelectedSessionCleanupFailure(plan, [new IOException("cleanup failed")]));
     }
 
+    /// <summary>
+    /// The explicit deliveries a real registration adapter registered, read from its outbox; every call goes to the
+    /// real protocol sender over it (TASK-25).
+    /// </summary>
     private sealed class RecordingExplicitSender : IGameMessageSender
     {
-        public List<(NetworkConnectionId ConnectionId, GameExplicitMessageDelivery Delivery)> Deliveries
-            { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+
+        public List<(NetworkConnectionId ConnectionId, GameExplicitMessageDelivery Delivery)> Deliveries =>
+            [.. outbound.Explicits.Zip(outbound.GameExplicits, (call, delivery) => (call.Direct, delivery))];
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId,
             IGameCmdMessage message,
-            CancellationToken cancellationToken) => ValueTask.CompletedTask;
+            CancellationToken cancellationToken) => outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId,
             IGameNotiMessage message,
-            CancellationToken cancellationToken) => ValueTask.CompletedTask;
+            CancellationToken cancellationToken) => outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            Deliveries.Add((requiredDirectConnectionId, delivery));
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
     private sealed class ClearingCleanup(UserDomainServices active) : ISelectedSessionCleanupDomainService

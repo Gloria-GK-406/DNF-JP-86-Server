@@ -151,13 +151,23 @@ public sealed class MarriageEntityTests
         Assert.Equal(revision, f.Scalar("SELECT revision FROM marriage_relations"));
     }
 
+    /// <summary>
+    /// The explicit deliveries the handler registered, rebuilt from the entries in the outbox; every call goes to the
+    /// real protocol sender over a real registration adapter (TASK-25). A CMD or NOTI sent outside an explicit
+    /// delivery fails where it is registered, as the old double refused one.
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public List<GameExplicitMessageDelivery> Deliveries { get; } = [];
-        public ValueTask SendCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask SendExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken ct)
-        { Deliveries.Add(delivery); return ValueTask.CompletedTask; }
+        private readonly RecordedOutbound outbound = new();
+
+        public RecordingSender() =>
+            outbound.FailAny(_ => outbound.ExplicitInFlight is null, () => new NotSupportedException());
+
+        public List<GameExplicitMessageDelivery> Deliveries => [.. outbound.GameExplicits];
+        public ValueTask SendCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken ct) => outbound.Game.SendCmdAsync(id, message, ct);
+        public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct) => outbound.Game.SendNotiAsync(id, message, ct);
+        public ValueTask SendExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken ct) =>
+            outbound.Game.SendExplicitAsync(id, delivery, ct);
     }
 
     /// <summary>Hands the store a revision one ahead of the caller's, as if another writer had committed in between.</summary>

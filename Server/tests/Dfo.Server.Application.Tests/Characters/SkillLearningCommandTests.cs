@@ -78,7 +78,7 @@ public sealed class SkillLearningCommandTests
     [Fact]
     public async Task A_send_failure_leaves_the_committed_learning_for_relogin()
     {
-        var sender = new LearningSender { BeforeSend = () => throw new IOException("closed socket") };
+        var sender = new LearningSender { Failure = () => new IOException("closed socket") };
         await using var fixture = Fixture(sender);
         await fixture.SeedAsync();
         await Assert.ThrowsAsync<IOException>(() => Handle(fixture, [new(1, 0, 2)]).AsTask());
@@ -88,7 +88,7 @@ public sealed class SkillLearningCommandTests
     private static LearningFixture Fixture(LearningSender sender) => new(configure: services =>
     {
         new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
-        services.AddSingleton<INetworkMessageSender>(sender);
+        sender.Use(RecordedOutbound.AddTo(services));
     });
 
     private static async ValueTask Handle(LearningFixture fixture, IReadOnlyList<CharacterSkillLearningChange> changes) =>
@@ -96,17 +96,26 @@ public sealed class SkillLearningCommandTests
             new(new(fixture.Session.ConnectionId, NetworkEndpointKind.Game, 10011)),
             new LearnSkillRequest(GameMessageMetadata.Empty, 0, changes, 0), default));
 
-    private sealed class LearningSender : INetworkMessageSender
+    /// <summary>
+    /// What the handler registered, read from the outbox through the container's real registration adapter (TASK-25).
+    /// <see cref="Failure"/> makes every single send fail to encode where it is registered; an explicit delivery fails
+    /// there too, as the old double refused one.
+    /// </summary>
+    private sealed class LearningSender
     {
+        private RecordedOutbound? outbound;
         public Action? BeforeSend { get; set; }
-        public List<IServerNetworkMessage> Messages { get; } = [];
-        public ValueTask SendAsync(NetworkConnectionId id, IServerNetworkMessage message, CancellationToken ct)
+        public Func<Exception>? Failure { get; init; }
+        public RecordedMessages<IServerNetworkMessage> Messages => Outbound.Messages;
+        private RecordedOutbound Outbound => outbound ?? throw new InvalidOperationException("The fixture has not been built.");
+
+        public void Use(RecordedOutbound recorded)
         {
-            BeforeSend?.Invoke();
-            Messages.Add(message);
-            return ValueTask.CompletedTask;
+            outbound = recorded;
+            recorded.BeforeSend = () => BeforeSend?.Invoke();
+            if (Failure is { } failure)
+                recorded.FailAny(_ => recorded.ExplicitInFlight is null, failure);
+            recorded.FailAny(_ => recorded.ExplicitInFlight is not null, () => new NotSupportedException());
         }
-        public ValueTask SendExplicitAsync(NetworkConnectionId id, ExplicitMessageDelivery delivery, CancellationToken ct) =>
-            throw new NotSupportedException();
     }
 }

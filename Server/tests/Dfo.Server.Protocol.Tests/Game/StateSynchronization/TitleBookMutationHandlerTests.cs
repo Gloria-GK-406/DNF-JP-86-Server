@@ -120,14 +120,28 @@ public sealed class TitleBookMutationHandlerTests
         public bool TryGetByConnection(NetworkConnectionId id, out OnlineUserSnapshot? found)
         { found = id == user.Connection.ConnectionId ? user : null; return found is not null; }
     }
+    /// <summary>
+    /// What a real registration adapter registered, read from its outbox; every call goes to the real protocol sender
+    /// over it, and a CMD then waits at its registration point until <see cref="Complete"/> (TASK-25). A NOTI or an
+    /// explicit delivery fails there, with the exception the old double threw.
+    /// </summary>
     private sealed class Sender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+        public Sender()
+        {
+            outbound.RefuseExplicit(() => new InvalidOperationException("No state replacement before native ACK."));
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage,
+                () => new InvalidOperationException("No NOTI before native ACK."));
+        }
+        public List<IGameServerMessage> Sent => [.. outbound.MessagesAs<IGameServerMessage>()];
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Complete { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public async ValueTask SendCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken ct)
-        { Sent.Add(message); Started.TrySetResult(); await Complete.Task.WaitAsync(ct); }
-        public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct) => throw new InvalidOperationException("No NOTI before native ACK.");
-        public ValueTask SendExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken ct) => throw new InvalidOperationException("No state replacement before native ACK.");
+        { await outbound.Game.SendCmdAsync(id, message, ct); Started.TrySetResult(); await Complete.Task.WaitAsync(ct); }
+        public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct) =>
+            outbound.Game.SendNotiAsync(id, message, ct);
+        public ValueTask SendExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken ct) =>
+            outbound.Game.SendExplicitAsync(id, delivery, ct);
     }
 }

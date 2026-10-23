@@ -242,16 +242,23 @@ public sealed class JoustQueryHandlerTests
     {
         public override ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience, T notice, CancellationToken ct) => throw new InvalidOperationException("A query must not publish notifications.");
     }
+    /// <summary>
+    /// What the handler registered, read from the outbox of a real registration adapter (inside the job, what is still
+    /// in it); every call goes to the real protocol sender over it (TASK-25). An explicit delivery fails where it is
+    /// registered, as the old double refused one.
+    /// </summary>
     private sealed class Sender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
-        public ValueTask SendBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IGameServerMessage> messages, CancellationToken ct)
-        { Sent.AddRange(messages); return ValueTask.CompletedTask; }
-        public ValueTask SendCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken ct)
-        { Sent.Add(message); return ValueTask.CompletedTask; }
-        public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct)
-        { Sent.Add(message); return ValueTask.CompletedTask; }
-        public ValueTask SendExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken ct)
-            => throw new NotSupportedException();
+        private readonly RecordedOutbound outbound = new();
+        public Sender() => outbound.RefuseExplicit();
+        public RecordedMessages<IGameServerMessage> Sent => outbound.MessagesAs<IGameServerMessage>();
+        public ValueTask SendBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IGameServerMessage> messages, CancellationToken ct) =>
+            outbound.Game.SendBatchAsync(connection, messages, ct);
+        public ValueTask SendCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken ct) =>
+            outbound.Game.SendCmdAsync(id, message, ct);
+        public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct) =>
+            outbound.Game.SendNotiAsync(id, message, ct);
+        public ValueTask SendExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken ct) =>
+            outbound.Game.SendExplicitAsync(id, delivery, ct);
     }
 }

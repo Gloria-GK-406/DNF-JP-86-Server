@@ -150,7 +150,8 @@ public sealed class EquipmentReinforcementHandlerTests
         await Send(shop, 7);
 
         Assert.Equal(countAfterFirst + 6, shop.Sender.Messages.Count);
-        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(3, Assert.Single(shop.Sender.Batches, batch => batch.Messages.Any(message => message is ReinforceItemResponse)).Messages.Length);
         Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
         Assert.Equal(10, shop.Count(1000));
         Assert.Equal(99_900, shop.Gold);
@@ -164,10 +165,11 @@ public sealed class EquipmentReinforcementHandlerTests
         await shop.Seed(121, 1000, 20, 3);
 
         await Send(shop, 7);
+        var batchesBefore = shop.Sender.Batches.Count;
         await Assert.ThrowsAsync<InvalidDataException>(() => Send(shop, 7, expectedItemId: 3001).AsTask());
 
         Assert.True(Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>()).Success);
-        Assert.Empty(shop.Sender.Batches);
+        Assert.Equal(batchesBefore, shop.Sender.Batches.Count);
         Assert.Equal(10, shop.Count(1000));
         Assert.Equal(99_900, shop.Gold);
     }
@@ -181,9 +183,10 @@ public sealed class EquipmentReinforcementHandlerTests
 
         await Send(shop, 7);
         shop.Select(2);
+        var batchesBefore = shop.Sender.Batches.Count;
         await Assert.ThrowsAsync<InvalidDataException>(() => Send(shop, 7).AsTask());
         Assert.True(Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>()).Success);
-        Assert.Empty(shop.Sender.Batches);
+        Assert.Equal(batchesBefore, shop.Sender.Batches.Count);
         Assert.Equal(100_000, shop.Gold);
     }
 
@@ -309,7 +312,8 @@ public sealed class EquipmentReinforcementHandlerTests
         await Send(shop, 7);
 
         Assert.Equal(countAfterFirst + 6, shop.Sender.Messages.Count);
-        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(3, Assert.Single(shop.Sender.Batches, batch => batch.Messages.Any(message => message is ReinforceItemResponse)).Messages.Length);
         Assert.Equal(newLevel, Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>()).NewLevel);
         Assert.Equal(1, shop.Count(ticketId));
         Assert.Equal(10, shop.Count(1000));

@@ -237,11 +237,12 @@ public sealed class ItemSaleTests
     {
         using var shop = Fixture();
         await shop.Seed(65, 5000, 10);
-        shop.Sender.BeforeSend = () => throw new IOException("test connection failure");
+        shop.Sender.FailSends(() => new IOException("test connection failure"));
         await Sell(shop, 65, 1);
         Assert.Equal(9, shop.Count(5000));
         Assert.Equal(100031, shop.Gold);
         Assert.Equal(1, shop.Sender.Attempts);
+        Assert.Empty(shop.Sender.Messages);
     }
 
     [Fact]

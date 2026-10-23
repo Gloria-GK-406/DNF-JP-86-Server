@@ -259,12 +259,15 @@ public sealed class GmEventsHttpTests
         var mail=Assert.Single(await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
         Assert.Equal(490003187,Assert.IsType<Dfo.Server.Data.Mail.MailAsset.Stackable>(Assert.Single(mail.Attachments).Asset).ItemId);
     }
-    private sealed class CaptureSender : INetworkMessageSender
+    /// <summary>
+    /// What the host's real registration adapter registered, read where the outbox hands it to the sender (TASK-25);
+    /// an explicit delivery counts with its direct messages only, as before.
+    /// </summary>
+    private sealed class CaptureSender
     {
-        internal System.Collections.Concurrent.ConcurrentQueue<IServerNetworkMessage> Messages { get; }=new();
-        public ValueTask SendAsync(NetworkConnectionId c,IServerNetworkMessage m,CancellationToken ct){Messages.Enqueue(m);return ValueTask.CompletedTask;}
-        public ValueTask SendBatchAsync(NetworkConnectionContext c,IReadOnlyList<IServerNetworkMessage> m,CancellationToken ct){foreach(var message in m)Messages.Enqueue(message);return ValueTask.CompletedTask;}
-        public ValueTask SendExplicitAsync(NetworkConnectionId c,ExplicitMessageDelivery delivery,CancellationToken ct){foreach(var message in delivery.RequiredDirectMessages)Messages.Enqueue(message);return ValueTask.CompletedTask;}
+        private RecordedOutbound outbound=null!;
+        internal RecordedMessages<IServerNetworkMessage> Messages=>outbound.CallMessages;
+        public void Use(IServiceCollection services)=>outbound=RecordedOutbound.AddTo(services);
     }
     /// <summary>
     /// The dispatch group loop can take a delivery before <c>DrainOnceAsync</c> reads it; that delivery is
@@ -283,9 +286,9 @@ public sealed class GmEventsHttpTests
     [PvfFact]
     public async Task Durable_clear_command_decoder_dispatcher_claim_and_online_close_refresh_the_native_frames()
     {
-        var sender=new CaptureSender();await using var host=await GmTestHost.StartAsync(configureServices:s=>{Content(s);s.AddSingleton<INetworkMessageSender>(sender);});
+        var sender=new CaptureSender();await using var host=await GmTestHost.StartAsync(configureServices:s=>{Content(s);sender.Use(s);});
         await GmPlayerDirectoryHttpTests.SeedAsync(host);var csrf=await Enable(host);
-        await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
+        await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();await Settled(host);
         var user=await GmPlayerDirectoryHttpTests.ConnectAsync(host,1,21011);var session=GmPlayerDirectoryHttpTests.Publish(host,user,1,1,21011);
         var bus=host.Services.GetRequiredService<ICommandBus>();var run=Guid.NewGuid();
         var clear=new GrantClearExperienceCommand(new(1),new(1),1,new(86,0,1,50,1,1),Session:session,RunId:run,SettlementLevel:86);
@@ -299,7 +302,7 @@ public sealed class GmEventsHttpTests
         Assert.Contains((ushort)2208,beforeIds);
         Assert.Equal(19,ack.Length);Assert.Equal(0u,BinaryPrimitives.ReadUInt32LittleEndian(ack.AsSpan(15)));Assert.Contains(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x042D && f.Length==465);
         Assert.Single(await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
-        await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
+        await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();await Settled(host);
         sender.Messages.Clear();await Change(host,csrf,new(2208,2,"disable"));
         await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();await Settled(host);frames=Frames(host,sender);
         var calendar=Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x006C);Assert.Equal(beforeIds.Where(id=>id!=2208),ReadEventIds(calendar[15..]));

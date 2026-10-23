@@ -96,10 +96,10 @@ public sealed class ExitFlushHandlerTests
             Attributed(out var context), new NoSessions(), new TutorialRewardDomainService(new TutorialRewardRuleService(new NoRewards())),
             Rewarding(new RecordingInventory(), new NoPlacement()), sender, logger);
 
-        await handler.HandleAsync(
+        await TestGameplay.RunAsync(async () => await handler.HandleAsync(
             context,
             new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 31, RewardFlag: 1),
-            CancellationToken.None);
+            CancellationToken.None));
 
         var entry = Assert.Single(logger.Entries);
         Assert.Contains("id=31 flag=1", entry.Message);
@@ -181,10 +181,10 @@ public sealed class ExitFlushHandlerTests
             Rewarding(new RecordingInventory(), new NoPlacement()), new RecordingExplicitSender(),
             logger);
 
-        await handler.HandleAsync(
+        await TestGameplay.RunAsync(async () => await handler.HandleAsync(
             context,
             new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 77, RewardFlag: 0),
-            CancellationToken.None);
+            CancellationToken.None));
 
         Assert.Contains("unattributed", Assert.Single(logger.Entries).Message);
     }
@@ -196,14 +196,17 @@ public sealed class ExitFlushHandlerTests
         var sender = new CountingGameMessageSender();
         var handler = new RosterFollowUpHandler(Attributed(out var context), sender, logger);
 
-        await handler.HandleAsync(
-            context,
-            new RosterFollowUpRequest(GameMessageMetadata.Empty, 0xFFFF),
-            CancellationToken.None);
-        await handler.HandleAsync(
-            context,
-            new RosterFollowUpRequest(GameMessageMetadata.Empty, 0x1234),
-            CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await handler.HandleAsync(
+                context,
+                new RosterFollowUpRequest(GameMessageMetadata.Empty, 0xFFFF),
+                CancellationToken.None);
+            await handler.HandleAsync(
+                context,
+                new RosterFollowUpRequest(GameMessageMetadata.Empty, 0x1234),
+                CancellationToken.None);
+        });
 
         Assert.Equal(2, logger.Entries.Count);
         Assert.Contains("0xFFFF (sentinel)", logger.Entries[0].Message);
@@ -393,56 +396,80 @@ public sealed class ExitFlushHandlerTests
                 [new TutorialRewardItem(8474, 1), new TutorialRewardItem(8474, 1)]);
     }
 
+    /// <summary>
+    /// The direct messages of the explicit deliveries a real registration adapter registered, read from its outbox;
+    /// every call goes to the real protocol sender over it (TASK-25). A CMD or NOTI outside an explicit delivery fails
+    /// where it is registered, with the exception the old double threw.
+    /// </summary>
     private sealed class RecordingExplicitSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+
+        public RecordingExplicitSender()
+        {
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage,
+                () => new InvalidOperationException("The tutorial acknowledgement is sent explicitly."));
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage,
+                () => new InvalidOperationException("The tutorial acknowledgement is a CMD."));
+        }
+
+        public List<IGameServerMessage> Sent =>
+            [.. outbound.Explicits.SelectMany(call => call.Delivery.RequiredDirectMessages).Cast<IGameServerMessage>()];
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId,
             IGameCmdMessage message,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The tutorial acknowledgement is sent explicitly.");
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId,
             IGameNotiMessage message,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The tutorial acknowledgement is a CMD.");
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            Sent.AddRange(delivery.RequiredDirectMessages);
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
+    /// <summary>
+    /// Counts the CMDs a real registration adapter registered, read from its outbox; every call goes to the real
+    /// protocol sender over it (TASK-25). A NOTI or an explicit delivery fails where it is registered, with the
+    /// exception the old double threw.
+    /// </summary>
     private sealed class CountingGameMessageSender : IGameMessageSender
     {
-        public int CmdCount { get; private set; }
+        private readonly RecordedOutbound outbound = new();
+
+        public CountingGameMessageSender()
+        {
+            outbound.RefuseExplicit(() => new InvalidOperationException("This handler does not use explicit delivery."));
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage,
+                () => new InvalidOperationException("The roster follow-up answers with a CMD."));
+        }
+
+        public int CmdCount => outbound.Messages.Count(message => message is IGameCmdMessage);
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId,
             IGameCmdMessage message,
-            CancellationToken cancellationToken)
-        {
-            CmdCount++;
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId,
             IGameNotiMessage message,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The roster follow-up answers with a CMD.");
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("This handler does not use explicit delivery.");
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
     private static SessionMetricsReportRequest AllZeroMetrics() => new(

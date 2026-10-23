@@ -1728,56 +1728,46 @@ public sealed class MonsterDeathHandlerTests
         }
     }
 
+    /// <summary>
+    /// What was registered for each connection, read from the outbox of a real registration adapter; every call goes
+    /// to the real protocol sender over it (TASK-25). A CMD or NOTI outside an explicit delivery fails where it is
+    /// registered, with the exception the old double threw.
+    /// </summary>
     private sealed class PartyRecordingSender : IGameMessageSender
     {
-        private readonly Dictionary<NetworkConnectionId, List<IGameServerMessage>> sent = [];
+        private readonly RecordedOutbound outbound = new();
+
+        public PartyRecordingSender() => this.outbound.RefuseOutsideExplicit(Unused);
 
         public IReadOnlyList<IGameServerMessage> For(NetworkConnectionId connectionId) =>
-            this.sent.TryGetValue(connectionId, out var frames) ? frames : [];
+            [.. this.outbound.MessagesFor(connectionId).Cast<IGameServerMessage>()];
 
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId, IGameCmdMessage message,
-            CancellationToken cancellationToken) => throw Unused();
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId, IGameNotiMessage message,
-            CancellationToken cancellationToken) => throw Unused();
-
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            this.Add(requiredDirectConnectionId, delivery.RequiredDirectMessages);
-            foreach (var target in delivery.BestEffortTargets)
-                this.Add(target.ConnectionId, target.OrderedMessages);
-            return ValueTask.CompletedTask;
-        }
-
-        private void Add(
-            NetworkConnectionId connectionId, IReadOnlyList<IGameServerMessage> frames)
-        {
-            if (!this.sent.TryGetValue(connectionId, out var received))
-                this.sent[connectionId] = received = [];
-            received.AddRange(frames);
-        }
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
 
         private static NotSupportedException Unused() =>
             new("This fixture records only explicit deliveries.");
     }
 
+    /// <summary>
+    /// A real registration adapter whose every direct message fails to encode where it is registered, with the
+    /// exception the old double threw (TASK-25 §6.1); every call goes to the real protocol sender over it.
+    /// </summary>
     private sealed class ThrowingSender : IGameMessageSender
     {
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId,
-            IGameCmdMessage message,
-            CancellationToken cancellationToken) => throw new IOException("send failed");
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId,
-            IGameNotiMessage message,
-            CancellationToken cancellationToken) => throw new IOException("send failed");
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken) => throw new IOException("send failed");
+        private readonly RecordedOutbound outbound = new();
+
+        public ThrowingSender() => outbound.FailAny(outbound.IsDirect, () => new IOException("send failed"));
+
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 }

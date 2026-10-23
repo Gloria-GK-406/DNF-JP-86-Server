@@ -174,16 +174,22 @@ public sealed class LoginSessionMaintenanceExecutorTests
             throw new NotSupportedException();
     }
 
+    /// <summary>
+    /// A real closer (TASK-25): the close is registered in the running job's outbox, and the step is noted at that
+    /// registration point, in the job that registered it. An exact close notes no step.
+    /// </summary>
     private sealed class RecordingCloser(ConcurrentQueue<Seen> steps, TaskCompletionSource closed) : INetworkConnectionCloser
     {
-        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
+        private readonly RecordedOutbound outbound = new();
 
-        public ValueTask RequestCloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken)
+        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken cancellationToken) =>
+            outbound.Closer.RequestCloseExactAsync(expected, cancellationToken);
+
+        public async ValueTask RequestCloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken)
         {
+            await outbound.Closer.RequestCloseAsync(connectionId, cancellationToken);
             steps.Enqueue(new($"close {connectionId}", GameplayJob.IsOnExecutor, GameplayJob.Current));
             closed.TrySetResult();
-            return ValueTask.CompletedTask;
         }
     }
 }

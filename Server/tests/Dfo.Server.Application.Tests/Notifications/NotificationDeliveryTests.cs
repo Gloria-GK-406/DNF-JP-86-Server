@@ -275,7 +275,7 @@ public sealed class NotificationDeliveryTests
 
     /// <summary>
     /// A message that cannot be encoded fails its recipient where it is registered, on the publishing
-    /// job, after the messages before it; the others are registered as usual (TASK-23 ruling 1).
+    /// job, with none of that recipient's messages registered (F-102); the others are registered as usual.
     /// </summary>
     [Fact]
     public async Task A_recipient_whose_message_cannot_be_encoded_fails_and_the_others_are_registered()
@@ -292,12 +292,60 @@ public sealed class NotificationDeliveryTests
         Assert.Equal([First], delivery.With(NotificationOutcome.Failed));
         Assert.Equal([Second], delivery.With(NotificationOutcome.Delivered));
         Assert.Equal(
-            [(world.ConnectionOf(First), "first part"), (world.ConnectionOf(Second), $"for-{Second.Value}")],
+            [(world.ConnectionOf(Second), $"for-{Second.Value}")],
             world.Sender.Registered.SelectMany(entry => entry.Messages.Select(message =>
                 (entry.Connection.ConnectionId, NotificationWorld.Label(message)))));
         var warning = Assert.Single(world.Log.Entries, value => value.Level == LogLevel.Warning);
         Assert.IsType<InvalidDataException>(warning.Error);
         Assert.False(world.Sender.IsClosed(world.ConnectionOf(First)));
+    }
+
+    /// <summary>
+    /// RQ-031(d), F-102: a recipient's messages are one batch, so the last of several failing to encode loses that
+    /// recipient all of them, not just the tail; the others are registered as usual.
+    /// </summary>
+    [Fact]
+    public async Task A_recipient_whose_last_message_cannot_be_encoded_registers_none_of_its_messages()
+    {
+        var world = new NotificationWorld();
+        world.Play(First);
+        world.Play(Second);
+        world.Compose = recipient => recipient.CharacterId == First
+            ? [new TownBellMessage("first part"), new TownBellMessage("second part"), new TownBellMessage("unencodable last part")]
+            : [new TownBellMessage($"for-{recipient.CharacterId.Value}")];
+
+        var delivery = await world.PublishToAsync([First, Second]);
+
+        Assert.Equal([First], delivery.With(NotificationOutcome.Failed));
+        Assert.Equal([Second], delivery.With(NotificationOutcome.Delivered));
+        Assert.DoesNotContain(world.Sender.Registered, entry => entry.Connection.ConnectionId == world.ConnectionOf(First));
+        Assert.Equal(
+            [(world.ConnectionOf(Second), $"for-{Second.Value}")],
+            world.Sender.Registered.SelectMany(entry => entry.Messages.Select(message =>
+                (entry.Connection.ConnectionId, NotificationWorld.Label(message)))));
+        var warning = Assert.Single(world.Log.Entries, value => value.Level == LogLevel.Warning);
+        Assert.IsType<InvalidDataException>(warning.Error);
+        Assert.False(world.Sender.IsClosed(world.ConnectionOf(First)));
+    }
+
+    /// <summary>
+    /// F-102: a recipient with several messages is looked up once and registered as one batch for that one context,
+    /// in the composed order.
+    /// </summary>
+    [Fact]
+    public async Task A_recipient_with_several_messages_is_resolved_once_and_registered_as_one_batch()
+    {
+        var world = new NotificationWorld();
+        world.Play(First);
+        world.Compose = _ => [new TownBellMessage("one"), new TownBellMessage("two"), new TownBellMessage("three")];
+
+        var delivery = await world.PublishToAsync([First]);
+
+        Assert.Equal([First], delivery.With(NotificationOutcome.Delivered));
+        var batch = Assert.Single(world.Sender.Registered);
+        Assert.Equal(world.ConnectionOf(First), batch.Connection.ConnectionId);
+        Assert.Equal(["one", "two", "three"], batch.Messages.Select(NotificationWorld.Label));
+        Assert.Equal([world.ConnectionOf(First)], world.Connections.Lookups);
     }
 
     /// <summary>A recipient whose composition failed is not asked again, now or by a later publish (VC-5).</summary>

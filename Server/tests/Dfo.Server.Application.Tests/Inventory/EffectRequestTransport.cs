@@ -32,6 +32,17 @@ internal static class EffectRequestTransport
             ?? throw new InvalidDataException("Fixture body was not decoded.");
         return fixture.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(fixture.Connection), decoded, default);
     }
+    /// <summary>
+    /// Whether a prepared batch is a replay of current state (it carries inventory snapshots), as distinct from the
+    /// batch a completion notification is registered as: the notification bus registers each recipient's messages as
+    /// one prepared batch (RQ-031(d), F-102), so a replayed request is no longer the only source of batches.
+    /// </summary>
+    public static bool IsStateReplay((NetworkConnectionContext Connection, IServerNetworkMessage[] Messages, byte[][] Frames) batch) =>
+        batch.Messages.Any(InventorySnapshot.IsInstanceOfType);
+
+    /// <summary>The protocol's inventory snapshot type; internal to Dfo.Server.Protocol, so found by name, and a rename fails here.</summary>
+    private static readonly Type InventorySnapshot = typeof(Dfo.Server.Protocol.ProtocolModule).Assembly.GetType(
+        "Dfo.Server.Protocol.Game.StateSynchronization.InventorySnapshotMessage", throwOnError: true)!;
     public static void ObserveOtherFrames(ShopFixture fixture, int count) =>
         Counters.GetValue(fixture.Connection, _ => new()).Other(count);
     public static byte[] MainSnapshot(ShopFixture fixture) => fixture.Sender.Batches.Last().Frames

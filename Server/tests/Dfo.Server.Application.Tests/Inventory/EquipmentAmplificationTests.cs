@@ -123,7 +123,8 @@ public sealed class EquipmentAmplificationTests
     {
         using var f = Fixture(); await Seed(f, Piece()); await Send(f, 7); await Send(f, 7); await Assert.ThrowsAsync<InvalidDataException>(() => Send(f, 7, method: 0).AsTask());
         var replies = f.Sender.Messages.OfType<ReinforceItemResponse>().ToArray();
-        Assert.Single(replies); Assert.Single(f.Sender.Batches);
+        Assert.Single(replies); Assert.Single(f.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(3, Assert.Single(f.Sender.Batches, batch => batch.Messages.Any(message => message is ReinforceItemResponse)).Messages.Length);
         Assert.Equal(19, f.Count(3242)); Assert.Equal(99700, f.Gold); Assert.Equal((byte)1, f.StoredCore(9)[9]);
     }
 

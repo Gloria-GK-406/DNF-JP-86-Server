@@ -32,7 +32,8 @@ public sealed class EquipmentForgingHandlerTests
         Assert.Equal((byte)1, first.NewLevel);
         Assert.Equal(11, first.MaterialRemaining);
         Assert.Single(shop.Sender.Messages.OfType<ForgingResponse>());
-        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(3, Assert.Single(shop.Sender.Batches, batch => batch.Messages.Any(message => message is ForgingResponse)).Messages.Length);
         Assert.Equal("InventoryDeltaMessage", shop.Sender.Messages[1].GetType().Name);
         Assert.Equal("InventoryDeltaMessage", shop.Sender.Messages[2].GetType().Name);
     }

@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Exit;
 using Dfo.Server.Protocol.Game;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -16,41 +17,51 @@ public sealed class GameExitMessageHandlerTests
         var context = new NetworkDispatchContext(
             new NetworkConnectionContext(connectionId, NetworkEndpointKind.Game, 10011));
 
-        await handler.HandleAsync(
+        await TestGameplay.RunAsync(async () => await handler.HandleAsync(
             context,
             new GameExitRequest(GameMessageMetadata.Empty),
-            CancellationToken.None);
+            CancellationToken.None));
 
         Assert.Equal(connectionId, sender.ConnectionId);
         Assert.Equal(new GameExitResponse(true), sender.Message);
     }
 
+    /// <summary>
+    /// The last CMD a real registration adapter registered, read from its outbox; every call goes to the real protocol
+    /// sender over it (TASK-25). A NOTI or an explicit delivery fails where it is registered, with the exception the
+    /// old double threw.
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public NetworkConnectionId ConnectionId { get; private set; }
+        private readonly RecordedOutbound outbound = new();
 
-        public IGameServerMessage? Message { get; private set; }
+        public RecordingSender()
+        {
+            outbound.RefuseExplicit(() => new InvalidOperationException("This handler does not use explicit-recipient delivery."));
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage,
+                () => new InvalidOperationException("Exit sends a CMD response."));
+        }
+
+        public NetworkConnectionId ConnectionId => outbound.Entries.LastOrDefault(entry => !entry.IsClose)?.Connection.ConnectionId ?? default;
+
+        public IGameServerMessage? Message => (IGameServerMessage?)outbound.Messages.LastOrDefault();
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId,
             IGameCmdMessage message,
-            CancellationToken cancellationToken)
-        {
-            ConnectionId = connectionId;
-            Message = message;
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("This handler does not use explicit-recipient delivery.");
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId,
             IGameNotiMessage message,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("Exit sends a CMD response.");
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
     }
 }

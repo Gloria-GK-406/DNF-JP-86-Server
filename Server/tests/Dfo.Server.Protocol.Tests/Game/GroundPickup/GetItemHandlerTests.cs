@@ -576,40 +576,43 @@ public sealed class GetItemHandlerTests
             ValueTask.FromResult(new DungeonSettlementRules(true, QuestMaze: true));
     }
 
+    /// <summary>
+    /// A real registration adapter whose every direct message fails to encode where it is registered, with the
+    /// exception the old double threw (TASK-25 §6.1); every call goes to the real protocol sender over it.
+    /// </summary>
     private sealed class ThrowingSender : IGameMessageSender
     {
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId,
-            IGameCmdMessage message,
-            CancellationToken cancellationToken) => throw new IOException("send failed");
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId,
-            IGameNotiMessage message,
-            CancellationToken cancellationToken) => throw new IOException("send failed");
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken) => throw new IOException("send failed");
+        private readonly RecordedOutbound outbound = new();
+
+        public ThrowingSender() => outbound.FailAny(outbound.IsDirect, () => new IOException("send failed"));
+
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
+    /// <summary>
+    /// The explicit deliveries a real registration adapter registered, read from its outbox; every call goes to the
+    /// real protocol sender over it (TASK-25). A CMD or NOTI outside an explicit delivery fails where it is registered,
+    /// as the old double refused one.
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public List<GameExplicitMessageDelivery> Deliveries { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+
+        public RecordingSender() => outbound.RefuseOutsideExplicit();
+
+        public List<GameExplicitMessageDelivery> Deliveries => [.. outbound.GameExplicits];
         public GameExplicitMessageDelivery? Delivery => Deliveries.SingleOrDefault();
 
-        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            Deliveries.Add(delivery);
-            return ValueTask.CompletedTask;
-        }
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 }

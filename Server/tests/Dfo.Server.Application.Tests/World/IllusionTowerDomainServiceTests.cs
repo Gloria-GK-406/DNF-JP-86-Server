@@ -60,7 +60,7 @@ public sealed class IllusionTowerDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            using var f = Fixture(configure: services => services.AddSingleton<INetworkConnectionCloser>(new RecordingCloser()));
+            using var f = Fixture(configure: services => new RecordingCloser().Use(services));
             await f.Seed(65, 4183, 1);
             var tower = Tower(f);
             var run = (await Enter(f)).Run!;
@@ -89,7 +89,7 @@ public sealed class IllusionTowerDomainServiceTests
         await TestGameplay.RunAsync(async () =>
         {
             using var f = Fixture(new Rules { Items = [6521] },
-                configure: services => services.AddSingleton<INetworkConnectionCloser>(new RecordingCloser()));
+                configure: services => new RecordingCloser().Use(services));
             await f.Seed(65, 4183, 1);
             var tower = Tower(f);
             var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
@@ -123,7 +123,7 @@ public sealed class IllusionTowerDomainServiceTests
         {
             var closer = new RecordingCloser();
             using var f = Fixture(rewards: true,
-                configure: services => services.AddSingleton<INetworkConnectionCloser>(closer));
+                configure: services => closer.Use(services));
             await f.Seed(65, 4183, 1);
             var tower = Tower(f);
             var context = Context((await Enter(f)).Run!, f.Session);
@@ -157,7 +157,7 @@ public sealed class IllusionTowerDomainServiceTests
                 configure: services =>
                 {
                     TowerRewardTestContent.Register(services, content);
-                    services.AddSingleton<INetworkConnectionCloser>(closer);
+                    closer.Use(services);
                 });
             await f.Seed(65, 4183, 1);
             var tower = Tower(f);
@@ -997,8 +997,7 @@ public sealed class IllusionTowerDomainServiceTests
         await TestGameplay.RunAsync(async () =>
         {
             using var f = Fixture(new Rules { Probabilities = [0, 0, 100] }, rewards: true,
-                configure: services => services.AddSingleton<INetworkConnectionCloser>(
-                    new RecordingCloser()));
+                configure: services => new RecordingCloser().Use(services));
             await f.Seed(65, 4183, 1);
             var other = await AddMember(f, 1);
             var parties = f.Services.GetRequiredService<IPartyService>();
@@ -1068,7 +1067,7 @@ public sealed class IllusionTowerDomainServiceTests
                     CharacterSkillPointDomainService>();
                 services.AddSingleton<IDungeonEntryIntentDomainService>(intents);
                 RegisterEntryContent(services);
-                services.AddSingleton<INetworkConnectionCloser>(new RecordingCloser());
+                new RecordingCloser().Use(services);
             });
             await f.Seed(65, 4183, 1);
             var other = await AddMember(f, 1);
@@ -1125,7 +1124,7 @@ public sealed class IllusionTowerDomainServiceTests
                 services.RemoveAll<ICharacterSkillPointDomainService>();
                 services.AddSingleton<ICharacterSkillPointDomainService, CharacterSkillPointDomainService>();
                 RegisterEntryContent(services);
-                services.AddSingleton<INetworkConnectionCloser>(new RecordingCloser());
+                new RecordingCloser().Use(services);
             });
             await f.Seed(65, 4183, 2);
             await f.Seed(66, 2000, 7);
@@ -1292,23 +1291,29 @@ public sealed class IllusionTowerDomainServiceTests
             ValueTask.FromResult(DungeonCellSeed.CompleteEmpty(context.Cell, context.MapId));
     }
 
+    /// <summary>
+    /// The closes the fixture's real closer registered, read from the outbox (TASK-25); every call goes to that closer.
+    /// </summary>
     private sealed class RecordingCloser : INetworkConnectionCloser
     {
-        public List<NetworkConnectionId> Closed { get; } = [];
+        private RecordedOutbound? outbound;
+
+        public List<NetworkConnectionId> Closed => [.. Outbound.Closes];
+
+        private RecordedOutbound Outbound => outbound ?? throw new InvalidOperationException("The fixture has not been built.");
+
+        public void Use(IServiceCollection services) =>
+            services.AddSingleton<INetworkConnectionCloser>(provider =>
+            {
+                outbound = provider.GetRequiredService<RecordedOutbound>();
+                return this;
+            });
 
         public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected,
-            CancellationToken cancellationToken)
-        {
-            Closed.Add(expected.ConnectionId);
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) => Outbound.Closer.RequestCloseExactAsync(expected, cancellationToken);
 
         public ValueTask RequestCloseAsync(NetworkConnectionId connectionId,
-            CancellationToken cancellationToken)
-        {
-            Closed.Add(connectionId);
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) => Outbound.Closer.RequestCloseAsync(connectionId, cancellationToken);
     }
 
     private sealed class TrackingIntents : IDungeonEntryIntentDomainService
@@ -1614,7 +1619,7 @@ public sealed class IllusionTowerDomainServiceTests
             var content = new TowerRewardTestContent();
             content.Table = content.Table with { ItemTypeRates = [0, 10000, 0, 0] };
             using var f = Fixture(new Rules { FloorCount = 1, Probabilities = [0, 1001, 100] }, rewards: true,
-                configure: s => { TowerRewardTestContent.Register(s, content); s.AddSingleton<INetworkConnectionCloser>(new RecordingCloser()); });
+                configure: s => { TowerRewardTestContent.Register(s, content); new RecordingCloser().Use(s); });
             await f.Seed(65, 4183, 2);
             var tower = Tower(f);
             var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
@@ -1724,7 +1729,7 @@ public sealed class IllusionTowerDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            using var f = Fixture(new Rules { Items = [6521] }, configure: s => s.AddSingleton<INetworkConnectionCloser>(new RecordingCloser()));
+            using var f = Fixture(new Rules { Items = [6521] }, configure: s => new RecordingCloser().Use(s));
             await f.Seed(65, 4183, 1);
             var tower = Tower(f);
             var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;

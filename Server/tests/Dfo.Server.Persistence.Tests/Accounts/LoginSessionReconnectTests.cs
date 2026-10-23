@@ -113,21 +113,20 @@ public sealed class LoginSessionReconnectTests
         Assert.NotNull(await fixture.Consume(login.MId!, login.Ticket!));
     }
 
-    /// <summary>The supersession's close, registered by the login CMD that bound the new connection (F-65).</summary>
+    /// <summary>
+    /// The supersession's close, registered by the login CMD that bound the new connection (F-65): a real closer
+    /// registers it in the job's outbox, and this reads the close requests the outbox handed over (TASK-25).
+    /// </summary>
     private sealed class RecordingCloser : INetworkConnectionCloser
     {
-        public List<NetworkConnectionId> Requested { get; } = [];
+        private readonly RecordedOutbound outbound = new();
 
-        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken cancellationToken)
-        {
-            Requested.Add(expected.ConnectionId);
-            return ValueTask.CompletedTask;
-        }
+        public List<NetworkConnectionId> Requested => [.. outbound.Closes];
 
-        public ValueTask RequestCloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken)
-        {
-            Requested.Add(connectionId);
-            return ValueTask.CompletedTask;
-        }
+        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken cancellationToken) =>
+            outbound.Closer.RequestCloseExactAsync(expected, cancellationToken);
+
+        public ValueTask RequestCloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken) =>
+            outbound.Closer.RequestCloseAsync(connectionId, cancellationToken);
     }
 }

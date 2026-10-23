@@ -20,14 +20,17 @@ namespace Dfo.Server.Protocol.Tests.Game.Creatures;
 
 public sealed class CreatureProjectionDeliveryTests
 {
+    /// <summary>The real registration under the delivery; read back through the old doubles' members (TASK-25).</summary>
+    private readonly RecordedOutbound recorded = new();
+
     [Fact]
     public async Task Unequipped_evolution_updates_the_pet_key_without_overwriting_the_worn_slot()
     {
         await TestGameplay.RunAsync(async () =>
         {
             var owner = Session(1, "owner");
-            var sender = new Sender();
-            var delivery = Create(new Sessions(owner), new Towns(Member(owner, Area, true)), sender, new Closer());
+            var sender = new Sender(recorded);
+            var delivery = Create(new Sessions(owner), new Towns(Member(owner, Area, true)), sender, new Closer(recorded));
             var before = new CreatureState(500, 63000, 90, 2150, 19, [], 0, 0, 0, 0);
             var after = before with { ItemTemplateId = 63001, Experience = 2151, Level = 20 };
             var transformation = new CreatureTransformationReceipt(before, after,
@@ -59,8 +62,8 @@ public sealed class CreatureProjectionDeliveryTests
             var sessions = new Sessions(owner, peer, hidden, elsewhere);
             var towns = new Towns(Member(owner, Area, ownerShares), Member(peer, Area, true),
                 Member(hidden, Area, false), Member(elsewhere, OtherArea, true));
-            var sender = new Sender();
-            var delivery = Create(sessions, towns, sender, new Closer());
+            var sender = new Sender(recorded);
+            var delivery = Create(sessions, towns, sender, new Closer(recorded));
 
             var success = await delivery.SendVisibleAsync(owner,
                 new CreatureRenameNotification(owner.WireUserId, [0x41]), default);
@@ -151,8 +154,8 @@ public sealed class CreatureProjectionDeliveryTests
         await TestGameplay.RunAsync(async () =>
         {
             var owner = Session(1, "owner");
-            var sender = new Sender { Failing = owner.ConnectionId };
-            var closer = new Closer();
+            var sender = new Sender(recorded) { Failing = owner.ConnectionId };
+            var closer = new Closer(recorded);
             var delivery = Create(new Sessions(owner), new Towns(Member(owner, Area, true)), sender, closer);
 
             var success = await delivery.SendVisibleAsync(owner,
@@ -175,10 +178,10 @@ public sealed class CreatureProjectionDeliveryTests
             var townPeer = Session(4, "town-peer");
             var sessions = new Sessions(owner, peer, replacement, townPeer);
             var tower = new TowerDomainStub(owner, peer, stale);
-            var sender = new Sender();
+            var sender = new Sender(recorded);
             var delivery = Create(sessions,
                 new Towns(Member(owner, Area, true), Member(townPeer, Area, true)),
-                sender, new Closer(), tower);
+                sender, new Closer(recorded), tower);
 
             var success = await delivery.SendVisibleAsync(owner,
                 new CreatureRenameNotification(owner.WireUserId, [0x41]), default);
@@ -198,14 +201,14 @@ public sealed class CreatureProjectionDeliveryTests
             var replacement = peer with { ConnectionGeneration = 2, ConnectionId = new("peer-new") };
             var identities = new[] { owner, peer };
             var sessions = new Sessions(identities);
-            var sender = new Sender
+            var sender = new Sender(recorded)
             {
                 AfterSend = connection =>
                 {
                     if (connection == owner.ConnectionId) identities[1] = replacement;
                 },
             };
-            var delivery = Create(sessions, new Towns(), sender, new Closer(),
+            var delivery = Create(sessions, new Towns(), sender, new Closer(recorded),
                 new TowerDomainStub(owner, peer));
 
             var success = await delivery.SendVisibleAsync(owner,
@@ -316,37 +319,61 @@ public sealed class CreatureProjectionDeliveryTests
             throw new NotSupportedException();
     }
 
+    /// <summary>
+    /// What the delivery registered, read from the outbox; every call goes to the real protocol sender over the
+    /// registration adapter (TASK-25). <see cref="Failing"/> makes every message for that connection fail to encode
+    /// where it is registered, with the exception the old double threw; an explicit delivery fails the same way, as
+    /// the old double refused one, so a stale inventory projection still fails a test that expects none.
+    /// </summary>
     private sealed class Sender : IGameMessageSender
     {
-        public NetworkConnectionId? Failing { get; init; }
+        private readonly RecordedOutbound outbound;
+        private readonly NetworkConnectionId? failing;
+
+        public Sender(RecordedOutbound outbound)
+        {
+            this.outbound = outbound;
+            outbound.FailAny(_ => outbound.ExplicitInFlight is not null,
+                () => new NotSupportedException("This delivery registers no explicit inventory projection here."));
+        }
+
+        public NetworkConnectionId? Failing
+        {
+            get => failing;
+            init
+            {
+                failing = value;
+                if (value is { } connection)
+                    outbound.Fail(connection, _ => true, () => new IOException("send failed"));
+            }
+        }
+
         public Action<NetworkConnectionId>? AfterSend { get; init; }
-        public List<NetworkConnectionId> Sent { get; } = [];
-        public List<IGameNotiMessage> Notifications { get; } = [];
-        public ValueTask SendNotiAsync(NetworkConnectionId connectionId,
+        public List<NetworkConnectionId> Sent =>
+            [.. outbound.Entries.Where(entry => !entry.IsClose).SelectMany(entry => entry.Messages.Select(_ => entry.Connection.ConnectionId))];
+        public List<IGameNotiMessage> Notifications =>
+            [.. outbound.Entries.Where(entry => !entry.IsClose).SelectMany(entry => entry.Messages).OfType<IGameNotiMessage>()];
+        public async ValueTask SendNotiAsync(NetworkConnectionId connectionId,
             IGameNotiMessage message, CancellationToken cancellationToken)
         {
-            Sent.Add(connectionId);
-            Notifications.Add(message);
+            await outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
             AfterSend?.Invoke(connectionId);
-            return connectionId == Failing
-                ? ValueTask.FromException(new IOException("send failed"))
-                : ValueTask.CompletedTask;
         }
         public ValueTask SendCmdAsync(NetworkConnectionId connectionId,
-            IGameCmdMessage message, CancellationToken cancellationToken) => throw new NotSupportedException();
+            IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
         public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
-    private sealed class Closer : INetworkConnectionCloser
+    /// <summary>The closes the delivery registered, read from the outbox; the real closer registers them.</summary>
+    private sealed class Closer(RecordedOutbound outbound) : INetworkConnectionCloser
     {
-        public List<NetworkConnectionId> Closed { get; } = [];
-        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken ct) => RequestCloseAsync(expected.ConnectionId, ct);
-        public ValueTask RequestCloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken)
-        {
-            Closed.Add(connectionId);
-            return ValueTask.CompletedTask;
-        }
+        public List<NetworkConnectionId> Closed => [.. outbound.Closes];
+        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken ct) =>
+            outbound.Closer.RequestCloseExactAsync(expected, ct);
+        public ValueTask RequestCloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken) =>
+            outbound.Closer.RequestCloseAsync(connectionId, cancellationToken);
     }
 }

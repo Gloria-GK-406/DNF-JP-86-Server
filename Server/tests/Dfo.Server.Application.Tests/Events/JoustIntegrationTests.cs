@@ -1049,7 +1049,7 @@ public sealed class JoustIntegrationTests
         public IManagedEventDomainService Managed=>provider.GetServices<IManagedEventDomainService>().Single(e=>e.EventId==2365);
         public SelectedSessionIdentity Session {get;}
         public NetworkConnectionContext Connection {get;}
-        public ShopSender Sender {get;}=new();
+        public ShopSender Sender {get;}
         public List<JoustLifecycleNotification> Notifications {get;}=[];
         public Fixture(INotificationBus? notifications=null,bool useArchive=false):this(System.IO.Path.Combine(System.IO.Path.GetTempPath(),"dfo-joust-"+Guid.NewGuid().ToString("N")),new Clock(),true,useArchive,notifications)
         {Sql("INSERT INTO accounts(account_id,m_id) VALUES(1,'joust'); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(1,1,'joust',0,1,0); INSERT INTO character_stats(character_id,carried_gold) VALUES(1,0);");}
@@ -1059,7 +1059,7 @@ public sealed class JoustIntegrationTests
             var config=new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>
             { ["Database:Path"]=Path,["Pvf:ArchivePath"]=new PvfContentOptions().ResolveArchivePath() }).Build();
             var s=new ServiceCollection().AddLogging();new InfrastructureModule().ConfigureServices(s,config);new PersistenceModule().ConfigureServices(s,config);
-            new ApplicationModule().ConfigureServices(s,config);new ProtocolModule().ConfigureServices(s,config);s.AddSingleton<INetworkMessageSender>(Sender);s.AddSingleton<TimeProvider>(clock);
+            new ApplicationModule().ConfigureServices(s,config);new ProtocolModule().ConfigureServices(s,config);Sender=new ShopSender(s);s.AddSingleton<TimeProvider>(clock);
             if (!useArchive)
             {
                 var content = new DeclaredJoustContent();
@@ -1073,9 +1073,9 @@ public sealed class JoustIntegrationTests
             s.AddSingleton<INotificationBus>(services=>new NotificationProbe(
                 notifications ?? services.GetRequiredService<NotificationBus>(),
                 services.GetRequiredService<IDomainTransactionAccessor>(),Notifications));
-            provider=s.BuildServiceProvider();Sender.Services=provider;
+            provider=s.BuildServiceProvider();
             _=provider.GetRequiredService<SqliteDatabase>();
-            var connection=new NetworkConnectionContext(new("joust-test"),NetworkEndpointKind.Game,10011);Connection=connection;
+            var connection=new NetworkConnectionContext(new("joust-test"),NetworkEndpointKind.Game,10011);Connection=connection;Sender.Outbound.Connections.Add(connection);
             var registry=provider.GetRequiredService<OnlineStateRegistry>();var online=TestGameplay.Run(provider,()=>registry.RegisterConnection(connection));TestGameplay.Run(provider,()=>registry.Authenticate(online.OnlineUserId,new(1)));
             Session=TestGameplay.Run(provider,()=>SelectedSessionIdentity.Create(new(1),new(1),connection.ConnectionId,registry.GetRequiredUser(online.OnlineUserId).Generation,10011));
             TestGameplay.Run(provider,()=>

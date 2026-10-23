@@ -95,7 +95,8 @@ public sealed class EquippedUpgradeTicketTests
 
         await Send(shop, method, ticket, slot);
         Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
-        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(4, Assert.Single(shop.Sender.Batches, batch => batch.Messages.Any(message => message is ReinforceItemResponse)).Messages.Length);
         Assert.Equal(1, shop.Count(ticket));
         shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
         shop.Select(1);

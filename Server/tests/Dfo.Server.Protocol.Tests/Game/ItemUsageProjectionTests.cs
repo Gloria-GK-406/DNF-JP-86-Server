@@ -150,16 +150,28 @@ public sealed class ItemUsageProjectionTests
             return ValueTask.FromResult((T)(object)new ItemUsageSnapshotResult(Items ?? [new(2600026, Used, 1, null, null)], true) { At = At });
         }
     }
+    /// <summary>
+    /// The state messages a real registration adapter registered, read from its outbox; every call goes to the real
+    /// protocol sender over it (TASK-25). A CMD or an explicit delivery fails where it is registered, as the old double
+    /// refused one.
+    /// </summary>
     private sealed class Sender : IGameMessageSender
     {
-        public List<byte[]> Bodies = [];
-        public List<ushort> Types = [];
-        public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken token)
+        private readonly RecordedOutbound outbound = new();
+        public Sender()
         {
-            var state = Assert.IsAssignableFrom<GameStateSynchronizationMessage>(message);
-            Types.Add(state.Type); Bodies.Add(state.EncodeBody()); return ValueTask.CompletedTask;
+            outbound.RefuseExplicit();
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage, () => new NotSupportedException());
         }
-        public ValueTask SendCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken token) => throw new NotSupportedException();
-        public ValueTask SendExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken token) => throw new NotSupportedException();
+        public List<byte[]> Bodies => [.. States.Select(state => state.EncodeBody())];
+        public List<ushort> Types => [.. States.Select(state => state.Type)];
+        private IEnumerable<GameStateSynchronizationMessage> States =>
+            outbound.Messages.Select(message => Assert.IsAssignableFrom<GameStateSynchronizationMessage>(message));
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 }

@@ -32,7 +32,8 @@ public sealed class EquipmentOutworldHandlerTests
         Assert.Equal(1, first.MaterialRemaining);
         Assert.Equal((byte)1, first.AmplifyType);
         Assert.Single(shop.Sender.Messages.OfType<PurifyItemResponse>());
-        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(3, Assert.Single(shop.Sender.Batches, batch => batch.Messages.Any(message => message is PurifyItemResponse)).Messages.Length);
         Assert.Equal("InventoryDeltaMessage", shop.Sender.Messages[1].GetType().Name);
         Assert.Equal("InventoryDeltaMessage", shop.Sender.Messages[2].GetType().Name);
     }

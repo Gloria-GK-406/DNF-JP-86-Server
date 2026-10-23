@@ -19,6 +19,9 @@ namespace Dfo.Server.Application.Tests.Game;
 
 public sealed class GameLoginTests
 {
+    /// <summary>The real registration under the handler; what it registered is read back through the old doubles' members.</summary>
+    private readonly RecordedOutbound outbound = new();
+
     [Fact]
     public async Task CommandHandler_DelegatesTicketRedemptionToAuthenticationDomainService()
     {
@@ -61,10 +64,10 @@ public sealed class GameLoginTests
                 NetworkEndpointKind.Game,
                 10011);
             var anonymous = onlineUsers.RegisterConnection(connection);
-            var sender = new RecordingSender();
+            var sender = new RecordingSender(outbound);
             var bus = new PublishingRecordingCommandBus(onlineUsers, new AccountId(7));
             var accountEntryState = new StubAccountEntryStateDomainService();
-            var closer = new RecordingCloser();
+            var closer = new RecordingCloser(outbound);
             var handler = new GameLoginHandler(
                 onlineUsers,
                 sender,
@@ -128,8 +131,8 @@ public sealed class GameLoginTests
                 NetworkEndpointKind.Game,
                 10011);
             _ = onlineUsers.RegisterConnection(connection);
-            var sender = new RecordingSender();
-            var closer = new RecordingCloser();
+            var sender = new RecordingSender(outbound);
+            var closer = new RecordingCloser(outbound);
             var handler = new GameLoginHandler(
                 onlineUsers,
                 sender,
@@ -161,8 +164,8 @@ public sealed class GameLoginTests
                 NetworkEndpointKind.Game,
                 10011);
             _ = onlineUsers.RegisterConnection(connection);
-            var sender = new RecordingSender();
-            var closer = new RecordingCloser();
+            var sender = new RecordingSender(outbound);
+            var closer = new RecordingCloser(outbound);
             var logger = new RecordingLogger();
             var handler = new GameLoginHandler(
                 onlineUsers,
@@ -200,8 +203,8 @@ public sealed class GameLoginTests
                 NetworkEndpointKind.Game,
                 10011);
             _ = onlineUsers.RegisterConnection(connection);
-            var sender = new RecordingSender(failAtAttempt: 2);
-            var closer = new RecordingCloser();
+            var sender = new RecordingSender(outbound, failAtAttempt: 2);
+            var closer = new RecordingCloser(outbound);
             var handler = new GameLoginHandler(
                 onlineUsers,
                 sender,
@@ -234,8 +237,8 @@ public sealed class GameLoginTests
                 NetworkEndpointKind.Game,
                 10011);
             _ = onlineUsers.RegisterConnection(connection);
-            var sender = new RecordingSender();
-            var closer = new RecordingCloser();
+            var sender = new RecordingSender(outbound);
+            var closer = new RecordingCloser(outbound);
             var handler = new GameLoginHandler(
                 onlineUsers,
                 sender,
@@ -314,18 +317,16 @@ public sealed class GameLoginTests
             ValueTask.FromResult((TResult)(object)result);
     }
 
-    private sealed class RecordingCloser : INetworkConnectionCloser
+    /// <summary>The closes the handler registered, read from the outbox (TASK-25: no longer a recording double).</summary>
+    private sealed class RecordingCloser(RecordedOutbound outbound) : INetworkConnectionCloser
     {
-        public List<NetworkConnectionId> Closed { get; } = [];
+        public List<NetworkConnectionId> Closed => [.. outbound.Closes];
 
-        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken ct) => RequestCloseAsync(expected.ConnectionId, ct);
-        public ValueTask RequestCloseAsync(
-            NetworkConnectionId connectionId,
-            CancellationToken cancellationToken)
-        {
-            Closed.Add(connectionId);
-            return ValueTask.CompletedTask;
-        }
+        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken ct) =>
+            outbound.Closer.RequestCloseExactAsync(expected, ct);
+
+        public ValueTask RequestCloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken) =>
+            outbound.Closer.RequestCloseAsync(connectionId, cancellationToken);
     }
 
     private sealed record RecordedSend(
@@ -334,51 +335,56 @@ public sealed class GameLoginTests
         bool IsCmd);
 
     /// <summary>
-    /// Records the whole ordered sequence, not just the last message.
+    /// The whole ordered sequence the handler registered, read from the outbox; every call goes to the real protocol
+    /// sender over the registration adapter.
     /// </summary>
     /// <remarks>
-    /// It used to keep only the most recent send and throw from <c>SendNotiAsync</c> on the grounds
-    /// that "login sends a CMD response". Login now sends a CMD response followed by two NOTIs, and
-    /// their order is the point, so the sequence has to be observable.
+    /// <paramref name="failAtAttempt"/> makes that send's message fail to encode where it is registered (TASK-25 §6.1),
+    /// with the exception the old double threw; an explicit delivery fails there too, as the old double refused one.
     /// </remarks>
-    private sealed class RecordingSender(int? failAtAttempt = null) : IGameMessageSender
+    private sealed class RecordingSender : IGameMessageSender
     {
+        private readonly RecordedOutbound outbound;
+        private readonly int? failAtAttempt;
         private int attempts;
+        private bool failing;
 
-        public List<RecordedSend> Sends { get; } = [];
-
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId,
-            IGameCmdMessage message,
-            CancellationToken cancellationToken)
+        public RecordingSender(RecordedOutbound outbound, int? failAtAttempt = null)
         {
-            this.ThrowIfConfigured();
-            Sends.Add(new RecordedSend(connectionId, message, IsCmd: true));
-            return ValueTask.CompletedTask;
+            this.outbound = outbound;
+            this.failAtAttempt = failAtAttempt;
+            outbound.FailAny(_ => failing, () => new IOException("send failed"));
+            outbound.RefuseExplicit(() => new InvalidOperationException("This handler does not use explicit-recipient delivery."));
         }
+
+        public List<RecordedSend> Sends =>
+        [
+            .. outbound.Entries.Where(entry => !entry.IsClose).SelectMany(entry => entry.Messages.Select(message =>
+                new RecordedSend(entry.Connection.ConnectionId, (IGameServerMessage)message, message is IGameCmdMessage))),
+        ];
+
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            AttemptAsync(() => outbound.Game.SendCmdAsync(connectionId, message, cancellationToken));
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("This handler does not use explicit-recipient delivery.");
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
 
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId,
-            IGameNotiMessage message,
-            CancellationToken cancellationToken)
-        {
-            this.ThrowIfConfigured();
-            Sends.Add(new RecordedSend(connectionId, message, IsCmd: false));
-            return ValueTask.CompletedTask;
-        }
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            AttemptAsync(() => outbound.Game.SendNotiAsync(connectionId, message, cancellationToken));
 
-        private void ThrowIfConfigured()
+        private async ValueTask AttemptAsync(Func<ValueTask> send)
         {
-            this.attempts++;
-            if (this.attempts == failAtAttempt)
+            failing = ++attempts == failAtAttempt;
+            try
             {
-                throw new IOException("send failed");
+                await send();
+            }
+            finally
+            {
+                failing = false;
             }
         }
     }

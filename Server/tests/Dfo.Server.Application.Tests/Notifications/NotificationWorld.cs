@@ -215,6 +215,13 @@ internal sealed class WorldDelivery : IOutboundSender, IOutboundDeliveryObserver
 internal sealed class WorldConnections : INetworkConnectionContexts
 {
     private readonly Dictionary<NetworkConnectionId, NetworkConnectionContext> contexts = [];
+    private readonly List<NetworkConnectionId> lookups = [];
+
+    /// <summary>Every connection asked about, in order.</summary>
+    public IReadOnlyList<NetworkConnectionId> Lookups
+    {
+        get { lock (contexts) return [.. lookups]; }
+    }
 
     public NetworkConnectionContext Add(NetworkConnectionId connectionId, int listenerPort)
     {
@@ -225,7 +232,11 @@ internal sealed class WorldConnections : INetworkConnectionContexts
 
     public bool TryGet(NetworkConnectionId connectionId, out NetworkConnectionContext? connection)
     {
-        lock (contexts) return contexts.TryGetValue(connectionId, out connection);
+        lock (contexts)
+        {
+            lookups.Add(connectionId);
+            return contexts.TryGetValue(connectionId, out connection);
+        }
     }
 }
 
@@ -321,6 +332,9 @@ internal sealed class NotificationWorld
     public RecordingLoggerProvider Log { get; } = new();
 
     public WorldDelivery Sender { get; } = new();
+
+    /// <summary>The connection table the registration side asks.</summary>
+    public WorldConnections Connections => connections;
 
     public AwkwardSessions Sessions { get; }
 

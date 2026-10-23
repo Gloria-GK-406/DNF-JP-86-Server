@@ -796,31 +796,42 @@ public sealed class TownProjectionHandlerTests
             ValueTask.FromResult(areaId != 0);
     }
 
-    private sealed class RecordingSender(List<string>? order = null) : IGameMessageSender
+    /// <summary>
+    /// What a real registration adapter registered, read from its outbox (an explicit delivery with its direct messages
+    /// only, as before); every call goes to the real protocol sender over it, and an explicit delivery notes its place
+    /// in <c>order</c> at its registration point (TASK-25). A CMD fails there, with the exception the old double threw.
+    /// </summary>
+    private sealed class RecordingSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+        private readonly List<string>? order;
+
+        public RecordingSender(List<string>? order = null)
+        {
+            this.order = order;
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage,
+                () => new InvalidOperationException("Neither command answers on the CMD side."));
+        }
+
+        public List<IGameServerMessage> Sent => [.. outbound.CallMessages.Cast<IGameServerMessage>()];
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId, IGameCmdMessage message,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("Neither command answers on the CMD side.");
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId, IGameNotiMessage message,
-            CancellationToken cancellationToken)
-        {
-            this.Sent.Add(message);
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
 
-        public ValueTask SendExplicitAsync(
+        public async ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
             CancellationToken cancellationToken)
         {
-            this.Sent.AddRange(delivery.RequiredDirectMessages);
+            await outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
             order?.Add("town-direct");
-            return ValueTask.CompletedTask;
         }
     }
 

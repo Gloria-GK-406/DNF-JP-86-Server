@@ -779,26 +779,27 @@ await TestGameplay.RunAsync(async () =>
         }
     }
 
+    /// <summary>
+    /// What was registered for each connection, read from the outbox of a real registration adapter; every call goes
+    /// to the real protocol sender over it (TASK-25). <see cref="Seen"/> notes each message at its registration point,
+    /// in the job that registers it.
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        private readonly object gate = new();
-        private readonly Dictionary<NetworkConnectionId, List<IGameServerMessage>> sent = [];
+        private readonly RecordedOutbound outbound = new();
 
         public System.Collections.Concurrent.ConcurrentQueue<(IGameServerMessage Message, bool OnExecutor, GameplayCallChain? Chain)> Seen { get; } = new();
 
-        public IReadOnlyList<IGameServerMessage> For(NetworkConnectionId connectionId)
-        {
-            lock (this.gate)
-                return this.sent.TryGetValue(connectionId, out var frames) ? [.. frames] : [];
-        }
+        public IReadOnlyList<IGameServerMessage> For(NetworkConnectionId connectionId) =>
+            [.. this.outbound.MessagesFor(connectionId).Cast<IGameServerMessage>()];
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId,
             IGameCmdMessage message,
             CancellationToken cancellationToken)
         {
-            this.Add(connectionId, [message]);
-            return ValueTask.CompletedTask;
+            this.Note([message]);
+            return this.outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
         }
 
         public ValueTask SendNotiAsync(
@@ -806,8 +807,8 @@ await TestGameplay.RunAsync(async () =>
             IGameNotiMessage message,
             CancellationToken cancellationToken)
         {
-            this.Add(connectionId, [message]);
-            return ValueTask.CompletedTask;
+            this.Note([message]);
+            return this.outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
         }
 
         public ValueTask SendExplicitAsync(
@@ -815,24 +816,16 @@ await TestGameplay.RunAsync(async () =>
             GameExplicitMessageDelivery delivery,
             CancellationToken cancellationToken)
         {
-            this.Add(requiredDirectConnectionId, delivery.RequiredDirectMessages);
+            this.Note(delivery.RequiredDirectMessages);
             foreach (var target in delivery.BestEffortTargets)
-                this.Add(target.ConnectionId, target.OrderedMessages);
-            return ValueTask.CompletedTask;
+                this.Note(target.OrderedMessages);
+            return this.outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
         }
 
-        private void Add(
-            NetworkConnectionId connectionId,
-            IReadOnlyList<IGameServerMessage> frames)
+        private void Note(IReadOnlyList<IGameServerMessage> frames)
         {
             foreach (var frame in frames)
                 this.Seen.Enqueue((frame, GameplayJob.IsOnExecutor, GameplayJob.Current));
-            lock (this.gate)
-            {
-                if (!this.sent.TryGetValue(connectionId, out var received))
-                    this.sent[connectionId] = received = [];
-                received.AddRange(frames);
-            }
         }
     }
 }

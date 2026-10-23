@@ -1012,38 +1012,51 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         public bool ClearExact(SelectedSessionIdentity session) => false;
     }
 
-    private sealed class Sender(Func<NetworkConnectionId, Exception?>? failure = null)
-        : IGameMessageSender
+    /// <summary>
+    /// What the delivery registered, rebuilt as delivery plans from the outbox of a real registration adapter; every
+    /// call goes to the real protocol sender over it (TASK-25). <c>failure</c> makes the direct messages for that
+    /// connection fail to encode where they are registered; <see cref="Attempts"/> lists the direct recipients of the
+    /// calls that reached the registration point. A CMD or NOTI fails there as the old double refused one.
+    /// </summary>
+    private sealed class Sender : IGameMessageSender
     {
-        public List<(NetworkConnectionId Connection, GameExplicitMessageDelivery Delivery)> Deliveries { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+
+        public Sender(Func<NetworkConnectionId, Exception?>? failure = null)
+        {
+            outbound.Encoder.Fail((connection, message) => outbound.IsDirect(message) ? failure?.Invoke(connection.ConnectionId) : null);
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameServerMessage,
+                () => new NotSupportedException());
+        }
+
+        public RecordedView<(NetworkConnectionId Connection, GameExplicitMessageDelivery Delivery)> Deliveries => new(outbound, () => outbound.GameCallDeliveries);
         public List<NetworkConnectionId> Attempts { get; } = [];
-        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken)
+        {
+            Attempts.Add(connectionId);
+            return outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        }
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
         public ValueTask SendExplicitAsync(NetworkConnectionId connectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken)
         {
             Attempts.Add(connectionId);
-            if (failure?.Invoke(connectionId) is { } error)
-                return ValueTask.FromException(error);
-            Deliveries.Add((connectionId, delivery));
-            return ValueTask.CompletedTask;
+            return outbound.Game.SendExplicitAsync(connectionId, delivery, cancellationToken);
         }
     }
 
+    /// <summary>The closes a real closer registered, read from its outbox (TASK-25).</summary>
     private sealed class Closer : INetworkConnectionCloser
     {
-        public List<NetworkConnectionId> Closed { get; } = [];
+        private readonly RecordedOutbound outbound = new();
 
-        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken cancellationToken)
-        {
-            Closed.Add(expected.ConnectionId);
-            return ValueTask.CompletedTask;
-        }
+        public List<NetworkConnectionId> Closed => [.. outbound.Closes];
 
-        public ValueTask RequestCloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken)
-        {
-            Closed.Add(connectionId);
-            return ValueTask.CompletedTask;
-        }
+        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken cancellationToken) =>
+            outbound.Closer.RequestCloseExactAsync(expected, cancellationToken);
+
+        public ValueTask RequestCloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken) =>
+            outbound.Closer.RequestCloseAsync(connectionId, cancellationToken);
     }
 
     private sealed class NoopNotifications : Dfo.Server.Testing.ProjectionEventService

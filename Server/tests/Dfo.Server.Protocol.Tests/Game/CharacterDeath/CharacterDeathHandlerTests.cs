@@ -144,13 +144,22 @@ public sealed class CharacterDeathHandlerTests
                 runs.TryMarkParticipantDead(death.CharacterId, death.RunId, death.RoomVersion)));
         }
     }
+    /// <summary>
+    /// The explicit deliveries a real registration adapter registered, read from its outbox; every call goes to the
+    /// real protocol sender over it, and the direct recipient is checked at the registration point (TASK-25). A CMD or
+    /// NOTI outside an explicit delivery fails there as the old double refused one.
+    /// </summary>
     private sealed class Sender : IGameMessageSender
     {
-        public List<GameExplicitMessageDelivery> Deliveries { get; } = [];
-        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) => throw new NotSupportedException();
+        private readonly RecordedOutbound outbound = new();
+        public Sender() => outbound.RefuseOutsideExplicit();
+        public List<GameExplicitMessageDelivery> Deliveries => [.. outbound.GameExplicits];
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
         public ValueTask SendExplicitAsync(NetworkConnectionId connectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken)
-        { Assert.Equal(Current.ConnectionId, connectionId); Deliveries.Add(delivery); return ValueTask.CompletedTask; }
+        { Assert.Equal(Current.ConnectionId, connectionId); return outbound.Game.SendExplicitAsync(connectionId, delivery, cancellationToken); }
     }
     private sealed class Runs(DungeonRunState initial) : IDungeonRunDomainService
     {

@@ -235,9 +235,10 @@ public sealed class NpcShopPurchaseTests
     {
         using var shop = new ShopFixture();
         await shop.Seed(121, 1000, 100, 3);
-        shop.Sender.BeforeSend = () => throw new IOException("closed socket");
+        shop.Sender.FailSends(() => new IOException("closed socket"));
         await shop.Buy(2000, 1);
         Assert.Equal(1, shop.Sender.Attempts);
+        Assert.Empty(shop.Sender.Messages);
         Assert.Equal(99, shop.Count(1000));
         Assert.Equal(1, shop.Count(2000));
     }
@@ -337,7 +338,7 @@ internal sealed class ShopFixture : IDisposable
     private SelectedSessionIdentity session = null!;
     private string ConnectionString => new SqliteConnectionStringBuilder { DataSource = Path.Combine(directory, "shop.db") }.ToString();
     public NpcShopTestContent Content { get; } = new();
-    public ShopSender Sender { get; } = new();
+    public ShopSender Sender { get; }
     public AdvanceableTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 9, 8, 12, 0, 0, TimeSpan.Zero));
     public SelectedSessionIdentity Session => session;
     public IServiceProvider Services => provider;
@@ -375,14 +376,14 @@ internal sealed class ShopFixture : IDisposable
         services.AddSingleton<INpcShopDefinitionSource>(Content);
         services.AddSingleton<IItemPlacementDefinitionSource>(Content);
         services.AddSingleton<ICharacterSkillPointDomainService>(new SkillPoints());
-        services.AddSingleton<INetworkMessageSender>(Sender);
+        Sender = new ShopSender(services);
         services.AddSingleton<TimeProvider>(Clock);
         services.AddSingleton<Dfo.Server.Abstractions.Achievements.IAchievementDefinitionSource>(new Dfo.Server.Application.Tests.Support.TestAchievementDefinitions());
         services.AddSingleton<Dfo.Server.Abstractions.Achievements.ITitleBookDefinitionSource>(new Dfo.Server.Application.Tests.Support.TestAchievementDefinitions());
         services.AddSingleton<Dfo.Server.Abstractions.Content.IDungeonExperienceProgressionPolicySource>(new Dfo.Server.Application.Tests.Support.TestProgressionSource());
         configure?.Invoke(services);
         provider = services.BuildServiceProvider();
-        Sender.Services = provider;
+        Sender.Outbound.Connections.Add(connection);
         _ = provider.GetRequiredService<SqliteDatabase>();
         Sql("INSERT INTO accounts(account_id,m_id,cera) VALUES(1,'shop',77); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(1,1,'shop1',12,1,0),(2,1,'shop2',12,1,1); INSERT INTO character_stats(character_id,carried_gold) VALUES(1,100000),(2,100000);");
         var registry = provider.GetRequiredService<OnlineStateRegistry>();
@@ -558,46 +559,41 @@ internal sealed class ShopFixture : IDisposable
     }
 }
 
-internal sealed class ShopSender : INetworkMessageSender
+/// <summary>
+/// The shop fixture's view of its sends (TASK-25 §3): the container's real registration adapter registers them in
+/// each job's outbox and the outbox hands them over at the end of the job; this reads what was registered, with the
+/// members the "recorded as sent" double had. The fault switches inject at the registration point's encoder.
+/// </summary>
+internal sealed class ShopSender
 {
-    public IServiceProvider Services { get; set; } = null!;
-    public List<IServerNetworkMessage> Messages { get; } = [];
-    public List<(NetworkConnectionContext Connection, IServerNetworkMessage[] Messages, byte[][] Frames)> Batches { get; } = [];
-    public Action? BeforeExplicit { get; set; }
+    public ShopSender(IServiceCollection services)
+    {
+        Outbound = RecordedOutbound.AddTo(services);
+        Outbound.FailAny(message => FailExplicit && Outbound.ExplicitInFlight is { } delivery
+                && delivery.RequiredDirectMessages.Any(direct => ReferenceEquals(direct, message)),
+            () => new IOException("Fixture Explicit publication failed after settlement."));
+        Outbound.FailAny(_ => FailBatch && Outbound.BatchInFlight,
+            () => new IOException("Fixture batch transport failed after preencoding."));
+        Outbound.FailAny(_ => FailingSends is not null && Outbound.ExplicitInFlight is null, () => FailingSends!());
+    }
+
+    public RecordedOutbound Outbound { get; }
+    public RecordedMessages<IServerNetworkMessage> Messages => Outbound.Messages;
+    public RecordedBatches Batches => Outbound.Batches;
+    public Action? BeforeExplicit { get => Outbound.BeforeExplicit; set => Outbound.BeforeExplicit = value; }
+    /// <summary>While set, the direct messages of every explicit delivery fail to encode where they are registered.</summary>
     public bool FailExplicit { get; set; }
+    /// <summary>While set, every prepared batch fails to encode where it is registered.</summary>
     public bool FailBatch { get; set; }
-    public Action? BeforeSend { get; set; }
-    public int Attempts { get; private set; }
-    public ValueTask SendAsync(NetworkConnectionId id, IServerNetworkMessage message, CancellationToken ct)
-    {
-        Attempts++;
-        BeforeSend?.Invoke();
-        Messages.Add(message);
-        return ValueTask.CompletedTask;
-    }
-    public ValueTask SendExplicitAsync(NetworkConnectionId id, ExplicitMessageDelivery delivery, CancellationToken ct)
-    {
-        BeforeExplicit?.Invoke();
-        if (FailExplicit) throw new IOException("Fixture Explicit publication failed after settlement.");
-        foreach (var message in delivery.RequiredDirectMessages) Messages.Add(message);
-        foreach (var target in delivery.BestEffortTargets) Messages.AddRange(target.OrderedMessages);
-        return ValueTask.CompletedTask;
-    }
-    public ValueTask SendBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages, CancellationToken ct)
-    {
-        var registrations = Services.GetServices<ServerMessageEncoderRegistration>().ToDictionary(x => x.MessageType);
-        var ownedMessages = messages.ToArray();
-        var frames = ownedMessages.SelectMany(message =>
-        {
-            var registration = registrations[message.GetType()];
-            Assert.Equal(connection.EndpointKind, registration.Endpoint);
-            return ((IServerMessageEncoder)Services.GetRequiredService(registration.EncoderType)).Encode(message);
-        }).Select(frame => frame.ToArray()).ToArray();
-        Assert.All(frames, frame => Assert.InRange(frame.Length, 15, 1_048_576));
-        BeforeSend?.Invoke();
-        Batches.Add((connection, ownedMessages, frames));
-        if (FailBatch) throw new IOException("Fixture batch transport failed after preencoding.");
-        Messages.AddRange(ownedMessages);
-        return ValueTask.CompletedTask;
-    }
+    public Action? BeforeSend { get => Outbound.BeforeSend; set => Outbound.BeforeSend = value; }
+    public int Attempts => Outbound.Attempts;
+
+    /// <summary>
+    /// While set, every single send and prepared batch (a notification projection included) fails to encode where it
+    /// is registered, with this exception.
+    /// </summary>
+    public Func<Exception>? FailingSends { get; set; }
+
+    /// <summary>From now on every single send and prepared batch fails to encode where it is registered.</summary>
+    public void FailSends(Func<Exception> error) => FailingSends = error;
 }

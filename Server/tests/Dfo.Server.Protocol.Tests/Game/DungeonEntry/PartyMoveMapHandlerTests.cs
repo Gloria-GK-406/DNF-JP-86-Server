@@ -427,30 +427,32 @@ public sealed class PartyMoveMapHandlerTests
         public bool ReleaseExact(SelectedSessionIdentity session) => throw new NotSupportedException();
     }
 
+    /// <summary>
+    /// What was registered for each connection, read from the outbox of a real registration adapter; every call goes
+    /// to the real protocol sender over it (TASK-25). <see cref="Failure"/> makes the direct messages of an explicit
+    /// delivery fail to encode where they are registered, with that very exception; a CMD or NOTI outside an explicit
+    /// delivery fails there as the old double refused one.
+    /// </summary>
     private sealed class Sender : IGameMessageSender
     {
+        private readonly RecordedOutbound outbound = new();
+
+        public Sender()
+        {
+            outbound.RefuseOutsideExplicit();
+            outbound.FailAny(message => Failure is not null && outbound.ExplicitInFlight is not null && outbound.IsDirect(message),
+                () => Failure!);
+        }
+
         public Exception? Failure { get; init; }
-        private readonly Dictionary<NetworkConnectionId, List<IGameServerMessage>> sent = [];
-        public IReadOnlyList<IGameServerMessage> Messages(NetworkConnectionId connectionId) => sent.TryGetValue(connectionId, out var messages) ? messages : [];
-        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken)
-        {
-            if (Failure is { } failure) throw failure;
-            Add(requiredDirectConnectionId, delivery.RequiredDirectMessages);
-            foreach (var target in delivery.BestEffortTargets)
-                Add(target.ConnectionId, target.OrderedMessages);
-            return ValueTask.CompletedTask;
-        }
-        private void Add(NetworkConnectionId connectionId, IReadOnlyList<IGameServerMessage> messages)
-        {
-            if (!sent.TryGetValue(connectionId, out var destination))
-            {
-                destination = [];
-                sent.Add(connectionId, destination);
-            }
-            destination.AddRange(messages);
-        }
+        public IReadOnlyList<IGameServerMessage> Messages(NetworkConnectionId connectionId) =>
+            [.. outbound.MessagesFor(connectionId).Cast<IGameServerMessage>()];
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
     private sealed class RecordingLogger(LogLevel minimum) : ILogger<MoveMapHandler>

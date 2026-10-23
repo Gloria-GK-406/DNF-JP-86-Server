@@ -5,6 +5,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Channel.Info;
 using Dfo.Server.Protocol.Channel.Script;
 using Dfo.Server.Protocol.Channel.ScriptVersion;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Channel;
 
@@ -21,10 +22,10 @@ public sealed class ChannelControlMessageHandlerTests
         });
         var handler = new ChannelScriptVersionHandler(sender, bus);
 
-        await handler.HandleAsync(
+        await TestGameplay.RunAsync(async () => await handler.HandleAsync(
             CreateContext(),
             new ChannelScriptVersionRequest(ChannelMessageMetadata.Empty),
-            CancellationToken.None);
+            CancellationToken.None));
 
         Assert.Equal(new NetworkConnectionId("channel-42"), sender.ConnectionId);
         Assert.Equal(new ChannelScriptVersionResponse("66"), sender.Message);
@@ -41,10 +42,10 @@ public sealed class ChannelControlMessageHandlerTests
         });
         var handler = new ChannelScriptHandler(sender, bus);
 
-        await handler.HandleAsync(
+        await TestGameplay.RunAsync(async () => await handler.HandleAsync(
             CreateContext(),
             new ChannelScriptRequest(ChannelMessageMetadata.Empty),
-            CancellationToken.None);
+            CancellationToken.None));
 
         var response = Assert.IsType<ChannelScriptResponse>(sender.Message);
         Assert.Equal(new byte[] { 0x10, 0x20 }, response.Content);
@@ -65,10 +66,10 @@ public sealed class ChannelControlMessageHandlerTests
         });
         var handler = new ChannelInfoHandler(sender, bus);
 
-        await handler.HandleAsync(
+        await TestGameplay.RunAsync(async () => await handler.HandleAsync(
             CreateContext(),
             new ChannelInfoRequest(ChannelMessageMetadata.Empty),
-            CancellationToken.None);
+            CancellationToken.None));
 
         var response = Assert.IsType<ChannelInfoResponse>(sender.Message);
         Assert.Equal(channels, response.Channels);
@@ -89,26 +90,31 @@ public sealed class ChannelControlMessageHandlerTests
             ValueTask.FromResult((TResult)execute(command));
     }
 
+    /// <summary>
+    /// The last message a real registration adapter registered, read from its outbox; every call goes to it (TASK-25).
+    /// An explicit delivery fails where it is registered, with the exception the old double threw.
+    /// </summary>
     private sealed class RecordingSender : INetworkMessageSender
     {
-        public NetworkConnectionId ConnectionId { get; private set; }
+        private readonly RecordedOutbound outbound = new();
 
-        public IServerNetworkMessage? Message { get; private set; }
+        public RecordingSender() => outbound.RefuseExplicit(
+            () => new InvalidOperationException("This handler does not use explicit-recipient delivery."));
+
+        public NetworkConnectionId ConnectionId => outbound.Entries.LastOrDefault(entry => !entry.IsClose)?.Connection.ConnectionId ?? default;
+
+        public IServerNetworkMessage? Message => outbound.Messages.LastOrDefault();
 
         public ValueTask SendAsync(
             NetworkConnectionId connectionId,
             IServerNetworkMessage message,
-            CancellationToken cancellationToken)
-        {
-            ConnectionId = connectionId;
-            Message = message;
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            outbound.Network.SendAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             ExplicitMessageDelivery delivery,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("This handler does not use explicit-recipient delivery.");
+            outbound.Network.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 }

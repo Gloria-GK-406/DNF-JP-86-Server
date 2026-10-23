@@ -1330,54 +1330,85 @@ public sealed partial class SelectCharacterLifecycleTests
         }
     }
 
-    private sealed class RecordingSender(
-        List<string> ledger, bool failTrailingLocks, bool failPvp,
-        bool failPvpTarget, bool failStatic, bool blockStatic)
-        : IGameMessageSender
+    /// <summary>
+    /// A real registration adapter under the workflow (TASK-25): every call goes to the real protocol sender over it,
+    /// and the ledger word for a send is written at its registration point, before it is encoded, as the old double
+    /// wrote it at the call. The failure switches make the chosen direct messages fail to encode where they are
+    /// registered, with the exceptions the old double threw; <c>blockStatic</c> holds the first static message at its
+    /// registration point until released.
+    /// </summary>
+    private sealed class RecordingSender : IGameMessageSender
     {
-        public bool FailStatic { get; set; } = failStatic;
+        private readonly RecordedOutbound outbound = new();
+        private readonly List<string> ledger;
+        private readonly bool blockStatic;
+        private bool failingStatic;
+
+        public RecordingSender(
+            List<string> ledger, bool failTrailingLocks, bool failPvp,
+            bool failPvpTarget, bool failStatic, bool blockStatic)
+        {
+            this.ledger = ledger;
+            this.blockStatic = blockStatic;
+            FailStatic = failStatic;
+            outbound.FailAny(_ => failingStatic, () => new IOException("static delivery failed"));
+            if (failPvp)
+                outbound.FailAny(message => FirstDirect(message) == "PvpLobbySnapshotMessage",
+                    () => new IOException("PvP direct delivery failed"));
+            if (failTrailingLocks)
+                outbound.FailAny(message => FirstDirect(message) == "TrailingEquipmentLockSnapshotMessage",
+                    () => new IOException("required delivery failed"));
+            // The Networking sender owns target isolation; a target transport failure is
+            // represented here by a completed best-effort batch.
+            _ = failPvpTarget;
+        }
+
+        public bool FailStatic { get; set; }
         private readonly TaskCompletionSource staticRelease = new(
             TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource StaticEntered { get; } = new(
             TaskCreationOptions.RunContinuationsAsynchronously);
         public void ReleaseStatic() => staticRelease.TrySetResult();
+
+        /// <summary>State messages that reached the registration point.</summary>
         public int StateMessageCount { get; private set; }
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId, IGameCmdMessage message,
             CancellationToken cancellationToken) =>
-            SendClassifiedAsync(message);
+            SendClassifiedAsync(message, () => outbound.Game.SendCmdAsync(connectionId, message, cancellationToken));
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId, IGameNotiMessage message,
             CancellationToken cancellationToken) =>
-            SendClassifiedAsync(message);
+            SendClassifiedAsync(message, () => outbound.Game.SendNotiAsync(connectionId, message, cancellationToken));
 
-        private ValueTask SendClassifiedAsync(IGameServerMessage message)
+        private async ValueTask SendClassifiedAsync(IGameServerMessage message, Func<ValueTask> register)
         {
+            var firstStatic = false;
             if (message.MessageType == ServerMessageType.GameStateSynchronization)
             {
                 StateMessageCount++;
                 if (StateMessageCount == 1)
                 {
+                    firstStatic = true;
                     ledger.Add("static");
                     if (blockStatic)
                     {
                         StaticEntered.TrySetResult();
-                        return AwaitStaticReleaseAsync();
+                        await staticRelease.Task;
                     }
-                    if (FailStatic)
-                        return ValueTask.FromException(new IOException("static delivery failed"));
                 }
             }
             else ledger.Add("message");
-            return ValueTask.CompletedTask;
-
-            async ValueTask AwaitStaticReleaseAsync()
+            failingStatic = firstStatic && FailStatic;
+            try
             {
-                await staticRelease.Task;
-                if (FailStatic)
-                    throw new IOException("static delivery failed");
+                await register();
+            }
+            finally
+            {
+                failingStatic = false;
             }
         }
 
@@ -1387,7 +1418,7 @@ public sealed partial class SelectCharacterLifecycleTests
         {
             if (delivery.RequiredDirectMessages.Count == 0
                 && delivery.BestEffortTargets.Count == 0)
-                return ValueTask.CompletedTask;
+                return outbound.Game.SendExplicitAsync(connectionId, delivery, cancellationToken);
             var messageName = delivery.RequiredDirectMessages.FirstOrDefault()?.GetType().Name;
             var premium = messageName == "PremiumServiceStateMessage";
             var trailing = messageName == "TrailingEquipmentLockSnapshotMessage";
@@ -1405,15 +1436,14 @@ public sealed partial class SelectCharacterLifecycleTests
                 : premium ? "premium"
                 : delta ? "delta"
                 : "pre");
-            if (pvp && failPvp)
-                return ValueTask.FromException(new IOException("PvP direct delivery failed"));
-            // The Networking sender owns target isolation; a target transport failure is
-            // represented here by a completed best-effort batch.
-            _ = failPvpTarget;
-            return trailing && failTrailingLocks
-                ? ValueTask.FromException(new IOException("required delivery failed"))
-                : ValueTask.CompletedTask;
+            return outbound.Game.SendExplicitAsync(connectionId, delivery, cancellationToken);
         }
+
+        /// <summary>The type name of the first direct message of the explicit delivery <paramref name="message"/> is a direct message of.</summary>
+        private string? FirstDirect(IServerNetworkMessage message) =>
+            outbound.ExplicitInFlight is { } delivery && delivery.RequiredDirectMessages.Any(direct => ReferenceEquals(direct, message))
+                ? delivery.RequiredDirectMessages[0].GetType().Name
+                : null;
     }
 
     /// <summary>Stands in for the notification service, and keeps the fan-out in the ledger.</summary>
@@ -1487,17 +1517,32 @@ public sealed partial class SelectCharacterLifecycleTests
         }
     }
 
+    /// <summary>
+    /// A real closer (TASK-25): the close is registered in the job's outbox and read back from it; the ledger word and
+    /// the callback come right after, at the registration point.
+    /// </summary>
     private sealed class RecordingCloser(List<string> ledger) : INetworkConnectionCloser
     {
-        public List<NetworkConnectionId> Closed { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+        public List<NetworkConnectionId> Closed => [.. outbound.Closes];
         public Func<ValueTask>? OnClose { get; set; }
 
-        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken ct) => RequestCloseAsync(expected.ConnectionId, ct);
-        public ValueTask RequestCloseAsync(
+        public async ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken ct)
+        {
+            await outbound.Closer.RequestCloseExactAsync(expected, ct);
+            await ClosedAsync();
+        }
+
+        public async ValueTask RequestCloseAsync(
             NetworkConnectionId connectionId, CancellationToken cancellationToken)
         {
+            await outbound.Closer.RequestCloseAsync(connectionId, cancellationToken);
+            await ClosedAsync();
+        }
+
+        private ValueTask ClosedAsync()
+        {
             ledger.Add("close");
-            Closed.Add(connectionId);
             return OnClose?.Invoke() ?? ValueTask.CompletedTask;
         }
     }

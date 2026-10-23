@@ -70,13 +70,25 @@ public sealed class DeleteItemCodecTests
         });
     }
 
+    /// <summary>
+    /// The CMDs a real registration adapter registered, read from its outbox; every call goes to the real protocol
+    /// sender over it (TASK-25). A NOTI or an explicit delivery fails where it is registered, as the old double refused one.
+    /// </summary>
     private sealed class CmdSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
-        public ValueTask SendCmdAsync(NetworkConnectionId connection, IGameCmdMessage message, CancellationToken ct)
-        { Sent.Add(message); return ValueTask.CompletedTask; }
-        public ValueTask SendNotiAsync(NetworkConnectionId connection, IGameNotiMessage message, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask SendExplicitAsync(NetworkConnectionId connection, GameExplicitMessageDelivery delivery, CancellationToken ct) => throw new NotSupportedException();
+        private readonly RecordedOutbound outbound = new();
+        public CmdSender()
+        {
+            outbound.RefuseExplicit();
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage, () => new NotSupportedException());
+        }
+        public List<IGameServerMessage> Sent => [.. outbound.MessagesAs<IGameServerMessage>()];
+        public ValueTask SendCmdAsync(NetworkConnectionId connection, IGameCmdMessage message, CancellationToken ct) =>
+            outbound.Game.SendCmdAsync(connection, message, ct);
+        public ValueTask SendNotiAsync(NetworkConnectionId connection, IGameNotiMessage message, CancellationToken ct) =>
+            outbound.Game.SendNotiAsync(connection, message, ct);
+        public ValueTask SendExplicitAsync(NetworkConnectionId connection, GameExplicitMessageDelivery delivery, CancellationToken ct) =>
+            outbound.Game.SendExplicitAsync(connection, delivery, ct);
     }
 
     private sealed class SlotProjection : IInventorySlotProjectionDomainService

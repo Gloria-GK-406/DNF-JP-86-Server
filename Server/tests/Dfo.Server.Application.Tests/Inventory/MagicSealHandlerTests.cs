@@ -114,7 +114,7 @@ public sealed class MagicSealHandlerTests
 
         Assert.Equal(99500, shop.Gold);
         Assert.Equal(8, shop.Sender.Messages.Count);
-        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Batches, EffectRequestTransport.IsStateReplay);
     }
 
     [Fact]

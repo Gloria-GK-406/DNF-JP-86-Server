@@ -129,8 +129,8 @@ public sealed class IllusionTowerRewardProjectionTests
             TowerRewardTestContent.Register(services, content);
             services.AddSingleton<IIllusionTowerRuleService>(new IllusionTowerDomainServiceTests.Rules
                 { FloorCount = floors, CardCount = 10, Probabilities = [350, 651, 0] });
-            services.AddSingleton<IGameMessageSender>(sender);
-            services.AddSingleton<INetworkConnectionCloser>(closer);
+            sender.Use(services);
+            closer.Use(services);
         });
         fixture.Sql($"UPDATE characters SET level=50,exp={fixture.ExperienceForLevel(50)};");
         return fixture;
@@ -170,41 +170,82 @@ public sealed class IllusionTowerRewardProjectionTests
         return replacement;
     }
 
+    /// <summary>
+    /// Every explicit delivery that reached the registration point, in order; each goes to the fixture's real protocol
+    /// sender over the real registration adapter (TASK-25). While <see cref="FailuresRemaining"/> lasts, the direct
+    /// messages of an attempt fail to encode where they are registered, with the exception the old double threw.
+    /// </summary>
     private sealed class FailingSender : IGameMessageSender
     {
+        private RecordedOutbound? outbound;
+        private bool failing;
+
         public int FailuresRemaining { get; set; }
         public Action? OnAttempt { get; set; }
         public List<GameExplicitMessageDelivery> Attempts { get; } = [];
+        private RecordedOutbound Outbound => outbound ?? throw new InvalidOperationException("The fixture has not been built.");
 
-        public ValueTask SendExplicitAsync(NetworkConnectionId connectionId,
+        public void Use(IServiceCollection services) =>
+            services.AddSingleton<IGameMessageSender>(provider =>
+            {
+                outbound = provider.GetRequiredService<RecordedOutbound>();
+                outbound.FailAny(_ => failing, () => new IOException("Injected committed-batch delivery failure."));
+                outbound.FailAny(_ => outbound.ExplicitInFlight is null, () => new NotSupportedException());
+                return this;
+            });
+
+        public async ValueTask SendExplicitAsync(NetworkConnectionId connectionId,
             GameExplicitMessageDelivery delivery, CancellationToken token)
         {
             Attempts.Add(delivery);
             OnAttempt?.Invoke();
-            if (FailuresRemaining-- > 0)
-                throw new IOException("Injected committed-batch delivery failure.");
-            return ValueTask.CompletedTask;
+            failing = FailuresRemaining-- > 0;
+            try
+            {
+                await Outbound.Game.SendExplicitAsync(connectionId, delivery, token);
+            }
+            finally
+            {
+                failing = false;
+            }
         }
 
         public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message,
-            CancellationToken token) => throw new NotSupportedException();
+            CancellationToken token) => Outbound.Game.SendCmdAsync(connectionId, message, token);
 
         public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message,
-            CancellationToken token) => throw new NotSupportedException();
+            CancellationToken token) => Outbound.Game.SendNotiAsync(connectionId, message, token);
     }
 
+    /// <summary>
+    /// The closes the fixture's real closer registered, read from the outbox; <see cref="OnClose"/> runs at the
+    /// registration point, right after the close is registered, as the old double ran it at the request.
+    /// </summary>
     private sealed class CleanupCloser : INetworkConnectionCloser
     {
-        public List<NetworkConnectionId> Closed { get; } = [];
+        private RecordedOutbound? outbound;
+
+        public List<NetworkConnectionId> Closed => [.. Outbound.Closes];
         public Func<NetworkConnectionId, ValueTask>? OnClose { get; set; }
+        private RecordedOutbound Outbound => outbound ?? throw new InvalidOperationException("The fixture has not been built.");
+
+        public void Use(IServiceCollection services) =>
+            services.AddSingleton<INetworkConnectionCloser>(provider =>
+            {
+                outbound = provider.GetRequiredService<RecordedOutbound>();
+                return this;
+            });
 
         public async ValueTask RequestCloseAsync(NetworkConnectionId connectionId, CancellationToken token)
         {
-            Closed.Add(connectionId);
+            await Outbound.Closer.RequestCloseAsync(connectionId, token);
             if (OnClose is not null) await OnClose(connectionId);
         }
 
-        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken token) =>
-            RequestCloseAsync(expected.ConnectionId, token);
+        public async ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken token)
+        {
+            await Outbound.Closer.RequestCloseExactAsync(expected, token);
+            if (OnClose is not null) await OnClose(expected.ConnectionId);
+        }
     }
 }

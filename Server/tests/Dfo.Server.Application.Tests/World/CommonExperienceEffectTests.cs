@@ -264,7 +264,7 @@ public sealed class CommonExperienceEffectTests
         var trace = new EffectTrace { Commit = _ => throw new IOException("durable publication") };
         using var shop = Shop(new Calculation(),trace,services =>
         {
-            services.AddSingleton<Dfo.Server.Abstractions.Networking.INetworkConnectionCloser>(closer);
+            closer.Use(services);
             services.AddSingleton<Microsoft.Extensions.Logging.ILogger<SelectedSessionSafety>>(new ThrowingLogger());
         });
         var error = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
@@ -280,17 +280,30 @@ public sealed class CommonExperienceEffectTests
         public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel level) => true;
         public void Log<TState>(Microsoft.Extensions.Logging.LogLevel level,Microsoft.Extensions.Logging.EventId id,TState state,Exception? error,Func<TState,Exception?,string> formatter) => throw new IOException("logger");
     }
+    /// <summary>
+    /// The fixture's real closer (TASK-25): an exact close is registered in the outbox, and the callback runs at that
+    /// registration point with the context the close was registered for. An ID-only close stays forbidden here.
+    /// </summary>
     private sealed class CallbackCloser : Dfo.Server.Abstractions.Networking.INetworkConnectionCloser
     {
+        private RecordedOutbound? outbound;
         public Dfo.Server.Data.Networking.NetworkConnectionContext? Expected;
         public TaskCompletionSource Callback { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private RecordedOutbound Outbound => outbound ?? throw new InvalidOperationException("The fixture has not been built.");
+        public void Use(IServiceCollection services) =>
+            services.AddSingleton<Dfo.Server.Abstractions.Networking.INetworkConnectionCloser>(provider =>
+            {
+                outbound = provider.GetRequiredService<RecordedOutbound>();
+                return this;
+            });
         public ValueTask RequestCloseAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,CancellationToken ct) => throw new InvalidOperationException("ID-only close is forbidden here.");
-        public ValueTask RequestCloseExactAsync(Dfo.Server.Data.Networking.NetworkConnectionContext expected,CancellationToken ct)
+        public async ValueTask RequestCloseExactAsync(Dfo.Server.Data.Networking.NetworkConnectionContext expected,CancellationToken ct)
         {
             // The close is only requested here; teardown is a later lifecycle CMD (see the test body).
-            Assert.Equal(CancellationToken.None,ct); Expected = expected;
+            Assert.Equal(CancellationToken.None,ct);
+            await Outbound.Closer.RequestCloseExactAsync(expected, ct);
+            Expected = Outbound.Entries.LastOrDefault(entry => entry.IsClose && entry.Connection.ConnectionId == expected.ConnectionId)?.Connection;
             Callback.TrySetResult();
-            return ValueTask.CompletedTask;
         }
     }
 

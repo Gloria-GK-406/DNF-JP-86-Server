@@ -1650,9 +1650,15 @@ public sealed class CardRewardTests
             throw new NotSupportedException("This fixture only answers.");
     }
 
+    /// <summary>
+    /// What was registered, read from the outbox of a real registration adapter; every call goes to the real protocol
+    /// sender over it (TASK-25).
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+
+        public List<IGameServerMessage> Sent => [.. this.Exchanges.SelectMany(exchange => exchange)];
 
         /// <summary>
         /// What went out together, one entry per call.
@@ -1660,39 +1666,29 @@ public sealed class CardRewardTests
         /// <remarks>
         /// Kept apart from <see cref="Sent"/> because "the answer and the bag change go out in the
         /// same exchange" is a claim about grouping, and a flat list of what was sent cannot tell
-        /// one exchange carrying two frames from two exchanges carrying one each.
+        /// one exchange carrying two frames from two exchanges carrying one each. One registered batch is one
+        /// exchange: a single send, or the direct messages of an explicit delivery.
         /// </remarks>
-        public List<IReadOnlyList<IGameServerMessage>> Exchanges { get; } = [];
+        public List<IReadOnlyList<IGameServerMessage>> Exchanges =>
+            [.. this.outbound.Calls.Select(entry => (IReadOnlyList<IGameServerMessage>)[.. entry.Messages.Cast<IGameServerMessage>()])];
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId,
             IGameCmdMessage message,
-            CancellationToken cancellationToken)
-        {
-            this.Sent.Add(message);
-            this.Exchanges.Add([message]);
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            this.outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId,
             IGameNotiMessage message,
-            CancellationToken cancellationToken)
-        {
-            this.Sent.Add(message);
-            this.Exchanges.Add([message]);
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            this.outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            this.Sent.AddRange(delivery.RequiredDirectMessages);
-            this.Exchanges.Add([.. delivery.RequiredDirectMessages]);
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            this.outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
     /// <summary>What the bag does with the piece it is offered.</summary>
