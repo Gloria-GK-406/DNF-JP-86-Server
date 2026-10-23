@@ -47,9 +47,8 @@ public sealed class ReturnToSelectionHandler(
         if (failure is not null)
         {
             // Closing invokes cleanup and runs after this request's own teardown attempt.
-            // Never claim success after a save, teardown or partial-delivery failure.
-            try { await closer.RequestCloseExactAsync(context.Connection, CancellationToken.None).ConfigureAwait(false); }
-            catch { /* Preserve the original failure. */ }
+            // Never claim success after a save or teardown failure, or a reply that could not be registered.
+            await closer.RequestCloseExactAsync(context.Connection, CancellationToken.None).ConfigureAwait(false);
             failure.Throw();
         }
     }

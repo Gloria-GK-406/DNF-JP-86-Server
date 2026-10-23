@@ -10,7 +10,6 @@ public sealed class HostOutputViolationTests
 {
     [Theory]
     [InlineData("      Dfo.Server.Abstractions.Execution.GameplayOffExecutorException: Writing PartyService.LeaveParty must happen inside a gameplay job.", "GameplayOffExecutorException")]
-    [InlineData("Dfo.Server.Abstractions.Execution.GameplayGateWaitException: Gate X would wait on the gameplay executor (root 1, depth 0: a).", "GameplayGateWaitException")]
     [InlineData(" ---> Dfo.Server.Abstractions.Execution.GameplayLeakedFlowException: bus:Probe was called on a flow leaked from a finished gameplay job", "GameplayLeakedFlowException")]
     public void An_assertion_exception_in_a_line_of_host_output_is_recognised(string line, string type)
     {

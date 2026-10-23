@@ -147,13 +147,6 @@ public sealed class GameLoginHandler(
     {
         logger.LogWarning("Game login rejected: {Category}", category);
         onlineUsers.TryDisconnectConnection(connectionId);
-        try
-        {
-            await closer.RequestCloseAsync(connectionId, CancellationToken.None).ConfigureAwait(false);
-        }
-        catch
-        {
-            logger.LogWarning("Game login connection close failed: {Category}", "close_failed");
-        }
+        await closer.RequestCloseAsync(connectionId, CancellationToken.None).ConfigureAwait(false);
     }
 }

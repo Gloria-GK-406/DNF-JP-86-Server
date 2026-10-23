@@ -70,27 +70,79 @@ public sealed class CreatureProjectionDeliveryTests
         });
     }
 
+    /// <summary>
+    /// DR-9, the kept per-recipient branch (TASK-24 R9): a peer's notice cannot be registered (its encoding fails at
+    /// the registration point); he alone is closed and the later peer is still told.
+    /// </summary>
     [Fact]
     public async Task Peer_send_failure_closes_peer_and_continues_without_closing_owner()
     {
-        await TestGameplay.RunAsync(async () =>
+        var owner = Session(1, "owner");
+        var failed = Session(2, "failed");
+        var next = Session(3, "next");
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(owner, failed, next);
+        outbound.Encoder.Fail<CreatureRenameNotification>(failed.ConnectionId, () => new IOException("send failed"));
+
+        var success = await outbound.RunAsync(async () =>
         {
-            var owner = Session(1, "owner");
-            var failed = Session(2, "failed");
-            var next = Session(3, "next");
-            var sender = new Sender { Failing = failed.ConnectionId };
-            var closer = new Closer();
             var delivery = Create(new Sessions(owner, failed, next),
                 new Towns(Member(owner, Area, true), Member(failed, Area, true),
-                    Member(next, Area, true)), sender, closer);
-
-            var success = await delivery.SendVisibleAsync(owner,
+                    Member(next, Area, true)), outbound.Game, outbound.Closer);
+            return await delivery.SendVisibleAsync(owner,
                 new CreatureRenameNotification(owner.WireUserId, [0x41]), default);
-
-            Assert.True(success);
-            Assert.Equal(["owner", "failed", "next"], sender.Sent.Select(x => x.Value));
-            Assert.Equal(["failed"], closer.Closed.Select(x => x.Value));
         });
+        await outbound.SettledAsync();
+
+        Assert.True(success);
+        Assert.Equal(["owner", "next"], outbound.Recorder.Entries.Where(entry => !entry.IsClose)
+            .Select(entry => entry.Connection.ConnectionId.Value));
+        Assert.Equal(["failed"], outbound.Recorder.Entries.Where(entry => entry.IsClose)
+            .Select(entry => entry.Connection.ConnectionId.Value));
+    }
+
+    /// <summary>
+    /// DR-9 (TASK-24 T12): the rename notice and its acknowledgement are registered in that order on the owner's
+    /// connection; when the owner's delivery fails in transport the connection is closed and the acknowledgement,
+    /// queued behind the notice, is never delivered.
+    /// </summary>
+    [Fact]
+    public async Task An_owner_whose_rename_notice_fails_in_transport_never_gets_the_acknowledgement_first()
+    {
+        var owner = Session(1, "owner");
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(owner);
+        outbound.Transport.Fail(owner.ConnectionId);
+        var creature = new CreatureState(500, 63000, 90, 2150, 19, [], 0, 0, 0, 0);
+
+        await outbound.RunFromAsync(owner.ConnectionId, async () =>
+        {
+            var sessions = new Sessions(owner);
+            var delivery = Create(sessions, new Towns(Member(owner, Area, true)), outbound.Game, outbound.Closer);
+            var handler = new RenameCreatureHandler(sessions, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService(),
+                new RenameCommands(new CreatureRenameReceipt(creature, default, null)), outbound.Game, delivery, TimeProvider.System);
+            await handler.HandleAsync(new NetworkDispatchContext(outbound.Context(owner.ConnectionId)),
+                new RenameCreatureRequest(189, 7, [0x41]), default);
+        });
+        await outbound.SettledAsync();
+
+        var entries = outbound.Recorder.Entries.ToList();
+        var notice = entries.FindIndex(entry => entry.Messages.Any(message => message is CreatureRenameNotification));
+        var acknowledgement = entries.FindIndex(entry => entry.Messages.Any(message => message is RenameCreatureResponse));
+        Assert.True(notice >= 0 && notice < acknowledgement, "the acknowledgement is registered behind the notice");
+        Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundOutcome.Failed, outbound.Observer.OutcomeOf(entries[notice]));
+        Assert.NotEqual(Dfo.Server.Abstractions.Execution.OutboundOutcome.Delivered, outbound.Observer.OutcomeOf(entries[acknowledgement]));
+        Assert.True(await outbound.ClosedAsync(owner.ConnectionId));
+        Assert.Empty(outbound.Transport.Delivered);
+    }
+
+    private sealed class RenameCommands(CreatureRenameReceipt receipt) : Dfo.Server.Application.Commands.ICommandBus
+    {
+        public ValueTask<TResult> SendAsync<TResult>(Dfo.Server.Application.Commands.ICommand<TResult> command,
+            CancellationToken cancellationToken = default) where TResult : notnull =>
+            command is RenameCreatureCommand
+                ? ValueTask.FromResult((TResult)(object)new RenameCreatureResult(receipt))
+                : throw new NotSupportedException(command.GetType().Name);
     }
 
     [Fact]
@@ -164,8 +216,8 @@ public sealed class CreatureProjectionDeliveryTests
         });
     }
 
-    private static CreatureProjectionDelivery Create(Sessions sessions, Towns towns, Sender sender,
-        Closer closer, TowerDomainStub? tower = null) => new(sessions, DispatchProxy.Create<IDungeonRunDomainService, NullProxy>(),
+    private static CreatureProjectionDelivery Create(Sessions sessions, Towns towns, IGameMessageSender sender,
+        INetworkConnectionCloser closer, TowerDomainStub? tower = null) => new(sessions, DispatchProxy.Create<IDungeonRunDomainService, NullProxy>(),
             towns, sender, DispatchProxy.Create<ICreatureRuntimeDomainService, NullProxy>(), closer,
             NullLogger<CreatureProjectionDelivery>.Instance, towers: tower);
 

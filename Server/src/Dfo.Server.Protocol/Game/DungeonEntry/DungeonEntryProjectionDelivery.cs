@@ -352,9 +352,10 @@ public sealed class DungeonEntryProjectionDelivery(
                 }
                 catch
                 {
-                    // TCP cannot retract a completed batch. If a later required recipient
-                    // fails, isolate every generation that may already hold START_MAP so none
-                    // can continue against an aborted server instance.
+                    // A batch already registered is still delivered when the job ends (RQ-031(c)).
+                    // If a later recipient's batch cannot be registered (its encoding or endpoint
+                    // check fails), isolate every generation that may already hold START_MAP so
+                    // none can continue against an aborted server instance.
                     await IsolatePartialCohortAsync(
                         [.. delivered, delivery.Session]).ConfigureAwait(false);
                     throw;
@@ -485,18 +486,8 @@ public sealed class DungeonEntryProjectionDelivery(
     {
         foreach (var session in sessions.Distinct())
         {
-            try
-            {
-                await connectionCloser.RequestCloseAsync(
-                    session.ConnectionId, CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (Exception error)
-            {
-                logger.LogWarning(
-                    error,
-                    "Failed to isolate partial dungeon-entry connection {ConnectionId}",
-                    session.ConnectionId);
-            }
+            await connectionCloser.RequestCloseAsync(
+                session.ConnectionId, CancellationToken.None).ConfigureAwait(false);
         }
     }
 

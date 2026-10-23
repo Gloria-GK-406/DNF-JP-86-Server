@@ -13,7 +13,7 @@ public sealed class GameplayAssertionRecorderControlTests
     [Fact]
     public void An_off_executor_violation_in_this_assembly_reaches_the_recorder()
     {
-        var thrown = Assert.Throws<GameplayOffExecutorException>(() => GameplayGateAssertion.Entering("recorder-control"));
+        var thrown = Assert.Throws<GameplayOffExecutorException>(() => GameplayWriteAssertion.Writing("recorder-control"));
 
         Assert.Contains("recorder-control", thrown.Message, StringComparison.Ordinal);
     }

@@ -178,8 +178,14 @@ public sealed class GmCeraHttpTests
         await using var host=await GmTestHost.StartAsync(configureServices:s=>s.AddSingleton<IGmCeraReminderDomainService>(reminder));
         await SeedAsync(host);var csrf=await Login(host);var id=Guid.NewGuid();
         reminder.Check=async()=>Assert.Equal(new[]{"60"},await host.ReadAsync("SELECT cera FROM accounts WHERE account_id=1;"));
-        using var granted=await host.PostAsync("/api/gm/v1/cera/grant",csrf,Payload(id));Assert.Equal(HttpStatusCode.OK,granted.StatusCode);
-        Assert.Equal("unconfirmed",(await granted.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("reminder").GetString());
+        // VC-6 (TASK-24 ruling 2, review finding 1): a reminder that throws is an error, not "unconfirmed": the endpoint's
+        // own 500 shape, outcome "unknown", saying the cera arrived; the grant stays committed and credited once.
+        using var granted=await host.PostAsync("/api/gm/v1/cera/grant",csrf,Payload(id));Assert.Equal(HttpStatusCode.InternalServerError,granted.StatusCode);
+        var failure=await granted.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(ReminderFailed,failure.GetProperty("message").GetString());Assert.Equal("unknown",failure.GetProperty("outcome").GetString());
+        Assert.Equal(new[]{"Succeeded"},await host.ReadAsync("SELECT outcome FROM gm_audit WHERE action='GrantCera' ORDER BY rowid;"));
+        Assert.Equal(new[]{"1"},await host.ReadAsync("SELECT COUNT(*) FROM gm_cera_operations;"));
+        Assert.Equal(new[]{"60"},await host.ReadAsync("SELECT cera FROM accounts WHERE account_id=1;"));
         await host.ExecuteAsync("UPDATE accounts SET cera=59,token_cera=22,happy_token_cera=33 WHERE account_id=1;");
         await host.ExecuteAsync("INSERT INTO characters(character_id,account_id,name) VALUES(1,1,'actual-role');");
         var sessions=host.Services.GetRequiredService<ISelectedSessionDomainService>();
@@ -199,9 +205,15 @@ public sealed class GmCeraHttpTests
             _=Dfo.Server.Testing.TestSessions.InWorld(sessions,state,session.AccountId,session.CharacterId,"replacement",session.ListenerPort);
             Assert.Empty(await handler.ComposeAsync(recipient,new(new(1)),default));
         });
-        reminder.Check=null;Assert.Equal(HttpStatusCode.OK,(await host.PostAsync("/api/gm/v1/cera/grant",csrf,Payload(id))).StatusCode);
+        reminder.Check=null;using var replayed=await host.PostAsync("/api/gm/v1/cera/grant",csrf,Payload(id));
+        Assert.Equal(HttpStatusCode.InternalServerError,replayed.StatusCode);
+        var replayFailure=await replayed.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(ReminderFailed,replayFailure.GetProperty("message").GetString());Assert.Equal("unknown",replayFailure.GetProperty("outcome").GetString());
         Assert.Equal(new[]{"59"},await host.ReadAsync("SELECT cera FROM accounts WHERE account_id=1;"));
+        Assert.Equal(new[]{"1"},await host.ReadAsync("SELECT COUNT(*) FROM gm_cera_operations;"));
     }
+
+    private const string ReminderFailed="点券已到账，提醒未能发出；勿新建编号重发。";
 
     [Fact]
     public async Task UncertainPostCommitRecoversOriginalKeyWithoutSecondCredit()

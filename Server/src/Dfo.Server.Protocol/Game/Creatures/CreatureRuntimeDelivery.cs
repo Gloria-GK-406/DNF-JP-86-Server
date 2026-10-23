@@ -75,18 +75,9 @@ public sealed class CreatureProjectionDelivery(ISelectedSessionDomainService ses
                 logger.LogWarning(exception,
                     "Creature notification failed for receiver={CharacterId}; closing that connection",
                     receiver.CharacterId);
-                try
-                {
-                    if (sessions.IsInWorld(receiver))
-                        await connections.RequestCloseAsync(receiver.ConnectionId, CancellationToken.None)
-                            .ConfigureAwait(false);
-                }
-                catch (Exception closeException)
-                {
-                    logger.LogWarning(closeException,
-                        "Creature notification receiver close failed character={CharacterId}",
-                        receiver.CharacterId);
-                }
+                if (sessions.IsInWorld(receiver))
+                    await connections.RequestCloseAsync(receiver.ConnectionId, CancellationToken.None)
+                        .ConfigureAwait(false);
             }
         }
         return ownerDelivered;

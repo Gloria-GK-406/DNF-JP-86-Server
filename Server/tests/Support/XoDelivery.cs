@@ -18,13 +18,18 @@ namespace Dfo.Server.Protocol.Tests.Outbox;
 /// transport whose connections can be slowed or failed one by one. What is asserted is the order in which
 /// entries are delivered, not the order they arrive on a wire (appendix D "口径").
 /// </summary>
+/// <remarks>
+/// TASK-24 (appendix E evidence): <see cref="Encoder"/> can refuse chosen messages at the registration point, the
+/// non-transport failure a kept branch still sees; <c>configure</c> adds the real event service and notification
+/// bus, or anything else a production path needs, to the same container.
+/// </remarks>
 internal sealed class XoDelivery : IAsyncDisposable
 {
     private readonly ServiceProvider provider;
     private readonly XoConnections connections = new();
     private readonly OutboundSender sender;
 
-    public XoDelivery(OutboundSendOptions? options = null)
+    public XoDelivery(OutboundSendOptions? options = null, Action<IServiceCollection>? configure = null)
     {
         sender = new OutboundSender(Transport, [Observer], NullLogger<OutboundSender>.Instance,
             options ?? OutboundSendOptions.Default);
@@ -32,15 +37,37 @@ internal sealed class XoDelivery : IAsyncDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<INetworkConnectionContexts>(connections);
-        services.AddSingleton<IOutboundMessageEncoder>(new NameEncoder());
+        services.AddSingleton<IOutboundMessageEncoder>(Encoder);
         services.AddSingleton<IOutboundSender>(Recorder);
         services.AddGameplayExecution();
+        configure?.Invoke(services);
         provider = services.BuildServiceProvider();
-        Game = new GameMessageSender(Network);
+        // The protocol's CMD/NOTI sender over the registration adapter; created by name because it is internal to
+        // Dfo.Server.Protocol and this file is linked into test projects that cannot see it.
+        Game = (IGameMessageSender)Activator.CreateInstance(
+            typeof(Dfo.Server.Protocol.ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.GameMessageSender", throwOnError: true)!,
+            Network)!;
         Projections = new XoProjections(Network);
     }
 
     public XoTransport Transport { get; } = new();
+
+    /// <summary>The registration point's encoder: every message by name, except the ones told to fail.</summary>
+    public FaultingEncoder Encoder { get; } = new();
+
+    public IServiceProvider Services => provider;
+
+    /// <summary>A registered connection's context, as the registration adapters see it.</summary>
+    public NetworkConnectionContext Context(NetworkConnectionId connection) => connections.Add(connection);
+
+    /// <summary>Whether a close was registered for <paramref name="connection"/> (not whether the sender closed it).</summary>
+    public bool CloseRegistered(NetworkConnectionId connection) =>
+        Recorder.Entries.Any(entry => entry.IsClose && entry.Connection.ConnectionId == connection);
+
+    /// <summary>The messages registered for <paramref name="connection"/>, in registration order.</summary>
+    public IReadOnlyList<IServerNetworkMessage> Messages(NetworkConnectionId connection) =>
+        [.. Recorder.Entries.Where(entry => !entry.IsClose && entry.Connection.ConnectionId == connection)
+            .SelectMany(entry => entry.Messages)];
 
     public XoObserver Observer { get; } = new();
 
@@ -64,9 +91,38 @@ internal sealed class XoDelivery : IAsyncDisposable
 
     public void Connect(NetworkConnectionId connectionId) => Transport.Add(connections.Add(connectionId));
 
+    /// <summary>Registers this exact context, so an exact close of it is carried out.</summary>
+    public void Connect(NetworkConnectionContext context) => Transport.Add(connections.Add(context));
+
     /// <summary>The body as one job; its outbox is handed to the sender when it ends.</summary>
     public Task RunAsync(Func<Task> body) =>
         provider.GetRequiredService<GameplayExecutor>().RunAsync(new GameplayWork(
+            GameplayShardKey.World,
+            GameplayCallChain.NewRoot(GameplayCallSource.Connection),
+            "test:xo",
+            async _ => await body()), CancellationToken.None).AsTask();
+
+    /// <summary>
+    /// The body as one inbound job from <paramref name="source"/>, which opens its outbox first as the dispatchers
+    /// do: a job that fails closes its source after what the outbox kept (RQ-031(c)).
+    /// </summary>
+    public Task RunFromAsync(NetworkConnectionId source, Func<Task> body) =>
+        provider.GetRequiredService<GameplayExecutor>().RunAsync(new GameplayWork(
+            GameplayShardKey.World,
+            GameplayCallChain.NewRoot(GameplayCallSource.Connection),
+            "test:xo",
+            async _ =>
+            {
+                GC.KeepAlive(provider.GetRequiredService<Dfo.Server.Application.Execution.Outbox.GameplayOutboxes>().Current);
+                await body();
+            })
+        {
+            Source = connections.Add(source),
+        }, CancellationToken.None).AsTask();
+
+    /// <summary>The body as one job that returns a value.</summary>
+    public Task<T> RunAsync<T>(Func<Task<T>> body) =>
+        provider.GetRequiredService<GameplayExecutor>().RunAsync(new GameplayWork<T>(
             GameplayShardKey.World,
             GameplayCallChain.NewRoot(GameplayCallSource.Connection),
             "test:xo",
@@ -82,6 +138,22 @@ internal sealed class XoDelivery : IAsyncDisposable
                 throw new TimeoutException("The XO entries did not settle.");
             await Task.Delay(5);
         }
+    }
+
+    /// <summary>
+    /// Waits until the sender has closed <paramref name="connection"/>. A failed entry is reported before the sender's
+    /// detached close of its connection runs, so a close is read through this rather than right after SettledAsync.
+    /// </summary>
+    public async Task<bool> ClosedAsync(NetworkConnectionId connection)
+    {
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (!Transport.IsClosed(connection))
+        {
+            if (DateTime.UtcNow > deadline)
+                return false;
+            await Task.Delay(5);
+        }
+        return true;
     }
 
     /// <summary>Position of <paramref name="connection"/>'s first delivered batch among all deliveries, or -1.</summary>
@@ -182,8 +254,47 @@ internal sealed class XoConnections : INetworkConnectionContexts
     public NetworkConnectionContext Add(NetworkConnectionId id) =>
         contexts.GetOrAdd(id, value => new NetworkConnectionContext(value, NetworkEndpointKind.Game, 10011));
 
+    public NetworkConnectionContext Add(NetworkConnectionContext context) => contexts.GetOrAdd(context.ConnectionId, context);
+
     public bool TryGet(NetworkConnectionId connectionId, out NetworkConnectionContext? connection) =>
         contexts.TryGetValue(connectionId, out connection);
+}
+
+/// <summary>
+/// The registration point refusing chosen messages, as an unencodable message or an endpoint mismatch does in
+/// production: the call that registers it throws, and nothing of that call is registered.
+/// </summary>
+internal sealed class FaultingEncoder : IOutboundMessageEncoder
+{
+    private readonly NameEncoder inner = new();
+    private readonly ConcurrentQueue<(NetworkConnectionId Connection, Func<IServerNetworkMessage, bool> Matches, Func<Exception> Error)> faults = new();
+
+    /// <summary>Every message of type <typeparamref name="TMessage"/> for <paramref name="connection"/> fails to encode.</summary>
+    public void Fail<TMessage>(NetworkConnectionId connection, Func<Exception>? error = null)
+        where TMessage : IServerNetworkMessage =>
+        Fail(connection, message => message is TMessage, error);
+
+    public void Fail(NetworkConnectionId connection, Func<IServerNetworkMessage, bool> matches, Func<Exception>? error = null) =>
+        faults.Enqueue((connection, matches, error ?? (() => new InvalidDataException("Injected encoding failure."))));
+
+    public byte[] EncodeMessage(NetworkConnectionContext connection, IServerNetworkMessage message)
+    {
+        Check(connection, message);
+        return inner.EncodeMessage(connection, message);
+    }
+
+    public byte[] EncodeBatch(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages)
+    {
+        foreach (var message in messages) Check(connection, message);
+        return inner.EncodeBatch(connection, messages);
+    }
+
+    private void Check(NetworkConnectionContext connection, IServerNetworkMessage message)
+    {
+        foreach (var fault in faults)
+            if (fault.Connection == connection.ConnectionId && fault.Matches(message))
+                throw fault.Error();
+    }
 }
 
 /// <summary>Any message, as its type name.</summary>

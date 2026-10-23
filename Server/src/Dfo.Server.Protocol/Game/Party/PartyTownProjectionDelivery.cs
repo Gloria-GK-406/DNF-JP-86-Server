@@ -45,106 +45,81 @@ public sealed class PartyTownProjectionDelivery(
         if (candidate.IsVirtual)
             return;
 
-        var memberSessions = candidate.Members
+        var stream = streams.GetOrAdd(candidate.Generation);
+        var current = parties.FindParty(character);
+        if (current.IsVirtual
+            || current.Generation != candidate.Generation
+            || current.Revision < stream.LatestRevision
+            || stream.CurrentPartyId is { } projectedId
+                && projectedId != current.PartyId)
+        {
+            return;
+        }
+
+        var memberSessions = current.Members
             .Select(member => ExactSession(member.CharacterId))
             .Where(session => session is not null)
             .Cast<SelectedSessionIdentity>()
             .Distinct()
             .ToArray();
-        var previousObservers = previousScope is null
-            ? []
-            : SessionsInScope(previousScope, mover.CharacterId);
-        var candidateScope = candidate.LeaderMember.Character.DirectoryScope;
-        var currentObservers = candidateScope is null
-            ? []
-            : SessionsInScope(candidateScope, mover.CharacterId);
-        using var participantLease = await streams.EnterParticipantsAsync(
-            memberSessions.Concat(previousObservers).Concat(currentObservers).Append(mover),
-            cancellationToken)
-            .ConfigureAwait(false);
-        var stream = streams.GetOrAdd(candidate.Generation);
-        GameplayGateAssertion.Enter(stream.Gate, nameof(PartyDeliveryStream), cancellationToken);
-        try
-        {
-            var current = parties.FindParty(character);
-            if (current.IsVirtual
-                || current.Generation != candidate.Generation
-                || current.Revision < stream.LatestRevision
-                || stream.CurrentPartyId is { } projectedId
-                    && projectedId != current.PartyId)
-            {
-                return;
-            }
+        var members = memberSessions.Select(value => value.CharacterId).ToImmutableArray();
+        var refresh = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+            notifications,
+            memberSessions,
+            PartyRosterChanged.Refresh(current, members),
+            cancellationToken).ConfigureAwait(false);
+        if (refresh.HasFailures)
+            return;
 
-            memberSessions = current.Members
-                .Select(member => ExactSession(member.CharacterId))
-                .Where(session => session is not null)
-                .Cast<SelectedSessionIdentity>()
+        var leaderMovedDirectory = current.LeaderWireUserId == mover.WireUserId
+            && current.LeaderMember.Character.DirectoryScope != previousScope;
+        if (leaderMovedDirectory)
+        {
+            var memberIds = current.Members.Select(value => value.CharacterId).ToHashSet();
+            var oldObservers = previousScope is null
+                ? []
+                : SessionsInScope(previousScope, mover.CharacterId)
+                .Where(value => !memberIds.Contains(value.CharacterId))
                 .Distinct()
                 .ToArray();
-            var members = memberSessions.Select(value => value.CharacterId).ToImmutableArray();
-            var refresh = await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                notifications,
-                memberSessions,
-                PartyRosterChanged.Refresh(current, members),
-                cancellationToken).ConfigureAwait(false);
-            if (refresh.HasFailures)
-                return;
-
-            var leaderMovedDirectory = current.LeaderWireUserId == mover.WireUserId
-                && current.LeaderMember.Character.DirectoryScope != previousScope;
-            if (leaderMovedDirectory)
+            if (oldObservers.Length > 0)
             {
-                var memberIds = current.Members.Select(value => value.CharacterId).ToHashSet();
-                var oldObservers = previousScope is null
-                    ? []
-                    : SessionsInScope(previousScope, mover.CharacterId)
+                var clear = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                    notifications,
+                    oldObservers,
+                    PartyRosterChanged.Clear(
+                        oldObservers.Select(value => value.CharacterId).ToImmutableArray(),
+                        current.PartyId),
+                    cancellationToken).ConfigureAwait(false);
+                if (clear.HasFailures)
+                    return;
+            }
+
+            var currentScope = current.LeaderMember.Character.DirectoryScope;
+            var newObservers = currentScope is null
+                ? []
+                : SessionsInScope(currentScope, mover.CharacterId)
                     .Where(value => !memberIds.Contains(value.CharacterId))
                     .Distinct()
                     .ToArray();
-                if (oldObservers.Length > 0)
-                {
-                    var clear = await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                        notifications,
-                        oldObservers,
-                        PartyRosterChanged.Clear(
-                            oldObservers.Select(value => value.CharacterId).ToImmutableArray(),
-                            current.PartyId),
-                        cancellationToken).ConfigureAwait(false);
-                    if (clear.HasFailures)
-                        return;
-                }
-
-                var currentScope = current.LeaderMember.Character.DirectoryScope;
-                var newObservers = currentScope is null
-                    ? []
-                    : SessionsInScope(currentScope, mover.CharacterId)
-                        .Where(value => !memberIds.Contains(value.CharacterId))
-                        .Distinct()
-                        .ToArray();
-                if (newObservers.Length > 0)
-                {
-                    var observerRefresh = await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                        notifications,
-                        newObservers,
-                        PartyRosterChanged.Refresh(
-                            current,
-                            newObservers.Select(value => value.CharacterId).ToImmutableArray()),
-                        cancellationToken).ConfigureAwait(false);
-                    if (observerRefresh.HasFailures)
-                        return;
-                }
+            if (newObservers.Length > 0)
+            {
+                var observerRefresh = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                    notifications,
+                    newObservers,
+                    PartyRosterChanged.Refresh(
+                        current,
+                        newObservers.Select(value => value.CharacterId).ToImmutableArray()),
+                    cancellationToken).ConfigureAwait(false);
+                if (observerRefresh.HasFailures)
+                    return;
             }
+        }
 
-            stream.LatestRevision = current.Revision;
-            stream.CurrentPartyId = current.PartyId;
-            stream.CurrentMembers.Clear();
-            stream.CurrentMembers.UnionWith(memberSessions);
-        }
-        finally
-        {
-            stream.Gate.Release();
-        }
+        stream.LatestRevision = current.Revision;
+        stream.CurrentPartyId = current.PartyId;
+        stream.CurrentMembers.Clear();
+        stream.CurrentMembers.UnionWith(memberSessions);
     }
 
     private SelectedSessionIdentity[] SessionsInScope(
@@ -173,8 +148,6 @@ public sealed class PartyTownProjectionDelivery(
         if (exactRecipients.Length == 0)
             return;
 
-        using var participantLease = await streams.EnterParticipantsAsync(
-            representedSessions.Concat(exactRecipients), cancellationToken).ConfigureAwait(false);
         foreach (var recipient in exactRecipients)
         {
             var currentPresence = townAreas.Find(recipient.CharacterId);
@@ -195,34 +168,26 @@ public sealed class PartyTownProjectionDelivery(
                     continue;
 
                 var stream = streams.GetOrAdd(candidate.Generation);
-                GameplayGateAssertion.Enter(stream.Gate, nameof(PartyDeliveryStream), cancellationToken);
-                try
+                var current = parties.Query(query).SingleOrDefault(snapshot =>
+                    snapshot.PartyId == candidate.PartyId
+                    && snapshot.Generation == candidate.Generation);
+                if (current is null
+                    || current.Revision < stream.LatestRevision
+                    || stream.CurrentPartyId is { } projectedId
+                        && projectedId != current.PartyId
+                    || current.Members.Any(member =>
+                        member.CharacterId == recipient.CharacterId))
                 {
-                    var current = parties.Query(query).SingleOrDefault(snapshot =>
-                        snapshot.PartyId == candidate.PartyId
-                        && snapshot.Generation == candidate.Generation);
-                    if (current is null
-                        || current.Revision < stream.LatestRevision
-                        || stream.CurrentPartyId is { } projectedId
-                            && projectedId != current.PartyId
-                        || current.Members.Any(member =>
-                            member.CharacterId == recipient.CharacterId))
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                        notifications,
-                        [recipient],
-                        PartyRosterChanged.Refresh(
-                            current,
-                            ImmutableArray.Create(recipient.CharacterId)),
-                        cancellationToken).ConfigureAwait(false);
-                }
-                finally
-                {
-                    stream.Gate.Release();
-                }
+                await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                    notifications,
+                    [recipient],
+                    PartyRosterChanged.Refresh(
+                        current,
+                        ImmutableArray.Create(recipient.CharacterId)),
+                    cancellationToken).ConfigureAwait(false);
             }
         }
     }

@@ -242,20 +242,13 @@ public sealed class SelectCharacterHandler(
                 session?.ConnectionId.ToString() ?? "none");
         }
 
+        // After the workflow and its compensation have finished: closing runs the connection's own cleanup.
         foreach (var connectionId in pendingCloses.Distinct())
         {
-            try
-            {
-                if (connectionId == context.Connection.ConnectionId)
-                    await closer.RequestCloseExactAsync(context.Connection, CancellationToken.None).ConfigureAwait(false);
-                else
-                    await closer.RequestCloseAsync(connectionId, CancellationToken.None).ConfigureAwait(false);
-            }
-            catch
-            {
-                // Best effort, after the workflow and its compensation have finished: closing
-                // runs the connection's own cleanup.
-            }
+            if (connectionId == context.Connection.ConnectionId)
+                await closer.RequestCloseExactAsync(context.Connection, CancellationToken.None).ConfigureAwait(false);
+            else
+                await closer.RequestCloseAsync(connectionId, CancellationToken.None).ConfigureAwait(false);
         }
 
         failure?.Throw();

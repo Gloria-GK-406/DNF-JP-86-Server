@@ -239,6 +239,122 @@ public sealed class UsageQuotaProjectionTests
         await worker.RefreshAsync(default); Assert.Equal(4, events.Projections.Count);
     }
 
+    public static TheoryData<string> QuotaRefreshes() =>
+        ["Altar", "Dimension", "GoldSilverHorn", "ReviveCoin", "Mirror", "Heras", "Tournament"];
+
+    /// <summary>
+    /// DR-6 (TASK-24 T9): each of the seven refreshes records the period as sent once its projection is
+    /// registered; a delivery that then fails in transport closes the connection and is not sent again.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(QuotaRefreshes))]
+    public async Task A_quota_refresh_that_fails_in_transport_counts_as_sent_and_closes_the_connection(string refresh)
+    {
+        await using var world = new QuotaRefreshWorld(refresh);
+        world.Outbound.Transport.Fail(world.Sessions.Current!.ConnectionId);
+
+        await world.Worker(default);
+        await world.Worker(default);
+        await world.Outbound.SettledAsync();
+
+        Assert.Equal(1, world.Probe.Composed);
+        Assert.Single(world.Outbound.Messages(world.Sessions.Current!.ConnectionId));
+        Assert.True(await world.Outbound.ClosedAsync(world.Sessions.Current.ConnectionId));
+    }
+
+    /// <summary>
+    /// DR-6, the kept branch (TASK-24 R6): a refresh whose projection cannot be composed is not recorded as sent,
+    /// so the next tick of the same period composes it again.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(QuotaRefreshes))]
+    public async Task A_quota_refresh_that_cannot_be_composed_is_not_recorded_and_is_composed_again(string refresh)
+    {
+        await using var world = new QuotaRefreshWorld(refresh);
+        world.Probe.Failing = true;
+
+        await world.Worker(default);
+        world.Probe.Failing = false;
+        await world.Worker(default);
+        await world.Worker(default);
+        await world.Outbound.SettledAsync();
+
+        Assert.Equal(2, world.Probe.Composed);
+        Assert.Single(world.Outbound.Messages(world.Sessions.Current!.ConnectionId));
+        Assert.False(world.Outbound.Transport.IsClosed(world.Sessions.Current.ConnectionId));
+    }
+
+    private sealed class QuotaProbe
+    {
+        public bool Failing;
+        public int Composed;
+    }
+
+    private sealed class QuotaProbeHandler(QuotaProbe probe) : INotificationHandler<UsageQuotaViewChanged>
+    {
+        public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(
+            NotificationRecipient recipient, UsageQuotaViewChanged notification, CancellationToken cancellationToken)
+        {
+            probe.Composed++;
+            return probe.Failing
+                ? throw new InvalidOperationException("Injected quota composition failure.")
+                : ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
+                    [new Dfo.Server.Protocol.Tests.Outbox.XoProjected(notification.Family.ToString())]);
+        }
+    }
+
+    /// <summary>One of the seven refreshes over the real event service and notification bus, on the outbox executor.</summary>
+    private sealed class QuotaRefreshWorld : IAsyncDisposable
+    {
+        public QuotaRefreshWorld(string refresh)
+        {
+            Outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery(configure: services =>
+            {
+                Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<ISelectedSessionDomainService>(services, Sessions);
+                Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services, Probe);
+                Dfo.Server.Application.DomainEvents.DomainEventDispatchingExtensions.AddEventDispatching(services);
+                Dfo.Server.Application.Notifications.NotificationDispatchingExtensions.AddNotificationDispatching(services);
+                Dfo.Server.Application.Notifications.NotificationDispatchingExtensions.AddNotificationHandler<UsageQuotaViewChanged, QuotaProbeHandler>(services);
+            });
+            Outbound.Connect(Sessions.Current!.ConnectionId);
+            var delivery = new UsageQuotaProjectionDelivery(
+                Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services));
+            var queue = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions
+                .GetRequiredService<Dfo.Server.Abstractions.Execution.IGameplayQueue>(Outbound.Services);
+            var clock = new Clock();
+            var daily = new Daily();
+            Worker = refresh switch
+            {
+                "Altar" => new Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService(Sessions, Sessions, delivery, daily, clock,
+                    NullLogger<Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService>.Instance, queue).RefreshAsync,
+                "Dimension" => new DimensionQuotaDailyRefreshService(Sessions, Sessions, delivery, daily, clock,
+                    NullLogger<DimensionQuotaDailyRefreshService>.Instance, queue).RefreshAsync,
+                "GoldSilverHorn" => new GoldSilverHornQuotaDailyRefreshService(Sessions, Sessions, delivery, daily, clock,
+                    NullLogger<GoldSilverHornQuotaDailyRefreshService>.Instance, queue).RefreshAsync,
+                "ReviveCoin" => new ReviveCoinQuotaDailyRefreshService(Sessions, Sessions, delivery, daily, clock,
+                    NullLogger<ReviveCoinQuotaDailyRefreshService>.Instance, queue).RefreshAsync,
+                "Mirror" => new MirrorQuotaDailyRefreshService(Sessions, Sessions, delivery, clock,
+                    NullLogger<MirrorQuotaDailyRefreshService>.Instance, queue).RefreshAsync,
+                "Heras" => new Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService(Sessions, Sessions, delivery, daily, clock,
+                    NullLogger<Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService>.Instance, queue).RefreshAsync,
+                "Tournament" => new Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService(Sessions, Sessions, delivery, daily, clock,
+                    NullLogger<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>.Instance, queue).RefreshAsync,
+                _ => throw new ArgumentOutOfRangeException(nameof(refresh)),
+            };
+        }
+
+        public Dfo.Server.Protocol.Tests.Outbox.XoDelivery Outbound { get; }
+
+        public Sessions Sessions { get; } = new();
+
+        public QuotaProbe Probe { get; } = new();
+
+        /// <summary>The refresh as one timer CMD on the outbox executor.</summary>
+        public Func<CancellationToken, Task> Worker { get; }
+
+        public ValueTask DisposeAsync() => Outbound.DisposeAsync();
+    }
+
     private sealed class Snapshots : IUsageQuotaSnapshotDomainService
     {
         public UsageQuotaSnapshot Value = new(new(2026, 10, 10, 12, 0, 0, TimeSpan.FromHours(8)), [], null, [], new(6, 1, true));

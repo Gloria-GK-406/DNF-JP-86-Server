@@ -2,7 +2,7 @@
 
 usage: python3 violations.py <DFO_GAMEPLAY_ASSERTIONS directory> [--assemblies A,B,...] [expected...]
   expected: Assembly:Class=count, or Class=count for the class in any assembly, e.g.
-            Dfo.Server.Application.Tests:GameplayGateAssertionTests=21
+            Dfo.Server.Application.Tests:GameplayWriteAssertionTests=24
   --assemblies: every listed assembly must have its <assembly>.jsonl file and exactly one record of the
                 positive control GameplayAssertionRecorderControlTests (TASK-18 section 5.1).
 

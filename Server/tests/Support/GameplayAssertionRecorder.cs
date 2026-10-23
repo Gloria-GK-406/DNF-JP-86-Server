@@ -7,8 +7,8 @@ using Dfo.Server.Abstractions.Execution;
 namespace Dfo.Server.Testing;
 
 /// <summary>
-/// Evidence for "zero gate-assertion violations in one full run": when <c>DFO_GAMEPLAY_ASSERTIONS</c>
-/// names a directory, every violation reported by <see cref="GameplayGateAssertion"/> is appended to
+/// Evidence for "zero assertion violations in one full run": when <c>DFO_GAMEPLAY_ASSERTIONS</c>
+/// names a directory, every violation reported to <see cref="GameplayAssertionDiagnostics"/> is appended to
 /// <c>&lt;directory&gt;/&lt;assembly&gt;.jsonl</c> with its <c>Dfo.</c> frames. A green run alone is no
 /// proof: a production <c>catch</c> or a test's <c>ThrowsAny</c> can swallow an off-executor violation.
 /// </summary>
@@ -54,7 +54,6 @@ internal static class GameplayAssertionRecorder
     private static readonly string[] HostViolationTypes =
     [
         nameof(GameplayOffExecutorException),
-        nameof(GameplayGateWaitException),
         nameof(GameplayLeakedFlowException),
     ];
 
@@ -74,7 +73,7 @@ internal static class GameplayAssertionRecorder
     {
         public void OnNext(DiagnosticListener value)
         {
-            if (value.Name == GameplayGateAssertion.DiagnosticSourceName) value.Subscribe(new Events());
+            if (value.Name == GameplayAssertionDiagnostics.DiagnosticSourceName) value.Subscribe(new Events());
         }
 
         public void OnCompleted()

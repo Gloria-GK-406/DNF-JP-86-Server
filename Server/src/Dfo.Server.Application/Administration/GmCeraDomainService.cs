@@ -11,18 +11,27 @@ using Dfo.Server.Data.Administration;
 
 namespace Dfo.Server.Application.Administration;
 
+/// <summary>
+/// VC-6: "attempted" now means every reminder was registered for sending (whether it reaches the client is the
+/// outbound sender's business, RQ-036); "offline" means at least one account had no session in the world to remind.
+/// A reminder that could not be composed is an error and is thrown after the other accounts were reminded.
+/// </summary>
 internal sealed class GmCeraReminderDomainService(ISelectedSessionDomainService sessions, IEventService notifications) : IGmCeraReminderDomainService
 {
     public async ValueTask<string> RemindAsync(IReadOnlyList<int> accounts, CancellationToken token)
     {
         var result = "attempted";
+        List<int>? failed = null;
         foreach (var id in accounts.Distinct())
         {
             var account = new AccountId(id); var session = sessions.Find(account);
-            if (session is null) continue;
+            if (session is null) { result = "offline"; continue; }
             var delivery = await notifications.ProjectAsync(new NotificationAudience.TheseSessions([session]), new AccountWalletChanged(account), token);
-            if (delivery.Attempts.Any(x => x.Outcome is NotificationOutcome.Failed or NotificationOutcome.Gone)) result = "unconfirmed";
+            if (delivery.Attempts.Any(x => x.Outcome is NotificationOutcome.Failed)) (failed ??= []).Add(id);
+            else if (!delivery.Attempts.Any(x => x.Outcome is NotificationOutcome.Delivered)) result = "offline";
         }
+        if (failed is not null)
+            throw new InvalidOperationException($"The wallet reminder could not be composed for account(s) {string.Join(", ", failed)}.");
         return result;
     }
 }

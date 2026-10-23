@@ -759,8 +759,7 @@ public sealed class IllusionTowerProjectionDelivery(
     {
         if (!sessions.IsInWorld(session))
             return;
-        try { await connections.RequestCloseAsync(session.ConnectionId, CancellationToken.None).ConfigureAwait(false); }
-        catch (Exception error) { logger.LogWarning(error, "Failed to close tower session {ConnectionId}", session.ConnectionId); }
+        await connections.RequestCloseAsync(session.ConnectionId, CancellationToken.None).ConfigureAwait(false);
     }
 
     private async ValueTask CloseProjectionFailuresAsync(

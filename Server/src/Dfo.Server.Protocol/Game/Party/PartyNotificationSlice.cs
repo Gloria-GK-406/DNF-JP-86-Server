@@ -457,61 +457,15 @@ public sealed class PartyLeadershipChangedHandler(ISelectedSessionDomainService 
 public sealed class PartyProjectionStreamRegistry
 {
     private readonly ConcurrentDictionary<long, PartyDeliveryStream> streams = [];
-    // A character can cross from one party generation to another. Generation gates cannot order
-    // that transition by themselves, so every full mutation/read-repair also owns the affected
-    // character gates in stable order until its state-shaped sends finish.
-    private readonly ConcurrentDictionary<int, SemaphoreSlim> participantGates = [];
 
     internal PartyDeliveryStream GetOrAdd(long generation) =>
         streams.GetOrAdd(generation, static _ => new PartyDeliveryStream());
-
-    internal ValueTask<IDisposable> EnterParticipantsAsync(
-        IEnumerable<SelectedSessionIdentity> participants,
-        CancellationToken cancellationToken)
-    {
-        var gates = participants
-            .Select(participant => participant.CharacterId.Value)
-            .Distinct()
-            .Order()
-            .Select(characterId => participantGates.GetOrAdd(
-                characterId, static _ => new SemaphoreSlim(1, 1)))
-            .ToArray();
-        var acquired = 0;
-        try
-        {
-            for (; acquired < gates.Length; acquired++)
-                GameplayGateAssertion.Enter(gates[acquired], "PartyParticipantGate", cancellationToken);
-            return ValueTask.FromResult<IDisposable>(new PartyParticipantLease(gates));
-        }
-        catch
-        {
-            for (var index = acquired - 1; index >= 0; index--)
-                gates[index].Release();
-            throw;
-        }
-    }
-}
-
-internal sealed class PartyParticipantLease(SemaphoreSlim[] gates) : IDisposable
-{
-    private SemaphoreSlim[]? held = gates;
-
-    public void Dispose()
-    {
-        var releasing = Interlocked.Exchange(ref held, null);
-        if (releasing is null)
-            return;
-        for (var index = releasing.Length - 1; index >= 0; index--)
-            releasing[index].Release();
-    }
 }
 
 internal sealed class PartyDeliveryStream
 {
     // Streams intentionally retain their final revision as a tombstone: a delayed caller from
     // a disbanded generation must never resurrect its older roster after the clear.
-    public SemaphoreSlim Gate { get; } = new(1, 1);
-
     public long LatestRevision { get; set; }
 
     // The wire identity currently projected to this generation. A town read-repair may
@@ -657,77 +611,67 @@ public sealed class PartyNotificationDelivery(
             return;
 
         var clearAudience = resolver.Characters(plan.ClearAudience);
-        using var participantLease = await streams.EnterParticipantsAsync(
-            PlanParticipants(plan, clearAudience, resolver), cancellationToken).ConfigureAwait(false);
         var stream = streams.GetOrAdd(generation);
-        GameplayGateAssertion.Enter(stream.Gate, nameof(PartyDeliveryStream), cancellationToken);
-        try
+        // A party command and its projection run in one CMD, and CMDs deliver in the order they
+        // complete (RQ-032), so every stage of this projection is registered before any later
+        // revision's. The stream's revision watermark still keeps an older snapshot from being
+        // replayed over a newer one; a late older caller's recipient-specific clear or acceptance
+        // acknowledgement must still be delivered.
+        if (revision <= stream.LatestRevision)
         {
-            // Commands release their selected-session gates before transport work begins. A later
-            // revision can therefore reach this singleton before an earlier caller, or while it is
-            // between phases. One stream per immutable party generation keeps each four-phase
-            // projection contiguous. A late older caller cannot replay its snapshot, but its
-            // recipient-specific clear or acceptance acknowledgement must still be delivered.
-            if (revision <= stream.LatestRevision)
-            {
-                var staleClearAudience = clearAudience
-                    .Where(session => !stream.CurrentMembers.Contains(session))
-                    .ToImmutableArray();
-                var delivered = await DeliverStaleSideEffectsAsync(
-                    plan,
-                    staleClearAudience,
-                    stream.CurrentMembers,
-                    resolver,
-                    cancellationToken).ConfigureAwait(false);
-                if (delivered)
-                    stream.FullStateMembers.ExceptWith(staleClearAudience);
-                return;
-            }
-            var promoteSettingsUpdate = plan.SettingsChange == PartySettingsChangeKind.Updated
-                && plan.Snapshot!.Members.Any(member =>
-                    resolver.Character(member.CharacterId) is not { } current
-                    || !stream.FullStateMembers.Contains(current));
-            // XO-6: each stage's entries are delivered only after the stage before it; a stage is
-            // Required, so a recipient whose delivery fails stops the later stages, as a stage with
-            // a failure stops the advance here (TASK-23 ruling 5).
-            bool stateDelivered;
-            using (ordering?.Begin("XO-6 party state stages", OutboundDelivery.Required))
-            {
-                stateDelivered = await DeliverPartyStateAsync(
-                    plan, promoteSettingsUpdate, resolver, cancellationToken).ConfigureAwait(false);
-            }
-            if (!stateDelivered)
-                return;
-
-            stream.LatestRevision = revision;
-            stream.CurrentPartyId = plan.Snapshot?.PartyId;
-            if (plan.Snapshot is { } latestSnapshot)
-            {
-                stream.CurrentMembers.Clear();
-                stream.CurrentMembers.UnionWith(
-                    resolver.Characters(latestSnapshot.Members.Select(member => member.CharacterId)));
-            }
-            else
-            {
-                stream.CurrentMembers.ExceptWith(clearAudience);
-            }
-            stream.FullStateMembers.ExceptWith(clearAudience);
-            if (plan.Snapshot is not null
-                && (plan.SettingsChange != PartySettingsChangeKind.Updated || promoteSettingsUpdate))
-            {
-                stream.FullStateMembers.UnionWith(
-                    resolver.Characters(plan.Snapshot.Members.Select(member => member.CharacterId)));
-            }
+            var staleClearAudience = clearAudience
+                .Where(session => !stream.CurrentMembers.Contains(session))
+                .ToImmutableArray();
+            var delivered = await DeliverStaleSideEffectsAsync(
+                plan,
+                staleClearAudience,
+                stream.CurrentMembers,
+                resolver,
+                cancellationToken).ConfigureAwait(false);
+            if (delivered)
+                stream.FullStateMembers.ExceptWith(staleClearAudience);
+            return;
         }
-        finally
+        var promoteSettingsUpdate = plan.SettingsChange == PartySettingsChangeKind.Updated
+            && plan.Snapshot!.Members.Any(member =>
+                resolver.Character(member.CharacterId) is not { } current
+                || !stream.FullStateMembers.Contains(current));
+        // XO-6: each stage's entries are delivered only after the stage before it; a stage is
+        // Required, so a recipient whose delivery fails stops the later stages, as a stage with
+        // a failure stops the advance here (TASK-23 ruling 5).
+        bool stateDelivered;
+        using (ordering?.Begin("XO-6 party state stages", OutboundDelivery.Required))
         {
-            stream.Gate.Release();
+            stateDelivered = await DeliverPartyStateAsync(
+                plan, promoteSettingsUpdate, resolver, cancellationToken).ConfigureAwait(false);
+        }
+        if (!stateDelivered)
+            return;
+
+        stream.LatestRevision = revision;
+        stream.CurrentPartyId = plan.Snapshot?.PartyId;
+        if (plan.Snapshot is { } latestSnapshot)
+        {
+            stream.CurrentMembers.Clear();
+            stream.CurrentMembers.UnionWith(
+                resolver.Characters(latestSnapshot.Members.Select(member => member.CharacterId)));
+        }
+        else
+        {
+            stream.CurrentMembers.ExceptWith(clearAudience);
+        }
+        stream.FullStateMembers.ExceptWith(clearAudience);
+        if (plan.Snapshot is not null
+            && (plan.SettingsChange != PartySettingsChangeKind.Updated || promoteSettingsUpdate))
+        {
+            stream.FullStateMembers.UnionWith(
+                resolver.Characters(plan.Snapshot.Members.Select(member => member.CharacterId)));
         }
     }
 
     /// <summary>
     /// Answers one member's explicit realtime query without broadcasting another refresh to the
-    /// whole party. The shared generation stream keeps a delayed old query behind or below a newer
+    /// whole party. The shared generation stream keeps a delayed old query below a newer
     /// roster revision, while equal revisions remain answerable because HP can change independently
     /// of party membership. A requester-only answer never advances the full-mutation watermark.
     /// </summary>
@@ -739,21 +683,13 @@ public sealed class PartyNotificationDelivery(
         ArgumentNullException.ThrowIfNull(requester);
         ArgumentNullException.ThrowIfNull(snapshot);
         var stream = streams.GetOrAdd(snapshot.Generation);
-        GameplayGateAssertion.Enter(stream.Gate, nameof(PartyDeliveryStream), cancellationToken);
-        try
-        {
-            if (snapshot.Revision < stream.LatestRevision)
-                return;
-            await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                notifications,
-                [requester],
-                new PartyRealtimeChanged(snapshot),
-                cancellationToken).ConfigureAwait(false);
-        }
-        finally
-        {
-            stream.Gate.Release();
-        }
+        if (snapshot.Revision < stream.LatestRevision)
+            return;
+        await PartyExactNotificationDelivery.PublishWithRetryAsync(
+            notifications,
+            [requester],
+            new PartyRealtimeChanged(snapshot),
+            cancellationToken).ConfigureAwait(false);
     }
 
     private async ValueTask<bool> DeliverPartyStateAsync(
@@ -1108,15 +1044,5 @@ public sealed class PartyNotificationDelivery(
         revision = 0;
         return false;
     }
-
-    private IEnumerable<SelectedSessionIdentity> PlanParticipants(
-        PartyNotificationPlan plan,
-        ImmutableArray<SelectedSessionIdentity> clearAudience,
-        PartyNotificationRecipientResolver resolver) =>
-        resolver.Characters(
-                plan.Snapshot?.Members.Select(member => member.CharacterId)
-                ?? Enumerable.Empty<CharacterId>())
-            .Concat(clearAudience)
-            .Distinct();
 
 }

@@ -147,6 +147,101 @@ public sealed partial class SelectCharacterLifecycleTests
         });
     }
 
+    /// <summary>
+    /// DR-1, the kept workflow branch (TASK-24 R1): the trailing locks cannot be registered for the requester (their
+    /// encoding fails at the registration point, where the transitional double threw). The exact attempt is
+    /// compensated and the connection is closed after the entries already registered, as before the outbox.
+    /// </summary>
+    [Fact]
+    public async Task An_entry_message_that_cannot_be_registered_compensates_and_closes_the_requester()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        var fixture = await Fixture.CreateAsync(
+            gameSender: outbound.Game, connectionCloser: outbound.Closer);
+        outbound.Connect(fixture.Context.Connection);
+        outbound.Encoder.Fail(fixture.ConnectionId,
+            message => message.GetType().Name == "TrailingEquipmentLockSnapshotMessage",
+            () => new IOException("required delivery failed"));
+
+        await Assert.ThrowsAsync<IOException>(() => outbound.RunAsync(() =>
+            fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None).AsTask()));
+        await outbound.SettledAsync();
+
+        Assert.Contains("cleanup", fixture.Ledger);
+        Assert.Null(fixture.Directory.Find(fixture.AccountId));
+        Assert.True(outbound.CloseRegistered(fixture.ConnectionId));
+        var entries = outbound.Recorder.Entries.ToList();
+        Assert.True(entries.FindIndex(entry => !entry.IsClose) < entries.FindIndex(entry => entry.IsClose),
+            "the accepted entry registered before the failure goes out before the close");
+        Assert.True(await outbound.ClosedAsync(fixture.ConnectionId));
+    }
+
+    /// <summary>
+    /// DR-1 (TASK-24 T1): the entry is registered whole and the CMD succeeds; its delivery then fails in transport.
+    /// The sender closes the connection and nothing is compensated here: the session is torn down by the
+    /// connection's own disconnect CMD (TASK-23 W5 and N9 on the wire).
+    /// </summary>
+    [Fact]
+    public async Task An_entry_whose_delivery_fails_in_transport_is_closed_by_the_sender_without_compensation()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        var fixture = await Fixture.CreateAsync(
+            gameSender: outbound.Game, connectionCloser: outbound.Closer);
+        outbound.Connect(fixture.Context.Connection);
+        outbound.Transport.Fail(fixture.ConnectionId);
+
+        await outbound.RunAsync(() =>
+            fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None).AsTask());
+        await outbound.SettledAsync();
+
+        Assert.DoesNotContain("cleanup", fixture.Ledger);
+        Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
+        Assert.DoesNotContain(outbound.Recorder.Entries, entry => entry.IsClose);
+        Assert.Contains(outbound.Outcomes(fixture.ConnectionId), outcome => outcome == Dfo.Server.Abstractions.Execution.OutboundOutcome.Failed);
+        Assert.True(await outbound.ClosedAsync(fixture.ConnectionId));
+    }
+
+    /// <summary>
+    /// AC-011, the third wire-level case, at the sender level (TASK-24 ruling 3; on the characterization host the
+    /// requester always lands on the non-shared town gate, so no peer could be told without a production change).
+    /// A selection fails after its publication; the compensation's cleanup plan reaches the real cleanup delivery,
+    /// the peer's cleanup notice is registered, and the requester is closed after it.
+    /// </summary>
+    [Fact]
+    public async Task A_selection_compensated_after_publication_registers_the_peers_cleanup_notice_before_the_close()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        var peer = SelectedSessionIdentity.Create(
+            new AccountId(777), new CharacterId(4243), new NetworkConnectionId("Game:peer"), 1, 10011);
+        var cleanupDelivery = (ICleanupNotificationDelivery)Activator.CreateInstance(
+            typeof(Dfo.Server.Protocol.ProtocolModule).Assembly.GetType(
+                "Dfo.Server.Protocol.Game.StateSynchronization.CleanupNotificationDelivery", throwOnError: true)!,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public,
+            binder: null, args: [outbound.Game, outbound.Projections], culture: null)!;
+        var fixture = await Fixture.CreateAsync(failQuest: true,
+            gameSender: outbound.Game, connectionCloser: outbound.Closer, cleanupDelivery: cleanupDelivery);
+        fixture.Cleanup.Plan = session => new SelectedSessionCleanupNotificationPlan(
+            session.ConnectionId, [], [peer],
+            [new SelectedSessionCleanupNotice(SelectedSessionCleanupNoticeKind.TownDeparture, session.WireUserId)]);
+        outbound.Connect(fixture.Context.Connection);
+        outbound.Connect(peer.ConnectionId);
+
+        await Assert.ThrowsAsync<IOException>(() => outbound.RunAsync(() =>
+            fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None).AsTask()));
+        await outbound.SettledAsync();
+
+        Assert.Contains("cleanup", fixture.Ledger);
+        var entries = outbound.Recorder.Entries.ToList();
+        var notice = entries.FindIndex(entry => entry.Connection.ConnectionId == peer.ConnectionId
+            && entry.Messages.Any(message => message is Dfo.Server.Protocol.Tests.Outbox.XoProjected { Notification: "SessionCleanupAnnounced" }));
+        var close = entries.FindIndex(entry => entry.IsClose && entry.Connection.ConnectionId == fixture.ConnectionId);
+        Assert.True(notice >= 0, "the peer's cleanup notice was registered");
+        Assert.True(close > notice, "the requester is closed after the peer is told");
+        Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundOutcome.Delivered, outbound.Observer.OutcomeOf(entries[notice]));
+        Assert.False(outbound.Transport.IsClosed(peer.ConnectionId));
+        Assert.True(await outbound.ClosedAsync(fixture.ConnectionId));
+    }
+
     [Fact]
     public async Task StaticFailure_DoesNotInvokeDailyRefillMutation()
     {
@@ -655,7 +750,11 @@ public sealed partial class SelectCharacterLifecycleTests
             bool failFirstTownPublication = false,
             bool refuseExpiredCleanup = false,
             bool failExpiredCleanup = false,
-            ITauKingdomDomainService? tau = null)
+            ITauKingdomDomainService? tau = null,
+            IGameMessageSender? gameSender = null,
+            INetworkConnectionCloser? connectionCloser = null,
+            bool failQuest = false,
+            ICleanupNotificationDelivery? cleanupDelivery = null)
         {
             return await TestGameplay.RunAsync(async () =>
             {
@@ -721,7 +820,7 @@ public sealed partial class SelectCharacterLifecycleTests
                     new EmptyCurrentViews(),
                     notifications,
                     partyProjection,
-                    sender,
+                    gameSender ?? sender,
                     new EveryTownMovement());
                 var preparation = refuseAdmission
                     ? null
@@ -741,7 +840,7 @@ public sealed partial class SelectCharacterLifecycleTests
                     new PublishSelectedCharacterSessionCommandHandler(active, sessionEntry),
                     new MarkSelectedCharacterPvpReadyCommandHandler(sessionEntry),
                     new SynchronizeSelectedCharacterQuestsCommandHandler(
-                        new QuestEntry(ledger, changeQuest)),
+                        new QuestEntry(ledger, changeQuest, failQuest)),
                     new ReviveSelectedCharacterPetCommandHandler(
                         new PetEntry(ledger, revivePet)),
                     new CompensateSelectedCharacterSessionCommandHandler(cleanup, directory));
@@ -751,11 +850,11 @@ public sealed partial class SelectCharacterLifecycleTests
                     bus,
                     new StubStateMessageFactory(),
                     directory,
-                    sender,
+                    gameSender ?? sender,
                     notifications,
                     townAreaProjection,
-                    new NoopCleanupDelivery(),
-                    closer,
+                    cleanupDelivery ?? new NoopCleanupDelivery(),
+                    connectionCloser ?? closer,
                     NullLogger<SelectCharacterHandler>.Instance,
                     // These tests describe the full delivery contract, including everything that
                     // follows the entry batch. Production runs the reference sequence instead.
@@ -1111,13 +1210,16 @@ public sealed partial class SelectCharacterLifecycleTests
         }
     }
 
-    private sealed class QuestEntry(List<string> ledger, bool changes) : ISelectCharacterQuestEntryDomainService
+    private sealed class QuestEntry(List<string> ledger, bool changes, bool fails = false) : ISelectCharacterQuestEntryDomainService
     {
         public ValueTask<SelectCharacterQuestSynchronization?> SynchronizeAsync(
             SelectedSessionIdentity session, SelectCharacterResult result,
             CancellationToken cancellationToken)
         {
             ledger.Add("quest");
+            if (fails)
+                return ValueTask.FromException<SelectCharacterQuestSynchronization?>(
+                    new IOException("quest synchronization failed"));
             if (changes)
             {
                 var updated = result with
@@ -1211,6 +1313,9 @@ public sealed partial class SelectCharacterLifecycleTests
         public List<SelectedSessionIdentity?> SelectedOwnersAtCall { get; } = [];
         public SelectedSessionIdentity? FailureSession { get; set; }
 
+        /// <summary>The plan the cleanup hands back; the empty one unless a case needs people around the session.</summary>
+        public Func<SelectedSessionIdentity, SelectedSessionCleanupNotificationPlan>? Plan { get; set; }
+
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
             SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
         {
@@ -1221,7 +1326,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 return ValueTask.FromException<SelectedSessionCleanupNotificationPlan>(
                     new IOException("cleanup failed"));
             _ = directory.ReleaseExact(session);
-            return ValueTask.FromResult(SelectedSessionCleanupNotificationPlan.Empty(session));
+            return ValueTask.FromResult(Plan?.Invoke(session) ?? SelectedSessionCleanupNotificationPlan.Empty(session));
         }
     }
 

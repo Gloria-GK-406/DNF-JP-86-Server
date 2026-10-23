@@ -65,8 +65,7 @@ public sealed class SelectedSessionSafety(IServiceProvider services, ILogger<Sel
             operation, TransactionOutcomeUncertainException.Find(error)?.Reason, recipient.Session.AccountId,
             recipient.Session.CharacterId, recipient.Session.ConnectionId, recipient.Session.ConnectionGeneration, recipient.Metadata?.Sequence, recipient.Metadata?.InboundOrdinal));
         if (recipient.Connection is { } original && services.GetService<INetworkConnectionCloser>() is { } closer)
-            try { await closer.RequestCloseExactAsync(original, CancellationToken.None).ConfigureAwait(false); }
-            catch (Exception close) { TryLog(() => logger.LogError(close, "Scheduling exact uncertain connection close failed")); }
+            await closer.RequestCloseExactAsync(original, CancellationToken.None).ConfigureAwait(false);
     }
     private static void TryLog(Action log) { try { log(); } catch { /* Preserve settlement cause and continue exact close. */ } }
     public async ValueTask<TransactionOutcomeUncertainException> PublicationFailedAsync(

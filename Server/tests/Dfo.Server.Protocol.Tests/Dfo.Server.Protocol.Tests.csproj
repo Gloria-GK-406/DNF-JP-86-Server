@@ -60,5 +60,6 @@
     <Compile Include="../Support/GameplayAssertionRecorder.cs" Link="Support/GameplayAssertionRecorder.cs" />
     <Compile Include="../Support/GameplayAssertionRecorderControlTests.cs" Link="Support/GameplayAssertionRecorderControlTests.cs" />
     <Compile Include="../Support/ProjectionEventService.cs" Link="Support/ProjectionEventService.cs" />
+    <Compile Include="../Support/XoDelivery.cs" Link="Support/XoDelivery.cs" />
   </ItemGroup>
 </Project>

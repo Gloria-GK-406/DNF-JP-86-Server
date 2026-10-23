@@ -40,18 +40,14 @@ internal static class GmCeraEndpoints
         Results.Ok((await commands.SendAsync(new QueryGmCeraCommand(Secret(context), kind, Filter(context), id), context.RequestAborted)).Value);
     private static async Task<IResult> Grant(HttpContext context, ICommandBus commands, IGmCeraReminderDomainService reminders)
     {
-        GmCeraRequest? input = null; var executing = false;
+        GmCeraRequest? input = null; var executing = false; GmCeraGrantResult granted;
         try
         {
             input = await Read(context);
             var normalized = (GmCeraInput)(await commands.SendAsync(new QueryGmCeraCommand(Secret(context), GmCeraQuery.Normalize,
                 id: input.RequestId, input: Input(input)), context.RequestAborted)).Value;
             executing = true;
-            var granted = await commands.SendAsync(new GrantGmCeraCommand(Secret(context), input.RequestId, normalized), context.RequestAborted);
-            var reminder = "attempted";
-            try { using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5)); reminder = await reminders.RemindAsync(granted.Receipt.Input.AccountIds, timeout.Token); }
-            catch (Exception error) { Log(context, error, "Committed GM wallet reminder failed."); reminder = "unconfirmed"; }
-            return Results.Ok(new { granted.Receipt, granted.Replayed, reminder });
+            granted = await commands.SendAsync(new GrantGmCeraCommand(Secret(context), input.RequestId, normalized), context.RequestAborted);
         }
         catch (Exception error)
         {
@@ -67,6 +63,20 @@ internal static class GmCeraEndpoints
             if (uncertain) { Log(context, error, "GM wallet transaction outcome is uncertain."); return Error(500, "结果暂未确认，请用原编号查询或重试。", "unknown"); }
             return Failure(context, error, executing ? "rolledBack" : "rejected");
         }
+        // VC-6: after the commit, outside the grant's failure handling, so a reminder that throws is reported as the
+        // error it is and never recorded as a rolled-back grant; the grant itself stays committed and replays.
+        string reminder;
+        try
+        {
+            using var reminderTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            reminder = await reminders.RemindAsync(granted.Receipt.Input.AccountIds, reminderTimeout.Token);
+        }
+        catch (Exception error)
+        {
+            Log(context, error, "Committed GM wallet reminder failed.");
+            return Error(500, "点券已到账，提醒未能发出；勿新建编号重发。", "unknown");
+        }
+        return Results.Ok(new { granted.Receipt, granted.Replayed, reminder });
     }
     private static async Task<IResult> Safe(HttpContext context, Func<Task<IResult>> action)
     { try { return await action(); } catch (Exception error) when (error is not OperationCanceledException) { return Failure(context, error); } }

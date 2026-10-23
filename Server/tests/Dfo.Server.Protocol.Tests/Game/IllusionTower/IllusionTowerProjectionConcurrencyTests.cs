@@ -550,6 +550,109 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             "the requester entered before the member");
     }
 
+    /// <summary>
+    /// DR-3, VC-3 (TASK-24 T4): a member whose tower entry fails in transport is closed by the sender alone;
+    /// the requester still enters and the delivery registers no close.
+    /// </summary>
+    [Fact]
+    public async Task A_member_whose_transport_fails_is_closed_alone_and_the_requester_still_enters_the_tower()
+    {
+        var requester = Session(1);
+        var member = Session(2);
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(requester, member);
+        outbound.Transport.Fail(member.ConnectionId);
+
+        var entered = await outbound.RunAsync(() => EnterThroughOutboxAsync(outbound, requester, member));
+        await outbound.SettledAsync();
+
+        Assert.True(entered);
+        var memberEntry = outbound.Recorder.Entries.Single(entry => entry.Connection.ConnectionId == member.ConnectionId);
+        var requesterEntry = outbound.Recorder.Entries.Single(entry => entry.Connection.ConnectionId == requester.ConnectionId);
+        Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundOutcome.Failed, outbound.Observer.OutcomeOf(memberEntry));
+        Assert.True(await outbound.ClosedAsync(member.ConnectionId));
+        Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundOutcome.Delivered, outbound.Observer.OutcomeOf(requesterEntry));
+        Assert.False(outbound.Transport.IsClosed(requester.ConnectionId));
+        Assert.DoesNotContain(outbound.Recorder.Entries, entry => entry.IsClose);
+    }
+
+    /// <summary>
+    /// DR-3, the kept entry branch (TASK-24 R3): a member's entry batch cannot be registered (its encoding fails),
+    /// so every isolated member and the requester are closed and the failure is thrown, as before the outbox.
+    /// </summary>
+    [Fact]
+    public async Task A_member_entry_that_cannot_be_registered_isolates_every_member_and_the_requester()
+    {
+        var requester = Session(1);
+        var member = Session(2);
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(requester, member);
+        outbound.Encoder.Fail<Dfo.Server.Protocol.Game.DungeonSelection.EnterSelectDungeonAcknowledgement>(member.ConnectionId);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => outbound.RunFromAsync(
+            requester.ConnectionId, () => EnterThroughOutboxAsync(outbound, requester, member)));
+        await outbound.SettledAsync();
+
+        Assert.True(outbound.CloseRegistered(member.ConnectionId));
+        Assert.True(outbound.CloseRegistered(requester.ConnectionId));
+        Assert.Empty(outbound.Messages(member.ConnectionId));
+        Assert.Empty(outbound.Messages(requester.ConnectionId));
+        Assert.True(await outbound.ClosedAsync(member.ConnectionId));
+        Assert.True(await outbound.ClosedAsync(requester.ConnectionId));
+    }
+
+    /// <summary>
+    /// DR-3, the kept projection branch (TASK-24 R3): one remaining member's departure projection cannot be
+    /// registered; only he is closed, the others keep theirs.
+    /// </summary>
+    [Fact]
+    public async Task A_departure_projection_that_cannot_be_registered_for_one_member_closes_only_him()
+    {
+        var leaving = Session(1);
+        var second = Session(2);
+        var third = Session(3);
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(leaving, second, third);
+        outbound.Encoder.Fail<Dfo.Server.Protocol.Game.DungeonSelection.UdpHostNotification>(second.ConnectionId);
+
+        await outbound.RunAsync(async () =>
+        {
+            var sessions = new Sessions(leaving, second, third);
+            var run = PartyRun(Guid.NewGuid(), leaving, second, third);
+            var towers = new TowerDomain(run with { Room = run.Room with { Phase = TowerRoomPhase.Fighting } });
+            var views = new NoViews();
+            var delivery = new IllusionTowerProjectionDelivery(
+                towers, new Commands(), sessions, null!, views, null!, null!, null!, new Intents(), outbound.Game,
+                new Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery(null!, sessions, views, null!, null!, outbound.Game, null!),
+                TimeProvider.System, outbound.Closer, NullLogger<IllusionTowerProjectionDelivery>.Instance);
+            await delivery.ProjectCommittedDepartureAsync(towers.Leave(leaving), returning: null, response: null, CancellationToken.None);
+        });
+        await outbound.SettledAsync();
+
+        Assert.True(outbound.CloseRegistered(second.ConnectionId));
+        Assert.False(outbound.CloseRegistered(third.ConnectionId));
+        Assert.False(outbound.CloseRegistered(leaving.ConnectionId));
+        Assert.Contains(outbound.Messages(third.ConnectionId), message => message is Dfo.Server.Protocol.Game.DungeonSelection.UdpHostNotification);
+    }
+
+    private static async Task<bool> EnterThroughOutboxAsync(
+        Dfo.Server.Protocol.Tests.Outbox.XoDelivery outbound, SelectedSessionIdentity requester, SelectedSessionIdentity member)
+    {
+        var run = PartyRun(Guid.NewGuid(), requester, member);
+        var towers = new TowerDomain(run);
+        var sessions = new Sessions(requester, member);
+        var views = new EntryViews(requester, member);
+        var roster = EntryRoster(requester, member);
+        var delivery = new IllusionTowerProjectionDelivery(
+            towers, new EntryCommands(run), sessions, new EntryParties(roster), views,
+            new SameState(), null!, null!, new Intents(), outbound.Game,
+            Dfo.Server.Protocol.Tests.Game.TownProjection.TownAreaProjectionTestFactory.Create(sessions, views, outbound.Game),
+            TimeProvider.System, outbound.Closer,
+            NullLogger<IllusionTowerProjectionDelivery>.Instance, ordering: outbound.Ordering);
+        return await delivery.EnterAsync(
+            requester.ConnectionId, requester, roster, Dfo.Server.Abstractions.World.DungeonEntryIntent.Interactive, () => { }, CancellationToken.None);
+    }
+
     private static PartySnapshot EntryRoster(params SelectedSessionIdentity[] members) => new(
         78, 1, 1, members[0].WireUserId,
         new PartySettings(new byte[PartySettings.WireLength]), PartyTitle.Empty,

@@ -25,7 +25,7 @@ internal static class ViolationCapture
     {
         public void OnNext(DiagnosticListener value)
         {
-            if (value.Name == GameplayGateAssertion.DiagnosticSourceName) value.Subscribe(new Events());
+            if (value.Name == GameplayAssertionDiagnostics.DiagnosticSourceName) value.Subscribe(new Events());
         }
 
         public void OnCompleted()

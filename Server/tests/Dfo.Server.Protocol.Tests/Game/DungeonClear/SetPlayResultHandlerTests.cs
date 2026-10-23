@@ -553,6 +553,51 @@ public sealed class SetPlayResultHandlerTests
         Assert.Equal(Dfo.Server.Abstractions.Transactions.TransactionUncertaintyReason.PostCommitPublicationFailure, failure.Reason);
     }
 
+    /// <summary>
+    /// DR-4, VC-4 (TASK-24 T7): the settlement's frames fail in transport after the award committed. The sender
+    /// closes the connection; the handler succeeds, the settlement is neither released nor turned uncertain.
+    /// </summary>
+    [Fact]
+    public async Task A_settlement_whose_frames_fail_in_transport_closes_the_connection_and_stays_settled()
+    {
+        var connection = new NetworkConnectionId("one");
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(connection);
+        outbound.Transport.Fail(connection);
+        var run = new OneRun(default);
+        var bus = new FixedAward(false);
+
+        await outbound.RunFromAsync(connection, async () =>
+        {
+            var session = SelectedSessionIdentity.Create(
+                new AccountId(1), new CharacterId(60), connection, connectionGeneration: 1, listenerPort: 10010);
+            var handler = new SetPlayResultHandler(
+                new OneSession(session),
+                new OneRuntimeSession(Entry()),
+                new OnePlayingCharacter(new SkillPointLedger(true)),
+                run,
+                new PurposeSettlementRules(true),
+                new RecordingCards(),
+                bus,
+                new QuestOfferRefreshDomainService(
+                    new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                outbound.Game,
+                NullLogger<SetPlayResultHandler>.Instance);
+            await handler.HandleAsync(
+                new NetworkDispatchContext(outbound.Context(connection)),
+                new SetPlayResultRequest(default!, ClientRankPoint: 80),
+                CancellationToken.None);
+        });
+        await outbound.SettledAsync();
+
+        Assert.Contains(outbound.Messages(connection), frame => frame is ClearDungeonRewardNotification);
+        Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundOutcome.Failed, Assert.Single(outbound.Outcomes(connection)));
+        Assert.True(await outbound.ClosedAsync(connection));
+        Assert.DoesNotContain(outbound.Recorder.Entries, entry => entry.IsClose);
+        Assert.Equal(1, bus.TimesAsked);
+        Assert.Equal(0, run.ReleaseCount);
+    }
+
     /// <summary>What the character held before the run.</summary>
     private const uint StartingExperience = 1000;
 

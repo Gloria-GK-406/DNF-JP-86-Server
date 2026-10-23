@@ -324,16 +324,8 @@ public sealed class BossTowerPartyCoordinator(
         {
             if (!sessions.IsInWorld(session))
                 continue;
-            try
-            {
-                await connections.RequestCloseAsync(
-                    session.ConnectionId, CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (Exception error)
-            {
-                logger.LogWarning(error,
-                    "Failed to isolate party/tower session {ConnectionId}", session.ConnectionId);
-            }
+            await connections.RequestCloseAsync(
+                session.ConnectionId, CancellationToken.None).ConfigureAwait(false);
         }
     }
 

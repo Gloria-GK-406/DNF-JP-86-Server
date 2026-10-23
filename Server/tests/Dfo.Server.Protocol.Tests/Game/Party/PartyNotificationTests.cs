@@ -268,6 +268,151 @@ public sealed class PartyNotificationTests
         Assert.Equal(-1, outbound.Delivered(Inviter.ConnectionId));
     }
 
+    /// <summary>
+    /// DR-5 (TASK-24 T8): the revision watermark advances when the projection is registered. A member whose
+    /// delivery then fails in transport is closed; the watermark is not moved back.
+    /// </summary>
+    [Fact]
+    public async Task The_watermark_advances_at_registration_and_a_member_whose_delivery_fails_is_closed()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(Inviter, Invitee, Observer);
+        outbound.Transport.Fail(Invitee.ConnectionId);
+        var streams = new PartyProjectionStreamRegistry();
+        var delivery = Delivery(outbound.Projections, streams, outbound.Ordering);
+
+        await outbound.RunAsync(async () => await delivery.DeliverAsync(FormationPlan(), CancellationToken.None));
+        await outbound.SettledAsync();
+
+        Assert.True(await outbound.ClosedAsync(Invitee.ConnectionId));
+        Assert.Equal(Snapshot().Revision, streams.GetOrAdd(Snapshot().Generation).LatestRevision);
+        Assert.DoesNotContain(outbound.Recorder.Entries, entry => entry.IsClose);
+    }
+
+    /// <summary>
+    /// DR-17 (TASK-24 T16): without the stream gate, two party CMDs that complete one after the other register
+    /// and deliver their projections in that order, and the watermark ends on the later revision.
+    /// </summary>
+    [Fact]
+    public async Task Two_party_cmds_deliver_their_projections_in_completion_order_without_a_stream_gate()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(Inviter, Invitee, Observer);
+        outbound.Transport.Slow(Inviter.ConnectionId, TimeSpan.FromMilliseconds(100));
+        var streams = new PartyProjectionStreamRegistry();
+        var delivery = Delivery(outbound.Projections, streams, outbound.Ordering);
+        var later = Snapshot() with { Revision = Snapshot().Revision + 1 };
+
+        await outbound.RunAsync(async () => await delivery.DeliverAsync(FormationPlan(), CancellationToken.None));
+        var first = outbound.Recorder.Entries.Count;
+        await outbound.RunAsync(async () => await delivery.DeliverAsync(
+            new PartyNotificationPlan([], later), CancellationToken.None));
+        await outbound.SettledAsync();
+
+        var entries = outbound.Recorder.Entries;
+        Assert.True(entries.Count > first, "the later CMD registered its projection");
+        Assert.All(entries, entry => Assert.Equal(OutboundOutcome.Delivered, outbound.Observer.OutcomeOf(entry)));
+        var inviterEntries = entries.Where(entry => entry.Connection.ConnectionId == Inviter.ConnectionId).ToList();
+        Assert.Equal(inviterEntries.Count, outbound.Transport.Delivered.Count(id => id == Inviter.ConnectionId.Value));
+        Assert.True(inviterEntries.FindLastIndex(entry => entries.ToList().IndexOf(entry) < first)
+            < inviterEntries.FindIndex(entry => entries.ToList().IndexOf(entry) >= first),
+            "the earlier CMD's inviter entries come before the later CMD's");
+        Assert.Equal(later.Revision, streams.GetOrAdd(later.Generation).LatestRevision);
+    }
+
+    /// <summary>
+    /// Plan R-5 (TASK-24 R5): a recipient whose party projection cannot be composed is composed once more inside
+    /// the same CMD; a second success registers his message once, and nobody else is asked twice.
+    /// </summary>
+    [Fact]
+    public async Task A_party_projection_that_fails_to_compose_once_is_composed_again_inside_the_cmd()
+    {
+        await using var world = new PartyBusWorld(failures: 1);
+
+        var result = await world.Outbound.RunAsync(() => world.PublishAsync());
+        await world.Outbound.SettledAsync();
+
+        Assert.False(result.HasFailures);
+        Assert.Equal(2, world.Rule.Asked[world.Failing.CharacterId]);
+        Assert.Equal(1, world.Rule.Asked[world.Other.CharacterId]);
+        Assert.Single(world.Outbound.Messages(world.Failing.ConnectionId));
+        Assert.Single(world.Outbound.Messages(world.Other.ConnectionId));
+    }
+
+    /// <summary>Plan R-5 (TASK-24 R5): a recipient that fails both compositions is a failure of the stage.</summary>
+    [Fact]
+    public async Task A_party_projection_that_fails_to_compose_twice_reports_the_stage_failed()
+    {
+        await using var world = new PartyBusWorld(failures: 2);
+
+        var result = await world.Outbound.RunAsync(() => world.PublishAsync());
+        await world.Outbound.SettledAsync();
+
+        Assert.True(result.HasFailures);
+        Assert.Equal(2, world.Rule.Asked[world.Failing.CharacterId]);
+        Assert.Empty(world.Outbound.Messages(world.Failing.ConnectionId));
+        Assert.Single(world.Outbound.Messages(world.Other.ConnectionId));
+        Assert.False(world.Outbound.CloseRegistered(world.Failing.ConnectionId));
+    }
+
+    private sealed record PartyProbeChanged(int Revision) : INotification<PartyProbeChanged>;
+
+    private sealed class PartyProbeRule(CharacterId failing, int failures)
+    {
+        public Dictionary<CharacterId, int> Asked { get; } = [];
+
+        public IReadOnlyList<IServerNetworkMessage> Compose(NotificationRecipient recipient)
+        {
+            var asked = Asked[recipient.CharacterId] = Asked.GetValueOrDefault(recipient.CharacterId) + 1;
+            if (recipient.CharacterId == failing && asked <= failures)
+                throw new InvalidOperationException("Injected party composition failure.");
+            return [new Dfo.Server.Protocol.Tests.Outbox.XoProjected(nameof(PartyProbeChanged))];
+        }
+    }
+
+    private sealed class PartyProbeHandler(PartyProbeRule rule) : INotificationHandler<PartyProbeChanged>
+    {
+        public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(
+            NotificationRecipient recipient, PartyProbeChanged notification, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(rule.Compose(recipient));
+    }
+
+    /// <summary>The party's exact-recipient publish over the real event service and notification bus.</summary>
+    private sealed class PartyBusWorld : IAsyncDisposable
+    {
+        public PartyBusWorld(int failures)
+        {
+            var directory = TestSessions.Directory(out var state);
+            Failing = directory.InWorld(state, new AccountId(8101), new CharacterId(8101), "party-probe-1");
+            Other = directory.InWorld(state, new AccountId(8102), new CharacterId(8102), "party-probe-2");
+            Rule = new PartyProbeRule(Failing.CharacterId, failures);
+            Outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery(configure: services =>
+            {
+                Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<ISelectedSessionDomainService>(services, directory);
+                Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services, Rule);
+                Dfo.Server.Application.DomainEvents.DomainEventDispatchingExtensions.AddEventDispatching(services);
+                Dfo.Server.Application.Notifications.NotificationDispatchingExtensions.AddNotificationDispatching(services);
+                Dfo.Server.Application.Notifications.NotificationDispatchingExtensions.AddNotificationHandler<PartyProbeChanged, PartyProbeHandler>(services);
+            });
+            Outbound.Connect(Failing, Other);
+        }
+
+        public Dfo.Server.Protocol.Tests.Outbox.XoDelivery Outbound { get; }
+
+        public PartyProbeRule Rule { get; }
+
+        public SelectedSessionIdentity Failing { get; }
+
+        public SelectedSessionIdentity Other { get; }
+
+        public async Task<PartyExactNotificationDeliveryResult> PublishAsync() =>
+            await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services),
+                [Failing, Other], new PartyProbeChanged(1), CancellationToken.None);
+
+        public ValueTask DisposeAsync() => Outbound.DisposeAsync();
+    }
+
     private static PartyNotificationPlan FormationPlan()
     {
         var snapshot = Snapshot();

@@ -643,32 +643,72 @@ public sealed class PartySelectDungeonHandlerTests
         });
     }
 
+    /// <summary>
+    /// DR-2, the kept branch (TASK-24 R2): the leader's batch cannot be registered (its encoding fails at the
+    /// registration point), after the follower's was. The follower's START_MAP is still delivered when the job
+    /// ends, so he is isolated after it, the leader too, and the entry is rolled back.
+    /// </summary>
     [Fact]
     public async Task A_leader_delivery_failure_isolates_the_member_that_already_received_start_map()
     {
-        await TestGameplay.RunAsync(async () =>
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(Leader, Member);
+        outbound.Encoder.Fail<StartMapNotification>(
+            Leader.ConnectionId, () => new InvalidOperationException("required delivery failed"));
+        TestWorld? world = null;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => outbound.RunFromAsync(Leader.ConnectionId, async () =>
         {
-            var world = World(
-                withTownProjection: true,
-                failRequiredConnection: Leader.ConnectionId);
+            world = World(withTownProjection: true, outbound: outbound);
             world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+        }));
+        await outbound.SettledAsync();
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => world.Handler.HandleAsync(
-                Dispatch(Leader), Request(), CancellationToken.None).AsTask());
+        var entries = outbound.Recorder.Entries.ToList();
+        var memberEntry = entries.IndexOf(EntryOf(outbound, Member));
+        var closes = entries.Where(entry => entry.IsClose).Select(entry => entry.Connection.ConnectionId).ToList();
+        Assert.Equal([Member.ConnectionId, Leader.ConnectionId, Leader.ConnectionId], closes);
+        Assert.True(memberEntry < entries.FindIndex(entry => entry.IsClose),
+            "the follower is isolated after the START_MAP he was already registered");
+        Assert.DoesNotContain(outbound.Messages(Leader.ConnectionId), frame => frame is StartMapNotification);
+        Assert.True(await outbound.ClosedAsync(Member.ConnectionId));
+        Assert.True(await outbound.ClosedAsync(Leader.ConnectionId));
+        Assert.Empty(world!.Registry.Find(world.Visits.RunId));
+        Assert.Equal(
+            [Leader.CharacterId, Member.CharacterId],
+            world.Runs.Ended.OrderBy(value => value.Value));
+        Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
+        Assert.True(Member.Owns(world.Areas.Find(Member.CharacterId)!));
+    }
 
-            Assert.Contains(
-                world.Sender.Messages(Member.ConnectionId),
-                frame => frame is StartMapNotification);
-            Assert.Equal(
-                [Member.ConnectionId, Leader.ConnectionId],
-                world.Closer.Closed);
-            Assert.Empty(world.Registry.Find(world.Visits.RunId));
-            Assert.Equal(
-                [Leader.CharacterId, Member.CharacterId],
-                world.Runs.Ended.OrderBy(value => value.Value));
-            Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
-            Assert.True(Member.Owns(world.Areas.Find(Member.CharacterId)!));
+    /// <summary>
+    /// DR-2, VC-3 (TASK-24 T2): a follower whose entry fails in transport is closed by the sender alone; the
+    /// handler does not see it, the run is not rolled back and the leader is entered.
+    /// </summary>
+    [Fact]
+    public async Task A_follower_whose_transport_fails_is_closed_alone_and_the_party_still_enters()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(Leader, Member);
+        outbound.Transport.Fail(Member.ConnectionId);
+        TestWorld? world = null;
+
+        await outbound.RunFromAsync(Leader.ConnectionId, async () =>
+        {
+            world = World(withTownProjection: true, outbound: outbound);
+            world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
         });
+        await outbound.SettledAsync();
+
+        Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundOutcome.Failed, outbound.Observer.OutcomeOf(EntryOf(outbound, Member)));
+        Assert.True(await outbound.ClosedAsync(Member.ConnectionId));
+        Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundOutcome.Delivered, outbound.Observer.OutcomeOf(EntryOf(outbound, Leader)));
+        Assert.False(outbound.Transport.IsClosed(Leader.ConnectionId));
+        Assert.DoesNotContain(outbound.Recorder.Entries, entry => entry.IsClose);
+        Assert.Empty(world!.Runs.Ended);
+        Assert.Equal(2, world.Registry.Find(world.Visits.RunId).Count);
     }
 
     /// <summary>XO-1: a follower slow within the limit is entered before the requesting leader.</summary>
@@ -741,6 +781,7 @@ public sealed class PartySelectDungeonHandlerTests
         var sender = new Sender(failRequiredConnection);
         IGameMessageSender game = outbound?.Game ?? sender;
         var closer = new RecordingCloser();
+        INetworkConnectionCloser closing = outbound?.Closer ?? closer;
         var areas = new SessionPresenceDomainService();
         foreach (var member in new[] { Leader, Member })
         {
@@ -798,12 +839,12 @@ public sealed class PartySelectDungeonHandlerTests
             new RecordingQuestLogs(),
             fatigue,
             game,
-            closer,
+            closing,
             townProjection,
             NullLogger<SelectDungeonHandler>.Instance,
             entryProjection: outbound is null ? null : new DungeonEntryProjectionDelivery(
                 CurrentCharacterStub.Domain(), state, sessions, new RuntimeCurrentView(runtime), runs, registry,
-                intents, visits, fatigue, game, closer, townProjection,
+                intents, visits, fatigue, game, closing, townProjection,
                 NullLogger<DungeonEntryProjectionDelivery>.Instance, ordering: outbound.Ordering));
         return new TestWorld(
             handler, visits, intents, registry, runs, fatigue, sender, closer, areas);

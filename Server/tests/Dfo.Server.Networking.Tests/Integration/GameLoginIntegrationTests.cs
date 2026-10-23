@@ -697,9 +697,11 @@ public sealed class GameLoginIntegrationTests
         new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
         if (failFirstLoginDelivery)
         {
-            DecorateSingleton<IGameMessageSender>(
+            // TASK-24: the registration point's encoder refuses the first login reply, the failure the
+            // handler's kept branch still sees (the transitional sender double threw at the same call).
+            DecorateSingleton<Dfo.Server.Abstractions.Execution.IOutboundMessageEncoder>(
                 builder.Services,
-                (_, sender) => new FailFirstLoginDelivery(sender));
+                (_, encoder) => new FailFirstLoginEncoding(encoder));
         }
         if (preCommitFault is { } fault)
         {
@@ -754,35 +756,31 @@ public sealed class GameLoginIntegrationTests
         public override DateTimeOffset GetUtcNow() => value;
     }
 
-    private sealed class FailFirstLoginDelivery(IGameMessageSender inner) : IGameMessageSender
+    private sealed class FailFirstLoginEncoding(Dfo.Server.Abstractions.Execution.IOutboundMessageEncoder inner)
+        : Dfo.Server.Abstractions.Execution.IOutboundMessageEncoder
     {
         private int failNext = 1;
 
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId,
-            IGameCmdMessage message,
-            CancellationToken cancellationToken)
+        public byte[] EncodeMessage(NetworkConnectionContext connection, IServerNetworkMessage message)
+        {
+            Check(message);
+            return inner.EncodeMessage(connection, message);
+        }
+
+        public byte[] EncodeBatch(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages)
+        {
+            foreach (var message in messages) Check(message);
+            return inner.EncodeBatch(connection, messages);
+        }
+
+        private void Check(IServerNetworkMessage message)
         {
             if (message is GameLoginResponse
                 && Interlocked.Exchange(ref this.failNext, 0) == 1)
             {
                 throw new IOException("test-injected login delivery failure");
             }
-
-            return inner.SendCmdAsync(connectionId, message, cancellationToken);
         }
-
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId,
-            IGameNotiMessage message,
-            CancellationToken cancellationToken) =>
-            inner.SendNotiAsync(connectionId, message, cancellationToken);
-
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken) =>
-            inner.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
     private enum PrepareFaultKind

@@ -203,7 +203,7 @@ internal static class Violations
     {
         public void OnNext(DiagnosticListener value)
         {
-            if (value.Name == GameplayGateAssertion.DiagnosticSourceName) value.Subscribe(new Events());
+            if (value.Name == GameplayAssertionDiagnostics.DiagnosticSourceName) value.Subscribe(new Events());
         }
 
         public void OnCompleted()

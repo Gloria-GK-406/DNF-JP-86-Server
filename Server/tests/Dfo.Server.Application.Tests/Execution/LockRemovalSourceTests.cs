@@ -10,8 +10,10 @@ namespace Dfo.Server.Application.Tests.Execution;
 /// </summary>
 /// <remarks>
 /// The scan reads the raw text, comments included: a gate name left in a comment misleads the next
-/// reader who greps for gates. Of appendix F's delete column only TASK-24's one item is not named
-/// here yet: the party delivery gates still exist until TASK-24 deletes them and adds their names. A hand-made wait over
+/// reader who greps for gates. Every item of appendix F's delete column is named here; the party
+/// delivery gates by their members (the per-character semaphores here, <c>PartyDeliveryStream.Gate</c> through
+/// the semaphore list, which no longer lists the party file), since the stream itself still carries the
+/// revision watermark (DR-5). A hand-made wait over
 /// <c>TaskCompletionSource</c> is guarded by naming its type, not by scanning for the primitive; a short
 /// <c>lock</c> is kept by appendix F and is not a waiting primitive here, on a <c>System.Threading.Lock</c> as on
 /// any object. Entering a <c>Lock</c> explicitly is recognised by its parameterless <c>Enter</c>,
@@ -35,6 +37,9 @@ public sealed class LockRemovalSourceTests(ITestOutputHelper output)
         "TouchSocketNetworkMessageSender", "ExecutorSendDeadline", "NotificationRetryQueue",
         "NotificationRetryDrainService", "INotificationRetryDrain", "NotificationDeliveryOptions",
         "CloseSupersededAsync", "TouchSocketNetworkConnectionCloser",
+        // T-006 delivery (TASK-24): the party participant gates and the gate assertion that guarded them.
+        "GameplayGateAssertion", "GameplayGateWaitException", "EnterParticipantsAsync", "PartyParticipantLease",
+        "participantGates",
     ];
 
     /// <summary>Waiting primitives other than <c>SemaphoreSlim</c>; none is allowed anywhere.</summary>
@@ -56,8 +61,6 @@ public sealed class LockRemovalSourceTests(ITestOutputHelper output)
     private static readonly IReadOnlyDictionary<string, (int Count, string Reason)> Semaphores =
         new Dictionary<string, (int Count, string Reason)>(StringComparer.Ordinal)
     {
-        ["Dfo.Server.Protocol/Game/Party/PartyNotificationSlice.cs"] = (5, "party delivery gates (DR-17); T-006 deletes"),
-        ["Dfo.Server.Abstractions/Execution/GameplayAssertions.cs"] = (1, "GameplayGateAssertion.Enter takes the party gate; T-006 deletes"),
         ["Dfo.Server.Application/Events/JoustRuleService.cs"] = (1, "rule initialization (appendix F keep); stays"),
         ["Dfo.Server.Application/Characters/CharacterStatRuleService.cs"] = (1, "rule initialization (appendix F keep); stays"),
         ["Dfo.Server.Application/Authentication/PasswordComputationLimiter.cs"] = (2, "password hashing limit off the executor (RQ-007); stays"),

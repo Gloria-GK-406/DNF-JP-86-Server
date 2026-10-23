@@ -105,64 +105,6 @@ public sealed class PartyTownProjectionDeliveryTests
         });
     }
 
-    // Transition rule 2 on the read-repair paths: the generation's stream gate is never waited on. A lease
-    // left behind by an earlier job stands in for the contention; each case reports one gate-wait violation.
-    [Fact]
-    public async Task A_read_repair_finding_its_stream_gate_taken_fails_the_job_at_once()
-    {
-        var streams = new PartyProjectionStreamRegistry();
-        var stream = streams.GetOrAdd(7);
-        Assert.True(stream.Gate.Wait(0));
-        var bus = new RecordingNotificationBus();
-        var delivery = new PartyTownProjectionDelivery(
-            new StubParties((Leader, Snapshot(revision: 3))),
-            Presence(),
-            new FixedSelectedSessions(),
-            bus,
-            streams);
-
-        await Assert.ThrowsAsync<GameplayGateWaitException>(() => TestGameplay.RunAsync(async () =>
-            await delivery.RefreshObservedPartiesAsync([Observer], [Leader], CancellationToken.None))
-            .WaitAsync(TimeSpan.FromSeconds(10)));
-        Assert.Empty(bus.Publications);
-
-        stream.Gate.Release();
-        await TestGameplay.RunAsync(async () =>
-            await delivery.RefreshObservedPartiesAsync([Observer], [Leader], CancellationToken.None));
-        Assert.Single(bus.Publications);
-    }
-
-    [Fact]
-    public async Task A_moved_party_refresh_finding_its_stream_gate_taken_fails_the_job_at_once()
-    {
-        var snapshot = Snapshot(revision: 4) with
-        {
-            Members = ImmutableArray.Create(
-                new PartyMemberSnapshot(
-                    new PartyCharacterSnapshot(
-                        Leader.AccountId, Leader.CharacterId, Leader.WireUserId, new PartyDirectoryScope(11, 1, 2)),
-                    1, null, 100),
-                new PartyMemberSnapshot(Character(Member), 0, null, 100)),
-        };
-        var streams = new PartyProjectionStreamRegistry();
-        var stream = streams.GetOrAdd(snapshot.Generation);
-        Assert.True(stream.Gate.Wait(0));
-        var bus = new RecordingNotificationBus();
-        var delivery = new PartyTownProjectionDelivery(
-            new StubParties((Leader, snapshot), (Member, snapshot)),
-            MovedPresence(),
-            new FixedSelectedSessions(),
-            bus,
-            streams);
-
-        await Assert.ThrowsAsync<GameplayGateWaitException>(() => TestGameplay.RunAsync(async () =>
-            await delivery.RefreshMovedPartyAsync(Leader, new PartyDirectoryScope(11, 1, 1), CancellationToken.None))
-            .WaitAsync(TimeSpan.FromSeconds(10)));
-
-        Assert.Empty(bus.Publications);
-        stream.Gate.Release();
-    }
-
     [Fact]
     public async Task ACommittedRevisionStillRefreshesANewObserverButAnOlderSnapshotDoesNot()
     {

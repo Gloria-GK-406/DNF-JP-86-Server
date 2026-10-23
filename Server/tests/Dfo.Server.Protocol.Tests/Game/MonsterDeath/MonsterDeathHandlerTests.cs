@@ -1032,6 +1032,50 @@ public sealed class MonsterDeathHandlerTests
             Assert.Equal(2,bus.Commands.Count);
         });
     }
+    /// <summary>
+    /// DR-4, VC-4 (TASK-24 T5): after the commit, one participant's death batch fails in transport. The sender
+    /// closes only his connection; the CMD succeeds and nobody in the run is fenced.
+    /// </summary>
+    [Fact]
+    public async Task A_participant_whose_death_batch_fails_in_transport_is_closed_alone_and_nobody_is_fenced()
+    {
+        var leader = SelectedSessionIdentity.Create(new(1),new(60),new("leader"),1,10010);
+        var member = SelectedSessionIdentity.Create(new(2),new(61),new("member"),1,10011);
+        var run = new PartyRun([new(leader.AccountId,leader.CharacterId,0,true),new(member.AccountId,member.CharacterId,1,false)]);
+        var registry = new DungeonRunDeliveryRegistry(); registry.Register(run.RunId,[leader,member]);
+        var sessions = new PartySessions([leader,member]);
+        var bus = new PartyKillBus(); var killRules = new OneClearedBossMonster();
+        var users = new RecipientConnections([leader,member]);
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery(configure: services =>
+        {
+            Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<ISelectedSessionDomainService>(services,sessions);
+            Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService>(services,users);
+        });
+        outbound.Connect(leader, member);
+        outbound.Transport.Fail(member.ConnectionId);
+        var safety = new SelectedSessionSafety(outbound.Services, NullLogger<SelectedSessionSafety>.Instance);
+
+        await outbound.RunFromAsync(leader.ConnectionId, async () =>
+        {
+            var handler = CreateHandler(sessions,new PartyRuntimeSessions([leader,member]),new PartyCharacters([leader.CharacterId,member.CharacterId]),
+                run,killRules,new DungeonClearDomainService(run,killRules),new DungeonClearProjectionDelivery(sessions,run,registry,outbound.Game),bus,
+                new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain()),
+                registry,outbound.Game,ExperienceDiagnostics.None,NullLogger<MonsterDeathHandler>.Instance,safety:safety);
+            await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default);
+        });
+        await outbound.SettledAsync();
+
+        Assert.Contains(outbound.Messages(member.ConnectionId), frame => frame is MonsterDeathNotification);
+        Assert.Contains(outbound.Messages(leader.ConnectionId), frame => frame is MonsterDeathNotification);
+        Assert.True(await outbound.ClosedAsync(member.ConnectionId));
+        Assert.False(outbound.Transport.IsClosed(leader.ConnectionId));
+        Assert.DoesNotContain(outbound.Recorder.Entries, entry => entry.IsClose);
+        Assert.False(((ISelectedSessionDomainService)sessions).StandingOf(member)?.Fenced);
+        Assert.False(((ISelectedSessionDomainService)sessions).StandingOf(leader)?.Fenced);
+        Assert.False(safety.IsBlocked(users.Connections[member.ConnectionId]));
+        Assert.False(safety.IsBlocked(users.Connections[leader.ConnectionId]));
+    }
+
     private sealed class RecipientConnections : Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService
     {
         private readonly Dictionary<NetworkConnectionId,OnlineUserSnapshot> users;
