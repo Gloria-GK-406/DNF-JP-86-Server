@@ -4505,25 +4505,34 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/CeraShopPurchaseCommand.cs",
-          "line": 16,
-          "source_sha256": "74e8290a80c9dac84257bd5a48fe6c5e66cb1abdbe5134c460184d0496cfeb0d"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "Original handler plus one Transactional fine; normal refusal commits, ordinary action/commit rollback maps original ACK; old C1/C2/C3 swallowed under broad handler catch.",
+          "new": "One GameCeraShopPurchaseCommand<CeraShopPurchaseResult>, one Ordinary WriteResultAsync with NonRequest (no Main/operation ledger/replay). Narrow clock/domain RequireRollback(originalCause), or runner KnownStorage native commit-only CommitRolledBack after healthy cleanup; normal domain refusal remains Committed.",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/GameCeraShopPurchaseCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CeraShopPurchaseProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/after-02/scope.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/cross-run-equivalence.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/mutation/result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/task-plan-r2-prefix.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-29.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/CeraShopPurchaseCommand.cs",
-          "line": 16,
-          "source_sha256": "74e8290a80c9dac84257bd5a48fe6c5e66cb1abdbe5134c460184d0496cfeb0d"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "Old CeraShopPurchaseCommand CLR, handler, Transactional registration and all production/test callers removed; unique whole owns logical65600."
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/GameCeraShopPurchaseCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/CeraShopPurchaseProtocolCommandFlowTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/after-02/scope.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/cross-run-equivalence.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/mutation/result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/task-plan-r2-prefix.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.CeraShopPurchase.CeraShopPurchaseCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.CeraShopPurchase.CeraShopPurchaseCommand",
@@ -4549,32 +4558,57 @@
         },
         "result": "Dfo.Server.Data.Inventory.CeraShopPurchaseResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/CeraShopPurchaseCommand.cs",
-          "line": 16,
-          "source_sha256": "74e8290a80c9dac84257bd5a48fe6c5e66cb1abdbe5134c460184d0496cfeb0d"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/CeraShopPurchaseCommand.cs",
-          "line": 16,
-          "source_sha256": "74e8290a80c9dac84257bd5a48fe6c5e66cb1abdbe5134c460184d0496cfeb0d"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/CeraShopPurchaseCommand.cs",
-          "line": 16,
-          "source_sha256": "74e8290a80c9dac84257bd5a48fe6c5e66cb1abdbe5134c460184d0496cfeb0d"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Original handler sends old fine; fixture directly invokes fine; Host HTTP/grant competition sends fine.",
+          "new": "Thin handler only awaits unique whole; Cera Handle uses registered decoder and same-provider dispatcher outside job. Buy/Command helpers are explicit real domain+original Tx+existing TestEffectFootprints.Lease test seams preserving all original throws/stale assertions; NameTag setup job split; Host actual HTTP and three whole receipts retained.",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/GameCeraShopPurchaseCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CeraShopPurchaseProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/after-02/scope.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/cross-run-equivalence.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/mutation/result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/task-plan-r2-prefix.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "Original selected buyer and real same-database SQLite facets, lifecycle, event batch and configured domain participants.",
+          "new": "Exactly one SelectedSessionRecipient with captured buyer identity, original physical dispatch context and explicit input metadata; real domain dynamic participants unchanged. C1/C2/C3 default exact Fence/physical Block/DiscardExact/source close; replacement identity/runtime/other physical preserved.",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/GameCeraShopPurchaseCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CeraShopPurchaseProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/after-02/scope.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/cross-run-equivalence.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/mutation/result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/task-plan-r2-prefix.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "Original domain checks, full cart atomicity, receipt and original encoder/projection order. Old controlled nonfallible/rollback/fine-scope failures returned refusal without buyer protection.",
+          "new": "Original domain/encoder/notification bytes unchanged. Action1811 and real nativeCommit787 complete all-column rollback retain original ACK1/noFence/noClose; cancellation/typed/sticky stay failures. Approved VC-B4 C1/C2/C3 keep typed causes and protect exact actor. Actual whole scope may send registered committed success frames before exact close; no ordinary StorageFailure ACK.",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/GameCeraShopPurchaseCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CeraShopPurchaseProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/after-02/scope.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/cross-run-equivalence.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/mutation/result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/task-plan-r2-prefix.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-29.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/GameCeraShopPurchaseCommand.cs",
+          "purpose": "Unique Cera NonEffect whole preserves normal purchase/refusal and approved precise buyer failure protection."
+        }
+      ]
     },
     {
       "actual_units": {
@@ -21310,26 +21344,35 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/CeraShopPurchaseHandler.cs",
-          "line": 16,
-          "source_sha256": "6d9d4e01a71b7d42dfdbe9586dfb0866a9412ecdf3a84019b47be6e5b2e5a971"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "Original handler plus one Transactional fine; normal refusal commits, ordinary action/commit rollback maps original ACK; old C1/C2/C3 swallowed under broad handler catch.",
+          "new": "One GameCeraShopPurchaseCommand<CeraShopPurchaseResult>, one Ordinary WriteResultAsync with NonRequest (no Main/operation ledger/replay). Narrow clock/domain RequireRollback(originalCause), or runner KnownStorage native commit-only CommitRolledBack after healthy cleanup; normal domain refusal remains Committed.",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/GameCeraShopPurchaseCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CeraShopPurchaseProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/after-02/scope.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/cross-run-equivalence.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/mutation/result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/task-plan-r2-prefix.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-29.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/CeraShopPurchaseHandler.cs",
-          "line": 16,
-          "source_sha256": "6d9d4e01a71b7d42dfdbe9586dfb0866a9412ecdf3a84019b47be6e5b2e5a971"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/GameCeraShopPurchaseCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/GameCeraShopPurchaseCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/CeraShopPurchaseProtocolCommandFlowTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/after-02/scope.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/cross-run-equivalence.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/mutation/result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/task-plan-r2-prefix.md"
+      ],
       "id": "message:65600",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.CeraShopPurchase.CeraShopPurchaseHandler",
@@ -21351,35 +21394,60 @@
         "telemetry": false,
         "value": 65600
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/CeraShopPurchaseHandler.cs",
-          "line": 16,
-          "source_sha256": "6d9d4e01a71b7d42dfdbe9586dfb0866a9412ecdf3a84019b47be6e5b2e5a971"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/CeraShopPurchaseHandler.cs",
-          "line": 16,
-          "source_sha256": "6d9d4e01a71b7d42dfdbe9586dfb0866a9412ecdf3a84019b47be6e5b2e5a971"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/CeraShopPurchaseHandler.cs",
-          "line": 16,
-          "source_sha256": "6d9d4e01a71b7d42dfdbe9586dfb0866a9412ecdf3a84019b47be6e5b2e5a971"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Original handler sends old fine; fixture directly invokes fine; Host HTTP/grant competition sends fine.",
+          "new": "Thin handler only awaits unique whole; Cera Handle uses registered decoder and same-provider dispatcher outside job. Buy/Command helpers are explicit real domain+original Tx+existing TestEffectFootprints.Lease test seams preserving all original throws/stale assertions; NameTag setup job split; Host actual HTTP and three whole receipts retained.",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/GameCeraShopPurchaseCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CeraShopPurchaseProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/after-02/scope.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/cross-run-equivalence.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/mutation/result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/task-plan-r2-prefix.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "Original selected buyer and real same-database SQLite facets, lifecycle, event batch and configured domain participants.",
+          "new": "Exactly one SelectedSessionRecipient with captured buyer identity, original physical dispatch context and explicit input metadata; real domain dynamic participants unchanged. C1/C2/C3 default exact Fence/physical Block/DiscardExact/source close; replacement identity/runtime/other physical preserved.",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/GameCeraShopPurchaseCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CeraShopPurchaseProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/after-02/scope.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/cross-run-equivalence.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/mutation/result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/task-plan-r2-prefix.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "Original domain checks, full cart atomicity, receipt and original encoder/projection order. Old controlled nonfallible/rollback/fine-scope failures returned refusal without buyer protection.",
+          "new": "Original domain/encoder/notification bytes unchanged. Action1811 and real nativeCommit787 complete all-column rollback retain original ACK1/noFence/noClose; cancellation/typed/sticky stay failures. Approved VC-B4 C1/C2/C3 keep typed causes and protect exact actor. Actual whole scope may send registered committed success frames before exact close; no ordinary StorageFailure ACK.",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/GameCeraShopPurchaseCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CeraShopPurchaseProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/after-02/scope.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/cross-run-equivalence.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/mutation/result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-29-inspection/task-plan-r2-prefix.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.CeraShopPurchase.CeraShopPurchaseCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-29.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/GameCeraShopPurchaseCommand.cs",
+          "purpose": "Unique Cera NonEffect whole preserves normal purchase/refusal and approved precise buyer failure protection."
+        }
+      ]
     },
     {
       "actual_units": {

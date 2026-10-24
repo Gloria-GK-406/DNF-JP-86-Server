@@ -7,6 +7,10 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Transactions;
+using Dfo.Server.Application.Tests.Support;
+using Dfo.Server.Networking.Runtime;
+using System.Runtime.CompilerServices;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
@@ -558,21 +562,71 @@ internal sealed class CeraShopFixture : IDisposable
                     Host.Services.GetRequiredService<IItemDomainStore>(), Host.Services.GetRequiredService<IDomainTransactionAccessor>(), Host.Services.GetRequiredService<IItemPlacementRuleService>(), Host.Services.GetRequiredService<IItemSlotRuleService>())));
     }
     public Task<CeraShopPurchaseResult> Buy(params CeraShopPurchaseEntry[] entries) => Command(Host.Session, entries);
-    public async ValueTask Handle(CeraShopPurchaseInput input) => await TestGameplay.RunAsync(Host.Services, async () =>
-    {
-        var request = new CeraShopPurchaseRequest(GameMessageMetadata.Empty, input);
-        using var authorization = Host.Services.GetRequiredService<Dfo.Server.Application.Commands.NetworkCommandAuthorization>().Enter(
-            () => true, request.Metadata, Dfo.Server.Application.Commands.NetworkCommandAuthorization.MessageCategory.NonEffect);
-        await Host.Services.GetRequiredService<CeraShopPurchaseHandler>().HandleAsync(new(Host.Connection), request, default);
-    });
+    public async ValueTask Handle(CeraShopPurchaseInput input) =>
+        _ = await CeraPurchaseWire.SendAsync(Host, input);
     public byte[] Encode(IServerNetworkMessage message)
     {
         var registration = Host.Services.GetServices<ServerMessageEncoderRegistration>().Single(value => value.MessageType == message.GetType());
         var encoder = (IServerMessageEncoder)Host.Services.GetRequiredService(registration.EncoderType);
         return Assert.Single(encoder.Encode(message));
     }
+    // Domain/transaction evidence: deliberately preserves original raw domain failures and stale-session inputs.
     public Task<CeraShopPurchaseResult> Command(SelectedSessionIdentity session, params CeraShopPurchaseEntry[] entries) =>
-        Host.Services.GetRequiredService<ICommandBus>().SendAsync(new CeraShopPurchaseCommand(Host.OnlineUser, session,
-            CeraShopTestContent.Input(entries))).AsTask();
+        TestGameplay.RunAsync(Host.Services, async () =>
+        {
+            await using var transaction = Host.Services.GetRequiredService<DomainTransactionScope>().Begin();
+            using var footprint = new TestEffectFootprints.Lease(session);
+            try
+            {
+                var result = await Host.Services.GetRequiredService<ICeraShopDomainService>().PurchaseAsync(session,
+                    CeraShopTestContent.Input(entries), Host.Clock.GetUtcNow(), footprint, default);
+                await transaction.CommitAsync(default);
+                return result;
+            }
+            catch (Exception cause)
+            {
+                await transaction.AbortAsync(cause);
+                throw;
+            }
+        });
     public void Dispose() => Host.Dispose();
+}
+
+internal static class CeraPurchaseWire
+{
+    private sealed class State { internal ushort Sequence; internal readonly GameInboundFrameCounter Counter = new(); }
+    private static readonly ConditionalWeakTable<ShopFixture, State> states = new();
+    internal static async ValueTask<CeraShopPurchaseRequest> SendAsync(ShopFixture host,
+        CeraShopPurchaseInput input, ushort? sequence = null, CancellationToken ct = default)
+    {
+        var body = Body(input);
+        var state = states.GetOrCreateValue(host);
+        var seq = sequence ?? ++state.Sequence;
+        var (ordinal, fresh) = state.Counter.Observe(seq);
+        var metadata = new GameMessageMetadata(1, 0x0040, 0, seq) { InboundOrdinal = ordinal, SequenceIsFresh = fresh };
+        metadata = metadata.WithRawBody(body);
+        var registration = host.Services.GetServices<GameMessageDecoderRegistration>().Single(x => x.Selector == 1 && x.Type == 0x0040);
+        var decoded = Assert.IsType<CeraShopPurchaseRequest>(((IGameMessageDecoder)host.Services.GetRequiredService(registration.DecoderType)).Decode(metadata, body));
+        Assert.Same(metadata, decoded.Metadata);
+        await host.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(host.Connection), decoded, ct);
+        return decoded;
+    }
+    internal static byte[] Body(CeraShopPurchaseInput input)
+    {
+        // InvalidReason is a decoder diagnostic, never an invented wire field.
+        if (input.InvalidReason is not null) return [input.Header0, input.Header1, 1, input.CouponIndicator];
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream);
+        writer.Write(input.Header0); writer.Write(input.Header1); writer.Write(checked((byte)input.Entries.Length)); writer.Write(input.CouponIndicator);
+        foreach (var entry in input.Entries)
+        {
+            writer.Write(entry.Mode); writer.Write(entry.Attribute); writer.Write(entry.Variant); writer.Write(entry.ProductId);
+            writer.Write(checked((byte)entry.AvatarChoices.Length));
+            foreach (var choice in entry.AvatarChoices) { writer.Write(choice.ItemId); writer.Write(choice.Ability); }
+            writer.Write(checked((byte)entry.Selections.Length));
+            foreach (var choice in entry.Selections) { writer.Write(choice.PackageItemId); writer.Write(choice.GroupIndex); writer.Write(choice.SelectionIndex); }
+            writer.Write(entry.CouponItemId); writer.Write(entry.CouponSlot);
+        }
+        return stream.ToArray();
+    }
 }

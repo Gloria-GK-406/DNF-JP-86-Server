@@ -141,9 +141,9 @@ public sealed class NameTagPurchaseTests
     [Fact]
     public async Task Purchase_refresh_reaches_nearby_players_but_private_purchase_ack_stays_with_buyer()
     {
-        await TestGameplay.RunAsync(async () =>
+        using var shop = Synthetic();
+        await TestGameplay.RunAsync(shop.Host.Services, () =>
         {
-            using var shop = Synthetic();
             var registry = shop.Host.Services.GetRequiredService<OnlineStateRegistry>();
             var connection = new NetworkConnectionContext(new("name-tag-peer"), NetworkEndpointKind.Game, 10011);
             var user = registry.RegisterConnection(connection);
@@ -155,12 +155,13 @@ public sealed class NameTagPurchaseTests
             shop.Host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(peer);
             shop.Host.Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(peer.CharacterId,
                 peer.TownAreaLease(), new(1, 0, 0), new(0, 0, 0, 0, 0), true));
-            await shop.Handle(CeraShopTestContent.Input(CeraShopTestContent.Entry(First)));
-            Assert.Equal(2, shop.Host.Sender.Messages.Count(m => m.GetType().Name == "CurrentUserStateMessage"));
-            Assert.Single(shop.Host.Sender.Messages, m => m.GetType().Name == "ExtendedUserStateMessage");
-            Assert.Single(shop.Host.Sender.Messages, m => m.GetType().Name == "CeraShopPurchaseResponse");
-            Assert.Single(shop.Host.Sender.Messages, m => m.GetType().Name == "CeraBalanceUpdateMessage");
+            return Task.CompletedTask;
         });
+        await shop.Handle(CeraShopTestContent.Input(CeraShopTestContent.Entry(First)));
+        Assert.Equal(2, shop.Host.Sender.Messages.Count(m => m.GetType().Name == "CurrentUserStateMessage"));
+        Assert.Single(shop.Host.Sender.Messages, m => m.GetType().Name == "ExtendedUserStateMessage");
+        Assert.Single(shop.Host.Sender.Messages, m => m.GetType().Name == "CeraShopPurchaseResponse");
+        Assert.Single(shop.Host.Sender.Messages, m => m.GetType().Name == "CeraBalanceUpdateMessage");
     }
 
     [SkippableFact]

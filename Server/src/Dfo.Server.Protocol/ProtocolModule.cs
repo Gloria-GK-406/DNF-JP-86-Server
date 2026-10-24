@@ -722,8 +722,8 @@ public sealed class ProtocolModule : IServerModule
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameBuyItem, typeof(BuyItemRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameBuyItem, typeof(HousingBuyItemRequest)));
-        services.AddCommandHandler<CeraShopPurchaseCommand, CeraShopPurchaseResult, CeraShopPurchaseCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameCeraShopPurchaseCommand, CeraShopPurchaseResult, GameCeraShopPurchaseCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameCeraShopPurchase, typeof(CeraShopPurchaseRequest)));
         services.AddProtocolCommandHandler<GameMagicBoxBatchOpeningCommand, MagicBoxOpeningResult, GameMagicBoxBatchOpeningCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameMagicBoxBatchOpening, typeof(MagicBoxBatchOpeningRequest)));
@@ -976,7 +976,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<LevelUpTicketHandler>(ClientMessageType.GameLevelUpTicket);
         services.RegisterProtocolMessageHandler<BuyItemHandler, BuyItemRequest, GameBuyItemCommand>(ClientMessageType.GameBuyItem,
             typeof(BuyItemRequest), typeof(HousingBuyItemRequest));
-        services.RegisterMessageHandler<CeraShopPurchaseHandler>(ClientMessageType.GameCeraShopPurchase);
+        services.RegisterProtocolMessageHandler<CeraShopPurchaseHandler, CeraShopPurchaseRequest, GameCeraShopPurchaseCommand>(ClientMessageType.GameCeraShopPurchase);
         services.RegisterProtocolMessageHandler<MagicBoxBatchOpeningHandler, MagicBoxBatchOpeningRequest, GameMagicBoxBatchOpeningCommand>(ClientMessageType.GameMagicBoxBatchOpening);
         services.RegisterProtocolMessageHandler<MagicBoxSingleOpeningHandler, MagicBoxSingleOpeningRequest, GameMagicBoxSingleOpeningCommand>(ClientMessageType.GameMagicBoxSingleOpening);
         services.RegisterMessageHandler<VendingMachineHandler>(ClientMessageType.GameVendingMachine);

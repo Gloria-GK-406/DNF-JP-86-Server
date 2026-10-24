@@ -284,7 +284,7 @@ public sealed class GmCeraHttpTests
         var user=await GmPlayerDirectoryHttpTests.ConnectAsync(host,1,21011);var session=GmPlayerDirectoryHttpTests.Publish(host,user,1,1,21011);
         var csrf=await Login(host);var commands=host.Services.GetRequiredService<ICommandBus>();
         var grants=Enumerable.Range(0,3).Select(_=>host.PostAsync("/api/gm/v1/cera/grant",csrf,Payload(Guid.NewGuid(),[1,1]))).ToArray();
-        var purchases=Enumerable.Range(0,3).Select(_=>commands.SendAsync(new CeraShopPurchaseCommand(user.OnlineUserId,session,new(0,0,0,[new(0,255,255,100039,[],[])]))).AsTask()).ToArray();
+        var purchases=Enumerable.Range(0,3).Select(_=>commands.SendAsync(new GameCeraShopPurchaseCommand(new(user.Connection),new(new Dfo.Server.Data.Networking.GameMessageMetadata(1,0x0040,0,1),new(0,0,0,[new(0,255,255,100039,[],[])])))).AsTask()).ToArray();
         await Task.WhenAll(grants.Cast<Task>().Concat(purchases));var responses=await Task.WhenAll(grants);var bought=await Task.WhenAll(purchases);
         Assert.All(responses,x=>Assert.Equal(HttpStatusCode.OK,x.StatusCode));Assert.All(bought,x=>Assert.NotNull(x.Receipt));foreach(var r in responses)r.Dispose();
         Assert.Equal(new[]{"97810:0:0"},await host.ReadAsync("SELECT cera||':'||token_cera||':'||happy_token_cera FROM accounts WHERE account_id=1;"));

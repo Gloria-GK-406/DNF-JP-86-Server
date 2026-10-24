@@ -371,3 +371,14 @@ Level→Default有效mutation 1行为RED+2可达正控，finally逐byte恢复3/3
 真正before55项封后才产品：原strong App249/Protocol106及21真实wire观察；新strong249/107。21原新54全列资产快照/258具名SQL时间和GUID双射/DeliveryFK，真实双端action19/1811与sameparticipant nativeCommit19/787、source已扣/完整UID-core-BLOB-null回滚及同seqretry。noWrite encoder原rawSame；normalCommitted成功与拒绝的encoder oldraw→既有默认typed innerSame两处壳差异明列，实际rootchain/EndedAJob/精确sourcecloseSame/nofence和资产结果保，不增第四raw。受控wear/currentview baseline+真实库存/Housing正常null只证明本族顺序，不冒生产全量投影或A21。
 
 restatement guard mutation导致真实物品逆向回65资产RED、fresh drag正控pass，finally原domainbytes恢复同2目标2pass。finalfreeze01 27present/0文件删除；Release0/0与八fresh full/七实际controls，原8991逐display/status/multiplicity全保N=22/D=0→9013=8993pass+原Dim2fail+18skip，DFO74/7/outside-exe-orphan0，Golden15/Char10。actual173/201只有65555/一fine→whole，其它families/三许可owner精确。完整NUL14793=22owned+14771nonowned，排actualcanonical2键后14769SHA同。Host01唯一channel端口False断言原raw保留，邻近bind48仅旁证/未证明具体端口竞争者或唯一根因；samefreeze无filterHost02全203pass，最终按02选取同203显示名/参数/重数，无新增baseline豁免。T012单CMD2秒/Astra/Spec终局/主控checkpoint后继。
+
+
+## TASK29 r2 — Cera 普通购买整协议与精确买家失败保护
+
+仅闭 `message:65600` 与 `command:Dfo.Server.Protocol.Game.CeraShopPurchase.CeraShopPurchaseCommand`。唯一 GameCeraShopPurchaseCommand 返回原非空结果，薄 handler 仅入队，旧 fine／注册／caller 删除；一次 Ordinary WriteResultAsync、NonRequest、唯一买家含原 physical context 与显式 metadata，无 Main／操作账本／重放／新 raw。正常拒绝仍 Committed；窄 clock/domain 普通异常 RequireRollback 保因，真实 KnownStorage nativeCommit787 确认回滚后映原 ACK1，健康均不围栏关闭。
+
+按已批准 VC-B4，C1 nonfallible、C2 SQL＋第二 rollback cause、C3 真 whole scope Dispose 均保 typed 原因、精确 Fence／Block／DiscardExact／原来源实际关闭及原调用链；C3 已登记成功帧按原 sender 顺序先发后关，替代身份／运行态／另一 physical 保留。原 Buy/Command 强断言改真实 domain＋事务＋现 TestEffectFootprints 测试接缝，Handle 真 decoder→同 provider dispatcher；NameTag setup job 与入口分开，Host 真 HTTP grants＋三次 whole receipt／97810／三 operation 保。
+
+取证与具名跨 run 时间／GUID 校验、原子回滚、消费者 mutation、最终 full／DFO／capture／完整所有权及局限见 TASK-29 Result 和 `verification/evidence/task-29-inspection/`。仅这一逻辑消息与原 fine 两行闭合，其它 canonical 行不变；required 独立 review 与主控 checkpoint 后继，非 Spec002 整体完成。
+
+本单元具体证据文件：`verification/evidence/task-29-inspection/after-02/scope.json`（实际关闭链／出站次序）、`verification/evidence/task-29-inspection/mutation/result.json`（消费者变异与恢复）。原目录 locator 的 preclose01 拒绝保留；仅将两 Cera 行定位器修正为文件，运行时源码与正式全量 freeze01 相同，最终 freeze02 另记此治理差异。
