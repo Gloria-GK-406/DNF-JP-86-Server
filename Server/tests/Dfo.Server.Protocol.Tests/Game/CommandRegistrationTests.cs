@@ -34,6 +34,20 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Other_detail_is_bound_to_one_protocol_command_with_its_exact_request()
+    {
+        using var provider = BuildProductionGraph();
+        var registration = Assert.Single(provider.GetServices<CommandHandlerRegistration>(),
+            row => row.CommandType == typeof(GameOtherCharacterDetailCommand));
+        Assert.Equal(CommandRouteKind.Protocol, registration.Route);
+        Assert.Equal(CommandExecutionKind.Direct, registration.ExecutionKind);
+        var binding = Assert.Single(registration.ProtocolMessages!);
+        Assert.Equal(ClientMessageType.GameGetOtherCharacterDetail, binding.MessageType);
+        Assert.Equal(typeof(GetOtherCharacterDetailRequest), binding.MessageClrType);
+        Assert.NotNull(provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>());
+    }
+
+    [Fact]
     public void Every_registered_command_handler_resolves_from_the_production_graph()
     {
         using var provider = BuildProductionGraph();

@@ -3360,25 +3360,32 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/OtherCharacterDetailSlice.cs",
-          "line": 21,
-          "source_sha256": "a7212d938b1492e13d79da2b0e788c88de8b9332ce976bd959bfb4eabe59a5f3"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/old-OtherCharacterDetailSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameOtherCharacterDetailCommand.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/AccountRoster/OtherCharacterDetailFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+          ],
+          "new": "One protocol Direct CMD absorbs original preflight checks, direct same QueryAsync(requester,wireId), original TheseCharacters requester projection via ICommandProjections; no Write/ReadOnly introduced",
+          "old": "Direct QueryAsync and subsequent immediate projection outside any explicit work unit"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-08.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/OtherCharacterDetailSlice.cs",
-          "line": 21,
-          "source_sha256": "a7212d938b1492e13d79da2b0e788c88de8b9332ce976bd959bfb4eabe59a5f3"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameOtherCharacterDetailCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/workunit-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/old-OtherCharacterDetailSlice.cs.txt",
+        "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameOtherCharacterDetailCommand.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/AccountRoster/OtherCharacterDetailFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.AccountRoster.QueryOtherCharacterDetailCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.AccountRoster.QueryOtherCharacterDetailCommand",
@@ -3405,31 +3412,40 @@
         "result": "Dfo.Server.Data.Characters.CharacterDetailQueryResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/OtherCharacterDetailSlice.cs",
-          "line": 21,
-          "source_sha256": "a7212d938b1492e13d79da2b0e788c88de8b9332ce976bd959bfb4eabe59a5f3"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/old-OtherCharacterDetailSlice.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameOtherCharacterDetailCommand.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/AccountRoster/OtherCharacterDetailFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+        ],
+        "mapping": "Only OtherCharacterDetail handler used old Query; it now directly invokes existing query domain. Original Protocol flow old-DTO assertion migrated to real query arguments and same exact projection/audience; no other old callers."
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/OtherCharacterDetailSlice.cs",
-          "line": 21,
-          "source_sha256": "a7212d938b1492e13d79da2b0e788c88de8b9332ce976bd959bfb4eabe59a5f3"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/old-OtherCharacterDetailSlice.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameOtherCharacterDetailCommand.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/AccountRoster/OtherCharacterDetailFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+        ],
+        "none_reason": "No selected-session/effect settlement recipients and no explicit transaction boundary in original Direct query; new CMD adds none. Actual domain current-view reads retain their implementation."
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/OtherCharacterDetailSlice.cs",
-          "line": 21,
-          "source_sha256": "a7212d938b1492e13d79da2b0e788c88de8b9332ce976bd959bfb4eabe59a5f3"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/old-OtherCharacterDetailSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameOtherCharacterDetailCommand.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/AccountRoster/OtherCharacterDetailFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+          ],
+          "new": "Same preflight moved into CMD, same unchanged domain/composer guards; wire target is not frozen. Same NOTI subtype/checksum; original projection audience retained; no effect/MainSettlement or implicit internal trust",
+          "old": "Requester/target preflight current checks; query re-resolves wire target and rechecks both generations/listener/state; composer exact requester recipient and both current states"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -27795,26 +27811,33 @@
       "state": "retained"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/OtherCharacterDetailSlice.cs",
-          "line": 98,
-          "source_sha256": "a7212d938b1492e13d79da2b0e788c88de8b9332ce976bd959bfb4eabe59a5f3"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/old-OtherCharacterDetailSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameOtherCharacterDetailCommand.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/AccountRoster/OtherCharacterDetailFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+          ],
+          "new": "One protocol Direct CMD absorbs original preflight checks, direct same QueryAsync(requester,wireId), original TheseCharacters requester projection via ICommandProjections; no Write/ReadOnly introduced",
+          "old": "Direct QueryAsync and subsequent immediate projection outside any explicit work unit"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-08.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/OtherCharacterDetailSlice.cs",
-          "line": 98,
-          "source_sha256": "a7212d938b1492e13d79da2b0e788c88de8b9332ce976bd959bfb4eabe59a5f3"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameOtherCharacterDetailCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/workunit-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/old-OtherCharacterDetailSlice.cs.txt",
+        "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameOtherCharacterDetailCommand.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/AccountRoster/OtherCharacterDetailFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+      ],
       "id": "message:16973832",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.AccountRoster.GetOtherCharacterDetailHandler",
@@ -27837,34 +27860,43 @@
         "value": 16973832
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/OtherCharacterDetailSlice.cs",
-          "line": 98,
-          "source_sha256": "a7212d938b1492e13d79da2b0e788c88de8b9332ce976bd959bfb4eabe59a5f3"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/old-OtherCharacterDetailSlice.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameOtherCharacterDetailCommand.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/AccountRoster/OtherCharacterDetailFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+        ],
+        "mapping": "Only OtherCharacterDetail handler used old Query; it now directly invokes existing query domain. Original Protocol flow old-DTO assertion migrated to real query arguments and same exact projection/audience; no other old callers."
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/OtherCharacterDetailSlice.cs",
-          "line": 98,
-          "source_sha256": "a7212d938b1492e13d79da2b0e788c88de8b9332ce976bd959bfb4eabe59a5f3"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/old-OtherCharacterDetailSlice.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameOtherCharacterDetailCommand.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/AccountRoster/OtherCharacterDetailFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+        ],
+        "none_reason": "No selected-session/effect settlement recipients and no explicit transaction boundary in original Direct query; new CMD adds none. Actual domain current-view reads retain their implementation."
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/OtherCharacterDetailSlice.cs",
-          "line": 98,
-          "source_sha256": "a7212d938b1492e13d79da2b0e788c88de8b9332ce976bd959bfb4eabe59a5f3"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-08-mapping/old-OtherCharacterDetailSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameOtherCharacterDetailCommand.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/AccountRoster/OtherCharacterDetailFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+          ],
+          "new": "Same preflight moved into CMD, same unchanged domain/composer guards; wire target is not frozen. Same NOTI subtype/checksum; original projection audience retained; no effect/MainSettlement or implicit internal trust",
+          "old": "Requester/target preflight current checks; query re-resolves wire target and rechecks both generations/listener/state; composer exact requester recipient and both current states"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.AccountRoster.QueryOtherCharacterDetailCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     }
   ],
   "protections": [

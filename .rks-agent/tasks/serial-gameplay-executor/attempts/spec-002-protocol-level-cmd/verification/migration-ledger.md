@@ -217,3 +217,7 @@ GameLogin message:65537 与旧 RedeemGameLogin command 两行 closed，实际边
 八行（Roster/CheckName/Create/Delete消息及原四细命令）closed，实际边界见`evidence/task-07-mapping/workunit-map.md`。四新CMD直接现领域，旧细API删除、薄入口同物理输入，无新MainSettlement/效果/账号门。创建/删除各原Tx→ordinary Write，Roster/Check原Direct不加事务；创建commit→ACK登记→只成功读带外观名册→NOTI，删除只ACK回原index。空selected集合与实际SQLite/动态内存参与者分开。
 
 173消息预期9Protocol＋164Legacy（Legacy含14纯遥测）；205命令预期9Protocol＋1Internal＋195Legacy；最终以新capture为准。非遥测业务150、原细命令195、来源72仍pending；原5保护/8过渡仍未闭合，不代表T003/Spec完成。其余closed及所有original/baseline不改。
+
+## TASK-08：OtherCharacterDetail
+
+消息16973832及原QueryOtherCharacterDetailCommand两行闭合：新协议CMD吸收前置、直接query与typed即时投影，原Direct无显式事务，不新增effect/WorkUnits；同wire目标在领域执行点重解析，原双当前性/listener/精确recipient与NOTI编码器保持。见`evidence/task-08-mapping/workunit-map.md`。合理预期10Protocol/1Internal/194Legacy，实际以新capture为准；非遥测业务149、旧命令194、来源72仍pending，五保护/八过渡未闭合，不是Spec完成。其它closed/original/baseline保持。

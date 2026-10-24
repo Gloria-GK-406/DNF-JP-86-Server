@@ -773,10 +773,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<
             SetPartyInfoCommand, PartyOperationResult, SetPartyInfoCommandHandler>(
             CommandExecutionKind.Direct);
-        services.AddCommandHandler<
-            QueryOtherCharacterDetailCommand,
-            CharacterDetailQueryResult,
-            QueryOtherCharacterDetailCommandHandler>(CommandExecutionKind.Direct);
+        services.AddProtocolCommandHandler<GameOtherCharacterDetailCommand, GameOtherCharacterDetailCompleted, GameOtherCharacterDetailCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGetOtherCharacterDetail, typeof(GetOtherCharacterDetailRequest)));
     }
 
     /// <summary>Binds each catalogue member to the handler that consumes it.</summary>
@@ -792,7 +790,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<RecoverStaminaHandler>(ClientMessageType.GameRecoverStamina);
         services.RegisterProtocolMessageHandler<GameLoginHandler, GameLoginRequest, GameLoginCommand>(ClientMessageType.GameLogin);
         services.RegisterProtocolMessageHandler<GetAccountCharacterRosterHandler, GetAccountCharacterRosterRequest, GameAccountRosterCommand>(ClientMessageType.GameGetAccountCharacterRoster);
-        services.RegisterMessageHandler<GetOtherCharacterDetailHandler>(
+        services.RegisterProtocolMessageHandler<GetOtherCharacterDetailHandler, GetOtherCharacterDetailRequest, GameOtherCharacterDetailCommand>(
             ClientMessageType.GameGetOtherCharacterDetail);
         services.RegisterMessageHandler<SelectCharacterHandler>(ClientMessageType.GameSelectCharacter);
         services.RegisterMessageHandler<ClientSpecStatisticHandler>(ClientMessageType.GameClientSpecStatistic);

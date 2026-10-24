@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
@@ -13,21 +14,6 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.AccountRoster;
-
-public sealed record QueryOtherCharacterDetailCommand(
-    SelectedSessionIdentity Requester,
-    ushort TargetWireUserId) : ICommand<CharacterDetailQueryResult>;
-
-public sealed class QueryOtherCharacterDetailCommandHandler(
-    IOtherCharacterDetailQueryDomainService details)
-    : ICommandHandler<QueryOtherCharacterDetailCommand, CharacterDetailQueryResult>
-{
-    public ValueTask<CharacterDetailQueryResult> HandleAsync(
-        CommandExecutionContext context,
-        QueryOtherCharacterDetailCommand command,
-        CancellationToken cancellationToken) =>
-        details.QueryAsync(command.Requester, command.TargetWireUserId, cancellationToken);
-}
 
 public sealed record OtherCharacterDetailRequested(
     OtherCharacterDetailProjection Projection)
@@ -95,66 +81,11 @@ internal sealed class OtherCharacterDetailResponseEncoder
     }
 }
 
-public sealed class GetOtherCharacterDetailHandler(
-    ISelectedSessionDomainService sessions,
-    ICommandBus commands,
-    IEventService notifications,
-    ILogger<GetOtherCharacterDetailHandler> logger)
-    : ClientMessageHandler<GetOtherCharacterDetailRequest>
+public sealed class GetOtherCharacterDetailHandler(ICommandBus commands)
+    : ClientMessageHandler<GetOtherCharacterDetailRequest>, IProtocolCommandMessageHandler<GameOtherCharacterDetailCommand>
 {
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        GetOtherCharacterDetailRequest message,
-        CancellationToken cancellationToken)
-    {
-        var requester = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (requester is null)
-        {
-            logger.LogInformation(
-                "GET_USERINFO mode=3 ignored for non-current connection {ConnectionId}",
-                context.Connection.ConnectionId);
-            return;
-        }
-
-        if (!sessions.TryGetInWorld(message.TargetWireUserId, out var target))
-        {
-            logger.LogInformation(
-                "GET_USERINFO mode=3 requester={Requester} target={Target} refused={Failure}",
-                requester.WireUserId,
-                message.TargetWireUserId,
-                CharacterDetailQueryFailure.TargetNotCurrent);
-            return;
-        }
-
-        CharacterDetailQueryResult result;
-        if (!sessions.IsInWorld(requester))
-        {
-            result = CharacterDetailQueryResult.Reject(CharacterDetailQueryFailure.RequesterNotCurrent);
-        }
-        else if (!sessions.IsInWorld(target))
-        {
-            result = CharacterDetailQueryResult.Reject(CharacterDetailQueryFailure.TargetNotCurrent);
-        }
-        else
-        {
-            result = await commands.SendAsync(
-                new QueryOtherCharacterDetailCommand(requester, message.TargetWireUserId),
-                cancellationToken).ConfigureAwait(false);
-        }
-
-        if (result.Projection is { } projection)
-        {
-            await notifications.ProjectAsync(
-                new NotificationAudience.TheseCharacters([requester.CharacterId]),
-                new OtherCharacterDetailRequested(projection),
-                cancellationToken).ConfigureAwait(false);
-        }
-
-        logger.LogInformation(
-            "GET_USERINFO mode=3 requester={Requester} target={Target} accepted={Accepted} failure={Failure}",
-            requester.WireUserId,
-            message.TargetWireUserId,
-            result.Succeeded,
-            result.Failure);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        GetOtherCharacterDetailRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameOtherCharacterDetailCommand(context, message), cancellationToken)
+            .ConfigureAwait(false);
 }
