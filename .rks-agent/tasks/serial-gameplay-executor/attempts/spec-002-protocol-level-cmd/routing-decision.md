@@ -41,11 +41,11 @@ Parent controller为`../../multi-spec-map.md`；父激活map检查点已完成�
   - final-review: auto
   - verification: auto
 - Bound methods: implementation: `test-driven-development`（先应用test-value gate；结构搬迁沿用行为测试/编译/结构判据，不制造编译失败当RED）。
-- Artifact path overrides（本次执行中B2/P2 amendment的受影响gate重跑；旧B1/P1审查原文留存，不改变controller/profile/gate强度/契约或baseline；其余制品仍使用共享composer默认路径）:
+- Artifact path overrides（本次执行中B2/P3 amendment的受影响gate重跑；Spec B2批准保留，旧B1/P1/P2审查原文留存，不改变controller/profile/gate强度/契约或baseline；其余制品仍使用共享composer默认路径）:
   - spec-adversarial: `reviews/spec-b2-challenges.md`
   - spec-review: `reviews/spec-b2-review.md`
-  - plan-adversarial: `reviews/plan-p2-challenges.md`
-  - plan-review: `reviews/plan-p2-review.md`
+  - plan-adversarial: `reviews/plan-p3-challenges.md`
+  - plan-review: `reviews/plan-p3-review.md`
 - Parent controller: `../../multi-spec-map.md`。
 - 继承任务授权覆盖普通实施和本地检查点，不再重复规划后人工停点；Astra及分支收尾仍是用户保留门。
 - 初始未提交输入仅B目录及原草案到source-draft的迁移，均为本Spec拥有，规划检查点纳入；不修改A封存文件。
