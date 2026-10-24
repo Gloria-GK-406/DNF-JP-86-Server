@@ -734,7 +734,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
         var mappings = new InventorySlotMappingRuleService();
         return new Side(
             containers,
-            new MoveItemSpaceCommandHandler(
+            new InventoryMoveDomainService(
                 new BusinessInventorySlotDomainService(containers, mappings),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
@@ -749,10 +749,10 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
         var sender = new RecordingSender();
         var logger = new RecordingLogger();
         return (
-            new MoveItemSpaceHandler(
+            MoveItemProtocolTestDriver.Create(
                 new OneSession(), new NoPublishedRuntime(),
                 new InventorySlotMappingRuleService(),
-                new DirectMoveBus(side.Handler, side.Fixture), sender, logger, null!, null!, TimeProvider.System),
+                new MoveItemProtocolTestDriver.Execution(side.Handler, side.Fixture), sender, logger, null!, null!, TimeProvider.System),
             sender,
             logger,
             side);
@@ -760,7 +760,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
 
     private sealed record Side(
         CharacterContainerDomainService Containers,
-        MoveItemSpaceCommandHandler Handler,
+        InventoryMoveDomainService Handler,
         CharacterId Character, MoveItemFixture Fixture)
     {
         public void Seed(InventoryContainerType type, short slotIndex, int itemId) =>
@@ -773,13 +773,8 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
             short destinationSlot,
             int sourceInstanceValue = 0,
             int destinationInstanceValue = 0) =>
-            this.Fixture.RunAsync(() => this.Handler.HandleAsync(
-                new CommandExecutionContext(
-                    Guid.Empty,
-                    typeof(MoveItemSpaceCommand),
-                    typeof(Side),
-                    CommandExecutionKind.Transactional),
-                new MoveItemSpaceCommand(
+            this.Fixture.RunAsync(() => this.Handler.MoveAsync(
+                new InventoryMoveRequest(
                     this.Character,
                     ToBusinessSlot(source, sourceSlot),
                     1,
@@ -806,21 +801,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     }
 
     /// <summary>A bus that runs the move command on the handler that owns it.</summary>
-    private sealed class DirectMoveBus(
-        ICommandHandler<MoveItemSpaceCommand, ItemMoveResult> move, MoveItemFixture fixture) : ICommandBus
-    {
-        public async ValueTask<TResult> SendAsync<TResult>(
-            ICommand<TResult> command, CancellationToken cancellationToken = default)
-            where TResult : notnull
-        {
-            var context = new CommandExecutionContext(
-                Guid.Empty, command.GetType(), typeof(DirectMoveBus),
-                CommandExecutionKind.Transactional);
-            var result = await fixture.RunAsync(() => move.HandleAsync(
-                context, (MoveItemSpaceCommand)(object)command, cancellationToken));
-            return (TResult)(object)result;
-        }
-    }
+
 
     private sealed class OneSession : ISelectedSessionDomainService
     {
@@ -916,7 +897,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     }
 
     /// <summary>The log, kept as the sentences it would have written.</summary>
-    private sealed class RecordingLogger : ILogger<MoveItemSpaceHandler>
+    private sealed class RecordingLogger : ILogger<GameMoveItemSpaceCommandHandler>
     {
         public List<(LogLevel Level, string Message)> Entries { get; } = [];
 

@@ -603,8 +603,8 @@ public sealed class ProtocolModule : IServerModule
         // Transactional, and in the same change that broke the move into separate writes. Marking
         // it afterwards would leave a window in which a move was several writes with nothing to
         // settle them together -- a window every test would pass through green.
-        services.AddCommandHandler<MoveItemSpaceCommand, ItemMoveResult, MoveItemSpaceCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameMoveItemSpaceCommand, bool, GameMoveItemSpaceCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameMoveItemSpace, typeof(MoveItemSpaceRequest)));
         services.AddProtocolCommandHandler<GameUseStackableCommand, ItemUseResult, GameUseStackableCommandHandler>(
             new[] { CommandRegistrationExit.SettledRequiredExplicit, CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameUseStackable, typeof(UseStackableRequest)));
@@ -966,7 +966,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFpsPerformanceStatistic);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFrameLagPerDungeon);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLagStatistics);
-        services.RegisterMessageHandler<MoveItemSpaceHandler>(ClientMessageType.GameMoveItemSpace);
+        services.RegisterProtocolMessageHandler<MoveItemSpaceHandler, MoveItemSpaceRequest, GameMoveItemSpaceCommand>(ClientMessageType.GameMoveItemSpace);
         services.RegisterProtocolMessageHandler<UseStackableHandler, UseStackableRequest, GameUseStackableCommand>(ClientMessageType.GameUseStackable);
         services.RegisterMessageHandler<RenameCreatureHandler>(ClientMessageType.GameRenameCreature);
         services.RegisterMessageHandler<HatchCreatureHandler>(ClientMessageType.GameHatchCreature);

@@ -11070,25 +11070,58 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/MoveItemSpaceSlice.cs",
-          "line": 303,
-          "source_sha256": "1c9d20b6ed8d19254f430fac844a4294473f3137611d14e8e70f38712f0920ca"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "One fine Tx for a published session, noWrite Silent ACK if missing; all normal move refusals commit; postTx cargo ReadCurrent/Account.Load and currentView/Housing have original two noncaller-cancel catches before one explicit required-direct delivery",
+          "new": "One ordinary Write([],Ordinary,None) directly invokes actual domain, normal refusal Committed/exception Abort; no postread unit added, original two catches/current checks/time/partial frames remain. Housing error retains already appended appearance. Entire algorithm body exact under only types/method/unused context normalization; no Main/NonRequest/footprint/ledger/attempt/replay/P3/raw permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/GameMoveItemSpaceCommand.cs",
+            "Server/src/Dfo.Server.Abstractions/Inventory/IInventoryMoveDomainService.cs",
+            "Server/src/Dfo.Server.Application/Inventory/InventoryMoveDomainService.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/algorithm-method-map.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/restatement-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/assertions-final-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/pure-protocol-block.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MoveItemSpaceProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-26.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/MoveItemSpaceSlice.cs",
-          "line": 303,
-          "source_sha256": "1c9d20b6ed8d19254f430fac844a4294473f3137611d14e8e70f38712f0920ca"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "Old fine record/handler removed from mixed slice and registry; algorithm belongs real domain capability (not a renamed command), whole owns protocol orchestration; message/codec/encoder pure block retained byte exact"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/GameMoveItemSpaceCommand.cs",
+        "Server/src/Dfo.Server.Abstractions/Inventory/IInventoryMoveDomainService.cs",
+        "Server/src/Dfo.Server.Application/Inventory/InventoryMoveDomainService.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-manifest.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-source.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-freeze-01.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-final-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/algorithm-method-map.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/oracle-before-after-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/restatement-mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/formal-summary-02.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/test-delta.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/assertions-final-check.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/workunit-and-coverage-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/pure-protocol-block.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/MoveItemSpaceProtocolCommandFlowTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceCommand",
@@ -11114,32 +11147,101 @@
         },
         "result": "Dfo.Server.Protocol.Game.MoveItemSpace.ItemMoveResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/MoveItemSpaceSlice.cs",
-          "line": 303,
-          "source_sha256": "1c9d20b6ed8d19254f430fac844a4294473f3137611d14e8e70f38712f0920ca"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/MoveItemSpaceSlice.cs",
-          "line": 303,
-          "source_sha256": "1c9d20b6ed8d19254f430fac844a4294473f3137611d14e8e70f38712f0920ca"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/MoveItemSpaceSlice.cs",
-          "line": 303,
-          "source_sha256": "1c9d20b6ed8d19254f430fac844a4294473f3137611d14e8e70f38712f0920ca"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Exact registered14/18/24B MoveItemSpaceRequest -> handler -> IAccount-only Transactional MoveItemSpaceCommand; eighteen test source callers include direct Session=null/Tower/multistep wear capabilities",
+          "new": "Thin once-bus exact GameMoveItemSpaceCommand<bool>; original algorithm becomes actual high-level IInventoryMoveDomainService with non-command InventoryMoveRequest/result/status in Abstractions (CreatureRuntimeChange dependency), internal Application implementation, no nested bus/compatibility fine; all original test capabilities preserved",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/GameMoveItemSpaceCommand.cs",
+            "Server/src/Dfo.Server.Abstractions/Inventory/IInventoryMoveDomainService.cs",
+            "Server/src/Dfo.Server.Application/Inventory/InventoryMoveDomainService.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/algorithm-method-map.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/restatement-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/assertions-final-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/pure-protocol-block.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MoveItemSpaceProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "IAccountCommand only, optional Session for direct domain capabilities; both item ends and inventory effects use existing transaction participants",
+          "new": "Empty explicit selected participants preserve range; actual source already deducted before destination SQL action19/1811, and sameparticipant deferredFK true SqliteTransaction.Commit19/787 after source4/destination3 with FK1/child>0; originalcauseSame/ConfirmedRollback/fullUID-core-BLOB-null-twoend assets rollback and same-seq retry; original multiwear sameTx/volatile/creature/mirror capabilities retained",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/GameMoveItemSpaceCommand.cs",
+            "Server/src/Dfo.Server.Abstractions/Inventory/IInventoryMoveDomainService.cs",
+            "Server/src/Dfo.Server.Application/Inventory/InventoryMoveDomainService.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/algorithm-method-map.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/restatement-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/assertions-final-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/pure-protocol-block.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MoveItemSpaceProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "Original direct explicit ACK and optional cargo/current appearance/Housing messages, two postread Error catches continue; required encoder oldraw failure closes original source",
+          "new": "Original two catches filter caller cancellation only, same frames list, Housing-failure preserves ACK+already appended appearance. NoWrite explicit encoder rawSame; normalCommitted refusal and success encoder default PostCommitPublicationFailure innerSame: outer shell differences explicit, complete rootchain/EndedAJob/emptyselected+attempts/Single physicalsourcecloseSame/nofence and asset result held; no fourth raw. Same sequence uses original business identity-restatement guard, no ledger. Controlled projection fixture scope disclosed, not full production currentState/Housing/A21 acceptance",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/GameMoveItemSpaceCommand.cs",
+            "Server/src/Dfo.Server.Abstractions/Inventory/IInventoryMoveDomainService.cs",
+            "Server/src/Dfo.Server.Application/Inventory/InventoryMoveDomainService.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/algorithm-method-map.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/restatement-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/assertions-final-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/pure-protocol-block.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MoveItemSpaceProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-26.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/GameMoveItemSpaceCommand.cs",
+          "purpose": "one exact typed NonEffect whole owning original transaction and protocol orchestration"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Abstractions/Inventory/IInventoryMoveDomainService.cs",
+          "purpose": "reusable non-command business contract preserving optional session and business positions"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Inventory/InventoryMoveDomainService.cs",
+          "purpose": "single original movement algorithm owner composing existing lower movement and cargo without a cycle"
+        }
+      ]
     },
     {
       "actual_units": [
@@ -18570,26 +18672,60 @@
       ]
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/MoveItemSpaceSlice.cs",
-          "line": 839,
-          "source_sha256": "1c9d20b6ed8d19254f430fac844a4294473f3137611d14e8e70f38712f0920ca"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "One fine Tx for a published session, noWrite Silent ACK if missing; all normal move refusals commit; postTx cargo ReadCurrent/Account.Load and currentView/Housing have original two noncaller-cancel catches before one explicit required-direct delivery",
+          "new": "One ordinary Write([],Ordinary,None) directly invokes actual domain, normal refusal Committed/exception Abort; no postread unit added, original two catches/current checks/time/partial frames remain. Housing error retains already appended appearance. Entire algorithm body exact under only types/method/unused context normalization; no Main/NonRequest/footprint/ledger/attempt/replay/P3/raw permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/GameMoveItemSpaceCommand.cs",
+            "Server/src/Dfo.Server.Abstractions/Inventory/IInventoryMoveDomainService.cs",
+            "Server/src/Dfo.Server.Application/Inventory/InventoryMoveDomainService.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/algorithm-method-map.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/restatement-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/assertions-final-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/pure-protocol-block.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MoveItemSpaceProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-26.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/MoveItemSpaceSlice.cs",
-          "line": 839,
-          "source_sha256": "1c9d20b6ed8d19254f430fac844a4294473f3137611d14e8e70f38712f0920ca"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/GameMoveItemSpaceCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.MoveItemSpace.GameMoveItemSpaceCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/GameMoveItemSpaceCommand.cs",
+        "Server/src/Dfo.Server.Abstractions/Inventory/IInventoryMoveDomainService.cs",
+        "Server/src/Dfo.Server.Application/Inventory/InventoryMoveDomainService.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-manifest.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-source.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-freeze-01.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-final-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/algorithm-method-map.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/oracle-before-after-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/restatement-mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/formal-summary-02.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/test-delta.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/assertions-final-check.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/workunit-and-coverage-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/pure-protocol-block.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/MoveItemSpaceProtocolCommandFlowTests.cs"
+      ],
       "id": "message:65555",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceHandler",
@@ -18611,37 +18747,106 @@
         "telemetry": false,
         "value": 65555
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/MoveItemSpaceSlice.cs",
-          "line": 839,
-          "source_sha256": "1c9d20b6ed8d19254f430fac844a4294473f3137611d14e8e70f38712f0920ca"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/MoveItemSpaceSlice.cs",
-          "line": 839,
-          "source_sha256": "1c9d20b6ed8d19254f430fac844a4294473f3137611d14e8e70f38712f0920ca"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/MoveItemSpaceSlice.cs",
-          "line": 839,
-          "source_sha256": "1c9d20b6ed8d19254f430fac844a4294473f3137611d14e8e70f38712f0920ca"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Exact registered14/18/24B MoveItemSpaceRequest -> handler -> IAccount-only Transactional MoveItemSpaceCommand; eighteen test source callers include direct Session=null/Tower/multistep wear capabilities",
+          "new": "Thin once-bus exact GameMoveItemSpaceCommand<bool>; original algorithm becomes actual high-level IInventoryMoveDomainService with non-command InventoryMoveRequest/result/status in Abstractions (CreatureRuntimeChange dependency), internal Application implementation, no nested bus/compatibility fine; all original test capabilities preserved",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/GameMoveItemSpaceCommand.cs",
+            "Server/src/Dfo.Server.Abstractions/Inventory/IInventoryMoveDomainService.cs",
+            "Server/src/Dfo.Server.Application/Inventory/InventoryMoveDomainService.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/algorithm-method-map.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/restatement-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/assertions-final-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/pure-protocol-block.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MoveItemSpaceProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "IAccountCommand only, optional Session for direct domain capabilities; both item ends and inventory effects use existing transaction participants",
+          "new": "Empty explicit selected participants preserve range; actual source already deducted before destination SQL action19/1811, and sameparticipant deferredFK true SqliteTransaction.Commit19/787 after source4/destination3 with FK1/child>0; originalcauseSame/ConfirmedRollback/fullUID-core-BLOB-null-twoend assets rollback and same-seq retry; original multiwear sameTx/volatile/creature/mirror capabilities retained",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/GameMoveItemSpaceCommand.cs",
+            "Server/src/Dfo.Server.Abstractions/Inventory/IInventoryMoveDomainService.cs",
+            "Server/src/Dfo.Server.Application/Inventory/InventoryMoveDomainService.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/algorithm-method-map.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/restatement-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/assertions-final-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/pure-protocol-block.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MoveItemSpaceProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "Original direct explicit ACK and optional cargo/current appearance/Housing messages, two postread Error catches continue; required encoder oldraw failure closes original source",
+          "new": "Original two catches filter caller cancellation only, same frames list, Housing-failure preserves ACK+already appended appearance. NoWrite explicit encoder rawSame; normalCommitted refusal and success encoder default PostCommitPublicationFailure innerSame: outer shell differences explicit, complete rootchain/EndedAJob/emptyselected+attempts/Single physicalsourcecloseSame/nofence and asset result held; no fourth raw. Same sequence uses original business identity-restatement guard, no ledger. Controlled projection fixture scope disclosed, not full production currentState/Housing/A21 acceptance",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/GameMoveItemSpaceCommand.cs",
+            "Server/src/Dfo.Server.Abstractions/Inventory/IInventoryMoveDomainService.cs",
+            "Server/src/Dfo.Server.Application/Inventory/InventoryMoveDomainService.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/algorithm-method-map.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/restatement-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/assertions-final-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-26-inspection/pure-protocol-block.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MoveItemSpaceProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceCommand"
       ],
       "shared_helper_candidates": [
         "GameExplicitMessageDelivery"
       ],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-26.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/GameMoveItemSpaceCommand.cs",
+          "purpose": "one exact typed NonEffect whole owning original transaction and protocol orchestration"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Abstractions/Inventory/IInventoryMoveDomainService.cs",
+          "purpose": "reusable non-command business contract preserving optional session and business positions"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Inventory/InventoryMoveDomainService.cs",
+          "purpose": "single original movement algorithm owner composing existing lower movement and cargo without a cycle"
+        }
+      ]
     },
     {
       "actual_units": [

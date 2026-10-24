@@ -191,7 +191,7 @@ public sealed class CreatureGoesBackOnTests
 
         private readonly LegacyWornItemNormalizer normalizer;
 
-        private readonly DirectCommandBus bus;
+        private readonly DirectInventoryMove bus;
 
         public Fixture(string databasePath, ServiceProvider content)
         {
@@ -222,8 +222,8 @@ public sealed class CreatureGoesBackOnTests
 
             this.Containers = containers;
             var mappings = new InventorySlotMappingRuleService();
-            this.bus = new DirectCommandBus(
-                move: new MoveItemSpaceCommandHandler(
+            this.bus = new DirectInventoryMove(
+                move: new InventoryMoveDomainService(
                     new BusinessInventorySlotDomainService(containers, mappings),
                     new ItemMovementDomainService(
                         rules, new ItemSlotRuleService(), new CreatureGoesBackOnTestsWearEligibility())),
@@ -264,8 +264,8 @@ public sealed class CreatureGoesBackOnTests
 
         public ValueTask<ItemMoveResult> MoveAsync(
             byte sourceList, short sourceSlot, byte destinationList, short destinationSlot) =>
-            this.bus.SendAsync(
-                new MoveItemSpaceCommand(
+            this.bus.MoveAsync(
+                new InventoryMoveRequest(
                     this.character,
                     new InventorySlotMappingRuleService().ToBusinessSlot(
                         new GameSlot((InventoryContainerType)sourceList, sourceSlot)),

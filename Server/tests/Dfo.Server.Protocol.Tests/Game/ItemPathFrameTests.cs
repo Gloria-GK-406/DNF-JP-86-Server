@@ -45,7 +45,7 @@ public sealed class ItemPathFrameTests
             await using var storage = await Storage.CreateAsync((65, PotionId, 1));
             var mappings = new InventorySlotMappingRuleService();
             var containers = storage.Containers();
-            var handler = new MoveItemSpaceCommandHandler(
+            var handler = new InventoryMoveDomainService(
                 new BusinessInventorySlotDomainService(containers, mappings),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
@@ -55,9 +55,8 @@ public sealed class ItemPathFrameTests
             // container refuses the write outright, which is the guarantee working rather than a
             // failure -- but it also means a test that skips the boundary is not testing the real path.
             await using var boundary = storage.Scope.Begin();
-            var result = await handler.HandleAsync(
-                Context,
-                new MoveItemSpaceCommand(
+            var result = await handler.MoveAsync(
+                new InventoryMoveRequest(
                     Character,
                     new BusinessSlot(BusinessInventorySpace.QuickSlot, 0), 0,
                     new BusinessSlot(BusinessInventorySpace.Consumable, 0)),
@@ -90,16 +89,15 @@ public sealed class ItemPathFrameTests
             await using var storage = await Storage.CreateAsync();
             var mappings = new InventorySlotMappingRuleService();
             var containers = storage.Containers();
-            var handler = new MoveItemSpaceCommandHandler(
+            var handler = new InventoryMoveDomainService(
                 new BusinessInventorySlotDomainService(containers, mappings),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
                     new ItemSlotRuleService(), new ItemPathFrameTestsWearEligibility()));
 
             await using var boundary = storage.Scope.Begin();
-            var result = await handler.HandleAsync(
-                Context,
-                new MoveItemSpaceCommand(
+            var result = await handler.MoveAsync(
+                new InventoryMoveRequest(
                     Character,
                     new BusinessSlot(BusinessInventorySpace.QuickSlot, 0), 0,
                     new BusinessSlot(BusinessInventorySpace.Consumable, 0)),
@@ -112,7 +110,7 @@ public sealed class ItemPathFrameTests
     }
 
     private static CommandExecutionContext Context => new(
-        Guid.Empty, typeof(MoveItemSpaceCommand), typeof(MoveItemSpaceCommandHandler),
+        Guid.Empty, typeof(InventoryMoveRequest), typeof(InventoryMoveDomainService),
         CommandExecutionKind.Transactional);
 
     /// <summary>

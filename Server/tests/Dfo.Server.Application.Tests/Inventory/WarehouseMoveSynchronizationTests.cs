@@ -178,9 +178,7 @@ public sealed class WarehouseMoveSynchronizationTests
         int count = 0, int instance = 0)
     {
         host.Sender.Messages.Clear();
-        await TestGameplay.RunAsync(host.Services, async () => await host.Services.GetRequiredService<MoveItemSpaceHandler>().HandleAsync(new(host.Connection),
-            new MoveItemSpaceRequest(GameMessageMetadata.Empty, new((InventoryContainerType)from, source),
-                instance, count, new((InventoryContainerType)into, target), 0), default));
+        _ = await MoveWire.Send(host, from, source, into, target, count, sourceIdentity: instance);
     }
 
     private static void AssertSlot(ShopFixture host, byte list, int slot, int item, int count, int expiry)

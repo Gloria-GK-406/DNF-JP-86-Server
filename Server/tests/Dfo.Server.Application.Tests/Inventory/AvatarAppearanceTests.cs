@@ -70,7 +70,7 @@ public sealed class AvatarAppearanceTests
         return f;
     }
     private static Task<ItemMoveResult> Move(ShopFixture f, BusinessSlot source, BusinessSlot destination) =>
-        f.Services.GetRequiredService<ICommandBus>().SendAsync(new MoveItemSpaceCommand(f.Session.CharacterId,
+        InventoryMoveTestAccess.MoveAsync(f.Services, new InventoryMoveRequest(f.Session.CharacterId,
             source, 1, destination) { Session = f.Session }).AsTask();
     private static int Appearance(ShopFixture f, int slot, int list = 3) => f.Scalar(
         $"SELECT appearance_item_id FROM items JOIN item_slots ON item_uid=core_uid WHERE owner_id=1 AND list_type={list} AND slot_index={slot}");

@@ -30,7 +30,7 @@ namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
 /// the names in it ended in <c>avatar]</c>. Template 101500690, which the archive declares under
 /// <c>[coat avatar]</c>, was run through this path and observed getting nothing back from
 /// <c>PvfEquipmentSlotDefinitionSource</c> and being refused by
-/// <c>MoveItemSpaceCommandHandler.PutOnAsync</c> as <c>NotWearable</c>. What the request had
+/// <c>InventoryMoveDomainService.PutOnAsync</c> as <c>NotWearable</c>. What the request had
 /// written in its destination end came back out of the log beside the template number, and that
 /// pair is what eleven costume slots were then measured with.
 /// <para>
@@ -239,7 +239,7 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
         containers.Register(character, worn);
 
         var mappings = new InventorySlotMappingRuleService();
-        var commandHandler = new MoveItemSpaceCommandHandler(
+        var commandHandler = new InventoryMoveDomainService(
             new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
@@ -248,10 +248,10 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
         var sender = new RecordingSender();
         var logger = new RecordingLogger();
         return (
-            new MoveItemSpaceHandler(
+            MoveItemProtocolTestDriver.Create(
                 new OneSession(), new NoPublishedRuntime(),
                 mappings,
-                new DirectMoveBus(commandHandler, fixture), sender, logger, null!, null!, TimeProvider.System),
+                new MoveItemProtocolTestDriver.Execution(commandHandler, fixture), sender, logger, null!, null!, TimeProvider.System),
             sender,
             logger);
     }
@@ -264,21 +264,7 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     }
 
     /// <summary>A bus that runs the move command on the handler that owns it.</summary>
-    private sealed class DirectMoveBus(
-        ICommandHandler<MoveItemSpaceCommand, ItemMoveResult> move, MoveItemFixture fixture) : ICommandBus
-    {
-        public async ValueTask<TResult> SendAsync<TResult>(
-            ICommand<TResult> command, CancellationToken cancellationToken = default)
-            where TResult : notnull
-        {
-            var context = new CommandExecutionContext(
-                Guid.Empty, command.GetType(), typeof(DirectMoveBus),
-                CommandExecutionKind.Transactional);
-            var result = await fixture.RunAsync(() => move.HandleAsync(
-                context, (MoveItemSpaceCommand)(object)command, cancellationToken));
-            return (TResult)(object)result;
-        }
-    }
+
 
     private sealed class OneSession : ISelectedSessionDomainService
     {
@@ -419,7 +405,7 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     }
 
     /// <summary>The log, kept as the sentences it would have written.</summary>
-    private sealed class RecordingLogger : ILogger<MoveItemSpaceHandler>
+    private sealed class RecordingLogger : ILogger<GameMoveItemSpaceCommandHandler>
     {
         public List<(LogLevel Level, string Message)> Entries { get; } = [];
 

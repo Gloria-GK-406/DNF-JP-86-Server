@@ -19,6 +19,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+using Dfo.Server.Abstractions.Inventory;
+
 namespace Dfo.Server.Protocol.Tests.Game;
 
 /// <summary>
@@ -33,6 +35,25 @@ namespace Dfo.Server.Protocol.Tests.Game;
 /// </remarks>
 public sealed class CommandRegistrationTests
 {
+    [Fact]
+    public void Inventory_move_wire_has_one_exact_NonEffect_whole_and_a_reusable_non_command_domain_request()
+    {
+        using var provider=BuildProductionGraph();var rows=provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var row=Assert.Single(rows,x=>x.CommandType==typeof(GameMoveItemSpaceCommand));
+        Assert.Equal(CommandExecutionKind.Direct,row.ExecutionKind);Assert.Equal(CommandRouteKind.Protocol,row.Route);
+        Assert.Equal(new[]{new ProtocolCommandMessageBinding(ClientMessageType.GameMoveItemSpace,typeof(MoveItemSpaceRequest))},row.ProtocolMessages);
+        Assert.True(row.RegistrationExits is null or {Count:0});
+        Assert.False(typeof(Dfo.Server.Abstractions.Networking.IEffectSettlementRequest).IsAssignableFrom(typeof(MoveItemSpaceRequest)));
+        Assert.False(typeof(ICommand<ItemMoveResult>).IsAssignableFrom(typeof(InventoryMoveRequest)));
+        Assert.NotNull(provider.GetRequiredService<IInventoryMoveDomainService>());
+        var registry=provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        Assert.True(registry.TryGet(ClientMessageType.GameMoveItemSpace,out var route));Assert.Equal(row.CommandType,route!.ProtocolCommandType);
+        Assert.Equal(new[]{typeof(MoveItemSpaceRequest)},route.AllowedMessageClrTypes);
+        Assert.DoesNotContain(rows,x=>x.CommandType.Name=="MoveItemSpaceCommand");
+        Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceCommand"));
+        Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceCommandHandler"));
+    }
+
     [Fact]
     public void Crystal_selection_wire_binds_one_exact_NonEffect_whole_without_registration_permission()
     {
@@ -402,7 +423,7 @@ public sealed class CommandRegistrationTests
         var registrations = provider.GetServices<CommandHandlerRegistration>().ToArray();
 
         Assert.Contains(registrations, value => value.CommandType == typeof(GameUseStackableCommand));
-        Assert.Contains(registrations, value => value.CommandType == typeof(MoveItemSpaceCommand));
+        Assert.Contains(registrations, value => value.CommandType == typeof(GameMoveItemSpaceCommand));
     }
 
     /// <summary>
@@ -430,6 +451,8 @@ public sealed class CommandRegistrationTests
 
         Assert.Equal(CommandExecutionKind.Direct, registrations[typeof(GameUseStackableCommand)]);
         Assert.Equal(CommandRouteKind.Protocol, provider.GetServices<CommandHandlerRegistration>().Single(x => x.CommandType == typeof(GameUseStackableCommand)).Route);
+        Assert.Equal(CommandExecutionKind.Direct, registrations[typeof(GameMoveItemSpaceCommand)]);
+        Assert.Equal(CommandRouteKind.Protocol, provider.GetServices<CommandHandlerRegistration>().Single(x => x.CommandType == typeof(GameMoveItemSpaceCommand)).Route);
         Type[] reachPersistentWrites =
         [
             typeof(PrepareSelectedCharacterSessionCommand),
@@ -438,7 +461,6 @@ public sealed class CommandRegistrationTests
             typeof(ApplySelectedCharacterDailyRefillCommand),
             typeof(SynchronizeSelectedCharacterQuestsCommand),
             typeof(ReviveSelectedCharacterPetCommand),
-            typeof(MoveItemSpaceCommand),
             typeof(GrantTutorialRewardCommand),
         ];
 

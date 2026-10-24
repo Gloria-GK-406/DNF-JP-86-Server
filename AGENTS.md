@@ -350,7 +350,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 
 ### 2) 命令执行总线（Application/Commands）
 
-协议级路由当前接线了 Channel Connect／ScriptVersion／Script／Info、LOGIN，以及名册／查名／创建／删除角色、OtherCharacterDetail、完整 UseStackable、BuyItem、Reinforce／Disjoint／EnchantByBead、MagicSeal／Forging／Outworld、PackageOpening／AvatarPackageOpening／MagicBoxSingleOpening／MagicBoxBatchOpening、ResetItemQuality／ResetRandomOption、Socket四logical、AvatarCompound、Warehouse六logical、CollectionBox一个logical／四wire、InventorySort三logical／两whole、SellItem、DeleteItem三操作、RepairItem普通／自动修理、CrystalContract选择：消息 handler 只把原消息、精确连接上下文交给同一 CommandBus；GM 启动初始化走显式内部路由，声明种类与原调用链。新路由由总线入队一次，在身份检查前建立作业发件箱；其请求上下文是方法数据，结束即关闭，不通过 DI、AsyncLocal 或 job slot 取得“当前请求”。其余业务仍走 LegacyQueued／LegacyFineGrained 过渡路径，不得让新 CMD 回调旧命令。
+协议级路由当前接线了 Channel Connect／ScriptVersion／Script／Info、LOGIN，以及名册／查名／创建／删除角色、OtherCharacterDetail、完整 UseStackable、BuyItem、Reinforce／Disjoint／EnchantByBead、MagicSeal／Forging／Outworld、PackageOpening／AvatarPackageOpening／MagicBoxSingleOpening／MagicBoxBatchOpening、ResetItemQuality／ResetRandomOption、Socket四logical、AvatarCompound、Warehouse六logical、CollectionBox一个logical／四wire、InventorySort三logical／两whole、SellItem、DeleteItem三操作、RepairItem普通／自动修理、CrystalContract选择、MoveItemSpace移动：消息 handler 只把原消息、精确连接上下文交给同一 CommandBus；GM 启动初始化走显式内部路由，声明种类与原调用链。新路由由总线入队一次，在身份检查前建立作业发件箱；其请求上下文是方法数据，结束即关闭，不通过 DI、AsyncLocal 或 job slot 取得“当前请求”。其余业务仍走 LegacyQueued／LegacyFineGrained 过渡路径，不得让新 CMD 回调旧命令。
 
 直接 slots／rental 足迹现由六个受迁领域入口和三个细粒度 handler 显式接收 `IEffectFootprintRecorder`，不再经旧请求投影接口注入。仅真实 LegacyFineGrained 最内层调用在主结算与事务已进入后捕获旧 frame／execution／rejection 引用；每次调用的能力绑定精确 context、注册、作业 ID 和关闭租约，记录时只检查捕获引用。网络来源按 dispatcher 实际消息分 Effect／NonEffect／Unknown；真正执行器外总线分支才可声明 Standalone，缺帧、TestGameplay 和连接信息不补权。新 Protocol／Internal 的旧能力入口拒绝后保持请求失败。
 
@@ -385,6 +385,8 @@ DeleteItem 的丢弃、技能材料与效果材料由一个完整 NonEffect CMD 
 RepairItem 的普通与具名自动修理由一个完整 NonEffect CMD 接管，旧 fine 已删除。有效修理分支保一次 ordinary Write 和空选中参与者；自动修理次数的 Direct 事实、额度写入与装备耐久仍同事务，正常拒绝继续提交，SQL／提交异常仍回滚外抛。成功后 clock 再准备原 ACK → 可选 Premium 状态的单批投影，保 Warning＋Failed 隔离；同序号按当前损坏与额度重新判断，无 Main、足迹、账本或 raw 许可。
 
 CrystalContract 选择由完整 NonEffect CMD 接管，旧 fine 已删除；mode 是 UI 来源标记。原一次 ordinary Write 保空选中参与者，正常拒绝仍提交，选择只保存当前角色两列；保存完成后按原序记录日志、复核 world 当前性，再投影 ACK → CubeProgression 单批消息或原失败 ACK。通知保持 Warning＋Failed 隔离，同序号继续按当前事实保存，无 Main、足迹、账本或 raw 许可。
+
+MoveItemSpace 的移动算法归 `IInventoryMoveDomainService`，协议 whole 保原一次 ordinary Write 和空选中参与者；正常拒绝继续提交。事务后按原位置读取仓库／外观／Housing，原两条降级 catch 保已追加帧，Housing 失败时已准备的外观仍保留；最后一次 explicit 登记 ACK 与投影。同序号继续原业务身份重述判定，无 Main、足迹、账本或 raw 许可。
 
 仅三个具名即时登记出口保留原 raw 编码失败：UseStackable Main 已 Settled 后的 RequiredExplicit，committed replay 的普通 Write 结束后的 CurrentStateBatch，以及 CollectionBox 首次成功 Main 完成后的 SettledInitialBatch。许可须经本次精确物理目标的 opaque attempt 贯通至 actual encoder；只有最终单一原 cause、没有 typed 不确定性或独立 cleanup 错误，才保持 Committed 且不新增 participant fence。callback、业务、lookup、登记守卫及其它来源仍用默认保护；来源连接关闭仍由原作业发件箱排序完成。重放 reader 必需显式 metadata，普通 Write 内直接读，事务外按 MirrorMerge→Create→batch→Town 投影，无 nested bus。`LegacyReplayStateProjectionDelivery` 只服务仍在迁移的旧 ledger／Joust 路线，相关 ReadReplayStateCommand 和旧 ambient 仍 pending；事务内延迟 Compose 仍禁止生产调用。
 

@@ -490,7 +490,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         containers.Register(character, worn);
 
         var mappings = new InventorySlotMappingRuleService();
-        var commandHandler = new MoveItemSpaceCommandHandler(
+        var commandHandler = new InventoryMoveDomainService(
             new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
@@ -503,11 +503,11 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         var sender = new RecordingSender();
         var logger = new RecordingLogger();
         return new World(
-            new MoveItemSpaceHandler(
+            MoveItemProtocolTestDriver.Create(
                 new OneSession(),
                 currentViews,
                 mappings,
-                new DirectMoveBus(commandHandler, fixture),
+                new MoveItemProtocolTestDriver.Execution(commandHandler, fixture),
                 sender,
                 logger, null!, null!, TimeProvider.System),
             sender,
@@ -683,23 +683,9 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         public void Seed(int slotIndex, int itemId, byte itemKind = 8) => SeedItem(slotIndex, itemId, itemKind);
     }
 
-    private sealed class DirectMoveBus(
-        ICommandHandler<MoveItemSpaceCommand, ItemMoveResult> move, MoveItemFixture fixture) : ICommandBus
-    {
-        public async ValueTask<TResult> SendAsync<TResult>(
-            ICommand<TResult> command, CancellationToken cancellationToken = default)
-            where TResult : notnull
-        {
-            var context = new CommandExecutionContext(
-                Guid.Empty, command.GetType(), typeof(DirectMoveBus),
-                CommandExecutionKind.Transactional);
-            var result = await fixture.RunAsync(() => move.HandleAsync(
-                context, (MoveItemSpaceCommand)(object)command, cancellationToken));
-            return (TResult)(object)result;
-        }
-    }
 
-    private sealed class RecordingLogger : ILogger<MoveItemSpaceHandler>
+
+    private sealed class RecordingLogger : ILogger<GameMoveItemSpaceCommandHandler>
     {
         public List<Exception> Errors { get; } = [];
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;

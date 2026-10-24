@@ -1763,9 +1763,9 @@ public sealed class IllusionTowerDomainServiceTests
             await Tower(f).EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000);
         });
         var bus = f.Services.GetRequiredService<Dfo.Server.Application.Commands.ICommandBus>();
-        var result = await bus.SendAsync(new Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceCommand(f.Session.CharacterId,
+        var result = await Dfo.Server.Application.Tests.Inventory.InventoryMoveTestAccess.MoveAsync(f.Services,new Dfo.Server.Abstractions.Inventory.InventoryMoveRequest(f.Session.CharacterId,
             new(BusinessInventorySpace.WornEquipment, 0), 1, new(BusinessInventorySpace.TowerQuickSlot, 0)) { Session = f.Session }, default);
-        Assert.Equal(Dfo.Server.Protocol.Game.MoveItemSpace.ItemMoveStatus.ItemCannotOccupySlot, result.Status);
+        Assert.Equal(Dfo.Server.Abstractions.Inventory.ItemMoveStatus.ItemCannotOccupySlot, result.Status);
     }
 
     [Fact]
@@ -1836,14 +1836,14 @@ public sealed class IllusionTowerDomainServiceTests
             return (run, context);
         });
         var bus = f.Services.GetRequiredService<Dfo.Server.Application.Commands.ICommandBus>();
-        var moved = await bus.SendAsync(new Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceCommand(
+        var moved = await Dfo.Server.Application.Tests.Inventory.InventoryMoveTestAccess.MoveAsync(f.Services,new Dfo.Server.Abstractions.Inventory.InventoryMoveRequest(
             f.Session.CharacterId, new(BusinessInventorySpace.TowerQuickSlot, 0), 1,
             new(BusinessInventorySpace.TowerQuickSlot, 1)) { Session = f.Session }, default);
-        Assert.Equal(Dfo.Server.Protocol.Game.MoveItemSpace.ItemMoveStatus.Moved, moved.Status);
-        var escaped = await bus.SendAsync(new Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceCommand(
+        Assert.Equal(Dfo.Server.Abstractions.Inventory.ItemMoveStatus.Moved, moved.Status);
+        var escaped = await Dfo.Server.Application.Tests.Inventory.InventoryMoveTestAccess.MoveAsync(f.Services,new Dfo.Server.Abstractions.Inventory.InventoryMoveRequest(
             f.Session.CharacterId, new(BusinessInventorySpace.TowerQuickSlot, 0), 1,
             new(BusinessInventorySpace.Consumable, 1)) { Session = f.Session }, default);
-        Assert.Equal(Dfo.Server.Protocol.Game.MoveItemSpace.ItemMoveStatus.ItemCannotOccupySlot, escaped.Status);
+        Assert.Equal(Dfo.Server.Abstractions.Inventory.ItemMoveStatus.ItemCannotOccupySlot, escaped.Status);
         var request = new Dfo.Server.Abstractions.Effects.ReplayProjectionRequest(
             Dfo.Server.Abstractions.Effects.ReplayProjectionNeeds.Inventory, [new(BusinessInventorySpace.TowerQuickSlot, 0)]);
         var active = await bus.SendAsync(new Dfo.Server.Application.Effects.ReadReplayStateCommand(f.Session, request, null), default);

@@ -356,7 +356,7 @@ public sealed class MoveItemSpaceHandlerTests
         var placements = new ConsumablePlacements();
         var mappings = new InventorySlotMappingRuleService();
         var containers = inventory.Containers(placements);
-        var handler = new MoveItemSpaceCommandHandler(
+        var handler = new InventoryMoveDomainService(
             new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(placements, new NoWearables()),
@@ -381,16 +381,16 @@ public sealed class MoveItemSpaceHandlerTests
 
     /// <summary>One command, in its own use case boundary, as its own job.</summary>
     private static Task<ItemMoveResult> Dispatch(
-        MoveItemSpaceCommandHandler handler,
+        InventoryMoveDomainService handler,
         FakeInventory inventory,
         short sourceSlot,
         short destinationSlot) =>
         TestGameplay.RunAsync(async () =>
         {
-            var bus = new DirectCommandBus(move: handler, scope: inventory.Scope);
+            var bus = new DirectInventoryMove(move: handler, scope: inventory.Scope);
             var mappings = new InventorySlotMappingRuleService();
-            return await bus.SendAsync(
-                new MoveItemSpaceCommand(
+            return await bus.MoveAsync(
+                new InventoryMoveRequest(
                     new CharacterId(60),
                     mappings.ToBusinessSlot(
                         new GameSlot(InventoryContainerType.Main, sourceSlot)),
@@ -424,20 +424,20 @@ public sealed class MoveItemSpaceHandlerTests
         var resolved = placements ?? new ConsumablePlacements();
         var mappings = new InventorySlotMappingRuleService();
         var containers = inventory.Containers(resolved);
-        var commandHandler = new MoveItemSpaceCommandHandler(
+        var commandHandler = new InventoryMoveDomainService(
             new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(resolved, new NoWearables()),
                 new ItemSlotRuleService(), new MoveItemSpaceHandlerTestsWearEligibility()));
 
         return (
-            new MoveItemSpaceHandler(
+            MoveWholeTestDriver.Create(
                 new OneSession(),
                 new NoPublishedRuntime(),
                 mappings,
-                new DirectCommandBus(move: commandHandler, scope: inventory.Scope),
+                new MoveWholeTestDriver.Execution(commandHandler, inventory.Scope),
                 sender,
-                NullLogger<MoveItemSpaceHandler>.Instance, null!, null!, TimeProvider.System),
+                NullLogger<GameMoveItemSpaceCommandHandler>.Instance, null!, null!, TimeProvider.System),
             sender);
     }
 

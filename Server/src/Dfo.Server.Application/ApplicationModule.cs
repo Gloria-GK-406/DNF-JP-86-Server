@@ -537,6 +537,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<AvatarAppearanceRuleService>();
         services.TryAddSingleton<IEquipmentWearDomainService, EquipmentWearDomainService>();
         services.TryAddSingleton<IItemMovementDomainService, ItemMovementDomainService>();
+        services.TryAddSingleton<IInventoryMoveDomainService, InventoryMoveDomainService>();
         services.TryAddSingleton<IItemMirrorDomainService, ItemMirrorDomainService>();
         services.AddDomainEvent<ItemMirrorRemoved>("inventory.mirror-removed", 1);
         services.TryAddSingleton<IInventorySortDomainService, InventorySortDomainService>();

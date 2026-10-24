@@ -56,8 +56,8 @@ public sealed class BusinessEquipmentSwapTests
         var uidWorn = shop.Host.Scalar("SELECT core_uid FROM item_slots WHERE owner_scope='character' AND owner_id=1 AND list_type=3 AND slot_index=14");
         Assert.NotEqual(uidBag, uidWorn);
 
-        var moved = await shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new MoveItemSpaceCommand(shop.Host.Session.CharacterId,
+        var moved = await InventoryMoveTestAccess.MoveAsync(shop.Host.Services,
+            new InventoryMoveRequest(shop.Host.Session.CharacterId,
                 new(BusinessInventorySpace.CarriedEquipment, 0), 1,
                 new(BusinessInventorySpace.WornEquipment, 2)));
 
@@ -79,19 +79,19 @@ public sealed class BusinessEquipmentSwapTests
             await shop.Host.SeedCore(14, core, InventoryContainerType.Equipment);
             var uidBag = shop.Host.Scalar("SELECT core_uid FROM item_slots WHERE owner_scope='character' AND owner_id=1 AND list_type=0 AND slot_index=9");
             var uidWorn = shop.Host.Scalar("SELECT core_uid FROM item_slots WHERE owner_scope='character' AND owner_id=1 AND list_type=3 AND slot_index=14");
-            var handler = new MoveItemSpaceCommandHandler(
+            var handler = new InventoryMoveDomainService(
                 shop.Host.Services.GetRequiredService<IBusinessInventorySlotDomainService>(),
                 shop.Host.Services.GetRequiredService<IItemMovementDomainService>());
             var scope = (DomainTransactionScope)shop.Host.Services.GetRequiredService<IDomainTransactionAccessor>();
             await using (var tx = scope.Begin())
             {
-                var context = new CommandExecutionContext(Guid.NewGuid(), typeof(MoveItemSpaceCommand),
-                    typeof(MoveItemSpaceCommandHandler), CommandExecutionKind.Transactional);
-                var putOn = await handler.HandleAsync(context, new(shop.Host.Session.CharacterId,
+                var context = new CommandExecutionContext(Guid.NewGuid(), typeof(InventoryMoveRequest),
+                    typeof(InventoryMoveDomainService), CommandExecutionKind.Transactional);
+                var putOn = await handler.MoveAsync( new(shop.Host.Session.CharacterId,
                     new(BusinessInventorySpace.CarriedEquipment, 0), 1,
                     new(BusinessInventorySpace.WornEquipment, 2)), default);
                 Assert.Equal(ItemMoveStatus.Moved, putOn.Status);
-                var takeOff = await handler.HandleAsync(context, new(shop.Host.Session.CharacterId,
+                var takeOff = await handler.MoveAsync( new(shop.Host.Session.CharacterId,
                     new(BusinessInventorySpace.WornEquipment, 2), 1,
                     new(BusinessInventorySpace.CarriedEquipment, 1)), default);
                 Assert.Equal(ItemMoveStatus.Moved, takeOff.Status);

@@ -362,3 +362,12 @@ Level→Default有效mutation 1行为RED+2可达正控，finally逐byte恢复3/3
 真正before33项封后才迁产品，原registered2B入口31/31+原codec7/7，21组旧新54全列asset快照及具名SQL时间/GUID双射/DeliveryFK保护两角色condition/BLOBhex/NULL/非选择列/权益/其它资产与帧。action19/1811与sameparticipant deferredFK nativeCommit19/787/FK1/child>0/action完成stage/causeSame/fullrollback及同seq当前重存有直接证据。normal非法及缺失权益拒绝ACK旧raw→既有默认PostCommitPublicationFailure innerSame两处壳差异明确，原chain/EndedAJob/物理sourcecloseSame/nofence保；没有原preACK，不虚构第四许可。postworld proxy仅证保存后分支顺序，不冒实际并发退出。
 
 可编译selection3→5域实参mutation实际保存grade5资产RED、selection0正控pass；finally原wholebytes恢复同2目标2pass。finalfreeze01七present/零删除文件，Release0/0和三无filterfull+四freshcontrols，原8969逐display/status/multiplicity全保N=22/D=0→8991=8971pass+原Dim2fail+18skip；其余1800仍Task20库存，非八freshfull。DFO74/7/outside-exe-orphan0、Golden15/Char10。actualcapture173/201只有66072/一fine→whole，purefamilies/三许可所有owner其它精确同原。完整NUL14646=5owned+14641nonowned，排两actualcanonical后14639原SHA同。T012单CMD2秒/A21/Astra/Spec终局/主控checkpoint后继。
+
+
+## TASK26 r1 — MoveItemSpace 完整 NonEffect whole与库存移动领域能力
+
+仅闭message65555及MoveItemSpaceCommand fine。新whole一次ordinary Write([],Ordinary,None)驱动具名InventoryMove领域能力；原算法全体body按类型/方法/未读context机械归一精确，Session=null/Tower业务地址/两wear同Tx/UID/pet/mirror等旧18源能力保持。mixed消息/codec/encoder逐byte同原，无兼容fine或隐藏总线。postTx cargo/currentView/Housing读取不添unit，原两catch及同frames部分追加保持，Housing失败保已追加appearance，最后一次explicit必达登记。
+
+真正before55项封后才产品：原strong App249/Protocol106及21真实wire观察；新strong249/107。21原新54全列资产快照/258具名SQL时间和GUID双射/DeliveryFK，真实双端action19/1811与sameparticipant nativeCommit19/787、source已扣/完整UID-core-BLOB-null回滚及同seqretry。noWrite encoder原rawSame；normalCommitted成功与拒绝的encoder oldraw→既有默认typed innerSame两处壳差异明列，实际rootchain/EndedAJob/精确sourcecloseSame/nofence和资产结果保，不增第四raw。受控wear/currentview baseline+真实库存/Housing正常null只证明本族顺序，不冒生产全量投影或A21。
+
+restatement guard mutation导致真实物品逆向回65资产RED、fresh drag正控pass，finally原domainbytes恢复同2目标2pass。finalfreeze01 27present/0文件删除；Release0/0与八fresh full/七实际controls，原8991逐display/status/multiplicity全保N=22/D=0→9013=8993pass+原Dim2fail+18skip，DFO74/7/outside-exe-orphan0，Golden15/Char10。actual173/201只有65555/一fine→whole，其它families/三许可owner精确。完整NUL14793=22owned+14771nonowned，排actualcanonical2键后14769SHA同。Host01唯一channel端口False断言原raw保留，邻近bind48仅旁证/未证明具体端口竞争者或唯一根因；samefreeze无filterHost02全203pass，最终按02选取同203显示名/参数/重数，无新增baseline豁免。T012单CMD2秒/Astra/Spec终局/主控checkpoint后继。

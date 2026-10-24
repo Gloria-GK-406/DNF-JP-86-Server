@@ -32,8 +32,8 @@ public sealed partial class AchievementTitleBookTests
     }
     private static async ValueTask<ItemMoveResult> MoveTitle(Fixture f, BusinessSlot source, BusinessSlot destination)
     {
-        var h=new MoveItemSpaceCommandHandler(f.Services.GetRequiredService<IBusinessInventorySlotDomainService>(),f.Services.GetRequiredService<IItemMovementDomainService>());
-        return await h.HandleAsync(new(Guid.NewGuid(),typeof(MoveItemSpaceCommand),h.GetType(),CommandExecutionKind.Transactional),new(Character,source,1,destination),default);
+        var h=new InventoryMoveDomainService(f.Services.GetRequiredService<IBusinessInventorySlotDomainService>(),f.Services.GetRequiredService<IItemMovementDomainService>());
+        return await h.MoveAsync(new(Character,source,1,destination),default);
     }
     [PvfFact]
     public async Task Switching_book_titles_preserves_both_originals_and_persists_only_the_current_equipment_mirror()

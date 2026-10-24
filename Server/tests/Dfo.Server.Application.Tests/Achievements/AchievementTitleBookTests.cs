@@ -22,6 +22,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
 
+using Dfo.Server.Application.Inventory;
+
 namespace Dfo.Server.Application.Tests.Achievements;
 
 public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
@@ -372,13 +374,13 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
                     new Dfo.Server.Application.Inventory.PersistentItemContainer(ContainerId.ForCharacter(Character,type),new(type,0),
                         f.Services.GetRequiredService<IItemDomainStore>(),f.Services.GetRequiredService<IDomainTransactionAccessor>(),
                         f.Services.GetRequiredService<IItemPlacementRuleService>(),f.Services.GetRequiredService<IItemSlotRuleService>()));
-            var handler = new Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceCommandHandler(
+            var handler = new Dfo.Server.Application.Inventory.InventoryMoveDomainService(
                 f.Services.GetRequiredService<IBusinessInventorySlotDomainService>(), f.Services.GetRequiredService<IItemMovementDomainService>());
             var carried = new BusinessSlot(BusinessInventorySpace.CarriedEquipment,0);
             await using (var tx = f.Scope.Begin()) {
-                var result = await handler.HandleAsync(new(Guid.NewGuid(),typeof(Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceCommand),handler.GetType(),Dfo.Server.Application.Commands.CommandExecutionKind.Transactional),
+                var result = await handler.MoveAsync(
                     new(Character,reverse ? worn : carried,1,reverse ? carried : worn),default);
-                Assert.Equal(Dfo.Server.Protocol.Game.MoveItemSpace.ItemMoveStatus.Moved,result.Status);
+                Assert.Equal(Dfo.Server.Abstractions.Inventory.ItemMoveStatus.Moved,result.Status);
                 if (commit) await tx.CommitAsync(default);
             }
             if (!commit) { Assert.Equal(before,f.ItemsAndPositions()); return; }
