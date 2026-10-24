@@ -32,9 +32,9 @@ workspace:
   - `controller-validation.md`「Derived progress consistency」第 4 条在 spec-001 区间内只对这一个提交放行，其余非 spec-001 检查点的提交照常报 `foreign-commit`。
   - 不为通过校验而改写历史。
   - 紧随其后的 spec-001 修订提交（`spec.md`、`plan.md`、`verification/follow-ups.md` 去掉「提案」）是 spec-001 自己的检查点，不是例外。
-- **spec-002 待激活**：
+- **spec-002 建模与激活边界（当前状态见末行）**：
   - 结果 B 在 spec-001 封存、根评估之后，才按「Model Exactly One Child」建模。
-  - 草案暂留 `verification/reroute-t008-spec-002-draft.md`，不放在 `attempts/` 下（裁定第 4 条）。激活时由控制器按根评估的缺口复核，落到 `attempts/spec-002-protocol-level-cmd/TaskContract.md`，再派子契约审查。
+  - A封存前草案暂留verification（裁定4）；A接受后已逐字节移为`attempts/spec-002-protocol-level-cmd/source-draft.md`。控制器按缺口写就该目录TaskContract r1，经独立intake approved后激活，未提前创建Spec。
   - spec-002 在 spec-001 封存后即可开始，不等外部审核。
 - **修正子 Spec（可能出现）**：用户若先让 GPT Astra 看 A，Astra 对 A 的意见作为编号接在 B 之后的新子 Spec，或者在不跨边界的前提下并进 B，由主控方届时判定。封存后的 spec-001 不重开。
 
@@ -86,6 +86,8 @@ Only the final row may have an empty `Git result`; that row is the active child.
 |---:|---|---|---|---|---|---|
 | `1` | `spec-001` | `attempts/spec-001-executor-outbox-lock-removal/TaskContract.md` | 结果 A：单执行器、提交后发件箱与删锁（收编，Spec 基准 `a02bce46`） | `SC-1, SC-3, SC-4, SC-5, SC-6, SC-7, SC-8, SC-9, SC-10, SC-11, SC-12` | `attempts/spec-001-executor-outbox-lock-removal/spec-result.md` | `e6f55558182800b656b14c4b863a52fe672ad921` |
 
+| `2` | `spec-002` | `attempts/spec-002-protocol-level-cmd/TaskContract.md` | 结果 B：协议级CMD、显式请求上下文、工作单元与过渡清零 | `SC-2, SC-8B, SC-9B, SC-10B, SC-11B, SC-13` | | |
+
 ## Root Evaluation：接受A后的后继决定（2026-10-24）
 
 - child-accepted：A seal e6f55558182800b656b14c4b863a52fe672ad921可达，父为TASK35 0ecb9af3；封存恰38个已归属制品路径、无Server/Tool改动、工作区干净。a02bce46..seal41提交＝40个A检查点（规划1、Task35、修订3、seal1）＋唯一登记根改道9d146830。没有其他foreign commit，未重开A。
@@ -93,3 +95,9 @@ Only the final row may have an empty `Git result`; that row is the active child.
 - safe-successor：沿根task授权及用户2026-10-24“继续完成spec2剩余工作”建模唯一spec-002-protocol-level-cmd，承担上述六条B条件。A已封存，不等Astra才能开始；仍不推送/PR/收尾。
 - 首个B单元按已定顺序承接F130（测试清池）和F127（写端完成判定）；F88/F93在迁移相应保护前补，F132在事务内组装调用前处理。
 - A最终挑战CH1（多结束挂钩首错短路）/CH2（Warning提供器抛错）为已接受低风险残余，细节见A最终汇报§11；交后继评估，B触及时可有界修，否则修正子Spec，不凭此扩大B硬要求。A保持封存不可改。
+
+## Child Activation：spec-002（2026-10-24）
+
+- ready子契约r1、同目录task-contract-review approved（精确路径/revision匹配）、Single子路由、父r4、canonical containment及depends_on空列表校验均通过，错误列表[]；激活前没有活动子行。
+- 激活后只有末行spec-002的Git result为空，A仍是sealed completed。B复用同工作区/分支，其Spec baseline由本激活map检查点给出、写入B路由Execution Configuration。
+- B制品在自己的目录；根原草案删除/子source-draft新增均属根输入迁移，A路径覆盖明确排除此文件，不是修改sealed A。该输入迁移与子契约/审查/路由由B规划检查点提交；此提交仅根map。
