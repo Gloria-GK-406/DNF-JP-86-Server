@@ -663,8 +663,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<SwitchSkillBuildResponse, SwitchSkillBuildEncoder>();
         services.AddCommandHandler<LearnSkillCommand, CharacterSkillLearningResult, LearnSkillCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.AddCommandHandler<SellItemCommand, ItemSaleResult, SellItemCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameSellItemCommand, bool, GameSellItemCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSellItem, typeof(SellItemRequest)));
         services.AddCommandHandler<RepairItemCommand, EquipmentRepairResult, RepairItemCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<TeleportCommand, TeleportConsumableResult, TeleportCommandHandler>(
@@ -986,7 +986,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<AvatarPackageOpeningHandler, AvatarPackageOpeningRequest, GameAvatarPackageOpeningCommand>(ClientMessageType.GameAvatarPackageOpening);
         services.RegisterMessageHandler<GenCeraTicketHandler>(ClientMessageType.GameGenCeraTicket);
         services.RegisterMessageHandler<LearnSkillHandler>(ClientMessageType.GameLearnSkill);
-        services.RegisterMessageHandler<SellItemHandler>(ClientMessageType.GameSellItem);
+        services.RegisterProtocolMessageHandler<SellItemHandler, SellItemRequest, GameSellItemCommand>(ClientMessageType.GameSellItem);
         services.RegisterMessageHandler<RepairItemHandler>(ClientMessageType.GameRepairItem);
         services.RegisterProtocolMessageHandler<DisjointItemHandler, DisjointItemRequest, GameDisjointItemCommand>(ClientMessageType.GameDisjointItem);
         services.RegisterProtocolMessageHandler<ReinforceItemHandler, ReinforceItemRequest, GameReinforceItemCommand>(ClientMessageType.GameReinforceItem);

@@ -170,15 +170,16 @@ public sealed class ItemSaleTests
     [Fact]
     public async Task A_bad_field_sum_and_an_old_session_cannot_sell()
     {
-        using var shop = Fixture();
+        var trace = new SellItemProtocolCommandFlowTests.Trace();
+        using var shop = SellItemProtocolCommandFlowTests.CreateFixture(trace);
         await shop.Seed(65, 5000, 10);
         await Sell(shop, 65, 1, sum: 0);
         var old = shop.Session;
         shop.Select(2);
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new SellItemCommand(
-            shop.OnlineUser, old,
-            new BusinessSlot(BusinessInventorySpace.Consumable, 0), 1, 2));
-        Assert.Equal(ItemSaleRejection.NoSession, result.Rejection);
+        trace.Stale = old;
+        await Sell(shop, 65, 1);
+        Assert.Equal(ItemSaleRejection.NoSession, trace.Attempts.Last().Result!.Rejection);
+        Assert.Equal(new SellItemResponse(null, ErrorCode: 1), shop.Sender.Messages.Last());
         Assert.Equal(10, shop.Scalar("SELECT count FROM item_slots WHERE owner_id=1 AND list_type=0 AND slot_index=65"));
         Assert.Equal(100000, shop.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=1"));
     }
@@ -367,14 +368,9 @@ public sealed class ItemSaleTests
         Assert.Empty(shop.Sender.Messages);
     }
 
-    private static async ValueTask Sell(ShopFixture shop, int slot, int count,
+    private static ValueTask Sell(ShopFixture shop, int slot, int count,
         InventoryContainerType container = InventoryContainerType.Main, int npc = 2, int? sum = null) =>
-        await TestGameplay.RunAsync(shop.Services, async () => await shop.Services.GetRequiredService<SellItemHandler>().HandleAsync(new(shop.Connection),
-            new SellItemRequest(
-                GameMessageMetadata.Empty,
-                new GameSlot(container, slot),
-                checked((short)count), npc, sum ?? (byte)container + slot + count),
-            default));
+        SellWire.Sell(shop, slot, count, container, npc, sum);
 
     private static ShopFixture Fixture(int cap = 1000000, IItemSaleDefinitionSource? prices = null,
         SaleLogger? logger = null) => new(services =>

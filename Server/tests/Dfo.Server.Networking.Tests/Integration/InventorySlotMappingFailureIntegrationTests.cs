@@ -81,7 +81,7 @@ public sealed class InventorySlotMappingFailureIntegrationTests
     {
         while (true)
         {
-            var entries = logs.ErrorsContaining("Gameplay inbound:");
+            var entries = logs.ErrorsContaining("Gameplay GameSellItemCommand failed:");
             if (entries.Count > 0)
                 return Assert.Single(entries);
 

@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Infrastructure.Content;
@@ -29,9 +30,11 @@ public sealed class KnightCoinShopTests
         var granted=Assert.Single(purchase.Receipt.GrantedSlots);
         Assert.Equal(BusinessInventorySpace.Material,granted.Slot.Space);
         Assert.Equal(0,granted.Core.ExpireTime);
-        var sale=await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new SellItemCommand(shop.OnlineUser,shop.Session,granted.Slot,2,2));
-        Assert.Equal(ItemSaleRejection.None,sale.Rejection);Assert.NotNull(sale.Receipt);
-        Assert.Equal(18000,shop.Gold-80000);Assert.Equal(98000,sale.Receipt.Gold);Assert.Equal(0,shop.Count(itemId));
+        var before = shop.Sender.Messages.Count;
+        var physical = shop.Services.GetRequiredService<IInventorySlotMappingRuleService>().ToGameSlot(granted.Slot);
+        await SellWire.Sell(shop, physical.Index, 2, physical.Space);
+        var sale = Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages.Skip(before)));
+        Assert.NotNull(sale.Slot); Assert.Equal(physical, sale.Slot); Assert.Equal(2, sale.Count);
+        Assert.Equal(18000,shop.Gold-80000);Assert.Equal(98000,sale.Gold);Assert.Equal(0,shop.Count(itemId));
     }
 }

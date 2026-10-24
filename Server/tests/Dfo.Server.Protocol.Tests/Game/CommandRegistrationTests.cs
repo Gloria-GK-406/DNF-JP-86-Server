@@ -34,6 +34,23 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Sell_wire_has_one_exact_NonEffect_whole_and_no_registration_permission()
+    {
+        using var provider=BuildProductionGraph();var rows=provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var row=Assert.Single(rows,x=>x.CommandType==typeof(Dfo.Server.Protocol.Game.SellItem.GameSellItemCommand));
+        Assert.Equal(CommandExecutionKind.Direct,row.ExecutionKind);Assert.Equal(CommandRouteKind.Protocol,row.Route);
+        Assert.Equal(new[]{new ProtocolCommandMessageBinding(ClientMessageType.GameSellItem,typeof(Dfo.Server.Protocol.Game.SellItem.SellItemRequest))},row.ProtocolMessages);
+        Assert.True(row.RegistrationExits is null or {Count:0});
+        Assert.False(typeof(Dfo.Server.Abstractions.Networking.IEffectSettlementRequest).IsAssignableFrom(typeof(Dfo.Server.Protocol.Game.SellItem.SellItemRequest)));
+        var registry=provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        Assert.True(registry.TryGet(ClientMessageType.GameSellItem,out var route));Assert.Equal(row.CommandType,route!.ProtocolCommandType);
+        Assert.Equal(new[]{typeof(Dfo.Server.Protocol.Game.SellItem.SellItemRequest)},route.AllowedMessageClrTypes);
+        Assert.DoesNotContain(rows,x=>x.CommandType.Name=="SellItemCommand");
+        Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.SellItem.SellItemCommand"));
+        Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.SellItem.SellItemCommandHandler"));
+    }
+
+    [Fact]
     public void Three_sort_wires_use_two_exact_NonEffect_wholes_without_registration_exits_or_old_fines()
     {
         using var provider = BuildProductionGraph();

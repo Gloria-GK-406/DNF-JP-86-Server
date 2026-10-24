@@ -1,0 +1,1 @@
+首轮旧route 73/73通过。完成前检查发现observer在所有正常领域拒绝后也读取staged SQL，可能给原本仅runtime判定的空事务额外登记SQLite读participant；没有改业务数据，但会干扰空事务形状。保存01实际driver/raw后，改为只在实际成功receipt或抛错时读取stage；正常Refused仅记录原clock/domain/transaction引用，完整assets仍在事务外前后观察。产品仍HEAD，下一02为正式before，01不是业务RED或产品失败。

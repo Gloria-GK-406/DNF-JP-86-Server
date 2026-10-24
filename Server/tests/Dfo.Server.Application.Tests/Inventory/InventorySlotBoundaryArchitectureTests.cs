@@ -16,7 +16,10 @@ public sealed class InventorySlotBoundaryArchitectureTests
     [Fact]
     public void Legacy_item_commands_and_whole_use_preserve_their_respective_slot_boundaries()
     {
-        AssertSlotProperty<SellItemCommand>(nameof(SellItemCommand.Slot), typeof(BusinessSlot));
+        AssertSlotProperty<GameSellItemCommand>(nameof(GameSellItemCommand.Input), typeof(SellItemRequest));
+        AssertSlotProperty<SellItemRequest>(nameof(SellItemRequest.Slot), typeof(GameSlot));
+        Assert.Equal(typeof(BusinessSlot), typeof(IItemSaleDomainService).GetMethod(nameof(IItemSaleDomainService.SellAsync))!
+            .GetParameters().Single(parameter => parameter.Name == "slot").ParameterType);
         AssertSlotProperty<DiscardItemCommand>(nameof(DiscardItemCommand.Slot), typeof(BusinessSlot));
         AssertSlotProperty<RepairItemCommand>(nameof(RepairItemCommand.Slot), typeof(BusinessSlot?));
         AssertSlotProperty<GameDisjointItemCommand>(nameof(GameDisjointItemCommand.Input), typeof(DisjointItemRequest));
@@ -28,7 +31,6 @@ public sealed class InventorySlotBoundaryArchitectureTests
         AssertSlotProperty<MoveItemSpaceCommand>(nameof(MoveItemSpaceCommand.DestinationSlot), typeof(BusinessSlot));
         AssertSlotProperty<UseStackableRequest>(nameof(UseStackableRequest.Slot), typeof(GameSlot));
 
-        AssertNoGameAddress<SellItemCommand>();
         AssertNoGameAddress<DiscardItemCommand>();
         AssertNoGameAddress<RepairItemCommand>();
         AssertNoGameAddress<GameDisjointItemCommand>();
@@ -122,6 +124,12 @@ public sealed class InventorySlotBoundaryArchitectureTests
                 || property.PropertyType == typeof(BusinessSlot?));
         }
     }
+
+    [Fact]
+    public void Business_model_boundary_rejects_a_real_wire_address_counterexample() =>
+        Assert.ThrowsAny<Exception>(() => AssertNoGameAddress<BadBusinessModel>());
+
+    private sealed record BadBusinessModel(GameSlot Slot);
 
     private static void AssertSlotProperty<T>(string name, Type expected) =>
         Assert.Equal(expected, typeof(T).GetProperty(name, BindingFlags.Public | BindingFlags.Instance)!.PropertyType);

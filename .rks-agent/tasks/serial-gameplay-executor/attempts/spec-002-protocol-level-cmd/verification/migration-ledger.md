@@ -326,3 +326,12 @@ finalfreeze18source上Release0警告0错误、八无filter full8883=8863pass+2�
 42项真正before封存，原40强case意图保留并迁stale/tower driver；新16 oracle和注册1全部passed。原SQL19/1811、真实FK deferred nativeCommit19/787、完整stage/资产BLOBhex/NULL/同run rollback精确，十组原新对应及跨run两items时间/三eventGUID具名关系保留。emptyCommitted拒绝ACK旧raw与新typed PostCommitPublicationFailure/inner同cause为Task10已审解释，明确不称异常相同；新final直接Same物理close，旧empty只Single/IsClose/nofence，旧JSON硬码不是该case独立Same证据。
 
 Level→Default有效mutation 1行为RED+2可达正控，finally逐byte恢复3/3。freeze01 Net两Connection refused保raw/栈/端口诊断，隔离2/2，根因未证且不归Dim；仅empty身份断言增强后freeze02重跑Release0/0、三无filterfull App5128/Protocol1773/Net199及另四freshcontrols。原8883逐display/status/multiplicity全保，N17/D0；加另1800 Task20库存8900=8880pass+原Dim2fail+18skip，不称八freshfull。DFO原74/七controls/outside-exe-orphan0、Golden15/Char10、注册capture仅3message/2fine替换、三出口种类及所有owner原样。pending118message/172fine/72source/5protection/8transition；单CMD≤2秒、A21与Spec最终审查/主控checkpoint仍后继。
+
+
+## TASK22 r1 — SellItem 单 logical／单 typed whole
+
+仅闭65558与SellItemCommand fine，Direct/Protocol exact SellItemRequest→GameSellItemCommand<bool>，无registration exit。old fine物理删除，Data receipt/result、原ItemSaleCompleted与codec原样。普通Write([],Ordinary,None)，保mapping→session→sum→online及action内clock/domain；正常Refused Commit，仅ItemSaleRejected窄路保存cause、catch外RequireRollback，完整unit后ACK；原Info/业务零价ERROR/单ACK及Warning+Failed隔离保。无Main/足迹/attempt/ledger/replay或新NPC/online gate。
+
+35项真before，原59强case及新14 flow在old73/73实跑；新增架构实际坏model与注册断言。原新13对应全列资产、两items时间具名UTC/三event GUID双射与FK关系；真实action SQL19/1811、deferredFK nativeCommit19/787、samecause/fullrollback；三拒绝pre无Tx、normal Committed、cap ConfirmedRollback各分开。normal ACK oldraw→newtyped PostCommitPublicationFailure/innerSame/fullchain明确单列，不normalize；其余rawSame，均精确物理sourceclose1/ACK0/nofence/资产不变。
+
+仅删RequireRollback实际资产RED：cap100030/old100000/price31/qty10卖1，ACK22却gold100030/qty10；cap0另因Commit分类RED，两正常卖出正控pass，finally原bytesSHA恢复同四目标4/4。首formal构建新增断言namespace拼写错留raw；02 Net唯一原日志fragment过时，r2仅准第11源一literal迁CMD身份，原TCP目标1/1后freeze03完整Release0/0、三无filterfull及四freshcontrol；原8900逐display/status/multiplicity保，实际N=16/D=0，总8916=8896pass+原Dim2fail+18skip，另1800为Task20库存不冒八freshfull。原DFO74/七controls/outside-exe-orphan0、Golden15/Char10、capture仅一message/一fine→whole，其它family/三许可owner均原样。T012单CMD2秒/A21/Spec最终审查及主控checkpoint仍后继。

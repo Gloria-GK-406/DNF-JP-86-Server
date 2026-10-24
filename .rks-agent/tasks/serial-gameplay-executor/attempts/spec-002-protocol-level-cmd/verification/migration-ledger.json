@@ -14309,25 +14309,52 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SellItem/SellItemCommand.cs",
-          "line": 17,
-          "source_sha256": "44ca0039fe98982f5340a48a1b026bcb33d003be901cee5a04f6af438c55d43a"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "At most one fine transaction; normal Result.Refused commits, only thrown ItemSaleRejected exits transaction rollback before ACK mapping; success single ACK via original ItemSaleCompleted composer after commit",
+          "new": "At most one ordinary Write([],Ordinary,None), same clock parameter evaluation/domain action/open same transaction. Narrow ItemSaleRejected catch stores original cause; catch outside RequireRollback(cause), completely finish unit then map ACK. All normal Refused still commit; SQL/native/cancel/typed not swallowed. No Main/NonRequest/footprint/ledger/attempt/replay",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/SellItem/GameSellItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-freeze-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-final-checks-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/rollback-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-owned-before/manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-mapping-literal-check.json",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SellItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-22.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SellItem/SellItemCommand.cs",
-          "line": 17,
-          "source_sha256": "44ca0039fe98982f5340a48a1b026bcb33d003be901cee5a04f6af438c55d43a"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "Original fine SellItemCommand record/handler and whole physical source deleted; Data ItemSaleResult/Receipt and original ItemSaleCompleted/codec unchanged; before bytes/SHA sealed"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/SellItem/GameSellItemCommand.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-manifest.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-freeze-03.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-final-checks-03.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/oracle-before-after-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/rollback-mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/test-delta.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/assertions-check.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/workunit-and-coverage-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-owned-before/manifest.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-mapping-literal-check.json",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/SellItemProtocolCommandFlowTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.SellItem.SellItemCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.SellItem.SellItemCommand",
@@ -14353,32 +14380,84 @@
         },
         "result": "Dfo.Server.Data.Inventory.ItemSaleResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SellItem/SellItemCommand.cs",
-          "line": 17,
-          "source_sha256": "44ca0039fe98982f5340a48a1b026bcb33d003be901cee5a04f6af438c55d43a"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SellItem/SellItemCommand.cs",
-          "line": 17,
-          "source_sha256": "44ca0039fe98982f5340a48a1b026bcb33d003be901cee5a04f6af438c55d43a"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SellItem/SellItemCommand.cs",
-          "line": 17,
-          "source_sha256": "44ca0039fe98982f5340a48a1b026bcb33d003be901cee5a04f6af438c55d43a"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Exact SellItemRequest decoder -> original handler -> SellItemCommand fine/IAccountCommand Transactional; slot mapping then session then sum then online; original fine clock inside transaction",
+          "new": "Exact unchanged SellItemRequest/Metadata/Dispatch -> thin one-bus SendAsync GameSellItemCommand<bool>; mapping/session/sum/online order preserved; old fine file/handler/callers/Transactional registration removed, no nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/SellItem/GameSellItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-freeze-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-final-checks-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/rollback-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-owned-before/manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-mapping-literal-check.json",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SellItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "Fine only IAccountCommand; OnlineUserId carried but unused, no selected/settlement marker or selected participant capture; SQLite dynamically enlists actual singleton participant",
+          "new": "Empty explicit selected participants retains exact original range; no online ID/world/NPC precheck. Real SQL19/1811 and native deferredFK Commit19/787/FK1/child>0/cause Same; full stage/after all-column BLOBhex/NULL/82Bcore rollback; gold cap staged100030/qty10 then ConfirmedRollback exact assets",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/SellItem/GameSellItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-freeze-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-final-checks-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/rollback-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-owned-before/manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-mapping-literal-check.json",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SellItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "Success NotificationBus ordinary composer/encoder Warning+Failed isolated, caller ignores; three refusal ACK faults: pre noTx/raw, normal Committed/raw, exception ConfirmedRollback/raw; each source close exact physical once and full assets preserved",
+          "new": "Success original composer/file/single ACK/Warning+Failed/caller normal retained. Pre and confirmed-rollback ACK rawSame; normal empty Committed ACK default typed PostCommitPublicationFailure/innerSame/EndedAJob/full chain, explicitly different outer type, same assets/ACK0/source close physical Same1/nofence. No new registration permission or core change. Only old duplicate fine Error removed; original domain missing/bad-price ERROR and protocol Info fields retained",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/SellItem/GameSellItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-freeze-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-final-checks-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/rollback-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-owned-before/manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-mapping-literal-check.json",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SellItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-22.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/SellItem/GameSellItemCommand.cs",
+          "purpose": "complete exact typed NonEffect Sell protocol command, original ordinary transaction/refusal and single ACK projection boundaries"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -18394,26 +18473,54 @@
       ]
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SellItem/SellItemHandler.cs",
-          "line": 14,
-          "source_sha256": "84b32999c19fa55bf894782dac139260379c3b192445059fcbda5f672d6fd3df"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "At most one fine transaction; normal Result.Refused commits, only thrown ItemSaleRejected exits transaction rollback before ACK mapping; success single ACK via original ItemSaleCompleted composer after commit",
+          "new": "At most one ordinary Write([],Ordinary,None), same clock parameter evaluation/domain action/open same transaction. Narrow ItemSaleRejected catch stores original cause; catch outside RequireRollback(cause), completely finish unit then map ACK. All normal Refused still commit; SQL/native/cancel/typed not swallowed. No Main/NonRequest/footprint/ledger/attempt/replay",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/SellItem/GameSellItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-freeze-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-final-checks-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/rollback-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-owned-before/manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-mapping-literal-check.json",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SellItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-22.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SellItem/SellItemHandler.cs",
-          "line": 14,
-          "source_sha256": "84b32999c19fa55bf894782dac139260379c3b192445059fcbda5f672d6fd3df"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/SellItem/GameSellItemCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.SellItem.GameSellItemCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/SellItem/GameSellItemCommand.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-manifest.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-freeze-03.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-final-checks-03.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/oracle-before-after-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/rollback-mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/test-delta.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/assertions-check.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/workunit-and-coverage-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-owned-before/manifest.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-mapping-literal-check.json",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/SellItemProtocolCommandFlowTests.cs"
+      ],
       "id": "message:65558",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.SellItem.SellItemHandler",
@@ -18435,35 +18542,87 @@
         "telemetry": false,
         "value": 65558
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SellItem/SellItemHandler.cs",
-          "line": 14,
-          "source_sha256": "84b32999c19fa55bf894782dac139260379c3b192445059fcbda5f672d6fd3df"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SellItem/SellItemHandler.cs",
-          "line": 14,
-          "source_sha256": "84b32999c19fa55bf894782dac139260379c3b192445059fcbda5f672d6fd3df"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SellItem/SellItemHandler.cs",
-          "line": 14,
-          "source_sha256": "84b32999c19fa55bf894782dac139260379c3b192445059fcbda5f672d6fd3df"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Exact SellItemRequest decoder -> original handler -> SellItemCommand fine/IAccountCommand Transactional; slot mapping then session then sum then online; original fine clock inside transaction",
+          "new": "Exact unchanged SellItemRequest/Metadata/Dispatch -> thin one-bus SendAsync GameSellItemCommand<bool>; mapping/session/sum/online order preserved; old fine file/handler/callers/Transactional registration removed, no nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/SellItem/GameSellItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-freeze-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-final-checks-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/rollback-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-owned-before/manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-mapping-literal-check.json",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SellItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "Fine only IAccountCommand; OnlineUserId carried but unused, no selected/settlement marker or selected participant capture; SQLite dynamically enlists actual singleton participant",
+          "new": "Empty explicit selected participants retains exact original range; no online ID/world/NPC precheck. Real SQL19/1811 and native deferredFK Commit19/787/FK1/child>0/cause Same; full stage/after all-column BLOBhex/NULL/82Bcore rollback; gold cap staged100030/qty10 then ConfirmedRollback exact assets",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/SellItem/GameSellItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-freeze-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-final-checks-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/rollback-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-owned-before/manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-mapping-literal-check.json",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SellItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "Success NotificationBus ordinary composer/encoder Warning+Failed isolated, caller ignores; three refusal ACK faults: pre noTx/raw, normal Committed/raw, exception ConfirmedRollback/raw; each source close exact physical once and full assets preserved",
+          "new": "Success original composer/file/single ACK/Warning+Failed/caller normal retained. Pre and confirmed-rollback ACK rawSame; normal empty Committed ACK default typed PostCommitPublicationFailure/innerSame/EndedAJob/full chain, explicitly different outer type, same assets/ACK0/source close physical Same1/nofence. No new registration permission or core change. Only old duplicate fine Error removed; original domain missing/bad-price ERROR and protocol Info fields retained",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/SellItem/GameSellItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-freeze-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/source-final-checks-03.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/rollback-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-owned-before/manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-22-inspection/r2-mapping-literal-check.json",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SellItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.SellItem.SellItemCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-22.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/SellItem/GameSellItemCommand.cs",
+          "purpose": "complete exact typed NonEffect Sell protocol command, original ordinary transaction/refusal and single ACK projection boundaries"
+        }
+      ]
     },
     {
       "actual_units": {
