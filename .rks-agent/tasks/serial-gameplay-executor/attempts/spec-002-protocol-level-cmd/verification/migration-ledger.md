@@ -335,3 +335,12 @@ Level→Default有效mutation 1行为RED+2可达正控，finally逐byte恢复3/3
 35项真before，原59强case及新14 flow在old73/73实跑；新增架构实际坏model与注册断言。原新13对应全列资产、两items时间具名UTC/三event GUID双射与FK关系；真实action SQL19/1811、deferredFK nativeCommit19/787、samecause/fullrollback；三拒绝pre无Tx、normal Committed、cap ConfirmedRollback各分开。normal ACK oldraw→newtyped PostCommitPublicationFailure/innerSame/fullchain明确单列，不normalize；其余rawSame，均精确物理sourceclose1/ACK0/nofence/资产不变。
 
 仅删RequireRollback实际资产RED：cap100030/old100000/price31/qty10卖1，ACK22却gold100030/qty10；cap0另因Commit分类RED，两正常卖出正控pass，finally原bytesSHA恢复同四目标4/4。首formal构建新增断言namespace拼写错留raw；02 Net唯一原日志fragment过时，r2仅准第11源一literal迁CMD身份，原TCP目标1/1后freeze03完整Release0/0、三无filterfull及四freshcontrol；原8900逐display/status/multiplicity保，实际N=16/D=0，总8916=8896pass+原Dim2fail+18skip，另1800为Task20库存不冒八freshfull。原DFO74/七controls/outside-exe-orphan0、Golden15/Char10、capture仅一message/一fine→whole，其它family/三许可owner均原样。T012单CMD2秒/A21/Spec最终审查及主控checkpoint仍后继。
+
+
+## TASK23 r1 — DeleteItem 三操作／单 typed NonEffect whole
+
+仅闭message65554及DiscardItemCommand、ConsumeSkillMaterialsCommand、ConsumeEffectMaterialsCommand三fine。精确DeleteItemRequest→GameDeleteItemCommand<bool>，Direct/Protocol，无registration exit；旧三物理源/handler/注册和caller删除，原domain/多cost API/通知/codec/共享core全部只读。每有效branch原一次ordinary Write([],Ordinary,None)，op1 clock和carried QuestHoldingsChanged同事务，material先全部预验再扣款和MaterialConsumed同事务，材料preparedAt保事务外UTC；正常拒绝Commit，异常Abort，无新Main/足迹/ledger/attempt/replay/raw/P3。
+
+真before43项封存后才产品，原入口69/69＋codec11/11；30组旧新完整资产/事件/metadata/帧字节对应，原stale/multicost/duplicate接缝用实际domain＋显式事务保，单cost真实wire另护。实际action19/1811及discardquest/material各同participant deferredFK nativeCommit19/787、FK1/child>0/原causeSame/ConfirmedRollback全列exact/同seq重试；普通composer及actualencoder仍Warning+Failed隔离/单preparedbatch/无半ACK/已提交资产不逆转。op1/op2前置ACK故障rawSame，normalCommitted ACK默认typed PostCommitPublicationFailure/innerSame，外壳差异明确，实际EndedAJob/完整chain/物理sourceclose Same1/nofence不变，无新增许可。
+
+可编译op3数量+1 mutation真实剩0/事件count2资产RED，op1/op2正控pass，finally原bytes/SHA恢复同3目标3/3。freeze01 13源=10present+3deleted；Release0/0、三无filterfull及四freshcontrol，原8916逐display/status/multiplicity全保，N=31/D=0，总8947=8927pass+原Dim2fail+18skip；其余1800为Task20库存非八freshfull。DFO原74/7control/outside-exe-orphan0、Golden15/Char10。capture203→201命令/173logical，仅一message和三fine→一whole；其它families/三许可owners等原值。原非NULinventory漏192中文/旧TRX诊断保原map，产品前NUL完整14352=11owned+14341nonowned逐byte HEAD，最终仅canonical2排除后14339不变。T012单CMD2秒/A21/Astra/Spec最终/主控checkpoint仍后继。

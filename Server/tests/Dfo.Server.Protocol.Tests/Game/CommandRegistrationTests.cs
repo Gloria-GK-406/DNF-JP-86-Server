@@ -34,6 +34,26 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Delete_wire_has_one_exact_NonEffect_whole_and_no_registration_permission()
+    {
+        using var provider=BuildProductionGraph();var rows=provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var row=Assert.Single(rows,x=>x.CommandType==typeof(Dfo.Server.Protocol.Game.DeleteItem.GameDeleteItemCommand));
+        Assert.Equal(CommandExecutionKind.Direct,row.ExecutionKind);Assert.Equal(CommandRouteKind.Protocol,row.Route);
+        Assert.Equal(new[]{new ProtocolCommandMessageBinding(ClientMessageType.GameDeleteItem,typeof(Dfo.Server.Protocol.Game.DeleteItem.DeleteItemRequest))},row.ProtocolMessages);
+        Assert.True(row.RegistrationExits is null or {Count:0});
+        Assert.False(typeof(Dfo.Server.Abstractions.Networking.IEffectSettlementRequest).IsAssignableFrom(typeof(Dfo.Server.Protocol.Game.DeleteItem.DeleteItemRequest)));
+        var registry=provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        Assert.True(registry.TryGet(ClientMessageType.GameDeleteItem,out var route));Assert.Equal(row.CommandType,route!.ProtocolCommandType);
+        Assert.Equal(new[]{typeof(Dfo.Server.Protocol.Game.DeleteItem.DeleteItemRequest)},route.AllowedMessageClrTypes);
+        foreach (var fine in new[] { "DiscardItemCommand", "ConsumeSkillMaterialsCommand", "ConsumeEffectMaterialsCommand" })
+        {
+            Assert.DoesNotContain(rows,x=>x.CommandType.Name==fine);
+            Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.DeleteItem."+fine));
+            Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.DeleteItem."+fine+"Handler"));
+        }
+    }
+
+    [Fact]
     public void Sell_wire_has_one_exact_NonEffect_whole_and_no_registration_permission()
     {
         using var provider=BuildProductionGraph();var rows=provider.GetServices<CommandHandlerRegistration>().ToArray();

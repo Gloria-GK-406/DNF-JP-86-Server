@@ -715,10 +715,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<DecreaseDurabilityCommand, EquipmentDurabilityResult,
             DecreaseDurabilityCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<SelectCrystalContractCommand, bool, SelectCrystalContractCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ConsumeSkillMaterialsCommand, MaterialConsumptionResult, ConsumeSkillMaterialsCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ConsumeEffectMaterialsCommand, MaterialConsumptionResult, ConsumeEffectMaterialsCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<DiscardItemCommand, DeleteItemOutcome, DiscardItemCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameDeleteItemCommand, bool, GameDeleteItemCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameDeleteItem, typeof(DeleteItemRequest)));
         services.AddProtocolCommandHandler<GameBuyItemCommand, BuyItemOutcome, GameBuyItemCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameBuyItem, typeof(BuyItemRequest)),
@@ -1007,7 +1005,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<OutworldHandler, OutworldRequest, GameOutworldCommand>(ClientMessageType.GameInvestAmplifyOption);
         services.RegisterProtocolMessageHandler<ForgingHandler, ForgingRequest, GameForgingCommand>(ClientMessageType.GameSeparateUpgrade);
         services.RegisterMessageHandler<CrystalContractHandler>(ClientMessageType.GameCrystalContract);
-        services.RegisterMessageHandler<DeleteItemHandler>(ClientMessageType.GameDeleteItem);
+        services.RegisterProtocolMessageHandler<DeleteItemHandler, DeleteItemRequest, GameDeleteItemCommand>(ClientMessageType.GameDeleteItem);
         services.RegisterMessageHandler<ShopPurchaseCountHandler>(ClientMessageType.GameShopPurchaseCount);
 
         // Position and area: the only inputs that move a published character, and so the only

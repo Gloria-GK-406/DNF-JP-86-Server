@@ -20,7 +20,11 @@ public sealed class InventorySlotBoundaryArchitectureTests
         AssertSlotProperty<SellItemRequest>(nameof(SellItemRequest.Slot), typeof(GameSlot));
         Assert.Equal(typeof(BusinessSlot), typeof(IItemSaleDomainService).GetMethod(nameof(IItemSaleDomainService.SellAsync))!
             .GetParameters().Single(parameter => parameter.Name == "slot").ParameterType);
-        AssertSlotProperty<DiscardItemCommand>(nameof(DiscardItemCommand.Slot), typeof(BusinessSlot));
+        AssertSlotProperty<GameDeleteItemCommand>(nameof(GameDeleteItemCommand.Input), typeof(DeleteItemRequest));
+        AssertSlotProperty<DeleteItemRequest>(nameof(DeleteItemRequest.Slot), typeof(GameSlot));
+        Assert.Equal(typeof(BusinessSlot), typeof(IItemDiscardDomainService).GetMethod(nameof(IItemDiscardDomainService.DiscardAsync))!
+            .GetParameters().Single(parameter => parameter.Name == "slot").ParameterType);
+        AssertSlotProperty<MaterialCost>(nameof(MaterialCost.Slot), typeof(BusinessSlot));
         AssertSlotProperty<RepairItemCommand>(nameof(RepairItemCommand.Slot), typeof(BusinessSlot?));
         AssertSlotProperty<GameDisjointItemCommand>(nameof(GameDisjointItemCommand.Input), typeof(DisjointItemRequest));
         AssertSlotProperty<DisjointItemRequest>(nameof(DisjointItemRequest.TargetSlot), typeof(GameSlot));
@@ -31,7 +35,7 @@ public sealed class InventorySlotBoundaryArchitectureTests
         AssertSlotProperty<MoveItemSpaceCommand>(nameof(MoveItemSpaceCommand.DestinationSlot), typeof(BusinessSlot));
         AssertSlotProperty<UseStackableRequest>(nameof(UseStackableRequest.Slot), typeof(GameSlot));
 
-        AssertNoGameAddress<DiscardItemCommand>();
+        AssertNoGameAddress<GameDeleteItemCommand>();
         AssertNoGameAddress<RepairItemCommand>();
         AssertNoGameAddress<GameDisjointItemCommand>();
         AssertNoGameAddress<MoveItemSpaceCommand>();

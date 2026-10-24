@@ -5743,25 +5743,50 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/ConsumeEffectMaterialsCommand.cs",
-          "line": 14,
-          "source_sha256": "7de2c451ed4d0d864105226e6e44a3d25458a0e0343d3a4b0097cf5eff30dfa7"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "Each effective branch one original fine transaction, no selected or settlement marker; normal discard/material refusal returns and commits; carried discard QuestHoldingsChanged and materials all-source validation/debits/MaterialConsumed enqueue in same transaction",
+          "new": "One ordinary Write([],Ordinary,None) per eligible branch, original clock in discard action, quest report same Tx; material API unchanged including multi-cost domain ability, UTC preparedAt remains outside Tx. Normal refusals Committed, exceptions Abort/sticky; no Main/NonRequest/footprint/ledger/attempt/replay or WriteResult recovery",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-23.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/ConsumeEffectMaterialsCommand.cs",
-          "line": 14,
-          "source_sha256": "7de2c451ed4d0d864105226e6e44a3d25458a0e0343d3a4b0097cf5eff30dfa7"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "Original fine record/handler and physical source deleted, before bytes/SHA sealed; domain/material multi-cost API, notification composers and codecs unchanged"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.DeleteItem.ConsumeEffectMaterialsCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.DeleteItem.ConsumeEffectMaterialsCommand",
@@ -5787,53 +5812,127 @@
         },
         "result": "Dfo.Server.Abstractions.Inventory.MaterialConsumptionResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/ConsumeEffectMaterialsCommand.cs",
-          "line": 14,
-          "source_sha256": "7de2c451ed4d0d864105226e6e44a3d25458a0e0343d3a4b0097cf5eff30dfa7"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/ConsumeEffectMaterialsCommand.cs",
-          "line": 14,
-          "source_sha256": "7de2c451ed4d0d864105226e6e44a3d25458a0e0343d3a4b0097cf5eff30dfa7"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/ConsumeEffectMaterialsCommand.cs",
-          "line": 14,
-          "source_sha256": "7de2c451ed4d0d864105226e6e44a3d25458a0e0343d3a4b0097cf5eff30dfa7"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Exact DeleteItemRequest decoder -> original DeleteItemHandler -> one of three mutually exclusive fine Transactional/IAccountCommand DiscardItem, ConsumeSkillMaterials, ConsumeEffectMaterials",
+          "new": "Same exact DeleteItemRequest/Dispatch/Metadata -> one thin bus -> unique GameDeleteItemCommand<bool>; unknown/op1/op2/op3 branch order and original current facts retained; three fine files/handlers/registrations/callers removed, no nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "Fine IAccountCommand only, no selected participant capture; actual dynamic SQLite singleton participant owns item/quest/event data",
+          "new": "Empty explicit selected participants retain original range. Real open non-readonly same Tx observers, actual action DELETE19/1811 and sameparticipant deferredFK native Commit19/787/FK1/child>0/normal staged completion/causeSame for discardquest and material event. Full all-column BLOBhex/NULL/82B core shared/quest/event/delivery rollback exact; original multi-cost later carried failure rolls earlier shared+event back",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "Original success composers each one prepared target batch, Warning+Failed isolated and caller ignores; direct precondition ACK noTx/raw and normal refusal ACK Committed/raw; material stale session silent",
+          "new": "Original immutable composers/actual encoders, ACK->resource/inventory->quest order and shared exhausted ACKonly preserved. Two notification fault classes remain Warning/Failed/caller normal without fence/close/retry. op1/op2 pre ACK rawSame; normal Committed ACK default PostCommitPublicationFailure/innerSame/EndedAJob/full original chain and log fields, explicitly different shell, same assets/ACK0/physicalsourceclose Single+Same/nofence. Unknown/reserved/safe gates unchanged; no raw permission added. Logs identity VC-B2 moves to whole",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-23.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+          "purpose": "one exact typed NonEffect command for all three DeleteItem operations, original ordinary transaction and notification boundaries"
+        }
+      ]
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/ConsumeSkillMaterialsCommand.cs",
-          "line": 14,
-          "source_sha256": "4aba7600a471d374a9249ce985482944cf239c98fc4203403f36c8f8699f0b86"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "Each effective branch one original fine transaction, no selected or settlement marker; normal discard/material refusal returns and commits; carried discard QuestHoldingsChanged and materials all-source validation/debits/MaterialConsumed enqueue in same transaction",
+          "new": "One ordinary Write([],Ordinary,None) per eligible branch, original clock in discard action, quest report same Tx; material API unchanged including multi-cost domain ability, UTC preparedAt remains outside Tx. Normal refusals Committed, exceptions Abort/sticky; no Main/NonRequest/footprint/ledger/attempt/replay or WriteResult recovery",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-23.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/ConsumeSkillMaterialsCommand.cs",
-          "line": 14,
-          "source_sha256": "4aba7600a471d374a9249ce985482944cf239c98fc4203403f36c8f8699f0b86"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "Original fine record/handler and physical source deleted, before bytes/SHA sealed; domain/material multi-cost API, notification composers and codecs unchanged"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.DeleteItem.ConsumeSkillMaterialsCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.DeleteItem.ConsumeSkillMaterialsCommand",
@@ -5859,53 +5958,127 @@
         },
         "result": "Dfo.Server.Abstractions.Inventory.MaterialConsumptionResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/ConsumeSkillMaterialsCommand.cs",
-          "line": 14,
-          "source_sha256": "4aba7600a471d374a9249ce985482944cf239c98fc4203403f36c8f8699f0b86"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/ConsumeSkillMaterialsCommand.cs",
-          "line": 14,
-          "source_sha256": "4aba7600a471d374a9249ce985482944cf239c98fc4203403f36c8f8699f0b86"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/ConsumeSkillMaterialsCommand.cs",
-          "line": 14,
-          "source_sha256": "4aba7600a471d374a9249ce985482944cf239c98fc4203403f36c8f8699f0b86"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Exact DeleteItemRequest decoder -> original DeleteItemHandler -> one of three mutually exclusive fine Transactional/IAccountCommand DiscardItem, ConsumeSkillMaterials, ConsumeEffectMaterials",
+          "new": "Same exact DeleteItemRequest/Dispatch/Metadata -> one thin bus -> unique GameDeleteItemCommand<bool>; unknown/op1/op2/op3 branch order and original current facts retained; three fine files/handlers/registrations/callers removed, no nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "Fine IAccountCommand only, no selected participant capture; actual dynamic SQLite singleton participant owns item/quest/event data",
+          "new": "Empty explicit selected participants retain original range. Real open non-readonly same Tx observers, actual action DELETE19/1811 and sameparticipant deferredFK native Commit19/787/FK1/child>0/normal staged completion/causeSame for discardquest and material event. Full all-column BLOBhex/NULL/82B core shared/quest/event/delivery rollback exact; original multi-cost later carried failure rolls earlier shared+event back",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "Original success composers each one prepared target batch, Warning+Failed isolated and caller ignores; direct precondition ACK noTx/raw and normal refusal ACK Committed/raw; material stale session silent",
+          "new": "Original immutable composers/actual encoders, ACK->resource/inventory->quest order and shared exhausted ACKonly preserved. Two notification fault classes remain Warning/Failed/caller normal without fence/close/retry. op1/op2 pre ACK rawSame; normal Committed ACK default PostCommitPublicationFailure/innerSame/EndedAJob/full original chain and log fields, explicitly different shell, same assets/ACK0/physicalsourceclose Single+Same/nofence. Unknown/reserved/safe gates unchanged; no raw permission added. Logs identity VC-B2 moves to whole",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-23.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+          "purpose": "one exact typed NonEffect command for all three DeleteItem operations, original ordinary transaction and notification boundaries"
+        }
+      ]
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/DiscardItemCommand.cs",
-          "line": 29,
-          "source_sha256": "615c6efb1af967b10ffe262727c68250d4d014e0230b9e192bca33c909d11b6b"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "Each effective branch one original fine transaction, no selected or settlement marker; normal discard/material refusal returns and commits; carried discard QuestHoldingsChanged and materials all-source validation/debits/MaterialConsumed enqueue in same transaction",
+          "new": "One ordinary Write([],Ordinary,None) per eligible branch, original clock in discard action, quest report same Tx; material API unchanged including multi-cost domain ability, UTC preparedAt remains outside Tx. Normal refusals Committed, exceptions Abort/sticky; no Main/NonRequest/footprint/ledger/attempt/replay or WriteResult recovery",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-23.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/DiscardItemCommand.cs",
-          "line": 29,
-          "source_sha256": "615c6efb1af967b10ffe262727c68250d4d014e0230b9e192bca33c909d11b6b"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "Original fine record/handler and physical source deleted, before bytes/SHA sealed; domain/material multi-cost API, notification composers and codecs unchanged"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.DeleteItem.DiscardItemCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.DeleteItem.DiscardItemCommand",
@@ -5931,32 +6104,81 @@
         },
         "result": "Dfo.Server.Protocol.Game.DeleteItem.DeleteItemOutcome"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/DiscardItemCommand.cs",
-          "line": 29,
-          "source_sha256": "615c6efb1af967b10ffe262727c68250d4d014e0230b9e192bca33c909d11b6b"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/DiscardItemCommand.cs",
-          "line": 29,
-          "source_sha256": "615c6efb1af967b10ffe262727c68250d4d014e0230b9e192bca33c909d11b6b"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/DiscardItemCommand.cs",
-          "line": 29,
-          "source_sha256": "615c6efb1af967b10ffe262727c68250d4d014e0230b9e192bca33c909d11b6b"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Exact DeleteItemRequest decoder -> original DeleteItemHandler -> one of three mutually exclusive fine Transactional/IAccountCommand DiscardItem, ConsumeSkillMaterials, ConsumeEffectMaterials",
+          "new": "Same exact DeleteItemRequest/Dispatch/Metadata -> one thin bus -> unique GameDeleteItemCommand<bool>; unknown/op1/op2/op3 branch order and original current facts retained; three fine files/handlers/registrations/callers removed, no nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "Fine IAccountCommand only, no selected participant capture; actual dynamic SQLite singleton participant owns item/quest/event data",
+          "new": "Empty explicit selected participants retain original range. Real open non-readonly same Tx observers, actual action DELETE19/1811 and sameparticipant deferredFK native Commit19/787/FK1/child>0/normal staged completion/causeSame for discardquest and material event. Full all-column BLOBhex/NULL/82B core shared/quest/event/delivery rollback exact; original multi-cost later carried failure rolls earlier shared+event back",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "Original success composers each one prepared target batch, Warning+Failed isolated and caller ignores; direct precondition ACK noTx/raw and normal refusal ACK Committed/raw; material stale session silent",
+          "new": "Original immutable composers/actual encoders, ACK->resource/inventory->quest order and shared exhausted ACKonly preserved. Two notification fault classes remain Warning/Failed/caller normal without fence/close/retry. op1/op2 pre ACK rawSame; normal Committed ACK default PostCommitPublicationFailure/innerSame/EndedAJob/full original chain and log fields, explicitly different shell, same assets/ACK0/physicalsourceclose Single+Same/nofence. Unknown/reserved/safe gates unchanged; no raw permission added. Logs identity VC-B2 moves to whole",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-23.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+          "purpose": "one exact typed NonEffect command for all three DeleteItem operations, original ordinary transaction and notification boundaries"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -18041,26 +18263,52 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/DeleteItemHandler.cs",
-          "line": 14,
-          "source_sha256": "41ac8ada86c5f74474bd82823d1bf3de0e1998e191635380569787cdcd931056"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "Each effective branch one original fine transaction, no selected or settlement marker; normal discard/material refusal returns and commits; carried discard QuestHoldingsChanged and materials all-source validation/debits/MaterialConsumed enqueue in same transaction",
+          "new": "One ordinary Write([],Ordinary,None) per eligible branch, original clock in discard action, quest report same Tx; material API unchanged including multi-cost domain ability, UTC preparedAt remains outside Tx. Normal refusals Committed, exceptions Abort/sticky; no Main/NonRequest/footprint/ledger/attempt/replay or WriteResult recovery",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-23.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/DeleteItemHandler.cs",
-          "line": 14,
-          "source_sha256": "41ac8ada86c5f74474bd82823d1bf3de0e1998e191635380569787cdcd931056"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.DeleteItem.GameDeleteItemCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+      ],
       "id": "message:65554",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.DeleteItem.DeleteItemHandler",
@@ -18082,37 +18330,86 @@
         "telemetry": false,
         "value": 65554
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/DeleteItemHandler.cs",
-          "line": 14,
-          "source_sha256": "41ac8ada86c5f74474bd82823d1bf3de0e1998e191635380569787cdcd931056"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/DeleteItemHandler.cs",
-          "line": 14,
-          "source_sha256": "41ac8ada86c5f74474bd82823d1bf3de0e1998e191635380569787cdcd931056"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/DeleteItemHandler.cs",
-          "line": 14,
-          "source_sha256": "41ac8ada86c5f74474bd82823d1bf3de0e1998e191635380569787cdcd931056"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Exact DeleteItemRequest decoder -> original DeleteItemHandler -> one of three mutually exclusive fine Transactional/IAccountCommand DiscardItem, ConsumeSkillMaterials, ConsumeEffectMaterials",
+          "new": "Same exact DeleteItemRequest/Dispatch/Metadata -> one thin bus -> unique GameDeleteItemCommand<bool>; unknown/op1/op2/op3 branch order and original current facts retained; three fine files/handlers/registrations/callers removed, no nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "Fine IAccountCommand only, no selected participant capture; actual dynamic SQLite singleton participant owns item/quest/event data",
+          "new": "Empty explicit selected participants retain original range. Real open non-readonly same Tx observers, actual action DELETE19/1811 and sameparticipant deferredFK native Commit19/787/FK1/child>0/normal staged completion/causeSame for discardquest and material event. Full all-column BLOBhex/NULL/82B core shared/quest/event/delivery rollback exact; original multi-cost later carried failure rolls earlier shared+event back",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "Original success composers each one prepared target batch, Warning+Failed isolated and caller ignores; direct precondition ACK noTx/raw and normal refusal ACK Committed/raw; material stale session silent",
+          "new": "Original immutable composers/actual encoders, ACK->resource/inventory->quest order and shared exhausted ACKonly preserved. Two notification fault classes remain Warning/Failed/caller normal without fence/close/retry. op1/op2 pre ACK rawSame; normal Committed ACK default PostCommitPublicationFailure/innerSame/EndedAJob/full original chain and log fields, explicitly different shell, same assets/ACK0/physicalsourceclose Single+Same/nofence. Unknown/reserved/safe gates unchanged; no raw permission added. Logs identity VC-B2 moves to whole",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-source-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/material-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-23-inspection/workunit-and-coverage-map.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DeleteItemProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.DeleteItem.ConsumeEffectMaterialsCommand",
         "command:Dfo.Server.Protocol.Game.DeleteItem.ConsumeSkillMaterialsCommand",
         "command:Dfo.Server.Protocol.Game.DeleteItem.DiscardItemCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-23.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/DeleteItem/GameDeleteItemCommand.cs",
+          "purpose": "one exact typed NonEffect command for all three DeleteItem operations, original ordinary transaction and notification boundaries"
+        }
+      ]
     },
     {
       "actual_units": {
