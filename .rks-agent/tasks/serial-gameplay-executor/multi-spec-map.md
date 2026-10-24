@@ -44,7 +44,7 @@ workspace:
 - **移交给 B 的起点材料**：
   - `spec.md` 修订记录 R3-1 中标「B」与「跨」的条目；
   - 原 Plan T-008 一行（功能簇顺序）；
-  - `verification/follow-ups.md` 中标「→ 子 Spec B」的 11 项。
+  - `verification/follow-ups.md` 中标「〔A 封存：→ 子 Spec B〕」的18项：F-07、F-12、F-34、F-58、F-69、F-86、F-88、F-93、F-109、F-110、F-112、F-122、F-124、F-127、F-129、F-130、F-131、F-132；另有F-128①及无编号扇出字段判据事项，范围见`verification/t009-closure.md` §6。
 - 其余设计属于各子 Spec，这里不预设。
 
 ## Controller Progress
@@ -56,26 +56,26 @@ workspace:
 
 ## Success Condition Progress
 
-按 `multi-spec-workflow`，只有已封存、已完成子 Spec 的证据才算交付进度。spec-001 尚未封存，所以各条都是 `not_started`；TASK-01～TASK-28 的证据在 spec-001 封存时才计入。
+按 `multi-spec-workflow`，只有已封存、已完成子 Spec 的证据才算交付进度。spec-001已在e6f55558封存，A的十一条条件按最终核验和原附条件计入；B六条仍未交付。
 
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
-| SC-1 | A：唯一执行器，全部入口作为作业经唯一入队点进入 | not_started | none（spec-001 未封存） | spec-001 的 T-009 对账（F-62 等）与封存 | aligned |
+| SC-1 | A：唯一执行器，全部入口作为作业经唯一入队点进入 | satisfied | `verification/completion-evidence.md` SC-1；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件（TASK-35 统一口径）：AC-006 依赖 `a-final-report.md` §4.2 的「RQ-061」与「调度器排队中的运行合并」两条解读 | aligned |
 | SC-2 | B：每个入站协议一条协议级 CMD，handler 只解包入队 | not_started | none | spec-002 | aligned |
-| SC-3 | A：出站消息提交后发出，顺序、批次、必达、隔离成立 | not_started | none（spec-001 未封存） | spec-001 封存 | aligned |
-| SC-4 | A：玩法路径上的门、信号量与重试循环删除 | not_started | none（spec-001 未封存） | spec-001 封存 | aligned |
-| SC-5 | A：事件组件保留，Reliable、LiveOnly 与重试经执行器 | not_started | none（spec-001 未封存） | spec-001 封存 | aligned |
-| SC-6 | A：深度上限、调用链与超限处理覆盖全部来源 | not_started | none | spec-001 的 T-007 与封存 | aligned |
-| SC-7 | A：依赖投递结果的行为都有承接，可见变化列明 | not_started | none（spec-001 未封存） | spec-001 封存 | aligned |
-| SC-8 | A：A 封存状态下构建、全量测试、线级与表征断言成立 | not_started | none | spec-001 的 T-009 最终构建与测试 | aligned |
+| SC-3 | A：出站消息提交后发出，顺序、批次、必达、隔离成立 | satisfied | `verification/completion-evidence.md` SC-3；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件，都已有去向：AC-007、RQ-012「此前登记的消息」按连接计（外部审核时说明）；AC-011 线级第 3 条降到发送端层（F-108）；AC-012 的 XO-2～XO-7 由发送端通用用例承担、XO-6 是近似（VC-10）；AC-013 人群项的适用范围（F-113、F-114）；VC-10 第 3 句的衔接是读码 | aligned |
+| SC-4 | A：玩法路径上的门、信号量与重试循环删除 | satisfied | `verification/completion-evidence.md` SC-4；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件（TASK-35 统一口径）：AC-017 依赖 §4.2 的「RQ-061」与「附录 F 改为执行器内访问」两条解读。短 `lock` 与 PVF 内容缓存锁按根 Scope Out 第 2 项保留；A 在 Networking 新增的执行器外短锁已在 `transition-mechanisms.md` §3 列出 | aligned |
+| SC-5 | A：事件组件保留，Reliable、LiveOnly 与重试经执行器 | satisfied | `verification/completion-evidence.md` SC-5；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | none | aligned |
+| SC-6 | A：深度上限、调用链与超限处理覆盖全部来源 | satisfied | `verification/completion-evidence.md` SC-6；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件：RQ-050 末句的实现精度。CMD 已登记关闭、发送端还没执行时，传输层先断开，这次断开仍按继承处理，与 RQ-050 末句的字面不符（TASK-29 主控方裁定第 5 条；`t007-closure.md` §3 第 5 条、§4 第 2 条）。去向：F-131，子 Spec B（TASK-35 定）；交审重点第 10 项 | aligned |
+| SC-7 | A：依赖投递结果的行为都有承接，可见变化列明 | satisfied | `verification/completion-evidence.md` SC-7；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件，已有去向：AC-014 的 DR-16 证据用占位作业代表进入序列；VC-10 的组合证据 | aligned |
+| SC-8 | A：A 封存状态下构建、全量测试、线级与表征断言成立 | satisfied | `verification/completion-evidence.md` SC-8；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件（TASK-35 统一口径）：AC-019 依赖 §4.2「AC-019 的 b1、b2」，AC-020 依赖 §4.2「RQ-083 已登记的偶发项」（第四、第五栈根已按主控方处置登记，§2.2、§2.3） | aligned |
 | SC-8B | B：B 封存状态下 SC-8 成立，A 的 SC-1、SC-3～SC-7 仍成立 | not_started | none | spec-002 | aligned |
-| SC-9 | A：A 封存状态下的实测数字，单条 CMD ≤ 2 秒 | not_started | none | spec-001 的 T-009 最终测量 | aligned |
+| SC-9 | A：A 封存状态下的实测数字，单条 CMD ≤ 2 秒 | satisfied | `verification/completion-evidence.md` SC-9；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件（TASK-35 统一口径）：判定口径依赖 §4.2「M-1～M-3 的判定口径」。未达原目标值的项是后续性能优化（F-77～F-82、F-120），不阻断 | aligned |
 | SC-9B | B：B 封存状态下再测并与 A 对照 | not_started | none | spec-002 | aligned |
-| SC-10 | A：文档与 A 封存状态一致 | not_started | none | spec-001 的 T-009 文档 | aligned |
+| SC-10 | A：文档与 A 封存状态一致 | satisfied | `verification/completion-evidence.md` SC-10；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件（TASK-35 统一口径）：AC-022 的检索范围按 §4.2；F-128 ②③：RQ-100 点名范围之外的两份文档，交主控方 | aligned |
 | SC-10B | B：文档与协议级 CMD 一致 | not_started | none | spec-002 | aligned |
-| SC-11 | A：A 的最终汇报 | not_started | none | spec-001 封存时的汇报 | aligned |
+| SC-11 | A：A 的最终汇报 | satisfied | `verification/completion-evidence.md` SC-11；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 外部审核在 B 完成后进行（根 RI-16），审核结论不是封存的前提 | aligned |
 | SC-11B | B：B 的最终汇报 | not_started | none | spec-002 | aligned |
-| SC-12 | A：过渡机制清单，清单之外无残留 | not_started | none | spec-001 的 T-009 | aligned |
+| SC-12 | A：过渡机制清单，清单之外无残留 | satisfied | `verification/completion-evidence.md` SC-12；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | none | aligned |
 | SC-13 | B：保留项在 CMD 内位置等价，工作单元对照，SC-12 清单清零 | not_started | none | spec-002 | aligned |
 
 ## Spec Attempts
@@ -84,4 +84,12 @@ Only the final row may have an empty `Git result`; that row is the active child.
 
 | # | Attempt | TaskContract | Outcome | Affects | Result | Git result |
 |---:|---|---|---|---|---|---|
-| `1` | `spec-001` | `attempts/spec-001-executor-outbox-lock-removal/TaskContract.md` | 结果 A：单执行器、提交后发件箱与删锁（收编，Spec 基准 `a02bce46`） | `SC-1, SC-3, SC-4, SC-5, SC-6, SC-7, SC-8, SC-9, SC-10, SC-11, SC-12` | | |
+| `1` | `spec-001` | `attempts/spec-001-executor-outbox-lock-removal/TaskContract.md` | 结果 A：单执行器、提交后发件箱与删锁（收编，Spec 基准 `a02bce46`） | `SC-1, SC-3, SC-4, SC-5, SC-6, SC-7, SC-8, SC-9, SC-10, SC-11, SC-12` | `attempts/spec-001-executor-outbox-lock-removal/spec-result.md` | `e6f55558182800b656b14c4b863a52fe672ad921` |
+
+## Root Evaluation：接受A后的后继决定（2026-10-24）
+
+- child-accepted：A seal e6f55558182800b656b14c4b863a52fe672ad921可达，父为TASK35 0ecb9af3；封存恰38个已归属制品路径、无Server/Tool改动、工作区干净。a02bce46..seal41提交＝40个A检查点（规划1、Task35、修订3、seal1）＋唯一登记根改道9d146830。没有其他foreign commit，未重开A。
+- gaps-remain：SC2、SC8B、SC9B、SC10B、SC11B、SC13均未交付；A十一条已满足并保留原附条件。七约束（顺序/保护/可见变化/搬迁与语义分离/删净/单写者/先A后B）均aligned；保护的F88/F93先补测试、RQ050精度等条件详见A核验，不隐藏。
+- safe-successor：沿根task授权及用户2026-10-24“继续完成spec2剩余工作”建模唯一spec-002-protocol-level-cmd，承担上述六条B条件。A已封存，不等Astra才能开始；仍不推送/PR/收尾。
+- 首个B单元按已定顺序承接F130（测试清池）和F127（写端完成判定）；F88/F93在迁移相应保护前补，F132在事务内组装调用前处理。
+- A最终挑战CH1（多结束挂钩首错短路）/CH2（Warning提供器抛错）为已接受低风险残余，细节见A最终汇报§11；交后继评估，B触及时可有界修，否则修正子Spec，不凭此扩大B硬要求。A保持封存不可改。
