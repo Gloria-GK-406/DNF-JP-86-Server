@@ -173,6 +173,46 @@ public sealed class TeleportConsumableTests
         });
     }
 
+    [Fact]
+    public async Task A_previous_town_member_from_another_generation_cannot_start_a_teleport()
+    {
+        using var f = Fixture();
+        await f.Seed(65, 2000, 2);
+        var bus = new RecordingTeleportBus();
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            var areas = f.Services.GetRequiredService<ITownAreaDomainService>();
+            var replacement = f.Session with { ConnectionGeneration = f.Session.ConnectionGeneration + 1 };
+            areas.Enter(new(f.Session.CharacterId, replacement.TownAreaLease(), new(1, 0, 0), Start, true));
+            var previous = Assert.IsType<TownAreaMember>(areas.Find(f.Session.CharacterId));
+            Assert.False(f.Session.Owns(previous));
+            var views = f.Services.GetRequiredService<ISelectedCharacterCurrentViewDomainService>();
+            Assert.NotNull(await views.TryLoadAsync(f.Session, default));
+            var handler = ActivatorUtilities.CreateInstance<TeleportHandler>(f.Services, bus);
+            await handler.HandleAsync(new(f.Connection),
+                new TeleportRequest(new(1, 0x00ED, 0, 7), 65, 2000, 0, 11, 0, short.MaxValue, short.MaxValue), default);
+            Assert.Equal(0, bus.Calls);
+            Assert.Equal(Start, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
+            Assert.False(f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().IsCoolingDown(
+                f.Session.CharacterId, ItemCooldownKey.ForItem(2000)));
+            Assert.Equal(previous, areas.Find(f.Session.CharacterId));
+        });
+        Assert.Equal(2, f.Count(2000));
+        Assert.Empty(f.Sender.Messages);
+    }
+
+    private sealed class RecordingTeleportBus : Dfo.Server.Application.Commands.ICommandBus
+    {
+        public int Calls { get; private set; }
+        public ValueTask<TResult> SendAsync<TResult>(Dfo.Server.Application.Commands.ICommand<TResult> command,
+            CancellationToken cancellationToken = default) where TResult : notnull
+        {
+            Assert.IsType<TeleportCommand>(command);
+            Calls++;
+            return ValueTask.FromResult((TResult)(object)new TeleportConsumableResult(ItemUsability.NotAUsableItem));
+        }
+    }
+
     private sealed class Definitions : ITeleportConsumableDefinitionSource
     {
         public ValueTask<TeleportConsumableDefinition?> GetAsync(int itemId, CancellationToken ct) =>

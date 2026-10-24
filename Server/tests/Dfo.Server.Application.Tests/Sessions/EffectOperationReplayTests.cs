@@ -387,6 +387,50 @@ public sealed class EffectOperationReplayTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => pending);
         Assert.Equal(3, f.Count(1000)); Assert.Empty(f.Sender.Messages);
     }
+    [Fact]
+    public async Task A_recipient_replaced_after_capture_is_rejected_before_the_ordinal_is_consumed()
+    {
+        using var f = Fixture();
+        var users = new ReplacedAfterCapture(f.Services.GetRequiredService<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService>());
+        using var services = new ServiceCollection()
+            .AddSingleton(f.Services.GetRequiredService<ISelectedSessionDomainService>())
+            .AddSingleton<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService>(users).BuildServiceProvider();
+        var safety = new SelectedSessionSafety(services,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionSafety>.Instance);
+        var ledger = new EffectOperationLedger(f.Services.GetRequiredService<EffectOperationContext>(), safety,
+            f.Services.GetRequiredService<ISelectedSessionDomainService>(), f.Services.GetRequiredService<IReplayStateProjectionDelivery>());
+        var request = new Stream().Request(1);
+        var calls = 0;
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() => ledger.DispatchAsync(f.Connection, request,
+                () => { calls++; return ValueTask.CompletedTask; }, default).AsTask());
+            Assert.Contains("captured recipient", error.Message);
+            Assert.Equal(2, users.Queries);
+            Assert.Equal(0, calls);
+            users.ReplaceAfterFirst = false;
+            await ledger.DispatchAsync(f.Connection, request, () => { calls++; return ValueTask.CompletedTask; }, default);
+            Assert.Equal(1, calls);
+            Assert.Equal(4, users.Queries);
+        });
+        Assert.Empty(f.Sender.Messages);
+    }
+
+    private sealed class ReplacedAfterCapture(Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService inner)
+        : Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService
+    {
+        public int Queries { get; private set; }
+        public bool ReplaceAfterFirst { get; set; } = true;
+        public Dfo.Server.Data.OnlineUsers.OnlineUserSnapshot GetRequired(Dfo.Server.Data.OnlineUsers.OnlineUserId id) => inner.GetRequired(id);
+        public bool TryGetByConnection(NetworkConnectionId id, out Dfo.Server.Data.OnlineUsers.OnlineUserSnapshot? user)
+        {
+            Queries++;
+            var found = inner.TryGetByConnection(id, out user);
+            if (ReplaceAfterFirst && Queries > 1 && user is not null) user = user with { Connection = user.Connection with { } };
+            return found;
+        }
+    }
+
     private sealed record SettlementProbe(SelectedSessionIdentity Session, bool Unknown = false) : ICommand<ProbeResult>, IRequestSettlementCommand, IAccountCommand
     { public AccountId AccountId => Session.AccountId; }
     private sealed record ProbeResult;

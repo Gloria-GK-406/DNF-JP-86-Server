@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Creatures;
@@ -122,6 +123,48 @@ public sealed class CreatureRuntimeDomainServiceTests
             Assert.NotEqual(50L, settled.Stomach);
             Assert.Equal(100L, settled.Experience); // 90 seeded, plus the 10 queued for the room.
             Assert.Equal(settled, await LeaveAfterAnHour(revoke: true));
+        });
+    }
+
+    [Fact]
+    public async Task Blocking_uncertain_settlement_discards_only_the_exact_creature_runtime_without_saving_it()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = new Fixture();
+            await f.SeedAsync(); f.Enter();
+            await f.Runtime.AdvanceAsync(f.Session, default, combat: true);
+            f.Clock.Advance(TimeSpan.FromSeconds(60));
+            Assert.NotEmpty(await f.Runtime.AdvanceAsync(f.Session, default, combat: true));
+            await using (var connection = new SqliteConnection(SqliteTestPools.ConnectionString(f.Path)))
+            {
+                await connection.OpenAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText = "UPDATE items SET creature_field04=80 WHERE item_uid=101";
+                await command.ExecuteNonQueryAsync();
+            }
+            f.Runtime.QueueRoomExperience(f.Session, DungeonRunId.New(), new(0, 0), 10);
+            Assert.Contains(f.Session, f.Runtime.DueSessions());
+            using var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+                .AddSingleton<ISelectedSessionDomainService>(f.Sessions)
+                .AddSingleton<ICreatureRuntimeDomainService>(f.Runtime).BuildServiceProvider();
+            var safety = new Dfo.Server.Application.Commands.SelectedSessionSafety(services,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Commands.SelectedSessionSafety>.Instance);
+            await safety.BlockAsync(new(f.Session, null), new IOException("uncertain commit"), "creature discard probe");
+            Assert.Empty(f.Runtime.DueSessions());
+            Assert.Empty(f.Runtime.DrainProjections());
+            await f.Runtime.LeaveAsync(f.Session, default);
+            Assert.Equal(80, await f.StomachAsync());
+            Assert.Equal(90, await f.ExperienceAsync());
+
+            var replacement = f.Session with { ConnectionGeneration = 2 };
+            f.Enter(replacement);
+            f.Runtime.QueueRoomExperience(replacement, DungeonRunId.New(), new(0, 0), 10);
+            await safety.BlockAsync(new(f.Session, null), new IOException("old uncertainty"), "old generation");
+            Assert.Contains(replacement, f.Runtime.DueSessions());
+            await f.Runtime.LeaveAsync(f.Session, default);
+            Assert.Contains(replacement, f.Runtime.DueSessions());
+            Assert.Equal(80, await f.StomachAsync());
         });
     }
 

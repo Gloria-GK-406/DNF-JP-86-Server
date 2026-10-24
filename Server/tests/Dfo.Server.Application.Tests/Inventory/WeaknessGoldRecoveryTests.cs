@@ -346,6 +346,25 @@ public sealed class WeaknessGoldRecoveryTests
         Assert.Equal(100000, shop.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=1"));
     }
 
+    [Fact]
+    public async Task A_selected_session_not_yet_in_world_is_silently_ignored_by_the_recovery_protocol()
+    {
+        using var shop = new ShopFixture();
+        var state = await Weaken(shop);
+        await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            var sessions = shop.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>();
+            Assert.True(sessions.ReleaseExact(shop.Session));
+            Assert.Null(sessions.Select(shop.Session));
+            Assert.Equal(shop.Session, sessions.FindByConnection(shop.Connection.ConnectionId));
+            Assert.False(sessions.IsInWorld(shop.Session));
+            await Recover(shop);
+        });
+        Assert.Empty(shop.Sender.Messages);
+        Assert.Equal(100000, shop.Gold);
+        Assert.Equal(10, state.Value);
+    }
+
     private static async Task<IWeakness> Weaken(ShopFixture shop)
     {
         shop.Sql($"UPDATE characters SET level=85,exp={shop.ExperienceForLevel(85)} WHERE character_id=1");
