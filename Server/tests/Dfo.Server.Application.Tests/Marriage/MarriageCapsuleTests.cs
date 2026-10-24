@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -63,20 +64,20 @@ public sealed partial class MarriageHousingTests
         var relation = (await f.Services.GetRequiredService<IMarriageRelations>().ForSessionAsync(f.Session, default))!;
         var accounts = new[] { f.Session.AccountId, w.Peer.AccountId }.OrderBy(x => x.Value).ToArray();
         async ValueTask<MarriageCapsuleResult> ActCaps(MarriageCapsuleAction a, bool commit = true) =>
-            await InTx(f, () => service.CapsuleAsync(f.Session, a, accounts, default), commit);
+            await InTx(f, () => TestEffectFootprints.Run(f.Session, footprint => service.CapsuleAsync(f.Session, a, accounts, footprint, default)), commit);
         Assert.Equal(-4, (await ActCaps(MarriageCapsuleAction.Make)).Status);
         f.Sql($"INSERT INTO marriage_capsules VALUES('{relation.Id:N}',71,10,0,0)");
         Assert.Equal(0, (await ActCaps(MarriageCapsuleAction.Make, false)).Status);
         Assert.Equal(new(10, 0, 0), (await query.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).State);
         Assert.Equal(0, (await ActCaps(MarriageCapsuleAction.Make)).Status);
         Assert.Equal(new(0, 1, 0), (await query.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).State);
-        Assert.Equal(-1, (await InTx(f, () => service.CapsuleAsync(f.Session, MarriageCapsuleAction.Give, [f.Session.AccountId], default))).Status);
+        Assert.Equal(-1, (await InTx(f, () => TestEffectFootprints.Run(f.Session, footprint => service.CapsuleAsync(f.Session, MarriageCapsuleAction.Give, [f.Session.AccountId], footprint, default)))).Status);
         Assert.Equal(0, (await ActCaps(MarriageCapsuleAction.Give)).Status);
         Assert.Equal(-4, (await ActCaps(MarriageCapsuleAction.Give)).Status);
         Assert.True((await query.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).AwaitingPartner);
         Assert.Equal((byte)1, (await query.ReadAsync(w.Peer.AccountId, w.Peer.CharacterId, default)).State.Pending);
         var room = await Read(w); Enter(w, w.Peer, room.Instance);
-        var take = await InTx(f, () => service.CapsuleAsync(w.Peer, MarriageCapsuleAction.Take, accounts, default));
+        var take = await InTx(f, () => TestEffectFootprints.Run(w.Peer, footprint => service.CapsuleAsync(w.Peer, MarriageCapsuleAction.Take, accounts, footprint, default)));
         Assert.Equal(0, take.Status); Assert.Single(take.Items); Assert.Equal(10002910, take.Items[0].Snapshot.ItemId);
         Assert.Equal((byte)0, (await query.ReadAsync(w.Peer.AccountId, w.Peer.CharacterId, default)).State.Pending);
         Assert.False((await query.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).AwaitingPartner);
@@ -105,7 +106,7 @@ public sealed partial class MarriageHousingTests
             Assert.Equal(10, (await q.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).State.Energy);
             var saturatedRun = DungeonRunId.New(); await Send(Clear(saturatedRun));
             var accounts = new[] { f.Session.AccountId,w.Peer.AccountId }.OrderBy(x=>x.Value).ToArray();
-            Assert.Equal(0,(await InTx(f,()=>f.Services.GetRequiredService<IMarriageCapsuleDomainService>().CapsuleAsync(f.Session,MarriageCapsuleAction.Make,accounts,default))).Status);
+            Assert.Equal(0,(await InTx(f,()=>TestEffectFootprints.Run(f.Session, footprint => f.Services.GetRequiredService<IMarriageCapsuleDomainService>().CapsuleAsync(f.Session, MarriageCapsuleAction.Make, accounts, footprint, default)))).Status);
             await Send(Clear(saturatedRun)); Assert.Equal(0,(await q.ReadAsync(f.Session.AccountId,f.Session.CharacterId,default)).State.Energy);
             Assert.Equal(0, (await q.ReadAsync(w.Peer.AccountId, w.Peer.CharacterId, default)).State.Energy);
             Assert.False(CapsuleClearSubscriber.Recommended(new(1,"test",30,true,[],50) {RecommendedLevels=[30,85]}, 29));

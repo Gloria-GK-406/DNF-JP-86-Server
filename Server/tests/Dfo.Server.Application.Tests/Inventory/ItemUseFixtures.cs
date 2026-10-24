@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -105,8 +106,7 @@ internal sealed class DirectCommandBus(
         await using var transaction = this.scope.Begin();
         object dispatched = command switch
         {
-            UseStackableCommand value => await use!
-                .HandleAsync(context, value, cancellationToken).ConfigureAwait(false),
+            UseStackableCommand value => await TestEffectFootprints.Invoke(use!, value, cancellationToken).ConfigureAwait(false),
             MoveItemSpaceCommand value => await move!
                 .HandleAsync(context, value, cancellationToken).ConfigureAwait(false),
             GrantTutorialRewardCommand value => await reward!

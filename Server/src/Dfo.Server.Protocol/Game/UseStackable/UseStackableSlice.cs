@@ -287,7 +287,7 @@ public sealed class UseStackableCommandHandler(
                 InventoryState = new(item?.Snapshot, (timeProvider ?? TimeProvider.System).GetUtcNow()),
             };
 
-        var applied = await effects.UseAsync(command.Session, command.Slot, item, cancellationToken).ConfigureAwait(false);
+        var applied = await effects.UseAsync(command.Session, command.Slot, item, context.LegacyFootprint, cancellationToken).ConfigureAwait(false);
         if (applied.Status != ItemUsability.Allowed)
             return ItemUseResult.Refused(StatusFor(applied.Status), item.ItemId);
         var creatureChange = applied.Applied?.Changes<PetStomachChange>().LastOrDefault()?.Change;

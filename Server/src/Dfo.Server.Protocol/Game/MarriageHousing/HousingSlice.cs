@@ -78,7 +78,7 @@ public sealed record HousingCommand(SelectedSessionIdentity Actor, HousingReques
 public sealed class HousingCommandHandler(IMarriageHousingDomainService housing) : ICommandHandler<HousingCommand, HousingResult>
 {
     public ValueTask<HousingResult> HandleAsync(CommandExecutionContext context, HousingCommand command, CancellationToken ct) =>
-        housing.ExecuteAsync(command.Actor, command.Request, command.AccountIds, ct);
+        housing.ExecuteAsync(command.Actor, command.Request, command.AccountIds, context.LegacyFootprint, ct);
 }
 internal sealed class HousingHandler(ISelectedSessionDomainService sessions, IMarriageQueryDomainService marriage,
     ICommandBus commands, IGameMessageSender sender, IEventService events, TimeProvider clock) : ClientMessageHandler<HousingNetworkRequest>

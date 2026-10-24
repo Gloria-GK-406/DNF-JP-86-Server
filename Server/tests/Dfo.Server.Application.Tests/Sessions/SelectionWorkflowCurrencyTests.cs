@@ -66,7 +66,7 @@ public sealed class SelectionWorkflowCurrencyTests
         }
 
         public ValueTask<HousingResult> ExecuteAsync(SelectedSessionIdentity actor, HousingRequest request,
-            IReadOnlyList<AccountId> accounts, CancellationToken ct) => throw new NotSupportedException();
+            IReadOnlyList<AccountId> accounts, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct) => throw new NotSupportedException();
 
         public ValueTask<NpcShopPurchaseResult> PurchaseAsync(SelectedSessionIdentity actor, int itemId, int count,
             int shopId, IReadOnlyList<AccountId> accounts, CancellationToken ct) => throw new NotSupportedException();

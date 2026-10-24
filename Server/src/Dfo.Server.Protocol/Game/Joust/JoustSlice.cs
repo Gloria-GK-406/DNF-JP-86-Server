@@ -144,12 +144,14 @@ public sealed class QueryJoustHistoryCommandHandler(IJoustDomainService joust):I
 {public ValueTask<JoustHistoryEntry[]> HandleAsync(CommandExecutionContext c,QueryJoustHistoryCommand q,CancellationToken ct)=>joust.GetHistoryAsync(ct);}
 public sealed record JoustBetCommand(OnlineUserId OnlineUserId,SelectedSessionIdentity Session,string RequestId,int KnightIndex,BusinessSlot Slot,int Amount):ICommand<JoustBetResult>,IRequestSettlementCommand,IAccountCommand,ISelectedSessionCommand
 {public AccountId AccountId=>Session.AccountId;}
-public sealed class JoustBetCommandHandler(IJoustDomainService joust,TimeProvider clock,IRequestReplayProjectionDomainService projection):ICommandHandler<JoustBetCommand,JoustBetResult>
+public sealed class JoustBetCommandHandler(IJoustDomainService joust,TimeProvider clock):ICommandHandler<JoustBetCommand,JoustBetResult>
 {
     public async ValueTask<JoustBetResult> HandleAsync(CommandExecutionContext c,JoustBetCommand q,CancellationToken ct)
     {
+        var footprint=c.LegacyFootprint;
+        footprint.DemandActive(q.Session);
         var result=await joust.BetAsync(q.Session,q.RequestId,q.KnightIndex,q.Slot,q.Amount,clock.GetUtcNow(),ct);
-        projection.RecordInventorySlots(q.Session,result.Debits.Select(d=>d.Slot).ToArray());return result;
+        footprint.RecordInventorySlots(q.Session,result.Debits.Select(d=>d.Slot).ToArray());return result;
     }
 }
 public sealed class JoustQueryHandler(ISelectedSessionDomainService sessions,ICommandBus bus,IGameMessageSender sender,SelectedSessionSafety safety):ClientMessageHandler<JoustQueryRequest>

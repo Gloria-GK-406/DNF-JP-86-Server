@@ -91,7 +91,7 @@ public sealed class AvatarCompoundCommandHandler(IAvatarCompoundDomainService av
     : ICommandHandler<AvatarCompoundCommand, AvatarCompoundResult>
 {
     public ValueTask<AvatarCompoundResult> HandleAsync(CommandExecutionContext context, AvatarCompoundCommand command, CancellationToken ct)
-        => avatars.CompoundAsync(command.Session, command.Input, ct);
+        => avatars.CompoundAsync(command.Session, command.Input, context.LegacyFootprint, ct);
 }
 public sealed class AvatarCompoundHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     IInventorySlotMappingRuleService mappings, ICommandBus commands, IEventService events,

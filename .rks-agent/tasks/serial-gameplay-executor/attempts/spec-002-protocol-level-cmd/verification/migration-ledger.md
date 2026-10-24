@@ -221,3 +221,7 @@ GameLogin message:65537 与旧 RedeemGameLogin command 两行 closed，实际边
 ## TASK-08：OtherCharacterDetail
 
 消息16973832及原QueryOtherCharacterDetailCommand两行闭合：新协议CMD吸收前置、直接query与typed即时投影，原Direct无显式事务，不新增effect/WorkUnits；同wire目标在领域执行点重解析，原双当前性/listener/精确recipient与NOTI编码器保持。见`evidence/task-08-mapping/workunit-map.md`。合理预期10Protocol/1Internal/194Legacy，实际以新capture为准；非遥测业务149、旧命令194、来源72仍pending，五保护/八过渡未闭合，不是Spec完成。其它closed/original/baseline保持。
+
+## TASK-09：直接足迹的有界显式能力
+
+仅 T4、planned-legacy-routes、planned-LegacyRequestAdapter 的 notes／introduced_artifacts 更新，三行继续 pending。六域／三 fine 入口的 slots／rental 经必需 IEffectFootprintRecorder 参数；旧隐式接口和 DI alias 删除。真实 LegacyFineGrained 最内层捕获原引用、注册/context身份、作业 ID 与调用租约；实际消息类别快照、真正外部 Standalone、Unknown Unavailable、关闭继承拒绝与 typed sticky 拒绝均保留。尚未迁 ApplyEffects 可选消费者／17 构造及子链内部 await 后中途失效检查；下一效果单元贯通，T011 最终删除 ambient／legacy。不是新 Effect/Main 启用或任何 frozen 行闭合。

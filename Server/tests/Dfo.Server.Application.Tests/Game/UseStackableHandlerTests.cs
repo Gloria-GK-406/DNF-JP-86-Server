@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Characters;
@@ -129,13 +130,13 @@ public sealed class UseStackableHandlerTests
                 new BusinessSlot(BusinessInventorySpace.QuickSlot, 0), 8474);
             await using (inventory.Scope.Begin())
                 Assert.Equal(ItemUseStatus.Used,
-                    (await setup.Command.HandleAsync(UseContext, command, default)).Status);
+                    (await TestEffectFootprints.Invoke(setup.Command, command, default)).Status);
 
             Assert.Equal(2, inventory.Count);
             await using (var tx = inventory.Scope.Begin())
             {
                 Assert.Equal(ItemUseStatus.Used,
-                    (await setup.Command.HandleAsync(UseContext, command, default)).Status);
+                    (await TestEffectFootprints.Invoke(setup.Command, command, default)).Status);
                 await tx.CommitAsync(default);
             }
             Assert.Equal(1, inventory.Count);
@@ -152,8 +153,7 @@ public sealed class UseStackableHandlerTests
 
             await using (var transaction = inventory.Scope.Begin())
             {
-                var result = await setup.Command.HandleAsync(UseContext,
-                    SpiritCommand(), CancellationToken.None);
+                var result = await TestEffectFootprints.Invoke(setup.Command, SpiritCommand(), CancellationToken.None);
                 Assert.Equal(ItemUseStatus.Used, result.Status);
                 Assert.Equal(0, setup.Potion.SpiritPotionBonusRateOf(new CharacterId(60)));
                 await transaction.CommitAsync(CancellationToken.None);
@@ -174,7 +174,7 @@ public sealed class UseStackableHandlerTests
 
             await using (inventory.Scope.Begin())
             {
-                var result = await setup.Command.HandleAsync(UseContext, SpiritCommand(), CancellationToken.None);
+                var result = await TestEffectFootprints.Invoke(setup.Command, SpiritCommand(), CancellationToken.None);
                 Assert.Equal(ItemUseStatus.Used, result.Status);
             }
 
@@ -193,7 +193,7 @@ public sealed class UseStackableHandlerTests
 
             await using (var transaction = inventory.Scope.Begin())
             {
-                var result = await setup.Command.HandleAsync(UseContext, SpiritCommand(), CancellationToken.None);
+                var result = await TestEffectFootprints.Invoke(setup.Command, SpiritCommand(), CancellationToken.None);
                 Assert.Equal(ItemUseStatus.Used, result.Status);
                 Assert.True(setup.Sessions.ReleaseExact(OneSession.Session));
                 Assert.True(setup.Potion.EndExact(OneSession.Session));
@@ -214,7 +214,7 @@ public sealed class UseStackableHandlerTests
 
             await using (var transaction = inventory.Scope.Begin())
             {
-                var result = await setup.Command.HandleAsync(UseContext, SpiritCommand(), CancellationToken.None);
+                var result = await TestEffectFootprints.Invoke(setup.Command, SpiritCommand(), CancellationToken.None);
                 Assert.Equal(ItemUseStatus.Used, result.Status);
                 var replacement = OneSession.Session with
                 {
@@ -245,8 +245,7 @@ public sealed class UseStackableHandlerTests
 
             await using (var transaction = inventory.Scope.Begin())
             {
-                var result = await setup.Command.HandleAsync(UseContext,
-                    SpiritCommand(), CancellationToken.None);
+                var result = await TestEffectFootprints.Invoke(setup.Command, SpiritCommand(), CancellationToken.None);
                 Assert.Equal(ItemUseStatus.NoSession, result.Status);
                 await transaction.CommitAsync(CancellationToken.None);
             }
@@ -266,21 +265,21 @@ public sealed class UseStackableHandlerTests
             var slot = new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, 3));
             await using (var tx = inventory.Scope.Begin())
             {
-                Assert.False((await setup.Shared.UseAsync(OneSession.Session, slot, 9000, default)).Succeeded);
+                Assert.False((await TestEffectFootprints.Run(OneSession.Session, footprint => setup.Shared.UseAsync(OneSession.Session, slot, 9000, footprint, default))).Succeeded);
                 Assert.Equal(2, inventory.Count);
-                var result = await setup.Shared.UseAsync(OneSession.Session, slot, 8474, default);
+                var result = await TestEffectFootprints.Run(OneSession.Session, footprint => setup.Shared.UseAsync(OneSession.Session, slot, 8474, footprint, default));
                 Assert.True(result.Succeeded); Assert.Equal(1, result.State!.Item!.Count);
             }
             Assert.Equal(2, inventory.Count);
             await using (var tx = inventory.Scope.Begin())
             {
-                Assert.True((await setup.Shared.UseAsync(OneSession.Session, slot, 8474, default)).Succeeded);
+                Assert.True((await TestEffectFootprints.Run(OneSession.Session, footprint => setup.Shared.UseAsync(OneSession.Session, slot, 8474, footprint, default))).Succeeded);
                 await tx.CommitAsync(default);
             }
             Assert.Equal(1, inventory.Count);
             var ordinary = BuildDetailed(inventory, (8474, ItemUseRules.Potion(cooldownMilliseconds: 0)));
             await using (var tx = inventory.Scope.Begin())
-                Assert.False((await ordinary.Shared.UseAsync(OneSession.Session, slot, 8474, default)).Succeeded);
+                Assert.False((await TestEffectFootprints.Run(OneSession.Session, footprint => ordinary.Shared.UseAsync(OneSession.Session, slot, 8474, footprint, default))).Succeeded);
             Assert.Equal(1, inventory.Count);
         });
     }
@@ -294,9 +293,6 @@ public sealed class UseStackableHandlerTests
     private static UseStackableCommand SpiritCommand() =>
         new(OneSession.Session, new BusinessSlot(BusinessInventorySpace.QuickSlot, 0), 7377);
 
-    private static readonly CommandExecutionContext UseContext = new(
-        Guid.Empty, typeof(UseStackableCommand), typeof(UseStackableCommandHandler),
-        CommandExecutionKind.Transactional);
 
     [Fact]
     public async Task One_item_leaves_the_pile()

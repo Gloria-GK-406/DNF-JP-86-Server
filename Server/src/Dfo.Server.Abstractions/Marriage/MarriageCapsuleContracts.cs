@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
@@ -20,7 +21,7 @@ public interface IMarriageCapsuleQueryDomainService
 public interface IMarriageCapsuleDomainService
 {
     ValueTask<MarriageCapsuleResult> CapsuleAsync(SelectedSessionIdentity actor, MarriageCapsuleAction action,
-        IReadOnlyList<AccountId> accounts, CancellationToken ct);
+        IReadOnlyList<AccountId> accounts, IEffectFootprintRecorder footprint, CancellationToken ct);
 }
 public sealed record MarriageCapsuleEnergyChanged(CharacterId Character, int Energy) : IDomainEvent;
 public sealed record MarriageCapsuleGiftChanged(CharacterId Character) : IDomainEvent;

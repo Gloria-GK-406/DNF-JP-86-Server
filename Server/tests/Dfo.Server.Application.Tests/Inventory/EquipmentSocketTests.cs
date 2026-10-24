@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
@@ -171,7 +172,7 @@ public sealed class EquipmentSocketTests
             f.Sql("CREATE TABLE socket_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
             await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
             {
-                Assert.NotNull((await f.Services.GetRequiredService<IItemSocketDomainService>().ApplyAsync(f.Session, Open(), default)).Receipt);
+                Assert.NotNull((await TestEffectFootprints.Run(f.Session, footprint => f.Services.GetRequiredService<IItemSocketDomainService>().ApplyAsync(f.Session, Open(), footprint, default))).Receipt);
                 await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (cmd, ct) => { cmd.CommandText = "INSERT INTO socket_commit_probe VALUES(99999)"; await cmd.ExecuteNonQueryAsync(ct); }, default);
                 await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
             }

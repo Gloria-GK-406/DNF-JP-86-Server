@@ -33948,6 +33948,29 @@
       "destination": "pending",
       "evidence": [],
       "id": "transition:T4",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Abstractions/Effects/IEffectFootprintRecorder.cs",
+          "purpose": "required direct footprint input; keep explicit input while replacing legacy implementation in later effect unit"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/LegacyEffectFootprint.cs",
+          "purpose": "captured refs/job/call lease adapter, delete with final legacy consumers T011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/EffectOperationContext.cs",
+          "purpose": "legacy invocation capture/inheritance only; remaining optional ApplyEffects consumer and 17 constructions are later effect unit"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Commands/CommandContracts.cs",
+          "purpose": "legacy invocation admission and explicit capability handoff; no new typed bridge authority; remove legacy admission at final consumers T011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Commands/NetworkCommandAuthorization.cs",
+          "purpose": "existing frame category/snapshot, not new ambient; remove old frame T011"
+        }
+      ],
+      "notes": "TASK-09 r3: direct InventorySlots/RentalState now require IEffectFootprintRecorder through six domain objects/facades/SharedEffect and three fine handlers. Old IRequestReplayProjectionDomainService/implicit slots/rental API/DI alias removed. Only true LegacyFineGrained innermost invocation admits capture after selected/main and transaction setup: original frame/execution/rejection references, actual registration/context identity, same job ID and per-call closed lease. Dispatcher snapshots actual Effect/NonEffect/Unknown category; only the real external bus queue branch carries Standalone; closed inheritance refuses before suppression, Unknown is Unavailable at migrated capability use. New typed bridge failures are sticky. This does not remove request ambient or enable new Effect/Main: ApplyEffects optional old consumer and 17 constructions plus unmigrated child await continuations remain successor work; final legacy/ambient deletion still T011. Ended capability cannot reenter migrated domain, whose own writes/delegations check it.",
       "original": {
         "final_evidence": "pending",
         "id": "transition:T4",
@@ -34045,9 +34068,29 @@
         {
           "location": "Server/src/Dfo.Server.Abstractions/Channel/IChannelSources.cs",
           "purpose": "IChannelEntryPolicy compatibility alias resolves same ChannelEntryDomainService singleton; remaining legacy protocol consumers must migrate before removal at T011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Abstractions/Effects/IEffectFootprintRecorder.cs",
+          "purpose": "required direct footprint input; keep explicit input while replacing legacy implementation in later effect unit"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/LegacyEffectFootprint.cs",
+          "purpose": "captured refs/job/call lease adapter, delete with final legacy consumers T011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/EffectOperationContext.cs",
+          "purpose": "legacy invocation capture/inheritance only; remaining optional ApplyEffects consumer and 17 constructions are later effect unit"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Commands/CommandContracts.cs",
+          "purpose": "legacy invocation admission and explicit capability handoff; no new typed bridge authority; remove legacy admission at final consumers T011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Commands/NetworkCommandAuthorization.cs",
+          "purpose": "existing frame category/snapshot, not new ambient; remove old frame T011"
         }
       ],
-      "notes": "TASK04 introduced actual routes; all remain pending until final consumer removal T011. Effect handle/footprint/main lifecycle intentionally unavailable and must be completed in first effect Task; no new core ambient fallback. TASK-06 adds old IChannelEntryPolicy alias duty; actual mapping/KindOf/Refuse owned by ChannelEntryDomainService, new LOGIN only consumes IChannelEntryDomainService; do not delete old alias until remaining consumers migrate.",
+      "notes": "TASK04 introduced actual routes; all remain pending until final consumer removal T011. Effect handle/footprint/main lifecycle intentionally unavailable and must be completed in first effect Task; no new core ambient fallback. TASK-06 adds old IChannelEntryPolicy alias duty; actual mapping/KindOf/Refuse owned by ChannelEntryDomainService, new LOGIN only consumes IChannelEntryDomainService; do not delete old alias until remaining consumers migrate. TASK-09 r3: direct InventorySlots/RentalState now require IEffectFootprintRecorder through six domain objects/facades/SharedEffect and three fine handlers. Old IRequestReplayProjectionDomainService/implicit slots/rental API/DI alias removed. Only true LegacyFineGrained innermost invocation admits capture after selected/main and transaction setup: original frame/execution/rejection references, actual registration/context identity, same job ID and per-call closed lease. Dispatcher snapshots actual Effect/NonEffect/Unknown category; only the real external bus queue branch carries Standalone; closed inheritance refuses before suppression, Unknown is Unavailable at migrated capability use. New typed bridge failures are sticky. This does not remove request ambient or enable new Effect/Main: ApplyEffects optional old consumer and 17 constructions plus unmigrated child await continuations remain successor work; final legacy/ambient deletion still T011. Ended capability cannot reenter migrated domain, whose own writes/delegations check it.",
       "original": {
         "final_evidence": "pending",
         "id": "transition:planned-legacy-routes",
@@ -34072,6 +34115,29 @@
       "destination": "pending",
       "evidence": [],
       "id": "transition:planned-LegacyRequestAdapter",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Abstractions/Effects/IEffectFootprintRecorder.cs",
+          "purpose": "required direct footprint input; keep explicit input while replacing legacy implementation in later effect unit"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/LegacyEffectFootprint.cs",
+          "purpose": "captured refs/job/call lease adapter, delete with final legacy consumers T011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/EffectOperationContext.cs",
+          "purpose": "legacy invocation capture/inheritance only; remaining optional ApplyEffects consumer and 17 constructions are later effect unit"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Commands/CommandContracts.cs",
+          "purpose": "legacy invocation admission and explicit capability handoff; no new typed bridge authority; remove legacy admission at final consumers T011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Commands/NetworkCommandAuthorization.cs",
+          "purpose": "existing frame category/snapshot, not new ambient; remove old frame T011"
+        }
+      ],
+      "notes": "TASK-09 r3: direct InventorySlots/RentalState now require IEffectFootprintRecorder through six domain objects/facades/SharedEffect and three fine handlers. Old IRequestReplayProjectionDomainService/implicit slots/rental API/DI alias removed. Only true LegacyFineGrained innermost invocation admits capture after selected/main and transaction setup: original frame/execution/rejection references, actual registration/context identity, same job ID and per-call closed lease. Dispatcher snapshots actual Effect/NonEffect/Unknown category; only the real external bus queue branch carries Standalone; closed inheritance refuses before suppression, Unknown is Unavailable at migrated capability use. New typed bridge failures are sticky. This does not remove request ambient or enable new Effect/Main: ApplyEffects optional old consumer and 17 constructions plus unmigrated child await continuations remain successor work; final legacy/ambient deletion still T011. Ended capability cannot reenter migrated domain, whose own writes/delegations check it.",
       "original": {
         "final_evidence": "pending",
         "id": "transition:planned-LegacyRequestAdapter",

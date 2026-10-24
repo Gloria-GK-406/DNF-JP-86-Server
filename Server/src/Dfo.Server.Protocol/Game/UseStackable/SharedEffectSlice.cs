@@ -47,7 +47,7 @@ public sealed record SharedEffectCommand(SelectedSessionIdentity Actor, Business
 { public AccountId AccountId => Actor.AccountId; public SelectedSessionIdentity? Session => Actor; }
 public sealed class SharedEffectCommandHandler(ISharedEffectDomainService effects) : ICommandHandler<SharedEffectCommand, SharedEffectUseResult>
 {
-    public ValueTask<SharedEffectUseResult> HandleAsync(CommandExecutionContext c, SharedEffectCommand q, CancellationToken ct) => effects.UseAsync(q.Actor, q.Slot, q.ItemId, ct);
+    public ValueTask<SharedEffectUseResult> HandleAsync(CommandExecutionContext c, SharedEffectCommand q, CancellationToken ct) => effects.UseAsync(q.Actor, q.Slot, q.ItemId, c.LegacyFootprint, ct);
 }
 internal sealed class SharedEffectHandler(ISelectedSessionDomainService sessions, IInventorySlotMappingRuleService mappings,
     ITownAreaDomainService areas, ICommandBus commands, IGameMessageSender sender) : ClientMessageHandler<SharedEffectRequest>

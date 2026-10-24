@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
@@ -39,7 +40,7 @@ public sealed class RealConsumableIntegrationTests
                 await using var tx = f.Scope.Begin();
                 var source = (await f.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
                     .Get(f.Session.CharacterId, PetSource).Container.GetAsync(0, default))!;
-                var applied = await f.Services.GetRequiredService<IItemUseEffectDomainService>().UseAsync(f.Session, PetSource, source, default);
+                var applied = await TestEffectFootprints.Run(f.Session, footprint => f.Services.GetRequiredService<IItemUseEffectDomainService>().UseAsync(f.Session, PetSource, source, footprint, default));
                 Assert.Equal(ItemUsability.Allowed, applied.Status);
                 Assert.Equal(80, Assert.Single(applied.Applied!.Changes<PetStomachChange>()).Change.After.Stomach);
                 Assert.Empty(runtime.DrainProjections());

@@ -33,7 +33,7 @@ public sealed record CapsuleCommand(SelectedSessionIdentity Actor, MarriageCapsu
 public sealed class CapsuleCommandHandler(IMarriageCapsuleDomainService capsules) : ICommandHandler<CapsuleCommand, MarriageCapsuleResult>
 {
     public ValueTask<MarriageCapsuleResult> HandleAsync(CommandExecutionContext context, CapsuleCommand command, CancellationToken ct) =>
-        capsules.CapsuleAsync(command.Actor, command.Action, command.AccountIds, ct);
+        capsules.CapsuleAsync(command.Actor, command.Action, command.AccountIds, context.LegacyFootprint, ct);
 }
 internal sealed record CapsuleAck(MarriageCapsuleAction Action, MarriageCapsuleResult Result) : IGameCmdMessage
 { public ServerMessageType MessageType => ServerMessageType.GameMarriageCapsule; }

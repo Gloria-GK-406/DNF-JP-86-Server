@@ -40,7 +40,7 @@ public sealed class BuyItemCommandHandler(
             ? await housing.PurchaseAsync(command.Session, command.ItemId, command.RawCount, command.ShopId, command.AccountIds, cancellationToken).ConfigureAwait(false)
             : await shops.PurchaseAsync(
             command.Session, command.ItemId, command.RawCount, command.ShopId, command.NpcId,
-            clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+            clock.GetUtcNow(), context.LegacyFootprint, cancellationToken).ConfigureAwait(false);
         if (purchase.Receipt is null)
             return new BuyItemOutcome(purchase, null);
 

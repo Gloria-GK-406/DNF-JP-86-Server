@@ -1497,8 +1497,16 @@ public sealed class IllusionTowerDomainServiceTests
             for (var attempt = 0; attempt < 3; attempt++)
             {
                 f.Sender.Messages.Clear();
-                await handler.HandleAsync(new(f.Connection), new Dfo.Server.Protocol.Game.UseStackable.UseStackableRequest(
-                    GameMessageMetadata.Empty, new(InventoryContainerType.QuickSlot, 4), 25333, 6521), default);
+                var request = new Dfo.Server.Protocol.Game.UseStackable.UseStackableRequest(
+                    GameMessageMetadata.Empty, new(InventoryContainerType.QuickSlot, 4), 25333, 6521);
+                using var source = f.Services.GetRequiredService<Dfo.Server.Application.Commands.NetworkCommandAuthorization>()
+                    .Enter(() => true, request.Metadata, Dfo.Server.Application.Commands.NetworkCommandAuthorization.MessageCategory.Effect);
+                // Explicit test request state per attempt; this driver does not use the network replay ledger.
+                using var operation = f.Services.GetRequiredService<Dfo.Server.Application.Effects.EffectOperationContext>().Enter(
+                    new(f.Session, attempt + 1, 1, 0x2C, 0, "explicit-test-attempt-" + attempt, 0),
+                    f.Services.GetRequiredService<Dfo.Server.Application.Commands.SelectedSessionSafety>().Capture(f.Session, request.Metadata),
+                    request.MinimumReplayNeeds);
+                await handler.HandleAsync(new(f.Connection), request, default);
                 var frames = f.Sender.Messages.SelectMany(message =>
                     ((IServerMessageEncoder)f.Services.GetRequiredService(registrations[message.GetType()].EncoderType))
                         .Encode(message).Select(frame => frame.ToArray())).ToArray();

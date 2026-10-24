@@ -44,6 +44,8 @@ public sealed class NpcShopPurchaseTests
         await shop.Seed(121, 1000, 100, 3);
         await TestGameplay.RunAsync(shop.Services, async () =>
         {
+            using var source = shop.Services.GetRequiredService<NetworkCommandAuthorization>().Enter(
+                () => true, GameMessageMetadata.Empty, NetworkCommandAuthorization.MessageCategory.NonEffect);
             await shop.Services.GetRequiredService<BuyItemHandler>().HandleAsync(new(shop.Connection),
                 new BuyItemRequest(GameMessageMetadata.Empty, 5000, 1, 1000, 1000), default);
         });
@@ -486,8 +488,13 @@ internal sealed class ShopFixture : IDisposable
     }
     public int SharedCount(int item, int account = 1) => Scalar($"SELECT COALESCE(SUM(s.count),0) FROM item_slots s JOIN items i ON s.core_uid=i.item_uid WHERE s.owner_scope='account' AND s.owner_id={account} AND s.list_type=240 AND substr(hex(i.item_core),3,8)='{Convert.ToHexString(BitConverter.GetBytes(item))}'");
 
-    public async ValueTask Buy(int item, int count) => await TestGameplay.RunAsync(provider, async () => await provider.GetRequiredService<BuyItemHandler>().HandleAsync(new(connection),
-        new BuyItemRequest(GameMessageMetadata.Empty, item, count, 15, 2), default));
+    public async ValueTask Buy(int item, int count) => await TestGameplay.RunAsync(provider, async () =>
+    {
+        using var source = provider.GetRequiredService<NetworkCommandAuthorization>().Enter(
+            () => true, GameMessageMetadata.Empty, NetworkCommandAuthorization.MessageCategory.NonEffect);
+        await provider.GetRequiredService<BuyItemHandler>().HandleAsync(new(connection),
+            new BuyItemRequest(GameMessageMetadata.Empty, item, count, 15, 2), default);
+    });
     public async ValueTask Query() => await TestGameplay.RunAsync(provider, async () => await provider.GetRequiredService<ShopPurchaseCountHandler>().HandleAsync(new(connection),
         new ShopPurchaseCountRequest(GameMessageMetadata.Empty, 2), default));
     public Task<BuyItemOutcome> Command(int item, int count, SelectedSessionIdentity? owner = null) => provider.GetRequiredService<ICommandBus>()

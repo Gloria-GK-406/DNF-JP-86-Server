@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Content;
@@ -20,13 +21,14 @@ internal sealed class NpcShopDomainService(
     ICharacterBusinessInventoryDomainService inventories,
     IItemPlacementRuleService placements,
     INpcShopRuleService rules,
-    INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle, IItemGrantDomainService grants, Dfo.Server.Abstractions.Effects.IRequestReplayProjectionDomainService replay,
+    INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle, IItemGrantDomainService grants,
     Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null, IDungeonParticipationDomainService? participation = null) : INpcShopDomainService
 {
     public async ValueTask<NpcShopPurchaseResult> PurchaseAsync(
         SelectedSessionIdentity session, int itemId, int rawCount, int shopId, int npcId,
-        DateTimeOffset now, CancellationToken cancellationToken)
+        DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
     {
+        footprint.DemandActive(session);
         if (!sessions.IsInWorld(session))
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
         var inBossTower = bossTower?.Find(session) is not null;
@@ -94,22 +96,28 @@ internal sealed class NpcShopDomainService(
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
         var cera = checked((int)wallet.Cera);
 
-        replay.RecordInventorySlots(session, plan.MaterialChanges.Select(x => x.Slot).ToArray());
+        footprint.RecordInventorySlots(session, plan.MaterialChanges.Select(x => x.Slot).ToArray());
         if (quote.GoldCost > 0)
+        {
+            footprint.DemandActive(session);
             gold = await character.TrySpendGoldAsync(quote.GoldCost, cancellationToken).ConfigureAwait(false)
                 ?? throw new NpcShopPurchaseRejectedException(NpcShopRejection.InsufficientGold);
+        }
         foreach (var change in plan.MaterialChanges)
         {
             var bag = bags[change.Slot.Space];
             var existing = await bag.GetAsync(change.Slot.Index, cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("Shop material disappeared after planning.");
+            footprint.DemandActive(session);
             await ItemContainerOperations.ConsumeAsync(bag, existing, existing.Count - (change.Core?.Count ?? 0), lifecycle, cancellationToken).ConfigureAwait(false);
         }
         foreach (var grant in plan.GrantedSlots)
         {
             var bag = bags[grant.Slot.Space];
+            footprint.DemandActive(session);
             await grants.ApplyPlannedAsync(bag, grant.Slot.Index, grant.Core, cancellationToken).ConfigureAwait(false);
         }
+        footprint.DemandActive(session);
         if (purchaseKey is not null
             && !await purchases.TryAddAsync(purchaseKey, quote.Count, quote.Definition.Limit!.Count, cancellationToken)
                 .ConfigureAwait(false))

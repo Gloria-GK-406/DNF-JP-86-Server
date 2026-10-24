@@ -15,10 +15,11 @@ internal sealed class ItemSocketDomainService(ISelectedSessionDomainService sess
     IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments, IAvatarDomainService avatars, IItemSocketRuleService rules,
     IItemLifecycleDomainService lifecycle, IDomainTransactionAccessor transactions,
-    IRequestReplayProjectionDomainService replay, IEventService events, TimeProvider clock) : IItemSocketDomainService
+    IEventService events, TimeProvider clock) : IItemSocketDomainService
 {
-    public async ValueTask<ItemSocketResult> ApplyAsync(SelectedSessionIdentity session, ItemSocketInput input, CancellationToken ct)
+    public async ValueTask<ItemSocketResult> ApplyAsync(SelectedSessionIdentity session, ItemSocketInput input, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandActive(session);
         _ = transactions.Current ?? throw new InvalidOperationException("Socket operations require a transaction.");
         if (!sessions.IsInWorld(session))
             return new(ItemSocketRejection.NoSession);
@@ -72,17 +73,20 @@ internal sealed class ItemSocketDomainService(ISelectedSessionDomainService sess
             if (plan.Rejection != ItemSocketRejection.None) return new(plan.Rejection);
             types = plan.Types; embeddings = plan.Embeddings;
         }
+        footprint.DemandActive(session);
         if (input.Open) await instance!.OpenSocketsAsync(types, ct).ConfigureAwait(false);
         else await instance!.EmbedAsync(types, embeddings, ct).ConfigureAwait(false);
         var remainders = ImmutableArray.CreateBuilder<SocketMaterialRemainder>();
         if (consume)
             foreach (var material in materials)
             {
+                footprint.DemandActive(session);
                 await ItemContainerOperations.ConsumeAsync(material.Container, material.Item, material.Count, lifecycle, ct).ConfigureAwait(false);
                 remainders.Add(new(material.Slot, material.Item.Count - material.Count));
+                footprint.DemandActive(session);
                 await events.EnqueueAsync(new ItemUsed(session.CharacterId, material.Item.ItemId, material.Count), ct).ConfigureAwait(false);
             }
-        replay.RecordInventorySlots(session, [input.Target, .. materials.Select(x => x.Slot)]);
+        footprint.RecordInventorySlots(session, [input.Target, .. materials.Select(x => x.Slot)]);
         return new(ItemSocketRejection.None, new(session, input, remainders.ToImmutable(), now));
     }
     private static bool Locked(ItemSnapshot item) => item.EquipmentLockId != 0 || item.SortLockFlag != 0;

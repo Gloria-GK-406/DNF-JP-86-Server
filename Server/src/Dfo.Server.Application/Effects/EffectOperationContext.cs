@@ -25,7 +25,7 @@ internal sealed class EffectOperationEntry(SelectedSessionIdentity session, long
 }
 
 /// <summary>The synchronous flow frame connects the one primary command to its preallocated ledger entry.</summary>
-internal sealed class EffectOperationContext : IRequestReplayProjectionDomainService
+internal sealed class EffectOperationContext
 {
     private readonly AsyncLocal<Frame?> current = new();
     private readonly AsyncLocal<Execution?> execution = new();
@@ -112,18 +112,66 @@ internal sealed class EffectOperationContext : IRequestReplayProjectionDomainSer
         frame.Entry.State = uncertain ? EffectOperationState.Blocked
             : frame.RollbackConfirmed ? EffectOperationState.ConfirmedRollback : EffectOperationState.Rejected;
     }
-    public void RecordRentalState(SelectedSessionIdentity session)
+    internal LegacyFootprintInheritance CaptureInheritance()
     {
-        RecordInventorySlots(session, []);
-        if (Current is { } frame) frame.Needs |= ReplayProjectionNeeds.Rental;
+        var frame = current.Value; var active = execution.Value; var refused = rejection.Value;
+        void DemandOpen()
+        {
+            if (frame?.Closed == true || active?.Closed == true || refused?.Closed == true)
+                throw new InvalidOperationException("The inherited effect operation has closed.");
+        }
+        return new(frame is null && active is null && refused is null, DemandOpen);
     }
-    public void RecordInventorySlots(SelectedSessionIdentity session,IReadOnlyList<BusinessSlot> slots)
+
+    internal LegacyEffectFootprint CaptureLegacy(CommandExecutionContext context,
+        NetworkCommandAuthorization.Snapshot authorization, bool standalone, Action inheritedGuard)
     {
-        var frame=Current;if(frame is null)return;
-        if(execution.Value is not {IsMain:true,Closed:false} || frame.Frozen || !frame.TransactionStarted || frame.Recipient.Session!=session)
-            throw new InvalidOperationException("Inventory footprint requires the captured primary transaction.");
-        frame.Needs|=ReplayProjectionNeeds.Inventory;
-        foreach(var slot in slots)frame.Slots.Add(slot);
+        if (context.Request is not null)
+        {
+            var error = new InvalidOperationException("An explicit command cannot capture a legacy footprint.");
+            context.Request.Failed(error);
+            throw error;
+        }
+        context.DemandLegacyInvocation();
+        var frame = current.Value; var active = execution.Value; var refused = rejection.Value;
+        string? Unavailable()
+        {
+            if (frame?.Closed == true || active?.Closed == true || refused?.Closed == true)
+                return "The captured effect operation has closed.";
+            var kind = authorization.Kind;
+            if (frame is not null && refused is not null) return "Contradictory effect operation state.";
+            if (kind == NetworkCommandAuthorization.SnapshotKind.ActiveUnknown)
+                return "The legacy invocation has no declared network category.";
+            if (kind == NetworkCommandAuthorization.SnapshotKind.ActiveNonEffect && (frame is not null || refused is not null))
+                return "A non-effect message cannot acquire effect operation authority.";
+            if (frame is not null)
+            {
+                if (active is not { IsMain: true } || active.Id != context.ExecutionId
+                    || frame.MainExecutionId != context.ExecutionId || !frame.TransactionStarted || frame.Frozen)
+                    return "Inventory footprint requires the captured primary transaction.";
+                return null;
+            }
+            if (refused is not null) return null;
+            if (kind == NetworkCommandAuthorization.SnapshotKind.ActiveEffect)
+                return "The effect message is missing its operation state.";
+            if (kind == NetworkCommandAuthorization.SnapshotKind.ActiveNonEffect || standalone) return null;
+            return "The legacy invocation has no explicit footprint source.";
+        }
+        void DemandOwner(SelectedSessionIdentity owner)
+        {
+            if (refused is not null) throw new InvalidOperationException("An unselected effect request cannot record a footprint.");
+            if (frame is not null && frame.Recipient.Session != owner)
+                throw new InvalidOperationException("Inventory footprint differs from its captured owner.");
+        }
+        void Inventory(IReadOnlyList<BusinessSlot> slots)
+        {
+            if (frame is null) return;
+            frame.Needs |= ReplayProjectionNeeds.Inventory;
+            foreach (var slot in slots) frame.Slots.Add(slot);
+        }
+        void Rental() { if (frame is not null) frame.Needs |= ReplayProjectionNeeds.Rental; }
+        return new(authorization, () => { context.DemandLegacyInvocation(); inheritedGuard(); },
+            Unavailable, DemandOwner, Inventory, Rental);
     }
     public void Record(EffectExecutionContext owner, IReadOnlyList<AppliedEffect> applied)
     {

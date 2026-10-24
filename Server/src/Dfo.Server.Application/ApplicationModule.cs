@@ -366,7 +366,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustRuleService, Dfo.Server.Application.Events.JoustRuleService>();
         services.TryAddSingleton<Dfo.Server.Application.Events.JoustDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.JoustDomainService>());
-        services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IRequestReplayProjectionDomainService>(sp=>sp.GetRequiredService<Dfo.Server.Application.Effects.EffectOperationContext>());
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustProjectionDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.JoustDomainService>());
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.JoustDomainService>());
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IGmJoustDomainService,Dfo.Server.Application.Events.GmJoustDomainService>();

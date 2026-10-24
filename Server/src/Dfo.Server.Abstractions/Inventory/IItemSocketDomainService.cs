@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Collections.Immutable;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -16,7 +17,7 @@ public sealed record ItemSocketOpenPlan(ItemSocketRejection Rejection, Immutable
 public sealed record ItemSocketEmbedPlan(ItemSocketRejection Rejection, ImmutableArray<ushort> Types, ImmutableArray<SocketEmbedding> Embeddings);
 public interface IItemSocketDomainService
 {
-    ValueTask<ItemSocketResult> ApplyAsync(SelectedSessionIdentity session, ItemSocketInput input, CancellationToken ct);
+    ValueTask<ItemSocketResult> ApplyAsync(SelectedSessionIdentity session, ItemSocketInput input, IEffectFootprintRecorder footprint, CancellationToken ct);
 }
 public interface IItemSocketRuleService
 {

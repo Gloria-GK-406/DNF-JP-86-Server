@@ -44,15 +44,17 @@ public sealed record CollectionBoxCommand(SelectedSessionIdentity Actor, Collect
     public AccountId AccountId => Actor.AccountId;
     public SelectedSessionIdentity? Session => Actor;
 }
-public sealed class CollectionBoxCommandHandler(ICollectionBoxDomainService boxes, IRequestReplayProjectionDomainService replay)
+public sealed class CollectionBoxCommandHandler(ICollectionBoxDomainService boxes)
     : ICommandHandler<CollectionBoxCommand, CollectionBoxMutation>
 {
     public async ValueTask<CollectionBoxMutation> HandleAsync(CommandExecutionContext context, CollectionBoxCommand command, CancellationToken ct)
     {
+        var footprint = context.LegacyFootprint;
+        footprint.DemandActive(command.Actor);
         var result = await boxes.ExecuteAsync(command.Actor.AccountId, command.Actor.CharacterId, command.Action,
             command.BoxId, command.Source, command.ItemId, ct).ConfigureAwait(false);
         if (result.Inventory.Count > 0)
-            replay.RecordInventorySlots(command.Actor, result.Inventory.Select(x => x.Slot).ToArray());
+            footprint.RecordInventorySlots(command.Actor, result.Inventory.Select(x => x.Slot).ToArray());
         return result;
     }
 }

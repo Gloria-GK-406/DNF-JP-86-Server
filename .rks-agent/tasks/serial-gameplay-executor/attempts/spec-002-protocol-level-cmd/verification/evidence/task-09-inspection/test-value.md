@@ -1,0 +1,7 @@
+# TASK-09 test-value choice
+
+保护结果是显式足迹能力失效后不能再驱动实际域入口的业务变更，而不是验证字段／构造器形状。现实回归是调用者在合法范围预取cap，fine invoker已结束但外层job仍在，后来再次调用ItemUseEffectDomainService；若只在末尾Record检查，最前面的revive委托会先产生业务动作再拒绝。
+
+新行为测试通过真实CommandBus／旧pipeline在明确NetworkNonEffect作用域中取得cap；fine返回使lease结束，但同一个job及授权仍active。随后调用真实ItemUseEffectDomainService，局部revive子服务的业务计数代表该委托被执行。正确实现应在入口拒绝且计数0；临时删掉域入口第一条无副作用Demand时，子服务动作计数变1，形成可观察行为RED。能力存储布局／命名／闭包或实现拆分不影响该oracle。已有成功／事务／重放测试不覆盖预取后再调用，故增补这一处生命周期证据有独立价值。
+
+该测试仅证明r2的“结束后开始受迁入口”保护，不声称已经进入未传cap的revive／Opening／ApplyEffects子链后中途失效都已覆盖。子服务本轮不改接口。结构规则由单独反例守护，不把仅签名编译失败计为RED。

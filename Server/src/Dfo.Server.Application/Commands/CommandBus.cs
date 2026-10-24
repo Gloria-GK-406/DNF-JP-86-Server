@@ -2,6 +2,7 @@ using System.Runtime.ExceptionServices;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Authentication;
+using Dfo.Server.Application.Effects;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,7 +13,7 @@ internal sealed class CommandBus(
     IServiceScopeFactory scopeFactory,
     CommandHandlerRegistry registry,
     IGameplayQueue queue,
-    CommandJobEntry entry) : ICommandBus
+    CommandJobEntry entry, NetworkCommandAuthorization authorization, EffectOperationContext operations) : ICommandBus
 {
     private static readonly AsyncLocal<int> DispatchDepth = new();
 
@@ -37,9 +38,19 @@ internal sealed class CommandBus(
                 protocol.Dispatch.Connection), cancellationToken);
         }
         if (GameplayJob.IsOnExecutor) return InlineAsync(command, cancellationToken);
+        // This exact old external entry supplies its provenance before queue execution suppresses the flow.
+        var network = authorization.Capture();
+        var inherited = operations.CaptureInheritance();
+        network.DemandOpen();
+        inherited.DemandOpen();
+        var origin = new LegacyInvocationOrigin(network.IsAbsent && inherited.IsEmpty, () =>
+        {
+            network.DemandOpen();
+            inherited.DemandOpen();
+        });
         return queue.RunAsync(new GameplayWork<TResult>(GameplayShardKey.World,
             GameplayCallChain.NewRoot(GameplayCallSource.Connection), "bus:" + command.GetType().Name,
-            token => { entry.Begin(); return InlineAsync(command, token); }), cancellationToken);
+            token => { entry.Begin(); return InlineAsync(command, token, origin); }), cancellationToken);
     }
 
     public ValueTask<TResult> SendInternalAsync<TResult>(ICommand<TResult> command, InternalCommandOrigin origin,
@@ -142,7 +153,8 @@ internal sealed class CommandBus(
 
     private async ValueTask<TResult> InlineAsync<TResult>(
         ICommand<TResult> command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        LegacyInvocationOrigin? origin = null)
         where TResult : notnull
     {
         if (DispatchDepth.Value != 0) throw NestedDispatch();
@@ -152,6 +164,9 @@ internal sealed class CommandBus(
         {
             await using var scope = scopeFactory.CreateAsyncScope();
             var registration = registry.GetRegistration(command.GetType());
+
+            if (registration.Route != CommandRouteKind.LegacyFineGrained)
+                throw new InvalidOperationException("Only a registered legacy command can use this invoker.");
 
             // Registration binds the command, its result and its handler together, and
             // ICommand is invariant in its result, so TResult here is the command's own
@@ -164,8 +179,14 @@ internal sealed class CommandBus(
                 registration.CommandType,
                 registration.HandlerType,
                 registration.ExecutionKind);
-            CommandExecutionDelegate<TResult> next = () =>
-                invoker.InvokeAsync(context, command, cancellationToken);
+            CommandExecutionDelegate<TResult> next = async () =>
+            {
+                using var admission = context.EnterLegacyInvocation(registration);
+                using var footprint = operations.CaptureLegacy(context, authorization.Capture(),
+                    origin?.Standalone == true, origin?.DemandOpen ?? (() => { }));
+                context.SupplyLegacyFootprint(footprint);
+                return await invoker.InvokeAsync(context, command, cancellationToken).ConfigureAwait(false);
+            };
 
             var behaviors = scope.ServiceProvider
                 .GetServices<ICommandPipelineBehavior<TResult>>()

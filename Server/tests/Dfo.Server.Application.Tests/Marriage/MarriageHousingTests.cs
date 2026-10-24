@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -68,8 +69,7 @@ public sealed partial class MarriageHousingTests
     }
     private static async Task<HousingSnapshot> Read(HousingWorld w) => (await w.F.Services.GetRequiredService<IMarriageHousingQueryDomainService>().ReadAsync(w.F.Session.AccountId, w.F.Session.CharacterId, default))!;
     private static async Task<HousingResult> Act(HousingWorld w, SelectedSessionIdentity actor, HousingRequest request, bool commit = true) =>
-        await InTx(w.F, () => w.F.Services.GetRequiredService<IMarriageHousingDomainService>().ExecuteAsync(actor, request,
-            new[] { w.F.Session.AccountId, w.Peer.AccountId }.OrderBy(x => x.Value).ToArray(), default), commit);
+        await InTx(w.F, () => TestEffectFootprints.Run(actor, footprint => w.F.Services.GetRequiredService<IMarriageHousingDomainService>().ExecuteAsync(actor, request, new[] { w.F.Session.AccountId, w.Peer.AccountId }.OrderBy(x => x.Value).ToArray(), footprint, default)), commit);
     private static async Task<int> Give(HousingWorld w, int item, int count)
     {
         await InTx(w.F, () => w.F.Services.GetRequiredService<IItemDeliveryDomainService>().DeliverAsync(w.F.Session.AccountId, w.F.Session.CharacterId, [new(item, count)], "housing-test", default, ItemDeliveryMode.InventoryOnly));
@@ -175,7 +175,7 @@ public sealed partial class MarriageHousingTests
             Assert.Equal(new[] { 71, 72 }, areas.Find(new TownAreaKey(1, 101, 0, first.Instance))!.Members.Select(x => x.CharacterId.Value).Order());
             Assert.Equal(new[] { 73, 74 }, areas.Find(new TownAreaKey(1, 101, 0, second.Instance))!.Members.Select(x => x.CharacterId.Value).Order());
             Assert.Equal(0, (await Act(w, f.Session, new(HousingAction.Storage))).Status);
-            var result = await InTx(f, () => f.Services.GetRequiredService<IMarriageHousingDomainService>().ExecuteAsync(a, new(HousingAction.Storage), [a.AccountId, b.AccountId], default));
+            var result = await InTx(f, () => TestEffectFootprints.Run(a, footprint => f.Services.GetRequiredService<IMarriageHousingDomainService>().ExecuteAsync(a, new(HousingAction.Storage), [a.AccountId, b.AccountId], footprint, default)));
             Assert.Equal(0, result.Status);
         });
     }

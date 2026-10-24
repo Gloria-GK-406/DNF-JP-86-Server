@@ -71,12 +71,14 @@ internal sealed class ChargeRentPointEncoder : GameCmdMessageEncoder<ChargeRentP
 }
 public sealed record RentEquipmentCommand(SelectedSessionIdentity Actor, int ItemId) : ICommand<EquipmentRentalReceipt>, IAccountCommand, IRequestSettlementCommand
 { public AccountId AccountId => Actor.AccountId; public SelectedSessionIdentity? Session => Actor; }
-public sealed class RentEquipmentCommandHandler(IEquipmentRentalDomainService rentals,IRequestReplayProjectionDomainService replay) : ICommandHandler<RentEquipmentCommand,EquipmentRentalReceipt>
+public sealed class RentEquipmentCommandHandler(IEquipmentRentalDomainService rentals) : ICommandHandler<RentEquipmentCommand,EquipmentRentalReceipt>
 {
     public async ValueTask<EquipmentRentalReceipt> HandleAsync(CommandExecutionContext context,RentEquipmentCommand command,CancellationToken ct)
     {
+        var footprint=context.LegacyFootprint;
+        footprint.DemandActive(command.Actor);
         var receipt=await rentals.RentAsync(command.Actor.AccountId,command.Actor.CharacterId,command.ItemId,ct);
-        if(receipt.Succeeded) replay.RecordInventorySlots(command.Actor,receipt.TouchedSlots);
+        if(receipt.Succeeded) footprint.RecordInventorySlots(command.Actor,receipt.TouchedSlots);
         return receipt;
     }
 }

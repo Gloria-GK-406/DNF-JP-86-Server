@@ -43,5 +43,5 @@ public interface IItemUseEffectRuleService
 public interface IItemUseEffectDomainService
 {
     ValueTask<ItemUseApplication> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
-        ItemReference item, CancellationToken cancellationToken);
+        ItemReference item, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }

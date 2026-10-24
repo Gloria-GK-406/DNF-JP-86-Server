@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -224,9 +225,9 @@ public sealed class BossTowerDomainServiceTests
             var shop = f.Services.GetRequiredService<INpcShopDomainService>();
             await using (var tx = Scope(f).Begin())
             {
-                var denied = await shop.PurchaseAsync(f.Session, 2000, 1, 15, 2, f.Clock.GetUtcNow(), default);
+                var denied = await TestEffectFootprints.Run(f.Session, footprint => shop.PurchaseAsync(f.Session, 2000, 1, 15, 2, f.Clock.GetUtcNow(), footprint, default));
                 Assert.Equal(NpcShopRejection.ShopUnavailable, denied.Rejection);
-                var purchased = await shop.PurchaseAsync(f.Session, 2000, 1, 1118, 1010, f.Clock.GetUtcNow(), default);
+                var purchased = await TestEffectFootprints.Run(f.Session, footprint => shop.PurchaseAsync(f.Session, 2000, 1, 1118, 1010, f.Clock.GetUtcNow(), footprint, default));
                 Assert.Equal(NpcShopRejection.None, purchased.Rejection);
                 await tx.CommitAsync(default);
             }
@@ -248,9 +249,9 @@ public sealed class BossTowerDomainServiceTests
                 .GetStore(f.Session.CharacterId, BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.Consumable);
             await using (var tx = Scope(f).Begin())
             {
-                var denied = await effect.UseAsync(f.Session, new(BusinessInventorySpace.Consumable, 1), (await bag.GetAsync(1, default))!, default);
+                var denied = await TestEffectFootprints.Run(f.Session, async footprint => await effect.UseAsync(f.Session, new(BusinessInventorySpace.Consumable, 1), (await bag.GetAsync(1, default))!, footprint, default));
                 Assert.Equal(ItemUsability.PlaceNotAllowed, denied.Status);
-                var allowed = await effect.UseAsync(f.Session, new(BusinessInventorySpace.Consumable, 2), (await bag.GetAsync(2, default))!, default);
+                var allowed = await TestEffectFootprints.Run(f.Session, async footprint => await effect.UseAsync(f.Session, new(BusinessInventorySpace.Consumable, 2), (await bag.GetAsync(2, default))!, footprint, default));
                 Assert.Equal(ItemUsability.Allowed, allowed.Status);
                 await tx.CommitAsync(default);
             }

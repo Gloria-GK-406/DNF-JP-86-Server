@@ -83,7 +83,9 @@ internal sealed class NetworkMessageDispatcher(
             .GetRequiredService<Commands.NetworkCommandAuthorization>().Enter(
                 () => !safety.IsBlocked(context.Connection) && (authority?.Invoke() ?? true),
                 // Telemetry only; authorization and settlement never depend on reflected payload facts.
-                message.GetType().GetProperty("Metadata")?.GetValue(message) as GameMessageMetadata);
+                message.GetType().GetProperty("Metadata")?.GetValue(message) as GameMessageMetadata,
+                message is IEffectSettlementRequest ? Commands.NetworkCommandAuthorization.MessageCategory.Effect
+                    : Commands.NetworkCommandAuthorization.MessageCategory.NonEffect);
         var handlerType = registry.GetHandlerType(message.MessageType);
         var handler = (IClientMessageHandler)scope.ServiceProvider.GetRequiredService(handlerType);
         if (!handler.CanHandle(message))

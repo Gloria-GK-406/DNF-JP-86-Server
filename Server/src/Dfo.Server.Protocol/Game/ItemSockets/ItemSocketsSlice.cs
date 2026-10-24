@@ -95,7 +95,7 @@ public sealed record ItemSocketCommand(OnlineUserId OnlineUserId, SelectedSessio
 public sealed class ItemSocketCommandHandler(IItemSocketDomainService sockets) : ICommandHandler<ItemSocketCommand, ItemSocketResult>
 {
     public ValueTask<ItemSocketResult> HandleAsync(CommandExecutionContext context, ItemSocketCommand command, CancellationToken ct) =>
-        sockets.ApplyAsync(command.Session, command.Input, ct);
+        sockets.ApplyAsync(command.Session, command.Input, context.LegacyFootprint, ct);
 }
 public sealed class ItemSocketHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     IInventorySlotMappingRuleService mapping, ICommandBus commands, IEventService events, IGameMessageSender sender,

@@ -160,10 +160,3 @@ public interface IReplayStateProjectionDelivery
     ValueTask RefreshAsync(NetworkConnectionContext originalConnection, SelectedSessionIdentity session,
         ReplayProjectionRequest request, CancellationToken cancellationToken);
 }
-
-/// <summary>Records physical slots changed by a primary command that uses direct material consumption.</summary>
-public interface IRequestReplayProjectionDomainService
-{
-    void RecordInventorySlots(SelectedSessionIdentity session,IReadOnlyList<BusinessSlot> slots);
-    void RecordRentalState(SelectedSessionIdentity session);
-}
