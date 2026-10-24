@@ -1,0 +1,19 @@
+# TASK13 实际边界映射
+
+三个原handler分别薄化为只注入同ICommandBus的真实协议route；三whole接受各自原精确wire Input/Dispatch/Game metadata，四old fine与注册真正删除。whole不注入bus/sender/locator，无legacy桥、fallback或新共享协调器。原slot换算具名豁免、领域服务、units/outbox/projections/日志足够；所有core/领域/规则/接口/存储/codec/composer只读SHA核实。
+
+Reinforce：session→Method0/1→TrySlots→online原序；无session0x04、method0x17、mapping/slot0x04；TrySlots/ResponseFor/纯ErrorCode原byte完全搬移。只有原fine分支Main([captured actor])，ReinforceAsync原kind不变、unit.Footprint传到原Preview/ApplyEffects。正常domain拒绝Main照常Committed最低Inventory；成功原ACK→按space/index clear/occupied→gold。原保护券、自动保护、销毁reward、amplification、account虚拟素材、SQL rollback/retry/roll次数与同seq/noACK原assert全跑。
+
+Disjoint：target/tool映射仍先于session且无catch，logger顺序保；session/online后tool<-1、无tool/provider<=0、tool存在/provider!=0原InvalidRequest拒绝，无Main。合法tool存在/provider0直接Portable，否则正provider走NPC，provider不进入领域或变成规则ID。两个原Tx成为同logicalwhole的二选一Main；domain依原cap→plan→Preview→Apply→FinalSlots。耗尽tool clear→ACK→target/reward的原顺序/只clear一次保持。mutant只去ownedwhole不相容provider guard，真实durability45变null，finally恢复SHA后同目标绿；不是失败日志代理。
+
+Enchant：session→beadMain/nonnegative(0x11)→targetMain/Equipment/nonnegative/online(0x13)→mapping catch(0x13)，早拒绝不Main。原fine分支直接EnchantAsync(...unit.Footprint)，正常domainRefused MainCommitted最低Inventory。原MaterialUnavailable0x11/UnsupportedContent0x17/其它0x13不变。通知composer仍实时读取bead、target，各update/clear后ACK；原FIFO5s barrier/当前count/完整counter/wrap/windowcase全部保持。
+
+三whole只复用ICommandProjections alias→原EventService→NotificationBus。一目标compose/actualencoder普通异常返回Failed，whole不重抛，无initial raw许可；caller取消、publish-levelscope/typed/unknown仍默认保护。无receipt的直接typed ACK故障另由新三case实际验证：Main已Commit后actualencoder IOException最终typed/defaultfence、原cause同引用，不能泛称所有输出吞错。每whole仅既有CommittedReplayCurrentStateBatch；新输入均Effect不用Task12 NonRequest；原Use/Buy元数据和core未改。
+
+前置拒绝在同显式request保noClaim，finally Pending→Rejected/无projection/HasCommittedfalse；domain正常Refused反之MainCommitted/最低Inventory空TouchedSlots。新每协议状态case分别实证。真实最初无selected，在sameprovider actualhandler wrapper前选择character2后仍ProtocolEffectRejected/不Main；下一fresh正常SelectedMain，不添加输入owner或重新admit。Disjoint错误mapping在无selected时仍原InventorySlotMappingException、无ACK。
+
+旧EquipmentDisjointTests helper：原TestGameplay+TestEffectFootprints.Effect+directhandler改外部EffectRequestTransport.Send真实9B/decode/dispatcher。唯一仍外包global TestGameplay的provider理论逐块去包装，Seed自身同provider写边界保持，全部原SQL/错误码/数量assert保留。fresh helper从同物理CounterState取Next但不Observe，Send只Observe一次；所有明确seq/raw replay case和其它协议Body/metadata不改。两个新增NPC/Portable SQL触发器case显示ConfirmedRollback/nullprojection→同fingerprint同entry原Ordinal重试Committed→replay无第二ACK、tool/reward不再扣授。
+
+InventorySlotBoundary原旧fine typeof在同原case中改whole.Input=wireDTO、原wire.GameSlot、实际domain的target/tool=BusinessSlot，provider仅Protocol/domain不收；其余domain/receipt/item规则保持。两个原legacy名单只移除4fine，3whole另证Protocol/Direct/single exact CLR/replay-only，不放回legacy marker名单。原case display/status/multiplicity比对是正式结果的实际逐case审计，声明/Assert清单只是补充，不以总数代替。
+
+正式范围仅Release build+App/Protocol/Net三个full和四actualcontrol；其余1793只延续Task12已接受库存，Infra2skip未在control重验。证据以final formal01、test-delta、capture-checks/source-checks及strict/selftest为准，不声称八full、Spec/最终性能、其它legacy删除或后继Task完成。

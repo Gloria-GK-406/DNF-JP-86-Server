@@ -665,18 +665,6 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<RepairItemCommand, EquipmentRepairResult, RepairItemCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.AddCommandHandler<NpcDisjointItemCommand, EquipmentDisjointResult,
-            NpcDisjointItemCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<PortableDisjointItemCommand, EquipmentDisjointResult,
-            PortableDisjointItemCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ReinforceItemCommand, EquipmentReinforcementResult,
-            ReinforceItemCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<EnchantByBeadCommand, EquipmentEnchantResult,
-            EnchantByBeadCommandHandler>(
-            CommandExecutionKind.Transactional);
         services.AddCommandHandler<TeleportCommand, TeleportConsumableResult, TeleportCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<MagicSealCommand, EquipmentMagicSealResult,
@@ -978,9 +966,9 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<LearnSkillHandler>(ClientMessageType.GameLearnSkill);
         services.RegisterMessageHandler<SellItemHandler>(ClientMessageType.GameSellItem);
         services.RegisterMessageHandler<RepairItemHandler>(ClientMessageType.GameRepairItem);
-        services.RegisterMessageHandler<DisjointItemHandler>(ClientMessageType.GameDisjointItem);
-        services.RegisterMessageHandler<ReinforceItemHandler>(ClientMessageType.GameReinforceItem);
-        services.RegisterMessageHandler<EnchantByBeadHandler>(ClientMessageType.GameEnchantByBead);
+        services.RegisterProtocolMessageHandler<DisjointItemHandler, DisjointItemRequest, GameDisjointItemCommand>(ClientMessageType.GameDisjointItem);
+        services.RegisterProtocolMessageHandler<ReinforceItemHandler, ReinforceItemRequest, GameReinforceItemCommand>(ClientMessageType.GameReinforceItem);
+        services.RegisterProtocolMessageHandler<EnchantByBeadHandler, EnchantByBeadRequest, GameEnchantByBeadCommand>(ClientMessageType.GameEnchantByBead);
         services.RegisterMessageHandler<TeleportHandler>(ClientMessageType.GameTeleport);
         services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameUnsealRandomOption);
         services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameChangeRandomOption);
@@ -1223,10 +1211,19 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<LearnSkillMessageDecoder>(GameProtocol.LearnSkillType, ClientMessageType.GameLearnSkill);
         services.AddGameCmdMessageDecoder<SellItemMessageDecoder>(GameProtocol.SellItemType, ClientMessageType.GameSellItem);
         services.AddGameCmdMessageDecoder<RepairItemMessageDecoder>(GameProtocol.RepairItemType, ClientMessageType.GameRepairItem);
+        services.AddProtocolCommandHandler<GameDisjointItemCommand, EquipmentDisjointResult, GameDisjointItemCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameDisjointItem, typeof(DisjointItemRequest)));
         services.AddGameCmdMessageDecoder<DisjointItemMessageDecoder>(
             GameProtocol.DisjointItemType, ClientMessageType.GameDisjointItem);
+        services.AddProtocolCommandHandler<GameReinforceItemCommand, EquipmentReinforcementResult, GameReinforceItemCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameReinforceItem, typeof(ReinforceItemRequest)));
         services.AddGameCmdMessageDecoder<ReinforceItemMessageDecoder>(
             GameProtocol.ReinforceItemType, ClientMessageType.GameReinforceItem);
+        services.AddProtocolCommandHandler<GameEnchantByBeadCommand, EquipmentEnchantResult, GameEnchantByBeadCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameEnchantByBead, typeof(EnchantByBeadRequest)));
         services.AddGameCmdMessageDecoder<EnchantByBeadDecoder>(
             GameProtocol.EnchantByBeadType, ClientMessageType.GameEnchantByBead);
         services.AddGameCmdMessageDecoder<UnsealRandomOptionDecoder>(

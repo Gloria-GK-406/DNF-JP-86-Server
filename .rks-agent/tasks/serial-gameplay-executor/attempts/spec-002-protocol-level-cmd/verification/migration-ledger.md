@@ -245,3 +245,10 @@ B2只保Main后RequiredExplicit及replay普通Write后CurrentStateBatch的本次
 只闭 message:65557 与 command:Dfo.Server.Protocol.Game.BuyItem.BuyItemCommand、command:Dfo.Server.Protocol.Game.BuyItem.HousingBuyItemCommand。一个logical/唯一whole CMD接受两个显式精确CLR；plain ordinary Write有单元级NonRequest cap，Housing保唯一reporter Main。具名拒绝真回滚，成功NotiBus逐目标Failed隔离，拒绝ACK外抛仍默认保护，只有既有committed replay许可。旧fine已删除；未关闭其它来源/保护/过渡，未改original/baseline。
 
 实际数量：messages12closed/147pending/14retained；commands13closed/191pending；sources1closed/72pending/12retained；protections5pending/transitions8pending。证据及原caller/事务映射见 verification/evidence/task-12-inspection/workunit-map.md、formal-summary.json、capture-checks.json；ResultR1后strict/8bad与required独立快审另行完成。
+
+
+## TASK13 — 三个装备效果协议
+
+仅闭 message:65616／65562／65808 与 ReinforceItemCommand、NpcDisjointItemCommand、PortableDisjointItemCommand、EnchantByBeadCommand 四个原精确fine ID。三logical各唯一whole，原前置拒绝无Main/Pending→Rejected，原domain正常拒绝MainCommitted；原slot/provider顺序、三种帧序与SQL原子性不变。初购ICommandProjections复用NotiBus Failed隔离，直接拒绝ACK外抛默认保护；只既有committed replay出口。其它original/baseline/row不动。
+
+实际账：messages15closed/144pending/14retained，commands17closed/187pending，sources1closed/72pending/12retained、5protection/8transition pending。正式本轮为Release build+App/Protocol/Net三full+另外四actualcontrols，其余1793业务case只延续Task12，不称八full；Result/strict/selftest和workunit/capture/source证据见task-13-inspection。

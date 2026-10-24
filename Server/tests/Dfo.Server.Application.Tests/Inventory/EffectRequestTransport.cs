@@ -21,6 +21,7 @@ namespace Dfo.Server.Application.Tests.Inventory;
 internal static class EffectRequestTransport
 {
     private static readonly ConditionalWeakTable<NetworkConnectionContext, CounterState> Counters = new();
+    public static ushort FreshSequence(ShopFixture fixture) => Counters.GetValue(fixture.Connection, _ => new()).Next;
     public static ValueTask Send(ShopFixture fixture, IEffectSettlementRequest request)
     {
         var body = Body(request);
@@ -110,6 +111,7 @@ internal static class EffectRequestTransport
     {
         private readonly GameInboundFrameCounter counter = new();
         private ushort? lastFresh;
+        public ushort Next => unchecked((ushort)((lastFresh ?? 0) + 1));
         public (long Ordinal, bool Fresh) Observe(ushort sequence)
         {
             var result = counter.Observe(sequence); if (result.Fresh) lastFresh = sequence; return result;

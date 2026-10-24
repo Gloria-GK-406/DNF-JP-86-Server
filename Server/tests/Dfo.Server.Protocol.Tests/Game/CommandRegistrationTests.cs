@@ -34,6 +34,30 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Three_equipment_protocols_each_have_one_exact_whole_and_only_replay_permission()
+    {
+        using var provider = BuildProductionGraph();
+        var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var registry = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        var expected = new[]
+        {
+            (ClientMessageType.GameReinforceItem, typeof(Dfo.Server.Protocol.Game.ReinforceItem.ReinforceItemRequest), typeof(Dfo.Server.Protocol.Game.ReinforceItem.GameReinforceItemCommand)),
+            (ClientMessageType.GameDisjointItem, typeof(Dfo.Server.Protocol.Game.DisjointItem.DisjointItemRequest), typeof(Dfo.Server.Protocol.Game.DisjointItem.GameDisjointItemCommand)),
+            (ClientMessageType.GameEnchantByBead, typeof(Dfo.Server.Protocol.Game.EnchantByBead.EnchantByBeadRequest), typeof(Dfo.Server.Protocol.Game.EnchantByBead.GameEnchantByBeadCommand)),
+        };
+        foreach (var (logical, input, command) in expected)
+        {
+            var row = Assert.Single(commands, row => row.CommandType == command);
+            Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+            Assert.Equal(new[] { new ProtocolCommandMessageBinding(logical, input) }, row.ProtocolMessages);
+            Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
+            Assert.True(registry.TryGet(logical, out var route)); Assert.Equal(command, route!.ProtocolCommandType);
+            Assert.Equal(new[] { input }, route.AllowedMessageClrTypes);
+        }
+        Assert.DoesNotContain(commands, row => row.CommandType.Name is "ReinforceItemCommand" or "NpcDisjointItemCommand" or "PortableDisjointItemCommand" or "EnchantByBeadCommand");
+    }
+
+    [Fact]
     public void Other_detail_is_bound_to_one_protocol_command_with_its_exact_request()
     {
         using var provider = BuildProductionGraph();

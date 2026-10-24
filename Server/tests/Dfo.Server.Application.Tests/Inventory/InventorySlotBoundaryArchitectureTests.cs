@@ -19,9 +19,11 @@ public sealed class InventorySlotBoundaryArchitectureTests
         AssertSlotProperty<SellItemCommand>(nameof(SellItemCommand.Slot), typeof(BusinessSlot));
         AssertSlotProperty<DiscardItemCommand>(nameof(DiscardItemCommand.Slot), typeof(BusinessSlot));
         AssertSlotProperty<RepairItemCommand>(nameof(RepairItemCommand.Slot), typeof(BusinessSlot?));
-        AssertSlotProperty<NpcDisjointItemCommand>(nameof(NpcDisjointItemCommand.TargetSlot), typeof(BusinessSlot));
-        AssertSlotProperty<PortableDisjointItemCommand>(nameof(PortableDisjointItemCommand.TargetSlot), typeof(BusinessSlot));
-        AssertSlotProperty<PortableDisjointItemCommand>(nameof(PortableDisjointItemCommand.DisjointToolSlot), typeof(BusinessSlot));
+        AssertSlotProperty<GameDisjointItemCommand>(nameof(GameDisjointItemCommand.Input), typeof(DisjointItemRequest));
+        AssertSlotProperty<DisjointItemRequest>(nameof(DisjointItemRequest.TargetSlot), typeof(GameSlot));
+        foreach (var method in typeof(IEquipmentDisjointDomainService).GetMethods())
+            Assert.All(method.GetParameters().Where(parameter => parameter.Name is "targetSlot" or "disjointToolSlot"),
+                parameter => Assert.Equal(typeof(BusinessSlot), parameter.ParameterType));
         AssertSlotProperty<MoveItemSpaceCommand>(nameof(MoveItemSpaceCommand.SourceSlot), typeof(BusinessSlot));
         AssertSlotProperty<MoveItemSpaceCommand>(nameof(MoveItemSpaceCommand.DestinationSlot), typeof(BusinessSlot));
         AssertSlotProperty<UseStackableRequest>(nameof(UseStackableRequest.Slot), typeof(GameSlot));
@@ -29,8 +31,7 @@ public sealed class InventorySlotBoundaryArchitectureTests
         AssertNoGameAddress<SellItemCommand>();
         AssertNoGameAddress<DiscardItemCommand>();
         AssertNoGameAddress<RepairItemCommand>();
-        AssertNoGameAddress<NpcDisjointItemCommand>();
-        AssertNoGameAddress<PortableDisjointItemCommand>();
+        AssertNoGameAddress<GameDisjointItemCommand>();
         AssertNoGameAddress<MoveItemSpaceCommand>();
         var use = typeof(GameUseStackableCommandHandler).GetMethod("UseAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
         Assert.Equal(typeof(BusinessSlot), use.GetParameters().Single(parameter => parameter.Name == "slotAddress").ParameterType);
@@ -67,8 +68,8 @@ public sealed class InventorySlotBoundaryArchitectureTests
     {
         Assert.Equal(typeof(int), typeof(DisjointItemRequest)
             .GetProperty(nameof(DisjointItemRequest.DisjointProviderId))!.PropertyType);
-        Assert.Null(typeof(NpcDisjointItemCommand).GetProperty("DisjointProviderId"));
-        Assert.Null(typeof(PortableDisjointItemCommand).GetProperty("DisjointProviderId"));
+        Assert.Equal(typeof(DisjointItemRequest), typeof(GameDisjointItemCommand).GetProperty(nameof(GameDisjointItemCommand.Input))!.PropertyType);
+        Assert.Null(typeof(GameDisjointItemCommand).GetProperty("DisjointProviderId"));
         Assert.DoesNotContain(typeof(IEquipmentDisjointDomainService).GetMethods()
             .SelectMany(method => method.GetParameters()), parameter =>
                 parameter.Name?.Contains("provider", StringComparison.OrdinalIgnoreCase) == true

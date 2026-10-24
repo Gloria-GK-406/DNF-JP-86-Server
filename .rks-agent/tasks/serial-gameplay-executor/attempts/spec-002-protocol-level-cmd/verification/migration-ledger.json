@@ -5851,25 +5851,36 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/DisjointItemCommand.cs",
-          "line": 29,
-          "source_sha256": "1dd6410940d86aae3f36cd13a47a2e164aa9e0bd7627a6f30cc57c8939d9c45b"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "original valid fine Transactional; pre-handler rejection had no primary/transaction; normal domain refusal committed minimum Inventory",
+          "new": "one MainSettlement only at original fine branch, sole captured actor and unit.Footprint into original domain Preview/ApplyEffects; pre-domain noClaim Pending→Rejected, normal domainRefused Committed, real SQL ConfirmedRollback and same entry/Ordinal retry",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentDisjointTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-13.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/DisjointItemCommand.cs",
-          "line": 29,
-          "source_sha256": "1dd6410940d86aae3f36cd13a47a2e164aa9e0bd7627a6f30cc57c8939d9c45b"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "fine CLR/handler/registration removed; original complete protocol now in unique whole, direct domain calls not fine forwarder"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentDisjointTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.DisjointItem.NpcDisjointItemCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.DisjointItem.NpcDisjointItemCommand",
@@ -5895,53 +5906,92 @@
         },
         "result": "Dfo.Server.Data.Inventory.EquipmentDisjointResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/DisjointItemCommand.cs",
-          "line": 29,
-          "source_sha256": "1dd6410940d86aae3f36cd13a47a2e164aa9e0bd7627a6f30cc57c8939d9c45b"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/DisjointItemCommand.cs",
-          "line": 29,
-          "source_sha256": "1dd6410940d86aae3f36cd13a47a2e164aa9e0bd7627a6f30cc57c8939d9c45b"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/DisjointItemCommand.cs",
-          "line": 29,
-          "source_sha256": "1dd6410940d86aae3f36cd13a47a2e164aa9e0bd7627a6f30cc57c8939d9c45b"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Original protocol handler performs current session/online/slot/provider branch and calls corresponding fine command; Disjoint NPC and Portable are one logical",
+          "new": "thin DisjointItemHandler -> unique GameDisjointItemCommand with original exact wire Input/Dispatch; all domain work direct, no nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentDisjointTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one original selected actor/account; account materials do not add a selected participant",
+          "new": "same exact initial selected reporter, session/physical connection/current checks by accepted core; initialRejected cannot upgrade after late selection",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentDisjointTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "primary freeze/transaction rollback, same physical ledger/current replay and original NotificationBus per-target isolation",
+          "new": "accepted explicit Main/footprint/ledger/typed failure core unchanged; original per-protocol precondition order and three frame orders; initial notification Failed stays normal via ICommandProjections, direct refusalACK actualencoder remains default typed/fence; only existing committed replay exit",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentDisjointTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-13.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+          "purpose": "complete DisjointItem protocol with original business/transaction/refusal/projection boundaries"
+        }
+      ]
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/DisjointItemCommand.cs",
-          "line": 40,
-          "source_sha256": "1dd6410940d86aae3f36cd13a47a2e164aa9e0bd7627a6f30cc57c8939d9c45b"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "original valid fine Transactional; pre-handler rejection had no primary/transaction; normal domain refusal committed minimum Inventory",
+          "new": "one MainSettlement only at original fine branch, sole captured actor and unit.Footprint into original domain Preview/ApplyEffects; pre-domain noClaim Pending→Rejected, normal domainRefused Committed, real SQL ConfirmedRollback and same entry/Ordinal retry",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentDisjointTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-13.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/DisjointItemCommand.cs",
-          "line": 40,
-          "source_sha256": "1dd6410940d86aae3f36cd13a47a2e164aa9e0bd7627a6f30cc57c8939d9c45b"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "fine CLR/handler/registration removed; original complete protocol now in unique whole, direct domain calls not fine forwarder"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentDisjointTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.DisjointItem.PortableDisjointItemCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.DisjointItem.PortableDisjointItemCommand",
@@ -5967,32 +6017,60 @@
         },
         "result": "Dfo.Server.Data.Inventory.EquipmentDisjointResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/DisjointItemCommand.cs",
-          "line": 40,
-          "source_sha256": "1dd6410940d86aae3f36cd13a47a2e164aa9e0bd7627a6f30cc57c8939d9c45b"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/DisjointItemCommand.cs",
-          "line": 40,
-          "source_sha256": "1dd6410940d86aae3f36cd13a47a2e164aa9e0bd7627a6f30cc57c8939d9c45b"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/DisjointItemCommand.cs",
-          "line": 40,
-          "source_sha256": "1dd6410940d86aae3f36cd13a47a2e164aa9e0bd7627a6f30cc57c8939d9c45b"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Original protocol handler performs current session/online/slot/provider branch and calls corresponding fine command; Disjoint NPC and Portable are one logical",
+          "new": "thin DisjointItemHandler -> unique GameDisjointItemCommand with original exact wire Input/Dispatch; all domain work direct, no nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentDisjointTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one original selected actor/account; account materials do not add a selected participant",
+          "new": "same exact initial selected reporter, session/physical connection/current checks by accepted core; initialRejected cannot upgrade after late selection",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentDisjointTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "primary freeze/transaction rollback, same physical ledger/current replay and original NotificationBus per-target isolation",
+          "new": "accepted explicit Main/footprint/ledger/typed failure core unchanged; original per-protocol precondition order and three frame orders; initial notification Failed stays normal via ICommandProjections, direct refusalACK actualencoder remains default typed/fence; only existing committed replay exit",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentDisjointTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-13.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+          "purpose": "complete DisjointItem protocol with original business/transaction/refusal/projection boundaries"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -6283,25 +6361,36 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/EnchantByBeadCommand.cs",
-          "line": 18,
-          "source_sha256": "9014cb21f563ae7dde3194d71719efca91df99ad8e6100623f5494ddc7eef92c"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "original valid fine Transactional; pre-handler rejection had no primary/transaction; normal domain refusal committed minimum Inventory",
+          "new": "one MainSettlement only at original fine branch, sole captured actor and unit.Footprint into original domain Preview/ApplyEffects; pre-domain noClaim Pending→Rejected, normal domainRefused Committed, real SQL ConfirmedRollback and same entry/Ordinal retry",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/GameEnchantByBeadCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentEnchantHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-13.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/EnchantByBeadCommand.cs",
-          "line": 18,
-          "source_sha256": "9014cb21f563ae7dde3194d71719efca91df99ad8e6100623f5494ddc7eef92c"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "fine CLR/handler/registration removed; original complete protocol now in unique whole, direct domain calls not fine forwarder"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/GameEnchantByBeadCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentEnchantHandlerTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.EnchantByBead.EnchantByBeadCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.EnchantByBead.EnchantByBeadCommand",
@@ -6327,32 +6416,60 @@
         },
         "result": "Dfo.Server.Data.Inventory.EquipmentEnchantResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/EnchantByBeadCommand.cs",
-          "line": 18,
-          "source_sha256": "9014cb21f563ae7dde3194d71719efca91df99ad8e6100623f5494ddc7eef92c"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/EnchantByBeadCommand.cs",
-          "line": 18,
-          "source_sha256": "9014cb21f563ae7dde3194d71719efca91df99ad8e6100623f5494ddc7eef92c"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/EnchantByBeadCommand.cs",
-          "line": 18,
-          "source_sha256": "9014cb21f563ae7dde3194d71719efca91df99ad8e6100623f5494ddc7eef92c"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Original protocol handler performs current session/online/slot/provider branch and calls corresponding fine command; Disjoint NPC and Portable are one logical",
+          "new": "thin EnchantByBeadHandler -> unique GameEnchantByBeadCommand with original exact wire Input/Dispatch; all domain work direct, no nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/GameEnchantByBeadCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentEnchantHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one original selected actor/account; account materials do not add a selected participant",
+          "new": "same exact initial selected reporter, session/physical connection/current checks by accepted core; initialRejected cannot upgrade after late selection",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/GameEnchantByBeadCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentEnchantHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "primary freeze/transaction rollback, same physical ledger/current replay and original NotificationBus per-target isolation",
+          "new": "accepted explicit Main/footprint/ledger/typed failure core unchanged; original per-protocol precondition order and three frame orders; initial notification Failed stays normal via ICommandProjections, direct refusalACK actualencoder remains default typed/fence; only existing committed replay exit",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/GameEnchantByBeadCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentEnchantHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-13.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/GameEnchantByBeadCommand.cs",
+          "purpose": "complete EnchantByBead protocol with original business/transaction/refusal/projection boundaries"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -11352,25 +11469,36 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/ReinforceItemCommand.cs",
-          "line": 23,
-          "source_sha256": "32fbba279dd89bb7feb79419fd161ee9aa2a06c77d6b77f635627a02bd210860"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "original valid fine Transactional; pre-handler rejection had no primary/transaction; normal domain refusal committed minimum Inventory",
+          "new": "one MainSettlement only at original fine branch, sole captured actor and unit.Footprint into original domain Preview/ApplyEffects; pre-domain noClaim Pending→Rejected, normal domainRefused Committed, real SQL ConfirmedRollback and same entry/Ordinal retry",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/GameReinforceItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentReinforcementHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-13.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/ReinforceItemCommand.cs",
-          "line": 23,
-          "source_sha256": "32fbba279dd89bb7feb79419fd161ee9aa2a06c77d6b77f635627a02bd210860"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "fine CLR/handler/registration removed; original complete protocol now in unique whole, direct domain calls not fine forwarder"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/GameReinforceItemCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentReinforcementHandlerTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.ReinforceItem.ReinforceItemCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.ReinforceItem.ReinforceItemCommand",
@@ -11396,32 +11524,60 @@
         },
         "result": "Dfo.Server.Data.Inventory.EquipmentReinforcementResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/ReinforceItemCommand.cs",
-          "line": 23,
-          "source_sha256": "32fbba279dd89bb7feb79419fd161ee9aa2a06c77d6b77f635627a02bd210860"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/ReinforceItemCommand.cs",
-          "line": 23,
-          "source_sha256": "32fbba279dd89bb7feb79419fd161ee9aa2a06c77d6b77f635627a02bd210860"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/ReinforceItemCommand.cs",
-          "line": 23,
-          "source_sha256": "32fbba279dd89bb7feb79419fd161ee9aa2a06c77d6b77f635627a02bd210860"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Original protocol handler performs current session/online/slot/provider branch and calls corresponding fine command; Disjoint NPC and Portable are one logical",
+          "new": "thin ReinforceItemHandler -> unique GameReinforceItemCommand with original exact wire Input/Dispatch; all domain work direct, no nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/GameReinforceItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentReinforcementHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one original selected actor/account; account materials do not add a selected participant",
+          "new": "same exact initial selected reporter, session/physical connection/current checks by accepted core; initialRejected cannot upgrade after late selection",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/GameReinforceItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentReinforcementHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "primary freeze/transaction rollback, same physical ledger/current replay and original NotificationBus per-target isolation",
+          "new": "accepted explicit Main/footprint/ledger/typed failure core unchanged; original per-protocol precondition order and three frame orders; initial notification Failed stays normal via ICommandProjections, direct refusalACK actualencoder remains default typed/fence; only existing committed replay exit",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/GameReinforceItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentReinforcementHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-13.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/GameReinforceItemCommand.cs",
+          "purpose": "complete ReinforceItem protocol with original business/transaction/refusal/projection boundaries"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -17274,26 +17430,38 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/DisjointItemHandler.cs",
-          "line": 14,
-          "source_sha256": "dd6260df9e2fa7c663b384c9472ff4e9ff3a087c368eaeeb3f616d85f30da742"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "original valid fine Transactional; pre-handler rejection had no primary/transaction; normal domain refusal committed minimum Inventory",
+          "new": "one MainSettlement only at original fine branch, sole captured actor and unit.Footprint into original domain Preview/ApplyEffects; pre-domain noClaim Pending→Rejected, normal domainRefused Committed, real SQL ConfirmedRollback and same entry/Ordinal retry",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentDisjointTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-13.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/DisjointItemHandler.cs",
-          "line": 14,
-          "source_sha256": "dd6260df9e2fa7c663b384c9472ff4e9ff3a087c368eaeeb3f616d85f30da742"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.DisjointItem.GameDisjointItemCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentDisjointTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+      ],
       "id": "message:65562",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.DisjointItem.DisjointItemHandler",
@@ -17315,36 +17483,64 @@
         "telemetry": false,
         "value": 65562
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/DisjointItemHandler.cs",
-          "line": 14,
-          "source_sha256": "dd6260df9e2fa7c663b384c9472ff4e9ff3a087c368eaeeb3f616d85f30da742"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/DisjointItemHandler.cs",
-          "line": 14,
-          "source_sha256": "dd6260df9e2fa7c663b384c9472ff4e9ff3a087c368eaeeb3f616d85f30da742"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/DisjointItemHandler.cs",
-          "line": 14,
-          "source_sha256": "dd6260df9e2fa7c663b384c9472ff4e9ff3a087c368eaeeb3f616d85f30da742"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Original protocol handler performs current session/online/slot/provider branch and calls corresponding fine command; Disjoint NPC and Portable are one logical",
+          "new": "thin DisjointItemHandler -> unique GameDisjointItemCommand with original exact wire Input/Dispatch; all domain work direct, no nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentDisjointTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one original selected actor/account; account materials do not add a selected participant",
+          "new": "same exact initial selected reporter, session/physical connection/current checks by accepted core; initialRejected cannot upgrade after late selection",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentDisjointTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "primary freeze/transaction rollback, same physical ledger/current replay and original NotificationBus per-target isolation",
+          "new": "accepted explicit Main/footprint/ledger/typed failure core unchanged; original per-protocol precondition order and three frame orders; initial notification Failed stays normal via ICommandProjections, direct refusalACK actualencoder remains default typed/fence; only existing committed replay exit",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentDisjointTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.DisjointItem.NpcDisjointItemCommand",
         "command:Dfo.Server.Protocol.Game.DisjointItem.PortableDisjointItemCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-13.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/DisjointItem/GameDisjointItemCommand.cs",
+          "purpose": "complete DisjointItem protocol with original business/transaction/refusal/projection boundaries"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -19491,26 +19687,38 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/ReinforceItemHandler.cs",
-          "line": 14,
-          "source_sha256": "6112abfab4452b48c397741e4e8e7ae45c243ce11ce9d1528b8ef76b43f23bf0"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "original valid fine Transactional; pre-handler rejection had no primary/transaction; normal domain refusal committed minimum Inventory",
+          "new": "one MainSettlement only at original fine branch, sole captured actor and unit.Footprint into original domain Preview/ApplyEffects; pre-domain noClaim Pending→Rejected, normal domainRefused Committed, real SQL ConfirmedRollback and same entry/Ordinal retry",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/GameReinforceItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentReinforcementHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-13.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/ReinforceItemHandler.cs",
-          "line": 14,
-          "source_sha256": "6112abfab4452b48c397741e4e8e7ae45c243ce11ce9d1528b8ef76b43f23bf0"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/GameReinforceItemCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.ReinforceItem.GameReinforceItemCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/GameReinforceItemCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentReinforcementHandlerTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+      ],
       "id": "message:65616",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.ReinforceItem.ReinforceItemHandler",
@@ -19532,35 +19740,63 @@
         "telemetry": false,
         "value": 65616
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/ReinforceItemHandler.cs",
-          "line": 14,
-          "source_sha256": "6112abfab4452b48c397741e4e8e7ae45c243ce11ce9d1528b8ef76b43f23bf0"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/ReinforceItemHandler.cs",
-          "line": 14,
-          "source_sha256": "6112abfab4452b48c397741e4e8e7ae45c243ce11ce9d1528b8ef76b43f23bf0"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/ReinforceItemHandler.cs",
-          "line": 14,
-          "source_sha256": "6112abfab4452b48c397741e4e8e7ae45c243ce11ce9d1528b8ef76b43f23bf0"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Original protocol handler performs current session/online/slot/provider branch and calls corresponding fine command; Disjoint NPC and Portable are one logical",
+          "new": "thin ReinforceItemHandler -> unique GameReinforceItemCommand with original exact wire Input/Dispatch; all domain work direct, no nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/GameReinforceItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentReinforcementHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one original selected actor/account; account materials do not add a selected participant",
+          "new": "same exact initial selected reporter, session/physical connection/current checks by accepted core; initialRejected cannot upgrade after late selection",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/GameReinforceItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentReinforcementHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "primary freeze/transaction rollback, same physical ledger/current replay and original NotificationBus per-target isolation",
+          "new": "accepted explicit Main/footprint/ledger/typed failure core unchanged; original per-protocol precondition order and three frame orders; initial notification Failed stays normal via ICommandProjections, direct refusalACK actualencoder remains default typed/fence; only existing committed replay exit",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/GameReinforceItemCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentReinforcementHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.ReinforceItem.ReinforceItemCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-13.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/ReinforceItem/GameReinforceItemCommand.cs",
+          "purpose": "complete ReinforceItem protocol with original business/transaction/refusal/projection boundaries"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -22352,26 +22588,38 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/EnchantByBeadHandler.cs",
-          "line": 14,
-          "source_sha256": "22c73d96d1446f3782e803f635adc367f758a2840825893bb8f54852d23d3eca"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "original valid fine Transactional; pre-handler rejection had no primary/transaction; normal domain refusal committed minimum Inventory",
+          "new": "one MainSettlement only at original fine branch, sole captured actor and unit.Footprint into original domain Preview/ApplyEffects; pre-domain noClaim Pending→Rejected, normal domainRefused Committed, real SQL ConfirmedRollback and same entry/Ordinal retry",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/GameEnchantByBeadCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentEnchantHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-13.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/EnchantByBeadHandler.cs",
-          "line": 14,
-          "source_sha256": "22c73d96d1446f3782e803f635adc367f758a2840825893bb8f54852d23d3eca"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/GameEnchantByBeadCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.EnchantByBead.GameEnchantByBeadCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/GameEnchantByBeadCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentEnchantHandlerTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+      ],
       "id": "message:65808",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.EnchantByBead.EnchantByBeadHandler",
@@ -22393,35 +22641,63 @@
         "telemetry": false,
         "value": 65808
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/EnchantByBeadHandler.cs",
-          "line": 14,
-          "source_sha256": "22c73d96d1446f3782e803f635adc367f758a2840825893bb8f54852d23d3eca"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/EnchantByBeadHandler.cs",
-          "line": 14,
-          "source_sha256": "22c73d96d1446f3782e803f635adc367f758a2840825893bb8f54852d23d3eca"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/EnchantByBeadHandler.cs",
-          "line": 14,
-          "source_sha256": "22c73d96d1446f3782e803f635adc367f758a2840825893bb8f54852d23d3eca"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Original protocol handler performs current session/online/slot/provider branch and calls corresponding fine command; Disjoint NPC and Portable are one logical",
+          "new": "thin EnchantByBeadHandler -> unique GameEnchantByBeadCommand with original exact wire Input/Dispatch; all domain work direct, no nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/GameEnchantByBeadCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentEnchantHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one original selected actor/account; account materials do not add a selected participant",
+          "new": "same exact initial selected reporter, session/physical connection/current checks by accepted core; initialRejected cannot upgrade after late selection",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/GameEnchantByBeadCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentEnchantHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "primary freeze/transaction rollback, same physical ledger/current replay and original NotificationBus per-target isolation",
+          "new": "accepted explicit Main/footprint/ledger/typed failure core unchanged; original per-protocol precondition order and three frame orders; initial notification Failed stays normal via ICommandProjections, direct refusalACK actualencoder remains default typed/fence; only existing committed replay exit",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/GameEnchantByBeadCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentEnchantHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-13-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.EnchantByBead.EnchantByBeadCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-13.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/EnchantByBead/GameEnchantByBeadCommand.cs",
+          "purpose": "complete EnchantByBead protocol with original business/transaction/refusal/projection boundaries"
+        }
+      ]
     },
     {
       "actual_units": {

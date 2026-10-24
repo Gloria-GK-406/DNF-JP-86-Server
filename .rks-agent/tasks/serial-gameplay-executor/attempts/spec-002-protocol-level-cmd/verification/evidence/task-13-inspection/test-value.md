@@ -1,0 +1,1 @@
+保护结果是早拒绝不取得Main/无projection，而进入domain的正常拒绝必须已提交最低Inventory，并保真实资产。误将全部拒绝包Main会改变重试/序号处理，漏provider守卫会实际消耗工具和目标并授reward。既有case只校错误码/库存，未区分entry/投影状态；用真实decoder/dispatcher+同provider pipeline记录实际request、SQL及entry oracle补保护。方法/内部类移动仍守同一结果；后续ownedwhole provider mutation必须实际消耗/状态证明红并finally恢复。初始RED仅明确新explicit路线未启用，不能单凭该失败证明唯一Main/保护。

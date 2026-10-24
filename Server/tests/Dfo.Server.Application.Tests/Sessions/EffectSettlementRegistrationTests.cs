@@ -32,10 +32,10 @@ public sealed class EffectSettlementRegistrationTests
             wire.SelectMany(x => x.Productions).Distinct().Select(x => x.Name).Order());
         var commandRegistry = services.GetRequiredService<CommandHandlerRegistry>();
         var commands = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).ToArray();
-        Assert.Equal(new[] { "AvatarCompoundCommand", "AvatarPackageOpeningCommand", "CapsuleCommand", "ChargeRentPointCommand", "CollectionBoxCommand", "CompoundItemCommand", "EnchantByBeadCommand", "EpicCraftCommand", "FinishQuestCommand", "ForgingCommand",
+        Assert.Equal(new[] { "AvatarCompoundCommand", "AvatarPackageOpeningCommand", "CapsuleCommand", "ChargeRentPointCommand", "CollectionBoxCommand", "CompoundItemCommand", "EpicCraftCommand", "FinishQuestCommand", "ForgingCommand",
             "HousingCommand", "IncreaseStatusCommand", "ItemSocketCommand", "JoustBetCommand", "LearnSkillCommand", "LotteryOpeningCommand", "MagicBoxBatchOpeningCommand", "MagicBoxSingleOpeningCommand", "MagicSealCommand",
-            "NpcDisjointItemCommand", "OutworldCommand", "PackageOpeningCommand", "PortableDisjointItemCommand", "QuestClearCouponCommand",
-            "ReinforceItemCommand", "RenameCreatureCommand", "RentEquipmentCommand", "ResetItemQualityCommand", "ResetRandomOptionCommand", "SharedEffectCommand", "TeleportCommand", "UseEntryAllowanceCommand", "UseFatiguePotionCommand", "UseLevelUpTicketCommand", "VendingMachineCommand", "WarehouseCommand", "WeddingLovePointCommand" },
+            "OutworldCommand", "PackageOpeningCommand", "QuestClearCouponCommand",
+            "RenameCreatureCommand", "RentEquipmentCommand", "ResetItemQualityCommand", "ResetRandomOptionCommand", "SharedEffectCommand", "TeleportCommand", "UseEntryAllowanceCommand", "UseFatiguePotionCommand", "UseLevelUpTicketCommand", "VendingMachineCommand", "WarehouseCommand", "WeddingLovePointCommand" },
             commands.Select(x => x.CommandType.Name).Order());
         Assert.All(commands, x => {
             Assert.Same(x, commandRegistry.GetRegistration(x.CommandType));
@@ -49,6 +49,15 @@ public sealed class EffectSettlementRegistrationTests
         Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, buy.RegistrationExits);
         Assert.Equal(new[] { typeof(Dfo.Server.Protocol.Game.BuyItem.BuyItemRequest), typeof(Dfo.Server.Protocol.Game.BuyItem.HousingBuyItemRequest) }, buy.ProtocolMessages!.Select(x => x.MessageClrType));
         Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(buy.CommandType));
+        foreach (var type in new[] { typeof(Dfo.Server.Protocol.Game.ReinforceItem.GameReinforceItemCommand), typeof(Dfo.Server.Protocol.Game.DisjointItem.GameDisjointItemCommand), typeof(Dfo.Server.Protocol.Game.EnchantByBead.GameEnchantByBeadCommand) })
+        {
+            var equipment = commandRegistry.GetRegistration(type);
+            Assert.Equal(CommandRouteKind.Protocol, equipment.Route);
+            Assert.Equal(CommandExecutionKind.Direct, equipment.ExecutionKind);
+            Assert.Single(equipment.ProtocolMessages!);
+            Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, equipment.RegistrationExits);
+            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(type));
+        }
         var protectedNonMain = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(ISelectedSessionCommand).IsAssignableFrom(x.CommandType)
             && !typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).Select(x => x.CommandType.Name).Order().ToArray();
         Assert.Equal(new[] { "ActivateClientHotkeyProfileCommand", "AltarActionCommand", "AltarDeathBatchCommand", "ApplyMonsterKillCommand", "BeginTournamentRewardsCommand", "ClaimWeeklyAttendanceCommand", "CleanupOnlineExpiredItemsCommand", "CompleteWeddingCleanupCommand", "EliminateTournamentCommand", "EnterMarriageChurchCommand", "EquipCarriedTitleReplacingMirrorCommand", "GrantClearExperienceCommand", "GrantKillExperienceCommand",
