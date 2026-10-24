@@ -32,8 +32,7 @@ public sealed class GoldSilverHornRewardTests
         Assert.Equal(490001570, material.ItemId); Assert.Equal(fragments, material.Count);
         await f.Host.Seed(121, 490001570, fragments, 3);
         var commands = f.Host.Services.GetRequiredService<ICommandBus>();
-        var purchase = await commands.SendAsync(new BuyItemCommand(f.Host.OnlineUser, f.Host.Session,
-            itemId, 1, shop.ShopId, 20152));
+        var purchase = await WholeBuy.Command(f.Host, itemId, 1, shop.ShopId, 20152);
         Assert.NotNull(purchase.Receipt);
         Assert.Equal(0, f.Host.Count(490001570));
         Assert.Equal(1, f.Host.Count(itemId));

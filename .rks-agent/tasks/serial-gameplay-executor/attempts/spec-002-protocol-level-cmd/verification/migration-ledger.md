@@ -238,3 +238,10 @@ TASK-10 r5另补已证Heras额度验证await→Direct前同一context复验，�
 仅 `message:65580` 和 `command:Dfo.Server.Protocol.Game.UseStackable.UseStackableCommand` 闭合：原fine删除，新完整CMD在Main内保留全部判断/效果/当前槽，普通selected拒绝仍提交最低Inventory；无selected只Silent ACK。ACK→虚拟资源→源槽绝对状态→可选XP，原bytes且无Creature附帧。新旧唯一CWT、原entry.Ordinal重试窗口、显式Footprint与最终失败收口见 `verification/evidence/task-11-inspection/workunit-map.md`。ConfigureServices-only capture01/02为173消息/205命令；route为11Protocol＋1Internal＋193Legacy，Kind为165Tx/27Direct/9RO/4Workflow，消息162Legacy/11Protocol，14遥测保持。
 
 B2只保Main后RequiredExplicit及replay普通Write后CurrentStateBatch的本次真实encoder原cause；scope/lease额外独立错误（含同一Exception引用）撤raw，其它提交后来源仍全参与者围栏。新reader metadata是必需显式参数，sink无bus；临时LegacyReplay实际上游只有旧ledger Dispatch和Joust，唯一ReadReplayStateCommand dispatch仍pending，最迟T-011删除。只更新已有三条pending transition的notes/artifacts，未关闭其它消息、命令、来源、保护或过渡项；当前业务消息148、旧命令193、来源72 pending按JSON实数复核。最终验证、数量账与required Result review独立于此开放迁移账。
+
+
+## TASK12 — BuyItem 双精确形状
+
+只闭 message:65557 与 command:Dfo.Server.Protocol.Game.BuyItem.BuyItemCommand、command:Dfo.Server.Protocol.Game.BuyItem.HousingBuyItemCommand。一个logical/唯一whole CMD接受两个显式精确CLR；plain ordinary Write有单元级NonRequest cap，Housing保唯一reporter Main。具名拒绝真回滚，成功NotiBus逐目标Failed隔离，拒绝ACK外抛仍默认保护，只有既有committed replay许可。旧fine已删除；未关闭其它来源/保护/过渡，未改original/baseline。
+
+实际数量：messages12closed/147pending/14retained；commands13closed/191pending；sources1closed/72pending/12retained；protections5pending/transitions8pending。证据及原caller/事务映射见 verification/evidence/task-12-inspection/workunit-map.md、formal-summary.json、capture-checks.json；ResultR1后strict/8bad与required独立快审另行完成。

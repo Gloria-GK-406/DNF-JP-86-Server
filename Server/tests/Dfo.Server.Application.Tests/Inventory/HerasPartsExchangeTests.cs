@@ -15,12 +15,11 @@ public sealed class HerasPartsExchangeTests
         Skip.If(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PVF_ARCHIVE_PATH")), "PVF unavailable");
         using var f = new CeraShopFixture(useArchive: true, configure: s => s.AddSingleton<INpcShopDefinitionSource, PvfNpcShopDefinitionSource>());
         await f.Host.Seed(121, 490002846, 84, 3);
-        var commands = f.Host.Services.GetRequiredService<ICommandBus>();
-        BuyItemCommand Purchase() => new(f.Host.OnlineUser, f.Host.Session, 300340000, 1, 1277, 20152);
-        Assert.Equal(NpcShopRejection.InsufficientMaterials, (await commands.SendAsync(Purchase())).Rejection);
+        ValueTask<BuyItemOutcome> Purchase() => WholeBuy.Command(f.Host, 300340000, 1, 1277, 20152);
+        Assert.Equal(NpcShopRejection.InsufficientMaterials, (await Purchase()).Rejection);
         Assert.Equal(84, f.Host.Count(490002846));
         await f.Host.Seed(121, 490002846, 85, 3);
-        var outcome = await commands.SendAsync(Purchase());
+        var outcome = await Purchase();
         Assert.NotNull(outcome.Receipt);
         Assert.Equal(0, f.Host.Count(490002846));
         Assert.Equal(1, f.Host.Count(300340000));

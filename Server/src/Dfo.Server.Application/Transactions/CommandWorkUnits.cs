@@ -40,6 +40,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
         var began = false;
         ExplicitEffectRequest? main = null;
         IEffectFootprintRecorder? footprint = null;
+        ExplicitNonRequestFootprint? nonRequest = null;
         try
         {
             request.DemandCurrent();
@@ -49,6 +50,14 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
             if (participants.Any(p => p is null) || participants.Select(p => p.Session).Distinct().Count() != participants.Length)
                 throw new InvalidOperationException("Work-unit participants must be exact and unique.");
             foreach (var participant in participants) safety.DemandCurrent(participant);
+            if (!Enum.IsDefined(declaration.Footprint)) throw new InvalidOperationException("Unknown footprint declaration.");
+            if (declaration.Footprint == CommandFootprintMode.NonRequest
+                && (readOnly || declaration.Kind != CommandWorkUnitKind.Ordinary
+                    || request is not CommandRequestContext.ProtocolNonEffect plain
+                    || participants.Length != 1 || participants[0].Connection is null
+                    || !ReferenceEquals(participants[0].Connection, plain.Dispatch.Connection)
+                    || participants[0].Session.ConnectionId != plain.Dispatch.Connection.ConnectionId))
+                throw new InvalidOperationException("NonRequest requires one exact protocol actor in an ordinary write.");
             if (declaration.Kind == CommandWorkUnitKind.MainSettlement)
             {
                 main = (request as CommandRequestContext.ProtocolEffectSelected)?.State
@@ -58,8 +67,13 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
             request.BeginUnit(); began = true;
             var transaction = lease = transactions.Begin(readOnly);
             main?.TransactionStarted();
+            if (declaration.Footprint == CommandFootprintMode.NonRequest)
+                footprint = nonRequest = new((CommandRequestContext.ProtocolNonEffect)request, participants[0],
+                    (DomainTransaction)transaction.Transaction, safety);
             unit = new CommandWorkUnit(transaction.Transaction, request, footprint);
-            var result = await action(unit, ct).ConfigureAwait(false);
+            TResult result;
+            try { result = await action(unit, ct).ConfigureAwait(false); }
+            finally { nonRequest?.Close(); }
             request.DemandCurrent();
             foreach (var participant in participants) safety.DemandCurrent(participant);
             if (transaction.Transaction.IsRollbackOnly)
@@ -102,6 +116,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
         }
         finally
         {
+            nonRequest?.Close();
             unit?.Close();
             if (began) request.EndUnit();
             main?.EndMain();

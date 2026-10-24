@@ -350,7 +350,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 
 ### 2) 命令执行总线（Application/Commands）
 
-协议级路由当前接线了 Channel Connect／ScriptVersion／Script／Info、LOGIN，以及名册／查名／创建／删除角色、OtherCharacterDetail 与完整 UseStackable：消息 handler 只把原消息、精确连接上下文交给同一 CommandBus；GM 启动初始化走显式内部路由，声明种类与原调用链。新路由由总线入队一次，在身份检查前建立作业发件箱；其请求上下文是方法数据，结束即关闭，不通过 DI、AsyncLocal 或 job slot 取得“当前请求”。其余业务仍走 LegacyQueued／LegacyFineGrained 过渡路径，不得让新 CMD 回调旧命令。
+协议级路由当前接线了 Channel Connect／ScriptVersion／Script／Info、LOGIN，以及名册／查名／创建／删除角色、OtherCharacterDetail、完整 UseStackable 与 BuyItem：消息 handler 只把原消息、精确连接上下文交给同一 CommandBus；GM 启动初始化走显式内部路由，声明种类与原调用链。新路由由总线入队一次，在身份检查前建立作业发件箱；其请求上下文是方法数据，结束即关闭，不通过 DI、AsyncLocal 或 job slot 取得“当前请求”。其余业务仍走 LegacyQueued／LegacyFineGrained 过渡路径，不得让新 CMD 回调旧命令。
 
 直接 slots／rental 足迹现由六个受迁领域入口和三个细粒度 handler 显式接收 `IEffectFootprintRecorder`，不再经旧请求投影接口注入。仅真实 LegacyFineGrained 最内层调用在主结算与事务已进入后捕获旧 frame／execution／rejection 引用；每次调用的能力绑定精确 context、注册、作业 ID 和关闭租约，记录时只检查捕获引用。网络来源按 dispatcher 实际消息分 Effect／NonEffect／Unknown；真正执行器外总线分支才可声明 Standalone，缺帧、TestGameplay 和连接信息不补权。新 Protocol／Internal 的旧能力入口拒绝后保持请求失败。
 
@@ -365,6 +365,8 @@ OtherCharacterDetail CMD 直接调用原领域查询后登记 typed 即时投影
 协议级 CMD 可注入领域服务／store，以及具名的 `ICommandWorkUnits`、`ICommandMessageOutbox`、`ICommandConnectionClosures`、`ICommandProjections`、Protocol 所有的 `IGameCommandOutbox`、既有顺序／槽位映射能力和日志；旧 sender／closer、总线、队列、执行器和动态服务解析仍禁止。新消息 handler 的构造器只允许总线和日志，注册闭合检查绑定消息 CLR 类型、handler 与协议 CMD。
 
 `ICommandWorkUnits` 的普通写、只读和正常拒绝回滚复用现有领域事务；明确的完成状态区分确认回滚、已提交与不确定，`IsSettled` 不代表提交成功。已启动而未等待的单元必须在请求关闭及 scope 释放前全部收口，随后一次裁决失败；默认提交后失败按全部精确参与者围栏。UseStackable 的 selected 请求在原主事务内完成判断，普通拒绝也提交最低 Inventory 投影；无 selected 请求只发原 Silent ACK，不取得 Main。Main 只允许一次写结算，显式 footprint 绑定本次请求、作业、owner 与活跃事务。新旧入口共用唯一物理连接账本，确认回滚重试不延长原 entry.Ordinal 窗口。
+
+BuyItem 的普通 `BuyItemRequest` 与 `HousingBuyItemRequest` 是同一 logical、唯一 `GameBuyItemCommand` 的有限精确 CLR 家族；启动时双向闭合，dispatcher 与总线都拒绝未知派生。普通购买的 ordinary Write 显式声明 NonRequest footprint，只授予本次 ProtocolNonEffect 的唯一精确 actor，action 结束／prepare 前关闭；Housing 使用本次 selected Main，couple audience 不扩大事务参与者。两旧 Buy fine 已删除。具名购买拒绝在 action 内 RequireRollback，确认回滚后才发拒绝 ACK；成功投影经 `ICommandProjections` 保留 NotificationBus 的逐目标 Failed 隔离。普通拒绝 ACK 直接登记的外抛故障仍用默认保护，新 Buy 只声明既有 committed replay 出口，没有初购 raw 许可。
 
 仅两个具名即时登记出口保留原 raw 编码失败：UseStackable Main 已 Settled 后的 RequiredExplicit，以及 committed replay 的普通 Write 结束后的 CurrentStateBatch。许可须经本次精确物理目标的 opaque attempt 贯通至 actual encoder；只有最终单一原 cause、没有 typed 不确定性或独立 cleanup 错误，才保持 Committed 且不新增 participant fence。callback、业务、lookup、登记守卫及其它来源仍用默认保护；来源连接关闭仍由原作业发件箱排序完成。重放 reader 必需显式 metadata，普通 Write 内直接读，事务外按 MirrorMerge→Create→batch→Town 投影，无 nested bus。`LegacyReplayStateProjectionDelivery` 只服务仍在迁移的旧 ledger／Joust 路线，相关 ReadReplayStateCommand 和旧 ambient 仍 pending；事务内延迟 Compose 仍禁止生产调用。
 

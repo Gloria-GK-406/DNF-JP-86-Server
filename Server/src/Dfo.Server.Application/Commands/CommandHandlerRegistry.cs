@@ -56,19 +56,29 @@ public sealed class CommandHandlerRegistry
             if (item.Route == CommandRouteKind.Protocol)
             {
                 if (item.ProtocolMessages is not { Count: > 0 } bindings
-                    || bindings.Select(x => x.MessageType).Distinct().Count() != bindings.Count
-                    || bindings.Any(x => !typeof(IClientNetworkMessage).IsAssignableFrom(x.MessageClrType)))
+                    || bindings.Select(x => (x.MessageType, x.MessageClrType)).Distinct().Count() != bindings.Count
+                    || bindings.Any(x => !IsConcreteMessageType(x.MessageClrType)))
                     throw new InvalidOperationException("A protocol command requires unique typed message bindings.");
                 if (item.RegistrationExits is { Count: > 0 } exits
                     && (exits.Any(exit => !Enum.IsDefined(exit)) || exits.Distinct().Count() != exits.Count
-                        || bindings.Any(x => !typeof(IEffectSettlementRequest).IsAssignableFrom(x.MessageClrType))))
+                        || exits.Contains(CommandRegistrationExit.SettledRequiredExplicit)
+                            && bindings.Any(x => !typeof(IEffectSettlementRequest).IsAssignableFrom(x.MessageClrType))
+                        || exits.Contains(CommandRegistrationExit.CommittedReplayCurrentStateBatch)
+                            && !bindings.Any(x => typeof(IEffectSettlementRequest).IsAssignableFrom(x.MessageClrType))))
                     throw new InvalidOperationException("Registration exits require compatible effect bindings.");
             }
             else if (item.ProtocolMessages is { Count: > 0 } || item.RegistrationExits is { Count: > 0 })
                 throw new InvalidOperationException("Only a protocol command may bind messages.");
         }
+        if (registrationList.Where(item => item.Route == CommandRouteKind.Protocol)
+            .SelectMany(item => item.ProtocolMessages!.Select(binding => (binding.MessageType, item.CommandType)))
+            .GroupBy(item => item.MessageType).Any(group => group.Select(item => item.CommandType).Distinct().Count() != 1))
+            throw new InvalidOperationException("A logical message can belong to only one protocol command.");
         this.registrations = registrationList.ToDictionary(item => item.CommandType);
     }
+
+    internal static bool IsConcreteMessageType(Type? type) => type is { IsClass: true, IsAbstract: false, ContainsGenericParameters: false }
+        && typeof(IClientNetworkMessage).IsAssignableFrom(type);
 
     public CommandHandlerRegistration GetRegistration(Type commandType)
     {

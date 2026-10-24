@@ -69,6 +69,20 @@ public sealed class BuyItemCodecTests
         Assert.Equal((ClientMessageType)0x0001_0015, request.MessageType);
     }
 
+    [Fact]
+    public void The_exact_housing_npc_decodes_to_the_effect_shape_without_changing_the_wire_fields()
+    {
+        var body = new byte[16];
+        BinaryPrimitives.WriteInt32LittleEndian(body, 10002688);
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(4), 2);
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(8), 1206);
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(12), 20011);
+        var message = Assert.IsType<HousingBuyItemRequest>(new BuyItemMessageDecoder().Decode(GameMessageMetadata.Empty, body));
+        Assert.Equal((10002688, 2, 1206, 20011), (message.ItemId, message.RawCount, message.ShopId, message.NpcId));
+        Assert.Equal(GameMessageMetadata.Empty, message.Metadata);
+        Assert.Equal(Dfo.Server.Abstractions.Effects.ReplayProjectionNeeds.Inventory | Dfo.Server.Abstractions.Effects.ReplayProjectionNeeds.MarriageLovePoints | Dfo.Server.Abstractions.Effects.ReplayProjectionNeeds.MarriageHousing, message.MinimumReplayNeeds);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(15)]

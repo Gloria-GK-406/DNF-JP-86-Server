@@ -48,6 +48,25 @@ public sealed class CommandRegistrationTests
     }
 
     [Fact]
+    public void Buy_has_one_logical_route_two_exact_shapes_and_only_the_existing_replay_exit()
+    {
+        using var provider = BuildProductionGraph();
+        var registrations = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var whole = Assert.Single(registrations, row => row.CommandType == typeof(Dfo.Server.Protocol.Game.BuyItem.GameBuyItemCommand));
+        Assert.Equal(CommandRouteKind.Protocol, whole.Route);
+        Assert.Equal(CommandExecutionKind.Direct, whole.ExecutionKind);
+        Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, whole.RegistrationExits);
+        Assert.All(whole.ProtocolMessages!, pair => Assert.Equal(ClientMessageType.GameBuyItem, pair.MessageType));
+        var family = new[] { typeof(Dfo.Server.Protocol.Game.BuyItem.BuyItemRequest), typeof(Dfo.Server.Protocol.Game.BuyItem.HousingBuyItemRequest) };
+        Assert.Equal(family, whole.ProtocolMessages!.Select(pair => pair.MessageClrType));
+        Assert.DoesNotContain(registrations, row => row.CommandType.FullName is "Dfo.Server.Protocol.Game.BuyItem.BuyItemCommand" or "Dfo.Server.Protocol.Game.BuyItem.HousingBuyItemCommand");
+        Assert.True(provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>().TryGet(ClientMessageType.GameBuyItem, out var route));
+        Assert.Equal(typeof(Dfo.Server.Protocol.Game.BuyItem.GameBuyItemCommand), route!.ProtocolCommandType);
+        Assert.Equal(typeof(Dfo.Server.Protocol.Game.BuyItem.BuyItemRequest), route.MessageClrType);
+        Assert.Equal(family, route.AllowedMessageClrTypes);
+    }
+
+    [Fact]
     public void Every_registered_command_handler_resolves_from_the_production_graph()
     {
         using var provider = BuildProductionGraph();

@@ -351,7 +351,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingHarvestDecoder>(0x0402, ClientMessageType.GameMarriageHousing);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingClearDecoder>(0x0403, ClientMessageType.GameMarriageHousing);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingRingDecoder>(0x03F4, ClientMessageType.GameMarriageHousing);
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.BuyItem.HousingBuyItemCommand, Dfo.Server.Protocol.Game.BuyItem.BuyItemOutcome, Dfo.Server.Protocol.Game.BuyItem.BuyItemCommandHandler>(CommandExecutionKind.Transactional);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingHandler>(ClientMessageType.GameMarriageHousing);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingAck, Dfo.Server.Protocol.Game.MarriageHousing.HousingAckEncoder>();
         services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingCommand, Dfo.Server.Data.Marriage.HousingResult, Dfo.Server.Protocol.Game.MarriageHousing.HousingCommandHandler>(CommandExecutionKind.Transactional);
@@ -714,8 +713,10 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<ConsumeEffectMaterialsCommand, MaterialConsumptionResult, ConsumeEffectMaterialsCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<DiscardItemCommand, DeleteItemOutcome, DiscardItemCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.AddCommandHandler<BuyItemCommand, BuyItemOutcome, BuyItemCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameBuyItemCommand, BuyItemOutcome, GameBuyItemCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameBuyItem, typeof(BuyItemRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameBuyItem, typeof(HousingBuyItemRequest)));
         services.AddCommandHandler<CeraShopPurchaseCommand, CeraShopPurchaseResult, CeraShopPurchaseCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<MagicBoxBatchOpeningCommand, MagicBoxOpeningResult, MagicBoxBatchOpeningCommandHandler>(
@@ -964,7 +965,8 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<CreatureScriptMessageReportHandler>(ClientMessageType.GameCreatureScriptMessage);
         services.RegisterMessageHandler<QuestClearCouponHandler>(ClientMessageType.GameQuestClearCoupon);
         services.RegisterMessageHandler<LevelUpTicketHandler>(ClientMessageType.GameLevelUpTicket);
-        services.RegisterMessageHandler<BuyItemHandler>(ClientMessageType.GameBuyItem);
+        services.RegisterProtocolMessageHandler<BuyItemHandler, BuyItemRequest, GameBuyItemCommand>(ClientMessageType.GameBuyItem,
+            typeof(BuyItemRequest), typeof(HousingBuyItemRequest));
         services.RegisterMessageHandler<CeraShopPurchaseHandler>(ClientMessageType.GameCeraShopPurchase);
         services.RegisterMessageHandler<MagicBoxBatchOpeningHandler>(ClientMessageType.GameMagicBoxBatchOpening);
         services.RegisterMessageHandler<MagicBoxSingleOpeningHandler>(ClientMessageType.GameMagicBoxSingleOpening);

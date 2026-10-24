@@ -4,8 +4,9 @@ using Dfo.Server.Abstractions.Effects;
 namespace Dfo.Server.Application.Commands;
 
 public enum CommandWorkUnitKind { Ordinary, MainSettlement }
+public enum CommandFootprintMode { None, NonRequest }
 public sealed record CommandWorkUnitDeclaration(string Name, IReadOnlyList<SelectedSessionRecipient> Participants,
-    CommandWorkUnitKind Kind = CommandWorkUnitKind.Ordinary);
+    CommandWorkUnitKind Kind = CommandWorkUnitKind.Ordinary, CommandFootprintMode Footprint = CommandFootprintMode.None);
 
 public sealed class CommandWorkUnit
 {
@@ -20,7 +21,7 @@ public sealed class CommandWorkUnit
         get
         {
             request.DemandCurrent();
-            if (!open || footprint is null) throw new InvalidOperationException("Only a live Main has an effect footprint.");
+            if (!open || footprint is null) throw new InvalidOperationException("This work unit has no live declared effect footprint.");
             return footprint;
         }
     }

@@ -11,6 +11,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Channel.ScriptVersion;
 using Dfo.Server.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Dfo.Server.Application.Tests.Commands;
 
@@ -120,6 +121,107 @@ public sealed class ProtocolCommandExecutionTests
     }
 
     [Fact]
+    public async Task An_exact_family_accepts_both_shapes_but_an_unknown_derived_message_cannot_reach_the_bus()
+    {
+        await using var world = FamilyWorld();
+        var dispatcher = world.Services.GetRequiredService<INetworkMessageDispatcher>();
+        await dispatcher.DispatchAsync(new(world.Source), new FamilyMessage(), default);
+        await dispatcher.DispatchAsync(new(world.Source), new FamilyChild(), default);
+        Assert.Equal(2, world.Settings.Seen.Count);
+        Assert.Equal(2, world.Queue.Calls);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => dispatcher.DispatchAsync(new(world.Source), new FamilyUnknown(), default).AsTask());
+        Assert.Equal(2, world.Queue.Calls); // A second guard in the bus cannot hide an incorrect dispatcher admission.
+        Assert.Equal(2, world.Settings.Seen.Count);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => world.Bus.SendAsync(new Probe(new(world.Source), new FamilyUnknown())).AsTask());
+        Assert.Equal(3, world.Queue.Calls);
+        Assert.Equal(2, world.Settings.Seen.Count);
+    }
+
+    [Fact]
+    public void Finite_route_and_command_families_are_copied_and_must_close_in_both_directions()
+    {
+        var family = new[] { typeof(FamilyMessage), typeof(FamilyChild) };
+        var bindings = family.Select(type => new ProtocolCommandMessageBinding(ClientMessageType.ChannelConnect, type)).ToArray();
+        var row = new MessageHandlerRegistration(ClientMessageType.ChannelConnect, typeof(FamilyThin),
+            Route: MessageHandlerRouteKind.ProtocolCommand, MessageClrType: typeof(FamilyMessage), ProtocolCommandType: typeof(Probe), AllowedMessageClrTypes: family);
+        var registry = new MessageHandlerRegistry([row], [], [Registration(bindings)]);
+        family[1] = typeof(FamilyUnknown); bindings[1] = new(ClientMessageType.ChannelConnect, typeof(FamilyUnknown));
+        Assert.True(registry.TryGet(ClientMessageType.ChannelConnect, out var route));
+        Assert.Equal(new[] { typeof(FamilyMessage), typeof(FamilyChild) }, route!.AllowedMessageClrTypes);
+        Assert.Throws<InvalidOperationException>(() => new MessageHandlerRegistry([row with { AllowedMessageClrTypes = [typeof(FamilyMessage)] }], [], [Registration([new(ClientMessageType.ChannelConnect, typeof(FamilyMessage)), new(ClientMessageType.ChannelConnect, typeof(FamilyChild))]) ]));
+        Assert.Throws<InvalidOperationException>(() => new MessageHandlerRegistry([row with { AllowedMessageClrTypes = [typeof(FamilyMessage), typeof(FamilyChild)] }], [], [Registration([new(ClientMessageType.ChannelConnect, typeof(FamilyMessage))]) ]));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(7)]
+    public void Invalid_family_registrations_cannot_create_a_route(int defect)
+    {
+        var family = new[] { typeof(FamilyMessage), typeof(FamilyChild) };
+        var bindings = family.Select(type => new ProtocolCommandMessageBinding(ClientMessageType.ChannelConnect, type)).ToArray();
+        if (defect == 0) bindings[1] = bindings[0];
+        if (defect == 1) bindings = [];
+        if (defect == 2) bindings[1] = new(ClientMessageType.ChannelConnect, typeof(IClientNetworkMessage));
+        if (defect == 3) bindings[1] = new(ClientMessageType.ChannelConnect, typeof(AbstractFamily));
+        if (defect == 4) bindings[1] = new(ClientMessageType.ChannelConnect, typeof(GenericFamily<>));
+        if (defect == 5) bindings[1] = new(ClientMessageType.ChannelConnect, typeof(string));
+        var command = Registration(bindings);
+        if (defect is 6 or 7)
+        {
+            Assert.Throws<InvalidOperationException>(() => new CommandHandlerRegistry([command,
+                Registration([new(ClientMessageType.ChannelConnect, defect == 6 ? typeof(FamilyChild) : typeof(FamilyUnknown))]) with { CommandType = typeof(ChannelScriptVersionCommand) }]));
+        }
+        else Assert.Throws<InvalidOperationException>(() => new CommandHandlerRegistry([command]));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Invalid_route_families_cannot_be_normalized_or_widened(int defect)
+    {
+        Type[] types = defect switch { 0 => [], 1 => [typeof(FamilyMessage), typeof(FamilyMessage)], _ => [typeof(FamilyMessage), typeof(OtherMessage)] };
+        Assert.Throws<InvalidOperationException>(() => new MessageHandlerRegistry([
+            new(ClientMessageType.ChannelConnect, typeof(FamilyThin), Route: MessageHandlerRouteKind.ProtocolCommand,
+                MessageClrType: typeof(FamilyMessage), ProtocolCommandType: typeof(Probe), AllowedMessageClrTypes: types)], [],
+            [Registration(types.Select(type => new ProtocolCommandMessageBinding(ClientMessageType.ChannelConnect, type)).ToArray())]));
+    }
+
+    [Fact]
+    public void A_mixed_family_allows_only_the_existing_committed_replay_exit()
+    {
+        var mixed = Registration([new(ClientMessageType.ChannelConnect, typeof(FamilyMessage)), new(ClientMessageType.ChannelConnect, typeof(EffectMessage))]);
+        var accepted = new CommandHandlerRegistry([mixed with { RegistrationExits = [CommandRegistrationExit.CommittedReplayCurrentStateBatch] }]);
+        Assert.Equal(CommandRegistrationExit.CommittedReplayCurrentStateBatch, Assert.Single(accepted.GetRegistration(typeof(Probe)).RegistrationExits!));
+        Assert.Throws<InvalidOperationException>(() => new CommandHandlerRegistry([mixed with { RegistrationExits = [CommandRegistrationExit.SettledRequiredExplicit] }]));
+        Assert.Throws<InvalidOperationException>(() => new CommandHandlerRegistry([Registration([new(ClientMessageType.ChannelConnect, typeof(FamilyMessage))]) with { RegistrationExits = [CommandRegistrationExit.CommittedReplayCurrentStateBatch] }]));
+    }
+
+    private static CommandWorld FamilyWorld() => new(configure: services =>
+    {
+        services.RemoveAll<CommandHandlerRegistration>(); services.RemoveAll<MessageHandlerRegistration>();
+        services.AddProtocolCommandHandler<Probe, int, ProbeHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.ChannelConnect, typeof(FamilyMessage)), new ProtocolCommandMessageBinding(ClientMessageType.ChannelConnect, typeof(FamilyChild)));
+        services.RegisterProtocolMessageHandler<FamilyThin, FamilyMessage, Probe>(ClientMessageType.ChannelConnect,
+            typeof(FamilyMessage), typeof(FamilyChild));
+    });
+
+    [Fact]
+    public void One_logical_protocol_can_bind_a_finite_family_to_one_command()
+    {
+        var registry = new CommandHandlerRegistry([Registration([
+            new(ClientMessageType.ChannelConnect, typeof(FamilyMessage)),
+            new(ClientMessageType.ChannelConnect, typeof(FamilyChild))])]);
+        Assert.Equal(2, registry.GetRegistration(typeof(Probe)).ProtocolMessages!.Count);
+    }
+
+    [Fact]
     public void Registration_bindings_are_frozen_against_mutation_of_the_callers_array()
     {
         var bindings = new[] { new ProtocolCommandMessageBinding(ClientMessageType.ChannelConnect, typeof(ProbeMessage)) };
@@ -174,6 +276,16 @@ public sealed class ProtocolCommandExecutionTests
         new(typeof(Probe), typeof(ProbeHandler), typeof(CommandInvoker<Probe, int>), CommandExecutionKind.Direct, CommandRouteKind.Protocol, messages);
 
     internal enum ProbeMode { Plain, Throw, NestLegacyAndCatch, NestInternalAndCatch, Detached, Leak }
+    private record FamilyMessage : IClientNetworkMessage { public ClientMessageType MessageType => ClientMessageType.ChannelConnect; }
+    private sealed record FamilyChild : FamilyMessage;
+    private sealed record FamilyUnknown : FamilyMessage;
+    private abstract record AbstractFamily : FamilyMessage;
+    private sealed record GenericFamily<T> : FamilyMessage;
+    private sealed class FamilyThin(ICommandBus commands) : ClientMessageHandler<FamilyMessage>, IProtocolCommandMessageHandler<Probe>
+    {
+        protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, FamilyMessage message, CancellationToken ct) =>
+            _ = await commands.SendAsync(new Probe(context, message), ct);
+    }
     internal sealed record ProbeMessage : IClientNetworkMessage { public ClientMessageType MessageType => ClientMessageType.ChannelConnect; }
     private sealed record EffectMessage : IEffectSettlementRequest
     {

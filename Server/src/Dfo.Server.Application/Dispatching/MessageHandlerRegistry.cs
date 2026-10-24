@@ -14,11 +14,16 @@ public interface IProtocolCommandMessageHandler<TCommand> : IClientMessageHandle
 /// refuses a telemetry handler whose constructors inject anything but logging.
 /// </param>
 public sealed record MessageHandlerRegistration(ClientMessageType MessageType, Type HandlerType, bool IsTelemetry = false,
-    MessageHandlerRouteKind Route = MessageHandlerRouteKind.LegacyQueued, Type? MessageClrType = null, Type? ProtocolCommandType = null);
+    MessageHandlerRouteKind Route = MessageHandlerRouteKind.LegacyQueued, Type? MessageClrType = null, Type? ProtocolCommandType = null,
+    IReadOnlyList<Type>? AllowedMessageClrTypes = null)
+{
+    internal MessageHandlerRegistration Freeze() => Route != MessageHandlerRouteKind.ProtocolCommand ? this : this with
+    { AllowedMessageClrTypes = Array.AsReadOnly((AllowedMessageClrTypes ?? (MessageClrType is { } type ? [type] : [])).ToArray()) };
+}
 
 /// <summary>Where a registered message goes: its handler, whether it is telemetry, and its inbound CMD type.</summary>
 public sealed record MessageHandlerRoute(Type HandlerType, bool IsTelemetry, string CommandType,
-    MessageHandlerRouteKind Kind = MessageHandlerRouteKind.LegacyQueued, Type? MessageClrType = null, Type? ProtocolCommandType = null);
+    MessageHandlerRouteKind Kind = MessageHandlerRouteKind.LegacyQueued, Type? MessageClrType = null, Type? ProtocolCommandType = null, IReadOnlyList<Type>? AllowedMessageClrTypes = null);
 
 /// <summary>
 /// Maps a client message type to the handler that consumes it.
@@ -45,7 +50,7 @@ public sealed class MessageHandlerRegistry
     {
         ArgumentNullException.ThrowIfNull(registrations);
         ArgumentNullException.ThrowIfNull(productions);
-        var registrationList = registrations.ToArray();
+        var registrationList = registrations.Select(item => item.Freeze()).ToArray();
         var duplicate = registrationList
             .GroupBy(item => item.MessageType)
             .FirstOrDefault(group => group.Count() > 1);
@@ -83,6 +88,7 @@ public sealed class MessageHandlerRegistry
         }
 
         var commandList = (commands ?? []).Select(item => item.Freeze()).ToArray();
+        _ = new CommandHandlerRegistry(commandList);
         foreach (var item in registrationList)
         {
             if (!Enum.IsDefined(item.Route)) throw new InvalidOperationException("Unknown message route.");
@@ -91,7 +97,10 @@ public sealed class MessageHandlerRegistry
                 throw new InvalidOperationException("A protocol route requires a typed message and command.");
             var match = commandList.Where(x => x.CommandType == item.ProtocolCommandType).ToArray();
             if (match.Length != 1 || match[0].Route != CommandRouteKind.Protocol
-                || match[0].ProtocolMessages?.Any(x => x.MessageType == item.MessageType && x.MessageClrType == item.MessageClrType) != true)
+                || item.AllowedMessageClrTypes is not { Count: > 0 } family
+                || family.Distinct().Count() != family.Count
+                || family.Any(type => !CommandHandlerRegistry.IsConcreteMessageType(type) || !item.MessageClrType.IsAssignableFrom(type))
+                || !family.ToHashSet().SetEquals(match[0].ProtocolMessages!.Where(x => x.MessageType == item.MessageType).Select(x => x.MessageClrType)))
                 throw new InvalidOperationException("The message and protocol command registrations do not agree.");
             if (!typeof(IProtocolCommandMessageHandler<>).MakeGenericType(item.ProtocolCommandType).IsAssignableFrom(item.HandlerType)
                 || MessageClrTypeOf(item.HandlerType) != item.MessageClrType)
@@ -105,13 +114,13 @@ public sealed class MessageHandlerRegistry
             foreach (var binding in command.ProtocolMessages ?? [])
                 if (registrationList.Count(x => x.Route == MessageHandlerRouteKind.ProtocolCommand
                     && x.ProtocolCommandType == command.CommandType && x.MessageType == binding.MessageType
-                    && x.MessageClrType == binding.MessageClrType) != 1)
+                    && x.AllowedMessageClrTypes!.Contains(binding.MessageClrType)) != 1)
                     throw new InvalidOperationException("A protocol command has no unique thin message route.");
 
         this.registrations = registrationList.ToDictionary(
             item => item.MessageType,
             item => new MessageHandlerRoute(item.HandlerType, item.IsTelemetry, CommandTypeOf(item.MessageType),
-                item.Route, item.MessageClrType, item.ProtocolCommandType));
+                item.Route, item.MessageClrType, item.ProtocolCommandType, item.AllowedMessageClrTypes));
     }
 
     public Type GetHandlerType(ClientMessageType messageType) => registrations[messageType].HandlerType;

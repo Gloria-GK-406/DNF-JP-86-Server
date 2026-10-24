@@ -42,13 +42,7 @@ public sealed class NpcShopPurchaseTests
         using var shop = new ShopFixture();
         shop.Content.Shops[1000] = new(1000, 1000, [new(null, [5000])]) { VisibleOnDungeonClear = true };
         await shop.Seed(121, 1000, 100, 3);
-        await TestGameplay.RunAsync(shop.Services, async () =>
-        {
-            using var source = shop.Services.GetRequiredService<NetworkCommandAuthorization>().Enter(
-                () => true, GameMessageMetadata.Empty, NetworkCommandAuthorization.MessageCategory.NonEffect);
-            await shop.Services.GetRequiredService<BuyItemHandler>().HandleAsync(new(shop.Connection),
-                new BuyItemRequest(GameMessageMetadata.Empty, 5000, 1, 1000, 1000), default);
-        });
+        await WholeBuy.Send(shop, 5000, 1, 1000, 1000);
         Assert.Equal(100000, shop.Gold);
         Assert.Equal(100, shop.Count(1000));
         Assert.Equal(0, shop.Count(5000));
@@ -262,8 +256,11 @@ public sealed class NpcShopPurchaseTests
         await shop.Seed(121, 1000, 100, 3);
         var old = shop.Session;
         var committed = await shop.Command(2000, 1);
+        Assert.NotNull(committed.Receipt);
+        shop.Sender.Messages.Clear(); // Observe only delivery after the selection changed.
+        shop.Sender.Batches.Clear();
         shop.Select(2);
-        var rejected = await shop.Command(2000, 1, old);
+        var rejected = await shop.DomainPurchase(2000, 1, old);
         Assert.Equal(NpcShopRejection.NoSession, rejected.Rejection);
         await TestGameplay.RunAsync(shop.Services, async () =>
         {
@@ -286,7 +283,8 @@ public sealed class NpcShopPurchaseTests
             // The selection is still there, waiting for its teardown, but it is no longer valid.
             Assert.NotNull(shop.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(shop.Session));
         });
-        var rejected = await shop.Command(2000, 1);
+        var rejected = await shop.DomainPurchase(2000, 1, shop.Session);
+        await WholeBuy.Send(shop, 2000, 1); // Protocol authority/refusal independently remains harmless.
 
         Assert.Equal(NpcShopRejection.NoSession, rejected.Rejection);
         Assert.Equal(100000, shop.Gold);
@@ -488,17 +486,20 @@ internal sealed class ShopFixture : IDisposable
     }
     public int SharedCount(int item, int account = 1) => Scalar($"SELECT COALESCE(SUM(s.count),0) FROM item_slots s JOIN items i ON s.core_uid=i.item_uid WHERE s.owner_scope='account' AND s.owner_id={account} AND s.list_type=240 AND substr(hex(i.item_core),3,8)='{Convert.ToHexString(BitConverter.GetBytes(item))}'");
 
-    public async ValueTask Buy(int item, int count) => await TestGameplay.RunAsync(provider, async () =>
-    {
-        using var source = provider.GetRequiredService<NetworkCommandAuthorization>().Enter(
-            () => true, GameMessageMetadata.Empty, NetworkCommandAuthorization.MessageCategory.NonEffect);
-        await provider.GetRequiredService<BuyItemHandler>().HandleAsync(new(connection),
-            new BuyItemRequest(GameMessageMetadata.Empty, item, count, 15, 2), default);
-    });
+    public ValueTask Buy(int item, int count) => WholeBuy.Send(this, item, count);
     public async ValueTask Query() => await TestGameplay.RunAsync(provider, async () => await provider.GetRequiredService<ShopPurchaseCountHandler>().HandleAsync(new(connection),
         new ShopPurchaseCountRequest(GameMessageMetadata.Empty, 2), default));
-    public Task<BuyItemOutcome> Command(int item, int count, SelectedSessionIdentity? owner = null) => provider.GetRequiredService<ICommandBus>()
-        .SendAsync(new BuyItemCommand(onlineUser, owner ?? session, item, count, 15, 2)).AsTask();
+    public Task<BuyItemOutcome> Command(int item, int count) => WholeBuy.Command(this, item, count).AsTask();
+    public async Task<BuyItemOutcome> DomainPurchase(int item, int count, SelectedSessionIdentity owner) =>
+        await TestGameplay.RunAsync(provider, async () =>
+        {
+            await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(owner);
+            var result = await provider.GetRequiredService<INpcShopDomainService>().PurchaseAsync(owner, item, count, 15, 2,
+                Clock.GetUtcNow(), footprint, default);
+            await tx.CommitAsync(default);
+            return new BuyItemOutcome(result, null);
+        });
     public async ValueTask Publish(NpcShopPurchaseReceipt receipt) =>
         _ = await provider.GetRequiredService<IEventService>().ProjectAsync(
             new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), new NpcShopPurchaseCompleted(receipt), default);

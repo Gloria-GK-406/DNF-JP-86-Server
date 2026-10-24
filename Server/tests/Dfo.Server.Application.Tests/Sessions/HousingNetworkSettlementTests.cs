@@ -21,7 +21,7 @@ namespace Dfo.Server.Application.Tests.Sessions;
 
 public sealed partial class HousingNetworkSettlementTests
 {
-    private static async Task<Guid> Marry(ShopFixture f)
+    internal static async Task<Guid> Marry(ShopFixture f)
     {
         return await TestGameplay.RunAsync(f.Services, async () =>
         {
@@ -45,12 +45,13 @@ public sealed partial class HousingNetworkSettlementTests
             return p.Id;
         });
     }
-    private static ShopFixture Fixture() => new(s =>
+    internal static ShopFixture Fixture(Action<IServiceCollection>? configure = null) => new(s =>
     {
         s.AddSingleton<IMarriageHousingContentSource, MarriageHousingTests.Content>();
         s.AddSingleton<INpcShopDefinitionSource, MarriageHousingTests.Content>();
         s.AddSingleton<IItemPlacementDefinitionSource, MarriageHousingTests.Content>();
         s.AddSingleton<IMarriageCapsuleContentSource, MarriageHousingTests.CapsuleContent>();
+        configure?.Invoke(s);
     });
     [Fact]
     public async Task Full_bag_purchase_rolls_back_gold_and_points_returns_native_failure_and_allows_the_next_request()

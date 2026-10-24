@@ -12,6 +12,7 @@ using Dfo.Server.Application.Effects;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -496,14 +497,17 @@ public sealed class ExplicitEffectCommandTests
     private static ShopFixture World(out Settings settings)
     {
         var owned = settings = new Settings();
-        return new ShopFixture(services => {
+        var fixture = new ShopFixture(services => {
             services.AddSingleton(owned);
             services.AddScoped<DisposeProbe>();
             services.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((1000, ItemUseRules.Potion(0))));
             services.AddProtocolCommandHandler<MatrixProbe, int, MatrixHandler>(
                 new[] { CommandRegistrationExit.SettledRequiredExplicit, CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-                new ProtocolCommandMessageBinding(ClientMessageType.GameUseStackable, typeof(UseStackableRequest)));
+                new ProtocolCommandMessageBinding(MatrixMessageType, typeof(MatrixRequest)));
+            services.RegisterProtocolMessageHandler<MatrixThin, MatrixRequest, MatrixProbe>(MatrixMessageType);
         });
+        Assert.NotNull(fixture.Services.GetRequiredService<MessageHandlerRegistry>());
+        return fixture;
     }
     private static ValueTask<int> Send(ShopFixture world, Mode mode, UseStackableRequest? input = null) =>
         world.Services.GetRequiredService<ICommandBus>().SendAsync(new MatrixProbe(new(world.Connection), input ?? WholeUse.Input(new(InventoryContainerType.Main, 69), 1000), mode));
@@ -569,9 +573,21 @@ public sealed class ExplicitEffectCommandTests
             throw settings.Cause;
         }
     }
+    private const ClientMessageType MatrixMessageType = (ClientMessageType)0x1FFFD;
+    private sealed record MatrixRequest(UseStackableRequest Input, Mode Mode) : IEffectSettlementRequest
+    {
+        public ClientMessageType MessageType => MatrixMessageType;
+        public GameMessageMetadata Metadata => Input.Metadata;
+        public ReplayProjectionNeeds MinimumReplayNeeds => Input.MinimumReplayNeeds;
+    }
+    private sealed class MatrixThin(ICommandBus bus) : ClientMessageHandler<MatrixRequest>, IProtocolCommandMessageHandler<MatrixProbe>
+    {
+        protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, MatrixRequest message, CancellationToken ct) =>
+            _ = await bus.SendAsync(new MatrixProbe(context, message.Input, message.Mode), ct);
+    }
     private sealed record MatrixProbe(NetworkDispatchContext Dispatch, UseStackableRequest Input, Mode Mode) : IProtocolCommand<int>
     {
-        public IClientNetworkMessage Message => Input;
+        public IClientNetworkMessage Message => new MatrixRequest(Input, Mode);
         public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
     }
     private sealed class MatrixHandler(Settings settings, DisposeProbe disposal, ICommandWorkUnits units,

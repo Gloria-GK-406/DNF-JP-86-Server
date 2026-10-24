@@ -59,7 +59,7 @@ internal sealed class NetworkMessageDispatcher(
     private async ValueTask DispatchProtocolAsync(NetworkDispatchContext context, IClientNetworkMessage message,
         MessageHandlerRoute route, CancellationToken ct)
     {
-        if (message.GetType() != route.MessageClrType)
+        if (route.AllowedMessageClrTypes?.Contains(message.GetType()) != true)
             throw new InvalidOperationException("The protocol route received an unbound message CLR type.");
         await using var scope = scopeFactory.CreateAsyncScope();
         var handler = (IClientMessageHandler)scope.ServiceProvider.GetRequiredService(route.HandlerType);

@@ -31,8 +31,8 @@ Protocol/Game/<协议>/ 切片
 - 命令契约 `Dfo.Server.Application/Commands/CommandContracts.cs`；总线为自研 `CommandBus`，不是 MediatR。
 - 事件服务接口 `Dfo.Server.Abstractions/DomainEvents/DomainEvents.cs`，实现 `Application/DomainEvents/EventService.cs`；
   其中 `NotificationProjectionSubscriber<T>` 是全仓唯一调用 `INotificationBus.PublishAsync` 的地方。
-- 典型链：`Protocol/Game/BuyItem/BuyItemHandler.cs` → `BuyItemCommandHandler` → `INpcShopDomainService.PurchaseAsync`
-  → `ProjectAsync(NpcShopPurchaseCompleted)`；邮件 `MailboxDomainService` `EnqueueAsync(MailCreated)`
+- 典型链：`Protocol/Game/BuyItem/BuyItemHandler.cs` → `GameBuyItemCommandHandler` → `INpcShopDomainService.PurchaseAsync`
+  → `ICommandProjections.ProjectAsync(NpcShopPurchaseCompleted)`；普通购买用显式 ordinary Write，Housing 用 Main，薄 handler 不再承载 NPC 分支。邮件 `MailboxDomainService` `EnqueueAsync(MailCreated)`
   → `MailCreatedNotificationSubscriber` → `ProjectAsync`。
 
 **口述没覆盖的第二条出站路（已核实）**：CMD 回包和一部分 NOTI 由 handler 直接经 `IGameMessageSender` 登记进发件箱，
@@ -79,8 +79,8 @@ Protocol/Game/<协议>/ 切片
 
 - handler 直接改领域状态、不经 CMD：`Protocol/Game/TownProjection/TownProjectionSlice.cs`（SetUserArea/Position）、
   `MarriageProposal/MarriageChurchSlice.cs`、`MarriageProposal/MarriageWeddingSlice.cs`。
-- handler 里有业务判断：`BuyItemHandler.cs` 硬编码 `NpcId == 20011`；`CharacterDeath/CharacterDeathSlice.cs`
-  自己算多人扇出，没用 `NotificationAudience`。
+- handler 里有业务判断：`CharacterDeath/CharacterDeathSlice.cs` 自己算多人扇出，没用 `NotificationAudience`。
+  BuyItem 的 `NpcId == 20011` 分支现已移入唯一 whole CMD，普通／Housing 精确消息族共用薄 handler。
 - 通知 handler 直接 `new InventorySlotMappingRuleService()`（`BuyItem/NpcShopPurchaseCompleted.cs`）。
 - handler 在入站作业内编排多条细粒度命令，每条命令一个事务（过渡形态，见 AGENTS.md「命令执行总线」）。
 - 命令总线的执行方式（含 `ReadOnly`）与管线的五层以 AGENTS.md「命令执行总线」为准。

@@ -33,14 +33,15 @@ public static class NetworkMessageDispatchingExtensions
     }
 
     public static IServiceCollection RegisterProtocolMessageHandler<THandler, TMessage, TCommand>(
-        this IServiceCollection services, ClientMessageType messageType)
+        this IServiceCollection services, ClientMessageType messageType, params Type[] allowedMessageClrTypes)
         where THandler : class, IProtocolCommandMessageHandler<TCommand>
         where TMessage : class, IClientNetworkMessage
         where TCommand : class, Commands.IProtocolCommand
     {
         services.AddTransient<THandler>();
         services.AddSingleton(new MessageHandlerRegistration(messageType, typeof(THandler),
-            Route: MessageHandlerRouteKind.ProtocolCommand, MessageClrType: typeof(TMessage), ProtocolCommandType: typeof(TCommand)));
+            Route: MessageHandlerRouteKind.ProtocolCommand, MessageClrType: typeof(TMessage), ProtocolCommandType: typeof(TCommand),
+            AllowedMessageClrTypes: Array.AsReadOnly((allowedMessageClrTypes.Length == 0 ? [typeof(TMessage)] : allowedMessageClrTypes).ToArray())));
         return services;
     }
 

@@ -4025,25 +4025,40 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BuyItem/BuyItemCommand.cs",
-          "line": 28,
-          "source_sha256": "93f91d70fde94fc1beaa0245dda907c7426fcae64a621329af1ec442ac6935f1"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "ordinary BuyItem fine Transactional or Housing primary fine Transactional; Purchase and QuestHoldingsChanged share one transaction",
+          "new": "one ordinary Write + declared actor NonRequest for exact plain shape, or one Main for exact selected Housing shape; same business/Quest segment; named NpcShop exception RequireRollback inside action and confirmed rollback before ACK",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/BuyItemCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/HousingNetworkSettlementTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-12.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BuyItem/BuyItemCommand.cs",
-          "line": 28,
-          "source_sha256": "93f91d70fde94fc1beaa0245dda907c7426fcae64a621329af1ec442ac6935f1"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "Old fine CLR and common handler removed, both actual transaction branches now owned by unique GameBuyItemCommand, not a forwarding wrapper."
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+        "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Game/BuyItemCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Sessions/HousingNetworkSettlementTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/workunit-map.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.BuyItem.BuyItemCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.BuyItem.BuyItemCommand",
@@ -4069,53 +4084,106 @@
         },
         "result": "Dfo.Server.Protocol.Game.BuyItem.BuyItemOutcome"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BuyItem/BuyItemCommand.cs",
-          "line": 28,
-          "source_sha256": "93f91d70fde94fc1beaa0245dda907c7426fcae64a621329af1ec442ac6935f1"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BuyItem/BuyItemCommand.cs",
-          "line": 28,
-          "source_sha256": "93f91d70fde94fc1beaa0245dda907c7426fcae64a621329af1ec442ac6935f1"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BuyItem/BuyItemCommand.cs",
-          "line": 28,
-          "source_sha256": "93f91d70fde94fc1beaa0245dda907c7426fcae64a621329af1ec442ac6935f1"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "BuyItemHandler resolves session/online/couple AccountIds then selects old BuyItemCommand/HousingBuyItemCommand; external named-refusal catch and original success projection",
+          "new": "thin handler -> one finite-family GameBuyItemCommand, original arguments/current actor; actual external decoder/dispatcher and wholebus test callers, no old fine dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/BuyItemCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/HousingNetworkSettlementTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "ordinary actor/account and Housing reporting selected session; couple AccountIds are business ownership and HousingAudience is projection audience, not IMulti",
+          "new": "same exact sole actor participant with physical Dispatch connection and explicit metadata; Housing captured reporter only; spouse audience not added to Main",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/BuyItemCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/HousingNetworkSettlementTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "legacy selected/main settlement, UoW rollback/uncertainty and original NotificationBus isolation; physical-connection effect replay ledger",
+          "new": "same CWT admission/explicit Main/replay in Task11 framework; guarded ordinary per-action cap; finite exact family closure; initial success retains ICommandProjections/NotificationBus Failed; refusal ACK outside normal commit uses default failure protection; only existing committed replay raw exit",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/BuyItemCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/HousingNetworkSettlementTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-12.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+          "purpose": "complete Buy ordinary/Housing protocol and original transaction/refusal/projection behavior"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+          "purpose": "declared ProtocolNonEffect ordinary-write actor capability with action lifetime and no effect entry"
+        }
+      ]
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BuyItem/BuyItemCommand.cs",
-          "line": 28,
-          "source_sha256": "93f91d70fde94fc1beaa0245dda907c7426fcae64a621329af1ec442ac6935f1"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "ordinary BuyItem fine Transactional or Housing primary fine Transactional; Purchase and QuestHoldingsChanged share one transaction",
+          "new": "one ordinary Write + declared actor NonRequest for exact plain shape, or one Main for exact selected Housing shape; same business/Quest segment; named NpcShop exception RequireRollback inside action and confirmed rollback before ACK",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/BuyItemCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/HousingNetworkSettlementTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-12.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BuyItem/BuyItemCommand.cs",
-          "line": 28,
-          "source_sha256": "93f91d70fde94fc1beaa0245dda907c7426fcae64a621329af1ec442ac6935f1"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "Old fine CLR and common handler removed, both actual transaction branches now owned by unique GameBuyItemCommand, not a forwarding wrapper."
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+        "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Game/BuyItemCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Sessions/HousingNetworkSettlementTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/workunit-map.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.BuyItem.HousingBuyItemCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.BuyItem.HousingBuyItemCommand",
@@ -4141,32 +4209,70 @@
         },
         "result": "Dfo.Server.Protocol.Game.BuyItem.BuyItemOutcome"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BuyItem/BuyItemCommand.cs",
-          "line": 28,
-          "source_sha256": "93f91d70fde94fc1beaa0245dda907c7426fcae64a621329af1ec442ac6935f1"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BuyItem/BuyItemCommand.cs",
-          "line": 28,
-          "source_sha256": "93f91d70fde94fc1beaa0245dda907c7426fcae64a621329af1ec442ac6935f1"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BuyItem/BuyItemCommand.cs",
-          "line": 28,
-          "source_sha256": "93f91d70fde94fc1beaa0245dda907c7426fcae64a621329af1ec442ac6935f1"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "BuyItemHandler resolves session/online/couple AccountIds then selects old BuyItemCommand/HousingBuyItemCommand; external named-refusal catch and original success projection",
+          "new": "thin handler -> one finite-family GameBuyItemCommand, original arguments/current actor; actual external decoder/dispatcher and wholebus test callers, no old fine dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/BuyItemCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/HousingNetworkSettlementTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "ordinary actor/account and Housing reporting selected session; couple AccountIds are business ownership and HousingAudience is projection audience, not IMulti",
+          "new": "same exact sole actor participant with physical Dispatch connection and explicit metadata; Housing captured reporter only; spouse audience not added to Main",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/BuyItemCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/HousingNetworkSettlementTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "legacy selected/main settlement, UoW rollback/uncertainty and original NotificationBus isolation; physical-connection effect replay ledger",
+          "new": "same CWT admission/explicit Main/replay in Task11 framework; guarded ordinary per-action cap; finite exact family closure; initial success retains ICommandProjections/NotificationBus Failed; refusal ACK outside normal commit uses default failure protection; only existing committed replay raw exit",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/BuyItemCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/HousingNetworkSettlementTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-12.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+          "purpose": "complete Buy ordinary/Housing protocol and original transaction/refusal/projection behavior"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+          "purpose": "declared ProtocolNonEffect ordinary-write actor capability with action lifetime and no effect entry"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -16825,26 +16931,42 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BuyItem/BuyItemHandler.cs",
-          "line": 14,
-          "source_sha256": "e8d82b9b86915a7c22fd33196f910c2dd1b353a0a7d5531c75517a85b1ab1511"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "ordinary BuyItem fine Transactional or Housing primary fine Transactional; Purchase and QuestHoldingsChanged share one transaction",
+          "new": "one ordinary Write + declared actor NonRequest for exact plain shape, or one Main for exact selected Housing shape; same business/Quest segment; named NpcShop exception RequireRollback inside action and confirmed rollback before ACK",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/BuyItemCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/HousingNetworkSettlementTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-12.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BuyItem/BuyItemHandler.cs",
-          "line": 14,
-          "source_sha256": "e8d82b9b86915a7c22fd33196f910c2dd1b353a0a7d5531c75517a85b1ab1511"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.BuyItem.GameBuyItemCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+        "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Game/BuyItemCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Sessions/HousingNetworkSettlementTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/workunit-map.md"
+      ],
       "id": "message:65557",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.BuyItem.BuyItemHandler",
@@ -16866,36 +16988,74 @@
         "telemetry": false,
         "value": 65557
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BuyItem/BuyItemHandler.cs",
-          "line": 14,
-          "source_sha256": "e8d82b9b86915a7c22fd33196f910c2dd1b353a0a7d5531c75517a85b1ab1511"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BuyItem/BuyItemHandler.cs",
-          "line": 14,
-          "source_sha256": "e8d82b9b86915a7c22fd33196f910c2dd1b353a0a7d5531c75517a85b1ab1511"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BuyItem/BuyItemHandler.cs",
-          "line": 14,
-          "source_sha256": "e8d82b9b86915a7c22fd33196f910c2dd1b353a0a7d5531c75517a85b1ab1511"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "BuyItemHandler resolves session/online/couple AccountIds then selects old BuyItemCommand/HousingBuyItemCommand; external named-refusal catch and original success projection",
+          "new": "thin handler -> one finite-family GameBuyItemCommand, original arguments/current actor; actual external decoder/dispatcher and wholebus test callers, no old fine dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/BuyItemCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/HousingNetworkSettlementTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "ordinary actor/account and Housing reporting selected session; couple AccountIds are business ownership and HousingAudience is projection audience, not IMulti",
+          "new": "same exact sole actor participant with physical Dispatch connection and explicit metadata; Housing captured reporter only; spouse audience not added to Main",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/BuyItemCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/HousingNetworkSettlementTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "legacy selected/main settlement, UoW rollback/uncertainty and original NotificationBus isolation; physical-connection effect replay ledger",
+          "new": "same CWT admission/explicit Main/replay in Task11 framework; guarded ordinary per-action cap; finite exact family closure; initial success retains ICommandProjections/NotificationBus Failed; refusal ACK outside normal commit uses default failure protection; only existing committed replay raw exit",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/BuyItemCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/HousingNetworkSettlementTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-12-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.BuyItem.BuyItemCommand",
         "command:Dfo.Server.Protocol.Game.BuyItem.HousingBuyItemCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-12.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs",
+          "purpose": "complete Buy ordinary/Housing protocol and original transaction/refusal/projection behavior"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/ExplicitNonRequestFootprint.cs",
+          "purpose": "declared ProtocolNonEffect ordinary-write actor capability with action lifetime and no effect entry"
+        }
+      ]
     },
     {
       "actual_units": {
