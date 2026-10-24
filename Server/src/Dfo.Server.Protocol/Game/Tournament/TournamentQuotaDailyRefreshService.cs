@@ -16,7 +16,7 @@ public sealed class TournamentQuotaDailyRefreshService(ISelectedSessionSnapshotQ
     Dfo.Server.Protocol.Game.StateSynchronization.UsageQuotaProjectionDelivery delivery,
     IDailyResetRuleService daily, TimeProvider clock, ILogger<TournamentQuotaDailyRefreshService> logger, IGameplayQueue queue) : BackgroundService
 {
-    private readonly Dictionary<SelectedSessionIdentity, DateTimeOffset> delivered = [];
+    private readonly Dictionary<SelectedSessionIdentity, DateTimeOffset> registered = [];
     private const string Command = "timer:TournamentQuotaDailyRefreshService";
     private readonly CoalescingGameplaySource ticks = new(queue);
     // One refresh is one timer CMD on the executor; the entry enqueues it directly, the loop through its source.
@@ -25,17 +25,17 @@ public sealed class TournamentQuotaDailyRefreshService(ISelectedSessionSnapshotQ
     {
         GameplayWriteAssertion.Writing(nameof(TournamentQuotaDailyRefreshService) + "." + nameof(RefreshCoreAsync));
         var period = daily.PeriodStart(clock.GetUtcNow()); var current = directory.Snapshot();
-        foreach (var stale in delivered.Keys.Except(current).ToArray()) delivered.Remove(stale);
+        foreach (var stale in registered.Keys.Except(current).ToArray()) registered.Remove(stale);
         foreach (var session in current)
         {
-            if (delivered.TryGetValue(session, out var previous) && previous == period) continue;
+            if (registered.TryGetValue(session, out var previous) && previous == period) continue;
             try
             {
                 if (!sessions.IsInWorld(session)) continue;
                 var result = await delivery.SendAsync(session, UsageQuotaFamily.TournamentDungeon, ct).ConfigureAwait(false);
                 if (sessions.IsInWorld(session) && result.Attempts.Any(x =>
-                    x.CharacterId == session.CharacterId && x.Outcome == Dfo.Server.Abstractions.Notifications.NotificationOutcome.Delivered))
-                    delivered[session] = period;
+                    x.CharacterId == session.CharacterId && x.Outcome == Dfo.Server.Abstractions.Notifications.NotificationOutcome.Registered))
+                    registered[session] = period;
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
             catch (Exception error) { logger.LogWarning(error, "Tournament daily quota refresh failed character={CharacterId}", session.CharacterId); }

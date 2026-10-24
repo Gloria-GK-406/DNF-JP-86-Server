@@ -27,6 +27,34 @@ public sealed class NotificationDeliveryTests
     private static readonly CharacterId Second = new(7002);
     private static readonly CharacterId Third = new(7003);
 
+    [Fact]
+    public async Task An_accepted_notification_returns_before_the_publishing_job_submits_or_sends_it()
+    {
+        var world = new NotificationWorld();
+        world.Play(First);
+        var recipient = world.SessionOf(First);
+        world.Compose = _ => [new TownBellMessage("one"), new TownBellMessage("two")];
+        var observed = false;
+
+        var delivery = await world.PublishToObservedAsync([recipient], result =>
+        {
+            observed = true;
+            Assert.Equal(First, Assert.Single(result.Attempts).CharacterId);
+            Assert.Equal(NotificationOutcome.Registered, Assert.Single(result.Attempts).Outcome);
+            Assert.Empty(world.Sender.Registered);
+            Assert.Empty(world.Sender.Sent);
+        });
+
+        Assert.True(observed);
+        Assert.Equal([First], delivery.With(NotificationOutcome.Registered));
+        var batch = Assert.Single(world.Sender.Registered);
+        Assert.Equal(recipient.ConnectionId, batch.Connection.ConnectionId);
+        Assert.Equal(["one", "two"], batch.Messages.Select(NotificationWorld.Label));
+        Assert.Equal(
+            [(recipient.ConnectionId, "one"), (recipient.ConnectionId, "two")],
+            world.Sender.Sent.Select(sent => (sent.ConnectionId, NotificationWorld.Label(sent.Message))));
+    }
+
     /// <summary>Two people, two different frames, because the handler is asked about each.</summary>
     [Fact]
     public async Task Each_recipient_is_told_what_the_handler_made_for_them()
@@ -44,7 +72,7 @@ public sealed class NotificationDeliveryTests
             ],
             world.Sender.Sent.Select(sent => (sent.ConnectionId, NotificationWorld.Label(sent.Message))));
         Assert.All(delivery.Attempts, attempt =>
-            Assert.Equal(NotificationOutcome.Delivered, attempt.Outcome));
+            Assert.Equal(NotificationOutcome.Registered, attempt.Outcome));
     }
 
     /// <summary>One failed delivery does not cost the people behind it theirs.</summary>
@@ -65,7 +93,7 @@ public sealed class NotificationDeliveryTests
 
         var delivery = await world.PublishToAsync([First, Second, Third]);
 
-        Assert.Equal([First, Second, Third], delivery.With(NotificationOutcome.Delivered));
+        Assert.Equal([First, Second, Third], delivery.With(NotificationOutcome.Registered));
         Assert.Equal(
             [world.ConnectionOf(First), world.ConnectionOf(Third)],
             world.Sender.Sent.Select(sent => sent.ConnectionId));
@@ -100,7 +128,7 @@ public sealed class NotificationDeliveryTests
 
         var delivery = await world.PublishToAsync([First, Second, Third]);
 
-        Assert.Equal([First], delivery.With(NotificationOutcome.Delivered));
+        Assert.Equal([First], delivery.With(NotificationOutcome.Registered));
         Assert.Equal([Second], delivery.With(NotificationOutcome.Gone));
         Assert.Equal([Third], delivery.With(NotificationOutcome.Failed));
     }
@@ -137,7 +165,7 @@ public sealed class NotificationDeliveryTests
         var delivery = await world.PublishToAsync([First, Second]);
 
         Assert.Equal([First], delivery.With(NotificationOutcome.Failed));
-        Assert.Equal([Second], delivery.With(NotificationOutcome.Delivered));
+        Assert.Equal([Second], delivery.With(NotificationOutcome.Registered));
         Assert.Equal([world.ConnectionOf(Second)], world.Sender.Registered.Select(entry => entry.Connection.ConnectionId));
         Assert.False(world.Sender.IsClosed(world.ConnectionOf(First)));
     }
@@ -242,7 +270,7 @@ public sealed class NotificationDeliveryTests
 
         var delivery = await world.PublishToAsync([First, Second]);
 
-        Assert.Equal([First], delivery.With(NotificationOutcome.Delivered));
+        Assert.Equal([First], delivery.With(NotificationOutcome.Registered));
         Assert.Equal([Second], delivery.With(NotificationOutcome.Failed));
         Assert.Equal([world.ConnectionOf(First)], world.Sender.Sent.Select(sent => sent.ConnectionId));
     }
@@ -290,7 +318,7 @@ public sealed class NotificationDeliveryTests
         var delivery = await world.PublishToAsync([First, Second]);
 
         Assert.Equal([First], delivery.With(NotificationOutcome.Failed));
-        Assert.Equal([Second], delivery.With(NotificationOutcome.Delivered));
+        Assert.Equal([Second], delivery.With(NotificationOutcome.Registered));
         Assert.Equal(
             [(world.ConnectionOf(Second), $"for-{Second.Value}")],
             world.Sender.Registered.SelectMany(entry => entry.Messages.Select(message =>
@@ -317,7 +345,7 @@ public sealed class NotificationDeliveryTests
         var delivery = await world.PublishToAsync([First, Second]);
 
         Assert.Equal([First], delivery.With(NotificationOutcome.Failed));
-        Assert.Equal([Second], delivery.With(NotificationOutcome.Delivered));
+        Assert.Equal([Second], delivery.With(NotificationOutcome.Registered));
         Assert.DoesNotContain(world.Sender.Registered, entry => entry.Connection.ConnectionId == world.ConnectionOf(First));
         Assert.Equal(
             [(world.ConnectionOf(Second), $"for-{Second.Value}")],
@@ -341,7 +369,7 @@ public sealed class NotificationDeliveryTests
 
         var delivery = await world.PublishToAsync([First]);
 
-        Assert.Equal([First], delivery.With(NotificationOutcome.Delivered));
+        Assert.Equal([First], delivery.With(NotificationOutcome.Registered));
         var batch = Assert.Single(world.Sender.Registered);
         Assert.Equal(world.ConnectionOf(First), batch.Connection.ConnectionId);
         Assert.Equal(["one", "two", "three"], batch.Messages.Select(NotificationWorld.Label));
@@ -363,7 +391,7 @@ public sealed class NotificationDeliveryTests
         var second = await world.PublishToAsync([Second]);
 
         Assert.Equal([First], first.With(NotificationOutcome.Failed));
-        Assert.Equal([Second], second.With(NotificationOutcome.Delivered));
+        Assert.Equal([Second], second.With(NotificationOutcome.Registered));
         Assert.Equal([First, Second, Second], world.Composed);
         Assert.Equal(
             [world.ConnectionOf(Second), world.ConnectionOf(Second)],

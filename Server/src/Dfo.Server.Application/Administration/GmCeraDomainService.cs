@@ -28,7 +28,7 @@ internal sealed class GmCeraReminderDomainService(ISelectedSessionDomainService 
             if (session is null) { result = "offline"; continue; }
             var delivery = await notifications.ProjectAsync(new NotificationAudience.TheseSessions([session]), new AccountWalletChanged(account), token);
             if (delivery.Attempts.Any(x => x.Outcome is NotificationOutcome.Failed)) (failed ??= []).Add(id);
-            else if (!delivery.Attempts.Any(x => x.Outcome is NotificationOutcome.Delivered)) result = "offline";
+            else if (!delivery.Attempts.Any(x => x.Outcome is NotificationOutcome.Registered)) result = "offline";
         }
         if (failed is not null)
             throw new InvalidOperationException($"The wallet reminder could not be composed for account(s) {string.Join(", ", failed)}.");

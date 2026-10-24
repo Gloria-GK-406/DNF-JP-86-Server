@@ -848,7 +848,7 @@ public sealed class TownProjectionHandlerTests
             order?.Add($"notify:{notification.GetType().Name}");
             var attempts = audience is NotificationAudience.TheseSessions exact
                 ? exact.Sessions.Select(session =>
-                    new NotificationAttempt(session.CharacterId, NotificationOutcome.Delivered))
+                    new NotificationAttempt(session.CharacterId, NotificationOutcome.Registered))
                     .ToArray()
                 : [];
             return ValueTask.FromResult(new NotificationDelivery(attempts));

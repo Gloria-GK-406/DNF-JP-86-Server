@@ -284,8 +284,8 @@ public sealed class PartyTownProjectionDeliveryTests
             Attempts++;
             var outcome = Attempts == 1
                 ? NotificationOutcome.Failed
-                : NotificationOutcome.Delivered;
-            if (outcome == NotificationOutcome.Delivered)
+                : NotificationOutcome.Registered;
+            if (outcome == NotificationOutcome.Registered)
                 Successes++;
             return ValueTask.FromResult(new NotificationDelivery(
                 [new NotificationAttempt(Observer.CharacterId, outcome)]));

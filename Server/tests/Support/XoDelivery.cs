@@ -259,7 +259,7 @@ internal sealed class XoProjections(INetworkMessageSender sender) : Dfo.Server.T
         foreach (var session in sessions)
         {
             await sender.SendAsync(session.ConnectionId, new XoProjected(typeof(TNotification).Name), cancellationToken);
-            attempts.Add(new NotificationAttempt(session.CharacterId, NotificationOutcome.Delivered));
+            attempts.Add(new NotificationAttempt(session.CharacterId, NotificationOutcome.Registered));
         }
         return new NotificationDelivery(attempts);
     }

@@ -349,7 +349,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
             BeforeProjection?.Invoke();
             Assert.Equal(new UsageQuotaViewChanged(Current.CharacterId, UsageQuotaFamily.MirrorDungeon), Assert.IsType<UsageQuotaViewChanged>(notification));
             Audiences.Add(audience);
-            return ValueTask.FromResult(new NotificationDelivery([new(Current.CharacterId, NotificationOutcome.Delivered)]));
+            return ValueTask.FromResult(new NotificationDelivery([new(Current.CharacterId, NotificationOutcome.Registered)]));
         }
     }
 

@@ -221,7 +221,7 @@ public sealed class UsageQuotaTests
             Assert.Equal(view.CharacterId, Assert.Single(Assert.IsType<NotificationAudience.TheseCharacters>(audience).CharacterIds));
             Entries.Add(await Read());
             if (Fail) throw new IOException("transport unavailable");
-            return new([new(view.CharacterId, NotificationOutcome.Delivered)]);
+            return new([new(view.CharacterId, NotificationOutcome.Registered)]);
         }
     }
 

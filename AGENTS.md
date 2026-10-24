@@ -653,7 +653,7 @@ if (result.Publication.Audience.Count > 0)
   只允许 `Dfo.Server.Abstractions` 里以 `DomainService` 结尾的接口。
 - **通知没有重试，也没有每收件人期限。** 组装或编码失败的收件人记为 `Failed`，只丢他的条目；
   交付失败由发送端关闭该连接，之后的清理是那条连接的 `lifecycle:disconnected` 作业。
-  `NotificationOutcome.Delivered` 的名字没跟上：今天它表示消息已组装、编码并登记进发件箱（连接已不在时条目被丢弃，
+  `NotificationOutcome.Registered` 表示消息已组装、编码并接受登记进发件箱（连接已不在时条目被丢弃，
   也记作它），不表示已交给传输层；按它记「本期已送」的调用方，记的是「已登记」。
 - **通知类型必须在 `ProtocolModule` 里注册处理器**，且该程序集要 `AddNotificationCatalog`。
   漏注册会在**开始接受连接之前**让服务器起不来（宿主先实例化 hosted service 再启动）。

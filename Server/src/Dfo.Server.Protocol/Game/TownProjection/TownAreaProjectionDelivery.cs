@@ -508,15 +508,15 @@ public sealed class TownAreaProjectionDelivery
             [session], publication.Audience, cancellationToken).ConfigureAwait(false);
         if (!selectedSessions.IsInWorld(session))
             return;
-        var delivered = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+        var registered = await PartyExactNotificationDelivery.PublishWithRetryAsync(
             notifications,
             publication.Audience,
             new TownParticipantPublished(publication.State),
             cancellationToken).ConfigureAwait(false);
-        if (!delivered.Delivered.IsEmpty)
+        if (!registered.Registered.IsEmpty)
         {
             await partyTownProjection.RefreshObservedPartiesAsync(
-                delivered.Delivered, [session], cancellationToken).ConfigureAwait(false);
+                registered.Registered, [session], cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -571,10 +571,10 @@ public sealed class TownAreaProjectionDelivery
             peerSessions,
             new TownParticipantPublished(state),
             cancellationToken).ConfigureAwait(false);
-        if (!publication.Delivered.IsEmpty)
+        if (!publication.Registered.IsEmpty)
         {
             await partyTownProjection.RefreshObservedPartiesAsync(
-                publication.Delivered, [newcomer], cancellationToken).ConfigureAwait(false);
+                publication.Registered, [newcomer], cancellationToken).ConfigureAwait(false);
         }
     }
 

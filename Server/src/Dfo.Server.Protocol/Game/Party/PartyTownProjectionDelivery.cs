@@ -204,7 +204,7 @@ public sealed class PartyTownProjectionDelivery(
 }
 
 internal readonly record struct PartyExactNotificationDeliveryResult(
-    ImmutableArray<SelectedSessionIdentity> Delivered,
+    ImmutableArray<SelectedSessionIdentity> Registered,
     bool HasFailures);
 
 internal static class PartyExactNotificationDelivery
@@ -230,7 +230,7 @@ internal static class PartyExactNotificationDelivery
             .Distinct()
             .ToArray();
         var pending = exactAudience;
-        var delivered = new HashSet<SelectedSessionIdentity>();
+        var registered = new HashSet<SelectedSessionIdentity>();
 
         for (var attempt = 0; attempt < MaximumAttempts && pending.Length > 0; attempt++)
         {
@@ -238,11 +238,11 @@ internal static class PartyExactNotificationDelivery
                 new NotificationAudience.TheseSessions(pending),
                 notification,
                 cancellationToken).ConfigureAwait(false);
-            var deliveredCharacters = result.With(NotificationOutcome.Delivered).ToHashSet();
+            var registeredCharacters = result.With(NotificationOutcome.Registered).ToHashSet();
             foreach (var session in pending.Where(
-                         session => deliveredCharacters.Contains(session.CharacterId)))
+                         session => registeredCharacters.Contains(session.CharacterId)))
             {
-                delivered.Add(session);
+                registered.Add(session);
             }
 
             var failedCharacters = result.With(NotificationOutcome.Failed).ToHashSet();
@@ -252,7 +252,7 @@ internal static class PartyExactNotificationDelivery
         }
 
         return new PartyExactNotificationDeliveryResult(
-            exactAudience.Where(delivered.Contains).ToImmutableArray(),
+            exactAudience.Where(registered.Contains).ToImmutableArray(),
             pending.Length > 0);
     }
 }

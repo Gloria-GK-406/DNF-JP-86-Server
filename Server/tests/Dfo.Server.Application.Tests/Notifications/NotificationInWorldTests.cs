@@ -24,7 +24,7 @@ public sealed class NotificationInWorldTests
 
             var delivery = await world.PublishToAsync([First, Second]);
 
-            Assert.Equal([First], delivery.With(NotificationOutcome.Delivered));
+            Assert.Equal([First], delivery.With(NotificationOutcome.Registered));
             Assert.Equal([world.ConnectionOf(First)], world.Sender.Sent.Select(sent => sent.ConnectionId));
         });
     }
@@ -41,7 +41,7 @@ public sealed class NotificationInWorldTests
 
             var delivery = await world.PublishToAsync([First, Second]);
 
-            Assert.Equal([First], delivery.With(NotificationOutcome.Delivered));
+            Assert.Equal([First], delivery.With(NotificationOutcome.Registered));
             Assert.Equal([world.ConnectionOf(First)], world.Sender.Sent.Select(sent => sent.ConnectionId));
         });
     }
@@ -58,7 +58,7 @@ public sealed class NotificationInWorldTests
 
             var delivery = await world.PublishToExactAsync([world.SessionOf(First), world.SessionOf(Second)]);
 
-            Assert.Equal([First], delivery.With(NotificationOutcome.Delivered));
+            Assert.Equal([First], delivery.With(NotificationOutcome.Registered));
             Assert.Equal([world.ConnectionOf(First)], world.Sender.Sent.Select(sent => sent.ConnectionId));
         });
     }
@@ -78,7 +78,7 @@ public sealed class NotificationInWorldTests
 
             var delivery = await world.PublishToExactAsync([world.SessionOf(First), world.SessionOf(Second)]);
 
-            Assert.Equal([First], delivery.With(NotificationOutcome.Delivered));
+            Assert.Equal([First], delivery.With(NotificationOutcome.Registered));
             Assert.Equal([Second], delivery.With(NotificationOutcome.Gone));
         });
     }
@@ -94,7 +94,7 @@ public sealed class NotificationInWorldTests
 
             var delivery = await world.PublishToAsync([First, Second]);
 
-            Assert.Equal([First, Second], delivery.With(NotificationOutcome.Delivered));
+            Assert.Equal([First, Second], delivery.With(NotificationOutcome.Registered));
         });
     }
 }

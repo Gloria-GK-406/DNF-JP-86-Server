@@ -434,6 +434,33 @@ internal sealed class NotificationWorld
         }
     }
 
+    /// <summary>Observes the real bus result inside its publishing job, before its outbox is submitted.</summary>
+    public async ValueTask<NotificationDelivery> PublishToObservedAsync(
+        IReadOnlyList<SelectedSessionIdentity> audience,
+        Action<NotificationDelivery> observe)
+    {
+        var executor = provider.GetRequiredService<GameplayExecutor>();
+        var bus = provider.GetRequiredService<INotificationBus>();
+        try
+        {
+            return await executor.RunAsync(new GameplayWork<NotificationDelivery>(
+                GameplayShardKey.World,
+                GameplayCallChain.NewRoot(GameplayCallSource.Connection),
+                "test:publish-observed",
+                async ct =>
+                {
+                    var result = await bus.PublishAsync(
+                        new NotificationAudience.TheseSessions(audience), new TownBellRang("closing time"), ct);
+                    observe(result);
+                    return result;
+                }), CancellationToken.None);
+        }
+        finally
+        {
+            await Sender.SettledAsync();
+        }
+    }
+
     private void Connect(SelectedSessionIdentity session) =>
         Sender.Connect(connections.Add(session.ConnectionId, session.ListenerPort));
 }

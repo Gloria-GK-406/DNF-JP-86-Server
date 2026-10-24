@@ -64,7 +64,7 @@ public sealed class UsageQuotaProjectionTests
         await worker.RefreshAsync(default); Assert.Single(events.Projections);
         clock.Now = clock.Now.AddMinutes(1); events.Outcome = NotificationOutcome.Failed;
         await worker.RefreshAsync(default); Assert.Equal(2, events.Projections.Count);
-        events.Outcome = NotificationOutcome.Delivered;
+        events.Outcome = NotificationOutcome.Registered;
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Equal(3, events.Projections.Count);
     }
@@ -99,7 +99,7 @@ public sealed class UsageQuotaProjectionTests
         await worker.RefreshAsync(default); Assert.Single(events.Projections);
         clock.Now = clock.Now.AddMinutes(1); events.Outcome = NotificationOutcome.Failed;
         await worker.RefreshAsync(default); Assert.Equal(2, events.Projections.Count);
-        events.Outcome = NotificationOutcome.Delivered;
+        events.Outcome = NotificationOutcome.Registered;
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Equal(3, events.Projections.Count);
     }
@@ -230,7 +230,7 @@ public sealed class UsageQuotaProjectionTests
         clock.Now = clock.Now.AddMinutes(2);
         events.Outcome = NotificationOutcome.Failed;
         await worker.RefreshAsync(default); Assert.Equal(2, events.Projections.Count);
-        events.Outcome = NotificationOutcome.Delivered;
+        events.Outcome = NotificationOutcome.Registered;
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Equal(3, events.Projections.Count);
         sessions.Current = sessions.Current! with { ConnectionGeneration = 2 };
@@ -431,7 +431,7 @@ public sealed class UsageQuotaProjectionTests
     {
         public UsageQuotaFamily Family = UsageQuotaFamily.MirrorDungeon;
         public List<NotificationAudience> Projections = [];
-        public NotificationOutcome Outcome = NotificationOutcome.Delivered;
+        public NotificationOutcome Outcome = NotificationOutcome.Registered;
         public ValueTask<Guid> EnqueueAsync<T>(T payload, CancellationToken cancellationToken = default) where T : class, IDomainEvent => throw new NotSupportedException();
         public ValueTask DirectAsync<T>(T payload, CancellationToken cancellationToken = default) where T : class, IDomainEvent => throw new NotSupportedException();
         public ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience, T notification, CancellationToken cancellationToken = default)

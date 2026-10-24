@@ -141,7 +141,7 @@ public sealed class ClientSettingsBlobTests
             foreach (var session in Assert.IsType<NotificationAudience.TheseSessions>(audience).Sessions)
             {
                 Messages.AddRange(await Compose(new(session.CharacterId, session.ConnectionId, session), notice));
-                results.Add(new(session.CharacterId, NotificationOutcome.Delivered));
+                results.Add(new(session.CharacterId, NotificationOutcome.Registered));
             }
             return new(results);
         }

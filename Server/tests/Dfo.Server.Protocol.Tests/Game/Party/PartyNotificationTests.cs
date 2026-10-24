@@ -1277,8 +1277,8 @@ public sealed class PartyNotificationTests
             ObserverAttempts++;
             var outcome = ObserverAttempts <= failureCount
                 ? NotificationOutcome.Failed
-                : NotificationOutcome.Delivered;
-            if (outcome == NotificationOutcome.Delivered)
+                : NotificationOutcome.Registered;
+            if (outcome == NotificationOutcome.Registered)
                 SuccessfulObserverAttempts++;
             return ValueTask.FromResult(new NotificationDelivery(
                 [new NotificationAttempt(Observer.CharacterId, outcome)]));

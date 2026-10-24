@@ -96,7 +96,7 @@ public sealed class MirrorQuotaDailyRefreshService(ISelectedSessionSnapshotQuery
     ISelectedSessionDomainService sessions,
     UsageQuotaProjectionDelivery delivery, TimeProvider clock, ILogger<MirrorQuotaDailyRefreshService> logger, IGameplayQueue queue) : BackgroundService
 {
-    private readonly Dictionary<SelectedSessionIdentity, DateOnly> delivered = [];
+    private readonly Dictionary<SelectedSessionIdentity, DateOnly> registered = [];
     private const string Command = "timer:MirrorQuotaDailyRefreshService";
     private readonly CoalescingGameplaySource ticks = new(queue);
     // One refresh is one timer CMD on the executor; the entry enqueues it directly, the loop through its source.
@@ -105,18 +105,18 @@ public sealed class MirrorQuotaDailyRefreshService(ISelectedSessionSnapshotQuery
     {
         GameplayWriteAssertion.Writing(nameof(MirrorQuotaDailyRefreshService) + "." + nameof(RefreshCoreAsync));
         var current = directory.Snapshot();
-        foreach (var stale in delivered.Keys.Except(current).ToArray()) delivered.Remove(stale);
+        foreach (var stale in registered.Keys.Except(current).ToArray()) registered.Remove(stale);
         foreach (var session in current)
         {
             var day = DateOnly.FromDateTime(clock.GetUtcNow().ToOffset(TimeSpan.FromHours(8)).DateTime);
-            if (delivered.TryGetValue(session, out var previous) && previous == day) continue;
+            if (registered.TryGetValue(session, out var previous) && previous == day) continue;
             try
             {
                 if (!sessions.IsInWorld(session)) continue;
                 var result = await delivery.SendAsync(session, UsageQuotaFamily.MirrorDungeon, cancellationToken).ConfigureAwait(false);
                 if (sessions.IsInWorld(session)
-                    && result.Attempts.Any(x => x.CharacterId == session.CharacterId && x.Outcome == NotificationOutcome.Delivered))
-                    delivered[session] = day;
+                    && result.Attempts.Any(x => x.CharacterId == session.CharacterId && x.Outcome == NotificationOutcome.Registered))
+                    registered[session] = day;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
             catch (Exception error) { logger.LogWarning(error, "Mirror quota projection failed character={CharacterId}", session.CharacterId); }

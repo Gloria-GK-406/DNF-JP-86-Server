@@ -129,7 +129,7 @@ internal sealed class NotificationBus : INotificationBus
                 logger.LogDebug("Notification for character {CharacterId} was dropped: {ConnectionId} is no longer registered",
                     recipient.CharacterId.Value, recipient.ConnectionId);
 
-            return NotificationOutcome.Delivered;
+            return NotificationOutcome.Registered;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

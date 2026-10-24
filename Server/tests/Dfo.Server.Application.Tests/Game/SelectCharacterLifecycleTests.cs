@@ -1471,7 +1471,7 @@ public sealed partial class SelectCharacterLifecycleTests
                             && notification is TownParticipantPublished
                             && Interlocked.Increment(ref townPublicationAttempts) == 1
                             ? NotificationOutcome.Failed
-                            : NotificationOutcome.Delivered))
+                            : NotificationOutcome.Registered))
                     .ToArray()
                 : [];
             return ValueTask.FromResult(new NotificationDelivery(attempts));

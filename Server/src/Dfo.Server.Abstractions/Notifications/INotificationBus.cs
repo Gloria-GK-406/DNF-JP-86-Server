@@ -16,11 +16,11 @@ public enum NotificationOutcome
     /// or dropped because the connection was no longer registered (F-83).
     /// </summary>
     /// <remarks>
-    /// Registered, not delivered (T-006; the name is kept until T-008). The job's outbox hands them to
+    /// Registration does not promise transport or client receipt. The job's outbox hands them to
     /// the sender when the job ends, and nothing here waits for the transport: a connection that then
     /// fails to take them is closed by the sender, and its teardown is the lifecycle CMD that follows.
     /// </remarks>
-    Delivered,
+    Registered,
 
     /// <summary>The handler had nothing for this recipient. A decision, not a fault.</summary>
     Declined,
