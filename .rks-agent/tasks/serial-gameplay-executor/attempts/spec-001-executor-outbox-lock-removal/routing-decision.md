@@ -71,3 +71,18 @@ T-001～T-006、M-1、M-2 已经提交（TASK-01～TASK-28，HEAD `06ca5e0f`）�
   - 移交给 B 的条目，由 B 在自己的记录里引用编号并记录关闭；
   - `../../reviews/` 下本子 Spec 的审查文件，B 不改。
 - Parent controller: `../../multi-spec-map.md`
+
+### 封存阶段的具体产物绑定（2026-10-24）
+
+沿用上面的reviews/verification原地覆盖；为使共享composer的键与本次实际落盘一致，明确以下键，不改变Profile、阶段、闸或语义：
+
+| Artifact key | 路径（相对本子契约目录） |
+|---|---|
+| drift_review | `../../reviews/spec-001-drift-review.md` |
+| change_challenges | `../../reviews/spec-001-change-challenges.md` |
+| change_review | `../../reviews/spec-001-change-review.md`（聚合三维Round2） |
+| completion_evidence | `../../verification/completion-evidence.md` |
+
+实施检查点TASK-35为`0ecb9af3`，产品最终冻结于该提交。最后核验的原并行轮跨低电量休眠、被中断，不作为通过依据；同一冻结状态按原断言与期限以`-m:1`串行程序集重跑，取证和完整原始输出随verification保存。状态以completion_evidence为准。
+
+- 补充：沙箱serial轮因FSEvents注册停滞也被中断，未作为通过；相同真实host探针在本机环境324ms通过，故最终完整核验绑定`../../verification/logs/spec-001-native-*`。详见`../../verification/spec-001-environment-recovery.md`，接受与否仍只以completion_evidence为准。
