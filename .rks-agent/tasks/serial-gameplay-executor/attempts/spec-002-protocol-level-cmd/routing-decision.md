@@ -41,12 +41,16 @@ Parent controller为`../../multi-spec-map.md`；父激活map检查点已完成�
   - final-review: auto
   - verification: auto
 - Bound methods: implementation: `test-driven-development`（先应用test-value gate；结构搬迁沿用行为测试/编译/结构判据，不制造编译失败当RED）。
-- Artifact path overrides（本次执行中B2/P3 amendment的受影响gate重跑；Spec B2批准保留，旧B1/P1/P2审查原文留存，不改变controller/profile/gate强度/契约或baseline；其余制品仍使用共享composer默认路径）:
-  - spec-adversarial: `reviews/spec-b2-challenges.md`
-  - spec-review: `reviews/spec-b2-review.md`
-  - plan-adversarial: `reviews/plan-p3-challenges.md`
-  - plan-review: `reviews/plan-p3-review.md`
+- Artifact path overrides（本次执行中B3/P4 amendment匹配的受影响gates已独立approved；旧B2/P3及更早审查原文留存，不改变controller/profile/gate强度/契约或baseline；其余制品仍使用共享composer默认路径）:
+  - spec-adversarial: `reviews/spec-b3-challenges.md`
+  - spec-review: `reviews/spec-b3-review.md`
+  - plan-adversarial: `reviews/plan-p4-challenges.md`
+  - plan-review: `reviews/plan-p4-review.md`
 - Parent controller: `../../multi-spec-map.md`。
 - 继承任务授权覆盖普通实施和本地检查点，不再重复规划后人工停点；Astra及分支收尾仍是用户保留门。
 - 初始未提交输入仅B目录及原草案到source-draft的迁移，均为本Spec拥有，规划检查点纳入；不修改A封存文件。
 - 全量核验在允许本机系统服务/FSEvents的环境运行，采用console detailed和DFO_GAMEPLAY_ASSERTIONS落盘；必要时-m:1串行项目，不改xUnit类并行、断言或原期限。沿用两条已知内容基线，套件耗时/内存只记录。
+
+## B3／P4受影响gate消费（2026-10-25）
+
+主控完整消费当前Spec B3／Plan P4及分别匹配的fresh challenge与独立approved review，精确身份与边界见`verification/spec-b3-plan-p4-controller-consumption.md`。本次仅原CollectionBox首次成功batch实际encoder的第三具名出口，根／子契约、Spec baseline、A、全部既有Task与门强度不变。需amendment-only本地检查点之后才指定临近Task；没有提前启用产品、创建Task或把后继旧新oracle／guard probe／八full记pass。原foreign attempt catch后继续风险及成功Withdraw动态边界继续由受影响单元实证处理，不新增用户HITL。
