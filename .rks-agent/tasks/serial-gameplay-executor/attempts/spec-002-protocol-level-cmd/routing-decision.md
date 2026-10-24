@@ -41,11 +41,11 @@ Parent controller为`../../multi-spec-map.md`；父激活map检查点已完成�
   - final-review: auto
   - verification: auto
 - Bound methods: implementation: `test-driven-development`（先应用test-value gate；结构搬迁沿用行为测试/编译/结构判据，不制造编译失败当RED）。
-- Artifact path overrides（本次执行中B3/P4 amendment匹配的受影响gates已独立approved；旧B2/P3及更早审查原文留存，不改变controller/profile/gate强度/契约或baseline；其余制品仍使用共享composer默认路径）:
-  - spec-adversarial: `reviews/spec-b3-challenges.md`
-  - spec-review: `reviews/spec-b3-review.md`
-  - plan-adversarial: `reviews/plan-p4-challenges.md`
-  - plan-review: `reviews/plan-p4-review.md`
+- Artifact path overrides（本次执行中B4/P5 amendment匹配的受影响gates已独立approved；旧B3/P4及更早审查原文留存，不改变controller/profile/gate强度/契约或baseline；其余制品仍使用共享composer默认路径）:
+  - spec-adversarial: `reviews/spec-b4-challenges.md`
+  - spec-review: `reviews/spec-b4-review.md`
+  - plan-adversarial: `reviews/plan-p5-challenges.md`
+  - plan-review: `reviews/plan-p5-review.md`
 - Parent controller: `../../multi-spec-map.md`。
 - 继承任务授权覆盖普通实施和本地检查点，不再重复规划后人工停点；Astra及分支收尾仍是用户保留门。
 - 初始未提交输入仅B目录及原草案到source-draft的迁移，均为本Spec拥有，规划检查点纳入；不修改A封存文件。
@@ -54,3 +54,7 @@ Parent controller为`../../multi-spec-map.md`；父激活map检查点已完成�
 ## B3／P4受影响gate消费（2026-10-25）
 
 主控完整消费当前Spec B3／Plan P4及分别匹配的fresh challenge与独立approved review，精确身份与边界见`verification/spec-b3-plan-p4-controller-consumption.md`。本次仅原CollectionBox首次成功batch实际encoder的第三具名出口，根／子契约、Spec baseline、A、全部既有Task与门强度不变。需amendment-only本地检查点之后才指定临近Task；没有提前启用产品、创建Task或把后继旧新oracle／guard probe／八full记pass。原foreign attempt catch后继续风险及成功Withdraw动态边界继续由受影响单元实证处理，不新增用户HITL。
+
+## B4／P5受影响gate消费（2026-10-25）
+
+主控完整消费当前Spec B4 ready R2／Plan P5及匹配fresh独立gate，详见`verification/spec-b4-plan-p5-controller-consumption.md`。本轮仅Cera：原正常和健康确认回滚响应保持；新增VC-B4明确默认失败下单精确买家的足迹／参与者、Fence／精确连接阻断／DiscardExact／来源关闭及既有出站次序。Spec CH-1在R1成立，R2一次最小纠正后独立approved；Plan fresh挑战0/0且独立approved。先以amendment-only本地检查点固定这组门，再指定Task29；没有当前产品／测试改动或未来通过主张。baseline、Contract、A封存、controller/profile/auto门强度及三个raw出口保持，旧B3/P4消费段仅保历史。

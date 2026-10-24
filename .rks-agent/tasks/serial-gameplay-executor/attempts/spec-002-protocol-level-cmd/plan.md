@@ -10,7 +10,7 @@ state: ready
 
 ## Planning Choice
 
-本Plan P4承接Contract r1及已独立approved的Spec B3（reviews/spec-b3-review.md；匹配fresh挑战reviews/spec-b3-challenges.md），baseline仍为10a7218a779493494b138bd6b43cc0fc1a84aa6a。B3只增加CollectionBox首次成功主结算结束后的第三具名即时编码登记出口；本次仅修订相应HOW：最小phase/opaque attempt/adapter闭合透传、原whole成功分支与footprint迁移方法、先旧后新直接证据及默认保护反例。不改17RQ/11AC、VC-B1/B2/B3、P3 commit-result/来源GuardFailure/RequireRollback保因、默认Write/ReadOnly sticky、Compose禁用/F-132边界及其余路线；TASK-01～19已接受结果保持。依据和原P3逐字节快照见verification/plan-p4-amendment.md及verification/evidence/plan-p4-amendment/plan-p3-before.md。本ready稿仅供fresh有界Plan challenge、另一独立Plan review；主控完整消费并更新routing、完成amendment-only本地检查点后，才可指定下一Task路径并详细规划/实施。本作者不改routing、不建TASK-20、不运行native或写产品。
+本Plan P5承接Contract r1及已独立approved的Spec B4 ready R2（reviews/spec-b4-review.md；匹配immutable reviews/spec-b4-challenges.md，CH-1在R1成立且R2已解决），baseline仍为10a7218a779493494b138bd6b43cc0fc1a84aa6a。本次只落实CeraShopPurchase这一NonEffect协议的HOW：复用现有WriteResultAsync及KnownStorage/commit-only结果机制保真实确认回滚原拒绝响应，使用一个精确买家的NonRequest足迹，按VC-B4让Committed/Uncertain默认失败保护落到该actor，不削弱footprint或默认sticky。原四opening、CollectionBox三个raw出口、Compose禁用/F-132和其他路线保持；TASK-01～28已接受结果不重开。依据及原P4逐字节快照见verification/plan-p5-amendment.md和verification/evidence/plan-p5-amendment/plan-p4-before.md。17RQ/11AC、VC-B1～B3不变，VC-B4的WHAT由已批准B4拥有；本ready稿仅供fresh有界Plan challenge及另一独立Plan review，主控消费/routing更新及amendment-only本地检查点后才详细规划下一Task。作者不改routing、不建Task29、不运行native或写产品。
 
 采用逐单元规划：必须先落定跨切片共享契约，但后续功能簇的最小实际Task取决于前簇消除的共享依赖、实际事务点和回归结果。下文T-NNN是粗粒度工作包，不是预先分配的Task清单；详细计划只存于主控临近实施时指定的Task Unit。每Task保留独立结果快审；Spec级独立Plan审查及planning checkpoint在产品改动之前完成。本文件ready仅表示规划可供审查，不代表自批或实施完成。
 
@@ -64,7 +64,15 @@ EffectOperationContext不再是注入singleton的隐式请求服务。其每请�
 
 **四opening的action映射由各whole拥有。** 原domain／OpeningWireSlots／clock调用的窄业务try内，按旧过滤捕获OpeningRejected及原普通非取消、非uncertain故障，保存本次local异常、调用unit.RequireRollback并正常返回动作失败结果；纯业务mapper放在单元之外，将所捕获原因映射为原领域拒绝/StorageFailure、日志和失败ACK。RequireRollback自身的request/current守卫仍可能拒绝，不能被同一catch吞掉；已有sticky guard/登记失败不因业务catch或结果值恢复。outbox/Project/encoder及runner自身守卫不纳入此业务try。若action正常返回拒绝且已RequireRollback，结果为Returned<T>而非CommitRolledBack；若action成功而CommitAsync确认回滚，whole才在单元外按commit结果中的原cause应用同样旧响应映射。两路均在单元完全结束后登记原响应；取消/typed不确定和新失败继续原出口。四opening没有Mailbox.RunAsync式自Rollback，后者留其临近Task按真实已结算事实规划，不预扩此入口。
 
-runner的异常出口分真回滚、提交已确认及不确定：使用事务操作的明确结果/既有typed失败，不用DomainTransaction.IsSettled猜已提交（它在Prepare前就变true）。默认保持Task04已验收的普通提交后业务失败、既有typed发布、未知来源、登记守卫及不确定结果按全部精确参与者逐一围栏，禁止重结算并保留原cause引用；MonsterDeath/祭坛原受保护发布段不变。仅Spec B3 RQ-006表中的三个具名旧出口依下述机制保留raw，不将所有编码或IOException当豁免；其中CollectionBox旧动态证据的局限及补证由本P4下文单列。所有权检查、当前性检查和主单元生命周期保护在runner/显式句柄，不散成每CMD手写一份。
+**P5仅给Cera增加既有结果入口的具名消费者。** 已落地的`ICommandWorkUnits.WriteResultAsync`不需要为Cera新增API或修改runner。原Cera fine只有一次Transactional；whole对应一次Ordinary write，显式声明`CommandFootprintMode.NonRequest`和仅一个`SelectedSessionRecipient`买家，包含本次原session、原物理`Dispatch.Connection`及本次Game metadata。Cera领域入口和写前都调用DemandEffects，故不能用无足迹Write、空participants、Main或LegacyFootprint替代；只在本次健康action内传`unit.Footprint`给原`ICeraShopDomainService.PurchaseAsync`，不注入当前request、不从ambient补请求，也不增加Main/ledger admission/同序号幂等。原缺session/online直接拒绝路径不进入写单元；正常业务返回拒绝保原结果和空提交事实，不为统一写法RequireRollback。原session/ownership等领域拒绝的强用例保留，不能用actor装配将原普通拒绝无说明地改成异常。
+
+**Cera窄业务映射与确认回滚分开。** 单元声明、actor/current/footprint取得和runner守卫放在业务try之外；try只包原clock/领域调用。按原类别把CeraShopPurchaseRejected及普通非取消、非typed不确定动作异常保存为本次local结果，调用`unit.RequireRollback(cause)`后正常返回，再于单元完整结束后映原reason/detail、StorageFailure及原日志。RequireRollback自己的request/current/typed守卫不能被该catch吞掉，已sticky的业务／登记／guard错误不能恢复。原动作正常返回拒绝不调用RequireRollback。Commit阶段沿现有真实runner窄span，仅`KnownStorage`来源事实、cause同对象、非取消/非uncertain、真实CompletionConfirmedRollback、无GuardFailure/已有request failure、当前买家仍有效且全部unit/lease清理成功才返回`CommitRolledBack`；whole在单元外按其原cause映相同拒绝。不能把Prepare中的任意受控业务／程序守卫仅凭回滚成功都当KnownStorage，不能以IsSettled、文字或业务自报恢复；已有四opening入口和默认Write/ReadOnly的判据不改。Cera领域不自行Rollback，因此无需Mailbox式已结算恢复或第二事务。
+
+**Cera投影和VC-B4默认失败。** 原cart日志、session/online判定、receipt/refusal日志、错误码（NoRoom4、InsufficientFunds11、其余1）、`CeraShopPurchaseCompleted`及可选NameTag可见会话刷新都进唯一whole；原通知handler及其扩容快照→产品ACK→wallet→可选gold→inventory→pet→restriction→premium/state次序保留，两次Project的受众／顺序也不改。handler只入队，旧fine及其注册/所有生产转发删净；共享业务仍由原领域服务拥有。新whole只用ICommandProjections和IGameCommandOutbox，不注入旧sender/IEventService或Nested bus，不给Cera声明任何raw出口。NonRequest actor在真实Committed/Uncertain时由现有runner记录；发生默认不可恢复错误后，让原CommandBus drain→Close request→scope cleanup→FailAsync的最终收口执行精确Fence、物理连接阻断、DiscardExact及关闭，保cause和独立错误事实。不能为保旧空selected集合削弱足迹，也不能每次普通Commit成功就Fence。成功、正常拒绝及健康清理完成的确认回滚不新增Fence/close；若拒绝后又发生独立登记/清理错误，那已不是正常拒绝成功结束，按实际默认条件保护。
+
+C1非fallible违约、C2动作SQL加Rollback第二cause不进入普通拒绝映射；C3从旧fine scope映到新whole的真实DI scope，用测试侧decorator让原scope实际解析并Dispose受控资源，不在body手抛或手动Dispose冒scope证据。body正常返回前可能已登记success或正常拒绝帧，现有outbox按单元状态保留已提交及单元外条目，按原序刷出后关闭失败来源；不因C3追加StorageFailure ACK、不撤条目/提前flush或承诺零帧。保护仅限本次精确买家及物理来源；替换后的session/runtime和无关玩家不被误围栏、丢弃或关闭，既有关连接生命周期的正常投影不在“误伤”之列。具体whole结果形状、探针/测试路径及局部fixture接法留临近Task；若实际实现要求扩大机制、恢复来源或VC边界，先返主控，不在Task暗扩。
+
+runner的异常出口分真回滚、提交已确认及不确定：使用事务操作的明确结果/既有typed失败，不用DomainTransaction.IsSettled猜已提交（它在Prepare前就变true）。默认保持Task04已验收的普通提交后业务失败、既有typed发布、未知来源、登记守卫及不确定结果按全部精确参与者逐一围栏，禁止重结算并保留原cause引用；MonsterDeath/祭坛原受保护发布段不变。仅Spec B4 RQ-006表中的三个具名旧出口依下述机制保留raw，不将所有编码或IOException当豁免；其中CollectionBox旧动态证据的局限及补证由本P4下文单列。所有权检查、当前性检查和主单元生命周期保护在runner/显式句柄，不散成每CMD手写一份。
 
 具名许可在ProtocolModule等实际命令注册元数据中声明，限定UseStackable已Settled后的RequiredExplicit、CommittedReplay普通Write后的CurrentStateBatch，以及CollectionBox首次成功Main结束后的原一次batch。Application只认识机制层许可标识/阶段及注册身份，不认识具体Protocol CLR类型。request只在对应实际阶段、当前job且健康/未closed、精确物理目标匹配、所有已启动unit/cleanup均结束时签发本次不可伪造attempt，绑定request、job、实际注册许可、阶段、目标及调用身份。许可不以永久exemption标志开启，不是新构造器能力或第二凭据框架；普通登记API默认策略不变。新增出口须另有旧行为证据及受影响审查，不能只声明元数据即获授权。
 
@@ -100,7 +108,7 @@ replay旧ReadReplayStateCommand的实际注册是Transactional，故新路径在
 |---|---|---|
 | *DomainService、*DomainStore | Abstractions各领域 / 原实际状态所有者 | 维持现有类别判定；业务服务调用规则/存储，CMD不绕过它们 |
 | IPartyService、TimeProvider | 原契约/实现 | 维持具名队伍聚合及环境时钟例外，不扩成其它Directory/Registry |
-| ICommandWorkUnits | Application/Commands / Application/Transactions | 仅本CMD的显式边界及§4封闭commit结果值；默认Write/ReadOnly sticky保持，只有runner确认CommitAsync内完整回滚且本单元清理成功才返回CommitRolledBack，不给caller清失败/签发回滚事实的入口。拒绝bus/queue/执行器/动态解析入口 |
+| ICommandWorkUnits | Application/Commands / Application/Transactions | 仅本CMD的显式边界及§4封闭commit结果值；默认Write/ReadOnly sticky保持；封闭结果仅供§4四opening及P5 Cera具名消费，只有runner从CommitAsync内KnownStorage/cause事实确认完整回滚、请求健康且清理成功才返回CommitRolledBack，不给caller清失败/签发回滚事实或处理协议错误码的入口。拒绝bus/queue/执行器/动态解析入口 |
 | ICommandMessageOutbox | Abstractions/Networking / Application/Execution/Outbox | RegisterAsync、RegisterBatchAsync、RegisterExplicitAsync只登记当前CMD；§4三个出口复用现有opaque attempt重载，batch在实际adapter内部仅接受replay/initial phase，required-explicit独立且不可借batch。仅encoder窄catch记cause；普通重载默认不变，无caller自报来源、传输或Resolve，不造第二队列/请求容器 |
 | IGameCommandOutbox | Protocol/Game / Protocol/Game | RegisterCmdAsync、RegisterNotiAsync及typed batch/explicit；沿现有attempt重载将同一opaque对象传至前项，原typed转换在encoder来源catch之外，保CMD/NOTI类型和exact physical connection，不签发/改phase或包装任意业务Func。Application不知道CollectionBox等协议类型 |
 | ICommandConnectionClosures | Abstractions/Networking / Application/Execution/Outbox | RequestCloseAsync只登记精确关闭；维持close总执行、链原因与F-131现状，不直接断socket |
@@ -146,7 +154,7 @@ Protocol的各主题CMD通过该服务检查周期/精确身份，并通过所�
 | T-001 首单元有界修正 | App25文件按拥有的规范化写/只读池清理；F-127真实传输失败只调整gone日志分类，含普通故障对照 | 仅已批准Plan及checkpoint；不依赖CMD迁移，先稳定清理与失败日志基线。一个首Task含两项，但实现与验证证据分开 | RQ-010/011，AC-006；F-130/F-127，VC-B1 |
 | T-002 保护与迁移账 | 冻结注册/来源/实际事务点清单；F-88/F-93四项先红守护；建立可执行不变量对照，核实F-132延迟路径禁用 | T-001结果；先有保护再搬保护，清单不是详写远期Task。保护可按即将迁移簇物化，但四项不得晚于对应搬迁 | RQ-001～008/013～015，AC-001～005/008；F-12/F-34/F-88/F-93/F-112/F-132 |
 | T-003 共享执行骨干与简单协议先行 | 同一命令模型、新路由/请求状态、runner、typed登记接口及注入反例；用简单单命令/单响应协议验证贯通，再迁Channel/登录/名册等适合的简单簇 | T-002的清单/相关保护；骨干不能靠空壳编译算完成，至少一条真实入站路径和内部来源验证。跨切片接口与可见行为分Task按test-value gate处理 | RQ-001～009/012/014，AC-001/002/004/005/007；F-58/F-110，VC-B2 |
-| T-004 物品与效果簇 | 物品/槽位/效果协议CMD、显式footprint从singleton传到底、主结算/重放、F-122登记结果全消费点改名；按B3及§3/§4闭合唯一ledger admission、reader/sink与三个具名即时编码登记出口；P3四opening的action拒绝/commit确认回滚响应保持；CollectionBox只迁原一次Main与首次成功batch | T-003及已接受Task01～19共享骨干/消费者；P2首Effect/Main与UseStackable、P3四opening为已消费历史，不重开。下一有用单元在P4受影响Plan gates及amendment-only检查点后，先取得未迁CollectionBox真正旧decoder Select/Put的固定cause直接oracle，再连同§4最小phase/adapter闭合和whole迁移、共享核心八full验证；不先交无人消费的enum/接口空壳。按真实共享依赖选最小簇，不容新CMD回调legacybus；其余legacy重放调用者按实际层级逐行留账/迁移，不预设数量或新Task清单 | RQ-001/003～009/013～015，AC-001～005/008；F-34/F-112/F-122 |
+| T-004 物品与效果簇 | 物品/槽位/效果协议CMD、显式footprint、主结算/重放和F-122命名；B3三个具名即时编码出口；P3四opening确认回滚响应及P5 Cera的单Ordinary+NonRequest精确买家、既有commit结果与VC-B4失败收口 | T-003及已接受Task01～28。CollectionBox/共享phase已在Task20闭合、其后物品单元及F-122保持已接受；下一有用单元是Cera单协议，消费Task28真正旧decoder/SQLite七例before和当前B4，P5受影响gate及amendment-only检查点后再详细规划。同一provider迁whole/一次写/原投影，删旧fine且保原强用例；不交无消费者机制空壳、不调用legacybus、不预扩Mailbox等后簇 | RQ-001/003～009/013～015，AC-001～005/008，VC-B4；F-34/F-112/F-122 |
 | T-005 邮箱、市场、租赁簇 | 协议CMD吸收交易与投影编排，逐提交点及拒绝回滚；清除所触共享帮助器bus依赖 | T-004稳定的效果/登记接口；交易簇用真实持久化/同容器发件箱证明，不复制旧handler进代理 | RQ-001/003/006～009/013～015，AC-001～005/008；F-12/F-112 |
 | T-006 队伍簇 | 队伍协议、显式收件人顺序组、共享Delivery/Coordinator解耦；真实状态所有者保留 | T-005及共享业务抽取；先稳定队伍结果/投影，再迁世界/副本依赖 | RQ-001/003/006/007/009/014，AC-001/003～005；F-34 |
 | T-007 城镇与副本簇 | Town/Dungeon/MonsterDeath等CMD；F-86卡牌重试裁定；F-109无语义参数收口，全部参与者围栏不缩减 | T-006、对应F-88/F-93保护；按实际领域事务及共享顺序链继续分最小Task，保#185判定 | RQ-001/003～009/013/014，AC-001～005/008；F-86/F-88/F-93/F-109 |
@@ -195,6 +203,18 @@ B2/P2对应首效果单元保留EffectOperationReplayTests的A_use_already_durab
 
 受影响结构/回归同时证明：仅注册具名出口可签发、普通Register默认不变、opaque handle无公开自报入口、Application不识别Protocol CLR、没有新ambient/jobslot/DI当前请求/事务查请求；new ledger/reader/sink每处Capture使用显式recipient/metadata/null，LegacyReplay仅旧route可达且有最终删除账；唯一CWT、ConfirmedRollback不更新原entry.Ordinal、普通Write读取后事务外MirrorMerge/Create/batch/Town、无nested bus/Compose/延迟编码。RecordedOutbound新旧契约同Registering、同outboxes且inFlight注错/观察仍生效，Required/BestEffort及原帧序保护不放宽。详细测试放临近Task，不把这些拟验项目计为本轮已跑。
 
+**P5 Cera：复用已接受before，直接核新whole与默认保护。** Task28的`report.md`、`final-01/`七例、freeze04和原日志是已提交、独立approved的旧边界，不再编造before或修改历史harness以使它在删fine后编译。临近Task先封存当前最小生产/原强测试及完整tracked NUL，再将必要探针适配复制到该Task自己的新路径；保持真正注册decoder→同provider dispatcher→whole→原domain/SQLite/适配器/outbox。原Task28使用production OutboundSender+受控内存transport的边界继续明确，新观察也不能拿Discard或仅登记条目冒实际发送/CloseAsync。组装及取消/guard/cleanup异常来自哪个真实位置、cause引用、全部列含NULL/BLOB及事件/临时FK表的before/暂存/结束/新合法购买快照、原UTC/命令/exit和加载assembly/source freeze对应均直接落证。
+
+保旧success/正常不足余额拒绝；普通返回拒绝实际Committed不误称rollback。A晚期宠物slot SQL19/1811前wallet/gold/前grant/events已暂存、domain未receipt，迁后RequireRollback(cause)的Returned拒绝须完整回滚并保原ACK1/no-fence/no-close；B须同样真实domain先receipt、FK1/child>0、SqliteTransaction.Commit19/787及KnownStorage/FallibleCommit/cause事实后才CommitRolledBack，全部列回滚并保相同响应。普通trigger ABORT或controlled Prepare不能替代native Commit。A/B去trigger后的相同合法cart是一次新的购买，只产生该次扣费/物品/事件，不冒Main/同entry/Ordinal幂等。请求失效、取消、原sticky/guard、unknown/typed、额外unit/lease或scope错误均不能取得这种可恢复值；对既有核心正反例按实际所触边界复用或重跑，不以测试名代替路径。
+
+VC-B4必须同时区分C1真实SQLite已提交后controlled nonfallible违约、C2真实SQL加controlledRollback双因（实际资产可回滚而Completion仍Uncertain）、C3新whole真实scope在body后清理故障。C1/C2保typed及原cause/第二cause对象；C3保已提交事实及独立cause/默认包装，三者不按StorageFailureACK恢复或正常结束。直接核本次精确actor的Fence、精确连接IsBlocked、DiscardExact目标和实际source close/chain；对照健康success/refusal/确认回滚无此保护。至少以真实不同session身份/运行态或受控实际替换，证明旧actor保护不误清/误围栏/误关替换后的身份及其他物理连接，不能只断言用例名或静态“Exact”。C3观察scope错误前已登记的真实消息、最终按原unit状态存活的帧序和关闭置后；不统一断言零帧，不靠修改outbox、补失败ACK或减参与者求绿。受控participant/scope故障及观察查询可能提前enlist原SQLite的影响按Task28方式披露；它们不等同生产事故或TCP/A21实机。
+
+原Cera直接fine强测试的真实PVF、wallet/gold、容量/名字牌/权益、UID/宠物、晚期回滚、旧selection/持久所有权、receipt不投递给替换身份和原codec参数/断言保留。旧fine删除后，wire可表达的用例按真实新whole/decoder驱动；不能wire表达的旧session/领域输入可保在真实领域服务+原显式事务的test-only接缝，明确其证明范围且不假造生产字段、删除拒绝断言或保一个legacy转发命令。Host的`RealShopPurchasesCompeteWithGrantsWithoutLostSpendingOrRoleMultiplication`保实际HTTP grants与三次真实购物竞争、每次receipt及最终97810/三操作事实；不能替换成SQL预置余额。已有非效果来源/结束后足迹、真实通知/字节和处理失败后下一次合法购买的强意图保持。具体fixture方式和白名单由临近Task按此约束收敛，不在本Plan预写实现。
+
+临近Cera Task冻结后完整Release solution build0警告0错误；按实际影响至少Application/Protocol/Networking相关full，若改Host竞争用例则Host完整full，保存原并行/5m/Skip及逐display/status/multiplicity变化。若确需改共享core/API则返主控确认范围并扩大八freshfull，不将当前“无需改core”的选择作为以后复用旧证据的借口。原9014＝8994pass＋2 exact旧Dimensionfail＋18skip只引用Task27已接受库存（Task28无新xUnit）；每个新full与其它未受影响库存的来源/冻结身份明确，最终T-012八freshfull不减。正式DFO沿原expected类/数、actual controls及轮次来源闭合，混用full轮次只允许原bytes复制的新bundle及逐SHA provenance，不双算control、不改expected求过；Golden15/Characterization10、原source/runtime/pure family和canonical严格验证/坏例按实际变更完整保留。只闭合Cera真实消息/旧fine对应ledger行，三个raw出口全部owner不变且Cera无许可；本P5不运行这些检查或提前记pass。test-value gate优先原强行为/已证before和有价值保护，编译失败不冒RED，局部结果仍required fresh独立快审。
+
+**P4已消费的CollectionBox验证要求（以下原文保留，8828及Task19是当时起点，非P5新运行或当前起点）。**
+
 **P4受影响单元的前后直接oracle与安全矩阵。** 产品迁移前先在真正旧CollectionBox decoder→dispatcher→fine/Main→SQLite→同provider实际Registering/outboxes/registration encoder路径实跑Select和Put，固定每case唯一encoder cause对象；保最小原源码/driver、production SHA、命令、真实UTC/退出状态与完整输出，不重建假before或回写旧证据。旧手造CollectionBoxRequest直接dispatcher只证明原间证，不能替代decoder；先验证注错确实发生、注入在actual encoder窄span且整失败batch未登记。迁移后对应新decoder/dispatcher/whole/Main路径重跑，直接核同cause引用、真实同ledger entry及原Ordinal、Committed、无新增participant fence、原source-close顺序，外部改变当前boxes/库存后同序号只重放当前投影，不二结算/不原ACK。RecordedOutbound.Discard不物理关socket；不声称真实关闭后可重发。
 
 原拒绝码、成功帧序/完整boxes及selected重复、无session/初始Rejected、ordinary SQL语义和精确物理目标断言保留。旧physical reuse case的BeforeSend hook未断言真正替换发生：保原case并补真实可观察的替换触发反例/对照，明确确认hook/旧target与replacement事实，不能仅凭用例名宣称已有强覆盖。成功Withdraw现仅静态共用路径、Spec review列nonblocking residual；可在后继补真实成功Withdraw wire/encoder case闭合该范围，若未实跑继续披露，不能由Select/Put或Withdraw拒绝用例冒称动态通过。
@@ -219,21 +239,21 @@ F-07在T-010验证各主题差异：配额同周期余额变化不新增刷新�
 
 T-012在冻结状态运行完整Release构建，0警告0错误；八项目全量（Application、Protocol、Networking、Persistence、Infrastructure、Host、HttpApi、Pvf），保持原xUnit类并行。允许-m:1串行项目，不把程序集串行作为隔离修复。正式dotnet全量在本机FSEvents可用的require_escalated环境执行，保留原deadline，DFO_GAMEPLAY_ASSERTIONS和console detailed完整落盘，环境/命令/退出码及数量同档。sandbox watcher停滞不能解释成业务回归或冒称全部managed根因已证。
 
-8350基线为8330通过、2个已披露DimensionDungeon内容失败、18跳过；表征10/0。保留两条内容失败准确身份及当前AGENTS允许已登记偶发的证明规则，新增失败不能混入基线。逐项目数量与总数按Task增减闭合，原codec/Golden字节/帧序/连接开关断言保持，只有VC-B1/B2/B3明确允许相对A变化。
+8350基线为8330通过、2个已披露DimensionDungeon内容失败、18跳过；表征10/0。保留两条内容失败准确身份及当前AGENTS允许已登记偶发的证明规则，新增失败不能混入基线。逐项目数量与总数按Task增减闭合，原codec/Golden字节/帧序/连接开关断言保持，只有VC-B1/B2/B3/B4明确允许相对A变化。
 
 同A工具重跑执行器外写/网络等待/自等/泄漏取证，七程序集正对照齐，反例类/对照外0；保留exe0仅为观测而非所有吞错证明的边界。旧机制检索包含六处请求AsyncLocal/旧marker/旧pipeline/legacy路由和重载、bus包装、旧重复Error、两个手工Current；生产AsyncLocal最后只允许GameplayJob.Running与DomainTransactionScope.ambient。把命中按实际职责分类，不能只grep类名为零。
 
 最终同A的工具、负载、口径与环境再测执行分位/max、吞吐/等待、并发登录/灌包、冷启；每条CMD max≤2秒即接受。原目标作对照优化，数量级异常按根约定报告；套件总时长/内存只记录。报告合成/非A21实机边界。若测量后再改影响执行的产品，受影响检查/测量需重跑。
 
-最终文档更新AGENTS与架构哲学/新增协议步骤、真实分层及typed登记/单元用法、F-128①。报告包括六根条件、17RQ/11AC与18交接去向、VC-B1/B2/B3、F-131保留及F-132禁用、基线/遗留、测量证据、Astra待审及不推送/PR状态。A封存文件不修改；B最终核验/封存由主控按工作流推进，本Plan不自行宣告完成。
+最终文档更新AGENTS与架构哲学/新增协议步骤、真实分层及typed登记/单元用法、F-128①。报告包括六根条件、17RQ/11AC与18交接去向、VC-B1/B2/B3/B4、F-131保留及F-132禁用、基线/遗留、测量证据、Astra待审及不推送/PR状态。A封存文件不修改；B最终核验/封存由主控按工作流推进，本Plan不自行宣告完成。
 
 ## Next Planning Boundary
 
-P1首单元、P2首Effect/Main＋UseStackable与P3四opening是已消费的历史边界；TASK-01～19及其独立结果/检查点保持，不重写原计划、Task或源证据，不以Task数量等同粗工作包编号。当前产品HEAD为Task19检查点`dba3ede68e15f892afd35534db9fed7ed00d04a8`。P3修订记录及原“两出口”历史说明保留，本P4只由B3补第三出口和受影响HOW。
+P1首单元、P2首Effect/Main、P3四opening及P4 CollectionBox共享phase是已消费的历史边界；TASK-01～28及其独立Result/检查点保持，不重写Task或源证据，不以Task数量等同粗工作包编号。当前产品/调查HEAD为Task28检查点`f42efb55bedad71dc1196100e39255bc483ed72c`；Task27全量9014库存及注册捕获仍是未改产品的已接受输入，Task28只新增旧Cera边界证据，不称新增full或迁移。
 
-当前下一Useful Unit是T-004内CollectionBox一个完整协议及§4最小SettledInitialBatch/adapter透传改造；它先实跑未迁旧decoder Select/Put固定cause oracle，再在同容器迁whole、Main/footprint和原成功一次batch并对应重跑，连同共享安全矩阵与八full，不把机制单独做成空壳。详细whole结果/driver/路径白名单留主控指定的临近Task，不提前创建TASK-20。本ready稿写完停止共享写入，先fresh有界Plan challenge→另一独立Plan review→主控完整消费、更新routing及amendment-only本地检查点，才可详细规划/产品测试；不能沿用P3批准或B3 Spec批准替代P4门。
+下一Useful Unit是T-004内CeraShopPurchase一个完整NonEffect协议：复用§4既有WriteResult/KnownStorage及单精确actor NonRequest，迁旧handler编排/一次Transactional/原通知，删除旧fine和legacy入口，保原强用例；同provider真正decoder对照Task28的A/B及C1/C2/C3，证明原可恢复ACK与VC-B4精确保护、已登记条目及关闭次序。不要先交一个无消费者的新接口/机制，也不顺带迁GM/HTTP来源、Mailbox或其自Rollback。whole结果/新driver/物理路径白名单及检查精确命令留主控门后指定的临近Task；本作者不创建Task29。
 
-后续仍只规划能消除真实依赖的最小有用单元；重大共享决策变化、漏注册/事务点、行为超出VC或长时间偏离目标触发既有on-drift/受影响Plan审查。controller/profile、task-units/on-drift、根/子Contract、17RQ/11AC、VC、baseline、A seal与所有门强度不变。若真实旧oracle否定本边界或实现需要改WHAT/更宽范围，先报告主控；不能暗扩raw、commit-result恢复、whole业务catch或隐式请求通道。P4只供审查，不自批、不推进routing/ledger，不stage/commit/改版本/remote/部署/cleanup。
+当前ready P5先经fresh有界Plan challenge、另一独立Plan review，主控完整消费Spec B4/P5的匹配门、更新routing并作amendment-only本地检查点后，才详细规划/产品写。不能沿用B3/P4批准替代新门，也不把B4的WHAT批准当本Plan或实现通过。后续仍按真实共享依赖逐簇展开；超出VC、需要扩大恢复消费/机制或漏事务点时返主控和受影响gate，不暗扩raw、generic whole catch或隐式请求通道。controller/profile、task-units/on-drift、根/子Contract、Spec baseline、A seal和其余T-005～012路线/门强度不变；中文，不stage/commit/push/PR/remote/版本/tag/部署/游戏/cleanup。
 
 ## 本地修订说明
 
@@ -244,3 +264,5 @@ P2（2026-10-24，Task10检查点之后）：消费已匹配approved的Spec B2�
 P3（2026-10-24，Task14检查点之后）：按旧四opening的fine外异常响应与DomainTransaction明确完成状态，定点补§4 commit阶段已确认回滚结果、§5共享能力、T-004依赖、对应先旧后新验证和Next Planning Boundary。默认Write/ReadOnly sticky及B2两个raw出口不变；action映射仍各whole内窄业务try＋RequireRollback，不给调用方清失败或自报回滚能力。详见verification/plan-p3-amendment.md。本ready稿仅供fresh受影响challenge/独立Plan review，随后主控amendment-only检查点；routing-decision由主控更新，旧制品与Spec不改，门后才详细规划下一Task和产品写。
 
 P4（2026-10-25，Task19检查点之后）：消费已匹配approved的Spec B3，仅补CollectionBox首次成功Main结束后的第三具名原batch出口。§4确定通用SettledInitialBatch、穷尽阶段判定、现有opaque接口透传和实际adapter batch/required调用矩阵；whole原Main/footprint、四namedcatch/普通SQL及结果非空边界保持。§5、T-004、对应先旧后新直接oracle/默认反例及当前下一规划边界受影响更新；P3 commit-result/来源guard/保因、默认sticky及原两许可、Compose/F-132和其它路线保持。详见verification/plan-p4-amendment.md，原P3逐字节快照另存；本轮无native/产品/Task20、无路由或git写入。ready仅供fresh Plan challenge/另一独立review，主控门后amendment-only检查点再指定临近Task。
+
+P5（2026-10-25，Task28检查点之后）：消费已匹配approved的Spec B4 ready R2及immutable CH-1处置，仅给Cera增加现有WriteResultAsync/KnownStorage commit-only结果入口的具名消费；原一次普通写声明NonRequest和单精确买家，窄action映射/RequireRollback(cause)与commit确认回滚原响应分开，正常拒绝不强回滚。VC-B4的C1/C2/C3默认失败及精确actor Fence/连接阻断/DiscardExact/关闭、scope前已登记消息按既有顺序落实，不为旧空集合改core保护，不增raw出口或Compose。§4/§5、T-004、对应direct before/after/强测试和当前NextBoundary受影响；P3/P4历史要求保原文并明确其旧起点。详见verification/plan-p5-amendment.md及原P4逐bytes快照。本轮无native/产品/Task29、无routing/git写入；ready仅供fresh challenge/独立Plan review，门后主控amendment-only检查点再推进。
