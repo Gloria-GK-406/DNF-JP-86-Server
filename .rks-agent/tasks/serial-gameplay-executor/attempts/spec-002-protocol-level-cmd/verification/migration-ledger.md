@@ -200,3 +200,8 @@ TASK03两次独立capture payload SHA256为 `4861e139bb126adaefba9240d0371d582c2
 当前capture认识新Protocol/Internal注册及message↔CMD的CLR绑定，双向校验仍覆盖全部173消息/204命令，原统计只作历史基线。新ProtocolNonEffect与TrustedInternal可用；effect注册/MainSettlement明确拒绝，真正效果账本/足迹/主生命周期仍待首effect单元。三分支、旧Context/Capture重载、默认Internal NotSupported兼容在现有过渡行登记，T011清零；不把保留层冒称最终机制。
 
 `preclose --current-task <本B的tasks/TASK-04.md>` 只豁免该精确当前Task尚未写done Result，其它映射/路径/原值及其它完成Task仍严格。产品及预检过后才能写Result，再以`validate`严格核验；预检不是完成或审查通过。
+
+
+## TASK-05 剩余 Channel 闭合
+
+Connect/Script/Info三消息（11/9/17）及旧GetScript/GetInfo两命令已对应新协议CMD，旧Get/result/handler及注册删除。原无事务形状保持，key纯算法一处、原同连接/header/body/ciphertext/catalog顺序由新CMD及真实TCP共同保护，见`evidence/task-05-mapping/workunit-map.md`。Task04四行closed不改，current capture应为173消息/205命令，4Protocol+1Internal+200Legacy；actual源/CLR逐条核验见本轮capture。其余155业务消息/200旧命令/72来源仍pending，整体Spec未完成。

@@ -8,6 +8,7 @@ using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Execution;
 using Dfo.Server.Data.Networking;
@@ -86,8 +87,15 @@ internal sealed class LifecycleWireHost : IAsyncDisposable
         builder.Services.AddSingleton<INetworkConnectionObserver>(sp =>
             new RecordingObserver(recorder, sp.GetRequiredService<GameplayExecutor>()));
         foreach (var type in new[] { ClientMessageType.GameExit, ClientMessageType.ChannelConnect })
+        {
             builder.Services.Remove(builder.Services.Single(x => x.ServiceType == typeof(MessageHandlerRegistration)
                 && ((MessageHandlerRegistration)x.ImplementationInstance!).MessageType == type));
+            // The probe replaces this one-message protocol route, including its command binding.
+            foreach (var command in builder.Services.Where(x => x.ServiceType == typeof(CommandHandlerRegistration)
+                && x.ImplementationInstance is CommandHandlerRegistration { Route: CommandRouteKind.Protocol, ProtocolMessages.Count: 1 } route
+                && route.ProtocolMessages[0].MessageType == type).ToArray())
+                builder.Services.Remove(command);
+        }
         builder.Services.RegisterMessageHandler<ProbeHandler>(ClientMessageType.GameExit);
         builder.Services.RegisterMessageHandler<ProbeHandler>(ClientMessageType.ChannelConnect);
         builder.Services.AddServerMessageEncoder<LifecycleBlob, LifecycleBlobEncoder>(NetworkEndpointKind.Game);

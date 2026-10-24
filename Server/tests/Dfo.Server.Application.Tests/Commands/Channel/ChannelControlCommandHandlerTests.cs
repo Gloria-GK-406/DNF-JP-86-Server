@@ -29,35 +29,43 @@ public sealed class ChannelControlCommandHandlerTests
     }
 
     [Fact]
-    public async Task GetScript_ReturnsTheBytesFromThePeripheralSource()
+    public async Task Script_RegistersThePeripheralBytesToTheOriginalConnection()
     {
-        var handler = new GetChannelScriptCommandHandler(
+        var outbound = new VersionOutbox();
+        var handler = new ChannelScriptCommandHandler(
             new ChannelDirectoryDomainService(new ChannelContentRuleService(
-                new NoChannelCatalog(), new StubScriptSource("66", [0x10, 0x20, 0x30]))));
-        var command = new GetChannelScriptCommand();
+                new NoChannelCatalog(), new StubScriptSource("66", [0x10, 0x20, 0x30]))), outbound);
+        var connection = new NetworkConnectionContext(new("channel-42"), NetworkEndpointKind.Channel, 7001);
+        var command = new ChannelScriptCommand(new(connection), new(ChannelMessageMetadata.Empty));
 
-        var result = await handler.HandleAsync(CreateContext(command, handler), command, CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+            await handler.HandleAsync(CreateContext(command, handler), command, CancellationToken.None));
 
-        var typed = Assert.IsType<GetChannelScriptResult>(result);
-        Assert.Equal(new byte[] { 0x10, 0x20, 0x30 }, typed.Content);
+        Assert.Equal(connection.ConnectionId, Assert.Single(outbound.Recorded.Entries).Connection.ConnectionId);
+        var response = Assert.IsType<ChannelScriptResponse>(Assert.Single(outbound.Recorded.Messages));
+        Assert.Equal(new byte[] { 0x10, 0x20, 0x30 }, response.Content);
     }
 
     [Fact]
-    public async Task GetChannelInfo_ReturnsTheCatalogSnapshot()
+    public async Task Info_RegistersTheCatalogSnapshotToTheOriginalConnection()
     {
         var channels = new[]
         {
             new ChannelServerInfo(11, "#ch.11", 500, 12, "127.0.0.1", 10011)
         };
-        var handler = new GetChannelInfoCommandHandler(
+        var outbound = new VersionOutbox();
+        var handler = new ChannelInfoCommandHandler(
             new ChannelDirectoryDomainService(
-                new ChannelContentRuleService(new StubChannelCatalog(channels), new NoChannelScript())));
-        var command = new GetChannelInfoCommand();
+                new ChannelContentRuleService(new StubChannelCatalog(channels), new NoChannelScript())), outbound);
+        var connection = new NetworkConnectionContext(new("channel-42"), NetworkEndpointKind.Channel, 7001);
+        var command = new ChannelInfoCommand(new(connection), new(ChannelMessageMetadata.Empty));
 
-        var result = await handler.HandleAsync(CreateContext(command, handler), command, CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+            await handler.HandleAsync(CreateContext(command, handler), command, CancellationToken.None));
 
-        var typed = Assert.IsType<GetChannelInfoResult>(result);
-        Assert.Equal(channels, typed.Channels);
+        Assert.Equal(connection.ConnectionId, Assert.Single(outbound.Recorded.Entries).Connection.ConnectionId);
+        var response = Assert.IsType<ChannelInfoResponse>(Assert.Single(outbound.Recorded.Messages));
+        Assert.Equal(channels, response.Channels);
     }
 
     private sealed class VersionOutbox : ICommandMessageOutbox

@@ -67,6 +67,16 @@ public sealed class ChannelControlMessagesIntegrationTests
             await client.ConnectAsync(IPAddress.Loopback, channelPort, timeout.Token);
             var stream = client.GetStream();
 
+            await SendRequestAsync(stream, 0x0B, timeout.Token);
+            var connect = await ReadFrameAsync(stream, timeout.Token);
+            Assert.Equal(0x7C, connect.Classification);
+            Assert.Equal(0x0C, connect.MessageNumber);
+            Assert.Equal(0u, connect.Checksum);
+            Assert.Equal(1, connect.Acknowledgement);
+            var connectBody = new byte[36];
+            Encoding.ASCII.GetBytes("20260810000006").CopyTo(connectBody, 4);
+            Assert.Equal(connectBody, connect.Body);
+
             await SendRequestAsync(stream, 0x05, timeout.Token);
             var version = await ReadFrameAsync(stream, timeout.Token);
             Assert.Equal(0x06, version.MessageNumber);
@@ -183,7 +193,7 @@ public sealed class ChannelControlMessagesIntegrationTests
         await stream.WriteAsync(frame, cancellationToken);
     }
 
-    private static async Task<(byte MessageNumber, byte[] Body)> ReadFrameAsync(
+    private static async Task<(byte Classification, byte MessageNumber, uint Checksum, byte Acknowledgement, byte[] Body)> ReadFrameAsync(
         NetworkStream stream,
         CancellationToken cancellationToken)
     {
@@ -192,7 +202,7 @@ public sealed class ChannelControlMessagesIntegrationTests
         var totalLength = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(2, 4));
         var body = new byte[checked((int)totalLength - header.Length)];
         await stream.ReadExactlyAsync(body, cancellationToken);
-        return (header[1], body);
+        return (header[0], header[1], BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(6, 4)), header[10], body);
     }
 
     private static byte[] Decrypt(byte[] body, bool compressed)

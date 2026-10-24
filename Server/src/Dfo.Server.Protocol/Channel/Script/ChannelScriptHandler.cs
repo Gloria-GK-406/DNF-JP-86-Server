@@ -1,23 +1,14 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Protocol.Channel.Script;
 
-public sealed class ChannelScriptHandler(
-    INetworkMessageSender sender,
-    ICommandBus commandBus) : ClientMessageHandler<ChannelScriptRequest>
+public sealed class ChannelScriptHandler(ICommandBus commandBus)
+    : ClientMessageHandler<ChannelScriptRequest>, IProtocolCommandMessageHandler<ChannelScriptCommand>
 {
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        ChannelScriptRequest message,
-        CancellationToken cancellationToken)
-    {
-        var result = await commandBus.SendAsync(
-            new GetChannelScriptCommand(), cancellationToken).ConfigureAwait(false);
-        await sender.SendAsync(
-            context.Connection.ConnectionId,
-            new ChannelScriptResponse(result.Content),
-            cancellationToken).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        ChannelScriptRequest message, CancellationToken cancellationToken) =>
+        _ = await commandBus.SendAsync(new ChannelScriptCommand(context, message), cancellationToken).ConfigureAwait(false);
 }

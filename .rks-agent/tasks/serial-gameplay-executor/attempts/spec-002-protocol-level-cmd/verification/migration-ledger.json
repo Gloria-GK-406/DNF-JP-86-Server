@@ -2988,24 +2988,30 @@
     },
     {
       "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Info/GetChannelInfoCommand.cs",
-          "line": 11,
-          "source_sha256": "3d3f0dc0aaebd6fa023c57d4a85782c5a48dbbb690fe61bb86f2c67d004c432e"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_ChannelInfoHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_GetChannelInfoCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+          "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "none_reason": "原Connect为纯协议登记、原Script/Info旧Direct无事务；新CMD同样只有原查询/纯key和响应登记，没有引入任何工作单元。"
       },
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-05.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Info/GetChannelInfoCommand.cs",
-          "line": 11,
-          "source_sha256": "3d3f0dc0aaebd6fa023c57d4a85782c5a48dbbb690fe61bb86f2c67d004c432e"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_ChannelInfoHandler.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_GetChannelInfoCommand.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+        "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Channel.Info.GetChannelInfoCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Channel.Info.GetChannelInfoCommand",
@@ -3032,52 +3038,70 @@
         "result": "Dfo.Server.Protocol.Channel.Info.GetChannelInfoResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Info/GetChannelInfoCommand.cs",
-          "line": 11,
-          "source_sha256": "3d3f0dc0aaebd6fa023c57d4a85782c5a48dbbb690fe61bb86f2c67d004c432e"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_ChannelInfoHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_GetChannelInfoCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+          "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "mapping": "原唯一handler已同簇迁移并删除旧query，生产/测试旧API引用0；历史名字仅保留baseline及证据。"
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Info/GetChannelInfoCommand.cs",
-          "line": 11,
-          "source_sha256": "3d3f0dc0aaebd6fa023c57d4a85782c5a48dbbb690fe61bb86f2c67d004c432e"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_ChannelInfoHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_GetChannelInfoCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+          "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "none_reason": "原新均无account/selected session/effect/main事务参与者；没有数据库写边界，原Direct查询/纯协议能力保持。"
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Info/GetChannelInfoCommand.cs",
-          "line": 11,
-          "source_sha256": "3d3f0dc0aaebd6fa023c57d4a85782c5a48dbbb690fe61bb86f2c67d004c432e"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_ChannelInfoHandler.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_GetChannelInfoCommand.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+            "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+          ],
+          "new": "Task04显式ProtocolNonEffect同一bus一次job、typed Channel元数据、原请求/context及同连接outbox登记；原wire/header/body/key不变",
+          "old": "原dispatcher单一inbound作业与source连接、纯Channel元数据、同连接响应和原字节"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Script/GetChannelScriptCommand.cs",
-          "line": 10,
-          "source_sha256": "67a6621ae24e122052d12bd62a9667e312ed6d112ceb49fd1c2e6a5e1482ceb5"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_ChannelScriptHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_GetChannelScriptCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+          "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "none_reason": "原Connect为纯协议登记、原Script/Info旧Direct无事务；新CMD同样只有原查询/纯key和响应登记，没有引入任何工作单元。"
       },
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-05.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Script/GetChannelScriptCommand.cs",
-          "line": 10,
-          "source_sha256": "67a6621ae24e122052d12bd62a9667e312ed6d112ceb49fd1c2e6a5e1482ceb5"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_ChannelScriptHandler.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_GetChannelScriptCommand.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+        "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Channel.Script.GetChannelScriptCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Channel.Script.GetChannelScriptCommand",
@@ -3104,31 +3128,43 @@
         "result": "Dfo.Server.Protocol.Channel.Script.GetChannelScriptResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Script/GetChannelScriptCommand.cs",
-          "line": 10,
-          "source_sha256": "67a6621ae24e122052d12bd62a9667e312ed6d112ceb49fd1c2e6a5e1482ceb5"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_ChannelScriptHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_GetChannelScriptCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+          "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "mapping": "原唯一handler已同簇迁移并删除旧query，生产/测试旧API引用0；历史名字仅保留baseline及证据。"
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Script/GetChannelScriptCommand.cs",
-          "line": 10,
-          "source_sha256": "67a6621ae24e122052d12bd62a9667e312ed6d112ceb49fd1c2e6a5e1482ceb5"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_ChannelScriptHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_GetChannelScriptCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+          "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "none_reason": "原新均无account/selected session/effect/main事务参与者；没有数据库写边界，原Direct查询/纯协议能力保持。"
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Script/GetChannelScriptCommand.cs",
-          "line": 10,
-          "source_sha256": "67a6621ae24e122052d12bd62a9667e312ed6d112ceb49fd1c2e6a5e1482ceb5"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_ChannelScriptHandler.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_GetChannelScriptCommand.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+            "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+          ],
+          "new": "Task04显式ProtocolNonEffect同一bus一次job、typed Channel元数据、原请求/context及同连接outbox登记；原wire/header/body/key不变",
+          "old": "原dispatcher单一inbound作业与source连接、纯Channel元数据、同连接响应和原字节"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -14854,25 +14890,31 @@
     },
     {
       "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptHandler.cs",
-          "line": 7,
-          "source_sha256": "b55998405d1862e31bc3417f973821b77f81a7584ab4b465cfd18d44205edd94"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_ChannelScriptHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_GetChannelScriptCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+          "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "none_reason": "原Connect为纯协议登记、原Script/Info旧Direct无事务；新CMD同样只有原查询/纯key和响应登记，没有引入任何工作单元。"
       },
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-05.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptHandler.cs",
-          "line": 7,
-          "source_sha256": "b55998405d1862e31bc3417f973821b77f81a7584ab4b465cfd18d44205edd94"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_ChannelScriptHandler.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_GetChannelScriptCommand.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+        "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+      ],
       "id": "message:9",
       "original": {
         "handler": "Dfo.Server.Protocol.Channel.Script.ChannelScriptHandler",
@@ -14895,56 +14937,78 @@
         "value": 9
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptHandler.cs",
-          "line": 7,
-          "source_sha256": "b55998405d1862e31bc3417f973821b77f81a7584ab4b465cfd18d44205edd94"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_ChannelScriptHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_GetChannelScriptCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+          "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "mapping": "原唯一handler已同簇迁移并删除旧query，生产/测试旧API引用0；历史名字仅保留baseline及证据。"
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptHandler.cs",
-          "line": 7,
-          "source_sha256": "b55998405d1862e31bc3417f973821b77f81a7584ab4b465cfd18d44205edd94"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_ChannelScriptHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_GetChannelScriptCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+          "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "none_reason": "原新均无account/selected session/effect/main事务参与者；没有数据库写边界，原Direct查询/纯协议能力保持。"
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptHandler.cs",
-          "line": 7,
-          "source_sha256": "b55998405d1862e31bc3417f973821b77f81a7584ab4b465cfd18d44205edd94"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_ChannelScriptHandler.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Script_GetChannelScriptCommand.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+            "Server/src/Dfo.Server.Protocol/Channel/Script/ChannelScriptCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+          ],
+          "new": "Task04显式ProtocolNonEffect同一bus一次job、typed Channel元数据、原请求/context及同连接outbox登记；原wire/header/body/key不变",
+          "old": "原dispatcher单一inbound作业与source连接、纯Channel元数据、同连接响应和原字节"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Channel.Script.GetChannelScriptCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Connect/ChannelConnectHandler.cs",
-          "line": 6,
-          "source_sha256": "44bc24b2039de0f4598cebb09acf5e194d69ec08f959097d7e071189ee5ae181"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Connect_ChannelConnectHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_ChannelProtocolKeyProvider.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+          "Server/src/Dfo.Server.Protocol/Channel/Connect/ChannelConnectCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Channel/ChannelProtocolKeyTests.cs",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-preflight/key-mutation.json"
+        ],
+        "none_reason": "原Connect为纯协议登记、原Script/Info旧Direct无事务；新CMD同样只有原查询/纯key和响应登记，没有引入任何工作单元。"
       },
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-05.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Connect/ChannelConnectHandler.cs",
-          "line": 6,
-          "source_sha256": "44bc24b2039de0f4598cebb09acf5e194d69ec08f959097d7e071189ee5ae181"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Channel/Connect/ChannelConnectCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Connect_ChannelConnectHandler.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_ChannelProtocolKeyProvider.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+        "Server/src/Dfo.Server.Protocol/Channel/Connect/ChannelConnectCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Channel/ChannelProtocolKeyTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-preflight/key-mutation.json"
+      ],
       "id": "message:11",
       "original": {
         "handler": "Dfo.Server.Protocol.Channel.Connect.ChannelConnectHandler",
@@ -14967,54 +15031,78 @@
         "value": 11
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Connect/ChannelConnectHandler.cs",
-          "line": 6,
-          "source_sha256": "44bc24b2039de0f4598cebb09acf5e194d69ec08f959097d7e071189ee5ae181"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Connect_ChannelConnectHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_ChannelProtocolKeyProvider.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+          "Server/src/Dfo.Server.Protocol/Channel/Connect/ChannelConnectCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Channel/ChannelProtocolKeyTests.cs",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-preflight/key-mutation.json"
+        ],
+        "mapping": "原唯一handler已同簇迁移并删除旧query，生产/测试旧API引用0；历史名字仅保留baseline及证据。"
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Connect/ChannelConnectHandler.cs",
-          "line": 6,
-          "source_sha256": "44bc24b2039de0f4598cebb09acf5e194d69ec08f959097d7e071189ee5ae181"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Connect_ChannelConnectHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_ChannelProtocolKeyProvider.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+          "Server/src/Dfo.Server.Protocol/Channel/Connect/ChannelConnectCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Channel/ChannelProtocolKeyTests.cs",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-preflight/key-mutation.json"
+        ],
+        "none_reason": "原新均无account/selected session/effect/main事务参与者；没有数据库写边界，原Direct查询/纯协议能力保持。"
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Connect/ChannelConnectHandler.cs",
-          "line": 6,
-          "source_sha256": "44bc24b2039de0f4598cebb09acf5e194d69ec08f959097d7e071189ee5ae181"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Connect_ChannelConnectHandler.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_ChannelProtocolKeyProvider.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+            "Server/src/Dfo.Server.Protocol/Channel/Connect/ChannelConnectCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Channel/ChannelProtocolKeyTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-preflight/key-mutation.json"
+          ],
+          "new": "Task04显式ProtocolNonEffect同一bus一次job、typed Channel元数据、原请求/context及同连接outbox登记；原wire/header/body/key不变",
+          "old": "原dispatcher单一inbound作业与source连接、纯Channel元数据、同连接响应和原字节"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoHandler.cs",
-          "line": 7,
-          "source_sha256": "378fbd758c2ddd034ab83259c4ad36266fb2f7b35b50c7180e9bb07424ebd238"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_ChannelInfoHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_GetChannelInfoCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+          "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "none_reason": "原Connect为纯协议登记、原Script/Info旧Direct无事务；新CMD同样只有原查询/纯key和响应登记，没有引入任何工作单元。"
       },
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-05.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoHandler.cs",
-          "line": 7,
-          "source_sha256": "378fbd758c2ddd034ab83259c4ad36266fb2f7b35b50c7180e9bb07424ebd238"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_ChannelInfoHandler.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_GetChannelInfoCommand.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+        "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+      ],
       "id": "message:17",
       "original": {
         "handler": "Dfo.Server.Protocol.Channel.Info.ChannelInfoHandler",
@@ -15037,34 +15125,46 @@
         "value": 17
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoHandler.cs",
-          "line": 7,
-          "source_sha256": "378fbd758c2ddd034ab83259c4ad36266fb2f7b35b50c7180e9bb07424ebd238"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_ChannelInfoHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_GetChannelInfoCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+          "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "mapping": "原唯一handler已同簇迁移并删除旧query，生产/测试旧API引用0；历史名字仅保留baseline及证据。"
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoHandler.cs",
-          "line": 7,
-          "source_sha256": "378fbd758c2ddd034ab83259c4ad36266fb2f7b35b50c7180e9bb07424ebd238"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_ChannelInfoHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_GetChannelInfoCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+          "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "none_reason": "原新均无account/selected session/effect/main事务参与者；没有数据库写边界，原Direct查询/纯协议能力保持。"
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoHandler.cs",
-          "line": 7,
-          "source_sha256": "378fbd758c2ddd034ab83259c4ad36266fb2f7b35b50c7180e9bb07424ebd238"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_ChannelInfoHandler.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/old-Channel_Info_GetChannelInfoCommand.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-05-mapping/workunit-map.md",
+            "Server/src/Dfo.Server.Protocol/Channel/Info/ChannelInfoCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+          ],
+          "new": "Task04显式ProtocolNonEffect同一bus一次job、typed Channel元数据、原请求/context及同连接outbox登记；原wire/header/body/key不变",
+          "old": "原dispatcher单一inbound作业与source连接、纯Channel元数据、同连接响应和原字节"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Channel.Info.GetChannelInfoCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {

@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Infrastructure.Configuration;
@@ -472,8 +473,15 @@ public sealed class InboundExecutorWireTests(ITestOutputHelper output)
         private static void Reroute(IServiceCollection services, params ClientMessageType[] types)
         {
             foreach (var type in types)
+            {
                 services.Remove(services.Single(x => x.ServiceType == typeof(MessageHandlerRegistration)
                     && ((MessageHandlerRegistration)x.ImplementationInstance!).MessageType == type));
+                // The probe replaces this one-message protocol route, including its command binding.
+                foreach (var command in services.Where(x => x.ServiceType == typeof(CommandHandlerRegistration)
+                    && x.ImplementationInstance is CommandHandlerRegistration { Route: CommandRouteKind.Protocol, ProtocolMessages.Count: 1 } route
+                    && route.ProtocolMessages[0].MessageType == type).ToArray())
+                    services.Remove(command);
+            }
         }
     }
 

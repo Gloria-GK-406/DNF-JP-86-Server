@@ -45,6 +45,27 @@ public sealed class CommandRegistrationTests
         }
     }
 
+    [Fact]
+    public void All_four_Channel_protocols_are_bound_to_whole_commands()
+    {
+        using var provider = BuildProductionGraph();
+        var registrations = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        (Type Command, Dfo.Server.Data.Networking.ClientMessageType Message)[] channels =
+        [
+            (typeof(Dfo.Server.Protocol.Channel.Connect.ChannelConnectCommand), Dfo.Server.Data.Networking.ClientMessageType.ChannelConnect),
+            (typeof(Dfo.Server.Protocol.Channel.ScriptVersion.ChannelScriptVersionCommand), Dfo.Server.Data.Networking.ClientMessageType.ChannelScriptVersion),
+            (typeof(Dfo.Server.Protocol.Channel.Script.ChannelScriptCommand), Dfo.Server.Data.Networking.ClientMessageType.ChannelScript),
+            (typeof(Dfo.Server.Protocol.Channel.Info.ChannelInfoCommand), Dfo.Server.Data.Networking.ClientMessageType.ChannelInfo),
+        ];
+        foreach (var (command, message) in channels)
+        {
+            var registration = Assert.Single(registrations, row => row.CommandType == command);
+            Assert.Equal(CommandRouteKind.Protocol, registration.Route);
+            Assert.Equal(message, Assert.Single(registration.ProtocolMessages!).MessageType);
+        }
+        Assert.NotNull(provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>());
+    }
+
     /// <remarks>
     /// Resolving every registration proves each registered command can be built; it says nothing
     /// about a command nobody registered, because there is no registration to walk. The item

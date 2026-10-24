@@ -518,12 +518,14 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Direct);
         services.AddCommandHandler<MarkDungeonParticipantReadyCommand, MarkDungeonParticipantReadyResult, MarkDungeonParticipantReadyCommandHandler>(
             CommandExecutionKind.Direct);
+        services.AddProtocolCommandHandler<ChannelConnectCommand, ChannelConnectCompleted, ChannelConnectCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.ChannelConnect, typeof(ChannelConnectRequest)));
         services.AddProtocolCommandHandler<ChannelScriptVersionCommand, ChannelScriptVersionCompleted, ChannelScriptVersionCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.ChannelScriptVersion, typeof(ChannelScriptVersionRequest)));
-        services.AddCommandHandler<GetChannelScriptCommand, GetChannelScriptResult, GetChannelScriptCommandHandler>(
-            CommandExecutionKind.Direct);
-        services.AddCommandHandler<GetChannelInfoCommand, GetChannelInfoResult, GetChannelInfoCommandHandler>(
-            CommandExecutionKind.Direct);
+        services.AddProtocolCommandHandler<ChannelScriptCommand, ChannelScriptCompleted, ChannelScriptCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.ChannelScript, typeof(ChannelScriptRequest)));
+        services.AddProtocolCommandHandler<ChannelInfoCommand, ChannelInfoCompleted, ChannelInfoCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.ChannelInfo, typeof(ChannelInfoRequest)));
         services.AddCommandHandler<AcceptQuestCommand, QuestAcceptOutcome, AcceptQuestCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<GiveUpQuestCommand, GiveUpQuestOutcome, GiveUpQuestCommandHandler>(
@@ -783,10 +785,10 @@ public sealed class ProtocolModule : IServerModule
     /// <summary>Binds each catalogue member to the handler that consumes it.</summary>
     private static void RegisterMessageHandlers(IServiceCollection services)
     {
-        services.RegisterMessageHandler<ChannelConnectHandler>(ClientMessageType.ChannelConnect);
+        services.RegisterProtocolMessageHandler<ChannelConnectHandler, ChannelConnectRequest, ChannelConnectCommand>(ClientMessageType.ChannelConnect);
         services.RegisterProtocolMessageHandler<ChannelScriptVersionHandler, ChannelScriptVersionRequest, ChannelScriptVersionCommand>(ClientMessageType.ChannelScriptVersion);
-        services.RegisterMessageHandler<ChannelScriptHandler>(ClientMessageType.ChannelScript);
-        services.RegisterMessageHandler<ChannelInfoHandler>(ClientMessageType.ChannelInfo);
+        services.RegisterProtocolMessageHandler<ChannelScriptHandler, ChannelScriptRequest, ChannelScriptCommand>(ClientMessageType.ChannelScript);
+        services.RegisterProtocolMessageHandler<ChannelInfoHandler, ChannelInfoRequest, ChannelInfoCommand>(ClientMessageType.ChannelInfo);
         services.RegisterMessageHandler<ReturnToSelectionHandler>(ClientMessageType.GameReturnToSelection);
         services.RegisterMessageHandler<GameExitHandler>(ClientMessageType.GameExit);
         services.RegisterMessageHandler<PremiumServiceUsageReportHandler>(ClientMessageType.GamePremiumServiceUsageReport);
