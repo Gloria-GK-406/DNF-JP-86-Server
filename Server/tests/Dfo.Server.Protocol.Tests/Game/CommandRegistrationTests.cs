@@ -34,6 +34,23 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Repair_ordinary_and_auto_wire_bind_one_exact_NonEffect_whole_without_registration_permission()
+    {
+        using var provider=BuildProductionGraph();var rows=provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var row=Assert.Single(rows,x=>x.CommandType==typeof(Dfo.Server.Protocol.Game.RepairItem.GameRepairItemCommand));
+        Assert.Equal(CommandExecutionKind.Direct,row.ExecutionKind);Assert.Equal(CommandRouteKind.Protocol,row.Route);
+        Assert.Equal(new[]{new ProtocolCommandMessageBinding(ClientMessageType.GameRepairItem,typeof(Dfo.Server.Protocol.Game.RepairItem.RepairItemRequest))},row.ProtocolMessages);
+        Assert.True(row.RegistrationExits is null or {Count:0});
+        Assert.False(typeof(Dfo.Server.Abstractions.Networking.IEffectSettlementRequest).IsAssignableFrom(typeof(Dfo.Server.Protocol.Game.RepairItem.RepairItemRequest)));
+        var registry=provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        Assert.True(registry.TryGet(ClientMessageType.GameRepairItem,out var route));Assert.Equal(row.CommandType,route!.ProtocolCommandType);
+        Assert.Equal(new[]{typeof(Dfo.Server.Protocol.Game.RepairItem.RepairItemRequest)},route.AllowedMessageClrTypes);
+        Assert.DoesNotContain(rows,x=>x.CommandType.Name=="RepairItemCommand");
+        Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.RepairItem.RepairItemCommand"));
+        Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.RepairItem.RepairItemCommandHandler"));
+    }
+
+    [Fact]
     public void Delete_wire_has_one_exact_NonEffect_whole_and_no_registration_permission()
     {
         using var provider=BuildProductionGraph();var rows=provider.GetServices<CommandHandlerRegistration>().ToArray();

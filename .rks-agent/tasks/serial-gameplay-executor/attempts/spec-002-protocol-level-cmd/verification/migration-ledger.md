@@ -344,3 +344,12 @@ Level→Default有效mutation 1行为RED+2可达正控，finally逐byte恢复3/3
 真before43项封存后才产品，原入口69/69＋codec11/11；30组旧新完整资产/事件/metadata/帧字节对应，原stale/multicost/duplicate接缝用实际domain＋显式事务保，单cost真实wire另护。实际action19/1811及discardquest/material各同participant deferredFK nativeCommit19/787、FK1/child>0/原causeSame/ConfirmedRollback全列exact/同seq重试；普通composer及actualencoder仍Warning+Failed隔离/单preparedbatch/无半ACK/已提交资产不逆转。op1/op2前置ACK故障rawSame，normalCommitted ACK默认typed PostCommitPublicationFailure/innerSame，外壳差异明确，实际EndedAJob/完整chain/物理sourceclose Same1/nofence不变，无新增许可。
 
 可编译op3数量+1 mutation真实剩0/事件count2资产RED，op1/op2正控pass，finally原bytes/SHA恢复同3目标3/3。freeze01 13源=10present+3deleted；Release0/0、三无filterfull及四freshcontrol，原8916逐display/status/multiplicity全保，N=31/D=0，总8947=8927pass+原Dim2fail+18skip；其余1800为Task20库存非八freshfull。DFO原74/7control/outside-exe-orphan0、Golden15/Char10。capture203→201命令/173logical，仅一message和三fine→一whole；其它families/三许可owners等原值。原非NULinventory漏192中文/旧TRX诊断保原map，产品前NUL完整14352=11owned+14341nonowned逐byte HEAD，最终仅canonical2排除后14339不变。T012单CMD2秒/A21/Astra/Spec最终/主控checkpoint仍后继。
+
+
+## TASK24 r1 — RepairItem 普通8B／自动7B单 typed NonEffect whole
+
+仅闭message65559及RepairItemCommand fine。精确RepairItemRequest→GameRepairItemCommand<bool>，Direct/Protocol/无exit，一fine物理源/handler/注册/caller删除；普通/auto在原位置各一次ordinary Write([],Ordinary,None)，正常拒绝Commit、SQL/commit异常Abort，auto Direct PremiumUsageRecorded→额度CAS/UsageQuotaChanged与durability/gold同事务。成功clock在Tx后；原ACK→可选Premium单batch与Warning+Failed隔离保持，无新Main/footprint/ledger/replay/raw/P3。
+
+真before31项封后才迁产品，原入口45/45与codec4/4；21组新旧57全列asset快照及具名SQL时间/GUID双射/DeliveryFK保完整core/BLOBhex/NULL/次数/period/权益和帧。ordinary/auto各action UPDATE19/1811、sameparticipant deferredFK nativeCommit19/787/FK1/child>0/阶段与causeSame/完整回滚及同seq当前重做。pre quick1拒绝ACK编码故障rawSame，normal普通与auto拒绝ACK变既有默认PostCommitPublicationFailure/innerSame，明确两外壳差异，原chain/EndedAJob/物理sourceclose Same/nofence保持，无第四许可。
+
+可编译auto调用误换ordinary mutation实际auto扣113且usage0为资产RED，ordinary正控pass，finally原wholebytes/SHA恢复同2目标2pass。正式finalfreeze02 9源8present1deleted，Release0/0及三无filterfull+四freshcontrols，原8947逐display/status/multiplicity全保N=22/D=0→8969=8949pass+原Dim2fail+18skip；其余1800是Task20库存，非八freshfull。DFO74/7/outside-exe-orphan0、Golden15/Char10。actualcapture201cmd/173logical，原一fine→whole唯一65559，family/三许可owners其它逐值不变。完整NUL14505=7owned+14498nonowned，最终仅两actualcanonical排除后14496全SHA同。T012单CMD2秒/A21/Astra/Spec终局及主控checkpoint仍后继。

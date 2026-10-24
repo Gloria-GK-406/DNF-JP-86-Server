@@ -665,8 +665,8 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddProtocolCommandHandler<GameSellItemCommand, bool, GameSellItemCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSellItem, typeof(SellItemRequest)));
-        services.AddCommandHandler<RepairItemCommand, EquipmentRepairResult, RepairItemCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameRepairItemCommand, bool, GameRepairItemCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameRepairItem, typeof(RepairItemRequest)));
         services.AddCommandHandler<TeleportCommand, TeleportConsumableResult, TeleportCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddProtocolCommandHandler<GameMagicSealCommand, EquipmentMagicSealResult, GameMagicSealCommandHandler>(
@@ -985,7 +985,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<GenCeraTicketHandler>(ClientMessageType.GameGenCeraTicket);
         services.RegisterMessageHandler<LearnSkillHandler>(ClientMessageType.GameLearnSkill);
         services.RegisterProtocolMessageHandler<SellItemHandler, SellItemRequest, GameSellItemCommand>(ClientMessageType.GameSellItem);
-        services.RegisterMessageHandler<RepairItemHandler>(ClientMessageType.GameRepairItem);
+        services.RegisterProtocolMessageHandler<RepairItemHandler, RepairItemRequest, GameRepairItemCommand>(ClientMessageType.GameRepairItem);
         services.RegisterProtocolMessageHandler<DisjointItemHandler, DisjointItemRequest, GameDisjointItemCommand>(ClientMessageType.GameDisjointItem);
         services.RegisterProtocolMessageHandler<ReinforceItemHandler, ReinforceItemRequest, GameReinforceItemCommand>(ClientMessageType.GameReinforceItem);
         services.RegisterProtocolMessageHandler<EnchantByBeadHandler, EnchantByBeadRequest, GameEnchantByBeadCommand>(ClientMessageType.GameEnchantByBead);
