@@ -306,3 +306,14 @@ P3 新结果由真实 source/phase/原 cause/发生身份限制，Guard/Unknown/
 四路径deposit value32 UPDATE与01AF list_param16真实UPDATE，各action19/1811与actualparticipant FK1/child/stage/fullreceipt后真实SqliteTransaction.Commit19/787，保cause/ACK10或完全静默、同entry原Ordinal retry及current-only replay。domain mapping/InventoryExpansionException旧pipeline可能Error但handlerInfo，新whole无handledError；generic原两Error→whole一Error；clock在原窄span，unit后才映码/日志/ACK。NotiBus Failed隔离、直接ACK各阶段默认保护（含mapping编码错）与独立E+X保因，取消/typed/guard不恢复；仅既有committed replay许可。
 
 formal02三full7028=7010pass+2精确原Dim+16skip，N47/D0，延续8828=8808pass+2fail+18skip；另1800仍仅Task15库存，四actualcontrol各1pass另列，不称八full/性能完成。pending122message/175fine/72source/5protection/8transition；original/baseline/其它rows及md原前缀保持。T012最终新八full/单CMD≤2秒、Astra/Spec根封存及用户分支收尾仍后继。
+
+
+## TASK20 r3 — CollectionBox 一个 logical／四 wire 的完整 CMD
+
+仅闭 message:66533 与 command:Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxCommand 两ID。一个精确CollectionBoxRequest、唯一Direct/Protocol GameCollectionBoxCommand<bool>，旧内嵌fine/handler/Tx注册/caller删净；原一次Main与mandatory足迹、四namedcatch带cause回滚、ordinary SQL/native外抛、minimum及主后逐条clock/完整盒及selected重复/ACK exact一次batch保持。新通用SettledInitialBatch贯通registry→签发→opaque原对象→实际batchadapter→窄actualencoder；仅该whole拥有thirdexit，拒绝batch/业务/其它来源默认保护，原两许可/P3/Compose禁用不变。
+
+真正产品前49snapshot与旧四oracle全保，formal新whole对应Select/Put fixedencoder同cause/actualentry原Ordinal/Committed/nofence/failedbatch零登记/sourceclose/current，以及Putaction19/1811和FK1/child1/完整mutation后真实Commit19/787/全列回滚/retry/current逐项相符。成功Put→Withdraw真实UID/82Bcore/Box清空/帧序/clock与成功Withdraw actualencoder动态注错已补；replacement callback真发生且旧context不误交replacement。随机领域事件三GUID只按owning源与主控observer澄清做跨phase双射及Delivery外键/batch/origin/sequence payload关系校准；两items时间保72个原字段出现和runnerUTC关系，same-run rollback所有列仍exact，不丢整事件/列/NULL/BLOB。
+
+原caller吞guard后真实SQLite+37的两RED→GREEN；r2暴露typed/cause覆盖八强fail及lateForeignScope nofence RED，经r3仅Bus末端DemandHealthy桥＋Executor同P引用树保完整body修正，原8/两caller/late同目标GREEN、unknown/Begin/call-kind/liveforeign/first/unrelated/nested/独立cleanup及三个actualraw无ProgramError控制保持。完整provenance mutant可编译，callback真1/actualencoder0却错误raw/nofence为RED；finally精确恢复同7目标GREEN。
+
+finalfreeze18source上Release0警告0错误、八无filter full8883=8863pass+2准确原Dimensionfail+18原skip，原8828逐display/status/multiplicity全保，N55=54App+1Protocol、D0；DFO原74/七uniquecontrols/outside-exe-orphan0，Golden15与Characterization10。pending121message/174fine/72source/5protection/8transition。suite耗时/资源仅观察，非单CMD≤2秒或A21实机；T004/B/Spec根/Astra/分支收尾仍后继。

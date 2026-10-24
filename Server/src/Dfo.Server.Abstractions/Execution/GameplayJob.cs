@@ -28,6 +28,14 @@ public static class GameplayJob
         if (Active is { } token) throw token.Fault(new GameplaySelfWaitException(operation, token.Chain));
     }
 
+    /// <summary>Marks only the active caller job's first program guard error; off-executor calls record nothing.</summary>
+    /// <remarks>The caller still throws its original error. Ordinary encoder or storage failures are not program guards.</remarks>
+    public static void RecordProgramError(Exception error)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+        if (Active is { } token) token.Fault(error);
+    }
+
     /// <summary>Refuses a continuation after the current job has recorded a program error.</summary>
     public static void DemandHealthy()
     {

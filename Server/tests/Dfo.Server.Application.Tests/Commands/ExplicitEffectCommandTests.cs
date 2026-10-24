@@ -21,7 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Commands;
 
-public sealed class ExplicitEffectCommandTests
+public sealed class ExplicitEffectCommandTests(Xunit.Abstractions.ITestOutputHelper output)
 {
     internal static async Task AssertSecondMainPreservesEntryAsync()
     {
@@ -57,6 +57,75 @@ public sealed class ExplicitEffectCommandTests
         Assert.Equal(-1, System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(20)));
         Assert.Same(settings.OriginalProjection, entry.Projection);
         Assert.Equal(EffectOperationState.Committed, entry.State);
+    }
+
+    [Theory]
+    [InlineData("unknown",false)] [InlineData("unknown",true)]
+    [InlineData("permission",false)] [InlineData("permission",true)]
+    [InlineData("phase",false)] [InlineData("phase",true)]
+    [InlineData("replay",false)] [InlineData("replay",true)]
+    [InlineData("state",false)] [InlineData("state",true)]
+    [InlineData("open",false)] [InlineData("open",true)]
+    public async Task Registration_guards_caught_in_the_real_request_cannot_write_SQLite_or_return_success(string kind,bool write)
+    {
+        using var world=World(out var settings,kind=="permission"?[]:null);await world.Seed(69,1000,3);
+        settings.GuardKind=kind;settings.AttemptWrite=write;var error=await Record.ExceptionAsync(()=>Send(world,Mode.ParameterGuard).AsTask());
+        Assert.NotNull(error);Assert.NotNull(settings.InitialError);Assert.True(Contains(error,settings.InitialError));
+        Assert.Equal(100000,world.Gold);Assert.Equal(0,settings.LaterWrites);Assert.Equal(3,world.Count(1000));
+        Assert.True(settings.Context!.Request!.IsClosed);Assert.NotNull(settings.Context.Request.Failure);
+        Assert.NotEqual(EffectOperationState.Committed,settings.State!.Entry.State);
+    }
+
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task Explicit_committed_requests_keep_first_program_guard_and_independent_body_and_cleanup_causes(bool cleanup)
+    {
+        using var world=World(out var settings);await world.Seed(69,1000,3);
+        settings.DisposeFailure=cleanup?settings.CleanupCause:null;
+        var error=await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(()=>Send(world,Mode.ProgramFailure).AsTask());
+        Assert.True(Contains(error,settings.ProgramCause));Assert.True(Contains(error,settings.Cause));
+        if(cleanup)Assert.True(Contains(error,settings.CleanupCause));
+        Assert.Same(settings.ProgramCause,settings.ObservedProgramError);
+        Assert.Equal(2,world.Count(1000));Assert.True(world.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(world.Connection));
+        Assert.Equal(cleanup?3:2,ExceptionLeaves(error.InnerException!).Count());
+    }
+
+    [Theory]
+    [InlineData(CommandRegistrationExit.SettledRequiredExplicit,false)]
+    [InlineData(CommandRegistrationExit.SettledRequiredExplicit,true)]
+    [InlineData(CommandRegistrationExit.SettledInitialBatch,false)]
+    [InlineData(CommandRegistrationExit.SettledInitialBatch,true)]
+    [InlineData(CommandRegistrationExit.CommittedReplayCurrentStateBatch,false)]
+    [InlineData(CommandRegistrationExit.CommittedReplayCurrentStateBatch,true)]
+    public async Task Three_actual_encoder_exits_keep_raw_without_program_error_and_independent_cleanup_revokes_raw(CommandRegistrationExit exit,bool cleanup)
+    {
+        using var world=World(out var settings);await world.Seed(69,1000,3);
+        var input=WholeUse.Input(new(InventoryContainerType.Main,69),1000);
+        if(exit==CommandRegistrationExit.CommittedReplayCurrentStateBatch)await Send(world,Mode.Commit,input);
+        settings.DisposeFailure=cleanup?settings.Cause:null;
+        object? token=null;
+        world.Sender.Outbound.Encoder.Fail((_,_)=>{
+            token=typeof(GameplayJob).GetProperty("Active",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic)!.GetValue(null);
+            return settings.Cause;
+        });
+        var error=await Record.ExceptionAsync(()=>Send(world,exit==CommandRegistrationExit.SettledInitialBatch?Mode.InitialRegister:Mode.Register,
+            exit==CommandRegistrationExit.CommittedReplayCurrentStateBatch?input with {Metadata=input.Metadata with {InboundOrdinal=input.Metadata.InboundOrdinal+1,SequenceIsFresh=false}}:input).AsTask());
+        Assert.NotNull(error);Assert.NotNull(token);
+        Assert.Null(token.GetType().GetProperty("ProgramError",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!.GetValue(token));
+        Assert.Equal(EffectOperationState.Committed,settings.State!.Entry.State);Assert.Equal(2,world.Count(1000));
+        Assert.Equal(cleanup,world.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(world.Connection));
+        if(cleanup)Assert.IsType<TransactionOutcomeUncertainException>(error);else Assert.Same(settings.Cause,error);
+        Assert.True(Contains(error,settings.Cause));Assert.True(world.Sender.Outbound.Entries.Last().IsClose);
+    }
+
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task Batch_and_required_attempts_cannot_borrow_each_others_call_kind(bool initial)
+    {
+        using var world=World(out var settings);await world.Seed(69,1000,3);settings.InitialCall=initial;TrackEncoder(world,settings);
+        var error=await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(()=>Send(world,Mode.CrossCall).AsTask());
+        Assert.Equal(0,settings.EncoderCalls);Assert.Equal(2,world.Count(1000));Assert.True(world.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(world.Connection));
+        Assert.True(Contains(error,settings.InitialError!));
     }
 
     [Theory]
@@ -375,6 +444,126 @@ public sealed class ExplicitEffectCommandTests
         Assert.False(world.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(world.Connection));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_new_request_catching_an_old_attempt_guard_cannot_write_real_SQLite_or_return_success(bool write)
+    {
+        using var world = World(out var settings);
+        TrackEncoder(world, settings);
+        await world.Seed(69, 1000, 3);
+        await Send(world, Mode.Register);
+        var owner = settings.Context!.Request!;
+        var ownerState = settings.State!;
+        var ownerJob = settings.JobId;
+        var token = settings.Attempt;
+        var beforeGold = world.Gold;
+        var entries = world.Sender.Outbound.Entries.Count;
+        var final = await Record.ExceptionAsync(() => Send(world, write ? Mode.PreviousCatchWrite : Mode.PreviousCatchReturn).AsTask());
+        output.WriteLine(System.Text.Json.JsonSerializer.Serialize(new {
+            task20Guard = "previous", write, beforeGold, afterGold = world.Gold,
+            settings.LaterWrites, settings.StagedGold, settings.EncoderCalls,
+            sameToken = ReferenceEquals(token, settings.Attempt), distinctRequests = !ReferenceEquals(owner, settings.Context!.Request),
+            distinctJobs = ownerJob != settings.JobId, ownerClosed = owner.IsClosed, callerClosed = settings.Context.Request!.IsClosed,
+            ownerFailure = owner.Failure?.Message, callerFailure = settings.Context.Request.Failure?.Message,
+            guard = settings.InitialError?.ToString(), final = final?.ToString(),
+            ownerEntry = ownerState.Entry.State.ToString(), callerEntry = settings.State!.Entry.State.ToString(),
+            ownerOrdinal = ownerState.Entry.Ordinal, callerOrdinal = settings.State.Entry.Ordinal,
+            blocked = world.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(world.Connection),
+            newEntries = world.Sender.Outbound.Entries.Skip(entries).Select(x => new { x.IsClose, exact = ReferenceEquals(x.Connection, world.Connection) }).ToArray()
+        }));
+        Assert.NotNull(settings.InitialError);
+        Assert.NotNull(final);
+        Assert.True(Contains(final, settings.InitialError));
+        Assert.Equal(beforeGold, world.Gold);
+        Assert.Equal(0, settings.LaterWrites);
+        Assert.NotNull(settings.Context.Request.Failure);
+    }
+
+    [Fact]
+    public async Task A_committed_new_request_keeps_foreign_guard_and_fence_when_its_scope_swallows_the_closed_owners_error()
+    {
+        using var world = World(out var settings);
+        TrackEncoder(world, settings);
+        await world.Seed(69, 1000, 3);
+        await Send(world, Mode.Register);
+        var owner = settings.Context!.Request!;
+        var ownerState = settings.State!;
+        var ownerJob = settings.JobId;
+        var token = settings.Attempt!;
+        var ownerOrdinal = ownerState.Entry.Ordinal;
+        Assert.True(owner.IsClosed); Assert.Null(owner.Failure);
+        settings.DisposeForeignAttempt = token;
+        settings.RegisterOnDispose = true;
+        settings.SwallowDisposeGuard = true;
+        var previousEntries = world.Sender.Outbound.Entries.Count;
+        var final = await Record.ExceptionAsync(() => Send(world, Mode.Register).AsTask());
+        var caller = settings.Context!.Request!;
+        var guard = settings.DisposeCallFailure;
+        var callerEntry = settings.State!.Entry;
+        output.WriteLine(System.Text.Json.JsonSerializer.Serialize(new {
+            task20LateForeignScope = true,
+            ownerJob, callerJob = settings.JobId, distinctJobs = ownerJob != settings.JobId,
+            distinctRequests = !ReferenceEquals(owner, caller), ownerClosed = owner.IsClosed,
+            callerClosed = caller.IsClosed, settings.DisposedWhileClosed, settings.DisposeJobId,
+            ownerFailureSame = ReferenceEquals(owner.Failure, guard), callerFailureSame = ReferenceEquals(caller.Failure, guard),
+            callerFailure = caller.Failure?.ToString(), programErrorSame = ReferenceEquals(settings.ObservedProgramError, guard),
+            programError = settings.ObservedProgramError?.ToString(), guard = guard?.ToString(), final = final?.ToString(),
+            finalSame = ReferenceEquals(final, guard), typed = TransactionOutcomeUncertainException.Contains(final!),
+            ownerEntry = ownerState.Entry.State.ToString(), ownerOrdinal, ownerOrdinalAfter = ownerState.Entry.Ordinal,
+            callerEntry = callerEntry.State.ToString(), callerOrdinal = callerEntry.Ordinal,
+            gold = world.Gold, remaining = world.Count(1000), settings.EncoderCalls,
+            blocked = world.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(world.Connection),
+            newEntries = world.Sender.Outbound.Entries.Skip(previousEntries).Select(x => new { x.IsClose, exact = ReferenceEquals(x.Connection, world.Connection) }).ToArray()
+        }));
+        Assert.NotNull(guard); Assert.Same(guard, settings.ObservedProgramError);
+        Assert.NotSame(owner, caller); Assert.NotEqual(ownerJob, settings.JobId);
+        Assert.True(caller.IsClosed); Assert.Equal(settings.JobId, settings.DisposeJobId);
+        Assert.Equal(EffectOperationState.Committed, ownerState.Entry.State); Assert.Equal(ownerOrdinal, ownerState.Entry.Ordinal);
+        Assert.Equal(EffectOperationState.Committed, callerEntry.State); Assert.Equal(1, world.Count(1000)); Assert.Equal(2, settings.EncoderCalls);
+        Assert.NotNull(final);
+        Assert.IsType<TransactionOutcomeUncertainException>(final);
+        Assert.NotNull(caller.Failure); Assert.True(Contains(final, guard));
+        Assert.True(world.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(world.Connection));
+        Assert.True(world.Sender.Outbound.Entries.Last().IsClose); Assert.Same(world.Connection, world.Sender.Outbound.Entries.Last().Connection);
+    }
+
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task A_live_foreign_attempt_caught_by_an_actual_new_explicit_request_cannot_write_or_finish(bool write)
+    {
+        using var world=World(out var settings);TrackEncoder(world,settings);await world.Seed(69,1000,3);
+        var pending=Send(world,Mode.HoldAttempt).AsTask();Exception? ownerError=null;Exception? callerError=null;
+        CommandRequestContext? owner=null,caller=null;ExplicitEffectRequest? ownerState=null,callerState=null;Guid ownerJob=default,callerJob=default;
+        try
+        {
+            await settings.Ready.Task.WaitAsync(TimeSpan.FromSeconds(10));owner=settings.Context!.Request;ownerState=settings.State;ownerJob=settings.JobId;
+            settings.ForeignAttempt=settings.Attempt;settings.GuardKind="live";settings.AttemptWrite=write;
+            // Keep the original malicious cross-job fixture, but run the real bus's complete explicit lifecycle
+            // so its new request/entry/drain/Close/FailAsync are real. No production ingress or second Host type is added.
+            callerError=await Record.ExceptionAsync(()=>TestGameplay.RunAsync(async()=>{
+                var input=WholeUse.Input(new(InventoryContainerType.Main,69),1000);var command=new MatrixProbe(new(world.Connection),input,Mode.ParameterGuard);
+                var registry=world.Services.GetRequiredService<CommandHandlerRegistry>().GetRegistration(typeof(MatrixProbe));
+                var method=typeof(CommandBus).GetMethod("ExplicitAsync",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!.MakeGenericMethod(typeof(int));
+                var execution=(ValueTask<int>)method.Invoke(world.Services.GetRequiredService<ICommandBus>(),[command,registry,command,null,CancellationToken.None])!;
+                try{await execution;}finally{caller=settings.Context!.Request;callerState=settings.State;callerJob=settings.JobId;}
+            }));
+        }
+        finally{settings.Release.TrySetResult();ownerError=await Record.ExceptionAsync(()=>pending.WaitAsync(TimeSpan.FromSeconds(10)));}
+        Assert.NotNull(owner);Assert.NotNull(caller);Assert.NotNull(ownerState);Assert.NotNull(callerState);Assert.NotNull(callerError);Assert.NotNull(ownerError);
+        Assert.NotSame(owner,caller);Assert.NotEqual(ownerJob,callerJob);Assert.True(owner.IsClosed);Assert.True(caller.IsClosed);
+        Assert.NotNull(settings.InitialError);Assert.True(Contains(callerError,settings.InitialError));Assert.True(Contains(ownerError,settings.InitialError));
+        Assert.IsType<TransactionOutcomeUncertainException>(ownerError);Assert.NotNull(owner.Failure);Assert.NotNull(caller.Failure);
+        Assert.Equal(EffectOperationState.Committed,ownerState.Entry.State);Assert.Equal(EffectOperationState.Rejected,callerState.Entry.State);
+        Assert.Equal(0,settings.LaterWrites);Assert.Equal(100000,world.Gold);Assert.Equal(2,world.Count(1000));Assert.Equal(0,settings.EncoderCalls);
+        Assert.True(world.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(world.Connection));Assert.True(pending.IsCompleted);
+        output.WriteLine(System.Text.Json.JsonSerializer.Serialize(new{task20LiveForeign=true,write,ownerJob,callerJob,ownerClosed=owner.IsClosed,callerClosed=caller.IsClosed,
+            ownerOrdinal=ownerState.Entry.Ordinal,callerOrdinal=callerState.Entry.Ordinal,ownerState=ownerState.Entry.State.ToString(),callerState=callerState.Entry.State.ToString(),
+            settings.LaterWrites,gold=world.Gold,remaining=world.Count(1000),settings.EncoderCalls,ownerError=ownerError.ToString(),callerError=callerError.ToString(),
+            closes=world.Sender.Outbound.Entries.Where(x=>x.IsClose).Select(x=>new{exact=ReferenceEquals(x.Connection,world.Connection)}),
+            callerSource="existing malicious TestGameplay rootless job; original production owner owns source close"}));
+    }
+
     [Fact]
     public async Task A_real_live_attempt_is_rejected_on_another_job_before_encoding_and_the_owner_is_drained()
     {
@@ -494,15 +683,17 @@ public sealed class ExplicitEffectCommandTests
     private static bool Contains(Exception error, Exception cause) => ReferenceEquals(error, cause)
         || error is AggregateException aggregate && aggregate.InnerExceptions.Any(item => Contains(item, cause))
         || error.InnerException is { } inner && Contains(inner, cause);
-    private static ShopFixture World(out Settings settings)
+    private static ShopFixture World(out Settings settings,CommandRegistrationExit[]? exits=null)
     {
         var owned = settings = new Settings();
         var fixture = new ShopFixture(services => {
             services.AddSingleton(owned);
             services.AddScoped<DisposeProbe>();
+            services.AddSingleton<ReplayStateDomainService>();
+            services.AddScoped<IReplayStateDomainService>(p=>new ScopedReplayReader(p.GetRequiredService<ReplayStateDomainService>(),p.GetRequiredService<DisposeProbe>()));
             services.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((1000, ItemUseRules.Potion(0))));
             services.AddProtocolCommandHandler<MatrixProbe, int, MatrixHandler>(
-                new[] { CommandRegistrationExit.SettledRequiredExplicit, CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+                exits ?? [ CommandRegistrationExit.SettledRequiredExplicit, CommandRegistrationExit.CommittedReplayCurrentStateBatch, CommandRegistrationExit.SettledInitialBatch ],
                 new ProtocolCommandMessageBinding(MatrixMessageType, typeof(MatrixRequest)));
             services.RegisterProtocolMessageHandler<MatrixThin, MatrixRequest, MatrixProbe>(MatrixMessageType);
         });
@@ -511,20 +702,28 @@ public sealed class ExplicitEffectCommandTests
     }
     private static ValueTask<int> Send(ShopFixture world, Mode mode, UseStackableRequest? input = null) =>
         world.Services.GetRequiredService<ICommandBus>().SendAsync(new MatrixProbe(new(world.Connection), input ?? WholeUse.Input(new(InventoryContainerType.Main, 69), 1000), mode));
-    public enum Mode { Commit, Refusal, ReadOnlyMain, MissingReporter, WrongOwnerEmptySlots, WrongOwnerRental, NoMain, Rollback, Register, BusinessFailure, CatchAndWrite, CatchAndReturn, UpgradeRejected, DuplicateMain, ReadAfterMain, OrdinaryRegister, MultiCommit, MultiFailure, EmptyExplicit, DoubleRegister, PreviousAttempt, HoldAttempt, PendingCleanup }
+    public enum Mode { Commit, Refusal, ReadOnlyMain, MissingReporter, WrongOwnerEmptySlots, WrongOwnerRental, NoMain, Rollback, Register, BusinessFailure, CatchAndWrite, CatchAndReturn, UpgradeRejected, DuplicateMain, ReadAfterMain, OrdinaryRegister, MultiCommit, MultiFailure, EmptyExplicit, DoubleRegister, PreviousAttempt, PreviousCatchWrite, PreviousCatchReturn, ParameterGuard, ProgramFailure, InitialRegister, CrossCall, HoldAttempt, PendingCleanup }
     private sealed class Settings
     {
         internal CommandExecutionContext? Context;
         internal ExplicitEffectRequest? State;
         internal readonly IOException Cause = new("same actual test cause");
+        internal readonly InvalidOperationException ProgramCause = new("first explicit program guard");
+        internal readonly IOException CleanupCause = new("independent cleanup");
+        internal string? GuardKind;
+        internal bool AttemptWrite,InitialCall;
         internal Exception? DisposeFailure;
         internal int LaterWrites;
+        internal int? StagedGold;
         internal SelectedSessionRecipient? OriginalRecipient;
         internal SelectedSessionRecipient? OtherRecipient;
         internal IEffectFootprintRecorder? Footprint;
         internal ReplayProjectionRequest? OriginalProjection;
         internal Exception? InitialError;
         internal ICommandRegistrationAttempt? Attempt;
+        internal ICommandRegistrationAttempt? DisposeForeignAttempt;
+        internal ICommandRegistrationAttempt? ForeignAttempt;
+        internal Exception? ObservedProgramError;
         internal readonly TaskCompletionSource Ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource Release = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal int EncoderCalls;
@@ -536,6 +735,12 @@ public sealed class ExplicitEffectCommandTests
         internal NetworkConnectionContext? Connection;
         internal Task<int>? InFlight;
     }
+    private sealed class ScopedReplayReader(IReplayStateDomainService actual,DisposeProbe disposal):IReplayStateDomainService
+    {
+        public ValueTask<ReplayStateSnapshot> ReadAsync(Dfo.Server.Data.World.SelectedSessionIdentity session,ReplayProjectionRequest projection,GameMessageMetadata? metadata,CancellationToken ct)
+        { _=disposal;return actual.ReadAsync(session,projection,metadata,ct); }
+    }
+    private sealed class UnknownAttempt : ICommandRegistrationAttempt;
     private sealed class DisposeProbe(Settings settings, IGameCommandOutbox outbox) : IDisposable
     {
         public void Dispose()
@@ -545,10 +750,12 @@ public sealed class ExplicitEffectCommandTests
                 settings.DisposedWhileClosed = settings.Context!.Request!.IsClosed;
                 settings.DisposeJobId = GameplayJob.Current?.Id;
                 try { outbox.RegisterExplicitAsync(settings.Connection!.ConnectionId,
-                    new([UseStackableResponse.Success(new(InventoryContainerType.Main, 69), 0, 1000)], []), settings.Attempt!, default).AsTask().GetAwaiter().GetResult(); }
+                    new([UseStackableResponse.Success(new(InventoryContainerType.Main, 69), 0, 1000)], []), settings.DisposeForeignAttempt ?? settings.Attempt!, default).AsTask().GetAwaiter().GetResult(); }
                 catch (Exception cause)
                 {
                     settings.DisposeCallFailure = cause;
+                    if (settings.DisposeForeignAttempt is not null)
+                        try { GameplayJob.DemandHealthy(); } catch (Exception programError) { settings.ObservedProgramError = programError; }
                     if (settings.ExtraDisposeFailure is { } extra)
                     {
                         settings.DisposeAggregateFailure = new AggregateException("scope guard and independent cleanup", cause, extra);
@@ -558,6 +765,8 @@ public sealed class ExplicitEffectCommandTests
                     throw;
                 }
             }
+            if (settings.GuardKind == "observe-program")
+                try { GameplayJob.DemandHealthy(); } catch (Exception program) { settings.ObservedProgramError = program; }
             if (settings.DisposeFailure is { } error) throw error;
         }
     }
@@ -620,6 +829,39 @@ public sealed class ExplicitEffectCommandTests
                     new([UseStackableResponse.Success(command.Input.Slot, 0, 1000)], []), settings.Attempt!, ct);
                 return 1;
             }
+            if (command.Mode is Mode.PreviousCatchWrite or Mode.PreviousCatchReturn)
+            {
+                try { await outbox.RegisterExplicitAsync(command.Dispatch.Connection.ConnectionId,
+                    new([UseStackableResponse.Success(command.Input.Slot, 0, 1000)], []), settings.Attempt!, ct); }
+                catch (Exception error) { settings.InitialError = error; }
+                if (command.Mode == Mode.PreviousCatchWrite)
+                    await units.WriteAsync(context, new("caught-old-attempt-real-sqlite", [recipient]), async (_, token) => {
+                        settings.LaterWrites++;
+                        await gold.AddAsync(recipient.Session.CharacterId, 37, int.MaxValue, token);
+                        settings.StagedGold = (await gold.FindAsync(recipient.Session.CharacterId, token))!.Carried;
+                        return 1;
+                    }, ct);
+                return 1;
+            }
+            if(command.Mode==Mode.ParameterGuard)
+            {
+                ValueTask Guard()
+                {
+                    if(settings.GuardKind=="live")return outbox.RegisterExplicitAsync(command.Dispatch.Connection.ConnectionId,new([],[]),settings.ForeignAttempt!,ct);
+                    if(settings.GuardKind=="unknown")return outbox.RegisterExplicitAsync(command.Dispatch.Connection.ConnectionId,new([],[]),new UnknownAttempt(),ct);
+                    _=selected.BeginRegistrationAttempt(settings.GuardKind=="phase"?(CommandRegistrationExit)99:settings.GuardKind=="replay"?CommandRegistrationExit.CommittedReplayCurrentStateBatch:CommandRegistrationExit.SettledRequiredExplicit,command.Dispatch.Connection);
+                    return ValueTask.CompletedTask;
+                }
+                try
+                {
+                    if(settings.GuardKind=="open")await units.WriteAsync(context,new("open-registration-guard",[recipient]),async(_,_)=>{await Guard();return 1;},ct);
+                    else await Guard();
+                }
+                catch(Exception error){settings.InitialError=error;}
+                if(settings.AttemptWrite)
+                    try {await units.WriteAsync(context,new("after-caught-registration-guard",[recipient]),async(_,token)=>{settings.LaterWrites++;await gold.AddAsync(recipient.Session.CharacterId,37,int.MaxValue,token);return 1;},ct);}catch { }
+                return 1;
+            }
             if (command.Mode == Mode.ReadOnlyMain) return await units.ReadOnlyAsync(context, declaration, _ => ValueTask.FromResult(1), ct);
             await units.WriteAsync(context, declaration, async (unit, token) => {
                 settings.Footprint = unit.Footprint;
@@ -665,6 +907,23 @@ public sealed class ExplicitEffectCommandTests
                 }
                 catch (Exception error) { settings.InitialError = error; throw; }
                 finally { settings.Release.TrySetResult(); }
+            }
+            if(command.Mode==Mode.ProgramFailure)
+            {
+                settings.GuardKind="observe-program";GameplayJob.RecordProgramError(settings.ProgramCause);GameplayJob.RecordProgramError(settings.CleanupCause);
+                Assert.Same(settings.ProgramCause,Record.Exception(GameplayJob.DemandHealthy));throw settings.Cause;
+            }
+            if(command.Mode is Mode.InitialRegister or Mode.CrossCall)
+            {
+                var exit=command.Mode==Mode.InitialRegister||settings.InitialCall?CommandRegistrationExit.SettledInitialBatch:CommandRegistrationExit.SettledRequiredExplicit;
+                var attempt=selected.BeginRegistrationAttempt(exit,command.Dispatch.Connection);settings.Attempt=attempt;
+                try
+                {
+                    if(command.Mode==Mode.InitialRegister||!settings.InitialCall)
+                        await outbox.RegisterBatchAsync(command.Dispatch.Connection,[UseStackableResponse.Success(command.Input.Slot,0,1000)],attempt,ct);
+                    else await outbox.RegisterExplicitAsync(command.Dispatch.Connection.ConnectionId,new([UseStackableResponse.Success(command.Input.Slot,0,1000)],[]),attempt,ct);
+                }
+                catch(Exception error){settings.InitialError=error;throw;}
             }
             if (command.Mode is Mode.BusinessFailure or Mode.MultiFailure) throw settings.Cause;
             if (command.Mode == Mode.OrdinaryRegister)

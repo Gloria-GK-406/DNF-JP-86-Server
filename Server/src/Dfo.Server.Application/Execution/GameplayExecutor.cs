@@ -243,6 +243,10 @@ public sealed class GameplayExecutor(ILogger<GameplayExecutor> logger) : Gamepla
             registration.Dispose();
         }
 
+        private static bool ContainsCause(Exception error, Exception cause) => ReferenceEquals(error, cause)
+            || error is AggregateException aggregate && aggregate.InnerExceptions.Any(child => ContainsCause(child, cause))
+            || error.InnerException is { } inner && ContainsCause(inner, cause);
+
         public override async ValueTask RunAsync()
         {
             if (Interlocked.CompareExchange(ref state, Running, Pending) != Pending)
@@ -287,7 +291,7 @@ public sealed class GameplayExecutor(ILogger<GameplayExecutor> logger) : Gamepla
                     // RQ-003: a program error raised inside the job fails it even if the body swallowed it.
                     if (executor.ProgramErrorOf(token) is { } programError)
                     {
-                        failure = programError;
+                        if (failure is null || !ContainsCause(failure, programError)) failure = programError;
                         cancelled = false;
                     }
 

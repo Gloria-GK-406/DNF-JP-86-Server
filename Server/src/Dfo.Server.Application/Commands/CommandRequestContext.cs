@@ -39,7 +39,7 @@ public abstract class CommandRequestContext
     private CommandRequestContext() { }
 
     public bool IsClosed => closed;
-    internal void DemandCurrent()
+    public void DemandCurrent()
     {
         DemandRegistrationCurrent();
         DemandNoIncompleteAttempt();
@@ -144,17 +144,22 @@ public abstract class CommandRequestContext
     }
     public ICommandRegistrationAttempt BeginRegistrationAttempt(CommandRegistrationExit exit, NetworkConnectionContext connection)
     {
-        DemandCurrent();
-        DemandNoIncompleteAttempt();
-        if (this is not ProtocolEffectSelected selected || !RegistrationExits.Contains(exit))
-            throw new InvalidOperationException("The command has no permission for this registration exit.");
-        if (unitOpen || operations.Any(operation => !operation.IsCompleted))
-            throw new InvalidOperationException("Registration requires every work unit to finish.");
-        selected.State.DemandRegistration(exit, connection);
-        var attempt = new CommandRegistrationAttempt(this, selected.State, exit, connection);
-        attempts.Add(attempt);
-        return attempt;
+        try
+        {
+            DemandCurrent();
+            DemandNoIncompleteAttempt();
+            if (this is not ProtocolEffectSelected selected || !RegistrationExits.Contains(exit))
+                throw new InvalidOperationException("The command has no permission for this registration exit.");
+            if (unitOpen || operations.Any(operation => !operation.IsCompleted))
+                throw new InvalidOperationException("Registration requires every work unit to finish.");
+            selected.State.DemandRegistration(exit, connection);
+            var attempt = new CommandRegistrationAttempt(this, selected.State, exit, connection);
+            attempts.Add(attempt);
+            return attempt;
+        }
+        catch (Exception error) { Failed(error); GameplayJob.RecordProgramError(error); throw; }
     }
+
     internal bool RetainsRawEncoderFailure(Exception error) => failures.Count == 1
         && ReferenceEquals(failures[0].Error, error)
         && !TransactionOutcomeUncertainException.Contains(error)

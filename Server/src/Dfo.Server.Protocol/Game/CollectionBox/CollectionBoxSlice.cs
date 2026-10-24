@@ -4,7 +4,7 @@ using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -38,26 +38,6 @@ internal sealed class CollectionBoxPutDecoder() : CollectionBoxDecoder(Collectio
 internal sealed class CollectionBoxWithdrawDecoder() : CollectionBoxDecoder(CollectionBoxAction.Withdraw);
 internal sealed class CollectionBoxExtendDecoder() : CollectionBoxDecoder(CollectionBoxAction.Extend);
 
-public sealed record CollectionBoxCommand(SelectedSessionIdentity Actor, CollectionBoxAction Action, byte BoxId,
-    BusinessSlot? Source, int ItemId) : ICommand<CollectionBoxMutation>, IAccountCommand, IRequestSettlementCommand
-{
-    public AccountId AccountId => Actor.AccountId;
-    public SelectedSessionIdentity? Session => Actor;
-}
-public sealed class CollectionBoxCommandHandler(ICollectionBoxDomainService boxes)
-    : ICommandHandler<CollectionBoxCommand, CollectionBoxMutation>
-{
-    public async ValueTask<CollectionBoxMutation> HandleAsync(CommandExecutionContext context, CollectionBoxCommand command, CancellationToken ct)
-    {
-        var footprint = context.LegacyFootprint;
-        footprint.DemandActive(command.Actor);
-        var result = await boxes.ExecuteAsync(command.Actor.AccountId, command.Actor.CharacterId, command.Action,
-            command.BoxId, command.Source, command.ItemId, ct).ConfigureAwait(false);
-        if (result.Inventory.Count > 0)
-            footprint.RecordInventorySlots(command.Actor, result.Inventory.Select(x => x.Slot).ToArray());
-        return result;
-    }
-}
 internal sealed record CollectionBoxAck(CollectionBoxAction Action, byte BoxId, byte? Error = null) : IGameCmdMessage
 { public ServerMessageType MessageType => ServerMessageType.GameCollectionBox; }
 internal sealed class CollectionBoxAckEncoder : GameCmdMessageEncoder<CollectionBoxAck>
@@ -97,56 +77,8 @@ internal sealed class CollectionBoxContentsEncoder : GameNotiMessageEncoder<Coll
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CollectionBoxContentsMessage m) => OnePayload(0x03EB, m.EncodeBody());
 }
-internal sealed class CollectionBoxHandler(ISelectedSessionDomainService sessions, ICommandBus commands, IGameMessageSender sender,
-    SelectedSessionSafety safety, TimeProvider clock) : ClientMessageHandler<CollectionBoxRequest>
+internal sealed class CollectionBoxHandler(ICommandBus commands) : ClientMessageHandler<CollectionBoxRequest>, IProtocolCommandMessageHandler<GameCollectionBoxCommand>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, CollectionBoxRequest message, CancellationToken ct)
-    {
-        var actor = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (actor is null) return;
-        var recipient = safety.Capture(actor);
-        safety.DemandCurrent(recipient);
-        CollectionBoxMutation? result = null; byte? error = null;
-        try
-        {
-            BusinessSlot? source = message.Action == CollectionBoxAction.Put
-                ? new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, message.SourceSlot)) : null;
-            result = await commands.SendAsync(new CollectionBoxCommand(actor, message.Action, message.BoxId, source, message.ItemId), ct).ConfigureAwait(false);
-        }
-        catch (CollectionBoxRejectedException e) { error = ErrorCode(message.Action, e.Reason); }
-        catch (ContainerAdditionException e) when (e.Reason == ContainerAdditionFailure.NoRoom) { error = 0x04; }
-        catch (ArgumentOutOfRangeException) { error = 0x15; }
-        catch (InventorySlotMappingException) { error = 0x15; }
-        safety.DemandCurrent(recipient);
-        if (result is not null)
-        {
-            var mapping = new InventorySlotMappingRuleService();
-            var frames = new List<IGameServerMessage>();
-            foreach (var change in result.Inventory)
-            {
-                var physical = mapping.ToGameSlot(change.Slot);
-                frames.Add(change.Item is { } item ? GameInventoryDelivery.Notification(new(physical.Space,
-                    [new(item.ItemUid, physical.Index, item.ToCore(), item.AvatarDetail)], clock.GetUtcNow()))
-                    : GameInventoryDelivery.ClearedSlotNotification(physical.Space, physical.Index, clock.GetUtcNow()));
-            }
-            frames.AddRange(CollectionBoxContentsMessage.Full(result.State));
-            frames.Add(new CollectionBoxAck(message.Action, message.BoxId));
-            await sender.SendBatchAsync(context.Connection, frames, ct).ConfigureAwait(false);
-            return;
-        }
-        await sender.SendBatchAsync(context.Connection, [new CollectionBoxAck(message.Action, message.BoxId, error ?? 0x15)], ct).ConfigureAwait(false);
-    }
-    // Wire reasons belong here: their native UI meanings still await real-client verification.
-    private static byte ErrorCode(CollectionBoxAction action, CollectionBoxRejection reason) => action switch
-    {
-        CollectionBoxAction.Select or CollectionBoxAction.Extend => 0x5F,
-        CollectionBoxAction.Withdraw => reason == CollectionBoxRejection.MissingItem ? (byte)0x01 : (byte)0x15,
-        _ => reason switch
-        {
-            CollectionBoxRejection.UnknownBox => 0x5F,
-            CollectionBoxRejection.MissingItem => 0x12,
-            CollectionBoxRejection.LockedOrTimed => 0x17,
-            _ => 0x15,
-        },
-    };
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, CollectionBoxRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameCollectionBoxCommand(context, message), ct).ConfigureAwait(false);
 }

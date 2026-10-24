@@ -17,6 +17,48 @@ namespace Dfo.Server.Application.Tests.Commands;
 
 public sealed class ProtocolCommandExecutionTests
 {
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task Generic_jobs_keep_first_program_error_unless_the_final_body_tree_contains_that_same_reference(bool nested)
+    {
+        await using var world = new CommandWorld();
+        var p = new InvalidOperationException("first program guard"); var q = new InvalidOperationException("later program guard");
+        var e = new IOException("independent body");
+        Exception body = nested ? new AggregateException("outer", e, new Exception("wrapper", new AggregateException("inner", p, e))) : e;
+        var final = await Record.ExceptionAsync(() => world.Services.GetRequiredService<GameplayExecutor>().RunAsync(
+            new GameplayWork<int>(default, GameplayCallChain.NewRoot(GameplayCallSource.Connection), "generic-program-control", _ => {
+                GameplayJob.RecordProgramError(p); GameplayJob.RecordProgramError(q);
+                Assert.Same(p, Record.Exception(GameplayJob.DemandHealthy));
+                return ValueTask.FromException<int>(body);
+            }), default).AsTask());
+        Assert.Same(nested ? body : p, final);
+    }
+
+    [Fact]
+    public void Program_error_recording_off_executor_has_no_side_effect_and_null_is_rejected()
+    {
+        Assert.False(GameplayJob.IsOnExecutor); var cause = new IOException("off executor");
+        GameplayJob.RecordProgramError(cause); Assert.False(GameplayJob.IsOnExecutor); Assert.Null(GameplayJob.Current);
+        Assert.Throws<ArgumentNullException>(() => GameplayJob.RecordProgramError(null!));
+    }
+
+    [Theory]
+    [InlineData(0)] [InlineData(1)] [InlineData(2)] [InlineData(3)] [InlineData(4)] [InlineData(5)]
+    public void Initial_batch_registration_requires_only_effect_bindings_and_unique_known_protocol_permission(int defect)
+    {
+        var exits = new[] { CommandRegistrationExit.SettledInitialBatch };
+        var row = Registration([new(ClientMessageType.GameUseStackable, typeof(EffectMessage))]) with { RegistrationExits = exits };
+        row = defect switch {
+            1 => row with { ProtocolMessages = [new(ClientMessageType.GameUseStackable, typeof(EffectMessage)), new(ClientMessageType.ChannelConnect, typeof(FamilyMessage))] },
+            2 => row with { RegistrationExits = [CommandRegistrationExit.SettledInitialBatch,CommandRegistrationExit.SettledInitialBatch] },
+            3 => row with { RegistrationExits = [(CommandRegistrationExit)99] },
+            4 => row with { Route = CommandRouteKind.Internal },
+            5 => row with { ProtocolMessages = [] }, _ => row };
+        if (defect != 0) { Assert.Throws<InvalidOperationException>(() => new CommandHandlerRegistry([row])); return; }
+        var registry = new CommandHandlerRegistry([row]); exits[0] = CommandRegistrationExit.SettledRequiredExplicit;
+        Assert.Equal(CommandRegistrationExit.SettledInitialBatch,Assert.Single(registry.GetRegistration(typeof(Probe)).RegistrationExits!));
+    }
+
     [Fact]
     public async Task The_real_script_version_dispatcher_runs_one_job_and_registers_the_original_response()
     {
@@ -200,6 +242,7 @@ public sealed class ProtocolCommandExecutionTests
         var accepted = new CommandHandlerRegistry([mixed with { RegistrationExits = [CommandRegistrationExit.CommittedReplayCurrentStateBatch] }]);
         Assert.Equal(CommandRegistrationExit.CommittedReplayCurrentStateBatch, Assert.Single(accepted.GetRegistration(typeof(Probe)).RegistrationExits!));
         Assert.Throws<InvalidOperationException>(() => new CommandHandlerRegistry([mixed with { RegistrationExits = [CommandRegistrationExit.SettledRequiredExplicit] }]));
+        Assert.Throws<InvalidOperationException>(() => new CommandHandlerRegistry([mixed with { RegistrationExits = [CommandRegistrationExit.SettledInitialBatch] }]));
         Assert.Throws<InvalidOperationException>(() => new CommandHandlerRegistry([Registration([new(ClientMessageType.ChannelConnect, typeof(FamilyMessage))]) with { RegistrationExits = [CommandRegistrationExit.CommittedReplayCurrentStateBatch] }]));
     }
 

@@ -118,6 +118,12 @@ internal sealed class CommandBus(
                         failure = request?.Failure ?? failure;
                     }
                 }
+                if (request is not null)
+                {
+                    try { GameplayJob.DemandHealthy(); }
+                    catch (Exception error) { request.Failed(error); }
+                    failure = request.Failure ?? failure;
+                }
                 if (failure is not null && request is not null && safety is not null)
                     failure = await CommandWorkUnits.FailAsync(request, failure, safety, registration.CommandType.Name).ConfigureAwait(false);
                 if (request is CommandRequestContext.ProtocolEffectSelected selected)

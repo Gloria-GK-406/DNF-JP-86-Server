@@ -159,7 +159,7 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender, IComma
     public ValueTask RegisterBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages,
         ICommandRegistrationAttempt token, CancellationToken cancellationToken)
     {
-        var attempt = CommandRegistrationAttempt.Enter(token, CommandRegistrationExit.CommittedReplayCurrentStateBatch, connection.ConnectionId);
+        var attempt = CommandRegistrationAttempt.EnterBatch(token, connection.ConnectionId);
         try { return RegisterBatchCore(connection, messages, attempt, cancellationToken); }
         catch (Exception error) { attempt.Failed(error); throw; }
         finally { attempt.Complete(); }
@@ -167,7 +167,7 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender, IComma
     public ValueTask RegisterExplicitAsync(NetworkConnectionId connectionId, ExplicitMessageDelivery delivery,
         ICommandRegistrationAttempt token, CancellationToken cancellationToken)
     {
-        var attempt = CommandRegistrationAttempt.Enter(token, CommandRegistrationExit.SettledRequiredExplicit, connectionId);
+        var attempt = CommandRegistrationAttempt.EnterRequiredExplicit(token, connectionId);
         try { return RegisterExplicitCore(connectionId, delivery, attempt, cancellationToken); }
         catch (Exception error) { attempt.Failed(error); throw; }
         finally { attempt.Complete(); }

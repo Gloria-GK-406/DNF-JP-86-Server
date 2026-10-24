@@ -34,6 +34,29 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Four_collection_box_wires_have_one_exact_whole_Main_and_only_replay_and_initial_permissions()
+    {
+        using var provider = BuildProductionGraph(); var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var row = Assert.Single(commands,x=>x.CommandType == typeof(Dfo.Server.Protocol.Game.CollectionBox.GameCollectionBoxCommand));
+        Assert.Equal(CommandExecutionKind.Direct,row.ExecutionKind);Assert.Equal(CommandRouteKind.Protocol,row.Route);
+        Assert.Equal(new[] {new ProtocolCommandMessageBinding(ClientMessageType.GameCollectionBox,typeof(Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxRequest))},row.ProtocolMessages);
+        Assert.Equal(new[]{CommandRegistrationExit.CommittedReplayCurrentStateBatch,CommandRegistrationExit.SettledInitialBatch},row.RegistrationExits);
+        var registry=provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        Assert.True(registry.TryGet(ClientMessageType.GameCollectionBox,out var route));Assert.Equal(row.CommandType,route!.ProtocolCommandType);
+        Assert.Equal(new[]{typeof(Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxRequest)},route.AllowedMessageClrTypes);
+        foreach(var type in new ushort[]{0x03E5,0x03E6,0x03E7,0x03E8})
+        {
+            var decoder=Assert.Single(provider.GetServices<Dfo.Server.Abstractions.Networking.GameMessageDecoderRegistration>(),x=>x.Selector==1&&x.Type==type);
+            var body=type==0x03E5?new byte[]{4}:type==0x03E7?new byte[]{1,0xE8,3,0,0}:new byte[]{1,0,65,0,0xE8,3,0,0};
+            var input=((Dfo.Server.Abstractions.Networking.IGameMessageDecoder)provider.GetRequiredService(decoder.DecoderType)).Decode(new(1,type,0,1),body);
+            Assert.IsType<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxRequest>(input);Assert.Equal(ClientMessageType.GameCollectionBox,input!.MessageType);
+        }
+        Assert.DoesNotContain(commands,x=>x.CommandType.Name=="CollectionBoxCommand");
+        Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxCommand"));
+        Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxCommandHandler"));
+    }
+
+    [Fact]
     public void Six_warehouse_logicals_share_one_exact_direct_whole_and_only_existing_replay_permission()
     {
         using var provider = BuildProductionGraph();

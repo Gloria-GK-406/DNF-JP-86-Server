@@ -350,7 +350,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 
 ### 2) 命令执行总线（Application/Commands）
 
-协议级路由当前接线了 Channel Connect／ScriptVersion／Script／Info、LOGIN，以及名册／查名／创建／删除角色、OtherCharacterDetail、完整 UseStackable、BuyItem、Reinforce／Disjoint／EnchantByBead、MagicSeal／Forging／Outworld、PackageOpening／AvatarPackageOpening／MagicBoxSingleOpening／MagicBoxBatchOpening、ResetItemQuality／ResetRandomOption、Socket四logical、AvatarCompound、Warehouse六logical：消息 handler 只把原消息、精确连接上下文交给同一 CommandBus；GM 启动初始化走显式内部路由，声明种类与原调用链。新路由由总线入队一次，在身份检查前建立作业发件箱；其请求上下文是方法数据，结束即关闭，不通过 DI、AsyncLocal 或 job slot 取得“当前请求”。其余业务仍走 LegacyQueued／LegacyFineGrained 过渡路径，不得让新 CMD 回调旧命令。
+协议级路由当前接线了 Channel Connect／ScriptVersion／Script／Info、LOGIN，以及名册／查名／创建／删除角色、OtherCharacterDetail、完整 UseStackable、BuyItem、Reinforce／Disjoint／EnchantByBead、MagicSeal／Forging／Outworld、PackageOpening／AvatarPackageOpening／MagicBoxSingleOpening／MagicBoxBatchOpening、ResetItemQuality／ResetRandomOption、Socket四logical、AvatarCompound、Warehouse六logical、CollectionBox一个logical／四wire：消息 handler 只把原消息、精确连接上下文交给同一 CommandBus；GM 启动初始化走显式内部路由，声明种类与原调用链。新路由由总线入队一次，在身份检查前建立作业发件箱；其请求上下文是方法数据，结束即关闭，不通过 DI、AsyncLocal 或 job slot 取得“当前请求”。其余业务仍走 LegacyQueued／LegacyFineGrained 过渡路径，不得让新 CMD 回调旧命令。
 
 直接 slots／rental 足迹现由六个受迁领域入口和三个细粒度 handler 显式接收 `IEffectFootprintRecorder`，不再经旧请求投影接口注入。仅真实 LegacyFineGrained 最内层调用在主结算与事务已进入后捕获旧 frame／execution／rejection 引用；每次调用的能力绑定精确 context、注册、作业 ID 和关闭租约，记录时只检查捕获引用。网络来源按 dispatcher 实际消息分 Effect／NonEffect／Unknown；真正执行器外总线分支才可声明 Standalone，缺帧、TestGameplay 和连接信息不补权。新 Protocol／Internal 的旧能力入口拒绝后保持请求失败。
 
@@ -374,7 +374,9 @@ MagicSeal（unseal／change）、Forging、Outworld（purify／invest含twist）
 
 四 opening 的旧 Transactional fine 已删除，每个 logical／精确请求形状归所属 whole。仅原有效 domain 分支 claim 一次 Main，前置 InvalidRequest／NoSession 不 Main、初始 Rejected 不升权；原领域拒绝经窄 action catch、带 cause 回滚完成后才映原失败 ACK。成功 ACK／Avatar popup 及绝对库存顺序、通知逐目标 Failed 隔离保持，仅复用既有 committed replay 许可；Freeze 后的确认回滚可保留 projection，重试仍同 entry 与原 Ordinal。
 
-仅两个具名即时登记出口保留原 raw 编码失败：UseStackable Main 已 Settled 后的 RequiredExplicit，以及 committed replay 的普通 Write 结束后的 CurrentStateBatch。许可须经本次精确物理目标的 opaque attempt 贯通至 actual encoder；只有最终单一原 cause、没有 typed 不确定性或独立 cleanup 错误，才保持 Committed 且不新增 participant fence。callback、业务、lookup、登记守卫及其它来源仍用默认保护；来源连接关闭仍由原作业发件箱排序完成。重放 reader 必需显式 metadata，普通 Write 内直接读，事务外按 MirrorMerge→Create→batch→Town 投影，无 nested bus。`LegacyReplayStateProjectionDelivery` 只服务仍在迁移的旧 ledger／Joust 路线，相关 ReadReplayStateCommand 和旧 ambient 仍 pending；事务内延迟 Compose 仍禁止生产调用。
+CollectionBox 的四 wire 共用精确 CollectionBoxRequest 与唯一 GameCollectionBoxCommand，旧 fine 已删除。原一次 Main 内保 mandatory footprint、领域调用及实际库存变化槽位记录，具名拒绝带 cause 回滚后登记，普通 SQL 仍外抛；Main 后逐条 clock 组库存、完整 boxes／selected 重复及 ACK，一次登记原精确物理目标。拒绝 batch 无初次成功许可。
+
+仅三个具名即时登记出口保留原 raw 编码失败：UseStackable Main 已 Settled 后的 RequiredExplicit，committed replay 的普通 Write 结束后的 CurrentStateBatch，以及 CollectionBox 首次成功 Main 完成后的 SettledInitialBatch。许可须经本次精确物理目标的 opaque attempt 贯通至 actual encoder；只有最终单一原 cause、没有 typed 不确定性或独立 cleanup 错误，才保持 Committed 且不新增 participant fence。callback、业务、lookup、登记守卫及其它来源仍用默认保护；来源连接关闭仍由原作业发件箱排序完成。重放 reader 必需显式 metadata，普通 Write 内直接读，事务外按 MirrorMerge→Create→batch→Town 投影，无 nested bus。`LegacyReplayStateProjectionDelivery` 只服务仍在迁移的旧 ledger／Joust 路线，相关 ReadReplayStateCommand 和旧 ambient 仍 pending；事务内延迟 Compose 仍禁止生产调用。
 
 - 契约（`CommandContracts.cs`）：`ICommand<TResult>`（CLR 类型即身份）；
   `ISelectedSessionCommand` 带它所属的精确选中会话（null 表示可信的离线工作），

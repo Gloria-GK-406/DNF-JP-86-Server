@@ -1,0 +1,3 @@
+# TASK-20 guard probe test-value
+
+Protected outcome: new caller cannot catch an old/foreign registration guard and persist SQLite writes or successfully return. Existing PreviousAttempt only propagates its throw; existing live test only checks owner drain. Added registered Matrix requests catch the actual same-provider token guard, then attempt actual SQLite carried-gold write/commit or normal return; observations include both request states/jobs and source-close/fence. Expected rejection and unchanged durable gold are stable under refactoring. This protects durable authority and transaction isolation rather than collaborators or constructor shape. Product source remains HEAD before the first probe.

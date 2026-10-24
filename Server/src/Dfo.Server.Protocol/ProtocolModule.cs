@@ -327,8 +327,10 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxPutDecoder>(0x03E6, ClientMessageType.GameCollectionBox);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxWithdrawDecoder>(0x03E7, ClientMessageType.GameCollectionBox);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxExtendDecoder>(0x03E8, ClientMessageType.GameCollectionBox);
-        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxHandler>(ClientMessageType.GameCollectionBox);
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxCommand, Dfo.Server.Abstractions.Characters.CollectionBoxMutation, Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxCommandHandler>(CommandExecutionKind.Transactional);
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxHandler, Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxRequest, Dfo.Server.Protocol.Game.CollectionBox.GameCollectionBoxCommand>(ClientMessageType.GameCollectionBox);
+        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.CollectionBox.GameCollectionBoxCommand, bool, Dfo.Server.Protocol.Game.CollectionBox.GameCollectionBoxCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch, CommandRegistrationExit.SettledInitialBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameCollectionBox, typeof(Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxRequest)));
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxAck, Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxAckEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxContentsMessage, Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxContentsEncoder>();
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleMakeDecoder>(0x0404, ClientMessageType.GameMarriageCapsule);

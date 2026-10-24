@@ -61,7 +61,7 @@ public sealed class CommandHandlerRegistry
                     throw new InvalidOperationException("A protocol command requires unique typed message bindings.");
                 if (item.RegistrationExits is { Count: > 0 } exits
                     && (exits.Any(exit => !Enum.IsDefined(exit)) || exits.Distinct().Count() != exits.Count
-                        || exits.Contains(CommandRegistrationExit.SettledRequiredExplicit)
+                        || (exits.Contains(CommandRegistrationExit.SettledRequiredExplicit) || exits.Contains(CommandRegistrationExit.SettledInitialBatch))
                             && bindings.Any(x => !typeof(IEffectSettlementRequest).IsAssignableFrom(x.MessageClrType))
                         || exits.Contains(CommandRegistrationExit.CommittedReplayCurrentStateBatch)
                             && !bindings.Any(x => typeof(IEffectSettlementRequest).IsAssignableFrom(x.MessageClrType))))

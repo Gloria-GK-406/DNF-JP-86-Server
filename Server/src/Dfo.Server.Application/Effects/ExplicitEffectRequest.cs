@@ -55,7 +55,13 @@ internal sealed class ExplicitEffectRequest(EffectOperationEntry entry, Selected
     {
         if (!ReferenceEquals(connection, Recipient.Connection)
             || Entry.State != EffectOperationState.Committed || mainActive
-            || (exit == CommandRegistrationExit.SettledRequiredExplicit ? !settled || IsReplay : !IsReplay || !replayCommitted))
+            || !(exit switch
+            {
+                CommandRegistrationExit.SettledRequiredExplicit => settled && !IsReplay,
+                CommandRegistrationExit.CommittedReplayCurrentStateBatch => IsReplay && replayCommitted,
+                CommandRegistrationExit.SettledInitialBatch => settled && !IsReplay,
+                _ => false,
+            }))
             throw new InvalidOperationException("The registration exit requires its exact committed effect stage and connection.");
     }
     private void Demand(SelectedSessionIdentity owner)
