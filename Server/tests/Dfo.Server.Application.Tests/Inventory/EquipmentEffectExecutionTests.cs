@@ -141,8 +141,9 @@ public sealed class EquipmentEffectExecutionTests
 
     private static DomainTransactionScope Scope(ShopFixture f) => (DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
     private static ValueTask<ApplyEffectsResult> Apply(ShopFixture f, IReadOnlyList<DomainEffect> effects) =>
-        f.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(
-            new(f.Session.AccountId, f.Session.CharacterId, f.Clock.GetUtcNow(), f.Session), effects, default);
+        Dfo.Server.Application.Tests.Support.TestEffectFootprints.Run(f.Session, footprint =>
+            f.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(
+                new(f.Session.AccountId, f.Session.CharacterId, f.Clock.GetUtcNow(), footprint, f.Session), effects, default));
     private static async ValueTask<EquipmentEffectTarget> Target(ShopFixture f)
     {
         var instance = (await f.Services.GetRequiredService<IEquipmentDomainService>().Of(f.Session.CharacterId)

@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World.IllusionTower;
@@ -27,8 +28,8 @@ public sealed class IllusionTowerRewardProjectionTests
             var states = new List<(long Experience, long Gold, long Items)>();
             sender.OnAttempt = () => states.Add(Assets(fixture));
 
-            Assert.True(await Delivery(fixture).KillAsync(fixture.Session.ConnectionId,
-                GameMessageMetadata.Empty, run.Room.Actors[0].Uid, fixture.Session.WireUserId, default));
+            Assert.True(await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => Delivery(fixture).KillAsync(fixture.Session.ConnectionId,
+                GameMessageMetadata.Empty, run.Room.Actors[0].Uid, fixture.Session.WireUserId, default)));
 
             Assert.Equal(2, sender.Attempts.Count);
             Assert.Same(sender.Attempts[0], sender.Attempts[1]);
@@ -46,8 +47,8 @@ public sealed class IllusionTowerRewardProjectionTests
                     message => message.GetType().Name == "IllusionTowerRewardNotification");
             }
 
-            Assert.True(await Delivery(fixture).KillAsync(fixture.Session.ConnectionId,
-                GameMessageMetadata.Empty, run.Room.Actors[0].Uid, fixture.Session.WireUserId, default));
+            Assert.True(await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => Delivery(fixture).KillAsync(fixture.Session.ConnectionId,
+                GameMessageMetadata.Empty, run.Room.Actors[0].Uid, fixture.Session.WireUserId, default)));
             Assert.Equal(2, sender.Attempts.Count);
             Assert.Equal(states[0], Assets(fixture));
         });
@@ -67,12 +68,11 @@ public sealed class IllusionTowerRewardProjectionTests
             sender.OnAttempt = () => states.Add(Assets(fixture));
             closer.OnClose = async connectionId =>
             {
-                _ = await fixture.Services.GetRequiredService<ISelectedSessionCleanupDomainService>()
-                    .CleanupAsync(session, includeOwner: false, default);
+                _ = await TestEffectFootprints.Run(session, cap => fixture.Services.GetRequiredService<ISelectedSessionCleanupDomainService>().CleanupAsync(session, includeOwner: false, cap, default));
             };
 
-            Assert.True(await Delivery(fixture).KillAsync(session.ConnectionId,
-                GameMessageMetadata.Empty, run.Room.Actors[0].Uid, session.WireUserId, default));
+            Assert.True(await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => Delivery(fixture).KillAsync(session.ConnectionId,
+                GameMessageMetadata.Empty, run.Room.Actors[0].Uid, session.WireUserId, default)));
 
             Assert.Equal(2, sender.Attempts.Count);
             Assert.Same(sender.Attempts[0], sender.Attempts[1]);
@@ -99,21 +99,21 @@ public sealed class IllusionTowerRewardProjectionTests
             SelectedSessionIdentity? replacement = null;
             sender.OnAttempt = () => replacement ??= ReplaceSession(fixture);
 
-            Assert.True(await Delivery(fixture).KillAsync(old.ConnectionId,
-                GameMessageMetadata.Empty, run.Room.Actors[0].Uid, old.WireUserId, default));
+            Assert.True(await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => Delivery(fixture).KillAsync(old.ConnectionId,
+                GameMessageMetadata.Empty, run.Room.Actors[0].Uid, old.WireUserId, default)));
 
             Assert.Single(sender.Attempts);
             Assert.Empty(closer.Closed);
             Assert.NotNull(replacement);
             var cleanup = fixture.Services.GetRequiredService<ISelectedSessionCleanupDomainService>();
-            _ = await cleanup.CleanupAsync(old, includeOwner: false, default);
+            _ = await TestEffectFootprints.Run(old, cap => cleanup.CleanupAsync(old, includeOwner: false, cap, default));
             Assert.Null(Tower(fixture).Find(old));
             Assert.Equal(replacement, fixture.Services.GetRequiredService<ISelectedSessionDomainService>()
                 .FindByCharacter(old.CharacterId));
             var next = await Tower(fixture).EnterAsync([new(replacement, 0)], replacement, 43, default);
             Assert.NotNull(next.Run);
             Assert.NotEqual(run.RunId, next.Run.RunId);
-            _ = await cleanup.CleanupAsync(old, includeOwner: false, default);
+            _ = await TestEffectFootprints.Run(old, cap => cleanup.CleanupAsync(old, includeOwner: false, cap, default));
             Assert.Equal(next.Run.RunId, Tower(fixture).Find(replacement)!.RunId);
             Assert.Single(sender.Attempts);
             Assert.Empty(closer.Closed);

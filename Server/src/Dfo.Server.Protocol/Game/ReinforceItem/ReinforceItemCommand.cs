@@ -29,5 +29,5 @@ public sealed class ReinforceItemCommandHandler(IEquipmentReinforcementDomainSer
         reinforcement.ReinforceAsync(command.Session, command.TargetSlot,
             command.ExpectedItemId, command.MaterialSlot,
             command.ProtectionSlot,
-            cancellationToken, command.Kind);
+            context.LegacyFootprint, cancellationToken, command.Kind);
 }

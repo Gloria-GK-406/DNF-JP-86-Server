@@ -49,7 +49,7 @@ public sealed class EpicCraftCommandHandler(IEpicCraftDomainService crafting, Ti
     : ICommandHandler<EpicCraftCommand, EpicCraftReceipt>
 {
     public ValueTask<EpicCraftReceipt> HandleAsync(CommandExecutionContext context, EpicCraftCommand command, CancellationToken ct) =>
-        crafting.CraftAsync(command.Session, command.EquipmentId, clock.GetUtcNow(), ct);
+        crafting.CraftAsync(command.Session, command.EquipmentId, clock.GetUtcNow(), context.LegacyFootprint, ct);
 }
 public sealed class EpicCraftHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ICommandBus commands, IEventService events, IGameMessageSender sender, ILogger<EpicCraftHandler> logger)

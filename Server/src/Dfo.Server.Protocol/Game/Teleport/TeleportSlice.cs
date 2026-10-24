@@ -73,7 +73,7 @@ public sealed class TeleportCommandHandler(ITeleportConsumableDomainService tele
 {
     public ValueTask<TeleportConsumableResult> HandleAsync(CommandExecutionContext context, TeleportCommand command,
         CancellationToken ct) => teleports.UseAsync(command.Session, command.Source, command.ItemId,
-            command.TownId, command.Channel, ct);
+            command.TownId, command.Channel, context.LegacyFootprint, ct);
 }
 public sealed class TeleportHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ISelectedCharacterCurrentViewDomainService currentViews, ITownAreaDomainService townAreas,

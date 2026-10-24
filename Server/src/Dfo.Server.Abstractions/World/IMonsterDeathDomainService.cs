@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
@@ -33,7 +34,7 @@ public sealed record MonsterDeathSettlementResult(IReadOnlyList<MonsterDeathPart
 
 public interface IMonsterDeathDomainService
 {
-    ValueTask<MonsterDeathSettlementResult> SettleAsync(MonsterDeathSettlementRequest request, CancellationToken ct);
+    ValueTask<MonsterDeathSettlementResult> SettleAsync(MonsterDeathSettlementRequest request, IEffectFootprintRecorder footprint, CancellationToken ct);
 }
 
 public interface IMonsterKillRewardsDomainService
@@ -42,5 +43,5 @@ public interface IMonsterKillRewardsDomainService
         Dfo.Server.Data.Accounts.AccountId accountId, CharacterId characterId, IdentifiedKill kill,
         int dungeonId, DungeonDifficulty difficulty, double weight, int partyMemberCount,
         Dfo.Server.Data.Parties.PartyKey partyKey, bool finalBoss, DungeonRunId? runId, RoomActorId? actor,
-        int? worldMapId, IReadOnlyList<RolledDrop>? loot, CancellationToken ct);
+        int? worldMapId, IReadOnlyList<RolledDrop>? loot, IEffectFootprintRecorder footprint, CancellationToken ct);
 }

@@ -709,6 +709,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IReviveCoinDomainService, ReviveCoinDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.ReviveCoinClaimRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.TryAddSingleton<ILifecycleEffectFootprintSource, LifecycleEffectFootprintSource>();
         services.TryAddSingleton<IApplyEffectsDomainService, ApplyEffectsDomainService>();
         services.TryAddSingleton<IInventoryEffectPreflightDomainService, InventoryEffectPreflightDomainService>();
         services.TryAddSingleton<IEquipmentEffectPlanRuleService, EquipmentEffectPlanRuleService>();

@@ -21,9 +21,12 @@ internal sealed class TownPositionEffectHandler(IOnlineCharacterRuntimeDomainSer
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, MoveToTownEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         await ValidateAsync(context, effect, ct).ConfigureAwait(false);
+        context.Footprint.DemandEffects(context.Owner);
         if (effect.PersistsPosition)
             await persistence.PersistAsync(context.AccountId, context.CharacterId, effect.Destination, ct).ConfigureAwait(false);
+        context.Footprint.DemandEffects(context.Owner);
         transactions.Current!.Enlist(new object(), () => new Commit(onlineCharacters, sessions, areas, context, effect));
         return new TownPositionChange(effect.Expected, effect.Destination);
     }

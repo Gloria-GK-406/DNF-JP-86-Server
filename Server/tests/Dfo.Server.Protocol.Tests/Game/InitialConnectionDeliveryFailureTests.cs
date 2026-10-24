@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Sessions;
@@ -67,7 +68,7 @@ public sealed class InitialConnectionDeliveryFailureTests
             Outbound.Connect(Connection);
             Context = Outbound.Context(Connection);
             Observer = new OnlineUserConnectionObserver(Online, new SelectedSessionDomainService(state), new NoCleanup(),
-                new GeneralChannel(), new Config(), Outbound.Game, new NoCleanupDelivery(), TimeProvider.System);
+                new GeneralChannel(), new Config(), Outbound.Game, new NoCleanupDelivery(), new TestEffectFootprints.LifecycleSource([]), TimeProvider.System);
         }
 
         public XoDelivery Outbound { get; }
@@ -97,7 +98,7 @@ public sealed class InitialConnectionDeliveryFailureTests
     private sealed class NoCleanup : ISelectedSessionCleanupDomainService
     {
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
-            SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken) =>
+            SelectedSessionIdentity session, bool includeOwner, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
     }
 

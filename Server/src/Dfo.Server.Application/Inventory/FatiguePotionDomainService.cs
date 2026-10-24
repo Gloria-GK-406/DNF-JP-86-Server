@@ -12,8 +12,9 @@ internal sealed class FatiguePotionDomainService(IOpeningInventoryDomainService 
     ISpecialConsumableEffectPlanRuleService rules, ITownAreaDomainService towns) : IFatiguePotionDomainService
 {
     public async ValueTask<OpeningInventoryReceipt> UseAsync(SelectedSessionIdentity session,
-        BusinessSlot sourceSlot, DateTimeOffset now, CancellationToken ct)
+        BusinessSlot sourceSlot, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         var source = await inventory.SourceAsync(session, sourceSlot, now, ct).ConfigureAwait(false);
         var progress = await characters.Get(session.CharacterId).ProgressAsync(ct).ConfigureAwait(false)
             ?? throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "Character progress unavailable.");
@@ -21,6 +22,6 @@ internal sealed class FatiguePotionDomainService(IOpeningInventoryDomainService 
             towns.Find(session.CharacterId) is not null,
             await states.FatigueAsync(session.CharacterId, ct).ConfigureAwait(false),
             await states.UsageAsync(session.CharacterId, source.ItemId, ct).ConfigureAwait(false), now), ct).ConfigureAwait(false);
-        return (await inventory.ApplyAsync(session, plan, now, ct).ConfigureAwait(false)).Inventory;
+        return (await inventory.ApplyAsync(session, plan, now, footprint, ct).ConfigureAwait(false)).Inventory;
     }
 }

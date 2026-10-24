@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Characters;
@@ -91,7 +92,7 @@ public sealed class MonsterDeathHandlerTests
         {
             if (command is not ProcessMonsterDeathCommand death) return await fallback.SendAsync(command, ct);
             await using var tx = scope.Begin();
-            var result = await service.SettleAsync(death.Request, ct);
+            var result = await TestEffectFootprints.Run(death.Request.Participants, cap => service.SettleAsync(death.Request, cap, ct));
             await tx.CommitAsync(ct);
             return (T)(object)result;
         }
@@ -101,7 +102,7 @@ public sealed class MonsterDeathHandlerTests
         public async ValueTask<MonsterKillEffects> ApplyAsync(SelectedSessionIdentity? session, AccountId account,
             CharacterId character, IdentifiedKill kill, int dungeon, DungeonDifficulty difficulty, double weight,
             int count, PartyKey party, bool boss, DungeonRunId? run, RoomActorId? actor, int? world,
-            IReadOnlyList<RolledDrop>? loot, CancellationToken ct)
+            IReadOnlyList<RolledDrop>? loot, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
         {
             var applied = await bus.SendAsync(new ApplyMonsterKillCommand(account, character,
                 new(kill.Code, kill.Level, kill.Rank, kill.IsNamedMonster), dungeon, difficulty, weight,

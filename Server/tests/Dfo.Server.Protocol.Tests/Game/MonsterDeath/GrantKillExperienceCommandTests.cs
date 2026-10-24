@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
@@ -95,7 +96,7 @@ public sealed class GrantKillExperienceCommandTests
                     ExperienceEntitlementPolicy.None)),
                 new FixedChannelBonus(channelRate)), characterLevel: 3), TimeProvider.System);
 
-            var result = await handler.HandleAsync(
+            var result = await TestEffectFootprints.Invoke(handler,
                 new CommandExecutionContext(
                     Guid.Empty,
                     typeof(GrantKillExperienceCommand),
@@ -107,7 +108,7 @@ public sealed class GrantKillExperienceCommandTests
                     new KilledMonster(Code: 63751, monsterLevel, rank, named),
                     CapturedDungeon,
                     Difficulty: 0,
-                    CapturedDungeonWeight),
+                    CapturedDungeonWeight), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null),
                 CancellationToken.None);
 
             return result.Award;
@@ -180,7 +181,7 @@ public sealed class GrantKillExperienceCommandTests
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
 
-        public override async ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
+        public override async ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
         {
             var breakdown = await calculation.CalculateAsync(source, characterLevel, cancellationToken);
             return new ExperienceAward(breakdown, characterLevel, breakdown.Total, LeveledUp: false);

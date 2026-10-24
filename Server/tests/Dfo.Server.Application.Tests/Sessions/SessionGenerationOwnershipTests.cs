@@ -63,7 +63,7 @@ public sealed class SessionGenerationOwnershipTests
             var service = Cleanup(directory, runtime: new ThrowingRuntime());
 
             await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
-                await service.CleanupAsync(session, includeOwner: false, CancellationToken.None));
+                await TestEffectFootprints.Run(session, cap => service.CleanupAsync(session, includeOwner: false, cap, CancellationToken.None)));
 
             Assert.Null(directory.Find(session.AccountId));
         });
@@ -86,7 +86,7 @@ public sealed class SessionGenerationOwnershipTests
             var service = Cleanup(directory, presence, stores, runtime: new ThrowingRuntime());
 
             var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
-                await service.CleanupAsync(owner, includeOwner: true, CancellationToken.None));
+                await TestEffectFootprints.Run(owner, cap => service.CleanupAsync(owner, includeOwner: true, cap, CancellationToken.None)));
 
             Assert.Equal(
                 [SelectedSessionCleanupNoticeKind.ExpertStoreClosed],
@@ -126,7 +126,7 @@ public sealed class SessionGenerationOwnershipTests
             stores.Open(owner);
             var service = Cleanup(directory, presence, stores);
 
-            var delivery = await service.CleanupAsync(owner, includeOwner, CancellationToken.None);
+            var delivery = await TestEffectFootprints.Run(owner, cap => service.CleanupAsync(owner, includeOwner, cap, CancellationToken.None));
 
             Assert.Equal(includeOwner ? 1 : 0, delivery.RequiredOwnerNotices.Count);
             if (includeOwner)
@@ -168,7 +168,7 @@ public sealed class SessionGenerationOwnershipTests
             var service = Cleanup(directory, runtime: runtime, channels: new KindChannels(kind),
                 persistence: persistence);
 
-            await service.CleanupAsync(session, false, CancellationToken.None);
+            await TestEffectFootprints.Run(session, cap => service.CleanupAsync(session, false, cap, CancellationToken.None));
 
             Assert.Equal(expectedWrites, persistence.Writes);
             if (expectedWrites == 1)
@@ -188,7 +188,7 @@ public sealed class SessionGenerationOwnershipTests
             var channels = new KindChannels(ChannelEntryKind.General);
             var service = Cleanup(directory, channels: channels, persistence: persistence);
 
-            await service.CleanupAsync(session, false, CancellationToken.None);
+            await TestEffectFootprints.Run(session, cap => service.CleanupAsync(session, false, cap, CancellationToken.None));
 
             Assert.Equal(0, persistence.Writes);
             Assert.Equal(0, channels.Resolutions);
@@ -210,7 +210,7 @@ public sealed class SessionGenerationOwnershipTests
                 persistence: persistence);
 
             var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
-                await service.CleanupAsync(session, false, CancellationToken.None));
+                await TestEffectFootprints.Run(session, cap => service.CleanupAsync(session, false, cap, CancellationToken.None)));
 
             Assert.Contains(failure.InnerExceptions, error => error.Message == "channel unavailable");
             Assert.Equal(0, persistence.Writes);
@@ -242,8 +242,8 @@ public sealed class SessionGenerationOwnershipTests
             var departure = new RecordingDepartureSink();
             var service = Cleanup(directory, presence, stores, runs: runs, departures: [departure]);
 
-            var delivery = await service.CleanupAsync(
-                stale, includeOwner: true, CancellationToken.None);
+            var delivery = await TestEffectFootprints.Run(stale, cap => service.CleanupAsync(
+                stale, includeOwner: true, cap, CancellationToken.None));
 
             Assert.Empty(delivery.RequiredOwnerNotices);
             Assert.Empty(delivery.PeerAudience);
@@ -275,7 +275,7 @@ public sealed class SessionGenerationOwnershipTests
             runtime.ApplySpiritPotion(session, 1, TimeSpan.FromHours(2));
             var service = Cleanup(directory, runtime: runtime, channels: new KindChannels(ChannelEntryKind.Raid));
 
-            await service.CleanupAsync(session, includeOwner: false, CancellationToken.None);
+            await TestEffectFootprints.Run(session, cap => service.CleanupAsync(session, includeOwner: false, cap, CancellationToken.None));
 
             Assert.False(
                 runtime.IsCoolingDown(session.CharacterId, ItemCooldownKey.ForGroup(70)));
@@ -302,7 +302,7 @@ public sealed class SessionGenerationOwnershipTests
             runtime.ApplySpiritPotion(returned, 1, TimeSpan.FromHours(2));
             var service = Cleanup(directory, runtime: runtime);
 
-            await service.CleanupAsync(departing, includeOwner: false, CancellationToken.None);
+            await TestEffectFootprints.Run(departing, cap => service.CleanupAsync(departing, includeOwner: false, cap, CancellationToken.None));
 
             Assert.True(
                 runtime.IsCoolingDown(returned.CharacterId, ItemCooldownKey.ForGroup(70)));

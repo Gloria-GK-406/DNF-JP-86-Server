@@ -9,17 +9,17 @@ namespace Dfo.Server.Abstractions.Inventory;
 public interface IMagicBoxOpeningDomainService
 {
     ValueTask<MagicBoxOpeningResult> OpenAsync(SelectedSessionIdentity session, BusinessMagicBoxOpeningInput input,
-        DateTimeOffset now, CancellationToken cancellationToken);
+        DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }
 public interface IPackageOpeningDomainService
 {
     ValueTask<PackageOpeningResult> OpenAsync(SelectedSessionIdentity session, BusinessPackageOpeningInput input,
-        DateTimeOffset now, CancellationToken cancellationToken);
+        DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }
 public interface IAvatarPackageOpeningDomainService
 {
     ValueTask<PackageOpeningResult> OpenAsync(SelectedSessionIdentity session, BusinessAvatarPackageOpeningInput input,
-        DateTimeOffset now, CancellationToken cancellationToken);
+        DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }
 
 /// <summary>Shared ownership checks and inventory settlement, with no package-family decisions.</summary>
@@ -28,6 +28,6 @@ public interface IOpeningInventoryDomainService
     ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken cancellationToken);
     ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
     ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity session, IReadOnlyList<DomainEffect> effects,
-        DateTimeOffset now, CancellationToken cancellationToken);
+        DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }
 public sealed record OpeningEffectsApplication(OpeningInventoryReceipt Inventory, ApplyEffectsResult Applied);

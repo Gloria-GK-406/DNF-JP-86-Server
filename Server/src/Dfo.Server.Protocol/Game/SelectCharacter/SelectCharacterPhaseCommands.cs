@@ -56,7 +56,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
             try
             {
                 cleanupNotifications.Add(await cleanup.CleanupAsync(
-                    previous, includeOwner: true, cancellationToken).ConfigureAwait(false));
+                    previous, includeOwner: true, context.LegacyFootprint, cancellationToken).ConfigureAwait(false));
             }
             catch (Exception error)
             {
@@ -92,7 +92,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
                 try
                 {
                     cleanupNotifications.Add(await cleanup.CleanupAsync(
-                        previous, includeOwner: false, cancellationToken).ConfigureAwait(false));
+                        previous, includeOwner: false, context.LegacyFootprint, cancellationToken).ConfigureAwait(false));
                 }
                 finally
                 {
@@ -118,7 +118,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
             try
             {
                 cleanupNotifications.Add(await cleanup.CleanupAsync(
-                    session, includeOwner: true, CancellationToken.None).ConfigureAwait(false));
+                    session, includeOwner: true, context.LegacyFootprint, CancellationToken.None).ConfigureAwait(false));
             }
             catch (SelectedSessionCleanupFailure cleanupFailure)
             {
@@ -352,7 +352,7 @@ public sealed class CompensateSelectedCharacterSessionCommandHandler(
         try
         {
             notifications = await cleanup.CleanupAsync(
-                command.Session, includeOwner: true, cancellationToken)
+                command.Session, includeOwner: true, context.LegacyFootprint, cancellationToken)
                 .ConfigureAwait(false);
         }
         finally

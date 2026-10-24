@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Collections.Concurrent;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -146,10 +147,10 @@ public sealed class SerialDisconnectTests : IDisposable
         : ISelectedSessionCleanupDomainService
     {
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
-            SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
+            SelectedSessionIdentity session, bool includeOwner, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
         {
             cleaned.Enqueue(session);
-            return inner.CleanupAsync(session, includeOwner, cancellationToken);
+            return inner.CleanupAsync(session, includeOwner, footprint, cancellationToken);
         }
     }
 }

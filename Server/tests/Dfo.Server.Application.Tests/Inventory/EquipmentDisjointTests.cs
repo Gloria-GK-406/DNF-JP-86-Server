@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -530,12 +531,14 @@ public sealed class EquipmentDisjointTests
         short slot,
         int? disjointProviderId = null,
         short disjointToolSlot = -1) =>
-        await TestGameplay.RunAsync(shop.Services, async () => await shop.Services.GetRequiredService<DisjointItemHandler>().HandleAsync(new(shop.Connection),
-            new DisjointItemRequest(
-                GameMessageMetadata.Empty,
+        await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            var request = new DisjointItemRequest(GameMessageMetadata.Empty,
                 new GameSlot(InventoryContainerType.Main, slot), disjointToolSlot,
-                disjointProviderId ?? (disjointToolSlot < 0 ? 1000 : 0)),
-            default));
+                disjointProviderId ?? (disjointToolSlot < 0 ? 1000 : 0));
+            await TestEffectFootprints.Effect(shop.Services, shop.Session, request.Metadata, request.MinimumReplayNeeds,
+                () => shop.Services.GetRequiredService<DisjointItemHandler>().HandleAsync(new(shop.Connection), request, default));
+        });
 
     private sealed class FixedRules(IReadOnlyList<EquipmentDisjointReward> rewards)
         : IEquipmentDisjointRuleService

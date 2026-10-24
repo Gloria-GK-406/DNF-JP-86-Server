@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Characters;
@@ -76,12 +77,12 @@ public interface IIllusionTowerDomainService
         SelectedSessionIdentity leader, uint seed, CancellationToken cancellationToken, int dungeonId = 11001);
     ValueTask<TowerActionResult> LoadAsync(TowerActionContext context, CancellationToken cancellationToken);
     ValueTask<TowerActionResult> StartAsync(TowerActionContext context, CancellationToken cancellationToken);
-    ValueTask<TowerActionResult> KillAsync(TowerActionContext context, ushort actorUid, CancellationToken cancellationToken);
+    ValueTask<TowerActionResult> KillAsync(TowerActionContext context, ushort actorUid, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
     ValueTask<TowerPickupResult> PickupAsync(TowerActionContext context, ushort groundUid, CancellationToken token) =>
         ValueTask.FromResult(new TowerPickupResult(new(false, null), groundUid, null));
     ValueTask<TowerActionResult> NextLevelAsync(TowerActionContext context, CancellationToken cancellationToken);
-    ValueTask<TowerActionResult> DieAsync(TowerActionContext context, CancellationToken cancellationToken);
-    ValueTask<TowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected, CancellationToken cancellationToken);
+    ValueTask<TowerActionResult> DieAsync(TowerActionContext context, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
+    ValueTask<TowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
     ValueTask<TowerActionResult> SynchronizeLeaderAsync(TowerActionContext context,
         SelectedSessionIdentity leader, CancellationToken cancellationToken);
     ValueTask<bool> CanContinueAsync(TowerActionContext context, CancellationToken cancellationToken);

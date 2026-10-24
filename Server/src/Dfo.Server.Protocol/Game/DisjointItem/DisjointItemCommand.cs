@@ -34,7 +34,7 @@ public sealed class NpcDisjointItemCommandHandler(IEquipmentDisjointDomainServic
         NpcDisjointItemCommand command,
         CancellationToken cancellationToken) =>
         disjoint.DisjointAtNpcAsync(command.Session, command.TargetSlot,
-            cancellationToken);
+            context.LegacyFootprint, cancellationToken);
 }
 
 public sealed class PortableDisjointItemCommandHandler(IEquipmentDisjointDomainService disjoint)
@@ -46,5 +46,5 @@ public sealed class PortableDisjointItemCommandHandler(IEquipmentDisjointDomainS
         CancellationToken cancellationToken) =>
         disjoint.DisjointWithPortableMachineAsync(
             command.Session, command.TargetSlot, command.DisjointToolSlot,
-            cancellationToken);
+            context.LegacyFootprint, cancellationToken);
 }

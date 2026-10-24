@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -25,32 +26,40 @@ public sealed class MonsterKillRewardsDomainService(ICharacterDomainService char
         AccountId accountId, CharacterId characterId, IdentifiedKill kill,
         int dungeonId, DungeonDifficulty difficulty, double weight, int partyMemberCount,
         PartyKey partyKey, bool finalBoss, DungeonRunId? runId, RoomActorId? actor,
-        int? worldMapId, IReadOnlyList<RolledDrop>? loot, CancellationToken ct)
+        int? worldMapId, IReadOnlyList<RolledDrop>? loot, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(accountId, characterId, session));
         var award = kill.IsMonster ? await characters.Get(characterId).AddExpAsync(
             new KillExperienceContext(new ExperienceOccasion(ExperienceEvent.MonsterKill, accountId, characterId, dungeonId),
                 kill.Level, kill.Rank, difficulty, weight, partyMemberCount, kill.IsNamedMonster),
-            (clock ?? TimeProvider.System).GetUtcNow(), session, ct).ConfigureAwait(false) : null;
-        var grants = await GrantQuestItemsAsync(accountId, characterId, loot, partyKey, ct).ConfigureAwait(false);
+            (clock ?? TimeProvider.System).GetUtcNow(), session, footprint, ct).ConfigureAwait(false) : null;
+        footprint.DemandEffects(new(accountId, characterId, session));
+        var grants = await GrantQuestItemsAsync(accountId, characterId, loot, partyKey, footprint, ct).ConfigureAwait(false);
         var facts = new List<QuestProgressFact> { new QuestEnemyDefeated(dungeonId, difficulty, kill.Code,
             kill.IsMonster ? HuntEnemyTargetTypes.Monster : HuntEnemyTargetTypes.AiCharacter, kill.Rank,
             WorldMapId: worldMapId, RunId: runId, Actor: actor) };
         if (worldMapId is null && finalBoss && kill.IsMonster && kill.Rank == MonsterRank.Boss)
             facts.Add(new QuestDungeonCleared(dungeonId, difficulty));
         if (grants.QuestItems is not null || grants.AccountMaterials.Count > 0) facts.Add(new QuestHoldingsChanged());
+        footprint.DemandEffects(new(accountId, characterId, session));
         var report = await quests.ReportAsync(accountId, characterId, facts, ct).ConfigureAwait(false);
         if (gameplay is not null && kill.IsMonster)
         {
+            footprint.DemandEffects(new(accountId, characterId, session));
             await gameplay.RecordMonsterDefeatedAsync(new(characterId, kill.Code, (int)kill.Rank, dungeonId, (int)difficulty), ct).ConfigureAwait(false);
             if (finalBoss && kill.Rank == MonsterRank.Boss)
+            {
+                footprint.DemandEffects(new(accountId, characterId, session));
                 await gameplay.RecordDungeonCompletedAsync(new(characterId, dungeonId, (int)difficulty), ct).ConfigureAwait(false);
+            }
         }
         return grants with { Award = award, QuestProgress = report.NotificationSnapshot, QuestChanges = report.Changes };
     }
 
     private async ValueTask<MonsterKillEffects> GrantQuestItemsAsync(AccountId account, CharacterId character,
-        IReadOnlyList<RolledDrop>? loot, PartyKey party, CancellationToken ct)
+        IReadOnlyList<RolledDrop>? loot, PartyKey party, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(account, character, null));
         var empty = new MonsterKillEffects(null, null, null, []);
         if (party != default && (parties?.FindByKey(party) is not { } current
             || !current.Members.Any(x => x.CharacterId == character))) return empty;
@@ -70,6 +79,7 @@ public sealed class MonsterKillRewardsDomainService(ICharacterDomainService char
                 + await delivery.PendingQuantityAsync(character, drop.ItemId, ct).ConfigureAwait(false);
             var count = checked((int)Math.Min(drop.Count, Math.Max(0, drop.GrantLimit - held)));
             if (count <= 0) continue;
+            footprint.DemandEffects(new(account, character, null));
             var receipt = await delivery.DeliverAsync(account, character, [new(drop.ItemId, count)], "任务掉落奖励", ct,
                 ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
             foreach (var addition in receipt.Inventory) changed[slots.ToGameSlot(addition.Slot)] = (addition.Container, addition.Slot.Index);

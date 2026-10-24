@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Persistence;
@@ -229,9 +230,9 @@ public sealed class CharacterSkillLearningTests
     {
         await using var fixture = new LearningFixture();
         await fixture.SeedAsync();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Services
-            .GetRequiredService<ICharacterSkillLearningDomainService>()
-            .LearnAsync(fixture.Session, 0, [new(1, 0, 1)], 0, default).AsTask());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => TestGameplay.RunAsync(fixture.Services, async () =>
+            await TestEffectFootprints.Run(fixture.Session, cap => fixture.Services.GetRequiredService<ICharacterSkillLearningDomainService>()
+                .LearnAsync(fixture.Session, 0, [new(1, 0, 1)], 0, cap, default))));
         AssertBaseline(fixture);
     }
 
@@ -453,8 +454,7 @@ internal sealed class LearningFixture : IAsyncDisposable
         return await TestGameplay.RunAsync(Services, async () =>
         {
             await using var transaction = Scope.Begin();
-            var result = await Services.GetRequiredService<ICharacterSkillLearningDomainService>()
-                .LearnAsync(session ?? Session, page, changes, mode, default);
+            var result = await TestEffectFootprints.Run(session ?? Session, cap => Services.GetRequiredService<ICharacterSkillLearningDomainService>().LearnAsync(session ?? Session, page, changes, mode, cap, default));
             await transaction.CommitAsync(default);
             return result;
         });

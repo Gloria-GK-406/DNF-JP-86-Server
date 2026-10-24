@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
@@ -6,7 +7,7 @@ namespace Dfo.Server.Abstractions.Inventory;
 public interface ICeraShopDomainService
 {
     ValueTask<CeraShopPurchaseResult> PurchaseAsync(SelectedSessionIdentity session, CeraShopPurchaseInput input,
-        DateTimeOffset now, CancellationToken cancellationToken);
+        DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }
 
 public sealed class CeraShopPurchaseRejectedException(CeraShopRejection reason, string detail) : Exception(detail)

@@ -558,8 +558,13 @@ internal sealed class CeraShopFixture : IDisposable
                     Host.Services.GetRequiredService<IItemDomainStore>(), Host.Services.GetRequiredService<IDomainTransactionAccessor>(), Host.Services.GetRequiredService<IItemPlacementRuleService>(), Host.Services.GetRequiredService<IItemSlotRuleService>())));
     }
     public Task<CeraShopPurchaseResult> Buy(params CeraShopPurchaseEntry[] entries) => Command(Host.Session, entries);
-    public async ValueTask Handle(CeraShopPurchaseInput input) => await TestGameplay.RunAsync(Host.Services, async () => await Host.Services.GetRequiredService<CeraShopPurchaseHandler>().HandleAsync(
-        new(Host.Connection), new CeraShopPurchaseRequest(GameMessageMetadata.Empty, input), default));
+    public async ValueTask Handle(CeraShopPurchaseInput input) => await TestGameplay.RunAsync(Host.Services, async () =>
+    {
+        var request = new CeraShopPurchaseRequest(GameMessageMetadata.Empty, input);
+        using var authorization = Host.Services.GetRequiredService<Dfo.Server.Application.Commands.NetworkCommandAuthorization>().Enter(
+            () => true, request.Metadata, Dfo.Server.Application.Commands.NetworkCommandAuthorization.MessageCategory.NonEffect);
+        await Host.Services.GetRequiredService<CeraShopPurchaseHandler>().HandleAsync(new(Host.Connection), request, default);
+    });
     public byte[] Encode(IServerNetworkMessage message)
     {
         var registration = Host.Services.GetServices<ServerMessageEncoderRegistration>().Single(value => value.MessageType == message.GetType());

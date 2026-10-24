@@ -108,7 +108,7 @@ public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Settlement
         try
         {
             var result = await completion.FinishAsync(command.AccountId, command.CharacterId, command.QuestId,
-                command.RewardSelection, command.CompletionCount, DateTimeOffset.FromUnixTimeSeconds(command.AcquiredAtUnixTime), cancellationToken, command.Session).ConfigureAwait(false);
+                command.RewardSelection, command.CompletionCount, DateTimeOffset.FromUnixTimeSeconds(command.AcquiredAtUnixTime), context.LegacyFootprint, cancellationToken, command.Session).ConfigureAwait(false);
             var isMirror = result.MirrorCompletion;
             if (!result.Finished) return QuestFinishOutcome.Refuse(command.QuestId, result.Projection);
             var slots = new InventorySlotMappingRuleService();

@@ -790,10 +790,10 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         public ValueTask<BossTowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members, SelectedSessionIdentity leader, uint seed, CancellationToken cancellationToken, byte requestMode = 0, byte difficulty = 0, byte practiceMode = 0) => throw new NotSupportedException();
         public ValueTask<BossTowerActionResult> LoadAsync(BossTowerActionContext context, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<BossTowerActionResult> StartAsync(BossTowerActionContext context, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> KillAsync(BossTowerActionContext context, ushort actorUid, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> KillAsync(BossTowerActionContext context, ushort actorUid, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<BossTowerActionResult> NextLevelAsync(BossTowerActionContext context, byte targetX, byte targetY, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> DieAsync(BossTowerActionContext context, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> LeaveAsync(BossTowerActionContext context, bool disconnected, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> DieAsync(BossTowerActionContext context, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> LeaveAsync(BossTowerActionContext context, bool disconnected, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<BossTowerActionResult> SynchronizeLeaderAsync(BossTowerActionContext context, SelectedSessionIdentity leader, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<BossTowerActionResult> ReleaseForSelectionAsync(BossTowerActionContext context, int requestedDungeonId, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<BossTowerPickupResult> PickupAsync(BossTowerActionContext context, ushort uid, CancellationToken ct) => throw new NotSupportedException();

@@ -557,7 +557,7 @@ public sealed class MarriageChurchTests
             var accounts = await f.Services.GetRequiredService<IMarriageQueryDomainService>().CoupleAccountsAsync(f.Session, default);
             async Task<MarriageLovePointResult> Use(bool commit = true, IReadOnlyList<AccountId>? expected = null)
             {
-                await using var tx = f.Scope.Begin(); var result = await love.UseLovePointAsync(f.Session, source, expected ?? accounts, default);
+                await using var tx = f.Scope.Begin(); var result = await TestEffectFootprints.Run(f.Session, cap => love.UseLovePointAsync(f.Session, source, expected ?? accounts, cap, default));
                 if (commit) await tx.CommitAsync(default); return result;
             }
             Assert.NotEqual(0, (await Use()).Status);

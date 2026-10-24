@@ -33,5 +33,5 @@ public sealed record TeleportConsumableResult(ItemUsability Status, TeleportCons
 public interface ITeleportConsumableDomainService
 {
     ValueTask<TeleportConsumableResult> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
-        int expectedItemId, byte townId, ChannelEntryIdentity channel, CancellationToken ct);
+        int expectedItemId, byte townId, ChannelEntryIdentity channel, IEffectFootprintRecorder footprint, CancellationToken ct);
 }

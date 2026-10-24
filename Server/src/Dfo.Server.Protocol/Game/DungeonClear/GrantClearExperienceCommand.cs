@@ -64,7 +64,7 @@ public sealed class GrantClearExperienceCommandHandler(
         var award = await grant.Get(command.CharacterId).AddExpAsync(new ClearExperienceContext(
                 new ExperienceOccasion(ExperienceEvent.DungeonClear, command.AccountId,
                     command.CharacterId, command.DungeonId), command.Clear), now, command.Session,
-            cancellationToken).ConfigureAwait(false);
+            context.LegacyFootprint, cancellationToken).ConfigureAwait(false);
         var changed = award is not null && attendance is not null && command.RunId != Guid.Empty
             && await attendance.RecordClearAsync(command.AccountId,command.RunId,command.DungeonId,command.SettlementLevel,now,cancellationToken);
         var unlocked = runs?.Find(command.CharacterId)?.Layout is { Mirror: not null } or { Despair: not null } ? null

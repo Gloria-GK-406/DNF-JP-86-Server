@@ -20,7 +20,7 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class ApplyEffectsTests
 {
     private static readonly BusinessSlot Source = new(BusinessInventorySpace.QuickSlot, 0);
-    private static readonly EffectExecutionContext Offline = new(new AccountId(6), new CharacterId(60),
+    private static readonly (AccountId AccountId, CharacterId CharacterId, DateTimeOffset At) Offline = (new AccountId(6), new CharacterId(60),
         new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero));
 
     [Fact]
@@ -28,11 +28,13 @@ public sealed class ApplyEffectsTests
     {
         await TestGameplay.RunAsync(async () =>
         {
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(new EffectFootprintOwner(Offline.AccountId, Offline.CharacterId, null));
+            var context = new EffectExecutionContext(Offline.AccountId, Offline.CharacterId, Offline.At, footprint);
             var f = new Inventory();
             f.Seed(3, 8474, 5);
             await using (f.Scope.Begin())
                 await Assert.ThrowsAnyAsync<InvalidOperationException>(async () => await f.Executor().ApplyAsync(
-                    Offline with { AccountId = new AccountId(7) }, [new ConsumeFromContainerEffect(Source, 8474, 1)], default));
+                    context with { AccountId = new AccountId(7) }, [new ConsumeFromContainerEffect(Source, 8474, 1)], default));
             Assert.Equal(5, f.CountIn(3));
         });
     }
@@ -42,11 +44,13 @@ public sealed class ApplyEffectsTests
     {
         await TestGameplay.RunAsync(async () =>
         {
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(new EffectFootprintOwner(Offline.AccountId, Offline.CharacterId, null));
+            var context = new EffectExecutionContext(Offline.AccountId, Offline.CharacterId, Offline.At, footprint);
             var f = new Inventory();
             f.Seed(3, 8474, 5);
             await using (var tx = f.Scope.Begin())
             {
-                var result = await f.Executor().ApplyAsync(Offline,
+                var result = await f.Executor().ApplyAsync(context,
                     [new ConsumeFromContainerEffect(Source, 8474, 1), new ConsumeFromContainerEffect(Source, 8474, 2)], default);
                 Assert.Equal([4, 2], result.Changes<ContainerConsumptionChange>().Select(x => x.RemainingCount));
                 await tx.CommitAsync(default);
@@ -60,12 +64,14 @@ public sealed class ApplyEffectsTests
     {
         await TestGameplay.RunAsync(async () =>
         {
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(new EffectFootprintOwner(Offline.AccountId, Offline.CharacterId, null));
+            var context = new EffectExecutionContext(Offline.AccountId, Offline.CharacterId, Offline.At, footprint);
             var f = new Inventory();
             f.Seed(3, 8474, 5);
             f.Seed(65, 9000, 7);
             await using (var tx = f.Scope.Begin())
             {
-                await f.Executor().ApplyAsync(Offline, [new ConsumeFromContainerEffect(Source, 8474, 2),
+                await f.Executor().ApplyAsync(context, [new ConsumeFromContainerEffect(Source, 8474, 2),
                     new ConsumeFromContainerEffect(new(BusinessInventorySpace.Consumable, 0), 9000, 3)], default);
                 await tx.CommitAsync(default);
             }
@@ -79,10 +85,12 @@ public sealed class ApplyEffectsTests
     {
         await TestGameplay.RunAsync(async () =>
         {
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(new EffectFootprintOwner(Offline.AccountId, Offline.CharacterId, null));
+            var context = new EffectExecutionContext(Offline.AccountId, Offline.CharacterId, Offline.At, footprint);
             var f = new Inventory();
             f.Seed(3, 8474, 5);
             await using (f.Scope.Begin())
-                await Assert.ThrowsAnyAsync<InvalidOperationException>(async () => await f.Executor().ApplyAsync(Offline,
+                await Assert.ThrowsAnyAsync<InvalidOperationException>(async () => await f.Executor().ApplyAsync(context,
                     [new ConsumeFromContainerEffect(Source, 8474, 3), new ConsumeFromContainerEffect(Source, 8474, 3)], default));
             Assert.Equal(5, f.CountIn(3));
         });
@@ -93,12 +101,14 @@ public sealed class ApplyEffectsTests
     {
         await TestGameplay.RunAsync(async () =>
         {
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(new EffectFootprintOwner(Offline.AccountId, Offline.CharacterId, null));
+            var context = new EffectExecutionContext(Offline.AccountId, Offline.CharacterId, Offline.At, footprint);
             var f = new Inventory();
             f.Seed(3, 8474, 5);
             await using (var tx = f.Scope.Begin())
             {
                 await Assert.ThrowsAsync<NotSupportedException>(async () =>
-                    await f.Executor().ApplyAsync(Offline, [new ConsumeFromContainerEffect(Source, 8474, 1), new Unknown()], default));
+                    await f.Executor().ApplyAsync(context, [new ConsumeFromContainerEffect(Source, 8474, 1), new Unknown()], default));
                 await tx.CommitAsync(default);
             }
             Assert.Equal(5, f.CountIn(3));
@@ -112,6 +122,8 @@ public sealed class ApplyEffectsTests
     {
         await TestGameplay.RunAsync(async () =>
         {
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(new EffectFootprintOwner(Offline.AccountId, Offline.CharacterId, null));
+            var context = new EffectExecutionContext(Offline.AccountId, Offline.CharacterId, Offline.At, footprint);
             var f = new Inventory();
             f.Seed(3, 8474, 5);
             f.Seed(65, 8474, 5);
@@ -125,7 +137,7 @@ public sealed class ApplyEffectsTests
             }
             await using (var tx = f.Scope.Begin())
             {
-                await Assert.ThrowsAnyAsync<InvalidOperationException>(async () => await f.Executor().ApplyAsync(Offline,
+                await Assert.ThrowsAnyAsync<InvalidOperationException>(async () => await f.Executor().ApplyAsync(context,
                     [new ConsumeFromContainerEffect(Source, 8474, 1),
                         new ConsumeFromContainerEffect(new(BusinessInventorySpace.Consumable, 0), expectedId, 1)], default));
                 await tx.CommitAsync(default);
@@ -140,6 +152,8 @@ public sealed class ApplyEffectsTests
     {
         await TestGameplay.RunAsync(async () =>
         {
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(new EffectFootprintOwner(Offline.AccountId, Offline.CharacterId, null));
+            var context = new EffectExecutionContext(Offline.AccountId, Offline.CharacterId, Offline.At, footprint);
             var f = new Inventory();
             f.Seed(3, 8474, 5);
             var clock = new AdvanceableTimeProvider(Offline.At);
@@ -151,7 +165,7 @@ public sealed class ApplyEffectsTests
             {
                 await f.Executor(new StartItemCooldownEffectHandler(runtime, f.Scope),
                     new StartSpiritPotionEffectHandler(runtime, f.Scope))
-                    .ApplyAsync(Offline with { Session = sessions.Current },
+                    .ApplyAsync(context with { Session = sessions.Current },
                         [new ConsumeFromContainerEffect(Source, 8474, 1),
                             new StartItemCooldownEffect(key, TimeSpan.FromSeconds(10)),
                             new StartSpiritPotionEffect(1, TimeSpan.FromHours(1))], default);
@@ -169,6 +183,8 @@ public sealed class ApplyEffectsTests
     {
         await TestGameplay.RunAsync(async () =>
         {
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(new EffectFootprintOwner(Offline.AccountId, Offline.CharacterId, null));
+            var context = new EffectExecutionContext(Offline.AccountId, Offline.CharacterId, Offline.At, footprint);
             var f = new Inventory();
             f.Seed(3, 8474, 5);
             var clock = new AdvanceableTimeProvider(Offline.At);
@@ -182,7 +198,7 @@ public sealed class ApplyEffectsTests
                 await Assert.ThrowsAsync<IOException>(async () => await f.Executor(
                     new StartItemCooldownEffectHandler(cooldowns, f.Scope),
                     new StartSpiritPotionEffectHandler(potion, f.Scope), new ThrowHandler())
-                    .ApplyAsync(Offline with { Session = sessions.Current },
+                    .ApplyAsync(context with { Session = sessions.Current },
                         [new ConsumeFromContainerEffect(Source, 8474, 1),
                             new StartItemCooldownEffect(key, TimeSpan.FromSeconds(10)),
                             new StartSpiritPotionEffect(1, TimeSpan.FromHours(1)), new Throw()], default));
@@ -198,6 +214,8 @@ public sealed class ApplyEffectsTests
     {
         await TestGameplay.RunAsync(async () =>
         {
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(new EffectFootprintOwner(Offline.AccountId, Offline.CharacterId, null));
+            var context = new EffectExecutionContext(Offline.AccountId, Offline.CharacterId, Offline.At, footprint);
             var f = new Inventory();
             f.Seed(3, 8474, 5);
             var clock = new AdvanceableTimeProvider(Offline.At);
@@ -210,7 +228,7 @@ public sealed class ApplyEffectsTests
             {
                 await f.Executor(new StartItemCooldownEffectHandler(cooldowns, f.Scope),
                     new StartSpiritPotionEffectHandler(potion, f.Scope))
-                    .ApplyAsync(Offline with { Session = sessions.Current },
+                    .ApplyAsync(context with { Session = sessions.Current },
                         [new ConsumeFromContainerEffect(Source, 8474, 1),
                             new StartItemCooldownEffect(key, TimeSpan.FromSeconds(10)),
                             new StartSpiritPotionEffect(1, TimeSpan.FromHours(1))], default);
@@ -230,6 +248,8 @@ public sealed class ApplyEffectsTests
     {
         await TestGameplay.RunAsync(async () =>
         {
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(new EffectFootprintOwner(Offline.AccountId, Offline.CharacterId, null));
+            var context = new EffectExecutionContext(Offline.AccountId, Offline.CharacterId, Offline.At, footprint);
             var f = new Inventory();
             var cooldowns = new OnlineCharacterRuntimeDomainService(new AdvanceableTimeProvider(Offline.At));
             var sessions = new Sessions();
@@ -238,7 +258,7 @@ public sealed class ApplyEffectsTests
             await using (var tx = f.Scope.Begin())
             {
                 await f.Executor(new StartItemCooldownEffectHandler(cooldowns, f.Scope))
-                    .ApplyAsync(Offline with { Session = sessions.Current }, [new StartItemCooldownEffect(key, TimeSpan.FromSeconds(10))], default);
+                    .ApplyAsync(context with { Session = sessions.Current }, [new StartItemCooldownEffect(key, TimeSpan.FromSeconds(10))], default);
                 // The replacement enters the world and begins its own record before the old commit lands.
                 sessions.Current = sessions.Current with { ConnectionGeneration = 2 };
                 cooldowns.Begin(sessions.Current, InTown, 100);

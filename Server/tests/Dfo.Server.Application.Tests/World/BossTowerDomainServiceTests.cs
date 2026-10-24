@@ -36,12 +36,12 @@ public sealed class BossTowerDomainServiceTests
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
-            var killed = await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+            var killed = await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
             Assert.Equal(1, f.Count(2749094));
             var member = Assert.Single(killed.KillRewards);
             Assert.Contains(member.InventoryUpdates, x => x.Item.ItemId == 2749094);
             Assert.Empty(killed.Drops);
-            Assert.False((await tower.KillAsync(context, run.Room.Actors[0].Uid, default)).Changed);
+            Assert.False((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default))).Changed);
             Assert.Equal(1, f.Count(2749094));
         });
     }
@@ -68,11 +68,11 @@ public sealed class BossTowerDomainServiceTests
                 Assert.False((await tower.NextLevelAsync(ctx, targetX, targetY, default)).Changed);
                 await tower.LoadAsync(ctx, default);
                 await tower.StartAsync(ctx, default);
-                var killed = await tower.KillAsync(ctx, run.Room.Actors[0].Uid, default);
+                var killed = await TestEffectFootprints.Run((tower.Find((ctx).Session)?.Members.Select(member => member.Session) ?? []).Append((ctx).Session), cap => tower.KillAsync(ctx, run.Room.Actors[0].Uid, cap, default));
                 run = killed.Run!;
                 Assert.Equal(stage, run.CurrentStage);
                 Assert.Equal(stage, run.LastClearedStage);
-                Assert.False((await tower.KillAsync(ctx, run.Room.Actors[0].Uid, default)).Changed);
+                Assert.False((await TestEffectFootprints.Run((tower.Find((ctx).Session)?.Members.Select(member => member.Session) ?? []).Append((ctx).Session), cap => tower.KillAsync(ctx, run.Room.Actors[0].Uid, cap, default))).Changed);
                 if (stage < 8)
                 {
                     Assert.Null(run.Completion);
@@ -83,7 +83,7 @@ public sealed class BossTowerDomainServiceTests
                     Assert.True(advanced.Changed);
                     run = advanced.Run!;
                     Assert.False((await tower.NextLevelAsync(ctx, targetX, targetY, default)).Changed);
-                    Assert.False((await tower.KillAsync(ctx, run.Room.Actors[0].Uid, default)).Changed);
+                    Assert.False((await TestEffectFootprints.Run((tower.Find((ctx).Session)?.Members.Select(member => member.Session) ?? []).Append((ctx).Session), cap => tower.KillAsync(ctx, run.Room.Actors[0].Uid, cap, default))).Changed);
                 }
             }
             var completion = run.Completion!;
@@ -92,7 +92,7 @@ public sealed class BossTowerDomainServiceTests
             Assert.Equal(10, Assert.Single(completion.Receipt!.Members).Candidates.Length);
             var balance = f.Gold;
             var exp = f.Scalar("SELECT exp FROM characters WHERE character_id=1");
-            Assert.False((await tower.DieAsync(Context(run, f.Session), default)).Changed);
+            Assert.False((await TestEffectFootprints.Run((tower.Find((Context(run, f.Session)).Session)?.Members.Select(member => member.Session) ?? []).Append((Context(run, f.Session)).Session), cap => tower.DieAsync(Context(run, f.Session), cap, default))).Changed);
             Assert.Equal(balance, f.Gold);
             Assert.Equal(exp, f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         });
@@ -107,10 +107,10 @@ public sealed class BossTowerDomainServiceTests
             var tower = Tower(f);
             var run = (await Enter(f)).Run!; var ctx = Context(run, f.Session);
             await tower.LoadAsync(ctx, default); await tower.StartAsync(ctx, default);
-            await tower.KillAsync(ctx, run.Room.Actors[0].Uid, default);
+            await TestEffectFootprints.Run((tower.Find((ctx).Session)?.Members.Select(member => member.Session) ?? []).Append((ctx).Session), cap => tower.KillAsync(ctx, run.Room.Actors[0].Uid, cap, default));
             run = (await tower.NextLevelAsync(ctx, 0, 0, default)).Run!; ctx = Context(run, f.Session);
             await tower.LoadAsync(ctx, default); await tower.StartAsync(ctx, default);
-            run = (await tower.DieAsync(ctx, default)).Run!;
+            run = (await TestEffectFootprints.Run((tower.Find((ctx).Session)?.Members.Select(member => member.Session) ?? []).Append((ctx).Session), cap => tower.DieAsync(ctx, cap, default))).Run!;
             Assert.Equal(2, run.Completion!.RewardLevel); Assert.Equal(1, run.LastClearedStage);
             Assert.True(await tower.CanRetryAsync(ctx, default));
             Assert.True((await tower.SelectResultAsync(ctx, 0, default)).Changed);
@@ -120,7 +120,7 @@ public sealed class BossTowerDomainServiceTests
             Assert.True((await tower.ReleaseForSelectionAsync(ctx, 3505, default)).Changed);
             Assert.Null(tower.Find(f.Session));
             Assert.NotNull((await Enter(f)).Run); Assert.Equal(1, f.Count(2749110));
-            Assert.False((await tower.LeaveAsync(ctx, false, default)).Changed);
+            Assert.False((await TestEffectFootprints.Run((tower.Find((ctx).Session)?.Members.Select(member => member.Session) ?? []).Append((ctx).Session), cap => tower.LeaveAsync(ctx, false, cap, default))).Changed);
             Assert.NotNull(tower.Find(f.Session));
         });
     }
@@ -138,7 +138,7 @@ public sealed class BossTowerDomainServiceTests
             var tower = Tower(f); var run = (await Enter(f)).Run!; var ctx = Context(run, f.Session);
             await tower.LoadAsync(ctx, default); await tower.StartAsync(ctx, default);
             var exp = f.Scalar("SELECT exp FROM characters WHERE character_id=1");
-            await using (Scope(f).Begin()) Assert.True((await tower.KillAsync(ctx, run.Room.Actors[0].Uid, default)).Changed);
+            await using (Scope(f).Begin()) Assert.True((await TestEffectFootprints.Run((tower.Find((ctx).Session)?.Members.Select(member => member.Session) ?? []).Append((ctx).Session), cap => tower.KillAsync(ctx, run.Room.Actors[0].Uid, cap, default))).Changed);
             Assert.False(tower.Find(f.Session)!.Room.Actors[0].Dead); Assert.Equal(0, f.Count(2749094));
             Assert.Equal(exp, f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         });
@@ -172,7 +172,7 @@ public sealed class BossTowerDomainServiceTests
             f.Clock.Advance(TimeSpan.FromSeconds(121)); Assert.Single(tower.FindReturnsDue(f.Clock.GetUtcNow()));
             var ctx = Context(run, f.Session); await tower.LoadAsync(ctx, default); await tower.StartAsync(ctx, default);
             f.Clock.Advance(TimeSpan.FromHours(1)); Assert.Empty(tower.FindReturnsDue(f.Clock.GetUtcNow()));
-            await tower.KillAsync(ctx, run.Room.Actors[0].Uid, default);
+            await TestEffectFootprints.Run((tower.Find((ctx).Session)?.Members.Select(member => member.Session) ?? []).Append((ctx).Session), cap => tower.KillAsync(ctx, run.Room.Actors[0].Uid, cap, default));
             run = (await tower.NextLevelAsync(ctx, 0, 0, default)).Run!;
             Assert.Empty(tower.FindReturnsDue(f.Clock.GetUtcNow()));
             Assert.Equal(f.Clock.GetUtcNow() + TimeSpan.FromSeconds(120), run.LoadDueAt);
@@ -199,10 +199,10 @@ public sealed class BossTowerDomainServiceTests
             await tower.LoadAsync(ctx, default);
             await tower.LoadAsync(Context(run, peer), default);
             await tower.StartAsync(ctx, default);
-            await tower.KillAsync(ctx, run.Room.Actors[0].Uid, default);
+            await TestEffectFootprints.Run((tower.Find((ctx).Session)?.Members.Select(member => member.Session) ?? []).Append((ctx).Session), cap => tower.KillAsync(ctx, run.Room.Actors[0].Uid, cap, default));
             Assert.False((await tower.NextLevelAsync(Context(run, peer), byte.MaxValue, byte.MaxValue, default)).Changed);
             Assert.Equal(1, tower.Find(f.Session)!.CurrentStage);
-            var left = await tower.LeaveAsync(Context(run, f.Session), false, default);
+            var left = await TestEffectFootprints.Run((tower.Find((Context(run, f.Session)).Session)?.Members.Select(member => member.Session) ?? []).Append((Context(run, f.Session)).Session), cap => tower.LeaveAsync(Context(run, f.Session), false, cap, default));
             Assert.Null(tower.Find(f.Session)); Assert.True(Assert.Single(left.Run!.Members).IsLeader);
             Assert.Equal(peer, Assert.Single(left.Run.Members).Session);
             Assert.Null(left.Run.Completion); Assert.Equal(2, f.Count(2749110));
@@ -232,7 +232,7 @@ public sealed class BossTowerDomainServiceTests
                 await tx.CommitAsync(default);
             }
             Assert.Equal(9, f.Count(1000)); Assert.Equal(1, f.Count(2000));
-            await tower.DieAsync(ctx, default); Assert.False(tower.CanShop(f.Session, 1010, 1118));
+            await TestEffectFootprints.Run((tower.Find((ctx).Session)?.Members.Select(member => member.Session) ?? []).Append((ctx).Session), cap => tower.DieAsync(ctx, cap, default)); Assert.False(tower.CanShop(f.Session, 1010, 1118));
         });
     }
 
@@ -269,7 +269,7 @@ public sealed class BossTowerDomainServiceTests
             f.Select(2);
             Assert.Null(tower.Find(f.Session));
             Assert.False((await tower.LoadAsync(Context(run, original), default)).Changed);
-            Assert.True((await tower.LeaveAsync(Context(run, original), true, default)).Changed);
+            Assert.True((await TestEffectFootprints.Run((tower.Find((Context(run, original)).Session)?.Members.Select(member => member.Session) ?? []).Append((Context(run, original)).Session), cap => tower.LeaveAsync(Context(run, original), true, cap, default))).Changed);
             Assert.Null(tower.Find(original));
             Assert.Null(f.Services.GetRequiredService<IDungeonParticipationDomainService>().Find(original.CharacterId));
         });
@@ -286,8 +286,8 @@ public sealed class BossTowerDomainServiceTests
             await tower.LoadAsync(Context(run, f.Session), default);
             await tower.LoadAsync(Context(run, peer), default);
             await tower.StartAsync(Context(run, f.Session), default);
-            await tower.DieAsync(Context(run, f.Session), default);
-            run = (await tower.DieAsync(Context(run, peer), default)).Run!;
+            await TestEffectFootprints.Run((tower.Find((Context(run, f.Session)).Session)?.Members.Select(member => member.Session) ?? []).Append((Context(run, f.Session)).Session), cap => tower.DieAsync(Context(run, f.Session), cap, default));
+            run = (await TestEffectFootprints.Run((tower.Find((Context(run, peer)).Session)?.Members.Select(member => member.Session) ?? []).Append((Context(run, peer)).Session), cap => tower.DieAsync(Context(run, peer), cap, default))).Run!;
             var receipt = run.Completion!.Receipt;
             var balance = f.Gold;
 
@@ -344,13 +344,13 @@ public sealed class BossTowerDomainServiceTests
             f.SetLevel(65); await f.Seed(65,2749110,3);
             var tower=Tower(f); var run=(await Enter(f)).Run!; var ctx=Context(run,f.Session);
             await tower.LoadAsync(ctx,default); await tower.StartAsync(ctx,default);
-            var result=await tower.DieAsync(ctx,default);
+            var result=await TestEffectFootprints.Run((tower.Find((ctx).Session)?.Members.Select(member => member.Session) ?? []).Append((ctx).Session), cap => tower.DieAsync(ctx, cap,default));
             var receipt=Assert.Single(result.Run!.Completion!.Receipt!.Members);
             Assert.Equal(10,receipt.Candidates.Length); Assert.All(receipt.Candidates,x=>Assert.True(x.Delivered));
             Assert.All(receipt.Candidates,x=>Assert.Equal(3000,x.ItemId));
             var inBag=f.Count(3000); var inMail=f.Scalar("SELECT COUNT(*) FROM mailbox_attachments WHERE claimed_flag=0");
             Assert.Equal(10,inBag+inMail); Assert.True(inMail>0); Assert.All(receipt.InventoryUpdates,x=>Assert.Equal(35,x.Item.Durability));
-            Assert.False((await tower.DieAsync(ctx,default)).Changed);
+            Assert.False((await TestEffectFootprints.Run((tower.Find((ctx).Session)?.Members.Select(member => member.Session) ?? []).Append((ctx).Session), cap => tower.DieAsync(ctx, cap,default))).Changed);
             Assert.Equal(inMail,f.Scalar("SELECT COUNT(*) FROM mailbox_attachments WHERE claimed_flag=0"));
         });
     }
@@ -364,13 +364,13 @@ public sealed class BossTowerDomainServiceTests
             var tower=Tower(f); var run=(await Enter(f)).Run!; var ctx=Context(run,f.Session);
             await tower.LoadAsync(ctx,default); await tower.StartAsync(ctx,default);
             f.Sql("CREATE TRIGGER fail_boss_exp BEFORE UPDATE OF exp ON characters BEGIN SELECT RAISE(ABORT,'xp failure'); END;");
-            await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(async()=>await tower.DieAsync(ctx,default));
+            await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(async()=>await TestEffectFootprints.Run((tower.Find((ctx).Session)?.Members.Select(member => member.Session) ?? []).Append((ctx).Session), cap => tower.DieAsync(ctx, cap,default)));
             Assert.Null(tower.Find(f.Session)!.Completion); Assert.False(tower.Find(f.Session)!.Members[0].Dead);
             Assert.Equal(100000,f.Gold); Assert.Equal(2,f.Count(2749110));
             f.Sql("DROP TRIGGER fail_boss_exp;");
-            var settled=await tower.DieAsync(ctx,default); Assert.True(settled.SettlementCreated);
+            var settled=await TestEffectFootprints.Run((tower.Find((ctx).Session)?.Members.Select(member => member.Session) ?? []).Append((ctx).Session), cap => tower.DieAsync(ctx, cap,default)); Assert.True(settled.SettlementCreated);
             Assert.Equal(4224,Assert.Single(settled.Run!.Completion!.Receipt!.Members).Gold);
-            Assert.Equal(104224,f.Gold); Assert.False((await tower.DieAsync(ctx,default)).Changed); Assert.Equal(104224,f.Gold);
+            Assert.Equal(104224,f.Gold); Assert.False((await TestEffectFootprints.Run((tower.Find((ctx).Session)?.Members.Select(member => member.Session) ?? []).Append((ctx).Session), cap => tower.DieAsync(ctx, cap,default))).Changed); Assert.Equal(104224,f.Gold);
         });
     }
 

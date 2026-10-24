@@ -28,7 +28,7 @@ public sealed class UseFatiguePotionCommandHandler(IFatiguePotionDomainService p
 {
     public ValueTask<OpeningInventoryReceipt> HandleAsync(CommandExecutionContext context,
         UseFatiguePotionCommand command, CancellationToken ct) =>
-        potions.UseAsync(command.Session, OpeningWireSlots.FromMain(command.SourceSlot), clock.GetUtcNow(), ct);
+        potions.UseAsync(command.Session, OpeningWireSlots.FromMain(command.SourceSlot), clock.GetUtcNow(), context.LegacyFootprint, ct);
 }
 
 public sealed class FatiguePotionHandler(ISelectedSessionDomainService sessions,

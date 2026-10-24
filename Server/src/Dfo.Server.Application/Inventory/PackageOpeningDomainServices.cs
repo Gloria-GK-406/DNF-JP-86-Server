@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -10,8 +11,9 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class PackageOpeningDomainService(IOpeningInventoryDomainService inventory,
     IPackageOpeningRuleService rules, IOpeningEffectPlanRuleService plans) : IPackageOpeningDomainService
 {
-    public async ValueTask<PackageOpeningResult> OpenAsync(SelectedSessionIdentity session, BusinessPackageOpeningInput input, DateTimeOffset now, CancellationToken ct)
+    public async ValueTask<PackageOpeningResult> OpenAsync(SelectedSessionIdentity session, BusinessPackageOpeningInput input, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (input.SelectedItems.IsDefault) throw new OpeningRejectedException(OpeningRejection.InvalidRequest, "Missing selections.");
         var sourceSlot = input.SourceSlot;
         var source = await inventory.SourceAsync(session, sourceSlot, now, ct).ConfigureAwait(false);
@@ -22,15 +24,16 @@ internal sealed class PackageOpeningDomainService(IOpeningInventoryDomainService
         var grants = await rules.PrepareAsync(rolled, now, ct).ConfigureAwait(false);
         var plan = plans.Build(source.ItemId, useRule, plans.SourceCosts(sourceSlot, source.ItemId, useRule, definition.SourceCount),
             grants, await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now);
-        return new(OpeningRejection.None, (await inventory.ApplyAsync(session, plan, now, ct).ConfigureAwait(false)).Inventory);
+        return new(OpeningRejection.None, (await inventory.ApplyAsync(session, plan, now, footprint, ct).ConfigureAwait(false)).Inventory);
     }
 }
 
 internal sealed class AvatarPackageOpeningDomainService(IOpeningInventoryDomainService inventory,
     IPackageOpeningRuleService rules, IOpeningEffectPlanRuleService plans) : IAvatarPackageOpeningDomainService
 {
-    public async ValueTask<PackageOpeningResult> OpenAsync(SelectedSessionIdentity session, BusinessAvatarPackageOpeningInput input, DateTimeOffset now, CancellationToken ct)
+    public async ValueTask<PackageOpeningResult> OpenAsync(SelectedSessionIdentity session, BusinessAvatarPackageOpeningInput input, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (input.Choices.IsDefault || input.Choices.Length > 32 || input.Choices.Select(c => c.ItemId).Distinct().Count() != input.Choices.Length)
             throw new OpeningRejectedException(OpeningRejection.InvalidChoice, "Missing or duplicated avatar choices.");
         var sourceSlot = input.SourceSlot;
@@ -49,15 +52,16 @@ internal sealed class AvatarPackageOpeningDomainService(IOpeningInventoryDomainS
             throw new OpeningRejectedException(OpeningRejection.InvalidChoice, "Avatar choices must match all granted avatars.");
         var plan = plans.Build(source.ItemId, useRule, plans.SourceCosts(sourceSlot, source.ItemId, useRule, definition.SourceCount),
             grants, await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now);
-        return new(OpeningRejection.None, (await inventory.ApplyAsync(session, plan, now, ct).ConfigureAwait(false)).Inventory);
+        return new(OpeningRejection.None, (await inventory.ApplyAsync(session, plan, now, footprint, ct).ConfigureAwait(false)).Inventory);
     }
 }
 
 internal sealed class MagicBoxOpeningDomainService(IOpeningInventoryDomainService inventory,
     IPackageOpeningRuleService rules, IAccountTable accounts, IOpeningEffectPlanRuleService plans) : IMagicBoxOpeningDomainService
 {
-    public async ValueTask<MagicBoxOpeningResult> OpenAsync(SelectedSessionIdentity session, BusinessMagicBoxOpeningInput input, DateTimeOffset now, CancellationToken ct)
+    public async ValueTask<MagicBoxOpeningResult> OpenAsync(SelectedSessionIdentity session, BusinessMagicBoxOpeningInput input, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (input.ListType is not (0 or 4 or 5) || input.Count is < 1 or > 1000)
             throw new OpeningRejectedException(OpeningRejection.InvalidRequest, "Unsupported box list or count.");
         var sourceSlot = input.SourceSlot;
@@ -93,7 +97,7 @@ internal sealed class MagicBoxOpeningDomainService(IOpeningInventoryDomainServic
         var grants = await rules.PrepareAsync(rewards, now, ct).ConfigureAwait(false);
         var plan = plans.Build(source.ItemId, useRule, consumed, grants,
             await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now, luckBefore: before, luckAfter: before is null ? null : luck);
-        var receipt = (await inventory.ApplyAsync(session, plan, now, ct).ConfigureAwait(false)).Inventory;
+        var receipt = (await inventory.ApplyAsync(session, plan, now, footprint, ct).ConfigureAwait(false)).Inventory;
         ImmutableArray<OpeningRewardDisplay> Display(IEnumerable<OpeningReward> entries) => entries.GroupBy(r => r.ItemId).Select(g =>
             receipt.Rewards.First(r => r.ItemId == g.Key) with { Count = checked(g.Sum(r => r.Count)) }).ToImmutableArray();
         return new(OpeningRejection.None, receipt, Display(primary), Display(bonus), before, before is null ? null : luck);

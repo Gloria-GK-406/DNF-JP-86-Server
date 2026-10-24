@@ -225,3 +225,9 @@ GameLogin message:65537 与旧 RedeemGameLogin command 两行 closed，实际边
 ## TASK-09：直接足迹的有界显式能力
 
 仅 T4、planned-legacy-routes、planned-LegacyRequestAdapter 的 notes／introduced_artifacts 更新，三行继续 pending。六域／三 fine 入口的 slots／rental 经必需 IEffectFootprintRecorder 参数；旧隐式接口和 DI alias 删除。真实 LegacyFineGrained 最内层捕获原引用、注册/context身份、作业 ID 与调用租约；实际消息类别快照、真正外部 Standalone、Unknown Unavailable、关闭继承拒绝与 typed sticky 拒绝均保留。尚未迁 ApplyEffects 可选消费者／17 构造及子链内部 await 后中途失效检查；下一效果单元贯通，T011 最终删除 ambient／legacy。不是新 Effect/Main 启用或任何 frozen 行闭合。
+
+## TASK-10：必需效果 Context 与显式 ApplyEffects
+
+仅上述三条开放 transition 的 notes／introduced_artifacts 补充当前事实，仍 pending。17 构造及 Opening／XP／实际 cleanup 全 caller 显式传本次必需能力，ApplyEffects 删除 optional operations／隐式 Record，原完整映射用捕获引用。真实 Consume await-read 后到 Take 前复验有真实存储及 mutation 证据；其它 own 写／委托边界逐项检查，不称未继续传 cap 的下层 await 全部覆盖。Preview 不记录／不结算，原 commit 回调读取普通 facts。断线 observer 是临时 Lifecycle source 唯一生产创建点，明确原 chain／空物理 SourceConnection；T010 真 Internal CMD 取代时删除。未启新 Effect/Main、不迁 routes；149 非遥测消息／194 旧命令／72 来源、五保护及八过渡继续 pending，original／baseline／其它行保持。
+
+TASK-10 r5另补已证Heras额度验证await→Direct前同一context复验，真实Direct/SQLite gate与可编译mutation作区分；未改变周期、额度、事件或事务规则。正式01的Illusion条件作用域回归已恢复原if→foreach，失败轮与源冻结保留，最终完整核验另建r5轮；以上仍不闭合任何行。

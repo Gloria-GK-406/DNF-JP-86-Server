@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Commands;
@@ -92,9 +93,13 @@ public sealed class SkillLearningCommandTests
     });
 
     private static async ValueTask Handle(LearningFixture fixture, IReadOnlyList<CharacterSkillLearningChange> changes) =>
-        await TestGameplay.RunAsync(fixture.Services, async () => await fixture.Services.GetRequiredService<LearnSkillHandler>().HandleAsync(
-            new(new(fixture.Session.ConnectionId, NetworkEndpointKind.Game, 10011)),
-            new LearnSkillRequest(GameMessageMetadata.Empty, 0, changes, 0), default));
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            var request = new LearnSkillRequest(GameMessageMetadata.Empty, 0, changes, 0);
+            await TestEffectFootprints.Effect(fixture.Services, fixture.Session, request.Metadata, request.MinimumReplayNeeds,
+                () => fixture.Services.GetRequiredService<LearnSkillHandler>().HandleAsync(
+                    new(new(fixture.Session.ConnectionId, NetworkEndpointKind.Game, 10011)), request, default));
+        });
 
     /// <summary>
     /// What the handler registered, read from the outbox through the container's real registration adapter (TASK-25).

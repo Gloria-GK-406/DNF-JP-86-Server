@@ -72,7 +72,7 @@ public sealed class UseLevelUpTicketCommandHandler(ILevelUpTicketDomainService t
 {
     public ValueTask<LevelUpTicketResult> HandleAsync(CommandExecutionContext context,
         UseLevelUpTicketCommand command, CancellationToken ct) =>
-        tickets.UseAsync(command.Session, OpeningWireSlots.FromMain(command.SourceSlot), clock.GetUtcNow(), ct);
+        tickets.UseAsync(command.Session, OpeningWireSlots.FromMain(command.SourceSlot), clock.GetUtcNow(), context.LegacyFootprint, ct);
 }
 
 public sealed class LevelUpTicketHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,

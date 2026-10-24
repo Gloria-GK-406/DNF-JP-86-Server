@@ -439,9 +439,9 @@ public sealed class CharacterExperienceTests
         {
             price = valuation;
             await using var tx = shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
-            var award = await shop.Services.GetRequiredService<ICharacterDomainService>().Get(new(1)).AddExpAsync(
+            var award = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(1), null), cap => shop.Services.GetRequiredService<ICharacterDomainService>().Get(new(1)).AddExpAsync(
                 new QuestExperienceContext(new(ExperienceEvent.QuestCompletion, new(1), new(1), 0), 0),
-                shop.Clock.GetUtcNow(), null, ct);
+                shop.Clock.GetUtcNow(), null, cap, ct));
             await tx.CommitAsync(ct);
             return award;
         }

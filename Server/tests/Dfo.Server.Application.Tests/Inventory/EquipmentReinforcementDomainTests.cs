@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
@@ -1077,11 +1078,12 @@ public sealed class EquipmentReinforcementDomainTests
         var scope = (DomainTransactionScope)shop.Services.GetRequiredService<
             Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>();
         await using var transaction = scope.Begin();
+        using var footprint = new TestEffectFootprints.Lease(shop.Session);
         var result = await shop.Services.GetRequiredService<IEquipmentReinforcementDomainService>()
             .ReinforceAsync(shop.Session, new(BusinessInventorySpace.CarriedEquipment, 0), 3000,
                 accountMaterialItemId is null ? material ?? new(BusinessInventorySpace.Material, 0)
                     : new(BusinessInventorySpace.SharedMaterial, AccountMaterialCatalog.Definitions.ToList().FindIndex(x => x.ItemId == accountMaterialItemId)),
-                protection, default, kind);
+                protection, footprint, default, kind);
         if (result.Rejection == EquipmentReinforcementRejection.None)
             await transaction.CommitAsync(default);
         return result;

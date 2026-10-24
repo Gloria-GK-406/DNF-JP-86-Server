@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Abstractions.Content;
@@ -29,8 +30,7 @@ public sealed class SkillBuildResetTests
             }
             await using (var tx = f.Scope.Begin())
             {
-                var result = await f.Services.GetRequiredService<ICharacterSkillLearningDomainService>()
-                    .LearnAsync(f.Session, 256, [new(1,0,3)], 0, default);
+                var result = await TestEffectFootprints.Run(f.Session, cap => f.Services.GetRequiredService<ICharacterSkillLearningDomainService>().LearnAsync(f.Session, 256, [new(1,0,3)], 0, cap, default));
                 Assert.Equal(CharacterSkillLearningRejection.None,result.Rejection);
                 Assert.Equal(945,result.Receipt!.Ledger.For(new(256)).Sp);
                 Assert.Equal(975,result.Receipt.Ledger.For(new(0)).Sp);
@@ -154,11 +154,11 @@ public sealed class SkillBuildResetTests
     private sealed class WaterInventory(SqliteDatabase db, IApplyEffectsDomainService executor):IOpeningInventoryDomainService
     {
         public ValueTask<IReadOnlyList<Dfo.Server.Data.Accounts.AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity session, CancellationToken ct) => throw new NotSupportedException();
-        public async ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity session, IReadOnlyList<DomainEffect> plan, DateTimeOffset at, CancellationToken ct)
+        public async ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity session, IReadOnlyList<DomainEffect> plan, DateTimeOffset at, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
         {
             Assert.Equal(new ConsumeFromContainerEffect(new(BusinessInventorySpace.Consumable,4),3,1), Assert.Single(plan.OfType<ConsumeFromContainerEffect>()));
             await db.ExecuteAsync("UPDATE characters SET bonus_tp=bonus_tp-1 WHERE character_id=71", _=>{}, ct);
-            var applied = await executor.ApplyAsync(new(session.AccountId, session.CharacterId,at,session), plan.Where(x=>x is not ConsumeFromContainerEffect).ToArray(),ct);
+            var applied = await executor.ApplyAsync(new(session.AccountId, session.CharacterId,at,footprint,session), plan.Where(x=>x is not ConsumeFromContainerEffect).ToArray(),ct);
             return new(new(session,[],[],[],at),applied);
         }
         public ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity session,BusinessSlot slot,DateTimeOffset now,CancellationToken ct) => ValueTask.FromResult(WaterBag.Water);

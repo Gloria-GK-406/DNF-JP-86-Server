@@ -53,7 +53,8 @@ public sealed class CreatureRuntimeDomainServiceTests
                 var plan = rules.Build(ItemUseRules.Potion(0), source, item,
                     new ItemUseCandidate(60, QuestJobRequirement.Priest, ItemUsePlace.Village, false), pet.ItemUid, f.Clock.GetUtcNow());
                 Assert.Equal(ItemUsability.Allowed, plan.Status);
-                var applied = await executor.ApplyAsync(new(f.Session.AccountId, f.Session.CharacterId, f.Clock.GetUtcNow(), f.Session),
+                using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(f.Session);
+                var applied = await executor.ApplyAsync(new(f.Session.AccountId, f.Session.CharacterId, f.Clock.GetUtcNow(), footprint, f.Session),
                     plan.Effects, default);
                 Assert.Equal(80, Assert.Single(applied.Changes<PetStomachChange>()).Change.After.Stomach);
                 Assert.Empty(f.Runtime.DrainProjections());

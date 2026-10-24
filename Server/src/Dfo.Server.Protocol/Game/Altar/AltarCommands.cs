@@ -46,7 +46,7 @@ public sealed class AltarDeathBatchCommandHandler(IMonsterDeathDomainService dea
         if (state is not { Status: AltarStatus.Fighting } || state.RoomVersion != command.RoomVersion) return [];
         var result = new List<MonsterDeathSettlementResult>();
         foreach (var sequence in command.Actors.Distinct())
-            result.Add(await deaths.SettleAsync(new(command.Session, command.Sessions, command.RunId, command.RoomVersion, sequence), ct).ConfigureAwait(false));
+            result.Add(await deaths.SettleAsync(new(command.Session, command.Sessions, command.RunId, command.RoomVersion, sequence), context.LegacyFootprint, ct).ConfigureAwait(false));
         return result;
     }
 }

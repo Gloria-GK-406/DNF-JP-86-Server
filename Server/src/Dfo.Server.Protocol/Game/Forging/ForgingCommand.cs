@@ -20,5 +20,5 @@ public sealed class ForgingCommandHandler(IEquipmentForgingDomainService forging
 {
     public ValueTask<EquipmentForgingResult> HandleAsync(CommandExecutionContext context,
         ForgingCommand command, CancellationToken ct) => forging.ForgeAsync(
-            command.Session, command.Target, command.ExpectedTargetItemId, command.Material, ct);
+            command.Session, command.Target, command.ExpectedTargetItemId, command.Material, context.LegacyFootprint, ct);
 }

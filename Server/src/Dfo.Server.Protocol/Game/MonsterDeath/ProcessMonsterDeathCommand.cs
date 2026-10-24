@@ -16,5 +16,5 @@ public sealed class ProcessMonsterDeathCommandHandler(IMonsterDeathDomainService
     : ICommandHandler<ProcessMonsterDeathCommand, MonsterDeathSettlementResult>
 {
     public ValueTask<MonsterDeathSettlementResult> HandleAsync(CommandExecutionContext context,
-        ProcessMonsterDeathCommand command, CancellationToken ct) => deaths.SettleAsync(command.Request, ct);
+        ProcessMonsterDeathCommand command, CancellationToken ct) => deaths.SettleAsync(command.Request, context.LegacyFootprint, ct);
 }

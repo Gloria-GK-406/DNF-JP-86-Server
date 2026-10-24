@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Commands;
@@ -52,7 +53,7 @@ public sealed class EpicCraftTests
             f.Sql("CREATE TABLE craft_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
             await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
             {
-                await f.Services.GetRequiredService<IEpicCraftDomainService>().CraftAsync(f.Session, 3000, f.Clock.GetUtcNow(), default);
+                await TestEffectFootprints.Run(f.Session, cap => f.Services.GetRequiredService<IEpicCraftDomainService>().CraftAsync(f.Session, 3000, f.Clock.GetUtcNow(), cap, default));
                 await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (command, ct) =>
                 {
                     command.CommandText = "INSERT INTO craft_commit_probe VALUES(99999)";

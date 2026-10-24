@@ -57,8 +57,8 @@ public sealed class AvatarPackageOpeningCommandHandler(IAvatarPackageOpeningDoma
 {
     public ValueTask<PackageOpeningResult> HandleAsync(CommandExecutionContext context, AvatarPackageOpeningCommand command, CancellationToken ct) =>
         command.Input.Choices.IsEmpty ? packages.OpenAsync(command.Session,
-            new(OpeningWireSlots.FromMain(command.Input.SourceSlot), []), clock.GetUtcNow(), ct)
-            : avatars.OpenAsync(command.Session, OpeningWireSlots.Business(command.Input), clock.GetUtcNow(), ct);
+            new(OpeningWireSlots.FromMain(command.Input.SourceSlot), []), clock.GetUtcNow(), context.LegacyFootprint, ct)
+            : avatars.OpenAsync(command.Session, OpeningWireSlots.Business(command.Input), clock.GetUtcNow(), context.LegacyFootprint, ct);
 }
 public sealed class AvatarPackageOpeningHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ICommandBus commands, IEventService notifications, IGameMessageSender sender, ILogger<AvatarPackageOpeningHandler> logger)

@@ -69,7 +69,7 @@ public sealed class CompleteReturnToSelectionCommandHandler(
             throw new InvalidOperationException("Return-to-selection session changed after preparation.");
         if (prepared.Session is not { } session)
             return new(null);
-        return new(await cleanup.CleanupAsync(session, includeOwner: false, cancellationToken)
+        return new(await cleanup.CleanupAsync(session, includeOwner: false, context.LegacyFootprint, cancellationToken)
             .ConfigureAwait(false));
     }
 }

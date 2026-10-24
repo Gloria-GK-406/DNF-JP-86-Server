@@ -22,5 +22,5 @@ public sealed class OutworldCommandHandler(IEquipmentOutworldDomainService outwo
     public ValueTask<EquipmentOutworldResult> HandleAsync(CommandExecutionContext context,
         OutworldCommand command, CancellationToken ct) => outworld.ApplyAsync(
             command.Session, command.Action, command.Target, command.ExpectedTargetItemId,
-            command.Material, command.ExpectedMaterialItemId, command.SelectedOption, ct);
+            command.Material, command.ExpectedMaterialItemId, command.SelectedOption, context.LegacyFootprint, ct);
 }

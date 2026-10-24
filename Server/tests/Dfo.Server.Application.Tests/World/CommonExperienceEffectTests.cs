@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Effects;
@@ -212,7 +213,8 @@ public sealed class CommonExperienceEffectTests
         using var shop = Shop(new Calculation(), new EffectTrace());
         // The command is one job; teardown is a later job and cannot interleave with the settlement.
         var first = TestGameplay.RunAsync(shop.Services, async () =>
-            await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
+            await TestEffectFootprints.NonEffect(shop.Services, Dfo.Server.Data.Networking.GameMessageMetadata.Empty,
+                () => shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session))));
         Assert.Equal(30u, (await first.WaitAsync(TimeSpan.FromSeconds(5))).Award!.Total);
         Assert.Equal(30, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
     }

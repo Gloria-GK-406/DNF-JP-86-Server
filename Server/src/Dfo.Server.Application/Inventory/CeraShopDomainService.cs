@@ -28,8 +28,9 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
     IInventoryCapacityRuleService? capacityRules = null, ICharacterNameTagDomainService? nameTags = null) : ICeraShopDomainService
 {
     public async ValueTask<CeraShopPurchaseResult> PurchaseAsync(SelectedSessionIdentity session, CeraShopPurchaseInput input,
-        DateTimeOffset now, CancellationToken cancellationToken)
+        DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         var transaction = transactions.Current
             ?? throw new InvalidOperationException("CERA purchases require a transaction boundary.");
         if (!sessions.IsInWorld(session)
@@ -97,31 +98,46 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         if (planned.Plan is not { } plan)
             return CeraShopPurchaseResult.Refused(planned.Rejection, planned.Detail);
 
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         // From the first write onwards, every refusal must unwind the shared transaction.
         if (before != plan.Balances && !await wallets.TryApplyAsync(session.AccountId, before, plan.Balances,
                 cancellationToken).ConfigureAwait(false))
             throw new CeraShopPurchaseRejectedException(CeraShopRejection.StateChanged, "Account balances changed before settlement.");
         if (plan.GoldCost > 0)
+        {
+            footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
             gold = await character.TrySpendGoldAsync(plan.GoldCost, cancellationToken).ConfigureAwait(false)
                 ?? throw new CeraShopPurchaseRejectedException(CeraShopRejection.InsufficientFunds, "Gold changed before settlement.");
+        }
         if (restrictionEffects.Count > 0)
-            await effects.ApplyAsync(new(session.AccountId, session.CharacterId, now, session), restrictionEffects,
+        {
+            footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
+            await effects.ApplyAsync(new(session.AccountId, session.CharacterId, now, footprint, session), restrictionEffects,
                 cancellationToken).ConfigureAwait(false);
+        }
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (capacityChanges.Count > 0)
             await expansion!.ApplyPurchaseAsync(session, capacityChanges, cancellationToken).ConfigureAwait(false);
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (!quote.NameTags.IsEmpty)
             await (nameTags ?? throw new InvalidOperationException("Name tag domain is unavailable."))
                 .PurchaseAsync(session.AccountId, session.CharacterId, quote.NameTags, now, cancellationToken).ConfigureAwait(false);
         foreach (var subscription in quote.Subscriptions)
+        {
+            footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
             await premiums.For(session.AccountId).ExtendAsync(subscription.Service, subscription.Duration,
                 cancellationToken).ConfigureAwait(false);
+        }
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (quote.Subscriptions.Any(subscription => subscription.Service == PremiumServiceType.DoublePot))
             await premiumUsage.RenewDoublePotAsync(session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
         foreach (var write in plan.Writes)
         {
+            footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
             var bag = bags[write.Slot.Space];
             await grants.ApplyPlannedAsync(bag, write.Slot.Index, write.Core, cancellationToken).ConfigureAwait(false);
         }
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         await itemStore.SessionIn(transaction).ApplyDecidedWritesAsync(cancellationToken).ConfigureAwait(false);
 
         // Read through the entry projection: it validates ownership and carries avatar facts and

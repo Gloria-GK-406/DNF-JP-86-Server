@@ -48,8 +48,9 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
     : ILotteryOpeningDomainService
 {
     public async ValueTask<LotteryOpeningResult> ExecuteAsync(SelectedSessionIdentity session, BusinessSlot slot,
-        ushort mode, CancellationToken token)
+        ushort mode, IEffectFootprintRecorder footprint, CancellationToken token)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         _ = transactions.Current ?? throw new InvalidOperationException("Lottery requires a transaction.");
         var now = clock.GetUtcNow();
         if (mode > 1) throw Reject("Invalid lottery mode.");
@@ -87,7 +88,7 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
         }
         var plan = plans.Build(source.ItemId, useRule, consumed,
             grants, [], now, gold: definition.GoldCost, quota: quota);
-        var applied = await inventory.ApplyAsync(session, plan, now, token).ConfigureAwait(false);
+        var applied = await inventory.ApplyAsync(session, plan, now, footprint, token).ConfigureAwait(false);
         var receipt = applied.Inventory;
         var gold = applied.Applied.Changes<GoldEffectChange>().LastOrDefault()?.Remaining
             ?? await characters.Get(session.CharacterId).GoldAsync(token).ConfigureAwait(false);

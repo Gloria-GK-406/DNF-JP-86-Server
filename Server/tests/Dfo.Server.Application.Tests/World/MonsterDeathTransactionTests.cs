@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -147,13 +148,13 @@ public sealed class MonsterDeathTransactionTests
         public async ValueTask<MonsterKillEffects> ApplyAsync(SelectedSessionIdentity? session, AccountId accountId,
             CharacterId characterId, IdentifiedKill kill, int dungeonId, DungeonDifficulty difficulty,
             double weight, int partyMemberCount, PartyKey partyKey, bool finalBoss, DungeonRunId? runId,
-            RoomActorId? actor, int? worldMapId, IReadOnlyList<RolledDrop>? loot, CancellationToken ct)
+            RoomActorId? actor, int? worldMapId, IReadOnlyList<RolledDrop>? loot, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
         {
             Transactions.Add(transactions.Current);
             SqlTransactions.Add(await services.GetRequiredService<SqliteDatabase>().ReadAsync(
                 (command, _) => ValueTask.FromResult(command.Transaction), ct));
             var applied = await inner.ApplyAsync(session, accountId, characterId, kill, dungeonId, difficulty,
-                weight, partyMemberCount, partyKey, finalBoss, runId, actor, worldMapId, loot, ct);
+                weight, partyMemberCount, partyKey, finalBoss, runId, actor, worldMapId, loot, footprint, ct);
             await characters.Get(characterId).AddGoldAsync(17, ct);
             if (FailMember && characterId.Value == 3) throw new InvalidOperationException("member business failure");
             return applied;

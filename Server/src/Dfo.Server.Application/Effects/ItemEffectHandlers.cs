@@ -27,7 +27,9 @@ internal sealed class ConsumeFromContainerEffectHandler(IBusinessInventorySlotDo
         _ = await ReadAsync(context, effect, ct).ConfigureAwait(false);
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, ConsumeFromContainerEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         var item = await ReadAsync(context, effect, ct).ConfigureAwait(false);
+        context.Footprint.DemandEffects(context.Owner);
         var remaining = await ItemContainerOperations.ConsumeAsync(inventory.Get(context.CharacterId, effect.Slot).Container,
             item, effect.Count, lifecycle, ct).ConfigureAwait(false);
         return new ContainerConsumptionChange(effect.Slot, item.ItemId, effect.Count, remaining);
@@ -46,6 +48,7 @@ internal sealed class StartItemCooldownEffectHandler(IOnlineCharacterRuntimeDoma
     }
     public override ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, StartItemCooldownEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         transactions.Current!.Enlist(new object(), () => new Commit(runtime, context, effect));
         return ValueTask.FromResult<EffectChange>(new ItemCooldownChange(effect.Key, effect.Duration));
     }
@@ -76,6 +79,7 @@ internal sealed class StartSpiritPotionEffectHandler(IOnlineCharacterRuntimeDoma
     }
     public override ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, StartSpiritPotionEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         transactions.Current!.Enlist(new object(), () => new Commit(runtime, context, effect));
         return ValueTask.FromResult<EffectChange>(new SpiritPotionChange(effect.BonusRate, effect.Duration));
     }
@@ -104,7 +108,11 @@ internal sealed class AddPetStomachEffectHandler(ICreatureInstanceDomainService 
     }
     public override async ValueTask ValidateAsync(EffectExecutionContext context, AddPetStomachEffect effect, CancellationToken ct) =>
         _ = await ResolveAsync(context, effect, ct).ConfigureAwait(false);
-    public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, AddPetStomachEffect effect, CancellationToken ct) =>
-        new PetStomachChange(await (await ResolveAsync(context, effect, ct).ConfigureAwait(false)).AddStomachAsync(effect.Amount, ct)
-            .ConfigureAwait(false));
+    public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, AddPetStomachEffect effect, CancellationToken ct)
+    {
+        context.Footprint.DemandEffects(context.Owner);
+        var pet = await ResolveAsync(context, effect, ct).ConfigureAwait(false);
+        context.Footprint.DemandEffects(context.Owner);
+        return new PetStomachChange(await pet.AddStomachAsync(effect.Amount, ct).ConfigureAwait(false));
+    }
 }

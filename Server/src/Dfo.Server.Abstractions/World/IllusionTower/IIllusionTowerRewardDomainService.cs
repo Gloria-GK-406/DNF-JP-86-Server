@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Collections.Immutable;
 namespace Dfo.Server.Abstractions.World.IllusionTower;
 
@@ -13,7 +14,7 @@ public interface IIllusionTowerRewardRuleService
 public interface IIllusionTowerRewardDomainService
 {
     ValueTask<ImmutableArray<TowerKillReward>> KillAsync(IllusionTowerSnapshot run, TowerActor actor,
-        CancellationToken cancellationToken);
+        IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
     ValueTask<TowerSettlementReceipt> SettleAsync(IllusionTowerSnapshot run, ulong seed,
-        CancellationToken cancellationToken);
+        IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }

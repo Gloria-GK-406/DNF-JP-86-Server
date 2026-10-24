@@ -391,9 +391,9 @@ public sealed class LegacyEffectFootprintTests
     private sealed class ReviveWrite : IReviveCoinDomainService
     {
         public int Writes;
-        public ValueTask<ItemUseApplication?> TryUseAsync(SelectedSessionIdentity owner, BusinessSlot source, ItemReference item, CancellationToken ct)
+        public ValueTask<ItemUseApplication?> TryUseAsync(SelectedSessionIdentity owner, BusinessSlot source, ItemReference item, IEffectFootprintRecorder footprint, CancellationToken ct)
         { Writes++; return ValueTask.FromResult<ItemUseApplication?>(new(ItemUsability.Allowed, 42, 0)); }
-        public ValueTask<DailyReviveCoinResult> ClaimAsync(SelectedSessionIdentity session, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<DailyReviveCoinResult> ClaimAsync(SelectedSessionIdentity session, IEffectFootprintRecorder footprint, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<bool> ClaimedAsync(CharacterId character, CancellationToken ct) => throw new NotSupportedException();
     }
     private sealed record ExplicitInternal(int Entry) : ICommand<bool>;

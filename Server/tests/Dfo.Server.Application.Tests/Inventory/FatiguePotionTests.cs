@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -38,8 +39,10 @@ public sealed class FatiguePotionTests
                 await tx.CommitAsync(default);
             }
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            await shop.Services.GetRequiredService<Dfo.Server.Protocol.Game.QuestClearCoupon.FatiguePotionHandler>().HandleAsync(new(shop.Connection),
-                new(Dfo.Server.Data.Networking.GameMessageMetadata.Empty,65,0,0,58,0,0,true),timeout.Token);
+            var request = new Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponRequest(
+                Dfo.Server.Data.Networking.GameMessageMetadata.Empty,65,0,0,58,0,0,true);
+            await TestEffectFootprints.Effect(shop.Services, shop.Session, request.Metadata, request.MinimumReplayNeeds,
+                () => shop.Services.GetRequiredService<Dfo.Server.Protocol.Game.QuestClearCoupon.FatiguePotionHandler>().HandleAsync(new(shop.Connection), request, timeout.Token));
             Assert.Equal(1,shop.Count(2600026));
             Assert.Contains(shop.Sender.Messages.OfType<Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponResponse>(),response => response.Succeeded);
         });
@@ -64,11 +67,11 @@ public sealed class FatiguePotionTests
     private sealed class Bag(SqliteDatabase db, IApplyEffectsDomainService executor) : IOpeningInventoryDomainService
     {
         public ValueTask<IReadOnlyList<Dfo.Server.Data.Accounts.AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity session, CancellationToken ct) => throw new NotSupportedException();
-        public async ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity session, IReadOnlyList<DomainEffect> plan, DateTimeOffset at, CancellationToken ct)
+        public async ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity session, IReadOnlyList<DomainEffect> plan, DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct)
         {
             Assert.Equal(1, Assert.Single(plan.OfType<ConsumeFromContainerEffect>()).Count);
             await db.ExecuteAsync("UPDATE characters SET bonus_sp=bonus_sp-1 WHERE character_id=@id", p => p.AddWithValue("@id", session.CharacterId.Value), ct);
-            var applied = await executor.ApplyAsync(new(session.AccountId, session.CharacterId, at, session), plan.Where(x => x is not ConsumeFromContainerEffect).ToArray(), ct);
+            var applied = await executor.ApplyAsync(new(session.AccountId, session.CharacterId, at, footprint, session), plan.Where(x => x is not ConsumeFromContainerEffect).ToArray(), ct);
             return new(new(session, [], [], [], at), applied);
         }
         public ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken token) =>
@@ -96,8 +99,8 @@ public sealed class FatiguePotionTests
     {
         await using var tx = f.Scope.Begin();
         var slot = item switch { 2600026 => 65, 10000541 => 66, 7456 => 67, 416 => 68, _ => throw new InvalidOperationException() };
-        await f.Services.GetRequiredService<IFatiguePotionDomainService>().UseAsync(f.Session,
-            new BusinessSlot(BusinessInventorySpace.Consumable, slot - 65), clock.Now, default);
+        await TestEffectFootprints.Run(f.Session, cap => f.Services.GetRequiredService<IFatiguePotionDomainService>().UseAsync(f.Session,
+            new BusinessSlot(BusinessInventorySpace.Consumable, slot - 65), clock.Now, cap, default));
         await tx.CommitAsync(default);
     }
 

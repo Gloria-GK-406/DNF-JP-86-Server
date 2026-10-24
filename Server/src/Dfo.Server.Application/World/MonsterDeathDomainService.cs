@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Quests;
@@ -17,8 +18,9 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
     ILogger<MonsterDeathDomainService> logger, ITournamentDungeonDomainService? tournaments = null,
     IEventService? events = null, ISaoTowerDomainService? sao = null, ISouthernDaleDomainService? southern = null) : IMonsterDeathDomainService
 {
-    public async ValueTask<MonsterDeathSettlementResult> SettleAsync(MonsterDeathSettlementRequest request, CancellationToken ct)
+    public async ValueTask<MonsterDeathSettlementResult> SettleAsync(MonsterDeathSettlementRequest request, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(request.Reporter.AccountId, request.Reporter.CharacterId, request.Reporter));
         var transaction = transactions.Current ?? throw new InvalidOperationException("Monster death requires one use-case transaction.");
         if (transaction.IsReadOnly) throw new InvalidOperationException("Monster death cannot run in a read-only transaction.");
         var run = runs.Find(request.Reporter.CharacterId);
@@ -47,6 +49,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
             if (points is null) return Refused("MissingSkillPointLedger");
             pointLedgers.Add(session.CharacterId, points);
         }
+        footprint.DemandEffects(new(request.Reporter.AccountId, request.Reporter.CharacterId, request.Reporter));
         var death = runs.TryClaimActorDeath(request.Reporter.CharacterId, request.Actor);
         if (death is null) return Refused("ActorDeathNotClaimed");
         var clearsMap = runs.WillClearMap(death);
@@ -56,6 +59,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
         var result = new List<MonsterDeathParticipantResult>();
         foreach (var session in request.Participants.DistinctBy(x => x.CharacterId))
         {
+            footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
             var effect = runs.TryClaimParticipantKillEffect(death, session.CharacterId)
                 ?? throw new InvalidOperationException("A participant's kill effect is already owned by another settlement.");
             pending.Add(effect);
@@ -64,7 +68,8 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
             var applied = await rewards.ApplyAsync(session, session.AccountId, session.CharacterId, kill,
                 run.Layout.DungeonId, run.Difficulty, run.Layout.ExperienceWeight, run.PartyMemberCount,
                 run.PartyKey, !isTournament && run.Layout.Altar is null && run.IsBossRoom && kill.IsMonster && kill.Rank == MonsterRank.Boss,
-                run.RunId, death.Actor, run.Layout.Mirror?.WorldMapId, death.ActorState?.PendingLoot, ct).ConfigureAwait(false);
+                run.RunId, death.Actor, run.Layout.Mirror?.WorldMapId, death.ActorState?.PendingLoot, footprint, ct).ConfigureAwait(false);
+            footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
             pending.Awards[session.CharacterId] = applied.Award;
             var progress = applied.Award is { } award ? new CharacterProgressionState(award.Level, award.Total)
                 : await character.ProgressAsync(ct).ConfigureAwait(false)
@@ -78,15 +83,19 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
             }
             result.Add(new(session, progress, points, applied, available));
         }
+        footprint.DemandEffects(new(request.Reporter.AccountId, request.Reporter.CharacterId, request.Reporter));
         var tournament = isTournament
             ? await tournaments!.AdvanceAsync(request.Reporter, run.RunId, request.Actor, ct).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("The accepted tournament death could not advance its round.")
             : null;
+        footprint.DemandEffects(new(request.Reporter.AccountId, request.Reporter.CharacterId, request.Reporter));
         if (clearsMap && run.IsBossRoom && southern?.Supports(run.Layout.DungeonId) == true)
             await southern.CompleteClearAsync(death, request.Participants, ct).ConfigureAwait(false);
+        footprint.DemandEffects(new(request.Reporter.AccountId, request.Reporter.CharacterId, request.Reporter));
         if (clearsMap && run.Layout.Sao is not null && run.IsBossRoom)
             await (sao ?? throw new InvalidOperationException("SAO lifecycle is unavailable."))
                 .CompleteClearAsync(death, request.Participants, ct).ConfigureAwait(false);
+        footprint.DemandEffects(new(request.Reporter.AccountId, request.Reporter.CharacterId, request.Reporter));
         if (clearsMap)
             await (events ?? throw new InvalidOperationException("Map-clear events are unavailable."))
                 .EnqueueAsync(new DungeonMapCleared(run.RunId, run.Layout.DungeonId, run.Difficulty,

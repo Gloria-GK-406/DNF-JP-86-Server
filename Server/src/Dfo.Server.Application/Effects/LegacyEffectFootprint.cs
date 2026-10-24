@@ -13,7 +13,9 @@ internal sealed class LegacyEffectFootprint(
     Func<string?> unavailable,
     Action<SelectedSessionIdentity> demandOwner,
     Action<IReadOnlyList<BusinessSlot>> inventory,
-    Action rental) : IEffectFootprintRecorder, IDisposable
+    Action rental,
+    Action<EffectFootprintOwner> demandEffectsOwner,
+    Action<IReadOnlyList<AppliedEffect>> effects) : IEffectFootprintRecorder, IDisposable
 {
     private readonly Guid job = GameplayJob.Current?.Id
         ?? throw new InvalidOperationException("A footprint begins on a gameplay job.");
@@ -28,6 +30,22 @@ internal sealed class LegacyEffectFootprint(
         authorization.DemandOpen();
         if (unavailable() is { } reason) throw new InvalidOperationException(reason);
         authorization.DemandAuthority();
+    }
+
+    public void DemandEffects(EffectFootprintOwner owner)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+        if (owner.Session is { } session && (session.AccountId != owner.AccountId || session.CharacterId != owner.CharacterId))
+            throw new InvalidOperationException("Effect footprint session differs from its owner.");
+        DemandAvailable();
+        demandEffectsOwner(owner);
+    }
+
+    public void RecordEffects(EffectFootprintOwner owner, IReadOnlyList<AppliedEffect> applied)
+    {
+        ArgumentNullException.ThrowIfNull(applied);
+        DemandEffects(owner);
+        effects(applied);
     }
 
     public void DemandActive(SelectedSessionIdentity owner)

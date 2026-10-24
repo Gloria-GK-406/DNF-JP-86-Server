@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
@@ -59,7 +60,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
                 Progress(log),
                 new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
 
-            var result = await handler.HandleAsync(
+            var result = await TestEffectFootprints.Invoke(handler,
                 new CommandExecutionContext(
                     Guid.Empty,
                     typeof(ApplyMonsterKillCommand),
@@ -71,7 +72,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
                     new KilledMonster(13099, 5, MonsterRank.Boss),
                     144,
                     0,
-                    1),
+                    1), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null),
                 CancellationToken.None);
 
             Assert.Equal([new HuntEnemyQuestAdvance(1776, 1, 0)], result.QuestAdvances);
@@ -99,12 +100,12 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
                 Progress(log, definition),
                 new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
 
-            var result = await handler.HandleAsync(
+            var result = await TestEffectFootprints.Invoke(handler,
                 new CommandExecutionContext(Guid.Empty, typeof(ApplyMonsterKillCommand),
                     typeof(ApplyMonsterKillCommandHandler), CommandExecutionKind.Transactional),
                 new ApplyMonsterKillCommand(
                     Account, Character, new KilledMonster(3001, 5, MonsterRank.Boss),
-                    146, 0, 1, IsFinalBossDeath: finalBoss),
+                    146, 0, 1, IsFinalBossDeath: finalBoss), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null),
                 CancellationToken.None);
 
             Assert.Equal(expectedTrigger, log.Carried.TriggerValue);
@@ -124,7 +125,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
                 Progress(log, Quest1776(HuntEnemyTargetTypes.AiCharacter)),
                 new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
 
-            var result = await handler.HandleAsync(
+            var result = await TestEffectFootprints.Invoke(handler,
                 new CommandExecutionContext(
                     Guid.Empty,
                     typeof(ApplyMonsterKillCommand),
@@ -137,7 +138,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
                     144,
                     0,
                     1,
-                    HuntEnemyTargetTypes.AiCharacter),
+                    HuntEnemyTargetTypes.AiCharacter), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null),
                 CancellationToken.None);
 
             Assert.Null(result.Award);
@@ -158,7 +159,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
                 Progress(log),
                 new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())));
 
-            await handler.HandleAsync(
+            await TestEffectFootprints.Invoke(handler,
                 new CommandExecutionContext(
                     Guid.Empty,
                     typeof(ApplyMonsterKillCommand),
@@ -171,7 +172,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
                     DungeonId: 144,
                     Difficulty: 0,
                     DungeonWeight: 1,
-                    PartyMemberCount: 2),
+                    PartyMemberCount: 2), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null),
                 CancellationToken.None);
 
             Assert.Equal(2, valuation.Kill?.PartyMemberCount);
@@ -194,7 +195,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
                 Progress(log, seeking: seeking),
                 new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers)));
 
-            var result = await handler.HandleAsync(
+            var result = await TestEffectFootprints.Invoke(handler,
                 new CommandExecutionContext(
                     Guid.Empty,
                     typeof(ApplyMonsterKillCommand),
@@ -215,7 +216,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
                             OwnerCharacterId: new CharacterId(61),
                             Delivery: RolledDropDelivery.DirectQuestItem,
                             QuestId: 1776, GrantLimit: 15),
-                    ]),
+                    ]), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null),
                 CancellationToken.None);
 
             Assert.Equal(15, bag.Count);
@@ -435,7 +436,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
                 new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers),
                 new VirtualOnlyPartyService()));
 
-            var result = await handler.HandleAsync(
+            var result = await TestEffectFootprints.Invoke(handler,
                 new CommandExecutionContext(Guid.Empty, typeof(ApplyMonsterKillCommand),
                     typeof(ApplyMonsterKillCommandHandler), CommandExecutionKind.Transactional),
                 new ApplyMonsterKillCommand(
@@ -448,7 +449,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
                             Delivery: RolledDropDelivery.DirectQuestItem,
                             QuestId: 1776, GrantLimit: 15),
                     ],
-                    PartyKey: PartyKey.Virtual(Character)),
+                    PartyKey: PartyKey.Virtual(Character)), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null),
                 CancellationToken.None);
 
             Assert.Equal(14, bag.Count);
@@ -574,7 +575,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
 
-        public override ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken) => ValueTask.FromResult<ExperienceAward?>(null);
+        public override ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => ValueTask.FromResult<ExperienceAward?>(null);
     }
 
     private sealed class PricingOnlyExperience(IExperienceCalculationDomainService calculation) : ExperienceCharacters
@@ -582,7 +583,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
 
-        public override async ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
+        public override async ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
         {
             _ = await calculation.CalculateAsync(source, 3, cancellationToken);
             return null;
@@ -594,7 +595,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
 
-        public override ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken) =>
+        public override ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) =>
             throw new InvalidOperationException("AI character deaths must not award experience.");
     }
 

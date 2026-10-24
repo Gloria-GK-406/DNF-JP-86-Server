@@ -58,8 +58,9 @@ internal sealed class CharacterSkillLearningDomainService(
     }
 
     public async ValueTask<CharacterSkillLearningResult> LearnAsync(SelectedSessionIdentity session, int pageIndex,
-        IReadOnlyList<CharacterSkillLearningChange> changes, byte mode, CancellationToken cancellationToken)
+        IReadOnlyList<CharacterSkillLearningChange> changes, byte mode, IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (transactions.Current is null)
             throw new InvalidOperationException("Skill learning requires a domain transaction.");
         if (!sessions.IsInWorld(session))
@@ -89,7 +90,7 @@ internal sealed class CharacterSkillLearningDomainService(
         if (current.Select(skill => skill.SkillId).Distinct().Count() != current.Count)
             return new(CharacterSkillLearningRejection.IncompleteLedger);
         if (changes.Any(change => change.Refund != 0))
-            return await LearnRefundAsync(session, pageIndex, changes, facts, current, cancellationToken).ConfigureAwait(false);
+            return await LearnRefundAsync(session, pageIndex, changes, facts, current, footprint, cancellationToken).ConfigureAwait(false);
         var target = current.ToDictionary(skill => checked((int)skill.SkillId));
         var occupied = current.Select(skill => (int)skill.Slot).ToHashSet();
         var changed = new List<CharacterSkillState>(changes.Count);
@@ -132,6 +133,7 @@ internal sealed class CharacterSkillLearningDomainService(
         // No rejection returns after the first write: storage failures must roll the whole batch back.
         foreach (var learned in changed)
         {
+            footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
             if (learned.Level == 0)
             {
                 if (await skills.RemoveAsync(session.CharacterId, pageIndex, learned.Slot, cancellationToken) != 1)
@@ -152,8 +154,9 @@ internal sealed class CharacterSkillLearningDomainService(
 
     private async ValueTask<CharacterSkillLearningResult> LearnRefundAsync(SelectedSessionIdentity session, int pageIndex,
         IReadOnlyList<CharacterSkillLearningChange> changes, CharacterSkillFacts facts,
-        IReadOnlyList<CharacterSkillState> current, CancellationToken cancellationToken)
+        IReadOnlyList<CharacterSkillState> current, IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         var learningLevel = (int)facts.Level;
         if (await premiums.For(session.AccountId).HasBenefitAsync(PremiumBenefit.LearnSkillsEarly, cancellationToken).ConfigureAwait(false))
             learningLevel = checked(learningLevel + premiumRules.LevelAllowance(PremiumBenefit.LearnSkillsEarly));
@@ -176,7 +179,7 @@ internal sealed class CharacterSkillLearningDomainService(
         var waterSlot = water.Value.Slot;
         var source = await inventory.SourceAsync(session, waterSlot, at, cancellationToken);
         var effects = await effectPlans.RefundAsync(waterSlot, source, pageIndex, current, decision.Changed, cancellationToken).ConfigureAwait(false);
-        var consumed = (await inventory.ApplyAsync(session, effects, at, cancellationToken).ConfigureAwait(false)).Inventory;
+        var consumed = (await inventory.ApplyAsync(session, effects, at, footprint, cancellationToken).ConfigureAwait(false)).Inventory;
         return new(CharacterSkillLearningRejection.None, new(session, pageIndex, decision.Changed, decision.Ledger!, consumed));
     }
 }

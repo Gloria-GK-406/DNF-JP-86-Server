@@ -7,7 +7,11 @@ namespace Dfo.Server.Abstractions.Effects;
 public abstract record DomainEffect;
 public abstract record EffectChange;
 public sealed record EffectExecutionContext(AccountId AccountId, CharacterId CharacterId,
-    DateTimeOffset At, SelectedSessionIdentity? Session = null);
+    DateTimeOffset At, IEffectFootprintRecorder Footprint, SelectedSessionIdentity? Session = null)
+{
+    public IEffectFootprintRecorder Footprint { get; } = Footprint ?? throw new ArgumentNullException(nameof(Footprint));
+    public EffectFootprintOwner Owner => new(AccountId, CharacterId, Session);
+}
 public sealed record AppliedEffect(DomainEffect Effect, EffectChange Change);
 public sealed record ApplyEffectsResult(IReadOnlyList<AppliedEffect> Applied)
 {

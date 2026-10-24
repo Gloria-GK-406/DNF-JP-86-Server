@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
@@ -196,8 +197,7 @@ public sealed class EquipmentForgingDomainTests
             shop.Select(2);
             var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
             await using var tx = scope.Begin();
-            var result = await shop.Services.GetRequiredService<IEquipmentForgingDomainService>()
-                .ForgeAsync(old, Target, 3000, Material, default);
+            var result = await TestEffectFootprints.Run(old, cap => shop.Services.GetRequiredService<IEquipmentForgingDomainService>().ForgeAsync(old, Target, 3000, Material, cap, default));
             Assert.Equal(EquipmentForgingRejection.NoSession, result.Rejection);
             Assert.Equal(50, shop.Scalar("SELECT COALESCE(SUM(count),0) FROM item_slots "
                 + "WHERE owner_scope='character' AND owner_id=1 AND list_type=0 AND slot_index=121"));
@@ -230,9 +230,8 @@ public sealed class EquipmentForgingDomainTests
     {
         var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
         await using var tx = scope.Begin();
-        var result = await shop.Services.GetRequiredService<IEquipmentForgingDomainService>()
-            .ForgeAsync(shop.Session, targetSlot ?? Target, expectedItemId,
-                materialSlot ?? Material, default);
+        var result = await TestEffectFootprints.Run(shop.Session, cap => shop.Services.GetRequiredService<IEquipmentForgingDomainService>().ForgeAsync(shop.Session, targetSlot ?? Target, expectedItemId,
+                materialSlot ?? Material, cap, default));
         if (result.Rejection == EquipmentForgingRejection.None) await tx.CommitAsync(default);
         return result;
     }

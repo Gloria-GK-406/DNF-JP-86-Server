@@ -70,7 +70,7 @@ public sealed class CompoundItemCommandHandler(IRecipeCraftDomainService recipes
     : ICommandHandler<CompoundItemCommand, RecipeCraftReceipt>
 {
     public ValueTask<RecipeCraftReceipt> HandleAsync(CommandExecutionContext context, CompoundItemCommand command,
-        CancellationToken ct) => recipes.CraftAsync(command.Session, command.Drawing, command.Count, clock.GetUtcNow(), ct);
+        CancellationToken ct) => recipes.CraftAsync(command.Session, command.Drawing, command.Count, clock.GetUtcNow(), context.LegacyFootprint, ct);
 }
 public sealed class CompoundItemHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ICommandBus commands, IEventService notifications, IGameMessageSender sender,

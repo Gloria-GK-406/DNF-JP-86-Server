@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Marriage;
@@ -58,7 +59,7 @@ public sealed class MarriageCoupleCharacterizationTests
             var couponStorage = items.Single(x => x.ItemId == Coupon).StorageSlotIndex;
             var empty = new BusinessSlot(BusinessInventorySpace.Consumable, 50);
             Task<MarriageLovePointResult> Use(SelectedSessionIdentity actor, BusinessSlot slot, params int[] accounts) =>
-                InTx(f, () => Couple(f).UseLovePointAsync(actor, slot, accounts.Select(x => new AccountId(x)).ToArray(), default));
+                InTx(f, () => TestEffectFootprints.Run(actor, cap => Couple(f).UseLovePointAsync(actor, slot, accounts.Select(x => new AccountId(x)).ToArray(), cap, default)));
 
             Assert.Equal(new[] { new AccountId(1) }, await Query(f).CoupleAccountsAsync(f.Session, default));
             Assert.Equal(-3, (await Use(f.Session, coupon, 1)).Status);

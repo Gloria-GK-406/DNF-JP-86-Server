@@ -159,16 +159,16 @@ public sealed class BossTowerFrameIntegrationTests
         { Current = Current! with { Room = Current.Room with { Phase = TowerRoomPhase.Ready } }; return Result(); }
         public ValueTask<BossTowerActionResult> StartAsync(BossTowerActionContext context, CancellationToken ct)
         { Current = Current! with { Room = Current.Room with { Phase = TowerRoomPhase.Fighting } }; return Result(); }
-        public ValueTask<BossTowerActionResult> KillAsync(BossTowerActionContext context, ushort uid, CancellationToken ct)
+        public ValueTask<BossTowerActionResult> KillAsync(BossTowerActionContext context, ushort uid, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
         {
             Kills++; var member = Current!.Members[0];
             Current = Current with { Completion = new(TowerEndReason.Completed, 8, 8, true, DateTimeOffset.UtcNow,
                 new([new(member.Session.CharacterId, 123, 0, []) { Session = member.Session, Candidates = [new(-1, 0)] }])) };
             return ValueTask.FromResult(new BossTowerActionResult(true, Current) { SettlementCreated = true });
         }
-        public ValueTask<BossTowerActionResult> LeaveAsync(BossTowerActionContext context, bool disconnected, CancellationToken ct)
+        public ValueTask<BossTowerActionResult> LeaveAsync(BossTowerActionContext context, bool disconnected, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
         { var previous = Current; Current = null; return ValueTask.FromResult(new BossTowerActionResult(true, previous! with { Members = [] })); }
-        public ValueTask<BossTowerActionResult> DieAsync(BossTowerActionContext context, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> DieAsync(BossTowerActionContext context, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<BossTowerPickupResult> PickupAsync(BossTowerActionContext context, ushort uid, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<BossTowerActionResult> SynchronizeLeaderAsync(BossTowerActionContext context, SelectedSessionIdentity leader, CancellationToken ct) => Result();
         public ValueTask<bool> CanRetryAsync(BossTowerActionContext context, CancellationToken ct) => ValueTask.FromResult(false);

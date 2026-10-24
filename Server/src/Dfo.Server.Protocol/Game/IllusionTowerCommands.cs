@@ -39,7 +39,7 @@ public sealed class KillIllusionTowerActorCommandHandler(IIllusionTowerDomainSer
 {
     public ValueTask<TowerActionResult> HandleAsync(CommandExecutionContext context,
         KillIllusionTowerActorCommand command, CancellationToken token) =>
-        towers.KillAsync(command.Context, command.ActorUid, token);
+        towers.KillAsync(command.Context, command.ActorUid, context.LegacyFootprint, token);
 }
 
 public sealed record AdvanceIllusionTowerCommand(TowerActionContext Context) : ICommand<TowerActionResult>;
@@ -55,7 +55,7 @@ public sealed class DieInIllusionTowerCommandHandler(IIllusionTowerDomainService
     : ICommandHandler<DieInIllusionTowerCommand, TowerActionResult>
 {
     public ValueTask<TowerActionResult> HandleAsync(CommandExecutionContext context,
-        DieInIllusionTowerCommand command, CancellationToken token) => towers.DieAsync(command.Context, token);
+        DieInIllusionTowerCommand command, CancellationToken token) => towers.DieAsync(command.Context, context.LegacyFootprint, token);
 }
 
 public sealed record LeaveIllusionTowerCommand(TowerActionContext Context, bool Disconnected)
@@ -65,7 +65,7 @@ public sealed class LeaveIllusionTowerCommandHandler(IIllusionTowerDomainService
 {
     public ValueTask<TowerActionResult> HandleAsync(CommandExecutionContext context,
         LeaveIllusionTowerCommand command, CancellationToken token) =>
-        towers.LeaveAsync(command.Context, command.Disconnected, token);
+        towers.LeaveAsync(command.Context, command.Disconnected, context.LegacyFootprint, token);
 }
 
 public sealed record SynchronizeIllusionTowerLeaderCommand(

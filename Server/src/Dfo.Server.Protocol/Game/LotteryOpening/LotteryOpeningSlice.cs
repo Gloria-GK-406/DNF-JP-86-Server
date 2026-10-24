@@ -72,7 +72,7 @@ public sealed record LotteryOpeningCommand(OnlineUserId OnlineUserId, SelectedSe
 public sealed class LotteryOpeningCommandHandler(ILotteryOpeningDomainService opening) : ICommandHandler<LotteryOpeningCommand, LotteryOpeningResult>
 {
     public ValueTask<LotteryOpeningResult> HandleAsync(CommandExecutionContext context, LotteryOpeningCommand command, CancellationToken token) =>
-        opening.ExecuteAsync(command.Session, OpeningWireSlots.FromMain(command.Slot), command.Mode, token);
+        opening.ExecuteAsync(command.Session, OpeningWireSlots.FromMain(command.Slot), command.Mode, context.LegacyFootprint, token);
 }
 
 public sealed class LotteryOpeningDelivery(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,

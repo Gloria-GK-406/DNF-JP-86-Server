@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Marriage;
@@ -182,7 +183,7 @@ public sealed class MarriageRelationLedgerTests
         w.Clock.Now = room.ReadyUntil;
         await InTx(f, () => Venue(f).AdvanceAsync(ceremony.Id, default));
 
-        var used = await InTx(f, () => Couple(f).UseLovePointAsync(f.Session, coupon, [f.Session.AccountId, peer.AccountId], default));
+        var used = await InTx(f, () => TestEffectFootprints.Run(f.Session, cap => Couple(f).UseLovePointAsync(f.Session, coupon, [f.Session.AccountId, peer.AccountId], cap, default)));
         Assert.Equal(0, used.Status); Assert.Equal(1, used.Points);
         Assert.Equal(0, (await RelationAsync(f, ceremony.RelationId)).LovePoints);
         Assert.Equal(1, await Ledger(f).PointsAsync(ceremony.RelationId, f.Session.CharacterId, default));

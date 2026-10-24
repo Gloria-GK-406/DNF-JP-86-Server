@@ -51,7 +51,7 @@ public sealed class KillBossTowerActorCommandHandler(IBossTowerDomainService tow
 {
     public ValueTask<BossTowerActionResult> HandleAsync(CommandExecutionContext context,
         KillBossTowerActorCommand command, CancellationToken token) =>
-        towers.KillAsync(command.Context, command.ActorUid, token);
+        towers.KillAsync(command.Context, command.ActorUid, context.LegacyFootprint, token);
 }
 
 public sealed record AdvanceBossTowerCommand(BossTowerActionContext Context, byte TargetX, byte TargetY) : BossTowerActionCommand(Context), ICommand<BossTowerActionResult>;
@@ -67,7 +67,7 @@ public sealed class DieInBossTowerCommandHandler(IBossTowerDomainService towers)
     : ICommandHandler<DieInBossTowerCommand, BossTowerActionResult>
 {
     public ValueTask<BossTowerActionResult> HandleAsync(CommandExecutionContext context,
-        DieInBossTowerCommand command, CancellationToken token) => towers.DieAsync(command.Context, token);
+        DieInBossTowerCommand command, CancellationToken token) => towers.DieAsync(command.Context, context.LegacyFootprint, token);
 }
 
 public sealed record LeaveBossTowerCommand(BossTowerActionContext Context, bool Disconnected)
@@ -77,7 +77,7 @@ public sealed class LeaveBossTowerCommandHandler(IBossTowerDomainService towers)
 {
     public ValueTask<BossTowerActionResult> HandleAsync(CommandExecutionContext context,
         LeaveBossTowerCommand command, CancellationToken token) =>
-        towers.LeaveAsync(command.Context, command.Disconnected, token);
+        towers.LeaveAsync(command.Context, command.Disconnected, context.LegacyFootprint, token);
 }
 
 public sealed record SynchronizeBossTowerLeaderCommand(

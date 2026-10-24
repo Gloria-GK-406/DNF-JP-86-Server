@@ -70,7 +70,10 @@ public sealed partial class SelectCharacterLifecycleTests
                 [departure]);
             var complete = new CompleteReturnToSelectionCommandHandler(f.Users, f.Directory, cleanup);
 
-            await complete.HandleAsync(ReturnContext(), new(prepared), CancellationToken.None);
+            using var footprint = new TestEffectFootprints.Lease(selected);
+            var returnContext = ReturnContext();
+            returnContext.SupplyLegacyFootprint(footprint);
+            await complete.HandleAsync(returnContext, new(prepared), CancellationToken.None);
 
             Assert.Null(f.Directory.Find(f.AccountId));
             Assert.False(f.Directory.IsInWorld(selected));
@@ -90,7 +93,7 @@ public sealed partial class SelectCharacterLifecycleTests
             Assert.Equal(selected.CharacterId, f.Users.GetRequired(f.OnlineUserId).CurrentCharacterId);
             Assert.NotEqual(selected, f.Directory.Find(f.AccountId));
 
-            await cleanup.CleanupAsync(memberSession, includeOwner: false, CancellationToken.None);
+            await TestEffectFootprints.Run(memberSession, cap => cleanup.CleanupAsync(memberSession, includeOwner: false, cap, CancellationToken.None));
             Assert.Null(runs.Find(memberSession.CharacterId));
             Assert.Equal(
                 [(started.RunId, selected.CharacterId), (started.RunId, memberSession.CharacterId)],

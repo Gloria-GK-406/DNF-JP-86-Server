@@ -31,7 +31,7 @@ public sealed class UseEntryAllowanceCommandHandler(IOpeningInventoryDomainServi
     {
         var slot = OpeningWireSlots.FromMain(command.SourceSlot);
         var source = await inventory.SourceAsync(command.Session, slot, clock.GetUtcNow(), ct).ConfigureAwait(false);
-        var result = await items.TryUseAsync(command.Session, slot, source, ct).ConfigureAwait(false);
+        var result = await items.TryUseAsync(command.Session, slot, source, context.LegacyFootprint, ct).ConfigureAwait(false);
         return result?.OpeningReceipt ?? throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "Not a usable Heras entry coupon.");
     }
 }

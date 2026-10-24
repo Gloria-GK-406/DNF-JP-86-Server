@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Application.Effects;
 using Dfo.Server.Application.Transactions;
@@ -31,7 +32,7 @@ public sealed class CreatureNamingDomainServiceTests
             var store = new FakeCreatureStore();
             var (service, scope) = Service(store);
             await using var tx = scope.Begin();
-            var receipt = await service.RenameAsync(Session, CardSlot, [0x82, 0xA0], default);
+            var receipt = await TestEffectFootprints.Run(Session, cap => service.RenameAsync(Session, CardSlot, [0x82, 0xA0], cap, default));
 
             Assert.NotNull(receipt);
             Assert.Equal(new byte[] { 0x82, 0xA0 }, receipt.Creature.NameBytes);
@@ -51,7 +52,7 @@ public sealed class CreatureNamingDomainServiceTests
             var store = new FakeCreatureStore(cardId, wornUid);
             var (service, scope) = Service(store);
             await using var tx = scope.Begin();
-            var receipt = await service.RenameAsync(Session, CardSlot, [0x41], default);
+            var receipt = await TestEffectFootprints.Run(Session, cap => service.RenameAsync(Session, CardSlot, [0x41], cap, default));
 
             Assert.Null(receipt);
             Assert.Equal(0, store.Saves);
@@ -71,7 +72,7 @@ public sealed class CreatureNamingDomainServiceTests
             var (service, scope) = Service(store);
             await using var tx = scope.Begin();
 
-            var receipt = await service.RenameAsync(Session, CardSlot, [0x41], default);
+            var receipt = await TestEffectFootprints.Run(Session, cap => service.RenameAsync(Session, CardSlot, [0x41], cap, default));
 
             Assert.Null(receipt);
             Assert.Equal(0, store.Saves);
@@ -89,7 +90,7 @@ public sealed class CreatureNamingDomainServiceTests
             var before=(await store.CurrentAsync(default))!;
             var clock=new AdvanceableTimeProvider(new DateTimeOffset(2050,1,1,0,0,0,TimeSpan.Zero));
             var (service,scope)=Service(store,clock);await using var tx=scope.Begin();
-            var receipt=await service.RenameAsync(Session,CardSlot,[],default);
+            var receipt=await TestEffectFootprints.Run(Session, cap => service.RenameAsync(Session,CardSlot,[], cap,default));
             Assert.NotNull(receipt);Assert.Empty(receipt.Creature.NameBytes);
             Assert.Equal((before.ItemUid,before.ItemTemplateId,before.Stomach,before.Experience,before.Level,before.ModeFlag,before.Mode1Field0A,before.Mode1Field0B,before.TailFlag,before.ExactStomach),
                 (receipt.Creature.ItemUid,receipt.Creature.ItemTemplateId,receipt.Creature.Stomach,receipt.Creature.Experience,receipt.Creature.Level,
@@ -107,7 +108,7 @@ public sealed class CreatureNamingDomainServiceTests
         await TestGameplay.RunAsync(async () =>
         {
             var store=new FakeCreatureStore();var (service,scope)=Service(store);await using var tx=scope.Begin();
-            Assert.Null(await service.RenameAsync(Session,CardSlot,[value],default));
+            Assert.Null(await TestEffectFootprints.Run(Session, cap => service.RenameAsync(Session,CardSlot,[value], cap,default)));
             Assert.Equal(2,store.Card.Item!.Count);Assert.Equal(0,store.Saves);
         });
     }
@@ -123,7 +124,8 @@ public sealed class CreatureNamingDomainServiceTests
                 System.Collections.Immutable.ImmutableArray.CreateRange(name),DateTimeOffset.UtcNow));
             name[0]=0;
             var effect=Assert.Single(plan.OfType<RenamePetEffect>());
-            var result=await new RenamePetEffectHandler(new FakeCreatureDomain(store)).ApplyAsync(new(Session.AccountId,Session.CharacterId,DateTimeOffset.UtcNow,Session),effect,default);
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(Session);
+            var result=await new RenamePetEffectHandler(new FakeCreatureDomain(store)).ApplyAsync(new(Session.AccountId,Session.CharacterId,DateTimeOffset.UtcNow,footprint,Session),effect,default);
             Assert.Equal(Enumerable.Repeat((byte)0x41,12),Assert.IsType<PetNameChange>(result).Creature.NameBytes);
         });
     }

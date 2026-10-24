@@ -80,8 +80,7 @@ public sealed class RealConsumableIntegrationTests
             async Task Rename(bool lateFailure)
             {
                 await using var tx = f.Scope.Begin();
-                var receipt = await f.Services.GetRequiredService<ICreatureNamingDomainService>()
-                    .RenameAsync(f.Session, PetSource, [0x82, 0xA0], default);
+                var receipt = await TestEffectFootprints.Run(f.Session, cap => f.Services.GetRequiredService<ICreatureNamingDomainService>().RenameAsync(f.Session, PetSource, [0x82, 0xA0], cap, default));
                 Assert.NotNull(receipt); Assert.Equal(1, receipt.RemainingSourceCore!.ToCore().Value);
                 var database = f.Services.GetRequiredService<SqliteDatabase>();
                 var participant = f.Scope.Current!.Enlist<SqliteDatabaseParticipant>(database.ConnectionString, () => throw new InvalidOperationException("Expected existing SQL participant."));
@@ -119,8 +118,7 @@ public sealed class RealConsumableIntegrationTests
             async Task Use()
             {
                 await using var tx = f.Scope.Begin();
-                var result = await f.Services.GetRequiredService<IQuestClearCouponSettlementDomainService>()
-                    .UseAsync(f.Session, MainSource, f.Services.GetRequiredService<TimeProvider>().GetUtcNow(), default);
+                var result = await TestEffectFootprints.Run(f.Session, cap => f.Services.GetRequiredService<IQuestClearCouponSettlementDomainService>().UseAsync(f.Session, MainSource, f.Services.GetRequiredService<TimeProvider>().GetUtcNow(), cap, default));
                 Assert.Equal([101], result.CompletedQuestIds);
                 await tx.CommitAsync(default);
             }

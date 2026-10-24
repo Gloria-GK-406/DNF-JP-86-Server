@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -81,10 +82,10 @@ public sealed class IllusionTowerPublicFlowTests
 
                 foreach (var actor in Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session)).Room.Actors)
                 {
-                    await fixture.Services.GetRequiredService<MonsterDeathHandler>().HandleAsync(
+                    await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => fixture.Services.GetRequiredService<MonsterDeathHandler>().HandleAsync(
                         new(fixture.Connection),
                         new MonsterDeathRequest(GameMessageMetadata.Empty, actor.Uid, fixture.Session.WireUserId),
-                        default);
+                        default));
                 }
 
                 var cleared = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
@@ -123,8 +124,8 @@ public sealed class IllusionTowerPublicFlowTests
                         or ServerMessageType.GameIllusionTowerReward or ServerMessageType.GameIllusionTowerContinue)
                     .Select(message => message.MessageType));
 
-            await fixture.Services.GetRequiredService<BackToVillageHandler>().HandleAsync(
-                new(fixture.Connection), new BackToVillageRequest(GameMessageMetadata.Empty), default);
+            await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => fixture.Services.GetRequiredService<BackToVillageHandler>().HandleAsync(
+                new(fixture.Connection), new BackToVillageRequest(GameMessageMetadata.Empty), default));
 
             Assert.Null(towers.Find(fixture.Session));
             Assert.NotNull(fixture.Services.GetRequiredService<ITownAreaDomainService>().Find(fixture.Session.CharacterId));
@@ -168,15 +169,15 @@ public sealed class IllusionTowerPublicFlowTests
                 new(fixture.Connection), new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0), default);
             await fixture.Services.GetRequiredService<IllusionTowerStageHandler>().HandleAsync(
                 new(fixture.Connection), new IllusionTowerStageRequest(GameMessageMetadata.Empty, 1, []), default);
-            await fixture.Services.GetRequiredService<CharacterDeathHandler>().HandleAsync(
-                new(fixture.Connection), new CharacterDeathRequest(GameMessageMetadata.Empty, 0, 0, null), default);
+            await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => fixture.Services.GetRequiredService<CharacterDeathHandler>().HandleAsync(
+                new(fixture.Connection), new CharacterDeathRequest(GameMessageMetadata.Empty, 0, 0, null), default));
             var oldRun = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
             Assert.True(oldRun.Completion!.Settled);
             var due = Assert.IsType<DateTimeOffset>(oldRun.ReturnDueAt);
             if (due >= fixture.Clock.GetUtcNow()) fixture.Clock.Advance(due - fixture.Clock.GetUtcNow() + TimeSpan.FromSeconds(1));
 
-            await fixture.Services.GetRequiredService<BackToVillageHandler>().HandleAsync(
-                new(fixture.Connection), new BackToVillageRequest(GameMessageMetadata.Empty), default);
+            await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => fixture.Services.GetRequiredService<BackToVillageHandler>().HandleAsync(
+                new(fixture.Connection), new BackToVillageRequest(GameMessageMetadata.Empty), default));
             await fixture.Seed(65, 4183, 1);
             fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>()
                 .Record(fixture.Session, DungeonEntryIntent.Interactive);
@@ -318,13 +319,13 @@ public sealed class IllusionTowerPublicFlowTests
         public ValueTask<TowerActionResult> StartAsync(TowerActionContext context,
             CancellationToken cancellationToken) => inner.StartAsync(context, cancellationToken);
         public ValueTask<TowerActionResult> KillAsync(TowerActionContext context, ushort actorUid,
-            CancellationToken cancellationToken) => inner.KillAsync(context, actorUid, cancellationToken);
+            Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => inner.KillAsync(context, actorUid, footprint, cancellationToken);
         public ValueTask<TowerActionResult> NextLevelAsync(TowerActionContext context,
             CancellationToken cancellationToken) => inner.NextLevelAsync(context, cancellationToken);
         public ValueTask<TowerActionResult> DieAsync(TowerActionContext context,
-            CancellationToken cancellationToken) => inner.DieAsync(context, cancellationToken);
+            Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => inner.DieAsync(context, footprint, cancellationToken);
         public ValueTask<TowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected,
-            CancellationToken cancellationToken) => inner.LeaveAsync(context, disconnected, cancellationToken);
+            Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => inner.LeaveAsync(context, disconnected, footprint, cancellationToken);
         public ValueTask<TowerActionResult> SynchronizeLeaderAsync(TowerActionContext context,
             SelectedSessionIdentity leader, CancellationToken cancellationToken) =>
             inner.SynchronizeLeaderAsync(context, leader, cancellationToken);

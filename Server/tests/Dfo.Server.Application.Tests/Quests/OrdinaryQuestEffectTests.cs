@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Settlement;
@@ -89,8 +90,7 @@ public sealed class OrdinaryQuestEffectTests
         {
             await using (var tx = shop.Services.GetRequiredService<DomainTransactionScope>().Begin())
             {
-                var prepared = await shop.Services.GetRequiredService<IQuestCompletionDomainService>()
-                    .PrepareAsync(new(1), new(1), 2001, ushort.MaxValue, 1, DateTimeOffset.UnixEpoch, default);
+                var prepared = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(1), null), cap => shop.Services.GetRequiredService<IQuestCompletionDomainService>().PrepareAsync(new(1), new(1), 2001, ushort.MaxValue, 1, DateTimeOffset.UnixEpoch, cap, default));
                 Assert.True(prepared.Prepared);
                 var reward = prepared.Plan!.Reward!;
                 Assert.Equal(rules.Quest.SeekingItems, reward.ConsumedItems);
@@ -207,8 +207,7 @@ public sealed class OrdinaryQuestEffectTests
             Carry(shop);
             await using (var tx = shop.Services.GetRequiredService<DomainTransactionScope>().Begin())
             {
-                var receipt = await shop.Services.GetRequiredService<IQuestCompletionSettlementDomainService>()
-                    .FinishAsync(new(1), new(1), 2001, ushort.MaxValue, 1, DateTimeOffset.UnixEpoch, default);
+                var receipt = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(1), null), cap => shop.Services.GetRequiredService<IQuestCompletionSettlementDomainService>().FinishAsync(new(1), new(1), 2001, ushort.MaxValue, 1, DateTimeOffset.UnixEpoch, cap, default));
                 Assert.True(receipt.Finished);
             }
             Assert.Equal(1000, shop.SharedCount(3034));
@@ -343,7 +342,8 @@ public sealed class OrdinaryQuestEffectTests
             var first=rules.DecideAward(new(1,90),new(Base:30));
             var second=rules.DecideAward(new(first.Award.Level,first.Award.Total),new(Base:400,Channel:50));
             await using var tx=shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
-            var result=await shop.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(new(new(1),new(1),DateTimeOffset.UnixEpoch),
+            using var footprint = new TestEffectFootprints.Lease(new EffectFootprintOwner(new(1), new(1), null));
+            var result=await shop.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(new(new(1),new(1),DateTimeOffset.UnixEpoch,footprint),
                 [new CharacterExperienceEffect(first),new CharacterExperienceEffect(second)],default);
             await tx.CommitAsync(default);
             Assert.Equal(450u,result.Changes<CharacterExperienceChange>().Last().Award.Gained);
@@ -591,7 +591,8 @@ public sealed class OrdinaryQuestEffectTests
             using var shop=Shop();
             await using var tx=shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
             var handler=new CharacterExperienceEffectHandler(shop.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterDomainService>());
-            var error=await Assert.ThrowsAsync<InvalidOperationException>(async()=>await handler.ApplyAsync(new(new(1),new(999),DateTimeOffset.UnixEpoch),new(new(new(1,0),ExperienceAward.Nothing(1,0))),default));
+            using var footprint = new TestEffectFootprints.Lease(new EffectFootprintOwner(new(1), new(999), null));
+            var error=await Assert.ThrowsAsync<InvalidOperationException>(async()=>await handler.ApplyAsync(new(new(1),new(999),DateTimeOffset.UnixEpoch,footprint),new(new(new(1,0),ExperienceAward.Nothing(1,0))),default));
             Assert.Equal("Decided experience target changed.",error.Message);
         });
     }
@@ -659,7 +660,8 @@ public sealed class OrdinaryQuestEffectTests
             IExperienceRuleService rules=new FixedProgression();var decision=rules.DecideAward(new(level,held),new(Base:earned));
             if(earned==0) shop.Sql("CREATE TRIGGER forbid_xp_write BEFORE UPDATE OF exp ON characters BEGIN SELECT RAISE(ABORT,'zero XP wrote'); END");
             await using var tx=shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
-            var result=await shop.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(new(new(1),new(1),DateTimeOffset.UnixEpoch),[new CharacterExperienceEffect(decision)],default);await tx.CommitAsync(default);
+            using var footprint = new TestEffectFootprints.Lease(new EffectFootprintOwner(new(1), new(1), null));
+            var result=await shop.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(new(new(1),new(1),DateTimeOffset.UnixEpoch,footprint),[new CharacterExperienceEffect(decision)],default);await tx.CommitAsync(default);
             var award=Assert.Single(result.Changes<CharacterExperienceChange>()).Award;Assert.Equal(earned,award.Gained);Assert.Equal(after,award.Total);Assert.Equal(afterLevel,award.Level);
             Assert.Equal((int)after,shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));Assert.Equal((int)afterLevel,shop.Scalar("SELECT level FROM characters WHERE character_id=1"));
         });

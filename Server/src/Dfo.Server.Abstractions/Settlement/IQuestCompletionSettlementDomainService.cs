@@ -9,5 +9,5 @@ namespace Dfo.Server.Abstractions.Settlement;
 public interface IQuestCompletionSettlementDomainService
 {
     ValueTask<QuestCompletionReceipt> FinishAsync(AccountId account, CharacterId character, ushort quest,
-        ushort selection, ushort count, DateTimeOffset at, CancellationToken ct, SelectedSessionIdentity? session = null);
+        ushort selection, ushort count, DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct, SelectedSessionIdentity? session = null);
 }

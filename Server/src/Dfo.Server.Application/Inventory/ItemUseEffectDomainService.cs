@@ -20,14 +20,14 @@ internal sealed class ItemUseEffectDomainService(ICharacterDomainService charact
         ItemReference item, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
         footprint.DemandActive(session);
-        if (reviveCoins is not null && await reviveCoins.TryUseAsync(session, source, item, ct).ConfigureAwait(false) is { } coin)
+        if (reviveCoins is not null && await reviveCoins.TryUseAsync(session, source, item, footprint, ct).ConfigureAwait(false) is { } coin)
             return coin;
         footprint.DemandActive(session);
-        if (entryItems is not null && await entryItems.TryUseAsync(session, source, item, ct).ConfigureAwait(false) is { } allowance)
+        if (entryItems is not null && await entryItems.TryUseAsync(session, source, item, footprint, ct).ConfigureAwait(false) is { } allowance)
             return allowance;
         footprint.DemandActive(session);
         if (experienceItems is not null
-            && await experienceItems.TryUseAsync(session, source, item, ct).ConfigureAwait(false) is { } experience)
+            && await experienceItems.TryUseAsync(session, source, item, footprint, ct).ConfigureAwait(false) is { } experience)
         {
             if (experience.Status == ItemUsability.Allowed && events is not null)
             {
@@ -57,7 +57,7 @@ internal sealed class ItemUseEffectDomainService(ICharacterDomainService charact
             footprint.RecordRentalState(session);
         }
         footprint.DemandActive(session);
-        var applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, session), plan.Effects, ct)
+        var applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, footprint, session), plan.Effects, ct)
             .ConfigureAwait(false);
         var remaining = applied.Changes<ContainerConsumptionChange>().LastOrDefault(x => x.Slot == source)?.RemainingCount ?? item.Count;
         if (events is not null)

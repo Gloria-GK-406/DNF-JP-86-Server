@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.World;
 
@@ -6,7 +7,7 @@ namespace Dfo.Server.Abstractions.Sessions;
 public interface ISelectedSessionCleanupDomainService
 {
     ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
-        SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken);
+        SelectedSessionIdentity session, bool includeOwner, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }
 
 public interface ISelectCharacterSessionEntryDomainService

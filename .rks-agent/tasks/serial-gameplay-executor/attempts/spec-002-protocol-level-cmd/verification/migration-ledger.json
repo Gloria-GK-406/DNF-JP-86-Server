@@ -33951,7 +33951,7 @@
       "introduced_artifacts": [
         {
           "location": "Server/src/Dfo.Server.Abstractions/Effects/IEffectFootprintRecorder.cs",
-          "purpose": "required direct footprint input; keep explicit input while replacing legacy implementation in later effect unit"
+          "purpose": "required direct slots/rental and EffectExecutionContext effects input; explicit owner and per-invocation authority remain, legacy implementation removed with final consumers"
         },
         {
           "location": "Server/src/Dfo.Server.Application/Effects/LegacyEffectFootprint.cs",
@@ -33959,7 +33959,7 @@
         },
         {
           "location": "Server/src/Dfo.Server.Application/Effects/EffectOperationContext.cs",
-          "purpose": "legacy invocation capture/inheritance only; remaining optional ApplyEffects consumer and 17 constructions are later effect unit"
+          "purpose": "legacy captured references plus explicit complete effects projection; no ApplyEffects Current lookup; remove remaining legacy capture/ambient with final consumers T011"
         },
         {
           "location": "Server/src/Dfo.Server.Application/Commands/CommandContracts.cs",
@@ -33968,9 +33968,25 @@
         {
           "location": "Server/src/Dfo.Server.Application/Commands/NetworkCommandAuthorization.cs",
           "purpose": "existing frame category/snapshot, not new ambient; remove old frame T011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Abstractions/Effects/DomainEffects.cs",
+          "purpose": "mandatory non-null Footprint through 17 constructions/Opening/XP; plain owner/time/session facts stay usable by legitimate commit callbacks"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/ILifecycleEffectFootprintSource.cs",
+          "purpose": "temporary explicit observer-only Lifecycle NonRequest lease, delete at T010 typed Internal CMD migration; never a new CMD injection exemption"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/LifecycleEffectFootprintSource.cs",
+          "purpose": "current Lifecycle chain/job/healthy/closed checks, SourceConnection null; no implicit legacy admission or request lookup; delete with T010 adapter"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/World/HerasDungeonDomainService.cs",
+          "purpose": "same explicit context entry and post-quota-validation Demand before the original Direct fact; no change to quota/event/transaction rules"
         }
       ],
-      "notes": "TASK-09 r3: direct InventorySlots/RentalState now require IEffectFootprintRecorder through six domain objects/facades/SharedEffect and three fine handlers. Old IRequestReplayProjectionDomainService/implicit slots/rental API/DI alias removed. Only true LegacyFineGrained innermost invocation admits capture after selected/main and transaction setup: original frame/execution/rejection references, actual registration/context identity, same job ID and per-call closed lease. Dispatcher snapshots actual Effect/NonEffect/Unknown category; only the real external bus queue branch carries Standalone; closed inheritance refuses before suppression, Unknown is Unavailable at migrated capability use. New typed bridge failures are sticky. This does not remove request ambient or enable new Effect/Main: ApplyEffects optional old consumer and 17 constructions plus unmigrated child await continuations remain successor work; final legacy/ambient deletion still T011. Ended capability cannot reenter migrated domain, whose own writes/delegations check it.",
+      "notes": "TASK-09 r3: direct InventorySlots/RentalState now require IEffectFootprintRecorder through six domain objects/facades/SharedEffect and three fine handlers. Old IRequestReplayProjectionDomainService/implicit slots/rental API/DI alias removed. Only true LegacyFineGrained innermost invocation admits capture after selected/main and transaction setup: original frame/execution/rejection references, actual registration/context identity, same job ID and per-call closed lease. Dispatcher snapshots actual Effect/NonEffect/Unknown category; only the real external bus queue branch carries Standalone; closed inheritance refuses before suppression, Unknown is Unavailable at migrated capability use. New typed bridge failures are sticky. This does not remove request ambient or enable new Effect/Main: ApplyEffects optional old consumer and 17 constructions plus unmigrated child await continuations remain successor work; final legacy/ambient deletion still T011. Ended capability cannot reenter migrated domain, whose own writes/delegations check it. TASK-10 r4: all 17 EffectExecutionContext constructions require explicit non-null Footprint; ApplyEffects optional operations/implicit Record removed. Captured frame mapping retains original switch, Opening/XP/actual cleanup callers pass per-invocation authority. Actual Consume post-read-before-Take expiry protection is behavior/mutation checked; other owning write/delegation boundaries are checked without claiming all deeper unpassed APIs. Ordinary XP/Cera/Daily use explicit NonRequest with real multi-owner facts. Observer cleanup alone creates explicit Lifecycle origin/current-chain/SourceConnection-null temporary lease; delete it when T010 supplies typed Internal CMD. Preview does not record/settle, deferred commit reads plain facts after the lease closes. No routes or new Effect/Main enabled; no business/source/protection/transition closed, final legacy ambient removal remains T011. TASK-10 r5 also closes the demonstrated Heras ApplyAllowance quota-read await to Direct window with the same passed context; actual Direct/SQLite gate and compilable mutation distinguish it from final Record failure. Original Illusion 11000 if/foreach ownership is restored after the diagnosed formal01 regression; all final checks use a new freeze/round.",
       "original": {
         "final_evidence": "pending",
         "id": "transition:T4",
@@ -34071,7 +34087,7 @@
         },
         {
           "location": "Server/src/Dfo.Server.Abstractions/Effects/IEffectFootprintRecorder.cs",
-          "purpose": "required direct footprint input; keep explicit input while replacing legacy implementation in later effect unit"
+          "purpose": "required direct slots/rental and EffectExecutionContext effects input; explicit owner and per-invocation authority remain, legacy implementation removed with final consumers"
         },
         {
           "location": "Server/src/Dfo.Server.Application/Effects/LegacyEffectFootprint.cs",
@@ -34079,7 +34095,7 @@
         },
         {
           "location": "Server/src/Dfo.Server.Application/Effects/EffectOperationContext.cs",
-          "purpose": "legacy invocation capture/inheritance only; remaining optional ApplyEffects consumer and 17 constructions are later effect unit"
+          "purpose": "legacy captured references plus explicit complete effects projection; no ApplyEffects Current lookup; remove remaining legacy capture/ambient with final consumers T011"
         },
         {
           "location": "Server/src/Dfo.Server.Application/Commands/CommandContracts.cs",
@@ -34088,9 +34104,25 @@
         {
           "location": "Server/src/Dfo.Server.Application/Commands/NetworkCommandAuthorization.cs",
           "purpose": "existing frame category/snapshot, not new ambient; remove old frame T011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Abstractions/Effects/DomainEffects.cs",
+          "purpose": "mandatory non-null Footprint through 17 constructions/Opening/XP; plain owner/time/session facts stay usable by legitimate commit callbacks"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/ILifecycleEffectFootprintSource.cs",
+          "purpose": "temporary explicit observer-only Lifecycle NonRequest lease, delete at T010 typed Internal CMD migration; never a new CMD injection exemption"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/LifecycleEffectFootprintSource.cs",
+          "purpose": "current Lifecycle chain/job/healthy/closed checks, SourceConnection null; no implicit legacy admission or request lookup; delete with T010 adapter"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/World/HerasDungeonDomainService.cs",
+          "purpose": "same explicit context entry and post-quota-validation Demand before the original Direct fact; no change to quota/event/transaction rules"
         }
       ],
-      "notes": "TASK04 introduced actual routes; all remain pending until final consumer removal T011. Effect handle/footprint/main lifecycle intentionally unavailable and must be completed in first effect Task; no new core ambient fallback. TASK-06 adds old IChannelEntryPolicy alias duty; actual mapping/KindOf/Refuse owned by ChannelEntryDomainService, new LOGIN only consumes IChannelEntryDomainService; do not delete old alias until remaining consumers migrate. TASK-09 r3: direct InventorySlots/RentalState now require IEffectFootprintRecorder through six domain objects/facades/SharedEffect and three fine handlers. Old IRequestReplayProjectionDomainService/implicit slots/rental API/DI alias removed. Only true LegacyFineGrained innermost invocation admits capture after selected/main and transaction setup: original frame/execution/rejection references, actual registration/context identity, same job ID and per-call closed lease. Dispatcher snapshots actual Effect/NonEffect/Unknown category; only the real external bus queue branch carries Standalone; closed inheritance refuses before suppression, Unknown is Unavailable at migrated capability use. New typed bridge failures are sticky. This does not remove request ambient or enable new Effect/Main: ApplyEffects optional old consumer and 17 constructions plus unmigrated child await continuations remain successor work; final legacy/ambient deletion still T011. Ended capability cannot reenter migrated domain, whose own writes/delegations check it.",
+      "notes": "TASK04 introduced actual routes; all remain pending until final consumer removal T011. Effect handle/footprint/main lifecycle intentionally unavailable and must be completed in first effect Task; no new core ambient fallback. TASK-06 adds old IChannelEntryPolicy alias duty; actual mapping/KindOf/Refuse owned by ChannelEntryDomainService, new LOGIN only consumes IChannelEntryDomainService; do not delete old alias until remaining consumers migrate. TASK-09 r3: direct InventorySlots/RentalState now require IEffectFootprintRecorder through six domain objects/facades/SharedEffect and three fine handlers. Old IRequestReplayProjectionDomainService/implicit slots/rental API/DI alias removed. Only true LegacyFineGrained innermost invocation admits capture after selected/main and transaction setup: original frame/execution/rejection references, actual registration/context identity, same job ID and per-call closed lease. Dispatcher snapshots actual Effect/NonEffect/Unknown category; only the real external bus queue branch carries Standalone; closed inheritance refuses before suppression, Unknown is Unavailable at migrated capability use. New typed bridge failures are sticky. This does not remove request ambient or enable new Effect/Main: ApplyEffects optional old consumer and 17 constructions plus unmigrated child await continuations remain successor work; final legacy/ambient deletion still T011. Ended capability cannot reenter migrated domain, whose own writes/delegations check it. TASK-10 r4: all 17 EffectExecutionContext constructions require explicit non-null Footprint; ApplyEffects optional operations/implicit Record removed. Captured frame mapping retains original switch, Opening/XP/actual cleanup callers pass per-invocation authority. Actual Consume post-read-before-Take expiry protection is behavior/mutation checked; other owning write/delegation boundaries are checked without claiming all deeper unpassed APIs. Ordinary XP/Cera/Daily use explicit NonRequest with real multi-owner facts. Observer cleanup alone creates explicit Lifecycle origin/current-chain/SourceConnection-null temporary lease; delete it when T010 supplies typed Internal CMD. Preview does not record/settle, deferred commit reads plain facts after the lease closes. No routes or new Effect/Main enabled; no business/source/protection/transition closed, final legacy ambient removal remains T011. TASK-10 r5 also closes the demonstrated Heras ApplyAllowance quota-read await to Direct window with the same passed context; actual Direct/SQLite gate and compilable mutation distinguish it from final Record failure. Original Illusion 11000 if/foreach ownership is restored after the diagnosed formal01 regression; all final checks use a new freeze/round.",
       "original": {
         "final_evidence": "pending",
         "id": "transition:planned-legacy-routes",
@@ -34118,7 +34150,7 @@
       "introduced_artifacts": [
         {
           "location": "Server/src/Dfo.Server.Abstractions/Effects/IEffectFootprintRecorder.cs",
-          "purpose": "required direct footprint input; keep explicit input while replacing legacy implementation in later effect unit"
+          "purpose": "required direct slots/rental and EffectExecutionContext effects input; explicit owner and per-invocation authority remain, legacy implementation removed with final consumers"
         },
         {
           "location": "Server/src/Dfo.Server.Application/Effects/LegacyEffectFootprint.cs",
@@ -34126,7 +34158,7 @@
         },
         {
           "location": "Server/src/Dfo.Server.Application/Effects/EffectOperationContext.cs",
-          "purpose": "legacy invocation capture/inheritance only; remaining optional ApplyEffects consumer and 17 constructions are later effect unit"
+          "purpose": "legacy captured references plus explicit complete effects projection; no ApplyEffects Current lookup; remove remaining legacy capture/ambient with final consumers T011"
         },
         {
           "location": "Server/src/Dfo.Server.Application/Commands/CommandContracts.cs",
@@ -34135,9 +34167,25 @@
         {
           "location": "Server/src/Dfo.Server.Application/Commands/NetworkCommandAuthorization.cs",
           "purpose": "existing frame category/snapshot, not new ambient; remove old frame T011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Abstractions/Effects/DomainEffects.cs",
+          "purpose": "mandatory non-null Footprint through 17 constructions/Opening/XP; plain owner/time/session facts stay usable by legitimate commit callbacks"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/ILifecycleEffectFootprintSource.cs",
+          "purpose": "temporary explicit observer-only Lifecycle NonRequest lease, delete at T010 typed Internal CMD migration; never a new CMD injection exemption"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/LifecycleEffectFootprintSource.cs",
+          "purpose": "current Lifecycle chain/job/healthy/closed checks, SourceConnection null; no implicit legacy admission or request lookup; delete with T010 adapter"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/World/HerasDungeonDomainService.cs",
+          "purpose": "same explicit context entry and post-quota-validation Demand before the original Direct fact; no change to quota/event/transaction rules"
         }
       ],
-      "notes": "TASK-09 r3: direct InventorySlots/RentalState now require IEffectFootprintRecorder through six domain objects/facades/SharedEffect and three fine handlers. Old IRequestReplayProjectionDomainService/implicit slots/rental API/DI alias removed. Only true LegacyFineGrained innermost invocation admits capture after selected/main and transaction setup: original frame/execution/rejection references, actual registration/context identity, same job ID and per-call closed lease. Dispatcher snapshots actual Effect/NonEffect/Unknown category; only the real external bus queue branch carries Standalone; closed inheritance refuses before suppression, Unknown is Unavailable at migrated capability use. New typed bridge failures are sticky. This does not remove request ambient or enable new Effect/Main: ApplyEffects optional old consumer and 17 constructions plus unmigrated child await continuations remain successor work; final legacy/ambient deletion still T011. Ended capability cannot reenter migrated domain, whose own writes/delegations check it.",
+      "notes": "TASK-09 r3: direct InventorySlots/RentalState now require IEffectFootprintRecorder through six domain objects/facades/SharedEffect and three fine handlers. Old IRequestReplayProjectionDomainService/implicit slots/rental API/DI alias removed. Only true LegacyFineGrained innermost invocation admits capture after selected/main and transaction setup: original frame/execution/rejection references, actual registration/context identity, same job ID and per-call closed lease. Dispatcher snapshots actual Effect/NonEffect/Unknown category; only the real external bus queue branch carries Standalone; closed inheritance refuses before suppression, Unknown is Unavailable at migrated capability use. New typed bridge failures are sticky. This does not remove request ambient or enable new Effect/Main: ApplyEffects optional old consumer and 17 constructions plus unmigrated child await continuations remain successor work; final legacy/ambient deletion still T011. Ended capability cannot reenter migrated domain, whose own writes/delegations check it. TASK-10 r4: all 17 EffectExecutionContext constructions require explicit non-null Footprint; ApplyEffects optional operations/implicit Record removed. Captured frame mapping retains original switch, Opening/XP/actual cleanup callers pass per-invocation authority. Actual Consume post-read-before-Take expiry protection is behavior/mutation checked; other owning write/delegation boundaries are checked without claiming all deeper unpassed APIs. Ordinary XP/Cera/Daily use explicit NonRequest with real multi-owner facts. Observer cleanup alone creates explicit Lifecycle origin/current-chain/SourceConnection-null temporary lease; delete it when T010 supplies typed Internal CMD. Preview does not record/settle, deferred commit reads plain facts after the lease closes. No routes or new Effect/Main enabled; no business/source/protection/transition closed, final legacy ambient removal remains T011. TASK-10 r5 also closes the demonstrated Heras ApplyAllowance quota-read await to Direct window with the same passed context; actual Direct/SQLite gate and compilable mutation distinguish it from final Record failure. Original Illusion 11000 if/foreach ownership is restored after the diagnosed formal01 regression; all final checks use a new freeze/round.",
       "original": {
         "final_evidence": "pending",
         "id": "transition:planned-LegacyRequestAdapter",

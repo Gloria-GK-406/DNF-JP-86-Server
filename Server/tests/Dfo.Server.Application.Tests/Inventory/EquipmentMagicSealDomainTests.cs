@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
@@ -136,9 +137,8 @@ public sealed class EquipmentMagicSealDomainTests
             var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
             await using var tx = scope.Begin();
             Assert.Equal(EquipmentMagicSealRejection.InvalidRequest,
-                (await shop.Services.GetRequiredService<IEquipmentMagicSealDomainService>()
-                    .UnsealAsync(shop.Session,
-                        new(BusinessInventorySpace.WornCreature, 0), null, default)).Rejection);
+                (await TestEffectFootprints.Run(shop.Session, cap => shop.Services.GetRequiredService<IEquipmentMagicSealDomainService>().UnsealAsync(shop.Session,
+                        new(BusinessInventorySpace.WornCreature, 0), null, cap, default))).Rejection);
             Assert.Equal(expired, await Read(shop));
             Assert.Equal(100000, shop.Gold);
         });
@@ -155,8 +155,7 @@ public sealed class EquipmentMagicSealDomainTests
             var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
             await using (var tx = scope.Begin())
             {
-                var result = await shop.Services.GetRequiredService<IEquipmentMagicSealDomainService>()
-                    .UnsealAsync(shop.Session, Target, null, default);
+                var result = await TestEffectFootprints.Run(shop.Session, cap => shop.Services.GetRequiredService<IEquipmentMagicSealDomainService>().UnsealAsync(shop.Session, Target, null, cap, default));
                 Assert.Equal(EquipmentMagicSealRejection.None, result.Rejection);
             }
             Assert.Equal(original, await Read(shop));
@@ -236,8 +235,8 @@ public sealed class EquipmentMagicSealDomainTests
         await using var tx = scope.Begin();
         var service = shop.Services.GetRequiredService<IEquipmentMagicSealDomainService>();
         var result = change
-            ? await service.ChangeAsync(shop.Session, Target, material, index, default)
-            : await service.UnsealAsync(shop.Session, Target, material, default);
+            ? await TestEffectFootprints.Run(shop.Session, cap => service.ChangeAsync(shop.Session, Target, material, index, cap, default))
+            : await TestEffectFootprints.Run(shop.Session, cap => service.UnsealAsync(shop.Session, Target, material, cap, default));
         if (result.Rejection == EquipmentMagicSealRejection.None)
             await tx.CommitAsync(default);
         return result;

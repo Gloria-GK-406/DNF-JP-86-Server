@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
@@ -159,15 +160,18 @@ internal sealed partial class MarriageDomainService
     }
 
     public async ValueTask<MarriageLovePointResult> UseLovePointAsync(SelectedSessionIdentity actor, BusinessSlot slot,
-        IReadOnlyList<AccountId> accounts, CancellationToken ct)
+        IReadOnlyList<AccountId> accounts, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(actor.AccountId, actor.CharacterId, actor));
         if (!eligibility.IsCurrent(actor) || !LovePoints.Carries(slot)) return new(-1);
         var found = await ledger.ForSessionAsync(actor, ct).ConfigureAwait(false);
         if (!accounts.SequenceEqual(CoupleAccounts(found, actor))) return new(-1);
         if (found is not { Stage: MarriageStage.Married } relation) return new(-3);
         var points = await ledger.PointsAsync(relation.Id, actor.CharacterId, ct).ConfigureAwait(false);
-        var (status, spend) = await love.SpendAsync(actor, slot, points, ct).ConfigureAwait(false);
+        footprint.DemandEffects(new(actor.AccountId, actor.CharacterId, actor));
+        var (status, spend) = await love.SpendAsync(actor, slot, points, footprint, ct).ConfigureAwait(false);
         if (spend is null) return new(status);
+        footprint.DemandEffects(new(actor.AccountId, actor.CharacterId, actor));
         if (!await ledger.ChangePointsAsync(relation.Id, actor.CharacterId, spend.Amount, ct).ConfigureAwait(false))
             throw new InvalidOperationException("Love point settlement changed under the protected account transaction.");
         return new(0, points + spend.Amount, PartnerOf(relation, actor.CharacterId).CharacterId)

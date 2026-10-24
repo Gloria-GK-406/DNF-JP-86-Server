@@ -16,8 +16,9 @@ internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainServ
     IApplyEffectsDomainService effects, TimeProvider clock) : ITeleportConsumableDomainService
 {
     public async ValueTask<TeleportConsumableResult> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
-        int expectedItemId, byte townId, ChannelEntryIdentity channel, CancellationToken ct)
+        int expectedItemId, byte townId, ChannelEntryIdentity channel, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (!sessions.IsInWorld(session) || runs.Find(session.CharacterId) is not null
             || townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member)
             || onlineCharacters.PositionOf(session) is not { } standing)
@@ -33,7 +34,7 @@ internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainServ
         var at = clock.GetUtcNow();
         var plan = await rules.BuildAsync(rule, source, item, facts, standing, townId, channel, member.Area, at, ct).ConfigureAwait(false);
         if (plan.Status != ItemUsability.Allowed) return new(plan.Status);
-        var applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, session), plan.Effects, ct).ConfigureAwait(false);
+        var applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, footprint, session), plan.Effects, ct).ConfigureAwait(false);
         var remaining = applied.Changes<ContainerConsumptionChange>().Single().RemainingCount;
         return new(ItemUsability.Allowed, new(session, source, item.ItemId, remaining,
             applied.Changes<TownPositionChange>().Single().After, TimeSpan.FromMilliseconds(rule.Use.CooldownMilliseconds), at,

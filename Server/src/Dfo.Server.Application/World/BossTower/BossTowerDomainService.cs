@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Execution;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
@@ -149,10 +150,10 @@ internal sealed class BossTowerDomainService(
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(StartAsync));
         return Mutate(context, run => run.Start(context.Session, clock.GetUtcNow()), token);
     }
-    public ValueTask<BossTowerActionResult> KillAsync(BossTowerActionContext context, ushort actorUid, CancellationToken token)
+    public ValueTask<BossTowerActionResult> KillAsync(BossTowerActionContext context, ushort actorUid, IEffectFootprintRecorder footprint, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(KillAsync));
-        return RewardingMutation(context, run => run.Kill(context.Session, actorUid, clock.GetUtcNow()), token);
+        return RewardingMutation(context, run => run.Kill(context.Session, actorUid, clock.GetUtcNow()), footprint, token);
     }
     public ValueTask<BossTowerPickupResult> PickupAsync(BossTowerActionContext context, ushort groundUid, CancellationToken token)
     {
@@ -206,15 +207,15 @@ internal sealed class BossTowerDomainService(
         return result;
     }, token);
     }
-    public ValueTask<BossTowerActionResult> DieAsync(BossTowerActionContext context, CancellationToken token)
+    public ValueTask<BossTowerActionResult> DieAsync(BossTowerActionContext context, IEffectFootprintRecorder footprint, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(DieAsync));
-        return RewardingMutation(context, run => run.Die(context.Session, clock.GetUtcNow()), token);
+        return RewardingMutation(context, run => run.Die(context.Session, clock.GetUtcNow()), footprint, token);
     }
-    public ValueTask<BossTowerActionResult> LeaveAsync(BossTowerActionContext context, bool disconnected, CancellationToken token)
+    public ValueTask<BossTowerActionResult> LeaveAsync(BossTowerActionContext context, bool disconnected, IEffectFootprintRecorder footprint, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(LeaveAsync));
-        return RewardingMutation(context, run => run.Leave(context.Session, disconnected, clock.GetUtcNow()), token, leaving: true);
+        return RewardingMutation(context, run => run.Leave(context.Session, disconnected, clock.GetUtcNow()), footprint, token, leaving: true);
     }
     public ValueTask<BossTowerActionResult> SynchronizeLeaderAsync(BossTowerActionContext context,
         SelectedSessionIdentity leader, CancellationToken token)
@@ -326,10 +327,11 @@ internal sealed class BossTowerDomainService(
     }
 
     private ValueTask<BossTowerActionResult> RewardingMutation(BossTowerActionContext context,
-        Func<BossTowerRun, BossTowerActionResult> action, CancellationToken token, bool leaving = false) => Execute(async () =>
+        Func<BossTowerRun, BossTowerActionResult> action, IEffectFootprintRecorder footprint, CancellationToken token, bool leaving = false) => Execute(async () =>
     {
         var current = Match(context, leaving);
         if (current is null) return new BossTowerActionResult(false, null);
+        footprint.DemandEffects(new(context.Session.AccountId, context.Session.CharacterId, context.Session));
         var next = current.Clone();
         var result = action(next);
         if (!result.Changed) return result;
@@ -352,7 +354,7 @@ internal sealed class BossTowerDomainService(
             var eligible = next.Snapshot() with { Members = next.Members.Where(x => ValidSession(x.Session)).ToImmutableArray() };
             foreach (var member in eligible.Members) Pending.AuthenticatedSessions.Add(member.Session);
             if (result.KilledActor is { } actor)
-                killRewards = await rewards.KillAsync(eligible, actor, token).ConfigureAwait(false);
+                killRewards = await rewards.KillAsync(eligible, actor, footprint, token).ConfigureAwait(false);
 
         }
         var produced = ImmutableArray<BossTowerGroundItem>.Empty;
@@ -375,6 +377,7 @@ internal sealed class BossTowerDomainService(
                         var recipient = drop.OwnerCharacterId is { } owner ? next.Members.FirstOrDefault(x => x.Session.CharacterId == owner) : leader;
                         if (recipient is null || !ValidSession(recipient.Session)) continue;
                         Pending.AuthenticatedSessions.Add(recipient.Session);
+                        footprint.DemandEffects(new(recipient.Session.AccountId, recipient.Session.CharacterId, recipient.Session));
                         var granted = await GrantDropAsync(recipient.Session, drop, token).ConfigureAwait(false);
                         var rewardIndex = -1;
                         for (var i = 0; i < killRewards.Length; i++) if (killRewards[i].Session == recipient.Session) { rewardIndex = i; break; }
@@ -389,10 +392,12 @@ internal sealed class BossTowerDomainService(
         if (rewards is not null && next.Completion is { Settled: false, Reason: TowerEndReason.Completed or TowerEndReason.Defeated })
         {
             var eligible = next.Snapshot() with { Members = next.Members.Where(x => ValidSession(x.Session)).ToImmutableArray() };
-            next.Settle(await rewards.SettleAsync(eligible, next.Seed, token).ConfigureAwait(false), clock.GetUtcNow(), rules.ResultTimeout);
+            next.Settle(await rewards.SettleAsync(eligible, next.Seed, footprint, token).ConfigureAwait(false), clock.GetUtcNow(), rules.ResultTimeout);
         }
+        footprint.DemandEffects(new(context.Session.AccountId, context.Session.CharacterId, context.Session));
         foreach (var departed in current.Members.Where(member => !next.Members.Any(x => x.Session == member.Session)))
             participation?.Release(departed.Session.CharacterId, new(DungeonParticipationMode.BossTower, current.RunId));
+        footprint.DemandEffects(new(context.Session.AccountId, context.Session.CharacterId, context.Session));
         Pending.Put(current, next);
         return next.Result(true, result.KilledActor) with
         {

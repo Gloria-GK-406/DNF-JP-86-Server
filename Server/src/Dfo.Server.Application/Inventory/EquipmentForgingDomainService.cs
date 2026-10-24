@@ -21,8 +21,9 @@ internal sealed class EquipmentForgingDomainService(
 {
     public async ValueTask<EquipmentForgingResult> ForgeAsync(SelectedSessionIdentity session,
         BusinessSlot targetSlot, int expectedTargetItemId, BusinessSlot materialSlot,
-        CancellationToken ct)
+        IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (!sessions.IsInWorld(session))
             return new(EquipmentForgingRejection.NoSession);
         if (targetSlot.Space is not (BusinessInventorySpace.CarriedEquipment
@@ -70,7 +71,7 @@ internal sealed class EquipmentForgingDomainService(
             return new(decision.Rejection);
         if (decision.MaterialCount <= 0 || material.Count < decision.MaterialCount)
             return new(EquipmentForgingRejection.MaterialUnavailable);
-        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, clock.GetUtcNow(), session);
+        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, clock.GetUtcNow(), footprint, session);
         if ((await preflight.PreviewAsync(context, plan.Effects, ct).ConfigureAwait(false)).Rejection != InventoryEffectRejection.None)
             return new(EquipmentForgingRejection.MaterialUnavailable);
         var applied = await effects.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);

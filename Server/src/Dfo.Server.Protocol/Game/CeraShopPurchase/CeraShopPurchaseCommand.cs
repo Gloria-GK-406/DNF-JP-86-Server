@@ -18,5 +18,5 @@ public sealed class CeraShopPurchaseCommandHandler(ICeraShopDomainService shops,
 {
     public ValueTask<CeraShopPurchaseResult> HandleAsync(CommandExecutionContext context,
         CeraShopPurchaseCommand command, CancellationToken cancellationToken) =>
-        shops.PurchaseAsync(command.Session, command.Input, clock.GetUtcNow(), cancellationToken);
+        shops.PurchaseAsync(command.Session, command.Input, clock.GetUtcNow(), context.LegacyFootprint, cancellationToken);
 }

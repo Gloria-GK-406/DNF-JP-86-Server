@@ -95,6 +95,7 @@ internal sealed class GrantPreparedItemEffectHandler(IItemArrivalRuleService arr
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, GrantPreparedItemEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         var grant = effect.Grant;
         ItemDeliveryReceipt receipt;
         try
@@ -136,9 +137,11 @@ internal sealed class GrantOpeningVirtualEffectHandler(ICharacterContainerDomain
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, GrantOpeningVirtualEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         var main = containers.FindContainer(context.CharacterId, InventoryContainerType.Main) ?? throw new InventoryEffectException(InventoryEffectRejection.InvalidTarget);
         var item = await main.GetAsync(effect.Slot, ct).ConfigureAwait(false);
         var core = Add(effect, item?.Snapshot);
+        context.Footprint.DemandEffects(context.Owner);
         await grants.ApplyPlannedAsync(main, effect.Slot, core, ct).ConfigureAwait(false);
         var slot = new BusinessSlot(BusinessInventorySpace.VirtualResource, effect.Slot);
         return new OpeningVirtualChange(slot, core, new(slot, effect.Reward.ItemId, effect.Reward.Count, 0, 0, 0));
@@ -162,6 +165,7 @@ internal sealed class SetOpeningPremiumEffectHandler(IPremiumServiceDomainServic
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, SetOpeningPremiumEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         await premiums.For(context.AccountId).SetExpiryAsync(effect.Type, effect.ExpectedExpiry, effect.NextExpiry, ct).ConfigureAwait(false);
         return new OpeningPremiumChange(new((int)effect.Type, effect.NextExpiry), new(null, effect.Reward.ItemId, effect.Reward.Count, 0, 0, 0));
     }
@@ -182,6 +186,7 @@ internal sealed class SetSeriaLuckEffectHandler(IAccountTable accounts) : Openin
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, SetSeriaLuckEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         if (await accounts.TrySetSeriaLuckAsync(context.AccountId, effect.Expected, effect.Next, ct).ConfigureAwait(false) != 1)
             throw new InvalidOperationException("Decided account luck changed during effect application.");
         return new SeriaLuckChange(effect.Expected, effect.Next);
@@ -204,6 +209,7 @@ internal sealed class SetDoublePotUsageEffectHandler(IPremiumServiceUsageDomainS
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, SetDoublePotUsageEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         await usage.ApplyDoublePotAsync(context.AccountId, context.CharacterId, effect.Decision, ct).ConfigureAwait(false);
         return new DoublePotUsageChange(effect.Decision);
     }

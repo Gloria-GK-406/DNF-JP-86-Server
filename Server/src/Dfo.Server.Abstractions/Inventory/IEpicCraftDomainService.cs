@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Collections.Immutable;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -8,5 +9,5 @@ public sealed record EpicCraftRecipe(int EquipmentId, int PieceId, int PieceCoun
 public sealed record EpicCraftReceipt(OpeningInventoryReceipt Inventory, EpicPieceBalance Pieces);
 public interface IEpicCraftDomainService
 {
-    ValueTask<EpicCraftReceipt> CraftAsync(SelectedSessionIdentity session, int equipmentId, DateTimeOffset now, CancellationToken ct);
+    ValueTask<EpicCraftReceipt> CraftAsync(SelectedSessionIdentity session, int equipmentId, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct);
 }

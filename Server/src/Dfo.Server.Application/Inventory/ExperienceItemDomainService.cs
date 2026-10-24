@@ -17,8 +17,9 @@ internal sealed class ExperienceItemDomainService(
         SelectedSessionIdentity session,
         BusinessSlot source,
         ItemReference item,
-        CancellationToken cancellationToken)
+        IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         var rule = await rules.RuleForAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
         if (rule is null) return null;
         if (!rule.IsReadable)
@@ -47,7 +48,7 @@ internal sealed class ExperienceItemDomainService(
 
         var plan = ordinaryPlan.Effects.Append(decision.Effect).ToArray();
         var applied = await effects.ApplyAsync(
-            new(session.AccountId, session.CharacterId, at, session), plan, cancellationToken)
+            new(session.AccountId, session.CharacterId, at, footprint, session), plan, cancellationToken)
             .ConfigureAwait(false);
         var award = applied.Changes<CharacterExperienceChange>().Single().Award;
         var points = await character.RemainingSkillPointsAsync(cancellationToken).ConfigureAwait(false)

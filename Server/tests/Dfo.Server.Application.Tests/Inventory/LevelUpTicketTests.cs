@@ -133,7 +133,7 @@ public sealed class LevelUpTicketTests
     private static async Task<LevelUpTicketResult> Use(LearningFixture f)
     {
         await using var tx = f.Scope.Begin();
-        var result = await f.Services.GetRequiredService<ILevelUpTicketDomainService>().UseAsync(f.Session, Slot, At, default);
+        var result = await TestEffectFootprints.Run(f.Session, cap => f.Services.GetRequiredService<ILevelUpTicketDomainService>().UseAsync(f.Session, Slot, At, cap, default));
         await tx.CommitAsync(default); return result;
     }
     private static LearningFixture Fixture(int increase = 1) => new(configure: s =>
@@ -166,11 +166,11 @@ public sealed class LevelUpTicketTests
         public ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset at, CancellationToken ct) =>
             ValueTask.FromResult(TestItemReferences.FromCore(slot.Index, StackableItemCore.Create(2, ItemId, 10), ItemWorldClass.Interchangeable));
         public ValueTask<IReadOnlyList<Dfo.Server.Data.Accounts.AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity session, CancellationToken ct) => throw new NotSupportedException();
-        public async ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity s, IReadOnlyList<DomainEffect> plan, DateTimeOffset at, CancellationToken ct)
+        public async ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity s, IReadOnlyList<DomainEffect> plan, DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct)
         {
             Assert.Equal(1, Assert.Single(plan.OfType<ConsumeFromContainerEffect>()).Count);
             await db.ExecuteAsync("UPDATE characters SET bonus_sp=bonus_sp-1 WHERE character_id=71", _ => { }, ct);
-            var applied = await effects.ApplyAsync(new(s.AccountId, s.CharacterId, at, s), plan.Where(x => x is not ConsumeFromContainerEffect).ToArray(), ct);
+            var applied = await effects.ApplyAsync(new(s.AccountId, s.CharacterId, at, footprint, s), plan.Where(x => x is not ConsumeFromContainerEffect).ToArray(), ct);
             return new(new(s, [], [], [], at), applied);
         }
     }

@@ -40,7 +40,7 @@ public sealed class ClaimDailyReviveCoinCommandHandler(IReviveCoinDomainService 
     : ICommandHandler<ClaimDailyReviveCoinCommand, DailyReviveCoinResult>
 {
     public ValueTask<DailyReviveCoinResult> HandleAsync(CommandExecutionContext context, ClaimDailyReviveCoinCommand command, CancellationToken ct) =>
-        coins.ClaimAsync(command.Session, ct);
+        coins.ClaimAsync(command.Session, context.LegacyFootprint, ct);
 }
 internal sealed class DailyReviveCoinHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
     ICommandBus commands, IEventService events, IGameMessageSender sender, ILogger<DailyReviveCoinHandler> logger)

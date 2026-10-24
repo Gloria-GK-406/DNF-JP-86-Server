@@ -73,7 +73,7 @@ public sealed class VendingMachineCommandHandler(IVendingMachineDomainService ve
 {
     public ValueTask<VendingMachineResult> HandleAsync(CommandExecutionContext context, VendingMachineCommand command, CancellationToken token) =>
         vending.UseAsync(command.Session, command.MachineId, command.GroupId,
-            OpeningWireSlots.FromMain(command.Slot), token);
+            OpeningWireSlots.FromMain(command.Slot), context.LegacyFootprint, token);
 }
 public sealed class VendingMachineHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
     ICommandBus commands, IEventService notifications, IGameMessageSender sender,

@@ -9,10 +9,10 @@ internal abstract class ExperienceCharacters() : OnePlayingCharacter(null!)
 {
     public override ICharacter Get(CharacterId id) => new AwardCharacter(this);
     public abstract ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source,
-        DateTimeOffset at, SelectedSessionIdentity? session, CancellationToken ct);
+        DateTimeOffset at, SelectedSessionIdentity? session, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct);
     private sealed class AwardCharacter(ExperienceCharacters owner) : CarriedGold(0)
     {
         public override ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source,
-            DateTimeOffset at, SelectedSessionIdentity? session, CancellationToken ct) => owner.AddExpAsync(source, at, session, ct);
+            DateTimeOffset at, SelectedSessionIdentity? session, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct) => owner.AddExpAsync(source, at, session, footprint, ct);
     }
 }

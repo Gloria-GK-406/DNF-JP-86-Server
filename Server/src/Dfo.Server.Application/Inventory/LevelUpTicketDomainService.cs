@@ -12,8 +12,9 @@ internal sealed class LevelUpTicketDomainService(IOpeningInventoryDomainService 
     IConsumableStateDomainService states, ILevelUpTicketRuleService rules) : ILevelUpTicketDomainService
 {
     public async ValueTask<LevelUpTicketResult> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
-        DateTimeOffset at, CancellationToken ct)
+        DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         var item = await inventory.SourceAsync(session, source, at, ct).ConfigureAwait(false);
         var character = characters.Get(session.CharacterId);
         var identity = await character.IdentityAsync(ct).ConfigureAwait(false);
@@ -24,7 +25,7 @@ internal sealed class LevelUpTicketDomainService(IOpeningInventoryDomainService 
         var quests = await states.QuestsAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
         var plan = await rules.PlanAsync(source, item, identity, progress, condition.HardcoreMode != 0, quests, at, ct)
             .ConfigureAwait(false);
-        var result = await inventory.ApplyAsync(session, plan.Effects, at, ct).ConfigureAwait(false);
+        var result = await inventory.ApplyAsync(session, plan.Effects, at, footprint, ct).ConfigureAwait(false);
         var points = await character.RemainingSkillPointsAsync(ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException("Updated skill points unavailable.");
         return new(result.Inventory, result.Applied.Changes<CharacterLevelChange>().Single().Progress, points, plan.CompletedQuestIds);

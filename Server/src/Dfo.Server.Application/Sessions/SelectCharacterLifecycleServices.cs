@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
@@ -47,7 +48,7 @@ internal sealed class SelectedSessionCleanupService(
     IEnumerable<Dfo.Server.Abstractions.World.BossTower.IBossTowerDepartureSink>? bossTowerDepartures = null) : ISelectedSessionCleanupDomainService
 {
     public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
-        SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
+        SelectedSessionIdentity session, bool includeOwner, IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
     {
         var failures = new List<Exception>();
         var currentMember = townAreas.Find(session.CharacterId);
@@ -148,7 +149,7 @@ internal sealed class SelectedSessionCleanupService(
             {
                 towerDeparture = await illusionTower.LeaveAsync(
                     new TowerActionContext(session, towerRun.RunId, towerRun.Room.Version),
-                    disconnected: true, CancellationToken.None).ConfigureAwait(false);
+                    disconnected: true, footprint, CancellationToken.None).ConfigureAwait(false);
             });
             if (towerDeparture is { Changed: true } departed)
             {
@@ -161,7 +162,7 @@ internal sealed class SelectedSessionCleanupService(
         {
             Dfo.Server.Abstractions.World.BossTower.BossTowerActionResult? bossDeparture = null;
             await RunAsync(async () => bossDeparture = await bossTower.LeaveAsync(
-                new(session, bossRun.RunId, bossRun.Room.Version), true, CancellationToken.None).ConfigureAwait(false));
+                new(session, bossRun.RunId, bossRun.Room.Version), true, footprint, CancellationToken.None).ConfigureAwait(false));
             if (bossDeparture is { Changed: true } departed)
                 foreach (var sink in bossTowerDepartures ?? [])
                     await RunAsync(() => sink.DepartedAsync(departed, CancellationToken.None));

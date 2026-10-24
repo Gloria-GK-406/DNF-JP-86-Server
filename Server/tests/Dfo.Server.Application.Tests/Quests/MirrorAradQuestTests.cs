@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -168,7 +169,7 @@ public sealed class MirrorAradQuestTests
             var events = fixture.Scalar("SELECT COUNT(*) FROM domain_events");
             await Write(fixture, async () =>
             {
-                var plan = await service.PrepareCompletionAsync(new(1), new(71), 14299, ushort.MaxValue, 1, Now, null, default);
+                var plan = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(71), null), cap => service.PrepareCompletionAsync(new(1), new(71), 14299, ushort.MaxValue, 1, Now, null, cap, default));
                 Assert.True(plan.Prepared);
                 Assert.False(plan.AlreadyClaimed);
                 Assert.NotEmpty(plan.Reward!.Items);
@@ -393,7 +394,7 @@ public sealed class MirrorAradQuestTests
         return (service, store, preview, effects, settlement);
     }
     private static ValueTask<QuestCompletionReceipt> Finish(IQuestCompletionSettlementDomainService service) =>
-        service.FinishAsync(new(1), new(71), 14299, ushort.MaxValue, 1, Now, default);
+        TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(71), null), cap => service.FinishAsync(new(1), new(71), 14299, ushort.MaxValue, 1, Now, cap, default));
     private static async Task Write(LearningFixture fixture, Func<Task> action)
     { await TestGameplay.RunAsync(fixture.Services, async () => { await using var transaction = fixture.Scope.Begin(); await action(); await transaction.CommitAsync(default); }); }
     private sealed class DefinitionDomain : IQuestDefinitionDomainService

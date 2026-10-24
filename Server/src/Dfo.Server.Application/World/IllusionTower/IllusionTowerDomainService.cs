@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Execution;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
@@ -164,10 +165,10 @@ internal sealed class IllusionTowerDomainService(
         GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(StartAsync));
         return Mutate(context, run => run.Start(context.Session, clock.GetUtcNow()), token);
     }
-    public ValueTask<TowerActionResult> KillAsync(TowerActionContext context, ushort actorUid, CancellationToken token)
+    public ValueTask<TowerActionResult> KillAsync(TowerActionContext context, ushort actorUid, IEffectFootprintRecorder footprint, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(KillAsync));
-        return RewardingMutation(context, run => run.Kill(context.Session, actorUid, clock.GetUtcNow()), token);
+        return RewardingMutation(context, run => run.Kill(context.Session, actorUid, clock.GetUtcNow()), footprint, token);
     }
     public ValueTask<TowerPickupResult> PickupAsync(TowerActionContext context, ushort groundUid, CancellationToken token)
     {
@@ -205,15 +206,15 @@ internal sealed class IllusionTowerDomainService(
         return result;
     }, token);
     }
-    public ValueTask<TowerActionResult> DieAsync(TowerActionContext context, CancellationToken token)
+    public ValueTask<TowerActionResult> DieAsync(TowerActionContext context, IEffectFootprintRecorder footprint, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(DieAsync));
-        return RewardingMutation(context, run => run.Die(context.Session, clock.GetUtcNow()), token);
+        return RewardingMutation(context, run => run.Die(context.Session, clock.GetUtcNow()), footprint, token);
     }
-    public ValueTask<TowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected, CancellationToken token)
+    public ValueTask<TowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected, IEffectFootprintRecorder footprint, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(LeaveAsync));
-        return RewardingMutation(context, run => run.Leave(context.Session, disconnected, clock.GetUtcNow()), token, leaving: true);
+        return RewardingMutation(context, run => run.Leave(context.Session, disconnected, clock.GetUtcNow()), footprint, token, leaving: true);
     }
     public ValueTask<TowerActionResult> SynchronizeLeaderAsync(TowerActionContext context,
         SelectedSessionIdentity leader, CancellationToken token)
@@ -284,10 +285,11 @@ internal sealed class IllusionTowerDomainService(
     }
 
     private ValueTask<TowerActionResult> RewardingMutation(TowerActionContext context,
-        Func<IllusionTowerDgn, TowerActionResult> action, CancellationToken token, bool leaving = false) => Execute(async () =>
+        Func<IllusionTowerDgn, TowerActionResult> action, IEffectFootprintRecorder footprint, CancellationToken token, bool leaving = false) => Execute(async () =>
     {
         var current = Match(context, leaving);
         if (current is null) return new TowerActionResult(false, null);
+        footprint.DemandEffects(new(context.Session.AccountId, context.Session.CharacterId, context.Session));
         var next = current.Clone();
         var result = action(next);
         if (!result.Changed) return result;
@@ -310,17 +312,22 @@ internal sealed class IllusionTowerDomainService(
             var eligible = next.Snapshot() with { Members = next.Members.Where(x => ValidSession(x.Session)).ToImmutableArray() };
             foreach (var member in eligible.Members) Pending.AuthenticatedSessions.Add(member.Session);
             if (result.KilledActor is { } actor)
-                killRewards = await rewards.KillAsync(eligible, actor, token).ConfigureAwait(false);
+                killRewards = await rewards.KillAsync(eligible, actor, footprint, token).ConfigureAwait(false);
             if (next.Completion is { Settled: false, Reason: TowerEndReason.Completed or TowerEndReason.Defeated })
-                next.Settle(await rewards.SettleAsync(eligible, next.Seed, token).ConfigureAwait(false),
+                next.Settle(await rewards.SettleAsync(eligible, next.Seed, footprint, token).ConfigureAwait(false),
                     clock.GetUtcNow(), rules.DefaultReturnDelay);
         }
+        footprint.DemandEffects(new(context.Session.AccountId, context.Session.CharacterId, context.Session));
         if (current.DungeonId == 11000)
+        {
             foreach (var departed in current.Members.Where(member => !next.Members.Any(x => x.Session == member.Session)))
                 (towerInventory ?? throw new InvalidOperationException("Tower inventory is not configured."))
                     .Leave(departed.Session.CharacterId, current.RunId);
+        }
+        footprint.DemandEffects(new(context.Session.AccountId, context.Session.CharacterId, context.Session));
         foreach (var departed in current.Members.Where(member => !next.Members.Any(x => x.Session == member.Session)))
             participation?.Release(departed.Session.CharacterId, new(DungeonParticipationMode.IllusionTower, current.RunId));
+        footprint.DemandEffects(new(context.Session.AccountId, context.Session.CharacterId, context.Session));
         Pending.Put(current, next);
         return next.Result(true, result.KilledActor) with
         {

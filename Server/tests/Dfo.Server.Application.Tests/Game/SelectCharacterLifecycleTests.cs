@@ -391,7 +391,7 @@ public sealed partial class SelectCharacterLifecycleTests
             new StubServerConfigService(),
             fixture.Sender,
             new NoopCleanupDelivery(),
-            TimeProvider.System);
+            new TestEffectFootprints.LifecycleSource([]), TimeProvider.System);
         await TestGameplay.RunAsync(async () =>
         {
         await observer.DisconnectedAsync(
@@ -949,20 +949,18 @@ public sealed partial class SelectCharacterLifecycleTests
             return (TResult)result;
         }
 
-        private static ValueTask<TResult> RunAsync<TCommand, TResult>(
+        private static async ValueTask<TResult> RunAsync<TCommand, TResult>(
             ICommandHandler<TCommand, TResult> handler,
             TCommand command,
             CancellationToken cancellationToken)
             where TCommand : class, ICommand<TResult>
-            where TResult : notnull =>
-            handler.HandleAsync(
-                new CommandExecutionContext(
-                    Guid.NewGuid(),
-                    command.GetType(),
-                    handler.GetType(),
-                    CommandExecutionKind.Workflow),
-                command,
-                cancellationToken);
+            where TResult : notnull
+        {
+            using var footprint = new TestEffectFootprints.Lease(Array.Empty<Dfo.Server.Abstractions.Effects.EffectFootprintOwner>());
+            var context = new CommandExecutionContext(Guid.NewGuid(), command.GetType(), handler.GetType(), CommandExecutionKind.Workflow);
+            context.SupplyLegacyFootprint(footprint);
+            return await handler.HandleAsync(context, command, cancellationToken);
+        }
     }
 
     private sealed class StubExpiredCleanup(bool refuse, bool fail) : IExpiredCharacterItemCleanupDomainService
@@ -1313,7 +1311,7 @@ public sealed partial class SelectCharacterLifecycleTests
         public Func<SelectedSessionIdentity, SelectedSessionCleanupNotificationPlan>? Plan { get; set; }
 
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
-            SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
+            SelectedSessionIdentity session, bool includeOwner, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
         {
             ledger.Add("cleanup");
             Calls.Add((session, includeOwner));

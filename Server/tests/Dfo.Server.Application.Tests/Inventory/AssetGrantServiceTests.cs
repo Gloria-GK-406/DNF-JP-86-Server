@@ -24,10 +24,11 @@ public sealed class AssetGrantServiceTests
         await TestGameplay.RunAsync(async () =>
         {
             using var fixture = new CeraShopFixture();
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(new EffectFootprintOwner(new(1), new(999), null));
             var effects = fixture.Host.Services.GetRequiredService<IApplyEffectsDomainService>();
             await using var tx = Scope(fixture).Begin();
             await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-                await effects.ApplyAsync(new(new(1), new(999), fixture.Host.Clock.GetUtcNow()),
+                await effects.ApplyAsync(new(new(1), new(999), fixture.Host.Clock.GetUtcNow(), footprint),
                     [new SetQuestRewardGoldEffect(0, 0)], default));
         });
     }

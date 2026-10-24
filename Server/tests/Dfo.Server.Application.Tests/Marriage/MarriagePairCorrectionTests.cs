@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -95,7 +96,7 @@ public sealed class MarriagePairCorrectionTests
 
             var impostor = Impostor(f, f.Session, 9);
             Task<MarriageLovePointResult> Use(params int[] accounts) =>
-                InTx(f, () => Couple(f).UseLovePointAsync(impostor, coupon, accounts.Select(x => new AccountId(x)).ToArray(), default));
+                InTx(f, () => TestEffectFootprints.Run(impostor, cap => Couple(f).UseLovePointAsync(impostor, coupon, accounts.Select(x => new AccountId(x)).ToArray(), cap, default)));
 
             Assert.Equal(new[] { new AccountId(9) }, await Query(f).CoupleAccountsAsync(impostor, default));
             Assert.Equal(-1, (await Use(1, 2)).Status);
@@ -141,8 +142,8 @@ public sealed class MarriagePairCorrectionTests
             Assert.Null(await Query(f).ViewAsync(f.Session, default));
             Assert.Same(MarriageEngagementSnapshot.Empty, await Query(f).SnapshotAsync(f.Session.AccountId, f.Session.CharacterId, default));
             Assert.Equal(new[] { f.Session.AccountId }, await Query(f).CoupleAccountsAsync(f.Session, default));
-            Assert.Equal(-3, (await InTx(f, () => Couple(f).UseLovePointAsync(f.Session,
-                new BusinessSlot(BusinessInventorySpace.Consumable, 0), [f.Session.AccountId], default))).Status);
+            Assert.Equal(-3, (await InTx(f, () => TestEffectFootprints.Run(f.Session, cap => Couple(f).UseLovePointAsync(f.Session,
+                new BusinessSlot(BusinessInventorySpace.Consumable, 0), [f.Session.AccountId], cap, default)))).Status);
             Assert.Equal(MarriageCeremonyFailure.Ineligible,
                 (await InTx(f, () => Couple(f).RequestReservationAsync(f.Session, peer, 0, 0, default))).Failure);
             Assert.Null(await InTx(f, () => Venue(f).PrepareChurchAsync(f.Session, default)));

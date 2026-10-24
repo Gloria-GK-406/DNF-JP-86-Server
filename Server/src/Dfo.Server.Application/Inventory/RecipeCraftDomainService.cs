@@ -32,8 +32,9 @@ internal sealed class RecipeCraftDomainService(IOpeningInventoryDomainService in
     }
 
     public async ValueTask<RecipeCraftReceipt> CraftAsync(SelectedSessionIdentity session, BusinessSlot drawing,
-        int quantity, DateTimeOffset now, CancellationToken ct)
+        int quantity, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (quantity is < 1 or > 1000 || !drawing.Space.IsCarriedItemSpace())
             throw new OpeningRejectedException(OpeningRejection.InvalidRequest, "Invalid crafting quantity or drawing slot.");
         var source = await inventory.SourceAsync(session, drawing, now, ct).ConfigureAwait(false);
@@ -66,7 +67,7 @@ internal sealed class RecipeCraftDomainService(IOpeningInventoryDomainService in
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Unsupported crafting output family.");
         var effects = plans.Build(source.ItemId, useRule, costs.Items, grants, [], now)
             .Select(x => x is GrantPreparedItemEffect g ? g with { DeliveryMode = ItemDeliveryMode.InventoryOnly } : x).ToArray();
-        var applied = await inventory.ApplyAsync(session, effects, now, ct).ConfigureAwait(false);
+        var applied = await inventory.ApplyAsync(session, effects, now, footprint, ct).ConfigureAwait(false);
         var receipt = applied.Inventory;
         if (costs.Items.Length > byte.MaxValue || receipt.Rewards.Length > byte.MaxValue)
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Crafting receipt exceeds the wire limit.");

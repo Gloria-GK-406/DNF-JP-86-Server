@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Collections.Immutable;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -17,5 +18,5 @@ public sealed record VendingMachineResult(OpeningInventoryReceipt Receipt, Busin
 public interface IVendingMachineDomainService
 {
     ValueTask<VendingMachineResult> UseAsync(SelectedSessionIdentity session, int machineId, int groupId,
-        BusinessSlot slot, CancellationToken cancellationToken);
+        BusinessSlot slot, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }

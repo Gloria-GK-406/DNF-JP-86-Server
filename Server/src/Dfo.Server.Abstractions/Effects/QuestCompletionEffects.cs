@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -46,7 +47,7 @@ public sealed record QuestCompletionReceipt(bool Finished, ushort QuestId, strin
 public interface IQuestCompletionDomainService
 {
     ValueTask<QuestCompletionPreparation> PrepareAsync(AccountId account, CharacterId character, ushort quest,
-        ushort selection, ushort count, DateTimeOffset at, CancellationToken ct, SelectedSessionIdentity? session = null);
+        ushort selection, ushort count, DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct, SelectedSessionIdentity? session = null);
 }
 public interface IQuestCompletionEffectRuleService
 {

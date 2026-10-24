@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
@@ -22,11 +23,11 @@ public interface IEquipmentDisjointDomainService
     ValueTask<EquipmentDisjointResult> DisjointAtNpcAsync(
         SelectedSessionIdentity session,
         BusinessSlot targetSlot,
-        CancellationToken cancellationToken);
+        IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 
     ValueTask<EquipmentDisjointResult> DisjointWithPortableMachineAsync(
         SelectedSessionIdentity session,
         BusinessSlot targetSlot,
         BusinessSlot disjointToolSlot,
-        CancellationToken cancellationToken);
+        IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }

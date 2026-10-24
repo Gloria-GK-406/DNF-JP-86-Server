@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Characters;
@@ -47,7 +48,7 @@ public interface ICharacter
 
     /// <summary>Price and settle a reward in the caller's transaction, including max-level overflow.</summary>
     ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at,
-        Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken ct);
+        Dfo.Server.Data.World.SelectedSessionIdentity? session, IEffectFootprintRecorder footprint, CancellationToken ct);
     /// <summary>Settle an already priced reward; an expected state rejects stale quest decisions.</summary>
     ValueTask<ExperienceAward> AddExpAsync(ExperienceBreakdown reward, CharacterProgressionState? expected, CancellationToken ct);
     /// <summary>Clamp experience and derive level. This is a setter, so it never fills a capsule.</summary>

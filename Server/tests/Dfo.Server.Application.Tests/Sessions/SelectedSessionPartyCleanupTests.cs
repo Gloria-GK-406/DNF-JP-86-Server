@@ -31,8 +31,8 @@ public sealed class SelectedSessionPartyCleanupTests
             var observer = fixture.Admit(3);
             fixture.Form(leader, member);
 
-            var plan = await fixture.Cleanup.CleanupAsync(
-                member, includeOwner: false, CancellationToken.None);
+            var plan = await TestEffectFootprints.Run(member, cap => fixture.Cleanup.CleanupAsync(
+                member, includeOwner: false, cap, CancellationToken.None));
 
             Assert.Equal(
                 [member.CharacterId],
@@ -62,8 +62,8 @@ public sealed class SelectedSessionPartyCleanupTests
             fixture.Form(leader, member);
             var oldParty = fixture.Parties.FindParty(leader);
 
-            var plan = await fixture.Cleanup.CleanupAsync(
-                leader, includeOwner: false, CancellationToken.None);
+            var plan = await TestEffectFootprints.Run(leader, cap => fixture.Cleanup.CleanupAsync(
+                leader, includeOwner: false, cap, CancellationToken.None));
 
             var survivors = Assert.IsType<Dfo.Server.Data.Parties.PartySnapshot>(
                 plan.PartyNotifications.Snapshot);
@@ -95,15 +95,15 @@ public sealed class SelectedSessionPartyCleanupTests
             var oldLeader = fixture.Admit(1);
             var oldMember = fixture.Admit(2);
             fixture.Form(oldLeader, oldMember);
-            await fixture.Cleanup.CleanupAsync(
-                oldLeader, includeOwner: false, CancellationToken.None);
+            await TestEffectFootprints.Run(oldLeader, cap => fixture.Cleanup.CleanupAsync(
+                oldLeader, includeOwner: false, cap, CancellationToken.None));
 
             var replacement = fixture.Admit(1, connection: "replacement");
             var replacementMember = fixture.Admit(3);
             fixture.Form(replacement, replacementMember);
 
-            var stalePlan = await fixture.Cleanup.CleanupAsync(
-                oldLeader, includeOwner: false, CancellationToken.None);
+            var stalePlan = await TestEffectFootprints.Run(oldLeader, cap => fixture.Cleanup.CleanupAsync(
+                oldLeader, includeOwner: false, cap, CancellationToken.None));
 
             Assert.Empty(stalePlan.PartyNotifications.ClearAudience);
             Assert.Null(stalePlan.PartyNotifications.Snapshot);
@@ -123,8 +123,8 @@ public sealed class SelectedSessionPartyCleanupTests
             fixture.Form(leader, member);
 
             var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
-                await fixture.Cleanup.CleanupAsync(
-                    member, includeOwner: false, CancellationToken.None));
+                await TestEffectFootprints.Run(member, cap => fixture.Cleanup.CleanupAsync(
+                    member, includeOwner: false, cap, CancellationToken.None)));
 
             Assert.Equal(
                 [member.CharacterId],
@@ -143,8 +143,8 @@ public sealed class SelectedSessionPartyCleanupTests
             var sameListener = fixture.Admit(2);
             _ = fixture.Admit(3, listenerPort: 10012);
 
-            var plan = await fixture.Cleanup.CleanupAsync(
-                owner, includeOwner: false, CancellationToken.None);
+            var plan = await TestEffectFootprints.Run(owner, cap => fixture.Cleanup.CleanupAsync(
+                owner, includeOwner: false, cap, CancellationToken.None));
 
             Assert.Equal(
                 [sameListener.CharacterId],

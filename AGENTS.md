@@ -354,7 +354,11 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 
 直接 slots／rental 足迹现由六个受迁领域入口和三个细粒度 handler 显式接收 `IEffectFootprintRecorder`，不再经旧请求投影接口注入。仅真实 LegacyFineGrained 最内层调用在主结算与事务已进入后捕获旧 frame／execution／rejection 引用；每次调用的能力绑定精确 context、注册、作业 ID 和关闭租约，记录时只检查捕获引用。网络来源按 dispatcher 实际消息分 Effect／NonEffect／Unknown；真正执行器外总线分支才可声明 Standalone，缺帧、TestGameplay 和连接信息不补权。新 Protocol／Internal 的旧能力入口拒绝后保持请求失败。
 
-本轮只保证结束后的能力重新进入受迁领域即被拒绝，以及这些方法自身写入／委托前的检查；尚未传能力的 ApplyEffects／Opening／Revive 等子链内部 await 后的中途失效校验仍待后续贯通。`ApplyEffectsDomainService` 的旧可选上下文与 17 处构造继续保留，新效果／MainSettlement 尚未启用；旧请求级 ambient 的最终删除责任保持。
+`EffectExecutionContext.Footprint` 现在是必需的非空调用能力。`ApplyEffectsDomainService` 不再注入可选的 `EffectOperationContext`，也不隐式查当前请求；效果到投影的原完整映射由捕获 frame 引用的 recorder 显式记录。17 处生产构造与 Opening、普通 XP、装备／任务等实际调用链均传入本次能力。XP 多参与者和普通 CERA／每日复活币请求使用明确 NonRequest 来源，不能把有 Session 等同于 selected effect，也不能把报告者的 selected 能力借给其他成员。
+
+受迁入口及其自身写入／业务委托前校验能力，Apply 在归属、Preview、逐 Validate 等 await 后复验；消费 handler 在真实容器读取后、Consume 前也复验；Heras 的拥有服务在额度验证 await 后、发布 Direct 额度事实前复验。各效果 handler 只对其拥有的实际变更／委托边界作保证，未继续传能力的下层服务内部 await 不据此称为全部保护。Quest／Mirror 的 Prepare 在同一次 Finish 中接收相同能力，只 Preview，不记录或结算。AccountId／CharacterId／At／Session 是普通事实，租约关闭后仍可由既有事务 commit callback 读取；冷却、药剂及城镇的合法延迟提交不重新索取结算权威。
+
+断线 observer 的 cleanup 是唯一使用临时 `ILifecycleEffectFootprintSource` 的生产入口：明确 Lifecycle origin、当前原 chain 和空物理 SourceConnection，验证健康作业并关闭每次租约。能力经 cleanup、两塔离场奖励传到 XP，保留原清理与异常收集顺序；不把被关闭目标当作根来源连接，不给 CMD 注入面新增豁免。该适配由真正 Internal CMD 迁移时删除，来源与过渡账仍 pending。新效果／MainSettlement 尚未启用；旧请求级 ambient 的最终删除责任保持。
 
 OtherCharacterDetail CMD 直接调用原领域查询后登记 typed 即时投影，不新增事务；请求者与目标的当前性、listener 和精确收件人仍由原查询与 composer 复查。同一 wire ID 的目标在领域执行时重新解析，不冻结前置查到的代次。
 

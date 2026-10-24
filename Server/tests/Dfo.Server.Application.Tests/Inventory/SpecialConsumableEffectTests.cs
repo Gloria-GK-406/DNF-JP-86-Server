@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -33,7 +34,8 @@ public sealed class SpecialConsumableEffectTests
             var scope = (DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
             await using var tx=scope.Begin();
             var apply=f.Services.GetRequiredService<IApplyEffectsDomainService>();
-            var context=new EffectExecutionContext(f.Session.AccountId,f.Session.CharacterId,f.Clock.GetUtcNow(),f.Session);
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(f.Session);
+            var context=new EffectExecutionContext(f.Session.AccountId,f.Session.CharacterId,f.Clock.GetUtcNow(),footprint,f.Session);
             if(success)
             {
                 await apply.ApplyAsync(context,[new ConsumeFromContainerEffect(new(BusinessInventorySpace.Consumable,0),2000,1,expected)],default);
@@ -71,7 +73,7 @@ public sealed class SpecialConsumableEffectTests
             async Task Use()
             {
                 await using var tx=scope.Begin();
-                await f.Services.GetRequiredService<IFatiguePotionDomainService>().UseAsync(f.Session,new(BusinessInventorySpace.Consumable,0),f.Clock.GetUtcNow(),default);
+                await TestEffectFootprints.Run(f.Session, cap => f.Services.GetRequiredService<IFatiguePotionDomainService>().UseAsync(f.Session,new(BusinessInventorySpace.Consumable,0),f.Clock.GetUtcNow(), cap,default));
                 await tx.CommitAsync(default);
             }
             if(fail) await Assert.ThrowsAsync<SqliteException>(Use); else await Use();
@@ -120,7 +122,8 @@ public sealed class SpecialConsumableEffectTests
         {
             await using var f=new LearningFixture();await f.SeedAsync();
             var apply=f.Services.GetRequiredService<IApplyEffectsDomainService>();
-            var context=new EffectExecutionContext(f.Session.AccountId,f.Session.CharacterId,DateTimeOffset.UtcNow,f.Session);
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(f.Session);
+            var context=new EffectExecutionContext(f.Session.AccountId,f.Session.CharacterId,DateTimeOffset.UtcNow,footprint,f.Session);
             await using(var tx=f.Scope.Begin())
             {
                 await apply.ApplyAsync(context,[new SetLearnedSkillEffect(0,7,1,2,3),new SetLearnedSkillEffect(0,7,1,3,4)],default);
@@ -142,7 +145,8 @@ public sealed class SpecialConsumableEffectTests
             await using var f=new LearningFixture();await f.SeedAsync();f.Sql("INSERT INTO character_active_quests VALUES(71,2,2003,3)");
             var first=new StoredActiveQuest(2,2003,3);var next=first with {TriggerValue=2};
             await using var tx=f.Scope.Begin();
-            await f.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(new(f.Session.AccountId,f.Session.CharacterId,DateTimeOffset.UtcNow,f.Session),
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(f.Session);
+            await f.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(new(f.Session.AccountId,f.Session.CharacterId,DateTimeOffset.UtcNow,footprint,f.Session),
                 [new SetCarriedQuestEffect(first,next),new SetCarriedQuestEffect(next,next with {TriggerValue=1})],default);
             await tx.CommitAsync(default);
             Assert.Equal(1,f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));

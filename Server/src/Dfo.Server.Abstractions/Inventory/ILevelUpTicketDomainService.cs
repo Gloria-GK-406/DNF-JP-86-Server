@@ -15,7 +15,7 @@ public sealed record LevelUpTicketPlan(byte TargetLevel, ImmutableArray<int> Com
 public interface ILevelUpTicketDomainService
 {
     ValueTask<LevelUpTicketResult> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
-        DateTimeOffset at, CancellationToken ct);
+        DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct);
 }
 
 public interface ILevelUpTicketRuleService

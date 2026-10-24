@@ -18,8 +18,9 @@ internal sealed class EntryAllowanceItemDomainService(IEntryAllowanceItemRuleSer
     IItemUseEffectRuleService uses, ICharacterDomainService characters, IHerasDungeonDomainService heras,
     IOpeningInventoryDomainService inventory, TimeProvider clock) : IEntryAllowanceItemDomainService
 {
-    public async ValueTask<ItemUseApplication?> TryUseAsync(SelectedSessionIdentity session, BusinessSlot source, ItemReference item, CancellationToken ct)
+    public async ValueTask<ItemUseApplication?> TryUseAsync(SelectedSessionIdentity session, BusinessSlot source, ItemReference item, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (!definitions.Supports(item.ItemId)) return null;
         ItemUseApplication Refuse(ItemUsability status) => new(status, item.ItemId, item.Count);
         var definition = await definitions.DefinitionAsync(item.ItemId, ct).ConfigureAwait(false);
@@ -42,7 +43,7 @@ internal sealed class EntryAllowanceItemDomainService(IEntryAllowanceItemRuleSer
         var quota = await heras.ReadQuotaAtAsync(session.CharacterId, at, ct).ConfigureAwait(false);
         if (quota.Remaining >= byte.MaxValue) return Refuse(ItemUsability.NotAUsableItem);
         var settlement = await inventory.ApplyAsync(session,
-            plan.Effects.Append(new AddDungeonEntryAllowanceEffect(definition.EntryDungeonId, 1, quota.Period, quota.Bonus, quota.Used)).ToArray(), at, ct).ConfigureAwait(false);
+            plan.Effects.Append(new AddDungeonEntryAllowanceEffect(definition.EntryDungeonId, 1, quota.Period, quota.Bonus, quota.Used)).ToArray(), at, footprint, ct).ConfigureAwait(false);
         var applied = settlement.Applied;
         var remaining = applied.Changes<ContainerConsumptionChange>().LastOrDefault(x => x.Slot == source)?.RemainingCount ?? item.Count;
         return new(ItemUsability.Allowed, item.ItemId, remaining, applied) { OpeningReceipt = settlement.Inventory };

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
@@ -7,5 +8,5 @@ public interface IEquipmentEnchantDomainService
 {
     ValueTask<EquipmentEnchantResult> EnchantAsync(
         SelectedSessionIdentity session, BusinessSlot beadSlot, BusinessSlot targetSlot,
-        CancellationToken cancellationToken);
+        IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }

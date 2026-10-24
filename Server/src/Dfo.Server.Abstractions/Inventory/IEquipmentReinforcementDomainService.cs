@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
@@ -11,7 +12,7 @@ public interface IEquipmentReinforcementDomainService
         int expectedItemId,
         BusinessSlot? materialSlot,
         BusinessSlot? protectionSlot,
-        CancellationToken cancellationToken,
+        IEffectFootprintRecorder footprint, CancellationToken cancellationToken,
         EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement);
 }
 

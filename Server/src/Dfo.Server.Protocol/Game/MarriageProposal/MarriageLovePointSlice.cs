@@ -48,7 +48,7 @@ public sealed record WeddingLovePointCommand(SelectedSessionIdentity Actor, Busi
 { public SelectedSessionIdentity? Session => Actor; }
 public sealed class WeddingLovePointCommandHandler(IMarriageCoupleDomainService couple) : ICommandHandler<WeddingLovePointCommand, MarriageLovePointResult>
 {
-    public ValueTask<MarriageLovePointResult> HandleAsync(CommandExecutionContext c, WeddingLovePointCommand q, CancellationToken ct) => couple.UseLovePointAsync(q.Actor, q.Slot, q.AccountIds, ct);
+    public ValueTask<MarriageLovePointResult> HandleAsync(CommandExecutionContext c, WeddingLovePointCommand q, CancellationToken ct) => couple.UseLovePointAsync(q.Actor, q.Slot, q.AccountIds, c.LegacyFootprint, ct);
 }
 internal sealed class WeddingLovePointHandler(ISelectedSessionDomainService sessions,
     IMarriageQueryDomainService marriage, IInventorySlotMappingRuleService mappings, ICommandBus commands,

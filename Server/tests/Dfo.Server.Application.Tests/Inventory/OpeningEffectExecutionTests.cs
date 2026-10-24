@@ -73,6 +73,7 @@ public sealed class OpeningEffectExecutionTests
 
     private static DomainTransactionScope Scope(OpeningFixture f) => (DomainTransactionScope)f.Host.Services.GetRequiredService<IDomainTransactionAccessor>();
     private static ValueTask<ApplyEffectsResult> Apply(OpeningFixture f, IReadOnlyList<DomainEffect> effects) =>
-        f.Host.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(
-            new(f.Host.Session.AccountId, f.Host.Session.CharacterId, f.Host.Clock.GetUtcNow(), f.Host.Session), effects, default);
+        Dfo.Server.Application.Tests.Support.TestEffectFootprints.Run(f.Host.Session, footprint =>
+            f.Host.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(
+                new(f.Host.Session.AccountId, f.Host.Session.CharacterId, f.Host.Clock.GetUtcNow(), footprint, f.Host.Session), effects, default));
 }

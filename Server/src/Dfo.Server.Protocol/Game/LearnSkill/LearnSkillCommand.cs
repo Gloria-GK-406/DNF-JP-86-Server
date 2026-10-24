@@ -19,5 +19,5 @@ public sealed class LearnSkillCommandHandler(ICharacterSkillLearningDomainServic
 {
     public ValueTask<CharacterSkillLearningResult> HandleAsync(CommandExecutionContext context,
         LearnSkillCommand command, CancellationToken cancellationToken) =>
-        learning.LearnAsync(command.Session, command.PageIndex, command.Changes, command.Mode, cancellationToken);
+        learning.LearnAsync(command.Session, command.PageIndex, command.Changes, command.Mode, context.LegacyFootprint, cancellationToken);
 }

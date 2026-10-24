@@ -71,8 +71,8 @@ public sealed class PackageOpeningCommandHandler(IPackageOpeningDomainService pa
     : ICommandHandler<PackageOpeningCommand, PackageOpeningResult>
 {
     public ValueTask<PackageOpeningResult> HandleAsync(CommandExecutionContext context, PackageOpeningCommand command, CancellationToken ct) =>
-        command.AvatarInput is { } options ? avatars.OpenAsync(command.Session, OpeningWireSlots.Business(options), clock.GetUtcNow(), ct) :
-        packages.OpenAsync(command.Session, OpeningWireSlots.Business(command.Input), clock.GetUtcNow(), ct);
+        command.AvatarInput is { } options ? avatars.OpenAsync(command.Session, OpeningWireSlots.Business(options), clock.GetUtcNow(), context.LegacyFootprint, ct) :
+        packages.OpenAsync(command.Session, OpeningWireSlots.Business(command.Input), clock.GetUtcNow(), context.LegacyFootprint, ct);
 }
 public sealed class PackageOpeningHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ICommandBus commands, IEventService notifications, IGameMessageSender sender, ILogger<PackageOpeningHandler> logger)

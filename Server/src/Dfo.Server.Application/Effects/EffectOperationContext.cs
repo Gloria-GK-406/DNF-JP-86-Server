@@ -170,20 +170,19 @@ internal sealed class EffectOperationContext
             foreach (var slot in slots) frame.Slots.Add(slot);
         }
         void Rental() { if (frame is not null) frame.Needs |= ReplayProjectionNeeds.Rental; }
+        void DemandEffectsOwner(EffectFootprintOwner owner)
+        {
+            if (refused is not null) throw new InvalidOperationException("An unselected effect request cannot apply effects.");
+            if (frame is not null && (owner.Session != frame.Recipient.Session
+                || owner.AccountId != frame.Recipient.Session.AccountId || owner.CharacterId != frame.Recipient.Session.CharacterId))
+                throw new InvalidOperationException("Effect footprint differs from its captured owner.");
+        }
         return new(authorization, () => { context.DemandLegacyInvocation(); inheritedGuard(); },
-            Unavailable, DemandOwner, Inventory, Rental);
+            Unavailable, DemandOwner, Inventory, Rental, DemandEffectsOwner, applied => RecordEffects(frame, applied));
     }
-    public void Record(EffectExecutionContext owner, IReadOnlyList<AppliedEffect> applied)
+    private static void RecordEffects(Frame? frame, IReadOnlyList<AppliedEffect> applied)
     {
-        var frame = Current;
-        if (rejection.Value is not null) throw new InvalidOperationException("An unselected network operation cannot apply effects.");
         if (frame is null) return;
-        if (execution.Value is not { IsMain: true, Closed: false })
-            throw new InvalidOperationException("Network effects must belong to the active primary command execution.");
-        if (owner.Session != frame.Recipient.Session || owner.AccountId != frame.Recipient.Session.AccountId
-            || owner.CharacterId != frame.Recipient.Session.CharacterId)
-            throw new InvalidOperationException("Effect footprint differs from the captured primary settlement owner.");
-        if (frame.Frozen) throw new InvalidOperationException("Effects cannot extend a frozen operation projection.");
         foreach (var item in applied)
         {
             switch (item.Effect, item.Change)

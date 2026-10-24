@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
@@ -64,16 +65,16 @@ public sealed class GrantKillExperienceCommandHandler(
         }
 
         return new KillExperienceResult(
-            await ApplyAwardAsync(grant, command, clock.GetUtcNow(), cancellationToken)
+            await ApplyAwardAsync(grant, command, clock.GetUtcNow(), context.LegacyFootprint, cancellationToken)
                 .ConfigureAwait(false));
     }
 
     internal static ValueTask<ExperienceAward?> ApplyAwardAsync(
         ICharacterDomainService grant, GrantKillExperienceCommand command,
-        DateTimeOffset at, CancellationToken cancellationToken) => grant.Get(command.CharacterId).AddExpAsync(
+        DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => grant.Get(command.CharacterId).AddExpAsync(
             new KillExperienceContext(
                 new ExperienceOccasion(ExperienceEvent.MonsterKill, command.AccountId,
                     command.CharacterId, command.DungeonId),
                 command.Monster.Level, command.Monster.Rank, command.Difficulty,
-                command.DungeonWeight, command.PartyMemberCount, command.Monster.IsNamedMonster), at, command.Session, cancellationToken);
+                command.DungeonWeight, command.PartyMemberCount, command.Monster.IsNamedMonster), at, command.Session, footprint, cancellationToken);
 }

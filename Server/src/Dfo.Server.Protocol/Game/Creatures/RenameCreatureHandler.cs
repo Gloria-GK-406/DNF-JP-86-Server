@@ -21,7 +21,7 @@ internal sealed class RenameCreatureCommandHandler(ICreatureNamingDomainService 
     public async ValueTask<RenameCreatureResult> HandleAsync(CommandExecutionContext context,
         RenameCreatureCommand command, CancellationToken cancellationToken) =>
         new(await naming.RenameAsync(command.Session, command.SourceSlot,
-            command.NameBytes, cancellationToken).ConfigureAwait(false));
+            command.NameBytes, context.LegacyFootprint, cancellationToken).ConfigureAwait(false));
 }
 
 internal sealed class RenameCreatureHandler(

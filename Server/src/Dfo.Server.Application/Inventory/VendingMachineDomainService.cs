@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Inventory;
@@ -16,8 +17,9 @@ internal sealed class VendingMachineDomainService(IVendingMachineDefinitionSourc
     IDomainTransactionAccessor transactions, TimeProvider clock, IOpeningEffectPlanRuleService plans) : IVendingMachineDomainService
 {
     public async ValueTask<VendingMachineResult> UseAsync(SelectedSessionIdentity session, int machineId, int groupId,
-        BusinessSlot slot, CancellationToken cancellationToken)
+        BusinessSlot slot, IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         _ = transactions.Current ?? throw new InvalidOperationException("Vending requires a transaction.");
         var now = clock.GetUtcNow();
         if (!sessions.IsInWorld(session) || towns.Find(session.CharacterId) is null)
@@ -38,7 +40,7 @@ internal sealed class VendingMachineDomainService(IVendingMachineDefinitionSourc
         var useRule = await plans.SourceRuleAsync(source.ItemId, cancellationToken).ConfigureAwait(false);
         // Vending coins are an explicit machine cost, independent of ordinary item self-consumption.
         var plan = plans.Build(source.ItemId, useRule, [new(sourceSlot, definition.MaterialId, definition.MaterialCount)], grants, [], now);
-        var receipt = (await inventory.ApplyAsync(session, plan, now, cancellationToken).ConfigureAwait(false)).Inventory;
+        var receipt = (await inventory.ApplyAsync(session, plan, now, footprint, cancellationToken).ConfigureAwait(false)).Inventory;
         return new(receipt, slot, source.Count - definition.MaterialCount, reward);
     }
     internal static OpeningReward Select(VendingMachineDefinition definition, long ticket)

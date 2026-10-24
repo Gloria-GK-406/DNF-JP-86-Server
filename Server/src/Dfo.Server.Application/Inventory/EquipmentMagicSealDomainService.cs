@@ -22,17 +22,18 @@ internal sealed class EquipmentMagicSealDomainService(
 {
     public ValueTask<EquipmentMagicSealResult> UnsealAsync(
         SelectedSessionIdentity session, BusinessSlot targetSlot, BusinessSlot? scrollSlot,
-        CancellationToken ct) => ApplyAsync(session, targetSlot, scrollSlot, null, ct);
+        IEffectFootprintRecorder footprint, CancellationToken ct) => ApplyAsync(session, targetSlot, scrollSlot, null, footprint, ct);
 
     public ValueTask<EquipmentMagicSealResult> ChangeAsync(
         SelectedSessionIdentity session, BusinessSlot targetSlot, BusinessSlot? materialSlot,
-        byte optionIndex, CancellationToken ct) =>
-        ApplyAsync(session, targetSlot, materialSlot, optionIndex, ct);
+        byte optionIndex, IEffectFootprintRecorder footprint, CancellationToken ct) =>
+        ApplyAsync(session, targetSlot, materialSlot, optionIndex, footprint, ct);
 
     private async ValueTask<EquipmentMagicSealResult> ApplyAsync(
         SelectedSessionIdentity session, BusinessSlot targetSlot, BusinessSlot? materialSlot,
-        byte? changeIndex, CancellationToken ct)
+        byte? changeIndex, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (!sessions.IsInWorld(session))
             return new(EquipmentMagicSealRejection.NoSession);
         if (targetSlot.Space != BusinessInventorySpace.CarriedEquipment
@@ -63,7 +64,7 @@ internal sealed class EquipmentMagicSealDomainService(
             return new(EquipmentMagicSealRejection.NoSession);
         if (await character.GoldAsync(ct).ConfigureAwait(false) < decision.GoldCost)
             return new(EquipmentMagicSealRejection.InsufficientGold);
-        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, clock.GetUtcNow(), session);
+        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, clock.GetUtcNow(), footprint, session);
         if ((await preflight.PreviewAsync(context, plan.Effects, ct).ConfigureAwait(false)).Rejection != InventoryEffectRejection.None)
             return new(EquipmentMagicSealRejection.InsufficientGold);
         var applied = await effects.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);

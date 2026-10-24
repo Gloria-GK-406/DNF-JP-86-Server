@@ -31,8 +31,9 @@ internal sealed class LovePoints(IMarriageLovePointRuleService rules, IBusinessI
     /// <param name="points">The relation's points before this coupon.</param>
     /// <returns>0 with the spend once the coupon's effects are applied; otherwise the 03F5 status and no spend.</returns>
     public async ValueTask<(int Status, LovePointSpend? Spend)> SpendAsync(SelectedSessionIdentity actor, BusinessSlot slot, int points,
-        CancellationToken ct)
+        IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(actor.AccountId, actor.CharacterId, actor));
         var bound = inventory.Find(actor.CharacterId, slot);
         var item = bound is null ? null : await bound.Container.GetAsync(bound.Slot.Index, ct).ConfigureAwait(false);
         if (item is null) return (-1, null);
@@ -42,7 +43,7 @@ internal sealed class LovePoints(IMarriageLovePointRuleService rules, IBusinessI
         var at = clock.GetUtcNow();
         var plan = useRules.Build(rule.Use, slot, item, facts, null, at);
         if (plan.Status != ItemUsability.Allowed) return (-1, null);
-        await effects.ApplyAsync(new(actor.AccountId, actor.CharacterId, at, actor), plan.Effects, ct).ConfigureAwait(false);
+        await effects.ApplyAsync(new(actor.AccountId, actor.CharacterId, at, footprint, actor), plan.Effects, ct).ConfigureAwait(false);
         return (0, new(rule.Amount, rule.Maximum, bound!, at));
     }
 

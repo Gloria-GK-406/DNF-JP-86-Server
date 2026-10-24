@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -8,5 +9,5 @@ namespace Dfo.Server.Abstractions.Settlement;
 public interface IQuestClearCouponSettlementDomainService
 {
     ValueTask<QuestClearCouponResult> UseAsync(SelectedSessionIdentity session, BusinessSlot sourceSlot,
-        DateTimeOffset now, CancellationToken cancellationToken);
+        DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }

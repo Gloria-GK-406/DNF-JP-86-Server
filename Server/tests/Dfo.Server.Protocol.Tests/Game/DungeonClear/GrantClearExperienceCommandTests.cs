@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.World;
@@ -129,16 +130,16 @@ public sealed class GrantClearExperienceCommandTests
             var handler = Handler();
 
             await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-                await handler.HandleAsync(
-                    Context(CommandExecutionKind.Direct), Command(80, 5), CancellationToken.None));
+                await TestEffectFootprints.Invoke(handler,
+                    Context(CommandExecutionKind.Direct), Command(80, 5), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null), CancellationToken.None));
         });
     }
 
     private static async Task<ClearExperienceResult> Settle(
         int clientRankPoint, int basisLevel = 5) =>
-        await Handler().HandleAsync(
+        await TestEffectFootprints.Invoke(Handler(),
             Context(CommandExecutionKind.Transactional),
-            Command(clientRankPoint, basisLevel),
+            Command(clientRankPoint, basisLevel), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null),
             CancellationToken.None);
 
     [Theory]
@@ -149,7 +150,7 @@ public sealed class GrantClearExperienceCommandTests
         await TestGameplay.RunAsync(async () =>
         {
             var difficulties = new RecordingDifficulty();
-            var result = await Handler(difficulties).HandleAsync(Context(CommandExecutionKind.Transactional), Command(score,5), default);
+            var result = await TestEffectFootprints.Invoke(Handler(difficulties),Context(CommandExecutionKind.Transactional), Command(score,5), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null), default);
             Assert.Equal(new CharacterDungeonDifficulty(CapturedDungeon, DungeonDifficulty.Adventure), result.DifficultyUnlocked);
             Assert.Equal(new CharacterId(60), difficulties.Character);
             Assert.Equal(DungeonDifficulty.Normal, difficulties.Cleared);
@@ -263,7 +264,7 @@ public sealed class GrantClearExperienceCommandTests
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
 
-        public override async ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
+        public override async ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
         {
             var breakdown = await calculation.CalculateAsync(source, 1, cancellationToken);
             return new ExperienceAward(breakdown, 1, breakdown.Total, LeveledUp: false);

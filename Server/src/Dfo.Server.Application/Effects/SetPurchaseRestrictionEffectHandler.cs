@@ -19,6 +19,7 @@ internal sealed class SetPurchaseRestrictionEffectHandler(IAccountPurchaseRestri
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext c, SetPurchaseRestrictionEffect e, CancellationToken ct)
     {
+        c.Footprint.DemandEffects(c.Owner);
         if (!await restrictions.TrySetAsync(c.AccountId, e.RestrictionId, e.ExpectedEnd, e.End, ct).ConfigureAwait(false))
             throw new CeraShopPurchaseRejectedException(CeraShopRejection.StateChanged, "Purchase restriction changed before settlement.");
         return new PurchaseRestrictionChange(e.RestrictionId, e.End);

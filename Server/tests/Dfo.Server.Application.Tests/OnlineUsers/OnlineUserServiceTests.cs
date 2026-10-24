@@ -492,7 +492,7 @@ public sealed class UserServiceTests
         var observer = new OnlineUserConnectionObserver(
             service, sessions, cleanup,
             new StubChannelEntryPolicy(), new StubServerConfigService(),
-            new RecordingInitialSender(), new RecordingCleanupDelivery(), TimeProvider.System);
+            new RecordingInitialSender(), new RecordingCleanupDelivery(), new TestEffectFootprints.LifecycleSource([]), TimeProvider.System);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:24"), NetworkEndpointKind.Game, 10011);
         var selected = await TestGameplay.RunAsync(async () =>
@@ -587,7 +587,7 @@ public sealed class UserServiceTests
         var observer = new OnlineUserConnectionObserver(
             service,
             new EmptySelectedSessions(), new NoopCleanup(), new StubChannelEntryPolicy(),
-            new StubServerConfigService(), new RecordingInitialSender(), new RecordingCleanupDelivery(), TimeProvider.System);
+            new StubServerConfigService(), new RecordingInitialSender(), new RecordingCleanupDelivery(), new TestEffectFootprints.LifecycleSource([]), TimeProvider.System);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:25"), NetworkEndpointKind.Game, 10011);
         await TestGameplay.RunAsync(async () =>
@@ -638,7 +638,7 @@ public sealed class UserServiceTests
             new StubServerConfigService(),
             sender,
             cleanupDelivery ?? new RecordingCleanupDelivery(),
-            timeProvider);
+            new TestEffectFootprints.LifecycleSource([]), timeProvider);
 
     /// <summary>Records the cleanup plan instead of turning it into frames.</summary>
     /// <remarks>
@@ -786,7 +786,7 @@ public sealed class UserServiceTests
     {
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
             SelectedSessionIdentity session, bool includeOwner,
-            CancellationToken cancellationToken) =>
+            Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) =>
             ValueTask.FromResult(SelectedSessionCleanupNotificationPlan.Empty(session));
     }
 
@@ -795,7 +795,7 @@ public sealed class UserServiceTests
     {
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
             SelectedSessionIdentity session, bool includeOwner,
-            CancellationToken cancellationToken) =>
+            Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) =>
             ValueTask.FromException<SelectedSessionCleanupNotificationPlan>(
                 new SelectedSessionCleanupFailure(plan, [new IOException("cleanup failed")]));
     }
@@ -834,7 +834,7 @@ public sealed class UserServiceTests
 
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
             SelectedSessionIdentity session, bool includeOwner,
-            CancellationToken cancellationToken)
+            Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
         {
             Cleaned = session;
             Assert.True(active.ClearExact(session));

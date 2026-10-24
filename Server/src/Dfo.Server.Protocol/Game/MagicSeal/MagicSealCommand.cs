@@ -21,6 +21,6 @@ public sealed class MagicSealCommandHandler(IEquipmentMagicSealDomainService sea
     public ValueTask<EquipmentMagicSealResult> HandleAsync(CommandExecutionContext context,
         MagicSealCommand command, CancellationToken ct) => command.Change
         ? seals.ChangeAsync(command.Session, command.Target, command.Material,
-            command.OptionIndex, ct)
-        : seals.UnsealAsync(command.Session, command.Target, command.Material, ct);
+            command.OptionIndex, context.LegacyFootprint, ct)
+        : seals.UnsealAsync(command.Session, command.Target, command.Material, context.LegacyFootprint, ct);
 }

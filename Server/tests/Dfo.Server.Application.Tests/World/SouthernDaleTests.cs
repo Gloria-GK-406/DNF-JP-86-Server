@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Events;
@@ -192,7 +193,7 @@ public sealed class SouthernDaleTests
             var deaths = f.Services.GetRequiredService<IMonsterDeathDomainService>();
             var request = new MonsterDeathSettlementRequest(f.Session, players, run.RunId, run.RoomVersion, 1);
             await using (var tx = f.Scope.Begin())
-                Assert.Equal(2, (await deaths.SettleAsync(request, default)).Participants.Count);
+                Assert.Equal(2, (await TestEffectFootprints.Run(request.Participants, cap => deaths.SettleAsync(request, cap, default))).Participants.Count);
             Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM southern_dale_clear_rewards"));
             Assert.Equal(0, await Count(f, 71, 2680739));
             Assert.Equal(0, await Count(f, 72, 2680739));
@@ -200,7 +201,7 @@ public sealed class SouthernDaleTests
             await Assert.ThrowsAnyAsync<Exception>(async () =>
             {
                 await using var tx = f.Scope.Begin();
-                await deaths.SettleAsync(request, default);
+                await TestEffectFootprints.Run(request.Participants, cap => deaths.SettleAsync(request, cap, default));
                 await tx.CommitAsync(default);
             });
             Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM southern_dale_clear_rewards"));
@@ -211,7 +212,7 @@ public sealed class SouthernDaleTests
             for (var retry = 0; retry < 2; retry++)
                 await using (var tx = f.Scope.Begin())
                 {
-                    var result = await deaths.SettleAsync(request, default);
+                    var result = await TestEffectFootprints.Run(request.Participants, cap => deaths.SettleAsync(request, cap, default));
                     Assert.Equal(retry == 0 ? 2 : 0, result.Participants.Count);
                     await tx.CommitAsync(default);
                 }

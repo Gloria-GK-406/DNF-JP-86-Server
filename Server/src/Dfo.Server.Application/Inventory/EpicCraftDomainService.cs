@@ -17,8 +17,9 @@ internal sealed class EpicCraftDomainService(IEpicBookRuleService rules, IEpicBo
     IOpeningEffectPlanRuleService plans, IPackageOpeningRuleService rewards, IOpeningInventoryDomainService inventory)
     : IEpicCraftDomainService
 {
-    public async ValueTask<EpicCraftReceipt> CraftAsync(SelectedSessionIdentity session, int equipmentId, DateTimeOffset now, CancellationToken ct)
+    public async ValueTask<EpicCraftReceipt> CraftAsync(SelectedSessionIdentity session, int equipmentId, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         _ = transactions.Current ?? throw new InvalidOperationException("Epic crafting requires a transaction.");
         if (!sessions.IsInWorld(session)
             || !await characters.BelongsToAsync(session.CharacterId, session.AccountId, ct).ConfigureAwait(false))
@@ -42,7 +43,7 @@ internal sealed class EpicCraftDomainService(IEpicBookRuleService rules, IEpicBo
         var balance = await book.TrySpendPiecesAsync(session.AccountId, recipe.PieceId, recipe.PieceCount, ct).ConfigureAwait(false)
             ?? throw new OpeningRejectedException(OpeningRejection.MissingMaterial, "Insufficient epic pieces.");
         var effects = plans.MaterialCraftEffects(costs, grants[0]);
-        var applied = await inventory.ApplyAsync(session, effects, now, ct).ConfigureAwait(false);
+        var applied = await inventory.ApplyAsync(session, effects, now, footprint, ct).ConfigureAwait(false);
         return new(applied.Inventory, balance);
     }
 }

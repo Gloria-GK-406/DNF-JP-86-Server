@@ -23,8 +23,9 @@ internal sealed class EquipmentOutworldDomainService(
         SelectedSessionIdentity session, EquipmentOutworldAction action,
         BusinessSlot targetSlot, int expectedTargetItemId,
         BusinessSlot materialSlot, int expectedMaterialItemId,
-        byte selectedOption, CancellationToken ct)
+        byte selectedOption, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (!sessions.IsInWorld(session))
             return new(EquipmentOutworldRejection.NoSession);
         if (targetSlot.Space != BusinessInventorySpace.CarriedEquipment
@@ -72,7 +73,7 @@ internal sealed class EquipmentOutworldDomainService(
             return new(decision.Rejection);
         if (decision.MaterialCount <= 0 || material.Count < decision.MaterialCount)
             return new(EquipmentOutworldRejection.MaterialUnavailable);
-        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, clock.GetUtcNow(), session);
+        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, clock.GetUtcNow(), footprint, session);
         if ((await preflight.PreviewAsync(context, plan.Effects, ct).ConfigureAwait(false)).Rejection != InventoryEffectRejection.None)
             return new(EquipmentOutworldRejection.MaterialUnavailable);
         var applied = await effects.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);

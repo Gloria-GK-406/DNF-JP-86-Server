@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -53,9 +54,11 @@ public sealed class TournamentDungeonTests
     {
         var run = Runs(f).Find(new CharacterId(71))!;
         await using var tx = f.Scope.Begin();
+        using var footprint = new TestEffectFootprints.Lease(session ?? f.Session);
+        var context = new CommandExecutionContext(Guid.NewGuid(), typeof(ProcessMonsterDeathCommand), typeof(ProcessMonsterDeathCommandHandler), CommandExecutionKind.Transactional);
+        context.SupplyLegacyFootprint(footprint);
         var result = await ActivatorUtilities.CreateInstance<ProcessMonsterDeathCommandHandler>(f.Services)
-            .HandleAsync(new(Guid.NewGuid(), typeof(ProcessMonsterDeathCommand), typeof(ProcessMonsterDeathCommandHandler), CommandExecutionKind.Transactional),
-                new(new(session ?? f.Session, [session ?? f.Session], run.RunId, run.RoomVersion, actor)), default);
+            .HandleAsync(context, new(new(session ?? f.Session, [session ?? f.Session], run.RunId, run.RoomVersion, actor)), default);
         if (commit) await tx.CommitAsync(default);
         return result;
     }

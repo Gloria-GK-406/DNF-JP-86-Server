@@ -13,8 +13,9 @@ internal sealed class CreatureNamingDomainService(ICreatureDomainService creatur
     IApplyEffectsDomainService effects) : ICreatureNamingDomainService
 {
     public async ValueTask<CreatureRenameReceipt?> RenameAsync(SelectedSessionIdentity session,
-        BusinessSlot sourceSlot, byte[] nameBytes, CancellationToken ct)
+        BusinessSlot sourceSlot, byte[] nameBytes, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(nameBytes);
         var name = ImmutableArray.CreateRange(nameBytes);
@@ -30,7 +31,7 @@ internal sealed class CreatureNamingDomainService(ICreatureDomainService creatur
         if (plan.Length == 0) return null;
         var pet = await creatures.Of(session.CharacterId).CurrentPetAsync(ct).ConfigureAwait(false);
         if (pet is null) return null;
-        var applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, session), plan, ct).ConfigureAwait(false);
+        var applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, footprint, session), plan, ct).ConfigureAwait(false);
         var consumed = applied.Changes<ContainerConsumptionChange>().Single();
         return new(applied.Changes<PetNameChange>().Single().Creature, sourceSlot,
             consumed.RemainingCount == 0 ? null : (await cards.GetAsync(sourceSlot.Index, ct).ConfigureAwait(false))!.Snapshot);

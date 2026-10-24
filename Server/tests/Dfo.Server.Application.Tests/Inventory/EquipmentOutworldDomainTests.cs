@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Notifications;
@@ -162,10 +163,10 @@ public sealed class EquipmentOutworldDomainTests
             var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
             await using (var tx = scope.Begin())
             {
-                var wrongTarget = await service.ApplyAsync(shop.Session,
-                    EquipmentOutworldAction.Purify, Target, 3001, Material, 1183, 0, default);
-                var wrongMaterial = await service.ApplyAsync(shop.Session,
-                    EquipmentOutworldAction.Purify, Target, 3000, Material, 1184, 0, default);
+                var wrongTarget = await TestEffectFootprints.Run(shop.Session, cap => service.ApplyAsync(shop.Session,
+                    EquipmentOutworldAction.Purify, Target, 3001, Material, 1183, 0, cap, default));
+                var wrongMaterial = await TestEffectFootprints.Run(shop.Session, cap => service.ApplyAsync(shop.Session,
+                    EquipmentOutworldAction.Purify, Target, 3000, Material, 1184, 0, cap, default));
                 Assert.Equal(EquipmentOutworldRejection.WrongItem, wrongTarget.Rejection);
                 Assert.Equal(EquipmentOutworldRejection.MaterialUnavailable, wrongMaterial.Rejection);
             }
@@ -211,9 +212,8 @@ public sealed class EquipmentOutworldDomainTests
             shop.Select(2);
             var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
             await using var tx = scope.Begin();
-            var result = await shop.Services.GetRequiredService<IEquipmentOutworldDomainService>()
-                .ApplyAsync(old, EquipmentOutworldAction.Purify, Target, 3000,
-                    Material, 1183, 0, default);
+            var result = await TestEffectFootprints.Run(old, cap => shop.Services.GetRequiredService<IEquipmentOutworldDomainService>().ApplyAsync(old, EquipmentOutworldAction.Purify, Target, 3000,
+                    Material, 1183, 0, cap, default));
             Assert.Equal(EquipmentOutworldRejection.NoSession, result.Rejection);
             Assert.Equal(1, shop.Scalar("SELECT COALESCE(SUM(count),0) FROM item_slots "
                 + "WHERE owner_scope='character' AND owner_id=1 AND list_type=0 AND slot_index=121"));
@@ -267,8 +267,7 @@ public sealed class EquipmentOutworldDomainTests
     {
         var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
         await using var tx = scope.Begin();
-        var result = await shop.Services.GetRequiredService<IEquipmentOutworldDomainService>()
-            .ApplyAsync(shop.Session, action, Target, 3000, Material, materialId, selected, default);
+        var result = await TestEffectFootprints.Run(shop.Session, cap => shop.Services.GetRequiredService<IEquipmentOutworldDomainService>().ApplyAsync(shop.Session, action, Target, 3000, Material, materialId, selected, cap, default));
         if (result.Rejection == EquipmentOutworldRejection.None) await tx.CommitAsync(default);
         return result;
     }

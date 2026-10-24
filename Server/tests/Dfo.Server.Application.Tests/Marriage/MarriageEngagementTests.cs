@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -289,7 +290,7 @@ public sealed class MarriageEngagementTests
         {
             await using (var tx = f.Scope.Begin())
             {
-                Assert.True((await settlement.FinishAsync(new(1), new(71), 20737, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default, f.Session)).Finished);
+                Assert.True((await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(71), f.Session), cap => settlement.FinishAsync(new(1), new(71), 20737, ushort.MaxValue, 1, DateTimeOffset.UtcNow, cap, default, f.Session))).Finished);
                 await tx.CommitAsync(default);
             }
         });
@@ -302,7 +303,7 @@ public sealed class MarriageEngagementTests
         {
             await using (var tx = f.Scope.Begin())
             {
-                Assert.False((await settlement.FinishAsync(new(1), new(71), 20738, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default, f.Session)).Finished);
+                Assert.False((await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(71), f.Session), cap => settlement.FinishAsync(new(1), new(71), 20738, ushort.MaxValue, 1, DateTimeOffset.UtcNow, cap, default, f.Session))).Finished);
                 await tx.CommitAsync(default);
             }
             await using (var tx = f.Scope.Begin())
@@ -313,7 +314,7 @@ public sealed class MarriageEngagementTests
             }
             await using (var tx = f.Scope.Begin())
             {
-                Assert.True((await settlement.FinishAsync(new(1), new(71), 20738, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default, f.Session)).Finished);
+                Assert.True((await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(71), f.Session), cap => settlement.FinishAsync(new(1), new(71), 20738, ushort.MaxValue, 1, DateTimeOffset.UtcNow, cap, default, f.Session))).Finished);
                 await tx.CommitAsync(default);
             }
             current = await f.Services.GetRequiredService<ICharacterInventoryEntryDomainService>().ReadCurrentAsync(new(1), new(71), default);
@@ -321,7 +322,7 @@ public sealed class MarriageEngagementTests
             Assert.Contains(current.Containers.SelectMany(x => x.Items), x => x.Core.ItemId == 10002901);
             await using (var tx = f.Scope.Begin())
             {
-                Assert.False((await settlement.FinishAsync(new(1), new(71), 20738, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default, f.Session)).Finished);
+                Assert.False((await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(71), f.Session), cap => settlement.FinishAsync(new(1), new(71), 20738, ushort.MaxValue, 1, DateTimeOffset.UtcNow, cap, default, f.Session))).Finished);
                 await tx.CommitAsync(default);
             }
         });

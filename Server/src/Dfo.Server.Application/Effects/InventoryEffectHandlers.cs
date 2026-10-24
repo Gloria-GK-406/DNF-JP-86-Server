@@ -13,9 +13,12 @@ internal sealed class SpendGoldEffectHandler(ICharacterDomainService characters)
         ArgumentOutOfRangeException.ThrowIfNegative(effect.Amount);
         return ValueTask.CompletedTask;
     }
-    public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, SpendGoldEffect effect, CancellationToken ct) =>
-        new GoldEffectChange(await characters.Get(context.CharacterId).TrySpendGoldAsync(effect.Amount, ct).ConfigureAwait(false)
+    public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, SpendGoldEffect effect, CancellationToken ct)
+    {
+        context.Footprint.DemandEffects(context.Owner);
+        return new GoldEffectChange(await characters.Get(context.CharacterId).TrySpendGoldAsync(effect.Amount, ct).ConfigureAwait(false)
             ?? throw new InventoryEffectException(InventoryEffectRejection.InsufficientAssets));
+    }
 }
 
 internal sealed class GrantStackableEffectHandler(IItemDeliveryDomainService delivery,
@@ -31,14 +34,17 @@ internal sealed class GrantStackableEffectHandler(IItemDeliveryDomainService del
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, GrantStackableEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         if ((await placements.PlacementForAsync(effect.ItemId, ct).ConfigureAwait(false))?.Destination.Space == BusinessInventorySpace.VirtualResource)
         {
+            context.Footprint.DemandEffects(context.Owner);
             var resource = await resources.GrantAllAsync(context.CharacterId, effect.ItemId, effect.Count, ct).ConfigureAwait(false);
             var changes = new List<InventorySlotEffectChange>();
             foreach (var slot in resource.Items.Select(x => x.Slot).Distinct())
                 changes.Add(new(slot, (await slots.Get(context.CharacterId, slot).Container.GetAsync(slot.Index, ct).ConfigureAwait(false))?.Snapshot));
             return new StackableGrantEffectChange(resource.Items.Select(x => new StackableGrantAddition(x.Slot, effect.ItemId, x.Count)).ToArray(), changes);
         }
+        context.Footprint.DemandEffects(context.Owner);
         var added = await delivery.DeliverAsync(context.AccountId, context.CharacterId,
             [new(effect.ItemId, effect.Count)], "物品奖励", ct, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
         return new StackableGrantEffectChange(added.Inventory.Select(x => new StackableGrantAddition(x.Slot, effect.ItemId, x.Count)).ToArray(),
@@ -68,8 +74,10 @@ internal abstract class EquipmentEffectHandler<TEffect>(IEquipmentDomainService 
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, TEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         var instance = await ResolveAsync(context, effect, ct).ConfigureAwait(false);
         var before = await instance.ReadAsync(ct).ConfigureAwait(false);
+        context.Footprint.DemandEffects(context.Owner);
         return new EquipmentEffectChange(before.BusinessSlot!.Value, before.Snapshot,
             (await ChangeAsync(instance, effect, ct).ConfigureAwait(false))?.Snapshot);
     }

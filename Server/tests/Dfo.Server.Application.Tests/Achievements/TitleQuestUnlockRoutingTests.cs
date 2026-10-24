@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -53,13 +54,13 @@ public sealed partial class AchievementTitleBookTests
         Assert.Equal(1, (await f.Achievements.GetAsync(Character, default)).Single(x => x.AchievementId == 6501).P1);
         Assert.Empty(f.ItemUids(26596));
         var completion = f.Services.GetRequiredService<IQuestCompletionSettlementDomainService>();
-        Assert.True((await f.WriteAsync(async () => await completion.FinishAsync(new(1), Character, 4303, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default))).Finished);
+        Assert.True((await f.WriteAsync(async () => await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), Character, null), cap => completion.FinishAsync(new(1), Character, 4303, ushort.MaxValue, 1, DateTimeOffset.UtcNow, cap, default)))).Finished);
         Assert.Empty(f.ItemUids(26596)); // Reward is delivered through the committed quest event.
         await f.DrainAsync();
         var uid = Assert.Single(f.ItemUids(26596));
         Assert.Contains((await f.Titles.GetAsync(Character, default)).SelectMany(x => x.Entries), x => x.ItemId == 26596);
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM item_slots WHERE list_type=1 AND core_uid=" + uid));
-        Assert.False((await f.WriteAsync(async () => await completion.FinishAsync(new(1), Character, 4303, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default))).Finished);
+        Assert.False((await f.WriteAsync(async () => await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), Character, null), cap => completion.FinishAsync(new(1), Character, 4303, ushort.MaxValue, 1, DateTimeOffset.UtcNow, cap, default)))).Finished);
         await f.SendAsync(new QuestCompleted(Character, 4303));
         await f.DrainAsync();
         await using var restored = new Fixture(f.Path);
@@ -76,7 +77,7 @@ public sealed partial class AchievementTitleBookTests
             await HuntQuestReadyAsync(f);
             var events = f.Scalar("SELECT COUNT(*) FROM domain_events");
             await using (var tx = f.Scope.Begin())
-                Assert.True((await f.Services.GetRequiredService<IQuestCompletionSettlementDomainService>().FinishAsync(new(1), Character, 4303, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default)).Finished);
+                Assert.True((await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), Character, null), cap => f.Services.GetRequiredService<IQuestCompletionSettlementDomainService>().FinishAsync(new(1), Character, 4303, ushort.MaxValue, 1, DateTimeOffset.UtcNow, cap, default))).Finished);
             Assert.Equal(events, f.Scalar("SELECT COUNT(*) FROM domain_events"));
             Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE slot_index=4303"));
             Assert.Single(await f.Services.GetRequiredService<ICharacterQuestLogDomainService>().LogOf(new(1), Character).CarriedAsync(default));

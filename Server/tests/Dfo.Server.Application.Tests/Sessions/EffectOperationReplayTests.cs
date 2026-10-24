@@ -442,7 +442,7 @@ public sealed class EffectOperationReplayTests
         {
             await gold.AddAsync(command.Session.CharacterId, 1, int.MaxValue, ct);
             if (command.Unknown) await effects.ApplyAsync(new(command.Session.AccountId, command.Session.CharacterId,
-                DateTimeOffset.UtcNow, command.Session), [new UnknownEffect()], ct);
+                DateTimeOffset.UtcNow, context.LegacyFootprint, command.Session), [new UnknownEffect()], ct);
             if (fault.CloseOnCommit is { } close) transactions.Current!.Enlist(this, () => new CloseFrame(close));
             return new();
         }

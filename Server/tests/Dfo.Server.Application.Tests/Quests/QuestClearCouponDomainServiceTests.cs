@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
@@ -112,7 +113,7 @@ public sealed class QuestClearCouponDomainServiceTests
     private static async Task<QuestClearCouponResult> Use(LearningFixture f)
     {
         await using var tx = f.Scope.Begin();
-        var result = await f.Services.GetRequiredService<IQuestClearCouponSettlementDomainService>().UseAsync(f.Session,Slot,At,default);
+        var result = await TestEffectFootprints.Run(f.Session, cap => f.Services.GetRequiredService<IQuestClearCouponSettlementDomainService>().UseAsync(f.Session,Slot,At, cap,default));
         await tx.CommitAsync(default); return result;
     }
     private static LearningFixture Fixture(int[]? selected = null, int sourceId = 10_006_007) => new(configure: s =>
@@ -148,11 +149,11 @@ public sealed class QuestClearCouponDomainServiceTests
         public ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity s,BusinessSlot slot,DateTimeOffset at,CancellationToken ct) =>
             ValueTask.FromResult(TestItemReferences.FromCore(slot.Index,StackableItemCore.Create(2,itemId,2),ItemWorldClass.Interchangeable));
         public ValueTask<IReadOnlyList<Dfo.Server.Data.Accounts.AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity s,CancellationToken ct) => throw new NotSupportedException();
-        public async ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity s,IReadOnlyList<DomainEffect> plan,DateTimeOffset at,CancellationToken ct)
+        public async ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity s,IReadOnlyList<DomainEffect> plan,DateTimeOffset at,Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
         {
             Assert.Equal(1,Assert.Single(plan.OfType<ConsumeFromContainerEffect>()).Count);
             await db.ExecuteAsync("UPDATE characters SET bonus_sp=bonus_sp-1 WHERE character_id=71", _=>{},ct);
-            var applied = await effects.ApplyAsync(new(s.AccountId,s.CharacterId,at,s),plan.Where(x=>x is not ConsumeFromContainerEffect).ToArray(),ct);
+            var applied = await effects.ApplyAsync(new(s.AccountId,s.CharacterId,at,footprint,s),plan.Where(x=>x is not ConsumeFromContainerEffect).ToArray(),ct);
             return new(new(s,[],[],[],at),applied);
         }
     }

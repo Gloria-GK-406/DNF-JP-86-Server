@@ -52,7 +52,7 @@ public sealed class MagicBoxBatchOpeningCommandHandler(IMagicBoxOpeningDomainSer
     : ICommandHandler<MagicBoxBatchOpeningCommand, MagicBoxOpeningResult>
 {
     public ValueTask<MagicBoxOpeningResult> HandleAsync(CommandExecutionContext context, MagicBoxBatchOpeningCommand command, CancellationToken ct) =>
-        boxes.OpenAsync(command.Session, OpeningWireSlots.Business(command.Input), clock.GetUtcNow(), ct);
+        boxes.OpenAsync(command.Session, OpeningWireSlots.Business(command.Input), clock.GetUtcNow(), context.LegacyFootprint, ct);
 }
 public sealed class MagicBoxBatchOpeningHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ICommandBus commands, IEventService notifications, IGameMessageSender sender, ILogger<MagicBoxBatchOpeningHandler> logger)

@@ -21,5 +21,5 @@ public sealed class EnchantByBeadCommandHandler(IEquipmentEnchantDomainService e
     public ValueTask<EquipmentEnchantResult> HandleAsync(
         CommandExecutionContext context, EnchantByBeadCommand command,
         CancellationToken ct) => enchant.EnchantAsync(
-            command.Session, command.BeadSlot, command.TargetSlot, ct);
+            command.Session, command.BeadSlot, command.TargetSlot, context.LegacyFootprint, ct);
 }

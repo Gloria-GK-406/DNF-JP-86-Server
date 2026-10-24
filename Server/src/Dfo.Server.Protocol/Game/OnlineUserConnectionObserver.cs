@@ -1,3 +1,6 @@
+using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Effects;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Channel;
@@ -20,7 +23,7 @@ public sealed class OnlineUserConnectionObserver(
     IServerConfigService serverConfig,
     IGameMessageSender gameSender,
     ICleanupNotificationDelivery cleanupDelivery,
-    TimeProvider timeProvider, Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService? clientSettings = null) : INetworkConnectionObserver
+    ILifecycleEffectFootprintSource footprints, TimeProvider timeProvider, Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService? clientSettings = null) : INetworkConnectionObserver
 {
     public async ValueTask ConnectedAsync(
         NetworkConnectionContext connection,
@@ -69,6 +72,9 @@ public sealed class OnlineUserConnectionObserver(
             return;
         }
 
+        using var footprint = footprints.Open(new InternalCommandOrigin(GameplayCallSource.Lifecycle,
+            GameplayJob.Current ?? throw new InvalidOperationException("Cleanup requires a lifecycle job."),
+            nameof(OnlineUserConnectionObserver) + "." + nameof(CleanupSelectedAsync), SourceConnection: null));
         clientSettings?.ForgetConnection(connection.ConnectionId);
         if (!onlineUsers.TryGetByConnection(connection.ConnectionId, out var observed)
             || observed is null)
@@ -78,14 +84,14 @@ public sealed class OnlineUserConnectionObserver(
             // had selected still reads as revoked and its other resources need full cleanup.
             if (selectedSessions.FindByConnection(connection.ConnectionId) is { } orphaned)
             {
-                _ = await CleanupSelectedAsync(orphaned).ConfigureAwait(false);
+                _ = await CleanupSelectedAsync(orphaned, footprint.Footprint).ConfigureAwait(false);
             }
             return;
         }
 
         var selected = selectedSessions.FindByConnection(connection.ConnectionId);
         var cleanedSelected = selected is not null
-            && await CleanupSelectedAsync(selected).ConfigureAwait(false);
+            && await CleanupSelectedAsync(selected, footprint.Footprint).ConfigureAwait(false);
         if (onlineUsers.TryGetByConnection(connection.ConnectionId, out var current)
             && current is not null && current.OnlineUserId == observed.OnlineUserId
             && (cleanedSelected || current.Generation == observed.Generation))
@@ -97,7 +103,7 @@ public sealed class OnlineUserConnectionObserver(
         }
     }
 
-    private async ValueTask<bool> CleanupSelectedAsync(SelectedSessionIdentity selected)
+    private async ValueTask<bool> CleanupSelectedAsync(SelectedSessionIdentity selected, IEffectFootprintRecorder footprint)
     {
         // A command may have completed exact cleanup before this observer ran. Never clean a
         // replacement selected by the same account or a reused connection identifier.
@@ -109,7 +115,7 @@ public sealed class OnlineUserConnectionObserver(
         try
         {
             var notifications = await cleanup.CleanupAsync(
-                selected, includeOwner: false, CancellationToken.None).ConfigureAwait(false);
+                selected, includeOwner: false, footprint, CancellationToken.None).ConfigureAwait(false);
             await cleanupDelivery.DeliverAsync(
                 notifications, CancellationToken.None).ConfigureAwait(false);
         }

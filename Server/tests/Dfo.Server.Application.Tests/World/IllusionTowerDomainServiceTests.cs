@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Testing;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Abstractions.Characters;
@@ -47,9 +48,9 @@ public sealed class IllusionTowerDomainServiceTests
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
-            await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+            await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
             Assert.Equal(1, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=975"));
-            await tower.LeaveAsync(context, false, default);
+            await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.LeaveAsync(context, false, cap, default));
         });
         await f.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
         Assert.Equal(0, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=975"));
@@ -67,7 +68,7 @@ public sealed class IllusionTowerDomainServiceTests
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
-            await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+            await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
             f.Sender.Messages.Clear();
 
             await new Dfo.Server.Protocol.Game.IllusionTowerStage.IllusionTowerStageHandler(
@@ -96,7 +97,7 @@ public sealed class IllusionTowerDomainServiceTests
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
-            var killed = await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+            var killed = await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
             var drop = Assert.Single(killed.Drops);
             var delivery = f.Services.GetRequiredService<IllusionTowerProjectionDelivery>();
             f.Sender.Messages.Clear();
@@ -129,7 +130,7 @@ public sealed class IllusionTowerDomainServiceTests
             var context = Context((await Enter(f)).Run!, f.Session);
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
-            await tower.DieAsync(context, default);
+            await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default));
 
             var handled = await f.Services.GetRequiredService<IllusionTowerProjectionDelivery>()
                 .SelectReturnAsync(f.Session.ConnectionId, GameMessageMetadata.Empty,
@@ -167,9 +168,9 @@ public sealed class IllusionTowerDomainServiceTests
             await tower.StartAsync(context, default);
             f.Sender.FailExplicit = true;
 
-            Assert.True(await f.Services.GetRequiredService<IllusionTowerProjectionDelivery>()
+            Assert.True(await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => f.Services.GetRequiredService<IllusionTowerProjectionDelivery>()
                 .KillAsync(f.Session.ConnectionId, GameMessageMetadata.Empty,
-                    run.Room.Actors[0].Uid, f.Session.WireUserId, default));
+                    run.Room.Actors[0].Uid, f.Session.WireUserId, default)));
 
             Assert.Equal([f.Session.ConnectionId], closer.Closed);
             var committedReceipt = Assert.Single(tower.Find(f.Session)!.Completion!.Receipt!.Members);
@@ -215,7 +216,7 @@ public sealed class IllusionTowerDomainServiceTests
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
-            run = (await tower.DieAsync(context, default)).Run!;
+            run = (await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default))).Run!;
 
             Assert.Equal(time.GetUtcNow().AddSeconds(60), run.ReturnDueAt);
             Assert.Empty(tower.FindReturnsDue(time.GetUtcNow().AddSeconds(59)));
@@ -243,13 +244,13 @@ public sealed class IllusionTowerDomainServiceTests
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
-            var result = await tower.DieAsync(context, default);
+            var result = await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default));
             Assert.True(result.SettlementCreated);
             Assert.True(result.Run!.Completion!.Settled);
             Assert.NotNull(result.Run.Completion.Receipt);
             Assert.True(f.Scalar("SELECT exp FROM characters WHERE character_id=1") > f.ExperienceForLevel(50));
             var exp = f.Scalar("SELECT exp FROM characters WHERE character_id=1");
-            var duplicate = await tower.DieAsync(context, default);
+            var duplicate = await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default));
             Assert.False(duplicate.Changed);
             Assert.False(duplicate.SettlementCreated);
             Assert.Equal(exp, f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
@@ -326,26 +327,26 @@ public sealed class IllusionTowerDomainServiceTests
                 var actor = Assert.Single(run.Room.Actors);
                 Assert.True(uids.Add(actor.Uid));
                 Assert.False((await tower.StartAsync(context, default)).Changed);
-                Assert.False((await tower.KillAsync(context, actor.Uid, default)).Changed);
+                Assert.False((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, actor.Uid, cap, default))).Changed);
                 Assert.True((await tower.LoadAsync(context, default)).Changed);
                 Assert.False((await tower.LoadAsync(context, default)).Changed);
                 Assert.True((await tower.StartAsync(context, default)).Changed);
                 Assert.False((await tower.StartAsync(context, default)).Changed);
                 Assert.False((await tower.NextLevelAsync(context, default)).Changed);
-                Assert.False((await tower.KillAsync(context with { RunId = Guid.NewGuid() }, actor.Uid, default)).Changed);
+                Assert.False((await TestEffectFootprints.Run((tower.Find((context with { RunId = Guid.NewGuid() }).Session)?.Members.Select(member => member.Session) ?? []).Append((context with { RunId = Guid.NewGuid() }).Session), cap => tower.KillAsync(context with { RunId = Guid.NewGuid() }, actor.Uid, cap, default))).Changed);
                 if (level > 1)
                 {
-                    Assert.False((await tower.KillAsync(original, actor.Uid, default)).Changed);
-                    Assert.False((await tower.KillAsync(context, (ushort)(actor.Uid - 1), default)).Changed);
+                    Assert.False((await TestEffectFootprints.Run((tower.Find((original).Session)?.Members.Select(member => member.Session) ?? []).Append((original).Session), cap => tower.KillAsync(original, actor.Uid, cap, default))).Changed);
+                    Assert.False((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, (ushort)(actor.Uid - 1), cap, default))).Changed);
                 }
-                var killed = await tower.KillAsync(context, actor.Uid, default);
+                var killed = await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, actor.Uid, cap, default));
                 Assert.True(killed.Changed);
                 Assert.NotNull(killed.KilledActor);
                 Assert.Equal(TowerRoomPhase.Cleared, killed.Run!.Room.Phase);
                 Assert.NotNull(killed.Run.Room.StartedAt);
                 Assert.NotNull(killed.Run.Room.ClearedAt);
                 Assert.Equal(level, killed.Run.CompletedLevels.Length);
-                Assert.False((await tower.KillAsync(context, actor.Uid, default)).Changed);
+                Assert.False((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, actor.Uid, cap, default))).Changed);
                 var next = await tower.NextLevelAsync(context, default);
                 if (level < 15)
                 {
@@ -382,15 +383,15 @@ public sealed class IllusionTowerDomainServiceTests
                 await tower.StartAsync(context, default);
                 if (n == floor)
                 {
-                    var result = await tower.DieAsync(context, default);
+                    var result = await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default));
                     Assert.Equal(TowerEndReason.Defeated, result.Run!.Completion!.Reason);
                     Assert.Equal(completed, result.Run.Completion.CompletedLevels);
                     Assert.Equal(reward, result.Run.Completion.RewardLevel);
                     Assert.Equal((uint)(reward * 1066), Assert.Single(result.Run.Completion.Receipt!.Members).Experience);
-                    Assert.False((await tower.DieAsync(context, default)).Changed);
+                    Assert.False((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default))).Changed);
                     break;
                 }
-                await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+                await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
                 run = (await tower.NextLevelAsync(context, default)).Run!;
             }
         });
@@ -417,7 +418,7 @@ public sealed class IllusionTowerDomainServiceTests
             await tower.StartAsync(context, default);
             await using (var tx = Scope(f).Begin())
             {
-                await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+                await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
                 Assert.Equal(TowerRoomPhase.Cleared, tower.Find(f.Session)!.Room.Phase);
             }
             Assert.Equal(TowerRoomPhase.Fighting, tower.Find(f.Session)!.Room.Phase);
@@ -439,14 +440,14 @@ public sealed class IllusionTowerDomainServiceTests
             var receipt = new TowerSettlementReceipt([new(f.Session.CharacterId, 123, 456, [new(4183, 1)])]);
             await using (var tx = Scope(f).Begin())
             {
-                await tower.DieAsync(context, default);
+                await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default));
                 Assert.True((await tower.MarkSettledAsync(context, receipt, default)).Changed);
                 Assert.Equal(receipt, tower.Find(f.Session)!.Completion!.Receipt);
             }
             Assert.Null(tower.Find(f.Session)!.Completion);
             await using (var tx = Scope(f).Begin())
             {
-                await tower.DieAsync(context, default);
+                await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default));
                 Assert.True((await tower.MarkSettledAsync(context, receipt, default)).Changed);
                 Assert.False((await tower.MarkSettledAsync(context, new([]), default)).Changed);
                 await tx.CommitAsync(default);
@@ -468,7 +469,7 @@ public sealed class IllusionTowerDomainServiceTests
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
-            await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+            await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
             rules.FailLevel = 2;
             await Assert.ThrowsAsync<InvalidDataException>(async () => await tower.NextLevelAsync(context, default));
             Assert.Equal(1, tower.Find(f.Session)!.Room.Version);
@@ -519,15 +520,15 @@ public sealed class IllusionTowerDomainServiceTests
             await tower.LoadAsync(second, default);
             Assert.False((await tower.StartAsync(second, default)).Changed);
             await tower.StartAsync(first, default);
-            await tower.DieAsync(second, default);
-            var left = await tower.LeaveAsync(first, true, default);
+            await TestEffectFootprints.Run((tower.Find((second).Session)?.Members.Select(member => member.Session) ?? []).Append((second).Session), cap => tower.DieAsync(second, cap, default));
+            var left = await TestEffectFootprints.Run((tower.Find((first).Session)?.Members.Select(member => member.Session) ?? []).Append((first).Session), cap => tower.LeaveAsync(first, true, cap, default));
             Assert.Equal(TowerEndReason.Defeated, left.Run!.Completion!.Reason);
             Assert.True(Assert.Single(left.Run.Members).IsLeader);
             Assert.Null(tower.Find(f.Session));
-            await tower.LeaveAsync(second, true, default);
+            await TestEffectFootprints.Run((tower.Find((second).Session)?.Members.Select(member => member.Session) ?? []).Append((second).Session), cap => tower.LeaveAsync(second, true, cap, default));
             Assert.Null(tower.Find(other));
             Assert.Null((await Enter(f)).Rejection);
-            Assert.False((await tower.LeaveAsync(first, true, default)).Changed);
+            Assert.False((await TestEffectFootprints.Run((tower.Find((first).Session)?.Members.Select(member => member.Session) ?? []).Append((first).Session), cap => tower.LeaveAsync(first, true, cap, default))).Changed);
             Assert.NotNull(tower.Find(f.Session));
         });
     }
@@ -548,10 +549,10 @@ public sealed class IllusionTowerDomainServiceTests
             // The replacement is selected over the same connection and enters the world through it.
             sessions.EnterWorld(replacement);
             Assert.False((await tower.LoadAsync(context, default)).Changed);
-            Assert.True((await tower.LeaveAsync(context, true, default)).Changed);
+            Assert.True((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.LeaveAsync(context, true, cap, default))).Changed);
             var next = await tower.EnterAsync([new(replacement, 0)], replacement, 2, default);
             Assert.Null(next.Rejection);
-            Assert.False((await tower.LeaveAsync(context, true, default)).Changed);
+            Assert.False((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.LeaveAsync(context, true, cap, default))).Changed);
             Assert.NotNull(tower.Find(replacement));
         });
     }
@@ -569,8 +570,8 @@ public sealed class IllusionTowerDomainServiceTests
             var sessions = f.Services.GetRequiredService<ISelectedSessionDomainService>();
             sessions.ReleaseExact(f.Session);
             sessions.ReleaseExact(other);
-            Assert.True((await tower.LeaveAsync(Context(run, f.Session), true, default)).Changed);
-            Assert.True((await tower.LeaveAsync(Context(run, other), true, default)).Changed);
+            Assert.True((await TestEffectFootprints.Run((tower.Find((Context(run, f.Session)).Session)?.Members.Select(member => member.Session) ?? []).Append((Context(run, f.Session)).Session), cap => tower.LeaveAsync(Context(run, f.Session), true, cap, default))).Changed);
+            Assert.True((await TestEffectFootprints.Run((tower.Find((Context(run, other)).Session)?.Members.Select(member => member.Session) ?? []).Append((Context(run, other)).Session), cap => tower.LeaveAsync(Context(run, other), true, cap, default))).Changed);
             Assert.False(tower.IsInTower(f.Session.CharacterId));
             Assert.False(tower.IsInTower(other.CharacterId));
         });
@@ -705,7 +706,7 @@ public sealed class IllusionTowerDomainServiceTests
                 await tower.LoadAsync(context, default);
                 await tower.LoadAsync(Context(run, other), default);
                 await tower.StartAsync(context, default);
-                var killed = await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+                var killed = await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
                 Assert.Equal(new uint[] { 2076, 1431 }, killed.KillRewards.Select(x => x.Award.Gained));
                 Assert.Equal(new byte[] { 0, 3 }, killed.KillRewards.Select(x => x.Slot));
                 Assert.All(killed.KillRewards, x => Assert.Equal(x.Award.Base, x.Award.Gained));
@@ -713,7 +714,7 @@ public sealed class IllusionTowerDomainServiceTests
                 Assert.Equal(2 - floor, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=65"));
                 Assert.Equal(floor == 2 ? 0 : 1, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=999"));
                 var exp = f.Scalar("SELECT exp FROM characters WHERE character_id=1");
-                Assert.False((await tower.KillAsync(context, run.Room.Actors[0].Uid, default)).Changed);
+                Assert.False((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default))).Changed);
                 Assert.Equal(exp, f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
                 if (floor == 1) run = (await tower.NextLevelAsync(context, default)).Run!;
                 else
@@ -741,14 +742,14 @@ public sealed class IllusionTowerDomainServiceTests
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
 
-            var killed = await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+            var killed = await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
 
             Assert.InRange(f.Count(10089420), 1, 3);
             var reward = Assert.Single(killed.KillRewards);
             Assert.All(reward.InventoryUpdates, update => Assert.Equal(BusinessInventorySpace.Quest, update.Slot.Space));
             Assert.Equal(10 - f.Count(10089420), f.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=950"));
             var count = f.Count(10089420);
-            Assert.False((await tower.KillAsync(context, run.Room.Actors[0].Uid, default)).Changed);
+            Assert.False((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default))).Changed);
             Assert.Equal(count, f.Count(10089420));
         });
     }
@@ -777,7 +778,7 @@ public sealed class IllusionTowerDomainServiceTests
                 var context = Context(run, f.Session);
                 await tower.LoadAsync(context, default);
                 await tower.StartAsync(context, default);
-                await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+                await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
                 return f.Count(10089420);
             }
 
@@ -804,14 +805,14 @@ public sealed class IllusionTowerDomainServiceTests
             await tower.StartAsync(context, default);
             f.Sql("CREATE TRIGGER fail_tower_kill_exp BEFORE UPDATE OF exp ON characters BEGIN SELECT RAISE(ABORT,'xp failure'); END;");
 
-            await Assert.ThrowsAsync<SqliteException>(async () => await tower.KillAsync(context, run.Room.Actors[0].Uid, default));
+            await Assert.ThrowsAsync<SqliteException>(async () => await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default)));
 
             Assert.False(tower.Find(f.Session)!.Room.Actors[0].Dead);
             Assert.Equal((int)f.ExperienceForLevel(50), f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
             Assert.Equal(0, f.Count(10089420));
             Assert.Equal(10, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=950"));
             f.Sql("DROP TRIGGER fail_tower_kill_exp;");
-            var retried = await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+            var retried = await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
             Assert.True(retried.Run!.Room.Actors[0].Dead);
             Assert.InRange(f.Count(10089420), 1, 3);
             Assert.True(f.Scalar("SELECT exp FROM characters WHERE character_id=1") > f.ExperienceForLevel(50));
@@ -835,7 +836,7 @@ public sealed class IllusionTowerDomainServiceTests
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
 
-            var reward = Assert.Single((await tower.KillAsync(context, run.Room.Actors[0].Uid, default)).KillRewards);
+            var reward = Assert.Single((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default))).KillRewards);
 
             Assert.Equal(10, f.SharedCount(3033));
             var update = Assert.Single(reward.InventoryUpdates);
@@ -858,7 +859,7 @@ public sealed class IllusionTowerDomainServiceTests
             var context = Context((await Enter(f)).Run!, f.Session);
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
-            var result = await tower.DieAsync(context, default);
+            var result = await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default));
             var receipt = Assert.Single(result.Run!.Completion!.Receipt!.Members);
             Assert.Equal(4, receipt.Candidates.Length);
             Assert.All(receipt.Candidates, x => Assert.Equal(3000, x.ItemId));
@@ -874,7 +875,7 @@ public sealed class IllusionTowerDomainServiceTests
                 Assert.Equal(1, f.Scalar($"SELECT COUNT(*) FROM mailbox_attachments WHERE instance_value={seed} AND claimed_flag=0"));
             Assert.Equal(2, f.Count(3000));
             Assert.Equal((ushort)35, await f.Durability(InventoryContainerType.Main, 9));
-            Assert.False((await tower.DieAsync(context, default)).Changed);
+            Assert.False((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default))).Changed);
             Assert.Equal(2, f.Count(3000));
         });
     }
@@ -891,18 +892,18 @@ public sealed class IllusionTowerDomainServiceTests
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
             f.Sql("CREATE TRIGGER fail_tower_exp BEFORE UPDATE OF exp ON characters BEGIN SELECT RAISE(ABORT,'xp failure'); END;");
-            await Assert.ThrowsAsync<SqliteException>(async () => await tower.DieAsync(context, default));
+            await Assert.ThrowsAsync<SqliteException>(async () => await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default)));
             Assert.Null(tower.Find(f.Session)!.Completion);
             Assert.False(tower.Find(f.Session)!.Members[0].Dead);
             Assert.Equal(100000, f.Gold);
             Assert.Equal((int)f.ExperienceForLevel(50), f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
             f.Sql("DROP TRIGGER fail_tower_exp;");
-            var receipt = Assert.Single((await tower.DieAsync(context, default)).Run!.Completion!.Receipt!.Members);
+            var receipt = Assert.Single((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default))).Run!.Completion!.Receipt!.Members);
             Assert.Equal(16896, receipt.Gold);
             Assert.Equal(116896, receipt.GoldBalance);
             Assert.True(await tower.CanContinueAsync(context, default));
             Assert.Equal(1, f.Count(4183));
-            Assert.False((await tower.DieAsync(context, default)).Changed);
+            Assert.False((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default))).Changed);
             Assert.Equal(116896, f.Gold);
         });
     }
@@ -924,7 +925,7 @@ public sealed class IllusionTowerDomainServiceTests
             await tower.StartAsync(context, default);
             await using (var tx = Scope(f).Begin())
             {
-                var result = await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+                var result = await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
                 Assert.Single(result.KillRewards);
                 Assert.True(result.Run!.Completion!.Settled);
                 Assert.Equal(4, result.Run.Completion.Receipt!.Members[0].Items.Length);
@@ -933,7 +934,7 @@ public sealed class IllusionTowerDomainServiceTests
             Assert.Equal((int)f.ExperienceForLevel(50), f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
             Assert.Null(tower.Find(f.Session)!.Completion);
             Assert.False(tower.Find(f.Session)!.Room.Actors[0].Dead);
-            var retried = await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+            var retried = await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
             Assert.True(retried.Run!.Completion!.Settled);
             Assert.Equal(2, f.Count(3000));
             Assert.False(await tower.CanContinueAsync(context, default));
@@ -953,13 +954,13 @@ public sealed class IllusionTowerDomainServiceTests
             var first = Context(run, f.Session);
             var second = Context(run, other);
             await tower.LoadAsync(first, default); await tower.LoadAsync(second, default); await tower.StartAsync(first, default);
-            await tower.DieAsync(second, default);
+            await TestEffectFootprints.Run((tower.Find((second).Session)?.Members.Select(member => member.Session) ?? []).Append((second).Session), cap => tower.DieAsync(second, cap, default));
             f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(other);
-            var left = await tower.LeaveAsync(first, true, default);
+            var left = await TestEffectFootprints.Run((tower.Find((first).Session)?.Members.Select(member => member.Session) ?? []).Append((first).Session), cap => tower.LeaveAsync(first, true, cap, default));
             Assert.Empty(left.Run!.Completion!.Receipt!.Members);
             Assert.Equal((int)f.ExperienceForLevel(50), f.Scalar("SELECT exp FROM characters WHERE character_id=3"));
             Assert.Equal((int)f.ExperienceForLevel(50), f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
-            Assert.True((await tower.LeaveAsync(second, true, default)).Changed);
+            Assert.True((await TestEffectFootprints.Run((tower.Find((second).Session)?.Members.Select(member => member.Session) ?? []).Append((second).Session), cap => tower.LeaveAsync(second, true, cap, default))).Changed);
         });
     }
 
@@ -984,7 +985,7 @@ public sealed class IllusionTowerDomainServiceTests
             Assert.True(synchronized.Changed);
             Assert.False((await tower.StartAsync(first, default)).Changed);
             Assert.True((await tower.StartAsync(second, default)).Changed);
-            var cleared = await tower.KillAsync(second, run.Room.Actors[0].Uid, default);
+            var cleared = await TestEffectFootprints.Run((tower.Find((second).Session)?.Members.Select(member => member.Session) ?? []).Append((second).Session), cap => tower.KillAsync(second, run.Room.Actors[0].Uid, cap, default));
             Assert.Equal(TowerRoomPhase.Cleared, cleared.Run!.Room.Phase);
             Assert.False((await tower.NextLevelAsync(first, default)).Changed);
             Assert.True((await tower.NextLevelAsync(second, default)).Changed);
@@ -1015,13 +1016,13 @@ public sealed class IllusionTowerDomainServiceTests
             await tower.LoadAsync(first, default);
             await tower.LoadAsync(second, default);
             await tower.StartAsync(first, default);
-            await tower.DieAsync(second, default);
+            await TestEffectFootprints.Run((tower.Find((second).Session)?.Members.Select(member => member.Session) ?? []).Append((second).Session), cap => tower.DieAsync(second, cap, default));
             f.Sql("CREATE TRIGGER fail_tower_settlement BEFORE UPDATE OF exp ON characters " +
                 "WHEN OLD.character_id=3 BEGIN SELECT RAISE(ABORT,'settlement failure'); END;");
             var coordinator = f.Services.GetRequiredService<IllusionTowerPartyCoordinator>();
 
-            await Assert.ThrowsAnyAsync<Exception>(() => coordinator.TryLeaveAsync(
-                f.Session, allowVirtual: false, departureResponse: null, default).AsTask());
+            await Assert.ThrowsAnyAsync<Exception>(() => TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => coordinator.TryLeaveAsync(
+                f.Session, allowVirtual: false, departureResponse: null, default)).AsTask());
 
             var unchangedParty = parties.FindParty(firstParty);
             Assert.False(unchangedParty.IsVirtual);
@@ -1035,8 +1036,8 @@ public sealed class IllusionTowerDomainServiceTests
             Assert.Equal((int)f.ExperienceForLevel(50), f.Scalar("SELECT exp FROM characters WHERE character_id=3"));
 
             f.Sql("DROP TRIGGER fail_tower_settlement;");
-            var retried = await coordinator.TryLeaveAsync(
-                f.Session, allowVirtual: false, departureResponse: null, default);
+            var retried = await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => coordinator.TryLeaveAsync(
+                f.Session, allowVirtual: false, departureResponse: null, default));
 
             Assert.True(retried.Handled);
             Assert.True(retried.Result.Succeeded);
@@ -1102,8 +1103,8 @@ public sealed class IllusionTowerDomainServiceTests
             Assert.Equal(Tower(f).Find(f.Session)!.RunId, Tower(f).Find(other)!.RunId);
             IllusionTowerPublicFlowTests.AssertEntryDebitPrecedesTowerMode(f.Sender.Messages, receivers: 2);
 
-            var removed = await f.Services.GetRequiredService<IllusionTowerPartyCoordinator>()
-                .TryRemoveAsync(f.Session, targetSlot: 1, default);
+            var removed = await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => f.Services.GetRequiredService<IllusionTowerPartyCoordinator>()
+                .TryRemoveAsync(f.Session, targetSlot: 1, default));
 
             Assert.True(removed.Result.Succeeded);
             Assert.Null(Tower(f).Find(other));
@@ -1145,8 +1146,8 @@ public sealed class IllusionTowerDomainServiceTests
             Assert.DoesNotContain(f.Sender.Messages, message => message.GetType().Name == "InventoryFullSnapshotMessage");
             f.Sender.Messages.Clear();
 
-            Assert.True(await delivery.LeaveAndReturnAsync(f.Session.ConnectionId,
-                GameMessageMetadata.Empty, response: null, default));
+            Assert.True(await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => delivery.LeaveAndReturnAsync(f.Session.ConnectionId,
+                GameMessageMetadata.Empty, response: null, default)));
 
             Assert.Null(Tower(f).Find(f.Session));
             var returned = Snapshot();
@@ -1187,7 +1188,7 @@ public sealed class IllusionTowerDomainServiceTests
             var context = Context((await Enter(f)).Run!, f.Session);
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
-            var receipt = Assert.Single((await tower.DieAsync(context, default)).Run!.Completion!.Receipt!.Members);
+            var receipt = Assert.Single((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default))).Run!.Completion!.Receipt!.Members);
             Assert.Equal(1100000u, receipt.Experience);
             Assert.Equal(receipt.Experience, receipt.Award!.Gained);
             Assert.Equal(receipt.Experience, receipt.Award.Base);
@@ -1446,7 +1447,7 @@ public sealed class IllusionTowerDomainServiceTests
             var context = Context(run, f.Session);
             await Tower(f).LoadAsync(context, default);
             await Tower(f).StartAsync(context, default);
-            var killed = await Tower(f).KillAsync(context, run.Room.Actors[0].Uid, default);
+            var killed = await TestEffectFootprints.Run((Tower(f).Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => Tower(f).KillAsync(context, run.Room.Actors[0].Uid, cap, default));
             Assert.Equal(2, killed.Drops.Length);
             var crystalDrop = killed.Drops.Single(x => x.ItemId == 6515);
             var first = await Tower(f).PickupAsync(context, crystalDrop.Uid, default);
@@ -1461,7 +1462,7 @@ public sealed class IllusionTowerDomainServiceTests
             Assert.True(held.IsDefault);
             Assert.False(held.IsPersistent);
             Assert.Equal(2, (await held.GetAllAsync(default)).Count);
-            await Tower(f).LeaveAsync(context, false, default);
+            await TestEffectFootprints.Run((Tower(f).Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => Tower(f).LeaveAsync(context, false, cap, default));
             Assert.NotSame(held, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot));
             Assert.Empty(await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot).GetAllAsync(default));
             Assert.Same(main, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main));
@@ -1526,7 +1527,7 @@ public sealed class IllusionTowerDomainServiceTests
                 Assert.Equal(7, (await permanent.GetAsync(4, default))!.Count);
             }
             Assert.Null(await current.GetAsync(4, default));
-            await Tower(f).LeaveAsync(Context(run, f.Session), false, default);
+            await TestEffectFootprints.Run((Tower(f).Find((Context(run, f.Session)).Session)?.Members.Select(member => member.Session) ?? []).Append((Context(run, f.Session)).Session), cap => Tower(f).LeaveAsync(Context(run, f.Session), false, cap, default));
             Assert.Same(permanent, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main));
             Assert.Equal(7, (await permanent.GetAsync(4, default))!.Count);
         });
@@ -1567,7 +1568,7 @@ public sealed class IllusionTowerDomainServiceTests
             var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default); await tower.StartAsync(context, default);
-            var killed = await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+            var killed = await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
             var item = Assert.Single(killed.Drops);
             await using (var tx = Scope(f).Begin())
             {
@@ -1580,7 +1581,7 @@ public sealed class IllusionTowerDomainServiceTests
             var temporary = containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot);
             await using (var tx = Scope(f).Begin())
             {
-                await tower.LeaveAsync(context, false, default);
+                await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.LeaveAsync(context, false, cap, default));
                 Assert.NotSame(temporary, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot));
                 Scope(f).Current!.Enlist(new object(), () => new PrepareFailure());
                 await Assert.ThrowsAsync<InvalidOperationException>(() => tx.CommitAsync(default).AsTask());
@@ -1588,7 +1589,7 @@ public sealed class IllusionTowerDomainServiceTests
             Assert.Same(temporary, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot));
             Assert.NotNull(tower.Find(f.Session));
             Assert.Single(await temporary.GetAllAsync(default));
-            await tower.LeaveAsync(context, true, default);
+            await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.LeaveAsync(context, true, cap, default));
             Assert.NotSame(temporary, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot));
         });
     }
@@ -1614,7 +1615,7 @@ public sealed class IllusionTowerDomainServiceTests
             Assert.Equal(95, f.SharedCount(3033));
             var temp = containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot);
             Assert.Empty(await temp.GetAllAsync(default));
-            await Tower(f).LeaveAsync(Context(run, f.Session), false, default);
+            await TestEffectFootprints.Run((Tower(f).Find((Context(run, f.Session)).Session)?.Members.Select(member => member.Session) ?? []).Append((Context(run, f.Session)).Session), cap => Tower(f).LeaveAsync(Context(run, f.Session), false, cap, default));
             Assert.Equal(95, f.SharedCount(3033));
         });
     }
@@ -1633,8 +1634,8 @@ public sealed class IllusionTowerDomainServiceTests
             var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default); await tower.StartAsync(context, default);
-            await f.Services.GetRequiredService<IllusionTowerProjectionDelivery>().KillAsync(f.Session.ConnectionId,
-                GameMessageMetadata.Empty, run.Room.Actors[0].Uid, f.Session.WireUserId, default);
+            await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => f.Services.GetRequiredService<IllusionTowerProjectionDelivery>().KillAsync(f.Session.ConnectionId,
+                GameMessageMetadata.Empty, run.Room.Actors[0].Uid, f.Session.WireUserId, default));
             var ended = tower.Find(f.Session)!;
             Assert.True(ended.Completion!.Settled);
             Assert.Equal(2, f.Count(3000));
@@ -1642,7 +1643,7 @@ public sealed class IllusionTowerDomainServiceTests
             Assert.Equal(2, (await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main).GetAllAsync(default)).Count(x => x.ItemId == 3000));
             Assert.Contains(f.Sender.Messages, message => message.GetType().Name == "InventoryDeltaMessage");
             Assert.True(await tower.CanContinueAsync(context, default));
-            await tower.LeaveAsync(context, false, default);
+            await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.LeaveAsync(context, false, cap, default));
             Assert.Equal(2, (await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main).GetAllAsync(default)).Count(x => x.ItemId == 3000));
             Assert.Equal(2, f.Count(3000));
         });
@@ -1670,7 +1671,7 @@ public sealed class IllusionTowerDomainServiceTests
                 await tower.LoadAsync(context, default); await tower.StartAsync(context, default);
                 foreach (var actor in run.Room.Actors)
                 {
-                    var killed = await tower.KillAsync(context, actor.Uid, default);
+                    var killed = await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, actor.Uid, cap, default));
                     Assert.True(killed.Changed);
                     foreach (var drop in killed.Drops)
                     {
@@ -1700,7 +1701,7 @@ public sealed class IllusionTowerDomainServiceTests
             Assert.Equal(6, (await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot).GetAllAsync(default)).Count);
             Assert.All(await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main, isDefault: true).GetAllAsync(default), item => Assert.Equal(4183, item.ItemId));
             Assert.Equal(90, f.SharedCount(3033));
-            await tower.LeaveAsync(Context(run, f.Session), false, default);
+            await TestEffectFootprints.Run((tower.Find((Context(run, f.Session)).Session)?.Members.Select(member => member.Session) ?? []).Append((Context(run, f.Session)).Session), cap => tower.LeaveAsync(Context(run, f.Session), false, cap, default));
             Assert.True(containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main).IsDefault);
             Assert.Equal(1, f.Count(4183));
             Assert.Equal(90, f.SharedCount(3033));
@@ -1744,7 +1745,7 @@ public sealed class IllusionTowerDomainServiceTests
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default); await tower.StartAsync(context, default);
             var delivery = f.Services.GetRequiredService<IllusionTowerProjectionDelivery>();
-            await delivery.KillAsync(f.Session.ConnectionId, GameMessageMetadata.Empty, run.Room.Actors[0].Uid, f.Session.WireUserId, default);
+            await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => delivery.KillAsync(f.Session.ConnectionId, GameMessageMetadata.Empty, run.Room.Actors[0].Uid, f.Session.WireUserId, default));
             var drop = Assert.Single(tower.Find(f.Session)!.Room.Items);
             f.Sender.Messages.Clear();
             await f.Services.GetRequiredService<Dfo.Server.Protocol.Game.GroundPickup.GetItemHandler>().HandleAsync(new(f.Connection),
@@ -1789,7 +1790,7 @@ public sealed class IllusionTowerDomainServiceTests
             var memory = containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot);
             var itemSequence = f.Scalar("SELECT COALESCE(MAX(seq),0) FROM sqlite_sequence WHERE name='items'");
             await tower.LoadAsync(context, default); await tower.StartAsync(context, default);
-            var drops = (await tower.KillAsync(context, run.Room.Actors[0].Uid, default)).Drops;
+            var drops = (await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default))).Drops;
             Assert.Equal(7, drops.Length);
             foreach (var drop in drops.Take(6)) Assert.True((await tower.PickupAsync(context, drop.Uid, default)).Action.Changed);
             var refused = await tower.PickupAsync(context, drops[6].Uid, default);
@@ -1803,7 +1804,7 @@ public sealed class IllusionTowerDomainServiceTests
             Assert.Same(memory, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot));
             context = Context(run, f.Session);
             await tower.LoadAsync(context, default); await tower.StartAsync(context, default);
-            drops = (await tower.KillAsync(context, run.Room.Actors[0].Uid, default)).Drops;
+            drops = (await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default))).Drops;
             Assert.True((await tower.PickupAsync(context, drops[0].Uid, default)).Action.Changed);
             Assert.Equal(2, (await memory.GetAllAsync(default)).Single(x => x.ItemId == ids[0]).Count);
             await using (var tx = Scope(f).Begin())
@@ -1815,13 +1816,13 @@ public sealed class IllusionTowerDomainServiceTests
             }
             Assert.True((await tower.PickupAsync(context, drops[6].Uid, default)).Action.Changed);
             Assert.Equal(ids[6], (await memory.GetAsync(3, default))!.ItemId);
-            await tower.LeaveAsync(context, true, default);
+            await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.LeaveAsync(context, true, cap, default));
             Assert.Empty(await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot).GetAllAsync(default));
             var restarted = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 99, default, 11000)).Run!;
             var fresh = containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot);
             Assert.NotEqual(memory.Id, fresh.Id);
             Assert.Empty(await fresh.GetAllAsync(default));
-            await tower.LeaveAsync(Context(restarted, f.Session), false, default);
+            await TestEffectFootprints.Run((tower.Find((Context(restarted, f.Session)).Session)?.Members.Select(member => member.Session) ?? []).Append((Context(restarted, f.Session)).Session), cap => tower.LeaveAsync(Context(restarted, f.Session), false, cap, default));
         });
     }
 
@@ -1837,7 +1838,7 @@ public sealed class IllusionTowerDomainServiceTests
             var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default); await tower.StartAsync(context, default);
-            foreach (var drop in (await tower.KillAsync(context, run.Room.Actors[0].Uid, default)).Drops)
+            foreach (var drop in (await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default))).Drops)
                 Assert.True((await tower.PickupAsync(context, drop.Uid, default)).Action.Changed);
             return (run, context);
         });
@@ -1860,7 +1861,7 @@ public sealed class IllusionTowerDomainServiceTests
         Assert.Equal(0, f.Count(6515)); Assert.Equal(0, f.Count(6521));
         await TestGameplay.RunAsync(f.Services, async () =>
         {
-            await tower.LeaveAsync(context, false, default);
+            await TestEffectFootprints.Run((tower.Find(context.Session)?.Members.Select(member => member.Session) ?? []).Append(context.Session), cap => tower.LeaveAsync(context, false, cap, default));
         });
         var returned = await bus.SendAsync(new Dfo.Server.Application.Effects.ReadReplayStateCommand(f.Session, request), default);
         Assert.DoesNotContain(returned.Inventory!.Character().Containers, x => x.ContainerType == InventoryContainerType.QuickSlot);

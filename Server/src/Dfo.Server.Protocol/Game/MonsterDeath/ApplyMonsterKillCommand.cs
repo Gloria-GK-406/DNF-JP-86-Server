@@ -65,7 +65,7 @@ public sealed class ApplyMonsterKillCommandHandler(
                 command.EnemyType == HuntEnemyTargetTypes.Monster, command.Monster.IsNamedMonster),
             command.DungeonId, command.Difficulty, command.DungeonWeight, command.PartyMemberCount,
             command.PartyKey, command.IsFinalBossDeath, command.RunId, command.Actor,
-            command.WorldMapId, command.PendingLoot, cancellationToken).ConfigureAwait(false);
+            command.WorldMapId, command.PendingLoot, context.LegacyFootprint, cancellationToken).ConfigureAwait(false);
         return new(applied.Award, applied.QuestChanges.Select(x => new HuntEnemyQuestAdvance(x.QuestId, x.Before, x.After)).ToArray(), applied.QuestItems, applied.QuestProgress, applied.AccountMaterials);
     }
 }
