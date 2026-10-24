@@ -1,0 +1,101 @@
+# TASK-18 — AvatarCompound 完整效果协议 CMD
+
+## Task Unit Contract
+
+- Revision: 1（本契约与详细计划的同一修订）
+- Outcome and references: 交付[Plan P3](../plan.md) T-004 下一有用单元：GameAvatarCompound logical65635/type0063由一个GameAvatarCompoundCommand吸收原handler/fine编排，删除AvatarCompoundCommand。消费已接受Main/显式footprint/WriteResult/Inventory|AvatarCompound最低投影及现current replay，保先创建新output、再消费输入的原事务顺序、拒绝/UID/89或131B首响应/26B恢复UI。覆盖[Spec B2](../spec.md) RQ-001/003～009/012/014/015、AC-001～005/007～009及F-34/F-88/F-93/F-112；不新增VC/NonRequest/raw许可，不宣称T-004完成。
+- Owned boundary: §2精确10个生产/文档/测试路径、本Task及task-18新证据；migration-ledger.json/md仅§7两个精确ID。DTO/decoder/encoder/同slice composer、domain/规则/接口/Persistence、Task15共享core/Task16/17、reader/sink、helpers/transport、Spec/P3/契约/root/A/baseline/original/旧Task/reviews/证据只读。不并Socket/其它Inventory，不加公共协调器/构造器豁免或新机制。
+- Required checks: 必须真正先跑产品前fresh注册capture与旧route action SQL/native Commit两条完整wire oracle，再迁后同provider同输入/状态对照；真实domain/footprint/Main/SQLite/ItemUsed、earlyRejected/正常RefusedCommitted、输出创建先于消费、独立新UID/无残留、正常/稀有帧、26B UI先当前库存、同entry原Ordinal retry/current不重delta、NotiBus Failed/直接ACK默认保护及E+cleanup保因。纯领域Throws/PVF/SQL/概率/codec原case全保，一个ownedwhole有价值可编译mutation红绿恢复。完整Release0/0＋App/Protocol/Networking三full＋其它四actual原DFO controls、74+7/Golden15/Characterization10/capture/strict原八坏副本；8761＋真实N－D库存与实测范围分开报告。
+- Dependencies: TASK-17 r1/Result R1/fresh required独立approved与main消费，本地检查点`c03ae3476d52fe8afaf9165047877fb7958ae046`（parent `1dc9bfb1f4952f101f5dee8b3fecadb69e0e31a8`）。消费其typed领域driver/真实cap guard/单provider observer/窄旧新wire与失败连接性方法，以及Task15 WriteResult/来源/带cause保因、Task11～16 Main/唯一ledger/replay/finitefamily/NonRequest/B2两许可。B2/P3/gates不变，Spec baseline仍`10a7218a779493494b138bd6b43cc0fc1a84aa6a`。
+- Result review: required — 误迁可先丢输入再失败、错给输出/重复扣box、丢UI恢复或将guard/不确定性变普通17，编译/codec/总数量不能识别这些状态。fresh独立结果快审核真实source/前时点证据/原oracle/数量与两ID，主控消费后检查点。Task-plan仅main readiness，不另设独立审批门。
+
+## Detailed Plan
+
+### 1. 起点、已接受输入与产品前顺序
+
+主控先核精确HEAD、workdir `/Users/puxianguo/project/DNF-JP-86-Server/.claude/worktrees/refactor-session-20261021`、branch `task/refactor-session-20261021`、唯一写者/owned状态；读AGENTS/两架构偏好、B2/P3及[Task17 R1/required review/controller consumption](TASK-17.md)。无`.codegraph/`则rg优先。中文、本地实施核验/主控检查点授权保持；不push/PR/merge/tag/远端issue/版本/游戏/df_game_r/DNF.exe/部署/cleanup，不创建Task19。真实白名单外caller/sharedcore依赖或否定中心方案先报主控source/最小方案，不静默扩scope。
+
+当前8761＝8741pass＋2准确原Dimensionfail＋18skip；最新App4993＋Protocol1769＋Networking199＝6961，同Task17 freeze的App01/Proto01/Net02是有效三full，Net01额外bind48诊断保留，不当根治或基线。另Host203/Http57/Infrastructure976/Persistence484/Pvf80合1800仍Task15 final03业务库存。capture173logical/203cmd＝25Protocol＋1Internal＋177Legacy、149Tx/41Direct/9ReadOnly/4Workflow；message30Protocol/143Legacy；pending129message/177fine/72source/5protection/8transition。
+
+**先执行、再迁移，不能补造前时点。** 最小preflight只精确owned before原bytes/BOM/行尾、新增删除清单与非owned tracked SHA，不复制整仓/旧档/bin/obj。生产四路径仍精确HEAD时，真正运行fresh ConfigureServices-only registration capture及family sidecar（仅真实registry构造，不BuildProvider/启动业务），保存实际生产SHA/HEAD/cwd/command/UTC/exit及原输出；然后只增本Task测试/observer，跑原强定向与§5两条旧完整wire，保存最小before测试源/raw/meta。确认实际注册before和旧route两oracle均有前时点证据，再写whole/迁route。不能遗漏后用旧Task输出/HEAD重建冒称fresh-before；Task17重建偏差已经披露，本轮不得照搬。此是本簇取证精度，不重开Task15共享机制gate。若旧实得否定既定异常恢复假设，保诊断向主控报告，不先改产品再倒称before。
+
+### 2. 精确白名单（生产/文档4＋测试6＝10个source路径）
+
+下列相对workdir，只有列明职责，不授整目录。新增同职责类型收在指定文件，不另建通用helper。
+
+| 路径 | 可写职责 |
+|---|---|
+| `Server/src/Dfo.Server.Protocol/Game/AvatarCompound/AvatarCompoundSlice.cs` | 精确删旧AvatarCompoundCommand/命令handler，消息handler薄化为同bus/原Input/Dispatch/Protocol marker；仅必要using。Request/Response、decoder/encoder、AvatarCompoundCompleted/composer原代码/字节只读 |
+| 新`Server/src/Dfo.Server.Protocol/Game/AvatarCompound/GameAvatarCompoundCommand.cs` | 唯一whole record/handler，原强类型Input/Dispatch/AvatarCompoundResult；搬原前置/地址变换/窄domain catch/日志/错误码/投影 |
+| `Server/src/Dfo.Server.Protocol/ProtocolModule.cs` | logical65635切唯一Protocol/Direct whole/精确AvatarCompoundRequest，删原Tx fine；仅CommittedReplayCurrentStateBatch，原decoder/encoder/notification不改 |
+| `AGENTS.md` | 仅当前AvatarCompound opt-in/fine删除/Main与原响应必要事实，不全篇重写或改变其它责任 |
+| `Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundTests.cs` | 原Roll fine caller迁§5 typed领域driver；保原业务/Throws/SQL/PVF/明确seq/UI/概率/字节case，允许Content/Fixture/seed最小internal可见性供新flow与必要同职责补证 |
+| 新`Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundDomainTestDriver.cs` | 仅具名Compound(host,owner,AvatarCompoundInput)同provider真实事务/current-owner/每调用新test footprint，保纯领域结果/Throws；不开放任意Func或CMD测试平台 |
+| 新`Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundProtocolCommandFlowTests.cs` | 本protocol前时点旧新wire/action/native、真实Main/足迹/资产/UID/UI/current与失败保护；本地typed domain forwarding/actualhandler wrapper，不第二provider |
+| `Server/tests/Dfo.Server.Application.Tests/Sessions/EffectSettlementRegistrationTests.cs` | legacy marker名单只移AvatarCompoundCommand，其余marker/反例保留，新whole元数据另证 |
+| `Server/tests/Dfo.Server.Application.Tests/World/CommonExperienceEffectTests.cs` | 同上精确移一fine，不顺清其它命令 |
+| `Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs` | 单logical/唯一whole/Direct/Protocol/exactCLR/replay-only/无legacy marker及fine注册零；保Use/Buy/Opening/Quality/Socket/Matrix等原case |
+
+fine生产构造唯一caller slice:115、Module原Tx注册；测试fine caller仅AvatarCompoundTests:67及两marker名单。slot boundary无此fine，LegacyEffectFootprintTests:289/297只反射domain接口/构造器，均只读；没有已证白名单外必需编译接口依赖。IAvatarCompoundDomainService/唯一实现/ApplicationModule原注册、AvatarCompoundRuleService/全部存储、ReplayStateProjectionDelivery/reader/ledger/core、EffectRequestTransport/ShopFixture/RecordedOutbound/Task15～17 helpers/tests只读。若实施发现新caller先报精确位置。
+
+Protocol AvatarCompoundCodecTests和Host AvatarCompoundTcpTests/EndToEndHostHarness只读；它们是保留的原oracle，不为占测数或driver统一而修改。Host现仅未选角22/21B请求拒17不断线，不冒称完整成功/事务路径。
+
+### 3. whole、Main与失败结果
+
+record实现`IProtocolCommand<AvatarCompoundResult>`，Message＝原Input，Frame＝原Game metadata；薄handler实现`IProtocolCommandMessageHandler`且只构造/await同bus唯一whole。不注入bus/sender/locator/工厂/当前请求DI/规则/内容，不CMD→CMD/legacy转发。whole注入原session/online领域查询、具名地址映射、IAvatarCompoundDomainService、ICommandWorkUnits/ICommandProjections/IGameCommandOutbox及原日志，沿现封闭清单无新豁免。
+
+完全保原顺序：FindByConnection→Valid/session/online不足拒17→Main material与两Avatar槽映射/原expected IDs/target/完整ushort Ability/RandomTarget/Category原样构造输入，catch InventorySlotMappingException拒17。映射catch不包outbox登记（记录前置拒绝后在外发），不把编码错误当地址错误。不得提前同槽/模板/职业等级/ability/category/寿命/材料等domain规则。ProtocolEffectRejected晚出现selection不升级；早拒不Main/Pending→Rejected。只有原fine分支验证本次Selected及精确captured Session，开一次`WriteResultAsync(context,new(具名unit,[selected.Recipient],MainSettlement),action,ct)`。
+
+getter `unit.Footprint`在业务try外，直接原`CompoundAsync(session,input,footprint,ct)`。domain首次/各写前DemandActive保留，若拒绝已记sticky不可借catch恢复。只该domain调用窄try捕获非cancel/非ContainsUncertain E，保存原cause、RequireRollback(E)并返回本地失败outcome；RequireRollback自身guard不吞。caller侧request/Main/Footprint getter/Freeze/来源/current/cleanup/outbox/Project/encoder机制动作不纳入try，不外catch整个WriteResult、不清sticky或自报已回滚。
+
+unit完全结束后匹配Returned或CommitRolledBack.Cause；正常domain result保原result（无receipt正常Refused也MainCommitted，绝不统一RequireRollback）。只捕获E或已证commit rollback才Error原级别/同cause，unit外发17。Guard/Unknown/cancel/typed/cleanup/Committed/额外scope/drain仍由只读机制默认保护。正常拒绝MissingMaterial16/UnsupportedLifetime13/LockedD2/其它17；原信息日志主题/字段守住，handled category迁新whole，不恢复legacy重复pipeline。
+
+请求最低`Inventory | AvatarCompound`始终保持，不仅成功才加UI、不从ReplayProjectionNeeds.All假定包含UI、不单独复刻reader/sink。只有本次selected actor为Main participant，目标/物料/outputs由原domain判断，不扩大到通知受众。成功unit后只ICommandProjections→原TheseCharacters/AvatarCompoundCompleted；无receipt unit外typed ACK。首通知普通Failed继续NotiBus隔离，不新raw；直接ACK按默认。只existing CommittedReplayCurrentStateBatch许可，Committed同seq不再whole/业务/原deduction ACK，而由原ordinary Write reader/current sink恢复。
+
+### 4. 原事务顺序、字节与强oracle
+
+原domain:22–108有必需footprint、当前事务及角色/物品事实，不用ApplyEffects/selfTx/helper→bus。排除first/second占位算output目标→**先创建全部output records/new InstanceValue**→按first、second、box顺序consume→put全部output→deductions/RecordInventorySlots(first/second/material/outputs)→同TxItemUsed。SQLite CreateAsync真实Insert输出行（SqliteItemDomainStore:88–103/327–348），不能挪成先删输入后create或提前发UI。原plan失败不消耗；新UID必须独立于两旧输入，回滚无孤立output/custody，不额外臆测全局UID allocator回退规则。参与者按实际同库facet/容器/lifecycle/event batch动态加入，不将fixture集合称所有配置固定全集。
+
+首成功composer只有一个AvatarCompoundResponse(receipt)，不加库存NOTI。原encoder写deductions后固定两份conditional result；非稀有89B、稀有131B；缺第二输出写FFFF/模板0跳过额外块，不伪补空Avatar。输出永久/能力/30B JewelSocket/染色/UID字段由原业务/codec保持，不能从new whole另拼协议。
+
+原ReplayStateProjectionDelivery:69–74先加Recovery，再current库存：Recovery body26B=[1,0]＋两份空结果，无扣减/无新输出，UI临时恢复后由当前库存纠正。同seq不能重发89/131B receipt或再消费/roll/记ItemUsed。保MinimumNeeds两bit，即使domain正常拒绝也不擅自删UI needs；earlyRejected按原账本出路，不造Main。无initial raw许可，不改reader/sink/其即时编码阶段。
+
+Task17已验AvatarCompoundTests原27case全保display/status/multiplicity，Protocol AvatarCompoundCodecTests原4case保持。AvatarCompoundTests原强case全保：:82普通/稀有1/2输出、两旧输入和box消费、新UID高于旧、permanent/nojewels/新identity；:100首包89/131B与deduction/conditional字段；:119材料/template/同槽/target/ability/category/part/grade/锁/寿命拒绝；:143 output已create后BEFORE DELETE item_slots trigger的真实action SQL Throws/输入box恢复/无两新输出；:154并发pair只用一次；:163权威职业等级；:170(UI旧定位176)26B恢复先库存；:180后真PVF材料/options/golden随机及概率三层纯规则。以当前源码实际行/case身份为准，不按旧行号机械删改。
+
+原fixture:40即使customContent也用真实PVF placement/CanUse/job/level，原Skip条件/职业0等级80/Avatar容器保持，不借简化NPC样板或fake plan代替；PVF不可用时保真实skip/停止所需oracle，不伪称实跑。Protocol codec保unsigned slots/ushortAbility/22B及checksum26B/拒绝/Recovery；不能修改codec来让新错误输入通过。
+
+### 5. typed领域driver、必要旧新wire与新反例
+
+原Roll:67改具名Compound(host,owner,input)：每次同host.Services独立TestGameplay job，Capture(owner,null)/DemandCurrent前后、Begin真实DomainTransactionScope、每调用新TestEffectFootprints.Lease(owner)，直接原CompoundAsync/Commit；catch E实际AbortAsync(E)原throw，finally Dispose。保纯领域结果/Throws/SQL/PVF/并发/UID目的，不能全换whole吞异常；不留oldfine兼容record、生产setup CMD、任意Func平台/静态lease/反射cap。wire Send:69已真实EffectRequestTransport，readonly，Send在准备job外；原seq7 retransmit保持，独立fresh用现FreshSequence，不同body同seq不得当新请求。decoder-only Empty用途不改。
+
+§1产品前capture完成后，新增两条oldwire oracle共用原Content Rate10000确定两output、真实两输入/box种子：一条沿原BEFORE DELETE item_slots RAISE(ABORT)为action19/1811，观察已新建output行后首次consume失败；另一条seed完成后建fixture deferred FK parent/child＋AFTER INSERT ON items trigger，按实际列`WHEN NEW.avatar_expire_date IS NOT NULL`只捕获新Avatar输出（原Create输出有AvatarDetail，box部分Take还会Insert临时pile，不能全表INSERT都误数为output），使真实两输出创建成功/child2、domain完整receipt/两output stage和输入/box已stage，随后SqliteTransaction.Commit真19/787并stack。不猜不存在item_id列；actualitems主值为item_core/附属列，DDL只需实际INSERT点，生产schema只读。新flow的typed domain forwarding observer记录真实tx/cause/receipt及stage。
+
+stage内ForeignKeys、output UID/行/物料与child查询必须经同provider SqliteDatabase.ReadAsync/WriteAsync加入Current actual participant；ShopFixture.Scalar/Sql另开连接只用于seed/DDL及前后持久状态。不能用fake CommitCanFail、孤立provider、外部手插FK坏行或普通action trigger冒充完整协议native。fixture失败须保日志、确认真实write点/完成阶段，不放宽native要求；DDL生命周期限fixture。
+
+两oldwire保存真实metadata/body/hash/seq/ordinal/产品SHA/最小测试源/meta/原17完整ACK，Error原cause引用/级别，tx及entry ConfirmedRollback、两旧UID/core/box/gold及ItemUsed/events/deliveries还原、无新output残留、nofence/source-close；去trigger同fingerprint同entry原Ordinal retry仅一次合成，再同seq只26B recovery→current库存无重复delta/ItemUsed。迁后同raw/seed/oracle逐字段对照；仅旧pipeline＋handler双Error移为whole handled Error，同cause/级别守原。native Freeze后projection可非null，下一admission才清，不重置main claim/Ordinal。旧action并不称native，现原测试没有native case，本新两oracle覆盖一个协议两故障，不夸所有规则分支已做native。
+
+新flow只本地typed IAvatarCompoundDomainService forwarding wrapper调实际singleton＋actual whole wrapper/logger，沿Task15～17已验shape，无第二provider/发件箱/支持层修改、不为真实logical注册probe whole。新增真实normal/rare成功/拒绝/Main/足迹（两输入/material/outputs、最低两needs）；earlyInvalid/mapping/noactor无MainRejected，正常domainMissingMaterial/InvalidChoice等Committed；initialRejected晚selection不升权/下一fresh正常。自然未InWorld未必通过admission，不伪造registry；若证明NoSession没前移，只沿Task16受控IsInWorld query，其余真实Standing/current/physicalowner/SQLite，并明确非自然registry路径。
+
+至少一首成功通知encoder故障经原RecordedOutbound/NotiBus Failed隔离仍Committed/nofence，后current只Recovery→真实库存不二扣；直接拒绝ACK encoder默认：正常Refused已Committed后typed/fence，earlyRejected/ConfirmedRollback按实际precommit source-close无新增fence，保cause而非按IOException开raw。给本簇一条真实action E＋独立rollback/cleanup X连接性（同对象发生按需最小参数化）证E/X保因、真实资产恢复、无正常17结束与精确fence/close；不是用fake故障当native。真实domain初次Demand的错误owner/closed能力反例可用有界forwarder，仅将错误owner送入实际domain，其cap拒绝sticky/无普通17，原cap实现不改。核心cancel/guard/Unknown/typed/defaultWrite/两raw全量原反例保；白名单外helper/接口需要先报主控。
+
+### 6. 可编译mutation与正式核验
+
+候选只在ownedwhole构造input时错误把ushort Ability cast byte，原其余输入沿Content Rate0合法fixture。真实wire Ability256原规则InvalidRequest/17，pair/box/UID全部不动；错误截断0会真实消费两输入＋box、生成新UID/output并首发89B。新wire资产/帧/ledger oracle应红；旧codec用40/旧拒绝用99，不能冒称旧已覆盖256。先确认fixture与PVF/合法ability0实际可达；只变whole、编译成功且实际状态红才算，缺服务/非法metadata/timeout不是RED。不动只读domain/rules/codec/composer，finally恢复原bytes/SHA，同目标GREEN后freeze；若不可达保具体诊断向主控收敛其它有用owned输入分支，不造fake成功。
+
+core不改，沿Task16/17已验正式编排，每轮freshprefix/目录；完整`dotnet build Server/86JP.Server.slnx -c Release --no-incremental`须0warning/0error；App/Protocol/Networking各独立无filter full：`dotnet test Server/tests/<project>/<project>.csproj -c Release --no-build --logger "console;verbosity=detailed" --blame-hang-timeout 5m -m:1`，原class并行/5m/期限/Skip保持。必需sharedcore变化先报main修scope及full范围，不借三full默扩。
+
+同新DFO目录三full＋Host/HttpApi/Infrastructure/Persistence四actual control-only，精确filter`FullyQualifiedName=Dfo.Server.Testing.GameplayAssertionRecorderControlTests.An_off_executor_violation_in_this_assembly_reaches_the_recorder`；原74 expected精确类/count（App62、Net7、Protocol1、其它四各1）和七程序集各唯一control，outside/exe/orphan0、exe0仅观察；新故意违规逐类/count另列不放宽原expected。Pvf无control；七control不叫七业务full。Golden15逐byte对f01dc226及本起点，Characterization10逐名pass/0skip。
+
+以Task17三full有效同源App01/Proto01/Net02原6961逐display/status/multiplicity核原保留和真实N－D，8761＋N－D为延续总库存；另1800来源Task15 final03/四control实际数分开，不能冒称八full或Infra两skip已重验。原移除0为目标，必要rename逐项旧→新及driver目的，不能靠总数/Assert多重集。原App16skip逐身份保持，Infra2skip延续；准确原失败仅Fusion_real_content_builds_six_reachable_rooms_and_the_actual_boss_resource及All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot，仍Dungeon7100/maze0/cell(1,0)/entrance Left InvalidDataException。新bind/SQL/metadata失败保日志/按实源定位，不当原基线、不放宽并行/deadline/Skip或猜peer/根治。
+
+native按已验本机FSEvents/runner/caffeinate授权方法，保存command/cwd/HEAD/UTC起止/exit/elapsed/resources/完整console并自然结束；不TERM父runner/活跃测试，不补造exit/覆盖旧output。源变后新freeze/实际受影响正式轮，不拼不同源；before/focused/mutation/formal独立。耗时/内存仅观察，T-012最终新八full与单CMD≤2秒接受线测量仍后继。
+
+### 7. capture、两ID闭账与交付
+
+§1实际fresh-before与最终fresh-current均ConfigureServices-only，无provider/gameplay；family sidecar纯真实registry构造，核单logical/唯一whole/exact AvatarCompoundRequest/仅replay许可，其余family/Matrix/exits严格不动。预期总173logical/203cmd不变，一Tx fine→一Direct whole：26Protocol＋1Internal＋176Legacy、148Tx/42Direct/9ReadOnly/4Workflow；message31Protocol/142Legacy，原telemetry14同总账。逐row以实得证仅单route/fine→whole，不硬填预期或重写before时间点。
+
+ledger.json/md只可闭`message:65635` GameAvatarCompound、`command:Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundCommand`。填写真实原caller/Tx/条件参与者/Main/Inventory|AvatarCompound最低needs与实际slots/保护去向、whole/source/tests/Result/artifacts；state用真实state键，original/baseline/其它rows不动。仅预期pending129→128message、177→176fine，72source/5protection/8transition不变，不顺闭其它Inventory/CollectionBox额外raw/来源/过渡。
+
+证据限`verification/logs/task-18-*`、`verification/evidence/task-18-inspection/**`；只精确owned before原bytes/BOM/行尾与新增删除清单、非owned tracked SHA，不复制整仓/旧档/bin/obj。slice现149LF/无CRLF及BOM，只读DTO/decoder/encoder/composer范围独立hash/byte对照，原bytes/行尾不整文件格式化；现probe-tools只读复用。完整source freeze/原case delta/前后真实阶段/诊断/manifest/Result R1 prefix齐；preclose先核真实artifact，追加Result后strict validate及原八坏副本全拒，不填不存在Result骗strict。
+
+最终停共享写交fresh required独立结果快审；review只追加已freeze R1 prefix，main消费精确SHA/物理集合后本地检查点，executor不自行stage/commit。Result报告唯一whole/fine零引用、normal/rare资产/独立UID/原写序、Main/足迹/正常Refused与回滚/Ordinal/current、26B UI先库存不重delta、旧新action/native实际范围/原Throws、cap及通知/直接ACK/E+X保护、mutation恢复、10路径/实际数量与三full四control/1800延续边界。余128message/176fine/72source及5/8仍后继；Astra/Spec根封存/用户分支收尾与最终T-012不因本Task免除，不提前宣告B完成。规划阶段只有契约/详细计划，无Result/review/status。

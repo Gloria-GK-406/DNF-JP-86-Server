@@ -34,6 +34,22 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Avatar_compound_has_one_exact_direct_whole_and_only_existing_replay_permission()
+    {
+        using var provider = BuildProductionGraph();
+        var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var row = Assert.Single(commands, x => x.CommandType == typeof(Dfo.Server.Protocol.Game.AvatarCompound.GameAvatarCompoundCommand));
+        Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+        Assert.Equal(new[] { new ProtocolCommandMessageBinding(ClientMessageType.GameAvatarCompound, typeof(Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundRequest)) }, row.ProtocolMessages);
+        Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
+        Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(row.CommandType));
+        var registry = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        Assert.True(registry.TryGet(ClientMessageType.GameAvatarCompound, out var route)); Assert.Equal(row.CommandType, route!.ProtocolCommandType);
+        Assert.Equal(new[] { typeof(Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundRequest) }, route.AllowedMessageClrTypes);
+        Assert.DoesNotContain(commands, x => x.CommandType.Name == "AvatarCompoundCommand");
+    }
+
+    [Fact]
     public void Four_socket_logicals_share_one_exact_direct_whole_with_only_existing_replay_permission()
     {
         using var provider = BuildProductionGraph();

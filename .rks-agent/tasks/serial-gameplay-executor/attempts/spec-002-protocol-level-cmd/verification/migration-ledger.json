@@ -3881,25 +3881,52 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/AvatarCompoundSlice.cs",
-          "line": 90,
-          "source_sha256": "1f48f81d19360ac33ca7a45e21d61192e914d9d5f8e9044622a7183480a313c1"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "invalid/session/online or slot conversion rejection before fine; valid fine has one transaction, normal domain refusals commit, ordinary action/commit failures rollback before original17 ACK",
+          "new": "original valid selected branch one Main WriteResult; Footprint getter outside narrow domain try; normal domainRefusedCommitted, earlyRejected noMain/no late upgrade; ordinary action RequireRollback(E) or accepted known CommitRolledBack only after fully completed unit; sameentry/Ordinal retry and current UI/inventory without new Main or repeat ItemUsed",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/GameAvatarCompoundCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/old-route-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/preproduct-capture-source-proof.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-18.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/AvatarCompoundSlice.cs",
-          "line": 90,
-          "source_sha256": "1f48f81d19360ac33ca7a45e21d61192e914d9d5f8e9044622a7183480a313c1"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "old AvatarCompoundCommand CLR/handler/Transactional registration deleted; exact logical owned by unique whole"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/GameAvatarCompoundCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundProtocolCommandFlowTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/old-route-freeze.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/preproduct-capture-source-proof.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/before-oracle-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/final-protocol-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/oracle-before-after-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/test-delta.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/workunit-map.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundCommand",
@@ -3925,32 +3952,84 @@
         },
         "result": "Dfo.Server.Data.Inventory.AvatarCompoundResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/AvatarCompoundSlice.cs",
-          "line": 90,
-          "source_sha256": "1f48f81d19360ac33ca7a45e21d61192e914d9d5f8e9044622a7183480a313c1"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/AvatarCompoundSlice.cs",
-          "line": 90,
-          "source_sha256": "1f48f81d19360ac33ca7a45e21d61192e914d9d5f8e9044622a7183480a313c1"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/AvatarCompoundSlice.cs",
-          "line": 90,
-          "source_sha256": "1f48f81d19360ac33ca7a45e21d61192e914d9d5f8e9044622a7183480a313c1"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "AvatarCompoundHandler -> one Transactional AvatarCompoundCommand -> original CompoundAsync with legacy footprint. Original Roll tests27 use pure business input/Throws/PVF/SQL/concurrency; codec4 remain unchanged",
+          "new": "thin handler -> unique GameAvatarCompoundCommand/exact original AvatarCompoundRequest; direct original domain in one Main using live unit.Footprint; typed sameprovider domain driver preserves explicit owner/current/newtestlease/realDomainTx/Throws without wire fields or oldfine alias",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/GameAvatarCompoundCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/old-route-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/preproduct-capture-source-proof.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "exact selected actor/account and dynamic original stores, same-database item/character facets, lifecycle, event batch and configured containers as actually enlisted",
+          "new": "same dynamic original domain participants; Main reporter is exact captured physical actor, not notification audience. Real actionSQL after output rows create and real nativeCommit receipt2/child2/FK1/19-787 complete wire prove this configured path, not a universal fixed SQLite-only participant set",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/GameAvatarCompoundCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/old-route-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/preproduct-capture-source-proof.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "original mandatory DemandActive, exact input IDs/owner/current, output creation before first/second/box consumption, permanent/new identity/no jewels, one ACK89/131 and explicit UI recovery26 before current inventory",
+          "new": "original live domain guard sticky wrongowner cannot become normal17; first/second/material/output slots and minimum Inventory|AvatarCompound always retained; initial notification Failed isolation vs directACK real-phase default fence/sourceclose; E plus independent rollback X including same exception object twice preserved; accepted Task15 unknown/guard/typed/cancel/defaultWrite and both B2 raw boundaries unchanged; only existing committed replay permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/GameAvatarCompoundCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/old-route-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/preproduct-capture-source-proof.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-18.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/GameAvatarCompoundCommand.cs",
+          "purpose": "single complete AvatarCompound protocol command owns original ordered domain call/Main/ordinary rejection and original responses"
+        }
+      ]
     },
     {
       "actual_units": [
@@ -20832,26 +20911,54 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/AvatarCompoundSlice.cs",
-          "line": 96,
-          "source_sha256": "1f48f81d19360ac33ca7a45e21d61192e914d9d5f8e9044622a7183480a313c1"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "invalid/session/online or slot conversion rejection before fine; valid fine has one transaction, normal domain refusals commit, ordinary action/commit failures rollback before original17 ACK",
+          "new": "original valid selected branch one Main WriteResult; Footprint getter outside narrow domain try; normal domainRefusedCommitted, earlyRejected noMain/no late upgrade; ordinary action RequireRollback(E) or accepted known CommitRolledBack only after fully completed unit; sameentry/Ordinal retry and current UI/inventory without new Main or repeat ItemUsed",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/GameAvatarCompoundCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/old-route-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/preproduct-capture-source-proof.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-18.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/AvatarCompoundSlice.cs",
-          "line": 96,
-          "source_sha256": "1f48f81d19360ac33ca7a45e21d61192e914d9d5f8e9044622a7183480a313c1"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/GameAvatarCompoundCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.AvatarCompound.GameAvatarCompoundCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/GameAvatarCompoundCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundProtocolCommandFlowTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/old-route-freeze.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/preproduct-capture-source-proof.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/before-oracle-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/final-protocol-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/oracle-before-after-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/test-delta.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/workunit-map.md"
+      ],
       "id": "message:65635",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundHandler",
@@ -20873,35 +20980,87 @@
         "telemetry": false,
         "value": 65635
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/AvatarCompoundSlice.cs",
-          "line": 96,
-          "source_sha256": "1f48f81d19360ac33ca7a45e21d61192e914d9d5f8e9044622a7183480a313c1"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/AvatarCompoundSlice.cs",
-          "line": 96,
-          "source_sha256": "1f48f81d19360ac33ca7a45e21d61192e914d9d5f8e9044622a7183480a313c1"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/AvatarCompoundSlice.cs",
-          "line": 96,
-          "source_sha256": "1f48f81d19360ac33ca7a45e21d61192e914d9d5f8e9044622a7183480a313c1"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "AvatarCompoundHandler -> one Transactional AvatarCompoundCommand -> original CompoundAsync with legacy footprint. Original Roll tests27 use pure business input/Throws/PVF/SQL/concurrency; codec4 remain unchanged",
+          "new": "thin handler -> unique GameAvatarCompoundCommand/exact original AvatarCompoundRequest; direct original domain in one Main using live unit.Footprint; typed sameprovider domain driver preserves explicit owner/current/newtestlease/realDomainTx/Throws without wire fields or oldfine alias",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/GameAvatarCompoundCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/old-route-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/preproduct-capture-source-proof.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "exact selected actor/account and dynamic original stores, same-database item/character facets, lifecycle, event batch and configured containers as actually enlisted",
+          "new": "same dynamic original domain participants; Main reporter is exact captured physical actor, not notification audience. Real actionSQL after output rows create and real nativeCommit receipt2/child2/FK1/19-787 complete wire prove this configured path, not a universal fixed SQLite-only participant set",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/GameAvatarCompoundCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/old-route-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/preproduct-capture-source-proof.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "original mandatory DemandActive, exact input IDs/owner/current, output creation before first/second/box consumption, permanent/new identity/no jewels, one ACK89/131 and explicit UI recovery26 before current inventory",
+          "new": "original live domain guard sticky wrongowner cannot become normal17; first/second/material/output slots and minimum Inventory|AvatarCompound always retained; initial notification Failed isolation vs directACK real-phase default fence/sourceclose; E plus independent rollback X including same exception object twice preserved; accepted Task15 unknown/guard/typed/cancel/defaultWrite and both B2 raw boundaries unchanged; only existing committed replay permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/GameAvatarCompoundCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/old-route-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/preproduct-capture-source-proof.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-18-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-18.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/AvatarCompound/GameAvatarCompoundCommand.cs",
+          "purpose": "single complete AvatarCompound protocol command owns original ordered domain call/Main/ordinary rejection and original responses"
+        }
+      ]
     },
     {
       "actual_units": {

@@ -1,0 +1,13 @@
+# Task18 evidence classification
+
+- Protected outcome: full ushort Ability256 remains InvalidRequest/ACK17 without input/box consumption, new UID or ItemUsed; a byte cast in the whole would turn 256 into valid0. Original codec uses40 and domain rejection uses99, so neither tests high-byte preservation in the whole. The new complete-wire test asserts actual persisted full assets and ACK. This remains valid after internal refactoring and adds material protection against irreversible wrong item consumption.
+- Planned behavioral RED is an owned whole byte-cast mutation after legitimate0 success and256 rejection have executed; compilation/signature errors are not RED.
+- Preflight attempt incorrectly expected untracked Task18 in git diff; assertion stopped before snapshots/native/product. Corrected to inspect stage/HEAD/tracked diff independently; Task untracked identity unchanged.
+- family-before01: temporary project under /var/folders symlink failed MSBuild3202 transitive relative project resolution. Same pure sidecar under fresh /private/tmp succeeded family-before02 while production still HEAD. Original failed console/meta retained; no runtime/provider/gameplay was started.
+- old-oracle01: new test read Batches tuple without Messages member, CS0021/CS0411; compiler-only fixture error, not RED. old-oracle02 real29/29 follows correction.
+- focused01: new thin-handler marker missing generic type argument/whole missing DomainEvents using; CS0305/CS0246, not RED.
+- focused02: 92pass/1failure in new late-selection setup: ShopFixture.Select re-registered existing Main container before business. Fixed only owned case to real sessions.Select/EnterWorld on the existing containers, preserving initial Rejected admission and next-fresh actual domain; no registry/core mutation/API change.
+
+- focused03: direct re-selection with old f.Session failed EnterWorld generation check; actual OnlineStateRegistry.EnterWorld:181–183 had advanced online generation on original entry. Correct fixture setup follows Task17: release selection and clear old container bindings, then original f.Select uses current generation; re-register the original persistent Avatar container (same store/SQLite data). No production or shared fixture edits; current identity guard stays intact.
+
+- strict01/selftest01: actual validator requires literal `Outcome: done`; bold Outcome label interrupted the literal despite Result content existing. Corrected only Task Result formatting, preserved original plan prefix, source freeze unchanged. Fresh strict02/selftest02 are decisive; initial failures retained, not behavioral RED.

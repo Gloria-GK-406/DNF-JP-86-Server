@@ -286,3 +286,12 @@ P3 新结果由真实 source/phase/原 cause/发生身份限制，Guard/Unknown/
 真实产品前两窄wire探针是EquipmentEmbed actionSQL与AvatarOpen非default nativeCommit；迁后同oracle、四logical成功拒绝/原35业务测试、真实Take1 storageRED/恢复、默认通知/ACK/E+X保护及三full四actualcontrols/74+7/Golden15/Char10/N30-D0见task-17-inspection。注册before捕获曾遗漏，按主控裁定迁后精确HEAD重建ConfigureServices语义基线，实际时间/源SHA/finally10源恢复单独披露，不称产品前fresh捕获。
 
 实际pending129message/177fine/72source及5protection/8transition；original/baseline/其它行与原md字节前缀保持。另1800仅Task15库存，最终T012新八full/单CMD≤2秒、Astra/Spec根封存及用户分支收尾仍pending，不宣告B完成。
+
+
+## TASK18 — AvatarCompound 一个完整 CMD
+
+仅闭 message:65635 与 command:Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundCommand。唯一 Direct whole 消费原消息/精确连接，一次 Main 传活跃 unit.Footprint；最低 Inventory | AvatarCompound 始终保留。原正常领域拒绝仍 Committed、早拒无 Main、初始 Rejected 不升权。保先创建全部独立新 UID 输出后消费 first/second/box 的事务顺序；首成功只有原 89／131B ACK，重放26B UI Recovery 先于当前库存，不重扣／重授予／ItemUsed。仅既有 committed replay，无新 raw/NonRequest。
+
+产品仍 HEAD 时实际 fresh ConfigureServices capture/family 已先跑；原两窄完整 wire(action SQL19/1811 与真正 native SQLite Commit19/787)及迁后同 provider FK1/两 output/child2/stage/ACK17/全资产回滚/same entry原Ordinal retry/UIcurrent 对照、原27App4codec、Main/足迹/NotiBus Failed与直接ACK默认保护/E+独立X及真实 Ability256 storage mutation红绿见 task-18-inspection。只 Avatar InstanceValue 明确4B按原NewIdentity关系比较，原值及其它确定字段保留；不泛忽略core／随机差异。
+
+实际 pending128message/176fine/72source及5protection/8transition；original/baseline/其它rows和原md前缀保持。三full6981=6963pass+2精确原Dim+16skip，N20/D0；延续8781=8761pass+2+18，另1800只Task15库存，四actualcontrol不称业务full。最终T012新八full/单CMD≤2秒、Astra/Spec根封存和用户分支收尾仍pending，不宣告B完成。
