@@ -10,7 +10,7 @@ state: ready
 
 ## Planning Choice
 
-本Plan承接Contract r1及已独立approved的Spec B1（reviews/spec-review.md Round2），baseline为10a7218a779493494b138bd6b43cc0fc1a84aa6a。AC-011的B3文字对齐仅落实该批准已确认的义务。结果A已封存；其资料和接受结论不是本Plan的编辑对象。
+本Plan P2承接Contract r1及已独立approved的Spec B2（reviews/spec-b2-review.md；匹配fresh挑战reviews/spec-b2-challenges.md），baseline仍为10a7218a779493494b138bd6b43cc0fc1a84aa6a。B2批准覆盖RQ-006的具名即时编码登记失败兼容边界，不新增VC；B1/P1不受影响的路线与要求继续保持。结果A已封存；其资料和接受结论不是本Plan的编辑对象。本次只修订受影响共享设计及其gate路径，具体依据、SHA与后继门见verification/plan-p2-amendment.md；P2仍须匹配的独立挑战/Plan review及amendment-only检查点，不沿用旧P1批准启用新effect/Main。
 
 采用逐单元规划：必须先落定跨切片共享契约，但后续功能簇的最小实际Task取决于前簇消除的共享依赖、实际事务点和回归结果。下文T-NNN是粗粒度工作包，不是预先分配的Task清单；详细计划只存于主控临近实施时指定的Task Unit。每Task保留独立结果快审；Spec级独立Plan审查及planning checkpoint在产品改动之前完成。本文件ready仅表示规划可供审查，不代表自批或实施完成。
 
@@ -42,6 +42,10 @@ InternalCommandOrigin是Application/Commands的入口数据，构造/验证集�
 
 请求状态采用封闭的具名变体：ProtocolNonEffect、ProtocolEffectRejected（未选中，只能原样拒绝）、ProtocolEffectSelected（精确会话/序号/账本）、TrustedInternal。未知、缺应有状态和Closed都抛程序错误；不同变体不能用nullable字段相互降级。TrustedInternal只由已登记内部来源入口建立；作用域结束和泄漏续体没有重新获信任的入口。被封锁/被顶替的协议请求在建立前按A静默拒绝，不创建可结算句柄。ledger仍按精确物理连接和序号/载荷身份判定新请求、已提交重放、确认回滚重试；Pending在结束时转拒绝。重放读取当前投影，不重执行CMD业务。
 
+新旧效果入口共用EffectOperationLedger原唯一ConditionalWeakTable及账本身份，不创建第二ledger。抽取纯admission只判定并返回具名结果/原entry，不调用CMD、delivery或建立legacy ambient；旧Dispatch临时消费同一admission并承接其旧执行路径，新CMD直接消费显式Selected/Rejected/replay结果与本次recorder。ConfirmedRollback重试仍复用原entry，保持原entry.Ordinal、不以本次重试ordinal延长其窗口；LatestOrdinal推进、128窗口、原raw身份冲突和Pending结束拒绝保持。新入口不得借旧Dispatch/EffectOperationContext/NetworkCommandAuthorization读取或授权，旧入口待最后消费者迁完删除。
+
+新ledger、reader及sink全链捕获精确recipient时显式传入本次Game metadata或经来源判定的null，或直接传递既有显式recipient；不能调用会隐式读NetworkCommandAuthorization.Metadata的SelectedSessionSafety.Capture(session)。特别是ReplayStateDomainService.ReadAsync内部现有旧Capture也须贯通显式输入，不能只改新bus/sink的外层。仍被旧route消费的具名LegacyReplay适配入口可暂将原输入显式化，登记实际调用者/去向后在最后消费者迁完时删净，最迟T-011清零；新CMD与参数式reader不能经它回落ambient。
+
 EffectOperationContext不再是注入singleton的隐式请求服务。其每请求可变状态成为上述显式句柄；EffectOperationLedger及安全真源仍可singleton，但只能以参数操作该句柄。新增Abstractions/Effects的IEffectFootprintRecorder，只表达本次效果的领域足迹（effects、BusinessSlot、租赁/区域等），不含网络发送/查当前请求/开事务能力。EffectExecutionContext增加必需的该能力；HousingOperations、GrowthCapsules、NpcShop、ItemSocket、AvatarCompound、ItemUseEffect及ApplyEffects等所有实际singleton消费链按领域形状参数或该既有context传下去，三处细粒度handler调用同样迁移。不得只把注入改scoped，或从环境事务找回请求。
 
 选中效果请求的recorder验证自身活跃、主单元状态、owner和精确recipient；无选中效果请求的recorder拒绝效果记录/主单元，不能是no-op。非效果/可信内部业务确需无账本足迹时，由已判定来源显式发给NonRequestFootprint；它不是通用可注入默认值，也不能作为缺参fallback。领域API不得optional null静默忽略。两次连续请求、失败后下一次请求、singleton同实例及结束后续体分别验证不串状态。
@@ -52,7 +56,17 @@ EffectOperationContext不再是注入singleton的隐式请求服务。其每请�
 
 每旧实际Transactional/ReadOnly段对应一个显式调用；Direct/Workflow的领域动作按原阶段保留，不能由全CMD默认事务包裹。主结算由CMD代码声明一次，runner验证报告者包含于参与者、账号/会话一致、逐人DemandCurrent，写开始/Freeze/Settled/Failed/ConfirmedRollback与现有账本顺序等价。只读禁止写，RequireRollback正常拒绝仍真回滚。两单元第二回滚保留第一已提交消息；未完成单元不刷消息，关闭登记继续遵守A单元之外语义。
 
-runner的异常出口分真回滚、提交已确认及不确定：使用事务操作的明确结果/既有typed失败，不用DomainTransaction.IsSettled猜已提交（它在Prepare前就变true）。既有提交后非传输失败和不确定提交按参与者逐一围栏、禁止重结算；原异常保留。配合显式请求结束状态防止业务catch后吞掉保护失败。所有权检查、当前性检查和主单元生命周期保护在runner/显式句柄，不散成每CMD手写一份。
+runner的异常出口分真回滚、提交已确认及不确定：使用事务操作的明确结果/既有typed失败，不用DomainTransaction.IsSettled猜已提交（它在Prepare前就变true）。默认保持Task04已验收的普通提交后业务失败、既有typed发布、未知来源、登记守卫及不确定结果按全部精确参与者逐一围栏，禁止重结算并保留原cause引用；MonsterDeath/祭坛原受保护发布段不变。仅Spec B2 RQ-006的两个已证出口依下述机制保留raw，不将所有编码或IOException当豁免。所有权检查、当前性检查和主单元生命周期保护在runner/显式句柄，不散成每CMD手写一份。
+
+具名许可在ProtocolModule等实际命令注册元数据中声明，限定UseStackable已Settled后的RequiredExplicit、CommittedReplay普通Write后的CurrentStateBatch；Application只认识机制层许可标识/阶段及注册身份，不认识具体Protocol CLR类型。request只在对应实际阶段、当前job且健康/未closed、精确物理目标匹配时签发本次不可伪造attempt/handle，绑定request、job、注册具名出口、阶段、目标及调用身份。许可不以永久exemption标志开启，不是新的CMD构造器注入能力或工厂；普通登记API默认策略不变。新增出口须另有旧行为证据及受影响审查，不能只声明元数据即获授权。
+
+来源证明采用最小显式数据流：本次request签发handle → Protocol的typed Game登记适配器 → Abstractions窄登记契约透传 → Application实际outbox adapter。可由Application内部sealed类型实现Abstractions的不透明接口；真实adapter与request同程序集，只有adapter能在实际encoder调用的窄catch内内部记下原cause并原样throw。调用方不能自行报告/设置来源，也不增加多层receipt/result框架；具体API名留临近Task。CMD/NOTI类型约束不变，Abstractions不引用Application，Game适配器不新建请求或改变许可。callback、校验、转换、lookup、取消、outbox.Current守卫、缓冲区操作及outbox.Register等非encoder错误没有编码来源凭据；RequiredExplicit仅涵盖required direct实际encoder调用，BestEffort原逐目标跳过/继续保持。所有编码仍在原登记点即时完成，不造AsyncLocal、GameplayJob slot、单例可变请求字段、DI当前请求或从事务取请求。
+
+body一旦登记失败，request立即保持sticky失败，业务catch不能恢复权威、开始后续结算/写入或成功结束。CommandBus当前在body catch及scope dispose catch两次调用FailAsync，后继调整必须先记录原失败并drain全部已启动/未await工作单元，在scope仍活着时等其完成；然后按原生命周期Close请求、dispose scope并收集独立失败，最后一次性裁决raw或typed/fence，再交作业结束处理原source outbox顺序。Close不可为清理再打开；合法commit读facts及dispose不取得继续结算权。不得在清理前根据HasCommittedUnit提前作不可撤销的整CMD typed包装/fence或raw许可终判；原事务操作已产生的typed不确定事实仍照常保留，不能事后改称raw。保留原cause及业务/清理各因引用。
+
+最终raw资格要求具名许可和本次实际encoder出处同时成立，且drain/所有unit/scope cleanup后最终失败仍为该同一原cause、无typed不确定性、无额外独立失败。须区分独立阶段的失败发生与同一失败沿调用栈传播；即使独立dispose/unit阶段恰好抛出同一个Exception对象，也不能因ReferenceEquals或现有Includes去重而忽略该独立失败。失败发生的阶段/独立性只在本次显式request收口记录，不新造全局追踪框架。条件全满足时保原raw对象、Committed、无新增participant fence及原source close；否则沿默认typed/aggregate及全部参与者保护，保各cause引用。不得按异常类、文字、自报transport或可包任意业务的Func豁免。
+
+replay旧ReadReplayStateCommand的实际注册是Transactional，故新路径在普通Write内直接调用领域reader读取当前快照，单元结束后仍按MirrorMerge → Create → CurrentStateBatch → Town原序在事务外执行；不改ReadOnly、不调用另一CMD、不重新开始Main、不重复原业务/ACK。只有上述batch实际encoder故障可取对应许可，其前后业务组装和Town路径没有该凭据。协议第一次UseStackable的主事务/Freeze/Settled与之后RequiredExplicit分段同样保持。fixture同连接重放只证明账本/围栏语义，不保证真实socket关闭后还能接收。
 
 本Plan选择不启用工作单元内延迟组装：新登记契约不暴露GameplayOutbox.ComposeAsync，不在打开的单元内调用该路径；协议/通知的原即时组包顺序和登记单元归属保持，投影按实际原位置迁移。T-002核实生产该延迟API的调用为零，T-011以结构判据守禁用；其机制测试不等于生产启用。F-132记录为该路径禁用/不可达，不称已修。普通已提交后业务失败的围栏/不重结算仍必须验证。若实际切片需要启用延迟组装，先由主控修订此决策及受影响审查，并取得Spec RQ-008要求的持久写→组装失败/取消→重发不重复证据，不能直接在Task里启用。
 
@@ -67,8 +81,8 @@ runner的异常出口分真回滚、提交已确认及不确定：使用事务�
 | *DomainService、*DomainStore | Abstractions各领域 / 原实际状态所有者 | 维持现有类别判定；业务服务调用规则/存储，CMD不绕过它们 |
 | IPartyService、TimeProvider | 原契约/实现 | 维持具名队伍聚合及环境时钟例外，不扩成其它Directory/Registry |
 | ICommandWorkUnits | Application/Commands / Application/Transactions | 仅本CMD的显式边界，上节职责；拒绝bus/queue/执行器/动态解析入口 |
-| ICommandMessageOutbox | Abstractions/Networking / Application/Execution/Outbox | RegisterAsync、RegisterBatchAsync、RegisterExplicitAsync只登记当前CMD；保留原显式收件人失败隔离，不含传输或Resolve。实现复用常设发件箱适配器，不能另造消息队列 |
-| IGameCommandOutbox | Protocol/Game / Protocol/Game | RegisterCmdAsync、RegisterNotiAsync及typed batch/explicit；适配前项，保Game CMD/NOTI类型约束。Application不知道这些协议类型 |
+| ICommandMessageOutbox | Abstractions/Networking / Application/Execution/Outbox | RegisterAsync、RegisterBatchAsync、RegisterExplicitAsync只登记当前CMD；§4具名出口另以窄参数透传本次不透明handle，真实adapter仅在encoder窄catch内部记cause，不提供调用方自报错误能力。保原显式收件人失败隔离，不含传输或Resolve；复用常设发件箱适配器，不另造队列/请求容器 |
+| IGameCommandOutbox | Protocol/Game / Protocol/Game | RegisterCmdAsync、RegisterNotiAsync及typed batch/explicit；适配前项并显式透传获许可handle，保Game CMD/NOTI类型约束，不签发许可或包装任意业务Func。Application不知道这些协议类型 |
 | ICommandConnectionClosures | Abstractions/Networking / Application/Execution/Outbox | RequestCloseAsync只登记精确关闭；维持close总执行、链原因与F-131现状，不直接断socket |
 | ICommandProjections | Abstractions/DomainEvents / Application/DomainEvents | 仅ProjectAsync并返回登记结果；EventService同一实例实现此窄契约，不暴露Enqueue/Direct或重建第二事件系统。领域事实仍由实际领域服务记录 |
 | IOutboundOrdering | 既有Abstractions/Execution / Application发件箱 | 仅显式跨收件人顺序组作用域；不改变Required/BestEffort/逐连接语义 |
@@ -76,6 +90,8 @@ runner的异常出口分真回滚、提交已确认及不确定：使用事务�
 | ILogger<T> | 原日志框架 | 业务拒绝/producer降级等原级别；不可重复记录执行器已负责的异常Error |
 
 INetworkMessageSender、IGameMessageSender、INetworkConnectionCloser等旧sender/closer契约即使DI当前映射到发件箱，也不允许注入新CMD；只登记的新契约代替CMD的旧用法。底层encoder/transport/observer真正需要的sender仍按职责保留，最终不能把整个传输接口重命名为Outbox冒充完成。
+
+§4的handle是显式方法参数，不扩大此构造器清单；注册元数据、签发/收口归Application命令机制，opaque契约归Abstractions，CMD/NOTI适配归Protocol，实际编码出处归Application常设outbox。生产和测试窄接口均须复用同容器/同adapter/同GameplayOutboxes。RecordedOutbound的旧INetworkMessageSender与新ICommandMessageOutbox须alias同一个Registering实例，新增方法保留其inFlight、回调/观察及实际FaultingEncoder路径；不能由新接口直接解析底层adapter绕过wrapper，不建第二provider/outbox。旧callback错误仍属callback，不借inFlight取得encoder证明。
 
 纯协议key算法改为使用已允许TimeProvider的纯辅助调用；LOGIN端点/频道事实由真正拥有频道解析与入场决策的IChannelEntryDomainService收口（Abstractions/Channel契约、Application/Channel实现，吸收原ChannelEntryPolicy的实际职责及typed部署端点快照），不在CMD注入IServerConfigService或内容源，不造只转发任意GetConfig的假DomainService。规则输入仍由所属规则服务拥有，Protocol只组帧。所有新增类型遵守Application→Abstractions/Data及Protocol→Application方向；Application不引用Protocol/Networking。
 
@@ -110,7 +126,7 @@ Protocol的各主题CMD通过该服务检查周期/精确身份，并通过所�
 | T-001 首单元有界修正 | App25文件按拥有的规范化写/只读池清理；F-127真实传输失败只调整gone日志分类，含普通故障对照 | 仅已批准Plan及checkpoint；不依赖CMD迁移，先稳定清理与失败日志基线。一个首Task含两项，但实现与验证证据分开 | RQ-010/011，AC-006；F-130/F-127，VC-B1 |
 | T-002 保护与迁移账 | 冻结注册/来源/实际事务点清单；F-88/F-93四项先红守护；建立可执行不变量对照，核实F-132延迟路径禁用 | T-001结果；先有保护再搬保护，清单不是详写远期Task。保护可按即将迁移簇物化，但四项不得晚于对应搬迁 | RQ-001～008/013～015，AC-001～005/008；F-12/F-34/F-88/F-93/F-112/F-132 |
 | T-003 共享执行骨干与简单协议先行 | 同一命令模型、新路由/请求状态、runner、typed登记接口及注入反例；用简单单命令/单响应协议验证贯通，再迁Channel/登录/名册等适合的简单簇 | T-002的清单/相关保护；骨干不能靠空壳编译算完成，至少一条真实入站路径和内部来源验证。跨切片接口与可见行为分Task按test-value gate处理 | RQ-001～009/012/014，AC-001/002/004/005/007；F-58/F-110，VC-B2 |
-| T-004 物品与效果簇 | 物品/槽位/效果协议CMD、显式footprint从singleton传到底、主结算/重放、F-122登记结果全消费点改名 | T-003；按实际共享领域服务和通知依赖选择最小簇，不容新CMD回调legacybus。覆盖旧三个细粒度replay调用 | RQ-001/003～009/013～015，AC-001～005/008；F-34/F-112/F-122 |
+| T-004 物品与效果簇 | 物品/槽位/效果协议CMD、显式footprint从singleton传到底、主结算/重放、F-122登记结果全消费点改名；按B2及§3/§4闭合唯一ledger admission、显式reader/sink及两个具名即时编码登记出口 | T-003与已验Task09/10参数/来源骨干；首显式Effect/Main及完整UseStackable须先有B2/P2匹配gate和amendment-only检查点。按真实共享依赖选最小簇，不容新CMD回调legacybus；按实际legacy重放调用者及其层级逐行留账/迁移，余协议仍分临近Task迁移，不预设调用数量 | RQ-001/003～009/013～015，AC-001～005/008；F-34/F-112/F-122 |
 | T-005 邮箱、市场、租赁簇 | 协议CMD吸收交易与投影编排，逐提交点及拒绝回滚；清除所触共享帮助器bus依赖 | T-004稳定的效果/登记接口；交易簇用真实持久化/同容器发件箱证明，不复制旧handler进代理 | RQ-001/003/006～009/013～015，AC-001～005/008；F-12/F-112 |
 | T-006 队伍簇 | 队伍协议、显式收件人顺序组、共享Delivery/Coordinator解耦；真实状态所有者保留 | T-005及共享业务抽取；先稳定队伍结果/投影，再迁世界/副本依赖 | RQ-001/003/006/007/009/014，AC-001/003～005；F-34 |
 | T-007 城镇与副本簇 | Town/Dungeon/MonsterDeath等CMD；F-86卡牌重试裁定；F-109无语义参数收口，全部参与者围栏不缩减 | T-006、对应F-88/F-93保护；按实际领域事务及共享顺序链继续分最小Task，保#185判定 | RQ-001/003～009/013/014，AC-001～005/008；F-86/F-88/F-93/F-109 |
@@ -155,6 +171,10 @@ Protocol的各主题CMD通过该服务检查周期/精确身份，并通过所�
 
 共享核心回归至少覆盖：三协议状态与内部入口；连续请求singleton足迹隔离；一次主结算/重复主结算/序号前进/已提交重放/Pending结束；非法结束续体；多参与者失败围栏；只读/RequireRollback/两段第二回滚；普通提交后失败不重结算；source空条目失败关闭、rootless目标不误关闭；CMD/NOTI类型与显式收件人顺序。F-88/F-93四项修改/临时去掉保护应变红，随后恢复。Reliable业务+完成标记同事务，LiveOnly消费提交及外部投影原先后，事件Direct继承当前单元。
 
+B2/P2对应首效果单元保留EffectOperationReplayTests的A_use_already_durable_before_sender_failure_cannot_consume_twice_on_the_same_raw_request及Batch_IO_failure_keeps_committed_state_and_uses_later_current_quantity原业务/字节/不重ACK断言，故障仍注入真实登记encoder，不改physical transport。补同cause对象、Committed、无新增participant fence、原已提交条目/source-close序与后续当前数量重放的同provider证据。对照相同IOException来自提交后业务、非许可出口、原typed发布、非encoder登记守卫仍typed且全参与者fence；登记故障叠加独立dispose/unit/cleanup错误（含独立阶段抛同一个Exception对象）撤销raw资格、保原cause引用。覆盖跨request/job/target、closed/leaked、连续singleton请求、catch后不能继续写/成功，以及去掉真实来源验证会行为变红的可编译mutant；不能用编译失败/无效fixture代替RED。
+
+受影响结构/回归同时证明：仅注册具名出口可签发、普通Register默认不变、opaque handle无公开自报入口、Application不识别Protocol CLR、没有新ambient/jobslot/DI当前请求/事务查请求；new ledger/reader/sink每处Capture使用显式recipient/metadata/null，LegacyReplay仅旧route可达且有最终删除账；唯一CWT、ConfirmedRollback不更新原entry.Ordinal、普通Write读取后事务外MirrorMerge/Create/batch/Town、无nested bus/Compose/延迟编码。RecordedOutbound新旧契约同Registering、同outboxes且inFlight注错/观察仍生效，Required/BestEffort及原帧序保护不放宽。详细测试放临近Task，不把这些拟验项目计为本轮已跑。
+
 F-07在T-010验证各主题差异：配额同周期余额变化不新增刷新；Premium同周期权益新增/有效权益fingerprint变化应刷新，水晶/成长激活→到期应按原水晶清零NOTI、成长清零NOTI、状态帧的适用顺序登记并更新完整去重状态，下一轮相同状态不再登记。还覆盖首轮已到期权益的清零、跨周期旧输入无登记/水位、session退出/替换、请求插入FIFO及下一扫描补当前周期。不得用仅跨周期/重复tick通过替代同周期真变化证据。
 
 首Task的F-127使用真实transport两条路径（真实关闭期间、仅真实Writer完成且token未cancel），确认Resolve仍可解析且返回Failed；异常原对象、关闭/observer、队列其余条目与其它连接保持，普通故障仍Warning。HasClosedSendSide等细节在Task中选定并RED/GREEN验证，不能把本Plan的候选探针当已实跑证据。F-130只App25文件；已有fixture完整释放后按它实际拥有的写/只读规范化连接串各ClearPool，保持失败清理语义，ClearPool异常不吞并为文件删除异常。两个自有Path都覆盖、非拥有Reopen不越权，混合行尾文件做字节级定点修改。
@@ -173,10 +193,14 @@ T-012在冻结状态运行完整Release构建，0警告0错误；八项目全量
 
 ## Next Planning Boundary
 
-下一Useful Unit固定为T-001中的首Task：App25文件F-130自有写/只读池清理，加F-127已失败发送的gone日志分类。前提是当前Plan独立approved及planning checkpoint，精确Task路径由主控提供；本次不创建Task。Task planner消费research/first-unit-facts.md中的只读源码定位与真实transport候选，但必须通过真实RED/GREEN验证，保Resolve/Failed/observer语义。
+原P1的T-001首Task边界是历史起点：F-130清池/F-127日志及后续Task01–10已按各自独立结果/检查点推进，原计划/Task/证据不重写；本P2不要求重做已接受单元，也不将Task数量等同粗工作包编号。
 
-首Task结束并独立快审后，以清池检索、两类失败日志对照及数量账为已验证输入，细化T-002的保护/清单与T-003首条贯通单元。后续每次只规划能消除实际依赖的最小有用单元，先读已闭合行及尚未迁调用者再选边界；重大共享决策变更、漏注册/事务点、行为超出VC表或长时间偏离目标触发主控的on-drift复核/受影响Plan评审，不在Task中默改中心方案。没有待用户裁定的共享接口或下一安全步骤阻塞。
+当前下一Useful Unit是T-004内首显式Effect admission/Main及完整UseStackable协议CMD：消费Task09/10已验参数/来源骨干，并一并闭合§3/§4的共享ledger、显式reader/sink、具名登记来源及最终失败收口。须先完成B2的匹配gate（已批准）、本P2 fresh challenge/独立Plan review和amendment-only检查点，主控才提供精确Task路径及授权详细规划/实施。本次不创建Task，不提前启用Main，不提前迁BuyItem双CLR消息族或其他完整效果协议。
+
+后续每次只规划能消除实际依赖的最小有用单元，先读已闭合行及尚未迁调用者再选边界；重大共享决策变更、漏注册/事务点、行为超出VC表或长时间偏离目标触发主控的on-drift复核/受影响Plan评审，不在Task中默改中心方案。B2/P2的gate是执行中amendment受影响检查重跑，不改变controller/profile或门强度；没有新的用户语义决定待补，具体Task设计由临近已验依赖收束。
 
 ## 本地修订说明
 
 P1（2026-10-24，首次Plan评审前）：按独立reviews/plan-challenges.md的CH-1及PremiumDailyRefreshService现有去重/清零实现，定点更正F-07共享状态、T-010和对应验证。配额保持原周期状态，Premium保持完整权益fingerprint与前次激活flag；扫描仅周期/精确session、子CMD重读事实及VC-B3保持。不引入新可见变化，不修改Spec或immutable挑战；本ready目标仍须首轮独立Plan评审。
+
+P2（2026-10-24，Task10检查点之后）：消费已匹配approved的Spec B2，定点对齐§3显式重放链/唯一ledger、§4具名即时编码登记及最终失败收口、§5窄透传能力、T-004依赖、对应结构/回归与当前Next Planning Boundary；routing-decision只更新四个本轮gate制品路径。详见verification/plan-p2-amendment.md。保持task-units、完整T-001～012路线和其余依赖、Spec baseline/Contract、VC-B1/B2/B3及其他要求，不重写旧P1审查或前10Task。本ready稿待匹配P2独立gate，不自批或提前写产品。
