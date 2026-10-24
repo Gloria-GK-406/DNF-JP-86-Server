@@ -1,0 +1,1 @@
+Analysis initially treated three permitted exit kinds as three registered commands. Actual prior and current family has 18 exit-owning commands and exactly three distinct exit kinds. Every original owning command row, its bindings, and exit array compare exactly; both new wholes own none. Corrected the count interpretation, preserving the mistaken analysis version.

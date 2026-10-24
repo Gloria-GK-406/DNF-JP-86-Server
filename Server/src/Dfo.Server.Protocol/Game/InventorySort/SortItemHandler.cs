@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -9,26 +10,10 @@ using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Protocol.Game.InventorySort;
 
-public sealed class SortItemHandler(IOnlineUserQueryDomainService onlineUsers,
-    ISelectedSessionDomainService sessions, ICommandBus commands, IEventService notifications,
-    IGameMessageSender sender) : ClientMessageHandler<SortItemRequest>
+public sealed class SortItemHandler(ICommandBus commands) : ClientMessageHandler<SortItemRequest>, IProtocolCommandMessageHandler<GameSortItemCommand>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
-        SortItemRequest message, CancellationToken ct)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        SortItemReceipt? receipt = null;
-        if (session is not null && onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
-            && online is not null && SortItemMapping.TryMap(message, out var space, out var order))
-            receipt = (await commands.SendAsync(new SortItemCommand(online.OnlineUserId, session, space, order), ct)
-                .ConfigureAwait(false)).Receipt;
-        if (receipt is null)
-            await sender.SendCmdAsync(context.Connection.ConnectionId, new SortItemResponse(message.ListType, false, 1), ct)
-                .ConfigureAwait(false);
-        else
-            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
-                new InventorySorted(receipt, (InventoryContainerType)message.ListType), ct).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, SortItemRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameSortItemCommand(context, message), ct).ConfigureAwait(false);
 }
 
 public sealed record InventorySorted(SortItemReceipt Receipt, InventoryContainerType ContainerType)

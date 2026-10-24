@@ -34,6 +34,31 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Three_sort_wires_use_two_exact_NonEffect_wholes_without_registration_exits_or_old_fines()
+    {
+        using var provider = BuildProductionGraph();
+        var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        foreach (var pair in new[] {
+            (typeof(Dfo.Server.Protocol.Game.InventorySort.GameSortItemCommand), new[] { ClientMessageType.GameSortItem }, typeof(Dfo.Server.Protocol.Game.InventorySort.SortItemRequest)),
+            (typeof(Dfo.Server.Protocol.Game.InventorySort.GameSortLockCommand), new[] { ClientMessageType.GameSortLock, ClientMessageType.GameSortUnlock }, typeof(Dfo.Server.Protocol.Game.InventorySort.SortLockRequest)) })
+        {
+            var row = Assert.Single(commands, x => x.CommandType == pair.Item1);
+            Assert.Equal(CommandRouteKind.Protocol, row.Route); Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind);
+            Assert.Empty(row.RegistrationExits ?? []);
+            Assert.Equal(pair.Item2.Select(logical => new ProtocolCommandMessageBinding(logical, pair.Item3)), row.ProtocolMessages);
+            Assert.False(typeof(Dfo.Server.Abstractions.Networking.IEffectSettlementRequest).IsAssignableFrom(pair.Item3));
+            foreach (var logical in pair.Item2)
+            {
+                var route = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>().TryGet(logical, out var found);
+                Assert.True(route); Assert.Equal(pair.Item1, found!.ProtocolCommandType); Assert.Equal(new[] { pair.Item3 }, found.AllowedMessageClrTypes);
+            }
+        }
+        foreach (var name in new[] { "SortItemCommand", "SortItemCommandHandler", "SortLockCommand", "SortLockCommandHandler" })
+            Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.InventorySort." + name));
+        Assert.DoesNotContain(commands, x => x.CommandType.Name is "SortItemCommand" or "SortLockCommand");
+    }
+
+    [Fact]
     public void Four_collection_box_wires_have_one_exact_whole_Main_and_only_replay_and_initial_permissions()
     {
         using var provider = BuildProductionGraph(); var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();

@@ -1,0 +1,1 @@
+Analysis script initially pointed to non-existent Task20 -02 logs; no native failure and no output existed. Actual accepted Task20 eight full are -01. Corrected only that input prefix; formal Task21 stays -02. First comparator invocation had no summary input and produced no output.

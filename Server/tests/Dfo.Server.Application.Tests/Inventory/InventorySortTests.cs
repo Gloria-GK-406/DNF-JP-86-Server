@@ -125,11 +125,7 @@ public sealed class InventorySortTests
     {
         using var shop = Fixture();
         await shop.SeedCore(12, StackableItemCore.Create(1, 3000, 55));
-        await TestGameplay.RunAsync(shop.Services, async () =>
-        {
-            await shop.Services.GetRequiredService<SortItemHandler>().HandleAsync(new(shop.Connection),
-                new SortItemRequest(GameMessageMetadata.Empty, 0, 1, 0), default);
-        });
+        await InventorySortWire.Sort(shop, BusinessInventorySpace.CarriedEquipment);
         Assert.Collection(shop.Sender.Messages,
             message => Assert.Equal(new SortItemResponse(0, true), message),
             message => {
@@ -145,13 +141,14 @@ public sealed class InventorySortTests
     [Fact]
     public async Task Stale_session_command_cannot_mutate_inventory()
     {
-        using var shop = Fixture();
+        var trace = new InventorySortProtocolCommandFlowTests.Trace();
+        using var shop = InventorySortProtocolCommandFlowTests.CreateFixture(trace);
         var stale = shop.Session;
         await shop.SeedCore(12, StackableItemCore.Create(1, 3000, 55));
         shop.Select(2);
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new SortItemCommand(shop.OnlineUser, stale, BusinessInventorySpace.CarriedEquipment, InventorySortOrder.Default));
-        Assert.Null(result.Receipt);
+        trace.Stale = stale;
+        await InventorySortWire.Sort(shop, BusinessInventorySpace.CarriedEquipment);
+        Assert.Equal(new SortItemResponse(0, false, 1), Assert.Single(shop.Sender.Messages));
         Assert.Equal(1, shop.Scalar("SELECT COUNT(*) FROM item_slots WHERE owner_id=1 AND slot_index=12"));
     }
 
@@ -196,14 +193,9 @@ public sealed class InventorySortTests
     {
         using var shop = Fixture();
         await shop.SeedCore(28, StackableItemCore.Create(1, 3000, 1));
-        await TestGameplay.RunAsync(shop.Services, async () =>
-        {
-            var handler = shop.Services.GetRequiredService<SortLockHandler>();
-            foreach (var action in new[] { InventorySortLockAction.Toggle, InventorySortLockAction.Toggle,
-                InventorySortLockAction.Unlock, InventorySortLockAction.Unlock })
-                await handler.HandleAsync(new(shop.Connection),
-                    new SortLockRequest(GameMessageMetadata.Empty, new(InventoryContainerType.Main, 28), action), default);
-        });
+        foreach (var action in new[] { InventorySortLockAction.Toggle, InventorySortLockAction.Toggle,
+            InventorySortLockAction.Unlock, InventorySortLockAction.Unlock })
+            await InventorySortWire.Lock(shop, new(InventoryContainerType.Main, 28), action);
         Assert.Equal(4, shop.Sender.Messages.Count);
         for (var i = 0; i < 4; i++)
         {
@@ -217,15 +209,10 @@ public sealed class InventorySortTests
     public async Task Invalid_and_empty_lock_targets_do_not_create_items_or_success_ack()
     {
         using var shop = Fixture();
-        await TestGameplay.RunAsync(shop.Services, async () =>
-        {
-            var handler = shop.Services.GetRequiredService<SortLockHandler>();
-            foreach (var slot in new[] { new GameSlot(InventoryContainerType.Main, 28),
-                new GameSlot(InventoryContainerType.Main, 0), new GameSlot(InventoryContainerType.Main, -1),
-                new GameSlot(InventoryContainerType.Main, 400), new GameSlot(InventoryContainerType.Equipment, 12) })
-                await handler.HandleAsync(new(shop.Connection),
-                    new SortLockRequest(GameMessageMetadata.Empty, slot, InventorySortLockAction.Toggle), default);
-        });
+        foreach (var slot in new[] { new GameSlot(InventoryContainerType.Main, 28),
+            new GameSlot(InventoryContainerType.Main, 0), new GameSlot(InventoryContainerType.Main, -1),
+            new GameSlot(InventoryContainerType.Main, 400), new GameSlot(InventoryContainerType.Equipment, 12) })
+            await InventorySortWire.Lock(shop, slot, InventorySortLockAction.Toggle);
         Assert.Empty(shop.Sender.Messages);
         Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM item_slots"));
     }
@@ -233,7 +220,8 @@ public sealed class InventorySortTests
     [Fact]
     public async Task Lock_change_rollback_and_stale_session_leave_flag_clear()
     {
-        using var shop = Fixture();
+        var trace = new InventorySortProtocolCommandFlowTests.Trace();
+        using var shop = InventorySortProtocolCommandFlowTests.CreateFixture(trace);
         await shop.SeedCore(12, StackableItemCore.Create(1, 3000, 55));
         await TestGameplay.RunAsync(shop.Services, async () =>
         {
@@ -244,9 +232,9 @@ public sealed class InventorySortTests
         });
         var old = shop.Session;
         shop.Select(2);
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new SortLockCommand(
-            shop.OnlineUser, old, new(BusinessInventorySpace.CarriedEquipment, 3), InventorySortLockAction.Toggle));
-        Assert.Null(result.Receipt);
+        trace.Stale = old;
+        await InventorySortWire.Lock(shop, new(InventoryContainerType.Main, 12), InventorySortLockAction.Toggle);
+        Assert.Empty(shop.Sender.Messages);
         var bag = shop.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
             .GetStore(old.CharacterId, BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.CarriedEquipment);
         Assert.Equal((byte)0, (await bag.GetAsync(3, default))!.Snapshot.ToCore().SortLockFlag);

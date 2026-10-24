@@ -317,3 +317,12 @@ formal02三full7028=7010pass+2精确原Dim+16skip，N47/D0，延续8828=8808pass
 原caller吞guard后真实SQLite+37的两RED→GREEN；r2暴露typed/cause覆盖八强fail及lateForeignScope nofence RED，经r3仅Bus末端DemandHealthy桥＋Executor同P引用树保完整body修正，原8/两caller/late同目标GREEN、unknown/Begin/call-kind/liveforeign/first/unrelated/nested/独立cleanup及三个actualraw无ProgramError控制保持。完整provenance mutant可编译，callback真1/actualencoder0却错误raw/nofence为RED；finally精确恢复同7目标GREEN。
 
 finalfreeze18source上Release0警告0错误、八无filter full8883=8863pass+2准确原Dimensionfail+18原skip，原8828逐display/status/multiplicity全保，N55=54App+1Protocol、D0；DFO原74/七uniquecontrols/outside-exe-orphan0，Golden15与Characterization10。pending121message/174fine/72source/5protection/8transition。suite耗时/资源仅观察，非单CMD≤2秒或A21实机；T004/B/Spec根/Astra/分支收尾仍后继。
+
+
+## TASK21 r1 — InventorySort 三logical／两typed whole
+
+仅闭65556/66250/66251及SortItem/SortLock两个fine，Direct/Protocol三route→两whole，无registration exit。两个old fine物理文件删除，receipt原形搬迁；普通Write([],Ordinary,None)、原action内正常拒绝、Sort→character.Load隐藏写→account.Load→clock同原事务；原通知字节段/单recipient prepared batch/Warning+Failed隔离保留。空participants只还原原fine无selected marker的范围，NonEffect重复同seq实际再执行，无Main/footprint/ledger/attempt/replay。
+
+42项真正before封存，原40强case意图保留并迁stale/tower driver；新16 oracle和注册1全部passed。原SQL19/1811、真实FK deferred nativeCommit19/787、完整stage/资产BLOBhex/NULL/同run rollback精确，十组原新对应及跨run两items时间/三eventGUID具名关系保留。emptyCommitted拒绝ACK旧raw与新typed PostCommitPublicationFailure/inner同cause为Task10已审解释，明确不称异常相同；新final直接Same物理close，旧empty只Single/IsClose/nofence，旧JSON硬码不是该case独立Same证据。
+
+Level→Default有效mutation 1行为RED+2可达正控，finally逐byte恢复3/3。freeze01 Net两Connection refused保raw/栈/端口诊断，隔离2/2，根因未证且不归Dim；仅empty身份断言增强后freeze02重跑Release0/0、三无filterfull App5128/Protocol1773/Net199及另四freshcontrols。原8883逐display/status/multiplicity全保，N17/D0；加另1800 Task20库存8900=8880pass+原Dim2fail+18skip，不称八freshfull。DFO原74/七controls/outside-exe-orphan0、Golden15/Char10、注册capture仅3message/2fine替换、三出口种类及所有owner原样。pending118message/172fine/72source/5protection/8transition；单CMD≤2秒、A21与Spec最终审查/主控checkpoint仍后继。

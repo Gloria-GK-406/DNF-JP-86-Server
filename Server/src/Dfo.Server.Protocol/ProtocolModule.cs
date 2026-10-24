@@ -699,8 +699,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddProtocolCommandHandler<GameForgingCommand, EquipmentForgingResult, GameForgingCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameSeparateUpgrade, typeof(ForgingRequest)));
-        services.AddCommandHandler<SortLockCommand, SortLockResult, SortLockCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameSortLockCommand, bool, GameSortLockCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSortLock, typeof(SortLockRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSortUnlock, typeof(SortLockRequest)));
         services.AddProtocolCommandHandler<GameWarehouseCommand, InventoryExpansionResult, GameWarehouseCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameCreateAccountCargo, typeof(WarehouseRequest)),
@@ -709,8 +710,8 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GameWithdrawAccountCargo, typeof(WarehouseRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameUpgradeCargo, typeof(WarehouseRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameUpgradeInventory, typeof(WarehouseRequest)));
-        services.AddCommandHandler<SortItemCommand, SortItemResult, SortItemCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameSortItemCommand, bool, GameSortItemCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSortItem, typeof(SortItemRequest)));
         services.AddCommandHandler<DecreaseDurabilityCommand, EquipmentDurabilityResult,
             DecreaseDurabilityCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<SelectCrystalContractCommand, bool, SelectCrystalContractCommandHandler>(CommandExecutionKind.Transactional);
@@ -939,8 +940,8 @@ public sealed class ProtocolModule : IServerModule
         // not one of them: it changes a persisted equipment instance and has its own CMD reply.
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameUseSkill);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameSyncItemSpace);
-        services.RegisterMessageHandler<SortLockHandler>(ClientMessageType.GameSortLock);
-        services.RegisterMessageHandler<SortLockHandler>(ClientMessageType.GameSortUnlock);
+        services.RegisterProtocolMessageHandler<SortLockHandler, SortLockRequest, GameSortLockCommand>(ClientMessageType.GameSortLock);
+        services.RegisterProtocolMessageHandler<SortLockHandler, SortLockRequest, GameSortLockCommand>(ClientMessageType.GameSortUnlock);
         services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameCreateAccountCargo);
         services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0131, ClientMessageType.GameCreateAccountCargo);
         services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameUpgradeAccountCargo);
@@ -953,7 +954,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0198, ClientMessageType.GameUpgradeCargo);
         services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameUpgradeInventory);
         services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x01AF, ClientMessageType.GameUpgradeInventory);
-        services.RegisterMessageHandler<SortItemHandler>(ClientMessageType.GameSortItem);
+        services.RegisterProtocolMessageHandler<SortItemHandler, SortItemRequest, GameSortItemCommand>(ClientMessageType.GameSortItem);
         services.RegisterMessageHandler<DecreaseDurabilityHandler>(ClientMessageType.GameDecreaseDurability);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogDomainConnect);

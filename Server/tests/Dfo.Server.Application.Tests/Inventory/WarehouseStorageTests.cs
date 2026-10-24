@@ -31,8 +31,11 @@ public sealed class WarehouseStorageTests
         Assert.IsType<ItemMoveOutcome.Refused>(await Move(host,
             new(BusinessInventorySpace.Consumable, 0), new(BusinessInventorySpace.AccountCargo, 0)));
         Assert.Equal(InventoryExpansionRejection.NoSession, (await Command(host, 0x0133, 1)).Rejection);
-        Assert.Null((await Sort(host, BusinessInventorySpace.AccountCargo)).Receipt);
-        Assert.NotNull((await Sort(host, BusinessInventorySpace.Consumable)).Receipt);
+        var original = host.StoredCore(65);
+        Assert.False(await Sort(host, BusinessInventorySpace.AccountCargo));
+        Assert.Equal(original, host.StoredCore(65));
+        Assert.Equal(2, host.Count(2000));
+        Assert.True(await Sort(host, BusinessInventorySpace.Consumable));
     }
     [Theory]
     [InlineData("account:1:Main")]
@@ -306,9 +309,20 @@ public sealed class WarehouseStorageTests
         await InTransaction(host, async () => outcome = await host.Services.GetRequiredService<ICargoTransferDomainService>().MoveAsync(host.Session, from, into, count, default));
         return outcome;
     }
-    private static Task<SortItemResult> Sort(ShopFixture host, BusinessInventorySpace space) =>
-        host.Services.GetRequiredService<ICommandBus>().SendAsync(new SortItemCommand(
-            host.OnlineUser, host.Session, space, InventorySortOrder.Default)).AsTask();
+    private static async Task<bool> Sort(ShopFixture host, BusinessInventorySpace space)
+    {
+        var before = host.Sender.Messages.Count;
+        var batches = host.Sender.Batches.Count;
+        await InventorySortWire.Sort(host, space);
+        var result = Assert.Single(host.Sender.Messages.Skip(before).OfType<SortItemResponse>());
+        if (result.Success)
+        {
+            var batch = Assert.Single(host.Sender.Batches.Skip(batches));
+            Assert.Equal(new ushort[] { 0x0014, 0x000D, 0x00FB }, batch.Frames.Select(frame =>
+                System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1))));
+        }
+        return result.Success;
+    }
     internal static async Task InTransaction(ShopFixture host, Func<Task> action)
     {
         await TestGameplay.RunAsync(host.Services, async () =>

@@ -1,0 +1,1 @@
+Pure capture succeeded. Analysis initially called the command enum LegacyQueued, whereas actual command Route is LegacyFineGrained; message Route is LegacyQueued. Corrected exact enum label without changing counts or registrations.
