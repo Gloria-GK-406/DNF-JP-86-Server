@@ -557,18 +557,15 @@ public sealed class ProtocolModule : IServerModule
         // Direct, Workflow and Transactional identically everywhere else.
         services.AddProtocolCommandHandler<GameLoginCommand, GameLoginCompleted, GameLoginCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameLogin, typeof(GameLoginRequest)));
-        services.AddCommandHandler<GetAccountCharacterRosterCommand, AccountCharacterRoster, GetAccountCharacterRosterCommandHandler>(
-            CommandExecutionKind.Direct);
-        services.AddCommandHandler<CheckCharacterNameCommand, CharacterNameStatus, CheckCharacterNameCommandHandler>(
-            CommandExecutionKind.Direct);
-
-        // Creation and deletion both derive a slot from the account's current roster and then write
-        // against it, so they take the account exclusively. Two concurrent creations sharing access
-        // would compute the same next slot.
-        services.AddCommandHandler<CreateCharacterCommand, CharacterCreationResult, CreateCharacterCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<DeleteCharacterCommand, CharacterDeletionResult, DeleteCharacterCommandHandler>(
-            CommandExecutionKind.Transactional);
+        // These complete protocol commands own their original explicit write segments; no account gate remains.
+        services.AddProtocolCommandHandler<GameAccountRosterCommand, AccountCharacterRoster, GameAccountRosterCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGetAccountCharacterRoster, typeof(GetAccountCharacterRosterRequest)));
+        services.AddProtocolCommandHandler<GameCheckCharacterNameCommand, CharacterNameStatus, GameCheckCharacterNameCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameCheckCharacterName, typeof(CheckCharacterNameRequest)));
+        services.AddProtocolCommandHandler<GameCreateCharacterCommand, CharacterCreationResult, GameCreateCharacterCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameCreateCharacter, typeof(CreateCharacterRequest)));
+        services.AddProtocolCommandHandler<GameDeleteCharacterCommand, CharacterDeletionResult, GameDeleteCharacterCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameDeleteCharacter, typeof(DeleteCharacterRequest)));
         services.AddCommandHandler<PrepareSelectedCharacterSessionCommand, PreparedSelectedCharacterSession, PrepareSelectedCharacterSessionCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<CleanupExpiredCharacterItemsCommand, bool, CleanupExpiredCharacterItemsCommandHandler>(
@@ -794,8 +791,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<PremiumServiceUsageReportHandler>(ClientMessageType.GamePremiumServiceUsageReport);
         services.RegisterMessageHandler<RecoverStaminaHandler>(ClientMessageType.GameRecoverStamina);
         services.RegisterProtocolMessageHandler<GameLoginHandler, GameLoginRequest, GameLoginCommand>(ClientMessageType.GameLogin);
-        services.RegisterMessageHandler<GetAccountCharacterRosterHandler>(
-            ClientMessageType.GameGetAccountCharacterRoster);
+        services.RegisterProtocolMessageHandler<GetAccountCharacterRosterHandler, GetAccountCharacterRosterRequest, GameAccountRosterCommand>(ClientMessageType.GameGetAccountCharacterRoster);
         services.RegisterMessageHandler<GetOtherCharacterDetailHandler>(
             ClientMessageType.GameGetOtherCharacterDetail);
         services.RegisterMessageHandler<SelectCharacterHandler>(ClientMessageType.GameSelectCharacter);
@@ -809,9 +805,9 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<FinishQuestHandler>(ClientMessageType.GameFinishQuest);
         services.RegisterMessageHandler<TaggedIdReportHandler>(ClientMessageType.GameTaggedIdReport);
         services.RegisterMessageHandler<RosterFollowUpHandler>(ClientMessageType.GameRosterFollowUp);
-        services.RegisterMessageHandler<CheckCharacterNameHandler>(ClientMessageType.GameCheckCharacterName);
-        services.RegisterMessageHandler<CreateCharacterHandler>(ClientMessageType.GameCreateCharacter);
-        services.RegisterMessageHandler<DeleteCharacterHandler>(ClientMessageType.GameDeleteCharacter);
+        services.RegisterProtocolMessageHandler<CheckCharacterNameHandler, CheckCharacterNameRequest, GameCheckCharacterNameCommand>(ClientMessageType.GameCheckCharacterName);
+        services.RegisterProtocolMessageHandler<CreateCharacterHandler, CreateCharacterRequest, GameCreateCharacterCommand>(ClientMessageType.GameCreateCharacter);
+        services.RegisterProtocolMessageHandler<DeleteCharacterHandler, DeleteCharacterRequest, GameDeleteCharacterCommand>(ClientMessageType.GameDeleteCharacter);
         services.RegisterMessageHandler<MercenaryInfoHandler>(ClientMessageType.GameMercenaryInfo);
         services.RegisterTelemetryMessageHandler<HiddenCharacterInfoHandler>(ClientMessageType.GameHiddenCharacterInfo);
         services.AddCommandHandler<SaveCharacterOptionCommand, bool, SaveCharacterOptionCommandHandler>(CommandExecutionKind.Transactional);

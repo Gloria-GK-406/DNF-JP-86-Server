@@ -1,3 +1,6 @@
+using Dfo.Server.Protocol.Game.AccountRoster;
+using Dfo.Server.Protocol.Game.CharacterName;
+using Dfo.Server.Data.Networking;
 using Dfo.Server.Application;
 using Dfo.Server.Abstractions.Hosting;
 using Dfo.Server.Application.Commands;
@@ -108,8 +111,6 @@ public sealed class CommandRegistrationTests
 
         Type[] reachPersistentWrites =
         [
-            typeof(CreateCharacterCommand),
-            typeof(DeleteCharacterCommand),
             typeof(PrepareSelectedCharacterSessionCommand),
             typeof(CleanupExpiredCharacterItemsCommand),
             typeof(PrepareSelectedCharacterStateCommand),
@@ -128,6 +129,32 @@ public sealed class CommandRegistrationTests
                 $"{command.Name} is not registered at all.");
             Assert.Equal(CommandExecutionKind.Transactional, kind);
         }
+    }
+
+    [Fact]
+    public void All_four_roster_protocols_use_whole_commands_and_explicit_write_segments()
+    {
+        using var provider = BuildProductionGraph();
+        var registrations = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        (Type Command, ClientMessageType Message, Type Request)[] expected =
+        [
+            (typeof(GameAccountRosterCommand), ClientMessageType.GameGetAccountCharacterRoster, typeof(GetAccountCharacterRosterRequest)),
+            (typeof(GameCheckCharacterNameCommand), ClientMessageType.GameCheckCharacterName, typeof(CheckCharacterNameRequest)),
+            (typeof(GameCreateCharacterCommand), ClientMessageType.GameCreateCharacter, typeof(CreateCharacterRequest)),
+            (typeof(GameDeleteCharacterCommand), ClientMessageType.GameDeleteCharacter, typeof(DeleteCharacterRequest)),
+        ];
+        foreach (var (command, message, request) in expected)
+        {
+            var registration = Assert.Single(registrations, row => row.CommandType == command);
+            Assert.Equal(CommandRouteKind.Protocol, registration.Route);
+            Assert.Equal(CommandExecutionKind.Direct, registration.ExecutionKind);
+            var binding = Assert.Single(registration.ProtocolMessages!);
+            Assert.Equal(message, binding.MessageType);
+            Assert.Equal(request, binding.MessageClrType);
+        }
+        Assert.NotNull(provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>());
+        // CharacterRosterCommandFlowTests and GmInitializationHttpTests exercise the actual write,
+        // commit-before-ACK, rollback and post-commit read failure instead of inferring it from Kind.
     }
 
     [Fact]

@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -42,84 +43,12 @@ internal sealed class CheckCharacterNameMessageDecoder : IGameMessageDecoder
         CheckCharacterNamePayloadCodec.Decode(metadata, body);
 }
 
-public sealed record CheckCharacterNameCommand(AccountId AccountId, byte[] RawName)
-    : ICommand<CharacterNameStatus>, IAccountCommand;
-
-public sealed class CheckCharacterNameCommandHandler(ICharacterDomainService characters)
-    : ICommandHandler<CheckCharacterNameCommand, CharacterNameStatus>
+public sealed class CheckCharacterNameHandler(ICommandBus commands)
+    : ClientMessageHandler<CheckCharacterNameRequest>, IProtocolCommandMessageHandler<GameCheckCharacterNameCommand>
 {
-    public ValueTask<CharacterNameStatus> HandleAsync(
-        CommandExecutionContext context,
-        CheckCharacterNameCommand command,
-        CancellationToken cancellationToken) =>
-        characters.CheckNameAsync(command.RawName, cancellationToken);
-}
-
-public sealed class CheckCharacterNameHandler(
-    IOnlineUserQueryDomainService onlineUsers,
-    IGameMessageSender sender,
-    ICommandBus commandBus,
-    ILogger<CheckCharacterNameHandler> logger)
-    : ClientMessageHandler<CheckCharacterNameRequest>
-{
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        CheckCharacterNameRequest message,
-        CancellationToken cancellationToken)
-    {
-        if (!onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var onlineUser)
-            || onlineUser?.AccountId is not { } accountId)
-        {
-            throw new InvalidOperationException(
-                $"Game connection '{context.Connection.ConnectionId}' is not authenticated.");
-        }
-
-        // A body too short to hold a name never reaches the domain: there is nothing to ask about.
-        // It still gets an answer, because the client is holding a naming dialog open.
-        var status = message.RawName is null
-            ? CharacterNameStatus.Malformed
-            : await commandBus.SendAsync(
-                new CheckCharacterNameCommand(accountId, message.RawName),
-                cancellationToken).ConfigureAwait(false);
-
-        // The name is logged, not just its length. A job the client refuses to create produces a
-        // name check and then nothing at all, so this line is the only record that an attempt
-        // happened -- and without the name there is no way to tell which attempt it was.
-        logger.LogInformation(
-            "Check character name {ConnectionId} account={AccountId}: {Status} name='{Name}' ({NameBytes}B)",
-            context.Connection.ConnectionId,
-            accountId,
-            status,
-            DescribeName(message.RawName),
-            message.RawName?.Length ?? 0);
-
-        await sender.SendCmdAsync(
-            context.Connection.ConnectionId,
-            new CheckCharacterNameResponse(status),
-            cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>Renders a proposed name for the log, falling back to hex when it is not text.</summary>
-    /// <remarks>
-    /// Undecodable bytes become hex rather than replacement characters, so a malformed name stays
-    /// distinguishable from a name that genuinely contains U+FFFD.
-    /// </remarks>
-    private static string DescribeName(byte[]? rawName)
-    {
-        if (rawName is null || rawName.Length == 0)
-        {
-            return "<none>";
-        }
-
-        try
-        {
-            return new UTF8Encoding(false, true).GetString(rawName);
-        }
-        catch (DecoderFallbackException)
-        {
-            return Convert.ToHexString(rawName);
-        }
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        CheckCharacterNameRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameCheckCharacterNameCommand(context, message), cancellationToken).ConfigureAwait(false);
 }
 
 internal sealed class CheckCharacterNameResponseEncoder

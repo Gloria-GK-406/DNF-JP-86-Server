@@ -3267,25 +3267,34 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GetAccountCharacterRosterCommand.cs",
-          "line": 16,
-          "source_sha256": "35de5f0e2cec2fe0bd132a9a89446098c9ccaa2b446f40e006cf61df4e5ac2b0"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterHandler.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameAccountRosterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterCommand.cs.txt"
+          ],
+          "new": "direct existing GetAccountRosterWithAppearanceAsync; no WorkUnits; NOTI query roster -> CMD hidden -> NOTI honor",
+          "old": "Direct/no explicit transaction"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-07.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GetAccountCharacterRosterCommand.cs",
-          "line": 16,
-          "source_sha256": "35de5f0e2cec2fe0bd132a9a89446098c9ccaa2b446f40e006cf61df4e5ac2b0"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameAccountRosterCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterHandler.cs.txt",
+        "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameAccountRosterCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterCommand.cs.txt"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.AccountRoster.GetAccountCharacterRosterCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.AccountRoster.GetAccountCharacterRosterCommand",
@@ -3312,31 +3321,43 @@
         "result": "Dfo.Server.Data.Characters.AccountCharacterRoster"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GetAccountCharacterRosterCommand.cs",
-          "line": 16,
-          "source_sha256": "35de5f0e2cec2fe0bd132a9a89446098c9ccaa2b446f40e006cf61df4e5ac2b0"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterHandler.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameAccountRosterCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterCommand.cs.txt"
+        ],
+        "mapping": "Each original handler orchestration absorbed by its named protocol CMD. Shared roster is direct existing domain call in Roster/Create. Host original create/roster calls migrated to authenticated protocol requests; registration assertions have explicit route and real transaction evidence. No other original callers found."
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GetAccountCharacterRosterCommand.cs",
-          "line": 16,
-          "source_sha256": "35de5f0e2cec2fe0bd132a9a89446098c9ccaa2b446f40e006cf61df4e5ac2b0"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterHandler.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameAccountRosterCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterCommand.cs.txt"
+        ],
+        "none_reason": "Original Direct has no explicit domain transaction/selected-session settlement recipients; new command introduces no WorkUnits, existing read service retains its connection behavior."
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GetAccountCharacterRosterCommand.cs",
-          "line": 16,
-          "source_sha256": "35de5f0e2cec2fe0bd132a9a89446098c9ccaa2b446f40e006cf61df4e5ac2b0"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterHandler.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameAccountRosterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterCommand.cs.txt"
+          ],
+          "new": "Same predicates/domain and payloads in one ProtocolNonEffect CMD; no nested dispatch; real ordinary work-unit/typed outbox boundaries; postcommit failure preserves committed state and original cause inside existing typed failure, source closes",
+          "old": "Original authentication rejection, exact request/context, raw-name/status semantics and CMD/NOTI ordering; Create/Delete commit before response and Create appearance read after ACK"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -4564,25 +4585,32 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterName/CheckCharacterNameSlice.cs",
-          "line": 48,
-          "source_sha256": "3c1973ed278fb6f2f44ac5f63caceb9f0d50eb4cb619d576937bc28daccf213b"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CheckCharacterNameSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterName/GameCheckCharacterNameCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+          ],
+          "new": "direct existing CheckNameAsync; malformed skips domain; one CMD",
+          "old": "Direct/no explicit transaction"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-07.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterName/CheckCharacterNameSlice.cs",
-          "line": 48,
-          "source_sha256": "3c1973ed278fb6f2f44ac5f63caceb9f0d50eb4cb619d576937bc28daccf213b"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CharacterName/GameCheckCharacterNameCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CheckCharacterNameSlice.cs.txt",
+        "Server/src/Dfo.Server.Protocol/Game/CharacterName/GameCheckCharacterNameCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.CharacterName.CheckCharacterNameCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.CharacterName.CheckCharacterNameCommand",
@@ -4609,31 +4637,40 @@
         "result": "Dfo.Server.Data.Characters.CharacterNameStatus"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterName/CheckCharacterNameSlice.cs",
-          "line": 48,
-          "source_sha256": "3c1973ed278fb6f2f44ac5f63caceb9f0d50eb4cb619d576937bc28daccf213b"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CheckCharacterNameSlice.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterName/GameCheckCharacterNameCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+        ],
+        "mapping": "Each original handler orchestration absorbed by its named protocol CMD. Shared roster is direct existing domain call in Roster/Create. Host original create/roster calls migrated to authenticated protocol requests; registration assertions have explicit route and real transaction evidence. No other original callers found."
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterName/CheckCharacterNameSlice.cs",
-          "line": 48,
-          "source_sha256": "3c1973ed278fb6f2f44ac5f63caceb9f0d50eb4cb619d576937bc28daccf213b"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CheckCharacterNameSlice.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterName/GameCheckCharacterNameCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+        ],
+        "none_reason": "Original Direct has no explicit domain transaction/selected-session settlement recipients; new command introduces no WorkUnits, existing read service retains its connection behavior."
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterName/CheckCharacterNameSlice.cs",
-          "line": 48,
-          "source_sha256": "3c1973ed278fb6f2f44ac5f63caceb9f0d50eb4cb619d576937bc28daccf213b"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CheckCharacterNameSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterName/GameCheckCharacterNameCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+          ],
+          "new": "Same predicates/domain and payloads in one ProtocolNonEffect CMD; no nested dispatch; real ordinary work-unit/typed outbox boundaries; postcommit failure preserves committed state and original cause inside existing typed failure, source closes",
+          "old": "Original authentication rejection, exact request/context, raw-name/status semantics and CMD/NOTI ordering; Create/Delete commit before response and Create appearance read after ACK"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -4780,25 +4817,34 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/CreateCharacterSlice.cs",
-          "line": 71,
-          "source_sha256": "695cf42b3653fc51a71e1d9c6f9f2bc4cd28a5381af65810dca164031e5df3ea"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CreateCharacterSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/GameCreateCharacterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+          ],
+          "new": "one ordinary create-character Write; commit -> ACK registration completed -> only Created appearance read -> unsolicited roster NOTI",
+          "old": "Transactional CreateCharacterAsync only"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-07.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/CreateCharacterSlice.cs",
-          "line": 71,
-          "source_sha256": "695cf42b3653fc51a71e1d9c6f9f2bc4cd28a5381af65810dca164031e5df3ea"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/GameCreateCharacterCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CreateCharacterSlice.cs.txt",
+        "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/GameCreateCharacterCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.CreateCharacter.CreateCharacterCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.CreateCharacter.CreateCharacterCommand",
@@ -4825,31 +4871,46 @@
         "result": "Dfo.Server.Data.Characters.CharacterCreationResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/CreateCharacterSlice.cs",
-          "line": 71,
-          "source_sha256": "695cf42b3653fc51a71e1d9c6f9f2bc4cd28a5381af65810dca164031e5df3ea"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CreateCharacterSlice.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/GameCreateCharacterCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+          "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+        ],
+        "mapping": "Each original handler orchestration absorbed by its named protocol CMD. Shared roster is direct existing domain call in Roster/Create. Host original create/roster calls migrated to authenticated protocol requests; registration assertions have explicit route and real transaction evidence. No other original callers found."
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/CreateCharacterSlice.cs",
-          "line": 71,
-          "source_sha256": "695cf42b3653fc51a71e1d9c6f9f2bc4cd28a5381af65810dca164031e5df3ea"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/CreateCharacterSlice.cs",
-          "line": 71,
-          "source_sha256": "695cf42b3653fc51a71e1d9c6f9f2bc4cd28a5381af65810dca164031e5df3ea"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CreateCharacterSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/GameCreateCharacterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+          ],
+          "new": "Same actual domain/storage algorithms and participants. declaration [] only means selected-session recipients empty, never no transaction participants. one shared normalized-connection-string SqliteDatabaseParticipant on actual writes; create may also enlist ItemLifecycleScope/InventoryContentsEvent batch/EventService batch depending actual assets/events; delete not assumed to inherit those",
+          "old": "No selected-session settlement recipients. one shared normalized-connection-string SqliteDatabaseParticipant on actual writes; create may also enlist ItemLifecycleScope/InventoryContentsEvent batch/EventService batch depending actual assets/events; delete not assumed to inherit those"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CreateCharacterSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/GameCreateCharacterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+          ],
+          "new": "Same predicates/domain and payloads in one ProtocolNonEffect CMD; no nested dispatch; real ordinary work-unit/typed outbox boundaries; postcommit failure preserves committed state and original cause inside existing typed failure, source closes",
+          "old": "Original authentication rejection, exact request/context, raw-name/status semantics and CMD/NOTI ordering; Create/Delete commit before response and Create appearance read after ACK"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -5212,25 +5273,34 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/DeleteCharacterSlice.cs",
-          "line": 95,
-          "source_sha256": "7bf5bc56f0f72d52f40174083d6a8c5d7cebe0cbf8580763fe2dd6dd6a3af698"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-DeleteCharacterSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/GameDeleteCharacterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+          ],
+          "new": "one ordinary delete-character Write; then only ACK with original ushort index, no roster read",
+          "old": "Transactional DeleteCharacterAsync only"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-07.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/DeleteCharacterSlice.cs",
-          "line": 95,
-          "source_sha256": "7bf5bc56f0f72d52f40174083d6a8c5d7cebe0cbf8580763fe2dd6dd6a3af698"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/GameDeleteCharacterCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-DeleteCharacterSlice.cs.txt",
+        "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/GameDeleteCharacterCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.DeleteCharacter.DeleteCharacterCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.DeleteCharacter.DeleteCharacterCommand",
@@ -5257,31 +5327,46 @@
         "result": "Dfo.Server.Data.Characters.CharacterDeletionResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/DeleteCharacterSlice.cs",
-          "line": 95,
-          "source_sha256": "7bf5bc56f0f72d52f40174083d6a8c5d7cebe0cbf8580763fe2dd6dd6a3af698"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-DeleteCharacterSlice.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/GameDeleteCharacterCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+          "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+        ],
+        "mapping": "Each original handler orchestration absorbed by its named protocol CMD. Shared roster is direct existing domain call in Roster/Create. Host original create/roster calls migrated to authenticated protocol requests; registration assertions have explicit route and real transaction evidence. No other original callers found."
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/DeleteCharacterSlice.cs",
-          "line": 95,
-          "source_sha256": "7bf5bc56f0f72d52f40174083d6a8c5d7cebe0cbf8580763fe2dd6dd6a3af698"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/DeleteCharacterSlice.cs",
-          "line": 95,
-          "source_sha256": "7bf5bc56f0f72d52f40174083d6a8c5d7cebe0cbf8580763fe2dd6dd6a3af698"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-DeleteCharacterSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/GameDeleteCharacterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+          ],
+          "new": "Same actual domain/storage algorithms and participants. declaration [] only means selected-session recipients empty, never no transaction participants. one shared normalized-connection-string SqliteDatabaseParticipant on actual writes; create may also enlist ItemLifecycleScope/InventoryContentsEvent batch/EventService batch depending actual assets/events; delete not assumed to inherit those",
+          "old": "No selected-session settlement recipients. one shared normalized-connection-string SqliteDatabaseParticipant on actual writes; create may also enlist ItemLifecycleScope/InventoryContentsEvent batch/EventService batch depending actual assets/events; delete not assumed to inherit those"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-DeleteCharacterSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/GameDeleteCharacterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+          ],
+          "new": "Same predicates/domain and payloads in one ProtocolNonEffect CMD; no nested dispatch; real ordinary work-unit/typed outbox boundaries; postcommit failure preserves committed state and original cause inside existing typed failure, source closes",
+          "old": "Original authentication rejection, exact request/context, raw-name/status semantics and CMD/NOTI ordering; Create/Delete commit before response and Create appearance read after ACK"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -15548,26 +15633,35 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/CreateCharacterSlice.cs",
-          "line": 94,
-          "source_sha256": "695cf42b3653fc51a71e1d9c6f9f2bc4cd28a5381af65810dca164031e5df3ea"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CreateCharacterSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/GameCreateCharacterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+          ],
+          "new": "one ordinary create-character Write; commit -> ACK registration completed -> only Created appearance read -> unsolicited roster NOTI",
+          "old": "Transactional CreateCharacterAsync only"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-07.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/CreateCharacterSlice.cs",
-          "line": 94,
-          "source_sha256": "695cf42b3653fc51a71e1d9c6f9f2bc4cd28a5381af65810dca164031e5df3ea"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/GameCreateCharacterCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CreateCharacterSlice.cs.txt",
+        "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/GameCreateCharacterCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+      ],
       "id": "message:65541",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.CreateCharacter.CreateCharacterHandler",
@@ -15590,57 +15684,81 @@
         "value": 65541
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/CreateCharacterSlice.cs",
-          "line": 94,
-          "source_sha256": "695cf42b3653fc51a71e1d9c6f9f2bc4cd28a5381af65810dca164031e5df3ea"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CreateCharacterSlice.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/GameCreateCharacterCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+          "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+        ],
+        "mapping": "Each original handler orchestration absorbed by its named protocol CMD. Shared roster is direct existing domain call in Roster/Create. Host original create/roster calls migrated to authenticated protocol requests; registration assertions have explicit route and real transaction evidence. No other original callers found."
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/CreateCharacterSlice.cs",
-          "line": 94,
-          "source_sha256": "695cf42b3653fc51a71e1d9c6f9f2bc4cd28a5381af65810dca164031e5df3ea"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/CreateCharacterSlice.cs",
-          "line": 94,
-          "source_sha256": "695cf42b3653fc51a71e1d9c6f9f2bc4cd28a5381af65810dca164031e5df3ea"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CreateCharacterSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/GameCreateCharacterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+          ],
+          "new": "Same actual domain/storage algorithms and participants. declaration [] only means selected-session recipients empty, never no transaction participants. one shared normalized-connection-string SqliteDatabaseParticipant on actual writes; create may also enlist ItemLifecycleScope/InventoryContentsEvent batch/EventService batch depending actual assets/events; delete not assumed to inherit those",
+          "old": "No selected-session settlement recipients. one shared normalized-connection-string SqliteDatabaseParticipant on actual writes; create may also enlist ItemLifecycleScope/InventoryContentsEvent batch/EventService batch depending actual assets/events; delete not assumed to inherit those"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CreateCharacterSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/CreateCharacter/GameCreateCharacterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+          ],
+          "new": "Same predicates/domain and payloads in one ProtocolNonEffect CMD; no nested dispatch; real ordinary work-unit/typed outbox boundaries; postcommit failure preserves committed state and original cause inside existing typed failure, source closes",
+          "old": "Original authentication rejection, exact request/context, raw-name/status semantics and CMD/NOTI ordering; Create/Delete commit before response and Create appearance read after ACK"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.AccountRoster.GetAccountCharacterRosterCommand",
         "command:Dfo.Server.Protocol.Game.CreateCharacter.CreateCharacterCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/DeleteCharacterSlice.cs",
-          "line": 109,
-          "source_sha256": "7bf5bc56f0f72d52f40174083d6a8c5d7cebe0cbf8580763fe2dd6dd6a3af698"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-DeleteCharacterSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/GameDeleteCharacterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+          ],
+          "new": "one ordinary delete-character Write; then only ACK with original ushort index, no roster read",
+          "old": "Transactional DeleteCharacterAsync only"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-07.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/DeleteCharacterSlice.cs",
-          "line": 109,
-          "source_sha256": "7bf5bc56f0f72d52f40174083d6a8c5d7cebe0cbf8580763fe2dd6dd6a3af698"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/GameDeleteCharacterCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-DeleteCharacterSlice.cs.txt",
+        "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/GameDeleteCharacterCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+      ],
       "id": "message:65542",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.DeleteCharacter.DeleteCharacterHandler",
@@ -15663,34 +15781,49 @@
         "value": 65542
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/DeleteCharacterSlice.cs",
-          "line": 109,
-          "source_sha256": "7bf5bc56f0f72d52f40174083d6a8c5d7cebe0cbf8580763fe2dd6dd6a3af698"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-DeleteCharacterSlice.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/GameDeleteCharacterCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+          "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+        ],
+        "mapping": "Each original handler orchestration absorbed by its named protocol CMD. Shared roster is direct existing domain call in Roster/Create. Host original create/roster calls migrated to authenticated protocol requests; registration assertions have explicit route and real transaction evidence. No other original callers found."
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/DeleteCharacterSlice.cs",
-          "line": 109,
-          "source_sha256": "7bf5bc56f0f72d52f40174083d6a8c5d7cebe0cbf8580763fe2dd6dd6a3af698"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/DeleteCharacterSlice.cs",
-          "line": 109,
-          "source_sha256": "7bf5bc56f0f72d52f40174083d6a8c5d7cebe0cbf8580763fe2dd6dd6a3af698"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-DeleteCharacterSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/GameDeleteCharacterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+          ],
+          "new": "Same actual domain/storage algorithms and participants. declaration [] only means selected-session recipients empty, never no transaction participants. one shared normalized-connection-string SqliteDatabaseParticipant on actual writes; create may also enlist ItemLifecycleScope/InventoryContentsEvent batch/EventService batch depending actual assets/events; delete not assumed to inherit those",
+          "old": "No selected-session settlement recipients. one shared normalized-connection-string SqliteDatabaseParticipant on actual writes; create may also enlist ItemLifecycleScope/InventoryContentsEvent batch/EventService batch depending actual assets/events; delete not assumed to inherit those"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-DeleteCharacterSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/DeleteCharacter/GameDeleteCharacterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/GmInitializationHttpTests.cs"
+          ],
+          "new": "Same predicates/domain and payloads in one ProtocolNonEffect CMD; no nested dispatch; real ordinary work-unit/typed outbox boundaries; postcommit failure preserves committed state and original cause inside existing typed failure, source closes",
+          "old": "Original authentication rejection, exact request/context, raw-name/status semantics and CMD/NOTI ordering; Create/Delete commit before response and Create appearance read after ACK"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.DeleteCharacter.DeleteCharacterCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -24285,26 +24418,35 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GetAccountCharacterRosterHandler.cs",
-          "line": 11,
-          "source_sha256": "b535063078866853d049883fbe3f8fd4be24327166df3e5fc3ce6db26f7c47fe"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterHandler.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameAccountRosterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterCommand.cs.txt"
+          ],
+          "new": "direct existing GetAccountRosterWithAppearanceAsync; no WorkUnits; NOTI query roster -> CMD hidden -> NOTI honor",
+          "old": "Direct/no explicit transaction"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-07.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GetAccountCharacterRosterHandler.cs",
-          "line": 11,
-          "source_sha256": "b535063078866853d049883fbe3f8fd4be24327166df3e5fc3ce6db26f7c47fe"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameAccountRosterCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterHandler.cs.txt",
+        "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameAccountRosterCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterCommand.cs.txt"
+      ],
       "id": "message:66056",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.AccountRoster.GetAccountCharacterRosterHandler",
@@ -24327,34 +24469,46 @@
         "value": 66056
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GetAccountCharacterRosterHandler.cs",
-          "line": 11,
-          "source_sha256": "b535063078866853d049883fbe3f8fd4be24327166df3e5fc3ce6db26f7c47fe"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterHandler.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameAccountRosterCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterCommand.cs.txt"
+        ],
+        "mapping": "Each original handler orchestration absorbed by its named protocol CMD. Shared roster is direct existing domain call in Roster/Create. Host original create/roster calls migrated to authenticated protocol requests; registration assertions have explicit route and real transaction evidence. No other original callers found."
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GetAccountCharacterRosterHandler.cs",
-          "line": 11,
-          "source_sha256": "b535063078866853d049883fbe3f8fd4be24327166df3e5fc3ce6db26f7c47fe"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterHandler.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameAccountRosterCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterCommand.cs.txt"
+        ],
+        "none_reason": "Original Direct has no explicit domain transaction/selected-session settlement recipients; new command introduces no WorkUnits, existing read service retains its connection behavior."
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GetAccountCharacterRosterHandler.cs",
-          "line": 11,
-          "source_sha256": "b535063078866853d049883fbe3f8fd4be24327166df3e5fc3ce6db26f7c47fe"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterHandler.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameAccountRosterCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-GetAccountCharacterRosterCommand.cs.txt"
+          ],
+          "new": "Same predicates/domain and payloads in one ProtocolNonEffect CMD; no nested dispatch; real ordinary work-unit/typed outbox boundaries; postcommit failure preserves committed state and original cause inside existing typed failure, source closes",
+          "old": "Original authentication rejection, exact request/context, raw-name/status semantics and CMD/NOTI ordering; Create/Delete commit before response and Create appearance read after ACK"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.AccountRoster.GetAccountCharacterRosterCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -24780,26 +24934,33 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterName/CheckCharacterNameSlice.cs",
-          "line": 58,
-          "source_sha256": "3c1973ed278fb6f2f44ac5f63caceb9f0d50eb4cb619d576937bc28daccf213b"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CheckCharacterNameSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterName/GameCheckCharacterNameCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+          ],
+          "new": "direct existing CheckNameAsync; malformed skips domain; one CMD",
+          "old": "Direct/no explicit transaction"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-07.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterName/CheckCharacterNameSlice.cs",
-          "line": 58,
-          "source_sha256": "3c1973ed278fb6f2f44ac5f63caceb9f0d50eb4cb619d576937bc28daccf213b"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CharacterName/GameCheckCharacterNameCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CheckCharacterNameSlice.cs.txt",
+        "Server/src/Dfo.Server.Protocol/Game/CharacterName/GameCheckCharacterNameCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+      ],
       "id": "message:66229",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.CharacterName.CheckCharacterNameHandler",
@@ -24822,34 +24983,43 @@
         "value": 66229
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterName/CheckCharacterNameSlice.cs",
-          "line": 58,
-          "source_sha256": "3c1973ed278fb6f2f44ac5f63caceb9f0d50eb4cb619d576937bc28daccf213b"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CheckCharacterNameSlice.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterName/GameCheckCharacterNameCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+        ],
+        "mapping": "Each original handler orchestration absorbed by its named protocol CMD. Shared roster is direct existing domain call in Roster/Create. Host original create/roster calls migrated to authenticated protocol requests; registration assertions have explicit route and real transaction evidence. No other original callers found."
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterName/CheckCharacterNameSlice.cs",
-          "line": 58,
-          "source_sha256": "3c1973ed278fb6f2f44ac5f63caceb9f0d50eb4cb619d576937bc28daccf213b"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CheckCharacterNameSlice.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterName/GameCheckCharacterNameCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+        ],
+        "none_reason": "Original Direct has no explicit domain transaction/selected-session settlement recipients; new command introduces no WorkUnits, existing read service retains its connection behavior."
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterName/CheckCharacterNameSlice.cs",
-          "line": 58,
-          "source_sha256": "3c1973ed278fb6f2f44ac5f63caceb9f0d50eb4cb619d576937bc28daccf213b"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-07-mapping/old-CheckCharacterNameSlice.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterName/GameCheckCharacterNameCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/CharacterRosterCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs"
+          ],
+          "new": "Same predicates/domain and payloads in one ProtocolNonEffect CMD; no nested dispatch; real ordinary work-unit/typed outbox boundaries; postcommit failure preserves committed state and original cause inside existing typed failure, source closes",
+          "old": "Original authentication rejection, exact request/context, raw-name/status semantics and CMD/NOTI ordering; Create/Delete commit before response and Create appearance read after ACK"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.CharacterName.CheckCharacterNameCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {

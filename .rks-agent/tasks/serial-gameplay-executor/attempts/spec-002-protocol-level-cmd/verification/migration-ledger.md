@@ -211,3 +211,9 @@ Connect/Script/Info三消息（11/9/17）及旧GetScript/GetInfo两命令已对�
 GameLogin message:65537 与旧 RedeemGameLogin command 两行 closed，实际边界见 `evidence/task-06-mapping/workunit-map.md`。173 消息当前5个 Protocol 入口；实际命令仍205，其中 Protocol5／Internal1／Legacy199。历史 original/baseline 和其它 closed 行不改。正常兑换实际仅有 LoginSessionRegistry、OnlineStateRegistry 两个运行态参与者，均 CommitCanFail=false；selected-session recipients 为空。注册/launcher 的 SQLite 夹具以及测试注入的可失败参与者不等于生产兑换 SQLite enlist。提交后重查身份、settings、typed部署与七消息登记不再开认证事务，hotkeys 后直接 domain 激活 profile0。
 
 原同票据 reconnect/supersede 语义保留；“提交不回滚”不等于新增一次性票据。原 Net postcommit reconnect 断言保持。ChannelEntryDomainService 吸收原 policy 全部职责，旧接口同 singleton alias 与 Activate（Select caller）仍 pending，记于现过渡行／命令 notes。业务154、旧命令199、来源72仍 pending；本行不代表 T003／Spec 完成。新注册精确数以本轮 capture 为准。
+
+## TASK-07：四名册协议闭包
+
+八行（Roster/CheckName/Create/Delete消息及原四细命令）closed，实际边界见`evidence/task-07-mapping/workunit-map.md`。四新CMD直接现领域，旧细API删除、薄入口同物理输入，无新MainSettlement/效果/账号门。创建/删除各原Tx→ordinary Write，Roster/Check原Direct不加事务；创建commit→ACK登记→只成功读带外观名册→NOTI，删除只ACK回原index。空selected集合与实际SQLite/动态内存参与者分开。
+
+173消息预期9Protocol＋164Legacy（Legacy含14纯遥测）；205命令预期9Protocol＋1Internal＋195Legacy；最终以新capture为准。非遥测业务150、原细命令195、来源72仍pending；原5保护/8过渡仍未闭合，不代表T003/Spec完成。其余closed及所有original/baseline不改。

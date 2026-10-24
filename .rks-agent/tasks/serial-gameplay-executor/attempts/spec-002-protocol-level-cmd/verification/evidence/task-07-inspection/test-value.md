@@ -1,0 +1,5 @@
+# TASK07 test-value gate
+
+本次协议级搬迁本身保持行为，纯改名/接口编译错误不作RED。新增flow保护创建已提交后先登记ACK才读取带外观名册、失败不撤回已提交结果，删除只ACK，读取类不添事务；这些顺序在编码字节相同的成功路径可能被改变，原codec/领域单测看不到。以同provider真实bus/WorkUnits/GameplayOutboxes和typedadapter的登记点、commit及外部flush观测为oracle，不绑内部类名。Host用独立SQLite连接守初始化回滚无item/event残留及提交后读取失败仍持久。原Host业务断言保留，新增只覆盖协议归并引入的跨段边界，成本为一个共享App小夹具和原Host文件内一个真实案例。行为不变的其它签名只编译/原回归，不造强制TDD。
+
+选择最小坏变异：将成功创建的带外观读取提前到ACK登记之前；原成功帧内容仍相同，但同provider trace应拒绝，恢复后通过。原字节/SHA与命令、退出、关键断言均独立落盘；编译、前置夹具错误和timeout不计RED。

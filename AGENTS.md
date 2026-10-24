@@ -350,7 +350,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 
 ### 2) 命令执行总线（Application/Commands）
 
-协议级路由当前接线了 Channel Connect／ScriptVersion／Script／Info 与 LOGIN：消息 handler 只把原消息、精确连接上下文交给同一 CommandBus；GM 启动初始化走显式内部路由，声明种类与原调用链。新路由由总线入队一次，在身份检查前建立作业发件箱；其请求上下文是方法数据，结束即关闭，不通过 DI、AsyncLocal 或 job slot 取得“当前请求”。其余业务仍走 LegacyQueued／LegacyFineGrained 过渡路径，不得让新 CMD 回调旧命令。
+协议级路由当前接线了 Channel Connect／ScriptVersion／Script／Info、LOGIN，以及名册／查名／创建／删除角色：消息 handler 只把原消息、精确连接上下文交给同一 CommandBus；GM 启动初始化走显式内部路由，声明种类与原调用链。新路由由总线入队一次，在身份检查前建立作业发件箱；其请求上下文是方法数据，结束即关闭，不通过 DI、AsyncLocal 或 job slot 取得“当前请求”。其余业务仍走 LegacyQueued／LegacyFineGrained 过渡路径，不得让新 CMD 回调旧命令。
 
 协议级 CMD 可注入领域服务／store，以及具名的 `ICommandWorkUnits`、`ICommandMessageOutbox`、`ICommandConnectionClosures`、`ICommandProjections`、Protocol 所有的 `IGameCommandOutbox`、既有顺序／槽位映射能力和日志；旧 sender／closer、总线、队列、执行器和动态服务解析仍禁止。新消息 handler 的构造器只允许总线和日志，注册闭合检查绑定消息 CLR 类型、handler 与协议 CMD。
 
@@ -411,17 +411,17 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
   类型一个不丢。业务代码经
   `AmbientStoreAccess` 触达：边界内用环境事务，边界外读放行、持久写拒绝、易失写
   自开一次性边界并当场落定。
-- 注册（`ProtocolModule.cs`，与协议接线同处）：**凡能触达持久写的命令一律
+- 注册（`ProtocolModule.cs`，与协议接线同处）：旧细命令路线中，**凡能触达持久写的命令一律
   `Transactional`**——只有它会让 `UnitOfWorkBehavior` 开领域事务，没有那个事务，
-  持久化就没有边界可加入，写会各自落定且无人能收回。据此（旧细命令路线）：CreateCharacter、DeleteCharacter，以及 SelectCharacter 的 Prepare、DailyRefill、
+  持久化就没有边界可加入，写会各自落定且无人能收回。据此（旧细命令路线）：SelectCharacter 的 Prepare、DailyRefill、
   Quests、Pet，加上 MoveItemSpace、UseStackable、GrantTutorialReward，均为
   **Transactional**。LOGIN 已 opt-in 同总线的 `GameLoginCommand` Protocol 路线，
-  仅认证兑换段用普通 `ICommandWorkUnits.WriteAsync` 开显式事务；不把整协议包成事务。
+  仅认证兑换段用普通 `ICommandWorkUnits.WriteAsync` 开显式事务；创建与删除各保留一个普通写段。创建提交后先登记 ACK，再读取带外观名册并登记刷新；删除只登记 ACK。空 selected-session 列表不表示没有 SQLite 或内存参与者，不把整协议包成事务。
   Workflow 只有四条：只动内存注册表的 Publish、PvpReady，以及执行拆除清理的
   **Compensate** 与 CompleteReturnToSelection。Compensate 是刻意的——补偿逐个收集失败并继续，
   最后把收集到的抛出，边界会把此前每一处成功一并撤销，正是它的反面。拆除清理唯一的持久写
   （离场位置）经 `SelectedSessionPositionPersistence.PersistAsync`：没有环境事务时自开一次性边界当场落定。
-  GetAccountCharacterRoster、CheckCharacterName 与 Channel 的 ScriptVersion、Script、Info = Direct；
+  名册与查名协议 CMD 沿原 Direct 读取，不新增事务；Channel 的 ScriptVersion、Script、Info = Direct；
   ReadOnly 由 `UnitOfWorkBehavior` 开只读事务（`Server/src` 中 9 条注册）。
   机制在 Application（`AddCommandDispatching()`）；具体命令多数在切片里、由 `ProtocolModule` 注册，
   Application 自己的命令由 `ApplicationModule` 注册（该文件中 `AddCommandHandler<` 36 处）。
