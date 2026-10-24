@@ -93,8 +93,7 @@ public sealed class WarehouseStorageTests
         Assert.Equal(29999999, host.Gold);
         var stale = host.Session;
         host.Select(2); Bind(host);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => host.Services.GetRequiredService<ICommandBus>()
-            .SendAsync(new WarehouseCommand(host.OnlineUser, stale, 0x0133, 1)).AsTask());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => WarehouseDomainTestDriver.Expand(host, stale, 0x0133, 1));
         Assert.Equal(0, CargoGold(host));
     }
 
@@ -206,17 +205,13 @@ public sealed class WarehouseStorageTests
     [Fact]
     public async Task Successful_handler_delivery_starts_with_committed_ack_then_authoritative_snapshots()
     {
-        await TestGameplay.RunAsync(async () =>
-        {
-            using var host=Fixture();
-            host.Sql($"UPDATE characters SET level=60,exp={host.ExperienceForLevel(60)}");
-            host.Sender.BeforeSend=()=>{Assert.Equal(0,host.Gold);Assert.Equal(1,Capacity(host));};
-            await host.Services.GetRequiredService<WarehouseHandler>().HandleAsync(new(host.Connection),
-                new WarehouseRequest(Dfo.Server.Data.Networking.GameMessageMetadata.Empty with { Type=0x0131 },0),default);
-            Assert.IsType<WarehouseResponse>(host.Sender.Messages[0]);
-            Assert.Equal(3,host.Sender.Messages.Count);
-            Assert.All(host.Sender.Batches.SelectMany(b=>b.Frames),f=>Assert.InRange(f.Length,15,1048576));
-        });
+        using var host=Fixture();
+        host.Sql($"UPDATE characters SET level=60,exp={host.ExperienceForLevel(60)}");
+        host.Sender.BeforeSend=()=>{Assert.Equal(0,host.Gold);Assert.Equal(1,Capacity(host));};
+        await EffectRequestTransport.Send(host, new WarehouseRequest(new(1,0x0131,0,EffectRequestTransport.FreshSequence(host)),0));
+        Assert.IsType<WarehouseResponse>(host.Sender.Messages[0]);
+        Assert.Equal(3,host.Sender.Messages.Count);
+        Assert.All(host.Sender.Batches.SelectMany(b=>b.Frames),f=>Assert.InRange(f.Length,15,1048576));
     }
 
     [Dfo.Server.Testing.PvfFact]
@@ -301,8 +296,8 @@ public sealed class WarehouseStorageTests
         });
     }
     internal static Task<InventoryExpansionResult> Command(ShopFixture host, ushort type, int value = 0) =>
-        host.Services.GetRequiredService<ICommandBus>().SendAsync(new WarehouseCommand(host.OnlineUser, host.Session, type, value,
-            type is 0x0198 or 0x01AF ? new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, value)) : null)).AsTask();
+        WarehouseDomainTestDriver.Expand(host, host.Session, type, value,
+            type is 0x0198 or 0x01AF ? new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, value)) : null);
     internal static IBusinessItemContainer Bag(ShopFixture host, BusinessInventorySpace space) => host.Services
         .GetRequiredService<ICharacterBusinessInventoryDomainService>().GetStore(host.Session.CharacterId, BusinessInventoryOwnership.StoreOf(space)).GetContainer(space);
     private static async Task<ItemMoveOutcome> Move(ShopFixture host, BusinessSlot from, BusinessSlot into, int count = 0)

@@ -34,6 +34,28 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Six_warehouse_logicals_share_one_exact_direct_whole_and_only_existing_replay_permission()
+    {
+        using var provider = BuildProductionGraph();
+        var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var row = Assert.Single(commands, x => x.CommandType == typeof(Dfo.Server.Protocol.Game.Warehouse.GameWarehouseCommand));
+        Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+        var expected = new[] { ClientMessageType.GameCreateAccountCargo, ClientMessageType.GameUpgradeAccountCargo, ClientMessageType.GameDepositAccountCargo, ClientMessageType.GameWithdrawAccountCargo, ClientMessageType.GameUpgradeCargo, ClientMessageType.GameUpgradeInventory };
+        var shape = typeof(Dfo.Server.Protocol.Game.Warehouse.WarehouseRequest);
+        Assert.Equal(expected.Select(x => new ProtocolCommandMessageBinding(x, shape)), row.ProtocolMessages);
+        Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
+        Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(row.CommandType));
+        var registry = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        foreach (var logical in expected)
+        {
+            Assert.True(registry.TryGet(logical, out var route)); Assert.Equal(row.CommandType, route!.ProtocolCommandType);
+            Assert.Equal(new[] { shape }, route.AllowedMessageClrTypes);
+        }
+        Assert.DoesNotContain(commands, x => x.CommandType.Name == "WarehouseCommand");
+        Assert.Null(typeof(Dfo.Server.Protocol.ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.Warehouse.WarehouseCommand"));
+    }
+
+    [Fact]
     public void Avatar_compound_has_one_exact_direct_whole_and_only_existing_replay_permission()
     {
         using var provider = BuildProductionGraph();

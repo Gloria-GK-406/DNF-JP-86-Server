@@ -33,7 +33,7 @@ public sealed class EffectSettlementRegistrationTests
         var commandRegistry = services.GetRequiredService<CommandHandlerRegistry>();
         var commands = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).ToArray();
         Assert.Equal(new[] { "CapsuleCommand", "ChargeRentPointCommand", "CollectionBoxCommand", "CompoundItemCommand", "EpicCraftCommand", "FinishQuestCommand", "HousingCommand", "IncreaseStatusCommand", "JoustBetCommand", "LearnSkillCommand", "LotteryOpeningCommand", "QuestClearCouponCommand",
-            "RenameCreatureCommand", "RentEquipmentCommand", "SharedEffectCommand", "TeleportCommand", "UseEntryAllowanceCommand", "UseFatiguePotionCommand", "UseLevelUpTicketCommand", "VendingMachineCommand", "WarehouseCommand", "WeddingLovePointCommand" },
+            "RenameCreatureCommand", "RentEquipmentCommand", "SharedEffectCommand", "TeleportCommand", "UseEntryAllowanceCommand", "UseFatiguePotionCommand", "UseLevelUpTicketCommand", "VendingMachineCommand", "WeddingLovePointCommand" },
             commands.Select(x => x.CommandType.Name).Order());
         Assert.All(commands, x => {
             Assert.Same(x, commandRegistry.GetRegistration(x.CommandType));

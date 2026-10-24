@@ -295,3 +295,14 @@ P3 新结果由真实 source/phase/原 cause/发生身份限制，Guard/Unknown/
 产品仍 HEAD 时实际 fresh ConfigureServices capture/family 已先跑；原两窄完整 wire(action SQL19/1811 与真正 native SQLite Commit19/787)及迁后同 provider FK1/两 output/child2/stage/ACK17/全资产回滚/same entry原Ordinal retry/UIcurrent 对照、原27App4codec、Main/足迹/NotiBus Failed与直接ACK默认保护/E+独立X及真实 Ability256 storage mutation红绿见 task-18-inspection。只 Avatar InstanceValue 明确4B按原NewIdentity关系比较，原值及其它确定字段保留；不泛忽略core／随机差异。
 
 实际 pending128message/176fine/72source及5protection/8transition；original/baseline/其它rows和原md前缀保持。三full6981=6963pass+2精确原Dim+16skip，N20/D0；延续8781=8761pass+2+18，另1800只Task15库存，四actualcontrol不称业务full。最终T012新八full/单CMD≤2秒、Astra/Spec根封存和用户分支收尾仍pending，不宣告B完成。
+
+
+## TASK19 r2 — Warehouse 六 logical 一个完整 CMD
+
+仅闭 message:65841/65842/65843/65844/65944/65967 与 command:Dfo.Server.Protocol.Game.Warehouse.WarehouseCommand 七ID。唯一Direct/Protocol GameWarehouseCommand承接六精确WarehouseRequest，一次Main最低Inventory，无新增足迹能力或额外事务边界。旧fine物理删除，首投递仍原Tx SnapshotAsync/ApplyDecidedWrites receipt；ACK→Main→Account/Personal，01AF所有结果无ACK、成功只有Main。正常domain拒绝仍Committed，earlyRejected无Main，initialRejected不晚升权。signedamount/cost/ticket/UID/core/容量及current限制/原SQL/20并发强断言保持。
+
+原产品仍HEAD时先fresh registration/family，然后old-oracle02四真实wire/原业务33pass；但SELECT* items的Convert.ToString把BLOB记作System.Byte[]，原前时点失败stage完整corehex存在明确缺口，不回填。主控task-rework/readiness的Task19r2 §8授权late exactHEAD重建补证，最终late-core02四pass＋late-named03三pass及11physical快照/finally精确restore，均明确真实晚时点。当前formal02同输入对照所有82Bcore/其它item字段/UIDslots/receipt/frames，仅items.created_at/updated_at跨run作实际SQLUTC时间关系比较、保raw原值；同run rollback全列/时间仍精确相等。fresh requiredreview须判补证充分性，不用主控处置代approval。
+
+四路径deposit value32 UPDATE与01AF list_param16真实UPDATE，各action19/1811与actualparticipant FK1/child/stage/fullreceipt后真实SqliteTransaction.Commit19/787，保cause/ACK10或完全静默、同entry原Ordinal retry及current-only replay。domain mapping/InventoryExpansionException旧pipeline可能Error但handlerInfo，新whole无handledError；generic原两Error→whole一Error；clock在原窄span，unit后才映码/日志/ACK。NotiBus Failed隔离、直接ACK各阶段默认保护（含mapping编码错）与独立E+X保因，取消/typed/guard不恢复；仅既有committed replay许可。
+
+formal02三full7028=7010pass+2精确原Dim+16skip，N47/D0，延续8828=8808pass+2fail+18skip；另1800仍仅Task15库存，四actualcontrol各1pass另列，不称八full/性能完成。pending122message/175fine/72source/5protection/8transition；original/baseline/其它rows及md原前缀保持。T012最终新八full/单CMD≤2秒、Astra/Spec根封存及用户分支收尾仍后继。

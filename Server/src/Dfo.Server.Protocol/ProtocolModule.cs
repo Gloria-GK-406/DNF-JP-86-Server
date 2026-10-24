@@ -699,8 +699,14 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GameSeparateUpgrade, typeof(ForgingRequest)));
         services.AddCommandHandler<SortLockCommand, SortLockResult, SortLockCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.AddCommandHandler<WarehouseCommand, InventoryExpansionResult, WarehouseCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameWarehouseCommand, InventoryExpansionResult, GameWarehouseCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameCreateAccountCargo, typeof(WarehouseRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameUpgradeAccountCargo, typeof(WarehouseRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameDepositAccountCargo, typeof(WarehouseRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameWithdrawAccountCargo, typeof(WarehouseRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameUpgradeCargo, typeof(WarehouseRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameUpgradeInventory, typeof(WarehouseRequest)));
         services.AddCommandHandler<SortItemCommand, SortItemResult, SortItemCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<DecreaseDurabilityCommand, EquipmentDurabilityResult,
@@ -933,17 +939,17 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameSyncItemSpace);
         services.RegisterMessageHandler<SortLockHandler>(ClientMessageType.GameSortLock);
         services.RegisterMessageHandler<SortLockHandler>(ClientMessageType.GameSortUnlock);
-        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameCreateAccountCargo);
+        services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameCreateAccountCargo);
         services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0131, ClientMessageType.GameCreateAccountCargo);
-        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameUpgradeAccountCargo);
+        services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameUpgradeAccountCargo);
         services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0132, ClientMessageType.GameUpgradeAccountCargo);
-        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameDepositAccountCargo);
+        services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameDepositAccountCargo);
         services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0133, ClientMessageType.GameDepositAccountCargo);
-        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameWithdrawAccountCargo);
+        services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameWithdrawAccountCargo);
         services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0134, ClientMessageType.GameWithdrawAccountCargo);
-        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameUpgradeCargo);
+        services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameUpgradeCargo);
         services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0198, ClientMessageType.GameUpgradeCargo);
-        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameUpgradeInventory);
+        services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameUpgradeInventory);
         services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x01AF, ClientMessageType.GameUpgradeInventory);
         services.RegisterMessageHandler<SortItemHandler>(ClientMessageType.GameSortItem);
         services.RegisterMessageHandler<DecreaseDurabilityHandler>(ClientMessageType.GameDecreaseDurability);
