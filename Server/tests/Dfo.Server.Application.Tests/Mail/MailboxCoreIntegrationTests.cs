@@ -580,7 +580,7 @@ public sealed partial class MailboxCoreIntegrationTests
             core[0] = 1;
             BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(1, 4), itemId);
             core[21] = 0x7f;
-            using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path }.ToString());
+            using var connection = new SqliteConnection(SqliteTestPools.ConnectionString(path));
             connection.Open();
             using var command = connection.CreateCommand();
             command.CommandText = """
@@ -598,7 +598,7 @@ public sealed partial class MailboxCoreIntegrationTests
 
         public string EquipmentCore(int uid)
         {
-            using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path }.ToString());
+            using var connection = new SqliteConnection(SqliteTestPools.ConnectionString(path));
             connection.Open();
             using var command = connection.CreateCommand();
             command.CommandText = "SELECT hex(item_core) FROM items WHERE item_uid=@uid";
@@ -628,7 +628,7 @@ public sealed partial class MailboxCoreIntegrationTests
         public int InboxRows(CharacterId owner) => Scalar($"SELECT COUNT(*) FROM mailbox_recipients WHERE character_id={owner.Value}");
         public int Scalar(string sql)
         {
-            using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path }.ToString());
+            using var connection = new SqliteConnection(SqliteTestPools.ConnectionString(path));
             connection.Open();
             using var command = connection.CreateCommand();
             command.CommandText = sql;
@@ -636,7 +636,7 @@ public sealed partial class MailboxCoreIntegrationTests
         }
         public void Sql(string sql)
         {
-            using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path }.ToString());
+            using var connection = new SqliteConnection(SqliteTestPools.ConnectionString(path));
             connection.Open();
             using var command = connection.CreateCommand();
             command.CommandText = sql;
@@ -646,7 +646,7 @@ public sealed partial class MailboxCoreIntegrationTests
         {
             provider.Dispose();
             if (!ownsDirectory) return;
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(path);
             Directory.Delete(directory, true);
         }
 

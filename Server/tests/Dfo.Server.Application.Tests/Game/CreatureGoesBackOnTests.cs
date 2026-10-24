@@ -159,7 +159,7 @@ public sealed class CreatureGoesBackOnTests
         finally
         {
             content.Dispose();
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(path);
             try
             {
                 File.Delete(path);
@@ -284,7 +284,7 @@ public sealed class CreatureGoesBackOnTests
         /// </remarks>
         public async Task<long?> IdentityAtAsync(byte listType, int slotIndex)
         {
-            await using var connection = new SqliteConnection($"Data Source={this.path}");
+            await using var connection = new SqliteConnection(SqliteTestPools.ConnectionString(this.path));
             await connection.OpenAsync();
 
             await using var slots = connection.CreateCommand();

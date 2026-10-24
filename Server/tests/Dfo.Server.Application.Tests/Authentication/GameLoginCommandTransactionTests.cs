@@ -75,7 +75,7 @@ public sealed class GameLoginCommandTransactionTests
         }
         finally
         {
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(databasePath);
             Directory.Delete(directory, recursive: true);
         }
     }

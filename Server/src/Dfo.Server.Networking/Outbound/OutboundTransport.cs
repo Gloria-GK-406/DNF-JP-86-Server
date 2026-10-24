@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO.Pipelines;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Data.Networking;
@@ -17,6 +18,9 @@ internal interface IOutboundConnection
 {
     /// <summary>Returns once <paramref name="frames"/> have left the transport's send pipe.</summary>
     ValueTask SendAsync(ReadOnlyMemory<byte> frames, CancellationToken cancellationToken);
+
+    /// <summary>Whether the failed send observed a closed or completed write side.</summary>
+    bool HasClosedSendSide(Exception error);
 
     ValueTask CloseAsync();
 }
@@ -89,6 +93,22 @@ internal sealed class TouchSocketOutboundTransport(TouchSocketConnectionRegistry
             // connection that is gone is not a delivery.
             if (!session.Online)
                 throw new IOException("The connection closed before its send pipe drained.");
+        }
+
+        public bool HasClosedSendSide(Exception error)
+        {
+            if (session.ClosedToken.IsCancellationRequested)
+                return true;
+
+            // TouchSocket 4.3.1 RunSend completes its PipeWriter before RunReceive cancels the
+            // ClosedToken. Match the pinned .NET writer throw-site as well as its exact error;
+            // an unrelated InvalidOperationException (even with this text) is still a warning.
+            return error.GetType() == typeof(InvalidOperationException)
+                && error.Message == "Writing is not allowed after writer was completed."
+                && new StackTrace(error).GetFrames().Any(frame =>
+                    frame.GetMethod() is { Name: "ThrowInvalidOperationException_NoWritingAllowed", DeclaringType: { } type }
+                    && type.FullName == "System.IO.Pipelines.ThrowHelper"
+                    && type.Assembly == typeof(Pipe).Assembly);
         }
 
         public async ValueTask CloseAsync()

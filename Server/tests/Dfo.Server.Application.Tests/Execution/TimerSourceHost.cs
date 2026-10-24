@@ -74,15 +74,15 @@ internal sealed class TimerSourceHost : IAsyncDisposable
         foreach (var service in Enumerable.Reverse(started))
             await service.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10));
         await provider.DisposeAsync();
-        SqliteTestFiles.Delete(directory);
+        SqliteTestFiles.Delete(directory, Path.Combine(directory, "timer.db"));
     }
 }
 
 internal static class SqliteTestFiles
 {
-    public static void Delete(string directory)
+    public static void Delete(string directory, string databasePath)
     {
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        SqliteTestPools.ClearOwned(databasePath);
         try { Directory.Delete(directory, recursive: true); }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }

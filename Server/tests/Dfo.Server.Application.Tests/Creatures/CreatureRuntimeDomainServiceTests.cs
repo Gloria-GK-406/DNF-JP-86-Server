@@ -79,7 +79,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             await f.SeedAsync(); f.Enter();
             await f.Runtime.AdvanceAsync(f.Session, default, combat: true);
             f.Clock.Advance(TimeSpan.FromSeconds(60));
-            await using (var connection = new SqliteConnection($"Data Source={f.Path}"))
+            await using (var connection = new SqliteConnection(SqliteTestPools.ConnectionString(f.Path)))
             {
                 await connection.OpenAsync(); await using var command = connection.CreateCommand();
                 command.CommandText = "UPDATE items SET creature_field04=80 WHERE item_uid=101";
@@ -297,7 +297,7 @@ public sealed class CreatureRuntimeDomainServiceTests
                 await f.Runtime.AdvanceAsync(f.Session, default);
             Assert.Equal(90L, await f.ExperienceAsync());
             Assert.Contains(f.Session, f.Runtime.DueSessions());
-            await using (var connection = new SqliteConnection($"Data Source={f.Path}"))
+            await using (var connection = new SqliteConnection(SqliteTestPools.ConnectionString(f.Path)))
             {
                 await connection.OpenAsync();
                 await using var command = connection.CreateCommand();
@@ -569,7 +569,7 @@ public sealed class CreatureRuntimeDomainServiceTests
         public Fixture()
         {
             CharacterDatabaseSchema.Ensure(
-                new SqliteConnectionStringBuilder { DataSource = this.Path }.ToString());
+                SqliteTestPools.ConnectionString(this.Path));
             this.Runtime = new CreatureRuntimeDomainService(
                 new SqliteCreatureDomainStore(this.Path), new CreatureRuleService(this.Rules), this.Scope,
                 this.Sessions, this.Clock);
@@ -584,7 +584,7 @@ public sealed class CreatureRuntimeDomainServiceTests
 
         public async Task SeedAsync(int stomach = 50)
         {
-            await using var connection = new SqliteConnection($"Data Source={this.Path}");
+            await using var connection = new SqliteConnection(SqliteTestPools.ConnectionString(this.Path));
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
             command.CommandText = """
@@ -613,7 +613,7 @@ public sealed class CreatureRuntimeDomainServiceTests
 
         private async Task<long> ScalarAsync(string column)
         {
-            await using var connection = new SqliteConnection($"Data Source={this.Path}");
+            await using var connection = new SqliteConnection(SqliteTestPools.ConnectionString(this.Path));
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
             command.CommandText = $"SELECT {column} FROM items WHERE item_uid=101";
@@ -622,7 +622,7 @@ public sealed class CreatureRuntimeDomainServiceTests
 
         public ValueTask DisposeAsync()
         {
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(this.Path);
             File.Delete(this.Path);
             return ValueTask.CompletedTask;
         }

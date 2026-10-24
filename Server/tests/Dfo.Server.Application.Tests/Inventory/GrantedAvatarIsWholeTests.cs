@@ -265,7 +265,7 @@ public sealed class GrantedAvatarIsWholeTests
         try
         {
             var side = new InventorySide(path, placements);
-            await using (var connection = new SqliteConnection($"Data Source={path}"))
+            await using (var connection = new SqliteConnection(SqliteTestPools.ConnectionString(path)))
             {
                 await connection.OpenAsync();
                 await using var command = connection.CreateCommand();
@@ -283,7 +283,7 @@ public sealed class GrantedAvatarIsWholeTests
         }
         finally
         {
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(path);
             try
             {
                 File.Delete(path);

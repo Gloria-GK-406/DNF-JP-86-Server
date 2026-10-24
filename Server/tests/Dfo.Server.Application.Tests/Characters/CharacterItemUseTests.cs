@@ -435,10 +435,11 @@ public sealed class CharacterItemUseTests
         {
             var directory = Path.Combine(Path.GetTempPath(), $"dfo-deleted-{Guid.NewGuid():N}");
             Directory.CreateDirectory(directory);
+            var databasePath = Path.Combine(directory, "characters.db");
             try
             {
                 var database = new SqliteDatabase(
-                    Path.Combine(directory, "characters.db"), new DomainTransactionScope());
+                    databasePath, new DomainTransactionScope());
                 await using (var connection = new SqliteConnection(database.ConnectionString))
                 {
                     await connection.OpenAsync(CancellationToken.None);
@@ -468,7 +469,7 @@ public sealed class CharacterItemUseTests
             }
             finally
             {
-                SqliteConnection.ClearAllPools();
+                SqliteTestPools.ClearOwned(databasePath);
                 Directory.Delete(directory, recursive: true);
             }
         });

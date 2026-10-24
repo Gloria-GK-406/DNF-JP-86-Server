@@ -226,6 +226,8 @@ internal sealed class XoTransport : IOutboundTransport
             owner.Delivered.Enqueue(Id);
         }
 
+        public bool HasClosedSendSide(Exception error) => false;
+
         public ValueTask CloseAsync()
         {
             Closed = true;

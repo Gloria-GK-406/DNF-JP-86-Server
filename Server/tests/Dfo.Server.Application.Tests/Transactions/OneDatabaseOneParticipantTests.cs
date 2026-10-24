@@ -135,8 +135,7 @@ public sealed class OneDatabaseOneParticipantTests
         private readonly string connectionString;
 
         public MarkDomainStore(string databasePath) =>
-            this.connectionString = new SqliteConnectionStringBuilder
-                { DataSource = Path.GetFullPath(databasePath) }.ToString();
+            this.connectionString = SqliteTestPools.ConnectionString(databasePath);
 
         public object StoreIdentity => this.connectionString;
 
@@ -267,14 +266,14 @@ public sealed class OneDatabaseOneParticipantTests
         private static SqliteConnection Open(string path)
         {
             var connection = new SqliteConnection(
-                new SqliteConnectionStringBuilder { DataSource = path }.ToString());
+                SqliteTestPools.ConnectionString(path));
             connection.Open();
             return connection;
         }
 
         public ValueTask DisposeAsync()
         {
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(this.Path, this.OtherPath);
             foreach (var path in new[] { this.Path, this.OtherPath })
             {
                 try

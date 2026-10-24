@@ -338,9 +338,10 @@ AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他
 `OutboundLimits.DeliveryTimeout`（2 秒）、等前序有序条目超过 `OutboundLimits.OrderedWaitLimit`（2 秒）、
 或队列超过 `OutboundLimits.QueueByteLimit`（1 MiB，按编码后的字节计）时，关闭该连接并丢弃它余下的条目；
 连接已不在登记表里时条目直接丢弃；没有重试。执行器从不等待发送。
-日志：交付失败、超时、超限记 `Warning`；交付失败时传输层已认不出这条连接的，记 `Information` 并带后缀
-`; the connection was already gone`。已知缺口：「连接已不在」按失败那一刻传输层还能否解析这条连接来判定，
-客户端在发送途中断开时，传输层可能先完成写端、后摘除登记，这种失败今天仍记 `Warning` 的 `Failed`。
+日志：普通交付失败、超时、超限记 `Warning`；交付失败时传输层已无法解析精确连接、连接关闭 token 已取消，
+或真实发送命中当前 .NET 的已完成 PipeWriter 抛错点时，记 `Information` 并带后缀
+`; the connection was already gone`。这覆盖 TouchSocket 写端先完成、连接仍 Online/已登记的窗口；
+不按任意同类或同文异常降级，超时仍记 `Warning`。失败结果、关闭及 observer 通告、后继丢弃规则保持。
 
 **停机。** 宿主先停止接受连接与 HTTP、停掉各后台服务；`GameplayExecutorLifetime` 再依次排空生产者
 （传输排空会拆除仍登记的连接），最后排空并停止执行器。在线玩家的拆除落库因此在执行器停止之前完成。

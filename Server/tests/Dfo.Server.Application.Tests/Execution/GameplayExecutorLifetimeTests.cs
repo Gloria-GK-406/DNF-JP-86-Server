@@ -136,7 +136,7 @@ public sealed class GameplayExecutorLifetimeTests
         }
         finally
         {
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(Path.Combine(directory, "test.db"));
             try
             {
                 Directory.Delete(directory, recursive: true);

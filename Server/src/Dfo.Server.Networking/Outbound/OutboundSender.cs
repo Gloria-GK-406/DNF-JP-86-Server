@@ -203,7 +203,7 @@ internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable, IDispo
         }
         catch (Exception error)
         {
-            queue.End(item, OutboundOutcome.Failed, error, close: true, gone: IsGone(item));
+            queue.End(item, OutboundOutcome.Failed, error, close: true, gone: IsGone(item) || connection.HasClosedSendSide(error));
             return;
         }
 
@@ -225,13 +225,14 @@ internal sealed class OutboundSender : IOutboundSender, IAsyncDisposable, IDispo
         }
         catch (Exception error)
         {
-            queue.End(item, OutboundOutcome.Failed, error, close: true, gone: IsGone(item));
+            queue.End(item, OutboundOutcome.Failed, error, close: true, gone: IsGone(item) || connection.HasClosedSendSide(error));
         }
     }
 
     /// <summary>
-    /// F-121: a send that failed because its connection had already gone (the peer reset, the drain's close) is
-    /// told apart by asking the transport, as <see cref="ProcessAsync"/> does for Stale, not by the exception type.
+    /// F-121/F-127: resolve detects an absent connection; the failed connection separately reports
+    /// a closed write side while TouchSocket still reports Online. Both facts are captured before
+    /// the sender's own close. Stale resolution and ordinary failure outcomes stay unchanged.
     /// </summary>
     private bool IsGone(Item item) => transport.Resolve(item.Entry.Connection) is null;
 

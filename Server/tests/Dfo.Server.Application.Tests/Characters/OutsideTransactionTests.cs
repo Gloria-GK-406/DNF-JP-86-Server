@@ -242,7 +242,7 @@ public sealed class OutsideTransactionTests
     public async Task Legacy_schema_gains_an_unset_inn_without_changing_the_saved_position()
     {
         await using var fixture = await Fixture.CreateAsync();
-        await using (var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = fixture.Path }.ToString()))
+        await using (var connection = new SqliteConnection(SqliteTestPools.ConnectionString(fixture.Path)))
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
@@ -257,7 +257,7 @@ public sealed class OutsideTransactionTests
 
     private static async Task<int> ReadInnAsync(Fixture fixture)
     {
-        await using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = fixture.Path }.ToString());
+        await using var connection = new SqliteConnection(SqliteTestPools.ConnectionString(fixture.Path));
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
         command.CommandText = "SELECT last_inn_town_id FROM characters WHERE character_id=60";
@@ -297,7 +297,7 @@ public sealed class OutsideTransactionTests
             _ = new SqliteDatabase(path, new DomainTransactionScope());
             var fixture = new Fixture(path);
             await using var connection = new SqliteConnection(
-                new SqliteConnectionStringBuilder { DataSource = path }.ToString());
+                SqliteTestPools.ConnectionString(path));
             await connection.OpenAsync();
             await using var character = connection.CreateCommand();
             character.CommandText =
@@ -308,7 +308,7 @@ public sealed class OutsideTransactionTests
 
         public ValueTask DisposeAsync()
         {
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(this.Path);
             try
             {
                 File.Delete(this.Path);

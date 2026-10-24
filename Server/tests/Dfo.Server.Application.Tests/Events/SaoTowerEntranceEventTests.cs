@@ -88,6 +88,6 @@ public sealed class SaoTowerEntranceEventTests
             await tx.CommitAsync(default);
         }
         public Fixture Reopen() => new(directory, false);
-        public void Dispose() { Services.Dispose(); Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); if (owns) Directory.Delete(directory, true); }
+        public void Dispose() { Services.Dispose(); if (!owns) return; SqliteTestPools.ClearOwned(Path.Combine(directory, "test.db")); Directory.Delete(directory, true); }
     }
 }

@@ -578,6 +578,38 @@ public sealed class OutboundSenderTests
         Assert.DoesNotContain(log.Entries, x => x.Level >= LogLevel.Error);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Failed_send_classification_preserves_the_error_and_close_in_both_catch_paths(bool closedSendSide, bool synchronous)
+    {
+        var a = Context("a");
+        var connection = transport.Add(a);
+        var error = new InvalidOperationException("Writing is not allowed after writer was completed.");
+        connection.FailWith = error;
+        connection.FailBeforeStarting = synchronous;
+        connection.ClosedSendSide = closedSendSide;
+        var log = new LevelLog();
+        await using var sender = Sender(transport, observer, logger: log);
+        var first = Batch(a, "first");
+        var second = Batch(a, "second");
+
+        sender.Submit([first, second]);
+        await observer.WaitForAsync(2);
+        await connection.Closed.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(OutboundOutcome.Failed, observer.OutcomeOf(first));
+        Assert.Equal(OutboundOutcome.Discarded, observer.OutcomeOf(second));
+        Assert.Same(error, observer.Reports.Single(x => ReferenceEquals(x.Entry, first)).Error);
+        Assert.Equal((a, OutboundOutcome.Failed), Assert.Single(observer.Failures));
+        var level = closedSendSide ? LogLevel.Information : LogLevel.Warning;
+        var suffix = closedSendSide ? "; the connection was already gone" : "";
+        Assert.Contains((level, "Outbound entry for a: Failed" + suffix), log.Entries);
+        Assert.Contains((level, "Outbound connection a closed: Failed" + suffix), log.Entries);
+    }
+
     private async Task WaitForFailuresAsync(int count)
     {
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);

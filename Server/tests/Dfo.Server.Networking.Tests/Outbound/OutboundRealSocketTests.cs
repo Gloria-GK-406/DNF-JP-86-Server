@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using TouchSocket.Core;
 using TouchSocket.Sockets;
 using Xunit.Abstractions;
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 using TcpClient = System.Net.Sockets.TcpClient;
 
 namespace Dfo.Server.Networking.Tests.Outbound;
@@ -298,6 +299,133 @@ public sealed class OutboundRealSocketTests(ITestOutputHelper output)
         }
     });
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_real_completed_send_side_is_still_failed_but_logged_as_information(bool closeTransport)
+    {
+        await using var server = await RealOutboundServer.StartAsync(confirmFlush: true);
+        var (client, context) = await server.ConnectAsync();
+        var (healthyClient, healthy) = await server.ConnectAsync();
+        using (client)
+        using (healthyClient)
+        {
+            var gate = server.BlockReceive(context);
+            var transport = new CapturedTransport(server.Transport());
+            var session = server.Session(context);
+            try
+            {
+                await client.GetStream().WriteAsync(new byte[] { 1 });
+                await gate.Entered.Task.WaitAsync(Patience);
+                var actualTransport = RealOutboundServer.PhysicalTransport(session);
+                if (closeTransport)
+                    await actualTransport.CloseAsync("test transport close", CancellationToken.None);
+                else
+                    await ((ITransportWriter)actualTransport).Writer.CompleteAsync();
+                Assert.Equal(closeTransport, session.ClosedToken.IsCancellationRequested);
+                Assert.True(session.Online);
+                Assert.NotNull(transport.Resolve(context));
+                var log = new SendLog();
+                await using var sender = new OutboundSender(transport, [server.Observer], log, OutboundSendOptions.Default);
+                var failed = Batch(context, Frame(1, 16));
+                var discarded = Batch(context, Frame(2, 16));
+                var sent = Batch(healthy, Frame(3, 16));
+                var reading = ReadExactlyAsync(healthyClient, 16);
+
+                sender.Submit([failed, discarded, sent]);
+                await server.Observer.WaitForAsync(3, Patience);
+                await transport.CloseStarted.Task.WaitAsync(Patience);
+                Assert.Equal(OutboundOutcome.Failed, server.Observer.OutcomeOf(failed));
+                Assert.Equal(OutboundOutcome.Discarded, server.Observer.OutcomeOf(discarded));
+                Assert.Equal(OutboundOutcome.Delivered, server.Observer.OutcomeOf(sent));
+                Assert.Equal(Frame(3, 16), await reading.WaitAsync(Patience));
+                Assert.Equal((context, OutboundOutcome.Failed), Assert.Single(server.Observer.Failures));
+                Assert.Equal(1, transport.CloseCalls);
+                var report = Assert.Single(server.Observer.Reports, x => ReferenceEquals(x.Entry, failed));
+                Assert.Same(transport.SendError, report.Error);
+                Assert.IsType<InvalidOperationException>(report.Error);
+                output.WriteLine($"closeTransport={closeTransport}; Online before send=true; ClosedToken before send={closeTransport}; error={report.Error}");
+                var entry = Assert.Single(log.Entries, x => x.Message.StartsWith($"Outbound entry for {context.ConnectionId}: Failed", StringComparison.Ordinal));
+                Assert.Same(report.Error, entry.Error);
+                Assert.Equal(LogLevel.Information, entry.Level);
+                Assert.EndsWith("; the connection was already gone", entry.Message, StringComparison.Ordinal);
+                var closed = Assert.Single(log.Entries, x => x.Message.StartsWith($"Outbound connection {context.ConnectionId} closed: Failed", StringComparison.Ordinal));
+                Assert.Equal(LogLevel.Information, closed.Level);
+                Assert.EndsWith("; the connection was already gone", closed.Message, StringComparison.Ordinal);
+                Assert.DoesNotContain(log.Entries, x => x.Level >= LogLevel.Warning);
+            }
+            finally
+            {
+                gate.Release.TrySetResult();
+                if (gate.Entered.Task.IsCompleted)
+                    await gate.Exited.Task.WaitAsync(Patience);
+                if (transport.CloseStarted.Task.IsCompleted)
+                {
+                    await transport.Closed.Task.WaitAsync(Patience);
+                    output.WriteLine($"ClosedToken after session close: {session.ClosedToken.IsCancellationRequested}");
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task The_writer_error_text_from_another_throw_site_does_not_mark_a_healthy_connection_gone()
+    {
+        await using var server = await RealOutboundServer.StartAsync(confirmFlush: true);
+        var (client, context) = await server.ConnectAsync();
+        using (client)
+        {
+            var session = server.Session(context);
+            Assert.False(session.ClosedToken.IsCancellationRequested);
+            var connection = server.Transport().Resolve(context)!;
+            var unrelated = Assert.Throws<InvalidOperationException>((Action)(() =>
+                throw new InvalidOperationException("Writing is not allowed after writer was completed.")));
+            Assert.False(connection.HasClosedSendSide(unrelated));
+            var frame = Frame(1, 16);
+            var reading = ReadExactlyAsync(client, frame.Length);
+            await connection.SendAsync(frame, CancellationToken.None);
+            Assert.Equal(frame, await reading.WaitAsync(Patience));
+        }
+    }
+
+    private sealed class SendLog : ILogger<OutboundSender>
+    {
+        public ConcurrentQueue<(LogLevel Level, string Message, Exception? Error)> Entries { get; } = new();
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel level) => true;
+        public void Log<TState>(LogLevel level, EventId id, TState state, Exception? error, Func<TState, Exception?, string> format) =>
+            Entries.Enqueue((level, format(state, error), error));
+    }
+
+    // Transparent instrumentation: all sends/closes still reach the real TouchSocket connection.
+    private sealed class CapturedTransport(IOutboundTransport inner) : IOutboundTransport
+    {
+        private int closeCalls;
+        public int CloseCalls => Volatile.Read(ref closeCalls);
+        public Exception? SendError { get; private set; }
+        public TaskCompletionSource CloseStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Closed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public IOutboundConnection? Resolve(NetworkConnectionContext expected) =>
+            inner.Resolve(expected) is { } connection ? new CapturedConnection(this, connection) : null;
+        private sealed class CapturedConnection(CapturedTransport owner, IOutboundConnection inner) : IOutboundConnection
+        {
+            public async ValueTask SendAsync(ReadOnlyMemory<byte> frames, CancellationToken cancellationToken)
+            {
+                try { await inner.SendAsync(frames, cancellationToken); }
+                catch (Exception error) { owner.SendError = error; throw; }
+            }
+            public bool HasClosedSendSide(Exception error) => inner.HasClosedSendSide(error);
+
+            public async ValueTask CloseAsync()
+            {
+                Interlocked.Increment(ref owner.closeCalls);
+                owner.CloseStarted.TrySetResult();
+                try { await inner.CloseAsync(); }
+                finally { owner.Closed.TrySetResult(); }
+            }
+        }
+    }
+
     private static Task<(byte[] Bytes, bool EndedByFin)> ReadSlowlyToEndAsync(TcpClient client) => Task.Run(async () =>
     {
         var stream = client.GetStream();
@@ -345,6 +473,28 @@ public sealed class OutboundRealSocketTests(ITestOutputHelper output)
         private readonly ServiceProvider provider;
         private readonly ConcurrentQueue<TaskCompletionSource<NetworkConnectionContext>> waiting = new();
         private readonly int port;
+        private NetworkConnectionContext? blocked;
+        private ReceiveGate? receiveGate;
+
+        public sealed class ReceiveGate
+        {
+            public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            public TaskCompletionSource Exited { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+
+        public ReceiveGate BlockReceive(NetworkConnectionContext context)
+        {
+            receiveGate = new ReceiveGate();
+            blocked = context;
+            return receiveGate;
+        }
+
+        public ITcpSessionClient Session(NetworkConnectionContext context) => registry.Get(context.ConnectionId).Session;
+
+        public static ITransport PhysicalTransport(ITcpSessionClient session) =>
+            (ITransport)typeof(TcpSessionClientBase).GetProperty("Transport",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(session)!;
 
         private RealOutboundServer(GameTcpService service, TouchSocketConnectionRegistry registry, ServiceProvider provider, int port)
         {
@@ -373,6 +523,16 @@ public sealed class OutboundRealSocketTests(ITestOutputHelper output)
                 if (server.waiting.TryDequeue(out var pending))
                     pending.TrySetResult(context);
                 return EasyTask.CompletedTask;
+            };
+            service.Received = async (client, _) =>
+            {
+                if (server.receiveGate is { } gate && server.blocked?.ConnectionId ==
+                    TouchSocketConnectionRegistry.CreateConnectionId(client, NetworkEndpointKind.Game))
+                {
+                    gate.Entered.TrySetResult();
+                    try { await gate.Release.Task; }
+                    finally { gate.Exited.TrySetResult(); }
+                }
             };
             service.Closed = (client, closed) =>
             {

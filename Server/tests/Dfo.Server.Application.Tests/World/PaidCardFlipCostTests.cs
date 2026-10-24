@@ -512,7 +512,7 @@ public sealed class PaidCardFlipCostTests
 
         public async ValueTask<SelectCardResult> Turn(ClearRewardCardKind kind, int index, int standingAt = Level)
         {
-            await using var connection = new SqliteConnection($"Data Source={this._path}");
+            await using var connection = new SqliteConnection(SqliteTestPools.ConnectionString(this._path));
             await connection.OpenAsync();
             await using var update = connection.CreateCommand();
             update.CommandText = "UPDATE characters SET level=@level WHERE character_id=@id";
@@ -562,7 +562,7 @@ public sealed class PaidCardFlipCostTests
 
         public void Discard()
         {
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(this._path);
             try
             {
                 File.Delete(this._path);

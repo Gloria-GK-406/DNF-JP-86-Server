@@ -44,6 +44,12 @@ internal sealed class FakeConnection(NetworkConnectionContext context, Concurren
 
     public Exception? FailWith { get; set; }
 
+    public bool FailBeforeStarting { get; set; }
+
+    public bool ClosedSendSide { get; set; }
+
+    public bool HasClosedSendSide(Exception error) => ClosedSendSide;
+
     public ConcurrentQueue<string> Sent { get; } = new();
 
     public ConcurrentQueue<bool> SentOnExecutor { get; } = new();
@@ -52,7 +58,14 @@ internal sealed class FakeConnection(NetworkConnectionContext context, Concurren
 
     public Task Closed => closed.Task;
 
-    public async ValueTask SendAsync(ReadOnlyMemory<byte> frames, CancellationToken cancellationToken)
+    public ValueTask SendAsync(ReadOnlyMemory<byte> frames, CancellationToken cancellationToken)
+    {
+        if (FailBeforeStarting && FailWith is { } failure)
+            throw failure;
+        return SendCoreAsync(frames, cancellationToken);
+    }
+
+    private async ValueTask SendCoreAsync(ReadOnlyMemory<byte> frames, CancellationToken cancellationToken)
     {
         SentOnExecutor.Enqueue(GameplayJob.IsOnExecutor);
         var text = Encoding.UTF8.GetString(frames.Span);

@@ -191,15 +191,15 @@ public sealed class CollectionBoxTests
                 new InventorySlotMappingRuleService().ToGameSlot(source).Index, await Items.CreateAsync(snapshot, default), default); });
             return (source,snapshot);
         }
-        public void Sql(string sql) { using var c = new SqliteConnection("Data Source="+path); c.Open(); using var q = c.CreateCommand(); q.CommandText=sql; q.ExecuteNonQuery(); }
+        public void Sql(string sql) { using var c = new SqliteConnection(SqliteTestPools.ConnectionString(path)); c.Open(); using var q = c.CreateCommand(); q.CommandText=sql; q.ExecuteNonQuery(); }
         public string Dump()
         {
-            using var c = new SqliteConnection("Data Source="+path); c.Open(); using var q = c.CreateCommand();
+            using var c = new SqliteConnection(SqliteTestPools.ConnectionString(path)); c.Open(); using var q = c.CreateCommand();
             q.CommandText="SELECT i.item_uid,hex(i.item_core),s.owner_id,s.list_type,s.slot_index,s.count FROM items i LEFT JOIN item_slots s ON s.core_uid=i.item_uid ORDER BY i.item_uid";
             using var r=q.ExecuteReader(); var rows=new List<string>(); while(r.Read()) rows.Add(string.Join('|', Enumerable.Range(0,r.FieldCount).Select(r.GetValue)));
             r.Close(); q.CommandText="SELECT character_id,selected_box_index FROM character_collectbox_state ORDER BY character_id";
             using var selected=q.ExecuteReader(); while(selected.Read()) rows.Add($"selected:{selected.GetInt32(0)}:{selected.GetInt32(1)}"); return string.Join('\n',rows);
         }
-        public async ValueTask DisposeAsync() { await Services.DisposeAsync(); SqliteConnection.ClearAllPools(); foreach(var suffix in new[]{"","-wal","-shm"}) File.Delete(path+suffix); }
+        public async ValueTask DisposeAsync() { await Services.DisposeAsync(); SqliteTestPools.ClearOwned(path); foreach(var suffix in new[]{"","-wal","-shm"}) File.Delete(path+suffix); }
     }
 }

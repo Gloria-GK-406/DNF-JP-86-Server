@@ -94,7 +94,7 @@ public sealed class DungeonPickupTransactionTests
         }
         finally
         {
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(path);
             try
             {
                 File.Delete(path);
@@ -108,7 +108,7 @@ public sealed class DungeonPickupTransactionTests
 
     private static async Task SeedAsync(string path)
     {
-        await using var connection = new SqliteConnection($"Data Source={path}");
+        await using var connection = new SqliteConnection(SqliteTestPools.ConnectionString(path));
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
         command.CommandText = """
@@ -124,7 +124,7 @@ public sealed class DungeonPickupTransactionTests
 
     private static async Task<int> TriggerAsync(string path)
     {
-        await using var connection = new SqliteConnection($"Data Source={path}");
+        await using var connection = new SqliteConnection(SqliteTestPools.ConnectionString(path));
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
         command.CommandText =
@@ -134,7 +134,7 @@ public sealed class DungeonPickupTransactionTests
 
     private static async Task<int> ItemCountAsync(string path)
     {
-        await using var connection = new SqliteConnection($"Data Source={path}");
+        await using var connection = new SqliteConnection(SqliteTestPools.ConnectionString(path));
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
         command.CommandText =

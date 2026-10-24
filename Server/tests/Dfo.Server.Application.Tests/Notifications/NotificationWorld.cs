@@ -203,6 +203,8 @@ internal sealed class WorldDelivery : IOutboundSender, IOutboundDeliveryObserver
                 ? ValueTask.FromException(new IOException($"Connection '{Id}' went away."))
                 : ValueTask.CompletedTask;
 
+        public bool HasClosedSendSide(Exception error) => false;
+
         public ValueTask CloseAsync()
         {
             Closed = true;

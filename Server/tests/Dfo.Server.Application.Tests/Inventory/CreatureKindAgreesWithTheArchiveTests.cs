@@ -108,7 +108,7 @@ public sealed class CreatureKindAgreesWithTheArchiveTests
                 Assert.True(stored.Snapshot.ToCore().Value > 0);
                 await lease.CommitAsync(CancellationToken.None);
                 using (var database = new Microsoft.Data.Sqlite.SqliteConnection(
-                    new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = path }.ToString()))
+                    SqliteTestPools.ConnectionString(path)))
                 {
                     database.Open();
                     using var command = database.CreateCommand();
@@ -124,7 +124,7 @@ public sealed class CreatureKindAgreesWithTheArchiveTests
             }
             finally
             {
-                Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+                SqliteTestPools.ClearOwned(path);
                 try
                 {
                     File.Delete(path);

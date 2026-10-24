@@ -139,8 +139,8 @@ public sealed class CreatureTransformationTests
             $"dfo-creature-transform-{Guid.NewGuid():N}.db");
         try
         {
-            CharacterDatabaseSchema.Ensure(new SqliteConnectionStringBuilder { DataSource = path }.ToString());
-            await using (var connection = new SqliteConnection($"Data Source={path}"))
+            CharacterDatabaseSchema.Ensure(SqliteTestPools.ConnectionString(path));
+            await using (var connection = new SqliteConnection(SqliteTestPools.ConnectionString(path)))
             {
                 await connection.OpenAsync();
                 await using var command = connection.CreateCommand();
@@ -188,7 +188,7 @@ public sealed class CreatureTransformationTests
             }
 
             await runtime.AdvanceAsync(Session, default);
-            await using (var connection = new SqliteConnection($"Data Source={path}"))
+            await using (var connection = new SqliteConnection(SqliteTestPools.ConnectionString(path)))
             {
                 await connection.OpenAsync();
                 await using var command = connection.CreateCommand();
@@ -214,7 +214,7 @@ public sealed class CreatureTransformationTests
         }
         finally
         {
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(path);
             File.Delete(path);
         }
         });

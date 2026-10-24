@@ -88,7 +88,7 @@ public sealed class SerialDisconnectTests : IDisposable
 
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
+        SqliteTestPools.ClearOwned(Path.Combine(directory, "test.db"));
         try
         {
             Directory.Delete(directory, recursive: true);

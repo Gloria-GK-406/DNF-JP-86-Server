@@ -315,14 +315,14 @@ public sealed class CharacterDomainStoreSettlementTests
         private static SqliteConnection Open(string path)
         {
             var connection = new SqliteConnection(
-                new SqliteConnectionStringBuilder { DataSource = path }.ToString());
+                SqliteTestPools.ConnectionString(path));
             connection.Open();
             return connection;
         }
 
         public ValueTask DisposeAsync()
         {
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(this.Path);
             try
             {
                 File.Delete(this.Path);

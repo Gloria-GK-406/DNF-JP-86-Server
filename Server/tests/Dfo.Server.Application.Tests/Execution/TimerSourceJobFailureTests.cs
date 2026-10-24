@@ -126,7 +126,7 @@ public sealed class TimerSourceJobFailureTests
         }
         finally
         {
-            SqliteTestFiles.Delete(directory);
+            SqliteTestFiles.Delete(directory, Path.Combine(directory, "timer.db"));
         }
     }
 
