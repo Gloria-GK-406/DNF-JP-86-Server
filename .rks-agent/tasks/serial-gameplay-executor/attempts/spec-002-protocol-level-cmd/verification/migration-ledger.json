@@ -4,25 +4,39 @@
   "caution": "open migration evidence, not execution status; declaration Kind is not actual unit equivalence",
   "commands": [
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs",
-          "line": 23,
-          "source_sha256": "c5f6f55397c4dea2e387377896585fbeefc32eb94fbac1cdb7736e2786c0e151"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmAccessCommands.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmBootstrapService.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+            "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs",
+            "Server/src/Dfo.Server.GmWeb/GmBootstrapService.cs",
+            "Server/tests/Dfo.Server.Host.Tests/ProtocolCommandHostTests.cs"
+          ],
+          "new": "Internal同一bus一作业，ordinary Write bootstrap-gm-administrator Begin/同BootstrapAsync/Commit",
+          "old": "UoW Transactional Begin/BootstrapAsync/Commit（外部queue内legacy inline）"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-04.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs",
-          "line": 23,
-          "source_sha256": "c5f6f55397c4dea2e387377896585fbeefc32eb94fbac1cdb7736e2786c0e151"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/workunit-map.md",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/ProtocolCommandExecutionTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/CommandWorkUnitsTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmAccessCommands.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmBootstrapService.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+        "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs",
+        "Server/src/Dfo.Server.GmWeb/GmBootstrapService.cs",
+        "Server/tests/Dfo.Server.Host.Tests/ProtocolCommandHostTests.cs"
+      ],
       "id": "command:Dfo.Server.Application.Administration.BootstrapGmAdministratorCommand",
       "original": {
         "command": "Dfo.Server.Application.Administration.BootstrapGmAdministratorCommand",
@@ -49,31 +63,48 @@
         "result": "System.Boolean"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs",
-          "line": 23,
-          "source_sha256": "c5f6f55397c4dea2e387377896585fbeefc32eb94fbac1cdb7736e2786c0e151"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmAccessCommands.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmBootstrapService.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+          "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs",
+          "Server/src/Dfo.Server.GmWeb/GmBootstrapService.cs",
+          "Server/tests/Dfo.Server.Host.Tests/ProtocolCommandHostTests.cs"
+        ],
+        "mapping": "唯一实际旧调用者已在上述历史快照及新源对照；其它调用者检索见TaskResult"
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs",
-          "line": 23,
-          "source_sha256": "c5f6f55397c4dea2e387377896585fbeefc32eb94fbac1cdb7736e2786c0e151"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmAccessCommands.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmBootstrapService.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+          "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs",
+          "Server/src/Dfo.Server.GmWeb/GmBootstrapService.cs",
+          "Server/tests/Dfo.Server.Host.Tests/ProtocolCommandHostTests.cs"
+        ],
+        "none_reason": "原Bootstrap未声明account/session/effect/main，新的ordinary精确会话参与者空；真实SQLite事务参与者仍由相同domain存储登记，不把空会话集合误作无数据库事务。"
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs",
-          "line": 23,
-          "source_sha256": "c5f6f55397c4dea2e387377896585fbeefc32eb94fbac1cdb7736e2786c0e151"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/workunit-map.md",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/ProtocolCommandExecutionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/CommandWorkUnitsTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmAccessCommands.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmBootstrapService.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+            "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs",
+            "Server/src/Dfo.Server.GmWeb/GmBootstrapService.cs",
+            "Server/tests/Dfo.Server.Host.Tests/ProtocolCommandHostTests.cs"
+          ],
+          "new": "显式InternalOrigin保持来源和取消，真实一个ordinary Write及失败收口，scope收口前不释放",
+          "old": "外部密码准备/StartupRecovery链与label/source空/queue+body取消；旧UoW失败回滚"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -3101,24 +3132,35 @@
     },
     {
       "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/GetChannelScriptVersionCommand.cs",
-          "line": 10,
-          "source_sha256": "b250671cc467244ddfbf2e56f18d4bf512864cbee63c2614420db3bc52bf9b9b"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GetChannelScriptVersionCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-ChannelScriptVersionHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "none_reason": "原Direct由UoW直接放行，只有领域只读ScriptVersion和响应；新CMD同样没有工作单元或事务。"
       },
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-04.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/GetChannelScriptVersionCommand.cs",
-          "line": 10,
-          "source_sha256": "b250671cc467244ddfbf2e56f18d4bf512864cbee63c2614420db3bc52bf9b9b"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/workunit-map.md",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/ProtocolCommandExecutionTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/CommandWorkUnitsTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GetChannelScriptVersionCommand.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-ChannelScriptVersionHandler.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+        "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Channel.ScriptVersion.GetChannelScriptVersionCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Channel.ScriptVersion.GetChannelScriptVersionCommand",
@@ -3145,31 +3187,48 @@
         "result": "Dfo.Server.Protocol.Channel.ScriptVersion.GetChannelScriptVersionResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/GetChannelScriptVersionCommand.cs",
-          "line": 10,
-          "source_sha256": "b250671cc467244ddfbf2e56f18d4bf512864cbee63c2614420db3bc52bf9b9b"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GetChannelScriptVersionCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-ChannelScriptVersionHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "mapping": "唯一实际旧调用者已在上述历史快照及新源对照；其它调用者检索见TaskResult"
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/GetChannelScriptVersionCommand.cs",
-          "line": 10,
-          "source_sha256": "b250671cc467244ddfbf2e56f18d4bf512864cbee63c2614420db3bc52bf9b9b"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GetChannelScriptVersionCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-ChannelScriptVersionHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "none_reason": "原/新均无account、selected session、effect或主结算参与者；Channel版本只读无事务。"
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/GetChannelScriptVersionCommand.cs",
-          "line": 10,
-          "source_sha256": "b250671cc467244ddfbf2e56f18d4bf512864cbee63c2614420db3bc52bf9b9b"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/workunit-map.md",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/ProtocolCommandExecutionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/CommandWorkUnitsTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GetChannelScriptVersionCommand.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-ChannelScriptVersionHandler.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+          ],
+          "new": "共同entry在身份/handler前初始化；显式ProtocolNonEffect保匿名authority与精确连接；同原真实Channel日志判据",
+          "old": "原dispatcher作业outbox、连接source、fence/supersession及Channel完成业务Debug/未入队Error"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -14695,25 +14754,36 @@
   "messages": [
     {
       "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionHandler.cs",
-          "line": 7,
-          "source_sha256": "e140d1c0f919b0b3780324f62bb4b8ce61e95d920f1cda028c1433d5ea00df1f"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GetChannelScriptVersionCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-ChannelScriptVersionHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "none_reason": "原Direct由UoW直接放行，只有领域只读ScriptVersion和响应；新CMD同样没有工作单元或事务。"
       },
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-04.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionHandler.cs",
-          "line": 7,
-          "source_sha256": "e140d1c0f919b0b3780324f62bb4b8ce61e95d920f1cda028c1433d5ea00df1f"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/workunit-map.md",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/ProtocolCommandExecutionTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/CommandWorkUnitsTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GetChannelScriptVersionCommand.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-ChannelScriptVersionHandler.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+        "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+      ],
       "id": "message:5",
       "original": {
         "handler": "Dfo.Server.Protocol.Channel.ScriptVersion.ChannelScriptVersionHandler",
@@ -14736,34 +14806,51 @@
         "value": 5
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionHandler.cs",
-          "line": 7,
-          "source_sha256": "e140d1c0f919b0b3780324f62bb4b8ce61e95d920f1cda028c1433d5ea00df1f"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GetChannelScriptVersionCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-ChannelScriptVersionHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "mapping": "唯一实际旧调用者已在上述历史快照及新源对照；其它调用者检索见TaskResult"
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionHandler.cs",
-          "line": 7,
-          "source_sha256": "e140d1c0f919b0b3780324f62bb4b8ce61e95d920f1cda028c1433d5ea00df1f"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GetChannelScriptVersionCommand.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-ChannelScriptVersionHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+        ],
+        "none_reason": "原/新均无account、selected session、effect或主结算参与者；Channel版本只读无事务。"
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionHandler.cs",
-          "line": 7,
-          "source_sha256": "e140d1c0f919b0b3780324f62bb4b8ce61e95d920f1cda028c1433d5ea00df1f"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/workunit-map.md",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/ProtocolCommandExecutionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/CommandWorkUnitsTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GetChannelScriptVersionCommand.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-ChannelScriptVersionHandler.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Channel/ScriptVersion/ChannelScriptVersionCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/Channel/ChannelControlCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/ChannelControlMessagesIntegrationTests.cs"
+          ],
+          "new": "共同entry在身份/handler前初始化；显式ProtocolNonEffect保匿名authority与精确连接；同原真实Channel日志判据",
+          "old": "原dispatcher作业outbox、连接source、fence/supersession及Channel完成业务Debug/未入队Error"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Channel.ScriptVersion.GetChannelScriptVersionCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -27835,25 +27922,39 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.GmWeb/GmBootstrapService.cs",
-          "line": 29,
-          "source_sha256": "1ae021c5c60327d0cb50ddea0cdc098eec301b890fc32d6283c2d257c203ef28"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmAccessCommands.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmBootstrapService.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+            "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs",
+            "Server/src/Dfo.Server.GmWeb/GmBootstrapService.cs",
+            "Server/tests/Dfo.Server.Host.Tests/ProtocolCommandHostTests.cs"
+          ],
+          "new": "Internal同一bus一作业，ordinary Write bootstrap-gm-administrator Begin/同BootstrapAsync/Commit",
+          "old": "UoW Transactional Begin/BootstrapAsync/Commit（外部queue内legacy inline）"
+        }
+      ],
       "classification": "startup",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-04.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.GmWeb/GmBootstrapService.cs",
-          "line": 29,
-          "source_sha256": "1ae021c5c60327d0cb50ddea0cdc098eec301b890fc32d6283c2d257c203ef28"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/workunit-map.md",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/ProtocolCommandExecutionTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/CommandWorkUnitsTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmAccessCommands.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmBootstrapService.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+        "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs",
+        "Server/src/Dfo.Server.GmWeb/GmBootstrapService.cs",
+        "Server/tests/Dfo.Server.Host.Tests/ProtocolCommandHostTests.cs"
+      ],
       "id": "source:startup-gm-bootstrap",
       "original": {
         "body": "password preparation off executor; BootstrapGmAdministratorCommand writes once",
@@ -27871,24 +27972,38 @@
         "target_input": "configured login name + externally prepared password record + permissions; sensitive values are not exported"
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.GmWeb/GmBootstrapService.cs",
-          "line": 29,
-          "source_sha256": "1ae021c5c60327d0cb50ddea0cdc098eec301b890fc32d6283c2d257c203ef28"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmAccessCommands.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmBootstrapService.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+          "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs",
+          "Server/src/Dfo.Server.GmWeb/GmBootstrapService.cs",
+          "Server/tests/Dfo.Server.Host.Tests/ProtocolCommandHostTests.cs"
+        ],
+        "none_reason": "原Bootstrap未声明account/session/effect/main，新的ordinary精确会话参与者空；真实SQLite事务参与者仍由相同domain存储登记，不把空会话集合误作无数据库事务。"
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.GmWeb/GmBootstrapService.cs",
-          "line": 29,
-          "source_sha256": "1ae021c5c60327d0cb50ddea0cdc098eec301b890fc32d6283c2d257c203ef28"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/workunit-map.md",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/ProtocolCommandExecutionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/CommandWorkUnitsTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmAccessCommands.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-GmBootstrapService.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/old-UnitOfWorkBehavior.cs.txt",
+            "Server/src/Dfo.Server.Application/Administration/GmAccessCommands.cs",
+            "Server/src/Dfo.Server.GmWeb/GmBootstrapService.cs",
+            "Server/tests/Dfo.Server.Host.Tests/ProtocolCommandHostTests.cs"
+          ],
+          "new": "显式InternalOrigin保持来源和取消，真实一个ordinary Write及失败收口，scope收口前不释放",
+          "old": "外部密码准备/StartupRecovery链与label/source空/queue+body取消；旧UoW失败回滚"
+        }
+      ],
       "reason": null,
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -33547,8 +33662,27 @@
     },
     {
       "destination": "pending",
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/workunit-map.md",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandContracts.cs"
+      ],
       "id": "transition:planned-legacy-routes",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+          "purpose": "dual route/InlineAsync + reused signed DispatchDepth; remove legacy branch and depth at T011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Commands/CommandContracts.cs",
+          "purpose": "default Internal NotSupported compatibility and old context constructor; remove legacy consumers T011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Commands/SelectedSessionSafety.cs",
+          "purpose": "old Capture overload delegates metadata for legacy only; remove final consumer T011"
+        }
+      ],
+      "notes": "TASK04 introduced actual routes; all remain pending until final consumer removal T011. Effect handle/footprint/main lifecycle intentionally unavailable and must be completed in first effect Task; no new core ambient fallback.",
       "original": {
         "final_evidence": "pending",
         "id": "transition:planned-legacy-routes",

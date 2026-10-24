@@ -518,8 +518,8 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Direct);
         services.AddCommandHandler<MarkDungeonParticipantReadyCommand, MarkDungeonParticipantReadyResult, MarkDungeonParticipantReadyCommandHandler>(
             CommandExecutionKind.Direct);
-        services.AddCommandHandler<GetChannelScriptVersionCommand, GetChannelScriptVersionResult, GetChannelScriptVersionCommandHandler>(
-            CommandExecutionKind.Direct);
+        services.AddProtocolCommandHandler<ChannelScriptVersionCommand, ChannelScriptVersionCompleted, ChannelScriptVersionCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.ChannelScriptVersion, typeof(ChannelScriptVersionRequest)));
         services.AddCommandHandler<GetChannelScriptCommand, GetChannelScriptResult, GetChannelScriptCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<GetChannelInfoCommand, GetChannelInfoResult, GetChannelInfoCommandHandler>(
@@ -784,7 +784,7 @@ public sealed class ProtocolModule : IServerModule
     private static void RegisterMessageHandlers(IServiceCollection services)
     {
         services.RegisterMessageHandler<ChannelConnectHandler>(ClientMessageType.ChannelConnect);
-        services.RegisterMessageHandler<ChannelScriptVersionHandler>(ClientMessageType.ChannelScriptVersion);
+        services.RegisterProtocolMessageHandler<ChannelScriptVersionHandler, ChannelScriptVersionRequest, ChannelScriptVersionCommand>(ClientMessageType.ChannelScriptVersion);
         services.RegisterMessageHandler<ChannelScriptHandler>(ClientMessageType.ChannelScript);
         services.RegisterMessageHandler<ChannelInfoHandler>(ClientMessageType.ChannelInfo);
         services.RegisterMessageHandler<ReturnToSelectionHandler>(ClientMessageType.GameReturnToSelection);

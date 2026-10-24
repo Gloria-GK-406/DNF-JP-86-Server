@@ -20,10 +20,11 @@ public sealed class LogoutGmAdministratorCommand(string sessionSecret) : IComman
 {
     public string SessionSecret { get; } = sessionSecret;
 }
-internal sealed class BootstrapGmAdministratorCommandHandler(IGmAccessDomainService access) : ICommandHandler<BootstrapGmAdministratorCommand, bool>
+internal sealed class BootstrapGmAdministratorCommandHandler(IGmAccessDomainService access, ICommandWorkUnits units) : ICommandHandler<BootstrapGmAdministratorCommand, bool>
 {
     public ValueTask<bool> HandleAsync(CommandExecutionContext context, BootstrapGmAdministratorCommand command, CancellationToken cancellationToken) =>
-        access.BootstrapAsync(command.LoginName, command.PasswordRecord, command.Permissions, cancellationToken);
+        units.WriteAsync(context, new("bootstrap-gm-administrator", []),
+            (_, ct) => access.BootstrapAsync(command.LoginName, command.PasswordRecord, command.Permissions, ct), cancellationToken);
 }
 internal sealed class LoginGmAdministratorCommandHandler(IGmAccessDomainService access) : ICommandHandler<LoginGmAdministratorCommand, GmLoginResult>
 {

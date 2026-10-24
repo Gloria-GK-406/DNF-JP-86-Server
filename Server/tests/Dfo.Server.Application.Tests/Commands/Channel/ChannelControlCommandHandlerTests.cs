@@ -1,3 +1,6 @@
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Application.Channel;
 using Dfo.Server.Application.Commands;
@@ -11,17 +14,18 @@ namespace Dfo.Server.Application.Tests.Commands.Channel;
 public sealed class ChannelControlCommandHandlerTests
 {
     [Fact]
-    public async Task GetScriptVersion_ReturnsTheConfiguredVersion()
+    public async Task ScriptVersion_RegistersTheConfiguredVersionToTheOriginalConnection()
     {
-        var handler = new GetChannelScriptVersionCommandHandler(
+        var outbound = new VersionOutbox();
+        var handler = new ChannelScriptVersionCommandHandler(
             new ChannelDirectoryDomainService(new ChannelContentRuleService(
-                new NoChannelCatalog(), new StubScriptSource("66", [0x01]))));
-        var command = new GetChannelScriptVersionCommand();
-
-        var result = await handler.HandleAsync(CreateContext(command, handler), command, CancellationToken.None);
-
-        var typed = Assert.IsType<GetChannelScriptVersionResult>(result);
-        Assert.Equal("66", typed.Version);
+                new NoChannelCatalog(), new StubScriptSource("66", [0x01]))), outbound);
+        var connection = new NetworkConnectionContext(new("channel-42"), NetworkEndpointKind.Channel, 7001);
+        var command = new ChannelScriptVersionCommand(new(connection), new(ChannelMessageMetadata.Empty));
+        await TestGameplay.RunAsync(async () =>
+            await handler.HandleAsync(CreateContext(command, handler), command, CancellationToken.None));
+        Assert.Equal(connection.ConnectionId, Assert.Single(outbound.Recorded.Entries).Connection.ConnectionId);
+        Assert.Equal(new ChannelScriptVersionResponse("66"), Assert.Single(outbound.Recorded.Messages));
     }
 
     [Fact]
@@ -54,6 +58,17 @@ public sealed class ChannelControlCommandHandlerTests
 
         var typed = Assert.IsType<GetChannelInfoResult>(result);
         Assert.Equal(channels, typed.Channels);
+    }
+
+    private sealed class VersionOutbox : ICommandMessageOutbox
+    {
+        public RecordedOutbound Recorded { get; } = new();
+        public ValueTask RegisterAsync(NetworkConnectionId connection, IServerNetworkMessage message, CancellationToken ct) =>
+            Recorded.Network.SendAsync(connection, message, ct);
+        public ValueTask RegisterBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages, CancellationToken ct) =>
+            Recorded.Network.SendBatchAsync(connection, messages, ct);
+        public ValueTask RegisterExplicitAsync(NetworkConnectionId connection, ExplicitMessageDelivery delivery, CancellationToken ct) =>
+            Recorded.Network.SendExplicitAsync(connection, delivery, ct);
     }
 
     private static CommandExecutionContext CreateContext(ICommand command, object handler) =>

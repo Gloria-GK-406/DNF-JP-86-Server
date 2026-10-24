@@ -28,6 +28,14 @@ public static class GameplayJob
         if (Active is { } token) throw token.Fault(new GameplaySelfWaitException(operation, token.Chain));
     }
 
+    /// <summary>Refuses a continuation after the current job has recorded a program error.</summary>
+    public static void DemandHealthy()
+    {
+        var token = Active ?? throw new GameplayOffExecutorException("Using the current command request");
+        if (token.ProgramError is { } error)
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error).Throw();
+    }
+
     /// <summary>
     /// Runs <paramref name="action"/> as off the executor and restores the token afterwards. For
     /// transport callbacks that may run inline inside a job: clearing the token outright would leak

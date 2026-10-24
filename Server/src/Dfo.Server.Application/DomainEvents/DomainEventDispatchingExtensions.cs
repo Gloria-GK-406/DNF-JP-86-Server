@@ -19,7 +19,9 @@ public static class DomainEventDispatchingExtensions
         services.TryAddSingleton<DomainEventWakeups>();
         services.TryAddSingleton<DomainEventCallChains>();
         services.TryAddScoped(typeof(NotificationProjectionSubscriber<>));
-        services.TryAddSingleton<IEventService, EventService>();
+        services.TryAddSingleton<EventService>();
+        services.TryAddSingleton<IEventService>(provider => provider.GetRequiredService<EventService>());
+        services.TryAddSingleton<ICommandProjections>(provider => provider.GetRequiredService<EventService>());
         services.TryAddSingleton<DomainEventDispatcher>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DomainEventHostedService>());
         return services;

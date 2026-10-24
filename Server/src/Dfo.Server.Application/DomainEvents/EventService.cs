@@ -13,7 +13,7 @@ internal sealed class DomainEventInstance
 
 internal sealed class EventService(DomainEventRegistry registry, IServiceProvider services,
     IDomainTransactionAccessor transactions, DomainEventWakeups wakeups, DomainEventInstance instance,
-    TimeProvider clock, IServiceScopeFactory scopes, DomainEventCallChains chains) : IEventService
+    TimeProvider clock, IServiceScopeFactory scopes, DomainEventCallChains chains) : IEventService, ICommandProjections
 {
     private static readonly object BatchIdentity = new();
     private static readonly object WakeupIdentity = new();

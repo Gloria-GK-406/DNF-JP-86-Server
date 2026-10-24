@@ -26,7 +26,10 @@ public sealed class SelectedSessionSafety(IServiceProvider services, ILogger<Sel
     public bool IsBlocked(NetworkConnectionContext connection)
     { lock (gate) return connections.TryGetValue(connection, out _); }
 
-    public SelectedSessionRecipient Capture(SelectedSessionIdentity session)
+    public SelectedSessionRecipient Capture(SelectedSessionIdentity session) =>
+        Capture(session, services.GetService<NetworkCommandAuthorization>()?.Metadata);
+
+    public SelectedSessionRecipient Capture(SelectedSessionIdentity session, GameMessageMetadata? metadata)
     {
         DemandCurrent(session);
         var users = services.GetService<IOnlineUserQueryDomainService>();
@@ -38,7 +41,7 @@ public sealed class SelectedSessionSafety(IServiceProvider services, ILogger<Sel
             connection = user.Connection;
             if (IsBlocked(connection)) throw new InvalidOperationException("The recipient connection has an unknown settlement outcome.");
         }
-        return new(session, connection, services.GetService<NetworkCommandAuthorization>()?.Metadata);
+        return new(session, connection, metadata);
     }
     public void DemandCurrent(SelectedSessionIdentity session)
     {

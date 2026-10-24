@@ -1,3 +1,8 @@
+using System.Collections.Concurrent;
+using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Data.Channel;
+using Microsoft.Extensions.Logging;
 using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Net;
@@ -93,6 +98,79 @@ public sealed class ChannelControlMessagesIntegrationTests
         {
             SqliteConnection.ClearAllPools();
             File.Delete(scriptPath);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Protocol_business_failure_is_downgraded_but_a_refused_job_is_still_an_error(bool refuseJob)
+    {
+        var scriptPath = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllBytesAsync(scriptPath, [1, 2, 3]);
+        var channelPort = GetAvailablePort(); var gamePort = GetAvailablePort();
+        while (gamePort == channelPort) gamePort = GetAvailablePort();
+        var failure = new IOException("script version business probe");
+        var capture = new FailureLogs();
+        var builder = Host.CreateApplicationBuilder();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Channel:ScriptVersion"] = "66", ["Channel:ScriptPath"] = scriptPath,
+            ["Networking:Enabled"] = "true", ["Networking:ChannelPort"] = channelPort.ToString(),
+            ["Networking:GamePorts:0"] = gamePort.ToString(), ["Logging:LogLevel:Default"] = "Trace",
+        });
+        builder.Logging.ClearProviders().SetMinimumLevel(LogLevel.Trace).AddProvider(capture);
+        new InfrastructureModule().ConfigureServices(builder.Services, builder.Configuration);
+        new PersistenceModule().ConfigureServices(builder.Services, builder.Configuration);
+        new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
+        new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
+        new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
+        builder.Services.AddSingleton<IChannelDirectoryDomainService>(new FailingChannel(failure));
+        using var host = builder.Build();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await host.StartAsync(timeout.Token);
+        using var client = new TcpClient();
+        await client.ConnectAsync(IPAddress.Loopback, channelPort, timeout.Token);
+        if (refuseJob) await host.Services.GetRequiredService<Dfo.Server.Application.Execution.GameplayExecutor>().StopAsync(timeout.Token);
+        await SendRequestAsync(client.GetStream(), 5, timeout.Token);
+        while (!capture.Entries.Any(entry => entry.Category.EndsWith(".ChannelNetworkPlugin", StringComparison.Ordinal)))
+            await Task.Delay(10, timeout.Token);
+        var line = Assert.Single(capture.Entries, entry => entry.Category.EndsWith(".ChannelNetworkPlugin", StringComparison.Ordinal));
+        Assert.Equal(refuseJob ? LogLevel.Error : LogLevel.Debug, line.Level);
+        if (refuseJob) Assert.IsType<GameplayExecutorStoppedException>(line.Error);
+        else
+        {
+            Assert.Same(failure, line.Error);
+            Assert.True(GameplayJob.EndedAJob(failure));
+            Assert.Single(capture.Entries, entry => entry.Category.EndsWith(".GameplayExecutor", StringComparison.Ordinal)
+                && ReferenceEquals(entry.Error, failure) && entry.Level == LogLevel.Error);
+        }
+        client.Close();
+        await host.StopAsync(timeout.Token);
+        }
+        finally { File.Delete(scriptPath); }
+    }
+
+    private sealed class FailingChannel(Exception failure) : IChannelDirectoryDomainService
+    {
+        public string ScriptVersion => throw failure;
+        public ValueTask<IReadOnlyList<ChannelServerInfo>> ChannelsAsync(CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<byte[]> ReadScriptAsync(CancellationToken ct) => throw new NotSupportedException();
+    }
+    private sealed record FailureLog(string Category, LogLevel Level, Exception Error);
+    private sealed class FailureLogs : ILoggerProvider
+    {
+        public ConcurrentQueue<FailureLog> Entries { get; } = new();
+        public ILogger CreateLogger(string category) => new Capture(category, Entries);
+        public void Dispose() { }
+        private sealed class Capture(string category, ConcurrentQueue<FailureLog> entries) : ILogger
+        {
+            public bool IsEnabled(LogLevel level) => true;
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+            public void Log<TState>(LogLevel level, EventId id, TState state, Exception? error, Func<TState, Exception?, string> formatter)
+            { if (error is not null) entries.Enqueue(new(category, level, error)); }
         }
     }
 

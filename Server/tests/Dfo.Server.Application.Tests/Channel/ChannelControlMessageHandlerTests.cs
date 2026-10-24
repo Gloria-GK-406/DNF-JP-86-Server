@@ -12,23 +12,22 @@ namespace Dfo.Server.Application.Tests.Channel;
 public sealed class ChannelControlMessageHandlerTests
 {
     [Fact]
-    public async Task ScriptVersion_MapsTheCommandResultToTheSameConnection()
+    public async Task ScriptVersion_ForwardsTheOriginalRequestAndExactConnectionContext()
     {
-        var sender = new RecordingSender();
+        var context = CreateContext();
+        var request = new ChannelScriptVersionRequest(ChannelMessageMetadata.Empty);
+        var calls = 0;
         var bus = new StubCommandBus(command =>
         {
-            Assert.IsType<GetChannelScriptVersionCommand>(command);
-            return new GetChannelScriptVersionResult("66");
+            var protocol = Assert.IsType<ChannelScriptVersionCommand>(command);
+            Assert.Same(context, protocol.Dispatch);
+            Assert.Same(request, protocol.Request);
+            calls++;
+            return default(ChannelScriptVersionCompleted);
         });
-        var handler = new ChannelScriptVersionHandler(sender, bus);
-
-        await TestGameplay.RunAsync(async () => await handler.HandleAsync(
-            CreateContext(),
-            new ChannelScriptVersionRequest(ChannelMessageMetadata.Empty),
-            CancellationToken.None));
-
-        Assert.Equal(new NetworkConnectionId("channel-42"), sender.ConnectionId);
-        Assert.Equal(new ChannelScriptVersionResponse("66"), sender.Message);
+        var handler = new ChannelScriptVersionHandler(bus);
+        await handler.HandleAsync(context, request, CancellationToken.None);
+        Assert.Equal(1, calls);
     }
 
     [Fact]

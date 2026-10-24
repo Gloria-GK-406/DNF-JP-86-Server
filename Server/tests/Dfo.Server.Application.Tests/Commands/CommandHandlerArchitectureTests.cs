@@ -36,9 +36,18 @@ public sealed class CommandHandlerArchitectureTests
         {
             [typeof(TimeProvider)] =
                 "环境时钟。它不是这个游戏知道的任何东西，注入它是为了让时间在测试里可控。",
+            [typeof(ICommandWorkUnits)] = "当前CMD的显式事务边界，不派发其它CMD。",
+            [typeof(Dfo.Server.Abstractions.Networking.ICommandMessageOutbox)] = "只登记当前CMD的消息，不等待传输。",
+            [typeof(Dfo.Server.Abstractions.Networking.ICommandConnectionClosures)] = "只登记精确连接关闭。",
+            [typeof(Dfo.Server.Abstractions.DomainEvents.ICommandProjections)] = "只登记即时投影，不发布领域事实。",
+            [typeof(Dfo.Server.Protocol.Game.IGameCommandOutbox)] = "Protocol所有的CMD/NOTI强类型登记。",
+            [typeof(Dfo.Server.Abstractions.Execution.IOutboundOrdering)] = "显式收件人的登记顺序组。",
+            [typeof(Dfo.Server.Abstractions.Inventory.IInventorySlotMappingRuleService)] = "固定协议槽位到业务位置的地址换算。",
             [typeof(IPartyService)] =
                 "队伍聚合的权威边界按领域语言明确命名为 PartyService；用户要求该名称不追加 Domain 后缀。",
         };
+
+    private interface IPretendOutbox;
 
     private static readonly Assembly Abstractions = typeof(ICharacterDomainService).Assembly;
 
@@ -110,6 +119,11 @@ public sealed class CommandHandlerArchitectureTests
     [InlineData(typeof(ICommandBus))]
     [InlineData(typeof(Dfo.Server.Abstractions.Networking.INetworkMessageSender))]
     [InlineData(typeof(Dfo.Server.Protocol.Game.IGameMessageSender))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Networking.INetworkConnectionCloser))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Execution.IGameplayQueue))]
+    [InlineData(typeof(Dfo.Server.Application.Execution.GameplayExecutor))]
+    [InlineData(typeof(IServiceProvider))]
+    [InlineData(typeof(IPretendOutbox))]
     [InlineData(typeof(string))]
     public void ATypeOutsideTheVocabularyIsRefused(Type type) => Assert.False(IsPermitted(type));
 
@@ -118,6 +132,14 @@ public sealed class CommandHandlerArchitectureTests
     [InlineData(typeof(IPartyService))]
     [InlineData(typeof(Dfo.Server.Abstractions.Inventory.IItemDomainStore))]
     [InlineData(typeof(TimeProvider))]
+    [InlineData(typeof(ICommandWorkUnits))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Networking.ICommandMessageOutbox))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Networking.ICommandConnectionClosures))]
+    [InlineData(typeof(Dfo.Server.Abstractions.DomainEvents.ICommandProjections))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.IGameCommandOutbox))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Execution.IOutboundOrdering))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Inventory.IInventorySlotMappingRuleService))]
+    [InlineData(typeof(Microsoft.Extensions.Logging.ILogger<CommandHandlerArchitectureTests>))]
     public void ADomainShapeOrANamedExemptionIsPermitted(Type type) => Assert.True(IsPermitted(type));
 
     /// <summary>Every exemption states why it is one.</summary>
@@ -132,7 +154,9 @@ public sealed class CommandHandlerArchitectureTests
                 contract.IsGenericType
                 && contract.GetGenericTypeDefinition() == typeof(ICommandHandler<,>)));
 
-    private static bool IsPermitted(Type type) => Exempt.ContainsKey(type) || IsDomainShape(type);
+    private static bool IsPermitted(Type type) => Exempt.ContainsKey(type) || IsDomainShape(type)
+        || type == typeof(Microsoft.Extensions.Logging.ILogger)
+        || type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Microsoft.Extensions.Logging.ILogger<>);
 
     /// <summary>
     /// A domain shape is an interface the seam layer publishes whose name says which of the two it

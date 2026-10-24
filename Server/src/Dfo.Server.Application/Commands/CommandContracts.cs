@@ -48,13 +48,26 @@ public interface ICommandBus
         ICommand<TResult> command,
         CancellationToken cancellationToken = default)
         where TResult : notnull;
+
+    ValueTask<TResult> SendInternalAsync<TResult>(ICommand<TResult> command, InternalCommandOrigin origin,
+        CancellationToken cancellationToken = default) where TResult : notnull =>
+        ValueTask.FromException<TResult>(new NotSupportedException("This legacy command-bus test adapter has no internal entry."));
 }
 
 public sealed record CommandExecutionContext(
     Guid ExecutionId,
     Type CommandType,
     Type HandlerType,
-    CommandExecutionKind ExecutionKind);
+    CommandExecutionKind ExecutionKind)
+{
+    public CommandRequestContext? Request { get; init; }
+    internal CommandRequestContext DemandRequest()
+    {
+        var request = Request ?? throw new InvalidOperationException("An explicit command request is required.");
+        request.DemandCurrent();
+        return request;
+    }
+}
 
 /// <summary>The remainder of the pipeline, carrying the command's own result type.</summary>
 public delegate ValueTask<TResult> CommandExecutionDelegate<TResult>()

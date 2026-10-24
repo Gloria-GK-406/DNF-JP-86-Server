@@ -17,7 +17,7 @@ import xml.sax.saxutils
 
 B = Path(__file__).resolve().parents[2]
 REPO = next(parent for parent in B.parents if (parent / 'Server/86JP.Server.slnx').is_file())
-REG_APIS = {'AddCommandHandler', 'RegisterMessageHandler', 'RegisterTelemetryMessageHandler'}
+REG_APIS = {'AddCommandHandler', 'AddProtocolCommandHandler', 'AddInternalCommandHandler', 'RegisterMessageHandler', 'RegisterTelemetryMessageHandler', 'RegisterProtocolMessageHandler'}
 SOURCE_PATTERN = r'IGameplayQueue|GameplayWork|GameplayTimerWork|CoalescingGameplaySource|HttpGameplay|RunsOnGameplay|EnqueuesItself|OutsideGameplay'
 TX_PATTERN = r'DomainTransactionScope|DomainTransaction|RequireRollback|\.Begin(?:ReadOnly|Snapshot)?\(|\.CommitAsync\('
 
@@ -68,7 +68,8 @@ def source_registrations(repo):
             message = re.search(r'ClientMessageType\.(\w+)', masked[pos:end])
             kind = re.search(r'CommandExecutionKind\.(\w+)', masked[pos:end])
             rows.append(dict(api=api, types=arguments, message=message[1] if message else None,
-                execution_kind=kind[1] if kind else None, file=path.relative_to(repo).as_posix(),
+                execution_kind=kind[1] if kind else ('Direct' if api in ('AddProtocolCommandHandler','AddInternalCommandHandler') else None),
+                protocol_bindings=re.findall(r'new(?:\s+ProtocolCommandMessageBinding)?\s*\(\s*ClientMessageType\.(\w+)\s*,\s*typeof\(([^)]+)\)\s*\)', masked[pos:end]) if api=='AddProtocolCommandHandler' else [], file=path.relative_to(repo).as_posix(),
                 line=text.count('\n', 0, found.start()) + 1, text=call.strip(), usings=usings, aliases=aliases,
                 source_sha256=sha(path.read_bytes())))
     return rows
@@ -93,17 +94,29 @@ def crosscheck(runtime, source):
     command_handlers = {row['handler'] for row in commands}; message_handlers = {row['handler'] for row in messages}
     seen_c, seen_m = set(), set()
     for row in source:
-        if row['api'] == 'AddCommandHandler':
+        if row['api'] in ('AddCommandHandler','AddProtocolCommandHandler','AddInternalCommandHandler'):
             name = resolve_type(row['types'][0], by_command, row)
             actual = by_command[name]
             handler = resolve_type(row['types'][2], command_handlers, row)
             assert handler == actual['handler'] and row['execution_kind'] == actual['execution_kind'], row
+            route = {'AddCommandHandler':'LegacyFineGrained','AddProtocolCommandHandler':'Protocol','AddInternalCommandHandler':'Internal'}[row['api']]
+            assert actual.get('route','LegacyFineGrained') == route, row
+            if route == 'Protocol':
+                shapes = {binding['message_clr'] for binding in actual['protocol_bindings']}
+                pairs = sorted((message, resolve_type(shape, shapes, row)) for message,shape in row['protocol_bindings'])
+                assert pairs == sorted((binding['message'],binding['message_clr']) for binding in actual['protocol_bindings']), row
             assert name not in seen_c, name
             seen_c.add(name)
         else:
             name = row['message']; actual = by_message[name]
             assert resolve_type(row['types'][0], message_handlers, row) == actual['handler'], row
             assert (row['api'] == 'RegisterTelemetryMessageHandler') == actual['telemetry'], row
+            if row['api'] == 'RegisterProtocolMessageHandler':
+                assert actual['route'] == 'ProtocolCommand', row
+                assert resolve_type(row['types'][1], {actual['registered_message_clr']}, row) == actual['registered_message_clr'], row
+                assert resolve_type(row['types'][2], by_command, row) == actual['protocol_command'], row
+            else:
+                assert actual.get('route','LegacyQueued') == 'LegacyQueued', row
             assert name not in seen_m, name
             seen_m.add(name)
         actual['registration'] = {key: row[key] for key in ('file','line','text','source_sha256')}
@@ -439,7 +452,13 @@ def evidence_path(repo,value):
     if not path.is_relative_to(repo.resolve()) or not path.is_file():raise ValueError('evidence path outside workspace or missing: '+value)
 
 
-def validate(baseline,ledger,repo):
+def validate(baseline,ledger,repo,current_task=None):
+    if current_task is not None:
+        path=(repo/current_task).resolve()
+        if path.parent != (B/'tasks').resolve() or not re.fullmatch(r'TASK-\d+\.md',path.name) or not path.is_file():
+            raise ValueError('preclose requires the exact existing current Task path')
+        current_task=path.relative_to(repo).as_posix()
+    pending_result=set()
     groups=('messages','commands','sources','protections','transitions')
     baseline_groups={**baseline['registrations'],**{name:baseline[name] for name in groups[2:]}}
     if ledger['baseline_head']!=baseline['baseline_head'] or ledger['baseline_registration_payload_sha256']!=baseline['registration_payload_sha256']:raise ValueError('baseline binding mismatch')
@@ -491,12 +510,14 @@ def validate(baseline,ledger,repo):
                         else:raise ValueError('premature closed mapping '+row['id']+':'+key)
                     if not row.get('evidence') or not row.get('completion_task'):raise ValueError('closed without evidence/completed Task '+row['id'])
                     evidence_path(repo,row['completion_task'])
-                    if '## Result' not in (repo/row['completion_task']).read_text() or 'Outcome: done' not in (repo/row['completion_task']).read_text():raise ValueError('completion Task lacks done result')
+                    if '## Result' not in (repo/row['completion_task']).read_text() or 'Outcome: done' not in (repo/row['completion_task']).read_text():
+                        if row['completion_task'] != current_task:raise ValueError('completion Task lacks done result')
+                        pending_result.add(current_task)
                 else:
                     keys=('new_owner','new_test_entry') if group=='protections' else ('destination',)
                     if any(not row.get(key) or row[key]=='pending' for key in keys) or not row.get('evidence'):
                         raise ValueError('closed protection/transition lacks destination/evidence '+row['id'])
-    return dict(valid=True,counts={group:dict(collections.Counter(row['state'] for row in ledger[group])) for group in groups})
+    return dict(valid=True,mode='preclose' if current_task else 'strict',completion_results_pending=sorted(pending_result),counts={group:dict(collections.Counter(row['state'] for row in ledger[group])) for group in groups})
 
 
 def selftest(baseline,ledger,repo):
@@ -526,6 +547,7 @@ def main():
     init=sub.add_parser('initialize');init.add_argument('--capture',type=Path,required=True)
     for name in ('validate','selftest'):
         command=sub.add_parser(name);command.add_argument('--output',type=Path)
+    pre=sub.add_parser('preclose');pre.add_argument('--current-task',required=True);pre.add_argument('--output',type=Path)
     args=parser.parse_args()
     if args.action=='capture':capture(args.repo.resolve(),args.output.resolve());return
     if args.action=='initialize':
@@ -536,7 +558,7 @@ def main():
             dump(path,value)
         print('initialized baseline and open ledger');return
     baseline=json.loads((B/'verification/migration-baseline.json').read_text());ledger=json.loads((B/'verification/migration-ledger.json').read_text())
-    result=validate(baseline,ledger,REPO) if args.action=='validate' else selftest(baseline,ledger,REPO)
+    result=validate(baseline,ledger,REPO,getattr(args,'current_task',None)) if args.action in ('validate','preclose') else selftest(baseline,ledger,REPO)
     if args.output:dump(args.output,result)
     print(json.dumps(result,ensure_ascii=False,indent=2))
 

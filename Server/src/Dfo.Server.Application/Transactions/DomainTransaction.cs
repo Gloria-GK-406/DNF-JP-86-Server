@@ -5,6 +5,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Application.Transactions;
 
+internal enum DomainTransactionCompletion { Open, ConfirmedRollback, Committed, Uncertain }
+
+
 /// <summary>
 /// Settles one use case's participants together.
 /// </summary>
@@ -47,6 +50,7 @@ internal sealed class DomainTransaction(
 
     /// <summary>Whether this transaction has already been committed or rolled back.</summary>
     internal bool IsSettled => this.settled;
+    internal DomainTransactionCompletion Completion { get; private set; }
 
     public TParticipant Enlist<TParticipant>(object identity, Func<TParticipant> create)
         where TParticipant : ITransactionParticipant
@@ -139,6 +143,7 @@ internal sealed class DomainTransaction(
             catch (Exception violation)
             {
                 this.afterCommit.Clear();
+                Completion = DomainTransactionCompletion.Uncertain;
                 EndUnit(GameplayOutboxUnitState.Uncertain);
                 throw new TransactionOutcomeUncertainException(
                     TransactionUncertaintyReason.NonFallibleCommitContractViolation,
@@ -147,6 +152,7 @@ internal sealed class DomainTransaction(
                     violation);
             }
         }
+        Completion = DomainTransactionCompletion.Committed;
         // Composed against the committed state, before anything that runs after the commit (RQ-031(0)).
         // A composition that throws leaves the unit uncertain and fails the CMD; the commit stands.
         Exception? composition = null;
@@ -211,10 +217,13 @@ internal sealed class DomainTransaction(
         }
         catch (TransactionOutcomeUncertainException)
         {
+            Completion = DomainTransactionCompletion.Uncertain;
             EndUnit(GameplayOutboxUnitState.Uncertain);
             throw;
         }
 
+        Completion = cause is not null && TransactionOutcomeUncertainException.Contains(cause)
+            ? DomainTransactionCompletion.Uncertain : DomainTransactionCompletion.ConfirmedRollback;
         EndUnit(GameplayOutboxUnitState.RolledBack);
     }
 

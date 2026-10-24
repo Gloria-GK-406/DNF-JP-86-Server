@@ -22,7 +22,7 @@ internal sealed class NetworkConnectionLifecycleDispatcher(
     IGameplayQueue queue,
     IEnumerable<INetworkConnectionObserver> observers,
     ILogger<NetworkConnectionLifecycleDispatcher> logger,
-    GameplayOutboxes outboxes,
+    Commands.CommandJobEntry entry,
     GameplayCloseCauses causes,
     GameplayDepthGuard guard) : INetworkConnectionLifecycleDispatcher
 {
@@ -32,7 +32,7 @@ internal sealed class NetworkConnectionLifecycleDispatcher(
     public ValueTask DispatchConnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken) =>
         RunAsync(connection, "lifecycle:connected", NewRoot(connection), source: connection, async token =>
         {
-            _ = outboxes.Current;
+            entry.Begin();
             foreach (var observer in observers)
             {
                 await observer.ConnectedAsync(connection, token);

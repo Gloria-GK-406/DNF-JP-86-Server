@@ -17,6 +17,8 @@ public static class CommandDispatchingExtensions
         services.AddGameplayExecution();
         services.TryAddSingleton<CommandHandlerRegistry>();
         services.TryAddSingleton<ICommandBus, CommandBus>();
+        services.TryAddSingleton<CommandJobEntry>();
+        services.TryAddSingleton<ICommandWorkUnits, CommandWorkUnits>();
         services.TryAddSingleton<NetworkCommandAuthorization>();
         services.TryAddSingleton<SelectedSessionSafety>();
         services.TryAddSingleton<SelectedSessionCommandScope>();
@@ -57,6 +59,25 @@ public static class CommandDispatchingExtensions
         where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult>
     {
+        return Add<TCommand, TResult, THandler>(services, executionKind, CommandRouteKind.LegacyFineGrained, null);
+    }
+
+    public static IServiceCollection AddProtocolCommandHandler<TCommand, TResult, THandler>(this IServiceCollection services,
+        params ProtocolCommandMessageBinding[] messages)
+        where TCommand : class, IProtocolCommand<TResult> where TResult : notnull
+        where THandler : class, ICommandHandler<TCommand, TResult> =>
+        Add<TCommand, TResult, THandler>(services, CommandExecutionKind.Direct, CommandRouteKind.Protocol, [.. messages]);
+
+    public static IServiceCollection AddInternalCommandHandler<TCommand, TResult, THandler>(this IServiceCollection services)
+        where TCommand : class, ICommand<TResult> where TResult : notnull
+        where THandler : class, ICommandHandler<TCommand, TResult> =>
+        Add<TCommand, TResult, THandler>(services, CommandExecutionKind.Direct, CommandRouteKind.Internal, null);
+
+    private static IServiceCollection Add<TCommand, TResult, THandler>(IServiceCollection services,
+        CommandExecutionKind kind, CommandRouteKind route, IReadOnlyList<ProtocolCommandMessageBinding>? messages)
+        where TCommand : class, ICommand<TResult> where TResult : notnull
+        where THandler : class, ICommandHandler<TCommand, TResult>
+    {
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<ICommandHandler<TCommand, TResult>, THandler>();
         services.AddScoped<CommandInvoker<TCommand, TResult>>();
@@ -64,7 +85,7 @@ public static class CommandDispatchingExtensions
             typeof(TCommand),
             typeof(THandler),
             typeof(CommandInvoker<TCommand, TResult>),
-            executionKind));
+            kind, route, messages).Freeze());
         return services;
     }
 }

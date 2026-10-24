@@ -32,6 +32,18 @@ public static class NetworkMessageDispatchingExtensions
         return services;
     }
 
+    public static IServiceCollection RegisterProtocolMessageHandler<THandler, TMessage, TCommand>(
+        this IServiceCollection services, ClientMessageType messageType)
+        where THandler : class, IProtocolCommandMessageHandler<TCommand>
+        where TMessage : class, IClientNetworkMessage
+        where TCommand : class, Commands.IProtocolCommand
+    {
+        services.AddTransient<THandler>();
+        services.AddSingleton(new MessageHandlerRegistration(messageType, typeof(THandler),
+            Route: MessageHandlerRouteKind.ProtocolCommand, MessageClrType: typeof(TMessage), ProtocolCommandType: typeof(TCommand)));
+        return services;
+    }
+
     /// <summary>
     /// Registers a pure telemetry handler (RQ-020, spec appendix B): it runs off the gameplay executor,
     /// so it may only inject logging; the registry refuses it at startup otherwise.

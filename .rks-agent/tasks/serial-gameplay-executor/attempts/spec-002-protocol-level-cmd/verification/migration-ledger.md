@@ -9,7 +9,7 @@
 - 消息 173 条／141 个 handler；遥测14条／2类，业务159条／139类。遥测为 HiddenCharacterInfoHandler 与 UnansweredReportHandler，仍保留日志例外，不算协议业务迁移。
 - 旧命令204条／203个实际 handler：Transactional170、Direct21、ReadOnly9、Workflow4。ProtocolModule163、ApplicationModule36、五扩展各1。
 - HousingBuyItemCommand 与 BuyItemCommand 共用实际 BuyItemCommandHandler；完整名和 using 短名不造成两类型。139不是最终协议 CMD 数。
-- 当前业务消息159、旧命令204和需要进入执行器的来源73全部 pending。12条明确 OutsideGameplay 来源保持原排除理由，不声称迁成内部 CMD。4保护＋F132及8过渡项的新归属/删除证据也 pending。
+- TASK03建立时业务消息159、旧命令204和需要进入执行器的来源73全部 pending；TASK04的当前精确闭合见文末。12条明确 OutsideGameplay 来源保持原排除理由，不声称迁成内部 CMD。4保护＋F132及8过渡项的新归属/删除证据也 pending。
 
 消息 ID 为 `message:<枚举值>`，旧命令 ID 为 `command:<CLR全名>`。每行的 original 必须等于冻结基线；refs 必须存在。消息的 candidate_commands 仅为 handler 所在文件中的词法候选，**不是调用图**；共享 Delivery/Coordinator 候选和 original_callers 需逐簇读实际控制流后闭合。不得以词法无命中推断无动态调用或无共享帮助器。
 
@@ -184,10 +184,19 @@ RequireRollback 的领域调用还包括 Rental/AccountLuckyStar、Sao、Souther
 
 T1～T6的权威来源为A封存的 `../../verification/transition-mechanisms.md`；本账引用它而不改历史。GameplayJob身份、DomainTransactionScope环境事务、出站登记适配器/通知总线的Current守卫是常设机制，不因字符串相同混进删除范围。
 
-## 本轮验证与下一单元
+## TASK-03 验证与当时下一候选（历史）
 
 TASK03两次独立capture payload SHA256为 `4861e139bb126adaefba9240d0371d582c22cab149277f1ce8902cf22dc3f043`，逐字一致；源码↔runtime全部377条注册一一对应。完整原命令/UTC/退出/环境/资源和中间修正记录见task-03证据。声明Kind的数量只是核对基线，不是实际单元验收。
 
 下一最小贯通候选为 Channel ScriptVersion（旧查询＋响应吸入协议CMD）和 GmBootstrap（off-executor密码准备不动、内部CMD保原一段写）。当前仅记录原入口，相关行仍pending，不在此创建下一Task。T003还须同一bus双路由、显式request四变体与Closed拒绝、显式internal origin、真实source失败关闭、具名登记/工作单元能力、违规反例；效果单例足迹链迁移不得借旧ambient回落。
 
 本Task产品/测试零变化，新增0／删除0，8365数量账不变；没有重跑业务全量或CMD测量，也不代表Spec完成。后续最终八项目、原codec/Golden、同工具测量及六根条件仍由P1后续单元承担。
+
+
+## TASK-04 当前首贯通映射
+
+已将 message:5、旧GetChannelScriptVersionCommand、BootstrapGmAdministratorCommand及source:startup-gm-bootstrap四行映射闭合，原original/baseline不变；实际单元与参与者依据见 `evidence/task-04-mapping/workunit-map.md` 和四行evidence。当前pending为业务158、旧命令202、执行器来源72；保留14遥测及12明确outside。五保护及八过渡仍pending，F129在Channel新例里已有真实TCP/临时坏变异证据，不擅造baseline ID。
+
+当前capture认识新Protocol/Internal注册及message↔CMD的CLR绑定，双向校验仍覆盖全部173消息/204命令，原统计只作历史基线。新ProtocolNonEffect与TrustedInternal可用；effect注册/MainSettlement明确拒绝，真正效果账本/足迹/主生命周期仍待首effect单元。三分支、旧Context/Capture重载、默认Internal NotSupported兼容在现有过渡行登记，T011清零；不把保留层冒称最终机制。
+
+`preclose --current-task <本B的tasks/TASK-04.md>` 只豁免该精确当前Task尚未写done Result，其它映射/路径/原值及其它完成Task仍严格。产品及预检过后才能写Result，再以`validate`严格核验；预检不是完成或审查通过。

@@ -25,7 +25,8 @@ var messages = services.Select(item => item.ImplementationInstance).OfType<Messa
         id = "message:" + Convert.ToInt64(item.MessageType),
         message = item.MessageType.ToString(), value = Convert.ToInt64(item.MessageType),
         handler = item.HandlerType.FullName, handler_assembly = item.HandlerType.Assembly.GetName().Name,
-        telemetry = item.IsTelemetry,
+        telemetry = item.IsTelemetry, route = item.Route.ToString(),
+        registered_message_clr = item.MessageClrType?.FullName, protocol_command = item.ProtocolCommandType?.FullName,
         message_clr_shape = MessageShape(item.HandlerType),
     }).ToArray();
 var commands = services.Select(item => item.ImplementationInstance).OfType<CommandHandlerRegistration>()
@@ -35,7 +36,9 @@ var commands = services.Select(item => item.ImplementationInstance).OfType<Comma
         command = item.CommandType.FullName, handler = item.HandlerType.FullName,
         invoker = item.InvokerType.FullName,
         result = item.CommandType.GetInterfaces().Single(type => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ICommand<>)).GetGenericArguments()[0].FullName,
-        execution_kind = item.ExecutionKind.ToString(),
+        execution_kind = item.ExecutionKind.ToString(), route = item.Route.ToString(),
+        protocol_bindings = item.ProtocolMessages?.OrderBy(binding => Convert.ToInt64(binding.MessageType)).Select(binding => new
+        { message = binding.MessageType.ToString(), message_clr = binding.MessageClrType.FullName }).ToArray(),
     }).ToArray();
 File.WriteAllText(args.Single(), JsonSerializer.Serialize(new { messages, commands }, new JsonSerializerOptions { WriteIndented = true }) + "\n");
 static string? MessageShape(Type handler)

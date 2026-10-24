@@ -17,7 +17,7 @@ namespace Dfo.Server.Application.Execution.Outbox;
 /// that is no longer registered is not an error: the entry is dropped after the position check and the
 /// job goes on (F-83).
 /// </remarks>
-internal sealed class OutboxNetworkMessageSender : INetworkMessageSender
+internal sealed class OutboxNetworkMessageSender : INetworkMessageSender, ICommandMessageOutbox
 {
     private readonly GameplayOutboxes outboxes;
     private readonly INetworkConnectionContexts? contexts;
@@ -138,6 +138,13 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender
         return ValueTask.CompletedTask;
     }
 
+    public ValueTask RegisterAsync(NetworkConnectionId connectionId, IServerNetworkMessage message, CancellationToken cancellationToken) =>
+        SendAsync(connectionId, message, cancellationToken);
+    public ValueTask RegisterBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages, CancellationToken cancellationToken) =>
+        SendBatchAsync(connection, messages, cancellationToken);
+    public ValueTask RegisterExplicitAsync(NetworkConnectionId connectionId, ExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+        SendExplicitAsync(connectionId, delivery, cancellationToken);
+
     private byte[] EncodeEach(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages)
     {
         using var buffer = new MemoryStream();
@@ -197,7 +204,7 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender
 /// out after every entry registered for that connection before it (RQ-012), and never before the job
 /// ends. A connection that is no longer registered, or was replaced, is not closed (F-83, RQ-035).
 /// </summary>
-internal sealed class OutboxConnectionCloser : INetworkConnectionCloser
+internal sealed class OutboxConnectionCloser : INetworkConnectionCloser, ICommandConnectionClosures
 {
     private readonly GameplayOutboxes outboxes;
     private readonly INetworkConnectionContexts? contexts;
@@ -212,6 +219,9 @@ internal sealed class OutboxConnectionCloser : INetworkConnectionCloser
     public OutboxConnectionCloser(
         GameplayOutboxes outboxes, INetworkConnectionContexts contexts, ILogger<OutboxConnectionCloser> logger)
         : this(outboxes, logger) => this.contexts = contexts;
+
+    public ValueTask RequestCloseAsync(NetworkConnectionContext expected, CancellationToken cancellationToken) =>
+        RequestCloseExactAsync(expected, cancellationToken);
 
     public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken cancellationToken)
     {

@@ -28,7 +28,7 @@ internal sealed class NetworkMessageDispatcher(
     MessageHandlerRegistry registry,
     IServiceScopeFactory scopeFactory,
     IGameplayQueue queue,
-    GameplayOutboxes outboxes) : INetworkMessageDispatcher
+    Commands.CommandJobEntry entry) : INetworkMessageDispatcher
 {
     public ValueTask DispatchAsync(
         NetworkDispatchContext context,
@@ -42,16 +42,29 @@ internal sealed class NetworkMessageDispatcher(
         // the fence is checked before the handler lookup fails.
         var registered = registry.TryGet(message.MessageType, out var route);
         if (registered && route!.IsTelemetry) return DispatchTelemetryAsync(context, message, route.HandlerType, cancellationToken);
+        if (registered && route!.Kind == MessageHandlerRouteKind.ProtocolCommand)
+            return DispatchProtocolAsync(context, message, route, cancellationToken);
         return queue.RunAsync(new GameplayWork(
             GameplayShardKey.World,
             GameplayCallChain.NewRoot(GameplayCallSource.Connection, context.Connection.ConnectionId),
             registered ? route!.CommandType : MessageHandlerRegistry.CommandTypeOf(message.MessageType),
             token =>
             {
-                _ = outboxes.Current;
+                entry.Begin();
                 return HandleOnExecutorAsync(context, message, token);
             },
             context.Connection), cancellationToken);
+    }
+
+    private async ValueTask DispatchProtocolAsync(NetworkDispatchContext context, IClientNetworkMessage message,
+        MessageHandlerRoute route, CancellationToken ct)
+    {
+        if (message.GetType() != route.MessageClrType)
+            throw new InvalidOperationException("The protocol route received an unbound message CLR type.");
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var handler = (IClientMessageHandler)scope.ServiceProvider.GetRequiredService(route.HandlerType);
+        if (!handler.CanHandle(message)) throw new InvalidOperationException("The protocol handler rejected its registered message.");
+        await handler.HandleAsync(context, message, ct).ConfigureAwait(false);
     }
 
     private async ValueTask HandleOnExecutorAsync(

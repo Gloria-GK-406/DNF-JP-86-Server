@@ -115,8 +115,12 @@ public static class GameplayExecutionServiceCollectionExtensions
                 ? new GameplayOutboxes(sender, causes, logger)
                 : new GameplayOutboxes(causes, logger);
         });
-        services.TryAddSingleton<INetworkMessageSender, OutboxNetworkMessageSender>();
-        services.TryAddSingleton<INetworkConnectionCloser, OutboxConnectionCloser>();
+        services.TryAddSingleton<OutboxNetworkMessageSender>();
+        services.TryAddSingleton<INetworkMessageSender>(provider => provider.GetRequiredService<OutboxNetworkMessageSender>());
+        services.TryAddSingleton<ICommandMessageOutbox>(provider => provider.GetRequiredService<OutboxNetworkMessageSender>());
+        services.TryAddSingleton<OutboxConnectionCloser>();
+        services.TryAddSingleton<INetworkConnectionCloser>(provider => provider.GetRequiredService<OutboxConnectionCloser>());
+        services.TryAddSingleton<ICommandConnectionClosures>(provider => provider.GetRequiredService<OutboxConnectionCloser>());
         services.TryAddSingleton<IOutboundOrdering, GameplayOutboxOrdering>();
         // A host stops the executor after its services and producers (RQ-009); a bare container
         // still stops it on disposal.

@@ -348,6 +348,12 @@ AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他
 
 ### 2) 命令执行总线（Application/Commands）
 
+协议级路由当前接线了 Channel ScriptVersion 与 GM 启动初始化：消息 handler 只把原消息、精确连接上下文交给同一 CommandBus，内部来源显式声明种类与原调用链。新路由由总线入队一次，在身份检查前建立作业发件箱；其请求上下文是方法数据，结束即关闭，不通过 DI、AsyncLocal 或 job slot 取得“当前请求”。其余业务仍走 LegacyQueued／LegacyFineGrained 过渡路径，不得让新 CMD 回调旧命令。
+
+协议级 CMD 可注入领域服务／store，以及具名的 `ICommandWorkUnits`、`ICommandMessageOutbox`、`ICommandConnectionClosures`、`ICommandProjections`、Protocol 所有的 `IGameCommandOutbox`、既有顺序／槽位映射能力和日志；旧 sender／closer、总线、队列、执行器和动态服务解析仍禁止。新消息 handler 的构造器只允许总线和日志，注册闭合检查绑定消息 CLR 类型、handler 与协议 CMD。
+
+`ICommandWorkUnits` 的普通写、只读和正常拒绝回滚复用现有领域事务；明确的完成状态区分确认回滚、已提交与不确定，`IsSettled` 不代表提交成功。已启动而未等待的单元必须在当前作业内收口；提交后失败按精确参与者围栏。新效果协议和 MainSettlement 尚未启用，明确拒绝，不借旧请求 frame 补权；事务内延迟 Compose 仍禁止生产调用。上述 legacy 路由、默认拒绝的旧测试适配入口及旧请求重载都是完整迁移时必须删除的过渡项。
+
 - 契约（`CommandContracts.cs`）：`ICommand<TResult>`（CLR 类型即身份）；
   `ISelectedSessionCommand` 带它所属的精确选中会话（null 表示可信的离线工作），
   `IRequestSettlementCommand` 标出一次效果网络请求唯一的主结算，

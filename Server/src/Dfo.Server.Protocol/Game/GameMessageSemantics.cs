@@ -114,11 +114,7 @@ internal sealed class GameMessageSender(INetworkMessageSender sender) : IGameMes
         ArgumentNullException.ThrowIfNull(delivery);
         return sender.SendExplicitAsync(
             requiredDirectConnectionId,
-            new ExplicitMessageDelivery(
-                [.. delivery.RequiredDirectMessages.Cast<IServerNetworkMessage>()],
-                [.. delivery.BestEffortTargets.Select(target => new ExplicitMessageTarget(
-                    target.ConnectionId,
-                    [.. target.OrderedMessages.Cast<IServerNetworkMessage>()]))]),
+            delivery.ToNetworkDelivery(),
             cancellationToken);
     }
 }
@@ -128,6 +124,7 @@ internal static class GameMessageRegistrationExtensions
     public static IServiceCollection AddGameMessageSending(this IServiceCollection services)
     {
         services.TryAddSingleton<IGameMessageSender, GameMessageSender>();
+        services.TryAddSingleton<IGameCommandOutbox, GameCommandOutbox>();
         // The endpoint layer's own outbound frames, bound here rather than inside any slice: a
         // slice that registered one would be the slice that owned it, and the frames that live
         // here are exactly the ones no single slice may own. See GameInventoryDelivery.
@@ -156,4 +153,15 @@ internal static class GameMessageRegistrationExtensions
             (byte)GameMessageClass.Cmd,
             type,
             produces);
+}
+
+internal static class GameDeliveryConversions
+{
+    internal static ExplicitMessageDelivery ToNetworkDelivery(this GameExplicitMessageDelivery delivery)
+    {
+        ArgumentNullException.ThrowIfNull(delivery);
+        return new([.. delivery.RequiredDirectMessages.Cast<IServerNetworkMessage>()],
+            [.. delivery.BestEffortTargets.Select(target => new ExplicitMessageTarget(
+                target.ConnectionId, [.. target.OrderedMessages.Cast<IServerNetworkMessage>()]))]);
+    }
 }

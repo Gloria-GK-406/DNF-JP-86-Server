@@ -430,6 +430,7 @@ public sealed class GameplayWriteEntryTableTests
         // SelectedSessionSafety
         ["SelectedSessionSafety.BlockAsync(SelectedSessionRecipient, Exception, String)"] = W,
         ["SelectedSessionSafety.Capture(SelectedSessionIdentity)"] = R,
+        ["SelectedSessionSafety.Capture(SelectedSessionIdentity, GameMessageMetadata)"] = R,
         ["SelectedSessionSafety.DemandCurrent(SelectedSessionIdentity)"] = R,
         ["SelectedSessionSafety.DemandCurrent(SelectedSessionRecipient)"] = R,
         ["SelectedSessionSafety.IsBlocked(NetworkConnectionContext)"] = R,
