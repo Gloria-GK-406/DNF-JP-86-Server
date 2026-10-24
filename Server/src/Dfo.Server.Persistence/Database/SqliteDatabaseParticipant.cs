@@ -19,8 +19,15 @@ namespace Dfo.Server.Persistence.Database;
 /// in their own vocabulary and are asked to flush during prepare; they never open a connection,
 /// begin a transaction, or commit.
 /// </remarks>
-internal sealed class SqliteDatabaseParticipant(string connectionString, bool readOnly = false) : ITransactionParticipant
+internal sealed class SqliteDatabaseParticipant(string connectionString, bool readOnly = false) : ITransactionParticipant, ITransactionFailureSource
 {
+    public TransactionFailureFact? LastFailure { get; private set; }
+    private InvalidOperationException Guard(string message, TransactionFailurePhase phase)
+    {
+        var cause = new InvalidOperationException(message);
+        LastFailure = new(this, cause, phase, TransactionFailureKind.Guard);
+        return cause;
+    }
     public bool SupportsReadOnly => readOnly;
     private readonly Dictionary<object, ISqliteStoreFacet> facets = [];
 
@@ -127,25 +134,35 @@ internal sealed class SqliteDatabaseParticipant(string connectionString, bool re
     public async ValueTask PrepareAsync(CancellationToken cancellationToken)
     {
         if (readOnly && this.order.Any(facet => facet.HasStagedWork))
-            throw new InvalidOperationException("A read-only query cannot commit staged state changes.");
+            throw Guard("A read-only query cannot commit staged state changes.", TransactionFailurePhase.Prepare);
         // Custody validation must also run after immediate writes or a mid-use-case flush.
-        foreach (var facet in this.order) facet.ValidateForCommit();
+        foreach (var facet in this.order)
+        {
+            try { facet.ValidateForCommit(); }
+            catch (Exception cause)
+            { LastFailure = new(this, cause, TransactionFailurePhase.Prepare, TransactionFailureKind.Guard); throw; }
+        }
         if (!this.order.Any(facet => facet.HasStagedWork))
         {
             this.prepared = true;
             return;
         }
 
-        var link = await this.OpenAsync(cancellationToken).ConfigureAwait(false);
-        // Whoever read first already began it, and beginning a second one on the same connection
-        // is not a thing SQLite offers. Deferred like the reads' one: the write lock is taken by
-        // the first statement below that needs it, not by the act of starting.
-        this.pending ??= link.BeginTransaction(deferred: true);
-
-        foreach (var facet in this.order)
+        try
         {
-            await facet.FlushAsync(cancellationToken).ConfigureAwait(false);
+            var link = await this.OpenAsync(cancellationToken).ConfigureAwait(false);
+            // Whoever read first already began it, and beginning a second one on the same connection
+            // is not a thing SQLite offers. Deferred like the reads' one: the write lock is taken by
+            // the first statement below that needs it, not by the act of starting.
+            this.pending ??= link.BeginTransaction(deferred: true);
+
+            foreach (var facet in this.order)
+            {
+                await facet.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
         }
+        catch (SqliteException cause)
+        { LastFailure = new(this, cause, TransactionFailurePhase.Prepare, TransactionFailureKind.KnownStorage); throw; }
 
         this.prepared = true;
     }
@@ -169,13 +186,14 @@ internal sealed class SqliteDatabaseParticipant(string connectionString, bool re
         try
         {
             if (commit && !this.prepared && this.order.Any(facet => facet.HasStagedWork))
-                throw new InvalidOperationException(
-                    "The database was committed before it was prepared, so it wrote nothing.");
+                throw Guard("The database was committed before it was prepared, so it wrote nothing.", TransactionFailurePhase.FallibleCommit);
             if (this.pending is not null)
             {
                 if (commit)
                 {
-                    await this.pending.CommitAsync(cancellationToken).ConfigureAwait(false);
+                    try { await this.pending.CommitAsync(cancellationToken).ConfigureAwait(false); }
+                    catch (SqliteException cause)
+                    { LastFailure = new(this, cause, TransactionFailurePhase.FallibleCommit, TransactionFailureKind.KnownStorage); throw; }
                     durableCommitted = true;
                 }
                 else

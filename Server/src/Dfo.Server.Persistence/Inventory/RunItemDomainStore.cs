@@ -21,7 +21,7 @@ internal sealed class RunItemDomainStore : IItemDomainStore
         public long Version;
         public int NextUid = 1;
     }
-    private sealed class Session : IItemDomainStoreSession, ITransactionParticipant
+    private sealed class Session : IItemDomainStoreSession, ITransactionParticipant, ITransactionFailureSource
     {
         private readonly State state;
         private readonly ItemLifecycleScope scope;
@@ -43,11 +43,18 @@ internal sealed class RunItemDomainStore : IItemDomainStore
                 working = state.Items.ToDictionary(x => x.Key, x => x.Value.DeepCopy());
             }
         }
+        public TransactionFailureFact? LastFailure { get; private set; }
+        private InvalidOperationException Guard(string message, TransactionFailurePhase phase)
+        {
+            var cause = new InvalidOperationException(message);
+            LastFailure = new(this, cause, phase, TransactionFailureKind.Guard);
+            return cause;
+        }
         public bool CommitCanFail => false;
         private void Active(CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested(); scope.EnsureActive();
-            if (closed) throw new InvalidOperationException("The item session has ended.");
+            if (closed) throw Guard("The item session has ended.", TransactionFailurePhase.Action);
         }
         private long Generation(ContainerId c, int slot) => generations.GetValueOrDefault((c, slot));
         private ItemReference Reference(ContainerId c, int slot) => new(identity, c, slot, Generation(c, slot), working[(c, slot)]);
@@ -146,14 +153,16 @@ internal sealed class RunItemDomainStore : IItemDomainStore
         public ValueTask ApplyDecidedWritesAsync(CancellationToken ct) { Active(ct); return ValueTask.CompletedTask; }
         public ValueTask PrepareAsync(CancellationToken ct)
         {
-            Active(ct); scope.ValidateForCommit();
+            try { Active(ct); scope.ValidateForCommit(); }
+            catch (Exception cause) when (cause is not OperationCanceledException)
+            { LastFailure = new(this, cause, TransactionFailurePhase.Prepare, TransactionFailureKind.Guard); throw; }
             lock (state)
-                if (changed && state.Version != version) throw new InvalidOperationException("The volatile store changed concurrently.");
+                if (changed && state.Version != version) throw Guard("The volatile store changed concurrently.", TransactionFailurePhase.Prepare);
             prepared = true; return ValueTask.CompletedTask;
         }
         public ValueTask CommitAsync(CancellationToken ct)
         {
-            if (!prepared) throw new InvalidOperationException("Prepare is required.");
+            if (!prepared) throw Guard("Prepare is required.", TransactionFailurePhase.Action);
             lock (state)
                 if (changed) { state.Items = working; state.NextUid = nextUid; state.Version++; }
             Close(); return ValueTask.CompletedTask;

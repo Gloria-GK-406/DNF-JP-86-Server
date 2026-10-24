@@ -34,6 +34,32 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Four_openings_each_have_one_exact_direct_whole_with_only_existing_replay_permission()
+    {
+        using var provider = BuildProductionGraph();
+        var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var registry = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        var expected = new[]
+        {
+            (ClientMessageType.GamePackageOpening, typeof(Dfo.Server.Protocol.Game.PackageOpening.PackageOpeningRequest), typeof(Dfo.Server.Protocol.Game.PackageOpening.GamePackageOpeningCommand)),
+            (ClientMessageType.GameAvatarPackageOpening, typeof(Dfo.Server.Protocol.Game.AvatarPackageOpening.AvatarPackageOpeningRequest), typeof(Dfo.Server.Protocol.Game.AvatarPackageOpening.GameAvatarPackageOpeningCommand)),
+            (ClientMessageType.GameMagicBoxSingleOpening, typeof(Dfo.Server.Protocol.Game.MagicBoxSingleOpening.MagicBoxSingleOpeningRequest), typeof(Dfo.Server.Protocol.Game.MagicBoxSingleOpening.GameMagicBoxSingleOpeningCommand)),
+            (ClientMessageType.GameMagicBoxBatchOpening, typeof(Dfo.Server.Protocol.Game.MagicBoxBatchOpening.MagicBoxBatchOpeningRequest), typeof(Dfo.Server.Protocol.Game.MagicBoxBatchOpening.GameMagicBoxBatchOpeningCommand)),
+        };
+        foreach (var (logical, input, command) in expected)
+        {
+            var row = Assert.Single(commands, row => row.CommandType == command);
+            Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+            Assert.Equal(new[] { new ProtocolCommandMessageBinding(logical, input) }, row.ProtocolMessages);
+            Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
+            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(command));
+            Assert.True(registry.TryGet(logical, out var route)); Assert.Equal(command, route!.ProtocolCommandType);
+            Assert.Equal(new[] { input }, route.AllowedMessageClrTypes);
+        }
+        Assert.DoesNotContain(commands, row => row.CommandType.Name is "PackageOpeningCommand" or "AvatarPackageOpeningCommand" or "MagicBoxSingleOpeningCommand" or "MagicBoxBatchOpeningCommand");
+    }
+
+    [Fact]
     public void Five_option_logicals_are_closed_to_three_wholes_with_two_one_two_exact_bindings()
     {
         using var provider = BuildProductionGraph();

@@ -51,6 +51,27 @@ internal sealed class DomainTransaction(
     /// <summary>Whether this transaction has already been committed or rolled back.</summary>
     internal bool IsSettled => this.settled;
     internal DomainTransactionCompletion Completion { get; private set; }
+    internal TransactionFailureFact? CommitFailure { get; private set; }
+    internal Exception? GuardFailure => order.OfType<ITransactionFailureSource>()
+        .Select(source => source.LastFailure).FirstOrDefault(fact => fact?.Kind == TransactionFailureKind.Guard)?.Cause;
+    private async ValueTask InvokeParticipant(ITransactionParticipant participant, TransactionFailurePhase phase, CancellationToken ct)
+    {
+        var source = participant as ITransactionFailureSource;
+        var before = source?.LastFailure;
+        try
+        {
+            if (phase == TransactionFailurePhase.Prepare) await participant.PrepareAsync(ct).ConfigureAwait(false);
+            else await participant.CommitAsync(ct).ConfigureAwait(false);
+        }
+        catch (Exception cause)
+        {
+            var fact = source?.LastFailure;
+            CommitFailure = fact is not null && !ReferenceEquals(before, fact) && !ReferenceEquals(before?.Occurrence, fact.Occurrence)
+                && ReferenceEquals(fact.Source, participant) && ReferenceEquals(fact.Cause, cause) && fact.Phase == phase
+                ? fact : new(participant, cause, phase, TransactionFailureKind.Unknown);
+            throw;
+        }
+    }
 
     public TParticipant Enlist<TParticipant>(object identity, Func<TParticipant> create)
         where TParticipant : ITransactionParticipant
@@ -112,14 +133,14 @@ internal sealed class DomainTransaction(
         {
             foreach (var participant in this.order)
             {
-                await participant.PrepareAsync(cancellationToken).ConfigureAwait(false);
+                await InvokeParticipant(participant, TransactionFailurePhase.Prepare, cancellationToken).ConfigureAwait(false);
             }
 
             // Everything that can fail has now happened but for this one commit, and nothing is
             // visible yet, so failing here still unwinds with nothing half applied.
             if (this.commitFallible is not null)
             {
-                await this.commitFallible.CommitAsync(cancellationToken).ConfigureAwait(false);
+                await InvokeParticipant(this.commitFallible, TransactionFailurePhase.FallibleCommit, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception failure)

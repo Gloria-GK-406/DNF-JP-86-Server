@@ -4,7 +4,7 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Abstractions.Inventory;
 
 /// <summary>One transaction's detached-item custody, shared by durable and volatile stores.</summary>
-public sealed class ItemLifecycleScope : ITransactionParticipant
+public sealed class ItemLifecycleScope : ITransactionParticipant, ITransactionFailureSource
 {
     private static readonly object Key = new();
     private readonly Dictionary<ItemRecord, Custody> pending = new(ReferenceEqualityComparer.Instance);
@@ -14,10 +14,17 @@ public sealed class ItemLifecycleScope : ITransactionParticipant
     private ItemLifecycleScope() { }
     public static ItemLifecycleScope In(IDomainTransaction transaction) =>
         transaction.Enlist(Key, static () => new ItemLifecycleScope());
+    public TransactionFailureFact? LastFailure { get; private set; }
+    private InvalidOperationException Guard(string message, TransactionFailurePhase phase = TransactionFailurePhase.Action)
+    {
+        var cause = new InvalidOperationException(message);
+        LastFailure = new(this, cause, phase, TransactionFailureKind.Guard);
+        return cause;
+    }
     public bool CommitCanFail => false;
     public void EnsureActive()
     {
-        if (closed) throw new InvalidOperationException("The item's transaction has ended.");
+        if (closed) throw Guard("The item's transaction has ended.");
     }
     /// <summary>Storage implementation hook; issuance alone does not create or import a row.</summary>
     internal ItemRecord Issue(ItemSnapshot snapshot, object issuer, Func<CancellationToken, ValueTask> delete,
@@ -33,7 +40,7 @@ public sealed class ItemLifecycleScope : ITransactionParticipant
     {
         var custody = Require(record);
         var foreign = !ReferenceEquals(custody.Issuer,receiver);
-        if (foreign && !record.IsPile) throw new InvalidOperationException("Only interchangeable piles can cross storage backends.");
+        if (foreign && !record.IsPile) throw Guard("Only interchangeable piles can cross storage backends.");
         return foreign;
     }
     /// <summary>Called only after the receiving store has successfully materialized its custody.</summary>
@@ -60,12 +67,12 @@ public sealed class ItemLifecycleScope : ITransactionParticipant
     {
         EnsureActive();
         return pending.TryGetValue(record,out var custody) ? custody
-            : throw new InvalidOperationException("The record belongs to another transaction or has already been received or deleted.");
+            : throw Guard("The record belongs to another transaction or has already been received or deleted.");
     }
     public void ValidateForCommit()
     {
         EnsureActive();
-        if (pending.Count != 0) throw new InvalidOperationException("Every detached item must be placed or explicitly deleted before commit.");
+        if (pending.Count != 0) throw Guard("Every detached item must be placed or explicitly deleted before commit.", TransactionFailurePhase.Prepare);
     }
     public ValueTask PrepareAsync(CancellationToken ct) { ct.ThrowIfCancellationRequested(); ValidateForCommit(); return ValueTask.CompletedTask; }
     public ValueTask CommitAsync(CancellationToken ct) { Close(); return ValueTask.CompletedTask; }

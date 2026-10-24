@@ -8,6 +8,7 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -47,46 +48,8 @@ internal sealed class AvatarPackageOpeningEncoder : GameCmdMessageEncoder<Avatar
         return OnePayload(0x0207, body);
     }
 }
-public sealed record AvatarPackageOpeningCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, AvatarPackageOpeningInput Input)
-    : ICommand<PackageOpeningResult>, IRequestSettlementCommand, IAccountCommand
+public sealed class AvatarPackageOpeningHandler(ICommandBus commands) : ClientMessageHandler<AvatarPackageOpeningRequest>, IProtocolCommandMessageHandler<GameAvatarPackageOpeningCommand>
 {
-    public AccountId AccountId => Session.AccountId;
-}
-public sealed class AvatarPackageOpeningCommandHandler(IAvatarPackageOpeningDomainService avatars, IPackageOpeningDomainService packages, TimeProvider clock)
-    : ICommandHandler<AvatarPackageOpeningCommand, PackageOpeningResult>
-{
-    public ValueTask<PackageOpeningResult> HandleAsync(CommandExecutionContext context, AvatarPackageOpeningCommand command, CancellationToken ct) =>
-        command.Input.Choices.IsEmpty ? packages.OpenAsync(command.Session,
-            new(OpeningWireSlots.FromMain(command.Input.SourceSlot), []), clock.GetUtcNow(), context.LegacyFootprint, ct)
-            : avatars.OpenAsync(command.Session, OpeningWireSlots.Business(command.Input), clock.GetUtcNow(), context.LegacyFootprint, ct);
-}
-public sealed class AvatarPackageOpeningHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ICommandBus commands, IEventService notifications, IGameMessageSender sender, ILogger<AvatarPackageOpeningHandler> logger)
-    : ClientMessageHandler<AvatarPackageOpeningRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, AvatarPackageOpeningRequest message, CancellationToken ct)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        PackageOpeningResult result;
-        if (message.Input is null) result = new(OpeningRejection.InvalidRequest);
-        else if (session is null || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online) || online is null)
-            result = new(OpeningRejection.NoSession);
-        else
-        {
-            try { result = await commands.SendAsync(new AvatarPackageOpeningCommand(online.OnlineUserId, session, message.Input), ct).ConfigureAwait(false); }
-            catch (OpeningRejectedException failure) when (!Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure)) { result = new(failure.Reason, Detail: failure.Message); }
-            catch (Exception failure) when ((failure is not OperationCanceledException) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
-            {
-                logger.LogError(failure, "Package opening storage failure for {ConnectionId}", context.Connection.ConnectionId);
-                result = new(OpeningRejection.StorageFailure);
-            }
-        }
-        logger.LogInformation("AvatarPackageOpening connection={ConnectionId} slot={Slot} result={Result} detail={Detail}",
-            context.Connection.ConnectionId, message.Input?.SourceSlot, result.Rejection, result.Detail);
-        var response = new AvatarPackageOpeningResponse(message.Input?.SourceSlot ?? 0, result);
-        if (result.Receipt is { } receipt)
-            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
-                new OpeningCompleted(receipt, [response, new OpeningRewardPopup(message.Input!.SourceSlot, receipt.Rewards)]), ct).ConfigureAwait(false);
-        else await sender.SendCmdAsync(context.Connection.ConnectionId, response, ct).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, AvatarPackageOpeningRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameAvatarPackageOpeningCommand(context, message), ct).ConfigureAwait(false);
 }

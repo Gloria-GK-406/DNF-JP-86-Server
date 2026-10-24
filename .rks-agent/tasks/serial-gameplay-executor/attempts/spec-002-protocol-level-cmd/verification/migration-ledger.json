@@ -3953,25 +3953,52 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/AvatarPackageOpeningSlice.cs",
-          "line": 55,
-          "source_sha256": "9a45b77ddb3ba026e5a153873a402f37dda6b6b5e2cc6e86ee4873cc6f34be95"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "one valid Transactional fine; malformed/no session no fine; original domain exceptions unwind and handler maps after confirmed rollback",
+          "new": "one Main only on original valid branch; action domain/WireSlots/clock narrow catch RequireRollback(original E), whole maps only after unit ends; commit-only KnownStorage ConfirmedRollback result; noClaim PendingRejected; rollback retry same entry/original Ordinal, Freeze projection can remain; successful receipt commits and replay does not reopen",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/GameAvatarPackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/AvatarPackageOpeningSlice.cs",
-          "line": 55,
-          "source_sha256": "9a45b77ddb3ba026e5a153873a402f37dda6b6b5e2cc6e86ee4873cc6f34be95"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "old fine CLR/handler/registration deleted; original complete protocol now owned by unique whole with direct domain call"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/GameAvatarPackageOpeningCommand.cs",
+        "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+        "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.AvatarPackageOpening.AvatarPackageOpeningCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.AvatarPackageOpening.AvatarPackageOpeningCommand",
@@ -3997,32 +4024,84 @@
         },
         "result": "Dfo.Server.Data.Inventory.PackageOpeningResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/AvatarPackageOpeningSlice.cs",
-          "line": 55,
-          "source_sha256": "9a45b77ddb3ba026e5a153873a402f37dda6b6b5e2cc6e86ee4873cc6f34be95"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/AvatarPackageOpeningSlice.cs",
-          "line": 55,
-          "source_sha256": "9a45b77ddb3ba026e5a153873a402f37dda6b6b5e2cc6e86ee4873cc6f34be95"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/AvatarPackageOpeningSlice.cs",
-          "line": 55,
-          "source_sha256": "9a45b77ddb3ba026e5a153873a402f37dda6b6b5e2cc6e86ee4873cc6f34be95"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original AvatarPackageOpeningHandler -> AvatarPackageOpeningCommand Transactional legacy fine -> original domain; handler catches OpeningRejected/noncancel ordinary storage failure then original response/projection",
+          "new": "thin AvatarPackageOpeningHandler -> GameAvatarPackageOpeningCommand exact original Input/Dispatch; direct original domain with current unit.Footprint, no old fine/legacy bus forwarder; six pure-business test caller files use typed sameprovider DomainTx driver preserving original owner/Throws; complete wire separate",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/GameAvatarPackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one exact selected actor/account; database identity shares actual SQLite facets; opening cooldown/custody/binding/event and luck state join original transaction as configured",
+          "new": "same captured exact reporter and actual original domain participants; Phase0/native complete protocol FK1/reward INSERT+receipt then Commit19/787 and assets/cooldown/events rollback; unknown/unproved participant or source never gains recovery, no universal SQLite-only claim",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/GameAvatarPackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "original body/commit confirmed rollback ACK, error cause/logging, minimum replay/touched inventory and exact owner guards",
+          "new": "real per-transaction source/phase/cause/new-occurrence facts, custody/binding/volatile/facet Guard and unknown default deny; E+independent rollback/current/cleanup X keep both occurrences including same object; first typed/cancel remains sticky, repeated declaration cannot erase E1; old Write/ReadOnly/default final fence/source order and both B2 raw exits unchanged; initial notification ordinaryFailed isolation, direct failure ACK default, only existing committed replay permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/GameAvatarPackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/GameAvatarPackageOpeningCommand.cs",
+          "purpose": "complete AvatarPackageOpening protocol using one explicit Main and closed commit-only rollback result, original rejection/frame/domain semantics"
+        }
+      ]
     },
     {
       "actual_units": [
@@ -8412,25 +8491,52 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/MagicBoxBatchOpeningSlice.cs",
-          "line": 51,
-          "source_sha256": "317699666b1944d7c945da0c3575fb61ae115dbbed065be997b87f7eb99b3595"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "one valid Transactional fine; malformed/no session no fine; original domain exceptions unwind and handler maps after confirmed rollback",
+          "new": "one Main only on original valid branch; action domain/WireSlots/clock narrow catch RequireRollback(original E), whole maps only after unit ends; commit-only KnownStorage ConfirmedRollback result; noClaim PendingRejected; rollback retry same entry/original Ordinal, Freeze projection can remain; successful receipt commits and replay does not reopen",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/GameMagicBoxBatchOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/MagicBoxBatchOpeningSlice.cs",
-          "line": 51,
-          "source_sha256": "317699666b1944d7c945da0c3575fb61ae115dbbed065be997b87f7eb99b3595"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "old fine CLR/handler/registration deleted; original complete protocol now owned by unique whole with direct domain call"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/GameMagicBoxBatchOpeningCommand.cs",
+        "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+        "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.MagicBoxBatchOpening.MagicBoxBatchOpeningCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.MagicBoxBatchOpening.MagicBoxBatchOpeningCommand",
@@ -8456,53 +8562,132 @@
         },
         "result": "Dfo.Server.Data.Inventory.MagicBoxOpeningResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/MagicBoxBatchOpeningSlice.cs",
-          "line": 51,
-          "source_sha256": "317699666b1944d7c945da0c3575fb61ae115dbbed065be997b87f7eb99b3595"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/MagicBoxBatchOpeningSlice.cs",
-          "line": 51,
-          "source_sha256": "317699666b1944d7c945da0c3575fb61ae115dbbed065be997b87f7eb99b3595"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/MagicBoxBatchOpeningSlice.cs",
-          "line": 51,
-          "source_sha256": "317699666b1944d7c945da0c3575fb61ae115dbbed065be997b87f7eb99b3595"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original MagicBoxBatchOpeningHandler -> MagicBoxBatchOpeningCommand Transactional legacy fine -> original domain; handler catches OpeningRejected/noncancel ordinary storage failure then original response/projection",
+          "new": "thin MagicBoxBatchOpeningHandler -> GameMagicBoxBatchOpeningCommand exact original Input/Dispatch; direct original domain with current unit.Footprint, no old fine/legacy bus forwarder; six pure-business test caller files use typed sameprovider DomainTx driver preserving original owner/Throws; complete wire separate",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/GameMagicBoxBatchOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one exact selected actor/account; database identity shares actual SQLite facets; opening cooldown/custody/binding/event and luck state join original transaction as configured",
+          "new": "same captured exact reporter and actual original domain participants; Phase0/native complete protocol FK1/reward INSERT+receipt then Commit19/787 and assets/cooldown/events rollback; unknown/unproved participant or source never gains recovery, no universal SQLite-only claim",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/GameMagicBoxBatchOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "original body/commit confirmed rollback ACK, error cause/logging, minimum replay/touched inventory and exact owner guards",
+          "new": "real per-transaction source/phase/cause/new-occurrence facts, custody/binding/volatile/facet Guard and unknown default deny; E+independent rollback/current/cleanup X keep both occurrences including same object; first typed/cancel remains sticky, repeated declaration cannot erase E1; old Write/ReadOnly/default final fence/source order and both B2 raw exits unchanged; initial notification ordinaryFailed isolation, direct failure ACK default, only existing committed replay permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/GameMagicBoxBatchOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/GameMagicBoxBatchOpeningCommand.cs",
+          "purpose": "complete MagicBoxBatchOpening protocol using one explicit Main and closed commit-only rollback result, original rejection/frame/domain semantics"
+        }
+      ]
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/MagicBoxSingleOpeningSlice.cs",
-          "line": 47,
-          "source_sha256": "3b7b2cca0f69a807a5501d8785690b82594295162ff0078c90f48b0cbf46dc2d"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "one valid Transactional fine; malformed/no session no fine; original domain exceptions unwind and handler maps after confirmed rollback",
+          "new": "one Main only on original valid branch; action domain/WireSlots/clock narrow catch RequireRollback(original E), whole maps only after unit ends; commit-only KnownStorage ConfirmedRollback result; noClaim PendingRejected; rollback retry same entry/original Ordinal, Freeze projection can remain; successful receipt commits and replay does not reopen",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/GameMagicBoxSingleOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/MagicBoxSingleOpeningSlice.cs",
-          "line": 47,
-          "source_sha256": "3b7b2cca0f69a807a5501d8785690b82594295162ff0078c90f48b0cbf46dc2d"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "old fine CLR/handler/registration deleted; original complete protocol now owned by unique whole with direct domain call"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/GameMagicBoxSingleOpeningCommand.cs",
+        "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+        "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.MagicBoxSingleOpening.MagicBoxSingleOpeningCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.MagicBoxSingleOpening.MagicBoxSingleOpeningCommand",
@@ -8528,32 +8713,84 @@
         },
         "result": "Dfo.Server.Data.Inventory.MagicBoxOpeningResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/MagicBoxSingleOpeningSlice.cs",
-          "line": 47,
-          "source_sha256": "3b7b2cca0f69a807a5501d8785690b82594295162ff0078c90f48b0cbf46dc2d"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/MagicBoxSingleOpeningSlice.cs",
-          "line": 47,
-          "source_sha256": "3b7b2cca0f69a807a5501d8785690b82594295162ff0078c90f48b0cbf46dc2d"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/MagicBoxSingleOpeningSlice.cs",
-          "line": 47,
-          "source_sha256": "3b7b2cca0f69a807a5501d8785690b82594295162ff0078c90f48b0cbf46dc2d"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original MagicBoxSingleOpeningHandler -> MagicBoxSingleOpeningCommand Transactional legacy fine -> original domain; handler catches OpeningRejected/noncancel ordinary storage failure then original response/projection",
+          "new": "thin MagicBoxSingleOpeningHandler -> GameMagicBoxSingleOpeningCommand exact original Input/Dispatch; direct original domain with current unit.Footprint, no old fine/legacy bus forwarder; six pure-business test caller files use typed sameprovider DomainTx driver preserving original owner/Throws; complete wire separate",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/GameMagicBoxSingleOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one exact selected actor/account; database identity shares actual SQLite facets; opening cooldown/custody/binding/event and luck state join original transaction as configured",
+          "new": "same captured exact reporter and actual original domain participants; Phase0/native complete protocol FK1/reward INSERT+receipt then Commit19/787 and assets/cooldown/events rollback; unknown/unproved participant or source never gains recovery, no universal SQLite-only claim",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/GameMagicBoxSingleOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "original body/commit confirmed rollback ACK, error cause/logging, minimum replay/touched inventory and exact owner guards",
+          "new": "real per-transaction source/phase/cause/new-occurrence facts, custody/binding/volatile/facet Guard and unknown default deny; E+independent rollback/current/cleanup X keep both occurrences including same object; first typed/cancel remains sticky, repeated declaration cannot erase E1; old Write/ReadOnly/default final fence/source order and both B2 raw exits unchanged; initial notification ordinaryFailed isolation, direct failure ACK default, only existing committed replay permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/GameMagicBoxSingleOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/GameMagicBoxSingleOpeningCommand.cs",
+          "purpose": "complete MagicBoxSingleOpening protocol using one explicit Main and closed commit-only rollback result, original rejection/frame/domain semantics"
+        }
+      ]
     },
     {
       "actual_units": [
@@ -10290,25 +10527,52 @@
       ]
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/PackageOpening/PackageOpeningSlice.cs",
-          "line": 70,
-          "source_sha256": "fdf8b6eefadaa8ff1ded2f888e151e863fa37457d4d2fc355b55f297b0fbef20"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "one valid Transactional fine; malformed/no session no fine; original domain exceptions unwind and handler maps after confirmed rollback",
+          "new": "one Main only on original valid branch; action domain/WireSlots/clock narrow catch RequireRollback(original E), whole maps only after unit ends; commit-only KnownStorage ConfirmedRollback result; noClaim PendingRejected; rollback retry same entry/original Ordinal, Freeze projection can remain; successful receipt commits and replay does not reopen",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/PackageOpening/GamePackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/PackageOpening/PackageOpeningSlice.cs",
-          "line": 70,
-          "source_sha256": "fdf8b6eefadaa8ff1ded2f888e151e863fa37457d4d2fc355b55f297b0fbef20"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "old fine CLR/handler/registration deleted; original complete protocol now owned by unique whole with direct domain call"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/PackageOpening/GamePackageOpeningCommand.cs",
+        "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+        "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.PackageOpening.PackageOpeningCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.PackageOpening.PackageOpeningCommand",
@@ -10334,32 +10598,84 @@
         },
         "result": "Dfo.Server.Data.Inventory.PackageOpeningResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/PackageOpening/PackageOpeningSlice.cs",
-          "line": 70,
-          "source_sha256": "fdf8b6eefadaa8ff1ded2f888e151e863fa37457d4d2fc355b55f297b0fbef20"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/PackageOpening/PackageOpeningSlice.cs",
-          "line": 70,
-          "source_sha256": "fdf8b6eefadaa8ff1ded2f888e151e863fa37457d4d2fc355b55f297b0fbef20"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/PackageOpening/PackageOpeningSlice.cs",
-          "line": 70,
-          "source_sha256": "fdf8b6eefadaa8ff1ded2f888e151e863fa37457d4d2fc355b55f297b0fbef20"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original PackageOpeningHandler -> PackageOpeningCommand Transactional legacy fine -> original domain; handler catches OpeningRejected/noncancel ordinary storage failure then original response/projection",
+          "new": "thin PackageOpeningHandler -> GamePackageOpeningCommand exact original Input/Dispatch; direct original domain with current unit.Footprint, no old fine/legacy bus forwarder; six pure-business test caller files use typed sameprovider DomainTx driver preserving original owner/Throws; complete wire separate",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/PackageOpening/GamePackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one exact selected actor/account; database identity shares actual SQLite facets; opening cooldown/custody/binding/event and luck state join original transaction as configured",
+          "new": "same captured exact reporter and actual original domain participants; Phase0/native complete protocol FK1/reward INSERT+receipt then Commit19/787 and assets/cooldown/events rollback; unknown/unproved participant or source never gains recovery, no universal SQLite-only claim",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/PackageOpening/GamePackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "original body/commit confirmed rollback ACK, error cause/logging, minimum replay/touched inventory and exact owner guards",
+          "new": "real per-transaction source/phase/cause/new-occurrence facts, custody/binding/volatile/facet Guard and unknown default deny; E+independent rollback/current/cleanup X keep both occurrences including same object; first typed/cancel remains sticky, repeated declaration cannot erase E1; old Write/ReadOnly/default final fence/source order and both B2 raw exits unchanged; initial notification ordinaryFailed isolation, direct failure ACK default, only existing committed replay permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/PackageOpening/GamePackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/PackageOpening/GamePackageOpeningCommand.cs",
+          "purpose": "complete PackageOpening protocol using one explicit Main and closed commit-only rollback result, original rejection/frame/domain semantics"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -21171,26 +21487,54 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/PackageOpening/PackageOpeningSlice.cs",
-          "line": 77,
-          "source_sha256": "fdf8b6eefadaa8ff1ded2f888e151e863fa37457d4d2fc355b55f297b0fbef20"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "one valid Transactional fine; malformed/no session no fine; original domain exceptions unwind and handler maps after confirmed rollback",
+          "new": "one Main only on original valid branch; action domain/WireSlots/clock narrow catch RequireRollback(original E), whole maps only after unit ends; commit-only KnownStorage ConfirmedRollback result; noClaim PendingRejected; rollback retry same entry/original Ordinal, Freeze projection can remain; successful receipt commits and replay does not reopen",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/PackageOpening/GamePackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/PackageOpening/PackageOpeningSlice.cs",
-          "line": 77,
-          "source_sha256": "fdf8b6eefadaa8ff1ded2f888e151e863fa37457d4d2fc355b55f297b0fbef20"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/PackageOpening/GamePackageOpeningCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.PackageOpening.GamePackageOpeningCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/PackageOpening/GamePackageOpeningCommand.cs",
+        "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+        "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+      ],
       "id": "message:65696",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.PackageOpening.PackageOpeningHandler",
@@ -21212,35 +21556,87 @@
         "telemetry": false,
         "value": 65696
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/PackageOpening/PackageOpeningSlice.cs",
-          "line": 77,
-          "source_sha256": "fdf8b6eefadaa8ff1ded2f888e151e863fa37457d4d2fc355b55f297b0fbef20"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/PackageOpening/PackageOpeningSlice.cs",
-          "line": 77,
-          "source_sha256": "fdf8b6eefadaa8ff1ded2f888e151e863fa37457d4d2fc355b55f297b0fbef20"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/PackageOpening/PackageOpeningSlice.cs",
-          "line": 77,
-          "source_sha256": "fdf8b6eefadaa8ff1ded2f888e151e863fa37457d4d2fc355b55f297b0fbef20"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original PackageOpeningHandler -> PackageOpeningCommand Transactional legacy fine -> original domain; handler catches OpeningRejected/noncancel ordinary storage failure then original response/projection",
+          "new": "thin PackageOpeningHandler -> GamePackageOpeningCommand exact original Input/Dispatch; direct original domain with current unit.Footprint, no old fine/legacy bus forwarder; six pure-business test caller files use typed sameprovider DomainTx driver preserving original owner/Throws; complete wire separate",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/PackageOpening/GamePackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one exact selected actor/account; database identity shares actual SQLite facets; opening cooldown/custody/binding/event and luck state join original transaction as configured",
+          "new": "same captured exact reporter and actual original domain participants; Phase0/native complete protocol FK1/reward INSERT+receipt then Commit19/787 and assets/cooldown/events rollback; unknown/unproved participant or source never gains recovery, no universal SQLite-only claim",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/PackageOpening/GamePackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "original body/commit confirmed rollback ACK, error cause/logging, minimum replay/touched inventory and exact owner guards",
+          "new": "real per-transaction source/phase/cause/new-occurrence facts, custody/binding/volatile/facet Guard and unknown default deny; E+independent rollback/current/cleanup X keep both occurrences including same object; first typed/cancel remains sticky, repeated declaration cannot erase E1; old Write/ReadOnly/default final fence/source order and both B2 raw exits unchanged; initial notification ordinaryFailed isolation, direct failure ACK default, only existing committed replay permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/PackageOpening/GamePackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.PackageOpening.PackageOpeningCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/PackageOpening/GamePackageOpeningCommand.cs",
+          "purpose": "complete PackageOpening protocol using one explicit Main and closed commit-only rollback result, original rejection/frame/domain semantics"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -22129,26 +22525,54 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/MagicBoxSingleOpeningSlice.cs",
-          "line": 53,
-          "source_sha256": "3b7b2cca0f69a807a5501d8785690b82594295162ff0078c90f48b0cbf46dc2d"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "one valid Transactional fine; malformed/no session no fine; original domain exceptions unwind and handler maps after confirmed rollback",
+          "new": "one Main only on original valid branch; action domain/WireSlots/clock narrow catch RequireRollback(original E), whole maps only after unit ends; commit-only KnownStorage ConfirmedRollback result; noClaim PendingRejected; rollback retry same entry/original Ordinal, Freeze projection can remain; successful receipt commits and replay does not reopen",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/GameMagicBoxSingleOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/MagicBoxSingleOpeningSlice.cs",
-          "line": 53,
-          "source_sha256": "3b7b2cca0f69a807a5501d8785690b82594295162ff0078c90f48b0cbf46dc2d"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/GameMagicBoxSingleOpeningCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.MagicBoxSingleOpening.GameMagicBoxSingleOpeningCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/GameMagicBoxSingleOpeningCommand.cs",
+        "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+        "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+      ],
       "id": "message:65744",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.MagicBoxSingleOpening.MagicBoxSingleOpeningHandler",
@@ -22170,35 +22594,87 @@
         "telemetry": false,
         "value": 65744
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/MagicBoxSingleOpeningSlice.cs",
-          "line": 53,
-          "source_sha256": "3b7b2cca0f69a807a5501d8785690b82594295162ff0078c90f48b0cbf46dc2d"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/MagicBoxSingleOpeningSlice.cs",
-          "line": 53,
-          "source_sha256": "3b7b2cca0f69a807a5501d8785690b82594295162ff0078c90f48b0cbf46dc2d"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/MagicBoxSingleOpeningSlice.cs",
-          "line": 53,
-          "source_sha256": "3b7b2cca0f69a807a5501d8785690b82594295162ff0078c90f48b0cbf46dc2d"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original MagicBoxSingleOpeningHandler -> MagicBoxSingleOpeningCommand Transactional legacy fine -> original domain; handler catches OpeningRejected/noncancel ordinary storage failure then original response/projection",
+          "new": "thin MagicBoxSingleOpeningHandler -> GameMagicBoxSingleOpeningCommand exact original Input/Dispatch; direct original domain with current unit.Footprint, no old fine/legacy bus forwarder; six pure-business test caller files use typed sameprovider DomainTx driver preserving original owner/Throws; complete wire separate",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/GameMagicBoxSingleOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one exact selected actor/account; database identity shares actual SQLite facets; opening cooldown/custody/binding/event and luck state join original transaction as configured",
+          "new": "same captured exact reporter and actual original domain participants; Phase0/native complete protocol FK1/reward INSERT+receipt then Commit19/787 and assets/cooldown/events rollback; unknown/unproved participant or source never gains recovery, no universal SQLite-only claim",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/GameMagicBoxSingleOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "original body/commit confirmed rollback ACK, error cause/logging, minimum replay/touched inventory and exact owner guards",
+          "new": "real per-transaction source/phase/cause/new-occurrence facts, custody/binding/volatile/facet Guard and unknown default deny; E+independent rollback/current/cleanup X keep both occurrences including same object; first typed/cancel remains sticky, repeated declaration cannot erase E1; old Write/ReadOnly/default final fence/source order and both B2 raw exits unchanged; initial notification ordinaryFailed isolation, direct failure ACK default, only existing committed replay permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/GameMagicBoxSingleOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.MagicBoxSingleOpening.MagicBoxSingleOpeningCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/MagicBoxSingleOpening/GameMagicBoxSingleOpeningCommand.cs",
+          "purpose": "complete MagicBoxSingleOpening protocol using one explicit Main and closed commit-only rollback result, original rejection/frame/domain semantics"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -25198,26 +25674,54 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/AvatarPackageOpeningSlice.cs",
-          "line": 63,
-          "source_sha256": "9a45b77ddb3ba026e5a153873a402f37dda6b6b5e2cc6e86ee4873cc6f34be95"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "one valid Transactional fine; malformed/no session no fine; original domain exceptions unwind and handler maps after confirmed rollback",
+          "new": "one Main only on original valid branch; action domain/WireSlots/clock narrow catch RequireRollback(original E), whole maps only after unit ends; commit-only KnownStorage ConfirmedRollback result; noClaim PendingRejected; rollback retry same entry/original Ordinal, Freeze projection can remain; successful receipt commits and replay does not reopen",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/GameAvatarPackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/AvatarPackageOpeningSlice.cs",
-          "line": 63,
-          "source_sha256": "9a45b77ddb3ba026e5a153873a402f37dda6b6b5e2cc6e86ee4873cc6f34be95"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/GameAvatarPackageOpeningCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.AvatarPackageOpening.GameAvatarPackageOpeningCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/GameAvatarPackageOpeningCommand.cs",
+        "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+        "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+      ],
       "id": "message:66055",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.AvatarPackageOpening.AvatarPackageOpeningHandler",
@@ -25239,35 +25743,87 @@
         "telemetry": false,
         "value": 66055
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/AvatarPackageOpeningSlice.cs",
-          "line": 63,
-          "source_sha256": "9a45b77ddb3ba026e5a153873a402f37dda6b6b5e2cc6e86ee4873cc6f34be95"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/AvatarPackageOpeningSlice.cs",
-          "line": 63,
-          "source_sha256": "9a45b77ddb3ba026e5a153873a402f37dda6b6b5e2cc6e86ee4873cc6f34be95"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/AvatarPackageOpeningSlice.cs",
-          "line": 63,
-          "source_sha256": "9a45b77ddb3ba026e5a153873a402f37dda6b6b5e2cc6e86ee4873cc6f34be95"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original AvatarPackageOpeningHandler -> AvatarPackageOpeningCommand Transactional legacy fine -> original domain; handler catches OpeningRejected/noncancel ordinary storage failure then original response/projection",
+          "new": "thin AvatarPackageOpeningHandler -> GameAvatarPackageOpeningCommand exact original Input/Dispatch; direct original domain with current unit.Footprint, no old fine/legacy bus forwarder; six pure-business test caller files use typed sameprovider DomainTx driver preserving original owner/Throws; complete wire separate",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/GameAvatarPackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one exact selected actor/account; database identity shares actual SQLite facets; opening cooldown/custody/binding/event and luck state join original transaction as configured",
+          "new": "same captured exact reporter and actual original domain participants; Phase0/native complete protocol FK1/reward INSERT+receipt then Commit19/787 and assets/cooldown/events rollback; unknown/unproved participant or source never gains recovery, no universal SQLite-only claim",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/GameAvatarPackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "original body/commit confirmed rollback ACK, error cause/logging, minimum replay/touched inventory and exact owner guards",
+          "new": "real per-transaction source/phase/cause/new-occurrence facts, custody/binding/volatile/facet Guard and unknown default deny; E+independent rollback/current/cleanup X keep both occurrences including same object; first typed/cancel remains sticky, repeated declaration cannot erase E1; old Write/ReadOnly/default final fence/source order and both B2 raw exits unchanged; initial notification ordinaryFailed isolation, direct failure ACK default, only existing committed replay permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/GameAvatarPackageOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.AvatarPackageOpening.AvatarPackageOpeningCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/AvatarPackageOpening/GameAvatarPackageOpeningCommand.cs",
+          "purpose": "complete AvatarPackageOpening protocol using one explicit Main and closed commit-only rollback result, original rejection/frame/domain semantics"
+        }
+      ]
     },
     {
       "actual_units": [
@@ -28070,26 +28626,54 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/MagicBoxBatchOpeningSlice.cs",
-          "line": 57,
-          "source_sha256": "317699666b1944d7c945da0c3575fb61ae115dbbed065be997b87f7eb99b3595"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "one valid Transactional fine; malformed/no session no fine; original domain exceptions unwind and handler maps after confirmed rollback",
+          "new": "one Main only on original valid branch; action domain/WireSlots/clock narrow catch RequireRollback(original E), whole maps only after unit ends; commit-only KnownStorage ConfirmedRollback result; noClaim PendingRejected; rollback retry same entry/original Ordinal, Freeze projection can remain; successful receipt commits and replay does not reopen",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/GameMagicBoxBatchOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/MagicBoxBatchOpeningSlice.cs",
-          "line": 57,
-          "source_sha256": "317699666b1944d7c945da0c3575fb61ae115dbbed065be997b87f7eb99b3595"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/GameMagicBoxBatchOpeningCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.MagicBoxBatchOpening.GameMagicBoxBatchOpeningCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/GameMagicBoxBatchOpeningCommand.cs",
+        "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+        "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+      ],
       "id": "message:66640",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.MagicBoxBatchOpening.MagicBoxBatchOpeningHandler",
@@ -28111,35 +28695,87 @@
         "telemetry": false,
         "value": 66640
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/MagicBoxBatchOpeningSlice.cs",
-          "line": 57,
-          "source_sha256": "317699666b1944d7c945da0c3575fb61ae115dbbed065be997b87f7eb99b3595"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/MagicBoxBatchOpeningSlice.cs",
-          "line": 57,
-          "source_sha256": "317699666b1944d7c945da0c3575fb61ae115dbbed065be997b87f7eb99b3595"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/MagicBoxBatchOpeningSlice.cs",
-          "line": 57,
-          "source_sha256": "317699666b1944d7c945da0c3575fb61ae115dbbed065be997b87f7eb99b3595"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original MagicBoxBatchOpeningHandler -> MagicBoxBatchOpeningCommand Transactional legacy fine -> original domain; handler catches OpeningRejected/noncancel ordinary storage failure then original response/projection",
+          "new": "thin MagicBoxBatchOpeningHandler -> GameMagicBoxBatchOpeningCommand exact original Input/Dispatch; direct original domain with current unit.Footprint, no old fine/legacy bus forwarder; six pure-business test caller files use typed sameprovider DomainTx driver preserving original owner/Throws; complete wire separate",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/GameMagicBoxBatchOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one exact selected actor/account; database identity shares actual SQLite facets; opening cooldown/custody/binding/event and luck state join original transaction as configured",
+          "new": "same captured exact reporter and actual original domain participants; Phase0/native complete protocol FK1/reward INSERT+receipt then Commit19/787 and assets/cooldown/events rollback; unknown/unproved participant or source never gains recovery, no universal SQLite-only claim",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/GameMagicBoxBatchOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "original body/commit confirmed rollback ACK, error cause/logging, minimum replay/touched inventory and exact owner guards",
+          "new": "real per-transaction source/phase/cause/new-occurrence facts, custody/binding/volatile/facet Guard and unknown default deny; E+independent rollback/current/cleanup X keep both occurrences including same object; first typed/cancel remains sticky, repeated declaration cannot erase E1; old Write/ReadOnly/default final fence/source order and both B2 raw exits unchanged; initial notification ordinaryFailed isolation, direct failure ACK default, only existing committed replay permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/GameMagicBoxBatchOpeningCommand.cs",
+            "Server/src/Dfo.Server.Application/Commands/ICommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/src/Dfo.Server.Abstractions/Transactions/TransactionFailureSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/PackageOpeningTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/KnownRollbackWorkUnitTests.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Database/TransactionFailureSourceTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-report.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/phase0-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-15-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.MagicBoxBatchOpening.MagicBoxBatchOpeningCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-15.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/MagicBoxBatchOpening/GameMagicBoxBatchOpeningCommand.cs",
+          "purpose": "complete MagicBoxBatchOpening protocol using one explicit Main and closed commit-only rollback result, original rejection/frame/domain semantics"
+        }
+      ]
     },
     {
       "actual_units": {

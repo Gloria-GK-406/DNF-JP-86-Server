@@ -81,6 +81,8 @@ internal sealed class DomainTransactionScope(
 internal sealed class DomainTransactionLease(DomainTransaction transaction) : IAsyncDisposable
 {
     internal DomainTransactionCompletion Completion => transaction.Completion;
+    internal TransactionFailureFact? CommitFailure => transaction.CommitFailure;
+    internal Exception? GuardFailure => transaction.GuardFailure;
     internal IDomainTransaction Transaction => transaction;
     internal ValueTask AbortAsync(Exception cause) => transaction.AbortAsync(cause);
 

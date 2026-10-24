@@ -709,17 +709,21 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GameBuyItem, typeof(HousingBuyItemRequest)));
         services.AddCommandHandler<CeraShopPurchaseCommand, CeraShopPurchaseResult, CeraShopPurchaseCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.AddCommandHandler<MagicBoxBatchOpeningCommand, MagicBoxOpeningResult, MagicBoxBatchOpeningCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<MagicBoxSingleOpeningCommand, MagicBoxOpeningResult, MagicBoxSingleOpeningCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameMagicBoxBatchOpeningCommand, MagicBoxOpeningResult, GameMagicBoxBatchOpeningCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameMagicBoxBatchOpening, typeof(MagicBoxBatchOpeningRequest)));
+        services.AddProtocolCommandHandler<GameMagicBoxSingleOpeningCommand, MagicBoxOpeningResult, GameMagicBoxSingleOpeningCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameMagicBoxSingleOpening, typeof(MagicBoxSingleOpeningRequest)));
         services.AddCommandHandler<VendingMachineCommand, VendingMachineResult, VendingMachineCommandHandler>(CommandExecutionKind.Transactional);
         services.AddSingleton<LotteryOpeningDelivery>();
         services.AddCommandHandler<LotteryOpeningCommand, LotteryOpeningResult, LotteryOpeningCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<PackageOpeningCommand, PackageOpeningResult, PackageOpeningCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<AvatarPackageOpeningCommand, PackageOpeningResult, AvatarPackageOpeningCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GamePackageOpeningCommand, PackageOpeningResult, GamePackageOpeningCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GamePackageOpening, typeof(PackageOpeningRequest)));
+        services.AddProtocolCommandHandler<GameAvatarPackageOpeningCommand, PackageOpeningResult, GameAvatarPackageOpeningCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameAvatarPackageOpening, typeof(AvatarPackageOpeningRequest)));
         services.AddCommandHandler<QueryShopPurchaseCountsCommand, NpcShopPurchaseCountsResult, QueryShopPurchaseCountsCommandHandler>(
             CommandExecutionKind.Direct);
         // A tutorial step's items settle together, and through the same container everything else
@@ -958,12 +962,12 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<BuyItemHandler, BuyItemRequest, GameBuyItemCommand>(ClientMessageType.GameBuyItem,
             typeof(BuyItemRequest), typeof(HousingBuyItemRequest));
         services.RegisterMessageHandler<CeraShopPurchaseHandler>(ClientMessageType.GameCeraShopPurchase);
-        services.RegisterMessageHandler<MagicBoxBatchOpeningHandler>(ClientMessageType.GameMagicBoxBatchOpening);
-        services.RegisterMessageHandler<MagicBoxSingleOpeningHandler>(ClientMessageType.GameMagicBoxSingleOpening);
+        services.RegisterProtocolMessageHandler<MagicBoxBatchOpeningHandler, MagicBoxBatchOpeningRequest, GameMagicBoxBatchOpeningCommand>(ClientMessageType.GameMagicBoxBatchOpening);
+        services.RegisterProtocolMessageHandler<MagicBoxSingleOpeningHandler, MagicBoxSingleOpeningRequest, GameMagicBoxSingleOpeningCommand>(ClientMessageType.GameMagicBoxSingleOpening);
         services.RegisterMessageHandler<VendingMachineHandler>(ClientMessageType.GameVendingMachine);
         services.RegisterMessageHandler<LotteryOpeningHandler>(ClientMessageType.GameLotteryOpening);
-        services.RegisterMessageHandler<PackageOpeningHandler>(ClientMessageType.GamePackageOpening);
-        services.RegisterMessageHandler<AvatarPackageOpeningHandler>(ClientMessageType.GameAvatarPackageOpening);
+        services.RegisterProtocolMessageHandler<PackageOpeningHandler, PackageOpeningRequest, GamePackageOpeningCommand>(ClientMessageType.GamePackageOpening);
+        services.RegisterProtocolMessageHandler<AvatarPackageOpeningHandler, AvatarPackageOpeningRequest, GameAvatarPackageOpeningCommand>(ClientMessageType.GameAvatarPackageOpening);
         services.RegisterMessageHandler<GenCeraTicketHandler>(ClientMessageType.GameGenCeraTicket);
         services.RegisterMessageHandler<LearnSkillHandler>(ClientMessageType.GameLearnSkill);
         services.RegisterMessageHandler<SellItemHandler>(ClientMessageType.GameSellItem);

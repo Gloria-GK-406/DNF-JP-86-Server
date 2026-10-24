@@ -114,10 +114,11 @@ internal sealed class CharacterContainerDomainService(IDomainTransactionAccessor
         public Dictionary<InventoryContainerType, ContainerId> Current = [];
         public Held Clone() => new() { Version = Version, Registered = [.. Registered], Current = new(Current) };
     }
-    private sealed class Changes(CharacterContainerDomainService owner) : ITransactionParticipant
+    private sealed class Changes(CharacterContainerDomainService owner) : ITransactionParticipant, ITransactionFailureSource
     {
         private readonly Dictionary<int, (Held? Before, long Version, Held After)> staged = [];
         private readonly HashSet<int> dirty = [];
+        public TransactionFailureFact? LastFailure { get; private set; }
         public bool CommitCanFail => false;
         public T Access<T>(int id, bool mutate, Func<Held, T> action)
         {
@@ -137,7 +138,11 @@ internal sealed class CharacterContainerDomainService(IDomainTransactionAccessor
             lock (owner.sync)
                 foreach (var (id, entry) in staged)
                     if (owner.byCharacter.GetValueOrDefault(id) != entry.Before || entry.Before?.Version != (entry.Before is null ? null : entry.Version))
-                        throw new InvalidOperationException("Container bindings changed before commit.");
+                    {
+                        var cause = new InvalidOperationException("Container bindings changed before commit.");
+                        LastFailure = new(this, cause, TransactionFailurePhase.Prepare, TransactionFailureKind.Guard);
+                        throw cause;
+                    }
             return ValueTask.CompletedTask;
         }
         public ValueTask CommitAsync(CancellationToken ct)

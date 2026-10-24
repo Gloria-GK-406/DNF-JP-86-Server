@@ -125,9 +125,7 @@ public sealed class SouthernDaleCompatibilityTests
         using var fixture = new CeraShopFixture(useArchive: true);
         await fixture.Host.Seed(65, 2681819, 1);
         await fixture.Host.Seed(66, 2681820, 1);
-        var result = await fixture.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new Dfo.Server.Protocol.Game.MagicBoxBatchOpening.MagicBoxBatchOpeningCommand(
-                fixture.Host.OnlineUser, fixture.Host.Session, new(0, 65, 2681819, 66, 2681820, 1)));
+        var result = await OpeningDomainTestDriver.Box(fixture.Host, fixture.Host.Session, new(0, 65, 2681819, 66, 2681820, 1));
         Assert.NotNull(result.Receipt);
         Assert.NotEmpty(result.Primary);
         Assert.Equal(0, fixture.Host.Count(2681819));

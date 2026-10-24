@@ -24,8 +24,7 @@ public sealed class OpeningSynchronizationTests
     {
         using var opening = new OpeningFixture();
         await opening.Host.Seed(3, 1001, count);
-        var result = await opening.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new PackageOpeningCommand(opening.Host.OnlineUser, opening.Host.Session, new(3, [])));
+        var result = await OpeningDomainTestDriver.Package(opening.Host, opening.Host.Session, new(3, []));
         var messages = await Compose(opening.Host, result.Receipt!, new PackageOpeningResponse(3, result));
         Assert.IsType<PackageOpeningResponse>(messages[0]);
         var client = new MainInventoryReplica((3, 1001, count));
@@ -41,8 +40,7 @@ public sealed class OpeningSynchronizationTests
         using var opening = new OpeningFixture();
         await opening.Host.Seed(3, 1001, 1);
         await opening.Host.Seed(4, 3, 5);
-        var result = await opening.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new PackageOpeningCommand(opening.Host.OnlineUser, opening.Host.Session, new(3, [])));
+        var result = await OpeningDomainTestDriver.Package(opening.Host, opening.Host.Session, new(3, []));
         var messages = await Compose(opening.Host, result.Receipt!, new PackageOpeningResponse(3, result));
         var client = new MainInventoryReplica((3, 1001, 1), (4, 3, 5));
         client.Receive(opening.Host, messages);
@@ -57,8 +55,7 @@ public sealed class OpeningSynchronizationTests
         await opening.Host.Seed(3, 1000, 1);
         await opening.Host.Seed(4, 2000, 1);
         var input = new MagicBoxOpeningInput(0, 3, 1000, 4, 2000, 1);
-        var result = await opening.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new MagicBoxBatchOpeningCommand(opening.Host.OnlineUser, opening.Host.Session, input));
+        var result = await OpeningDomainTestDriver.Box(opening.Host, opening.Host.Session, input);
         var messages = await Compose(opening.Host, result.Receipt!, new MagicBoxBatchOpeningResponse(input, result));
         Assert.IsType<MagicBoxBatchOpeningResponse>(messages[0]);
         // Native magic-box ACK removes these piles before the absolute deltas arrive.

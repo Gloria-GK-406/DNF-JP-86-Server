@@ -72,9 +72,7 @@ public sealed class PackageOpeningTests
         var before = opening.Host.Scalar("SELECT COUNT(*) FROM item_slots");
 
         var error = await Assert.ThrowsAsync<OpeningRejectedException>(() =>
-            opening.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-                new PackageOpeningCommand(opening.Host.OnlineUser, opening.Host.Session,
-                    new(289, ImmutableArray<int>.Empty))).AsTask());
+            OpeningDomainTestDriver.Package(opening.Host, opening.Host.Session, new(289, ImmutableArray<int>.Empty)));
 
         Assert.Equal(OpeningRejection.InvalidRequest, error.Reason);
         Assert.Equal(before, opening.Host.Scalar("SELECT COUNT(*) FROM item_slots"));
@@ -109,8 +107,7 @@ public sealed class PackageOpeningTests
         using var shop = new CeraShopFixture(useArchive: true, configure: services => services.AddSingleton<IPackageOpeningRuleService>(
             provider => new DeterministicOpeningRules(new PackageOpeningRuleService(provider.GetRequiredService<IPackageOpeningDefinitionSource>(), provider.GetRequiredService<IItemPlacementRuleService>()))));
         await shop.Host.Seed(66, 2682272, 60);
-        var result = await shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new MagicBoxBatchOpeningCommand(shop.Host.OnlineUser, shop.Host.Session, new(4, 66, 2682272, -1, -1, 60)));
+        var result = await OpeningDomainTestDriver.Box(shop.Host, shop.Host.Session, new(4, 66, 2682272, -1, -1, 60));
         Assert.NotNull(result.Receipt); Assert.Equal(0, shop.Host.Count(2682272));
         Assert.Equal(0, result.LuckBefore); Assert.Equal(4, result.LuckAfter);
         Assert.Equal(4, shop.Host.Scalar("SELECT seria_luck_value FROM accounts WHERE account_id=1"));
@@ -139,8 +136,7 @@ public sealed class PackageOpeningTests
             choices.Add(new(reward.ItemId, checked((byte)(item.Abilities.IsEmpty ? 0 : item.Abilities[0]))));
         }
         await shop.Host.Seed(66, itemId, 1);
-        var result = await shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new AvatarPackageOpeningCommand(shop.Host.OnlineUser, shop.Host.Session, new(66, choices.ToImmutable())));
+        var result = await OpeningDomainTestDriver.Avatar(shop.Host, shop.Host.Session, new(66, choices.ToImmutable()));
         Assert.NotNull(result.Receipt); Assert.Equal(0, shop.Host.Count(itemId));
         var avatars = result.Receipt.Updates.Where(u => u.Slot.Space == BusinessInventorySpace.Avatar).ToArray();
         Assert.Equal(avatarCount, avatars.Length);
@@ -155,8 +151,7 @@ public sealed class PackageOpeningTests
         using var shop = new CeraShopFixture(useArchive: true);
         shop.Host.Sql("UPDATE characters SET job=1 WHERE character_id=1");
         await shop.Host.Seed(66, 10000606, 1);
-        var error = await Assert.ThrowsAsync<OpeningRejectedException>(() => shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new AvatarPackageOpeningCommand(shop.Host.OnlineUser, shop.Host.Session, new(66, [new(102550441, 0)]))).AsTask());
+        var error = await Assert.ThrowsAsync<OpeningRejectedException>(() => OpeningDomainTestDriver.Avatar(shop.Host, shop.Host.Session, new(66, [new(102550441, 0)])));
         Assert.Equal(OpeningRejection.UnsupportedContent, error.Reason);
         Assert.Equal(1, shop.Host.Count(10000606));
     }
@@ -220,8 +215,7 @@ public sealed class PackageOpeningTests
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
         using var shop = new CeraShopFixture(useArchive: true);
         await shop.Host.Seed(66, 160, 1);
-        var result = await shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new PackageOpeningCommand(shop.Host.OnlineUser, shop.Host.Session, new(66, [])));
+        var result = await OpeningDomainTestDriver.Package(shop.Host, shop.Host.Session, new(66, []));
         Assert.NotNull(result.Receipt); Assert.True(result.Receipt.CreaturesChanged); Assert.Equal(0, shop.Host.Count(160));
         var pet = Assert.Single(result.Receipt.Pets);
         var item = Assert.Single(result.Receipt.Updates);
@@ -241,8 +235,7 @@ public sealed class PackageOpeningTests
         Assert.NotNull(item);
         var ability = checked((byte)(item.Abilities.IsEmpty ? 0 : item.Abilities[0]));
         await shop.Host.Seed(66, 2660500, 1);
-        var result = await shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(new PackageOpeningCommand(shop.Host.OnlineUser,
-            shop.Host.Session, new(66, [selected.ItemId]), new(66, [new(selected.ItemId, ability)])));
+        var result = await OpeningDomainTestDriver.Package(shop.Host, shop.Host.Session, new(66, [selected.ItemId]), new(66, [new(selected.ItemId, ability)]));
         Assert.NotNull(result.Receipt);
         var avatar = Assert.Single(result.Receipt.Updates);
         Assert.Equal(selected.ItemId, avatar.Core.ItemId); Assert.Equal(ability, avatar.Core.Attribute);
@@ -258,8 +251,7 @@ public sealed class PackageOpeningTests
         await shop.Host.Seed(122, 10007367, 60);
         var request = Assert.IsType<MagicBoxBatchOpeningRequest>(Decode(shop.Host, 0x0450,
             Convert.FromHexString("00420048B398007A0047B398003C00")));
-        var result = await shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new MagicBoxBatchOpeningCommand(shop.Host.OnlineUser, shop.Host.Session, request.Input!));
+        var result = await OpeningDomainTestDriver.Box(shop.Host, shop.Host.Session, request.Input!);
         Assert.NotNull(result.Receipt);
         Assert.Equal(0, shop.Host.Count(10007368)); Assert.Equal(0, shop.Host.Count(10007367));
         Assert.Equal(1, shop.Host.Count(10007476));
@@ -352,8 +344,7 @@ public sealed class PackageOpeningTests
         var body = new byte[] { 80, 0, 0, 0, 0x78, 0x98, 0, 0, 1, 0x78, 0x98, 0, 0, 2 };
         var request = Assert.IsType<PackageOpeningRequest>(Decode(opening.Host, 0x00A0, body));
         Assert.NotNull(request.AvatarInput);
-        var result = await opening.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new PackageOpeningCommand(opening.Host.OnlineUser, opening.Host.Session, request.Input!, request.AvatarInput));
+        var result = await OpeningDomainTestDriver.Package(opening.Host, opening.Host.Session, request.Input!, request.AvatarInput);
         Assert.Equal(2, Assert.Single(result.Receipt!.Updates).Core.Attribute);
     }
 
@@ -469,21 +460,19 @@ internal sealed class OpeningFixture : IDisposable
     public OpeningContent Content { get; } = new();
     private readonly CeraShopFixture shop;
     public ShopFixture Host => shop.Host;
-    public OpeningFixture() => shop = new(configure: services =>
+    public OpeningFixture(Action<IServiceCollection>? configure = null) => shop = new(configure: services =>
     {
         services.AddSingleton<IPackageOpeningDefinitionSource>(Content);
         services.AddSingleton<IItemPlacementDefinitionSource>(Content);
         services.AddSingleton<IItemUseRuleDefinitionSource>(Content);
+        configure?.Invoke(services);
     });
     public Task<MagicBoxOpeningResult> Box(int count, int materialSlot = 120, int materialId = 2000) =>
-        Host.Services.GetRequiredService<ICommandBus>().SendAsync(new MagicBoxBatchOpeningCommand(Host.OnlineUser, Host.Session,
-            new(0, 80, 1000, materialSlot, materialId, count))).AsTask();
+        OpeningDomainTestDriver.Box(Host, Host.Session, new(0, 80, 1000, materialSlot, materialId, count));
     public Task<PackageOpeningResult> Package(params int[] selected) =>
-        Host.Services.GetRequiredService<ICommandBus>().SendAsync(new PackageOpeningCommand(Host.OnlineUser, Host.Session,
-            new(80, selected.ToImmutableArray()))).AsTask();
+        OpeningDomainTestDriver.Package(Host, Host.Session, new(80, selected.ToImmutableArray()));
     public Task<PackageOpeningResult> Avatar(byte ability) =>
-        Host.Services.GetRequiredService<ICommandBus>().SendAsync(new AvatarPackageOpeningCommand(Host.OnlineUser, Host.Session,
-            new(80, [new(39032, ability)]))).AsTask();
+        OpeningDomainTestDriver.Avatar(Host, Host.Session, new(80, [new(39032, ability)]));
     public void Dispose() => shop.Dispose();
 }
 

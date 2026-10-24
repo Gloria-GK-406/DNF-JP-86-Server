@@ -76,8 +76,7 @@ public sealed class OpeningCapacityRegressionTests
     }
 
     private static Task<MagicBoxOpeningResult> Open(OpeningFixture f, int source) =>
-        f.Host.Services.GetRequiredService<ICommandBus>().SendAsync(new MagicBoxBatchOpeningCommand(
-            f.Host.OnlineUser, f.Host.Session, new(0, source, 1000, -1, 0, 1))).AsTask();
+        OpeningDomainTestDriver.Box(f.Host, f.Host.Session, new(0, source, 1000, -1, 0, 1));
 
     // Match production entry binding: physical writes must use the same capacity service as previews.
     private static void EnableCapacityChecks(ShopFixture host)

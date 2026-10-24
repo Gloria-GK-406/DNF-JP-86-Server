@@ -40,7 +40,7 @@ public sealed class GoldSilverHornRewardTests
         var slot = f.Host.Services.GetRequiredService<IInventorySlotMappingRuleService>().ToGameSlot(Assert.Single(purchase.Receipt.GrantedSlots).Slot).Index;
         if (itemId == 490001565)
         {
-            var result = await commands.SendAsync(new PackageOpeningCommand(f.Host.OnlineUser, f.Host.Session, new(slot, [])));
+            var result = await OpeningDomainTestDriver.Package(f.Host, f.Host.Session, new(slot, []));
             Assert.Equal(OpeningRejection.None, result.Rejection);
             Assert.Single(result.Receipt!.Rewards);
         }

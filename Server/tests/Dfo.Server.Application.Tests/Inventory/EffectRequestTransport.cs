@@ -24,9 +24,12 @@ internal static class EffectRequestTransport
     public static ushort FreshSequence(ShopFixture fixture) => Counters.GetValue(fixture.Connection, _ => new()).Next;
     public static ValueTask Send(ShopFixture fixture, IEffectSettlementRequest request)
     {
-        var body = Body(request);
-        var (ordinal, fresh) = Counters.GetValue(fixture.Connection, _ => new()).Observe(request.Metadata.Sequence);
-        var metadata = (request.Metadata with { InboundOrdinal = ordinal, SequenceIsFresh = fresh }).WithRawBody(body);
+        return SendRaw(fixture, request.Metadata, Body(request));
+    }
+    public static ValueTask SendRaw(ShopFixture fixture, GameMessageMetadata input, byte[] body)
+    {
+        var (ordinal, fresh) = Counters.GetValue(fixture.Connection, _ => new()).Observe(input.Sequence);
+        var metadata = (input with { InboundOrdinal = ordinal, SequenceIsFresh = fresh }).WithRawBody(body);
         var decoderRegistration = fixture.Services.GetServices<GameMessageDecoderRegistration>()
             .Single(x => x.Selector == metadata.Selector && x.Type == metadata.Type);
         var decoded = ((IGameMessageDecoder)fixture.Services.GetRequiredService(decoderRegistration.DecoderType)).Decode(metadata, body)
@@ -54,11 +57,36 @@ internal static class EffectRequestTransport
         return Enumerable.Range(0, count).Where(n => BinaryPrimitives.ReadInt16LittleEndian(frame.AsSpan(20 + n * 101)) == slot)
             .Select(n => BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(26 + n * 101))).Single();
     }
-    private static byte[] Body(IEffectSettlementRequest request)
+    internal static byte[] Body(IEffectSettlementRequest request)
     {
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         switch (request)
         {
+            case Dfo.Server.Protocol.Game.PackageOpening.PackageOpeningRequest x:
+                if (x.Input is null) break;
+                writer.Write(checked((short)x.Input.SourceSlot));
+                if (!x.Input.SelectedItems.IsEmpty)
+                {
+                    writer.Write((ushort)0); // Two opaque context bytes, preserved on the wire.
+                    foreach (var id in x.Input.SelectedItems) writer.Write(id);
+                    writer.Write(checked((byte)(x.AvatarInput?.Choices.Length ?? 0)));
+                    if (x.AvatarInput is { } options)
+                        foreach (var option in options.Choices) { writer.Write(option.ItemId); writer.Write(option.Ability); }
+                }
+                break;
+            case Dfo.Server.Protocol.Game.AvatarPackageOpening.AvatarPackageOpeningRequest x:
+                if (x.Input is null) break;
+                writer.Write(checked((short)x.Input.SourceSlot)); writer.Write(checked((byte)x.Input.Choices.Length));
+                foreach (var option in x.Input.Choices) { writer.Write(option.ItemId); writer.Write(option.Ability); }
+                break;
+            case Dfo.Server.Protocol.Game.MagicBoxSingleOpening.MagicBoxSingleOpeningRequest x:
+                if (x.Input is null) break;
+                writer.Write(checked((byte)x.Input.ListType)); writer.Write(checked((short)x.Input.SourceSlot));
+                writer.Write(checked((short)x.Input.MaterialSlot)); break;
+            case Dfo.Server.Protocol.Game.MagicBoxBatchOpening.MagicBoxBatchOpeningRequest x:
+                if (x.Input is null) break;
+                writer.Write(checked((byte)x.Input.ListType)); writer.Write(checked((short)x.Input.SourceSlot)); writer.Write(x.Input.ExpectedItemId);
+                writer.Write(checked((short)x.Input.MaterialSlot)); writer.Write(x.Input.ExpectedMaterialId); writer.Write(checked((ushort)x.Input.Count)); break;
             case Dfo.Server.Protocol.Game.ItemSockets.ItemSocketRequest x:
                 if (x.Avatar && !x.Open) writer.Write((byte)x.TargetList);
                 writer.Write(x.TargetSlot); writer.Write(x.ExpectedItemId);

@@ -259,3 +259,12 @@ B2只保Main后RequiredExplicit及replay普通Write后CurrentStateBatch的本次
 仅闭message:65937/65974/65975/65740/65741及MagicSealCommand/ForgingCommand/OutworldCommand三个原fine精确ID。MagicSeal2/Forging1/Outworld2 logical bindings分别归唯一whole；原早拒绝无Main/Rejected、domain普通拒绝MainCommitted、失败roll有receipt/扣材料、unseal拒绝无ACK和各自原帧序保持。成功原NotiBus普通Failed隔离，直接ACK默认保护，只既有committed replay许可。
 
 实际账messages20closed/139pending/14retained、commands20closed/184pending；source1closed/72pending/12retained，5protection/8transition pending。original/baseline/其它row不动。本轮正式为Release+三full/四actualcontrols，1793业务库存只延续Task12；最终八full/性能/Spec/legacy清除仍pending。证据/Result及strict/8bad见task-14-inspection。
+
+
+## TASK15 — 四 opening 完整协议与 commit-only 结果
+
+仅闭 message:65696/66055/65744/66640 及 PackageOpeningCommand/AvatarPackageOpeningCommand/MagicBoxSingleOpeningCommand/MagicBoxBatchOpeningCommand 四原 fine。每 logical/精确 shape 唯一 whole，原有效分支 Main，前置拒绝不 Main/Rejected；真实业务动作回滚或已证 SQLite CommitAsync span 确认回滚后才映原失败 ACK，同 entry/原 Ordinal 重试不延期，成功响应/Avatar popup/绝对库存顺序和通知 Failed 隔离保持，仅既有 committed replay。
+
+P3 新结果由真实 source/phase/原 cause/发生身份限制，Guard/Unknown/typed/取消/已提交/清理失败仍默认；RequireRollback(E) 保 E+独立X含同对象和重复声明。旧/新同provider协议 action SQL19/1811 与真实 native Commit19/787 两完整 oracle、三 leaf/facet guard、两 B2/default、mutation、完整 Release 与新八 full、DFO74/7、Golden15/Char10、case delta 和 R1 见 task-15-inspection。
+
+实际账 messages24closed/135pending/14retained、commands24closed/180pending；source1closed/72pending/12retained、5protection/8transition pending。original/baseline/其它 row 不动。最终 T-012 八 full/单 CMD≤2秒测量、Astra/Spec根封存及用户分支收尾仍 pending，不因本Task宣布B完成。
