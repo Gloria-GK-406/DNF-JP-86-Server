@@ -357,8 +357,10 @@ AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他
   协议 handler 可以按顺序调用多次 `SendAsync`；**命令处理器禁止嵌套
   dispatch**，不得在 `ICommandHandler` 内递归或间接调用 `ICommandBus`。
   共享业务逻辑抽成应用服务，由命令处理器直接调用。
-- 管线（`Pipeline/`，Order 从小到大为外到内）。这五层今天包在每一条细粒度命令外；
-  这个粒度是过渡形态，新代码不要依赖「一条命令一套管线」：
+- 管线（`Pipeline/`，Order 从小到大为外到内）。这五层今天包在每一条细粒度命令外，
+  45 与 58 按命令类型上的标记接口（`ISelectedSessionCommand`、`IRequestSettlementCommand`、
+  `IMultiSelectedSessionCommand`、`IAccountCommand`）决定做什么；
+  这个粒度与这几个标记接口是过渡形态，新代码不要依赖「一条命令一套管线」：
   1. `CommandLoggingBehavior`（0）：计时 + 成功/失败日志
   2. `SelectedSessionExecutionBehavior`（45）：开启本请求的主结算（效果账本）、检查命令账号与会话一致、
      参与者集合须含报告会话、逐个复查接收者与参与者的当前性、设置选中会话作用域；事务结果不确定时逐个封锁参与者
@@ -828,13 +830,14 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
 2. 复跑即绿（**要真的跑**——某些机器上三次全量能红两次）
 3. **栈根在下面这份清单内**
 
-已记录的栈根（三条）：
+已记录的栈根（四条）：
 
 | 栈根 | 见于 |
 |---|---|
 | `CharacterDatabaseSchema.KeepWritersAndReadersApart → SqliteCommand.ExecuteScalar` | `OutsideTransactionTests.ReadingACharacterOutsideAUseCaseIsAllowed`、`DarkKnightComboBookTests.APageTheEntryLoadWouldNotCarryIsRefused`、`DarkKnightComboBookTests.TwoBooksAskedForTheSameCharacterAreTheSameBook` |
 | `ItemPathFrameTests.Storage.ReadAsync → SqliteCommand.ExecuteReaderAsync` | 同名用例 |
 | `OneDatabaseOneParticipantTests.Fixture.ReadItemsAsync → SqliteCommand.ExecuteReaderAsync` | 同名用例 |
+| `AchievementTitleBookTests.Fixture.Sql → SqliteCommand.ExecuteNonQuery` | `AchievementTitleBookTests.Real_title_replaces_mirror_in_one_transaction_and_refusal_or_rollback_preserves_old_wear` |
 
 **用例名不是判别依据**——第一条栈根已经在三个不同用例名上出现过。
 **栈根是**：清单外的新栈根**不得直接归入**，要另给不归因的明证（改动与该路径无交集等），
